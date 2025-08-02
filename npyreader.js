@@ -1,3 +1,34 @@
+import JSZip from 'jszip';
+
+async function uncompressNPZ(npzFileBuffer) {
+    
+    const zip = new JSZip();
+  
+    // Load the NPZ (which is a zip file)
+    const zipContent = await zip.loadAsync(npzFileBuffer);
+  
+    // Store extracted NPY files
+    const npyFiles = {};
+  
+    // Iterate over the files in the NPZ
+    for (const filename of Object.keys(zipContent.files)) {
+      if (filename.endsWith('.npy')) {
+        // Extract each .npy file as an ArrayBuffer
+        const npyBuffer = await zipContent.files[filename].async('arraybuffer');
+  
+        // Parse the NPY file using parseNpy
+        const npyData = parseNpy(npyBuffer);
+        
+        // Store the result in npyFiles with the filename as the key
+        npyFiles[filename] = npyData;
+      }
+    }
+  
+    // Return the NPY files and their parsed data
+    return npyFiles;
+  }
+  
+
 function preprocessNpyHeader(headerText) {
     // Replace single quotes with double quotes
     let jsonText = headerText.replace(/'/g, '"');
@@ -19,7 +50,7 @@ function preprocessNpyHeader(headerText) {
     return jsonText;
   }
   
-  export function parseNpy(buffer) {
+  function parseNpy(buffer) {
     const view = new DataView(buffer);
   
     // Magic string "NUMPY"
@@ -143,4 +174,48 @@ function preprocessNpyHeader(headerText) {
     };
   }  
   
+  async function testUncompressNPZ() {
+    const url = 'http://localhost:8080/landing-CY3.npz';
+  
+    try {
+      // Fetch the NPZ file
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const npzFileBuffer = await response.arrayBuffer();
+
+      // Uncompress the NPZ file
+      const uncompressedFiles = await uncompressNPZ(npzFileBuffer);
+
+      console.log('NPZ file successfully uncompressed');
+      console.log('Files in the NPZ:', Object.keys(uncompressedFiles));
+
+      // Process each file in the uncompressed NPZ
+      for (const [filename, data] of Object.entries(uncompressedFiles)) {
+        console.log(`File: ${filename}`);
+        console.log('  Shape:', data.shape);
+        console.log('  Data type:', data.dtype);
+        console.log('  Fortran order:', data.fortranOrder);
+        
+        if (Array.isArray(data.data)) {
+          console.log('  First few data elements:', data.data.slice(0, 5));
+        } else if (typeof data.data === 'object') {
+          console.log('  First data record:', JSON.stringify(data.data[0]));
+        } else {
+          console.log('  Data:', data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error in testUncompressNPZ:', error);
+    }
+  }
+
+  // You can call this function to test uncompressNPZ
+  // Uncomment the line below to automatically run the test when this module loads
+  // testUncompressNPZ();
+
+  // Export functions for use in other modules
+  export { parseNpy, uncompressNPZ };
+
   // end of file
