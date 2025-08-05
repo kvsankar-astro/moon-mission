@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Sankaranarayanan Viswanathan. All rights reserved.
+    # Copyright (c) 2024 Sankaranarayanan Viswanathan. All rights reserved.
 
 # Assistance from Cursor AI was used to write this code based on the Perl version. 
 
@@ -549,11 +549,11 @@ def save_orbit_data_npy():
         npy_dir = os.path.dirname(orbits_file)
         os.makedirs(npy_dir, exist_ok=True)
         
+        npz_file = f"{orbits_file}.npz"
+        npz_data = {}
+        
         for planet, data in orbits.items():
-            elements_file = f"{orbits_file}_elements.npy"
-            vectors_file = f"{orbits_file}_vectors.npy"
-            
-            # Save elements data
+            # Prepare elements data
             if 'elements' in data:
                 elements_array = np.array([(float(e['jdct']), float(e['ec']), float(e['qr']), float(e['in']), 
                                             float(e['om']), float(e['w']), float(e['tp']), float(e['n']), 
@@ -564,27 +564,59 @@ def save_orbit_data_npy():
                                                  ('om', 'f8'), ('w', 'f8'), ('tp', 'f8'), ('n', 'f8'),
                                                  ('ma', 'f8'), ('ta', 'f8'), ('a', 'f8'), ('ad', 'f8'),
                                                  ('pr', 'f8')])
-                np.save(elements_file, elements_array)
-                print_debug(f"Elements data for {planet} saved to {elements_file}")
+                npz_data[f"{planet}_elements"] = elements_array
             
-            # Save vectors data
+            # Prepare vectors data
             if 'vectors' in data:
                 vectors_array = np.array([(float(v['jdct']), float(v['x']), float(v['y']), float(v['z']),
                                            float(v['vx']), float(v['vy']), float(v['vz']))
                                           for v in data['vectors']],
                                          dtype=[('jdct', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                                                 ('vx', 'f8'), ('vy', 'f8'), ('vz', 'f8')])
-                np.save(vectors_file, vectors_array)
-                print_debug(f"Vectors data for {planet} saved to {vectors_file}")
+                npz_data[f"{planet}_vectors"] = vectors_array
         
-        print_debug(f"NPY data written to {npy_dir}")
+        # Save all data to a single .npz file
+        np.savez_compressed(npz_file, **npz_data)
+        
+        print_debug(f"All NPY data written to {npz_file}")
+        
+        # Generate metadata JSON file
+        metadata = {
+            "step_size_minutes": step_size_in_minutes,
+            "start_time": f"{start_year}-{int(start_month):02d}-{int(start_day):02d} {int(start_hour):02d}:{int(start_minute):02d}",
+            "end_time": f"{stop_year}-{int(stop_month):02d}-{int(stop_day):02d} {int(stop_hour):02d}:{int(stop_minute):02d}",
+            "planets": planets,
+            "phase": phase,
+            "center": center,
+            "generated_by": "orbits.py",
+            "generated_at": datetime.now().isoformat(),
+            "python_config": {
+                "start_time_CY3": f"{start_year_CY3}-{int(start_month_CY3):02d}-{int(start_day_CY3):02d} {int(start_hour_CY3):02d}:{int(start_minute_CY3):02d}",
+                "end_time_CY3": f"{stop_year_CY3}-{int(stop_month_CY3):02d}-{int(stop_day_CY3):02d} {int(stop_hour_CY3):02d}:{int(stop_minute_CY3):02d}",
+                "start_time_vikram": f"{start_year_vikram}-{int(start_month_vikram):02d}-{int(start_day_vikram):02d} {int(start_hour_vikram):02d}:{int(start_minute_vikram):02d}",
+                "end_time_vikram": f"{stop_year_vikram}-{int(stop_month_vikram):02d}-{int(stop_day_vikram):02d} {int(stop_hour_vikram):02d}:{int(stop_minute_vikram):02d}"
+            }
+        }
+        
+        # Add data statistics
+        for planet, data in orbits.items():
+            if 'vectors' in data:
+                metadata[f"{planet}_vectors_count"] = len(data['vectors'])
+        
+        # Write metadata JSON file
+        meta_file = f"{orbits_file}-meta.json"
+        with open(meta_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        
+        print_debug(f"Metadata written to {meta_file}")
+        
         return True
     except IOError as e:
-        print_error(f"IOError when writing NPY files: {e}")
+        print_error(f"IOError when writing NPZ file: {e}")
     except ValueError as e:
         print_error(f"Value error when converting data: {e}")
     except Exception as e:
-        print_error(f"Unexpected error when saving NPY data: {e}")
+        print_error(f"Unexpected error when saving NPZ data: {e}")
     
     return False
 
@@ -656,3 +688,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
