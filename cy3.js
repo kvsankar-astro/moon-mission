@@ -3,6 +3,7 @@
 
 import { lunar_pole } from "./astro.js";
 import { deg_to_rad } from "./astro.js";
+import { parseNpy, uncompressNPZ } from "./npyreader.js";
 
 import * as THREE from 'three';
 import Swiper from 'swiper';
@@ -179,7 +180,6 @@ var endLandingTime =   Date.UTC(2023, 8-1, 23,  12, 38, 51, 0); // 25 minutes hi
 
 var timelineTotalSteps;
 var stepsPerHop;
-var stepDurationInMilliSeconds;
 var orbitsJsonFileSizeInBytes;
 var animDate;
 var animTime;
@@ -249,6 +249,105 @@ function fetchJson(url, callback = null, callbackError = null) {
     }); 
 };  
 
+function fetchNPY(url, callback = null, callbackError = null) {
+    fetch(url)
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+            const result = parseNpy(buffer);
+            // console.log("Schema:");
+            // console.log(`Data type: ${result.dtype}`);
+            // console.log(`Shape: ${result.shape}`);
+            // console.log(`Fortran order: ${result.fortranOrder}`);
+            // console.log("Contents:");
+            // console.log(result.data);
+            
+            // let processedResult;
+            // if (Array.isArray(result.data)) {
+            //     processedResult = result.data.map(item => ({
+            //         jdct: item.jdct,
+            //         x: item.x,
+            //         y: item.y,
+            //         z: item.z,
+            //         vx: item.vx,
+            //         vy: item.vy,
+            //         vz: item.vz
+            //     }));
+            //     console.log("processedResult: " + processedResult);
+            // } else {
+            //     console.warn("Result data is not an array. Unable to process.");
+            //     processedResult = result.data;
+            // }
+            
+            if (callback !== null) {
+                callback(result.data);
+            }
+        })
+        .catch(error => {
+            console.error("Error in fetchNPY:", error);
+            if (callbackError !== null) {
+                callbackError(error);
+            }
+        });
+}
+
+async function fetchMetadata(npzFileName) {
+    const metaFileName = npzFileName.replace('.npz', '-meta.json');
+    try {
+        const response = await fetch(metaFileName);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.warn(`No metadata file found: ${metaFileName}, using defaults`);
+    }
+    return null; // Fallback to defaults
+}
+
+async function fetchNPZ(url, callback = null, callbackError = null) {
+    try {
+        // First try to fetch metadata
+        const metadata = await fetchMetadata(url);
+        if (metadata) {
+            // Metadata loaded successfully
+            // Store metadata for later use
+            animationScenes[config].metadata = metadata;
+        }
+        
+        // Then fetch NPZ data
+        const response = await fetch(url);
+        const buffer = await response.arrayBuffer();
+        const npzData = await uncompressNPZ(buffer);
+        
+        // Convert NPZ data to the format expected by the rest of the code
+        // The JSON structure has planets as top-level keys, each with "vectors" property
+        const processedData = {};
+        
+        // Process each file in the NPZ
+        for (const [filename, npyData] of Object.entries(npzData)) {
+            if (filename.includes('_vectors.npy')) {
+                // Extract planet name from filename (e.g., "CY3_vectors.npy" -> "CY3")
+                const planetName = filename.replace('_vectors.npy', '');
+                
+                // Create planet object if it doesn't exist
+                if (!processedData[planetName]) {
+                    processedData[planetName] = {};
+                }
+                
+                processedData[planetName].vectors = npyData.data;
+            }
+        }
+        
+        if (callback !== null) {
+            callback(processedData);
+        }
+    } catch (error) {
+        console.error("Error in fetchNPZ:", error);
+        if (callbackError !== null) {
+            callbackError(error);
+        }
+    }
+}
+
 function getStartAndEndTimes(id) {
 
     // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
@@ -314,6 +413,17 @@ class SceneHandler {
         // this.canvasNode = d3.select("#canvas-wrapper").node().appendChild(this.renderer.domElement); // TODO find a better D3 way to do this
 
         window.addEventListener('resize', onWindowResize, {passive: false}); // TODO verify 
+
+        // Prevent default drag behavior on the canvas
+        this.renderer.domElement.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        
+        // Also prevent selection
+        this.renderer.domElement.style.userSelect = 'none';
+        this.renderer.domElement.style.webkitUserSelect = 'none';
+        this.renderer.domElement.style.MozUserSelect = 'none';
 
         $("#settings-panel-button").on("click", function() {
             $("#settings-panel").dialog({
@@ -2614,8 +2724,9 @@ function initConfig() {
 
         animationScenes[config].planetsForOrbits = ["MOON", "CY3"]; // TODO Add Vikram later
         animationScenes[config].planetsForLocations = ["MOON", "CY3"]; // TODO Add Vikram later
-        animationScenes[config].stepDurationInMilliSeconds = STEP_DURATION_MS; // TODO add to and read from JSON
+        animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
         animationScenes[config].orbitsJson = "geo-CY3.json";
+        animationScenes[config].orbitsNpz = "geo-CY3.npz";
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2626,7 +2737,7 @@ function initConfig() {
         endTimeVikram              = getStartAndEndTimes("VIKRAM")[1];
 
         latestEndTime = endTime;
-        timelineTotalSteps = (latestEndTime - startTime) / stepDurationInMilliSeconds;
+        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         ticksPerAnimationStep = 1;
 
         epochJD = "N/A";
@@ -2663,8 +2774,9 @@ function initConfig() {
 
         animationScenes[config].planetsForOrbits = ["EARTH", "CY3"]; // TODO Vikram to be added later
         animationScenes[config].planetsForLocations = ["EARTH", "CY3"]; // TODO Vikram to be added later
-        animationScenes[config].stepDurationInMilliSeconds = STEP_DURATION_MS; // TODO add to and read from JSON
+        animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
         animationScenes[config].orbitsJson = "lunar-CY3.json";
+        animationScenes[config].orbitsNpz = "lunar-CY3.npz";
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2675,7 +2787,7 @@ function initConfig() {
         // endTimeVikram              = getStartAndEndTimes("VIKRAM")[1];
 
         latestEndTime = endTime;
-        timelineTotalSteps = (latestEndTime - startTime) / stepDurationInMilliSeconds;
+        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         ticksPerAnimationStep = 1;
 
         epochJD = "N/A";
@@ -2711,8 +2823,9 @@ function initConfig() {
 
         animationScenes[config].planetsForOrbits = ["CY3"]; // TODO Vikram and LRO to be added later 
         animationScenes[config].planetsForLocations = ["CY3"]; // TODO Vikram and LRO to be added later
-        animationScenes[config].stepDurationInMilliSeconds = 5 * MILLI_SECONDS_PER_MINUTE; // TODO add to and read from JSON
+        animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
         animationScenes[config].orbitsJson = "lunar-lro.json";
+        animationScenes[config].orbitsNpz = "lro-CY3.npz";
         animationScenes[config].orbitsJsonFileSizeInBytes = 29053 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2723,7 +2836,7 @@ function initConfig() {
         // endTimeVikram              = getStartAndEndTimes("VIKRAM")[1];
 
         latestEndTime = endTime;
-        timelineTotalSteps = (latestEndTime - startTime) / stepDurationInMilliSeconds;
+        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         ticksPerAnimationStep = 1;
 
         epochJD = "N/A";
@@ -2947,16 +3060,24 @@ function getBodyLocation(craftid, t) {
         // console.log("getBodyLocation(" + craftId + ", " + t + ") => x = " + x, ", y = " + y + ", z = " + z);
         return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
     } else {
-        var orbitDataResolutionInMinutes = 1;
+        var orbitDataResolutionInMs = animationScenes[config].stepDurationInMilliSeconds;
         var num = t - startTime;
-        var denom = orbitDataResolutionInMinutes * ONE_MINUTE_MS;
+        var denom = orbitDataResolutionInMs;
         var tlIndex1 = Math.floor(num / denom);
         var tlIndex2 = tlIndex1 + 1;
-        var remainder = (num % denom) / ONE_MINUTE_MS;
-        // console.log("tlIndex1 = " + tlIndex1 + ", remainder = " + remainder);
-        // console.log("tlIndex = " + tlIndex);
-    
+        var remainder = (num % denom) / denom;
+        
         var vectors = animationScenes[config].orbits[planetProperties[craftid].id]["vectors"];
+        
+        if (tlIndex1 >= vectors.length || tlIndex1 < 0) {
+            console.error(`Invalid tlIndex1: ${tlIndex1}, vectors.length: ${vectors.length}`);
+            return [null, null];
+        }
+        if (tlIndex2 >= vectors.length) {
+            console.error(`Invalid tlIndex2: ${tlIndex2}, vectors.length: ${vectors.length}`);
+            return [null, null];
+        }
+        
         var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
         var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
         var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
@@ -2977,7 +3098,7 @@ function setLocation() {
 
     // console.log("setLocation(): timelineIndex = " + timelineIndex + ", timelineTotalSteps = " + timelineTotalSteps);
 
-    // animTime = startTime + timelineIndex * stepDurationInMilliSeconds;
+    // animTime = startTime + timelineIndex * animationScenes[config].stepDurationInMilliSeconds;
     var animTimeDate = new Date(animTime);
     // console.log("animTimeDate = " + animTimeDate);
     animDate.html(animTimeDate); // TODO add custom formatting 
@@ -3332,7 +3453,7 @@ async function initAnimation(flags) {
                 setTimeout(waitUntilOrbitDataProcessed, 50);
             } else {
                 // console.log("Orbit data already processed for " + config);
-                if (flags.reset) { missionNow(); } else { setLocation(); };
+                if (flags.reset) { missionStart(); } else { setLocation(); };
                 // realtime();
                 setDimension();
                 setView();
@@ -3655,11 +3776,27 @@ function init(callback) {
     // console.log("init() returning: took " + fnDuration + " ms");
 }
 
+function updateConfigFromMetadata() {
+    // Update step duration from metadata if available
+    if (animationScenes[config].metadata && animationScenes[config].metadata.step_size_minutes) {
+        const metadataStepMinutes = animationScenes[config].metadata.step_size_minutes;
+        animationScenes[config].stepDurationInMilliSeconds = metadataStepMinutes * MILLI_SECONDS_PER_MINUTE;
+        // Step duration updated from metadata
+        
+        // Recalculate timeline total steps
+        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
+    }
+}
+
 function processOrbitData(data) {
     // console.log("processOrbitData() called");
 
     $("#progressbar").hide();
     d3.select("#progressbar-label").html("");
+    
+    // Update configuration from metadata if available
+    updateConfigFromMetadata();
+    
     animationScenes[config].orbits = data;
     if (config == "helio") processOrbitElementsData();
     processOrbitVectorsData().then();
@@ -3777,7 +3914,10 @@ function loadOrbitDataIfNeededAndProcess(callback) {
         d3.select("#progressbar-label").html(msg);
         sleep().then();
 
-        fetchJson(animationScenes[config].orbitsJson, function(data) {
+        // NPZ code goes here
+
+        fetchNPZ(animationScenes[config].orbitsNpz, function(data) {
+            // data is now the parsed NPZ data
 
             // console.log("Orbit data load from " + animationScenes[config].orbitsJson + ": OK");
             dataLoaded = true;
@@ -3794,12 +3934,14 @@ function loadOrbitDataIfNeededAndProcess(callback) {
                 $("#progressbar").hide();
                 console.log("Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error);
             }                    
-
+            
         }, function(error) {
+            console.log("Error loading or processing .npz file:", error);
             $("#progressbar").hide();
             var msg = "Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error;
             console.log(msg);
             d3.select("#eventinfo").text(msg);
+
         });
 
 
@@ -4062,7 +4204,7 @@ async function processOrbitVectorsData() {
         // For example, Maven and the Mars Orbiter Mission were launched at different times.
         // The "offset" vallue is to take care of such scenarios.
 
-        var planetIndexOffset = (planetStartTime(planetKey) - startTime) / stepDurationInMilliSeconds;
+        var planetIndexOffset = (planetStartTime(planetKey) - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         planetProperties[planetKey]["offset"] = planetIndexOffset;
 
         svgContainer.append("circle")
