@@ -7,7 +7,7 @@ import { parseNpy, uncompressNPZ } from "./npyreader.js";
 
 import * as THREE from 'three';
 import Swiper from 'swiper';
-import { TrackballControls } from './third-party/TrackballControls.js';
+import { TrackballControls } from '../../../third-party/TrackballControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // orbit and location related data
@@ -1908,7 +1908,7 @@ class AnimationScene {
         var animationScene = this;
         var done = false;
 
-        loader.load('third-party/models/cy3-small.glb', function (gltf) {
+        loader.load('assets/chandrayaan3/models/cy3-small.glb', function (gltf) {
 
             // console.log("Loaded GLB.");
 
@@ -2725,8 +2725,8 @@ function initConfig() {
         animationScenes[config].planetsForOrbits = ["MOON", "CY3"]; // TODO Add Vikram later
         animationScenes[config].planetsForLocations = ["MOON", "CY3"]; // TODO Add Vikram later
         animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-        animationScenes[config].orbitsJson = "geo-CY3.json";
-        animationScenes[config].orbitsNpz = "geo-CY3.npz";
+        animationScenes[config].orbitsJson = "assets/chandrayaan3/data/geo-CY3.json";
+        animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/geo-CY3.npz";
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2775,8 +2775,8 @@ function initConfig() {
         animationScenes[config].planetsForOrbits = ["EARTH", "CY3"]; // TODO Vikram to be added later
         animationScenes[config].planetsForLocations = ["EARTH", "CY3"]; // TODO Vikram to be added later
         animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-        animationScenes[config].orbitsJson = "lunar-CY3.json";
-        animationScenes[config].orbitsNpz = "lunar-CY3.npz";
+        animationScenes[config].orbitsJson = "assets/chandrayaan3/data/lunar-CY3.json";
+        animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/lunar-CY3.npz";
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -3887,7 +3887,7 @@ function processOrbitData(data) {
 
 function loadLandingDataAndProcess() {
     if (!landingDataLoaded) {
-        var landingDataJson = "landing-CY3.json";
+        var landingDataJson = "assets/chandrayaan3/data/landing-CY3.json";
         fetchJson(landingDataJson, async function(data) {
 
             // console.log("Landing orbit data load from " + landingDataJson + ": OK");

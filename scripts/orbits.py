@@ -13,6 +13,7 @@ import json
 from datetime import datetime, timezone
 import re
 import numpy as np
+import shutil
 
 # constants - ephemerides related
 
@@ -57,8 +58,8 @@ planet_codes = {
 help = False
 phase = None
 use_cached_data = False
-date = datetime.now().strftime('%Y%m%d')
-data_dir = os.path.join("data-fetched", date)
+date = datetime.now().strftime('%Y%m%d%H%M%S')
+data_dir = os.path.join("assets/chandrayaan3/archive/data-fetched", date)
 debugging = True
 
 config = {
@@ -127,6 +128,18 @@ config = {
         'orbits_file'          : f"{data_dir}/landing-CY3"
     },
 }
+
+def copy_to_project_root(source_path, filename):
+    """Copy a file from the timestamped directory to the asset directory structure."""
+    try:
+        # Copy to assets/chandrayaan3/data/ for the new structure
+        assets_dir = "assets/chandrayaan3/data"
+        os.makedirs(assets_dir, exist_ok=True)
+        dest_path = os.path.join(assets_dir, filename)
+        shutil.copy2(source_path, dest_path)
+        print_debug(f"Copied {source_path} to {dest_path}")
+    except Exception as e:
+        print_error(f"Error copying {source_path} to asset directory: {e}")
 
 # Initialize variables
 start_year, start_month, start_day, start_hour, start_minute = None, None, None, None, None
@@ -318,6 +331,10 @@ def save_orbit_data_json():
             json.dump(orbits, fh, indent=2)
         
         print_debug(f"JSON data written to {orbits_file}.json")
+        
+        # Copy to project root
+        json_filename = os.path.basename(f"{orbits_file}.json")
+        copy_to_project_root(f"{orbits_file}.json", json_filename)
         
         # Verify the file was created and has content
         if os.path.exists(f"{orbits_file}.json") and os.path.getsize(f"{orbits_file}.json") > 0:
@@ -580,6 +597,10 @@ def save_orbit_data_npy():
         
         print_debug(f"All NPY data written to {npz_file}")
         
+        # Copy NPZ file to project root
+        npz_filename = os.path.basename(npz_file)
+        copy_to_project_root(npz_file, npz_filename)
+        
         # Generate metadata JSON file
         metadata = {
             "step_size_minutes": step_size_in_minutes,
@@ -609,6 +630,10 @@ def save_orbit_data_npy():
             json.dump(metadata, f, indent=2)
         
         print_debug(f"Metadata written to {meta_file}")
+        
+        # Copy metadata file to project root
+        meta_filename = os.path.basename(meta_file)
+        copy_to_project_root(meta_file, meta_filename)
         
         return True
     except IOError as e:
