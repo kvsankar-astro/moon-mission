@@ -51,7 +51,6 @@ The script supports the following options:
     --phase=[geo|lunar|landing]  # geocentric, selenocentric, or landing phase -- defaults to geo
     --data-dir=<datadir>         # place to save orbit data files -- defaults to .
     --use-cache                  # use orbit data retrieved and saved earlier -- optional
-    --npz                        # generate NPZ format (Python script only)
 
 Raw orbit data obtained from JPL is stored into the following files:
 

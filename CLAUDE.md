@@ -44,13 +44,10 @@ python scripts/orbits.py --phase=geo
 # Fetch selenocentric orbit data
 python scripts/orbits.py --phase=lunar
 
-# Generate NPZ format
-python scripts/orbits.py --phase=geo --npz
-
-# Generate all phases with NPZ format
-python scripts/orbits.py --phase=geo --npz
-python scripts/orbits.py --phase=lunar --npz
-python scripts/orbits.py --phase=landing --npz
+# Generate JSON and NPZ formats (both generated automatically)
+python scripts/orbits.py --phase=geo
+python scripts/orbits.py --phase=lunar
+python scripts/orbits.py --phase=landing
 ```
 
 ### Running the Application
@@ -85,7 +82,7 @@ npx http-server
 ### NPZ Support
 - Added support for NumPy compressed (NPZ) format for orbit data
 - NPZ files provide more efficient storage and faster loading
-- Use `--npz` flag with Python script to generate NPZ files
+- Python script automatically generates both JSON and NPZ files
 
 ### Data Pipeline Updates
 - Python script now outputs to timestamped archive directories

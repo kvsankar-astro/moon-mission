@@ -103,3 +103,6 @@ TODO-metadata-sync.md
 # Temporary directories
 xml/
 data-fetched/
+
+# Deployment configuration (contains credentials)
+deploy-config.json
