@@ -6,7 +6,7 @@ in http://sankara.net/chandrayaan3.html. That page shows an animation
 of the orbit of the ISRO <a href="https://www.isro.gov.in/Chandrayaan3_New.html">
 Chandrayaan 3</a> mission.
 
-![Screenshot](/screenshots/chandrayaan2.png?raw=true)
+![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
 
 ## Features
 
@@ -38,19 +38,20 @@ The 3D mode uses THREE JS.
 JQuery and JQueryUI are used for control and information panels.
 
 Orbit data is fetched offline from JPL/NASA HORIZONS.
-This data in CSV format is processed a bit and converted into JSON format 
+This data in CSV format is processed a bit and converted into JSON or NPZ format 
 for use in the animation. A few astronomy functions are based on Steve Moshier's routines.
 
 ### Fetching orbit data
 
-The Perl script orbits.pl is used to fetch orbit data during development time from
+The Python script scripts/orbits.py (or Perl script scripts/orbits.pl) is used to fetch orbit data during development time from
 <a href="http://ssd.jpl.nasa.gov/?horizons">NASA JPL HORIZONS</a> web interface.
 
 The script supports the following options:
 
-    --phase=[geo|lunar]       # geocentric or selenocentric phase -- defaults to geo
-    --data-dir=<datadir>      # place to save orbit data files -- defaults to .
-    --use-cache               # use orbit data retrieved and saved earlier -- optional
+    --phase=[geo|lunar|landing]  # geocentric, selenocentric, or landing phase -- defaults to geo
+    --data-dir=<datadir>         # place to save orbit data files -- defaults to .
+    --use-cache                  # use orbit data retrieved and saved earlier -- optional
+    --npz                        # generate NPZ format (Python script only)
 
 Raw orbit data obtained from JPL is stored into the following files:
 
@@ -61,10 +62,12 @@ Orbital elements are also stored here (though they aren't used at present):
 
     ho-<id>-orbit.txt     # orbital elements for one instant of time
 
-Orbit data for use by the JavaScript is written in JSON format in a time-stamped directory under data-fetched:
+Orbit data for use by the JavaScript is written in JSON format (or NPZ format) and placed in assets/chandrayaan3/data/:
 
-    geo-cy3.json                # contains all geocentric orbit data (elements and vectors) 
-    lunar-cy3.json              # contains all selenocentric orbit data (elements and vectors)
+    geo-CY3.json                # contains all geocentric orbit data (elements and vectors) 
+    lunar-CY3.json              # contains all selenocentric orbit data (elements and vectors)
+    landing-CY3.json            # contains landing phase orbit data
+    *.npz                       # alternative compressed NumPy format for faster loading
     
 
 ### Web page
@@ -73,13 +76,14 @@ The site consists of the following three sets of files:
 
 #### Core project files
 
-    chandrayaan3.html         # HTML page
-    cy3.js                    # JavaScript handling animation
-    astro.js                  # A few astronomy support functions
-    cy3.css                   # CSS for the web page
-    whatsnew-cy3.html         # What's new page
-    geo-cy3.json              # contains all geocentric orbit data
-    lunary-cy3.json           # contains all selenocentric orbit data
+    chandrayaan3.html                   # HTML page
+    assets/chandrayaan3/js/cy3.js       # JavaScript handling animation
+    assets/chandrayaan3/js/astro.js     # A few astronomy support functions
+    assets/chandrayaan3/js/npyreader.js # NPZ/NPY file reader
+    assets/chandrayaan3/css/cy3.css     # CSS for the web page
+    assets/chandrayaan3/html/whatsnew-cy3.html  # What's new page
+    assets/chandrayaan3/data/*.json     # orbit data files
+    assets/chandrayaan3/models/*.glb    # 3D spacecraft models
 
 #### Third party library files, style sheets, and images
 
@@ -96,7 +100,7 @@ The site consists of the following three sets of files:
 
 #### Analytics
 
-    ga.js                 # Google analytics
+    assets/chandrayaan3/js/ga.js        # Google analytics
 
 ### Hosting
 
