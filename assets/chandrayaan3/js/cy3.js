@@ -106,6 +106,7 @@ var orbitData = {};
 var landingDataLoaded = false;
 var landingDataProcessed = false;
 var landingData = {};
+var landingMetadata = {};
 var nOrbitPoints = 0;
 var nLandingPoints = 0;
 var nOrbitPointsVikram = 0;
@@ -3778,9 +3779,9 @@ function init(callback) {
 
 function updateConfigFromMetadata() {
     // Update step duration from metadata if available
-    if (animationScenes[config].metadata && animationScenes[config].metadata.step_size_minutes) {
-        const metadataStepMinutes = animationScenes[config].metadata.step_size_minutes;
-        animationScenes[config].stepDurationInMilliSeconds = metadataStepMinutes * MILLI_SECONDS_PER_MINUTE;
+    if (animationScenes[config].metadata && animationScenes[config].metadata.step_size_seconds) {
+        const metadataStepSeconds = animationScenes[config].metadata.step_size_seconds;
+        animationScenes[config].stepDurationInMilliSeconds = metadataStepSeconds * 1000; // Convert seconds to milliseconds
         // Step duration updated from metadata
         
         // Recalculate timeline total steps
@@ -3887,15 +3888,26 @@ function processOrbitData(data) {
 
 function loadLandingDataAndProcess() {
     if (!landingDataLoaded) {
-        var landingDataJson = "assets/chandrayaan3/data/landing-CY3.json";
-        fetchJson(landingDataJson, async function(data) {
+        var landingDataNpz = "assets/chandrayaan3/data/landing-CY3.npz";
+        fetchNPZ(landingDataNpz, async function(data) {
 
-            // console.log("Landing orbit data load from " + landingDataJson + ": OK");
+            // console.log("Landing orbit data load from " + landingDataNpz + ": OK");
             landingDataLoaded = true;
             landingData = data;
+            
+            // Also load the landing metadata
+            try {
+                const metaFileName = landingDataNpz.replace('.npz', '-meta.json');
+                const response = await fetch(metaFileName);
+                if (response.ok) {
+                    landingMetadata = await response.json();
+                }
+            } catch (error) {
+                console.warn("Could not load landing metadata:", error);
+            }
 
         }, async function(error) {
-            var msg = "Error: Orbit data load from " + orbitsJson + ": " + error;
+            var msg = "Error: Landing orbit data load from " + landingDataNpz + ": " + error;
             console.log(msg);
         });
     }

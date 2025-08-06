@@ -71,7 +71,7 @@ config = {
         'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
         'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
 
-        'step_size_in_minutes' : 1,
+        'step_size_in_seconds' : 60,  # 1 minute intervals
 
         'planets'              : ["MOON", "CY3"], # TODO Add Vikram later
 
@@ -87,7 +87,7 @@ config = {
         'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
         'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
 
-        'step_size_in_minutes' : 1,
+        'step_size_in_seconds' : 60,  # 1 minute intervals
 
         'planets'              : ["CY3", "EARTH"], # TODO Add Vikram later
 
@@ -103,7 +103,7 @@ config = {
         'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
         'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
 
-        'step_size_in_minutes' : 5,
+        'step_size_in_seconds' : 300,  # 5 minute intervals
 
         'planets'              : ["CY3", "LRO", "EARTH"], # TODO Add Vikram later
 
@@ -119,7 +119,7 @@ config = {
         'start_year_vikram'    : '2023', 'start_month_vikram'    : '08', 'start_day_vikram'    : '23', 'start_hour_vikram'       : '12', 'start_minute_vikram'      : '15',
         'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '08', 'stop_day_vikram'     : '23', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '40',
 
-        'step_size_in_minutes' : 1500, # TODO jugaad to get 1800 seconds of data -- see below
+        'step_size_in_seconds' : 1,  # 1 second intervals for high-resolution landing data
 
         'planets'              : ["CY3"], # TODO Add Vikram later
 
@@ -146,7 +146,7 @@ start_year, start_month, start_day, start_hour, start_minute = None, None, None,
 stop_year, stop_month, stop_day, stop_hour, stop_minute = None, None, None, None, None
 start_year_CY3, start_month_CY3, start_day_CY3, start_hour_CY3, start_minute_CY3 = None, None, None, None, None
 stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3 = None, None, None, None, None
-step_size_in_minutes = None
+step_size_in_seconds = None
 start_year_vikram, start_month_vikram, start_day_vikram, start_hour_vikram, start_minute_vikram = None, None, None, None, None
 stop_year_vikram, stop_month_vikram, stop_day_vikram, stop_hour_vikram, stop_minute_vikram = None, None, None, None, None
 
@@ -184,7 +184,7 @@ def init_config(option):
     global stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3
     global start_year_vikram, start_month_vikram, start_day_vikram, start_hour_vikram, start_minute_vikram
     global stop_year_vikram, stop_month_vikram, stop_day_vikram, stop_hour_vikram, stop_minute_vikram
-    global step_size_in_minutes, planets, center, orbits_file
+    global step_size_in_seconds, planets, center, orbits_file
 
     start_year = config[option]['start_year']
     start_month = config[option]['start_month']
@@ -222,7 +222,7 @@ def init_config(option):
     stop_hour_vikram = config[option]['stop_hour_vikram']
     stop_minute_vikram = config[option]['stop_minute_vikram']
 
-    step_size_in_minutes = config[option]['step_size_in_minutes']
+    step_size_in_seconds = config[option]['step_size_in_seconds']
 
     planets = config[option]['planets']
 
@@ -233,7 +233,7 @@ def init_config(option):
 def print_config():
     print(f"(start_year, start_month, start_day, start_hour, start_minute) = ({start_year}, {start_month}, {start_day}, {start_hour}, {start_minute})")
     print(f"(stop_year, stop_month, stop_day, stop_hour, stop_minute) = ({stop_year}, {stop_month}, {stop_day}, {stop_hour}, {stop_minute})")
-    print(f"step_size_in_minutes = {step_size_in_minutes}")
+    print(f"step_size_in_seconds = {step_size_in_seconds}")
     print(f"planets = {', '.join(planets)}")
     print(f"orbits_file = {orbits_file}")
 
@@ -265,7 +265,16 @@ def set_start_and_stop_times():
     stop_time_gm = calendar.timegm((int(stop_year), int(stop_month), int(stop_day), 
                                     int(stop_hour), int(stop_minute), 0))
 
-    step_size = f"{step_size_in_minutes}" + ("" if phase == "landing" else " m")  # TODO jugaad for landing resolution
+    # Calculate step size for HORIZONS API
+    # If step size is >= 60 seconds and divisible by 60, use minutes
+    # Otherwise, calculate number of steps to use 1-second default
+    if step_size_in_seconds >= 60 and step_size_in_seconds % 60 == 0:
+        step_size = f"{step_size_in_seconds // 60} m"  # Convert to minutes
+    else:
+        # Calculate total number of steps needed at 1-second intervals
+        total_seconds = stop_time_gm - start_time_gm
+        num_steps = total_seconds // step_size_in_seconds
+        step_size = str(int(num_steps))  # Use number of steps (defaults to 1-second intervals)
 
     # Calculate JD for start time
     jd = my_jd(start_time_gm)
@@ -602,8 +611,10 @@ def save_orbit_data_npy():
         copy_to_project_root(npz_file, npz_filename)
         
         # Generate metadata JSON file
+        # Convert step size from seconds to minutes for metadata
         metadata = {
-            "step_size_minutes": step_size_in_minutes,
+            "step_size_seconds": step_size_in_seconds,
+            "step_size_minutes": step_size_in_seconds / 60.0,
             "start_time": f"{start_year}-{int(start_month):02d}-{int(start_day):02d} {int(start_hour):02d}:{int(start_minute):02d}",
             "end_time": f"{stop_year}-{int(stop_month):02d}-{int(stop_day):02d} {int(stop_hour):02d}:{int(stop_minute):02d}",
             "planets": planets,
