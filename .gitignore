@@ -1,0 +1,105 @@
+# =========================
+# Generated Data Files
+# =========================
+# Orbit data files
+*.npz
+*-CY3.json
+*-CY3.json.bak
+*-CY3-meta.json
+
+# Daily generated data
+today-*.json
+
+# Other generated files
+previous.json
+
+# =========================
+# Assets and Archives
+# =========================
+# Data directories
+assets/chandrayaan3/data/
+assets/chandrayaan3/archive/
+
+# Large models
+assets/chandrayaan3/models/cy3.glb
+
+# Archive folders
+archive/
+
+# =========================
+# Large Image Files
+# =========================
+*.tif
+ldem_*.png
+lroc_color_poles_*.png
+images/moon/lro-cgi-kit/
+images/moon/moon.png
+
+# Binary data files
+*.npy
+de421.bsp
+
+# =========================
+# Development Environment
+# =========================
+# Python virtual environment
+pyvenv.cfg
+bin/
+lib/
+lib64/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+
+# =========================
+# IDE and Editor Files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# System Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Temporary Files
+# =========================
+*.tmp
+*.temp
+*.cache
+*.log
+
+# =========================
+# Project Specific
+# =========================
+# Sandbox and experiments
+sandbox/
+pages/
+
+# Documentation
+TODO-metadata-sync.md
+
+# Temporary directories
+xml/
+data-fetched/
