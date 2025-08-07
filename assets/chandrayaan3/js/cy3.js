@@ -176,8 +176,8 @@ var endTimeCY3;
 var startTimeVikram;
 var endTimeVikram;
 var latestEndTime; 
-var startLandingTime = Date.UTC(2023, 8-1, 23,  12, 13, 51, 0); // 12:13:51 UTC = 12:15:00 TDT
-var endLandingTime =   Date.UTC(2023, 8-1, 23,  12, 38, 51, 0); // 25 minutes high resolution data
+var startLandingTime;
+var endLandingTime;
 
 var timelineTotalSteps;
 var stepsPerHop;
@@ -203,6 +203,8 @@ var mousedownTimeout = ZOOM_TIMEOUT;
 // Chandrayaan 3 specific times and information
 var timeTransLunarInjection;
 var timeLunarOrbitInsertion;
+
+
 var eventInfos = [];
 
 // 3D rendering related variables
@@ -210,6 +212,7 @@ var eventInfos = [];
 var currentDimension = "3D"; 
 var theSceneHandler = null;
 export var animationScenes = {};
+var globalConfig = null; // Store loaded config from config.json
 var joyRideFlag = false;
 var landingFlag = false;
 var moonPhaseCamera = false;
@@ -304,6 +307,59 @@ async function fetchMetadata(npzFileName) {
     return null; // Fallback to defaults
 }
 
+async function loadConfig() {
+    if (globalConfig !== null) {
+        return globalConfig; // Return cached config
+    }
+    
+    try {
+        const response = await fetch('assets/chandrayaan3/data/config.json');
+        if (response.ok) {
+            globalConfig = await response.json();
+            eventInfos = globalConfig.eventInfos || [];
+            console.log('Config loaded successfully:', globalConfig);
+            return globalConfig;
+        } else {
+            console.warn('Could not load config.json, using defaults');
+            return null;
+        }
+    } catch (error) {
+        console.warn('Error loading config.json:', error);
+        return null;
+    }
+}
+
+function updateLandingTimesFromConfig() {
+    if (globalConfig && globalConfig.landing) {
+        const cfg = globalConfig.landing;
+        
+        // Calculate start time from config
+        const configStartYear = parseInt(cfg.start_year);
+        const configStartMonth = parseInt(cfg.start_month);
+        const configStartDay = parseInt(cfg.start_day);
+        const configStartHour = parseInt(cfg.start_hour);
+        const configStartMinute = parseInt(cfg.start_minute);
+        
+        startLandingTime = Date.UTC(configStartYear, configStartMonth - 1, configStartDay, configStartHour, configStartMinute, 0, 0);
+        
+        // Calculate end time from config
+        const configStopYear = parseInt(cfg.stop_year);
+        const configStopMonth = parseInt(cfg.stop_month);
+        const configStopDay = parseInt(cfg.stop_day);
+        const configStopHour = parseInt(cfg.stop_hour);
+        const configStopMinute = parseInt(cfg.stop_minute);
+        
+        endLandingTime = Date.UTC(configStopYear, configStopMonth - 1, configStopDay, configStopHour, configStopMinute, 0, 0);
+        
+        console.log('Updated landing times from config:', {
+            startLandingTime: new Date(startLandingTime),
+            endLandingTime: new Date(endLandingTime)
+        });
+    } else {
+        console.log('Using default landing times (no config.landing found)');
+    }
+}
+
 async function fetchNPZ(url, callback = null, callbackError = null, updateMetadata = true) {
     try {
         // First try to fetch metadata
@@ -350,27 +406,56 @@ async function fetchNPZ(url, callback = null, callbackError = null, updateMetada
 }
 
 function getStartAndEndTimes(id) {
+    let startTime, endTime;
 
-    // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
-
-    var startTime                  = Date.UTC(2023, 7-1, 14,  9, 23,  0, 0);
-    var endTime                    = Date.UTC(2023, 9-1,  6, 12, 32,  0, 0);
-    var endTimeCY3                 = Date.UTC(2023, 9-1,  6, 12, 32,  0, 0);
-    var startTimeVikram            = Date.UTC(2023, 8-1,  2,  7, 46,  0, 0); // TODO Update
-    var endTimeVikram              = Date.UTC(2023, 8-1,  6, 20, 26,  0, 0); // TODO Update
-
-    if (config == "lro") { // TODO Not needed for CY3 mission (at least for now); Will disable in HTML
-
-        startTime                   = Date.UTC(2023,  9-1,  1,  0,  0, 0, 0); // aligned with 5 minute intervals
-        endTime                     = Date.UTC(2023, 11-1,  1,  0,  0, 0, 0); // aligned with 5 minute intervals
-        startTimeVikram             = Date.UTC(2023,  9-1,  2,  7, 50, 0, 0); // aligned with 5 minute intervals
-        endTimeVikram               = Date.UTC(2023,  9-1,  6, 20, 25, 0, 0); // aligned with 5 minute intervals
+    if (globalConfig && globalConfig[config]) {
+        const phaseConfig = globalConfig[config];
+        startTime = Date.UTC(
+            parseInt(phaseConfig.start_year),
+            parseInt(phaseConfig.start_month) - 1,
+            parseInt(phaseConfig.start_day),
+            parseInt(phaseConfig.start_hour),
+            parseInt(phaseConfig.start_minute),
+            0, 0
+        );
+        // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
+        endTime = Date.UTC(
+            parseInt(phaseConfig.stop_year),
+            parseInt(phaseConfig.stop_month) - 1,
+            parseInt(phaseConfig.stop_day),
+            parseInt(phaseConfig.stop_hour),
+            parseInt(phaseConfig.stop_minute),
+            0, 0
+        ) - ONE_MINUTE_MS;
+    } else {
+        return [null, null];
     }
 
     if (id === "CY3") {
-        return [startTime, endTimeCY3];
+        return [startTime, endTime];
     } else if (id === "VIKRAM") {
-        return [startTimeVikram, endTimeVikram];
+        const vikramConfig = globalConfig.vikram;
+        if (vikramConfig) {
+            const vikramStartTime = Date.UTC(
+                parseInt(vikramConfig.start_year),
+                parseInt(vikramConfig.start_month) - 1,
+                parseInt(vikramConfig.start_day),
+                parseInt(vikramConfig.start_hour),
+                parseInt(vikramConfig.start_minute),
+                0, 0
+            );
+            const vikramEndTime = Date.UTC(
+                parseInt(vikramConfig.stop_year),
+                parseInt(vikramConfig.stop_month) - 1,
+                parseInt(vikramConfig.stop_day),
+                parseInt(vikramConfig.stop_hour),
+                parseInt(vikramConfig.stop_minute),
+                0, 0
+            ) - ONE_MINUTE_MS;
+            return [vikramStartTime, vikramEndTime];
+        } else {
+            return [null, null];
+        }
     } else {
         return [startTime, endTime];
     }
@@ -2421,245 +2506,57 @@ function handleDimensionSwitch(newDim) {
 }
 
 function addEvents() {
-
-    var missionStartInfo = {
-        "startTime": new Date(Date.UTC(2023, 7-1, 14,  9, 23, 0, 0)),
-        "durationSeconds": 0,
-        "label" : "🚀 Launch",
-        "burnFlag": false,
-        "infoText": "Launch:    14th Jul, 14:53 IST - Chandrayaan 3 placed in orbit",
-        "body": "CY3"
+    if (!globalConfig || !globalConfig.events || !globalConfig.eventConfigs) {
+        console.warn('Events configuration not loaded, using default events');
+        return;
     }
 
-    /* TODO Need updates based on direct information from ISRO or reverse engineered information from orbit data. */
-
-    var ebn1Info = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 15,  6, 41, 0, 0)),
-        "durationSeconds": 5*60,
-        "label": "🔥EBN#1",
-        "burnFlag": true,
-        "infoText": "EBN#1:     15th Jul, 11:11 IST - 173km x 41762km orbit",
-        "body": "CY3"
+    const events = globalConfig.events;
+    const eventConfigs = globalConfig.eventConfigs;
+    
+    eventInfos = [];
+    
+    const configEvents = eventConfigs[config] || [];
+    
+    for (const eventKey of configEvents) {
+        const eventData = events[eventKey];
+        if (!eventData) {
+            console.warn(`Event ${eventKey} not found in configuration`);
+            continue;
+        }
+        
+        let startTime;
+        if (eventData.startTime === "dynamic") {
+            if (eventKey === "now") {
+                startTime = new Date();
+            } else if (eventKey === "cy3DataEnd") {
+                startTime = new Date(getStartAndEndTimes("CY3")[1]);
+            } else {
+                console.warn(`Dynamic start time not handled for event ${eventKey}`);
+                continue;
+            }
+        } else {
+            startTime = new Date(eventData.startTime);
+        }
+        
+        const eventInfo = {
+            startTime: startTime,
+            durationSeconds: eventData.durationSeconds,
+            label: eventData.label,
+            burnFlag: eventData.burnFlag,
+            infoText: eventData.infoText,
+            body: eventData.body
+        };
+        
+        eventInfos.push(eventInfo);
     }
-
-    var ebn2Info = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 17,  2, 15, 0, 0)),
-        "durationSeconds": 15*60,
-        "label": "🔥EBN#2", 
-        "burnFlag": true,
-        "infoText": "EBN#2:     17th Jul, 7:45 IST - 226km x 41603km orbit",
-        "body": "CY3"        
-    }
-
-    var ebn3Info = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 18,  9, 24, 0, 0)),
-        "durationSeconds": 15*60,
-        "label": "🔥EBN#3", 
-        "burnFlag": true,
-        "infoText": "EBN#3:     18th Jul, 14:54 IST - 228km x 51400km orbit",
-        "body": "CY3"        
-    }
-
-    var ebn4Info = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 20,  9, 16, 0, 0)),
-        "durationSeconds": 20*60,
-        "label": "🔥EBN#4", 
-        "burnFlag": true,
-        "infoText": "EBN#4:     12th Jul, 14:46 IST - 233km x 71351km orbit",
-        "body": "CY3"    
-    }
-
-    var ebn5Info = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 25,  9,  0, 0, 0)),
-        "durationSeconds": 5*60,
-        "label": "🔥EBN#5", 
-        "burnFlag": true,
-        "infoText": "EBN#5:      25th Jul, 14:30 IST - 236km x 127603km orbit",
-        "body": "CY3"        
-    }
-
-    var tliInfo = {
-        // TODO estimated from orbit data
-        "startTime": new Date(Date.UTC(2023, 7-1, 31, 18, 43, 0, 0)),
-        "durationSeconds": 25*60,
-        "label": "🔥TLI", 
-        "burnFlag": true,
-        "infoText": "TLI:         1st Aug, 00:13 IST - 288km x 369328km orbit",
-        "body": "CY3"        
-    }
-
-    var loiInfo = {
-        // https://www.isro.gov.in/update/20-aug-2019/chandrayaan-2-update-lunar-orbit-insertion 
-        //                 || Actual: 0902 IST - 1738 seconds - achieved 114 km x 18072 km
-        "startTime": new Date(Date.UTC(2023, 8-1, 5,  14, 0, 0, 0)),
-        "durationSeconds": 0,
-        "label": "🌖 LBN#1/LOI", 
-        "burnFlag": true,
-        "infoText": "LOI: 5th Aug, 19:30 IST - 164km x 18074km orbit",
-        "body": "CY3"        
-    }
-
-    var lbn1Info = {
-        // https://www.isro.gov.in/update/21-aug-2019/chandrayaan-2-update-second-lunar-orbit-maneuver
-        // Aug 21, 2019 | 12:30 – 13:30 | 121 X 4303 || Actual: 1250 IST - 1228 seconds - achieved 118 km x 4412 km  
-        "startTime": new Date(Date.UTC(2023, 8-1, 6, 17, 49, 0, 0)),
-        "durationSeconds": 1228,
-        "label": "LBN#1",
-        "burnFlag": true,
-        "infoText": "LBN#1:     6th Aug, 23:19 IST - 170km x 4313km orbit",
-        "body": "CY3"        
-    }
-
-    var lbn2Info = {
-        // Aug 28, 2019 | 05:30 – 06:30 | 178 X 1411 || Actual: 0904 IST - 1190 seconds - achieved 179 km x 1412 km    
-        "startTime": new Date(Date.UTC(2023, 8-1, 9, 8, 21, 0, 0)),
-        "durationSeconds": 1190,
-        "label": "LBN#2", 
-        "burnFlag": true,
-        "infoText": "LBN#2:     9th Aug, 13:51 IST - 174km x 1437km orbit",
-        "body": "CY3"        
-    }
-
-    var lbn3Info = {
-        // Aug 30, 2019 | 18:00 – 19:00 || Actual: 1818 IST - 1155 seconds - 126 X 164 1818 hours        
-        "startTime": new Date(Date.UTC(2023, 8-1, 14, 6, 38, 0, 0)),
-        "durationSeconds": 1155,
-        "label": "LBN#3",
-        "burnFlag": true,
-        "infoText": "LBN#3:    14th Aug, 12:08 IST - 150km x 177km orbit",
-        "body": "CY3"        
-    }    
-
-    var lbn4Info = {
-        // Sep 01, 2019 | 18:00 – 19:00 IST | 114 X 128 || Actual: 1821 IST - 52 seconds - achieved 119 km x 127 km
-        "startTime": new Date(Date.UTC(2023, 8-1, 16,  3, 0, 0, 0)),
-        "durationSeconds": 52,
-        "label": "LBN#4", 
-        "burnFlag": true,
-        "infoText":  "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
-        "body": "CY3"        
-    }
-
-    var vikramSeparationInfo = {
-        // https://www.isro.gov.in/update/02-sep-2019/chandrayaan-2-update-vikram-lander-successfully-separates-orbiter
-        "startTime": new Date(Date.UTC(2019, 9-1,  2,   7, 45, 0, 0)), // 2nd Sep, 13:15 IST 
-        "durationSeconds": 0,
-        "label": "VS",
-        "burnFlag": true,
-        "infoText": "Vikram Separation: Vikram goes into a 119 km x 127 km orbit",
-        "body": "CY3" // we have Vikram data only from 07:46 IST
-    }
-
-    var vikramDeboostOneInfo = {
-        // https://www.isro.gov.in/update/03-sep-2019/chandrayaan-2-update-first-de-orbiting-maneuver
-        "startTime": new Date(Date.UTC(2019, 9-1,  3,  3, 20, 0, 0)), // 3rd Sep, 08:50 IST
-        "durationSeconds": 4,
-        "label": "VD#1",
-        "burnFlag": true,
-        "infoText": "Vikram Deorbit #1 for 4 seconds on 3rd September, at 08:50 IST",
-        "body": "VIKRAM"                
-    }
-
-    var vikramDeboostTwoInfo = {
-        // https://www.isro.gov.in/update/04-sep-2019/chandrayaan-2-update-second-de-orbiting-maneuver
-        "startTime": new Date(Date.UTC(2019, 9-1,  4, 22, 12, 0, 0)), // 4th Sep, 3:42 IST
-        "durationSeconds": 9,
-        "label": "VD#2",
-        "burnFlag": true,
-        "infoText": "Vikram Deorbit #2 for 9 seconds on 4th September, at 03:42 IST",
-        "body": "VIKRAM"                
-    }
-
-    var nowInfo = {
-        "startTime": new Date(),
-        "durationSeconds": 0,
-        "label": "⏰ Now",
-        "burnFlag": false,
-        "infoText": "Now",
-        "body": ""  
-    }
-
-    var vikramLandingInfo = {
-        "startTime": new Date(Date.UTC(2023, 8-1, 23, 12, 34, 0, 0)), // 23rd Aug, 18:04 IST
-        "durationSeconds": 0,
-        "label": "Vikram Landing",
-        "burnFlag": true,
-        "infoText": "Vikram Landing - 23rd August, 18:04 IST",
-        "body": "VIKRAM"        
-    }
-
-    var cy3EndInfo = {
-        "startTime": new Date(getStartAndEndTimes("CY3")[1]),
-        "durationSeconds": 0,
-        "label": "🏁CY3 Data End",
-        "burnFlag": false,
-        "infoText": "Chandrayaan 3 Data End",
-        "body": ""
-    }
-
-    var lroStartInfo = {
-        "startTime": new Date(Date.UTC(2019, 9-1, 1, 0, 0, 0, 0)),
-        "durationSeconds": 0,
-        "label": "LRO Data Start",
-        "burnFlag": false,
-        "infoText": "LRO Data Start",
-        "body": ""
-    }
-
-    var lroEndInfo = {
-        "startTime": new Date(Date.UTC(2019, 11-1, 1, 0, 0, 0, 0)),
-        "durationSeconds": 0,
-        "label": "LRO Data End",
-        "burnFlag": false,
-        "infoText": "LRO Data End",
-        "body": ""
-    }
-
-    if ((config == "geo") || (config == "lunar")) {
-        eventInfos = [
-            missionStartInfo,
-            ebn1Info,
-            ebn2Info,
-            ebn3Info,
-            ebn4Info,
-            ebn5Info,
-            tliInfo,
-            loiInfo,
-            lbn1Info,
-            lbn2Info,
-            lbn3Info,
-            lbn4Info,
-            // vikramSeparationInfo,
-            // vikramDeboostOneInfo,
-            // vikramDeboostTwoInfo,
-            vikramLandingInfo,
-            nowInfo,
-            cy3EndInfo
-        ];        
-    } else if (config == "lro") {
-        eventInfos = [
-            lroStartInfo,
-            vikramSeparationInfo,
-            vikramDeboostOneInfo,
-            vikramDeboostTwoInfo,
-            nowInfo,
-            vikramLandingInfo,
-            cy3EndInfo,
-            lroEndInfo
-        ];
-    }
-
+    
     eventInfos.sort(function(a, b) {
         return a.startTime - b.startTime;
-    })
+    });
 }
 
-function initConfig() {
+async function initConfig() {
 
     // console.log("initConfig() called");
 
@@ -2686,6 +2583,12 @@ function initConfig() {
 
         return;
     }
+
+    // Load external configuration
+    const configData = await loadConfig();
+    
+    // Update landing times from config if available
+    updateLandingTimesFromConfig();
 
     addEvents();
 
@@ -2723,11 +2626,22 @@ function initConfig() {
         animationScenes[config].secondaryBody = "MOON";
         animationScenes[config].secondaryBodyRadius = moonRadius;
 
-        animationScenes[config].planetsForOrbits = ["MOON", "CY3"]; // TODO Add Vikram later
-        animationScenes[config].planetsForLocations = ["MOON", "CY3"]; // TODO Add Vikram later
-        animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-        animationScenes[config].orbitsJson = "assets/chandrayaan3/data/geo-CY3.json";
-        animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/geo-CY3.npz";
+        // Use config data if available, otherwise use defaults
+        if (configData && configData[config]) {
+            const cfg = configData[config];
+            animationScenes[config].planetsForOrbits = cfg.planets;
+            animationScenes[config].planetsForLocations = cfg.planets;
+            animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
+            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
+            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+        } else {
+            // Default values
+            animationScenes[config].planetsForOrbits = ["MOON", "CY3"]; // TODO Add Vikram later
+            animationScenes[config].planetsForLocations = ["MOON", "CY3"]; // TODO Add Vikram later
+            animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
+            animationScenes[config].orbitsJson = "assets/chandrayaan3/data/geo-CY3.json";
+            animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/geo-CY3.npz";
+        }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2773,11 +2687,22 @@ function initConfig() {
         animationScenes[config].secondaryBody = "EARTH";
         animationScenes[config].secondaryBodyRadius = earthRadius;
 
-        animationScenes[config].planetsForOrbits = ["EARTH", "CY3"]; // TODO Vikram to be added later
-        animationScenes[config].planetsForLocations = ["EARTH", "CY3"]; // TODO Vikram to be added later
-        animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-        animationScenes[config].orbitsJson = "assets/chandrayaan3/data/lunar-CY3.json";
-        animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/lunar-CY3.npz";
+        // Use config data if available, otherwise use defaults
+        if (configData && configData[config]) {
+            const cfg = configData[config];
+            animationScenes[config].planetsForOrbits = cfg.planets;
+            animationScenes[config].planetsForLocations = cfg.planets;
+            animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
+            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
+            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+        } else {
+            // Default values
+            animationScenes[config].planetsForOrbits = ["EARTH", "CY3"]; // TODO Vikram to be added later
+            animationScenes[config].planetsForLocations = ["EARTH", "CY3"]; // TODO Vikram to be added later
+            animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
+            animationScenes[config].orbitsJson = "assets/chandrayaan3/data/lunar-CY3.json";
+            animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/lunar-CY3.npz";
+        }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -3445,7 +3370,7 @@ function adjustLabelLocations() {
 async function initAnimation(flags) {
     
     try {
-        initConfig();
+        await initConfig();
         init(function() {});
     
         await (async function waitUntilOrbitDataProcessed() {
@@ -3886,9 +3811,17 @@ function processOrbitData(data) {
     // console.log("processOrbitData() returning");
 }
 
-function loadLandingDataAndProcess() {
+async function loadLandingDataAndProcess() {
     if (!landingDataLoaded) {
-        var landingDataNpz = "assets/chandrayaan3/data/landing-CY3.npz";
+        // Use config data for landing if available
+        const configData = globalConfig;
+        let landingDataNpz = "assets/chandrayaan3/data/landing-CY3.npz";
+        
+        if (configData && configData.landing) {
+            const cfg = configData.landing;
+            landingDataNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+        }
+        
         fetchNPZ(landingDataNpz, async function(data) {
 
             // console.log("Landing orbit data load from " + landingDataNpz + ": OK");
