@@ -304,11 +304,11 @@ async function fetchMetadata(npzFileName) {
     return null; // Fallback to defaults
 }
 
-async function fetchNPZ(url, callback = null, callbackError = null) {
+async function fetchNPZ(url, callback = null, callbackError = null, updateMetadata = true) {
     try {
         // First try to fetch metadata
         const metadata = await fetchMetadata(url);
-        if (metadata) {
+        if (metadata && updateMetadata) {
             // Metadata loaded successfully
             // Store metadata for later use
             animationScenes[config].metadata = metadata;
@@ -353,9 +353,9 @@ function getStartAndEndTimes(id) {
 
     // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
 
-    var startTime                  = Date.UTC(2023, 7-1, 14,  9, 21, 51, 0);
-    var endTime                    = Date.UTC(2023, 9-1,  6, 12, 30, 51, 0);
-    var endTimeCY3                 = Date.UTC(2023, 9-1,  6, 12, 30, 51, 0);
+    var startTime                  = Date.UTC(2023, 7-1, 14,  9, 23,  0, 0);
+    var endTime                    = Date.UTC(2023, 9-1,  6, 12, 32,  0, 0);
+    var endTimeCY3                 = Date.UTC(2023, 9-1,  6, 12, 32,  0, 0);
     var startTimeVikram            = Date.UTC(2023, 8-1,  2,  7, 46,  0, 0); // TODO Update
     var endTimeVikram              = Date.UTC(2023, 8-1,  6, 20, 26,  0, 0); // TODO Update
 
@@ -3909,7 +3909,7 @@ function loadLandingDataAndProcess() {
         }, async function(error) {
             var msg = "Error: Landing orbit data load from " + landingDataNpz + ": " + error;
             console.log(msg);
-        });
+        }, false);
     }
 }
 
