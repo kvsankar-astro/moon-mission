@@ -33,58 +33,47 @@ planet_codes = {
 phase = None
 use_cached_data = False
 date = datetime.now().strftime('%Y%m%d%H%M%S')
-data_dir = os.path.join("data-fetched", date)
+# Always use project root for data-fetched directory
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+data_dir = os.path.join(project_root, "data-fetched", date)
 debugging = True
 
-config = {
-    "geo": {
-        'start_year'           : '2023', 'start_month'           : '07', 'start_day'           : '14', 'start_hour'              : '09', 'start_minute'             : '23', 
-        'stop_year'            : '2023', 'stop_month'            : '09', 'stop_day'            : '06', 'stop_hour'               : '12', 'stop_minute'              : '33',
-        'start_year_CY3'       : '2023', 'start_month_CY3'       : '07', 'start_day_CY3'       : '14', 'start_hour_CY3'          : '09', 'start_minute_CY3'         : '23',
-        'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '09', 'stop_day_CY3'        : '06', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '33',
-
-        'step_size_in_seconds' : 60,  # 1 minute intervals
-
-        'planets'              : ["MOON", "CY3"],
-
-        'center'               : JPL_EARTH_CENTER,
-
-        'orbits_file'   : f"{data_dir}/geo-CY3"
-    },
-    "lunar": {
-        'start_year'           : '2023', 'start_month'           : '07', 'start_day'           : '14', 'start_hour'              : '09', 'start_minute'             : '23', 
-        'stop_year'            : '2023', 'stop_month'            : '09', 'stop_day'            : '06', 'stop_hour'               : '12', 'stop_minute'              : '33',
-        'start_year_CY3'       : '2023', 'start_month_CY3'       : '07', 'start_day_CY3'       : '14', 'start_hour_CY3'          : '09', 'start_minute_CY3'         : '23',
-        'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '09', 'stop_day_CY3'        : '06', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '33',
-
-        'step_size_in_seconds' : 60,  # 1 minute intervals
-
-        'planets'              : ["CY3", "EARTH"],
-
-        'center'               : JPL_MOON_CENTER,
-
-        'orbits_file'          : f"{data_dir}/lunar-CY3"
-    },
-    "landing": {
-        'start_year'           : '2023', 'start_month'           : '08', 'start_day'           : '23', 'start_hour'              : '12', 'start_minute'             : '15', 
-        'stop_year'            : '2023', 'stop_month'            : '08', 'stop_day'            : '23', 'stop_hour'               : '12', 'stop_minute'              : '40',
-        'start_year_CY3'       : '2023', 'start_month_CY3'       : '08', 'start_day_CY3'       : '23', 'start_hour_CY3'          : '12', 'start_minute_CY3'         : '15',
-        'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '08', 'stop_day_CY3'        : '23', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '40',
-
-        'step_size_in_seconds' : 1,  # 1 second intervals for high-resolution landing data
-
-        'planets'              : ["CY3"],
-
-        'center'               : JPL_MOON_CENTER,
-
-        'orbits_file'          : f"{data_dir}/landing-CY3"
-    },
-}
+def load_config():
+    """Load configuration from JSON file."""
+    # Use the single config file in the assets directory
+    config_file = os.path.join(os.path.dirname(__file__), '..', 'assets', 'chandrayaan3', 'data', 'config.json')
+    
+    # Center mnemonic to JPL code mapping
+    center_codes = {
+        'earth_center': JPL_EARTH_CENTER,
+        'moon_center': JPL_MOON_CENTER
+    }
+    
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        
+        # Convert center mnemonics to JPL codes
+        for phase in config:
+            center_mnemonic = config[phase]['center']
+            if center_mnemonic in center_codes:
+                config[phase]['center'] = center_codes[center_mnemonic]
+            else:
+                print_error(f"Unknown center mnemonic: {center_mnemonic}")
+                sys.exit(1)
+        
+        return config
+    except FileNotFoundError:
+        print_error(f"Configuration file not found: {config_file}")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print_error(f"Error parsing configuration file: {e}")
+        sys.exit(1)
 
 def copy_to_project_root(source_path, filename):
     """Copy a file from the timestamped directory to the project root."""
     try:
-        dest_path = filename  # Project root
+        dest_path = os.path.join(project_root, filename)
         shutil.copy2(source_path, dest_path)
         print_debug(f"Copied {source_path} to {dest_path}")
     except Exception as e:
@@ -93,8 +82,6 @@ def copy_to_project_root(source_path, filename):
 # Initialize variables
 start_year, start_month, start_day, start_hour, start_minute = None, None, None, None, None
 stop_year, stop_month, stop_day, stop_hour, stop_minute = None, None, None, None, None
-start_year_CY3, start_month_CY3, start_day_CY3, start_hour_CY3, start_minute_CY3 = None, None, None, None, None
-stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3 = None, None, None, None, None
 step_size_in_seconds = None
 
 planets = []
@@ -123,11 +110,9 @@ def filename_for_planet(fn):
     print_debug(f"planet={fn}, filename={retfn}")
     return retfn
 
-def init_config(option):
+def init_config(option, config):
     global start_year, start_month, start_day, start_hour, start_minute
     global stop_year, stop_month, stop_day, stop_hour, stop_minute
-    global start_year_CY3, start_month_CY3, start_day_CY3, start_hour_CY3, start_minute_CY3
-    global stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3
     global step_size_in_seconds, planets, center, orbits_file
 
     start_year = config[option]['start_year']
@@ -141,18 +126,6 @@ def init_config(option):
     stop_day = config[option]['stop_day']
     stop_hour = config[option]['stop_hour']
     stop_minute = config[option]['stop_minute']
-
-    start_year_CY3 = config[option]['start_year_CY3']
-    start_month_CY3 = config[option]['start_month_CY3']
-    start_day_CY3 = config[option]['start_day_CY3']
-    start_hour_CY3 = config[option]['start_hour_CY3']
-    start_minute_CY3 = config[option]['start_minute_CY3']
-
-    stop_year_CY3 = config[option]['stop_year_CY3']
-    stop_month_CY3 = config[option]['stop_month_CY3']
-    stop_day_CY3 = config[option]['stop_day_CY3']
-    stop_hour_CY3 = config[option]['stop_hour_CY3']
-    stop_minute_CY3 = config[option]['stop_minute_CY3']
 
     step_size_in_seconds = config[option]['step_size_in_seconds']
 
@@ -170,16 +143,10 @@ def print_config():
     print(f"orbits_file = {orbits_file}")
 
 def get_horizons_start_time(planet):
-    if planet == "CY3":
-        return f"{start_year_CY3}-{start_month_CY3}-{start_day_CY3} {start_hour_CY3}:{start_minute_CY3}"
-    else:
-        return f"{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}"
+    return f"{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}"
 
 def get_horizons_stop_time(planet):
-    if planet == "CY3":
-        return f"{stop_year_CY3}-{stop_month_CY3}-{stop_day_CY3} {stop_hour_CY3}:{stop_minute_CY3}"
-    else:
-        return f"{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}"    
+    return f"{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}"    
     
 
 def set_start_and_stop_times():
@@ -550,8 +517,8 @@ def save_orbit_data_npy():
             "generated_by": "orbits.py",
             "generated_at": datetime.now().isoformat(),
             "python_config": {
-                "start_time_CY3": f"{start_year_CY3}-{int(start_month_CY3):02d}-{int(start_day_CY3):02d} {int(start_hour_CY3):02d}:{int(start_minute_CY3):02d}",
-                "end_time_CY3": f"{stop_year_CY3}-{int(stop_month_CY3):02d}-{int(stop_day_CY3):02d} {int(stop_hour_CY3):02d}:{int(stop_minute_CY3):02d}"
+                "start_time": f"{start_year}-{int(start_month):02d}-{int(start_day):02d} {int(start_hour):02d}:{int(start_minute):02d}",
+                "end_time": f"{stop_year}-{int(stop_month):02d}-{int(stop_day):02d} {int(stop_hour):02d}:{int(stop_minute):02d}"
             }
         }
         
@@ -581,7 +548,7 @@ def save_orbit_data_npy():
     
     return False
 
-def process_phase(current_phase, use_cached_data, base_data_dir):
+def process_phase(current_phase, use_cached_data, base_data_dir, config):
     """Process a single phase."""
     global phase, data_dir
     
@@ -597,7 +564,9 @@ def process_phase(current_phase, use_cached_data, base_data_dir):
             print_error(f"Unable to create data directory {data_dir}: {e}")
             return False
 
-    init_config(phase)
+    # Update orbits_file path in config for current data_dir
+    config[phase]['orbits_file'] = f"{data_dir}/{os.path.basename(config[phase]['orbits_file'])}"
+    init_config(phase, config)
     print_config()
 
     set_start_and_stop_times()
@@ -664,10 +633,13 @@ def main():
         base_data_dir = args.data_dir
     else:
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        base_data_dir = os.path.join("data-fetched", timestamp)
+        base_data_dir = os.path.join(project_root, "data-fetched", timestamp)
     
     print(f"Processing phases: {', '.join(phases_to_process)}")
     print(f"Base data directory: {base_data_dir}")
+    
+    # Load configuration
+    config = load_config()
     
     # Process each phase
     success_count = 0
@@ -677,7 +649,7 @@ def main():
         orbits_raw = {}
         orbits = {}
         
-        if process_phase(current_phase, use_cached_data, base_data_dir):
+        if process_phase(current_phase, use_cached_data, base_data_dir, config):
             success_count += 1
         else:
             print_error(f"Failed to process {current_phase} phase")
