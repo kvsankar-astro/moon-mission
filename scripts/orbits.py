@@ -1,4 +1,4 @@
-    # Copyright (c) 2024 Sankaranarayanan Viswanathan. All rights reserved.
+# Copyright (c) 2024-2025 Sankaranarayanan Viswanathan. All rights reserved.
 
 # Assistance from Cursor AI was used to write this code based on the Perl version. 
 
@@ -17,49 +17,23 @@ import shutil
 
 # constants - ephemerides related
 
-JPL_MAVEN      = -202
-JPL_CY2        = -152 # Chandrayaan 2 Orbiter
-JPL_CY2_VIKRAM = -153 # Chandrayaan 2 Lander Vikram
-JPL_CY3        = -158 # Chandrayaan 3 Orbiter
-JPL_CY3_VIKRAM = -153 # Chandrayaan 3 Lander Vikram # TODO Change later
-LRO            = -85  # Lunar Reconnaissance Orbiter
-JPL_MOM        = -3
-JPL_EMB        = 3
-JPL_SUN        = 10
-JPL_MERCURY    = 199
-JPL_VENUS      = 299
-JPL_MOON       = 301
-JPL_EARTH      = 399
-JPL_MARS       = 499
-JPL_CSS        = "C/2013 A1"
+JPL_CY3         = -158 # Chandrayaan 3 Lander
+JPL_MOON        = 301
+JPL_EARTH       = 399
 
 JPL_EARTH_CENTER = '@399'
-JPL_MARS_CENTER = '@499'
-JPL_SUN_CENTER = '500@10'
 JPL_MOON_CENTER = '@301'
 
 planet_codes = {
-    "MAVEN":    JPL_MAVEN,
-    "CY2":      JPL_CY2,
     "CY3":      JPL_CY3,
-    "VIKRAM":   JPL_CY3_VIKRAM,
-    "LRO":      LRO,
-    "MOM":      JPL_MOM,
-    "EMB":      JPL_EMB,
-    "SUN":      JPL_SUN,
-    "MERCURY":  JPL_MERCURY,
-    "VENUS":    JPL_VENUS,
     "MOON":     JPL_MOON,
-    "EARTH":    JPL_EARTH,
-    "MARS":     JPL_MARS,
-    "CSS":      JPL_CSS
+    "EARTH":    JPL_EARTH
 }
 
-help = False
 phase = None
 use_cached_data = False
 date = datetime.now().strftime('%Y%m%d%H%M%S')
-data_dir = os.path.join("assets/chandrayaan3/archive/data-fetched", date)
+data_dir = os.path.join("data-fetched", date)
 debugging = True
 
 config = {
@@ -68,12 +42,10 @@ config = {
         'stop_year'            : '2023', 'stop_month'            : '09', 'stop_day'            : '06', 'stop_hour'               : '12', 'stop_minute'              : '33',
         'start_year_CY3'       : '2023', 'start_month_CY3'       : '07', 'start_day_CY3'       : '14', 'start_hour_CY3'          : '09', 'start_minute_CY3'         : '23',
         'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '09', 'stop_day_CY3'        : '06', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '33',
-        'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
-        'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
 
         'step_size_in_seconds' : 60,  # 1 minute intervals
 
-        'planets'              : ["MOON", "CY3"], # TODO Add Vikram later
+        'planets'              : ["MOON", "CY3"],
 
         'center'               : JPL_EARTH_CENTER,
 
@@ -84,44 +56,24 @@ config = {
         'stop_year'            : '2023', 'stop_month'            : '09', 'stop_day'            : '06', 'stop_hour'               : '12', 'stop_minute'              : '33',
         'start_year_CY3'       : '2023', 'start_month_CY3'       : '07', 'start_day_CY3'       : '14', 'start_hour_CY3'          : '09', 'start_minute_CY3'         : '23',
         'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '09', 'stop_day_CY3'        : '06', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '33',
-        'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
-        'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
 
         'step_size_in_seconds' : 60,  # 1 minute intervals
 
-        'planets'              : ["CY3", "EARTH"], # TODO Add Vikram later
+        'planets'              : ["CY3", "EARTH"],
 
         'center'               : JPL_MOON_CENTER,
 
         'orbits_file'          : f"{data_dir}/lunar-CY3"
-    },
-    "lro": {
-        'start_year'           : '2023', 'start_month'           : '07', 'start_day'           : '14', 'start_hour'              : '09', 'start_minute'             : '23', 
-        'stop_year'            : '2023', 'stop_month'            : '09', 'stop_day'            : '06', 'stop_hour'               : '12', 'stop_minute'              : '33',
-        'start_year_CY3'       : '2023', 'start_month_CY3'       : '07', 'start_day_CY3'       : '14', 'start_hour_CY3'          : '09', 'start_minute_CY3'         : '23',
-        'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '09', 'stop_day_CY3'        : '06', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '33',
-        'start_year_vikram'    : '2023', 'start_month_vikram'    : '09', 'start_day_vikram'    : '14', 'start_hour_vikram'       : '09', 'start_minute_vikram'      : '23',
-        'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '09', 'stop_day_vikram'     : '06', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '33',
-
-        'step_size_in_seconds' : 300,  # 5 minute intervals
-
-        'planets'              : ["CY3", "LRO", "EARTH"], # TODO Add Vikram later
-
-        'center'               : JPL_MOON_CENTER,
-
-        'orbits_file'          : f"{data_dir}/lunar-lro"
     },
     "landing": {
         'start_year'           : '2023', 'start_month'           : '08', 'start_day'           : '23', 'start_hour'              : '12', 'start_minute'             : '15', 
         'stop_year'            : '2023', 'stop_month'            : '08', 'stop_day'            : '23', 'stop_hour'               : '12', 'stop_minute'              : '40',
         'start_year_CY3'       : '2023', 'start_month_CY3'       : '08', 'start_day_CY3'       : '23', 'start_hour_CY3'          : '12', 'start_minute_CY3'         : '15',
         'stop_year_CY3'        : '2023', 'stop_month_CY3'        : '08', 'stop_day_CY3'        : '23', 'stop_hour_CY3'           : '12', 'stop_minute_CY3'          : '40',
-        'start_year_vikram'    : '2023', 'start_month_vikram'    : '08', 'start_day_vikram'    : '23', 'start_hour_vikram'       : '12', 'start_minute_vikram'      : '15',
-        'stop_year_vikram'     : '2023', 'stop_month_vikram'     : '08', 'stop_day_vikram'     : '23', 'stop_hour_vikram'        : '12', 'stop_minute_vikram'       : '40',
 
         'step_size_in_seconds' : 1,  # 1 second intervals for high-resolution landing data
 
-        'planets'              : ["CY3"], # TODO Add Vikram later
+        'planets'              : ["CY3"],
 
         'center'               : JPL_MOON_CENTER,
 
@@ -130,16 +82,13 @@ config = {
 }
 
 def copy_to_project_root(source_path, filename):
-    """Copy a file from the timestamped directory to the asset directory structure."""
+    """Copy a file from the timestamped directory to the project root."""
     try:
-        # Copy to assets/chandrayaan3/data/ for the new structure
-        assets_dir = "assets/chandrayaan3/data"
-        os.makedirs(assets_dir, exist_ok=True)
-        dest_path = os.path.join(assets_dir, filename)
+        dest_path = filename  # Project root
         shutil.copy2(source_path, dest_path)
         print_debug(f"Copied {source_path} to {dest_path}")
     except Exception as e:
-        print_error(f"Error copying {source_path} to asset directory: {e}")
+        print_error(f"Error copying {source_path} to project root: {e}")
 
 # Initialize variables
 start_year, start_month, start_day, start_hour, start_minute = None, None, None, None, None
@@ -147,8 +96,6 @@ stop_year, stop_month, stop_day, stop_hour, stop_minute = None, None, None, None
 start_year_CY3, start_month_CY3, start_day_CY3, start_hour_CY3, start_minute_CY3 = None, None, None, None, None
 stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3 = None, None, None, None, None
 step_size_in_seconds = None
-start_year_vikram, start_month_vikram, start_day_vikram, start_hour_vikram, start_minute_vikram = None, None, None, None, None
-stop_year_vikram, stop_month_vikram, stop_day_vikram, stop_hour_vikram, stop_minute_vikram = None, None, None, None, None
 
 planets = []
 center = None
@@ -168,7 +115,6 @@ def my_jd(t):
     return 2440587.5 + (t / 86400)
 
 jd = my_jd(now)
-gmtime = time.gmtime(now)
 orbits_raw = {}
 orbits = {}
 
@@ -182,8 +128,6 @@ def init_config(option):
     global stop_year, stop_month, stop_day, stop_hour, stop_minute
     global start_year_CY3, start_month_CY3, start_day_CY3, start_hour_CY3, start_minute_CY3
     global stop_year_CY3, stop_month_CY3, stop_day_CY3, stop_hour_CY3, stop_minute_CY3
-    global start_year_vikram, start_month_vikram, start_day_vikram, start_hour_vikram, start_minute_vikram
-    global stop_year_vikram, stop_month_vikram, stop_day_vikram, stop_hour_vikram, stop_minute_vikram
     global step_size_in_seconds, planets, center, orbits_file
 
     start_year = config[option]['start_year']
@@ -203,24 +147,12 @@ def init_config(option):
     start_day_CY3 = config[option]['start_day_CY3']
     start_hour_CY3 = config[option]['start_hour_CY3']
     start_minute_CY3 = config[option]['start_minute_CY3']
-    
-    start_year_vikram = config[option]['start_year_vikram']
-    start_month_vikram = config[option]['start_month_vikram']
-    start_day_vikram = config[option]['start_day_vikram']
-    start_hour_vikram = config[option]['start_hour_vikram']
-    start_minute_vikram = config[option]['start_minute_vikram']
 
     stop_year_CY3 = config[option]['stop_year_CY3']
     stop_month_CY3 = config[option]['stop_month_CY3']
     stop_day_CY3 = config[option]['stop_day_CY3']
     stop_hour_CY3 = config[option]['stop_hour_CY3']
     stop_minute_CY3 = config[option]['stop_minute_CY3']
-
-    stop_year_vikram = config[option]['stop_year_vikram']
-    stop_month_vikram = config[option]['stop_month_vikram']
-    stop_day_vikram = config[option]['stop_day_vikram']
-    stop_hour_vikram = config[option]['stop_hour_vikram']
-    stop_minute_vikram = config[option]['stop_minute_vikram']
 
     step_size_in_seconds = config[option]['step_size_in_seconds']
 
@@ -240,16 +172,12 @@ def print_config():
 def get_horizons_start_time(planet):
     if planet == "CY3":
         return f"{start_year_CY3}-{start_month_CY3}-{start_day_CY3} {start_hour_CY3}:{start_minute_CY3}"
-    elif planet == "VIKRAM":
-        return f"{start_year_vikram}-{start_month_vikram}-{start_day_vikram} {start_hour_vikram}:{start_minute_vikram}"
     else:
         return f"{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}"
 
 def get_horizons_stop_time(planet):
     if planet == "CY3":
         return f"{stop_year_CY3}-{stop_month_CY3}-{stop_day_CY3} {stop_hour_CY3}:{stop_minute_CY3}"
-    elif planet == "VIKRAM":
-        return f"{stop_year_vikram}-{stop_month_vikram}-{stop_day_vikram} {stop_hour_vikram}:{stop_minute_vikram}"
     else:
         return f"{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}"    
     
@@ -265,7 +193,6 @@ def set_start_and_stop_times():
     stop_time_gm = calendar.timegm((int(stop_year), int(stop_month), int(stop_day), 
                                     int(stop_hour), int(stop_minute), 0))
 
-    # Calculate step size for HORIZONS API
     # If step size is >= 60 seconds and divisible by 60, use minutes
     # Otherwise, calculate number of steps to use 1-second default
     if step_size_in_seconds >= 60 and step_size_in_seconds % 60 == 0:
@@ -624,9 +551,7 @@ def save_orbit_data_npy():
             "generated_at": datetime.now().isoformat(),
             "python_config": {
                 "start_time_CY3": f"{start_year_CY3}-{int(start_month_CY3):02d}-{int(start_day_CY3):02d} {int(start_hour_CY3):02d}:{int(start_minute_CY3):02d}",
-                "end_time_CY3": f"{stop_year_CY3}-{int(stop_month_CY3):02d}-{int(stop_day_CY3):02d} {int(stop_hour_CY3):02d}:{int(stop_minute_CY3):02d}",
-                "start_time_vikram": f"{start_year_vikram}-{int(start_month_vikram):02d}-{int(start_day_vikram):02d} {int(start_hour_vikram):02d}:{int(start_minute_vikram):02d}",
-                "end_time_vikram": f"{stop_year_vikram}-{int(stop_month_vikram):02d}-{int(stop_day_vikram):02d} {int(stop_hour_vikram):02d}:{int(stop_minute_vikram):02d}"
+                "end_time_CY3": f"{stop_year_CY3}-{int(stop_month_CY3):02d}-{int(stop_day_CY3):02d} {int(stop_hour_CY3):02d}:{int(stop_minute_CY3):02d}"
             }
         }
         
@@ -656,28 +581,21 @@ def save_orbit_data_npy():
     
     return False
 
-def main():
-    global phase, use_cached_data, data_dir
-
-    print("Running ...")
-
-    parser = argparse.ArgumentParser(description="Orbit data fetcher and processor")
-    parser.add_argument("--phase", choices=['geo', 'lro', 'lunar', 'landing'], default='geo', help="Phase of the mission")
-    parser.add_argument("--use-cache", action="store_true", help="Use cached data")
-    parser.add_argument("--data-dir", default=data_dir, help="Data directory")
+def process_phase(current_phase, use_cached_data, base_data_dir):
+    """Process a single phase."""
+    global phase, data_dir
     
-    args = parser.parse_args()
-
-    phase = args.phase
-    use_cached_data = args.use_cache
-    data_dir = args.data_dir
-
+    phase = current_phase
+    data_dir = os.path.join(base_data_dir, phase)
+    
+    print(f"\n=== Processing {phase} phase ===")
+    
     if not os.path.exists(data_dir):
         try:
             os.makedirs(data_dir)
         except OSError as e:
             print_error(f"Unable to create data directory {data_dir}: {e}")
-            sys.exit(1)
+            return False
 
     init_config(phase)
     print_config()
@@ -693,7 +611,7 @@ def main():
         if not use_cached_data:
             if not fetch_elements(planet):
                 print_error(f"Failed to fetch elements for {planet}. Exiting.")
-                sys.exit(1)
+                return False
             
             if not fetch_horizons_data(planet, {
                 'table_type': 'vectors',
@@ -703,12 +621,12 @@ def main():
                 'step_size': step_size
             }):
                 print_error(f"Failed to fetch vector data for {planet}. Exiting.")
-                sys.exit(1)
+                return False
         
     if not use_cached_data:
         if not save_fetched_data():
             print_error("Failed to save fetched data. Exiting.")
-            sys.exit(1)
+            return False
     
     for planet in planets:
         parse_horizons_elements('elements', planet)
@@ -718,9 +636,61 @@ def main():
     save_orbit_data_json()
 
     if save_orbit_data_npy():
-        print("NPY data saved successfully")
+        print(f"{phase} NPY data saved successfully")
     else:
-        print("Failed to save NPY data")
+        print(f"Failed to save {phase} NPY data")
+        return False
+    
+    return True
+
+def main():
+    global use_cached_data
+
+    print("Running ...")
+
+    parser = argparse.ArgumentParser(description="Orbit data fetcher and processor")
+    parser.add_argument("--phase", "--phases", nargs="+", choices=['geo', 'lunar', 'landing'], 
+                        default=['geo'], help="Phase(s) of the mission to process")
+    parser.add_argument("--use-cache", action="store_true", help="Use cached data")
+    parser.add_argument("--data-dir", default=None, help="Base data directory (default: timestamped)")
+    
+    args = parser.parse_args()
+
+    phases_to_process = args.phase
+    use_cached_data = args.use_cache
+    
+    # Set up base data directory
+    if args.data_dir:
+        base_data_dir = args.data_dir
+    else:
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+        base_data_dir = os.path.join("data-fetched", timestamp)
+    
+    print(f"Processing phases: {', '.join(phases_to_process)}")
+    print(f"Base data directory: {base_data_dir}")
+    
+    # Process each phase
+    success_count = 0
+    for current_phase in phases_to_process:
+        # Clear global state for each phase
+        global orbits_raw, orbits
+        orbits_raw = {}
+        orbits = {}
+        
+        if process_phase(current_phase, use_cached_data, base_data_dir):
+            success_count += 1
+        else:
+            print_error(f"Failed to process {current_phase} phase")
+    
+    # Summary
+    print(f"\n=== SUMMARY ===")
+    print(f"Successfully processed {success_count}/{len(phases_to_process)} phases")
+    
+    if success_count == len(phases_to_process):
+        print("All phases completed successfully!")
+    else:
+        print(f"Failed to process {len(phases_to_process) - success_count} phase(s)")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
