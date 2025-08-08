@@ -73,13 +73,18 @@ def build(dist_dir="dist", clean=True):
     # Full path to dist directory
     dist_path = os.path.join(project_root, dist_dir)
     
-    # Clean dist directory if requested
-    if clean and os.path.exists(dist_path):
-        print_info(f"Cleaning {dist_dir} directory...")
-        safe_rmtree(dist_path)
-    
-    # Create dist directory
+    # Create dist directory if it doesn't exist
     ensure_dir(dist_path)
+    
+    # Clean dist directory contents if requested
+    if clean and os.path.exists(dist_path):
+        print_info(f"Cleaning {dist_dir} directory contents...")
+        for item in os.listdir(dist_path):
+            item_path = os.path.join(dist_path, item)
+            if os.path.isdir(item_path):
+                safe_rmtree(item_path)
+            else:
+                os.remove(item_path)
     
     print_info(f"Building distribution in {dist_path}...")
     
@@ -92,13 +97,13 @@ def build(dist_dir="dist", clean=True):
         ("favicon.ico", "favicon.ico") if os.path.exists("favicon.ico") else None,
         
         # CSS files (referenced in HTML)
-        ("assets/chandrayaan3/css/cy3.css", "assets/chandrayaan3/css/cy3.css"),
+        ("assets/platform/css/mission.css", "assets/platform/css/mission.css"),
         ("css/ui-darkness/jquery-ui-1.10.3.custom.min.css", "css/ui-darkness/jquery-ui-1.10.3.custom.min.css"),
         
         # JavaScript files (referenced in HTML)
-        ("assets/chandrayaan3/js/astro.js", "assets/chandrayaan3/js/astro.js"),
-        ("assets/chandrayaan3/js/cy3.js", "assets/chandrayaan3/js/cy3.js"),
-        ("assets/chandrayaan3/js/npyreader.js", "assets/chandrayaan3/js/npyreader.js"),
+        ("assets/platform/js/astro.js", "assets/platform/js/astro.js"),
+        ("assets/platform/js/mission.js", "assets/platform/js/mission.js"),
+        ("assets/platform/js/npyreader.js", "assets/platform/js/npyreader.js"),
         ("assets/chandrayaan3/js/ga.js", "assets/chandrayaan3/js/ga.js"),
         
         # Third-party libraries (referenced in HTML)
