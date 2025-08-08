@@ -42,10 +42,14 @@ body {
     font-size: x-small;
     font-family: sans-serif;
     touch-action: pan-x pan-y;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 .header {
     z-index: 2;
+    pointer-events: none;
 }
 
 .navbar {
@@ -152,6 +156,7 @@ canvas {
     color: #7F7F7F;
     padding: 0px;
     margin: 0px;
+    pointer-events: none;
 }
 
 .footer-inner-wrapper, .content-inner-wrapper {
@@ -290,6 +295,9 @@ fieldset {
     z-index: 2;
     color: white; 
     pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 #info-button {
@@ -303,6 +311,9 @@ fieldset {
 .date {
   color: grey;
   font-family: "Lucida Console", monospace;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
 }
 
 .dimension-2D {
@@ -316,6 +327,7 @@ fieldset {
 .eventinfo {
   font-weight: bold;
   color: white;
+  pointer-events: none;
 }
 
 .geo table {
@@ -359,6 +371,18 @@ table {
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10 and IE 11 */
     user-select: none; /* Standard syntax */
+}
+
+/* Allow text selection in form inputs and other interactive elements */
+input, textarea, select, [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+    -ms-user-select: text;
+}
+
+/* Re-enable pointer events for all interactive elements */
+button, input, textarea, select, a, [role="button"], [onclick] {
+    pointer-events: all;
 }
 
 /* end of file */
