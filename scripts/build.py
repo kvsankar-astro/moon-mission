@@ -98,7 +98,7 @@ def build(dist_dir="dist", clean=True):
         
         # CSS files (referenced in HTML)
         ("assets/platform/css/mission.css", "assets/platform/css/mission.css"),
-        ("css/ui-darkness/jquery-ui-1.10.3.custom.min.css", "css/ui-darkness/jquery-ui-1.10.3.custom.min.css"),
+        ("third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css", "third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css"),
         
         # JavaScript files (referenced in HTML)
         ("assets/platform/js/astro.js", "assets/platform/js/astro.js"),
@@ -150,7 +150,7 @@ def build(dist_dir="dist", clean=True):
         print_info("Skipping landing data files (disabled in config)")
     
     # CSS UI theme images directory (referenced by CSS)
-    css_images_dir = "css/ui-darkness/images"
+    css_images_dir = "third-party/css/ui-darkness/images"
     
     # Copy individual files
     copied_files = 0
