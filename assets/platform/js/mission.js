@@ -2435,13 +2435,6 @@ async function initConfig() {
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
             animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
-        } else {
-            // Default values
-            animationScenes[config].planetsForOrbits = ["MOON", spacecraftMnemonic];
-            animationScenes[config].planetsForLocations = ["MOON", spacecraftMnemonic];
-            animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/geo-${spacecraftMnemonic}.json`;
-            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/geo-${spacecraftMnemonic}.npz`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
@@ -2495,14 +2488,8 @@ async function initConfig() {
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
             animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
-        } else {
-            // Default values
-            animationScenes[config].planetsForOrbits = ["EARTH", spacecraftMnemonic];
-            animationScenes[config].planetsForLocations = ["EARTH", spacecraftMnemonic];
-            animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/lunar-${spacecraftMnemonic}.json`;
-            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/lunar-${spacecraftMnemonic}.npz`;
         }
+        
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
