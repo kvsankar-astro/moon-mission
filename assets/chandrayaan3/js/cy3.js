@@ -311,6 +311,10 @@ async function loadConfig() {
             globalConfig = await response.json();
             eventInfos = globalConfig.eventInfos || [];
             console.debug('Config loaded successfully:', globalConfig);
+            
+            // Update UI elements based on config
+            updateLandingUIFromConfig();
+            
             return globalConfig;
         } else {
             console.warn('Could not load config.json, using defaults');
@@ -322,8 +326,31 @@ async function loadConfig() {
     }
 }
 
+function updateLandingUIFromConfig() {
+    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+    
+    if (isLandingEnabled) {
+        // Show landing UI elements
+        $("#landing").closest('label').show();
+        $("#landing").show();
+        $("#landingbutton").show();
+    } else {
+        // Hide landing UI elements and ensure landing is disabled
+        $("#landing").closest('label').hide();
+        $("#landing").hide();
+        $("#landingbutton").hide();
+        
+        // If landing is currently active, turn it off
+        if (landingFlag) {
+            landingFlag = false;
+            $("#landingbutton").removeClass("down");
+            $("#landing").prop("checked", false);
+        }
+    }
+}
+
 function updateLandingTimesFromConfig() {
-    if (globalConfig && globalConfig.landing) {
+    if (globalConfig && globalConfig.landing && globalConfig.landing.enabled) {
         const cfg = globalConfig.landing;
         
         // Calculate start time from config
@@ -348,9 +375,10 @@ function updateLandingTimesFromConfig() {
             startLandingTime: new Date(startLandingTime),
             endLandingTime: new Date(endLandingTime)
         });
-    } else {
+    } else if (!globalConfig || !globalConfig.landing) {
         console.debug('Using default landing times (no config.landing found)');
     }
+    // If landing.enabled is false, no message is logged
 }
 
 async function fetchNPZ(url, callback = null, callbackError = null, updateMetadata = true) {
@@ -1432,7 +1460,7 @@ class AnimationScene {
         this.addCurve(); // TODO should we prefix await here?
 
 
-        if (config == "lunar") {
+        if (config == "lunar" && globalConfig && globalConfig.landing && globalConfig.landing.enabled && this.landingCurve.length > 0) {
             // console.log("Adding landing curve ...");
             var landingCurves = new THREE.CatmullRomCurve3(this.landingCurve);
             var landingOrbitGeometry = new THREE.BufferGeometry();
@@ -2029,7 +2057,9 @@ class AnimationScene {
     }
 
     processLandingVectors() {
-        if (config != "lunar") return;
+        // Check if landing is enabled in config
+        const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+        if (!isLandingEnabled || config != "lunar") return;
 
         nLandingPoints = 0;    
         var planet = landingData["CY3"];
@@ -2338,6 +2368,9 @@ async function initConfig() {
     
     // Update landing times from config if available
     updateLandingTimesFromConfig();
+    
+    // Update landing UI visibility from config
+    updateLandingUIFromConfig();
 
     addEvents();
 
@@ -2655,7 +2688,9 @@ function setLabelLocation(planetKey) {
 function getBodyLocation(craftid, t) {
     // console.log("getBodyLocation(" + craftId + ", " + t + ")");
     
-    if ((config == "lunar") && (craftid == "CY3") && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
+    // Check if landing is enabled before using landing time range
+    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+    if ((config == "lunar") && (craftid == "CY3") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
 
         var orbitDataResolutionInSeconds = 1;
         var num = t - startLandingTime;
@@ -3464,6 +3499,10 @@ function processOrbitData(data) {
 }
 
 async function loadLandingDataAndProcess() {
+    // Check if landing is enabled in config
+    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+    if (!isLandingEnabled) return;
+    
     if (!landingDataLoaded) {
         // Use config data for landing if available
         const configData = globalConfig;
@@ -4360,6 +4399,10 @@ function toggleJoyRide() {
 }
 
 function toggleLanding() {
+    // Check if landing is enabled in config
+    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+    if (!isLandingEnabled) return;
+    
     if (joyRideFlag) { toggleJoyRide(); }
     landingFlag = !landingFlag;
     animationScenes[config].craft.visible = true;
@@ -4423,7 +4466,9 @@ function setView() {
 
         if (animationScenes[cfg] && animationScenes[cfg].initialized3D) {
             animationScenes[cfg].orbitLines.map((orbitLine) => {orbitLine.visible = viewOrbit;});
-            if (cfg == "lunar") { animationScenes[cfg].landingOrbitLine.visible = viewOrbitDescent; }
+            if (cfg == "lunar" && globalConfig && globalConfig.landing && globalConfig.landing.enabled) { 
+                animationScenes[cfg].landingOrbitLine.visible = viewOrbitDescent; 
+            }
         
             
             animationScenes[cfg].locations.map(x => x.visible = viewCraters);

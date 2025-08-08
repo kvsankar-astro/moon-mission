@@ -55,6 +55,21 @@ def build(dist_dir="dist", clean=True):
     # Change to project root
     os.chdir(project_root)
     
+    # Load config to check if landing is enabled
+    landing_enabled = True  # Default to True for backward compatibility
+    config_path = "assets/chandrayaan3/data/config.json"
+    try:
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                landing_enabled = config.get('landing', {}).get('enabled', True)
+                print_info(f"Landing enabled in config: {landing_enabled}")
+        else:
+            print_info("Config file not found, assuming landing enabled")
+    except Exception as e:
+        print_error(f"Error reading config: {e}, assuming landing enabled")
+        landing_enabled = True
+    
     # Full path to dist directory
     dist_path = os.path.join(project_root, dist_dir)
     
@@ -104,8 +119,6 @@ def build(dist_dir="dist", clean=True):
         ("assets/chandrayaan3/data/geo-CY3-meta.json", "assets/chandrayaan3/data/geo-CY3-meta.json"),
         ("assets/chandrayaan3/data/lunar-CY3.npz", "assets/chandrayaan3/data/lunar-CY3.npz"),
         ("assets/chandrayaan3/data/lunar-CY3-meta.json", "assets/chandrayaan3/data/lunar-CY3-meta.json"),
-        ("assets/chandrayaan3/data/landing-CY3.npz", "assets/chandrayaan3/data/landing-CY3.npz"),
-        ("assets/chandrayaan3/data/landing-CY3-meta.json", "assets/chandrayaan3/data/landing-CY3-meta.json"),
         ("assets/chandrayaan3/data/config.json", "assets/chandrayaan3/data/config.json"),
 
         # Images - Only those referenced in JS
@@ -119,6 +132,17 @@ def build(dist_dir="dist", clean=True):
         # Social media screenshot (referenced in HTML meta)
         ("assets/chandrayaan3/images/chandrayaan3-screenshot.png", "assets/chandrayaan3/images/chandrayaan3-screenshot.png"),
     ]
+    
+    # Add landing files if enabled in config
+    if landing_enabled:
+        landing_files = [
+            ("assets/chandrayaan3/data/landing-CY3.npz", "assets/chandrayaan3/data/landing-CY3.npz"),
+            ("assets/chandrayaan3/data/landing-CY3-meta.json", "assets/chandrayaan3/data/landing-CY3-meta.json"),
+        ]
+        files_to_copy.extend(landing_files)
+        print_info("Including landing data files in build")
+    else:
+        print_info("Skipping landing data files (disabled in config)")
     
     # CSS UI theme images directory (referenced by CSS)
     css_images_dir = "css/ui-darkness/images"
