@@ -47,18 +47,6 @@
     "center": "moon_center",
     "orbits_file": "landing-CY3"
   },
-  "vikram": {
-    "start_year": "2023",
-    "start_month": "08",
-    "start_day": "02",
-    "start_hour": "07",
-    "start_minute": "46",
-    "stop_year": "2023",
-    "stop_month": "08",
-    "stop_day": "06",
-    "stop_hour": "20",
-    "stop_minute": "26"
-  },
   "events": {
     "missionStart": {
       "startTime": "2023-07-14T09:23:00Z",
@@ -156,37 +144,13 @@
       "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
       "body": "CY3"
     },
-    "vikramSeparation": {
-      "startTime": "2019-09-02T07:45:00Z",
-      "durationSeconds": 0,
-      "label": "VS",
-      "burnFlag": true,
-      "infoText": "Vikram Separation: Vikram goes into a 119 km x 127 km orbit",
-      "body": "CY3"
-    },
-    "vikramDeboost1": {
-      "startTime": "2019-09-03T03:20:00Z",
-      "durationSeconds": 4,
-      "label": "VD#1",
-      "burnFlag": true,
-      "infoText": "Vikram Deorbit #1 for 4 seconds on 3rd September, at 08:50 IST",
-      "body": "VIKRAM"
-    },
-    "vikramDeboost2": {
-      "startTime": "2019-09-04T22:12:00Z",
-      "durationSeconds": 9,
-      "label": "VD#2",
-      "burnFlag": true,
-      "infoText": "Vikram Deorbit #2 for 9 seconds on 4th September, at 03:42 IST",
-      "body": "VIKRAM"
-    },
     "vikramLanding": {
       "startTime": "2023-08-23T12:34:00Z",
       "durationSeconds": 0,
       "label": "Vikram Landing",
       "burnFlag": true,
       "infoText": "Vikram Landing - 23rd August, 18:04 IST",
-      "body": "VIKRAM"
+      "body": "CY3"
     },
     "now": {
       "startTime": "dynamic",
@@ -203,27 +167,11 @@
       "burnFlag": false,
       "infoText": "Chandrayaan 3 Data End",
       "body": ""
-    },
-    "lroDataStart": {
-      "startTime": "2019-09-01T00:00:00Z",
-      "durationSeconds": 0,
-      "label": "LRO Data Start",
-      "burnFlag": false,
-      "infoText": "LRO Data Start",
-      "body": ""
-    },
-    "lroDataEnd": {
-      "startTime": "2019-11-01T00:00:00Z",
-      "durationSeconds": 0,
-      "label": "LRO Data End",
-      "burnFlag": false,
-      "infoText": "LRO Data End",
-      "body": ""
     }
   },
   "eventConfigs": {
     "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"],
     "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"],
-    "lro": ["lroDataStart", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "now", "vikramLanding", "cy3DataEnd", "lroDataEnd"]
+    "landing": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"]
   }
 }
