@@ -110,8 +110,8 @@
     
                     <fieldset autocomplete="off">
                         <legend class="config-label">Lock On:</legend>
-                        <input type="checkbox" id="checkbox-lock-cy3">
-                        <label for="checkbox-lock-cy3">Chandrayaan 3</label>
+                        <input type="checkbox" id="checkbox-lock-sc">
+                        <label for="checkbox-lock-sc" id="label-lock-spacecraft">Chandrayaan 3</label>
                         <span class="geo"><input type="checkbox" id="checkbox-lock-moon"></span>
                         <label class="geo" for="checkbox-lock-moon">Moon</label>
                         <span class="lunar"><input type="checkbox" id="checkbox-lock-earth"></span>
@@ -141,9 +141,9 @@
                         <input id="joyride" type="checkbox">
                         <label for="joyride">Joy Ride!</label>
                         <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
-                        <label for="view-orbit">CY3 Orbit</label>
+                        <label for="view-orbit" id="label-orbit">CY3 Orbit</label>
                         <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
-                        <label for="view-orbit-descent">CY3 Descent Orbit</label>
+                        <label for="view-orbit-descent" id="label-orbit-descent">CY3 Descent Orbit</label>
                         <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
                         <label for="view-craters">Locations</label>
                         <input type="checkbox" name="view" value="xyz" id="view-xyz-axes" checked="checked">
@@ -298,19 +298,19 @@
                     </tr>
                     <!-- <tr>
                         <td>Vehicle</td>
-                        <td><label class="cy3">Chandrayaan 3</label></td>
+                        <td><label class="sc">Chandrayaan 3</label></td>
                     </tr> -->
                     <tr>
                         <td>Distance (km): </td>
-                        <td><label id="distance-SC-EARTH" class="cy3"></label></td>
+                        <td><label id="distance-SC-EARTH" class="sc"></label></td>
                     </tr>
                     <tr>
                         <td>Altitude (km): </td>
-                        <td><label id="altitude-SC-EARTH" class="cy3"></label></td>
+                        <td><label id="altitude-SC-EARTH" class="sc"></label></td>
                     </tr>
                     <tr>
                         <td>Velocity (km/s): </td>
-                        <td><label id="velocity-SC-EARTH" class="cy3"></label></td>
+                        <td><label id="velocity-SC-EARTH" class="sc"></label></td>
                     </tr>
                     </table>
                 </div>
@@ -324,19 +324,19 @@
                     </tr>
                     <!-- <tr>
                         <td>Vehicle</td>
-                        <td><label class="cy3">Chandrayaan 3</label></td>
+                        <td><label class="sc">Chandrayaan 3</label></td>
                     </tr> -->
                     <tr>
                         <td>Distance (km): </td>
-                        <td><label id="distance-SC-MOON" class="cy3"></label></td>
+                        <td><label id="distance-SC-MOON" class="sc"></label></td>
                     </tr>
                     <tr>
                         <td>Altitude (km): </td>
-                        <td><label id="altitude-SC-MOON" class="cy3"></label></td>
+                        <td><label id="altitude-SC-MOON" class="sc"></label></td>
                     </tr>
                     <tr>
                         <td>Velocity (km/s): </td>
-                        <td><label id="velocity-SC-MOON" class="cy3"></label></td>
+                        <td><label id="velocity-SC-MOON" class="sc"></label></td>
                     </tr>
                     </table>
                 </div>
@@ -350,7 +350,7 @@
                 <table>
                 <tr>
                     <!-- <td>Orbit data epoch: JD = <label id="epochjd"></label> | UTC = <label id="epochdate"></label></td> -->
-                    <td>CY3 phase: 
+                    <td id="label-phase-prefix"><span id="spacecraft-mnemonic">CY3</span> phase: 
                     <label id="phase-1"></label> | 
                     <label id="phase-2"></label> | 
                     <label id="phase-3"></label>
@@ -360,7 +360,7 @@
             </div> <!-- info -->
 
             <div class="copyright desktoponly">
-                Copyright &copy; 2013-2024 Sankaranarayanan Viswanathan. All rights reserved.
+                Copyright &copy; 2013-2025 Sankaranarayanan Viswanathan. All rights reserved.
             </div> <!-- copyright -->
         </div> <!-- footer-wrapper -->
     </div> <!-- wrapper -->

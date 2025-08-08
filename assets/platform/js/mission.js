@@ -300,6 +300,41 @@ async function fetchMetadata(npzFileName) {
     return null; // Fallback to defaults
 }
 
+function updateDynamicLabels() {
+    if (!globalConfig) return;
+    
+    // Get spacecraft name from config (fallback to defaults)
+    const spacecraftName = globalConfig.mission_name || 'Spacecraft';
+    const spacecraftShort = globalConfig.mission_name_short || globalConfig.spacecraft_mnemonic || 'SC';
+    
+    // Update dynamic UI labels (not SEO content)
+    const labelElements = [
+        { id: 'label-lock-spacecraft', text: spacecraftName },
+        { id: 'label-orbit', text: `${spacecraftShort} Orbit` },
+        { id: 'label-orbit-descent', text: `${spacecraftShort} Descent Orbit` }
+    ];
+    
+    labelElements.forEach(({id, text}) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = text;
+        }
+    });
+    
+    // Update spacecraft mnemonic in the dedicated span element
+    const spacecraftMnemonicElement = document.getElementById('spacecraft-mnemonic');
+    if (spacecraftMnemonicElement) {
+        spacecraftMnemonicElement.textContent = spacecraftShort;
+    }
+    
+    console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
+}
+
+function updateMissionMetadata() {
+    // This function is called but not implemented yet - placeholder for future use
+    updateDynamicLabels();
+}
+
 async function loadConfig() {
     if (globalConfig !== null) {
         return globalConfig; // Return cached config
@@ -325,6 +360,7 @@ async function loadConfig() {
             // globalConfig.spacecraft_mnemonic is used only for file path construction
             
             // Update UI elements based on config
+            updateMissionMetadata();
             updateMoonUIFromConfig();
             updateLandingUIFromConfig();
             
@@ -2448,7 +2484,7 @@ async function initConfig() {
 
         d3.select("#checkbox-lock-moon").property("checked", animationScenes[config].lockOnMoon);
         d3.select("#checkbox-lock-earth").property("checked", animationScenes[config].lockOnEarth);   
-        d3.select("#checkbox-lock-cy3").property("checked", animationScenes[config].lockOnSC);
+        d3.select("#checkbox-lock-sc").property("checked", animationScenes[config].lockOnSC);
 
         d3.select("#checkbox-lock-xy").property("checked", animationScenes[config].lockOnXY);
         d3.select("#checkbox-lock-xz").property("checked", animationScenes[config].lockOnXZ);
@@ -2879,17 +2915,19 @@ function setLocation() {
     // console.log("helioCentricPhaseStartTime = " + helioCentricPhaseStartTime);
     // console.log("lunarPhaseStartTime = " + lunarPhaseStartTime);
 
-    d3.select("#phase-1").html("Earth Bound Phase");
-    d3.select("#phase-2").html("Lunar Bound Phase");
-    d3.select("#phase-3").html("Lunar Orbit Phase");
-
-    // TODO find a better way to do this
-    if (animTime < timeTransLunarInjection) {
-        d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
-    } else if (animTime < timeLunarOrbitInsertion) {
-        d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
-    } else {
-        d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+    // Only show phase information for lunar missions
+    if (globalConfig && globalConfig.is_lunar) {
+        d3.select("#phase-1").html("Earth Bound Phase");
+        d3.select("#phase-2").html("Lunar Bound Phase");
+        d3.select("#phase-3").html("Lunar Orbit Phase");
+        
+        if (animTime < timeTransLunarInjection) {
+            d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
+        } else if (animTime < timeLunarOrbitInsertion) {
+            d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
+        } else {
+            d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+        }
     }
 
     for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
@@ -3219,7 +3257,7 @@ export function main() {
     $("#origin-moon").on("click", toggleMode);
     $("#camera-default").on("click", toggleCamera);
     $("#camera-moon").on("click", toggleCamera);
-    $("#checkbox-lock-cy3").on("click", toggleLockSC);
+    $("#checkbox-lock-sc").on("click", toggleLockSC);
     $("#checkbox-lock-moon").on("click", toggleLockMoon);
     $("#checkbox-lock-earth").on("click", toggleLockEarth);
 
@@ -3299,7 +3337,7 @@ function init(callback) {
     animationScenes[config].lockOnMoon = false;
     animationScenes[config].lockOnEarth = false;
     
-    d3.select("#checkbox-lock-cy3").property("checked", false);
+    d3.select("#checkbox-lock-sc").property("checked", false);
     d3.select("#checkbox-lock-moon").property("checked", false);
     d3.select("#checkbox-lock-earth").property("checked", false);
 
@@ -4240,7 +4278,7 @@ function toggleLockMoon() {
 
     animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
     animationScenes[config].lockOnSC = false;
-    d3.select("#checkbox-lock-cy3").property("checked", false);
+    d3.select("#checkbox-lock-sc").property("checked", false);
 
     animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
     animationScenes[config].lockOnEarth = false;
@@ -4254,7 +4292,7 @@ function toggleLockEarth() {
     animationScenes[config].lockOnEarth = !animationScenes[config].lockOnEarth;
     animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
     animationScenes[config].lockOnSC = false;
-    d3.select("#checkbox-lock-cy3").property("checked", false);
+    d3.select("#checkbox-lock-sc").property("checked", false);
     
     animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
     animationScenes[config].lockOnMoon = false;
