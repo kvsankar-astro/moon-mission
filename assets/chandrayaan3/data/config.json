@@ -32,6 +32,7 @@
     "orbits_file": "lunar-CY3"
   },
   "landing": {
+    "enabled": true,
     "start_year": "2023",
     "start_month": "08",
     "start_day": "23",
