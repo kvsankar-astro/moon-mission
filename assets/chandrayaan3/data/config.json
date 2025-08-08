@@ -1,4 +1,5 @@
 {
+  "spacecraft_mnemonic": "CY3",
   "geo": {
     "start_year": "2023",
     "start_month": "07", 
@@ -11,7 +12,7 @@
     "stop_hour": "12",
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "CY3"],
+    "planets": ["MOON", "SC"],
     "center": "earth_center",
     "orbits_file": "geo-CY3"
   },
@@ -27,7 +28,7 @@
     "stop_hour": "12", 
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["CY3", "EARTH"],
+    "planets": ["SC", "EARTH"],
     "center": "moon_center",
     "orbits_file": "lunar-CY3"
   },
@@ -44,7 +45,7 @@
     "stop_hour": "12",
     "stop_minute": "40",
     "step_size_in_seconds": 1,
-    "planets": ["CY3"],
+    "planets": ["SC"],
     "center": "moon_center",
     "orbits_file": "landing-CY3"
   },
@@ -55,7 +56,7 @@
       "label": "🚀 Launch",
       "burnFlag": false,
       "infoText": "Launch:    14th Jul, 14:53 IST - Chandrayaan 3 placed in orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "ebn1": {
       "startTime": "2023-07-15T06:41:00Z",
@@ -63,7 +64,7 @@
       "label": "🔥EBN#1",
       "burnFlag": true,
       "infoText": "EBN#1:     15th Jul, 12:11 IST - 173km x 41762km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "ebn2": {
       "startTime": "2023-07-17T02:15:00Z",
@@ -71,7 +72,7 @@
       "label": "🔥EBN#2",
       "burnFlag": true,
       "infoText": "EBN#2:     17th Jul, 7:45 IST - 226km x 41603km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "ebn3": {
       "startTime": "2023-07-18T09:24:00Z",
@@ -79,7 +80,7 @@
       "label": "🔥EBN#3",
       "burnFlag": true,
       "infoText": "EBN#3:     18th Jul, 14:54 IST - 228km x 51400km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "ebn4": {
       "startTime": "2023-07-20T09:16:00Z",
@@ -87,7 +88,7 @@
       "label": "🔥EBN#4",
       "burnFlag": true,
       "infoText": "EBN#4:     20th Jul, 14:46 IST - 233km x 71351km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "ebn5": {
       "startTime": "2023-07-25T09:00:00Z",
@@ -95,7 +96,7 @@
       "label": "🔥EBN#5",
       "burnFlag": true,
       "infoText": "EBN#5:      25th Jul, 14:30 IST - 236km x 127603km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "tli": {
       "startTime": "2023-07-31T18:43:00Z",
@@ -103,7 +104,7 @@
       "label": "🔥TLI",
       "burnFlag": true,
       "infoText": "TLI:         1st Aug, 00:13 IST - 288km x 369328km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "loi": {
       "startTime": "2023-08-05T14:00:00Z",
@@ -111,7 +112,7 @@
       "label": "🌖 LBN#1/LOI",
       "burnFlag": true,
       "infoText": "LOI: 5th Aug, 19:30 IST - 164km x 18074km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "lbn1": {
       "startTime": "2023-08-06T17:49:00Z",
@@ -119,7 +120,7 @@
       "label": "LBN#1",
       "burnFlag": true,
       "infoText": "LBN#1:     6th Aug, 23:19 IST - 170km x 4313km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "lbn2": {
       "startTime": "2023-08-09T08:21:00Z",
@@ -127,7 +128,7 @@
       "label": "LBN#2",
       "burnFlag": true,
       "infoText": "LBN#2:     9th Aug, 13:51 IST - 174km x 1437km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "lbn3": {
       "startTime": "2023-08-14T06:38:00Z",
@@ -135,7 +136,7 @@
       "label": "LBN#3",
       "burnFlag": true,
       "infoText": "LBN#3:    14th Aug, 12:08 IST - 150km x 177km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "lbn4": {
       "startTime": "2023-08-16T03:00:00Z",
@@ -143,7 +144,7 @@
       "label": "LBN#4",
       "burnFlag": true,
       "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
-      "body": "CY3"
+      "body": "SC"
     },
     "vikramLanding": {
       "startTime": "2023-08-23T12:34:00Z",
@@ -151,7 +152,7 @@
       "label": "Vikram Landing",
       "burnFlag": true,
       "infoText": "Vikram Landing - 23rd August, 18:04 IST",
-      "body": "CY3"
+      "body": "SC"
     },
     "now": {
       "startTime": "dynamic",
