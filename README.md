@@ -41,71 +41,223 @@ Orbit data is fetched offline from JPL/NASA HORIZONS.
 This data in CSV format is processed a bit and converted into JSON or NPZ format 
 for use in the animation. A few astronomy functions are based on Steve Moshier's routines.
 
+Mission configuration, including all event timings and descriptions, is centralized in 
+`assets/chandrayaan3/data/config.json` for easy maintenance and modification.
+
 ### Fetching orbit data
 
-The Python script scripts/orbits.py (or Perl script scripts/orbits.pl) is used to fetch orbit data during development time from
+The Python script `scripts/orbits.py` is used to fetch orbit data during development time from
 <a href="http://ssd.jpl.nasa.gov/?horizons">NASA JPL HORIZONS</a> web interface.
+
+#### Usage
+
+```bash
+# Fetch geocentric orbit data (JSON and NPZ formats generated automatically)
+python scripts/orbits.py --phase geo
+
+# Fetch selenocentric orbit data  
+python scripts/orbits.py --phase lunar
+
+# Fetch landing phase data (high resolution)
+python scripts/orbits.py --phase landing
+
+# Fetch multiple phases at once
+python scripts/orbits.py --phases geo lunar landing
+
+# Use cached data (skip re-downloading from JPL)
+python scripts/orbits.py --phase geo --use-cache
+```
 
 The script supports the following options:
 
-    --phase=[geo|lunar|landing]  # geocentric, selenocentric, or landing phase -- defaults to geo
-    --data-dir=<datadir>         # place to save orbit data files -- defaults to .
-    --use-cache                  # use orbit data retrieved and saved earlier -- optional
+    --phase / --phases [geo|lunar|landing]  # mission phase(s) to process -- defaults to geo
+                                           # --phases allows multiple phases at once
+    --data-dir <datadir>                   # place to save orbit data files -- defaults to timestamped dir
+    --use-cache                           # use orbit data retrieved and saved earlier -- optional
 
-Raw orbit data obtained from JPL is stored into the following files:
+#### Data Output
 
-    ho-<id>-elements.txt  # orbital elements for one instant of time
-    ho-<id>-vectors.txt   # co-ordinates for a period of time
+Raw orbit data obtained from JPL is stored into timestamped archive directories:
 
-Orbital elements are also stored here (though they aren't used at present):
+    assets/chandrayaan3/archive/data-fetched/YYYYMMDDHHMMSS/
+    ├── ho-<id>-elements.txt    # orbital elements for one instant of time
+    ├── ho-<id>-vectors.txt     # co-ordinates for a period of time
+    └── ho-<id>-orbit.txt       # orbital elements for one instant of time
 
-    ho-<id>-orbit.txt     # orbital elements for one instant of time
+Orbit data for use by the JavaScript is written in JSON and NPZ formats and placed in `assets/chandrayaan3/data/`:
 
-Orbit data for use by the JavaScript is written in JSON format (or NPZ format) and placed in assets/chandrayaan3/data/:
-
-    geo-CY3.json                # contains all geocentric orbit data (elements and vectors) 
-    lunar-CY3.json              # contains all selenocentric orbit data (elements and vectors)
-    landing-CY3.json            # contains landing phase orbit data
-    *.npz                       # alternative compressed NumPy format for faster loading
+    geo-CY3.json                # geocentric orbit data (elements and vectors) 
+    geo-CY3.npz                 # compressed NumPy format (faster loading)
+    geo-CY3-meta.json           # metadata (step size, timing info)
+    lunar-CY3.json              # selenocentric orbit data 
+    lunar-CY3.npz               # compressed format
+    lunar-CY3-meta.json         # metadata
+    landing-CY3.json            # landing phase orbit data (high resolution)
+    landing-CY3.npz             # compressed format
+    landing-CY3-meta.json       # metadata
+    config.json                 # mission configuration and events
     
 
-### Web page
+### Project Structure
 
-The site consists of the following three sets of files:
+The project follows a platform-based architecture that separates reusable components from mission-specific assets:
 
-#### Core project files
+```
+cy3/
+├── chandrayaan3.html              # Main HTML entry point
+├── assets/
+│   ├── platform/                  # Reusable platform components
+│   │   ├── css/
+│   │   │   └── mission.css        # Core styling (mission-agnostic)
+│   │   └── js/
+│   │       ├── mission.js         # Core animation logic
+│   │       ├── astro.js           # Astronomy calculations
+│   │       └── npyreader.js       # Data format readers
+│   └── chandrayaan3/              # Mission-specific assets
+│       ├── data/
+│       │   ├── config.json        # Mission configuration
+│       │   ├── *.json             # Orbit data files (not in Git)
+│       │   └── *.npz              # Compressed orbit data (not in Git)
+│       ├── html/
+│       │   └── whatsnew-cy3.html  # Mission-specific pages
+│       ├── images/
+│       │   └── chandrayaan3-screenshot.png
+│       ├── js/
+│       │   └── ga.js              # Analytics
+│       └── models/
+│           └── *.glb              # 3D spacecraft models
+├── third-party/                   # External libraries
+│   ├── css/
+│   │   └── ui-darkness/           # jQuery UI theme
+│   └── *.js                       # JavaScript libraries
+├── images/                        # Shared textures (Earth, Moon, stars)
+│   ├── earth/
+│   ├── moon/
+│   └── sky/
+└── scripts/                       # Build and data scripts
+    ├── build.py
+    ├── deploy.py
+    └── orbits.py
+```
 
-    chandrayaan3.html                   # HTML page
-    assets/chandrayaan3/js/cy3.js       # JavaScript handling animation
-    assets/chandrayaan3/js/astro.js     # A few astronomy support functions
-    assets/chandrayaan3/js/npyreader.js # NPZ/NPY file reader
-    assets/chandrayaan3/css/cy3.css     # CSS for the web page
-    assets/chandrayaan3/html/whatsnew-cy3.html  # What's new page
-    assets/chandrayaan3/data/*.json     # orbit data files
-    assets/chandrayaan3/models/*.glb    # 3D spacecraft models
+#### Platform Components (Reusable)
 
-#### Third party library files, style sheets, and images
+- **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
+- **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
+- **`assets/platform/js/npyreader.js`** - Data format readers (JSON, NPZ)
+- **`assets/platform/css/mission.css`** - Base styling for any mission
 
-    d3.v3.min.js
-    ephemeris-0.1.0.min.js (https://github.com/mivion/ephemeris)
-    jquery.dialogextend.min.js
-    jquery-ui-1.10.3.custom.min.js
-    jquery-1.9.1.js
-    three.min.js
-    TrackballControls.js
-    css/ui-darkness/images/*
-    css/ui-darkness/*.css
-    images/* (earth and moon textues for a few sources)
+#### Mission-Specific Assets
 
-#### Analytics
+- **`assets/chandrayaan3/data/config.json`** - Mission timeline, events, spacecraft parameters
+- **`assets/chandrayaan3/data/*.json`** - Orbit data (geocentric, selenocentric, landing phases)
+- **`assets/chandrayaan3/models/*.glb`** - 3D models of Chandrayaan-3 spacecraft
+- **`assets/chandrayaan3/js/ga.js`** - Mission-specific analytics
 
-    assets/chandrayaan3/js/ga.js        # Google analytics
+#### Third-Party Libraries
+
+- **D3.js v3** - 2D SVG rendering and data visualization
+- **Three.js** - 3D WebGL rendering engine
+- **jQuery/jQuery UI** - DOM manipulation and UI components
+- **Ephemeris.js** - Astronomical calculations library
+
+## Build and Deployment
+
+The project includes scripts for building and deploying the application.
+
+### Build Script
+
+`scripts/build.py` prepares files for deployment by creating a `dist` directory with all necessary files.
+
+```bash
+# Build the project (creates/updates dist folder)
+python scripts/build.py
+
+# Build without cleaning existing dist
+python scripts/build.py --no-clean
+
+# Build to custom directory
+python scripts/build.py --dist my-dist
+```
+
+### Deployment Script
+
+`scripts/deploy.py` deploys the built project locally or via SFTP.
+
+```bash
+# Create deployment config template
+python scripts/deploy.py config
+
+# Deploy to local directory
+python scripts/deploy.py local --target /path/to/deployment
+
+# Deploy via SFTP (requires config)
+python scripts/deploy.py sftp
+
+# Dry run (show what would be done)
+python scripts/deploy.py local --target /path/to/deployment --dry-run
+```
+
+#### Deployment Configuration
+
+Create `deploy-config.json` for deployment settings:
+
+```json
+{
+  "local": {
+    "target_dir": "/path/to/local/deployment"
+  },
+  "sftp": {
+    "host": "example.com",
+    "port": 22,
+    "username": "your-username",
+    "password": "your-password or leave empty for key auth",
+    "key_filename": "/path/to/private/key (optional)",
+    "remote_dir": "/path/to/remote/deployment"
+  }
+}
+```
+
+### Development Workflow
+
+1. **Fetch latest orbit data** (if needed):
+   ```bash
+   # Fetch all phases at once
+   python scripts/orbits.py --phases geo lunar landing
+   
+   # Or fetch individual phases
+   python scripts/orbits.py --phase geo
+   ```
+
+2. **Build the project**:
+   ```bash
+   python scripts/build.py
+   ```
+
+3. **Deploy**:
+   ```bash
+   # Local deployment
+   python scripts/deploy.py local --target /var/www/chandrayaan3
+
+   # SFTP deployment
+   python scripts/deploy.py sftp
+   ```
 
 ### Hosting
 
 At present the page can be hosted statically. There are no server components needed.
 However, to prevent browsers from complaining about CORS, one may use a tiny web server
-like Mongoose to test the local site. 
+like Mongoose to test the local site.
+
+For development, you can use Python's built-in server:
+```bash
+python -m http.server 8000
+```
+
+Or Node.js http-server:
+```bash
+npx http-server
+``` 
 
 ## Credits
 
@@ -136,6 +288,15 @@ better separation of concerns (2D vs. 3D, model vs. rendering, etc.), extensibil
 (how does one extend the code for a new mission easily merely by changing configurations), 
 performance (decrease the load time; improve rendering smoothness; on-demand loading of high resolution
 LRO textures), and responsive UX. The current UX is not too great mobile screens. 
+
+## Use of Generative AI
+
+This project now leverages generative AI tools to accelerate development and improve code quality:
+
+* **[Claude Code](https://claude.ai/code)** - Anthropic's AI coding assistant for enhancements, refactoring, and bug fixes
+* **[Gemini CLI](https://ai.google.dev/gemini-api/docs/cli)** - Google's AI assistant for development tasks and automation
+
+These tools help with code improvements, documentation updates, and implementing new features while maintaining the project's educational mission and code quality standards.
 
 ## Inspirations
 
