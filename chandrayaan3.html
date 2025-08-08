@@ -30,7 +30,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
         <link rel="stylesheet" href="css/ui-darkness/jquery-ui-1.10.3.custom.min.css">
-        <link rel="stylesheet" type="text/css" href="assets/chandrayaan3/css/cy3.css">
+        <link rel="stylesheet" type="text/css" href="assets/platform/css/mission.css">
 
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -54,9 +54,16 @@
         <script src="third-party/threex.atmospherematerial.js"></script>
         <script src="third-party/ephemeris-0.1.0.min.js"></script>
 
-        <script type="module" src="assets/chandrayaan3/js/astro.js"></script>
-        <script type="module" src="assets/chandrayaan3/js/cy3.js"></script>
-        <script type="module" src="assets/chandrayaan3/js/npyreader.js"></script>
+        <script type="module" src="assets/platform/js/astro.js"></script>
+        <script>
+            // Mission-specific configuration
+            window.missionConfig = {
+                missionName: "chandrayaan3",
+                configPath: "assets/chandrayaan3/data/config.json"
+            };
+        </script>
+        <script type="module" src="assets/platform/js/mission.js"></script>
+        <script type="module" src="assets/platform/js/npyreader.js"></script>
         <script src="assets/chandrayaan3/js/ga.js"></script> 
 
         <title>ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation</title>
@@ -294,15 +301,15 @@
                     </tr> -->
                     <tr>
                         <td>Distance (km): </td>
-                        <td><label id="distance-CY3-EARTH" class="cy3"></label></td>
+                        <td><label id="distance-SC-EARTH" class="cy3"></label></td>
                     </tr>
                     <tr>
                         <td>Altitude (km): </td>
-                        <td><label id="altitude-CY3-EARTH" class="cy3"></label></td>
+                        <td><label id="altitude-SC-EARTH" class="cy3"></label></td>
                     </tr>
                     <tr>
                         <td>Velocity (km/s): </td>
-                        <td><label id="velocity-CY3-EARTH" class="cy3"></label></td>
+                        <td><label id="velocity-SC-EARTH" class="cy3"></label></td>
                     </tr>
                     </table>
                 </div>
@@ -320,15 +327,15 @@
                     </tr> -->
                     <tr>
                         <td>Distance (km): </td>
-                        <td><label id="distance-CY3-MOON" class="cy3"></label></td>
+                        <td><label id="distance-SC-MOON" class="cy3"></label></td>
                     </tr>
                     <tr>
                         <td>Altitude (km): </td>
-                        <td><label id="altitude-CY3-MOON" class="cy3"></label></td>
+                        <td><label id="altitude-SC-MOON" class="cy3"></label></td>
                     </tr>
                     <tr>
                         <td>Velocity (km/s): </td>
-                        <td><label id="velocity-CY3-MOON" class="cy3"></label></td>
+                        <td><label id="velocity-SC-MOON" class="cy3"></label></td>
                     </tr>
                     </table>
                 </div>
