@@ -1,5 +1,6 @@
 {
   "spacecraft_mnemonic": "CY3",
+  "is_lunar": true,
   "geo": {
     "start_year": "2023",
     "start_month": "07", 
@@ -48,6 +49,33 @@
     "planets": ["SC"],
     "center": "moon_center",
     "orbits_file": "landing-CY3"
+  },
+  "landingSites": [
+    {
+      "name": "SC Primary Site 1",
+      "longitude": 32.348126,
+      "latitude": -69.367621,
+      "color": "#FFFF00",
+      "description": "SC primary landing site"
+    },
+    {
+      "name": "SC Primary Site 2", 
+      "longitude": 32.318695,
+      "latitude": -69.374454,
+      "color": "#00FFFF",
+      "description": "SC primary landing site variant"
+    },
+    {
+      "name": "SC Secondary Site",
+      "longitude": -17.33040,
+      "latitude": -69.497764,
+      "color": "#FFD700", 
+      "description": "SC secondary landing site"
+    }
+  ],
+  "spacecraftModel": {
+    "enabled": true,
+    "file": "cy3-small.glb"
   },
   "events": {
     "missionStart": {
