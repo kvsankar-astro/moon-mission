@@ -14,7 +14,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // constants
 
-var CY3     = "CY3";
+var SC     = "SC"; // Default spacecraft mnemonic - will be overridden by config
 var SUN     = "SUN";
 var MERCURY = "MERCURY";
 var VENUS   = "VENUS";
@@ -68,7 +68,7 @@ var ambientLightColorForCraft = 0x777777;
 var ambientLightIntensityForCraft = 1.5;
 
 var planetProperties = {
-    "CY3":      { "id": CY3,        "name": "CY3",              "color": "#ffa000",     "orbitcolor": "#66CCFF",    "stroke-width": 1.0, "r": 3.2, "labelOffsetX": -30, "labelOffsetY": -10 },
+    "SC":      { "id": SC,        "name": "SC",              "color": "#ffa000",     "orbitcolor": "#66CCFF",    "stroke-width": 1.0, "r": 3.2, "labelOffsetX": -30, "labelOffsetY": -10 },
     
     
     "SUN":      { "id": SUN,        "name": "Sun",              "color": "yellow",      "orbitcolor": "yellow",     "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
@@ -95,7 +95,7 @@ var FORMAT_METRIC = d3.format(" >10,.2f");
 // General state variables
 //
 
-var craftId = "CY3";
+var craftId = "SC"; // Default spacecraft mnemonic - will be overridden by config
 var config = "geo";
 var missionStartCalled = false;
 var orbitDataLoaded = { "geo": false, "lunar": false };
@@ -167,7 +167,7 @@ var epochDate;
 
 var startTime;
 var endTime;
-var endTimeCY3;
+var endTimeSC;
 var latestEndTime; 
 var startLandingTime;
 var endLandingTime;
@@ -193,7 +193,7 @@ var dataLoaded = false;
 var ticksPerAnimationStep;
 var mousedownTimeout = ZOOM_TIMEOUT;
 
-// Chandrayaan 3 specific times and information
+// Spacecraft specific times and information
 var timeTransLunarInjection;
 var timeLunarOrbitInsertion;
 
@@ -305,12 +305,24 @@ async function loadConfig() {
         return globalConfig; // Return cached config
     }
     
+    // Get config path from mission config set by HTML
+    if (!window.missionConfig || !window.missionConfig.configPath) {
+        console.error('No mission configuration found. Please set window.missionConfig in your HTML file.');
+        return null;
+    }
+    
+    const configPath = window.missionConfig.configPath;
+    console.debug(`Loading config from: ${configPath}`);
+    
     try {
-        const response = await fetch('assets/chandrayaan3/data/config.json');
+        const response = await fetch(configPath);
         if (response.ok) {
             globalConfig = await response.json();
             eventInfos = globalConfig.eventInfos || [];
             console.debug('Config loaded successfully:', globalConfig);
+            
+            // Note: SC and craftId remain as "SC" for internal use
+            // globalConfig.spacecraft_mnemonic is used only for file path construction
             
             // Update UI elements based on config
             updateLandingUIFromConfig();
@@ -404,7 +416,12 @@ async function fetchNPZ(url, callback = null, callbackError = null, updateMetada
         for (const [filename, npyData] of Object.entries(npzData)) {
             if (filename.includes('_vectors.npy')) {
                 // Extract planet name from filename (e.g., "CY3_vectors.npy" -> "CY3")
-                const planetName = filename.replace('_vectors.npy', '');
+                let planetName = filename.replace('_vectors.npy', '');
+                
+                // Map spacecraft mnemonic to internal generic identifier "SC"
+                if (globalConfig && globalConfig.spacecraft_mnemonic && planetName === globalConfig.spacecraft_mnemonic) {
+                    planetName = "SC";
+                }
                 
                 // Create planet object if it doesn't exist
                 if (!processedData[planetName]) {
@@ -549,7 +566,7 @@ class SceneHandler {
                 animationScene.motherContainer.position.set(-x, -y, -z);
                 // animationScene.camera.lookAt(animationScene.secondaryBody3D.position);
 
-            } else if (animationScene.lockOnCY3) {
+            } else if (animationScene.lockOnSC) {
                 
                 var x = animationScene.craft.position.x;
                 var y = animationScene.craft.position.y;
@@ -662,12 +679,12 @@ function updateCraftScale() {
         
         // animationScenes[config].craft.scale.set(10, 10, 10);
 
-        if (isLocationAvaialable("CY3", animTime)) {
-            // console.log(`CY3 location avaialble: setting CY3 visibility to ${animationScenes[config].craftVisible}`);
+        if (isLocationAvaialable("SC", animTime)) {
+            // console.log(`SC location avaialble: setting SC visibility to ${animationScenes[config].craftVisible}`);
             animationScenes[config].craft.visible = animationScenes[config].craftVisible;
             animationScenes[config].drone.visible = false;
         } else {
-            // console.log(`CY3 location NOT avaialble: setting CY3 visibility to false`);
+            // console.log(`SC location NOT avaialble: setting SC visibility to false`);
             animationScenes[config].craft.visible = false;
             animationScenes[config].drone.visible = false;
         }
@@ -1382,9 +1399,9 @@ class AnimationScene {
 
         // Moon landing location according to orbit data available with JPL
         // this.plotMoonLocation(deg_to_rad(22.77050), deg_to_rad(-70.89754), "#BB3F3F"); // CY2
-        this.plotMoonLocation(deg_to_rad(32.348126), deg_to_rad(-69.367621), "#FFFF00"); // CY3 primary site
-        this.plotMoonLocation(deg_to_rad(32.318695), deg_to_rad(-69.374454), "#00FFFF"); // CY3 primary site
-        this.plotMoonLocation(deg_to_rad(-17.33040), deg_to_rad(-69.497764), "#FFD700"); // CY3 secondary site
+        this.plotMoonLocation(deg_to_rad(32.348126), deg_to_rad(-69.367621), "#FFFF00"); // SC primary site
+        this.plotMoonLocation(deg_to_rad(32.318695), deg_to_rad(-69.374454), "#00FFFF"); // SC primary site
+        this.plotMoonLocation(deg_to_rad(-17.33040), deg_to_rad(-69.497764), "#FFD700"); // SC secondary site
 
 
         // Primary landing site as per https://www.reddit.com/r/ISRO/comments/d1b64p/submitting_this_as_post_but_for_anyone_looking/
@@ -1447,8 +1464,8 @@ class AnimationScene {
         this.motherContainer.add(this.secondaryBody3D);    
     }
 
-    addChandrayaanCurve() {
-        // add Chandrayaan 3 orbiter orbit
+    addSpacecraftCurve() {
+        // add spacecraft orbiter orbit
         this.orbitLines = [];
         this.pointsPerSlice = 100;
         this.startingIndex = 0;
@@ -1479,7 +1496,7 @@ class AnimationScene {
 
     }
 
-    disposeChandrayaanCurve() {
+    disposeSpacecraftCurve() {
         // Dispose of orbit lines
         if (this.orbitLines) {
             this.orbitLines.forEach(line => {
@@ -1524,9 +1541,9 @@ class AnimationScene {
 
 
 
-    addChandrayaan() {
+    addSpacecraft() {
 
-        var craftColor = planetProperties["CY3"]["color"];
+        var craftColor = planetProperties["SC"]["color"];
         var craftEdgeColor = 0xFF8000;
         // Based on https://stackoverflow.com/questions/49481332/how-to-create-3d-trapezoid-in-three-js 
         var craftGeometry = new THREE.CylinderGeometry(craftSize*0.8 / Math.sqrt(2), craftSize*1 / Math.sqrt(2), craftSize*0.8*1, 4, 1); 
@@ -1560,7 +1577,7 @@ class AnimationScene {
 
     }
 
-    disposeChandrayaan() {
+    disposeSpacecraft() {
         if (this.craft) {
             // Dispose of craft geometry
             if (this.craft.geometry) {
@@ -1812,7 +1829,7 @@ class AnimationScene {
         }
     }
 
-    async addChandrayaanModel() {
+    async addSpacecraftModel() {
         const loader = new GLTFLoader();
         var animationScene = this;
         var done = false;
@@ -1908,7 +1925,7 @@ class AnimationScene {
         await waitUntilDone();
     }
 
-    disposeChandrayaanModel() {
+    disposeSpacecraftModel() {
         if (this.craft) {
             // Remove lights
             for (let i = this.craft.children.length - 1; i >= 0; i--) {
@@ -1966,15 +1983,15 @@ class AnimationScene {
         this.addEarth(); render(); wait20().then();
         
         this.setPrimaryAndSecondaryBodies(); render(); wait20().then();
-        this.addChandrayaan(); render(); wait20().then();
-        // await this.addChandrayaanModel(); render(); wait20().then();
+        this.addSpacecraft(); render(); wait20().then();
+        // await this.addSpacecraftModel(); render(); wait20().then();
         this.addCamera(); render(); wait20().then();
         this.initialized3D = true; render(); wait20().then();
 
         this.addEarthLocations(); render(); wait20().then();
         this.addMoonLocations(); render(); wait20().then();   
 
-        this.addChandrayaanCurve(); render(); wait20().then();
+        this.addSpacecraftCurve(); render(); wait20().then();
         this.addLineOfSight(); render(); wait20().then();
         this.addAxesHelper(); render(); wait20().then();
 
@@ -2026,7 +2043,7 @@ class AnimationScene {
 
             var vectors = planet["vectors"];
 
-            if (planetKey == "CY3") {
+            if (planetKey == "SC") {
 
                 for (var j = 0; j < vectors.length; ++j) {
 
@@ -2062,7 +2079,7 @@ class AnimationScene {
         if (!isLandingEnabled || config != "lunar") return;
 
         nLandingPoints = 0;    
-        var planet = landingData["CY3"];
+        var planet = landingData["SC"];
         var vectors = planet["vectors"];
 
         for (var j = 0; j < vectors.length; ++j) {
@@ -2123,7 +2140,7 @@ class AnimationScene {
                 // console.log("Setting camera look to Moon.");
                 this.camera.lookAt(this.secondaryBody3D.position);
             }
-            if (val == "CY3") {
+            if (val == "SC") {
                 // console.log("Setting camera look to the craft.");
                 this.camera.lookAt(this.craft.position);	
             }
@@ -2139,7 +2156,7 @@ class AnimationScene {
                 // console.log("Setting camera look to Origin/Moon.");
                 this.camera.lookAt(0, 0, 0);
             }
-            if (val == "CY3") {
+            if (val == "SC") {
                 // console.log("Setting camera look to the craft.");
                 this.camera.lookAt(this.craft.position);
             }
@@ -2213,8 +2230,8 @@ class AnimationScene {
         this.disposeSky();
         this.disposeMoonLocations();
         this.disposeMoon();
-        this.disposeChandrayaanModel();
-        this.disposeChandrayaanCurve();
+        this.disposeSpacecraftModel();
+        this.disposeSpacecraftCurve();
         this.disposeMoonSOI();
     }
 }
@@ -2311,7 +2328,8 @@ function addEvents() {
             if (eventKey === "now") {
                 startTime = new Date();
             } else if (eventKey === "cy3DataEnd") {
-                startTime = new Date(getStartAndEndTimes("CY3")[1]);
+                const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
+                startTime = new Date(getStartAndEndTimes(spacecraftMnemonic)[1]);
             } else {
                 console.warn(`Dynamic start time not handled for event ${eventKey}`);
                 continue;
@@ -2351,7 +2369,7 @@ async function initConfig() {
 
         d3.select("#checkbox-lock-moon").property("checked", animationScenes[config].lockOnMoon);
         d3.select("#checkbox-lock-earth").property("checked", animationScenes[config].lockOnEarth);   
-        d3.select("#checkbox-lock-cy3").property("checked", animationScenes[config].lockOnCY3);
+        d3.select("#checkbox-lock-cy3").property("checked", animationScenes[config].lockOnSC);
 
         d3.select("#checkbox-lock-xy").property("checked", animationScenes[config].lockOnXY);
         d3.select("#checkbox-lock-xz").property("checked", animationScenes[config].lockOnXZ);
@@ -2374,10 +2392,10 @@ async function initConfig() {
 
     addEvents();
 
-    timeTransLunarInjection = Date.UTC(2023, 7-1, 31, 18, 43, 0, 0); // TODO Update for CY3
+    timeTransLunarInjection = Date.UTC(2023, 7-1, 31, 18, 43, 0, 0); // TODO Update for SC
     /* The next maneuver is Trans Lunar Insertion (TLI), which is scheduled on August 14, 2019, between 0300 – 0400 hrs (IST).*/ 
     
-    timeLunarOrbitInsertion = Date.UTC(2023, 8-1, 5,  13, 59, 0, 0); // TODO Update for CY3
+    timeLunarOrbitInsertion = Date.UTC(2023, 8-1, 5,  13, 59, 0, 0); // TODO Update for SC
 
     if (!theSceneHandler) {
         theSceneHandler = new SceneHandler();
@@ -2409,6 +2427,7 @@ async function initConfig() {
         animationScenes[config].secondaryBodyRadius = moonRadius;
 
         // Use config data if available, otherwise use defaults
+        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
         if (configData && configData[config]) {
             const cfg = configData[config];
             animationScenes[config].planetsForOrbits = cfg.planets;
@@ -2418,18 +2437,18 @@ async function initConfig() {
             animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
         } else {
             // Default values
-            animationScenes[config].planetsForOrbits = ["MOON", "CY3"];
-            animationScenes[config].planetsForLocations = ["MOON", "CY3"];
+            animationScenes[config].planetsForOrbits = ["MOON", spacecraftMnemonic];
+            animationScenes[config].planetsForLocations = ["MOON", spacecraftMnemonic];
             animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-            animationScenes[config].orbitsJson = "assets/chandrayaan3/data/geo-CY3.json";
-            animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/geo-CY3.npz";
+            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/geo-${spacecraftMnemonic}.json`;
+            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/geo-${spacecraftMnemonic}.npz`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
         startTime                  = getStartAndEndTimes("EARTH")[0];
         endTime                    = getStartAndEndTimes("EARTH")[1];
-        endTimeCY3                 = getStartAndEndTimes("CY3")[1];
+        endTimeSC                 = getStartAndEndTimes(spacecraftMnemonic)[1];
 
         latestEndTime = endTime;
         timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
@@ -2468,6 +2487,7 @@ async function initConfig() {
         animationScenes[config].secondaryBodyRadius = earthRadius;
 
         // Use config data if available, otherwise use defaults
+        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
         if (configData && configData[config]) {
             const cfg = configData[config];
             animationScenes[config].planetsForOrbits = cfg.planets;
@@ -2477,18 +2497,18 @@ async function initConfig() {
             animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
         } else {
             // Default values
-            animationScenes[config].planetsForOrbits = ["EARTH", "CY3"];
-            animationScenes[config].planetsForLocations = ["EARTH", "CY3"];
+            animationScenes[config].planetsForOrbits = ["EARTH", spacecraftMnemonic];
+            animationScenes[config].planetsForLocations = ["EARTH", spacecraftMnemonic];
             animationScenes[config].stepDurationInMilliSeconds = 1 * MILLI_SECONDS_PER_MINUTE; // Default, will be updated from metadata
-            animationScenes[config].orbitsJson = "assets/chandrayaan3/data/lunar-CY3.json";
-            animationScenes[config].orbitsNpz = "assets/chandrayaan3/data/lunar-CY3.npz";
+            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/lunar-${spacecraftMnemonic}.json`;
+            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/lunar-${spacecraftMnemonic}.npz`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
         startTime                  = getStartAndEndTimes("EARTH")[0];
         endTime                    = getStartAndEndTimes("EARTH")[1];
-        endTimeCY3                 = getStartAndEndTimes("CY3")[1];
+        endTimeSC                 = getStartAndEndTimes(spacecraftMnemonic)[1];
 
         latestEndTime = endTime;
         timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
@@ -2621,7 +2641,7 @@ function showPlanet(planet) {
 
 function shouldDrawOrbit(planet) {
     return ((planet == "MARS") ||
-            (planet == "CY3") ||
+            (planet == "SC") ||
             (planet == "MOON") ||
             (planet == "EARTH") || 
  
@@ -2635,7 +2655,7 @@ function planetStartTime(planet) {
 
 function isLocationAvaialable(planet, date) {
     var flag = false;
-    flag = ((date >= startTime) && (date <= endTimeCY3));
+    flag = ((date >= startTime) && (date <= endTimeSC));
     // var d = new Date(date);
     // console.log("isLocationAvaialable() called for body " + planet + " for time " + d + ": returning " + flag);
     return flag;
@@ -2690,7 +2710,7 @@ function getBodyLocation(craftid, t) {
     
     // Check if landing is enabled before using landing time range
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-    if ((config == "lunar") && (craftid == "CY3") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
+    if ((config == "lunar") && (craftid == "SC") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
 
         var orbitDataResolutionInSeconds = 1;
         var num = t - startLandingTime;
@@ -2876,7 +2896,7 @@ function setLocation() {
                 }                                
             }
 
-            if (planetKey == "CY3") {
+            if (planetKey == "SC") {
 
                 craftData["x"] = newx;
                 craftData["y"] = newy;
@@ -2970,7 +2990,7 @@ function setLocation() {
         if (difftime < 1 * 20 * 60 * 1000) {
 
 
-            if (eventInfos[i]["body"] === "CY3") {
+            if (eventInfos[i]["body"] === "SC") {
                 d3.select("#burng").style("visibility", "visible");
                 d3.select("#eventinfo").text(eventInfos[i]["infoText"]);
                 break;                
@@ -3134,7 +3154,7 @@ export function main() {
     $("#origin-moon").on("click", toggleMode);
     $("#camera-default").on("click", toggleCamera);
     $("#camera-moon").on("click", toggleCamera);
-    $("#checkbox-lock-cy3").on("click", toggleLockCY3);
+    $("#checkbox-lock-cy3").on("click", toggleLockSC);
     $("#checkbox-lock-moon").on("click", toggleLockMoon);
     $("#checkbox-lock-earth").on("click", toggleLockEarth);
 
@@ -3210,7 +3230,7 @@ function init(callback) {
     panx = 0;
     pany = 0;
     
-    animationScenes[config].lockOnCY3 = false;
+    animationScenes[config].lockOnSC = false;
     animationScenes[config].lockOnMoon = false;
     animationScenes[config].lockOnEarth = false;
     
@@ -3506,7 +3526,8 @@ async function loadLandingDataAndProcess() {
     if (!landingDataLoaded) {
         // Use config data for landing if available
         const configData = globalConfig;
-        let landingDataNpz = "assets/chandrayaan3/data/landing-CY3.npz";
+        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
+        let landingDataNpz = `assets/chandrayaan3/data/landing-${spacecraftMnemonic}.npz`;
         
         if (configData && configData.landing) {
             const cfg = configData.landing;
@@ -4040,9 +4061,9 @@ function zoomChangeTransform(t) {
     var cy3x = 0;
     var cy3y = 0;
 
-    if (animationScenes[config].lockOnCY3) {
-        cy3x = parseFloat(d3.select("#CY3").attr("cx"));
-        cy3y = parseFloat(d3.select("#CY3").attr("cy"));
+    if (animationScenes[config].lockOnSC) {
+        cy3x = parseFloat(d3.select("#SC").attr("cx"));
+        cy3y = parseFloat(d3.select("#SC").attr("cy"));
     }
 
     if (animationScenes[config].lockOnMoon) {
@@ -4133,9 +4154,9 @@ function toggleInfo() {
     $("#stats").toggle();
 }
 
-function toggleLockCY3() {
-    animationScenes[config].previousLockOnCY3 = animationScenes[config].lockOnCY3;
-    animationScenes[config].lockOnCY3 = !animationScenes[config].lockOnCY3;
+function toggleLockSC() {
+    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
+    animationScenes[config].lockOnSC = !animationScenes[config].lockOnSC;
     
     animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
     animationScenes[config].lockOnMoon = false;
@@ -4152,8 +4173,8 @@ function toggleLockMoon() {
     animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
     animationScenes[config].lockOnMoon = !animationScenes[config].lockOnMoon;
 
-    animationScenes[config].previousLockOnCY3 = animationScenes[config].lockOnCY3;
-    animationScenes[config].lockOnCY3 = false;
+    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
+    animationScenes[config].lockOnSC = false;
     d3.select("#checkbox-lock-cy3").property("checked", false);
 
     animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
@@ -4166,8 +4187,8 @@ function toggleLockMoon() {
 function toggleLockEarth() {
     animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
     animationScenes[config].lockOnEarth = !animationScenes[config].lockOnEarth;
-    animationScenes[config].previousLockOnCY3 = animationScenes[config].lockOnCY3;
-    animationScenes[config].lockOnCY3 = false;
+    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
+    animationScenes[config].lockOnSC = false;
     d3.select("#checkbox-lock-cy3").property("checked", false);
     
     animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
