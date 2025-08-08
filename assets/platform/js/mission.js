@@ -306,12 +306,12 @@ async function loadConfig() {
     }
     
     // Get config path from mission config set by HTML
-    if (!window.missionConfig || !window.missionConfig.configPath) {
+    if (!window.missionConfig || !window.missionConfig.dataPath) {
         console.error('No mission configuration found. Please set window.missionConfig in your HTML file.');
         return null;
     }
     
-    const configPath = window.missionConfig.configPath;
+    const configPath = window.missionConfig.dataPath + 'config.json';
     console.debug(`Loading config from: ${configPath}`);
     
     try {
@@ -325,6 +325,7 @@ async function loadConfig() {
             // globalConfig.spacecraft_mnemonic is used only for file path construction
             
             // Update UI elements based on config
+            updateMoonUIFromConfig();
             updateLandingUIFromConfig();
             
             return globalConfig;
@@ -335,6 +336,37 @@ async function loadConfig() {
     } catch (error) {
         console.warn('Error loading config.json:', error);
         return null;
+    }
+}
+
+function updateMoonUIFromConfig() {
+    const isMoonEnabled = globalConfig && globalConfig.is_lunar;
+    
+    if (isMoonEnabled) {
+        // Show moon-related UI elements
+        $("#origin-moon").closest('label').show();
+        $("#origin-moon").show();
+        $("#view-moonsoi").closest('label').show();
+        $("#view-moonsoi").show();
+        $(".geo").show(); // Show "Lock on Moon" checkbox in geocentric mode
+    } else {
+        // Hide moon-related UI elements
+        $("#origin-moon").closest('label').hide();
+        $("#origin-moon").hide();
+        $("#view-moonsoi").closest('label').hide();
+        $("#view-moonsoi").hide();
+        $(".geo").hide(); // Hide "Lock on Moon" checkbox
+        
+        // If currently in lunar mode, switch to geo mode
+        if (config === "lunar") {
+            config = "geo";
+            $("#origin-earth").prop("checked", true);
+            $("#origin-moon").prop("checked", false);
+        }
+        
+        // Ensure moon-related checkboxes are unchecked
+        $("#checkbox-lock-moon").prop("checked", false);
+        $("#view-moonsoi").prop("checked", false);
     }
 }
 
@@ -558,7 +590,7 @@ class SceneHandler {
                 animationScene.camera.lookAt(animationScene.secondaryBody3D.position);            
             }
             
-            if (animationScene.lockOnEarth || animationScene.lockOnMoon) {
+            if (animationScene.lockOnEarth || (globalConfig && globalConfig.is_lunar && animationScene.lockOnMoon)) {
             
                 var x = animationScene.secondaryBody3D.position.x;
                 var y = animationScene.secondaryBody3D.position.y;
@@ -580,7 +612,9 @@ class SceneHandler {
             if (joyRideFlag || landingFlag) {
 
                 var craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
-                var craftMoonDistance = animationScene.craft.position.distanceTo(animationScene.moonContainer.position);
+                var craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer) 
+                    ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position) 
+                    : Infinity;
                 var earthAngleRads = Math.asin(earthRadius / craftEarthDistance);
                 var moonAngleRads = Math.asin(moonRadius / craftMoonDistance);
                 // console.log("earthAngleRads = " + earthAngleRads + ", moonAngleRads = " + moonAngleRads);
@@ -1150,6 +1184,11 @@ class AnimationScene {
     }
 
     addMoon() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            console.debug('Skipping moon creation - not a lunar mission');
+            return;
+        }
         // add Moon
 
         // var today = new Date();
@@ -1243,6 +1282,10 @@ class AnimationScene {
     }
 
     disposeMoon() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
         if (this.moonContainer) {
             // Dispose of moon geometry
             if (this.moon && this.moon.geometry) {
@@ -1325,6 +1368,10 @@ class AnimationScene {
     }
     
     addMoonSOI() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
 
         var radius = moonRadius * (MOON_SOI_RADIUS_KM / MOON_RADIUS_KM);
         var latSegments = 18;  // 10° increments
@@ -1339,6 +1386,10 @@ class AnimationScene {
     }
 
     disposeMoonSOI() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
         if (this.moonSOISphere) {
             this.moonSOISphere.geometry.dispose();
             this.moonSOISphere.material.dispose();
@@ -1380,6 +1431,10 @@ class AnimationScene {
     }
     
     addMoonLocations() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
         // Moon selenographic origin (Prime Meridian = 0 degrees, Equator = 0 degrees) for reference
         // this.plotMoonLocation(deg_to_rad(0), deg_to_rad(0), "#FF00FF"); // TODO 2021 - for testing - (0deg longitude == Prime Meridian, 0deg latitude)
 
@@ -1397,23 +1452,25 @@ class AnimationScene {
         // this.plotMoonLocation(deg_to_rad(+24.3),      deg_to_rad(-71.3), "#FF0000");      // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
         // this.plotMoonLocation(deg_to_rad(24.103513),  deg_to_rad(-71.365233), "#FF0000"); // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
 
-        // Moon landing location according to orbit data available with JPL
-        // this.plotMoonLocation(deg_to_rad(22.77050), deg_to_rad(-70.89754), "#BB3F3F"); // CY2
-        this.plotMoonLocation(deg_to_rad(32.348126), deg_to_rad(-69.367621), "#FFFF00"); // SC primary site
-        this.plotMoonLocation(deg_to_rad(32.318695), deg_to_rad(-69.374454), "#00FFFF"); // SC primary site
-        this.plotMoonLocation(deg_to_rad(-17.33040), deg_to_rad(-69.497764), "#FFD700"); // SC secondary site
-
-
-        // Primary landing site as per https://www.reddit.com/r/ISRO/comments/d1b64p/submitting_this_as_post_but_for_anyone_looking/
-        //
-        // this.plotMoonLocation(deg_to_rad(22.78110), deg_to_rad(-70.902670), "#0000FF"); // primary 
-        // this.plotMoonLocation(deg_to_rad(18.46947), deg_to_rad(-68.749153), "#FFFF00"); // secondary
-        // this.plotMoonLocation(deg_to_rad(22.78110), deg_to_rad(-70.899920), "#00FFFF"); // chosen one?
+        // Plot landing sites from config
+        if (globalConfig && globalConfig.landingSites) {
+            globalConfig.landingSites.forEach(site => {
+                this.plotMoonLocation(
+                    deg_to_rad(site.longitude), 
+                    deg_to_rad(site.latitude), 
+                    site.color
+                );
+            });
+        }
 
         this.locations.map(x => x.visible = viewCraters);
     }
 
     disposeMoonLocations() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
         if (this.locations) {
             this.locations.forEach(location => {
                 if (location.geometry) {
@@ -1440,9 +1497,12 @@ class AnimationScene {
             this.earthContainer.add(this.earthNorthPoleSphere);
             this.earthContainer.add(this.earthSouthPoleSphere);
 
-            this.moonContainer.add(this.moonAxis);
-            this.moonContainer.add(this.moonNorthPoleSphere);
-            this.moonContainer.add(this.moonSouthPoleSphere);
+            // Only add moon components if this is a lunar mission
+            if (globalConfig && globalConfig.is_lunar && this.moonContainer) {
+                this.moonContainer.add(this.moonAxis);
+                this.moonContainer.add(this.moonNorthPoleSphere);
+                this.moonContainer.add(this.moonSouthPoleSphere);
+            }
                 
         
         } else if (config == "lunar") {
@@ -1450,9 +1510,12 @@ class AnimationScene {
             this.primaryBody3D = this.moonContainer;
             this.secondaryBody3D = this.earthContainer;
 
-            this.moonContainer.add(this.moonAxis);
-            this.moonContainer.add(this.moonNorthPoleSphere);
-            this.moonContainer.add(this.moonSouthPoleSphere);
+            // Only add moon components if this is a lunar mission
+            if (globalConfig && globalConfig.is_lunar && this.moonContainer) {
+                this.moonContainer.add(this.moonAxis);
+                this.moonContainer.add(this.moonNorthPoleSphere);
+                this.moonContainer.add(this.moonSouthPoleSphere);
+            }
 
             this.earthContainer.add(this.earthAxis);
             this.earthContainer.add(this.earthNorthPoleSphere);
@@ -1461,7 +1524,9 @@ class AnimationScene {
         }
 
         this.motherContainer.add(this.primaryBody3D);
-        this.motherContainer.add(this.secondaryBody3D);    
+        if (this.secondaryBody3D) {
+            this.motherContainer.add(this.secondaryBody3D);
+        }    
     }
 
     addSpacecraftCurve() {
@@ -1830,11 +1895,17 @@ class AnimationScene {
     }
 
     async addSpacecraftModel() {
+        if (!globalConfig?.spacecraftModel?.enabled) {
+            return;
+        }
+        
         const loader = new GLTFLoader();
         var animationScene = this;
         var done = false;
 
-        loader.load('assets/chandrayaan3/models/cy3-small.glb', function (gltf) {
+        const modelPath = window.missionConfig.modelPath + globalConfig.spacecraftModel.file;
+        
+        loader.load(modelPath, function (gltf) {
 
             // console.log("Loaded GLB.");
 
@@ -2185,6 +2256,10 @@ class AnimationScene {
     }
 
     plotMoonLocation(long, lat, color) {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
         var locationRadiusScale = 0.005;
         var geometry = new THREE.SphereGeometry(locationRadiusScale * moonRadius, 100, 100);
         var material = new THREE.MeshStandardMaterial({color: color, emissive: color, transparent: false, opacity: 1.0});
@@ -2202,6 +2277,10 @@ class AnimationScene {
     }
 
     rotateMoon() {
+        // Check if this is a lunar mission
+        if (!globalConfig || !globalConfig.is_lunar) {
+            return;
+        }
 
         var today = new Date(animTime);
         var lp = lunar_pole(today);
@@ -2392,10 +2471,9 @@ async function initConfig() {
 
     addEvents();
 
-    timeTransLunarInjection = Date.UTC(2023, 7-1, 31, 18, 43, 0, 0); // TODO Update for SC
-    /* The next maneuver is Trans Lunar Insertion (TLI), which is scheduled on August 14, 2019, between 0300 – 0400 hrs (IST).*/ 
-    
-    timeLunarOrbitInsertion = Date.UTC(2023, 8-1, 5,  13, 59, 0, 0); // TODO Update for SC
+    // Get TLI and LOI times from config
+    timeTransLunarInjection = new Date(globalConfig.events.tli.startTime).getTime();
+    timeLunarOrbitInsertion = new Date(globalConfig.events.loi.startTime).getTime();
 
     if (!theSceneHandler) {
         theSceneHandler = new SceneHandler();
@@ -2433,8 +2511,8 @@ async function initConfig() {
             animationScenes[config].planetsForOrbits = cfg.planets;
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+            animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
+            animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
@@ -2486,8 +2564,8 @@ async function initConfig() {
             animationScenes[config].planetsForOrbits = cfg.planets;
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-            animationScenes[config].orbitsJson = `assets/chandrayaan3/data/${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+            animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
+            animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
         }
         
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
@@ -3514,11 +3592,11 @@ async function loadLandingDataAndProcess() {
         // Use config data for landing if available
         const configData = globalConfig;
         const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-        let landingDataNpz = `assets/chandrayaan3/data/landing-${spacecraftMnemonic}.npz`;
+        let landingDataNpz = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}.npz`;
         
         if (configData && configData.landing) {
             const cfg = configData.landing;
-            landingDataNpz = `assets/chandrayaan3/data/${cfg.orbits_file}.npz`;
+            landingDataNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
         }
         
         fetchNPZ(landingDataNpz, async function(data) {
@@ -4485,15 +4563,18 @@ function setView() {
         
             animationScenes[cfg].earthNorthPoleSphere.visible = viewPoles;
             animationScenes[cfg].earthSouthPoleSphere.visible = viewPoles;
-            animationScenes[cfg].moonNorthPoleSphere.visible = viewPoles;
-            animationScenes[cfg].moonSouthPoleSphere.visible = viewPoles;
+            
+            // Only show moon elements if this is a lunar mission
+            if (globalConfig && globalConfig.is_lunar) {
+                animationScenes[cfg].moonNorthPoleSphere.visible = viewPoles;
+                animationScenes[cfg].moonSouthPoleSphere.visible = viewPoles;
+                animationScenes[cfg].moonAxis.visible = viewPolarAxes;
+                animationScenes[cfg].moonSOISphere.visible = viewMoonSOI;
+            }
         
             animationScenes[cfg].earthAxis.visible = viewPolarAxes;
-            animationScenes[cfg].moonAxis.visible = viewPolarAxes;  
             
             animationScenes[cfg].skyContainer.visible = viewSky;  
-
-            animationScenes[cfg].moonSOISphere.visible = viewMoonSOI;  
             animationScenes[cfg].eclipticPlaneHelper.visible = viewEclipticPlane;
             animationScenes[cfg].eclipticPolarGridHelper.visible = viewEclipticPlane;
             animationScenes[cfg].equatorialPlaneHelper.visible = viewEquatorialPlane;
