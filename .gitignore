@@ -18,6 +18,8 @@ previous.json
 # =========================
 # Data directories
 assets/chandrayaan3/data/
+# But track the main configuration file
+!assets/chandrayaan3/data/config.json
 assets/chandrayaan3/archive/
 
 # Large models
@@ -93,15 +95,7 @@ Desktop.ini
 # =========================
 # Project Specific
 # =========================
-# Sandbox and experiments
-sandbox/
-pages/
-
-# Documentation
-TODO-metadata-sync.md
-
 # Temporary directories
-xml/
 data-fetched/
 
 # Deployment configuration (contains credentials)
