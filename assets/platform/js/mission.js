@@ -193,6 +193,15 @@ var dataLoaded = false;
 var ticksPerAnimationStep;
 var mousedownTimeout = ZOOM_TIMEOUT;
 
+// FPS calculation variables
+var fpsFrameCount = 0;
+var fpsLastTime = 0;
+var fpsUpdateInterval = 1000; // Update FPS every 1000ms (1 second)
+
+function showWhatsNew() {
+    $("#dialog-whatsnew").dialog("open");
+}
+
 // Spacecraft specific times and information
 var timeTransLunarInjection;
 var timeLunarOrbitInsertion;
@@ -228,6 +237,7 @@ var viewSky = $("#view-sky").is(":checked");
 var viewMoonSOI = $("#view-moonsoi").is(":checked");
 var viewEclipticPlane = $("#view-eclipticplane").is(":checked");
 var viewEquatorialPlane = $("#view-equatorialplane").is(":checked");
+var viewFPS = $("#view-fps").is(":checked");
 
 let wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 let wait10 = () => wait(10);
@@ -327,7 +337,7 @@ function updateDynamicLabels() {
         spacecraftMnemonicElement.textContent = spacecraftShort;
     }
     
-    console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
+    // console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
 }
 
 function updateMissionMetadata() {
@@ -2698,6 +2708,9 @@ function setDimension() {
     currentDimension = val;
 
     if (val == "3D") {
+        // Clean up SVG when switching to 3D mode
+        d3.select("svg").remove();
+        svgContainer = null;
 
         if (!animationScenes[config].initialized3D) {
 
@@ -2729,10 +2742,14 @@ function setDimension() {
             if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
         }
     } else {
-
-        handleDimensionSwitch(val);
-        setLocation();
-        if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
+        
+        initSVG();
+        loadOrbitDataIfNeededAndProcess(function() {
+            handleDimensionSwitch(val);
+            setLocation();
+            adjustLabelLocations();
+            if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
+        });
     }
 }
 
@@ -2917,6 +2934,7 @@ function setLocation() {
 
     // Only show phase information for lunar missions
     if (globalConfig && globalConfig.is_lunar) {
+        // These phase elements exist in HTML, not SVG, so they're safe to update
         d3.select("#phase-1").html("Earth Bound Phase");
         d3.select("#phase-2").html("Lunar Bound Phase");
         d3.select("#phase-3").html("Lunar Orbit Phase");
@@ -2962,17 +2980,21 @@ function setLocation() {
             var realy_screen_next = +1 * (realy_next / KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
             var realz_screen_next = +1 * (realz_next / KM_PER_AU) * PIXELS_PER_AU;
 
-            var [x, y, z] = [xFactor*craft_pos[xVariable], yFactor*craft_pos[yVariable], zFactor*craft_pos[zVariable]];
-            var [vx, vy, vz] = [xFactor*craft_vel[xVariable], yFactor*craft_vel[yVariable], zFactor*craft_vel[zVariable]];
+            // Only calculate 2D SVG coordinates and update DOM in 2D mode
+            var newx, newy, newz, x, y, z, vx, vy, vz;
+            if (currentDimension == "2D") {
+                [x, y, z] = [xFactor*craft_pos[xVariable], yFactor*craft_pos[yVariable], zFactor*craft_pos[zVariable]];
+                [vx, vy, vz] = [xFactor*craft_vel[xVariable], yFactor*craft_vel[yVariable], zFactor*craft_vel[zVariable]];
 
-            var newx = +1 * (x / KM_PER_AU) * PIXELS_PER_AU;
-            var newy = -1 * (y / KM_PER_AU) * PIXELS_PER_AU;
-            var newz = +1 * (z / KM_PER_AU) * PIXELS_PER_AU;
+                newx = +1 * (x / KM_PER_AU) * PIXELS_PER_AU;
+                newy = -1 * (y / KM_PER_AU) * PIXELS_PER_AU;
+                newz = +1 * (z / KM_PER_AU) * PIXELS_PER_AU;
 
-            d3.select("#" + planetKey)
-                .attr("visibility", showPlanet(planetKey) ? "visible" : "hidden")
-                .attr("cx", newx)
-                .attr("cy", newy);
+                d3.select("#" + planetKey)
+                    .attr("visibility", showPlanet(planetKey) ? "visible" : "hidden")
+                    .attr("cx", newx)
+                    .attr("cy", newy);
+            }
 
             if (planetKey == animationScenes[config].secondaryBody) {
                 if (animationScenes[config] && animationScenes[config].initialized3D) {
@@ -3000,10 +3022,13 @@ function setLocation() {
             }
 
             if (planetKey == "SC") {
-
-                craftData["x"] = newx;
-                craftData["y"] = newy;
-                craftData["z"] = newz;
+                
+                // Only update 2D-specific craftData in 2D mode
+                if (currentDimension == "2D") {
+                    craftData["x"] = newx;
+                    craftData["y"] = newy;
+                    craftData["z"] = newz;
+                }
                 
                 var r = craft_pos.length();
 
@@ -3047,12 +3072,14 @@ function setLocation() {
                     d3.select("#velocity-" + planetKey +"-EARTH").text(FORMAT_METRIC(dv));
                 }
 
-                // show burn
-                craftData["angle"] = Math.atan2(vy, vx) * 180.0 / Math.PI + 90;
-                var transformString = "translate (" + newx + ", " + newy + ") ";
-                transformString += "rotate(" + craftData["angle"] + " 0 0) ";
-                transformString += "scale (" + 1/zoomFactor + " " + 1/zoomFactor + ") ";
-                d3.select("#burng").attr("transform", transformString);
+                if (currentDimension === "2D") {
+                    // show burn
+                    craftData["angle"] = Math.atan2(vy, vx) * 180.0 / Math.PI + 90;
+                    var transformString = "translate (" + newx + ", " + newy + ") ";
+                    transformString += "rotate(" + craftData["angle"] + " 0 0) ";
+                    transformString += "scale (" + 1/zoomFactor + " " + 1/zoomFactor + ") ";
+                    d3.select("#burng").attr("transform", transformString);
+                }
             }
 
         } else {
@@ -3073,14 +3100,17 @@ function setLocation() {
         }
     }
 
-    for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
+    // Only run 2D-specific functions in 2D mode
+    if (currentDimension == "2D") {
+        for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
 
-        var planetKey = animationScenes[config].planetsForLocations[i];
-        setLabelLocation(planetKey);
+            var planetKey = animationScenes[config].planetsForLocations[i];
+            setLabelLocation(planetKey);
+        }
+
+        zoomChangeTransform(0);
+        showGreenwichLongitude();
     }
-
-    zoomChangeTransform(0);
-    showGreenwichLongitude();
 
     for (var i = 0; i < eventInfos.length; ++i) {
         // var burnTime = new Date(eventInfos[i]["startTime"].getTime() + (eventInfos[i]["durationSeconds"] * 1000 / 2));
@@ -3110,6 +3140,8 @@ function setLocation() {
 }
 
 function showGreenwichLongitude() {
+    if (currentDimension != "2D") return;
+    
     if (config == "helio") return;
 
     var mst = getMST(new Date(animTime), GREENWICH_LONGITUDE);
@@ -3181,7 +3213,7 @@ async function initAnimation(flags) {
     
     try {
         await initConfig();
-        init(function() {});
+        await init(function() {});
     
         await (async function waitUntilOrbitDataProcessed() {
             if (!orbitDataProcessed[config]) {
@@ -3211,7 +3243,22 @@ async function initAnimation(flags) {
 
 function animateLoop() {
        
-    curFrameTime = (new Date()).getTime();
+    curFrameTime = performance.now();
+
+    // Update FPS counter
+    fpsFrameCount++;
+    if (fpsLastTime === 0) {
+        fpsLastTime = curFrameTime;
+    }
+    if (curFrameTime - fpsLastTime >= fpsUpdateInterval) {
+        const fps = Math.round(fpsFrameCount * 1000 / (curFrameTime - fpsLastTime));
+        const fpsElement = document.getElementById('fps-counter');
+        if (fpsElement) {
+            fpsElement.textContent = `FPS: ${fps.toFixed(0)}`;
+        }
+        fpsFrameCount = 0;
+        fpsLastTime = curFrameTime;
+    }
 
     if (prevFrameTime != null) {    
         deltaFrameTime = curFrameTime - prevFrameTime;
@@ -3280,6 +3327,7 @@ export function main() {
     $("#view-moonsoi").on("click", setView);
     $("#view-eclipticplane").on("click", setView);
     $("#view-equatorialplane").on("click", setView);
+    $("#view-fps").on("click", setView);
 
     $("#dimension-2D").on("click", setDimension);
     $("#dimension-3D").on("click", setDimension);
@@ -3320,7 +3368,7 @@ function zoomFunction(f) {
     timeoutHandleZoom = setTimeout(f, ZOOM_TIMEOUT);
 }
 
-function init(callback) {
+async function init(callback) {
     if (animationScenes[config] && animationScenes[config].state >= AnimationScene.SCENE_STATE_INIT_DONE) {
         // console.log("init() returning as already initialized");
         return;
@@ -3396,7 +3444,7 @@ function init(callback) {
         });
     }
 
-    sleep().then();
+    await sleep();
 
     // $("#settings-panel").dialog({
     //     dialogClass: "dialog desktoponly",
@@ -3500,10 +3548,12 @@ function init(callback) {
 
     animDate = d3.select("#date");
 
-    sleep().then();
-    initSVG();
+    await sleep();
+    if (currentDimension == "2D") {
+        initSVG();
+    }
 
-    sleep().then();
+    await sleep();
     loadOrbitDataIfNeededAndProcess(callback);
     loadLandingDataAndProcess();
 
@@ -3524,7 +3574,7 @@ function updateConfigFromMetadata() {
     }
 }
 
-function processOrbitData(data) {
+async function processOrbitData(data) {
     // console.log("processOrbitData() called");
 
     $("#progressbar").hide();
@@ -3535,30 +3585,37 @@ function processOrbitData(data) {
     
     animationScenes[config].orbits = data;
     if (config == "helio") processOrbitElementsData();
-    processOrbitVectorsData().then();
-    sleep().then();
+    
+    // Only process SVG orbit vectors in 2D mode
+    if (currentDimension === "2D") {
+        await processOrbitVectorsData();
+    }
+    await sleep();
 
     // TODO d3v7 handling
     // var zoom = d3.zoom().on("zoom", handleZoom).on("end", zoomEnd);
 
     // console.log("offsetx = " + offsetx + ", panx = " + panx + ", offsety = " + offsety + ", pany = " + pany);
 
-    svgRect = d3.select("#svg")
-        .append("rect")
-            .attr("id", "svg-rect")
-            .attr("point-events", "all")
-            .attr("class", "overlay")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", svgWidth)
-            .attr("height", svgHeight)
-            .attr("style", "fill:none;stroke:black;stroke-width:0;fill-opacity:0;stroke-opacity:0")
-            // .attr("class", "background")
-            .call(d3.behavior.zoom()
-                .translate([offsetx+panx, offsety+pany])
-                .scale(zoomFactor)
-                .on("zoom", handleZoom)
-                .on("zoomend", zoomEnd));
+    // Only create SVG rect in 2D mode
+    if (currentDimension === "2D") {
+        svgRect = d3.select("#svg")
+            .append("rect")
+                .attr("id", "svg-rect")
+                .attr("point-events", "all")
+                .attr("class", "overlay")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", svgWidth)
+                .attr("height", svgHeight)
+                .attr("style", "fill:none;stroke:black;stroke-width:0;fill-opacity:0;stroke-opacity:0")
+                // .attr("class", "background")
+                .call(d3.behavior.zoom()
+                    .translate([offsetx+panx, offsety+pany])
+                    .scale(zoomFactor)
+                    .on("zoom", handleZoom)
+                    .on("zoomend", zoomEnd));
+    }
 
     // TODO d3v7 way of zoom
     // svgRect = d3.select("#svg")
@@ -3661,7 +3718,7 @@ async function loadLandingDataAndProcess() {
     }
 }
 
-function loadOrbitDataIfNeededAndProcess(callback) {
+async function loadOrbitDataIfNeededAndProcess(callback) {
 
     if (!orbitDataLoaded[config]) {
 
@@ -3672,37 +3729,35 @@ function loadOrbitDataIfNeededAndProcess(callback) {
         $("#progressbar").progressbar("option", "value", false);
         $("#progressbar").show();
         d3.select("#progressbar-label").html(msg);
-        sleep().then();
+        await sleep();
 
         // NPZ code goes here
 
-        fetchNPZ(animationScenes[config].orbitsNpz, function(data) {
+        try {
+            const data = await new Promise((resolve, reject) => {
+                fetchNPZ(animationScenes[config].orbitsNpz, resolve, reject);
+            });
+            
             // data is now the parsed NPZ data
-
             // console.log("Orbit data load from " + animationScenes[config].orbitsJson + ": OK");
             dataLoaded = true;
             orbitDataLoaded[config] = true;
             orbitData[config] = data;
-            try {
-                $("#progressbar").hide();
-                processOrbitData(data);
-                sleep().then();
-                // console.log("Calling callback() from loadOrbitDataIfNeededAndProcess() ...");
-                callback();
-                // console.log("Called callback() from loadOrbitDataIfNeededAndProcess() ...");
-            } catch(error) {
-                $("#progressbar").hide();
-                console.error("Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error);
-            }                    
             
-        }, function(error) {
+            $("#progressbar").hide();
+            processOrbitData(data);
+            await sleep();
+            // console.log("Calling callback() from loadOrbitDataIfNeededAndProcess() ...");
+            callback();
+            // console.log("Called callback() from loadOrbitDataIfNeededAndProcess() ...");
+                    
+        } catch(error) {
             console.error("Error loading or processing .npz file:", error);
             $("#progressbar").hide();
             var msg = "Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error;
             console.error(msg);
             d3.select("#eventinfo").text(msg);
-
-        });
+        }
 
 
             // d3.json(orbitsJson)
@@ -3738,8 +3793,8 @@ function loadOrbitDataIfNeededAndProcess(callback) {
             /* DON'T PUT ANY CODE HERE */        
     } else {
         // console.log("Orbit data already loaded for " + config);
-        processOrbitData(orbitData[config]);
-        sleep().then();
+        await processOrbitData(orbitData[config]);
+        await sleep();
         callback();
     }
 }
@@ -3771,8 +3826,8 @@ function initSVG() {
             // .attr("height", svgHeight)    
             .attr("overflow", "visible") // added for SVG elements to be visible in Chrome 36+; TODO side effects analysis
             .attr("class", "dimension-2D")
-            .attr("display", "none")
-            .style("visibility", "hidden")
+            .attr("display", currentDimension === "2D" ? "block" : "none")
+            .style("visibility", currentDimension === "2D" ? "visible" : "hidden")
         .append("g")
             .attr("transform", "translate(" + offsetx + ", " + offsety + ")");
 
@@ -3825,6 +3880,12 @@ function zoomEnd() {
 function processOrbitElementsData() {
 
     // console.log("processOrbitElementsData() called");
+    
+    // Only process if svgContainer exists (2D mode)
+    if (!svgContainer) {
+        console.debug("SVG container not initialized, skipping processOrbitElementsData");
+        return;
+    }
 
     // Add elliptical orbits
 
@@ -3871,6 +3932,12 @@ function processOrbitElementsData() {
 
 async function processOrbitVectorsData() {
     // Add spacecraft orbits
+    
+    // Only process if svgContainer exists (2D mode)
+    if (!svgContainer) {
+        console.debug("SVG container not initialized, skipping processOrbitVectorsData");
+        return;
+    }
 
     for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
 
@@ -4160,23 +4227,37 @@ function realtime() {
 }
 
 function zoomChangeTransform(t) {
+    
+    // Only process in 2D mode when svgContainer exists
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     var cy3x = 0;
     var cy3y = 0;
 
     if (animationScenes[config].lockOnSC) {
-        cy3x = parseFloat(d3.select("#SC").attr("cx"));
-        cy3y = parseFloat(d3.select("#SC").attr("cy"));
+        var scElement = d3.select("#SC");
+        if (!scElement.empty()) {
+            cy3x = parseFloat(scElement.attr("cx"));
+            cy3y = parseFloat(scElement.attr("cy"));
+        }
     }
 
     if (animationScenes[config].lockOnMoon) {
-        cy3x = parseFloat(d3.select("#MOON").attr("cx"));
-        cy3y = parseFloat(d3.select("#MOON").attr("cy"));
+        var moonElement = d3.select("#MOON");
+        if (!moonElement.empty()) {
+            cy3x = parseFloat(moonElement.attr("cx"));
+            cy3y = parseFloat(moonElement.attr("cy"));
+        }
     }
 
     if (animationScenes[config].lockOnEarth) {
-        cy3x = parseFloat(d3.select("#EARTH").attr("cx"));
-        cy3y = parseFloat(d3.select("#EARTH").attr("cy"));
+        var earthElement = d3.select("#EARTH");
+        if (!earthElement.empty()) {
+            cy3x = parseFloat(earthElement.attr("cx"));
+            cy3y = parseFloat(earthElement.attr("cy"));
+        }
     }
 
     var container = svgContainer;
@@ -4584,6 +4665,13 @@ function setView() {
     viewMoonSOI = $("#view-moonsoi").is(":checked"); 
     viewEclipticPlane = $("#view-eclipticplane").is(":checked"); 
     viewEquatorialPlane = $("#view-equatorialplane").is(":checked"); 
+    viewFPS = $("#view-fps").is(":checked"); 
+
+    // Control FPS counter visibility
+    const fpsElement = document.getElementById('fps-counter');
+    if (fpsElement) {
+        fpsElement.style.display = viewFPS ? 'block' : 'none';
+    }
 
     ["geo", "lunar"].map(function(cfg) {
         // console.log("Setting view for config: " + cfg);
