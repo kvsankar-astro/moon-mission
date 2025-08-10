@@ -85,6 +85,10 @@
                     <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/chandrayaan3">Github</a>.
                         Works best in desktop screens. Chrome works better than Firefox.</p>
                 </div>
+                
+                <div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;">
+                    FPS: 0
+                </div>
     
             </div>
     
@@ -159,7 +163,9 @@
                         <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">
                         <label for="view-eclipticplane">Ecliptic Plane</label>                       
                         <input type="checkbox" name="view" value="equatorialplane" id="view-equatorialplane">
-                        <label for="view-equatorialplane">Equatorial Plane</label>                       
+                        <label for="view-equatorialplane">Equatorial Plane</label>
+                        <input type="checkbox" name="view" value="fps" id="view-fps">
+                        <label for="view-fps">FPS Counter</label>
 
                                             <!--
                         <span class="config-label">Camera Placed At:</span>
