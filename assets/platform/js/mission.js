@@ -341,8 +341,12 @@ function updateDynamicLabels() {
 }
 
 function updateMissionMetadata() {
-    // This function is called but not implemented yet - placeholder for future use
     updateDynamicLabels();
+    
+    // Update planetProperties for spacecraft to use correct mnemonic in 2D view
+    if (globalConfig && globalConfig.spacecraft_mnemonic) {
+        planetProperties["SC"]["name"] = globalConfig.spacecraft_mnemonic;
+    }
 }
 
 async function loadConfig() {
