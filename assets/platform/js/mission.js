@@ -111,12 +111,15 @@ var progress = 0;
 var bannerShown = false;
 var stopZoom = false;
 var sunLongitude = 0.0;
+var planeChanged = false;
 
 // animation control
 var mouseDown = false;
 
 // defaults for XY plane
-var plane = "XY";
+var planeSelection = "XY"; // XY, YZ, ZX, XY-, YZ-, ZX-
+var plane = "XY"; // XY, YZ, ZX
+var previousPlane = null;
 var xVariable = "x";
 var yVariable = "y";
 var zVariable = "z";
@@ -2735,6 +2738,7 @@ function setDimension() {
                 // d3.select("#eventinfo").text("");
                 $("#progressbar").hide();
                 handleDimensionSwitch(val);
+                handlePlaneChange(true);
                 setLocation();
                 if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
             });
@@ -2742,6 +2746,7 @@ function setDimension() {
         } else {
 
             handleDimensionSwitch(val);
+            handlePlaneChange(true);
             setLocation();
             if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
         }
@@ -2750,6 +2755,7 @@ function setDimension() {
         initSVG();
         loadOrbitDataIfNeededAndProcess(function() {
             handleDimensionSwitch(val);
+            handlePlaneChange(true);
             setLocation();
             adjustLabelLocations();
             if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
@@ -4400,10 +4406,37 @@ function toggleCameraLook() {
     }
 }
 
-function togglePlane() {
-    
-    var val = $('input[name=plane]:checked').val();
-    // console.log("togglePlane() called with value " + val);
+function handlePlaneChange(dimension_changed = false) {
+    // console.debug("handlePlaneChange() called: new plane " + planeSelection + ", previous plane " + previousPlane + ", dimension_changed = " + dimension_changed);
+
+    var firstPlaneSet = previousPlane === null ? true : false;
+
+    // TODO Dimension/Plane combined state handler to created and the dirty logic below to be simplified and readable
+    // Current implementation: 
+    // If the plane is changed while in 2D (or 3D), an equivalent change will be done in 3D (or 2D, respectively).
+    // That plane change will be seen when the dimension is switched.
+    // Please note that the SVG is constrained to 6 views as it's 2D. 
+    // Also note that if the 3D view is altered by the user, it won't be reset simply because of switching to 2D, not changing the plane there and coming back to 3D.
+     
+    if (previousPlane != planeSelection) {
+        previousPlane = planeSelection;
+        planeChanged = true;        
+        // console.debug("Plane changed: continuing with plane change logic.");
+    } else if (dimension_changed && !planeChanged) {
+        // console.debug("Dimension changed; no plane change in earlier dimension session: returning.");
+        return;
+    } else if (dimension_changed && planeChanged) {
+        // console.debug("Dimension changed; plane change in earlier dimension session: continuing with plane change logic.");
+        planeChanged = false;
+    } else {
+        // console.debug("Dimension not changed and no plane change: returning.");
+        return;
+    }
+
+    if (firstPlaneSet) {
+        // console.debug("handlePlaneChanged() called during init; returning without changes.");
+        return; 
+    }
 
     var camera = null;
     var distance = 0.0;
@@ -4419,18 +4452,19 @@ function togglePlane() {
         }
     }
 
-    if (val == "XY") {
-        plane = "XY";
+    if (planeSelection == "XY") {
 
-        if (currentDimension == "2D") {
-            zFactor = 1;
-            xVariable = "x";
-            yVariable = "y";
-            zVariable = "z";
-            vxVariable = "vx";
-            vyVariable = "vy";
-            vzVariable = "vz";            
-        }
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
+        plane = "XY";
+        xFactor = 1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "x";
+        yVariable = "y";
+        zVariable = "z";
+        vxVariable = "vx";
+        vyVariable = "vy";
+        vzVariable = "vz";            
 
         if (currentDimension == "3D") {
 
@@ -4438,19 +4472,19 @@ function togglePlane() {
             camera.up.set(0, 1, 0); 
         }
 
-    } else if (val == "YZ") {
+    } else if (planeSelection == "YZ") {
 
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
         plane = "YZ";
-
-        if (currentDimension == "2D") {
-            xFactor = 1;
-            xVariable = "y";
-            yVariable = "z";
-            zVariable = "x";
-            vxVariable = "vy";
-            vyVariable = "vz";
-            vzVariable = "vx";            
-        }
+        xFactor = 1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "y";
+        yVariable = "z";
+        zVariable = "x";
+        vxVariable = "vy";
+        vyVariable = "vz";
+        vzVariable = "vx";            
 
         if (currentDimension == "3D") {
             
@@ -4458,19 +4492,19 @@ function togglePlane() {
             camera.up.set(0, 0, 1);
         }
 
-    } else if (val == "ZX") {
+    } else if (planeSelection == "ZX") {
 
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
         plane = "ZX";
-
-        if (currentDimension == "2D") {
-            yFactor = 1;
-            xVariable = "z";
-            yVariable = "x";
-            zVariable = "y";
-            vxVariable = "vz";
-            vyVariable = "vx";
-            vzVariable = "vy";            
-        }
+        xFactor = 1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "z";
+        yVariable = "x";
+        zVariable = "y";
+        vxVariable = "vz";
+        vyVariable = "vx";
+        vzVariable = "vy";
 
         if (currentDimension == "3D") {
 
@@ -4482,18 +4516,19 @@ function togglePlane() {
 
     }
 
-    if (val == "XY-") {
-        plane = "XY";
+    if (planeSelection == "XY-") {
 
-        if (currentDimension == "2D") {
-            zFactor = -1;
-            xVariable = "x";
-            yVariable = "y";
-            zVariable = "z";
-            vxVariable = "vx";
-            vyVariable = "vy";
-            vzVariable = "vz";            
-        }
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
+        plane = "XY";
+        xFactor = -1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "x";
+        yVariable = "y";
+        zVariable = "z";
+        vxVariable = "vx";
+        vyVariable = "vy";
+        vzVariable = "vz";            
 
         if (currentDimension == "3D") {
 
@@ -4501,19 +4536,19 @@ function togglePlane() {
             camera.up.set(0, 1, 0); 
         }
 
-    } else if (val == "YZ-") {
+    } else if (planeSelection == "YZ-") {
 
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
         plane = "YZ";
-
-        if (currentDimension == "2D") {
-            xFactor = -1;
-            xVariable = "y";
-            yVariable = "z";
-            zVariable = "x";
-            vxVariable = "vy";
-            vyVariable = "vz";
-            vzVariable = "vx";            
-        }
+        xFactor = -1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "y";
+        yVariable = "z";
+        zVariable = "x";
+        vxVariable = "vy";
+        vyVariable = "vz";
+        vzVariable = "vx";            
 
         if (currentDimension == "3D") {
             
@@ -4521,19 +4556,19 @@ function togglePlane() {
             camera.up.set(0, 0, 1);
         }
 
-    } else if (val == "ZX-") {
+    } else if (planeSelection == "ZX-") {
 
+        // do the following 2D relevant changes so that the right state is set when the dimension is switched
         plane = "ZX";
-
-        if (currentDimension == "2D") {
-            yFactor = -1;
-            xVariable = "z";
-            yVariable = "x";
-            zVariable = "y";
-            vxVariable = "vz";
-            vyVariable = "vx";
-            vzVariable = "vy";            
-        }
+        xFactor = -1;
+        yFactor = 1;
+        zFactor = 1;
+        xVariable = "z";
+        yVariable = "x";
+        zVariable = "y";
+        vxVariable = "vz";
+        vyVariable = "vx";
+        vzVariable = "vy";            
 
         if (currentDimension == "3D") {
 
@@ -4545,23 +4580,31 @@ function togglePlane() {
 
     }
 
-    if (currentDimension == "2D") {
+    if (dimension_changed) {
+        if (currentDimension == "2D") {
 
-        initSVG();
-        loadOrbitDataIfNeededAndProcess(function() {
-            handleDimensionSwitch(currentDimension);
-            setLocation();    
-        });
-        
+            initSVG();
+            loadOrbitDataIfNeededAndProcess(function() {
+                handleDimensionSwitch(currentDimension);
+                setLocation();    
+            });
+            
 
-    } else if (currentDimension == "3D") {
+        } else if (currentDimension == "3D") {
 
-        // TODO check logic
-        loadOrbitDataIfNeededAndProcess(function() {
-            handleDimensionSwitch(currentDimension);
-            setLocation();    
-        })
+            // TODO check logic
+            loadOrbitDataIfNeededAndProcess(function() {
+                handleDimensionSwitch(currentDimension);
+                setLocation();    
+            })
+        }
     }
+}
+
+function togglePlane() {
+    
+    planeSelection = $('input[name=plane]:checked').val();
+    handlePlaneChange(true);
 }
 
 function toggleJoyRide() {
