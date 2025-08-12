@@ -17,31 +17,33 @@ import shutil
 
 # constants - ephemerides related
 
-JPL_CY3         = -158 # Chandrayaan 3 Lander
+# JPL NAIF IDs for celestial bodies (spacecraft IDs will be loaded from config)
 JPL_MOON        = 301
 JPL_EARTH       = 399
 
 JPL_EARTH_CENTER = '@399'
 JPL_MOON_CENTER = '@301'
 
+# Planet codes dictionary - will be populated from config
 planet_codes = {
-    "CY3":      JPL_CY3,
     "MOON":     JPL_MOON,
     "EARTH":    JPL_EARTH
 }
 
 phase = None
-use_cached_data = False
+mission = None  # Will be set from command line
 date = datetime.now().strftime('%Y%m%d%H%M%S')
 # Always use project root for data-fetched directory
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-data_dir = os.path.join(project_root, "data-fetched", date)
+data_dir = None  # Will be set based on mission
 debugging = True
 
-def load_config():
-    """Load configuration from JSON file."""
-    # Use the single config file in the assets directory
-    config_file = os.path.join(os.path.dirname(__file__), '..', 'assets', 'chandrayaan3', 'data', 'config.json')
+def load_config(mission_name):
+    """Load configuration from JSON file for specified mission."""
+    global planet_codes
+    
+    # Use the config file for the specified mission
+    config_file = os.path.join(os.path.dirname(__file__), '..', 'assets', mission_name, 'data', 'config.json')
     
     # Center mnemonic to JPL code mapping
     center_codes = {
@@ -50,19 +52,53 @@ def load_config():
     }
     
     try:
-        with open(config_file, 'r') as f:
-            config = json.load(f)
+        with open(config_file, 'r', encoding='utf-8') as f:
+            full_config = json.load(f)
         
-        # Convert center mnemonics to JPL codes
-        for phase in config:
-            center_mnemonic = config[phase]['center']
+        # Add spacecraft to planet_codes if it has an ID in config
+        if 'spacecraft_id' in full_config:
+            spacecraft_mnemonic = full_config.get('spacecraft_mnemonic', 'SC')
+            spacecraft_id = full_config['spacecraft_id']
+            
+            # Add both the specific mnemonic and generic "SC"
+            planet_codes[spacecraft_mnemonic] = spacecraft_id
+            planet_codes['SC'] = spacecraft_id
+            
+            print_debug(f"Added spacecraft {spacecraft_mnemonic} and SC with ID {spacecraft_id}")
+        
+        # Get available phases from config
+        available_phases = full_config.get('phases', [])
+        print_debug(f"Available phases from config: {available_phases}")
+        
+        # Process phase configurations
+        phases_config = {}
+        for phase_name in available_phases:
+            if phase_name not in full_config:
+                print_error(f"Phase '{phase_name}' listed in phases but not defined in config")
+                sys.exit(1)
+            
+            phase_config = full_config[phase_name]
+            
+            # Skip disabled phases
+            if not phase_config.get('enabled', True):
+                print_debug(f"Skipping disabled phase: {phase_name}")
+                continue
+            
+            # Convert center mnemonic to JPL code
+            if 'center' not in phase_config:
+                print_error(f"Phase '{phase_name}' missing 'center' configuration")
+                sys.exit(1)
+                
+            center_mnemonic = phase_config['center']
             if center_mnemonic in center_codes:
-                config[phase]['center'] = center_codes[center_mnemonic]
+                phase_config['center'] = center_codes[center_mnemonic]
             else:
                 print_error(f"Unknown center mnemonic: {center_mnemonic}")
                 sys.exit(1)
+            
+            phases_config[phase_name] = phase_config
         
-        return config
+        return phases_config, available_phases
     except FileNotFoundError:
         print_error(f"Configuration file not found: {config_file}")
         sys.exit(1)
@@ -70,14 +106,15 @@ def load_config():
         print_error(f"Error parsing configuration file: {e}")
         sys.exit(1)
 
-def copy_to_project_root(source_path, filename):
-    """Copy a file from the timestamped directory to the project root."""
+def copy_to_data_dir(source_path, filename, mission_name):
+    """Copy a file from the timestamped directory to the mission's data directory."""
     try:
-        dest_path = os.path.join(project_root, filename)
+        dest_path = os.path.join(project_root, "assets", mission_name, "data", filename)
+        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
         shutil.copy2(source_path, dest_path)
         print_debug(f"Copied {source_path} to {dest_path}")
     except Exception as e:
-        print_error(f"Error copying {source_path} to project root: {e}")
+        print_error(f"Error copying {source_path} to data directory: {e}")
 
 # Initialize variables
 start_year, start_month, start_day, start_hour, start_minute = None, None, None, None, None
@@ -187,15 +224,8 @@ def is_craft(planet):
     return (planet < 0) or ((planet == "MOON") and (phase == "geo"))
 
 def save_fetched_data():
+    """Save raw HORIZONS data to files for debugging/archival purposes."""
     try:
-        cache_file_name = f"{data_dir}/momcache.txt"
-        try:
-            with open(cache_file_name, 'w') as fh:
-                fh.write(f"jd={jd}\n")
-        except IOError as e:
-            print_error(f"Failed to write to {cache_file_name}: {e}")
-            return False
-
         for planet in planets:
             fn = filename_for_planet(planet)
             
@@ -237,7 +267,7 @@ def save_orbit_data_json():
         
         # Copy to project root
         json_filename = os.path.basename(f"{orbits_file}.json")
-        copy_to_project_root(f"{orbits_file}.json", json_filename)
+        copy_to_data_dir(f"{orbits_file}.json", json_filename, mission)
         
         # Verify the file was created and has content
         if os.path.exists(f"{orbits_file}.json") and os.path.getsize(f"{orbits_file}.json") > 0:
@@ -317,65 +347,41 @@ def fetch_horizons_data(planet, options):
 
 def fetch_elements(planet):
     print_debug(f"Fetching elements for planet {planet} ...")
-    status = fetch_horizons_data(planet, {'table_type': 'elements'})
+    options = {
+        'table_type': 'elements'
+        # No 'range' option - uses TLIST with single JD time point
+    }
+    status = fetch_horizons_data(planet, options)
     print_debug(f"Fetching elements for planet {planet} completed.")
     return status
 
 def fetch_vectors(planet):
     print_debug(f"Fetching vectors for planet {planet} ...")
-    status = fetch_horizons_data(planet, {'table_type': 'vectors'})
+    options = {
+        'table_type': 'vectors',
+        'range': True,
+        'start_time': get_horizons_start_time(planet),
+        'stop_time': get_horizons_stop_time(planet),
+        'step_size': step_size
+    }
+    status = fetch_horizons_data(planet, options)
     print_debug(f"Fetching vectors for planet {planet} completed.")
     return status    
 
 import os
 
-def load_cached_data():
-    ret_status = True
-
-    print_debug("Entering load_cached_data")
-
-    cache_file = f"{data_dir}/momcache.txt"
-    try:
-        with open(cache_file, 'r') as cache:
-            for line in cache:
-                line = line.strip()
-                if line.startswith('jd'):
-                    global jd
-                    jd = float(line.split('=')[1].strip())
-                    print_debug(f"jd = {jd}")
-
-        for planet in planets:
-            for key in ['elements', 'vectors']:
-                pn = filename_for_planet(planet)
-                fn = f"{data_dir}/ho-{pn}-{key}.txt"
-
-                if os.path.isfile(fn) and os.access(fn, os.R_OK):
-                    try:
-                        with open(fn, 'r') as f:
-                            content = f.read()
-                            if planet not in orbits_raw:
-                                orbits_raw[planet] = {}
-                            orbits_raw[planet][f"{key}_content"] = content
-                    except IOError as e:
-                        print_error(f"Unable to open {fn}: {e}")
-                        ret_status = False
-                        break
-                else:
-                    print_debug(f"File {fn} not found or not readable")
-
-    except IOError as e:
-        print_error(f"Unable to open {cache_file}: {e}")
-        ret_status = False
-
-    print_debug("Leaving load_cached_data")
-    return ret_status
+# Cache functionality removed - data is always fetched fresh
 
 def parse_horizons_elements(code, planet):
     print_debug(f"Entering parse_horizons_elements: code = {code}, planet = {planet}")
 
     parse = False
     key = 'elements_content' if code == 'elements' else 'vectors_content'
-    lines = orbits_raw[planet][key].split('\n')
+    raw_content = orbits_raw[planet][key]
+    print_debug(f"Raw {code} content length: {len(raw_content)} characters")
+    if code == 'elements' and len(raw_content) < 1000:
+        print_debug(f"Raw {code} content preview: {raw_content[:500]}...")
+    lines = raw_content.split('\n')
 
     count = 0
     for line in lines:
@@ -502,7 +508,7 @@ def save_orbit_data_npy():
         
         # Copy NPZ file to project root
         npz_filename = os.path.basename(npz_file)
-        copy_to_project_root(npz_file, npz_filename)
+        copy_to_data_dir(npz_file, npz_filename, mission)
         
         # Generate metadata JSON file
         # Convert step size from seconds to minutes for metadata
@@ -536,7 +542,7 @@ def save_orbit_data_npy():
         
         # Copy metadata file to project root
         meta_filename = os.path.basename(meta_file)
-        copy_to_project_root(meta_file, meta_filename)
+        copy_to_data_dir(meta_file, meta_filename, mission)
         
         return True
     except IOError as e:
@@ -548,12 +554,12 @@ def save_orbit_data_npy():
     
     return False
 
-def process_phase(current_phase, use_cached_data, base_data_dir, config):
+def process_phase(current_phase, base_data_dir, config):
     """Process a single phase."""
     global phase, data_dir
     
     phase = current_phase
-    data_dir = os.path.join(base_data_dir, phase)
+    data_dir = base_data_dir  # Use the base directory directly (no phase subdirectory)
     
     print(f"\n=== Processing {phase} phase ===")
     
@@ -573,29 +579,19 @@ def process_phase(current_phase, use_cached_data, base_data_dir, config):
 
     print_debug(f"Using a JD of {jd} for start time: {start_year}-{start_month}-{start_day} {start_hour}:{start_minute}")
 
-    if use_cached_data:
-        load_cached_data()
-
+    # Fetch data for all planets
     for planet in planets:
-        if not use_cached_data:
-            if not fetch_elements(planet):
-                print_error(f"Failed to fetch elements for {planet}. Exiting.")
-                return False
-            
-            if not fetch_horizons_data(planet, {
-                'table_type': 'vectors',
-                'range': 1,
-                'start_time': get_horizons_start_time(planet),
-                'stop_time': get_horizons_stop_time(planet),
-                'step_size': step_size
-            }):
-                print_error(f"Failed to fetch vector data for {planet}. Exiting.")
-                return False
-        
-    if not use_cached_data:
-        if not save_fetched_data():
-            print_error("Failed to save fetched data. Exiting.")
+        if not fetch_elements(planet):
+            print_error(f"Failed to fetch elements for {planet}. Exiting.")
             return False
+        if not fetch_vectors(planet):
+            print_error(f"Failed to fetch vectors for {planet}. Exiting.")
+            return False
+        
+    # Save raw fetched data for debugging/archival
+    if not save_fetched_data():
+        print_error("Failed to save fetched data. Exiting.")
+        return False
     
     for planet in planets:
         parse_horizons_elements('elements', planet)
@@ -613,33 +609,48 @@ def process_phase(current_phase, use_cached_data, base_data_dir, config):
     return True
 
 def main():
-    global use_cached_data
+    global mission, data_dir
 
     print("Running ...")
 
     parser = argparse.ArgumentParser(description="Orbit data fetcher and processor")
-    parser.add_argument("--phase", "--phases", nargs="+", choices=['geo', 'lunar', 'landing'], 
-                        default=['geo'], help="Phase(s) of the mission to process")
-    parser.add_argument("--use-cache", action="store_true", help="Use cached data")
+    parser.add_argument("--mission", required=True, 
+                        help="Mission name (e.g., chandrayaan3, nisar)")
+    parser.add_argument("--phase", "--phases", nargs="+", 
+                        help="Phase(s) of the mission to process (default: all phases from config)")
     parser.add_argument("--data-dir", default=None, help="Base data directory (default: timestamped)")
     
     args = parser.parse_args()
 
-    phases_to_process = args.phase
-    use_cached_data = args.use_cache
+    mission = args.mission
     
-    # Set up base data directory
+    # Load configuration for the specified mission
+    config, available_phases = load_config(mission)
+    
+    # Use specified phases or default to all available phases
+    if args.phase:
+        phases_to_process = args.phase
+        # Validate phases
+        for phase in phases_to_process:
+            if phase not in available_phases:
+                print_error(f"Phase '{phase}' not available for mission '{mission}'")
+                print(f"Available phases: {', '.join(available_phases)}")
+                sys.exit(1)
+    else:
+        # Default: process all available phases
+        phases_to_process = list(config.keys())  # Use enabled phases from config
+    
+    # Set up base data directory with mission-specific path
     if args.data_dir:
         base_data_dir = args.data_dir
     else:
         timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        base_data_dir = os.path.join(project_root, "data-fetched", timestamp)
+        base_data_dir = os.path.join(project_root, "assets", mission, "archive", "data-fetched", timestamp)
     
+    print(f"Mission: {mission}")
+    print(f"Available phases: {', '.join(available_phases)}")
     print(f"Processing phases: {', '.join(phases_to_process)}")
     print(f"Base data directory: {base_data_dir}")
-    
-    # Load configuration
-    config = load_config()
     
     # Process each phase
     success_count = 0
@@ -649,7 +660,7 @@ def main():
         orbits_raw = {}
         orbits = {}
         
-        if process_phase(current_phase, use_cached_data, base_data_dir, config):
+        if process_phase(current_phase, base_data_dir, config):
             success_count += 1
         else:
             print_error(f"Failed to process {current_phase} phase")
