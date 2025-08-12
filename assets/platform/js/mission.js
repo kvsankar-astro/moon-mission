@@ -2524,9 +2524,13 @@ async function initConfig() {
 
     addEvents();
 
-    // Get TLI and LOI times from config
-    timeTransLunarInjection = new Date(globalConfig.events.tli.startTime).getTime();
-    timeLunarOrbitInsertion = new Date(globalConfig.events.loi.startTime).getTime();
+    // Get TLI and LOI times from config (only for lunar missions)
+    if (globalConfig.is_lunar && globalConfig.events.tli) {
+        timeTransLunarInjection = new Date(globalConfig.events.tli.startTime).getTime();
+    }
+    if (globalConfig.is_lunar && globalConfig.events.loi) {
+        timeLunarOrbitInsertion = new Date(globalConfig.events.loi.startTime).getTime();
+    }
 
     if (!theSceneHandler) {
         theSceneHandler = new SceneHandler();
@@ -3056,8 +3060,8 @@ function setLocation() {
                 var v = craft_vel.length();
                 d3.select("#velocity-" + planetKey + "-" + animationScenes[config].primaryBody).text(FORMAT_METRIC(v));
 
-                if (config == "geo") {
-                    // relative to Moon
+                if (config == "geo" && globalConfig.is_lunar) {
+                    // relative to Moon (only for lunar missions)
 
                     var [moon_pos, moon_vel] = getBodyLocation("MOON", animTime);
                     var dr = moon_pos.distanceTo(craft_pos);
