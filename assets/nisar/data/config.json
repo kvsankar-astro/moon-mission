@@ -1,0 +1,86 @@
+{
+  "spacecraft_mnemonic": "NISAR",
+  "spacecraft_id": -165053,
+  "mission_name": "NASA-ISRO SAR Mission",
+  "mission_name_short": "NISAR", 
+  "mission_url": "https://nisar.jpl.nasa.gov/",
+  "mission_description": "NISAR Mission Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "nisar, nasa, isro, earth observation, radar, space, astronomy, animation",
+  "mission_github": "https://github.com/kvsankar/nisar",
+  "mission_image": "assets/nisar/images/nisar-screenshot.png",
+  "is_lunar": false,
+  "phases": ["geo"],
+  "geo": {
+    "start_year": "2025",
+    "start_month": "07", 
+    "start_day": "30",
+    "start_hour": "01",
+    "start_minute": "41",
+    "stop_year": "2025",
+    "stop_month": "09", 
+    "stop_day": "10",
+    "stop_hour": "05",
+    "stop_minute": "55",
+    "step_size_in_seconds": 60,
+    "planets": ["SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-NISAR"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "file": "nisar-small.glb"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2025-07-30T01:41:00Z",
+      "durationSeconds": 0,
+      "label": "🚀 Launch",
+      "burnFlag": false,
+      "infoText": "Launch: 30th Jul 2025, 05:40 IST - NISAR placed in orbit",
+      "body": "NISAR"
+    },
+    "deployment": {
+      "startTime": "2025-07-30T03:00:00Z",
+      "durationSeconds": 0,
+      "label": "📡 Solar Panel Deploy",
+      "burnFlag": false,
+      "infoText": "Solar panels deployed",
+      "body": "NISAR"
+    },
+    "radarDeploy": {
+      "startTime": "2025-08-15T12:00:00Z",
+      "durationSeconds": 0,
+      "label": "📡 Radar Deploy",
+      "burnFlag": false,
+      "infoText": "12m radar antenna deployed",
+      "body": "NISAR"
+    },
+    "commissioning": {
+      "startTime": "2025-10-30T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "✅ Commissioning Complete",
+      "burnFlag": false,
+      "infoText": "90-day commissioning phase complete",
+      "body": "NISAR"
+    },
+    "now": {
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "⏰ Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "dataEnd": {
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "🏁 Data End",
+      "burnFlag": false,
+      "infoText": "NISAR Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "deployment", "radarDeploy", "commissioning", "now", "dataEnd"]
+  }
+}

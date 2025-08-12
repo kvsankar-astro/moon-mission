@@ -1,3 +1,4 @@
+.claude
 # =========================
 # Generated Data Files
 # =========================
@@ -17,10 +18,16 @@ previous.json
 # Assets and Archives
 # =========================
 # Data directories
+# Chandrayaan 3
 assets/chandrayaan3/data/
 # But track the main configuration file
 !assets/chandrayaan3/data/config.json
 assets/chandrayaan3/archive/
+# NISAR
+assets/nisar/data/
+# But track the main configuration file
+!assets/nisar/data/config.json
+assets/nisar/archive/
 
 # Large models
 assets/chandrayaan3/models/cy3.glb
@@ -58,6 +65,9 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Scripts
+scripts/deploy.py
 
 # Build output
 dist/
