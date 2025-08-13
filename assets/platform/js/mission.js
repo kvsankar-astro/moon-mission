@@ -4,6 +4,20 @@
 import { lunar_pole } from "./astro.js";
 import { deg_to_rad } from "./astro.js";
 import { parseNpy, uncompressNPZ } from "./npyreader.js";
+import { 
+    degreesToRadians, 
+    radiansToDegrees, 
+    clamp, 
+    normalizeAngle,
+    sphericalToCartesian,
+    rotate2D,
+    distance3D,
+    distance2D,
+    velocityToAngle,
+    ellipseSemiMinorAxis,
+    lerp,
+    formatFloat
+} from "./utils/math-utils.js";
 
 import * as THREE from 'three';
 import Swiper from 'swiper';
@@ -4797,16 +4811,6 @@ function burnButtonHandler(index) {
 
 // adapted from - http://stackoverflow.com/questions/9318674/javascript-number-currency-formatting
 
-function formatFloat(decPlaces, thouSeparator, decSeparator) {
-    var n = this,
-    decPlaces = isNaN(decPlaces = Math.abs(decPlaces)) ? 2 : decPlaces,
-    decSeparator = decSeparator == undefined ? "." : decSeparator,
-    thouSeparator = thouSeparator == undefined ? "," : thouSeparator,
-    sign = n < 0 ? "-" : "",
-    i = parseInt(n = Math.abs(+n || 0).toFixed(decPlaces)) + "",
-    j = (j = i.length) > 3 ? j % 3 : 0;
-    return sign + (j ? i.substr(0, j) + thouSeparator : "") + i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thouSeparator) + (decPlaces ? decSeparator + Math.abs(n - i).toFixed(decPlaces).slice(2) : "");
-};
 
 // The following function getMST() is from
 //
