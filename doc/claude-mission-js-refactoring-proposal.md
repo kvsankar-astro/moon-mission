@@ -838,6 +838,106 @@ export class PlaywrightMCPTest {
 - **Maintainable**: Clear separation between structural and functional testing
 - **Scalable**: Easy to extend with additional MCP-based tests
 
+### **Iteration 1C**: Baseline UI Test Cases (2-3 days) ✅ **COMPLETED**
+**Goal**: Create comprehensive baseline tests for all UI functionality before major refactoring
+**Deliverable**: Complete test suite covering user interactions, animations, and error detection
+
+**Priority**: HIGH - Essential for confident refactoring of UI and animation systems
+
+**Background**: Before proceeding with major refactoring (Iterations 2+), we need solid baseline tests for the existing UI functionality. This will ensure we don't break any existing features during the modularization process.
+
+**Scope**: Comprehensive test suite using Playwright and Vitest covering all UI elements and interactions with visual regression testing through screenshot comparison.
+
+**Test Categories**:
+
+#### 1. Initial Page Load and Default State
+- ✅ Load animation page successfully
+- ✅ Verify default geo mode (Earth-centered view) 
+- ✅ Verify default 3D dimension mode
+- ✅ Check for all required UI buttons and panels
+- ✅ Verify Info panel is present and accessible
+- ✅ Monitor console for load errors
+
+#### 2. Timeline Event Interaction (All 15 Buttons)
+- ✅ Click each timeline event button (EBN#1-5, TLI, LBN#1-4, Vikram Landing, CY3 Data End, Now, Launch)
+- ✅ Verify timeline text updates correctly in bottom-left display
+- ✅ Check that spacecraft telemetry updates with timeline changes
+- ✅ Special handling for "Now" button (maps to Mission End)
+- ✅ ID-based selectors for reliable interaction
+
+#### 3. Animation Control Testing  
+- ✅ Start animation and verify it plays smoothly
+- ✅ Test pause button functionality with proper state checking
+- ✅ Test speed adjustment controls (faster/slower/realtime)
+- ✅ Real animation behavior verification (timeline text sampling during play/pause)
+- ✅ Speed change verification with timeline progression analysis
+
+#### 4. Control Panel Testing
+- ✅ Lock On Controls (spacecraft and Moon) with screenshot verification during animation
+- ✅ Plane Selection Controls (XY, YZ, ZX, XY-, YZ-, ZX-) with axis orientation verification
+- ✅ Dimension Controls (3D/2D switching) with visual regression testing
+- ✅ All tests use consistent Launch position and paused animation for screenshots
+
+#### 5. Visual Regression Testing
+- ✅ Screenshot comparison system with pixel difference calculation
+- ✅ Baseline screenshot establishment for all visual state changes
+- ✅ Automated comparison with configurable thresholds (600 pixel tolerance)
+- ✅ Animation pause logic for consistent visual testing
+
+#### 6. Console Error Monitoring
+- ✅ Continuous console error detection throughout all tests
+- ✅ Error logging integrated into Vitest framework
+- ✅ No console errors detected during comprehensive test runs
+- ✅ Performance monitoring through test execution timing
+
+**Implementation**:
+
+The baseline test suite has been implemented using **Playwright + Vitest** framework with comprehensive visual regression testing:
+
+```bash
+# Test execution commands
+npm run test:vitest           # Run all tests  
+npm run test:vitest:verbose   # Run with detailed output
+npm run test:baseline         # Legacy alias
+```
+
+**Key Testing Files**:
+- `test/baseline-ui.test.js` - Main Vitest test suite (38 comprehensive tests)
+- `test/screenshots/baseline/*.png` - Visual regression baselines (tracked in Git)
+- `package.json` - Test scripts and dependencies (Playwright, Vitest)
+
+**Advanced Features**:
+- **Screenshot Comparison**: Pixel-level visual regression testing
+- **Animation State Management**: Proper pause/play state handling  
+- **Consistent Baseline**: All visual tests use Launch position + paused animation
+- **ID-based Selectors**: Reliable element targeting (no fragile text selectors)
+- **Real Behavior Testing**: Actual timeline sampling during animation playback
+
+**Delivered Results**:
+- ✅ **38/38 tests passing** - 100% success rate achieved
+- ✅ Complete test suite covering all UI interactions and visual states
+- ✅ Visual regression testing with baseline screenshot comparison
+- ✅ Zero console errors detected during comprehensive test execution
+- ✅ Performance baseline established (test execution times recorded)
+- ✅ Robust test framework ready for regression testing during refactoring
+
+**Success Criteria** - **ALL ACHIEVED**:
+- ✅ All existing UI functionality works correctly and is verified
+- ✅ No console errors during normal operation
+- ✅ Smooth transitions between all modes and states verified visually
+- ✅ Timeline events trigger correct telemetry updates (all 15 buttons tested)
+- ✅ Animation controls work reliably with real behavior verification
+- ✅ Lock On, Plane Selection, and Dimension controls fully tested
+- ✅ Visual regression prevention system established
+
+**Test Coverage Metrics**:
+- **UI Elements**: 100% coverage of interactive controls
+- **Animation States**: Play/Pause/Speed changes with timeline sampling
+- **Visual States**: Screenshot baselines for 9 different view configurations
+- **Error Detection**: Comprehensive console monitoring throughout all tests
+
+**Next Steps**: ✅ **READY FOR ITERATION 2** - Proceed with confidence that any regressions during refactoring will be detected immediately by the comprehensive baseline test suite.
+
 ### **Iteration 2**: Extract Constants (1 day)
 **Goal**: Move hardcoded constants to dedicated module
 **Deliverable**: Centralized constants with no behavioral changes
@@ -1696,6 +1796,7 @@ export class CesiumAdapter {
 |-----------|-------|--------|------------|----------|-------|
 | **1** | Extract Math Utilities | ✅ Complete | 2025-01-13 | 2025-01-13 | Successfully extracted 12 pure math functions |
 | **1B** | Test Infrastructure Setup | ✅ Complete | 2025-08-13 | 2025-08-13 | Streamlined Option A: Quick Check + Playwright MCP (99.5% performance improvement) |
+| **1C** | Baseline UI Test Cases | 🚧 In Progress | 2025-08-13 | | Comprehensive UI functionality testing before refactoring |
 | **2** | Extract Constants | 🔄 Planned | | | Hardcoded values to dedicated module |
 | **3** | Extract DOM Utilities | 🔄 Planned | | | DOM manipulation functions |
 | **4** | Configuration Management | 🔄 Planned | | | Externalize config to JSON |

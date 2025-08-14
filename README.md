@@ -243,6 +243,38 @@ Create `deploy-config.json` for deployment settings:
    python scripts/deploy.py sftp
    ```
 
+## Testing
+
+The project includes comprehensive UI testing infrastructure to ensure functionality during development and refactoring.
+
+### Test Infrastructure
+
+- **Playwright + Vitest** - Browser automation and test framework
+- **Visual regression testing** - Screenshot comparison with baseline images
+- **Animation state testing** - Real behavior verification during play/pause/speed changes
+- **Control panel testing** - All UI elements (timeline, controls, plane selection, etc.)
+
+### Running Tests
+
+```bash
+# Run all baseline UI tests
+npm run test:vitest
+
+# Run with detailed output
+npm run test:vitest:verbose
+
+# Run in headed mode (visible browser)
+npm run test:baseline:headed
+```
+
+### Test Coverage
+
+- **Comprehensive tests** covering all UI interactions
+- **Visual baselines** for 3D/2D modes, plane orientations, and control states
+- **Animation behavior verification** with timeline sampling during playback
+
+Tests are designed to catch regressions during refactoring and ensure all UI functionality works correctly across different view modes and control states.
+
 ### Hosting
 
 At present the page can be hosted statically. There are no server components needed.

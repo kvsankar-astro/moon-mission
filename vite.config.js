@@ -25,11 +25,7 @@ export default defineConfig({
     host: '127.0.0.1', // Use IPv4 only
     open: false, // Don't auto-open browser (useful for tests)
     cors: true,
-    headers: {
-      // CORS headers for orbit data fetching
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin'
-    },
+    // Remove problematic CORS headers that prevent page loading
     fs: {
       // Allow serving files from the entire project
       allow: ['..']

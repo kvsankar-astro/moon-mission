@@ -9,13 +9,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite --port 8000",
-    "test": "node test/test-runner.js",
-    "test:verbose": "node test/test-runner.js --verbose",
+    "test": "vitest test/baseline-ui.test.js",
+    "test:verbose": "vitest test/baseline-ui.test.js --reporter=verbose",
     "test:quick": "node test/quick-check.js",
-    "test:playwright": "node test/playwright-mcp-test.js",
-    "test:baseline": "echo 'Running baseline test...' && npm run test:verbose",
-    "mcp:start": "npx @playwright/mcp@0.0.32 --port 8900",
-    "mcp:test": "node -e \"import('./test/playwright-mcp-server-manager.js').then(m => m.ensureMCPServer().then(() => console.log('MCP server started')))\""
+    "test:baseline": "vitest test/baseline-ui.test.js",
+    "test:baseline:verbose": "vitest test/baseline-ui.test.js --reporter=verbose",
+    "test:baseline:headed": "vitest test/baseline-ui.test.js --reporter=verbose"
   },
   "keywords": [
     "chandrayaan3",
@@ -28,10 +27,12 @@
   "license": "MIT",
   "devDependencies": {
     "@playwright/mcp": "^0.0.32",
-    "vite": "^7.1.2"
+    "vite": "^7.1.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "jszip": "^3.10.1",
+    "playwright": "^1.55.0-alpha-1752701791000",
     "swiper": "^11.2.10",
     "three": "^0.179.1"
   }
