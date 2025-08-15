@@ -2384,6 +2384,9 @@ class AnimationScene {
     } 
 
     dispose() {
+        console.debug('Disposing AnimationScene with complete WebGL cleanup...');
+        
+        // Dispose all scene components
         this.disposeEarthLocations();
         this.disposeEarth();
         this.disposeSky();
@@ -2392,6 +2395,17 @@ class AnimationScene {
         this.disposeSpacecraftModel();
         this.disposeSpacecraftCurve();
         this.disposeMoonSOI();
+        this.disposeSpacecraft();
+        this.disposeLineOfSight();
+        this.disposeAxesHelper();
+        this.disposeLight();
+        this.disposeCamera();
+        
+        // IMPORTANT: Don't dispose scene and motherContainer 
+        // as these may be reused by the new mode initialization
+        // Just dispose their WebGL resources, not the containers themselves
+        
+        console.debug('AnimationScene disposal completed');
     }
 }
 
@@ -4880,6 +4894,10 @@ function getMST(t, lon)
 
     return GMST;
 }
+
+// Expose variables globally for testing
+window.animationScenes = animationScenes;
+window.AnimationScene = AnimationScene;
 
 window.addEventListener('load', main);
 
