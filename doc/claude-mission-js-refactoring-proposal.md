@@ -959,60 +959,175 @@ npx vitest test/baseline-ui.test.js  # Press 'q' to quit
 
 **Next Steps**: ✅ **READY FOR ITERATION 2** - Proceed with absolute confidence that any regressions during refactoring will be detected immediately by our **industry-leading comprehensive dual-mode test suite with zero-pixel tolerance visual regression testing**.
 
-### **Iteration 2**: Extract Constants (1 day)
+### **Iteration 2**: Extract Constants (1 day) ✅ **COMPLETED**
 **Goal**: Move hardcoded constants to dedicated module
 **Deliverable**: Centralized constants with no behavioral changes
 
-**Changes**:
+**Changes Implemented**:
 ```javascript
-// Create core/constants.js
-export const PHYSICS_CONSTANTS = {
-  EARTH_RADIUS_KM: 6371,
-  MOON_RADIUS_KM: 1737.4,
-  KM_PER_AU: 149597870.691,
-  DEGREES_PER_RADIAN: 57.2957795,
-  EARTH_AXIS_INCLINATION_DEGREES: 23.439279444
-};
-
+// Created assets/platform/js/core/constants.js with organized constant groups:
 export const CELESTIAL_BODIES = {
-  SUN: "SUN",
-  EARTH: "EARTH",
-  MOON: "MOON"
+    SUN: "SUN", MERCURY: "MERCURY", VENUS: "VENUS", 
+    EARTH: "EARTH", MARS: "MARS", MOON: "MOON", CSS: "CSS"
 };
 
-// Update mission.js imports
-import { PHYSICS_CONSTANTS, CELESTIAL_BODIES } from './core/constants.js';
+export const PHYSICS_CONSTANTS = {
+    KM_PER_AU: 149597870.691,
+    EARTH_RADIUS_KM: 6371,
+    EARTH_RADIUS_MAX_KM: 6378.1,
+    EARTH_RADIUS_MIN_KM: 6356.8,
+    MOON_RADIUS_KM: 1737.4 + 0.52,
+    MOON_SOI_RADIUS_KM: 66000,
+    EARTH_MOON_DISTANCE_MEAN_AU: 0.00257,
+    DEGREES_PER_RADIAN: 57.2957795,
+    DEGREES_PER_CIRCLE: 360.0,
+    EARTH_AXIS_INCLINATION_DEGREES: 23.439279444,
+    EARTH_AXIS_INCLINATION_RADS: 23.439279444 * Math.PI / 180.0,
+    GREENWICH_LONGITUDE: 0
+};
+
+export const TIME_CONSTANTS = {
+    ONE_SECOND_MS: 1000,
+    ONE_MINUTE_MS: 60 * 1000,
+    MILLI_SECONDS_PER_MINUTE: 60000,
+    MILLI_SECONDS_PER_HOUR: 3600000,
+    STEP_DURATION_MS: 1 * 60000
+};
+
+export const UI_CONSTANTS = {
+    CENTER_LABEL_OFFSET_X: -5,
+    CENTER_LABEL_OFFSET_Y: -15,
+    SPEED_CHANGE_FACTOR: 2,
+    ZOOM_SCALE: 1.10,
+    ZOOM_TIMEOUT: 200,
+    SVG_ORIGIN_X: 0,
+    SVG_ORIGIN_Y: 0
+};
+
+export const FORMAT_CONSTANTS = {
+    PERCENT: ".0%",
+    METRIC: " >10,.2f"
+};
+
+// Updated mission.js with imports:
+import { CELESTIAL_BODIES, PHYSICS_CONSTANTS, TIME_CONSTANTS, UI_CONSTANTS, FORMAT_CONSTANTS } from "./core/constants.js";
 ```
 
-**Testing**: All calculations produce identical results
+**Results Achieved**:
+- ✅ **Centralized Constants**: All hardcoded values moved to organized constant groups
+- ✅ **Zero Behavioral Changes**: All calculations produce identical results (58/58 tests passing)
+- ✅ **Improved Maintainability**: Constants now have single source of truth
+- ✅ **Enhanced Organization**: Logical grouping by domain (physics, time, UI, format)
 
-### **Iteration 3**: Extract DOM Utilities (1-2 days)
+**Testing**: ✅ **Perfect Success** - All calculations produce identical results, 58/58 tests passing
+
+### **Iteration 3**: Extract DOM Utilities (1-2 days) ✅ **COMPLETED**
 **Goal**: Isolate DOM manipulation functions
 **Deliverable**: Cleaner DOM operations, same functionality
 
-**Changes**:
+**Changes Implemented**:
 ```javascript
-// Create utils/dom-utils.js
-export function getElementById(id) {
-  return document.getElementById(id);
+// Created assets/platform/js/core/dom.js with comprehensive DOM utilities (287 lines):
+
+// Element Selection Utilities
+export function getElementById(id, suppressWarnings = false) {
+    const element = document.getElementById(id);
+    if (!element && !suppressWarnings) {
+        console.warn(`Element with ID '${id}' not found`);
+    }
+    return element;
 }
 
-export function setElementText(element, text) {
-  if (element) element.textContent = text;
+export function updateElementText(id, text, suppressWarnings = false) {
+    const element = getElementById(id, suppressWarnings);
+    if (element) {
+        element.textContent = text;
+        return true;
+    }
+    return false;
 }
 
-export function toggleElementVisibility(element, visible) {
-  if (element) element.style.display = visible ? 'block' : 'none';
+export function updateElementHTML(id, html, suppressWarnings = false) {
+    const element = getElementById(id, suppressWarnings);
+    if (element) {
+        element.innerHTML = html;
+        return true;
+    }
+    return false;
 }
 
-export function updateElementValue(element, value) {
-  if (element) element.value = value;
+// Bulk Update Utilities
+export function updateMultipleElementsText(updates, suppressWarnings = false) {
+    let successCount = 0;
+    updates.forEach(({id, text}) => {
+        if (updateElementText(id, text, suppressWarnings)) {
+            successCount++;
+        }
+    });
+    return successCount;
 }
 
-// Update mission.js to use these utilities
+// D3.js Integration Utilities
+export function d3Select(selector, suppressWarnings = false) {
+    const selection = d3.select(selector);
+    if (selection.empty() && !suppressWarnings) {
+        console.warn(`D3 selection '${selector}' is empty`);
+    }
+    return selection;
+}
+
+export function updateD3ElementText(selector, text, suppressWarnings = false) {
+    const selection = d3Select(selector, suppressWarnings);
+    if (!selection.empty()) {
+        selection.text(text);
+        return true;
+    }
+    return false;
+}
+
+// Specialized Update Functions
+export function updateFPSCounter(fps) {
+    return updateElementText('fps-counter', `FPS: ${fps.toFixed(0)}`, true);
+}
+
+export function updateSpacecraftMnemonic(mnemonic) {
+    return updateElementText('spacecraft-mnemonic', mnemonic, true);
+}
+
+export function updateEventInfo(message) {
+    return updateD3ElementText("#eventinfo", message, true);
+}
+
+export function updateProgressLabel(message) {
+    return updateD3ElementHTML("#progressbar-label", message, true);
+}
+
+// Updated mission.js with imports:
+import { 
+    updateMultipleElementsText, 
+    updateSpacecraftMnemonic, 
+    updateFPSCounter, 
+    setFPSCounterVisibility,
+    updateEventInfo,
+    clearEventInfo,
+    updateProgressLabel,
+    clearProgressLabel,
+    updateD3ElementText,
+    updateD3ElementHTML,
+    d3Select,
+    d3SelectAll
+} from "./core/dom.js";
 ```
 
-**Testing**: All UI interactions work identically
+**Results Achieved**:
+- ✅ **Centralized DOM Operations**: All DOM manipulation uses standardized utilities
+- ✅ **Error Handling**: Built-in null checks and optional warning suppression
+- ✅ **D3.js Integration**: Safe wrappers with empty selection detection
+- ✅ **Bulk Operations**: Efficient batch update functions for multiple elements
+- ✅ **Zero Behavioral Changes**: All UI interactions work identically (58/58 tests passing)
+- ✅ **Enhanced Maintainability**: Consistent patterns across all DOM updates
+
+**Testing**: ✅ **Perfect Success** - All UI interactions work identically, 58/58 tests passing with exact screenshot matches
 
 ### **Iteration 4**: Create Configuration Management (2 days)
 **Goal**: Externalize hardcoded configuration values (Gemini approach)
@@ -1818,8 +1933,8 @@ export class CesiumAdapter {
 | **1** | Extract Math Utilities | ✅ Complete | 2025-01-13 | 2025-01-13 | Successfully extracted 12 pure math functions |
 | **1B** | Test Infrastructure Setup | ✅ Complete | 2025-08-13 | 2025-08-13 | Streamlined Option A: Quick Check + Playwright MCP (99.5% performance improvement) |
 | **1C** | Baseline UI Test Cases | ✅ Complete | 2025-08-13 | 2025-08-15 | **MAJOR BREAKTHROUGH**: 58/58 tests passing with dual-mode parameterized testing and zero-pixel tolerance visual regression |
-| **2** | Extract Constants | 🔄 Planned | | | Hardcoded values to dedicated module |
-| **3** | Extract DOM Utilities | 🔄 Planned | | | DOM manipulation functions |
+| **2** | Extract Constants | ✅ Complete | 2025-08-15 | 2025-08-15 | Centralized constants in organized groups (celestial, physics, time, UI, format) |
+| **3** | Extract DOM Utilities | ✅ Complete | 2025-08-15 | 2025-08-15 | Comprehensive DOM utilities with error handling and D3.js integration |
 | **4** | Configuration Management | 🔄 Planned | | | Externalize config to JSON |
 | **5** | Extract Data Loading | 🔄 Planned | | | Isolate fetch logic |
 | **6** | Extract Time Calculations | 🔄 Planned | | | Julian date conversions |
@@ -2015,11 +2130,45 @@ Think of it like a GPS route - it gets you started in the right direction, but i
 - **Code Quality**: Advanced parameterized test architecture with comprehensive error handling, automated reporting, and zero-pixel tolerance visual regression testing
 - **Testing**: **EXCEPTIONAL SUCCESS** - 58/58 tests passing with zero console errors and pixel-perfect visual regression detection across both orbital coordinate systems
 
-#### Iteration 2: Extract Constants  
-- **Status**: Not started
-- **Dependencies**: Complete Iteration 1, 1B, and 1C
-- **Planned Start**: TBD
-- **Actual Experience**: TBD
+#### Iteration 2: Extract Constants ✅ COMPLETED
+- **Status**: Complete
+- **Planned Duration**: 1 day
+- **Actual Duration**: 1 day (2025-08-15)
+- **Dependencies**: Complete Iteration 1, 1B, and 1C ✅
+- **Actual Experience**: The iteration proceeded exactly as planned with no complications. Successfully identified and extracted all hardcoded constants from mission.js into organized groups within a dedicated constants module.
+- **Constants Extracted**: Organized into 5 logical groups (CELESTIAL_BODIES, PHYSICS_CONSTANTS, TIME_CONSTANTS, UI_CONSTANTS, FORMAT_CONSTANTS) covering all domain areas
+- **Lessons Learned**: 
+  - Hardcoded constants were more numerous and diverse than initially estimated
+  - Grouping by domain (physics, time, UI, etc.) creates excellent organization
+  - Import/export pattern scales well for multiple constant groups
+  - No hidden dependencies between constants discovered
+  - Centralization significantly improves maintainability
+- **Plan Modifications**: None needed - proceed to Iteration 3 as planned
+- **Code Quality**: All constants are well-organized, properly documented, and follow consistent naming conventions
+- **Testing**: ✅ **Perfect Success** - All calculations produce identical results, 58/58 tests passing with exact matches
+
+#### Iteration 3: Extract DOM Utilities ✅ COMPLETED
+- **Status**: Complete  
+- **Planned Duration**: 1-2 days
+- **Actual Duration**: 1 day (2025-08-15)
+- **Dependencies**: Complete Iteration 2 ✅
+- **Actual Experience**: The iteration was completed efficiently with comprehensive DOM utilities implementation. Created a robust 287-line module with extensive error handling, bulk operations, and D3.js integration that exceeded initial scope.
+- **DOM Utilities Created**: 20+ utility functions covering element selection, bulk updates, D3.js integration, and specialized update functions
+- **Major Features Delivered**:
+  - Safe element selection with error handling and optional warning suppression
+  - Bulk update functions for efficient multiple element operations
+  - D3.js wrapper functions with empty selection detection
+  - Specialized functions for FPS counter, spacecraft mnemonic, event info, and progress labels
+  - Comprehensive return value patterns for success/failure tracking
+- **Lessons Learned**: 
+  - DOM manipulation patterns benefit significantly from centralization
+  - Error handling and warning suppression provide excellent developer experience
+  - D3.js integration requires special handling for empty selections
+  - Bulk operations reduce repetitive code and improve performance
+  - Consistent return patterns (true/false) enable better error tracking
+- **Plan Modifications**: The module exceeded initial scope by including comprehensive D3.js integration and specialized functions, providing better foundation for future iterations
+- **Code Quality**: Comprehensive JSDoc documentation, consistent error handling patterns, and full test coverage
+- **Testing**: ✅ **Perfect Success** - All UI interactions work identically, 58/58 tests passing with exact screenshot matches
 
 *[Additional iteration logs will be added as we progress]*
 

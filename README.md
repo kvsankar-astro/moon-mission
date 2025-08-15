@@ -145,6 +145,8 @@ cy3/
 - **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
 - **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
 - **`assets/platform/js/npyreader.js`** - Data format readers (JSON, NPZ)
+- **`assets/platform/js/core/constants.js`** - Centralized physical and mathematical constants
+- **`assets/platform/js/core/dom.js`** - DOM manipulation utilities and D3.js integration
 - **`assets/platform/css/mission.css`** - Base styling for any mission
 
 #### Mission-Specific Assets

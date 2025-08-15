@@ -5,6 +5,20 @@ import { lunar_pole } from "./astro.js";
 import { deg_to_rad } from "./astro.js";
 import { parseNpy, uncompressNPZ } from "./npyreader.js";
 import { 
+    updateMultipleElementsText, 
+    updateSpacecraftMnemonic, 
+    updateFPSCounter, 
+    setFPSCounterVisibility,
+    updateEventInfo,
+    clearEventInfo,
+    updateProgressLabel,
+    clearProgressLabel,
+    updateD3ElementText,
+    updateD3ElementHTML,
+    d3Select,
+    d3SelectAll
+} from "./core/dom.js";
+import { 
     degreesToRadians, 
     radiansToDegrees, 
     clamp, 
@@ -18,6 +32,13 @@ import {
     lerp,
     formatFloat
 } from "./utils/math-utils.js";
+import { 
+    CELESTIAL_BODIES, 
+    PHYSICS_CONSTANTS, 
+    TIME_CONSTANTS, 
+    UI_CONSTANTS, 
+    FORMAT_CONSTANTS 
+} from "./core/constants.js";
 
 import * as THREE from 'three';
 import Swiper from 'swiper';
@@ -29,32 +50,32 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // constants
 
 var SC     = "SC"; // Default spacecraft mnemonic - will be overridden by config
-var SUN     = "SUN";
-var MERCURY = "MERCURY";
-var VENUS   = "VENUS";
-var EARTH   = "EARTH";
-var MARS    = "MARS";
-var MOON    = "MOON";
-var CSS     = "CSS";
+var SUN     = CELESTIAL_BODIES.SUN;
+var MERCURY = CELESTIAL_BODIES.MERCURY;
+var VENUS   = CELESTIAL_BODIES.VENUS;
+var EARTH   = CELESTIAL_BODIES.EARTH;
+var MARS    = CELESTIAL_BODIES.MARS;
+var MOON    = CELESTIAL_BODIES.MOON;
+var CSS     = CELESTIAL_BODIES.CSS;
 
-var ONE_SECOND_MS = 1000;
-var ONE_MINUTE_MS = 60*1000;
-var KM_PER_AU = 149597870.691;
-var DEGREES_PER_RADIAN = 57.2957795;
-var DEGREES_PER_CIRCLE = 360.0;
-var MILLI_SECONDS_PER_MINUTE = 60000;
-var MILLI_SECONDS_PER_HOUR = 3600000;
-var GREENWICH_LONGITUDE = 0; // used to be that of Bangalore earlier: 77.5667;
-var EARTH_MOON_DISTANCE_MEAN_AU = 0.00257;
-var EARTH_RADIUS_KM = 6371;
-var EARTH_RADIUS_MAX_KM = 6378.1;
-var EARTH_RADIUS_MIN_KM = 6356.8;
-var MOON_RADIUS_KM = 1737.4 + 0.52; // 0.52 is is to keep the lander on the surface
-var MOON_SOI_RADIUS_KM = 66000;
-var EARTH_AXIS_INCLINATION_DEGREES = 23.439279444;
-var EARTH_AXIS_INCLINATION_RADS = EARTH_AXIS_INCLINATION_DEGREES * Math.PI / 180.0;
+var ONE_SECOND_MS = TIME_CONSTANTS.ONE_SECOND_MS;
+var ONE_MINUTE_MS = TIME_CONSTANTS.ONE_MINUTE_MS;
+var KM_PER_AU = PHYSICS_CONSTANTS.KM_PER_AU;
+var DEGREES_PER_RADIAN = PHYSICS_CONSTANTS.DEGREES_PER_RADIAN;
+var DEGREES_PER_CIRCLE = PHYSICS_CONSTANTS.DEGREES_PER_CIRCLE;
+var MILLI_SECONDS_PER_MINUTE = TIME_CONSTANTS.MILLI_SECONDS_PER_MINUTE;
+var MILLI_SECONDS_PER_HOUR = TIME_CONSTANTS.MILLI_SECONDS_PER_HOUR;
+var GREENWICH_LONGITUDE = PHYSICS_CONSTANTS.GREENWICH_LONGITUDE;
+var EARTH_MOON_DISTANCE_MEAN_AU = PHYSICS_CONSTANTS.EARTH_MOON_DISTANCE_MEAN_AU;
+var EARTH_RADIUS_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_KM;
+var EARTH_RADIUS_MAX_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_MAX_KM;
+var EARTH_RADIUS_MIN_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_MIN_KM;
+var MOON_RADIUS_KM = PHYSICS_CONSTANTS.MOON_RADIUS_KM;
+var MOON_SOI_RADIUS_KM = PHYSICS_CONSTANTS.MOON_SOI_RADIUS_KM;
+var EARTH_AXIS_INCLINATION_DEGREES = PHYSICS_CONSTANTS.EARTH_AXIS_INCLINATION_DEGREES;
+var EARTH_AXIS_INCLINATION_RADS = PHYSICS_CONSTANTS.EARTH_AXIS_INCLINATION_RADS;
 
-var STEP_DURATION_MS = 1 * MILLI_SECONDS_PER_MINUTE; // update this whenever Orbit JSON time resolution changes
+var STEP_DURATION_MS = TIME_CONSTANTS.STEP_DURATION_MS;
 
 var craftSize = 5; // in pixels
 
@@ -94,16 +115,16 @@ var planetProperties = {
     "CSS":      { "id": CSS,        "name": "Siding Spring",    "color": "cyan",        "orbitcolor": "cyan",       "stroke-width": 1.0, "r": 3,   "labelOffsetX": +10, "labelOffsetY": +10 },
 };      
     
-var CENTER_LABEL_OFFSET_X = -5;
-var CENTER_LABEL_OFFSET_Y = -15;
+var CENTER_LABEL_OFFSET_X = UI_CONSTANTS.CENTER_LABEL_OFFSET_X;
+var CENTER_LABEL_OFFSET_Y = UI_CONSTANTS.CENTER_LABEL_OFFSET_Y;
 
-var SPEED_CHANGE_FACTOR = 2;
-var ZOOM_SCALE = 1.10;
-var ZOOM_TIMEOUT = 200; // TODO Why did I end up calling this variable this way? 
-var SVG_ORIGIN_X = 0; // TODO match with CSS value; find a better way
-var SVG_ORIGIN_Y = 0; // TODO match with CSS value; find a better way
-var FORMAT_PERCENT = d3.format(".0%");
-var FORMAT_METRIC = d3.format(" >10,.2f");
+var SPEED_CHANGE_FACTOR = UI_CONSTANTS.SPEED_CHANGE_FACTOR;
+var ZOOM_SCALE = UI_CONSTANTS.ZOOM_SCALE;
+var ZOOM_TIMEOUT = UI_CONSTANTS.ZOOM_TIMEOUT; // TODO Why did I end up calling this variable this way? 
+var SVG_ORIGIN_X = UI_CONSTANTS.SVG_ORIGIN_X; // TODO match with CSS value; find a better way
+var SVG_ORIGIN_Y = UI_CONSTANTS.SVG_ORIGIN_Y; // TODO match with CSS value; find a better way
+var FORMAT_PERCENT = d3.format(FORMAT_CONSTANTS.PERCENT);
+var FORMAT_METRIC = d3.format(FORMAT_CONSTANTS.METRIC);
 
 //
 // General state variables
@@ -341,18 +362,10 @@ function updateDynamicLabels() {
         { id: 'label-orbit-descent', text: `${spacecraftShort} Descent Orbit` }
     ];
     
-    labelElements.forEach(({id, text}) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.textContent = text;
-        }
-    });
+    updateMultipleElementsText(labelElements, true);
     
     // Update spacecraft mnemonic in the dedicated span element
-    const spacecraftMnemonicElement = document.getElementById('spacecraft-mnemonic');
-    if (spacecraftMnemonicElement) {
-        spacecraftMnemonicElement.textContent = spacecraftShort;
-    }
+    updateSpacecraftMnemonic(spacecraftShort);
     
     // console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
 }
@@ -2133,7 +2146,7 @@ class AnimationScene {
         this.addLineOfSight(); render(); wait20().then();
         this.addAxesHelper(); render(); wait20().then();
 
-        d3.select("#eventinfo").text("");
+        clearEventInfo();
     }
 
     setCameraParameters() {
@@ -2745,7 +2758,7 @@ function setDimension() {
             $("#progressbar").progressbar();
             $("#progressbar").progressbar("option", "value", false);
             $("#progressbar").show();
-            d3.select("#progressbar-label").html(msg);
+            updateProgressLabel(msg);
 
             animationScenes[config].processOrbitVectorsData3D();
             animationScenes[config].processLandingVectors();
@@ -3153,14 +3166,14 @@ function setLocation() {
 
             if (eventInfos[i]["body"] === "SC") {
                 d3.select("#burng").style("visibility", "visible");
-                d3.select("#eventinfo").text(eventInfos[i]["infoText"]);
+                updateEventInfo(eventInfos[i]["infoText"]);
                 break;                
-                d3.select("#eventinfo").text(eventInfos[i]["infoText"]);
+                updateEventInfo(eventInfos[i]["infoText"]);
                 break;
             }
         } else {
             d3.select("#burng").style("visibility", "hidden");
-            d3.select("#eventinfo").text("");
+            clearEventInfo();
         }
     }
 
@@ -3261,7 +3274,7 @@ async function initAnimation(flags) {
     } catch (error) {
         d3.select("#eventinfo").text("Failed to load the aninmation. Please restart the browser and try again.");
         console.error("Error: exception in initAnimation(): " + error);
-        d3.selectAll("button").attr("disabled", true);
+        d3SelectAll("button").attr("disabled", true);
         return;
     }
 
@@ -3280,10 +3293,7 @@ function animateLoop() {
     }
     if (curFrameTime - fpsLastTime >= fpsUpdateInterval) {
         const fps = Math.round(fpsFrameCount * 1000 / (curFrameTime - fpsLastTime));
-        const fpsElement = document.getElementById('fps-counter');
-        if (fpsElement) {
-            fpsElement.textContent = `FPS: ${fps.toFixed(0)}`;
-        }
+        updateFPSCounter(fps);
         fpsFrameCount = 0;
         fpsLastTime = curFrameTime;
     }
@@ -3417,7 +3427,7 @@ async function init(callback) {
     d3.select("#checkbox-lock-moon").property("checked", false);
     d3.select("#checkbox-lock-earth").property("checked", false);
 
-    d3.selectAll("button").attr("disabled", true);
+    d3SelectAll("button").attr("disabled", true);
 
     var handlers = {
         "zoomin":       { "mousedown":  f1 },
@@ -3606,7 +3616,7 @@ async function processOrbitData(data) {
     // console.log("processOrbitData() called");
 
     $("#progressbar").hide();
-    d3.select("#progressbar-label").html("");
+    clearProgressLabel();
     
     // Update configuration from metadata if available
     updateConfigFromMetadata();
@@ -3686,7 +3696,7 @@ async function processOrbitData(data) {
     if (!missionStartCalled) {
         missionStart();
     }
-    d3.selectAll("button").attr("disabled", null);
+    d3SelectAll("button").attr("disabled", null);
 
     /*
     if (!bannerShown) {
@@ -3696,7 +3706,7 @@ async function processOrbitData(data) {
     */
 
     if (!animationRunning) {
-        d3.select("#animate").text("Play");
+        updateD3ElementText("#animate", "Play");
     }
 
     zoomChangeTransform(0);
@@ -3756,7 +3766,7 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         $("#progressbar").progressbar();
         $("#progressbar").progressbar("option", "value", false);
         $("#progressbar").show();
-        d3.select("#progressbar-label").html(msg);
+        updateProgressLabel(msg);
         await sleep();
 
         // NPZ code goes here
@@ -3865,7 +3875,7 @@ function initSVG() {
     //     .attr("width", svgWidth)
     //     .attr("height", svgHeight);
 
-    d3.select("#progressbar-label").html("Loading orbit data ...");
+    updateProgressLabel("Loading orbit data ...");
 
     dataLoaded = false;
 
@@ -3876,7 +3886,7 @@ function initSVG() {
                 // console.log("Error: unable to load whatsnew.html");
             } else {
                 // console.log("whatsnew.html = " + data);
-                d3.select("#banner").html(data.response);
+                updateD3ElementHTML("#banner", data.response);
            }
         });
     */
@@ -4143,7 +4153,7 @@ function cy3Animate() {
         animationRunning = true;
         stopAnimationFlag = false;
         if (animTime >= endTime - ONE_MINUTE_MS) animTime = startTime;
-        d3.select("#animate").text("Pause");
+        updateD3ElementText("#animate", "Pause");
     }
 }
 
@@ -4163,7 +4173,7 @@ function stopAnimation() {
     animationRunning = false;
     stopAnimationFlag = true;
     clearTimeout(timeoutHandle);
-    d3.select("#animate").text("Play");
+    updateD3ElementText("#animate", "Play");
 }
 
 function forward() {
@@ -4733,10 +4743,7 @@ function setView() {
     viewFPS = $("#view-fps").is(":checked"); 
 
     // Control FPS counter visibility
-    const fpsElement = document.getElementById('fps-counter');
-    if (fpsElement) {
-        fpsElement.style.display = viewFPS ? 'block' : 'none';
-    }
+    setFPSCounterVisibility(viewFPS);
 
     ["geo", "lunar"].map(function(cfg) {
         // console.log("Setting view for config: " + cfg);
