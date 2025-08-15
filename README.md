@@ -245,35 +245,58 @@ Create `deploy-config.json` for deployment settings:
 
 ## Testing
 
-The project includes comprehensive UI testing infrastructure to ensure functionality during development and refactoring.
+The project includes comprehensive automated UI testing infrastructure ensuring functionality across both orbital perspectives and all interaction modes.
 
 ### Test Infrastructure
 
-- **Playwright + Vitest** - Browser automation and test framework
-- **Visual regression testing** - Screenshot comparison with baseline images
-- **Animation state testing** - Real behavior verification during play/pause/speed changes
-- **Control panel testing** - All UI elements (timeline, controls, plane selection, etc.)
+- **Framework:** Vitest + Playwright for browser automation and visual regression testing
+- **Dual-Mode Testing:** Parameterized tests covering both geocentric and selenocentric orbital perspectives  
+- **Zero-Pixel Tolerance:** Exact screenshot matching for pixel-perfect UI consistency
+- **Real-Time Monitoring:** Console error detection and comprehensive logging during all test phases
 
 ### Running Tests
 
 ```bash
-# Run all baseline UI tests
-npm run test:vitest
+# Run complete test suite (58 tests, ~4 minutes)
+npm test
 
-# Run with detailed output
-npm run test:vitest:verbose
+# Run in watch mode (re-run on file changes)
+npx vitest test/baseline-ui.test.js
 
-# Run in headed mode (visible browser)
-npm run test:baseline:headed
+# Exit watch mode
+# Press 'q' to quit
 ```
 
 ### Test Coverage
 
-- **Comprehensive tests** covering all UI interactions
-- **Visual baselines** for 3D/2D modes, plane orientations, and control states
-- **Animation behavior verification** with timeline sampling during playback
+#### **Comprehensive UI Testing (58 Tests)**
+- **Page Load Verification:** Application initialization and critical element presence
+- **Timeline Controls:** All 15 mission events (Launch, EBNs, TLI, LBNs, Landing)
+- **Animation Controls:** Play/Pause, speed adjustment, directional controls
+- **Plane Selection:** XY/YZ plane switching with visual orientation verification
+- **Dimension Controls:** 2D/3D mode switching with proper state restoration
+- **Dual Orbital Modes:** Complete test suite in both geocentric and selenocentric perspectives
 
-Tests are designed to catch regressions during refactoring and ensure all UI functionality works correctly across different view modes and control states.
+#### **Visual Regression Testing (11 Screenshot Tests)**
+- **XY Plane Orientation:** Axes alignment verification (Red right, Green up)
+- **YZ Plane Orientation:** Axes alignment verification (Green right, Blue up)  
+- **3D Mode Rendering:** WebGL context and visualization state verification
+- **2D Mode Rendering:** SVG rendering state verification
+- **Mode Restoration:** Proper return to preferred 3D mode after testing cycles
+
+#### **Error Monitoring & Reporting**
+- **Real-Time Console Monitoring:** Automatic detection of JavaScript errors during test execution
+- **Timestamped Reports:** CSV and JSON reports with pixel differences and timing data
+- **Comprehensive Logging:** Detailed test execution logs with error tracking and performance metrics
+
+### Test Reports
+
+Each test run generates timestamped reports in `test/reports/`:
+- **CSV Reports:** Pixel difference analysis for every screenshot comparison
+- **JSON Logs:** Detailed execution logs with timing and error information
+- **Performance Data:** Test duration and browser interaction timing
+
+Tests ensure UI functionality remains consistent during refactoring and catch visual regressions across different orbital viewing modes and control states.
 
 ### Hosting
 

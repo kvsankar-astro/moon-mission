@@ -107,9 +107,12 @@ Desktop.ini
 # =========================
 # Track baseline screenshots for visual regression testing
 !test/screenshots/baseline/*.png
-# But ignore temporary test output
+# But ignore temporary test output and current screenshots
 test/screenshots/*current.png
+test/screenshots/baseline/*-current.png
 test/temp/
+# Test run reports (timestamped logs and CSV files)
+test/reports/
 
 # Temporary test development files
 test/baseline-ui-tests.js
