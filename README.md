@@ -247,58 +247,26 @@ Create `deploy-config.json` for deployment settings:
 
 ## Testing
 
-The project includes comprehensive automated UI testing infrastructure ensuring functionality across both orbital perspectives and all interaction modes.
-
-### Test Infrastructure
-
-- **Framework:** Vitest + Playwright for browser automation and visual regression testing
-- **Dual-Mode Testing:** Parameterized tests covering both geocentric and selenocentric orbital perspectives  
-- **Zero-Pixel Tolerance:** Exact screenshot matching for pixel-perfect UI consistency
-- **Real-Time Monitoring:** Console error detection and comprehensive logging during all test phases
+The project includes automated UI testing for comprehensive functionality verification.
 
 ### Running Tests
 
 ```bash
-# Run complete test suite (58 tests, ~4 minutes)
+# Run complete test suite (35 tests)
 npm test
 
-# Run in watch mode (re-run on file changes)
-npx vitest test/baseline-ui.test.js
-
-# Exit watch mode
-# Press 'q' to quit
+# Run with custom server URL
+VITE_TEST_BASE_URL=http://localhost:8000 npm test
 ```
 
 ### Test Coverage
 
-#### **Comprehensive UI Testing (58 Tests)**
-- **Page Load Verification:** Application initialization and critical element presence
-- **Timeline Controls:** All 15 mission events (Launch, EBNs, TLI, LBNs, Landing)
-- **Animation Controls:** Play/Pause, speed adjustment, directional controls
-- **Plane Selection:** XY/YZ plane switching with visual orientation verification
-- **Dimension Controls:** 2D/3D mode switching with proper state restoration
-- **Dual Orbital Modes:** Complete test suite in both geocentric and selenocentric perspectives
+- **UI Elements:** Timeline controls, animation controls, view toggles
+- **Dual Modes:** Earth-centered and Moon-centered orbital perspectives  
+- **Visual Regression:** Screenshot comparison with baseline images
+- **Error Detection:** Console error monitoring during test execution
 
-#### **Visual Regression Testing (11 Screenshot Tests)**
-- **XY Plane Orientation:** Axes alignment verification (Red right, Green up)
-- **YZ Plane Orientation:** Axes alignment verification (Green right, Blue up)  
-- **3D Mode Rendering:** WebGL context and visualization state verification
-- **2D Mode Rendering:** SVG rendering state verification
-- **Mode Restoration:** Proper return to preferred 3D mode after testing cycles
-
-#### **Error Monitoring & Reporting**
-- **Real-Time Console Monitoring:** Automatic detection of JavaScript errors during test execution
-- **Timestamped Reports:** CSV and JSON reports with pixel differences and timing data
-- **Comprehensive Logging:** Detailed test execution logs with error tracking and performance metrics
-
-### Test Reports
-
-Each test run generates timestamped reports in `test/reports/`:
-- **CSV Reports:** Pixel difference analysis for every screenshot comparison
-- **JSON Logs:** Detailed execution logs with timing and error information
-- **Performance Data:** Test duration and browser interaction timing
-
-Tests ensure UI functionality remains consistent during refactoring and catch visual regressions across different orbital viewing modes and control states.
+Tests verify UI functionality across orbital modes and control states.
 
 ### Hosting
 

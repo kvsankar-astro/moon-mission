@@ -1,49 +1,32 @@
 
 // Copyright (c) 2013-2024 Sankaranarayanan Viswanathan. All rights reserved.
 
-import { lunar_pole } from "./astro.js";
-import { deg_to_rad } from "./astro.js";
-import { parseNpy, uncompressNPZ } from "./npyreader.js";
-import { 
-    updateMultipleElementsText, 
-    updateSpacecraftMnemonic, 
-    updateFPSCounter, 
-    setFPSCounterVisibility,
-    updateEventInfo,
-    clearEventInfo,
-    updateProgressLabel,
-    clearProgressLabel,
-    updateD3ElementText,
-    updateD3ElementHTML,
-    d3Select,
-    d3SelectAll
-} from "./core/dom.js";
-import { 
-    degreesToRadians, 
-    radiansToDegrees, 
-    clamp, 
-    normalizeAngle,
-    sphericalToCartesian,
-    rotate2D,
-    distance3D,
-    distance2D,
-    velocityToAngle,
-    ellipseSemiMinorAxis,
-    lerp,
-    formatFloat
-} from "./utils/math-utils.js";
-import { 
-    CELESTIAL_BODIES, 
-    PHYSICS_CONSTANTS, 
-    TIME_CONSTANTS, 
-    UI_CONSTANTS, 
-    FORMAT_CONSTANTS 
+import { deg_to_rad, lunar_pole } from "./astro.js";
+import {
+    CELESTIAL_BODIES,
+    FORMAT_CONSTANTS,
+    PHYSICS_CONSTANTS,
+    TIME_CONSTANTS,
+    UI_CONSTANTS
 } from "./core/constants.js";
+import {
+    clearEventInfo,
+    clearProgressLabel,
+    d3SelectAll,
+    setFPSCounterVisibility,
+    updateD3ElementText,
+    updateEventInfo,
+    updateFPSCounter,
+    updateMultipleElementsText,
+    updateProgressLabel,
+    updateSpacecraftMnemonic
+} from "./core/dom.js";
+import { parseNpy, uncompressNPZ } from "./npyreader.js";
 
-import * as THREE from 'three';
 import Swiper from 'swiper';
-import { TrackballControls } from '../../../third-party/TrackballControls.js';
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { TrackballControls } from '../../../third-party/TrackballControls.js';
 
 // orbit and location related data
 
@@ -147,14 +130,15 @@ var bannerShown = false;
 var stopZoom = false;
 var sunLongitude = 0.0;
 var planeChanged = false;
+var planeChangesPending = false;
 
 // animation control
 var mouseDown = false;
 
 // defaults for XY plane
-var planeSelection = "XY"; // XY, YZ, ZX, XY-, YZ-, ZX-
+var planeSelection = "DEFAULT"; // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
+var previousPlaneSelection = null; // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
 var plane = "XY"; // XY, YZ, ZX
-var previousPlane = null;
 var xVariable = "x";
 var yVariable = "y";
 var zVariable = "z";
@@ -250,6 +234,8 @@ var eventInfos = [];
 // 3D rendering related variables
 
 var currentDimension = "3D"; 
+var previousDimension = null;
+var dimensionChanged = false;
 var theSceneHandler = null;
 export var animationScenes = {};
 var globalConfig = null; // Store loaded config from config.json
@@ -808,7 +794,10 @@ function updateCraftScale() {
 
 function cameraControlsCallback() {
     // console.log("cameraControlsCallback() called");
-    updateCraftScale();
+    // Check if scene is still valid before updating craft scale
+    if (animationScenes[config] && animationScenes[config].craft && animationScenes[config].initialized3D) {
+        updateCraftScale();
+    }
 }
 
 // Based on https://stackoverflow.com/a/32038265
@@ -835,6 +824,66 @@ THREE.Object3D.prototype.rotateAroundWorldAxis = function() {
     }
 
 }();
+
+// JSON map for plane selection camera positions and orientations
+const planeCameraConfig = {
+    "DEFAULT": { 
+        geo: { posx: -1/6, posy: -1/30, posz: 1/24, dirx: 0, diry: 0, dirz: 1 },
+        lunar: { posx: -1/96, posy: -1/96, posz: -1/96, dirx: 0, diry: 0, dirz: 1 }
+    },
+    "XY": { posx: 0, posy: 0, posz: 1, dirx: 0, diry: 1, dirz: 0 },
+    "YZ": { posx: 1, posy: 0, posz: 0, dirx: 0, diry: 0, dirz: 1 },
+    "ZX": { posx: 0, posy: 1, posz: 0, dirx: 1, diry: 0, dirz: 0 },
+    "XY-": { posx: 0, posy: 0, posz: -1, dirx: 0, diry: 1, dirz: 0 },
+    "YZ-": { posx: -1, posy: 0, posz: 0, dirx: 0, diry: 0, dirz: 1 },
+    "ZX-": { posx: 0, posy: -1, posz: 0, dirx: 1, diry: 0, dirz: 0 }
+};
+
+// JSON map for plane selection 2D configuration variables
+const planeVariableConfig = {
+    "DEFAULT": { 
+        plane: "DEFAULT", 
+        xFactor: 1, yFactor: 1, zFactor: 1,
+        xVariable: "x", yVariable: "y", zVariable: "z",
+        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
+    },
+    "XY": { 
+        plane: "XY", 
+        xFactor: 1, yFactor: 1, zFactor: 1,
+        xVariable: "x", yVariable: "y", zVariable: "z",
+        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
+    },
+    "YZ": { 
+        plane: "YZ", 
+        xFactor: 1, yFactor: 1, zFactor: 1,
+        xVariable: "y", yVariable: "z", zVariable: "x",
+        vxVariable: "vy", vyVariable: "vz", vzVariable: "vx"
+    },
+    "ZX": { 
+        plane: "ZX", 
+        xFactor: 1, yFactor: 1, zFactor: 1,
+        xVariable: "z", yVariable: "x", zVariable: "y",
+        vxVariable: "vz", vyVariable: "vx", vzVariable: "vy"
+    },
+    "XY-": { 
+        plane: "XY", 
+        xFactor: -1, yFactor: 1, zFactor: 1,
+        xVariable: "x", yVariable: "y", zVariable: "z",
+        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
+    },
+    "YZ-": { 
+        plane: "YZ", 
+        xFactor: -1, yFactor: 1, zFactor: 1,
+        xVariable: "y", yVariable: "z", zVariable: "x",
+        vxVariable: "vy", vyVariable: "vz", vzVariable: "vx"
+    },
+    "ZX-": { 
+        plane: "ZX", 
+        xFactor: -1, yFactor: 1, zFactor: 1,
+        xVariable: "z", yVariable: "x", zVariable: "y",
+        vxVariable: "vz", vyVariable: "vx", vzVariable: "vy"
+    }
+};
 
 class AnimationScene {
     
@@ -1851,7 +1900,8 @@ class AnimationScene {
         }
 
         if (this.equatorialPlaneContainer) {    
-            this.equatorialPlaneContainer.dispose();
+            // THREE.Group doesn't have dispose(), just clear and remove
+            this.equatorialPlaneContainer.clear();
             this.equatorialPlaneContainer = null;
         }
 
@@ -1943,7 +1993,7 @@ class AnimationScene {
             this.cameraControls.addEventListener('change', render, {passive: true}); // TODO Verify   
         }
 
-        this.setCameraParameters();
+        this.setCameraParameters(null, true);
     }
 
     disposeCamera() {
@@ -1953,14 +2003,14 @@ class AnimationScene {
             this.camera = null;
         }
 
-        if (this.craftCamera) {
+        if (this.craftCamera && this.craft) {
             // Dispose of craft camera
             this.craftCamera.remove(this.craftCamera.children);
             this.craft.remove(this.craftCamera);
             this.craftCamera = null;
         }
 
-        if (this.droneCamera) {
+        if (this.droneCamera && this.drone) {
             // Dispose of drone camera
             this.droneCamera.remove(this.droneCamera.children);
             this.drone.remove(this.droneCamera);
@@ -2149,8 +2199,15 @@ class AnimationScene {
         clearEventInfo();
     }
 
-    setCameraParameters() {
-        // console.log("setCameraParameters() called");
+    setCameraParameters(isInitialization = false) {
+        console.log("setCameraParameters() called: isInitialization = " + isInitialization);
+
+        var distance = null;
+        if (this.cameraControlsEnabled) {
+            var cameraControls = this.cameraControls;
+            var origin = new THREE.Vector3(0, 0, 0);
+            distance = cameraControls.getPos().distanceTo(origin);            
+        }
 
         if (moonPhaseCamera) {
             this.camera.fov = 1.0;
@@ -2159,19 +2216,46 @@ class AnimationScene {
             this.craftVisible = false;
         } else {
             this.camera.fov = 50.0;
-            if (config == "geo") {
-                this.setCameraPosition(-1*defaultCameraDistance/6, -1*defaultCameraDistance/30, defaultCameraDistance/24);
-                // this.motherContainer.position.set(-1*defaultCameraDistance/24, 0, 0);    
-            } else {
-                this.setCameraPosition(-defaultCameraDistance/96, -defaultCameraDistance/96, -defaultCameraDistance/96);    
-            }
-            this.camera.up.set(0, 0, 1);
             this.craftVisible = true;
+
+            const preferredDistance = this.getPreferredDistance(config);
+            if (planeSelection === "DEFAULT") {
+                // For DEFAULT plane, always use the computed default positioning regardless of passed distance
+                // This maintains the proper fractional positioning required for DEFAULT view
+
+                this.setCameraPosition(preferredDistance.x, preferredDistance.y, preferredDistance.z);
+                this.camera.up.set(0, 0, 1);
+            } else {
+                // For non-DEFAULT planes: at initialization use defaultCameraDistance, otherwise use provided distance
+                const cameraDistance = isInitialization ? preferredDistance.length() : (distance !== null && distance > 0 ? distance : defaultCameraDistance);
+                
+                // Use planeCameraConfig for all non-DEFAULT plane selections
+                const config3D = planeCameraConfig[planeSelection];
+                if (config3D) {
+                    this.setCameraPosition(config3D.posx * cameraDistance, config3D.posy * cameraDistance, config3D.posz * cameraDistance);
+                    this.camera.up.set(config3D.dirx, config3D.diry, config3D.dirz);
+                }
+            }            
         }
 
-        this.camera.updateProjectionMatrix();
-        this.cameraControls.update();
-        cameraControlsCallback();
+        adjustCameraProjectionMatrixAndSkyAngle();
+    }
+
+    getPreferredDistance(config) {
+        // Returns the preferred camera distance as a Vector3 for the given config
+        if (config == "geo") {
+            return new THREE.Vector3(
+                -1*defaultCameraDistance/6, 
+                -1*defaultCameraDistance/30, 
+                defaultCameraDistance/24
+            );
+        } else {
+            return new THREE.Vector3(
+                -defaultCameraDistance/96, 
+                -defaultCameraDistance/96, 
+                -defaultCameraDistance/96
+            );
+        }
     }
 
     processOrbitVectorsData3D() {
@@ -2395,11 +2479,11 @@ class AnimationScene {
         this.disposeSpacecraftModel();
         this.disposeSpacecraftCurve();
         this.disposeMoonSOI();
-        this.disposeSpacecraft();
         this.disposeLineOfSight();
         this.disposeAxesHelper();
         this.disposeLight();
         this.disposeCamera();
+        this.disposeSpacecraft();
         
         // IMPORTANT: Don't dispose scene and motherContainer 
         // as these may be reused by the new mode initialization
@@ -2545,10 +2629,10 @@ async function initConfig() {
         d3.select("#checkbox-lock-sc").property("checked", animationScenes[config].lockOnSC);
 
         d3.select("#checkbox-lock-xy").property("checked", animationScenes[config].lockOnXY);
-        d3.select("#checkbox-lock-xz").property("checked", animationScenes[config].lockOnXZ);
+        d3.select("#checkbox-lock-zx").property("checked", animationScenes[config].lockOnZX);
         d3.select("#checkbox-lock-yz").property("checked", animationScenes[config].lockOnYZ);
         d3.select("#checkbox-lock-xy-minus").property("checked", animationScenes[config].lockOnXYMinus);
-        d3.select("#checkbox-lock-xz-minus").property("checked", animationScenes[config].lockOnXZMinus);
+        d3.select("#checkbox-lock-zx-minus").property("checked", animationScenes[config].lockOnZXMinus);
         d3.select("#checkbox-lock-yz-minus").property("checked", animationScenes[config].lockOnYZMinus);
 
         return;
@@ -2719,9 +2803,8 @@ async function initConfig() {
       });
 
 
-    // console.log("initConfig() done for " + config);
     animationScenes[config].state = AnimationScene.SCENE_STATE_INIT_CONFIG_DONE;
-    // console.log("initConfig() returning");
+    console.debug("initConfig(" + config + ") returning - state at SCENE_STATE_ADD_CURVE_DONE");
 }
 
 function toggleMode() {
@@ -2754,10 +2837,18 @@ function onWindowResize() {
     render(); // TODO is this the right thing to do here?
 }
 
-function setDimension() {
+function setDimensionTop() {
+    setDimension(false);
+}
+
+function setDimension(init_flag = false) {
     var val = $('input[name=dimension]:checked').val();
     // console.log(`setDimension() called with value ${val}`);
     currentDimension = val;
+
+    if (currentDimension != previousDimension) {
+        dimensionChanged = true;
+    }
 
     if (val == "3D") {
         // Clean up SVG when switching to 3D mode
@@ -2783,7 +2874,7 @@ function setDimension() {
                 // d3.select("#eventinfo").text("");
                 $("#progressbar").hide();
                 handleDimensionSwitch(val);
-                handlePlaneChange(true);
+                handlePlaneChange(dimensionChanged, init_flag);
                 setLocation();
                 if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
             });
@@ -2791,7 +2882,7 @@ function setDimension() {
         } else {
 
             handleDimensionSwitch(val);
-            handlePlaneChange(true);
+            handlePlaneChange(dimensionChanged, init_flag);
             setLocation();
             if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
         }
@@ -2800,12 +2891,15 @@ function setDimension() {
         initSVG();
         loadOrbitDataIfNeededAndProcess(function() {
             handleDimensionSwitch(val);
-            handlePlaneChange(true);
+            handlePlaneChange(dimensionChanged, init_flag);
             setLocation();
             adjustLabelLocations();
             if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
         });
     }
+
+    dimensionChanged = false;
+    previousDimension = currentDimension;
 }
 
 function showPlanet(planet) {
@@ -2976,11 +3070,7 @@ function setLocation() {
         animationScene.rotateEarth();
         animationScene.rotateMoon();
 
-        if (animationScenes[config].cameraControlsEnabled) {
-            animationScenes[config].skyContainer.position.setFromMatrixPosition(animationScenes[config].camera.matrixWorld);
-            animationScenes[config].cameraControls.update();
-            cameraControlsCallback();
-        }    
+        adjustCameraProjectionMatrixAndSkyAngle();
     }
     
     // console.log("animTime = " + animTime);
@@ -3194,6 +3284,16 @@ function setLocation() {
     render();
 }
 
+function adjustCameraProjectionMatrixAndSkyAngle() {
+    if (animationScenes[config].cameraControlsEnabled) {
+        console.debug("Updating skyContainer position and camera controls for 3D scene");
+        animationScenes[config].camera.updateProjectionMatrix();
+        animationScenes[config].skyContainer.position.setFromMatrixPosition(animationScenes[config].camera.matrixWorld);
+        animationScenes[config].cameraControls.update();
+        cameraControlsCallback();
+    }
+}
+
 function showGreenwichLongitude() {
     if (currentDimension != "2D") return;
     
@@ -3278,7 +3378,7 @@ async function initAnimation(flags) {
                 // console.log("Orbit data already processed for " + config);
                 if (flags.reset) { missionStart(); } else { setLocation(); };
                 // realtime();
-                setDimension();
+                setDimension(true);
                 setView();
                 updateCraftScale();
                 // startLandingFlag = true;
@@ -3360,12 +3460,13 @@ export function main() {
     $("#checkbox-lock-moon").on("click", toggleLockMoon);
     $("#checkbox-lock-earth").on("click", toggleLockEarth);
 
+    $("#checkbox-lock-default").on("click", togglePlane);
     $("#checkbox-lock-xy").on("click", togglePlane);
-    $("#checkbox-lock-xz").on("click", togglePlane);
+    $("#checkbox-lock-zx").on("click", togglePlane);
     $("#checkbox-lock-yz").on("click", togglePlane);
 
     $("#checkbox-lock-xy-minus").on("click", togglePlane);
-    $("#checkbox-lock-xz-minus").on("click", togglePlane);
+    $("#checkbox-lock-zx-minus").on("click", togglePlane);
     $("#checkbox-lock-yz-minus").on("click", togglePlane);
 
 
@@ -3381,8 +3482,8 @@ export function main() {
     $("#view-equatorialplane").on("click", setView);
     $("#view-fps").on("click", setView);
 
-    $("#dimension-2D").on("click", setDimension);
-    $("#dimension-3D").on("click", setDimension);
+    $("#dimension-2D").on("click", setDimensionTop);
+    $("#dimension-3D").on("click", setDimensionTop);
 
     $("#animate").on("click", cy3Animate);
     $("#joyride").on("click", toggleJoyRide);
@@ -4448,205 +4549,88 @@ function toggleCameraLook() {
     }
 }
 
-function handlePlaneChange(dimension_changed = false) {
-    // console.debug("handlePlaneChange() called: new plane " + planeSelection + ", previous plane " + previousPlane + ", dimension_changed = " + dimension_changed);
+function handlePlaneChange(dimension_changed = false, init_flag = false) {
 
-    var firstPlaneSet = previousPlane === null ? true : false;
-
-    // TODO Dimension/Plane combined state handler to created and the dirty logic below to be simplified and readable
+    // TODO Dimension/Plane combined state handler to be created and the dirty logic below to be simplified and readable
     // Current implementation: 
     // If the plane is changed while in 2D (or 3D), an equivalent change will be done in 3D (or 2D, respectively).
     // That plane change will be seen when the dimension is switched.
     // Please note that the SVG is constrained to 6 views as it's 2D. 
     // Also note that if the 3D view is altered by the user, it won't be reset simply because of switching to 2D, not changing the plane there and coming back to 3D.
-     
-    if (previousPlane != planeSelection) {
-        previousPlane = planeSelection;
-        planeChanged = true;        
-        // console.debug("Plane changed: continuing with plane change logic.");
-    } else if (dimension_changed && !planeChanged) {
-        // console.debug("Dimension changed; no plane change in earlier dimension session: returning.");
-        return;
-    } else if (dimension_changed && planeChanged) {
-        // console.debug("Dimension changed; plane change in earlier dimension session: continuing with plane change logic.");
-        planeChanged = false;
+
+    var oldPlaneSelection = previousPlaneSelection;
+
+    if (planeSelection != previousPlaneSelection) {
+        planeChanged = true;
+        previousPlaneSelection = planeSelection;
+        planeChangesPending = true;
     } else {
-        // console.debug("Dimension not changed and no plane change: returning.");
+        planeChanged = false;
+    }
+
+    console.debug("handlePlaneChange(): init_flag=" + init_flag + ", dimension_changed=" + dimension_changed + ", planeChanged=" + planeChanged, ", " + oldPlaneSelection + " -> " + planeSelection);
+    
+    if (init_flag && planeSelection == "DEFAULT") {
+        console.debug("handlePlaneChange(): init_flag is true and planeSelection is DEFAULT; so returning without changes.");
+        planeChangesPending = false;
+        return;
+    }
+    if ((!dimension_changed && !planeChanged)) {
+        console.debug("handlePlaneChange(): dimension_changed is false and planeChanged is false; so returning without changes.");
+        return;
+    }
+    if (dimension_changed && !planeChangesPending) {
+        console.debug("handlePlaneChange(): dimension_changed is true and planeChangesPending is false; so returning without changes.");
         return;
     }
 
-    if (firstPlaneSet) {
-        // console.debug("handlePlaneChanged() called during init; returning without changes.");
-        return; 
+    // Apply plane variable configuration for all plane selections
+    const planeConfig = planeVariableConfig[planeSelection];
+    if (planeConfig) {
+        plane = planeConfig.plane;
+        xFactor = planeConfig.xFactor;
+        yFactor = planeConfig.yFactor;
+        zFactor = planeConfig.zFactor;
+        xVariable = planeConfig.xVariable;
+        yVariable = planeConfig.yVariable;
+        zVariable = planeConfig.zVariable;
+        vxVariable = planeConfig.vxVariable;
+        vyVariable = planeConfig.vyVariable;
+        vzVariable = planeConfig.vzVariable;
     }
 
-    var camera = null;
-    var distance = 0.0;
-
+    // Apply camera parameters for 3D mode after plane selection logic
     if (currentDimension == "3D") {
-        camera = animationScenes[config].camera;
-
-        if (animationScenes[config].cameraControlsEnabled) {
-            var cameraControls = animationScenes[config].cameraControls;
-            var origin = new THREE.Vector3(0, 0, 0);
-            distance = cameraControls.getPos().distanceTo(origin);            
-            cameraControls.reset();
-        }
+        animationScenes[config].setCameraParameters(init_flag);
     }
 
-    if (planeSelection == "XY") {
+    if (currentDimension == "2D") {
 
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "XY";
-        xFactor = 1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "x";
-        yVariable = "y";
-        zVariable = "z";
-        vxVariable = "vx";
-        vyVariable = "vy";
-        vzVariable = "vz";            
+        initSVG();
+        loadOrbitDataIfNeededAndProcess(function() {
+            handleDimensionSwitch(currentDimension);
+            setLocation();  
+        });
+        
 
-        if (currentDimension == "3D") {
+    } else if (currentDimension == "3D") {
 
-            animationScenes[config].setCameraPosition(0, 0, distance);
-            camera.up.set(0, 1, 0); 
-        }
-
-    } else if (planeSelection == "YZ") {
-
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "YZ";
-        xFactor = 1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "y";
-        yVariable = "z";
-        zVariable = "x";
-        vxVariable = "vy";
-        vyVariable = "vz";
-        vzVariable = "vx";            
-
-        if (currentDimension == "3D") {
-            
-            animationScenes[config].setCameraPosition(distance, 0, 0);
-            camera.up.set(0, 0, 1);
-        }
-
-    } else if (planeSelection == "ZX") {
-
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "ZX";
-        xFactor = 1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "z";
-        yVariable = "x";
-        zVariable = "y";
-        vxVariable = "vz";
-        vyVariable = "vx";
-        vzVariable = "vy";
-
-        if (currentDimension == "3D") {
-
-            animationScenes[config].setCameraPosition(0, distance, 0);
-            camera.up.set(1, 0, 0); 
-            // TODO 
-            // Workaround as per: https://github.com/mrdoob/three.js/issues/10161 
-        }
-
+        // TODO check logic
+        loadOrbitDataIfNeededAndProcess(function() {
+            handleDimensionSwitch(currentDimension);
+            setLocation();    
+        })
     }
 
-    if (planeSelection == "XY-") {
-
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "XY";
-        xFactor = -1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "x";
-        yVariable = "y";
-        zVariable = "z";
-        vxVariable = "vx";
-        vyVariable = "vy";
-        vzVariable = "vz";            
-
-        if (currentDimension == "3D") {
-
-            animationScenes[config].setCameraPosition(0, 0, -1 * distance);
-            camera.up.set(0, 1, 0); 
-        }
-
-    } else if (planeSelection == "YZ-") {
-
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "YZ";
-        xFactor = -1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "y";
-        yVariable = "z";
-        zVariable = "x";
-        vxVariable = "vy";
-        vyVariable = "vz";
-        vzVariable = "vx";            
-
-        if (currentDimension == "3D") {
-            
-            animationScenes[config].setCameraPosition(-1 * distance, 0, 0);
-            camera.up.set(0, 0, 1);
-        }
-
-    } else if (planeSelection == "ZX-") {
-
-        // do the following 2D relevant changes so that the right state is set when the dimension is switched
-        plane = "ZX";
-        xFactor = -1;
-        yFactor = 1;
-        zFactor = 1;
-        xVariable = "z";
-        yVariable = "x";
-        zVariable = "y";
-        vxVariable = "vz";
-        vyVariable = "vx";
-        vzVariable = "vy";            
-
-        if (currentDimension == "3D") {
-
-            animationScenes[config].setCameraPosition(0, -1 * distance, 0);
-            camera.up.set(1, 0, 0); 
-            // TODO 
-            // Workaround as per: https://github.com/mrdoob/three.js/issues/10161 
-        }
-
-    }
-
-    if (dimension_changed) {
-        if (currentDimension == "2D") {
-
-            initSVG();
-            loadOrbitDataIfNeededAndProcess(function() {
-                handleDimensionSwitch(currentDimension);
-                setLocation();    
-            });
-            
-
-        } else if (currentDimension == "3D") {
-
-            // TODO check logic
-            loadOrbitDataIfNeededAndProcess(function() {
-                handleDimensionSwitch(currentDimension);
-                setLocation();    
-            })
-        }
+    if (planeChangesPending && dimension_changed) {
+        planeChangesPending = false;
     }
 }
 
 function togglePlane() {
     
     planeSelection = $('input[name=plane]:checked').val();
-    handlePlaneChange(true);
+    handlePlaneChange(false, false);
 }
 
 function toggleJoyRide() {
@@ -4809,7 +4793,7 @@ function toggleCamera() {
     }
 
     if (animationScenes[config] && animationScenes[config].initialized3D) {
-        animationScenes[config].setCameraParameters();
+        animationScenes[config].setCameraParameters(false);
         animationScenes[config].skyContainer.visible = !moonPhaseCamera;
     }
 

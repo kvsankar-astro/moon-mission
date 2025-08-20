@@ -86,6 +86,7 @@
                         Works best in desktop screens. Chrome works better than Firefox.</p>
                 </div>
                 
+                <div id="test-id-display" style="position: fixed; top: 10px; right: 150px; color: #ffff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;"></div>
                 <div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;">
                     FPS: 0
                 </div>
@@ -124,18 +125,20 @@
     
                     <fieldset autocomplete="off">
                         <legend class="config-label">Plane</legend>
-                        <input type="radio" name="plane" value="XY" id="checkbox-lock-xy" checked="checked">
+                        <input type="radio" name="plane" value="DEFAULT" id="checkbox-lock-default" checked="checked">
+                        <label for="checkbox-lock-default">DEFAULT</label>
+                        <input type="radio" name="plane" value="XY" id="checkbox-lock-xy">
                         <label for="checkbox-lock-xy">XY</label>
-                        <input type="radio" name="plane" value="YZ" id="checkbox-lock-xz">
-                        <label for="checkbox-lock-xy">YZ</label>
-                        <input type="radio" name="plane" value="ZX" id="checkbox-lock-yz">
-                        <label for="checkbox-lock-xy">ZX</label>
+                        <input type="radio" name="plane" value="YZ" id="checkbox-lock-yz">
+                        <label for="checkbox-lock-yz">YZ</label>
+                        <input type="radio" name="plane" value="ZX" id="checkbox-lock-zx">
+                        <label for="checkbox-lock-zx">ZX</label>
                         <input type="radio" name="plane" value="XY-" id="checkbox-lock-xy-minus">
-                        <label for="checkbox-lock-xy">XY-</label>
-                        <input type="radio" name="plane" value="YZ-" id="checkbox-lock-xz-minus">
-                        <label for="checkbox-lock-xy">YZ-</label>
-                        <input type="radio" name="plane" value="ZX-" id="checkbox-lock-yz-minus">
-                        <label for="checkbox-lock-xy">ZX-</label>
+                        <label for="checkbox-lock-xy-minus">XY-</label>
+                        <input type="radio" name="plane" value="YZ-" id="checkbox-lock-yz-minus">
+                        <label for="checkbox-lock-yz-minus">YZ-</label>
+                        <input type="radio" name="plane" value="ZX-" id="checkbox-lock-zx-minus">
+                        <label for="checkbox-lock-zx-minus">ZX-</label>
                     </fieldset>
                 
                     <fieldset autocomplete="off" class="dimension-3D">

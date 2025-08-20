@@ -17,7 +17,7 @@ export default defineConfig({
   root: '.',
   
   // Public directory for static assets
-  publicDir: 'public',
+  publicDir: '.',
   
   // Server configuration
   server: {
@@ -25,10 +25,13 @@ export default defineConfig({
     host: '127.0.0.1', // Use IPv4 only
     open: false, // Don't auto-open browser (useful for tests)
     cors: true,
-    // Remove problematic CORS headers that prevent page loading
     fs: {
-      // Allow serving files from the entire project
-      allow: ['..']
+      allow: [
+        '.',
+        'assets',
+        'third-party',
+        'test'
+      ]
     }
   },
   
@@ -72,5 +75,34 @@ export default defineConfig({
   // Plugin configuration (can be extended)
   plugins: [
     // Add plugins as needed for future enhancements
-  ]
+  ],
+  
+  // Test configuration for Vitest
+  test: {
+    // Global test configuration
+    testTimeout: 120000, // 2 minutes per test
+    hookTimeout: 180000, // 3 minutes for setup/teardown hooks
+    teardownTimeout: 180000, // 3 minutes for cleanup
+    
+    // Browser testing specific
+    browser: {
+      enabled: false, // We use Playwright directly
+    },
+    
+    // Environment settings
+    environment: 'node',
+    
+    // Reporter configuration
+    reporter: ['verbose'],
+    
+    // Coverage configuration (if needed in future)
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/**',
+        'test/**',
+        'third-party/**'
+      ]
+    }
+  }
 });

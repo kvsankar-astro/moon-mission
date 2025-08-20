@@ -78,6 +78,7 @@ build/
 # =========================
 .vscode/
 .idea/
+*.code-workspace
 *.swp
 *.swo
 *~
@@ -108,6 +109,9 @@ Desktop.ini
 # Track baseline screenshots for visual regression testing
 !test/screenshots/baseline/*.png
 # But ignore temporary test output and current screenshots
+test/screenshots/current/
+test/screenshots/diff/
+test/screenshots/analysis/
 test/screenshots/*current.png
 test/screenshots/baseline/*-current.png
 test/temp/
