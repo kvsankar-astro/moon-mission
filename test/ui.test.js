@@ -3,7 +3,7 @@ import { join } from 'path';
 import pixelmatch from 'pixelmatch';
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 async function displayStartupMessage(page, testId) {
   console.log(`Displaying startup message for: ${testId}`);
@@ -411,6 +411,33 @@ async function cleanupViewControlTest(page, mode = TEST_MODES.EARTH, restoreZoom
   // If restoreZoomSteps is specified, use that to restore zoom, otherwise use default zoomInSteps
   const zoomSteps = restoreZoomSteps !== null ? restoreZoomSteps : mode.zoomInSteps;
   await zoomIn(page, zoomSteps, modeType);
+}
+
+// Timeline management for consistent test states
+async function setTimeline(page, burnButton = '#burn1') {
+  try {
+    await page.click(burnButton);
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  } catch (e) {
+    console.warn(`Could not set timeline to ${burnButton}:`, e.message);
+  }
+}
+
+// Suite and test timeline management
+const SUITE_TIMELINE = '#burn1'; // Default: Launch timeline for all suites
+const TEST_TIMELINES = {
+  // Test-specific timeline overrides (only for tests that need non-default timelines)
+  'Joy Ride Control': '#burn3',           // EBN#3 for proper geometry
+  'Landing Animation': '#burn12',         // Later in mission for landing phase
+  'CY3 Descent Orbit Display': '#burn1'  // Explicitly use Launch (same as suite default)
+};
+
+// Helper to start test with appropriate timeline
+async function startTest(page, testId, testName = '') {
+  // Set timeline (suite default or test-specific override)
+  const timeline = TEST_TIMELINES[testName] || SUITE_TIMELINE;
+  await setTimeline(page, timeline);
+  await displayTestId(page, testId);
 }
 
 describe('Chandrayaan-3 UI Tests - Simplified', () => {
@@ -1341,11 +1368,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     it('Joy Ride Control', async () => {
       const testId = 'earth-3d-joy-ride';
-      await displayTestId(page, testId);
+      await startTest(page, testId, 'Joy Ride Control'); // Uses #burn3
       await openSettingsPanel(page);
       await page.click('#checkbox-lock-default');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      await page.click('#burn3');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       await page.click('#joyride');
       await closeSettingsPanel(page);
@@ -2167,11 +2193,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     it('Landing Animation', async () => {
       const testId = 'moon-3d-landing-animation';
-      await displayTestId(page, testId);
+      await startTest(page, testId, 'Landing Animation'); // Uses #burn12
       await openSettingsPanel(page);
       await page.click('#checkbox-lock-default');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      await page.click('#burn12');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       await page.click('#landing');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -2286,5 +2311,229 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
+  });
+
+  // ====================================================================
+  // 2D MODE TEST SUITES (DUPLICATED FROM 3D SUITES ABOVE)
+  // ====================================================================
+
+  describe('Test Suite 4: Earth Mode 2D Tests', () => {
+    beforeAll(async () => {
+      // Switch to 2D mode for entire test suite
+      await openSettingsPanel(page);
+      await page.click('#dimension-2D');
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+    });
+
+    afterAll(async () => {
+      // Return to 3D mode after test suite completes
+      await openSettingsPanel(page);
+      await page.click('#dimension-3D');
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+    });
+
+    it('Page Load in Earth 2D Mode', async () => {
+      const testId = 'earth-2d-page-load';
+      await startTest(page, testId); // Uses default suite timeline (#burn1)
+      await displayStartupMessage(page, testId);
+
+      // Verify page title
+      const title = await page.title();
+      expect(title).toMatch(/Chandrayaan 3/);
+      
+      // Verify we're in 2D mode
+      expect(await page.isChecked('#dimension-2D')).toBe(true);
+      
+      // Take screenshot in 2D mode
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        `${testId} 2D Mode`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+    }, TIMEOUTS.TEST_CASE_TIMEOUT);
+
+    it('2D Mode Verification', async () => {
+      const testId = 'earth-2d-mode-verification';
+      await displayTestId(page, testId);
+      
+      // Verify 2D mode is active (should already be set by beforeAll)
+      expect(await page.isChecked('#dimension-2D')).toBe(true);
+      expect(await page.isChecked('#dimension-3D')).toBe(false);
+    }, TIMEOUTS.TEST_CASE_TIMEOUT);
+
+    it('Timeline Navigation in 2D Mode', async () => {
+      const testId = 'earth-2d-timeline-navigation';
+      await displayTestId(page, testId);
+
+      // Test a subset of timeline buttons in 2D mode (already in 2D mode)
+      // Only test the first few burn buttons as later ones might not change timeline
+      const timelineButtons = [
+        '#burn1', '#burn2', '#burn3', '#burn4', '#burn5'
+      ];
+
+      let previousTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+      
+      for (const buttonId of timelineButtons) {
+        await page.click(buttonId);
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+        
+        const currentTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+        // Store the time if it changed (some buttons might go to same time)
+        if (currentTime !== previousTime) {
+          previousTime = currentTime;
+        }
+      }
+      
+      // Verify that at least we navigated somewhere
+      const finalTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+      const startTime = 'Fri Jul 14 2023 14:53:00';
+      expect(finalTime).not.toContain(startTime);
+    }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
+
+    it('Animation Controls in 2D Mode', async () => {
+      const testId = 'earth-2d-animation-controls';
+      await displayTestId(page, testId);
+
+      // Test play/pause in 2D mode (already in 2D mode)
+      const initialTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+      
+      // Play animation
+      await page.click('#animate');
+      await page.waitForTimeout(1000);
+      
+      const playingTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+      
+      // Pause animation
+      await page.click('#animate');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      
+      const pausedTime = await page.evaluate(() => document.getElementById('date')?.textContent);
+      
+      // Verify animation worked
+      expect(playingTime).not.toBe(initialTime);
+    }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
+
+    it('Plane Selection in 2D Mode', async () => {
+      const testId = 'earth-2d-plane-selection';
+      await startTest(page, testId); // Uses default suite timeline (#burn1)
+
+      const planes = [
+        { id: 'default', name: 'default', selector: '#checkbox-lock-default' },
+        { id: 'xy', name: 'xy', selector: '#checkbox-lock-xy' },
+        { id: 'yz', name: 'yz', selector: '#checkbox-lock-yz' },
+        { id: 'zx', name: 'zx', selector: '#checkbox-lock-zx' },
+        { id: 'xy-minus', name: 'xy-minus', selector: '#checkbox-lock-xy-minus' },
+        { id: 'yz-minus', name: 'yz-minus', selector: '#checkbox-lock-yz-minus' },
+        { id: 'zx-minus', name: 'zx-minus', selector: '#checkbox-lock-zx-minus' },
+        { id: 'default-final', name: 'default-final', selector: '#checkbox-lock-default' }
+      ];
+
+      for (const plane of planes) {
+        await openSettingsPanel(page);
+        await page.click(plane.selector);
+        await closeSettingsPanel(page);
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+
+        const screenshotName = `${testId}-${plane.name.toLowerCase()}.png`;
+        const comparison = await compareScreenshots(
+          page,
+          screenshotName,
+          screenshotName,
+          `${testId} ${plane.name} plane in 2D mode`,
+          TOLERANCE.BROAD_MATCH
+        );
+        expect(comparison.isMatch).toBe(true);
+      }
+    }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
+
+    // Note: CY3 Orbit Display test removed - orbit display controls don't exist in 2D mode
+  });
+
+  describe('Test Suite 5: Moon Mode 2D Tests', () => {
+    beforeAll(async () => {
+      // Switch to Moon mode and 2D mode for entire test suite
+      await openSettingsPanel(page);
+      await page.click('#origin-moon');
+      await page.click('#dimension-2D');
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+    });
+
+    afterAll(async () => {
+      // Return to Earth mode and 3D mode after test suite completes
+      await openSettingsPanel(page);
+      await page.click('#origin-earth');
+      await page.click('#dimension-3D');
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+    });
+
+    it('Page Load in Moon 2D Mode', async () => {
+      const testId = 'moon-2d-page-load';
+      await startTest(page, testId); // Uses default suite timeline (#burn1)
+
+
+      // Take screenshot in 2D mode
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        `${testId} Moon 2D Mode`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+
+    }, TIMEOUTS.TEST_CASE_TIMEOUT);
+
+    it('2D Mode Verification in Moon Mode', async () => {
+      const testId = 'moon-2d-mode-verification';
+      
+      await displayTestId(page, testId);
+      
+      
+      // Verify 2D mode is active
+      const is2DModeChecked = await page.locator('#dimension-2D:checked').count();
+      expect(is2DModeChecked).toBe(1);
+      
+    }, TIMEOUTS.TEST_CASE_TIMEOUT);
+
+    it('Plane Selection in Moon 2D Mode', async () => {
+      const testId = 'moon-2d-plane-selection';
+      await startTest(page, testId); // Uses default suite timeline (#burn1)
+
+
+      const planes = [
+        { id: 'xy', name: 'XY', selector: '#checkbox-lock-xy' },
+        { id: 'yz', name: 'YZ', selector: '#checkbox-lock-yz' },
+        { id: 'default', name: 'DEFAULT', selector: '#checkbox-lock-default' }
+      ];
+
+      for (const plane of planes) {
+        await openSettingsPanel(page);
+        await page.click(plane.selector);
+        await closeSettingsPanel(page);
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+
+        const screenshotName = `${testId}-${plane.name.toLowerCase()}.png`;
+        const comparison = await compareScreenshots(
+          page,
+          screenshotName,
+          screenshotName,
+          `${testId} ${plane.name} plane in Moon 2D mode`,
+          TOLERANCE.BROAD_MATCH
+        );
+        expect(comparison.isMatch).toBe(true);
+      }
+
+    }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
+
+    // Note: CY3 Orbit Display test removed - orbit display controls don't exist in 2D mode
+
+    // Note: Landing Animation test removed - landing animation controls don't exist in 2D mode
   });
 });
