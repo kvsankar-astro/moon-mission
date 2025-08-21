@@ -652,6 +652,8 @@ class SceneHandler {
 
         if (animationScene.initialized3D) {
 
+            updateCraftScale();
+
             if (moonPhaseCamera) {
                 animationScene.camera.lookAt(animationScene.secondaryBody3D.position);            
             }
@@ -2200,13 +2202,14 @@ class AnimationScene {
     }
 
     setCameraParameters(isInitialization = false) {
-        console.log("setCameraParameters() called: isInitialization = " + isInitialization);
+        // console.log("setCameraParameters() called: isInitialization = " + isInitialization);
 
         var distance = null;
         if (this.cameraControlsEnabled) {
             var cameraControls = this.cameraControls;
             var origin = new THREE.Vector3(0, 0, 0);
-            distance = cameraControls.getPos().distanceTo(origin);            
+            distance = cameraControls.getPos().distanceTo(origin);
+            // console.log("cameraDistance in setCameraParameters: " + distance);
         }
 
         if (moonPhaseCamera) {
@@ -3286,7 +3289,7 @@ function setLocation() {
 
 function adjustCameraProjectionMatrixAndSkyAngle() {
     if (animationScenes[config].cameraControlsEnabled) {
-        console.debug("Updating skyContainer position and camera controls for 3D scene");
+        // console.debug("Updating skyContainer position and camera controls for 3D scene");
         animationScenes[config].camera.updateProjectionMatrix();
         animationScenes[config].skyContainer.position.setFromMatrixPosition(animationScenes[config].camera.matrixWorld);
         animationScenes[config].cameraControls.update();
@@ -3650,30 +3653,31 @@ async function init(callback) {
 
     let isMobile = window.matchMedia("only screen and (max-width: 600px)").matches;
 
-    if (!isMobile) {
-        $("#zoom-panel").dialog({
-            dialogClass: "dialog dimension-2D desktoponly",
-            modal: false,
-            position: {
-                my: "left top",
-                at: "left bottom",
-                of: "#animation-control-panel",
-                collision: "fit flip"},
-            title: "Pan/Zoom",
-            closeOnEscape: false
-        }).dialogExtend({
-            closable: false,
-            "dblclick" : "collapse",
-            minimizable: true,
-            minimizeLocation: 'right',
-            collapsable: true,
-        });
-        $("#zoom-panel")
-            .closest('.ui-dialog')
-            .addClass("transparent-panel")
-            .addClass("desktoponly")
-            .css({'background': 'transparent', 'background-image': 'none', 'border': '0', 'margin-top': '20px'});    
-    }
+    // Let's not show the zoom panel at all. TODO Find a better solution later.
+    // if (!isMobile) {
+    //     $("#zoom-panel").dialog({
+    //         dialogClass: "dialog dimension-2D desktoponly",
+    //         modal: false,
+    //         position: {
+    //             my: "left top",
+    //             at: "left bottom",
+    //             of: "#animation-control-panel",
+    //             collision: "fit flip"},
+    //         title: "Pan/Zoom",
+    //         closeOnEscape: false
+    //     }).dialogExtend({
+    //         closable: false,
+    //         "dblclick" : "collapse",
+    //         minimizable: true,
+    //         minimizeLocation: 'right',
+    //         collapsable: true,
+    //     });
+    //     $("#zoom-panel")
+    //         .closest('.ui-dialog')
+    //         .addClass("transparent-panel")
+    //         .addClass("desktoponly")
+    //         .css({'background': 'transparent', 'background-image': 'none', 'border': '0', 'margin-top': '20px'});    
+    // }
 
     // $("#stats").dialog({
     //     dialogClass: "dialog notitledialog",
@@ -4568,19 +4572,19 @@ function handlePlaneChange(dimension_changed = false, init_flag = false) {
         planeChanged = false;
     }
 
-    console.debug("handlePlaneChange(): init_flag=" + init_flag + ", dimension_changed=" + dimension_changed + ", planeChanged=" + planeChanged, ", " + oldPlaneSelection + " -> " + planeSelection);
+    // console.debug("handlePlaneChange(): init_flag=" + init_flag + ", dimension_changed=" + dimension_changed + ", planeChanged=" + planeChanged, ", " + oldPlaneSelection + " -> " + planeSelection);
     
     if (init_flag && planeSelection == "DEFAULT") {
-        console.debug("handlePlaneChange(): init_flag is true and planeSelection is DEFAULT; so returning without changes.");
+        // console.debug("handlePlaneChange(): init_flag is true and planeSelection is DEFAULT; so returning without changes.");
         planeChangesPending = false;
         return;
     }
     if ((!dimension_changed && !planeChanged)) {
-        console.debug("handlePlaneChange(): dimension_changed is false and planeChanged is false; so returning without changes.");
+        // console.debug("handlePlaneChange(): dimension_changed is false and planeChanged is false; so returning without changes.");
         return;
     }
     if (dimension_changed && !planeChangesPending) {
-        console.debug("handlePlaneChange(): dimension_changed is true and planeChangesPending is false; so returning without changes.");
+        // console.debug("handlePlaneChange(): dimension_changed is true and planeChangesPending is false; so returning without changes.");
         return;
     }
 
@@ -4794,7 +4798,7 @@ function toggleCamera() {
 
     if (animationScenes[config] && animationScenes[config].initialized3D) {
         animationScenes[config].setCameraParameters(false);
-        animationScenes[config].skyContainer.visible = !moonPhaseCamera;
+        animationScenes[config].skyContainer.visible = !moonPhaseCamera && viewSky;
     }
 
     render();

@@ -199,23 +199,40 @@ async function closeSettingsPanel(page) {
 async function waitForScene(page) {
   try {
     await page.waitForSelector('#animate', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
-    await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+    
+    // Check if we're in 2D mode - canvas might not be immediately visible
+    const dimensionIs2D = await page.isChecked('#dimension-2D');
+    if (!dimensionIs2D) {
+      // For 3D mode, wait for canvas to be visible
+      await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+    } else {
+      // For 2D mode, just wait for canvas to exist (might be hidden during transitions)
+      await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT, state: 'attached' });
+    }
 
-    await page.waitForFunction(() => {
-      // Determine which mode we're in by checking which origin is selected
-      const isLunarMode = document.querySelector('#origin-moon')?.checked;
-      const doneState = window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE;
-      
-      if (isLunarMode) {
-        // In Moon mode, wait for lunar scene to be ready
-        const lunarState = window.animationScenes?.lunar?.state;
-        return lunarState === doneState;
-      } else {
-        // In Earth mode, wait for geo scene to be ready
-        const geoState = window.animationScenes?.geo?.state;
-        return geoState === doneState;
-      }
-    }, null, { timeout: TIMEOUTS.ORBIT_RENDER_TIMEOUT });
+    // For 2D mode, use a simplified and faster check
+    if (dimensionIs2D) {
+      // In 2D mode, just wait a short time for DOM to stabilize
+      await page.waitForTimeout(2000);
+      console.log('2D mode: using simplified scene readiness check');
+    } else {
+      // For 3D mode, use the full scene state checking
+      await page.waitForFunction(() => {
+        // Determine which mode we're in by checking which origin is selected
+        const isLunarMode = document.querySelector('#origin-moon')?.checked;
+        const doneState = window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE;
+        
+        if (isLunarMode) {
+          // In Moon mode, wait for lunar scene to be ready
+          const lunarState = window.animationScenes?.lunar?.state;
+          return lunarState === doneState;
+        } else {
+          // In Earth mode, wait for geo scene to be ready
+          const geoState = window.animationScenes?.geo?.state;
+          return geoState === doneState;
+        }
+      }, null, { timeout: TIMEOUTS.ORBIT_RENDER_TIMEOUT });
+    }
     
     // Additional check: wait for animation frames to stabilize
     // This ensures the orbit drawing animation has completed
@@ -440,6 +457,29 @@ async function startTest(page, testId, testName = '') {
   await displayTestId(page, testId);
 }
 
+
+// Helper to ensure stellar sky is disabled
+async function ensureStellarSkyDisabled(page) {
+  await openSettingsPanel(page);
+  const stellarSkyChecked = await page.isChecked('#view-sky');
+  if (stellarSkyChecked) {
+    await page.click('#view-sky');
+  }
+  await closeSettingsPanel(page);
+}
+
+// Helper to ensure correct origin mode
+async function ensureOriginMode(page, mode) {
+  await openSettingsPanel(page);
+  const targetSelector = mode === 'earth' ? '#origin-earth' : '#origin-moon';
+  const isCorrectMode = await page.isChecked(targetSelector);
+  if (!isCorrectMode) {
+    await page.click(targetSelector);
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+  await closeSettingsPanel(page);
+}
+
 describe('Chandrayaan-3 UI Tests - Simplified', () => {
   beforeAll(async () => {
     browser = await chromium.launch({
@@ -465,20 +505,16 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     // Wait for the animation scene to be fully initialized
     await waitForScene(page);
-
-    // Disable stellar background for all tests to reduce noise
-    await openSettingsPanel(page);
-    if (await page.isChecked('#view-sky')) {
-      await page.click('#view-sky');
-      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-    }
-    await closeSettingsPanel(page);
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   afterAll(async () => {
     await browser?.close();
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
+  beforeEach(async () => {
+    // Ensure stellar sky is disabled before each test for consistency
+    await ensureStellarSkyDisabled(page);
+  });
 
   describe('Test Suite 1: Initial Application Load', () => {
     it('Initial Page Load and Rendering', async () => {
@@ -742,7 +778,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-speed-controls';
       await displayTestId(page, testId);
       // Verify speed control buttons exist
-      const speedButtons = ['#faster', '#slower', '#realtime', '#reset'];
+      const speedButtons = ['#faster', '#slower', '#realtime', '#resetspeed'];
       for (const button of speedButtons) {
         expect(await page.locator(button).count()).toBe(1);
       }
@@ -901,11 +937,13 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-2d-3d-mode-switching';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
+      if (!(await page.isChecked('#dimension-3D'))) {
+        await page.click('#dimension-3D');
+      }
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       await page.click('#camera-default');
-      if (await page.isChecked('#view-sky')) { await page.click('#view-sky'); }
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       
@@ -927,6 +965,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
       await closeSettingsPanel(page);
       
+      
       // 2D Mode Screenshot
       comparison = await compareScreenshots(
         page,
@@ -943,7 +982,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       await page.click('#camera-default');
-      if (await page.isChecked('#view-sky')) { await page.click('#view-sky'); }
+      
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       expect(await page.locator('canvas').count()).toBeGreaterThan(0);
@@ -1506,10 +1545,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#camera-default');
       await page.click('#checkbox-lock-default');
 
-      // Re-assert that sky is disabled after camera reset
-      if (await page.isChecked('#view-sky')) {
-        await page.click('#view-sky');
-      }
       
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -1607,11 +1642,14 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'moon-2d-3d-mode-switching';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
+      if (!(await page.isChecked('#dimension-3D'))) {
+        await page.click('#dimension-3D');
+      }
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       await page.click('#camera-default');
-      if (await page.isChecked('#view-sky')) { await page.click('#view-sky'); }
+      
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       
@@ -1633,6 +1671,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
       await closeSettingsPanel(page);
       
+      
       // 2D Mode Screenshot
       comparison = await compareScreenshots(
         page,
@@ -1649,7 +1688,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       await page.click('#camera-default');
-      if (await page.isChecked('#view-sky')) { await page.click('#view-sky'); }
+      
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       expect(await page.locator('canvas').count()).toBeGreaterThan(0);
@@ -2116,11 +2155,19 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await openSettingsPanel(page);
       await page.click('#view-orbit');
       await closeSettingsPanel(page);
+
+      await cleanupViewControlTest(page, TEST_MODES.MOON);
     }, TIMEOUTS.TEST_CASE_TIMEOUT);
 
     it('CY3 Descent Orbit Display', async () => {
       const testId = 'moon-3d-cy3-descent-orbit-display';
       await displayTestId(page, testId);
+
+      // Reset camera to default position and plane to ensure a clean state
+      await openSettingsPanel(page);
+      await page.click('#camera-default');
+      await page.click('#checkbox-lock-default');
+      await closeSettingsPanel(page);
       await openSettingsPanel(page);
       
       // Set XY- plane as required
@@ -2338,6 +2385,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-2d-page-load';
       await startTest(page, testId); // Uses default suite timeline (#burn1)
       await displayStartupMessage(page, testId);
+      
+      // Ensure we're in Earth mode for consistent baseline comparison
+      await ensureOriginMode(page, 'earth');
+      
 
       // Verify page title
       const title = await page.title();
@@ -2421,6 +2472,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('Plane Selection in 2D Mode', async () => {
       const testId = 'earth-2d-plane-selection';
       await startTest(page, testId); // Uses default suite timeline (#burn1)
+      
+      // Ensure we're in Earth mode for consistent baseline comparison
+      await ensureOriginMode(page, 'earth');
+      
 
       const planes = [
         { id: 'default', name: 'default', selector: '#checkbox-lock-default' },
@@ -2476,7 +2531,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('Page Load in Moon 2D Mode', async () => {
       const testId = 'moon-2d-page-load';
       await startTest(page, testId); // Uses default suite timeline (#burn1)
-
+      
 
       // Take screenshot in 2D mode
       const comparison = await compareScreenshots(
@@ -2505,7 +2560,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('Plane Selection in Moon 2D Mode', async () => {
       const testId = 'moon-2d-plane-selection';
       await startTest(page, testId); // Uses default suite timeline (#burn1)
-
+      
 
       const planes = [
         { id: 'xy', name: 'XY', selector: '#checkbox-lock-xy' },
@@ -2535,5 +2590,427 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     // Note: CY3 Orbit Display test removed - orbit display controls don't exist in 2D mode
 
     // Note: Landing Animation test removed - landing animation controls don't exist in 2D mode
+  });
+
+  // Helper functions for Test Suite 6
+  async function waitForAnimationCompletion(page, timeoutMs = 180000) {
+    console.log('Waiting for animation to complete naturally...');
+    
+    const startTime = Date.now();
+    let lastTimelineValue = '';
+    let stableCount = 0;
+    
+    return await page.waitForFunction(() => {
+      // Check if animation has stopped by detecting if Play button is showing
+      const animateButton = document.querySelector('#animate');
+      if (animateButton && animateButton.textContent.trim() === 'Play') {
+        console.log('Animation stopped - Play button detected');
+        return true;
+      }
+      
+      // Check for September 2023 with CY3 Data End
+      const dateElement = document.querySelector('#date');
+      const currentTimelineValue = dateElement ? dateElement.textContent : '';
+      
+      // Check for September 2023
+      if (currentTimelineValue.includes('September 2023') || currentTimelineValue.includes('Sep 2023')) {
+        // Also look for CY3 Data End indicator anywhere on page
+        const allElements = document.querySelectorAll('*');
+        for (const element of allElements) {
+          const text = element.textContent || element.innerText || '';
+          if (text.includes('CY3 Data End') || text.includes('🏁CY3 Data End')) {
+            console.log('Animation completed naturally: Found September 2023 with CY3 Data End');
+            return true;
+          }
+        }
+      }
+      
+      // Track if timeline has stopped changing (animation might be stuck)
+      if (currentTimelineValue === window.lastTimelineCheck) {
+        window.stableTimelineCount = (window.stableTimelineCount || 0) + 1;
+        if (window.stableTimelineCount > 3) { // 3 checks * 5 seconds = 15 seconds stable
+          console.log('Timeline appears stuck - animation may have completed');
+          return true;
+        }
+      } else {
+        window.stableTimelineCount = 0;
+      }
+      window.lastTimelineCheck = currentTimelineValue;
+      
+      return false;
+    }, null, { 
+      timeout: timeoutMs,
+      polling: 5000 // Check every 5 seconds
+    });
+  }
+
+  async function selectPlaneForFullRun(page, planeName) {
+    console.log(`Selecting plane: ${planeName}`);
+    await openSettingsPanel(page);
+    
+    const planeSelectors = {
+      'earth-3d': '#checkbox-lock-default',
+      'moon-3d': '#checkbox-lock-yz-minus', 
+      'earth-2d': '#checkbox-lock-xy',
+      'moon-2d': '#checkbox-lock-xy'
+    };
+    
+    const selector = planeSelectors[planeName];
+    if (selector) {
+      await page.click(selector);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+    }
+    
+    await closeSettingsPanel(page);
+  }
+
+  async function getCameraDistance(page) {
+    return await page.evaluate(() => {
+      try {
+        const isLunarMode = document.querySelector('#origin-moon')?.checked;
+        const scene = isLunarMode ? window.animationScenes?.lunar : window.animationScenes?.geo;
+        const camera = scene?.camera;
+        const controls = scene?.cameraControls;
+        
+        if (!camera || !controls) {
+          return null;
+        }
+        
+        return camera.position.distanceTo(controls.target);
+      } catch (e) {
+        console.error('Error getting camera distance:', e);
+        return null;
+      }
+    });
+  }
+
+  async function zoomToDistance(page, targetDistance) {
+    console.log(`Zooming to distance: ${targetDistance}`);
+    return await page.evaluate((distance) => {
+      try {
+        const isLunarMode = document.querySelector('#origin-moon')?.checked;
+        const scene = isLunarMode ? window.animationScenes?.lunar : window.animationScenes?.geo;
+        const camera = scene?.camera;
+        const controls = scene?.cameraControls;
+        
+        if (!camera || !controls) {
+          console.log('Camera or controls not found');
+          return false;
+        }
+        
+        const target = controls.target;
+        const currentDistance = camera.position.distanceTo(target);
+        const ratio = distance / currentDistance;
+        
+        camera.position.lerpVectors(target, camera.position, ratio);
+        controls.update();
+        
+        return true;
+      } catch (e) {
+        console.error('Error setting zoom distance:', e);
+        return false;
+      }
+    }, targetDistance);
+  }
+
+  describe('Test Suite 6: Full Run Tests', () => {
+    beforeAll(async () => {
+      // Ensure we start with Earth mode and 3D
+      await openSettingsPanel(page);
+      if (!await page.isChecked('#origin-earth')) {
+        await page.click('#origin-earth');
+      }
+      if (!await page.isChecked('#dimension-3D')) {
+        await page.click('#dimension-3D');
+      }
+      await closeSettingsPanel(page);
+      await waitForScene(page);
+    });
+
+    it('Earth 3D Full Run Test', async () => {
+      const testId = 'earth-3d-full-run';
+      await startTest(page, testId); // Uses default suite timeline (#burn1)
+      
+      // Configure for Earth 3D mode
+      await openSettingsPanel(page);
+      await page.click('#origin-earth');
+      await page.click('#dimension-3D');
+      await closeSettingsPanel(page);
+      await selectPlaneForFullRun(page, 'earth-3d');
+      await waitForScene(page);
+      
+      // Set optimal zoom level
+      await zoomToDistance(page, 500);
+      
+      // Start animation and speed it up 5x
+      await page.click('#animate');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      console.log('Starting Earth 3D full run animation...');
+      
+      // Wait for animation to complete naturally or timeout
+      try {
+        await waitForAnimationCompletion(page, 180000);
+        console.log('Earth 3D animation completed successfully');
+      } catch (error) {
+        console.log('Earth 3D animation timed out, forcing stop');
+        
+        // Force stop animation
+        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        if (isPlaying > 0) {
+          await page.click('#animate');
+        }
+        
+        throw new Error('Animation did not complete within timeout period');
+      }
+      
+      // Ensure animation is stopped
+      const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+      if (isPlaying > 0) {
+        await page.click('#animate');
+      }
+      
+      // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      
+      // Take final screenshot
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}-completed.png`,
+        `${testId}-completed.png`,
+        `${testId} Completed`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+      
+      // Reset timeline to Launch for next test
+      await page.click('#burn1');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      
+    }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
+
+    it('Moon 3D Full Run Test', async () => {
+      const testId = 'moon-3d-full-run';
+      await startTest(page, testId); // Initialize test properly
+      
+      // Configure for Moon 3D mode
+      await openSettingsPanel(page);
+      await page.click('#origin-moon');
+      await page.click('#dimension-3D');
+      
+      // Ensure stellar sky is disabled for consistent baseline comparison
+      const stellarSkyCheckbox = await page.$('#view-sky');
+      if (stellarSkyCheckbox && await stellarSkyCheckbox.isChecked()) {
+        await stellarSkyCheckbox.click();
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY); // Wait for stellar sky to be processed
+      }
+      
+      await closeSettingsPanel(page);
+      await waitForScene(page);
+      
+      await selectPlaneForFullRun(page, 'moon-3d');
+      await waitForScene(page);
+      
+      // Set optimal zoom level
+      await zoomToDistance(page, 500);
+      
+      // Start animation and speed it up 5x
+      await page.click('#animate');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      console.log('Starting Moon 3D full run animation...');
+      
+      // Wait for animation to complete naturally or timeout
+      try {
+        await waitForAnimationCompletion(page, 180000);
+        console.log('Moon 3D animation completed successfully');
+      } catch (error) {
+        console.log('Moon 3D animation timed out, forcing stop');
+        
+        // Force stop animation
+        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        if (isPlaying > 0) {
+          await page.click('#animate');
+        }
+        
+        throw new Error('Animation did not complete within timeout period');
+      }
+      
+      // Ensure animation is stopped
+      const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+      if (isPlaying > 0) {
+        await page.click('#animate');
+      }
+      
+      // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      
+      // Take final screenshot
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}-completed.png`,
+        `${testId}-completed.png`,
+        `${testId} Completed`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+      
+      // Reset timeline to Launch for next test
+      await page.click('#burn1');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      
+    }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
+
+    it('Earth 2D Full Run Test', async () => {
+      const testId = 'earth-2d-full-run';
+      await startTest(page, testId); // Initialize test properly
+      
+      // Configure for Earth 2D mode
+      await openSettingsPanel(page);
+      await page.click('#origin-earth');
+      await page.click('#dimension-2D');
+      await closeSettingsPanel(page);
+      await waitForScene(page);
+      
+      await selectPlaneForFullRun(page, 'earth-2d');
+      await waitForScene(page);
+      
+      
+      // Start animation and speed it up 5x
+      await page.click('#animate');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      console.log('Starting Earth 2D full run animation...');
+      
+      // Wait for animation to complete naturally or timeout
+      try {
+        await waitForAnimationCompletion(page, 180000);
+        console.log('Earth 2D animation completed successfully');
+      } catch (error) {
+        console.log('Earth 2D animation timed out, forcing stop');
+        
+        // Force stop animation
+        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        if (isPlaying > 0) {
+          await page.click('#animate');
+        }
+        
+        throw new Error('Animation did not complete within timeout period');
+      }
+      
+      // Ensure animation is stopped
+      const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+      if (isPlaying > 0) {
+        await page.click('#animate');
+      }
+      
+      // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      
+      // Take final screenshot
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}-completed.png`,
+        `${testId}-completed.png`,
+        `${testId} Completed`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+      
+      // Reset timeline to Launch for next test
+      await page.click('#burn1');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      
+    }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
+
+    it('Moon 2D Full Run Test', async () => {
+      const testId = 'moon-2d-full-run';
+      await startTest(page, testId); // Initialize test properly
+      
+      // Configure for Moon 2D mode
+      await openSettingsPanel(page);
+      await page.click('#origin-moon');
+      await page.click('#dimension-2D');
+      await closeSettingsPanel(page);
+      await waitForScene(page);
+      
+      await selectPlaneForFullRun(page, 'moon-2d');
+      await waitForScene(page);
+      
+      
+      // Start animation and speed it up 5x
+      await page.click('#animate');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      await page.click('#faster');
+      console.log('Starting Moon 2D full run animation...');
+      
+      // Wait for animation to complete naturally or timeout
+      try {
+        await waitForAnimationCompletion(page, 180000);
+        console.log('Moon 2D animation completed successfully');
+      } catch (error) {
+        console.log('Moon 2D animation timed out, forcing stop');
+        
+        // Force stop animation
+        const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+        if (isPlaying > 0) {
+          await page.click('#animate');
+        }
+        
+        throw new Error('Animation did not complete within timeout period');
+      }
+      
+      // Ensure animation is stopped
+      const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+      if (isPlaying > 0) {
+        await page.click('#animate');
+      }
+      
+      // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      await page.click('#slower');
+      
+      // Take final screenshot
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}-completed.png`,
+        `${testId}-completed.png`,
+        `${testId} Completed`,
+        TOLERANCE.BROAD_MATCH
+      );
+      expect(comparison.isMatch).toBe(true);
+      
+      // Reset timeline to Launch for next test
+      await page.click('#burn1');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      
+    }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
   });
 });

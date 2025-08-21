@@ -14,15 +14,10 @@ This document describes the test cases for validating the Chandrayaan-3 mission 
 - Visual comparison allows pixel differences within specified tolerance using named constants.
 - Screenshot directories are automatically created: `test/screenshots/current` and `test/screenshots/baseline`.
 
-### Animation State Requirements
-- Every test case must leave the animation in a stopped state after completion.
-- The play/pause button (`#animate`) must display "Play" text (not "Pause") at test end.
-- Animation must be paused before taking any screenshots for visual consistency.
-
 ### Screenshot Tolerance Constants
 - `EXACT`: 0 pixels - For exact visual matches (critical UI states).
-- `LOW`: 10 pixels - For minor rendering differences (standard tests).
-- `MID`: 200 pixels - For complex 3D scenes with acceptable variations.
+- `APPROX`: 10 pixels - For minor rendering differences (standard tests).
+- `BROAD`: 200 pixels - For complex 3D scenes with acceptable variations.
 
 ### Screenshot Folder Structure
 The test suite uses a standardized screenshot organization:
@@ -36,12 +31,16 @@ The test script supports two primary execution modes:
 - **Verify Mode** (default): Compares current screenshots against existing baselines and reports differences. Used for regression testing and validation.
 
 ### State Management Requirements
-- If a test changes the animation state, it must be reverted back entirely.
+- Every test case must leave the animation in a stopped state after completion.
+- The play/pause button (`#animate`) must display "Play" text (not "Pause") at test end.
+- Animation must be paused before taking any screenshots for visual consistency.
+- If a test changes the animation state, it must be reverted back entirely at the end of the test.
 - Each test must maintain action balance (all "do" actions must have corresponding "undo" actions).
 - Action count must equal zero at test completion.
 - Each origin (Earth or Moon) will have a default starting state.
 - Tests that fail cleanup trigger a force state reset.
-- This state is:
+- This state is (for Earth or Moon origin):
+-- Dimension > 3D is checked (`#dimension-3D`)
 -- Camera > Default is checked (`#camera-default`)
 -- Camera > Zoom level is 1.0 (default zoom)
 -- Plane > DEFAULT is checked (`#checkbox-lock-default`)
@@ -57,27 +56,24 @@ The test script supports two primary execution modes:
 -- View > Moon's SOI is unchecked (`#view-moonsoi`)
 -- View > Ecliptic Plane is unchecked (`#view-eclipticplane`)
 -- View > Equatorial Plane is unchecked (`#view-equatorialplane`)
--- Dimension > 3D is checked (`#dimension-3D`)
 
 ### Camera and Zoom State Management Requirements
-- Tests requiring optimal viewing must use `storeInitialState()` and `restoreStoredState()` functions.
+- Tests requiring optimal viewing must preserve and restore camera state.
 - Camera zoom state must be preserved before making changes and restored afterward.
 - Camera position and orientation must be preserved and restored.
-- **Zoom operations use `zoomIn(page, steps)` and `zoomOut(page, steps)` helper functions.** These functions directly manipulate the THREE.js camera position for stable and repeatable zoom behavior.
 - Default zoom level is the baseline state for standard viewing.
-- Enhanced viewing tests may require specific zoom levels achieved through these functions:
-  - **Poles View**: 10 zoom steps in for optimal pole marker visibility.
-  - **Polar Axes View**: 12 zoom steps in for clear meridian line visibility.
-  - **XYZ Axes View**: Standard zoom (baseline) with XY plane orientation.
-  - **Locations View**: 8-10 zoom steps in for clear lunar surface location markers.
-  - **Descent Orbit View**: 8 zoom steps in for detailed orbit visualization.
-- All zoom changes must be restored using an equivalent `zoomOut()` call at test completion.
+- Enhanced viewing tests may require specific zoom levels for optimal visibility:
+  - **Poles View**: Enhanced zoom, XY plane orientation for optimal pole marker visibility.
+  - **Polar Axes View**: Enhanced zoom, YZ- orientation plane for clear polar axes visibility.
+  - **XYZ Axes View**: Standard zoom, DEFAULT plane orientation.
+  - **Locations View**: Enhanced zoom, XY- plane orientation for clear lunar surface location markers.
+  - **Descent Orbit View**: Enhanced zoom, XY- plane for detailed orbit visualization.
+- All zoom and orientation changes must be restored at test completion to maintain state consistency.
 
 ### Error Handling Requirements
 - Any console error should fail the test unless explicitly ignored.
 - **Ignored Error Categories:**
   - Google Analytics failures (google-analytics.com, analytics.js)
-  - Network resolution failures (ERR_ADDRESS_INVALID)
   - Missing favicon errors (favicon.ico)
   - WebGL shader compilation errors (THREE.WebGLProgram, Shader Error, VALIDATE_STATUS false)
   - WebGL operation errors (WebGL: INVALID_OPERATION)
@@ -87,7 +83,7 @@ The test script supports two primary execution modes:
 ### URL and Environment Configuration Requirements
 - Tests shall not use hardcoded URLs or ports.
 - Base URL configurable via environment variables:
-  - `VITE_TEST_BASE_URL`: Complete test URL (e.g., `http://localhost:8001`).
+  - `VITE_TEST_BASE_URL`: Complete test URL (e.g., `http://localhost:8000`).
 - Test target path: `/chandrayaan3.html` appended to base URL.
 
 ### Browser Configuration Requirements
@@ -96,7 +92,7 @@ The test script supports two primary execution modes:
   - Garbage collection access: `--expose-gc`
   - Sandbox prevention: `--no-sandbox`
 - Browser mode configurable via environment variables:
-  - `HEADLESS=true` for headless mode.
+  - `HEADLESS=true` for headless mode (default should be `false`)
   - `SLOWMO=milliseconds` for slowed interactions.
 
 ### Timeout Configuration Requirements
@@ -131,246 +127,276 @@ All timeout values shall use named constants, not hardcoded values:
 
 ## Test Suite 1: Initial Application Load
 
-### Test 1.1: Initial Page Load and Rendering
+### Test: Initial Page Load and Rendering
+**Test ID:** `earth-3d-initial-load`
 **Intent:** Verify the application loads correctly with default Earth view and all controls visible.
 
 **Screenshots Generated:**
 - `earth-3d-initial-load.png` - Initial page load with Earth mode and all UI elements.
 
-**Exact Test Procedure:**
-1.  Wait for the scene to be ready (`window.animationScenes?.geo?.state === window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE`).
-2.  Wait for rendering to stabilize.
-3.  Take screenshot `earth-3d-initial-load.png` and compare against baseline with `LOW` tolerance.
-4.  Verify Earth mode is checked: `page.isChecked('#origin-earth')` must be `true`.
-5.  Verify 3D mode is checked: `page.isChecked('#dimension-3D')` must be `true`.
-6.  Verify core UI elements exist: `#animate`, `#settings-panel-button`, `#info-button`, etc.
-
+**Test Procedure:**
+1.  Wait for the scene to be ready and rendering to stabilize.
+2.  Take screenshot and compare against baseline with APPROX_MATCH tolerance.
+3.  Verify Earth mode is active (`#origin-earth` checked).
+4.  Verify 3D mode is active (`#dimension-3D` checked).
+5.  Verify all core UI elements are present and accessible.
+6.  Verify timeline text shows Launch time. 
 ---
 
 ## Test Suite 2: Earth Mode Tests
 
-### Test 2.1: Page Load in Earth Mode
+### Test: Page Load in Earth Mode
+**Test ID:** `earth-3d-page-load`
 **Intent:** Verify the page displays correctly when Earth is the center of reference.
 
 **Screenshots Generated:**
 - `earth-3d-page-load.png` - Earth-centered view with default settings.
 
-**Exact Test Procedure:**
+**Test Procedure:**
 1.  Verify page title contains "Chandrayaan 3".
-2.  Take screenshot `earth-3d-page-load.png` and compare against baseline with `MID` tolerance.
+2.  Take screenshot and compare against baseline with APPROX_MATCH tolerance.
 
-### Test 2.2: 3D Mode Verification
+### Test: 3D Mode Verification
+**Test ID:** `earth-3d-mode-verification`
 **Intent:** Confirm the visualization starts in 3D mode.
 
-**Exact Test Procedure:**
-1.  Verify 3D mode radio button is checked: `page.locator('#dimension-3D:checked').count()` must be 1.
+**Test Procedure:**
+1.  Verify 3D mode radio button is selected (`#dimension-3D:checked`).
 
-### Test 2.3: User Interface Elements Check
+### Test: User Interface Elements Check
+**Test ID:** `earth-3d-ui-elements-check`
 **Intent:** Verify all control panels and buttons are accessible.
 
-**Exact Test Procedure:**
-1.  Verify main UI elements exist (`#animate`, `#settings-panel-button`, etc.).
-2.  Verify animation control elements exist (`#faster`, `#slower`, etc.).
+**Test Procedure:**
+1.  Verify main UI elements are present and accessible.
+2.  Verify animation control elements are present.
 3.  Open the settings panel.
-4.  Verify all 33 elements within the settings panel exist (origin, camera, plane, view, dimension controls).
+4.  Verify all settings panel controls are present (origin, camera, plane, view, dimension controls).
 5.  Close the settings panel.
 
-### Test 2.4: Timeline Navigation Buttons
+### Test: Timeline Navigation Buttons
+**Test ID:** `earth-3d-timeline-navigation`
 **Intent:** Verify all mission milestone buttons navigate to correct points in time.
 
-**Exact Test Procedure:**
-1.  Iterate through all 14 timeline buttons (`#burn1` to `#burn14`).
-2.  For each button, capture telemetry values before the click.
-3.  Click the button.
-4.  Verify that telemetry values have changed after the click.
+**Test Procedure:**
+1.  Iterate through all timeline milestone buttons (#burn1 through #burn14).
+2.  For each button, capture telemetry values before activation.
+3.  Activate the button.
+4.  Verify that telemetry values have changed after activation.
+5.  For Launch button (#burn1), verify date contains "Jul".
 
-### Test 2.5: Animation Play Control
+### Test: Animation Play Control
+**Test ID:** `earth-3d-animation-play-control`
 **Intent:** Validates that the Play button correctly starts the orbital animation.
 
-**Exact Test Procedure:**
+**Test Procedure:**
 1.  Ensure animation is paused.
-2.  Capture initial telemetry (e.g., date/time).
-3.  Click the "Play" button (`#animate`).
-4.  Verify the button text changes to "Pause".
-5.  Wait for telemetry to change, confirming the animation is running.
-6.  Click the "Pause" button to stop the animation for test completion.
+2.  Capture initial telemetry values.
+3.  Activate the Play button.
+4.  Verify the button state changes to indicate animation is running.
+5.  Wait for telemetry to change, confirming the animation is active.
+6.  Stop the animation for test completion.
 
-### Test 2.6: Animation Pause Control
+### Test: Animation Pause Control
+**Test ID:** `earth-3d-animation-pause-control`
 **Intent:** Validates that the Pause button correctly stops the orbital animation.
+**TODO** To be merged with `earth-3d-animation-play-control`
 
-**Exact Test Procedure:**
-1.  Ensure animation is running.
-2.  Click the "Pause" button (`#animate`).
-3.  Verify the button text changes to "Play".
-4.  Capture telemetry, wait, and capture again to confirm the values have not changed.
+**Test Procedure:**
+1.  Ensure animation is paused.
+2.  Activate the Pause button.
+3.  Verify the button state changes to indicate animation is stopped.
+4.  Capture telemetry values multiple times to confirm animation is paused.
 
-### Test 2.7: Speed Controls
+### Test: Speed Controls
+**Test ID:** `earth-3d-speed-controls`
 **Intent:** Verify animation speed can be adjusted.
 
-**Exact Test Procedure:**
-1.  Verify speed control buttons exist (`#faster`, `#slower`, `#realtime`, `#reset`).
+**Test Procedure:**
+1.  Verify speed control buttons are present.
 2.  Start animation.
-3.  Click `#faster` multiple times, sampling the timeline to see increasing speed.
-4.  Click `#slower` multiple times, sampling the timeline to see decreasing speed.
-5.  Verify that multiple unique timeline values were captured.
+3.  Increase animation speed multiple times, sampling timeline to verify speed changes.
+4.  Decrease animation speed multiple times, sampling timeline to verify speed changes.
+5.  Verify that speed changes are reflected in timeline progression.
 6.  Stop animation.
 
-### Test 2.8: Directional Controls Check
+### Test: Directional Controls Check
+**Test ID:** `earth-3d-directional-controls-check`
 **Intent:** Verify directional control buttons are available.
 
-**Exact Test Procedure:**
-1.  Verify directional control buttons exist: `#forward`, `#backward`, `#fastforward`, `#fastbackward`.
+**Test Procedure:**
+1.  Verify directional control buttons are present and accessible.
 
-### Test 2.9: Direction Control with Timeline
+### Test: Direction Control with Timeline
+**Test ID:** `earth-3d-directional-controls-timeline`
 **Intent:** Verify directional controls move the timeline correctly.
 
-**Exact Test Procedure:**
-1.  Set a baseline by clicking the "Launch" button (`#burn1`).
-2.  Click `#forward` 5 times, capturing the timeline value each time.
-3.  Click `#fastforward` 5 times, capturing the timeline value each time.
-4.  Click `#backward` 5 times, capturing the timeline value each time.
-5.  Click `#fastbackward` 5 times, capturing the timeline value each time.
-6.  Verify that the set of 21 captured timeline values has more than one unique value.
+**Test Procedure:**
+1.  Set a baseline timeline position.
+2.  Use forward controls multiple times, capturing timeline values.
+3.  Use fast forward controls multiple times, capturing timeline values.
+4.  Use backward controls multiple times, capturing timeline values.
+5.  Use fast backward controls multiple times, capturing timeline values.
+6.  Verify that timeline values change in response to directional controls.
 
-### Test 2.10: Plane Selection Views
+### Test: Plane Selection Views
+**Test ID:** `earth-3d-plane-selection`
 **Intent:** Verify different orbital plane views can be selected.
 
 **Screenshots Generated:**
-- `geo-default-plane.png`, `geo-xy-plane.png`, `geo-yz-plane.png`, `geo-zx-plane.png`, `geo-xy--plane.png`, `geo-yz--plane.png`, `geo-zx--plane.png`, `geo-default-final-plane.png`.
+- `earth-3d-plane-selection-default.png`
+- `earth-3d-plane-selection-xy.png`
+- `earth-3d-plane-selection-yz.png`
+- `earth-3d-plane-selection-zx.png`
+- `earth-3d-plane-selection-xy-minus.png`
+- `earth-3d-plane-selection-yz-minus.png`
+- `earth-3d-plane-selection-zx-minus.png`
+- `earth-3d-plane-selection-default-final.png`
 
-**Exact Test Procedure:**
-1.  Deselect orbit displays for a clear view.
-2.  Iterate through all 8 plane selection checkboxes.
-3.  For each plane, click the selector, close the panel, and take a screenshot.
-4.  Compare the screenshot against its corresponding baseline with `MID` tolerance.
-5.  Restore orbit displays.
+**Test Procedure:**
+1.  Configure view for optimal plane visualization.
+2.  Iterate through all plane selection options.
+3.  For each plane, activate selection and capture screenshot.
+4.  Compare screenshots against baselines with medium tolerance.
+5.  Restore original view configuration.
 
-### Test 2.11: 2D/3D Mode Switching
+### Test: 2D/3D Mode Switching
+**Test ID:** `earth-2d-3d-mode-switching`
 **Intent:** Verify switching between 2D and 3D visualization modes.
+**TODO** Move towards the end of the suite
 
 **Screenshots Generated:**
-- `geo-3d-mode.png`
-- `geo-2d-mode.png`
-- `geo-3d-mode-restored.png`
+- `earth-2d-3d-mode-switching-3d-initial.png`
+- `earth-2d-3d-mode-switching-2d.png`
+- `earth-2d-3d-mode-switching-3d-restored.png`
 
-**Exact Test Procedure:**
-1.  Take a screenshot of the initial 3D mode (`geo-3d-mode.png`).
-2.  Switch to 2D mode (`#dimension-2D`).
-3.  Take a screenshot of the 2D mode (`geo-2d-mode.png`).
-4.  Switch back to 3D mode (`#dimension-3D`).
-5.  Take a screenshot of the restored 3D mode (`geo-3d-mode-restored.png`).
+**Test Procedure:**
+1.  Capture screenshot of initial 3D mode.
+2.  Switch to 2D mode.
+3.  Capture screenshot of 2D mode.
+4.  Switch back to 3D mode.
+5.  Capture screenshot of restored 3D mode.
 
-### Test 2.12: Poles View Toggle
+### Test: Poles View Toggle
+**Test ID:** `earth-3d-poles-toggle`
 **Intent:** Validates the Poles view control toggle functionality.
 
 **Screenshots Generated:**
-- `geo-poles-enabled.png`
-- `geo-poles-disabled.png`
-- `geo-poles-restored.png`
+- `earth-3d-poles-toggle-enabled.png`
+- `earth-3d-poles-toggle-disabled.png`
+- `earth-3d-poles-toggle-restored.png`
 
-**Exact Test Procedure:**
-1.  Set up an optimal view (XY plane, orbits hidden).
-2.  Zoom in 10 steps using `zoomIn(page, 10)`.
-3.  Take `geo-poles-enabled.png` screenshot.
-4.  Disable poles view (`#view-poles`).
-5.  Take `geo-poles-disabled.png` screenshot.
+**Test Procedure:**
+1.  Set up optimal viewing configuration for pole visibility.
+2.  Apply enhanced zoom for optimal pole marker visibility.
+3.  Capture screenshot with poles enabled.
+4.  Disable poles view.
+5.  Capture screenshot with poles disabled.
 6.  Re-enable poles view.
-7.  Take `geo-poles-restored.png` screenshot.
-8.  Restore zoom and initial state.
+7.  Capture screenshot with poles restored.
+8.  Restore original zoom and view configuration.
 
-### Test 2.13: Polar Axes View Toggle
+### Test: Polar Axes View Toggle
+**Test ID:** `earth-3d-polar-axes-toggle`
 **Intent:** Validates the Polar Axes view control toggle functionality.
 
 **Screenshots Generated:**
-- `geo-polar-axes-enabled.png`
-- `geo-polar-axes-disabled.png`
-- `geo-polar-axes-restored.png`
+- `earth-3d-polar-axes-toggle-enabled.png`
+- `earth-3d-polar-axes-toggle-disabled.png`
+- `earth-3d-polar-axes-toggle-restored.png`
 
-**Exact Test Procedure:**
-1.  Set up an optimal view (YZ- plane, orbits hidden).
-2.  Zoom in 12 steps using `zoomIn(page, 12)`.
-3.  Take `geo-polar-axes-enabled.png` screenshot.
-4.  Disable polar axes view (`#view-polar-axes`).
-5.  Take `geo-polar-axes-disabled.png` screenshot.
+**Test Procedure:**
+1.  Set up optimal viewing configuration for polar axes visibility.
+2.  Apply enhanced zoom for optimal meridian line visibility.
+3.  Capture screenshot with polar axes enabled.
+4.  Disable polar axes view.
+5.  Capture screenshot with polar axes disabled.
 6.  Re-enable polar axes view.
-7.  Take `geo-polar-axes-restored.png` screenshot.
-8.  Restore zoom and initial state.
+7.  Capture screenshot with polar axes restored.
+8.  Restore original zoom and view configuration.
 
-### Test 2.14: XYZ Axes View Toggle
+### Test: XYZ Axes View Toggle
+**Test ID:** `earth-3d-xyz-axes-toggle`
 **Intent:** Verify coordinate axes can be displayed.
 
 **Screenshots Generated:**
-- `geo-xyz-axes-enabled.png`
-- `geo-xyz-axes-disabled.png`
-- `geo-xyz-axes-restored.png`
+- `earth-3d-xyz-axes-toggle-enabled.png`
+- `earth-3d-xyz-axes-toggle-disabled.png`
+- `earth-3d-xyz-axes-toggle-restored.png`
 
-**Exact Test Procedure:**
-1.  Set up an optimal view (XY plane, orbits hidden).
-2.  Take `geo-xyz-axes-enabled.png` screenshot.
-3.  Disable XYZ axes view (`#view-xyz-axes`).
-4.  Take `geo-xyz-axes-disabled.png` screenshot.
+**Test Procedure:**
+1.  Set up optimal viewing configuration for coordinate axes visibility.
+2.  Capture screenshot with XYZ axes enabled.
+3.  Disable XYZ axes view.
+4.  Capture screenshot with XYZ axes disabled.
 5.  Re-enable XYZ axes view.
-6.  Take `geo-xyz-axes-restored.png` screenshot.
-7.  Restore initial state.
+6.  Capture screenshot with XYZ axes restored.
+7.  Restore original view configuration.
 
-### Test 2.15: Additional View Controls
+### Additional View Controls
 **Intent:** Verify other specialized visualization options work correctly.
 
-#### Test 2.15.1: Moon's SOI View
+#### Test: Moon's SOI View
+**Test ID:** `earth-3d-moon-soi-view`
 **Screenshots Generated:**
 - `earth-3d-moon-soi-view-enabled.png`
 - `earth-3d-moon-soi-view-disabled.png`
 
-#### Test 2.15.2: Ecliptic Plane View
+#### Test: Ecliptic Plane View
+**Test ID:** `earth-3d-ecliptic-plane-view`
 **Screenshots Generated:**
 - `earth-3d-ecliptic-plane-view-enabled.png`
 - `earth-3d-ecliptic-plane-view-disabled.png`
 
-#### Test 2.15.3: Equatorial Plane View
+#### Test: Equatorial Plane View
+**Test ID:** `earth-3d-equatorial-plane-view`
 **Screenshots Generated:**
 - `earth-3d-equatorial-plane-view-enabled.png`
 - `earth-3d-equatorial-plane-view-disabled.png`
 
-### Test 2.16: Joy Ride Control
+### Test: Joy Ride Control
+**Test ID:** `earth-3d-joy-ride`
 **Intent:** Verify joy ride camera mode can be activated.
 
 **Screenshots Generated:**
-- `geo-joyride-enabled.png`
+- `earth-3d-joy-ride-enabled.png`
 
-**Exact Test Procedure:**
-1.  Navigate to a suitable timeline point (`#burn3`).
-2.  Enable Joy Ride (`#joyride`).
-3.  Take `geo-joyride-enabled.png` screenshot and compare.
-4.  Disable Joy Ride to clean up.
+**Test Procedure:**
+1.  Navigate to suitable timeline position for joy ride demonstration.
+2.  Enable Joy Ride camera mode.
+3.  Capture screenshot and compare against baseline.
+4.  Disable Joy Ride to restore normal camera mode.
 
-### Test 2.17: CY3 Orbit Display
+### Test: CY3 Orbit Display
+**Test ID:** `earth-3d-cy3-orbit-display`
 **Intent:** Verify main orbit path can be toggled.
 
 **Screenshots Generated:**
-- `geo-cy3-orbit-checked.png`
-- `geo-cy3-orbit-unchecked.png`
-- `geo-cy3-orbit-checked-again.png`
+- `earth-3d-cy3-orbit-display-checked.png`
+- `earth-3d-cy3-orbit-display-unchecked.png`
+- `earth-3d-cy3-orbit-display-restored.png`
 
-**Exact Test Procedure:**
-1.  Ensure orbit is checked (`#view-orbit`).
-2.  Take `geo-cy3-orbit-checked.png` screenshot.
-3.  Uncheck orbit.
-4.  Take `geo-cy3-orbit-unchecked.png` screenshot.
-5.  Re-check orbit.
-6.  Take `geo-cy3-orbit-checked-again.png` and compare against the first screenshot.
+**Test Procedure:**
+1.  Ensure orbit display is enabled.
+2.  Capture screenshot with orbit visible.
+3.  Disable orbit display.
+4.  Capture screenshot with orbit hidden.
+5.  Re-enable orbit display.
+6.  Capture screenshot with orbit restored and compare consistency.
 
-### Test 2.18: Final Stability Check
+### Test: Final Stability Check
+**Test ID:** `earth-3d-final-stability-check`
 **Intent:** Verify application remains stable after all Earth mode tests.
 
 **Screenshots Generated:**
-- `geo-stability-initial.png`
-- `geo-stability-final.png`
+- `earth-3d-final-stability-check-initial.png`
+- `earth-3d-final-stability-check-final.png`
 
-**Exact Test Procedure:**
-1.  Take an initial stability screenshot (`geo-stability-initial.png`).
-2.  Verify core functional elements are still present and in the correct state.
-3.  Perform a quick responsiveness test by clicking several timeline buttons.
-4.  Take a final stability screenshot (`geo-stability-final.png`).
+**Test Procedure:**
+1.  Capture initial stability screenshot.
+2.  Verify core functional elements remain present and properly configured.
+3.  Perform responsiveness test with multiple timeline interactions.
+4.  Capture final stability screenshot.
 
 ---
 
@@ -378,120 +404,408 @@ All timeout values shall use named constants, not hardcoded values:
 
 ### General Procedure
 - Before running this suite, the origin is switched to Moon (`#origin-moon`).
-- The tests from Suite 2 are conceptually repeated, but with Moon as the reference point. Screenshots are prefixed with `lunar-` instead of `geo-`.
+- The tests from Suite 2 are conceptually repeated, but with Moon as the reference point.
+- Screenshots use test IDs starting with `moon-3d-` instead of `earth-3d-`.
 
-### Test 3.1: Page Load in Moon Mode
-**Screenshots Generated:** `lunar-page-load.png`
+### Test: Page Load in Moon Mode
+**Test ID:** `moon-3d-page-load`
+**Screenshots Generated:** `moon-3d-page-load.png`
 
-### Test 3.2: 3D Mode Verification
+### Test: 3D Mode Verification
+**Test ID:** `moon-3d-mode-verification`
 (No screenshots)
 
-### Test 3.3: Plane Selection Views
-**Screenshots Generated:** `lunar-default-plane.png`, `lunar-xy-plane.png`, etc.
+### Test: Plane Selection Views
+**Test ID:** `moon-3d-plane-selection`
+**Screenshots Generated:** 
+- `moon-3d-plane-selection-default.png`
+- `moon-3d-plane-selection-xy.png`
+- `moon-3d-plane-selection-yz.png`
+- `moon-3d-plane-selection-zx.png`
+- `moon-3d-plane-selection-xy-minus.png`
+- `moon-3d-plane-selection-yz-minus.png`
+- `moon-3d-plane-selection-zx-minus.png`
+- `moon-3d-plane-selection-default-final.png`
 
-### Test 3.4: 2D/3D Mode Switching
-**Screenshots Generated:** `lunar-3d-mode.png`, `lunar-2d-mode.png`, `lunar-3d-mode-restored.png`
+### Test: 2D/3D Mode Switching
+**Test ID:** `moon-2d-3d-mode-switching`
+**Screenshots Generated:** 
+- `moon-2d-3d-mode-switching-3d-initial.png`
+- `moon-2d-3d-mode-switching-2d.png`
+- `moon-2d-3d-mode-switching-3d-restored.png`
 
-### Test 3.5: Poles View Toggle
-**Screenshots Generated:** `lunar-poles-enabled.png`, `lunar-poles-disabled.png`, `lunar-poles-restored.png`
-**Note:** Uses `zoomIn(page, 10)`.
+### Test: Poles View Toggle
+**Test ID:** `moon-3d-poles-toggle`
+**Screenshots Generated:** 
+- `moon-3d-poles-toggle-enabled.png`
+- `moon-3d-poles-toggle-disabled.png`
+- `moon-3d-poles-toggle-restored.png`
 
-### Test 3.6: Polar Axes View Toggle
-**Screenshots Generated:** `lunar-polar-axes-enabled.png`, `lunar-polar-axes-disabled.png`, `lunar-polar-axes-restored.png`
-**Note:** Uses `zoomIn(page, 12)`.
+### Test: Polar Axes View Toggle
+**Test ID:** `moon-3d-polar-axes-toggle`
+**Screenshots Generated:** 
+- `moon-3d-polar-axes-toggle-enabled.png`
+- `moon-3d-polar-axes-toggle-disabled.png`
+- `moon-3d-polar-axes-toggle-restored.png`
 
-### Test 3.7: XYZ Axes View Toggle
-**Screenshots Generated:** `lunar-xyz-axes-enabled.png`, `lunar-xyz-axes-disabled.png`, `lunar-xyz-axes-restored.png`
+### Test: XYZ Axes View Toggle
+**Test ID:** `moon-3d-xyz-axes-toggle`
+**Screenshots Generated:** 
+- `moon-3d-xyz-axes-toggle-enabled.png`
+- `moon-3d-xyz-axes-toggle-disabled.png`
+- `moon-3d-xyz-axes-toggle-restored.png`
 
-### Test 3.8: Additional View Controls
+### Additional View Controls
 
-#### Test 3.8.1: Moon's SOI View
+#### Test: Moon's SOI View
+**Test ID:** `moon-3d-moon-soi-view`
 **Screenshots Generated:**
 - `moon-3d-moon-soi-view-enabled.png`
 - `moon-3d-moon-soi-view-disabled.png`
 
-#### Test 3.8.2: Ecliptic Plane View
+#### Test: Ecliptic Plane View
+**Test ID:** `moon-3d-ecliptic-plane-view`
 **Screenshots Generated:**
 - `moon-3d-ecliptic-plane-view-enabled.png`
 - `moon-3d-ecliptic-plane-view-disabled.png`
 
-#### Test 3.8.3: Equatorial Plane View
+#### Test: Equatorial Plane View
+**Test ID:** `moon-3d-equatorial-plane-view`
 **Screenshots Generated:**
 - `moon-3d-equatorial-plane-view-enabled.png`
 - `moon-3d-equatorial-plane-view-disabled.png`
 
-### Test 3.9: CY3 Orbit Display
-**Screenshots Generated:** `lunar-cy3-orbit-checked.png`, `lunar-cy3-orbit-unchecked.png`
+### Test: CY3 Orbit Display
+**Test ID:** `moon-3d-cy3-orbit-display`
+**Intent:** Verify main orbit path can be toggled.
+**Screenshots Generated:** 
+- `moon-3d-cy3-orbit-display-checked.png`
+- `moon-3d-cy3-orbit-display-unchecked.png`
 
-### Test 3.10: CY3 Descent Orbit Display
+### Test: CY3 Descent Orbit Display
+**Test ID:** `moon-3d-cy3-descent-orbit-display`
 **Intent:** Verify descent orbit path can be toggled.
-**Screenshots Generated:** `lunar-cy3-descent-orbit-checked.png`, `lunar-cy3-descent-orbit-unchecked.png`, `lunar-cy3-descent-orbit-checked-again.png`
-**Note:** Uses XY- plane and zooms in 8 steps.
+**Screenshots Generated:** 
+- `moon-3d-cy3-descent-orbit-display-checked.png`
+- `moon-3d-cy3-descent-orbit-display-unchecked.png`
+- `moon-3d-cy3-descent-orbit-display-restored.png`
 
-### Test 3.11: Landing Animation
+### Test: Landing Animation
+**Test ID:** `moon-3d-landing-animation`
 **Intent:** Verify landing sequence animation can be triggered.
-**Screenshots Generated:** `lunar-landing-enabled.png`
-**Note:** Navigates to `#burn12` before enabling `#landing`.
+**Screenshots Generated:** `moon-3d-landing-animation-enabled.png`
 
-### Test 3.12: Locations View
+### Test: Locations View
+**Test ID:** `moon-3d-locations-view-toggle`
 **Intent:** Verify Moon surface locations can be displayed.
-**Screenshots Generated:** `lunar-locations-enabled.png`, `lunar-locations-disabled.png`, `lunar-locations-restored.png`
-**Note:** Uses XY- plane and zooms in 8-10 steps.
+**Screenshots Generated:** 
+- `moon-3d-locations-view-toggle-enabled.png`
+- `moon-3d-locations-view-toggle-disabled.png`
+- `moon-3d-locations-view-toggle-restored.png`
 
 ---
 
-## Test Case Validation Checklist
+## Test Suite 4: Earth Mode 2D Tests
 
-This checklist tracks the validation status of each test case.
+### General Procedure
+- Switch to Earth mode (`#origin-earth`) and 2D dimension (`#dimension-2D`)
+- These tests validate 2D SVG rendering functionality for Earth-centered views
+- 2D mode has instant readiness - no 3D scene waiting required
 
-### Test Suite 1: Initial Application Load
+### Test: Page Load in Earth 2D Mode
+**Test ID:** `earth-2d-page-load`
+**Intent:** Verify Earth 2D mode loads correctly with SVG rendering.
+**Screenshots Generated:** `earth-2d-page-load.png`
 
-| Test ID | Test Name | Execution ✓ | Specific Req ✓ | Generic Req ✓ |
-|---------|-----------|-------------|----------------|----------------|
-| 1.1 | Initial Page Load and Rendering | ⬜ | ⬜ | ⬜ |
+### Test: 2D Mode Verification
+**Test ID:** `earth-2d-mode-verification`
+**Intent:** Confirm 2D mode radio button is properly selected.
 
-### Test Suite 2: Earth Mode Tests
+### Test: Timeline Navigation in 2D Mode
+**Test ID:** `earth-2d-timeline-navigation`
+**Intent:** Verify timeline navigation works in 2D mode.
 
-| Test ID | Test Name | Execution ✓ | Specific Req ✓ | Generic Req ✓ |
-|---------|-----------|-------------|----------------|----------------|
-| 2.1 | Page Load in Earth Mode | ⬜ | ⬜ | ⬜ |
-| 2.2 | 3D Mode Verification | ⬜ | ⬜ | ⬜ |
-| 2.3 | User Interface Elements Check | ⬜ | ⬜ | ⬜ |
-| 2.4 | Timeline Navigation Buttons | ⬜ | ⬜ | ⬜ |
-| 2.5 | Animation Play Control | ⬜ | ⬜ | ⬜ |
-| 2.6 | Animation Pause Control | ⬜ | ⬜ | ⬜ |
-| 2.7 | Speed Controls | ⬜ | ⬜ | ⬜ |
-| 2.8 | Directional Controls Check | ⬜ | ⬜ | ⬜ |
-| 2.9 | Direction Control with Timeline | ⬜ | ⬜ | ⬜ |
-| 2.10 | Plane Selection Views | ⬜ | ⬜ | ⬜ |
-| 2.11 | 2D/3D Mode Switching | ⬜ | ⬜ | ⬜ |
-| 2.12 | Poles View Toggle | ⬜ | ⬜ | ⬜ |
-| 2.13 | Polar Axes View Toggle | ⬜ | ⬜ | ⬜ |
-| 2.14 | XYZ Axes View Toggle | ⬜ | ⬜ | ⬜ |
-| 2.15 | Additional View Controls | ⬜ | ⬜ | ⬜ |
-| 2.16 | Joy Ride Control | ⬜ | ⬜ | ⬜ |
-| 2.17 | CY3 Orbit Display | ⬜ | ⬜ | ⬜ |
-| 2.18 | Final Stability Check | ⬜ | ⬜ | ⬜ |
+### Test: Animation Controls in 2D Mode
+**Test ID:** `earth-2d-animation-controls`
+**Intent:** Verify play/pause animation controls work in 2D mode.
 
-### Test Suite 3: Moon Mode Tests
+### Test: Plane Selection in 2D Mode
+**Test ID:** `earth-2d-plane-selection`
+**Intent:** Verify plane selection works in 2D SVG mode.
+**Screenshots Generated:** 
+- `earth-2d-plane-selection-default.png`
+- `earth-2d-plane-selection-xy.png`
+- `earth-2d-plane-selection-yz.png`
+- `earth-2d-plane-selection-zx.png`
+- `earth-2d-plane-selection-xy-minus.png`
+- `earth-2d-plane-selection-yz-minus.png`
+- `earth-2d-plane-selection-zx-minus.png`
+- `earth-2d-plane-selection-default-final.png`
 
-| Test ID | Test Name | Execution ✓ | Specific Req ✓ | Generic Req ✓ |
-|---------|-----------|-------------|----------------|----------------|
-| 3.1 | Page Load in Moon Mode | ⬜ | ⬜ | ⬜ |
-| 3.2 | 3D Mode Verification | ⬜ | ⬜ | ⬜ |
-| 3.3 | Plane Selection Views | ⬜ | ⬜ | ⬜ |
-| 3.4 | 2D/3D Mode Switching | ⬜ | ⬜ | ⬜ |
-| 3.5 | Poles View Toggle | ⬜ | ⬜ | ⬜ |
-| 3.6 | Polar Axes View Toggle | ⬜ | ⬜ | ⬜ |
-| 3.7 | XYZ Axes View Toggle | ⬜ | ⬜ | ⬜ |
-| 3.8 | Additional View Controls | ⬜ | ⬜ | ⬜ |
-| 3.9 | CY3 Orbit Display | ⬜ | ⬜ | ⬜ |
-| 3.10 | CY3 Descent Orbit Display | ⬜ | ⬜ | ⬜ |
-| 3.11 | Landing Animation | ⬜ | ⬜ | ⬜ |
-| 3.12 | Locations View | ⬜ | ⬜ | ⬜ |
+---
 
-**Legend:**
-- ⬜ Not validated
-- ✅ Validated and passing
-- ❌ Validated but failing
-- ⚠️ Partially validated
+## Test Suite 5: Moon Mode 2D Tests
+
+### General Procedure
+- Switch to Moon mode (`#origin-moon`) and 2D dimension (`#dimension-2D`)
+- These tests validate 2D SVG rendering functionality for Moon-centered views
+- 2D mode has instant readiness - no 3D scene waiting required
+
+### Test: Page Load in Moon 2D Mode
+**Test ID:** `moon-2d-page-load`
+**Intent:** Verify Moon 2D mode loads correctly with SVG rendering.
+**Screenshots Generated:** `moon-2d-page-load.png`
+
+### Test: 2D Mode Verification in Moon Mode
+**Test ID:** `moon-2d-mode-verification`
+**Intent:** Confirm 2D mode radio button is properly selected.
+
+### Test: Plane Selection in Moon 2D Mode
+**Test ID:** `moon-2d-plane-selection`
+**Intent:** Verify plane selection works in 2D SVG mode for lunar views.
+**Screenshots Generated:**
+- `moon-2d-plane-selection-xy.png`
+- `moon-2d-plane-selection-yz.png`
+- `moon-2d-plane-selection-default.png`
+
+---
+
+## Test Suite 6: Full Run Tests
+
+### General Requirements
+Full Run Tests execute complete Chandrayaan-3 mission animations from Launch timeline to natural mission completion (CY3 Data End in September 2023).
+
+**Core Functionality:**
+1. **Natural Completion Detection**: Tests wait for animation to complete naturally, not artificially stopped at arbitrary time
+2. **Timeline Verification**: Final timeline must show mission end (September 2023) with "CY3 Data End" 
+3. **Speed Acceleration**: Use Faster button clicks to complete mission within test timeout window
+4. **Speed Restoration**: Undo all Faster clicks with equivalent Slower clicks at test end
+5. **Play/Pause State Management**: Verify Play button functionality and final stopped state
+
+**Test Flow Pattern:**
+1. Configure mode (Earth/Moon), dimension (2D/3D), timeline (Launch), and plane
+2. Wait for scene readiness (3D only - 2D is instant)  
+3. Apply optimal zoom for orbit visibility (3D only)
+4. Start animation with Play button
+5. Accelerate with multiple Faster clicks  
+6. Wait for natural completion (Play button reappears + stable timeline)
+7. Restore original speed with Slower clicks
+8. Reset zoom to original level (3D only)
+9. Verify final timeline shows mission completion
+
+**Timeout Requirements:**
+- Individual test timeout: 120000ms (2 minutes)
+- Natural completion detection: Poll every 5 seconds for up to 24 attempts
+- Timeline stability: Require 2 consecutive identical readings
+
+### Test: Earth 3D Full Run Test
+**Test ID:** `earth-3d-full-run`
+**Intent:** Execute complete mission animation in Earth 3D mode.
+**Configuration:** Earth mode, 3D dimension, XY plane, Launch timeline
+**Zoom Strategy:** Zoomed out enough to view the whole orbit
+**Speed Strategy:** 5x Faster clicks with equivalent Slower restoration
+
+### Test: Moon 3D Full Run Test
+**Test ID:** `moon-3d-full-run`
+**Intent:** Execute complete mission animation in Moon 3D mode.
+**Configuration:** Moon mode, 3D dimension, YZ- plane, Launch timeline
+**Zoom Strategy:** Zommed out enough to view the whole orbit
+**Speed Strategy:** 5x Faster clicks with equivalent Slower restoration
+
+### Test: Earth 2D Full Run Test
+**Test ID:** `earth-2d-full-run`
+**Intent:** Execute complete mission animation in Earth 2D mode.
+**Configuration:** Earth mode, 2D dimension, XY plane, Launch timeline  
+**Zoom Strategy:** None required (2D SVG mode)
+**Speed Strategy:** 5x Faster clicks with equivalent Slower restoration
+
+### Test: Moon 2D Full Run Test
+**Test ID:** `moon-2d-full-run`
+**Intent:** Execute complete mission animation in Moon 2D mode.
+**Configuration:** Moon mode, 2D dimension, XY plane, Launch timeline
+**Zoom Strategy:** None required (2D SVG mode) 
+**Speed Strategy:** 5x Faster clicks with equivalent Slower restoration
+
+## Suggested Implementation/Design
+
+This section provides specific implementation guidance for the test requirements defined above. While the requirements section focuses on what needs to be tested, this section provides specific technical approaches for how to implement those tests.
+
+### Camera and Zoom Implementation Details
+
+**Zoom Functions:**
+- Use `zoomIn(page, steps)` and `zoomOut(page, steps)` helper functions that directly manipulate the THREE.js camera position for stable and repeatable zoom behavior.
+- Specific zoom levels for enhanced viewing tests:
+  - **Poles View**: 10 zoom steps in (`zoomIn(page, 10)`)
+  - **Polar Axes View**: 12 zoom steps in (`zoomIn(page, 12)`) 
+  - **Locations View**: 8-10 zoom steps in (`zoomIn(page, 8)` or `zoomIn(page, 10)`)
+  - **Descent Orbit View**: 8 zoom steps in (`zoomIn(page, 8)`)
+
+**State Management:**
+- Use `storeInitialState()` and `restoreStoredState()` functions for tests requiring optimal viewing.
+- All zoom changes must be restored using equivalent `zoomOut()` calls at test completion.
+
+### Scene Readiness Implementation
+
+**3D Scene Waiting:**
+- Wait for scene readiness using: `window.animationScenes?.geo?.state === window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE`
+- For Moon mode, check: `window.animationScenes?.lunar?.state === window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE`
+
+**2D Mode Handling:**
+- 2D mode is instantly ready - no scene waiting required
+- Skip 3D-specific initialization waits for 2D tests
+
+### UI Element Selectors
+
+**Core Controls:**
+- Animation control: `#animate` (shows "Play" or "Pause" text)
+- Speed controls: `#faster`, `#slower`, `#realtime`, `#reset`
+- Direction controls: `#forward`, `#backward`, `#fastforward`, `#fastbackward`
+- Settings panel: `#settings-panel-button`
+
+**Timeline Navigation:**
+- Timeline buttons: `#burn1` through `#burn14` (14 total milestone buttons)
+- Special timeline points:
+  - Launch: `#burn1`
+  - EBN#3 (for Joy Ride): `#burn3` 
+  - Landing phase: `#burn12`
+
+**Mode and Dimension Controls:**
+- Origin selection: `#origin-earth`, `#origin-moon`
+- Dimension selection: `#dimension-3D`, `#dimension-2D`
+- Plane selection: `#checkbox-lock-default`, `#checkbox-lock-xy`, `#checkbox-lock-yz`, `#checkbox-lock-zx`, etc.
+
+**View Controls:**
+- Orbit displays: `#view-orbit`, `#view-orbit-descent`
+- Coordinate systems: `#view-xyz-axes`, `#view-poles`, `#view-polar-axes`
+- Special views: `#view-moonsoi`, `#view-eclipticplane`, `#view-equatorialplane`
+- Animation features: `#joyride`, `#landing`
+- Surface features: `#view-craters` (locations)
+
+### Screenshot Implementation Details
+
+**File Naming Convention:**
+- Earth mode: `geo-` prefix (e.g., `geo-3d-initial-load.png`)
+- Moon mode: `lunar-` prefix (e.g., `lunar-3d-page-load.png`)
+- 2D Earth mode: `earth-2d-` prefix (e.g., `earth-2d-page-load.png`)
+- 2D Moon mode: `moon-2d-` prefix (e.g., `moon-2d-page-load.png`)
+
+**Tolerance Constants:**
+- Use `TOLERANCE.EXACT` (0 pixels) for critical UI states
+- Use `TOLERANCE.LOW` (10 pixels) for minor rendering differences
+- Use `TOLERANCE.MID` (200 pixels) for complex 3D scenes
+
+### Test Execution Implementation
+
+**Animation State Verification:**
+- Check if animation is running: `page.locator('#animate:has-text("Pause")').count() > 0`
+- Check if animation is stopped: `page.locator('#animate:has-text("Play")').count() > 0`
+- Verify state changes after button clicks
+
+**Timeline Value Sampling:**
+- Capture telemetry values before and after operations to verify changes
+- Use multiple samples to confirm animation speed changes
+- Ensure timeline progression reflects control inputs
+
+**Settings Panel Management:**
+- Open panel, make changes, close panel before screenshots
+- Verify panel closes completely before visual comparisons
+- Use appropriate timeouts for panel animations
+
+### Full Run Test Implementation
+
+**Core Implementation Pattern:**
+```javascript
+// 1. Configure mode and wait for readiness
+await setMode(page, 'geo'); // or 'lunar'
+await setDimension(page, '3D'); // or '2D'  
+await setTimeline(page, '#burn1'); // Launch timeline
+await setPlane(page, 'XY'); // or other plane
+await waitForScene(page); // 3D only
+
+// 2. Apply zoom (3D only)
+await zoomOut(page, 20, 'EARTH'); // or 40, 'MOON'
+
+// 3. Start animation
+await page.click('#animate');
+await page.waitForTimeout(300);
+
+// 4. Speed up animation
+const fasterClickCount = 5;
+for (let i = 0; i < fasterClickCount; i++) {
+  await page.click('#faster');
+  await page.waitForTimeout(50);
+}
+
+// 5. Wait for natural completion
+// Implementation: Poll for stable timeline + Play button
+
+// 6. Restore speed
+for (let i = 0; i < fasterClickCount; i++) {
+  await page.click('#slower');
+  await page.waitForTimeout(50);  
+}
+
+// 7. Reset zoom (3D only)
+await zoomIn(page, 20, 'EARTH');
+
+// 8. Verify completion
+// Check timeline contains mission end indicators
+```
+
+**Natural Completion Detection:**
+- Poll every 5 seconds for up to 24 attempts (2 minutes total)
+- Check for Play button reappearance: `#animate:has-text("Play")`
+- Verify timeline stability with multiple consecutive identical readings
+- Confirm timeline text shows mission completion (September 2023, "CY3 Data End")
+
+**Zoom Configuration:**
+- Earth 3D Full Run: 20x zoom out for comprehensive orbital trajectory viewing
+- Moon 3D Full Run: 40x zoom out for wide-angle selenocentric orbit visualization
+- Use XY plane for optimal orbital mechanics visualization
+- Apply zoom before animation starts, restore after completion
+
+**Speed Acceleration Strategy:**
+- Use 5 "Faster" clicks for optimal balance of speed and completion time
+- Apply equivalent "Slower" clicks to restore original speed
+- Use minimal delays (50ms) between speed control interactions
+
+**Extended Plane Selection:**
+- Support minus planes: `XY-` → `#checkbox-lock-xy-minus`
+- Support minus planes: `YZ-` → `#checkbox-lock-yz-minus`  
+- Support minus planes: `ZX-` → `#checkbox-lock-zx-minus`
+
+### Browser Configuration Implementation
+
+**Launch Arguments:**
+```javascript
+await chromium.launch({
+  headless: TEST_CONFIG.headless,
+  slowMo: TEST_CONFIG.slowMo,
+  args: [
+    '--no-sandbox',
+    '--max-old-space-size=4096',
+    '--expose-gc'
+  ]
+});
+```
+
+**Environment Variables:**
+- `VITE_TEST_BASE_URL`: Base URL (e.g., `http://localhost:8001`)
+- `HEADLESS=true`: Run in headless mode
+- `SLOWMO=milliseconds`: Slow down interactions
+
+### Error Handling Implementation
+
+**Console Error Filtering:**
+```javascript
+// Ignore these error patterns:
+- /google-analytics\.com|analytics\.js/
+- /favicon\.ico/
+- /THREE\.WebGLProgram.*Shader Error/
+- /VALIDATE_STATUS false/
+- /WebGL: INVALID_OPERATION/
+
+// All other console errors should fail the test
+```
+
+This implementation section provides the specific technical details needed to build tests that meet the functional requirements defined in the main specification.
