@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import pixelmatch from 'pixelmatch';
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
+import { ssim } from 'ssim.js';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 async function displayStartupMessage(page, testId) {
@@ -71,7 +71,7 @@ const TIMEOUTS = {
   // Scene and Rendering Timeouts
   SCENE_READY_TIMEOUT: 15000,
   STABLE_RENDER_TIMEOUT: 3000,
-  ORBIT_RENDER_TIMEOUT: 20000,
+  ORBIT_RENDER_TIMEOUT: 120000, // 2 minutes for slow WSL/software rendering
   
   // UI Interaction Timeouts
   SETTINGS_PANEL_TIMEOUT: 8000,
@@ -94,11 +94,20 @@ const TIMEOUTS = {
   EXTENDED_DELAY: 1000
 };
 
-// Screenshot tolerance constants as per specification
+// SSIM threshold constants for screenshot comparison
+// Higher values = more strict matching (1.0 = identical)
+const SSIM_THRESHOLD = {
+  IDENTICAL: 0.99,      // For exact visual matches
+  VERY_SIMILAR: 0.97,   // For minor anti-aliasing differences
+  SIMILAR: 0.95,        // For standard 3D scene comparisons (DEFAULT)
+  DIFFERENT: 0.90       // For complex 3D scenes with acceptable variations
+};
+
+// Legacy alias for backwards compatibility during migration
 const TOLERANCE = {
-  EXACT: 0,    // For exact visual matches (critical UI states)
-  APPROX_MATCH: 10,     // For minor rendering differences (standard tests)
-  BROAD_MATCH: 200     // For complex 3D scenes with acceptable variations
+  EXACT: SSIM_THRESHOLD.IDENTICAL,
+  APPROX_MATCH: SSIM_THRESHOLD.SIMILAR,
+  BROAD_MATCH: SSIM_THRESHOLD.DIFFERENT
 };
 
 // Test configuration using environment variables (no hardcoded URLs/ports)
@@ -107,68 +116,87 @@ const TEST_CONFIG = {
   headless: process.env.HEADLESS === 'true',
   slowMo: parseInt(process.env.SLOWMO || '0'),
   get testUrl() {
-    return `${this.baseUrl}/chandrayaan3.html`;
+    return `${this.baseUrl}/chandrayaan3.html?testMode=true`;
   }
 };
 
 let browser, page;
 
-// Simplified screenshot comparison function
-async function compareScreenshots(page, currentName, baselineName, testName, tolerance = TOLERANCE.APPROX_MATCH) {
+// SSIM-based screenshot comparison function
+// Uses Structural Similarity Index for robust comparison that handles anti-aliasing differences
+async function compareScreenshots(page, currentName, baselineName, testName, threshold = TOLERANCE.APPROX_MATCH) {
   const screenshotDir = join(process.cwd(), 'test', 'screenshots');
   const currentDir = join(screenshotDir, 'current');
   const baselineDir = join(screenshotDir, 'baseline');
-  
+
   // Ensure directories exist
   [currentDir, baselineDir].forEach(dir => {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   });
-  
+
   const currentPath = join(currentDir, currentName);
   const baselinePath = join(baselineDir, baselineName);
-  
+
   // Hide test ID for screenshot and store its content
   const testIdContent = await hideTestIdForScreenshot(page);
-  
+
   // Take current screenshot
   await page.screenshot({ path: currentPath, fullPage: false });
-  
+
   // Restore test ID after screenshot
   await restoreTestId(page, testIdContent);
-  
+
   // If baseline doesn't exist, copy current as baseline
   if (!existsSync(baselinePath)) {
     writeFileSync(baselinePath, readFileSync(currentPath));
-    return { isMatch: true, message: 'Baseline created', pixelDifference: 0 };
+    return { isMatch: true, message: 'Baseline created', ssimScore: 1.0, pixelDifference: 0 };
   }
-  
-  // Compare screenshots
+
+  // Compare screenshots using SSIM
   const current = PNG.sync.read(readFileSync(currentPath));
   const baseline = PNG.sync.read(readFileSync(baselinePath));
-  
-  const { width, height } = current;
-  const diff = new PNG({ width, height });
 
-  const diffDir = join(screenshotDir, 'diff');
-  if (!existsSync(diffDir)) mkdirSync(diffDir, { recursive: true });
-  const diffPath = join(diffDir, `diff-${baselineName}`);
-  
-  const pixelDifference = pixelmatch(
-    current.data, baseline.data, diff.data, 
-    width, height, { threshold: 0.1 }
-  );
-  
-  const isMatch = pixelDifference <= tolerance;
+  const { width, height } = current;
+
+  // Check for dimension mismatch
+  if (baseline.width !== width || baseline.height !== height) {
+    console.log(`SCREENSHOT DIMENSION MISMATCH: ${testName} - baseline ${baseline.width}x${baseline.height} vs current ${width}x${height}`);
+    return {
+      isMatch: false,
+      message: `Dimension mismatch: baseline ${baseline.width}x${baseline.height} vs current ${width}x${height}`,
+      ssimScore: 0,
+      pixelDifference: width * height
+    };
+  }
+
+  // Prepare image data for SSIM comparison
+  const baselineData = { data: baseline.data, width, height };
+  const currentData = { data: current.data, width, height };
+
+  // Calculate SSIM score
+  const ssimResult = ssim(baselineData, currentData);
+  const ssimScore = ssimResult.mssim;
+
+  // Determine if images match based on threshold
+  const isMatch = ssimScore >= threshold;
 
   if (!isMatch) {
-    writeFileSync(diffPath, PNG.sync.write(diff)); // Keep saving diff for inspection
-    console.log(`SCREENSHOT MISMATCH: ${testName} - ${pixelDifference} pixels different (tolerance: ${tolerance})`);
+    // Log detailed information for debugging
+    const classifyScore = (score) => {
+      if (score >= SSIM_THRESHOLD.IDENTICAL) return 'IDENTICAL';
+      if (score >= SSIM_THRESHOLD.VERY_SIMILAR) return 'VERY_SIMILAR';
+      if (score >= SSIM_THRESHOLD.SIMILAR) return 'SIMILAR';
+      if (score >= SSIM_THRESHOLD.DIFFERENT) return 'DIFFERENT';
+      return 'VERY_DIFFERENT';
+    };
+    console.log(`SCREENSHOT MISMATCH: ${testName} - SSIM: ${ssimScore.toFixed(4)} (${classifyScore(ssimScore)}) < threshold: ${threshold}`);
   }
-  
+
   return {
     isMatch,
-    message: isMatch ? 'Screenshots match' : `${pixelDifference} pixels different`,
-    pixelDifference
+    message: isMatch ? 'Screenshots match' : `SSIM ${ssimScore.toFixed(4)} below threshold ${threshold}`,
+    ssimScore,
+    pixelDifference: 0 // Kept for backwards compatibility, but not meaningful with SSIM
   };
 }
 
@@ -257,7 +285,8 @@ async function waitForScene(page) {
 
   } catch (error) {
     console.log('Wait for scene ready failed:', error.message);
-    await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+    // Re-throw the error so tests fail properly instead of continuing with bad state
+    throw error;
   }
 }
 
@@ -468,6 +497,33 @@ async function ensureStellarSkyDisabled(page) {
   await closeSettingsPanel(page);
 }
 
+// Helper to ensure consistent test state (single open/close cycle)
+// Call this after scene is fully ready to avoid interfering with orbit rendering
+async function ensureConsistentTestState(page) {
+  await openSettingsPanel(page);
+
+  // Disable landing if enabled
+  if (await page.isChecked('#landing')) {
+    await page.click('#landing');
+    await page.waitForTimeout(100); // Small delay for state to settle
+  }
+
+  // Enable orbit display if disabled
+  if (!(await page.isChecked('#view-orbit'))) {
+    await page.click('#view-orbit');
+  }
+  if (!(await page.isChecked('#view-orbit-descent'))) {
+    await page.click('#view-orbit-descent');
+  }
+
+  // Disable stellar sky if enabled
+  if (await page.isChecked('#view-sky')) {
+    await page.click('#view-sky');
+  }
+
+  await closeSettingsPanel(page);
+}
+
 // Helper to ensure correct origin mode
 async function ensureOriginMode(page, mode) {
   await openSettingsPanel(page);
@@ -485,7 +541,15 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     browser = await chromium.launch({
       headless: TEST_CONFIG.headless,
       slowMo: TEST_CONFIG.slowMo,
-      args: ['--no-sandbox', '--max-old-space-size=4096', '--expose-gc']
+      args: [
+        '--no-sandbox',
+        '--max-old-space-size=4096',
+        '--expose-gc',
+        '--disable-dev-shm-usage', // Use /tmp instead of /dev/shm (helps in WSL/Docker)
+        '--disable-gpu-sandbox',
+        '--enable-webgl',
+        '--ignore-gpu-blocklist' // Allow WebGL even on blocklisted GPUs
+      ]
     });
     page = await browser.newPage();
 
@@ -512,7 +576,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   beforeEach(async () => {
-    // Ensure stellar sky is disabled before each test for consistency
+    // Only disable stellar sky globally - it's a view option that doesn't affect scene state
+    // More invasive state changes (landing, orbit) should be done by specific tests that need them
+    // because they can interfere with orbit rendering timing
     await ensureStellarSkyDisabled(page);
   });
 

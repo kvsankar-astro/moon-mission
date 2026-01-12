@@ -1,47 +1,10 @@
 # CLAUDE.md
 
-## CONTINUATION PROMPT - Current Work in Progress
+## Visual Regression Testing - SSIM-based Comparison
 
-**Task:** Fix failing visual regression tests in `test/ui.test.js`
+Visual regression tests use SSIM (Structural Similarity Index) instead of pixel matching for robust comparison that handles anti-aliasing differences.
 
-### Problem Identified
-- 24 tests were failing due to screenshot comparison using pixel-by-pixel matching (pixelmatch)
-- SSIM analysis revealed only 3 real issues; the rest (42) are false positives from anti-aliasing variations
-- Root causes:
-  1. Pixel tolerance of 10 is too strict for WebGL 3D rendering
-  2. Some tests don't explicitly set checkbox states (e.g., `#view-orbit`)
-  3. Landing animation state leaks between tests
-
-### Work Completed
-1. Created `scripts/ssim-compare.js` - SSIM comparison tool that identified false positives
-2. Installed `ssim.js` package (in devDependencies)
-3. Identified all 22 UI checkboxes and their handling in each test (comprehensive analysis done)
-
-### Remaining Tasks
-1. **Update test file** (`test/ui.test.js`):
-   - Replace `pixelmatch` import with `ssim.js`
-   - Replace `TOLERANCE` constants with `SSIM_THRESHOLD` (0.95 for standard, 0.90 for complex scenes)
-   - Rewrite `compareScreenshots()` function to use SSIM instead of pixel matching
-   - Add `?testMode=true` URL parameter for anti-aliasing control
-
-2. **Fix checkbox state issues**:
-   - Add `ensureOrbitEnabled()` helper function
-   - Add `ensureLandingDisabled()` helper function
-   - Update `beforeEach` to ensure: stellar sky disabled, landing disabled, orbit enabled
-   - Fix "2D/3D Mode Switching" test - add `#view-orbit` enable before screenshot
-   - Fix "Landing Animation" test - disable landing in cleanup
-   - Fix "CY3 Descent Orbit Display" test - restore `#view-orbit` state
-
-3. **Add test-mode anti-aliasing** to product code:
-   - Check for `?testMode=true` URL parameter in `mission.js`
-   - Enable anti-aliasing on WebGLRenderer when in test mode
-
-### Key Files
-- `test/ui.test.js` - Main test file (needs updates)
-- `assets/platform/js/mission.js` - Product code (add testMode anti-aliasing)
-- `scripts/ssim-compare.js` - SSIM comparison utility (already created)
-
-### SSIM Thresholds to Use
+### SSIM Thresholds
 ```javascript
 const SSIM_THRESHOLD = {
   IDENTICAL: 0.99,      // For exact visual matches
@@ -50,6 +13,16 @@ const SSIM_THRESHOLD = {
   DIFFERENT: 0.90       // For complex 3D scenes
 };
 ```
+
+### Test Mode
+Tests run with `?testMode=true` URL parameter which:
+- Sets a fixed pixel ratio of 1.0 for consistent rendering across devices
+- Enables anti-aliasing for consistent visual output
+
+### Key Files
+- `test/ui.test.js` - Main test file with SSIM-based comparison
+- `assets/platform/js/mission.js` - Product code with testMode support
+- `scripts/ssim-compare.js` - SSIM comparison utility for manual analysis
 
 ---
 

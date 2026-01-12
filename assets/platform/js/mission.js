@@ -28,6 +28,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { TrackballControls } from '../../../third-party/TrackballControls.js';
 
+// Check if running in test mode (for consistent visual regression testing)
+const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
+
 // orbit and location related data
 
 // constants
@@ -598,7 +601,8 @@ class SceneHandler {
         // add renderer
         this.renderer = new THREE.WebGLRenderer({antialias: true});
         this.renderer.outputEncoding = THREE.sRGBEncoding;
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        // Use fixed pixel ratio in test mode for consistent visual regression testing
+        this.renderer.setPixelRatio(isTestMode ? 1.0 : window.devicePixelRatio);
         this.renderer.setSize(width, height);
         // this.renderer.domElement.style.display = "none";
 

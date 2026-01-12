@@ -335,15 +335,40 @@ def fetch_horizons_data(planet, options):
     print_debug(f"url = {base_url}")
     print_debug(f"params = {params}")
 
-    try:
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
-        
-        orbits_raw.setdefault(planet, {})[content_key] = response.text
-        return True
-    except requests.RequestException as e:
-        print_error(f"HTTP request failed: {str(e)}")
-        return False
+    # Retry logic for large data requests
+    max_retries = 3
+    timeout_seconds = 300  # 5 minutes timeout for large data fetches
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                print_debug(f"Retry attempt {attempt + 1}/{max_retries}...")
+                time.sleep(5)  # Wait before retry
+
+            # Use streaming to handle large responses reliably
+            response = requests.get(base_url, params=params, timeout=timeout_seconds, stream=True)
+            response.raise_for_status()  # Raises an HTTPError for bad responses
+
+            # Read response in chunks to avoid connection issues with large data
+            content_bytes = b''
+            for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
+                content_bytes += chunk
+
+            content_text = content_bytes.decode('utf-8')
+            print_debug(f"Downloaded {len(content_text)} characters")
+
+            orbits_raw.setdefault(planet, {})[content_key] = content_text
+            return True
+        except requests.Timeout:
+            print_error(f"Request timed out (attempt {attempt + 1}/{max_retries})")
+            if attempt == max_retries - 1:
+                return False
+        except requests.RequestException as e:
+            print_error(f"HTTP request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+            if attempt == max_retries - 1:
+                return False
+
+    return False
 
 def fetch_elements(planet):
     print_debug(f"Fetching elements for planet {planet} ...")
