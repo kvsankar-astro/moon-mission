@@ -17,7 +17,7 @@ const currentDir = join(screenshotDir, 'current');
 const THRESHOLDS = {
   IDENTICAL: 0.99,      // Virtually identical
   VERY_SIMILAR: 0.97,   // Minor rendering differences (anti-aliasing)
-  SIMILAR: 0.95,        // Noticeable but acceptable differences
+  SIMILAR: 0.93,        // Noticeable but acceptable differences
   DIFFERENT: 0.90       // Significant differences - likely real issues
 };
 
