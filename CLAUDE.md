@@ -26,6 +26,62 @@ Tests run with `?testMode=true` URL parameter which:
 
 ---
 
+## Developer Documentation
+
+### Test Server Port Management
+
+The test infrastructure uses a **preferred port with automatic fallback** approach, following Vite/Playwright ecosystem best practices.
+
+#### Design Decisions
+
+| Approach | Description | Adopted? |
+|----------|-------------|----------|
+| Fixed port (8111) | Simple, predictable, may conflict | **Yes** (as preferred) |
+| Vite auto-fallback | If 8111 busy, try 8112, 8113... | **Yes** (built-in) |
+| `reuseExistingServer` | Reuse developer's running server | **Yes** |
+| Dynamic port (`get-port-cli`) | Fully random port each run | No (added complexity) |
+
+#### How It Works
+
+1. **Preferred Port**: Tests default to port `8111` to avoid conflicts with typical dev server ports (3000, 5173, 8000, 8080)
+
+2. **Automatic Fallback**: Vite automatically tries the next available port if 8111 is busy. This is Vite's default behavior.
+
+3. **Reuse Existing Server**: When running tests locally, if a server is already running on the expected port, tests reuse it instead of starting a new one. This allows developers to:
+   - Run `npx vite --port 8111` in one terminal
+   - Run tests in another terminal without server startup delay
+
+4. **CI Behavior**: In CI environments (`process.env.CI`), always start a fresh server to ensure clean state.
+
+#### Configuration
+
+Tests read the base URL from environment variable with fallback:
+```javascript
+baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8111'
+```
+
+#### Running Tests
+
+```bash
+# Automatic server management (recommended)
+make test                    # Starts server, runs tests, stops server
+
+# Manual server management (for development)
+make server-start            # Start server in background
+npx vitest test/ui.test.js   # Run tests (reuses running server)
+make server-stop             # Stop server when done
+
+# Override port if needed
+VITE_TEST_BASE_URL=http://localhost:3000 npx vitest test/ui.test.js
+```
+
+#### References
+- [Playwright webServer docs](https://playwright.dev/docs/test-webserver)
+- [Vitest server discussion](https://github.com/vitest-dev/vitest/discussions/334)
+- [Vite server.port options](https://vite.dev/config/server-options)
+
+---
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview

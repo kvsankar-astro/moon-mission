@@ -112,7 +112,7 @@ const TOLERANCE = {
 
 // Test configuration using environment variables (no hardcoded URLs/ports)
 const TEST_CONFIG = {
-  baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8001',
+  baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8111',
   headless: process.env.HEADLESS === 'true',
   slowMo: parseInt(process.env.SLOWMO || '0'),
   get testUrl() {
