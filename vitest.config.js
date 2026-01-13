@@ -1,9 +1,12 @@
 import { defineConfig } from 'vitest/config';
 
+// CI environments need longer timeouts due to software WebGL rendering
+const isCI = process.env.CI === 'true';
+
 export default defineConfig({
   test: {
-    testTimeout: 60000,  // Default timeout for each test: 60 seconds
-    hookTimeout: 30000,  // Timeout for hooks (beforeAll, afterAll): 30 seconds
+    testTimeout: isCI ? 180000 : 60000,  // 3 min in CI, 1 min locally
+    hookTimeout: isCI ? 180000 : 30000,  // 3 min in CI, 30s locally
     teardownTimeout: 10000,  // Timeout for teardown: 10 seconds
     pool: 'forks',  // Use forks for better isolation
     poolOptions: {
