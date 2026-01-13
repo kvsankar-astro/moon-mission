@@ -105,22 +105,24 @@ async function startServer() {
 
   console.log(`Starting Vite server on port ${TEST_PORT}...`);
 
-  // Start vite - use shell on Windows for proper npx handling
-  const isWindows = process.platform === 'win32';
-  const serverProcess = spawn('npx', ['vite', '--port', String(TEST_PORT)], {
+  // Spawn vite directly via node - works cross-platform without opening terminal windows
+  let serverProcess;
+  // Use node directly to spawn vite - avoids shell/cmd window issues on Windows
+  const viteScript = join(process.cwd(), 'node_modules', 'vite', 'bin', 'vite.js');
+  serverProcess = spawn(process.execPath, [viteScript, '--port', String(TEST_PORT)], {
     cwd: process.cwd(),
-    stdio: ['ignore', 'pipe', 'pipe'],
-    shell: isWindows,
-    detached: !isWindows  // detached doesn't work well on Windows
+    stdio: 'ignore',
+    detached: true,
+    windowsHide: true
   });
 
-  // Save state - we own this server
+  // Save state - we own this server (PID may not be accurate on Windows with start /b)
   saveState({ port: TEST_PORT, pid: serverProcess.pid, ownedByUs: true, reused: false });
 
   // Also write legacy PID file for compatibility
   writeFileSync(PID_FILE, String(serverProcess.pid));
 
-  // Don't wait for output, just let it run
+  // Detach from parent process
   serverProcess.unref();
 
   // Wait for server to be ready
