@@ -2,11 +2,8 @@
 # =========================
 # Generated Data Files
 # =========================
-# Orbit data files
-*.npz
-*-CY3.json
+# Orbit data backup files (originals are tracked)
 *-CY3.json.bak
-*-CY3-meta.json
 
 # Daily generated data
 today-*.json
@@ -18,10 +15,9 @@ previous.json
 # Assets and Archives
 # =========================
 # Data directories
-# Chandrayaan 3
-assets/chandrayaan3/data/
-# But track the main configuration file
-!assets/chandrayaan3/data/config.json
+# Chandrayaan 3 - ignore only non-essential files
+assets/chandrayaan3/data/*.bak
+assets/chandrayaan3/data/*-jq.json
 assets/chandrayaan3/archive/
 # NISAR
 assets/nisar/data/
