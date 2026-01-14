@@ -136,3 +136,6 @@ data-fetched/
 
 # Deployment configuration (contains credentials)
 deploy-config.json
+
+# Test server temp files
+.test-server.*
