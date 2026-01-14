@@ -22,6 +22,7 @@ import {
     updateSpacecraftMnemonic
 } from "./core/dom.js";
 import { parseNpy, uncompressNPZ } from "./npyreader.js";
+import { getStateFromChebyshev, loadChebyshevData } from "./chebyshev.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -126,6 +127,12 @@ var landingDataLoaded = false;
 var landingDataProcessed = false;
 var landingData = {};
 var landingMetadata = {};
+
+// Chebyshev ephemeris data (replaces NPZ for spacecraft position)
+var chebyshevDataLoaded = { "geo": false, "lunar": false };
+var chebyshevData = {};  // { "geo": chebData, "lunar": chebData }
+var landingChebyshevLoaded = false;
+var landingChebyshevData = null;
 var nOrbitPoints = 0;
 var nLandingPoints = 0;
 var progress = 0;
@@ -2702,6 +2709,7 @@ async function initConfig() {
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
             animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
+            animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
@@ -2755,8 +2763,9 @@ async function initConfig() {
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
             animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
+            animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
-        
+
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -2981,20 +2990,95 @@ function setLabelLocation(planetKey) {
 
 function getBodyLocation(craftid, t) {
     // console.log("getBodyLocation(" + craftId + ", " + t + ")");
-    
+
     // Check if landing is enabled before using landing time range
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-    if ((config == "lunar") && (craftid == "SC") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
 
+    // For SC (spacecraft), try to use Chebyshev data if available
+    if (craftid === "SC") {
+        // Landing phase - use landing Chebyshev if available
+        if ((config == "lunar") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
+            if (landingChebyshevLoaded && landingChebyshevData) {
+                // Convert JavaScript timestamp to Julian Date
+                const jd = new Date(t).getJD();
+                const state = getStateFromChebyshev(landingChebyshevData, jd);
+                if (state) {
+                    return [
+                        new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
+                        new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz)
+                    ];
+                }
+            }
+            // Fallback to NPZ landing data
+            var orbitDataResolutionInSeconds = 1;
+            var num = t - startLandingTime;
+            var denom = orbitDataResolutionInSeconds * ONE_SECOND_MS;
+            var tlIndex1 = Math.floor(num / denom);
+            var tlIndex2 = tlIndex1 + 1;
+            var remainder = (num % denom) / ONE_SECOND_MS;
+
+            var vectors = landingData[planetProperties[craftid].id]["vectors"];
+            var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
+            var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
+            var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
+            var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
+            var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
+            var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
+
+            return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
+        }
+
+        // Regular orbital phase - use Chebyshev if available
+        if (chebyshevDataLoaded[config] && chebyshevData[config]) {
+            // Convert JavaScript timestamp to Julian Date
+            const jd = new Date(t).getJD();
+            const state = getStateFromChebyshev(chebyshevData[config], jd);
+            if (state) {
+                return [
+                    new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
+                    new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz)
+                ];
+            }
+        }
+    }
+
+    // Fallback: use NPZ data (for non-SC bodies or when Chebyshev not available)
+    if ((config == "lunar") && (craftid == "SC") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
         var orbitDataResolutionInSeconds = 1;
         var num = t - startLandingTime;
         var denom = orbitDataResolutionInSeconds * ONE_SECOND_MS;
         var tlIndex1 = Math.floor(num / denom);
         var tlIndex2 = tlIndex1 + 1;
         var remainder = (num % denom) / ONE_SECOND_MS;
-        // console.log("tlIndex1 = " + tlIndex1 + ", remainder = " + remainder);
-    
+
         var vectors = landingData[planetProperties[craftid].id]["vectors"];
+        var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
+        var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
+        var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
+        var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
+        var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
+        var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
+
+        return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
+    } else {
+        var orbitDataResolutionInMs = animationScenes[config].stepDurationInMilliSeconds;
+        var num = t - startTime;
+        var denom = orbitDataResolutionInMs;
+        var tlIndex1 = Math.floor(num / denom);
+        var tlIndex2 = tlIndex1 + 1;
+        var remainder = (num % denom) / denom;
+
+        var vectors = animationScenes[config].orbits[planetProperties[craftid].id]["vectors"];
+
+        if (tlIndex1 >= vectors.length || tlIndex1 < 0) {
+            console.error(`Invalid tlIndex1: ${tlIndex1}, vectors.length: ${vectors.length}`);
+            return [null, null];
+        }
+        if (tlIndex2 >= vectors.length) {
+            console.error(`Invalid tlIndex2: ${tlIndex2}, vectors.length: ${vectors.length}`);
+            return [null, null];
+        }
+
         var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
         var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
         var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
@@ -3004,34 +3088,6 @@ function getBodyLocation(craftid, t) {
 
         // console.log("getBodyLocation(" + craftId + ", " + t + ") => x = " + x, ", y = " + y + ", z = " + z);
         return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
-    } else {
-        var orbitDataResolutionInMs = animationScenes[config].stepDurationInMilliSeconds;
-        var num = t - startTime;
-        var denom = orbitDataResolutionInMs;
-        var tlIndex1 = Math.floor(num / denom);
-        var tlIndex2 = tlIndex1 + 1;
-        var remainder = (num % denom) / denom;
-        
-        var vectors = animationScenes[config].orbits[planetProperties[craftid].id]["vectors"];
-        
-        if (tlIndex1 >= vectors.length || tlIndex1 < 0) {
-            console.error(`Invalid tlIndex1: ${tlIndex1}, vectors.length: ${vectors.length}`);
-            return [null, null];
-        }
-        if (tlIndex2 >= vectors.length) {
-            console.error(`Invalid tlIndex2: ${tlIndex2}, vectors.length: ${vectors.length}`);
-            return [null, null];
-        }
-        
-        var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
-        var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
-        var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
-        var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
-        var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
-        var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
-    
-        // console.log("getBodyLocation(" + craftId + ", " + t + ") => x = " + x, ", y = " + y + ", z = " + z);
-        return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];    
     }
 }
 
@@ -3843,24 +3899,38 @@ async function loadLandingDataAndProcess() {
     // Check if landing is enabled in config
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
     if (!isLandingEnabled) return;
-    
+
     if (!landingDataLoaded) {
         // Use config data for landing if available
         const configData = globalConfig;
         const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
         let landingDataNpz = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}.npz`;
-        
+        let landingDataCheb = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}-cheb.json`;
+
         if (configData && configData.landing) {
             const cfg = configData.landing;
             landingDataNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
+            landingDataCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
-        
+
+        // Try to load Chebyshev data for landing phase
+        try {
+            console.log(`Loading landing Chebyshev data from ${landingDataCheb}`);
+            landingChebyshevData = await loadChebyshevData(landingDataCheb);
+            landingChebyshevLoaded = true;
+            console.log(`Landing Chebyshev data loaded: ${landingChebyshevData.segments.length} segments`);
+        } catch (chebError) {
+            console.warn(`Could not load landing Chebyshev data, falling back to NPZ: ${chebError}`);
+            landingChebyshevLoaded = false;
+        }
+
+        // Also load NPZ for fallback and other bodies
         fetchNPZ(landingDataNpz, async function(data) {
 
             // console.log("Landing orbit data load from " + landingDataNpz + ": OK");
             landingDataLoaded = true;
             landingData = data;
-            
+
             // Also load the landing metadata
             try {
                 const metaFileName = landingDataNpz.replace('.npz', '-meta.json');
@@ -3892,28 +3962,40 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         updateProgressLabel(msg);
         await sleep();
 
-        // NPZ code goes here
-
         try {
+            // Load Chebyshev JSON for spacecraft (SC) trajectory - much smaller than NPZ
+            const chebUrl = animationScenes[config].orbitsCheb;
+            console.log(`Loading Chebyshev data from ${chebUrl}`);
+
+            try {
+                chebyshevData[config] = await loadChebyshevData(chebUrl);
+                chebyshevDataLoaded[config] = true;
+                console.log(`Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`);
+            } catch (chebError) {
+                console.warn(`Could not load Chebyshev data, falling back to NPZ: ${chebError}`);
+                chebyshevDataLoaded[config] = false;
+            }
+
+            // Also load NPZ for other bodies (MOON, EARTH) - SC data will be ignored if Chebyshev loaded
             const data = await new Promise((resolve, reject) => {
                 fetchNPZ(animationScenes[config].orbitsNpz, resolve, reject);
             });
-            
+
             // data is now the parsed NPZ data
             // console.log("Orbit data load from " + animationScenes[config].orbitsJson + ": OK");
             dataLoaded = true;
             orbitDataLoaded[config] = true;
             orbitData[config] = data;
-            
+
             $("#progressbar").hide();
             processOrbitData(data);
             await sleep();
             // console.log("Calling callback() from loadOrbitDataIfNeededAndProcess() ...");
             callback();
             // console.log("Called callback() from loadOrbitDataIfNeededAndProcess() ...");
-                    
+
         } catch(error) {
-            console.error("Error loading or processing .npz file:", error);
+            console.error("Error loading or processing orbit data:", error);
             $("#progressbar").hide();
             var msg = "Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error;
             console.error(msg);
