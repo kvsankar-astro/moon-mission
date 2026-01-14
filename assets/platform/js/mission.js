@@ -23,6 +23,7 @@ import {
 } from "./core/dom.js";
 import { parseNpy, uncompressNPZ } from "./npyreader.js";
 import { getStateFromChebyshev, loadChebyshevData } from "./chebyshev.js";
+import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3040,6 +3041,23 @@ function getBodyLocation(craftid, t) {
                 ];
             }
         }
+    }
+
+    // Use Astronomy Engine for Moon and Earth positions
+    if (craftid === "MOON" && config === "geo") {
+        const state = getMoonState(t);
+        return [
+            new THREE.Vector3(state.x, state.y, state.z),
+            new THREE.Vector3(state.vx, state.vy, state.vz)
+        ];
+    }
+
+    if (craftid === "EARTH" && config === "lunar") {
+        const state = getEarthFromMoonState(t);
+        return [
+            new THREE.Vector3(state.x, state.y, state.z),
+            new THREE.Vector3(state.vx, state.vy, state.vz)
+        ];
     }
 
     // Fallback: use NPZ data (for non-SC bodies or when Chebyshev not available)
