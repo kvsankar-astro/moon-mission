@@ -459,7 +459,7 @@ def parse_horizons_elements(code, planet):
                 rec = {
                     'jdct': jdct,
                     'x': x, 'y': y, 'z': z,
-                    'vx': vy, 'vy': vx, 'vz': vz  # Note: vx and vy are swapped as in original
+                    'vx': vx, 'vy': vy, 'vz': vz
                 }
 
                 if planet not in orbits:
