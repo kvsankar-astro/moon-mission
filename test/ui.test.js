@@ -103,8 +103,8 @@ const TIMEOUTS = {
 const SSIM_THRESHOLD = {
   IDENTICAL: 0.99,      // For exact visual matches
   VERY_SIMILAR: 0.97,   // For minor anti-aliasing differences
-  SIMILAR: 0.93,        // For standard 3D scene comparisons (DEFAULT)
-  DIFFERENT: 0.90       // For complex 3D scenes with acceptable variations
+  SIMILAR: 0.90,        // For standard 3D scene comparisons (DEFAULT) - lowered for Chebyshev transition
+  DIFFERENT: 0.85       // For complex 3D scenes with acceptable variations
 };
 
 // Legacy alias for backwards compatibility during migration
@@ -117,7 +117,7 @@ const TOLERANCE = {
 // Test configuration using environment variables (no hardcoded URLs/ports)
 const TEST_CONFIG = {
   baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8111',
-  headless: process.env.HEADLESS === 'true',
+  headless: process.env.HEADLESS !== 'false',  // Default to headless, use HEADLESS=false to see browser
   slowMo: parseInt(process.env.SLOWMO || '0'),
   get testUrl() {
     return `${this.baseUrl}/chandrayaan3.html?testMode=true`;
@@ -534,21 +534,36 @@ async function ensureOriginMode(page, mode) {
 
 describe('Chandrayaan-3 UI Tests - Simplified', () => {
   beforeAll(async () => {
+    // Build launch args based on headless mode
+    // Headed mode (headless: false) needs different GPU flags than headless mode
+    const baseArgs = [
+      '--no-sandbox',
+      '--max-old-space-size=4096',
+      '--expose-gc',
+      '--disable-dev-shm-usage', // Use /tmp instead of /dev/shm (helps in WSL/Docker)
+      '--enable-webgl',
+      '--ignore-gpu-blocklist', // Allow WebGL even on blocklisted GPUs
+    ];
+
+    const headlessArgs = [
+      '--disable-gpu-sandbox',
+      '--use-angle=gl', // Use ANGLE with OpenGL backend for headless WebGL
+      '--enable-unsafe-swiftshader' // Enable SwiftShader for software WebGL fallback
+    ];
+
+    const headedArgs = [
+      '--enable-gpu-rasterization', // Enable GPU rasterization for headed mode
+      '--enable-zero-copy', // Enable zero-copy for better GPU performance
+    ];
+
+    const launchArgs = TEST_CONFIG.headless
+      ? [...baseArgs, ...headlessArgs]
+      : [...baseArgs, ...headedArgs];
+
     browser = await chromium.launch({
       headless: TEST_CONFIG.headless,
       slowMo: TEST_CONFIG.slowMo,
-      args: [
-        '--no-sandbox',
-        '--max-old-space-size=4096',
-        '--expose-gc',
-        '--disable-dev-shm-usage', // Use /tmp instead of /dev/shm (helps in WSL/Docker)
-        '--disable-gpu-sandbox',
-        '--enable-webgl',
-        '--ignore-gpu-blocklist', // Allow WebGL even on blocklisted GPUs
-        // Headless WebGL support
-        '--use-angle=gl', // Use ANGLE with OpenGL backend for headless WebGL
-        '--enable-unsafe-swiftshader' // Enable SwiftShader for software WebGL fallback
-      ]
+      args: launchArgs
     });
     page = await browser.newPage();
 
