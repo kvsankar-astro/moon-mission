@@ -217,3 +217,49 @@ export async function loadChebyshevData(url) {
     }
     return await response.json();
 }
+
+// ============================================================================
+// Curve Generation
+// ============================================================================
+
+/**
+ * Generate curve points from Chebyshev data by sampling at regular intervals.
+ * This replaces the NPZ vector data for orbit curve rendering.
+ *
+ * @param {Object} chebData - Chebyshev JSON data object
+ * @param {number} startTimeMs - Start time as JavaScript timestamp (ms)
+ * @param {number} endTimeMs - End time as JavaScript timestamp (ms)
+ * @param {number} stepMs - Step size in milliseconds
+ * @returns {Object[]} Array of {x, y, z, vx, vy, vz} vectors
+ */
+export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, stepMs) {
+    const vectors = [];
+
+    // Helper to convert JS timestamp to Julian Date
+    const msToJD = (ms) => {
+        const date = new Date(ms);
+        if (typeof date.getJD_TDB === "function") {
+            return date.getJD_TDB();
+        }
+        const JD_UNIX_EPOCH = 2440587.5;
+        return JD_UNIX_EPOCH + ms / 86400000;
+    };
+
+    for (let t = startTimeMs; t <= endTimeMs; t += stepMs) {
+        const jd = msToJD(t);
+        const state = getStateFromChebyshev(chebData, jd);
+
+        if (state) {
+            vectors.push({
+                x: state.pos.x,
+                y: state.pos.y,
+                z: state.pos.z,
+                vx: state.vel.vx,
+                vy: state.vel.vy,
+                vz: state.vel.vz
+            });
+        }
+    }
+
+    return vectors;
+}
