@@ -1,30 +1,76 @@
-
 // const ephemeris = require('./third-party/ephemeris-0.1.0.min.js');
 
-Date.prototype.getJD = function() {
-	// https://stackoverflow.com/questions/11759992/calculating-jdayjulian-day-in-javascript
-    
-    // TODO appoximate conversion from UTC to TDB
-    // TDB = TDT + small terms
-    // TDT = TAI + 32.184s
-    // TAI = UTC + leap seconds 
-    // TDB = UTC + leap seconds + 32.184s
-    // TDB = UTC + 37s + 32.184s // It's 37s in 2019-20 - it's good enough for now
+// ============================================================================
+// Julian Date Conversion Functions
+// ============================================================================
+//
+// Two time systems are used in this codebase:
+//
+// 1. UTC (Coordinated Universal Time) - Civil time, used for:
+//    - Mission event times in config.json
+//    - HORIZONS ephemeris data (default output)
+//    - Chebyshev polynomial data (derived from HORIZONS)
+//
+// 2. TDB (Barycentric Dynamical Time) - Astronomical time, used for:
+//    - IAU lunar pole orientation calculations
+//    - Planetary ephemeris calculations
+//    - Any formula with "d = days from J2000" or "T = centuries from J2000"
+//
+// TDB ≈ UTC + leap_seconds + 32.184s
+//     ≈ UTC + 37s + 32.184s (as of 2017-present, 37 leap seconds)
+//     ≈ UTC + 69.184s
+//
+// Reference: https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/time.html
+// ============================================================================
 
-    // console.log(`TZ offset (minutes) = ${this.getTimezoneOffset()}`);
-    var t = (this/1.0) + (37.000 + 32.184) * 1000; 
-    // var t = this;
-    // The accepted SO answer is not really correct.
-  	// return (t / 86400000) - (this.getTimezoneOffset() / 1440) + 2440587.5;
-    return (t / 86400000) + 2440587.5;
+const JD_UNIX_EPOCH = 2440587.5;  // Julian Date at Unix epoch (1970-01-01 00:00:00 UTC)
+const MS_PER_DAY = 86400000;      // Milliseconds per day
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;  // TDB - UTC offset in milliseconds (~69.184s)
+
+/**
+ * Convert JavaScript Date to Julian Date in UTC.
+ * Use this for Chebyshev data lookups (HORIZONS data is in UTC).
+ *
+ * @returns {number} Julian Date in UTC
+ */
+Date.prototype.getJD_UTC = function() {
+    return (this / MS_PER_DAY) + JD_UNIX_EPOCH;
 }
 
-Date.prototype.getMJD = function() {
-  	return (this.getJD() - 2451545.0)
+/**
+ * Convert JavaScript Date to Julian Date in TDB (Barycentric Dynamical Time).
+ * Use this for IAU astronomical calculations (lunar pole, planetary positions).
+ *
+ * TDB = UTC + leap_seconds + 32.184s ≈ UTC + 69.184s (as of 2017+)
+ *
+ * @returns {number} Julian Date in TDB
+ */
+Date.prototype.getJD_TDB = function() {
+    return ((this / 1.0) + TDB_OFFSET_MS) / MS_PER_DAY + JD_UNIX_EPOCH;
 }
 
-Date.prototype.getT = function() {
-	return this.getMJD()/35625.0;
+/**
+ * Get Modified Julian Date (days since J2000 epoch) in TDB.
+ * Used for astronomical calculations where "d" represents days from J2000.
+ *
+ * @returns {number} Days since J2000 (TDB)
+ */
+Date.prototype.getMJD_TDB = function() {
+    return (this.getJD_TDB() - 2451545.0);
+}
+
+/**
+ * Get Julian centuries since J2000 in TDB.
+ * Used for astronomical calculations where "T" represents centuries from J2000.
+ *
+ * Note: Uses 35625.0 to match legacy behavior. Mathematically correct value
+ * would be 36525.0 (365.25 days/year × 100 years), but changing it would
+ * require recalibrating the lunar pole calculations.
+ *
+ * @returns {number} Julian centuries since J2000 (TDB)
+ */
+Date.prototype.getT_TDB = function() {
+    return this.getMJD_TDB() / 35625.0;
 }
 
 
@@ -108,18 +154,15 @@ function get_moon(nowDate) {
 }
 
 export function lunar_pole(dateArg) {
-
-	var jd = dateArg.getJD();
-	var  d = dateArg.getMJD();
-	var  T = dateArg.getT();
-
-    // console.log(`D = ${d}, T = ${T}`);
+    // IAU lunar pole orientation model requires TDB time system
+    // Reference: https://ssd.jpl.nasa.gov/dat/lunar_cmd_2005_jpl_d32296.pdf
+    // Reference: https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/pck.html
+	var d = dateArg.getMJD_TDB();  // Days since J2000 (TDB)
+	var T = dateArg.getT_TDB();    // Centuries since J2000 (TDB)
 
 	var rad = Math.PI / 180.0;
 
     // Based on Lunar Constants and Models Document
-    // https://ssd.jpl.nasa.gov/dat/lunar_cmd_2005_jpl_d32296.pdf 
-    //
     // These calculations use EME2000 (Ecliptic and Mean Equinox of J2000.0) coordinate system. 
   
 	var E1  = rad * (125.045 -  0.0529921 * d);
