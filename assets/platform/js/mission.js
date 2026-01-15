@@ -21,8 +21,7 @@ import {
     updateProgressLabel,
     updateSpacecraftMnemonic
 } from "./core/dom.js";
-import { parseNpy, uncompressNPZ } from "./npyreader.js";
-import { getStateFromChebyshev, loadChebyshevData } from "./chebyshev.js";
+import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 
 import Swiper from 'swiper';
@@ -291,49 +290,12 @@ function fetchJson(url, callback = null, callbackError = null) {
     }); 
 };  
 
-function fetchNPY(url, callback = null, callbackError = null) {
-    fetch(url)
-        .then(response => response.arrayBuffer())
-        .then(buffer => {
-            const result = parseNpy(buffer);
-            // console.log("Schema:");
-            // console.log(`Data type: ${result.dtype}`);
-            // console.log(`Shape: ${result.shape}`);
-            // console.log(`Fortran order: ${result.fortranOrder}`);
-            // console.log("Contents:");
-            // console.log(result.data);
-            
-            // let processedResult;
-            // if (Array.isArray(result.data)) {
-            //     processedResult = result.data.map(item => ({
-            //         jdct: item.jdct,
-            //         x: item.x,
-            //         y: item.y,
-            //         z: item.z,
-            //         vx: item.vx,
-            //         vy: item.vy,
-            //         vz: item.vz
-            //     }));
-            //     console.log("processedResult: " + processedResult);
-            // } else {
-            //     console.warn("Result data is not an array. Unable to process.");
-            //     processedResult = result.data;
-            // }
-            
-            if (callback !== null) {
-                callback(result.data);
-            }
-        })
-        .catch(error => {
-            console.error("Error in fetchNPY:", error);
-            if (callbackError !== null) {
-                callbackError(error);
-            }
-        });
-}
 
-async function fetchMetadata(npzFileName) {
-    const metaFileName = npzFileName.replace('.npz', '-meta.json');
+async function fetchMetadata(baseFileName) {
+    // baseFileName can be like "geo-CY3" or "geo-CY3-cheb.json"
+    // We need to derive the meta filename pattern: "geo-CY3-meta.json"
+    const baseName = baseFileName.replace(/-cheb\.json$/, '').replace(/\.json$/, '');
+    const metaFileName = `${baseName}-meta.json`;
     try {
         const response = await fetch(metaFileName);
         if (response.ok) {
@@ -502,55 +464,6 @@ function updateLandingTimesFromConfig() {
     // If landing.enabled is false, no message is logged
 }
 
-async function fetchNPZ(url, callback = null, callbackError = null, updateMetadata = true) {
-    try {
-        // First try to fetch metadata
-        const metadata = await fetchMetadata(url);
-        if (metadata && updateMetadata) {
-            // Metadata loaded successfully
-            // Store metadata for later use
-            animationScenes[config].metadata = metadata;
-        }
-        
-        // Then fetch NPZ data
-        const response = await fetch(url);
-        const buffer = await response.arrayBuffer();
-        const npzData = await uncompressNPZ(buffer);
-        
-        // Convert NPZ data to the format expected by the rest of the code
-        // The JSON structure has planets as top-level keys, each with "vectors" property
-        const processedData = {};
-        
-        // Process each file in the NPZ
-        for (const [filename, npyData] of Object.entries(npzData)) {
-            if (filename.includes('_vectors.npy')) {
-                // Extract planet name from filename (e.g., "CY3_vectors.npy" -> "CY3")
-                let planetName = filename.replace('_vectors.npy', '');
-                
-                // Map spacecraft mnemonic to internal generic identifier "SC"
-                if (globalConfig && globalConfig.spacecraft_mnemonic && planetName === globalConfig.spacecraft_mnemonic) {
-                    planetName = "SC";
-                }
-                
-                // Create planet object if it doesn't exist
-                if (!processedData[planetName]) {
-                    processedData[planetName] = {};
-                }
-                
-                processedData[planetName].vectors = npyData.data;
-            }
-        }
-        
-        if (callback !== null) {
-            callback(processedData);
-        }
-    } catch (error) {
-        console.error("Error in fetchNPZ:", error);
-        if (callbackError !== null) {
-            callbackError(error);
-        }
-    }
-}
 
 function getStartAndEndTimes(id) {
     let startTime, endTime;
@@ -2277,47 +2190,30 @@ class AnimationScene {
 
         nOrbitPoints = 0;
 
-        // console.log(planetsForLocations);
-        
-        for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
+        // Generate SC curve from Chebyshev data
+        if (chebyshevDataLoaded[config] && chebyshevData[config]) {
+            const stepMs = animationScenes[config].stepDurationInMilliSeconds;
+            const vectors = generateCurveFromChebyshev(
+                chebyshevData[config],
+                startTime,
+                latestEndTime,
+                stepMs
+            );
 
-            var planetKey = animationScenes[config].planetsForLocations[i];
-            // console.log("planetKey = " + planetKey);
-            
-            var planetProps = planetProperties[planetKey];
-            
-            var planetId = planetProps.id;
-            // console.log("planetId = " + planetId);
-            
-            var planet = animationScenes[config].orbits[planetId];
+            for (const vec of vectors) {
+                const x = (vec.x / KM_PER_AU) * PIXELS_PER_AU;
+                const y = (vec.y / KM_PER_AU) * PIXELS_PER_AU;
+                const z = (vec.z / KM_PER_AU) * PIXELS_PER_AU;
 
-            var vectors = planet["vectors"];
+                const vx = (vec.vx / KM_PER_AU) * PIXELS_PER_AU;
+                const vy = (vec.vy / KM_PER_AU) * PIXELS_PER_AU;
+                const vz = (vec.vz / KM_PER_AU) * PIXELS_PER_AU;
 
-            if (planetKey == "SC") {
+                this.curve.push(new THREE.Vector3(x, y, z));
+                this.curveVelocities.push(new THREE.Vector3(vx, vy, vz));
 
-                for (var j = 0; j < vectors.length; ++j) {
-
-                    var x = +1 * (vectors[j]["x"] / KM_PER_AU) * PIXELS_PER_AU;;
-                    var y = +1 * (vectors[j]["y"] / KM_PER_AU) * PIXELS_PER_AU;;
-                    var z = +1 * (vectors[j]["z"] / KM_PER_AU) * PIXELS_PER_AU;;
-
-
-                    var vx = +1 * (vectors[j]["vx"] / KM_PER_AU) * PIXELS_PER_AU;;
-                    var vy = +1 * (vectors[j]["vy"] / KM_PER_AU) * PIXELS_PER_AU;;
-                    var vz = +1 * (vectors[j]["vz"] / KM_PER_AU) * PIXELS_PER_AU;;
-
-                    var pos = new THREE.Vector3(x, y, z);
-                    this.curve.push(pos);
-
-                    var vel = new THREE.Vector3(vx, vy, vz);
-                    this.curveVelocities.push(vel);
-
-                    ++nOrbitPoints;
-                }
+                ++nOrbitPoints;
             }
-
-
-
         }
 
         // console.log("nOrbitPoints = " + nOrbitPoints);
@@ -2328,28 +2224,32 @@ class AnimationScene {
         const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
         if (!isLandingEnabled || config != "lunar") return;
 
-        nLandingPoints = 0;    
-        var planet = landingData["SC"];
-        var vectors = planet["vectors"];
+        nLandingPoints = 0;
 
-        for (var j = 0; j < vectors.length; ++j) {
+        // Generate landing curve from Chebyshev data
+        if (landingChebyshevLoaded && landingChebyshevData) {
+            const stepMs = 1000; // Landing data uses 1-second resolution
+            const vectors = generateCurveFromChebyshev(
+                landingChebyshevData,
+                startLandingTime,
+                endLandingTime,
+                stepMs
+            );
 
-            var x = +1 * (vectors[j]["x"] / KM_PER_AU) * PIXELS_PER_AU;;
-            var y = +1 * (vectors[j]["y"] / KM_PER_AU) * PIXELS_PER_AU;;
-            var z = +1 * (vectors[j]["z"] / KM_PER_AU) * PIXELS_PER_AU;;
+            for (const vec of vectors) {
+                const x = (vec.x / KM_PER_AU) * PIXELS_PER_AU;
+                const y = (vec.y / KM_PER_AU) * PIXELS_PER_AU;
+                const z = (vec.z / KM_PER_AU) * PIXELS_PER_AU;
 
+                const vx = (vec.vx / KM_PER_AU) * PIXELS_PER_AU;
+                const vy = (vec.vy / KM_PER_AU) * PIXELS_PER_AU;
+                const vz = (vec.vz / KM_PER_AU) * PIXELS_PER_AU;
 
-            var vx = +1 * (vectors[j]["vx"] / KM_PER_AU) * PIXELS_PER_AU;;
-            var vy = +1 * (vectors[j]["vy"] / KM_PER_AU) * PIXELS_PER_AU;;
-            var vz = +1 * (vectors[j]["vz"] / KM_PER_AU) * PIXELS_PER_AU;;
+                this.landingCurve.push(new THREE.Vector3(x, y, z));
+                this.landingCurveVelocities.push(new THREE.Vector3(vx, vy, vz));
 
-            var pos = new THREE.Vector3(x, y, z);
-            this.landingCurve.push(pos);
-
-            var vel = new THREE.Vector3(vx, vy, vz);
-            this.landingCurveVelocities.push(vel);
-
-            ++nLandingPoints;
+                ++nLandingPoints;
+            }
         }
     }
 
@@ -2709,7 +2609,6 @@ async function initConfig() {
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
             animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
@@ -2763,7 +2662,6 @@ async function initConfig() {
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
             animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
             animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
 
@@ -2907,6 +2805,9 @@ function setDimension(init_flag = false) {
         
         initSVG();
         loadOrbitDataIfNeededAndProcess(function() {
+            if (currentDimension !== "2D") {
+                return;
+            }
             handleDimensionSwitch(val);
             handlePlaneChange(dimensionChanged, init_flag);
             setLocation();
@@ -2939,7 +2840,13 @@ function planetStartTime(planet) {
 
 function isLocationAvaialable(planet, date) {
     var flag = false;
-    flag = ((date >= startTime) && (date <= endTimeSC));
+    if (planet === "SC" && chebyshevDataLoaded[config] && chebyshevData[config]?.time_range) {
+        const jd = new Date(date).getJD_TDB();
+        const range = chebyshevData[config].time_range;
+        flag = (jd >= range.start) && (jd <= range.end);
+    } else {
+        flag = ((date >= startTime) && (date <= endTimeSC));
+    }
     // var d = new Date(date);
     // console.log("isLocationAvaialable() called for body " + planet + " for time " + d + ": returning " + flag);
     return flag;
@@ -2959,15 +2866,17 @@ function rotate(x, y, phi) { // unused function for now
 function setLabelLocation(planetKey) {
 
     var planetProps = planetProperties[planetKey];
-    var planetId = planetProps.id;
-    var planet = animationScenes[config].orbits[planetId];
-    var vectors = planet["vectors"];
 
     if (isLocationAvaialable(planetKey, animTime)) {
 
         // var index = timelineIndex - planetProperties[planetKey]["offset"];
 
         var [planet_pos, planet_vel] = getBodyLocation(planetKey, animTime);
+        if (!planet_pos) {
+            // Data not available, hide the label
+            d3.select("#label-" + planetKey).attr("visibility", "hidden");
+            return;
+        }
         var x = xFactor * planet_pos[xVariable];
         var y = yFactor * planet_pos[yVariable];
 
@@ -2995,13 +2904,12 @@ function getBodyLocation(craftid, t) {
     // Check if landing is enabled before using landing time range
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
 
-    // For SC (spacecraft), try to use Chebyshev data if available
+    // For SC (spacecraft), use Chebyshev data
     if (craftid === "SC") {
-        // Landing phase - use landing Chebyshev if available
+        // Landing phase - use landing Chebyshev
         if ((config == "lunar") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
             if (landingChebyshevLoaded && landingChebyshevData) {
-                // Convert JavaScript timestamp to Julian Date
-                const jd = new Date(t).getJD();
+                const jd = new Date(t).getJD_TDB();
                 const state = getStateFromChebyshev(landingChebyshevData, jd);
                 if (state) {
                     return [
@@ -3010,29 +2918,13 @@ function getBodyLocation(craftid, t) {
                     ];
                 }
             }
-            // Fallback to NPZ landing data
-            var orbitDataResolutionInSeconds = 1;
-            var num = t - startLandingTime;
-            var denom = orbitDataResolutionInSeconds * ONE_SECOND_MS;
-            var tlIndex1 = Math.floor(num / denom);
-            var tlIndex2 = tlIndex1 + 1;
-            var remainder = (num % denom) / ONE_SECOND_MS;
-
-            var vectors = landingData[planetProperties[craftid].id]["vectors"];
-            var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
-            var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
-            var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
-            var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
-            var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
-            var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
-
-            return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
+            console.debug(`Landing Chebyshev data not available for time ${t}`);
+            return [null, null];
         }
 
-        // Regular orbital phase - use Chebyshev if available
+        // Regular orbital phase - use Chebyshev
         if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-            // Convert JavaScript timestamp to Julian Date
-            const jd = new Date(t).getJD();
+            const jd = new Date(t).getJD_TDB();
             const state = getStateFromChebyshev(chebyshevData[config], jd);
             if (state) {
                 return [
@@ -3041,6 +2933,8 @@ function getBodyLocation(craftid, t) {
                 ];
             }
         }
+        console.debug(`Chebyshev data not available for SC at time ${t}`);
+        return [null, null];
     }
 
     // Use Astronomy Engine for Moon and Earth positions
@@ -3060,53 +2954,9 @@ function getBodyLocation(craftid, t) {
         ];
     }
 
-    // Fallback: use NPZ data (for non-SC bodies or when Chebyshev not available)
-    if ((config == "lunar") && (craftid == "SC") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
-        var orbitDataResolutionInSeconds = 1;
-        var num = t - startLandingTime;
-        var denom = orbitDataResolutionInSeconds * ONE_SECOND_MS;
-        var tlIndex1 = Math.floor(num / denom);
-        var tlIndex2 = tlIndex1 + 1;
-        var remainder = (num % denom) / ONE_SECOND_MS;
-
-        var vectors = landingData[planetProperties[craftid].id]["vectors"];
-        var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
-        var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
-        var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
-        var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
-        var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
-        var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
-
-        return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
-    } else {
-        var orbitDataResolutionInMs = animationScenes[config].stepDurationInMilliSeconds;
-        var num = t - startTime;
-        var denom = orbitDataResolutionInMs;
-        var tlIndex1 = Math.floor(num / denom);
-        var tlIndex2 = tlIndex1 + 1;
-        var remainder = (num % denom) / denom;
-
-        var vectors = animationScenes[config].orbits[planetProperties[craftid].id]["vectors"];
-
-        if (tlIndex1 >= vectors.length || tlIndex1 < 0) {
-            console.error(`Invalid tlIndex1: ${tlIndex1}, vectors.length: ${vectors.length}`);
-            return [null, null];
-        }
-        if (tlIndex2 >= vectors.length) {
-            console.error(`Invalid tlIndex2: ${tlIndex2}, vectors.length: ${vectors.length}`);
-            return [null, null];
-        }
-
-        var  x = (1 - remainder) * vectors[tlIndex1][ "x"] + remainder * (vectors[tlIndex2][ "x"]);
-        var  y = (1 - remainder) * vectors[tlIndex1][ "y"] + remainder * (vectors[tlIndex2][ "y"]);
-        var  z = (1 - remainder) * vectors[tlIndex1][ "z"] + remainder * (vectors[tlIndex2][ "z"]);
-        var vx = (1 - remainder) * vectors[tlIndex1]["vx"] + remainder * (vectors[tlIndex2]["vx"]);
-        var vy = (1 - remainder) * vectors[tlIndex1]["vy"] + remainder * (vectors[tlIndex2]["vy"]);
-        var vz = (1 - remainder) * vectors[tlIndex1]["vz"] + remainder * (vectors[tlIndex2]["vz"]);
-
-        // console.log("getBodyLocation(" + craftId + ", " + t + ") => x = " + x, ", y = " + y + ", z = " + z);
-        return [new THREE.Vector3(x, y, z), new THREE.Vector3(vx, vy, vz)];
-    }
+    // Unknown body
+    console.error(`Unknown body: ${craftid} in config ${config}`);
+    return [null, null];
 }
 
 function setLocation() {
@@ -3179,23 +3029,26 @@ function setLocation() {
 
         var planetKey = animationScenes[config].planetsForLocations[i];
         var planetProps = planetProperties[planetKey];
-        var planetId = planetProps.id;
-        // console.log("planetId = ", planetId);
-        // console.log("animationScenes[config].orbits = ", animationScenes[config].orbits);
-        var planet = animationScenes[config].orbits[planetId];
-        // console.log("planet = ", planet);
-        var vectors = planet["vectors"];
 
         if (isLocationAvaialable(planetKey, animTime)) {
 
-            // var index = timelineIndex - planetProperties[planetKey]["offset"];
-
-            // console.log("About to access vectors[length: " + vectors.length + "] for " + planetKey + " using index: " + index);
-
             var [craft_pos, craft_vel] = getBodyLocation(planetKey, animTime);
-            var [realx, realy, realz] = [craft_pos.x, craft_pos.y, craft_pos.z]; 
+            if (!craft_pos) {
+                // Data not available for this time, skip this planet
+                continue;
+            }
+            var [realx, realy, realz] = [craft_pos.x, craft_pos.y, craft_pos.z];
             // console.log("realx = " + realx + ", realy = " + realy + ", realz = " + realz);
-            var [craft_pos_next, craft_vel_next] = getBodyLocation(planetKey, animTime+ONE_MINUTE_MS);
+            var craft_pos_next = null;
+            var craft_vel_next = null;
+            if (isLocationAvaialable(planetKey, animTime + ONE_MINUTE_MS)) {
+                [craft_pos_next, craft_vel_next] = getBodyLocation(planetKey, animTime + ONE_MINUTE_MS);
+            }
+            if (!craft_pos_next) {
+                // Use current position for next if not available
+                craft_pos_next = craft_pos;
+                craft_vel_next = craft_vel;
+            }
             var [realx_next, realy_next, realz_next] = [craft_pos_next.x, craft_pos_next.y, craft_pos_next.z]; 
 
             var realx_screen = +1 * (realx / KM_PER_AU) * PIXELS_PER_AU;
@@ -3276,19 +3129,22 @@ function setLocation() {
                     // relative to Moon (only for lunar missions)
 
                     var [moon_pos, moon_vel] = getBodyLocation("MOON", animTime);
-                    var dr = moon_pos.distanceTo(craft_pos);
-                    var dv = moon_vel.distanceTo(craft_vel);
+                    if (moon_pos) {
+                        var dr = moon_pos.distanceTo(craft_pos);
+                        var dv = moon_vel.distanceTo(craft_vel);
 
-                    var altitudeMoon = dr - MOON_RADIUS_KM;
-                    d3.select("#distance-" + planetKey +"-MOON").text(FORMAT_METRIC(dr));
-                    d3.select("#altitude-" + planetKey +"-MOON").text(FORMAT_METRIC(altitudeMoon));
-                    d3.select("#velocity-" + planetKey +"-MOON").text(FORMAT_METRIC(dv));
+                        var altitudeMoon = dr - MOON_RADIUS_KM;
+                        d3.select("#distance-" + planetKey +"-MOON").text(FORMAT_METRIC(dr));
+                        d3.select("#altitude-" + planetKey +"-MOON").text(FORMAT_METRIC(altitudeMoon));
+                        d3.select("#velocity-" + planetKey +"-MOON").text(FORMAT_METRIC(dv));
+                    }
                 }
 
                 if (config == "lunar") {
                     // relative to Earth
 
                     var [earth_pos, earth_vel] = getBodyLocation("EARTH", animTime);
+                    if (!earth_pos) continue;
                     var dr = earth_pos.distanceTo(craft_pos);
                     var dv = earth_vel.distanceTo(craft_vel);
 
@@ -3809,17 +3665,14 @@ function updateConfigFromMetadata() {
     }
 }
 
-async function processOrbitData(data) {
+async function processOrbitData() {
     // console.log("processOrbitData() called");
 
     $("#progressbar").hide();
     clearProgressLabel();
-    
+
     // Update configuration from metadata if available
     updateConfigFromMetadata();
-    
-    animationScenes[config].orbits = data;
-    if (config == "helio") processOrbitElementsData();
     
     // Only process SVG orbit vectors in 2D mode
     if (currentDimension === "2D") {
@@ -3922,48 +3775,24 @@ async function loadLandingDataAndProcess() {
         // Use config data for landing if available
         const configData = globalConfig;
         const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-        let landingDataNpz = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}.npz`;
         let landingDataCheb = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}-cheb.json`;
 
         if (configData && configData.landing) {
             const cfg = configData.landing;
-            landingDataNpz = `${window.missionConfig.dataPath}${cfg.orbits_file}.npz`;
             landingDataCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
         }
 
-        // Try to load Chebyshev data for landing phase
+        // Load Chebyshev data for landing phase
         try {
             console.log(`Loading landing Chebyshev data from ${landingDataCheb}`);
             landingChebyshevData = await loadChebyshevData(landingDataCheb);
             landingChebyshevLoaded = true;
+            landingDataLoaded = true;
             console.log(`Landing Chebyshev data loaded: ${landingChebyshevData.segments.length} segments`);
         } catch (chebError) {
-            console.warn(`Could not load landing Chebyshev data, falling back to NPZ: ${chebError}`);
+            console.error(`Failed to load landing Chebyshev data: ${chebError}`);
             landingChebyshevLoaded = false;
         }
-
-        // Also load NPZ for fallback and other bodies
-        fetchNPZ(landingDataNpz, async function(data) {
-
-            // console.log("Landing orbit data load from " + landingDataNpz + ": OK");
-            landingDataLoaded = true;
-            landingData = data;
-
-            // Also load the landing metadata
-            try {
-                const metaFileName = landingDataNpz.replace('.npz', '-meta.json');
-                const response = await fetch(metaFileName);
-                if (response.ok) {
-                    landingMetadata = await response.json();
-                }
-            } catch (error) {
-                console.warn("Could not load landing metadata:", error);
-            }
-
-        }, async function(error) {
-            var msg = "Error: Landing orbit data load from " + landingDataNpz + ": " + error;
-            console.error(msg);
-        }, false);
     }
 }
 
@@ -3981,80 +3810,30 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         await sleep();
 
         try {
-            // Load Chebyshev JSON for spacecraft (SC) trajectory - much smaller than NPZ
+            // Load Chebyshev JSON for spacecraft (SC) trajectory
             const chebUrl = animationScenes[config].orbitsCheb;
             console.log(`Loading Chebyshev data from ${chebUrl}`);
 
-            try {
-                chebyshevData[config] = await loadChebyshevData(chebUrl);
-                chebyshevDataLoaded[config] = true;
-                console.log(`Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`);
-            } catch (chebError) {
-                console.warn(`Could not load Chebyshev data, falling back to NPZ: ${chebError}`);
-                chebyshevDataLoaded[config] = false;
-            }
+            chebyshevData[config] = await loadChebyshevData(chebUrl);
+            chebyshevDataLoaded[config] = true;
+            console.log(`Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`);
 
-            // Also load NPZ for other bodies (MOON, EARTH) - SC data will be ignored if Chebyshev loaded
-            const data = await new Promise((resolve, reject) => {
-                fetchNPZ(animationScenes[config].orbitsNpz, resolve, reject);
-            });
-
-            // data is now the parsed NPZ data
-            // console.log("Orbit data load from " + animationScenes[config].orbitsJson + ": OK");
             dataLoaded = true;
             orbitDataLoaded[config] = true;
-            orbitData[config] = data;
 
             $("#progressbar").hide();
-            processOrbitData(data);
+            await processOrbitData();
             await sleep();
-            // console.log("Calling callback() from loadOrbitDataIfNeededAndProcess() ...");
             callback();
-            // console.log("Called callback() from loadOrbitDataIfNeededAndProcess() ...");
 
         } catch(error) {
-            console.error("Error loading or processing orbit data:", error);
+            console.error("Error loading Chebyshev data:", error);
             $("#progressbar").hide();
-            var msg = "Error: Orbit data load from " + animationScenes[config].orbitsJson + ": " + error;
-            console.error(msg);
-            d3.select("#eventinfo").text(msg);
+            d3.select("#eventinfo").text("Error: failed to load orbit data.");
         }
-
-
-            // d3.json(orbitsJson)
-            // // .on("progress", function() {
-
-            // //     var progress = d3.event.loaded / orbitsJsonFileSizeInBytes;
-            // //     var msg = dataLoaded ? "" : ("Loading orbit data ... " + FORMAT_PERCENT(progress) + ".");
-            // //     // console.log(msg);
-            // //     $("#progressbar").progressbar({value: progress * 100});
-            // //     $("#progressbar").show();
-            // //     d3.select("#progressbar-label").html(msg);
-            // // })
-            // .then(function(data) {
-            //     console.log("Orbit data load from " + orbitsJson + ": OK");
-            //     dataLoaded = true;
-            //     orbitDataLoaded[config] = true;
-            //     orbitData[config] = data;
-            //     processOrbitData(data);
-
-            //     try {
-            //         callback();
-            //     } catch(error) {
-            //         console.log("Error while processing read orbit data.");
-            //     }                
-            // })
-            // .catch(function(error) {
-            //     console.log("Orbit data load from " + orbitsJson + ": ERROR");
-            //     console.log(error);
-            //     $("#progressbar").hide();
-            //     d3.select("#progressbar-label").html("Error: failed to load orbit data.");
-            // });
-
-            /* DON'T PUT ANY CODE HERE */        
     } else {
         // console.log("Orbit data already loaded for " + config);
-        await processOrbitData(orbitData[config]);
+        await processOrbitData();
         await sleep();
         callback();
     }
@@ -4192,8 +3971,8 @@ function processOrbitElementsData() {
 
 
 async function processOrbitVectorsData() {
-    // Add spacecraft orbits
-    
+    // Add spacecraft orbits (2D SVG mode)
+
     // Only process if svgContainer exists (2D mode)
     if (!svgContainer) {
         console.debug("SVG container not initialized, skipping processOrbitVectorsData");
@@ -4204,11 +3983,27 @@ async function processOrbitVectorsData() {
 
         var planetKey = animationScenes[config].planetsForLocations[i];
         var planetProps = planetProperties[planetKey];
-        var planetId = planetProps.id;
-        var planet = animationScenes[config].orbits[planetId];
-        var vectors = planet["vectors"];
 
         if (shouldDrawOrbit(planetKey)) {
+            if (!svgContainer || currentDimension !== "2D") {
+                return;
+            }
+            // Generate vectors from Chebyshev data
+            let vectors = [];
+            if (chebyshevDataLoaded[config] && chebyshevData[config]) {
+                const stepMs = animationScenes[config].stepDurationInMilliSeconds;
+                vectors = generateCurveFromChebyshev(
+                    chebyshevData[config],
+                    startTime,
+                    latestEndTime,
+                    stepMs
+                );
+            }
+
+            if (vectors.length === 0) {
+                console.warn(`No orbit data available for ${planetKey} in 2D mode`);
+                continue;
+            }
 
             svgContainer.append("g")
                 .attr("id", "orbit-" + planetKey)
@@ -4234,6 +4029,9 @@ async function processOrbitVectorsData() {
     }
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     // Add center planet - Sun/Earth/Mars/Moon
 
@@ -4248,6 +4046,9 @@ async function processOrbitVectorsData() {
         .attr("fill", planetProperties[animationScenes[config].primaryBody].color);
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     if ((config == "geo") || (config == "helio")) {
 
@@ -4264,6 +4065,9 @@ async function processOrbitVectorsData() {
     }
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     if (config == "martian") {
            var r = 3390/KM_PER_AU*PIXELS_PER_AU/zoomFactor;
@@ -4277,6 +4081,9 @@ async function processOrbitVectorsData() {
     }
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     // Add planetary positions
 
@@ -4284,9 +4091,6 @@ async function processOrbitVectorsData() {
 
         var planetKey = animationScenes[config].planetsForLocations[i];
         var planetProps = planetProperties[planetKey];
-        var planetId = planetProps.id;
-        var planet = animationScenes[config].orbits[planetId];
-        var vectors = planet["vectors"];
 
         // If a planet location is avialable only after an interval of time from the epoch (startTime)
         // For example, Maven and the Mars Orbiter Mission were launched at different times.
@@ -4307,6 +4111,9 @@ async function processOrbitVectorsData() {
     }
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     // Add fire
 
@@ -4319,6 +4126,9 @@ async function processOrbitVectorsData() {
             .attr("fill", "red");
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     // Add labels
 
@@ -4330,9 +4140,6 @@ async function processOrbitVectorsData() {
 
         var planetKey = animationScenes[config].planetsForLocations[i];
         var planetProps = planetProperties[planetKey];
-        var planetId = planetProps.id;
-        var planet = animationScenes[config].orbits[planetId];
-        var vectors = planet["vectors"];
 
         d3.select("#labels")
             .append("text")
@@ -4346,6 +4153,9 @@ async function processOrbitVectorsData() {
     }
 
     await sleep();
+    if (!svgContainer || currentDimension !== "2D") {
+        return;
+    }
 
     if (config == "geo") {
 
