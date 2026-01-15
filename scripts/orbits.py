@@ -639,8 +639,8 @@ def main():
     print("Running ...")
 
     parser = argparse.ArgumentParser(description="Orbit data fetcher and processor")
-    parser.add_argument("--mission", required=True, 
-                        help="Mission name (e.g., chandrayaan3, nisar)")
+    parser.add_argument("--mission", required=True,
+                        help="Mission name (e.g., chandrayaan3)")
     parser.add_argument("--phase", "--phases", nargs="+", 
                         help="Phase(s) of the mission to process (default: all phases from config)")
     parser.add_argument("--data-dir", default=None, help="Base data directory (default: timestamped)")

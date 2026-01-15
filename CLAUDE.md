@@ -2,17 +2,7 @@
 
 ## Visual Regression Testing - SSIM-based Comparison
 
-Visual regression tests use SSIM (Structural Similarity Index) instead of pixel matching for robust comparison that handles anti-aliasing differences.
-
-### SSIM Thresholds
-```javascript
-const SSIM_THRESHOLD = {
-  IDENTICAL: 0.99,      // For exact visual matches
-  VERY_SIMILAR: 0.97,   // For minor anti-aliasing differences
-  SIMILAR: 0.95,        // For standard 3D scene comparisons (DEFAULT)
-  DIFFERENT: 0.90       // For complex 3D scenes
-};
-```
+Visual regression tests use SSIM (Structural Similarity Index) instead of pixel matching for robust comparison that handles anti-aliasing differences. Threshold values are defined in `test/ui.test.js` (single source of truth).
 
 ### Test Mode
 Tests run with `?testMode=true` URL parameter which:
@@ -95,24 +85,21 @@ The project consists of several major components:
 1. **Orbit Data Pipeline**: 
    - Python script (`scripts/orbits.py`) fetches orbit data from NASA JPL HORIZONS
    - Data is fetched for different phases: geocentric ("geo"), selenocentric ("lunar"), and landing
-   - Raw data is converted to JSON format for use by the animation
-   - Alternative NPZ (NumPy compressed) format is also supported
+   - Raw data is converted to Chebyshev polynomial format for efficient interpolation
    - Data is saved to both timestamped archive directories and the main data directory
 
 2. **Frontend Visualization**:
    - `chandrayaan3.html` - Main HTML page (stays in root for easy web access)
    - `assets/chandrayaan3/js/cy3.js` - Core JavaScript module handling animation logic (ES6 modules)
    - `assets/chandrayaan3/js/astro.js` - Astronomy support functions (Julian dates, coordinate conversions)
-   - `assets/chandrayaan3/js/npyreader.js` - NPZ/NPY file reader for orbit data
    - `assets/chandrayaan3/css/cy3.css` - Styling for the application
    - Uses THREE.js for 3D rendering and D3.js for 2D SVG rendering
    - jQuery/jQuery UI for UI controls
 
 3. **Data Formats**:
-   - Orbit data stored in `assets/chandrayaan3/data/` as JSON files: `geo-CY3.json`, `lunar-CY3.json`, `landing-CY3.json`
-   - Alternative NPZ format: `geo-CY3.npz`, `lunar-CY3.npz`, `landing-CY3.npz`
+   - Chebyshev polynomial files: `geo-CY3-cheb.json`, `lunar-CY3-cheb.json`, `landing-CY3-cheb.json`
    - Metadata files: `geo-CY3-meta.json`, `lunar-CY3-meta.json`, `landing-CY3-meta.json`
-   - Each file contains spacecraft position vectors and orbital elements
+   - Moon/Earth positions computed dynamically using Astronomy Engine
 
 ## Common Development Commands
 
@@ -120,16 +107,10 @@ The project consists of several major components:
 
 Using Python (recommended):
 ```bash
-# Fetch geocentric orbit data
-python scripts/orbits.py --phase=geo
-
-# Fetch selenocentric orbit data
-python scripts/orbits.py --phase=lunar
-
-# Generate JSON and NPZ formats (both generated automatically)
-python scripts/orbits.py --phase=geo
-python scripts/orbits.py --phase=lunar
-python scripts/orbits.py --phase=landing
+# Fetch and generate orbit data for each phase
+python scripts/orbits.py --mission=chandrayaan3 --phase=geo
+python scripts/orbits.py --mission=chandrayaan3 --phase=lunar
+python scripts/orbits.py --mission=chandrayaan3 --phase=landing
 ```
 
 ### Running the Application
@@ -161,11 +142,6 @@ npx http-server
 - Orbit data files now in `assets/chandrayaan3/data/` (excluded from Git)
 - 3D models in `assets/chandrayaan3/models/`
 
-### NPZ Support
-- Added support for NumPy compressed (NPZ) format for orbit data
-- NPZ files provide more efficient storage and faster loading
-- Python script automatically generates both JSON and NPZ files
-
 ### Data Pipeline Updates
 - Python script now outputs to timestamped archive directories
 - Files are also copied to main data directory for runtime access
@@ -181,16 +157,14 @@ cy3/
 │   └── chandrayaan3/
 │       ├── js/                    # JavaScript files
 │       │   ├── cy3.js             # Core animation logic
-│       │   ├── astro.js           # Astronomy calculations
-│       │   ├── npyreader.js       # NPZ/NPY file reader
-│       │   └── ga.js              # Google Analytics
+│       │   └── astro.js           # Astronomy calculations
 │       ├── css/
 │       │   └── cy3.css            # Application styles
 │       ├── html/
 │       │   └── whatsnew-cy3.html  # Supporting pages
 │       ├── images/
 │       │   └── chandrayaan3-screenshot.png  # Social media preview
-│       ├── data/                  # Orbit data files (JSON/NPZ)
+│       ├── data/                  # Orbit data files (Chebyshev JSON)
 │       ├── models/                # 3D models (GLB files)
 │       └── archive/               # Historical data archives
 ├── scripts/                       # Data generation scripts

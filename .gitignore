@@ -19,11 +19,6 @@ previous.json
 assets/chandrayaan3/data/*.bak
 assets/chandrayaan3/data/*-jq.json
 assets/chandrayaan3/archive/
-# NISAR
-assets/nisar/data/
-# But track the main configuration file
-!assets/nisar/data/config.json
-assets/nisar/archive/
 
 # Large models
 assets/chandrayaan3/models/cy3.glb
@@ -41,7 +36,6 @@ images/moon/lro-cgi-kit/
 images/moon/moon.png
 
 # Binary data files
-*.npy
 de421.bsp
 
 # =========================

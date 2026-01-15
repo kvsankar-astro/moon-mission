@@ -38,8 +38,8 @@ The 3D mode uses THREE JS.
 JQuery and JQueryUI are used for control and information panels.
 
 Orbit data is fetched offline from JPL/NASA HORIZONS.
-This data in CSV format is processed a bit and converted into JSON or NPZ format 
-for use in the animation. A few astronomy functions are based on Steve Moshier's routines.
+This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
+Moon and Earth positions are computed dynamically using Astronomy Engine.
 
 Mission configuration, including all event timings and descriptions, is centralized in 
 `assets/chandrayaan3/data/config.json` for easy maintenance and modification.
@@ -52,8 +52,8 @@ The Python script `scripts/orbits.py` is used to fetch orbit data during develop
 #### Usage
 
 ```bash
-# Fetch geocentric orbit data (JSON and NPZ formats generated automatically)
-python scripts/orbits.py --phase geo
+# Fetch geocentric orbit data
+python scripts/orbits.py --mission chandrayaan3 --phase geo
 
 # Fetch selenocentric orbit data  
 python scripts/orbits.py --phase lunar
@@ -84,16 +84,13 @@ Raw orbit data obtained from JPL is stored into timestamped archive directories:
     ├── ho-<id>-vectors.txt     # co-ordinates for a period of time
     └── ho-<id>-orbit.txt       # orbital elements for one instant of time
 
-Orbit data for use by the JavaScript is written in JSON and NPZ formats and placed in `assets/chandrayaan3/data/`:
+Orbit data for use by the JavaScript is placed in `assets/chandrayaan3/data/`:
 
-    geo-CY3.json                # geocentric orbit data (elements and vectors) 
-    geo-CY3.npz                 # compressed NumPy format (faster loading)
+    geo-CY3-cheb.json           # geocentric Chebyshev coefficients for SC trajectory
     geo-CY3-meta.json           # metadata (step size, timing info)
-    lunar-CY3.json              # selenocentric orbit data 
-    lunar-CY3.npz               # compressed format
+    lunar-CY3-cheb.json         # selenocentric Chebyshev coefficients
     lunar-CY3-meta.json         # metadata
-    landing-CY3.json            # landing phase orbit data (high resolution)
-    landing-CY3.npz             # compressed format
+    landing-CY3-cheb.json       # landing phase Chebyshev coefficients (high resolution)
     landing-CY3-meta.json       # metadata
     config.json                 # mission configuration and events
     
@@ -112,18 +109,15 @@ cy3/
 │   │   └── js/
 │   │       ├── mission.js         # Core animation logic
 │   │       ├── astro.js           # Astronomy calculations
-│   │       └── npyreader.js       # Data format readers
+│   │       └── chebyshev.js       # Chebyshev polynomial interpolation
 │   └── chandrayaan3/              # Mission-specific assets
 │       ├── data/
 │       │   ├── config.json        # Mission configuration
-│       │   ├── *.json             # Orbit data files (not in Git)
-│       │   └── *.npz              # Compressed orbit data (not in Git)
+│       │   └── *-cheb.json        # Chebyshev orbit data files (not in Git)
 │       ├── html/
 │       │   └── whatsnew-cy3.html  # Mission-specific pages
 │       ├── images/
 │       │   └── chandrayaan3-screenshot.png
-│       ├── js/
-│       │   └── ga.js              # Analytics
 │       └── models/
 │           └── *.glb              # 3D spacecraft models
 ├── third-party/                   # External libraries
@@ -144,7 +138,7 @@ cy3/
 
 - **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
 - **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
-- **`assets/platform/js/npyreader.js`** - Data format readers (JSON, NPZ)
+- **`assets/platform/js/chebyshev.js`** - Chebyshev polynomial interpolation for orbit data
 - **`assets/platform/js/core/constants.js`** - Centralized physical and mathematical constants
 - **`assets/platform/js/core/dom.js`** - DOM manipulation utilities and D3.js integration
 - **`assets/platform/css/mission.css`** - Base styling for any mission

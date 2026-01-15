@@ -73,7 +73,6 @@ The test script supports two primary execution modes:
 ### Error Handling Requirements
 - Any console error should fail the test unless explicitly ignored.
 - **Ignored Error Categories:**
-  - Google Analytics failures (google-analytics.com, analytics.js)
   - Missing favicon errors (favicon.ico)
   - WebGL shader compilation errors (THREE.WebGLProgram, Shader Error, VALIDATE_STATUS false)
   - WebGL operation errors (WebGL: INVALID_OPERATION)
@@ -799,7 +798,6 @@ await chromium.launch({
 **Console Error Filtering:**
 ```javascript
 // Ignore these error patterns:
-- /google-analytics\.com|analytics\.js/
 - /favicon\.ico/
 - /THREE\.WebGLProgram.*Shader Error/
 - /VALIDATE_STATUS false/
