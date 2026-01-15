@@ -102,9 +102,9 @@ const TIMEOUTS = {
 // Higher values = more strict matching (1.0 = identical)
 const SSIM_THRESHOLD = {
   IDENTICAL: 0.99,      // For exact visual matches
-  VERY_SIMILAR: 0.97,   // For minor anti-aliasing differences
-  SIMILAR: 0.90,        // For standard 3D scene comparisons (DEFAULT) - lowered for Chebyshev transition
-  DIFFERENT: 0.85       // For complex 3D scenes with acceptable variations
+  VERY_SIMILAR: 0.98,   // For minor anti-aliasing differences
+  SIMILAR: 0.95,        // For standard 3D scene comparisons (DEFAULT)
+  DIFFERENT: 0.90       // For complex 3D scenes with acceptable variations
 };
 
 // Legacy alias for backwards compatibility during migration
@@ -125,6 +125,17 @@ const TEST_CONFIG = {
 };
 
 let browser, page;
+let consoleErrors = [];
+let pageErrors = [];
+
+// Patterns to ignore in console error checking
+const IGNORED_ERROR_PATTERNS = [
+  /favicon\.ico/i,  // Missing favicon is expected
+];
+
+function isIgnoredError(message) {
+  return IGNORED_ERROR_PATTERNS.some(pattern => pattern.test(message));
+}
 
 // SSIM-based screenshot comparison function
 // Uses Structural Similarity Index for robust comparison that handles anti-aliasing differences
@@ -567,12 +578,25 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     });
     page = await browser.newPage();
 
-    // Capture console logs from the page
+    // Capture console logs from the page and collect errors for assertion
     page.on('console', msg => {
-      console.log(`PAGE LOG: [${msg.type()}] ${msg.text()}`);
+      const text = msg.text();
+      const type = msg.type();
+      console.log(`PAGE LOG: [${type}] ${text}`);
+
+      // Collect errors and warnings for later assertion
+      if (type === 'error' && !isIgnoredError(text)) {
+        consoleErrors.push({ type, text });
+      }
     });
     page.on('pageerror', error => {
-      console.log(`PAGE ERROR: ${error.message}`);
+      const message = error.message;
+      console.log(`PAGE ERROR: ${message}`);
+
+      // Collect page errors (JavaScript exceptions) for assertion
+      if (!isIgnoredError(message)) {
+        pageErrors.push(message);
+      }
     });
 
     // Load the page and wait for it to be ready
@@ -590,10 +614,28 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   beforeEach(async () => {
+    // Clear error arrays before each test
+    consoleErrors = [];
+    pageErrors = [];
+
     // Only disable stellar sky globally - it's a view option that doesn't affect scene state
     // More invasive state changes (landing, orbit) should be done by specific tests that need them
     // because they can interfere with orbit rendering timing
     await ensureStellarSkyDisabled(page);
+  });
+
+  afterEach(() => {
+    // Assert no unexpected console errors occurred during the test
+    if (consoleErrors.length > 0) {
+      const errorMessages = consoleErrors.map(e => `[${e.type}] ${e.text}`).join('\n');
+      throw new Error(`Unexpected console errors during test:\n${errorMessages}`);
+    }
+
+    // Assert no unexpected page errors (JS exceptions) occurred
+    if (pageErrors.length > 0) {
+      const errorMessages = pageErrors.join('\n');
+      throw new Error(`Unexpected page errors during test:\n${errorMessages}`);
+    }
   });
 
   describe('Test Suite 1: Initial Application Load', () => {
@@ -1604,11 +1646,15 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
   describe('Test Suite 3: Moon Mode Tests', () => {
     beforeAll(async () => {
+      // Reset timeline to mission start BEFORE switching modes
+      // This prevents state carryover from Speed Controls test
+      await setTimeline(page, '#burn1');
+
       // Switch to Moon mode
       await openSettingsPanel(page);
       await page.click('#origin-moon');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
-      
+
       // Ensure landing is disabled initially (it might be auto-enabled)
       if (await page.isChecked('#landing')) {
         await page.click('#landing');
@@ -1618,13 +1664,16 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#camera-default');
       await page.click('#checkbox-lock-default');
 
-      
+
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       // Wait for the lunar scene to be ready
       await waitForScene(page);
       // Additional wait for Moon orbit curves to fully render
       await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+
+      // Reset timeline again after mode switch to ensure consistent start state
+      await setTimeline(page, '#burn1');
     });
 
     it('Page Load in Moon Mode', async () => {
