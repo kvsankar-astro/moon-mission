@@ -309,23 +309,34 @@ async function fetchMetadata(baseFileName) {
 
 function updateDynamicLabels() {
     if (!globalConfig) return;
-    
+
     // Get spacecraft name from config (fallback to defaults)
     const spacecraftName = globalConfig.mission_name || 'Spacecraft';
     const spacecraftShort = globalConfig.mission_name_short || globalConfig.spacecraft_mnemonic || 'SC';
-    
-    // Update dynamic UI labels (not SEO content)
+    const ui = globalConfig.ui || {};
+
+    // Update page title
+    document.title = ui.pageTitle || `${spacecraftName} - Orbit Animation`;
+
+    // Update mission link in header
+    const missionLink = document.getElementById('mission-link');
+    if (missionLink) {
+        missionLink.textContent = ui.headerTitle || spacecraftName;
+        missionLink.href = globalConfig.mission_url || '#';
+    }
+
+    // Update dynamic UI labels (use config ui values if available, else compute)
     const labelElements = [
-        { id: 'label-lock-spacecraft', text: spacecraftName },
-        { id: 'label-orbit', text: `${spacecraftShort} Orbit` },
-        { id: 'label-orbit-descent', text: `${spacecraftShort} Descent Orbit` }
+        { id: 'label-lock-spacecraft', text: ui.lockOnLabel || spacecraftName },
+        { id: 'label-orbit', text: ui.orbitLabel || `${spacecraftShort} Orbit` },
+        { id: 'label-orbit-descent', text: ui.descentOrbitLabel || `${spacecraftShort} Descent Orbit` }
     ];
-    
+
     updateMultipleElementsText(labelElements, true);
-    
+
     // Update spacecraft mnemonic in the dedicated span element
     updateSpacecraftMnemonic(spacecraftShort);
-    
+
     // console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
 }
 
@@ -2499,7 +2510,7 @@ function addEvents() {
         if (eventData.startTime === "dynamic") {
             if (eventKey === "now") {
                 startTime = new Date();
-            } else if (eventKey === "cy3DataEnd") {
+            } else if (eventKey.endsWith("DataEnd")) {
                 const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
                 startTime = new Date(getStartAndEndTimes(spacecraftMnemonic)[1]);
             } else {

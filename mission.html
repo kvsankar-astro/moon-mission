@@ -57,16 +57,30 @@
 
         <script type="module" src="assets/platform/js/astro.js"></script>
         <script>
-            // Mission-specific configuration
-            window.missionConfig = {
-                missionName: "chandrayaan3",
-                dataPath: "assets/chandrayaan3/data/",
-                modelPath: "assets/chandrayaan3/models/"
-            };
+            // Mission configuration with URL parameter support
+            // Usage: ?mission=cy2 or ?mission=cy3 (default: cy3)
+            (function() {
+                const missionMap = {
+                    'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2' },
+                    'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3' },
+                    'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2' },
+                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3' }
+                };
+
+                const params = new URLSearchParams(window.location.search);
+                const missionParam = params.get('mission') || 'cy3';
+                const mission = missionMap[missionParam.toLowerCase()] || missionMap['cy3'];
+
+                window.missionConfig = {
+                    missionName: mission.name,
+                    dataPath: `assets/${mission.folder}/data/`,
+                    modelPath: `assets/${mission.folder}/models/`
+                };
+            })();
         </script>
         <script type="module" src="assets/platform/js/mission.js"></script>
 
-        <title>ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation</title>
+        <title>Moon Mission - Orbit Animation</title>
     </head>
 
     <body>
@@ -79,7 +93,7 @@
                 <button id="settings-panel-button">☰ Settings</button>
                 
                 <div id="blurb" class="blurb">
-                    <h1><a href="https://www.isro.gov.in/Chandrayaan3_New.html">Chandrayaan 3</a> Orbit Animation.</h1>
+                    <h1><a id="mission-link" href=""><!-- mission name injected by JS --></a> Orbit Animation.</h1>
                     <h2>Created by <a href="https://sankara.net/">Sankar Viswanathan</a> using NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/">HORIZONS</a> Ephemerides.</h2>
                     <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/chandrayaan3">Github</a>.
                         Works best in desktop screens. Chrome works better than Firefox.</p>
@@ -115,7 +129,7 @@
                     <fieldset autocomplete="off">
                         <legend class="config-label">Lock On:</legend>
                         <input type="checkbox" id="checkbox-lock-sc">
-                        <label for="checkbox-lock-sc" id="label-lock-spacecraft">Chandrayaan 3</label>
+                        <label for="checkbox-lock-sc" id="label-lock-spacecraft"><!-- injected by JS --></label>
                         <span class="geo"><input type="checkbox" id="checkbox-lock-moon"></span>
                         <label class="geo" for="checkbox-lock-moon">Moon</label>
                         <span class="lunar"><input type="checkbox" id="checkbox-lock-earth"></span>
@@ -147,9 +161,9 @@
                         <input id="joyride" type="checkbox">
                         <label for="joyride">Joy Ride!</label>
                         <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
-                        <label for="view-orbit" id="label-orbit">CY3 Orbit</label>
+                        <label for="view-orbit" id="label-orbit"><!-- injected by JS --></label>
                         <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
-                        <label for="view-orbit-descent" id="label-orbit-descent">CY3 Descent Orbit</label>
+                        <label for="view-orbit-descent" id="label-orbit-descent"><!-- injected by JS --></label>
                         <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
                         <label for="view-craters">Locations</label>
                         <input type="checkbox" name="view" value="xyz" id="view-xyz-axes" checked="checked">
@@ -360,7 +374,7 @@
                 <table>
                 <tr>
                     <!-- <td>Orbit data epoch: JD = <label id="epochjd"></label> | UTC = <label id="epochdate"></label></td> -->
-                    <td id="label-phase-prefix"><span id="spacecraft-mnemonic">CY3</span> phase: 
+                    <td id="label-phase-prefix"><span id="spacecraft-mnemonic"><!-- injected by JS --></span> phase: 
                     <label id="phase-1"></label> | 
                     <label id="phase-2"></label> | 
                     <label id="phase-3"></label>

@@ -120,7 +120,7 @@ const TEST_CONFIG = {
   headless: process.env.HEADLESS !== 'false',  // Default to headless, use HEADLESS=false to see browser
   slowMo: parseInt(process.env.SLOWMO || '0'),
   get testUrl() {
-    return `${this.baseUrl}/chandrayaan3.html?testMode=true`;
+    return `${this.baseUrl}/mission.html?mission=cy3&testMode=true`;
   }
 };
 
