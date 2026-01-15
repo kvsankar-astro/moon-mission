@@ -10,9 +10,10 @@ Tests run with `?testMode=true` URL parameter which:
 - Enables anti-aliasing for consistent visual output
 
 ### Key Files
-- `test/ui.test.js` - Main test file with SSIM-based comparison
+- `test/ui.test.js` - Main test file with SSIM-based comparison (47 tests)
 - `assets/platform/js/mission.js` - Product code with testMode support
 - `scripts/ssim-compare.js` - SSIM comparison utility for manual analysis
+- `docs/testing/` - Test documentation and specifications
 
 ---
 
@@ -90,9 +91,11 @@ The project consists of several major components:
 
 2. **Frontend Visualization**:
    - `chandrayaan3.html` - Main HTML page (stays in root for easy web access)
-   - `assets/chandrayaan3/js/cy3.js` - Core JavaScript module handling animation logic (ES6 modules)
-   - `assets/chandrayaan3/js/astro.js` - Astronomy support functions (Julian dates, coordinate conversions)
-   - `assets/chandrayaan3/css/cy3.css` - Styling for the application
+   - `assets/platform/js/mission.js` - Core animation engine (mission-agnostic)
+   - `assets/platform/js/astro.js` - Astronomy support functions (Julian dates, coordinate conversions)
+   - `assets/platform/js/chebyshev.js` - Chebyshev polynomial interpolation
+   - `assets/platform/js/astronomy-bodies.js` - Astronomy Engine wrapper for Moon/Earth
+   - `assets/platform/css/mission.css` - Styling for the application
    - Uses THREE.js for 3D rendering and D3.js for 2D SVG rendering
    - jQuery/jQuery UI for UI controls
 
@@ -126,26 +129,30 @@ npx http-server
 
 ## Key Technical Details
 
-- **Coordinate Systems**: J2000 reference frame is used for all calculations
-- **Time Format**: Julian dates and Modified Julian dates for astronomical calculations
+- **Coordinate Systems**: ECLIPJ2000 (Ecliptic J2000) for all calculations
+- **Time Systems**: TDB (Barycentric Dynamical Time) for Chebyshev lookups and astronomical calculations; UTC for UI display
 - **Animation Loop**: Uses requestAnimationFrame for smooth rendering
 - **Data Resolution**: 1-minute intervals for orbit data, higher resolution for landing phase
 - **Browser Support**: Requires modern browser with WebGL support for 3D mode
 
-## Recent Updates (August 2025)
+For detailed technical documentation on time systems, data pipeline, and coordinate systems, see [docs/developer.md](docs/developer.md).
 
-### File Organization
-- All Chandrayaan-3 specific assets moved to `assets/chandrayaan3/` directory
-- JavaScript files organized under `assets/chandrayaan3/js/`
-- CSS moved to `assets/chandrayaan3/css/`
-- Supporting HTML pages in `assets/chandrayaan3/html/`
-- Orbit data files now in `assets/chandrayaan3/data/` (excluded from Git)
-- 3D models in `assets/chandrayaan3/models/`
+## Recent Updates (January 2026)
 
-### Data Pipeline Updates
-- Python script now outputs to timestamped archive directories
-- Files are also copied to main data directory for runtime access
-- Archive structure: `assets/chandrayaan3/archive/data-fetched/YYYYMMDDHHMMSS/`
+### Platform-Based Architecture
+- Reusable platform code in `assets/platform/js/` (mission.js, astro.js, chebyshev.js, astronomy-bodies.js)
+- Mission-specific assets in `assets/chandrayaan3/`
+- Removed NPZ data pipeline - using Chebyshev polynomials exclusively for spacecraft data
+- Moon/Earth positions computed dynamically via Astronomy Engine
+
+### Time System Clarification
+- HORIZONS data uses TDB (JDTDB timestamps)
+- All Chebyshev lookups use `getJD_TDB()` for correct time system
+- UTC used only for user-facing display
+
+### Documentation
+- Technical documentation in `docs/developer.md`
+- Test documentation in `docs/testing/`
 
 ## Important File Locations
 
@@ -154,22 +161,24 @@ npx http-server
 cy3/
 ├── chandrayaan3.html              # Main entry point (root for easy web access)
 ├── assets/
-│   └── chandrayaan3/
-│       ├── js/                    # JavaScript files
-│       │   ├── cy3.js             # Core animation logic
-│       │   └── astro.js           # Astronomy calculations
-│       ├── css/
-│       │   └── cy3.css            # Application styles
-│       ├── html/
-│       │   └── whatsnew-cy3.html  # Supporting pages
-│       ├── images/
-│       │   └── chandrayaan3-screenshot.png  # Social media preview
-│       ├── data/                  # Orbit data files (Chebyshev JSON)
-│       ├── models/                # 3D models (GLB files)
-│       └── archive/               # Historical data archives
+│   ├── platform/                  # Reusable platform components
+│   │   ├── js/
+│   │   │   ├── mission.js         # Core animation engine
+│   │   │   ├── astro.js           # Astronomy calculations (TDB/UTC)
+│   │   │   ├── chebyshev.js       # Chebyshev polynomial interpolation
+│   │   │   └── astronomy-bodies.js # Astronomy Engine wrapper
+│   │   └── css/
+│   │       └── mission.css        # Base styling
+│   └── chandrayaan3/              # Mission-specific assets
+│       ├── data/                  # Chebyshev JSON files (not in Git)
+│       ├── html/                  # Supporting pages
+│       ├── images/                # Screenshots
+│       └── models/                # 3D models (GLB files)
+├── docs/                          # Documentation
+│   ├── developer.md               # Technical documentation
+│   └── testing/                   # Test documentation
 ├── scripts/                       # Data generation scripts
-│   ├── orbits.py                  # Python orbit fetcher
-│   └── [other scripts]
-├── third-party/                   # External libraries (jQuery, D3, Three.js)
+├── test/                          # Test files and baselines
+├── third-party/                   # External libraries
 └── images/                        # Earth/Moon texture images
 ```

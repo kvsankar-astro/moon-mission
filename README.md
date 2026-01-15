@@ -41,6 +41,10 @@ Orbit data is fetched offline from JPL/NASA HORIZONS.
 This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
 Moon and Earth positions are computed dynamically using Astronomy Engine.
 
+**Time Systems:** The application uses TDB (Barycentric Dynamical Time) for all astronomical calculations
+and Chebyshev lookups, matching the time system used by JPL HORIZONS. UTC is used for user-facing display.
+See [docs/developer.md](docs/developer.md) for detailed technical documentation.
+
 Mission configuration, including all event timings and descriptions, is centralized in 
 `assets/chandrayaan3/data/config.json` for easy maintenance and modification.
 
@@ -139,6 +143,7 @@ cy3/
 - **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
 - **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
 - **`assets/platform/js/chebyshev.js`** - Chebyshev polynomial interpolation for orbit data
+- **`assets/platform/js/astronomy-bodies.js`** - Astronomy Engine wrapper for Moon/Earth calculations
 - **`assets/platform/js/core/constants.js`** - Centralized physical and mathematical constants
 - **`assets/platform/js/core/dom.js`** - DOM manipulation utilities and D3.js integration
 - **`assets/platform/css/mission.css`** - Base styling for any mission
@@ -148,14 +153,13 @@ cy3/
 - **`assets/chandrayaan3/data/config.json`** - Mission timeline, events, spacecraft parameters
 - **`assets/chandrayaan3/data/*.json`** - Orbit data (geocentric, selenocentric, landing phases)
 - **`assets/chandrayaan3/models/*.glb`** - 3D models of Chandrayaan-3 spacecraft
-- **`assets/chandrayaan3/js/ga.js`** - Mission-specific analytics
 
 #### Third-Party Libraries
 
 - **D3.js v3** - 2D SVG rendering and data visualization
 - **Three.js** - 3D WebGL rendering engine
 - **jQuery/jQuery UI** - DOM manipulation and UI components
-- **Ephemeris.js** - Astronomical calculations library
+- **Astronomy Engine** - High-precision ephemeris calculations for Moon/Earth positions
 
 ## Build and Deployment
 
@@ -246,7 +250,7 @@ The project includes automated UI testing for comprehensive functionality verifi
 ### Running Tests
 
 ```bash
-# Run complete test suite (35 tests)
+# Run complete test suite (47 tests)
 npm test
 
 # Run with custom server URL
@@ -257,10 +261,10 @@ VITE_TEST_BASE_URL=http://localhost:8000 npm test
 
 - **UI Elements:** Timeline controls, animation controls, view toggles
 - **Dual Modes:** Earth-centered and Moon-centered orbital perspectives  
-- **Visual Regression:** Screenshot comparison with baseline images
+- **Visual Regression:** Screenshot comparison with baseline images using SSIM
 - **Error Detection:** Console error monitoring during test execution
 
-Tests verify UI functionality across orbital modes and control states.
+Tests verify UI functionality across orbital modes and control states. See [docs/testing/](docs/testing/) for detailed test documentation.
 
 ### Hosting
 
