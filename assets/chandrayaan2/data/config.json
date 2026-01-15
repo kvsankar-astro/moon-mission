@@ -16,7 +16,7 @@
     "descentOrbitLabel": "CY2 Descent Orbit"
   },
   "is_lunar": true,
-  "phases": ["geo", "lunar", "landing"],
+  "phases": ["geo", "lunar"],
   "geo": {
     "start_year": "2019",
     "start_month": "07",
@@ -25,13 +25,13 @@
     "start_minute": "31",
     "stop_year": "2019",
     "stop_month": "09",
-    "stop_day": "08",
-    "stop_hour": "16",
-    "stop_minute": "30",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
     "step_size_in_seconds": 60,
     "planets": ["MOON", "SC"],
     "center": "earth_center",
-    "orbits_file": "geo-CY2"
+    "orbits_file": "geo-SC"
   },
   "lunar": {
     "start_year": "2019",
@@ -41,16 +41,17 @@
     "start_minute": "31",
     "stop_year": "2019",
     "stop_month": "09",
-    "stop_day": "08",
-    "stop_hour": "16",
-    "stop_minute": "30",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
     "step_size_in_seconds": 60,
     "planets": ["SC", "EARTH"],
     "center": "moon_center",
-    "orbits_file": "lunar-CY2"
+    "orbits_file": "lunar-SC"
   },
   "landing": {
-    "enabled": true,
+    "enabled": false,
+    "comment": "Landing data not available - Vikram lander contact lost during descent",
     "start_year": "2019",
     "start_month": "09",
     "start_day": "06",

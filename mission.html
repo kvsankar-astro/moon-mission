@@ -58,24 +58,32 @@
         <script type="module" src="assets/platform/js/astro.js"></script>
         <script>
             // Mission configuration with URL parameter support
-            // Usage: ?mission=cy2 or ?mission=cy3 (default: cy3)
+            // Usage: ?mission=cy2 or ?mission=cy3
+            // If no mission param, show selection page
             (function() {
                 const missionMap = {
-                    'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2' },
-                    'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3' },
-                    'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2' },
-                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3' }
+                    'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+                    'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+                    'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' }
                 };
 
                 const params = new URLSearchParams(window.location.search);
-                const missionParam = params.get('mission') || 'cy3';
-                const mission = missionMap[missionParam.toLowerCase()] || missionMap['cy3'];
+                const missionParam = params.get('mission');
 
-                window.missionConfig = {
-                    missionName: mission.name,
-                    dataPath: `assets/${mission.folder}/data/`,
-                    modelPath: `assets/${mission.folder}/models/`
-                };
+                if (!missionParam) {
+                    // No mission specified - show selection page
+                    window.missionConfig = null;
+                    window.showMissionSelector = true;
+                } else {
+                    const mission = missionMap[missionParam.toLowerCase()] || missionMap['cy3'];
+                    window.missionConfig = {
+                        missionName: mission.name,
+                        dataPath: `assets/${mission.folder}/data/`,
+                        modelPath: `assets/${mission.folder}/models/`
+                    };
+                    window.showMissionSelector = false;
+                }
             })();
         </script>
         <script type="module" src="assets/platform/js/mission.js"></script>
@@ -84,6 +92,40 @@
     </head>
 
     <body>
+
+        <!-- Mission Selector (shown when no mission param) -->
+        <div id="mission-selector" style="display: none;">
+            <div style="max-width: 800px; margin: 50px auto; padding: 20px; font-family: Lato, sans-serif; text-align: center;">
+                <h1 style="color: #ffa000; margin-bottom: 10px;">Moon Mission Animations</h1>
+                <h2 style="color: #888; font-weight: normal; margin-bottom: 40px;">by Sankar Viswanathan</h2>
+
+                <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+                    <a href="?mission=cy3" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 3</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2023 - Successful Landing</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">India's historic Moon landing in the south pole region</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=cy2" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 2</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2019 - Soft Landing Attempt</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Full mission including Vikram's final descent</p>
+                        </div>
+                    </a>
+                </div>
+
+                <p style="color: #555; margin-top: 40px; font-size: 14px;">
+                    Created using NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/" style="color: #ffa000;">HORIZONS</a> Ephemerides
+                </p>
+            </div>
+        </div>
 
         <div id="wrapper" class="wrapper flex-container">
 
@@ -388,6 +430,23 @@
             </div> <!-- copyright -->
         </div> <!-- footer-wrapper -->
     </div> <!-- wrapper -->
+
+    <script>
+        // Show mission selector or main app based on URL param
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.showMissionSelector) {
+                document.getElementById('mission-selector').style.display = 'block';
+                document.getElementById('wrapper').style.display = 'none';
+                var progressbar = document.getElementById('progressbar');
+                if (progressbar) progressbar.style.display = 'none';
+                document.body.style.background = '#0a0a15';
+                document.body.style.overflow = 'hidden';
+                document.body.style.height = '100vh';
+                document.documentElement.style.overflow = 'hidden';
+                document.title = 'Moon Mission Animations';
+            }
+        });
+    </script>
     </body>
 </html>
 
