@@ -25,7 +25,7 @@ import {
 } from "./core/dom.js";
 import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
-import { degreesToRadians, distance3D, velocityToAngle } from "./utils/math-utils.js";
+import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2288,10 +2288,8 @@ class AnimationScene {
         sphere.castShadow = false;
         sphere.receiveShadow = false;
         var radiusScale = 1 - (locationRadiusScale/2);
-        var x = radiusScale * earthRadius * Math.cos(lat) * Math.cos(long); 
-        var y = radiusScale * earthRadius * Math.cos(lat) * Math.sin(long);
-        var z = radiusScale * earthRadius * Math.sin(lat);
-        sphere.position.set(x, y, z);
+        const pos = sphericalToCartesian(radiusScale * earthRadius, long, lat);
+        sphere.position.set(pos.x, pos.y, pos.z);
         this.locations.push(sphere);
         this.earthContainer.add(sphere);
         return sphere;
@@ -2309,10 +2307,8 @@ class AnimationScene {
         sphere.castShadow = false;
         sphere.receiveShadow = false;
         var radiusScale = 1.005 - (locationRadiusScale/2);
-        var x = radiusScale * moonRadius * Math.cos(lat) * Math.cos(long); 
-        var y = radiusScale * moonRadius * Math.cos(lat) * Math.sin(long);
-        var z = radiusScale * moonRadius * Math.sin(lat);
-        sphere.position.set(x, y, z);
+        const pos = sphericalToCartesian(radiusScale * moonRadius, long, lat);
+        sphere.position.set(pos.x, pos.y, pos.z);
         this.locations.push(sphere);
         this.moonContainer.add(sphere);
         return sphere;
@@ -2814,17 +2810,6 @@ function isLocationAvaialable(planet, date) {
     // var d = new Date(date);
     // console.log("isLocationAvaialable() called for body " + planet + " for time " + d + ": returning " + flag);
     return flag;
-}
-
-function rotate(x, y, phi) { // unused function for now
-
-    var phi = phi / PC.DEGREES_PER_RADIAN;
-    var retx;
-    var rety;
-
-    retx = x * cos(phi) - y * sin(phi);
-    rety = y * cos(phi) + x * sin(phi);
-    return {"x": retx, "y": rety};
 }
 
 function setLabelLocation(planetKey) {
