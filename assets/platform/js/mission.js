@@ -2340,7 +2340,8 @@ class AnimationScene {
     }
 
     rotateEarth() {
-        var mst = deg_to_rad(getMST(new Date(animTime), PC.GREENWICH_LONGITUDE));
+        // Greenwich Apparent Sidereal Time (hours × 15 = degrees, then to radians)
+        var mst = deg_to_rad(Astronomy.SiderealTime(new Date(animTime)) * 15);
         this.earthContainer.rotation.z = mst;
         // this.losLine.geometry.verticesNeedUpdate = true;
     } 
@@ -3199,7 +3200,8 @@ function showGreenwichLongitude() {
     
     if (config == "helio") return;
 
-    var mst = getMST(new Date(animTime), PC.GREENWICH_LONGITUDE);
+    // Greenwich Apparent Sidereal Time in degrees (hours × 15)
+    var mst = Astronomy.SiderealTime(new Date(animTime)) * 15;
 
     var radialLength = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
 
@@ -4693,71 +4695,6 @@ function burnButtonHandler(index) {
     
     // console.log("burnButtonHandler(): animTime = " + animTime + ", startTime = " + startTime + ", endTime = " + endTime);
     missionSetTime();
-}
-
-// adapted from - http://stackoverflow.com/questions/9318674/javascript-number-currency-formatting
-
-
-// The following function getMST() is from
-//
-// http://mysite.verizon.net/res148h4j/javascript/script_clock.html
-//
-//
-/*
-** "getMST" computes Mean Sidereal Time in units of degrees. Use lon = 0 to
-** get the Greenwich MST.
-**
-** returns: time in degrees
-*/
-function getMST(t, lon)
-{
-    var year   = t.getUTCFullYear();
-    var month  = t.getUTCMonth() + 1;
-    var day    = t.getUTCDate();
-    var hour   = t.getUTCHours();
-    var minute = t.getUTCMinutes();
-    var second = t.getUTCSeconds();
-
-    // 1994 June 16th at 18h UT
-    // days since J2000: -2024.75
-    // GMST: 174.77111347427126
-    //       11h 39m 5.0672s
-    // year   = 1994;
-    // month  = 6;
-    // day    = 16;
-    // hour   = 18;
-    // minute = 0;
-    // second = 0;
-
-    if( month == 1 || month == 2 )
-    {
-    year = year - 1;
-    month = month + 12;
-    }
-
-    var a = Math.floor( year/100 );
-    var b = 2 - a + Math.floor( a/4 );
-
-    var c = Math.floor(365.25 * year);
-    var d = Math.floor(30.6001 * (month + 1));
-
-    // days since J2000.0
-    var jd = b + c + d - 730550.5 + day + (hour + minute/60.0 + second/3600.0)/24.0;
-
-    var jt   = jd/36525.0;                   // julian centuries since J2000.0
-    var GMST = 280.46061837 + 360.98564736629*jd + 0.000387933*jt*jt - jt*jt*jt/38710000 + lon;
-    if( GMST > 0.0 )
-    {
-        while( GMST > 360.0 )
-            GMST -= 360.0;
-    }
-    else
-    {
-        while( GMST < 0.0 )
-            GMST += 360.0;
-    }
-
-    return GMST;
 }
 
 // Expose variables globally for testing
