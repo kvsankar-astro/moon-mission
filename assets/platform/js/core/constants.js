@@ -82,3 +82,36 @@ export const FORMAT_CONSTANTS = {
     PERCENT: ".0%",
     METRIC: " >10,.2f"
 };
+
+// ===================================
+// Color Constants
+// ===================================
+
+export const COLORS = {
+    BLACK: 0x000000,
+    EARTH_AXIS: 0xFFFF00,        // yellow
+    MOON_AXIS: 0xFFFF00,         // yellow
+    MOON_SOI: 0x414141,          // charcoal
+    NORTH_POLE: 0xff6347,        // tomato
+    SOUTH_POLE: 0x6a5acd,        // slate blue
+    ECLIPTIC_PLANE: 0xFFFFE0,    // light yellow
+    EQUATORIAL_PLANE: 0xABEBC6   // light green
+};
+
+// ===================================
+// Light Settings
+// ===================================
+
+export const LIGHT_SETTINGS = {
+    // Scene lighting
+    PRIMARY_COLOR: 0xFFFFFF,     // white
+    PRIMARY_INTENSITY: 2.5,
+    AMBIENT_COLOR: 0x222222,     // soft white
+    AMBIENT_INTENSITY: 1.5,
+
+    // Spacecraft lighting
+    CRAFT_PRIMARY_COLOR: 0xFFFFFF,
+    CRAFT_PRIMARY_INTENSITY: 2.5,
+    CRAFT_AMBIENT_COLOR: 0x777777,
+    CRAFT_AMBIENT_INTENSITY: 1.5
+};

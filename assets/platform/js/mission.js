@@ -4,7 +4,9 @@
 import { deg_to_rad, lunar_pole } from "./astro.js";
 import {
     CELESTIAL_BODIES as CB,
+    COLORS as COL,
     FORMAT_CONSTANTS as FC,
+    LIGHT_SETTINGS as LT,
     PHYSICS_CONSTANTS as PC,
     TIME_CONSTANTS as TC,
     UI_CONSTANTS as UC
@@ -40,29 +42,6 @@ const isTestMode = new URLSearchParams(window.location.search).get('testMode') =
 var SC     = "SC"; // Default spacecraft mnemonic - will be overridden by config
 
 var craftSize = 5; // in pixels
-
-//
-// Colors
-//
-
-var blackColor = 0x000000; // black
-var earthAxisColor = 0xFFFF00; // yellow
-var moonAxisColor = 0xFFFF00; // yellow
-var moonSOIColor = 0x414141; // charcoal
-var northPoleColor = 0xff6347; // tomato
-var southPoleColor = 0x6a5acd; // steel blue
-var eclipticPlaneColor = 0xFFFFE0; // light yellow
-var equatorialPlaneColor = 0xABEBC6; // light green
-
-var primaryLightColor = 0xFFFFFF; // white
-var primaryLightIntensity = 2.5;
-var ambientLightColor = 0x222222; // soft white
-var ambientLightIntensity = 1.5;
-
-var primaryLightColorForCraft = 0xFFFFFF; 
-var primaryLightIntensityForCraft = 2.5;
-var ambientLightColorForCraft = 0x777777;
-var ambientLightIntensityForCraft = 1.5;
 
 var planetProperties = {
     "SC":      { "id": SC,        "name": "SC",              "color": "#ffa000",     "orbitcolor": "#66CCFF",    "stroke-width": 1.0, "r": 3.2, "labelOffsetX": -30, "labelOffsetY": -10 },
@@ -1078,7 +1057,7 @@ class AnimationScene {
         var earthGeometry = new THREE.SphereGeometry(earthRadius, 100, 100);
         var earthMaterial = new THREE.MeshPhongMaterial({
             // color: primaryBodyColor, 
-            // specular: blackColor,
+            // specular: COL.BLACK,
             // shininess: 1,
             map: this.earthTexture,
             // bumpMap: this.earthBumpMapTexture,
@@ -1114,19 +1093,19 @@ class AnimationScene {
         vertices.push(earthNorthPolePoint.x, earthNorthPolePoint.y, earthNorthPolePoint.z);
         vertices.push(earthSouthPolePoint.x, earthSouthPolePoint.y, earthSouthPolePoint.z);
         earthAxisGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        var earthAxisMaterial = new THREE.LineBasicMaterial({color: earthAxisColor});
+        var earthAxisMaterial = new THREE.LineBasicMaterial({color: COL.EARTH_AXIS});
         this.earthAxis = new THREE.Line(earthAxisGeometry, earthAxisMaterial);
         this.earthAxis.visible = viewPolarAxes;
 
         var earthNorthPoleGeometry = new THREE.SphereGeometry(earthRadius/50, 100, 100);
-        var earthNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: blackColor, emissive: northPoleColor, reflectivity: 0.0});
+        var earthNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.NORTH_POLE, reflectivity: 0.0});
         this.earthNorthPoleSphere = new THREE.Mesh(earthNorthPoleGeometry, earthNorthPoleMaterial);
         this.earthNorthPoleSphere.castShadow = false;
         this.earthNorthPoleSphere.receiveShadow = false;
         this.earthNorthPoleSphere.position.set(0, 0, 0.985 * earthRadius);
 
         var earthSouthPoleGeometry = new THREE.SphereGeometry(earthRadius/50, 100, 100);
-        var earthSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: blackColor, emissive: southPoleColor, reflectivity: 0.0}); 
+        var earthSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.SOUTH_POLE, reflectivity: 0.0}); 
         this.earthSouthPoleSphere = new THREE.Mesh(earthSouthPoleGeometry, earthSouthPoleMaterial);
         this.earthSouthPoleSphere.castShadow = false;
         this.earthSouthPoleSphere.receiveShadow = false;
@@ -1292,19 +1271,19 @@ class AnimationScene {
         vertices.push(moonNorthPolePoint.x, moonNorthPolePoint.y, moonNorthPolePoint.z);
         vertices.push(moonSouthPolePoint.x, moonSouthPolePoint.y, moonSouthPolePoint.z);
         moonAxisGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        var moonAxisMaterial = new THREE.LineBasicMaterial({color: moonAxisColor});
+        var moonAxisMaterial = new THREE.LineBasicMaterial({color: COL.MOON_AXIS});
         this.moonAxis = new THREE.Line(moonAxisGeometry, moonAxisMaterial);
         this.moonAxis.visible = viewPolarAxes;
 
         var moonNorthPoleGeometry = new THREE.SphereGeometry(moonRadius/50, 100, 100);
-        var moonNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: blackColor, emissive: northPoleColor, reflectivity: 0.0});
+        var moonNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.NORTH_POLE, reflectivity: 0.0});
         this.moonNorthPoleSphere = new THREE.Mesh(moonNorthPoleGeometry, moonNorthPoleMaterial);
         this.moonNorthPoleSphere.castShadow = false;
         this.moonNorthPoleSphere.receiveShadow = false;
         this.moonNorthPoleSphere.position.set(0, 0, 0.985 * moonRadius);
 
         var moonSouthPoleGeometry = new THREE.SphereGeometry(moonRadius/50, 100, 100);
-        var moonSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: blackColor, emissive: southPoleColor, reflectivity: 0.0});
+        var moonSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.SOUTH_POLE, reflectivity: 0.0});
         this.moonSouthPoleSphere = new THREE.Mesh(moonSouthPoleGeometry, moonSouthPoleMaterial);
         this.moonSouthPoleSphere.castShadow = false;
         this.moonSouthPoleSphere.receiveShadow = false;
@@ -1413,7 +1392,7 @@ class AnimationScene {
         var longSegments = 36; // 10° increments
 
         var geometry = new THREE.SphereGeometry(radius, longSegments, latSegments);
-        var material = new THREE.MeshBasicMaterial({color: moonSOIColor, wireframe: true});
+        var material = new THREE.MeshBasicMaterial({color: COL.MOON_SOI, wireframe: true});
 
         this.moonSOISphere = new THREE.Mesh(geometry, material);
         this.moon.add(this.moonSOISphere);
@@ -1761,20 +1740,20 @@ class AnimationScene {
         const rings = 6;
         const divisions = 64;
 
-        this.eclipticPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, eclipticPlaneColor, eclipticPlaneColor);
+        this.eclipticPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, COL.ECLIPTIC_PLANE, COL.ECLIPTIC_PLANE);
         this.eclipticPolarGridHelper.rotation.x = Math.PI/2; 
         this.eclipticPolarGridHelper.visible = viewEclipticPlane;
         this.motherContainer.add(this.eclipticPolarGridHelper);
                 
         const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        this.eclipticPlaneHelper = new THREE.PlaneHelper(eclipticPlane, earthRadius * 128, eclipticPlaneColor);
+        this.eclipticPlaneHelper = new THREE.PlaneHelper(eclipticPlane, earthRadius * 128, COL.ECLIPTIC_PLANE);
         this.eclipticPlaneHelper.visible = viewEclipticPlane;
         this.motherContainer.add(this.eclipticPlaneHelper);
 
         this.equatorialPlaneContainer = new THREE.Group();
         this.equatorialPlaneContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
 
-        this.equatorialPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, equatorialPlaneColor, equatorialPlaneColor);
+        this.equatorialPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, COL.EQUATORIAL_PLANE, COL.EQUATORIAL_PLANE);
         this.equatorialPolarGridHelper.rotation.x = Math.PI/2;
         this.equatorialPolarGridHelper.visible = viewEquatorialPlane;
         this.equatorialPlaneContainer.add(this.equatorialPolarGridHelper);
@@ -1782,7 +1761,7 @@ class AnimationScene {
         var direction = new THREE.Vector3();
         this.equatorialPlaneContainer.getWorldDirection(direction);
         const equatorialPlane = new THREE.Plane(direction, 0);        
-        this.equatorialPlaneHelper = new THREE.PlaneHelper(equatorialPlane, earthRadius * 144, equatorialPlaneColor);
+        this.equatorialPlaneHelper = new THREE.PlaneHelper(equatorialPlane, earthRadius * 144, COL.EQUATORIAL_PLANE);
         this.equatorialPlaneHelper.visible = viewEquatorialPlane;
         this.equatorialPlaneContainer.add(this.equatorialPlaneHelper);
 
@@ -1824,17 +1803,17 @@ class AnimationScene {
     
     addLight() {
         // add light
-        this.light = new THREE.DirectionalLight(primaryLightColor, primaryLightIntensity);
+        this.light = new THREE.DirectionalLight(LT.PRIMARY_COLOR, LT.PRIMARY_INTENSITY);
         this.motherContainer.add(this.light); // TODO attempt to fix lighting direction problem when piovoting on non-centered objects
 
-        this.light2 = new THREE.DirectionalLight(primaryLightColorForCraft, primaryLightIntensityForCraft);
+        this.light2 = new THREE.DirectionalLight(LT.CRAFT_PRIMARY_COLOR, LT.CRAFT_PRIMARY_INTENSITY);
         this.light2.layers.set(1);
         this.motherContainer.add(this.light2);
 
-        var ambientLight = new THREE.AmbientLight(ambientLightColor, ambientLightIntensity); // soft white light
+        var ambientLight = new THREE.AmbientLight(LT.AMBIENT_COLOR, LT.AMBIENT_INTENSITY); // soft white light
         this.motherContainer.add(ambientLight);
 
-        var ambientLightForCraft = new THREE.AmbientLight(ambientLightColorForCraft, ambientLightIntensityForCraft); // soft white light
+        var ambientLightForCraft = new THREE.AmbientLight(LT.CRAFT_AMBIENT_COLOR, LT.CRAFT_AMBIENT_INTENSITY); // soft white light
         ambientLightForCraft.layers.set(1);
         this.motherContainer.add(ambientLightForCraft);
 
@@ -1989,12 +1968,12 @@ class AnimationScene {
             // See https://stackoverflow.com/questions/45039999/three-js-light-from-camera-straight-to-object 
 
             var intensity = 2;
-            var light1 = new THREE.DirectionalLight(primaryLightColor, intensity);
-            var light2 = new THREE.DirectionalLight(primaryLightColor, intensity);
-            var light3 = new THREE.DirectionalLight(primaryLightColor, intensity);
-            var light4 = new THREE.DirectionalLight(primaryLightColor, intensity);
-            var light5 = new THREE.DirectionalLight(primaryLightColor, intensity);
-            var light6 = new THREE.DirectionalLight(primaryLightColor, intensity);
+            var light1 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
+            var light2 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
+            var light3 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
+            var light4 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
+            var light5 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
+            var light6 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
             
             light1.layers.set(1);
             light2.layers.set(1);
@@ -2304,7 +2283,7 @@ class AnimationScene {
     plotEarthLocation(long, lat, color) {
         var locationRadiusScale = 0.001;
         var geometry = new THREE.SphereGeometry(locationRadiusScale * earthRadius, 100, 100);
-        var material = new THREE.MeshPhysicalMaterial({color: blackColor, emissive: color, reflectivity: 0.0, transparent: false, opacity: 0.2});
+        var material = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: color, reflectivity: 0.0, transparent: false, opacity: 0.2});
         var sphere = new THREE.Mesh(geometry, material);
         sphere.castShadow = false;
         sphere.receiveShadow = false;
