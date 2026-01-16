@@ -64,8 +64,12 @@
                 const missionMap = {
                     'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
                     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+                    'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+                    'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
                     'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
-                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' }
+                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+                    'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+                    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' }
                 };
 
                 const params = new URLSearchParams(window.location.search);
@@ -117,6 +121,26 @@
                             <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 2</h3>
                             <p style="color: #aaa; margin: 0 0 15px 0;">2019 - Soft Landing Attempt</p>
                             <p style="color: #666; font-size: 14px; margin: 0;">Full mission including Vikram's final descent</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=a11" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Apollo 11 S-IVB</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">1969 - First Moon Landing</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Third stage trajectory during the historic mission</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=a10" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Apollo 10 "Snoopy"</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">1969 - Lunar Module</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Dress rehearsal LM that descended to 14.4 km</p>
                         </div>
                     </a>
                 </div>
