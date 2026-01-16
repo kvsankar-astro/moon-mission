@@ -1874,18 +1874,23 @@ class AnimationScene {
     }
 
     disposeLight() {
+        // In 2D mode, motherContainer doesn't exist
+        if (!this.motherContainer) {
+            return;
+        }
+
         if (this.light) {
             this.motherContainer.remove(this.light);
             this.light.dispose();
             this.light = null;
         }
-        
+
         if (this.light2) {
             this.motherContainer.remove(this.light2);
             this.light2.dispose();
             this.light2 = null;
         }
-        
+
         // Remove ambient lights
         this.motherContainer.children.forEach(child => {
             if (child instanceof THREE.AmbientLight) {
@@ -1893,7 +1898,7 @@ class AnimationScene {
                 child.dispose();
             }
         });
-        
+
         // If the motherContainer was added to the scene, remove it
         if (this.scene) {
             this.scene.remove(this.motherContainer);
@@ -2420,7 +2425,7 @@ class AnimationScene {
 }
 
 function render() {
-    // console.log("render() global function called");  
+    // console.log("render() global function called");
     var animationScene = animationScenes[config];
     theSceneHandler.render(animationScene);
 }
