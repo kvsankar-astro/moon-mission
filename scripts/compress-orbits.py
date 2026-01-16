@@ -6,10 +6,11 @@ This script compresses NPZ orbit data files into Chebyshev polynomial format
 for efficient storage and smooth interpolation.
 
 Usage:
-    python scripts/compress-orbits.py                    # Compress all phases
-    python scripts/compress-orbits.py --phase=geo       # Compress specific phase
-    python scripts/compress-orbits.py --validate        # Validate after compression
-    python scripts/compress-orbits.py --dry-run         # Show what would be done
+    python scripts/compress-orbits.py                              # Compress all phases (chandrayaan3)
+    python scripts/compress-orbits.py --mission=apollo11-sivb      # Compress specific mission
+    python scripts/compress-orbits.py --phase=geo                  # Compress specific phase
+    python scripts/compress-orbits.py --validate                   # Validate after compression
+    python scripts/compress-orbits.py --dry-run                    # Show what would be done
 
 Output Format Specification: docs/chebyshev-format-spec.md
 """
@@ -28,26 +29,55 @@ from numpy.polynomial import chebyshev as cheb
 # Configuration
 # ============================================================================
 
-DATA_DIR = Path(__file__).parent.parent / "assets" / "chandrayaan3" / "data"
+# Default mission (for backwards compatibility)
+DEFAULT_MISSION = "chandrayaan3"
 
-# Phase configurations
-PHASES = {
-    "geo": {
-        "npz": "geo-CY3.npz",
-        "cheb": "geo-CY3-cheb.json",
-        "tolerance_km": 5,  # Target: 5 km max error
-    },
-    "lunar": {
-        "npz": "lunar-CY3.npz",
-        "cheb": "lunar-CY3-cheb.json",
-        "tolerance_km": 5,
-    },
-    "landing": {
-        "npz": "landing-CY3.npz",
-        "cheb": "landing-CY3-cheb.json",
-        "tolerance_km": 2,  # Tighter for landing
-    },
-}
+# Base assets directory
+ASSETS_DIR = Path(__file__).parent.parent / "assets"
+
+# Will be set based on --mission argument
+DATA_DIR = None
+PHASES = None
+
+
+def load_mission_config(mission_name: str) -> tuple[Path, dict]:
+    """Load mission configuration and return DATA_DIR and PHASES."""
+    data_dir = ASSETS_DIR / mission_name / "data"
+    config_file = data_dir / "config.json"
+
+    if not config_file.exists():
+        print(f"Error: Config file not found: {config_file}")
+        sys.exit(1)
+
+    with open(config_file, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+
+    # Get spacecraft mnemonic for file naming
+    mnemonic = config.get("spacecraft_mnemonic", "SC")
+
+    # Build PHASES dict from config
+    phases = {}
+    available_phases = config.get("phases", [])
+
+    for phase_name in available_phases:
+        phase_config = config.get(phase_name, {})
+        if not phase_config.get("enabled", True):
+            continue
+
+        orbits_file = phase_config.get("orbits_file", f"{phase_name}-{mnemonic}")
+        # Extract just the filename without path
+        orbits_file = Path(orbits_file).name
+
+        # Landing phase needs tighter tolerance
+        tolerance = 2 if phase_name == "landing" else 5
+
+        phases[phase_name] = {
+            "npz": f"{orbits_file}.npz",
+            "cheb": f"{orbits_file}-cheb.json",
+            "tolerance_km": tolerance,
+        }
+
+    return data_dir, phases
 
 
 # ============================================================================
@@ -706,13 +736,19 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
 
 
 def main():
+    global DATA_DIR, PHASES
+
     parser = argparse.ArgumentParser(
         description="Compress ephemeris data using Chebyshev polynomials"
     )
     parser.add_argument(
+        "--mission",
+        default=DEFAULT_MISSION,
+        help=f"Mission name (default: {DEFAULT_MISSION})",
+    )
+    parser.add_argument(
         "--phase",
-        choices=list(PHASES.keys()),
-        help="Specific phase to compress (default: all)",
+        help="Specific phase to compress (default: all available)",
     )
     parser.add_argument(
         "--validate",
@@ -733,12 +769,26 @@ def main():
 
     args = parser.parse_args()
 
+    # Load mission configuration
+    DATA_DIR, PHASES = load_mission_config(args.mission)
+
+    if not PHASES:
+        print(f"Error: No phases found for mission '{args.mission}'")
+        sys.exit(1)
+
+    # Validate --phase argument against available phases
+    if args.phase and args.phase not in PHASES:
+        print(f"Error: Phase '{args.phase}' not available for mission '{args.mission}'")
+        print(f"Available phases: {', '.join(PHASES.keys())}")
+        sys.exit(1)
+
     validate = not args.no_validate
 
     phases = [args.phase] if args.phase else list(PHASES.keys())
 
     print("Chebyshev Polynomial Compression")
     print("=================================")
+    print(f"Mission: {args.mission}")
     print(f"Data directory: {DATA_DIR}")
     print(f"Phases: {', '.join(phases)}")
     print(f"Validate: {validate}")

@@ -180,10 +180,12 @@ def print_config():
     print(f"orbits_file = {orbits_file}")
 
 def get_horizons_start_time(planet):
-    return f"{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}"
+    # HORIZONS API requires single quotes around datetime values with spaces
+    return f"'{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}'"
 
 def get_horizons_stop_time(planet):
-    return f"{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}"    
+    # HORIZONS API requires single quotes around datetime values with spaces
+    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}'"    
     
 
 def set_start_and_stop_times():
@@ -199,8 +201,9 @@ def set_start_and_stop_times():
 
     # If step size is >= 60 seconds and divisible by 60, use minutes
     # Otherwise, calculate number of steps to use 1-second default
+    # HORIZONS API requires single quotes around values with spaces
     if step_size_in_seconds >= 60 and step_size_in_seconds % 60 == 0:
-        step_size = f"{step_size_in_seconds // 60} m"  # Convert to minutes
+        step_size = f"'{step_size_in_seconds // 60} m'"  # Convert to minutes (quoted for HORIZONS)
     else:
         # Calculate total number of steps needed at 1-second intervals
         total_seconds = stop_time_gm - start_time_gm
@@ -304,46 +307,57 @@ def save_orbit_data():
             print_error(f"Can't write to {ho_file_name}: {e}")
 
 def fetch_horizons_data(planet, options):
+    """Fetch data from JPL HORIZONS using the modern API endpoint.
+
+    Uses https://ssd.jpl.nasa.gov/api/horizons.api (recommended since 2021)
+    instead of the legacy horizons_batch.cgi endpoint.
+    """
     table_type_map = {
         'elements': ('ELEMENTS', 'elements_content'),
         'vectors': ('VECTORS', 'vectors_content')
     }
-    
+
     try:
         table_type, content_key = table_type_map[options['table_type']]
     except KeyError:
         raise ValueError(f"Invalid table_type: {options['table_type']}")
 
-    base_url = "https://ssd.jpl.nasa.gov/horizons_batch.cgi"
+    # Modern API endpoint (recommended since September 2021)
+    base_url = "https://ssd.jpl.nasa.gov/api/horizons.api"
+
+    # Build parameters - note: modern API doesn't need quotes around values
     params = {
-        'batch': '1',
-        'COMMAND': f"'{planet_codes[planet]}'",
-        'TABLE_TYPE': f"'{table_type}'",
-        'CENTER': f"'{center}'",
-        'CSV_FORMAT': "'YES'"
+        'format': 'text',  # Get text output (same as batch interface)
+        'COMMAND': str(planet_codes[planet]),
+        'OBJ_DATA': 'NO',  # Skip object data header
+        'MAKE_EPHEM': 'YES',
+        'EPHEM_TYPE': table_type,
+        'CENTER': center,
+        'CSV_FORMAT': 'YES'
     }
-    
+
     if options.get('range'):
         params.update({
-            'START_TIME': f"'{options['start_time']}'",
-            'STOP_TIME': f"'{options['stop_time']}'",
-            'STEP_SIZE': f"'{options['step_size']}'"
+            'START_TIME': options['start_time'],
+            'STOP_TIME': options['stop_time'],
+            'STEP_SIZE': options['step_size']
         })
     else:
-        params['TLIST'] = f"{jd}'"
+        params['TLIST'] = str(jd)
 
     print_debug(f"url = {base_url}")
     print_debug(f"params = {params}")
 
-    # Retry logic for large data requests
+    # Retry logic with exponential backoff
     max_retries = 3
     timeout_seconds = 300  # 5 minutes timeout for large data fetches
 
     for attempt in range(max_retries):
         try:
             if attempt > 0:
-                print_debug(f"Retry attempt {attempt + 1}/{max_retries}...")
-                time.sleep(5)  # Wait before retry
+                wait_time = 5 * (2 ** (attempt - 1))  # Exponential backoff: 5s, 10s, 20s
+                print_debug(f"Retry attempt {attempt + 1}/{max_retries} after {wait_time}s...")
+                time.sleep(wait_time)
 
             # Use streaming to handle large responses reliably
             response = requests.get(base_url, params=params, timeout=timeout_seconds, stream=True)
@@ -356,6 +370,13 @@ def fetch_horizons_data(planet, options):
 
             content_text = content_bytes.decode('utf-8')
             print_debug(f"Downloaded {len(content_text)} characters")
+
+            # Check for HORIZONS error messages in response
+            if '$$SOE' not in content_text:
+                if 'No ephemeris' in content_text or 'Cannot find' in content_text:
+                    print_error(f"HORIZONS error: Object not found or no ephemeris available")
+                    print_debug(f"Response preview: {content_text[:500]}")
+                    return False
 
             orbits_raw.setdefault(planet, {})[content_key] = content_text
             return True
