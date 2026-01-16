@@ -3,11 +3,11 @@
 
 import { deg_to_rad, lunar_pole } from "./astro.js";
 import {
-    CELESTIAL_BODIES,
-    FORMAT_CONSTANTS,
-    PHYSICS_CONSTANTS,
-    TIME_CONSTANTS,
-    UI_CONSTANTS
+    CELESTIAL_BODIES as CB,
+    FORMAT_CONSTANTS as FC,
+    PHYSICS_CONSTANTS as PC,
+    TIME_CONSTANTS as TC,
+    UI_CONSTANTS as UC
 } from "./core/constants.js";
 import {
     clearEventInfo,
@@ -37,32 +37,6 @@ const isTestMode = new URLSearchParams(window.location.search).get('testMode') =
 // constants
 
 var SC     = "SC"; // Default spacecraft mnemonic - will be overridden by config
-var SUN     = CELESTIAL_BODIES.SUN;
-var MERCURY = CELESTIAL_BODIES.MERCURY;
-var VENUS   = CELESTIAL_BODIES.VENUS;
-var EARTH   = CELESTIAL_BODIES.EARTH;
-var MARS    = CELESTIAL_BODIES.MARS;
-var MOON    = CELESTIAL_BODIES.MOON;
-var CSS     = CELESTIAL_BODIES.CSS;
-
-var ONE_SECOND_MS = TIME_CONSTANTS.ONE_SECOND_MS;
-var ONE_MINUTE_MS = TIME_CONSTANTS.ONE_MINUTE_MS;
-var KM_PER_AU = PHYSICS_CONSTANTS.KM_PER_AU;
-var DEGREES_PER_RADIAN = PHYSICS_CONSTANTS.DEGREES_PER_RADIAN;
-var DEGREES_PER_CIRCLE = PHYSICS_CONSTANTS.DEGREES_PER_CIRCLE;
-var MILLI_SECONDS_PER_MINUTE = TIME_CONSTANTS.MILLI_SECONDS_PER_MINUTE;
-var MILLI_SECONDS_PER_HOUR = TIME_CONSTANTS.MILLI_SECONDS_PER_HOUR;
-var GREENWICH_LONGITUDE = PHYSICS_CONSTANTS.GREENWICH_LONGITUDE;
-var EARTH_MOON_DISTANCE_MEAN_AU = PHYSICS_CONSTANTS.EARTH_MOON_DISTANCE_MEAN_AU;
-var EARTH_RADIUS_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_KM;
-var EARTH_RADIUS_MAX_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_MAX_KM;
-var EARTH_RADIUS_MIN_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_MIN_KM;
-var MOON_RADIUS_KM = PHYSICS_CONSTANTS.MOON_RADIUS_KM;
-var MOON_SOI_RADIUS_KM = PHYSICS_CONSTANTS.MOON_SOI_RADIUS_KM;
-var EARTH_AXIS_INCLINATION_DEGREES = PHYSICS_CONSTANTS.EARTH_AXIS_INCLINATION_DEGREES;
-var EARTH_AXIS_INCLINATION_RADS = PHYSICS_CONSTANTS.EARTH_AXIS_INCLINATION_RADS;
-
-var STEP_DURATION_MS = TIME_CONSTANTS.STEP_DURATION_MS;
 
 var craftSize = 5; // in pixels
 
@@ -93,25 +67,18 @@ var planetProperties = {
     "SC":      { "id": SC,        "name": "SC",              "color": "#ffa000",     "orbitcolor": "#66CCFF",    "stroke-width": 1.0, "r": 3.2, "labelOffsetX": -30, "labelOffsetY": -10 },
     
     
-    "SUN":      { "id": SUN,        "name": "Sun",              "color": "yellow",      "orbitcolor": "yellow",     "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "MERCURY":  { "id": MERCURY,    "name": "Mercury",          "color": "green",       "orbitcolor": "green",      "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "VENUS":    { "id": VENUS,      "name": "Venus",            "color": "grey",        "orbitcolor": "grey",       "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "EARTH":    { "id": EARTH,      "name": "Earth",            "color": "blue",        "orbitcolor": "blue",       "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "MARS":     { "id": MARS,       "name": "Mars",             "color": "red",         "orbitcolor": "red",        "stroke-width": 0.3, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "MOON":     { "id": MOON,       "name": "Moon",             "color": "lightgrey",   "orbitcolor": "grey",       "stroke-width": 1.0, "r": 3,   "labelOffsetX": +10, "labelOffsetY": +10 },
-    "CSS":      { "id": CSS,        "name": "Siding Spring",    "color": "cyan",        "orbitcolor": "cyan",       "stroke-width": 1.0, "r": 3,   "labelOffsetX": +10, "labelOffsetY": +10 },
-};      
-    
-var CENTER_LABEL_OFFSET_X = UI_CONSTANTS.CENTER_LABEL_OFFSET_X;
-var CENTER_LABEL_OFFSET_Y = UI_CONSTANTS.CENTER_LABEL_OFFSET_Y;
+    "SUN":      { "id": CB.SUN,     "name": "Sun",           "color": "yellow",    "orbitcolor": "yellow",  "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "MERCURY":  { "id": CB.MERCURY, "name": "Mercury",       "color": "green",     "orbitcolor": "green",   "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "VENUS":    { "id": CB.VENUS,   "name": "Venus",         "color": "grey",      "orbitcolor": "grey",    "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "EARTH":    { "id": CB.EARTH,   "name": "Earth",         "color": "blue",      "orbitcolor": "blue",    "stroke-width": 1.0, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "MARS":     { "id": CB.MARS,    "name": "Mars",          "color": "red",       "orbitcolor": "red",     "stroke-width": 0.3, "r": 5,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "MOON":     { "id": CB.MOON,    "name": "Moon",          "color": "lightgrey", "orbitcolor": "grey",    "stroke-width": 1.0, "r": 3,   "labelOffsetX": +10, "labelOffsetY": +10 },
+    "CSS":      { "id": CB.CSS,     "name": "Siding Spring", "color": "cyan",      "orbitcolor": "cyan",    "stroke-width": 1.0, "r": 3,   "labelOffsetX": +10, "labelOffsetY": +10 },
+};
 
-var SPEED_CHANGE_FACTOR = UI_CONSTANTS.SPEED_CHANGE_FACTOR;
-var ZOOM_SCALE = UI_CONSTANTS.ZOOM_SCALE;
-var ZOOM_TIMEOUT = UI_CONSTANTS.ZOOM_TIMEOUT; // TODO Why did I end up calling this variable this way? 
-var SVG_ORIGIN_X = UI_CONSTANTS.SVG_ORIGIN_X; // TODO match with CSS value; find a better way
-var SVG_ORIGIN_Y = UI_CONSTANTS.SVG_ORIGIN_Y; // TODO match with CSS value; find a better way
-var FORMAT_PERCENT = d3.format(FORMAT_CONSTANTS.PERCENT);
-var FORMAT_METRIC = d3.format(FORMAT_CONSTANTS.METRIC);
+// D3 formatters (derived from constants)
+var FORMAT_PERCENT = d3.format(FC.PERCENT);
+var FORMAT_METRIC = d3.format(FC.METRIC);
 
 //
 // General state variables
@@ -215,7 +182,7 @@ var animTimeStepMinutes = 1;
 var realtimespeed = false;
 var prevFrameTime = null;
 var curFrameTime = null;
-var deltaFrameTime = ONE_MINUTE_MS;
+var deltaFrameTime = TC.ONE_MINUTE_MS;
 var animationRunning = false;
 var stopAnimationFlag = false;
 var startLandingFlag = false;
@@ -223,7 +190,7 @@ var timeoutHandle;
 var timeoutHandleZoom;
 var dataLoaded = false;
 var ticksPerAnimationStep;
-var mousedownTimeout = ZOOM_TIMEOUT;
+var mousedownTimeout = UC.ZOOM_TIMEOUT;
 
 // FPS calculation variables
 var fpsFrameCount = 0;
@@ -497,7 +464,7 @@ function getStartAndEndTimes(id) {
             parseInt(phaseConfig.stop_hour),
             parseInt(phaseConfig.stop_minute),
             0, 0
-        ) - ONE_MINUTE_MS;
+        ) - TC.ONE_MINUTE_MS;
     } else {
         return [null, null];
     }
@@ -1012,7 +979,7 @@ class AnimationScene {
         // add Sky
 
         this.skyContainer = new THREE.Group();
-        this.skyContainer.lookAt(0, Math.sin(EARTH_AXIS_INCLINATION_RADS), Math.cos(EARTH_AXIS_INCLINATION_RADS));
+        this.skyContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
 
         // console.log("Creating Sky...");
 
@@ -1103,7 +1070,7 @@ class AnimationScene {
         // add Earth
 
         this.earthContainer = new THREE.Group();
-        this.earthContainer.lookAt(0, Math.sin(EARTH_AXIS_INCLINATION_RADS), Math.cos(EARTH_AXIS_INCLINATION_RADS));
+        this.earthContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
 
         // console.log("Creating Earth...");
         // var earthColor = planetProperties["EARTH"]["color"];
@@ -1279,7 +1246,7 @@ class AnimationScene {
         // 
         // this.moonContainer.rotateZ(Math.PI / 2 + alpha);
         // this.moonContainer.rotateX(Math.PI / 2 - delta);
-        // this.moonContainer.rotateX(-1 * EARTH_AXIS_INCLINATION_RADS);
+        // this.moonContainer.rotateX(-1 * PC.EARTH_AXIS_INCLINATION_RADS);
         // OR
         // this.moonContainer.rotateZ(Math.PI / 2 + long);
         // this.moonContainer.rotateX(Math.PI / 2 - lat);
@@ -1440,7 +1407,7 @@ class AnimationScene {
             return;
         }
 
-        var radius = moonRadius * (MOON_SOI_RADIUS_KM / MOON_RADIUS_KM);
+        var radius = moonRadius * (PC.MOON_SOI_RADIUS_KM / PC.MOON_RADIUS_KM);
         var latSegments = 18;  // 10° increments
         var longSegments = 36; // 10° increments
 
@@ -1784,7 +1751,7 @@ class AnimationScene {
 
     addAxesHelper() {
         // add axes helper
-        this.axesHelper = new THREE.AxesHelper(2*PIXELS_PER_AU*EARTH_MOON_DISTANCE_MEAN_AU);
+        this.axesHelper = new THREE.AxesHelper(2*PIXELS_PER_AU*PC.EARTH_MOON_DISTANCE_MEAN_AU);
         this.motherContainer.add(this.axesHelper);
         this.axesHelper.visible = viewXYZAxes;
 
@@ -1804,7 +1771,7 @@ class AnimationScene {
         this.motherContainer.add(this.eclipticPlaneHelper);
 
         this.equatorialPlaneContainer = new THREE.Group();
-        this.equatorialPlaneContainer.lookAt(0, Math.sin(EARTH_AXIS_INCLINATION_RADS), Math.cos(EARTH_AXIS_INCLINATION_RADS));
+        this.equatorialPlaneContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
 
         this.equatorialPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, equatorialPlaneColor, equatorialPlaneColor);
         this.equatorialPolarGridHelper.rotation.x = Math.PI/2;
@@ -2217,13 +2184,13 @@ class AnimationScene {
             );
 
             for (const vec of vectors) {
-                const x = (vec.x / KM_PER_AU) * PIXELS_PER_AU;
-                const y = (vec.y / KM_PER_AU) * PIXELS_PER_AU;
-                const z = (vec.z / KM_PER_AU) * PIXELS_PER_AU;
+                const x = (vec.x / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const y = (vec.y / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const z = (vec.z / PC.KM_PER_AU) * PIXELS_PER_AU;
 
-                const vx = (vec.vx / KM_PER_AU) * PIXELS_PER_AU;
-                const vy = (vec.vy / KM_PER_AU) * PIXELS_PER_AU;
-                const vz = (vec.vz / KM_PER_AU) * PIXELS_PER_AU;
+                const vx = (vec.vx / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const vy = (vec.vy / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const vz = (vec.vz / PC.KM_PER_AU) * PIXELS_PER_AU;
 
                 this.curve.push(new THREE.Vector3(x, y, z));
                 this.curveVelocities.push(new THREE.Vector3(vx, vy, vz));
@@ -2253,13 +2220,13 @@ class AnimationScene {
             );
 
             for (const vec of vectors) {
-                const x = (vec.x / KM_PER_AU) * PIXELS_PER_AU;
-                const y = (vec.y / KM_PER_AU) * PIXELS_PER_AU;
-                const z = (vec.z / KM_PER_AU) * PIXELS_PER_AU;
+                const x = (vec.x / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const y = (vec.y / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const z = (vec.z / PC.KM_PER_AU) * PIXELS_PER_AU;
 
-                const vx = (vec.vx / KM_PER_AU) * PIXELS_PER_AU;
-                const vy = (vec.vy / KM_PER_AU) * PIXELS_PER_AU;
-                const vz = (vec.vz / KM_PER_AU) * PIXELS_PER_AU;
+                const vx = (vec.vx / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const vy = (vec.vy / PC.KM_PER_AU) * PIXELS_PER_AU;
+                const vz = (vec.vz / PC.KM_PER_AU) * PIXELS_PER_AU;
 
                 this.landingCurve.push(new THREE.Vector3(x, y, z));
                 this.landingCurveVelocities.push(new THREE.Vector3(vx, vy, vz));
@@ -2384,7 +2351,7 @@ class AnimationScene {
         var W = lp["W"];
         
         this.moonContainer.rotation.set(0, 0, 0);
-        this.moonContainer.rotateX(-1 * EARTH_AXIS_INCLINATION_RADS);
+        this.moonContainer.rotateX(-1 * PC.EARTH_AXIS_INCLINATION_RADS);
         this.moonContainer.rotateZ(+1 * (Math.PI / 2 + alpha));
         this.moonContainer.rotateX(+1 * (Math.PI / 2 - delta));
         this.moonContainer.rotateZ(+1 * W);
@@ -2393,7 +2360,7 @@ class AnimationScene {
     }
 
     rotateEarth() {
-        var mst = deg_to_rad(getMST(new Date(animTime), GREENWICH_LONGITUDE));
+        var mst = deg_to_rad(getMST(new Date(animTime), PC.GREENWICH_LONGITUDE));
         this.earthContainer.rotation.z = mst;
         // this.losLine.geometry.verticesNeedUpdate = true;
     } 
@@ -2601,15 +2568,15 @@ async function initConfig() {
 
         computeSVGDimensions();
     
-        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * EARTH_MOON_DISTANCE_MEAN_AU)); 
+        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
         // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
 
-        defaultCameraDistance = 2 * EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
+        defaultCameraDistance = 2 * PC.EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
 
         trackWidth = 0.6;
 
-        earthRadius = (EARTH_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
-        moonRadius = (MOON_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
+        earthRadius = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
+        moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
         
         animationScenes[config].primaryBody = "EARTH";
         animationScenes[config].primaryBodyRadius = earthRadius;
@@ -2654,15 +2621,15 @@ async function initConfig() {
 
         computeSVGDimensions();
     
-        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * EARTH_MOON_DISTANCE_MEAN_AU)); 
+        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
         // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
         
-        defaultCameraDistance = 2 * EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
+        defaultCameraDistance = 2 * PC.EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
 
         trackWidth = 0.6;
 
-        earthRadius = (EARTH_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
-        moonRadius = (MOON_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU * 0.997;        
+        earthRadius = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
+        moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU * 0.997;        
 
         animationScenes[config].primaryBody = "MOON";
         animationScenes[config].primaryBodyRadius = moonRadius;
@@ -2870,7 +2837,7 @@ function isLocationAvaialable(planet, date) {
 
 function rotate(x, y, phi) { // unused function for now
 
-    var phi = phi / DEGREES_PER_RADIAN;
+    var phi = phi / PC.DEGREES_PER_RADIAN;
     var retx;
     var rety;
 
@@ -2896,8 +2863,8 @@ function setLabelLocation(planetKey) {
         var x = xFactor * planet_pos[xVariable];
         var y = yFactor * planet_pos[yVariable];
 
-        var newx = +1 * (x / KM_PER_AU) * PIXELS_PER_AU;
-        var newy = -1 * (y / KM_PER_AU) * PIXELS_PER_AU;
+        var newx = +1 * (x / PC.KM_PER_AU) * PIXELS_PER_AU;
+        var newy = -1 * (y / PC.KM_PER_AU) * PIXELS_PER_AU;
 
         var labelx = newx + planetProps.labelOffsetX/zoomFactor;
         var labely = newy + planetProps.labelOffsetY/zoomFactor;
@@ -2923,7 +2890,7 @@ function getBodyLocation(craftid, t) {
     // For SC (spacecraft), use Chebyshev data
     if (craftid === "SC") {
         // Landing phase - use landing Chebyshev
-        if ((config == "lunar") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - ONE_SECOND_MS)) {
+        if ((config == "lunar") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - TC.ONE_SECOND_MS)) {
             if (landingChebyshevLoaded && landingChebyshevData) {
                 const jd = new Date(t).getJD_TDB();
                 const state = getStateFromChebyshev(landingChebyshevData, jd);
@@ -3057,8 +3024,8 @@ function setLocation() {
             // console.log("realx = " + realx + ", realy = " + realy + ", realz = " + realz);
             var craft_pos_next = null;
             var craft_vel_next = null;
-            if (isLocationAvaialable(planetKey, animTime + ONE_MINUTE_MS)) {
-                [craft_pos_next, craft_vel_next] = getBodyLocation(planetKey, animTime + ONE_MINUTE_MS);
+            if (isLocationAvaialable(planetKey, animTime + TC.ONE_MINUTE_MS)) {
+                [craft_pos_next, craft_vel_next] = getBodyLocation(planetKey, animTime + TC.ONE_MINUTE_MS);
             }
             if (!craft_pos_next) {
                 // Use current position for next if not available
@@ -3067,13 +3034,13 @@ function setLocation() {
             }
             var [realx_next, realy_next, realz_next] = [craft_pos_next.x, craft_pos_next.y, craft_pos_next.z]; 
 
-            var realx_screen = +1 * (realx / KM_PER_AU) * PIXELS_PER_AU;
-            var realy_screen = +1 * (realy / KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
-            var realz_screen = +1 * (realz / KM_PER_AU) * PIXELS_PER_AU;
+            var realx_screen = +1 * (realx / PC.KM_PER_AU) * PIXELS_PER_AU;
+            var realy_screen = +1 * (realy / PC.KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
+            var realz_screen = +1 * (realz / PC.KM_PER_AU) * PIXELS_PER_AU;
 
-            var realx_screen_next = +1 * (realx_next / KM_PER_AU) * PIXELS_PER_AU;
-            var realy_screen_next = +1 * (realy_next / KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
-            var realz_screen_next = +1 * (realz_next / KM_PER_AU) * PIXELS_PER_AU;
+            var realx_screen_next = +1 * (realx_next / PC.KM_PER_AU) * PIXELS_PER_AU;
+            var realy_screen_next = +1 * (realy_next / PC.KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
+            var realz_screen_next = +1 * (realz_next / PC.KM_PER_AU) * PIXELS_PER_AU;
 
             // Only calculate 2D SVG coordinates and update DOM in 2D mode
             var newx, newy, newz, x, y, z, vx, vy, vz;
@@ -3081,9 +3048,9 @@ function setLocation() {
                 [x, y, z] = [xFactor*craft_pos[xVariable], yFactor*craft_pos[yVariable], zFactor*craft_pos[zVariable]];
                 [vx, vy, vz] = [xFactor*craft_vel[xVariable], yFactor*craft_vel[yVariable], zFactor*craft_vel[zVariable]];
 
-                newx = +1 * (x / KM_PER_AU) * PIXELS_PER_AU;
-                newy = -1 * (y / KM_PER_AU) * PIXELS_PER_AU;
-                newz = +1 * (z / KM_PER_AU) * PIXELS_PER_AU;
+                newx = +1 * (x / PC.KM_PER_AU) * PIXELS_PER_AU;
+                newy = -1 * (y / PC.KM_PER_AU) * PIXELS_PER_AU;
+                newz = +1 * (z / PC.KM_PER_AU) * PIXELS_PER_AU;
 
                 d3.select("#" + planetKey)
                     .attr("visibility", showPlanet(planetKey) ? "visible" : "hidden")
@@ -3129,9 +3096,9 @@ function setLocation() {
 
                 var pbr;
                 if (config == "geo") {
-                    pbr = EARTH_RADIUS_KM; 
+                    pbr = PC.EARTH_RADIUS_KM; 
                 } else if (config == "lunar") {
-                    pbr = MOON_RADIUS_KM;
+                    pbr = PC.MOON_RADIUS_KM;
                 }
 
                 var altitude = r - pbr;
@@ -3149,7 +3116,7 @@ function setLocation() {
                         var dr = moon_pos.distanceTo(craft_pos);
                         var dv = moon_vel.distanceTo(craft_vel);
 
-                        var altitudeMoon = dr - MOON_RADIUS_KM;
+                        var altitudeMoon = dr - PC.MOON_RADIUS_KM;
                         d3.select("#distance-" + planetKey +"-MOON").text(FORMAT_METRIC(dr));
                         d3.select("#altitude-" + planetKey +"-MOON").text(FORMAT_METRIC(altitudeMoon));
                         d3.select("#velocity-" + planetKey +"-MOON").text(FORMAT_METRIC(dv));
@@ -3164,7 +3131,7 @@ function setLocation() {
                     var dr = earth_pos.distanceTo(craft_pos);
                     var dv = earth_vel.distanceTo(craft_vel);
 
-                    var altitudeEarth = dr - EARTH_RADIUS_KM;
+                    var altitudeEarth = dr - PC.EARTH_RADIUS_KM;
                     d3.select("#distance-" + planetKey +"-EARTH").text(FORMAT_METRIC(dr));
                     d3.select("#altitude-" + planetKey +"-EARTH").text(FORMAT_METRIC(altitudeEarth));
                     d3.select("#velocity-" + planetKey +"-EARTH").text(FORMAT_METRIC(dv));
@@ -3252,14 +3219,14 @@ function showGreenwichLongitude() {
     
     if (config == "helio") return;
 
-    var mst = getMST(new Date(animTime), GREENWICH_LONGITUDE);
+    var mst = getMST(new Date(animTime), PC.GREENWICH_LONGITUDE);
 
-    var radialLength = (EARTH_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
+    var radialLength = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
 
     var x1 = 0;
     var y1 = 0;
-    var x2 = +1 * radialLength * Math.cos(mst/DEGREES_PER_RADIAN);
-    var y2 = -1 * radialLength * Math.sin(mst/DEGREES_PER_RADIAN);
+    var x2 = +1 * radialLength * Math.cos(mst/PC.DEGREES_PER_RADIAN);
+    var y2 = -1 * radialLength * Math.sin(mst/PC.DEGREES_PER_RADIAN);
 
     d3.select("#Greenwich")
         .attr("x1", x1)
@@ -3287,7 +3254,7 @@ function adjustLabelLocations() {
         var planetProps = planetProperties[planetKey];
         
         if (planetKey == "MOON") {
-            var moonRadius = (MOON_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
+            var moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
             d3.selectAll("#" + planetKey).attr("r", Math.max(moonRadius, (planetProps.r/zoomFactor)));
         } else {
             d3.selectAll("#" + planetKey).attr("r", (planetProps.r/zoomFactor));
@@ -3302,9 +3269,9 @@ function adjustLabelLocations() {
 
     d3.select("#Greenwich").attr("style", "stroke: LightBlue; stroke-opacity: 0.5; " + "stroke-width: " + (0.5/zoomFactor));
     
-    var radialLength = (EARTH_RADIUS_KM / KM_PER_AU) * PIXELS_PER_AU;
-    d3.select("#label-" + animationScenes[config].primaryBody).attr("x", (-1 * radialLength + CENTER_LABEL_OFFSET_X/zoomFactor));
-    d3.select("#label-" + animationScenes[config].primaryBody).attr("y", (-1 * radialLength + CENTER_LABEL_OFFSET_Y/zoomFactor));
+    var radialLength = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
+    d3.select("#label-" + animationScenes[config].primaryBody).attr("x", (-1 * radialLength + UC.CENTER_LABEL_OFFSET_X/zoomFactor));
+    d3.select("#label-" + animationScenes[config].primaryBody).attr("y", (-1 * radialLength + UC.CENTER_LABEL_OFFSET_Y/zoomFactor));
     
     d3.select("#label-" + animationScenes[config].primaryBody).attr("font-size", (10/zoomFactor));
 
@@ -3379,11 +3346,11 @@ function animateLoop() {
             if (realtimespeed) {
                 animTime += deltaFrameTime;
             } else {
-                animTime += animTimeStepMinutes * ONE_MINUTE_MS;
+                animTime += animTimeStepMinutes * TC.ONE_MINUTE_MS;
             }
             
-            if (animTime > endTime - ONE_MINUTE_MS) {
-                animTime = endTime - ONE_MINUTE_MS;
+            if (animTime > endTime - TC.ONE_MINUTE_MS) {
+                animTime = endTime - TC.ONE_MINUTE_MS;
                 stopAnimation();
             }
             setLocation();
@@ -3471,7 +3438,7 @@ function f14() { realtime();        timeoutHandleZoom = setTimeout(f14, mousedow
 function zoomFunction(f) {
     mouseDown = true;
     f();
-    timeoutHandleZoom = setTimeout(f, ZOOM_TIMEOUT);
+    timeoutHandleZoom = setTimeout(f, UC.ZOOM_TIMEOUT);
 }
 
 async function init(callback) {
@@ -3529,7 +3496,7 @@ async function init(callback) {
 
         d3.select("#" + b).on("mouseup", function() {
 
-            mousedownTimeout = ZOOM_TIMEOUT;
+            mousedownTimeout = UC.ZOOM_TIMEOUT;
             mouseDown = false;
             clearTimeout(timeoutHandleZoom);
             timeoutHandleZoom = null;
@@ -3860,8 +3827,8 @@ function computeSVGDimensions() {
     svgY = $("#svg-top-baseline").position().top;
     svgWidth = window.innerWidth;
     svgHeight = window.innerHeight; // - (svgY + $("#footer-wrapper").outerHeight(true));
-    offsetx = svgWidth * (1 / 2) - SVG_ORIGIN_X;
-    offsety = svgHeight * (1 / 2) - SVG_ORIGIN_Y;
+    offsetx = svgWidth * (1 / 2) - UC.SVG_ORIGIN_X;
+    offsety = svgHeight * (1 / 2) - UC.SVG_ORIGIN_Y;
 
     // console.log("svgX = " + svgX + ", svgY = " + svgY + ", svgWidth = " + svgWidth + ", svgHeight = " + svgHeight + 
     //     ", offsetx = " + offsetx + ", offsety = " + offsety);
@@ -3962,13 +3929,13 @@ function processOrbitElementsData() {
             epochDate = el.date;
             // consoloe.log(planetKey + ": epochjd: " + epochjd + ", epochDate: " + epochDate);
 
-            var cx = -1 * (el.a / KM_PER_AU) * el.ec * PIXELS_PER_AU;
+            var cx = -1 * (el.a / PC.KM_PER_AU) * el.ec * PIXELS_PER_AU;
             var cy = 0 * PIXELS_PER_AU;
-            var rx = (el.a / KM_PER_AU) * PIXELS_PER_AU;
+            var rx = (el.a / PC.KM_PER_AU) * PIXELS_PER_AU;
             var ry = rx * (Math.sqrt(1 - el.ec * el.ec));
 
             var angle = parseFloat(el.om) + parseFloat(el.w);
-            while (angle >= DEGREES_PER_CIRCLE) angle -= DEGREES_PER_CIRCLE;
+            while (angle >= PC.DEGREES_PER_CIRCLE) angle -= PC.DEGREES_PER_CIRCLE;
             angle = -1 * angle;
 
             svgContainer.append("ellipse")
@@ -4026,14 +3993,14 @@ async function processOrbitVectorsData() {
                 .attr("visibility", "visible");
 
             var line = d3.svg.line()
-                .x(function(d) { return +1 * xFactor*d[xVariable] / KM_PER_AU * PIXELS_PER_AU; } )
-                .y(function(d) { return -1 * yFactor*d[yVariable] / KM_PER_AU *PIXELS_PER_AU; } )
+                .x(function(d) { return +1 * xFactor*d[xVariable] / PC.KM_PER_AU * PIXELS_PER_AU; } )
+                .y(function(d) { return -1 * yFactor*d[yVariable] / PC.KM_PER_AU *PIXELS_PER_AU; } )
                 .interpolate("cardinal-open");
 
             // TODO d3v7
             // var line = d3.line()
-            //     .x(function(d) { return +1 * xFactor*d[xVariable] / KM_PER_AU * PIXELS_PER_AU; } )
-            //     .y(function(d) { return -1 * yFactor*d[yVariable] / KM_PER_AU *PIXELS_PER_AU; } )
+            //     .x(function(d) { return +1 * xFactor*d[xVariable] / PC.KM_PER_AU * PIXELS_PER_AU; } )
+            //     .y(function(d) { return -1 * yFactor*d[yVariable] / PC.KM_PER_AU *PIXELS_PER_AU; } )
             //     .curve(d3.curveCardinalOpen);
 
             svgContainer.select("#" + "orbit-" + planetKey)
@@ -4073,8 +4040,8 @@ async function processOrbitVectorsData() {
                 .attr("class", "label")
             .append("text")
                 .attr("id", "label-" + animationScenes[config].primaryBody)
-                .attr("x", CENTER_LABEL_OFFSET_X)
-                .attr("y", CENTER_LABEL_OFFSET_Y)
+                .attr("x", UC.CENTER_LABEL_OFFSET_X)
+                .attr("y", UC.CENTER_LABEL_OFFSET_Y)
                 .attr("font-size", 10/zoomFactor)
                 .attr("fill", planetProperties[animationScenes[config].primaryBody].color)
                 .text(planetProperties[animationScenes[config].primaryBody].name);
@@ -4086,7 +4053,7 @@ async function processOrbitVectorsData() {
     }
 
     if (config == "martian") {
-           var r = 3390/KM_PER_AU*PIXELS_PER_AU/zoomFactor;
+           var r = 3390/PC.KM_PER_AU*PIXELS_PER_AU/zoomFactor;
            svgContainer.append("image")
                .attr("id", "mars-image")
                .attr("xlink:href", "cy3-mars-image-transparent.gif")
@@ -4201,19 +4168,19 @@ function cy3Animate() {
     } else {
         animationRunning = true;
         stopAnimationFlag = false;
-        if (animTime >= endTime - ONE_MINUTE_MS) animTime = startTime;
+        if (animTime >= endTime - TC.ONE_MINUTE_MS) animTime = startTime;
         updateD3ElementText("#animate", "Pause");
     }
 }
 
 function fastBackward() {
-    animTime -= animationScenes[config].stepsPerHop * ONE_MINUTE_MS;
+    animTime -= animationScenes[config].stepsPerHop * TC.ONE_MINUTE_MS;
     if (animTime < startTime) animTime = startTime;
     setLocation();
 }
 
 function backward() {
-    animTime -= ONE_MINUTE_MS;
+    animTime -= TC.ONE_MINUTE_MS;
     if (animTime < startTime) animTime = startTime;
     setLocation();
 }
@@ -4226,17 +4193,17 @@ function stopAnimation() {
 }
 
 function forward() {
-    animTime += ONE_MINUTE_MS;
-    if (animTime > endTime - ONE_MINUTE_MS) {
-        animTime = endTime - ONE_MINUTE_MS;
+    animTime += TC.ONE_MINUTE_MS;
+    if (animTime > endTime - TC.ONE_MINUTE_MS) {
+        animTime = endTime - TC.ONE_MINUTE_MS;
     }
     setLocation();
 }
 
 function fastForward() {
-    animTime += animationScenes[config].stepsPerHop * ONE_MINUTE_MS;
-    if (animTime > endTime - ONE_MINUTE_MS) {
-        animTime = endTime - ONE_MINUTE_MS;
+    animTime += animationScenes[config].stepsPerHop * TC.ONE_MINUTE_MS;
+    if (animTime > endTime - TC.ONE_MINUTE_MS) {
+        animTime = endTime - TC.ONE_MINUTE_MS;
     }
     setLocation();
 }
@@ -4254,9 +4221,9 @@ function missionSetTime() {
     if (animTime < startTime) {
         // console.log("missionSetTime(): animTime < startTime");
         animTime = startTime;
-    } else if (animTime > endTime - ONE_MINUTE_MS) {
+    } else if (animTime > endTime - TC.ONE_MINUTE_MS) {
         // console.log("missionSetTime(): animTime >= endTime");
-        animTime = endTime - ONE_MINUTE_MS;
+        animTime = endTime - TC.ONE_MINUTE_MS;
     }
     setLocation();
 }
@@ -4285,9 +4252,9 @@ function missionEnd() {
 function faster() {
     if (realtimespeed) {
         realtimespeed = false;
-        animTimeStepMinutes = deltaFrameTime / ONE_MINUTE_MS * SPEED_CHANGE_FACTOR;
+        animTimeStepMinutes = deltaFrameTime / TC.ONE_MINUTE_MS * UC.SPEED_CHANGE_FACTOR;
     } else {
-        animTimeStepMinutes *= SPEED_CHANGE_FACTOR;	
+        animTimeStepMinutes *= UC.SPEED_CHANGE_FACTOR;	
     }
 // console.log("animTimeStepMinutes = " + animTimeStepMinutes);
 }
@@ -4301,9 +4268,9 @@ function resetspeed() {
 function slower() {
     if (realtimespeed) {
         realtimespeed = false;
-        animTimeStepMinutes = deltaFrameTime / ONE_MINUTE_MS / SPEED_CHANGE_FACTOR;
+        animTimeStepMinutes = deltaFrameTime / TC.ONE_MINUTE_MS / UC.SPEED_CHANGE_FACTOR;
     } else {
-        animTimeStepMinutes /= SPEED_CHANGE_FACTOR;	
+        animTimeStepMinutes /= UC.SPEED_CHANGE_FACTOR;	
     }
     // console.log("animTimeStepMinutes = " + animTimeStepMinutes);
 }
@@ -4380,35 +4347,35 @@ function zoomChange(t) {
 }
 
 function zoomOut() {
-    zoomFactor /= ZOOM_SCALE;
-    var factor = 1/ZOOM_SCALE;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomFactor /= UC.ZOOM_SCALE;
+    var factor = 1/UC.ZOOM_SCALE;
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function zoomIn() {
-    zoomFactor *= ZOOM_SCALE;
-    var factor = ZOOM_SCALE;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomFactor *= UC.ZOOM_SCALE;
+    var factor = UC.ZOOM_SCALE;
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function panLeft() {
     panx += +10;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function panRight() {
     panx += -10;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function panUp() {
     pany += +10;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function panDown() {
     pany += -10;
-    zoomChange(ZOOM_TIMEOUT);
+    zoomChange(UC.ZOOM_TIMEOUT);
 }
 
 function reset() {
@@ -4417,7 +4384,7 @@ function reset() {
     pany = 0;
     zoomFactor = 1;
 
-    zoomChange(ZOOM_TIMEOUT);
+    zoomChange(UC.ZOOM_TIMEOUT);
     zoomEnd();
 }
 
