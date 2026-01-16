@@ -77,7 +77,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is the source code for a 3D and 2D animation of the ISRO Chandrayaan 3 mission orbit, hosted at http://sankara.net/chandrayaan3.html. The animation displays real-world orbit data and predictions from JPL/NASA HORIZONS interface.
+This is a multi-mission platform for 3D and 2D animations of lunar mission orbits. Currently supports Chandrayaan 3 (2023) and Chandrayaan 2 (2019). Hosted at http://sankara.net/mission.html. The animations display real-world orbit data from JPL/NASA HORIZONS interface.
+
+## Multi-Mission Architecture
+
+### URL Routing
+- `mission.html` - Mission selector page (no params)
+- `mission.html?mission=cy3` - Chandrayaan 3
+- `mission.html?mission=cy2` - Chandrayaan 2
+
+### Mission Configuration
+Each mission has its own folder under `assets/<mission>/`:
+- `data/config.json` - Mission parameters, events, UI labels
+- `data/*-cheb.json` - Chebyshev orbit data files
+- `models/` - 3D spacecraft models (optional)
+- `images/` - Screenshots
+
+### Adding a New Mission
+1. Create `assets/<mission-name>/data/config.json` using existing configs as template
+2. Generate orbit data using `scripts/orbits.py --mission=<name>`
+3. Add mission to `missionMap` in `mission.html`
+4. Add mission card to selector UI in `mission.html`
 
 ## High-Level Architecture
 
@@ -90,7 +110,7 @@ The project consists of several major components:
    - Data is saved to both timestamped archive directories and the main data directory
 
 2. **Frontend Visualization**:
-   - `chandrayaan3.html` - Main HTML page (stays in root for easy web access)
+   - `mission.html` - Main HTML page with mission selector and routing
    - `assets/platform/js/mission.js` - Core animation engine (mission-agnostic)
    - `assets/platform/js/astro.js` - Astronomy support functions (Julian dates, coordinate conversions)
    - `assets/platform/js/chebyshev.js` - Chebyshev polynomial interpolation
@@ -100,8 +120,8 @@ The project consists of several major components:
    - jQuery/jQuery UI for UI controls
 
 3. **Data Formats**:
-   - Chebyshev polynomial files: `geo-CY3-cheb.json`, `lunar-CY3-cheb.json`, `landing-CY3-cheb.json`
-   - Metadata files: `geo-CY3-meta.json`, `lunar-CY3-meta.json`, `landing-CY3-meta.json`
+   - Chebyshev polynomial files: `geo-<ID>-cheb.json`, `lunar-<ID>-cheb.json`, `landing-<ID>-cheb.json`
+   - Metadata files: `geo-<ID>-meta.json`, `lunar-<ID>-meta.json`, `landing-<ID>-meta.json`
    - Moon/Earth positions computed dynamically using Astronomy Engine
 
 ## Common Development Commands
@@ -139,11 +159,22 @@ For detailed technical documentation on time systems, data pipeline, and coordin
 
 ## Recent Updates (January 2026)
 
+### Multi-Mission Support
+- Mission selector page at `mission.html` (no params)
+- URL parameter routing: `?mission=cy2` or `?mission=cy3`
+- Chandrayaan 2 mission added with merged Orbiter+Vikram trajectory
+- Each mission has independent config.json and orbit data
+
 ### Platform-Based Architecture
 - Reusable platform code in `assets/platform/js/` (mission.js, astro.js, chebyshev.js, astronomy-bodies.js)
-- Mission-specific assets in `assets/chandrayaan3/`
+- Mission-specific assets in `assets/<mission>/`
 - Removed NPZ data pipeline - using Chebyshev polynomials exclusively for spacecraft data
 - Moon/Earth positions computed dynamically via Astronomy Engine
+
+### CY2 Data Pipeline
+- `convert-cy2-json.py` - Converts legacy JSON to Chebyshev with vx/vy bug fix
+- `merge-cy2-vikram.py` - Merges Orbiter data (launch→separation) with Vikram data (separation→crash)
+- Seamless trajectory transition at Vikram separation point
 
 ### Time System Clarification
 - HORIZONS data uses TDB (JDTDB timestamps)
@@ -158,8 +189,9 @@ For detailed technical documentation on time systems, data pipeline, and coordin
 
 ### Project Structure
 ```
-cy3/
-├── chandrayaan3.html              # Main entry point (root for easy web access)
+moon-mission/
+├── mission.html                   # Main entry with mission selector
+├── index.html                     # Redirects to mission.html
 ├── assets/
 │   ├── platform/                  # Reusable platform components
 │   │   ├── js/
@@ -169,11 +201,13 @@ cy3/
 │   │   │   └── astronomy-bodies.js # Astronomy Engine wrapper
 │   │   └── css/
 │   │       └── mission.css        # Base styling
-│   └── chandrayaan3/              # Mission-specific assets
-│       ├── data/                  # Chebyshev JSON files (not in Git)
-│       ├── html/                  # Supporting pages
-│       ├── images/                # Screenshots
-│       └── models/                # 3D models (GLB files)
+│   ├── chandrayaan3/              # Chandrayaan 3 assets
+│   │   ├── data/                  # config.json + Chebyshev files
+│   │   ├── images/
+│   │   └── models/                # 3D models (GLB files)
+│   └── chandrayaan2/              # Chandrayaan 2 assets
+│       ├── data/                  # config.json + Chebyshev files
+│       └── images/
 ├── docs/                          # Documentation
 │   ├── developer.md               # Technical documentation
 │   └── testing/                   # Test documentation

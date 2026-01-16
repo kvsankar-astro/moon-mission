@@ -1,5 +1,174 @@
 # Developer Documentation
 
+## Multi-Mission Architecture
+
+The platform supports multiple lunar missions through configuration-driven design. Each mission is self-contained in its own folder under `assets/`.
+
+### URL Routing
+
+```
+mission.html              → Mission selector page
+mission.html?mission=cy3  → Chandrayaan 3
+mission.html?mission=cy2  → Chandrayaan 2
+```
+
+The `missionMap` in `mission.html` maps URL parameters to mission folders:
+
+```javascript
+const missionMap = {
+    'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+    'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+};
+```
+
+---
+
+## Adding a New Mission
+
+### Step 1: Create Mission Folder Structure
+
+```
+assets/<mission-name>/
+├── data/
+│   ├── config.json              # Mission configuration (required)
+│   ├── geo-<ID>-cheb.json       # Geocentric orbit data (required)
+│   ├── lunar-<ID>-cheb.json     # Selenocentric orbit data (required)
+│   └── landing-<ID>-cheb.json   # Landing phase data (optional)
+├── models/
+│   └── spacecraft.glb           # 3D model (optional)
+└── images/
+    └── screenshot.png           # Mission screenshot
+```
+
+### Step 2: Create config.json
+
+The config.json file defines all mission parameters. Required sections:
+
+```json
+{
+  "spacecraft_mnemonic": "XX",           // Short ID used in data files
+  "spacecraft_id": -999,                  // JPL HORIZONS spacecraft ID
+  "mission_name": "Mission Name",
+  "mission_name_short": "XX",
+  "mission_url": "https://...",
+  "is_lunar": true,
+
+  "ui": {
+    "pageTitle": "Mission Page Title",
+    "headerTitle": "Header Text",
+    "lockOnLabel": "Spacecraft Name",
+    "orbitLabel": "XX Orbit",
+    "descentOrbitLabel": "XX Descent Orbit"
+  },
+
+  "phases": ["geo", "lunar"],             // or ["geo", "lunar", "landing"]
+
+  "geo": {
+    "start_year": "YYYY", "start_month": "MM", "start_day": "DD",
+    "start_hour": "HH", "start_minute": "MM",
+    "stop_year": "YYYY", "stop_month": "MM", "stop_day": "DD",
+    "stop_hour": "HH", "stop_minute": "MM",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-<ID>"             // Without -cheb.json suffix
+  },
+
+  "lunar": {
+    // Same structure as geo
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-<ID>"
+  },
+
+  "events": {
+    "missionStart": {
+      "startTime": "2023-07-14T09:23:00Z",
+      "durationSeconds": 0,
+      "label": "🚀 Launch",
+      "burnFlag": false,
+      "infoText": "Launch description",
+      "body": "SC"
+    }
+    // Add more events...
+  },
+
+  "eventConfigs": {
+    "geo": ["missionStart", "event1", "event2"],
+    "lunar": ["missionStart", "event1", "event2"]
+  }
+}
+```
+
+### Step 3: Generate Orbit Data
+
+**Option A: Fetch from JPL HORIZONS (for missions with tracking data)**
+
+```bash
+# Fetch geocentric data
+python scripts/orbits.py --mission=<mission-name> --phase=geo
+
+# Fetch selenocentric data
+python scripts/orbits.py --mission=<mission-name> --phase=lunar
+
+# Fetch landing phase (if applicable)
+python scripts/orbits.py --mission=<mission-name> --phase=landing
+```
+
+**Option B: Convert existing data (e.g., from legacy JSON)**
+
+Use `scripts/convert-cy2-json.py` as a template for custom converters.
+
+### Step 4: Register Mission in mission.html
+
+Add entry to `missionMap`:
+
+```javascript
+const missionMap = {
+    // Existing missions...
+    '<id>': { name: '<mission-name>', folder: '<folder>', title: 'Title', year: 'YYYY' },
+};
+```
+
+Add mission card to selector UI:
+
+```html
+<a href="?mission=<id>" style="text-decoration: none;">
+    <div style="...">
+        <h3>Mission Title</h3>
+        <p>YYYY - Description</p>
+        <p>Additional info</p>
+    </div>
+</a>
+```
+
+### Step 5: Test
+
+```bash
+# Start dev server
+npx vite --port 8111
+
+# Open in browser
+http://localhost:8111/mission.html?mission=<id>
+```
+
+---
+
+## JPL HORIZONS Spacecraft IDs
+
+Common spacecraft IDs for lunar missions:
+
+| Mission | ID | Description |
+|---------|------|-------------|
+| Chandrayaan 3 | -158 | Vikram Lander |
+| Chandrayaan 2 Orbiter | -152 | Still active |
+| Chandrayaan 2 Vikram | -153 | Lander (crashed) |
+| LRO | -85 | Lunar Reconnaissance Orbiter |
+
+Search for IDs at: https://ssd.jpl.nasa.gov/horizons/
+
+---
+
 ## Time Systems
 
 The application uses two time systems:

@@ -1,10 +1,10 @@
 
-## Chandrayaan 3 orbit animation
+## Moon Mission Orbit Animations
 
-This project holds the source code for the 3D and 2D animations used
-in http://sankara.net/chandrayaan3.html. That page shows an animation
-of the orbit of the ISRO <a href="https://www.isro.gov.in/Chandrayaan3_New.html">
-Chandrayaan 3</a> mission.
+A multi-mission platform for 3D and 2D orbital animations of lunar missions. Currently supports:
+
+- **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
+- **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
 
 ![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
 
@@ -21,8 +21,41 @@ I created this animation for educational purposes. It has the following features
 * Realistic textures for Earth and Moon in 3D mode
 * Astronomically correct rendering of sunlight on Earth and Moon, poles, and polar axes
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
-* A Joy Ride feature which lets you fly along with Chandrayaan 3
-    
+* A Joy Ride feature which lets you fly along with the spacecraft
+
+## Multi-Mission Support
+
+The platform supports multiple lunar missions through a configuration-driven architecture:
+
+### URL Parameters
+- `mission.html` - Shows mission selector page
+- `mission.html?mission=cy3` - Chandrayaan 3
+- `mission.html?mission=cy2` - Chandrayaan 2
+
+### Adding a New Mission
+
+To add a new mission, create a mission folder and configuration:
+
+1. **Create mission folder structure:**
+   ```
+   assets/<mission-name>/
+   ├── data/
+   │   ├── config.json          # Mission configuration
+   │   ├── geo-<ID>-cheb.json   # Geocentric orbit data
+   │   ├── lunar-<ID>-cheb.json # Selenocentric orbit data
+   │   └── landing-<ID>-cheb.json # Landing phase (optional)
+   ├── models/                   # 3D spacecraft models (optional)
+   └── images/                   # Screenshots
+   ```
+
+2. **Create `config.json`** with mission parameters (see [docs/developer.md](docs/developer.md) for full schema)
+
+3. **Generate orbit data** from JPL HORIZONS using `scripts/orbits.py`
+
+4. **Register mission** in `mission.html` missionMap
+
+See [docs/developer.md](docs/developer.md) for detailed instructions.
+
 ## Design
 
 ## High level design
@@ -104,8 +137,9 @@ Orbit data for use by the JavaScript is placed in `assets/chandrayaan3/data/`:
 The project follows a platform-based architecture that separates reusable components from mission-specific assets:
 
 ```
-cy3/
-├── chandrayaan3.html              # Main HTML entry point
+moon-mission/
+├── mission.html                   # Main entry point with mission selector
+├── index.html                     # Redirects to mission.html
 ├── assets/
 │   ├── platform/                  # Reusable platform components
 │   │   ├── css/
@@ -113,29 +147,29 @@ cy3/
 │   │   └── js/
 │   │       ├── mission.js         # Core animation logic
 │   │       ├── astro.js           # Astronomy calculations
-│   │       └── chebyshev.js       # Chebyshev polynomial interpolation
-│   └── chandrayaan3/              # Mission-specific assets
+│   │       ├── chebyshev.js       # Chebyshev polynomial interpolation
+│   │       └── astronomy-bodies.js # Astronomy Engine wrapper
+│   ├── chandrayaan3/              # Chandrayaan 3 mission assets
+│   │   ├── data/
+│   │   │   ├── config.json        # Mission configuration
+│   │   │   └── *-cheb.json        # Chebyshev orbit data
+│   │   ├── images/
+│   │   └── models/                # 3D spacecraft models
+│   └── chandrayaan2/              # Chandrayaan 2 mission assets
 │       ├── data/
 │       │   ├── config.json        # Mission configuration
-│       │   └── *-cheb.json        # Chebyshev orbit data files (not in Git)
-│       ├── html/
-│       │   └── whatsnew-cy3.html  # Mission-specific pages
-│       ├── images/
-│       │   └── chandrayaan3-screenshot.png
-│       └── models/
-│           └── *.glb              # 3D spacecraft models
+│       │   └── *-cheb.json        # Chebyshev orbit data
+│       └── images/
 ├── third-party/                   # External libraries
-│   ├── css/
-│   │   └── ui-darkness/           # jQuery UI theme
-│   └── *.js                       # JavaScript libraries
 ├── images/                        # Shared textures (Earth, Moon, stars)
-│   ├── earth/
-│   ├── moon/
-│   └── sky/
-└── scripts/                       # Build and data scripts
-    ├── build.py
-    ├── deploy.py
-    └── orbits.py
+├── scripts/                       # Build and data scripts
+│   ├── orbits.py                  # Fetch orbit data from HORIZONS
+│   ├── compress-orbits.py         # Convert to Chebyshev format
+│   ├── convert-cy2-json.py        # Convert legacy CY2 JSON data
+│   ├── merge-cy2-vikram.py        # Merge Orbiter + Vikram trajectories
+│   ├── build.py                   # Build for deployment
+│   └── deploy.py                  # Deploy to server
+└── test/                          # Visual regression tests
 ```
 
 #### Platform Components (Reusable)
