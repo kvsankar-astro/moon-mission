@@ -23,6 +23,7 @@ import {
 } from "./core/dom.js";
 import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
+import { degreesToRadians, distance3D, velocityToAngle } from "./utils/math-utils.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2297,7 +2298,7 @@ class AnimationScene {
     }
 
     cameraDisntance(position) {
-        return Math.sqrt(position.x * position.x + position.y * position.y + position.z * position.z);
+        return distance3D(position);
     }   
 
     plotEarthLocation(long, lat, color) {
@@ -2969,7 +2970,7 @@ function setLocation() {
     var ephemSun = $moshier.body.sun;
     $processor.calc(ephemDate, ephemSun);
     // console.log(ephemSun.position);
-    sunLongitude = ephemSun.position.apparentLongitude * Math.PI / 180.0;
+    sunLongitude = degreesToRadians(ephemSun.position.apparentLongitude);
     // console.log("Sun longitude: " + sunLongitude * 180.0 / Math.PI);
 
     // var ephemMoon = $moshier.body.moon;
@@ -3139,7 +3140,7 @@ function setLocation() {
 
                 if (currentDimension === "2D") {
                     // show burn
-                    craftData["angle"] = Math.atan2(vy, vx) * 180.0 / Math.PI + 90;
+                    craftData["angle"] = velocityToAngle(vx, vy);
                     var transformString = "translate (" + newx + ", " + newy + ") ";
                     transformString += "rotate(" + craftData["angle"] + " 0 0) ";
                     transformString += "scale (" + 1/zoomFactor + " " + 1/zoomFactor + ") ";
