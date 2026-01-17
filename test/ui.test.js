@@ -103,8 +103,8 @@ const TIMEOUTS = {
 const SSIM_THRESHOLD = {
   IDENTICAL: 0.99,      // For exact visual matches
   VERY_SIMILAR: 0.98,   // For minor anti-aliasing differences
-  SIMILAR: 0.95,        // For standard 3D scene comparisons (DEFAULT)
-  DIFFERENT: 0.90       // For complex 3D scenes with acceptable variations
+  SIMILAR: 0.98,        // For standard 3D scene comparisons (DEFAULT)
+  DIFFERENT: 0.97       // For 2D scenes with acceptable variations
 };
 
 // Legacy alias for backwards compatibility during migration

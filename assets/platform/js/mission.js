@@ -26,6 +26,7 @@ import {
 import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
+import { SceneHelpers } from "./rendering/scene-helpers.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -810,6 +811,9 @@ class AnimationScene {
 
         this.locations = [];
 
+        // Scene helpers (axes, planes, SOI) - managed by SceneHelpers class
+        this.sceneHelpers = null;
+
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
@@ -1387,16 +1391,15 @@ class AnimationScene {
             return;
         }
 
-        var radius = moonRadius * (PC.MOON_SOI_RADIUS_KM / PC.MOON_RADIUS_KM);
-        var latSegments = 18;  // 10° increments
-        var longSegments = 36; // 10° increments
+        // Create SceneHelpers instance if not already created
+        if (!this.sceneHelpers) {
+            this.sceneHelpers = new SceneHelpers(this.motherContainer);
+        }
 
-        var geometry = new THREE.SphereGeometry(radius, longSegments, latSegments);
-        var material = new THREE.MeshBasicMaterial({color: COL.MOON_SOI, wireframe: true});
+        this.sceneHelpers.createMoonSOI(this.moon, moonRadius, viewMoonSOI);
 
-        this.moonSOISphere = new THREE.Mesh(geometry, material);
-        this.moon.add(this.moonSOISphere);
-        this.moonSOISphere.visible = viewMoonSOI;
+        // Backward-compatible property reference for setView()
+        this.moonSOISphere = this.sceneHelpers.moonSOISphere;
     }
 
     disposeMoonSOI() {
@@ -1404,12 +1407,10 @@ class AnimationScene {
         if (!globalConfig || !globalConfig.is_lunar) {
             return;
         }
-        if (this.moonSOISphere) {
-            this.moonSOISphere.geometry.dispose();
-            this.moonSOISphere.material.dispose();
-            this.moon.remove(this.moonSOISphere);
-            this.moonSOISphere = null;
+        if (this.sceneHelpers) {
+            this.sceneHelpers.disposeMoonSOI();
         }
+        this.moonSOISphere = null;
     }
 
     addEarthLocations() {
@@ -1730,75 +1731,40 @@ class AnimationScene {
     }
 
     addAxesHelper() {
-        // add axes helper
-        this.axesHelper = new THREE.AxesHelper(2*PIXELS_PER_AU*PC.EARTH_MOON_DISTANCE_MEAN_AU);
-        this.motherContainer.add(this.axesHelper);
-        this.axesHelper.visible = viewXYZAxes;
+        // Create SceneHelpers instance if not already created
+        if (!this.sceneHelpers) {
+            this.sceneHelpers = new SceneHelpers(this.motherContainer);
+        }
 
-        const radius = earthRadius * 64;
-        const sectors = 18;
-        const rings = 6;
-        const divisions = 64;
+        const axesSize = 2 * PIXELS_PER_AU * PC.EARTH_MOON_DISTANCE_MEAN_AU;
+        const gridRadius = earthRadius * 64;
+        const eclipticPlaneSize = earthRadius * 128;
+        const equatorialPlaneSize = earthRadius * 144;
 
-        this.eclipticPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, COL.ECLIPTIC_PLANE, COL.ECLIPTIC_PLANE);
-        this.eclipticPolarGridHelper.rotation.x = Math.PI/2; 
-        this.eclipticPolarGridHelper.visible = viewEclipticPlane;
-        this.motherContainer.add(this.eclipticPolarGridHelper);
-                
-        const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        this.eclipticPlaneHelper = new THREE.PlaneHelper(eclipticPlane, earthRadius * 128, COL.ECLIPTIC_PLANE);
-        this.eclipticPlaneHelper.visible = viewEclipticPlane;
-        this.motherContainer.add(this.eclipticPlaneHelper);
+        this.sceneHelpers.createAxesHelper(axesSize, viewXYZAxes);
+        this.sceneHelpers.createEclipticPlane(gridRadius, eclipticPlaneSize, viewEclipticPlane);
+        this.sceneHelpers.createEquatorialPlane(gridRadius, equatorialPlaneSize, viewEquatorialPlane);
 
-        this.equatorialPlaneContainer = new THREE.Group();
-        this.equatorialPlaneContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
-
-        this.equatorialPolarGridHelper = new THREE.PolarGridHelper(radius, sectors, rings, divisions, COL.EQUATORIAL_PLANE, COL.EQUATORIAL_PLANE);
-        this.equatorialPolarGridHelper.rotation.x = Math.PI/2;
-        this.equatorialPolarGridHelper.visible = viewEquatorialPlane;
-        this.equatorialPlaneContainer.add(this.equatorialPolarGridHelper);
-
-        var direction = new THREE.Vector3();
-        this.equatorialPlaneContainer.getWorldDirection(direction);
-        const equatorialPlane = new THREE.Plane(direction, 0);        
-        this.equatorialPlaneHelper = new THREE.PlaneHelper(equatorialPlane, earthRadius * 144, COL.EQUATORIAL_PLANE);
-        this.equatorialPlaneHelper.visible = viewEquatorialPlane;
-        this.equatorialPlaneContainer.add(this.equatorialPlaneHelper);
-
-        this.motherContainer.add(this.equatorialPlaneContainer);
+        // Backward-compatible property references for setView()
+        this.axesHelper = this.sceneHelpers.axesHelper;
+        this.eclipticPolarGridHelper = this.sceneHelpers.eclipticPolarGridHelper;
+        this.eclipticPlaneHelper = this.sceneHelpers.eclipticPlaneHelper;
+        this.equatorialPolarGridHelper = this.sceneHelpers.equatorialPolarGridHelper;
+        this.equatorialPlaneHelper = this.sceneHelpers.equatorialPlaneHelper;
     }
 
     disposeAxesHelper() {
-        if (this.axesHelper) {
-            this.axesHelper.dispose();
-            this.axesHelper = null;
+        if (this.sceneHelpers) {
+            this.sceneHelpers.disposeAxesHelper();
+            this.sceneHelpers.disposeEclipticPlane();
+            this.sceneHelpers.disposeEquatorialPlane();
         }
-
-        if (this.eclipticPolarGridHelper) {
-            this.eclipticPolarGridHelper.dispose();
-            this.eclipticPolarGridHelper = null;    
-        }
-
-        if (this.eclipticPlaneHelper) {
-            this.eclipticPlaneHelper.dispose();
-            this.eclipticPlaneHelper = null;    
-        }
-
-        if (this.equatorialPlaneContainer) {    
-            // THREE.Group doesn't have dispose(), just clear and remove
-            this.equatorialPlaneContainer.clear();
-            this.equatorialPlaneContainer = null;
-        }
-
-        if (this.equatorialPolarGridHelper) {
-            this.equatorialPolarGridHelper.dispose();
-            this.equatorialPolarGridHelper = null;    
-        }       
-
-        if (this.equatorialPlaneHelper) {
-            this.equatorialPlaneHelper.dispose();
-            this.equatorialPlaneHelper = null;    
-        }
+        // Clear backward-compatible references
+        this.axesHelper = null;
+        this.eclipticPolarGridHelper = null;
+        this.eclipticPlaneHelper = null;
+        this.equatorialPolarGridHelper = null;
+        this.equatorialPlaneHelper = null;
     }
     
     addLight() {
@@ -2359,7 +2325,12 @@ class AnimationScene {
         this.disposeLight();
         this.disposeCamera();
         this.disposeSpacecraft();
-        
+
+        // Dispose sceneHelpers instance
+        if (this.sceneHelpers) {
+            this.sceneHelpers = null;
+        }
+
         // IMPORTANT: Don't dispose scene and motherContainer 
         // as these may be reused by the new mode initialization
         // Just dispose their WebGL resources, not the containers themselves
