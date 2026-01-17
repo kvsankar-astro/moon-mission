@@ -31,6 +31,7 @@ import { SkyRenderer } from "./rendering/sky-renderer.js";
 import { LightManager } from "./rendering/light-manager.js";
 import { EarthRenderer } from "./rendering/earth-renderer.js";
 import { MoonRenderer } from "./rendering/moon-renderer.js";
+import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -830,6 +831,9 @@ class AnimationScene {
         // Moon renderer
         this.moonRenderer = null;
 
+        // Spacecraft renderer
+        this.spacecraftRenderer = null;
+
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
@@ -1326,83 +1330,34 @@ class AnimationScene {
 
 
     addSpacecraft() {
+        const craftColor = planetProperties["SC"]["color"];
 
-        var craftColor = planetProperties["SC"]["color"];
-        var craftEdgeColor = 0xFF8000;
-        // Based on https://stackoverflow.com/questions/49481332/how-to-create-3d-trapezoid-in-three-js 
-        var craftGeometry = new THREE.CylinderGeometry(craftSize*0.8 / Math.sqrt(2), craftSize*1 / Math.sqrt(2), craftSize*0.8*1, 4, 1); 
-        var craftMaterial = new THREE.MeshPhongMaterial({color: craftColor, transparent: false, opacity: 1.0});
-        this.craftInner = new THREE.Mesh(craftGeometry, craftMaterial);
-        var craftEdgesGeometry = new THREE.EdgesGeometry(craftGeometry);
-        this.craftEdges = new THREE.LineSegments(craftEdgesGeometry, new THREE.LineBasicMaterial({color: craftEdgeColor}));
-        this.craftInner.add(this.craftEdges);
-        this.craftInner.rotateX(Math.PI/2); // this is to get the "top" of the craft pointing to Z
-        this.craftInner.rotateY(Math.PI/4); // this is to get the orientation of the sides correct
-        this.craftInner.layers.set(1);
+        // Create spacecraft renderer
+        this.spacecraftRenderer = new SpacecraftRenderer(this.motherContainer, craftSize, craftColor);
+        this.spacecraftRenderer.createSimple();
 
-        this.craft = new THREE.Group();
-        this.craft.add(this.craftInner);
-        this.craftAxesHelper = new THREE.AxesHelper(10);
-        this.craftAxesHelper.position.copy(this.craftInner.position);
-        this.craft.add(this.craftAxesHelper);
-        this.craftAxesHelper.visible = false;
-        this.craft.layers.set(1);
-        this.craftVisible = true;
-        this.craft.visible = this.craftVisible; 
-
-        this.motherContainer.add(this.craft);
-
-        var cubeGeometry = new THREE.BoxGeometry(craftSize, craftSize, craftSize);
-        var cubeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
-        this.drone = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        this.drone.layers.set(1);
-        this.drone.visible = false;
-        this.motherContainer.add(this.drone);
-
+        // Backward-compatible property references
+        this.craft = this.spacecraftRenderer.craft;
+        this.craftInner = this.spacecraftRenderer.craftInner;
+        this.craftEdges = this.spacecraftRenderer.craftEdges;
+        this.craftAxesHelper = this.spacecraftRenderer.axesHelper;
+        this.craftVisible = this.spacecraftRenderer.visible;
+        this.drone = this.spacecraftRenderer.drone;
     }
 
     disposeSpacecraft() {
-        if (this.craft) {
-            // Dispose of craft geometry
-            if (this.craft.geometry) {
-                this.craft.geometry.dispose();
-            }
-            
-            // Dispose of craft material
-            if (this.craft.material) {
-                this.craft.material.dispose();
-            }
-            
-            // Dispose of craft axes helper
-            if (this.craftAxesHelper) {
-                this.craftAxesHelper.dispose();
-            }
-            
-            // Remove craft from motherContainer
-            this.motherContainer.remove(this.craft);
-            
-            // Nullify references
-            this.craft = null;
-            this.craftAxesHelper = null;
+        if (this.spacecraftRenderer) {
+            this.spacecraftRenderer.dispose();
+            this.spacecraftRenderer = null;
         }
 
-        if (this.drone) {
-            // Dispose of drone geometry
-            if (this.drone.geometry) {
-                this.drone.geometry.dispose();
-            }
-            
-            // Dispose of drone material
-            if (this.drone.material) {
-                this.drone.material.dispose();
-            }
-            
-            // Remove drone from motherContainer
-            this.motherContainer.remove(this.drone);
-            
-            // Nullify reference
-            this.drone = null;
-        }
+        // Clear backward-compatible references
+        this.craft = null;
+        this.craftInner = null;
+        this.craftEdges = null;
+        this.craftAxesHelper = null;
+        this.craftVisible = false;
+        this.drone = null;
     }
 
     
@@ -1571,145 +1526,31 @@ class AnimationScene {
         if (!globalConfig?.spacecraftModel?.enabled) {
             return;
         }
-        
-        const loader = new GLTFLoader();
-        var animationScene = this;
-        var done = false;
 
+        const craftColor = planetProperties["SC"]["color"];
         const modelPath = window.missionConfig.modelPath + globalConfig.spacecraftModel.file;
-        
-        loader.load(modelPath, function (gltf) {
 
-            // console.log("Loaded GLB.");
+        // Create spacecraft renderer for GLTF model
+        this.spacecraftRenderer = new SpacecraftRenderer(this.motherContainer, craftSize, craftColor);
+        await this.spacecraftRenderer.loadModel(modelPath);
 
-            animationScene.craft = new THREE.Group();
-
-            animationScene.craftInner = gltf.scene;
-            animationScene.craftInner.rotateX(Math.PI/2); // this is to get the "top" of the craft pointing to Z
-
-            var bbox = new THREE.Box3().setFromObject(animationScene.craftInner);
-            var bbox_xw = (bbox.max.x - bbox.min.x);
-            var bbox_yw = (bbox.max.y - bbox.min.y);
-            var bbox_zw = (bbox.max.z - bbox.min.z);
-            var bbox_max_side = Math.max(bbox_xw, bbox_yw, bbox_zw);
-
-            // var sphereGeometry = new THREE.SphereGeometry(bbox_max_side*0.5);
-            // var sphereMaterial = new THREE.MeshStandardMaterial({metalness: 1.0, roughness: 0.0});
-            // var sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-            // sphere.layers.set(1);
-            // animationScene.craft.add(sphere);
-
-            // console.log("model (xw, yw, zw) = " +  bbox_xw + ", " +  bbox_yw + ", " + bbox_zw);
-
-            function setLayer(object, layer) {
-                object.layers.set(layer);
-                object.children.forEach(child => setLayer(child, layer));
-            }
-            setLayer(animationScene.craftInner, 1);
-
-            animationScene.craft.add(animationScene.craftInner);
-            animationScene.craftAxesHelper = new THREE.AxesHelper(10);
-            animationScene.craftAxesHelper.position.copy(animationScene.craftInner.position);
-            animationScene.craft.add(animationScene.craftAxesHelper);
-            animationScene.craftAxesHelper.visible = true;
-            animationScene.craft.layers.set(1);
-            animationScene.craftVisible = true;
-            animationScene.craft.visible = animationScene.craftVisible; 
-
-            // Using PointLight below as they are NOT directional.
-            // DirectionalLight has to be targeted, and that target direction seems to be absolute and not relative to the parent.
-            // See https://stackoverflow.com/questions/45039999/three-js-light-from-camera-straight-to-object 
-
-            var intensity = 2;
-            var light1 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            var light2 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            var light3 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            var light4 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            var light5 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            var light6 = new THREE.DirectionalLight(LT.PRIMARY_COLOR, intensity);
-            
-            light1.layers.set(1);
-            light2.layers.set(1);
-            light3.layers.set(1);
-            light4.layers.set(1);
-            light5.layers.set(1);
-            light6.layers.set(1);
-            
-            animationScene.craft.add(light1);
-            animationScene.craft.add(light2);
-            animationScene.craft.add(light3);
-            animationScene.craft.add(light4);
-            animationScene.craft.add(light5);
-            animationScene.craft.add(light6);
-
-            var scale = 0.6;
-            light1.position.set(+1*scale*bbox_max_side, 0, 0);
-            light2.position.set(0, +1*scale*bbox_max_side, 0);
-            light3.position.set(0, 0, +1*scale*bbox_max_side);
-            light4.position.set(-1*scale*bbox_max_side, 0, 0);
-            light5.position.set(0, -1*scale*bbox_max_side, 0);
-            light6.position.set(0, 0, -1*scale*bbox_max_side);
-
-            animationScene.motherContainer.add(animationScene.craft);
-
-            done = true;
-
-        }, undefined, function (error) {
-            console.error(error);        
-        } );
-
-        async function waitUntilDone() {
-            // console.log("waitUntilDone(): done = " + done);
-            while (!done) { 
-                // console.log("Waiting in waitUntilDone() ..."); 
-                await wait50(); 
-            } 
-        };
-
-        await waitUntilDone();
+        // Backward-compatible property references
+        this.craft = this.spacecraftRenderer.craft;
+        this.craftInner = this.spacecraftRenderer.craftInner;
+        this.craftAxesHelper = this.spacecraftRenderer.axesHelper;
+        this.craftVisible = this.spacecraftRenderer.visible;
     }
 
     disposeSpacecraftModel() {
-        if (this.craft) {
-            // Remove lights
-            for (let i = this.craft.children.length - 1; i >= 0; i--) {
-                const child = this.craft.children[i];
-                if (child instanceof THREE.DirectionalLight) {
-                    child.dispose();
-                    this.craft.remove(child);
-                }
-            }
-
-            // Dispose of geometry and material
-            if (this.craft.geometry) {
-                this.craft.geometry.dispose();
-            }
-            if (this.craft.material) {
-                if (Array.isArray(this.craft.material)) {
-                    this.craft.material.forEach(material => material.dispose());
-                } else {
-                    this.craft.material.dispose();
-                }
-            }
-
-            // Remove from scene
-            if (this.craft.parent) {
-                this.craft.parent.remove(this.craft);
-            }
-
-            // Nullify reference
-            this.craft = null;
+        if (this.spacecraftRenderer) {
+            this.spacecraftRenderer.disposeModel();
+            this.spacecraftRenderer = null;
         }
 
-        if (this.craftAxesHelper) {
-            this.craftAxesHelper.dispose();
-            if (this.craftAxesHelper.parent) {
-                this.craftAxesHelper.parent.remove(this.craftAxesHelper);
-            }
-            this.craftAxesHelper = null;
-        }
-
-        // Reset flags
+        // Clear backward-compatible references
+        this.craft = null;
+        this.craftInner = null;
+        this.craftAxesHelper = null;
         this.craftVisible = false;
     }
     
