@@ -26,6 +26,11 @@ import {
 import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
+import {
+    createUTCTimestamp,
+    formatDateTimeIST,
+    getDateComponentsUTC
+} from "./utils/time-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { SkyRenderer } from "./rendering/sky-renderer.js";
 import { LightManager } from "./rendering/light-manager.js";
@@ -419,25 +424,25 @@ function updateLandingUIFromConfig() {
 function updateLandingTimesFromConfig() {
     if (globalConfig && globalConfig.landing && globalConfig.landing.enabled) {
         const cfg = globalConfig.landing;
-        
-        // Calculate start time from config
-        const configStartYear = parseInt(cfg.start_year);
-        const configStartMonth = parseInt(cfg.start_month);
-        const configStartDay = parseInt(cfg.start_day);
-        const configStartHour = parseInt(cfg.start_hour);
-        const configStartMinute = parseInt(cfg.start_minute);
-        
-        startLandingTime = Date.UTC(configStartYear, configStartMonth - 1, configStartDay, configStartHour, configStartMinute, 0, 0);
-        
-        // Calculate end time from config
-        const configStopYear = parseInt(cfg.stop_year);
-        const configStopMonth = parseInt(cfg.stop_month);
-        const configStopDay = parseInt(cfg.stop_day);
-        const configStopHour = parseInt(cfg.stop_hour);
-        const configStopMinute = parseInt(cfg.stop_minute);
-        
-        endLandingTime = Date.UTC(configStopYear, configStopMonth - 1, configStopDay, configStopHour, configStopMinute, 0, 0);
-        
+
+        // Calculate start time from config using time-utils
+        startLandingTime = createUTCTimestamp(
+            parseInt(cfg.start_year),
+            parseInt(cfg.start_month),
+            parseInt(cfg.start_day),
+            parseInt(cfg.start_hour),
+            parseInt(cfg.start_minute)
+        );
+
+        // Calculate end time from config using time-utils
+        endLandingTime = createUTCTimestamp(
+            parseInt(cfg.stop_year),
+            parseInt(cfg.stop_month),
+            parseInt(cfg.stop_day),
+            parseInt(cfg.stop_hour),
+            parseInt(cfg.stop_minute)
+        );
+
         console.debug('Updated landing times from config:', {
             startLandingTime: new Date(startLandingTime),
             endLandingTime: new Date(endLandingTime)
@@ -454,22 +459,20 @@ function getStartAndEndTimes(id) {
 
     if (globalConfig && globalConfig[config]) {
         const phaseConfig = globalConfig[config];
-        startTime = Date.UTC(
+        startTime = createUTCTimestamp(
             parseInt(phaseConfig.start_year),
-            parseInt(phaseConfig.start_month) - 1,
+            parseInt(phaseConfig.start_month),
             parseInt(phaseConfig.start_day),
             parseInt(phaseConfig.start_hour),
-            parseInt(phaseConfig.start_minute),
-            0, 0
+            parseInt(phaseConfig.start_minute)
         );
         // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
-        endTime = Date.UTC(
+        endTime = createUTCTimestamp(
             parseInt(phaseConfig.stop_year),
-            parseInt(phaseConfig.stop_month) - 1,
+            parseInt(phaseConfig.stop_month),
             parseInt(phaseConfig.stop_day),
             parseInt(phaseConfig.stop_hour),
-            parseInt(phaseConfig.stop_minute),
-            0, 0
+            parseInt(phaseConfig.stop_minute)
         ) - TC.ONE_MINUTE_MS;
     } else {
         return [null, null];
@@ -2452,15 +2455,12 @@ function setLocation() {
     // animTime = startTime + timelineIndex * animationScenes[config].stepDurationInMilliSeconds;
     var animTimeDate = new Date(animTime);
     // console.log("animTimeDate = " + animTimeDate);
-    animDate.html(animTimeDate); // TODO add custom formatting 
+    animDate.html(animTimeDate);
+    // TODO: Replace above with custom formatting:
+    // animDate.html(formatDateTimeIST(animTime));
 
-    var ephemYear = animTimeDate.getUTCFullYear();
-    var ephemMonth = animTimeDate.getUTCMonth() + 1;
-    var ephemDay = animTimeDate.getUTCDate();
-    var ephemHours = animTimeDate.getUTCHours();
-    var ephemMinutes = animTimeDate.getUTCMinutes();
-    var ephemSeconds = animTimeDate.getUTCSeconds();
-    var ephemDate = {'year': ephemYear, 'month': ephemMonth, 'day': ephemDay, 'hours': ephemHours, 'minutes': ephemMinutes, 'seconds': ephemSeconds};
+    // Extract UTC date components for ephemeris calculations
+    var ephemDate = getDateComponentsUTC(animTime);
     // console.log(ephemDate);
     $const.tlong = 0.0; // longitude
     $const.glat = 0.0; // latitude
