@@ -2595,7 +2595,7 @@ function setLocation() {
 
                 var pbr;
                 if (config == "geo") {
-                    pbr = PC.EARTH_RADIUS_KM; 
+                    pbr = PC.EARTH_RADIUS_KM;
                 } else if (config == "lunar") {
                     pbr = PC.MOON_RADIUS_KM;
                 }

@@ -225,29 +225,27 @@ Coordinate transforms were already properly organized:
 
 ---
 
-### Iteration 6: Extract Telemetry Calculations
-**Duration**: 2 days
+### Iteration 6: Extract Telemetry Calculations ⏭️ SKIPPED
+**Duration**: Evaluated January 17, 2026
 **Goal**: Create `utils/telemetry.js` for altitude, velocity, distance calculations
 
-**Functions to Extract**:
-- `calculateAltitude()`
-- `calculateVelocity()`
-- `calculateDistance()`
-- `calculateOrbitalElements()`
-- Apoapsis/periapsis calculations
+**Analysis Findings**:
+The telemetry calculations in mission.js are simple, self-documenting expressions:
+- Altitude: `r - bodyRadius` (trivial subtraction)
+- Distance: `position.length()` (THREE.js Vector3 method)
+- Relative distance: `pos1.distanceTo(pos2)` (THREE.js Vector3 method)
+- Velocity: `velocity.length()` (THREE.js Vector3 method)
 
-**New Module**: `assets/platform/js/utils/telemetry.js`
+**Decision**: NOT EXTRACTED - Wrapping these trivial expressions in functions would:
+1. Obscure the simple math (`r - pbr` is clearer than `calculateAltitude(r, pbr)`)
+2. Add unnecessary abstraction overhead
+3. Make the code harder to understand at a glance
 
-**Verification**:
-```bash
-npm test                           # All tests pass
-# Telemetry panel shows correct values
-```
+The THREE.js Vector3 methods are already optimized and well-named. Simple arithmetic
+like `distance - radius = altitude` is immediately clear without abstraction.
 
-**Success Criteria**:
-- [ ] All tests pass
-- [ ] telemetry.js created
-- [ ] All spacecraft metrics calculated via new module
+**Principle**: Only extract functions when they encapsulate non-trivial logic or
+provide meaningful abstraction. Don't wrap single-operator expressions.
 
 ---
 
@@ -570,7 +568,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 | 3 | Extract Color Constants | ✅ | 47/47 | Jan 2026 |
 | 4 | Extract Time Utils | ✅ | 48/48 | Jan 17, 2026 |
 | 5 | Consolidate Angle Utils | ✅ | 48/48 | Jan 17, 2026 |
-| 6 | Extract Telemetry | 🔄 | -/- | - |
+| 6 | Extract Telemetry | ⏭️ | N/A | Jan 17, 2026 |
 | 7 | Extract 2D Rendering | 🔄 | -/- | - |
 | 8 | Animation Controller | ✅ | 47/47 | Jan 17, 2026 |
 | 9 | Camera Controller | ✅ | 47/47 | Jan 17, 2026 |
@@ -581,7 +579,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 | 14 | Event Bus | 🔄 | -/- | - |
 | 15 | Refactor Entry Point | 🔄 | -/- | - |
 
-**Legend**: 🔄 Planned | 🚧 In Progress | ✅ Complete | ⚠️ Blocked
+**Legend**: 🔄 Planned | 🚧 In Progress | ✅ Complete | ⏭️ Skipped | ⚠️ Blocked
 
 ### Additional Completions (Not in Original Plan)
 
