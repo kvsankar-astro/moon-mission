@@ -62,75 +62,59 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 
 Fix the incomplete previous work and establish proper module integration.
 
-### Iteration 1: Fix Constants Integration
-**Duration**: 1 day
+### Iteration 1: Fix Constants Integration ✅ COMPLETED
+**Duration**: Completed January 2026
 **Goal**: Remove global var re-declarations, use constants module directly
 
-**Changes**:
+**Status**: ✅ COMPLETED
+
+Constants are properly imported with aliases and used throughout mission.js:
+
 ```javascript
-// BEFORE (current - broken)
-import { PHYSICS_CONSTANTS } from "./core/constants.js";
-var EARTH_RADIUS_KM = PHYSICS_CONSTANTS.EARTH_RADIUS_KM; // Defeats purpose!
+// In mission.js (lines 5-13)
+import {
+    CELESTIAL_BODIES as CB,
+    COLORS as COL,
+    FORMAT_CONSTANTS as FC,
+    LIGHT_SETTINGS as LT,
+    PHYSICS_CONSTANTS as PC,
+    TIME_CONSTANTS as TC,
+    UI_CONSTANTS as UC
+} from "./core/constants.js";
 
-// AFTER (correct)
-import { PHYSICS_CONSTANTS } from "./core/constants.js";
-// Use PHYSICS_CONSTANTS.EARTH_RADIUS_KM directly in code
+// Usage examples:
+PC.EARTH_RADIUS_KM    // Physics constants
+TC.ONE_MINUTE_MS      // Time constants
+UC.ZOOM_SCALE         // UI constants
 ```
 
-**Tasks**:
-1. Create list of all constant usages in mission.js
-2. Replace `EARTH_RADIUS_KM` → `PHYSICS_CONSTANTS.EARTH_RADIUS_KM` etc.
-3. Remove the 20+ global var constant re-declarations
-4. Run full test suite
-
-**Verification**:
-```bash
-npm test                           # All tests pass
-grep -c "^var.*=" mission.js       # Count reduced by ~20
-```
-
-**Success Criteria**:
-- [ ] All tests pass (47 UI + 16 smoke)
-- [ ] No global vars that duplicate constants.js values
-- [ ] mission.js line count reduced
+**Completed**:
+- ✅ All constants imported with short aliases (PC, TC, UC, FC, COL, LT, CB)
+- ✅ No redundant global var re-declarations of constants
+- ✅ All 47 tests pass
 
 ---
 
-### Iteration 2: Integrate Math Utils
-**Duration**: 1 day
+### Iteration 2: Integrate Math Utils ✅ COMPLETED
+**Duration**: Completed January 2026
 **Goal**: Import and use existing math-utils.js functions
 
-**Changes**:
+**Status**: ✅ COMPLETED
+
+Math utilities are imported and used in mission.js:
+
 ```javascript
-// Add import
-import {
-    degreesToRadians,
-    radiansToDegrees,
-    clamp,
-    distance3D,
-    lerp,
-    formatFloat
-} from "./utils/math-utils.js";
-
-// Replace inline math with utility calls
+// In mission.js (line 28)
+import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 ```
 
-**Tasks**:
-1. Add import statement for math-utils.js
-2. Find and replace inline calculations with utility functions
-3. Remove any duplicate function definitions
-4. Run full test suite
-
-**Verification**:
-```bash
-npm test                           # All tests pass
-grep -c "Math.PI / 180" mission.js # Should be 0
-```
-
-**Success Criteria**:
-- [ ] All tests pass
-- [ ] math-utils.js imported and used
-- [ ] No duplicate math functions in mission.js
+**Completed**:
+- ✅ math-utils.js imported in mission.js
+- ✅ `degreesToRadians()` used for angle conversions
+- ✅ `distance3D()` used for distance calculations
+- ✅ `sphericalToCartesian()` used for coordinate conversions
+- ✅ `velocityToAngle()` used for velocity vector calculations
+- ✅ All 47 tests pass
 
 ---
 
@@ -553,8 +537,8 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 | Iteration | Description | Status | Tests | Date |
 |-----------|-------------|--------|-------|------|
-| 1 | Fix Constants Integration | 🚧 | -/- | - |
-| 2 | Integrate Math Utils | 🚧 | -/- | - |
+| 1 | Fix Constants Integration | ✅ | 47/47 | Jan 2026 |
+| 2 | Integrate Math Utils | ✅ | 47/47 | Jan 2026 |
 | 3 | Extract Color Constants | ✅ | 47/47 | Jan 2026 |
 | 4 | Extract Time Utils | 🔄 | -/- | - |
 | 5 | Extract Coordinates | 🔄 | -/- | - |
