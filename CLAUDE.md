@@ -77,7 +77,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a multi-mission platform for 3D and 2D animations of lunar mission orbits. Currently supports Chandrayaan 3 (2023) and Chandrayaan 2 (2019). Hosted at http://sankara.net/mission.html. The animations display real-world orbit data from JPL/NASA HORIZONS interface.
+This is a multi-mission platform for 3D and 2D animations of lunar mission orbits. Currently supports Chandrayaan 3 (2023), Chandrayaan 2 (2019), Apollo 10 LM (Snoopy), and Apollo 11 S-IVB. Hosted at http://sankara.net/mission.html. The animations display real-world orbit data from JPL/NASA HORIZONS interface.
 
 ## Multi-Mission Architecture
 
@@ -111,10 +111,12 @@ The project consists of several major components:
 
 2. **Frontend Visualization**:
    - `mission.html` - Main HTML page with mission selector and routing
-   - `assets/platform/js/mission.js` - Core animation engine (mission-agnostic)
+   - `assets/platform/js/mission.js` - Core animation engine (AnimationScene class)
    - `assets/platform/js/astro.js` - Astronomy support functions (Julian dates, coordinate conversions)
    - `assets/platform/js/chebyshev.js` - Chebyshev polynomial interpolation
    - `assets/platform/js/astronomy-bodies.js` - Astronomy Engine wrapper for Moon/Earth
+   - `assets/platform/js/rendering/` - Extracted renderer classes (camera, spacecraft, lights, Earth, Moon, sky, helpers)
+   - `assets/platform/js/core/constants.js` - Centralized physics, color, and light constants
    - `assets/platform/css/mission.css` - Styling for the application
    - Uses THREE.js for 3D rendering and D3.js for 2D SVG rendering
    - jQuery/jQuery UI for UI controls
@@ -171,6 +173,19 @@ For detailed technical documentation on time systems, data pipeline, and coordin
 - Removed NPZ data pipeline - using Chebyshev polynomials exclusively for spacecraft data
 - Moon/Earth positions computed dynamically via Astronomy Engine
 
+### Modular Rendering Architecture (January 2026)
+- Extracted 7 renderer classes from monolithic mission.js to `assets/platform/js/rendering/`:
+  - `CameraController` - Camera management (main, craft-attached, drone-attached)
+  - `SpacecraftRenderer` - Spacecraft visualization (geometric and GLTF modes)
+  - `LightManager` - Two-layer lighting system (celestial bodies vs spacecraft)
+  - `EarthRenderer` - Earth sphere with texture and polar axis
+  - `MoonRenderer` - Moon sphere with displacement mapping and polar axis
+  - `SkyRenderer` - Starfield and constellation background
+  - `SceneHelpers` - Axes, ecliptic/equatorial planes, SOI wireframe
+- Core utilities in `assets/platform/js/core/` (constants.js, dom.js)
+- Math utilities in `assets/platform/js/utils/math-utils.js`
+- Apollo 10 LM and Apollo 11 S-IVB missions added
+
 ### CY2 Data Pipeline
 - `convert-cy2-json.py` - Converts legacy JSON to Chebyshev with vx/vy bug fix
 - `merge-cy2-vikram.py` - Merges Orbiter data (launch→separation) with Vikram data (separation→crash)
@@ -195,21 +210,39 @@ moon-mission/
 ├── assets/
 │   ├── platform/                  # Reusable platform components
 │   │   ├── js/
-│   │   │   ├── mission.js         # Core animation engine
+│   │   │   ├── mission.js         # Core animation engine (AnimationScene class)
 │   │   │   ├── astro.js           # Astronomy calculations (TDB/UTC)
 │   │   │   ├── chebyshev.js       # Chebyshev polynomial interpolation
-│   │   │   └── astronomy-bodies.js # Astronomy Engine wrapper
+│   │   │   ├── astronomy-bodies.js # Astronomy Engine wrapper
+│   │   │   ├── core/              # Core utilities
+│   │   │   │   ├── constants.js   # Centralized constants (physics, colors, lights)
+│   │   │   │   └── dom.js         # DOM manipulation utilities
+│   │   │   ├── rendering/         # Extracted renderer classes
+│   │   │   │   ├── camera-controller.js    # Camera and controls management
+│   │   │   │   ├── spacecraft-renderer.js  # Spacecraft & drone visualization
+│   │   │   │   ├── light-manager.js        # Scene lighting (two-layer system)
+│   │   │   │   ├── earth-renderer.js       # Earth sphere and axis
+│   │   │   │   ├── moon-renderer.js        # Moon sphere and axis
+│   │   │   │   ├── sky-renderer.js         # Starfield and constellations
+│   │   │   │   └── scene-helpers.js        # Axes, planes, SOI wireframe
+│   │   │   └── utils/
+│   │   │       └── math-utils.js  # Mathematical utilities
 │   │   └── css/
 │   │       └── mission.css        # Base styling
 │   ├── chandrayaan3/              # Chandrayaan 3 assets
 │   │   ├── data/                  # config.json + Chebyshev files
 │   │   ├── images/
 │   │   └── models/                # 3D models (GLB files)
-│   └── chandrayaan2/              # Chandrayaan 2 assets
-│       ├── data/                  # config.json + Chebyshev files
-│       └── images/
+│   ├── chandrayaan2/              # Chandrayaan 2 assets
+│   │   ├── data/                  # config.json + Chebyshev files
+│   │   └── images/
+│   ├── apollo10-lm/               # Apollo 10 Snoopy LM assets
+│   │   └── data/
+│   └── apollo11-sivb/             # Apollo 11 S-IVB assets
+│       └── data/
 ├── docs/                          # Documentation
 │   ├── developer.md               # Technical documentation
+│   ├── modernization-plan-2026.md # Modernization roadmap
 │   └── testing/                   # Test documentation
 ├── scripts/                       # Data generation scripts
 ├── test/                          # Test files and baselines

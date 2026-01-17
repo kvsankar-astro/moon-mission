@@ -5,6 +5,8 @@ A multi-mission platform for 3D and 2D orbital animations of lunar missions. Cur
 
 - **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
 - **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
+- **[Apollo 10 LM](http://sankara.net/mission.html?mission=apollo10-lm)** (1969) - Snoopy lunar module
+- **[Apollo 11 S-IVB](http://sankara.net/mission.html?mission=apollo11-sivb)** (1969) - Saturn V third stage
 
 ![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
 
@@ -31,6 +33,8 @@ The platform supports multiple lunar missions through a configuration-driven arc
 - `mission.html` - Shows mission selector page
 - `mission.html?mission=cy3` - Chandrayaan 3
 - `mission.html?mission=cy2` - Chandrayaan 2
+- `mission.html?mission=apollo10-lm` - Apollo 10 LM (Snoopy)
+- `mission.html?mission=apollo11-sivb` - Apollo 11 S-IVB
 
 ### Adding a New Mission
 
@@ -145,21 +149,38 @@ moon-mission/
 │   │   ├── css/
 │   │   │   └── mission.css        # Core styling (mission-agnostic)
 │   │   └── js/
-│   │       ├── mission.js         # Core animation logic
+│   │       ├── mission.js         # Core animation engine (AnimationScene class)
 │   │       ├── astro.js           # Astronomy calculations
 │   │       ├── chebyshev.js       # Chebyshev polynomial interpolation
-│   │       └── astronomy-bodies.js # Astronomy Engine wrapper
+│   │       ├── astronomy-bodies.js # Astronomy Engine wrapper
+│   │       ├── core/              # Core utilities
+│   │       │   ├── constants.js   # Physics, color, and light constants
+│   │       │   └── dom.js         # DOM manipulation utilities
+│   │       ├── rendering/         # Extracted renderer classes
+│   │       │   ├── camera-controller.js    # Camera and controls management
+│   │       │   ├── spacecraft-renderer.js  # Spacecraft visualization
+│   │       │   ├── light-manager.js        # Two-layer lighting system
+│   │       │   ├── earth-renderer.js       # Earth sphere and axis
+│   │       │   ├── moon-renderer.js        # Moon sphere and axis
+│   │       │   ├── sky-renderer.js         # Starfield and constellations
+│   │       │   └── scene-helpers.js        # Axes, planes, SOI wireframe
+│   │       └── utils/
+│   │           └── math-utils.js  # Mathematical utilities
 │   ├── chandrayaan3/              # Chandrayaan 3 mission assets
 │   │   ├── data/
 │   │   │   ├── config.json        # Mission configuration
 │   │   │   └── *-cheb.json        # Chebyshev orbit data
 │   │   ├── images/
 │   │   └── models/                # 3D spacecraft models
-│   └── chandrayaan2/              # Chandrayaan 2 mission assets
-│       ├── data/
-│       │   ├── config.json        # Mission configuration
-│       │   └── *-cheb.json        # Chebyshev orbit data
-│       └── images/
+│   ├── chandrayaan2/              # Chandrayaan 2 mission assets
+│   │   ├── data/
+│   │   │   ├── config.json        # Mission configuration
+│   │   │   └── *-cheb.json        # Chebyshev orbit data
+│   │   └── images/
+│   ├── apollo10-lm/               # Apollo 10 LM (Snoopy) assets
+│   │   └── data/
+│   └── apollo11-sivb/             # Apollo 11 S-IVB assets
+│       └── data/
 ├── third-party/                   # External libraries
 ├── images/                        # Shared textures (Earth, Moon, stars)
 ├── scripts/                       # Build and data scripts
@@ -174,13 +195,24 @@ moon-mission/
 
 #### Platform Components (Reusable)
 
-- **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
+- **`assets/platform/js/mission.js`** - Core animation engine (AnimationScene class)
 - **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
 - **`assets/platform/js/chebyshev.js`** - Chebyshev polynomial interpolation for orbit data
 - **`assets/platform/js/astronomy-bodies.js`** - Astronomy Engine wrapper for Moon/Earth calculations
-- **`assets/platform/js/core/constants.js`** - Centralized physical and mathematical constants
+- **`assets/platform/js/core/constants.js`** - Centralized physics, color, and light constants
 - **`assets/platform/js/core/dom.js`** - DOM manipulation utilities and D3.js integration
+- **`assets/platform/js/utils/math-utils.js`** - Mathematical utilities (vectors, conversions)
 - **`assets/platform/css/mission.css`** - Base styling for any mission
+
+#### Rendering Modules (Extracted from mission.js)
+
+- **`rendering/camera-controller.js`** - Camera management (main, craft-attached, drone cameras)
+- **`rendering/spacecraft-renderer.js`** - Spacecraft visualization (geometric and GLTF modes)
+- **`rendering/light-manager.js`** - Two-layer lighting (primary for celestial bodies, secondary for spacecraft)
+- **`rendering/earth-renderer.js`** - Earth sphere with textures and polar axis
+- **`rendering/moon-renderer.js`** - Moon sphere with displacement mapping and polar axis
+- **`rendering/sky-renderer.js`** - Starfield and constellation background
+- **`rendering/scene-helpers.js`** - Axes, ecliptic/equatorial planes, SOI wireframe
 
 #### Mission-Specific Assets
 
@@ -332,19 +364,33 @@ npx http-server
   
 ## Future work
 
-The code base needs a rewrite. The very first release was for the Mars Orbiter Mission launch in 2013. 
-Minor changes were made later to support MOM Mars orbit insertion and the Pluto flyby of New Horizons.
+The code base is undergoing incremental modernization. The very first release was for the Mars Orbiter Mission launch in 2013. After supporting several missions, the code grew into a large monolithic file.
 
-After a gap of 6 years, this was been modified again in 2019 to support the Chandrayaan 2 mission. 
-The major changes were for 3D support. In that process, the code quality has degraded.
+### Modernization Progress (January 2026)
 
-After another gap of 4 years, it has now been prepped for Chandrayaan 3. 
+A systematic refactoring effort has extracted modular components from the monolithic `mission.js`:
 
-The rewrite will focus on present-day JavaScript tooling, better abstraction, 
-better separation of concerns (2D vs. 3D, model vs. rendering, etc.), extensibility
-(how does one extend the code for a new mission easily merely by changing configurations), 
-performance (decrease the load time; improve rendering smoothness; on-demand loading of high resolution
-LRO textures), and responsive UX. The current UX is not too great mobile screens. 
+**Completed:**
+- ✅ Extracted 7 renderer classes to `assets/platform/js/rendering/`
+- ✅ Centralized constants (physics, colors, lights) in `core/constants.js`
+- ✅ DOM utilities extracted to `core/dom.js`
+- ✅ Math utilities extracted to `utils/math-utils.js`
+- ✅ Multi-mission support with configuration-driven architecture
+- ✅ Visual regression testing with SSIM-based comparison (47 tests)
+
+**In Progress:**
+- Animation controller extraction
+- UI state management refactoring
+- Event handler consolidation
+
+**Future Goals:**
+- Further reduce `mission.js` to orchestration-only (~500 lines)
+- TypeScript migration for better maintainability
+- jQuery UI migration to lighter alternatives
+- Responsive UX for mobile screens
+- On-demand loading of high-resolution textures
+
+See [docs/modernization-plan-2026.md](docs/modernization-plan-2026.md) for the detailed roadmap. 
 
 ## Use of Generative AI
 

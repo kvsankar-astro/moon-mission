@@ -18,6 +18,8 @@ The `missionMap` in `mission.html` maps URL parameters to mission folders:
 const missionMap = {
     'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 LM', year: '1969' },
+    'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
 };
 ```
 
@@ -258,24 +260,90 @@ const eclState = Astronomy.RotateState(rot, eqState);
 
 ## Key Modules
 
-### `assets/platform/js/astro.js`
+### Core Modules
+
+#### `assets/platform/js/mission.js`
+- Main application logic (AnimationScene class)
+- Scene management (Earth mode, Moon mode)
+- Animation control and orchestration
+- Integrates all renderer classes
+
+#### `assets/platform/js/astro.js`
 - Julian Date conversion functions
 - Lunar pole orientation (IAU model)
 
-### `assets/platform/js/astronomy-bodies.js`
+#### `assets/platform/js/astronomy-bodies.js`
 - Astronomy Engine wrapper
 - `getMoonState(timestamp)` - Moon position from Earth (geocentric)
 - `getEarthFromMoonState(timestamp)` - Earth position from Moon (selenocentric)
 
-### `assets/platform/js/chebyshev.js`
+#### `assets/platform/js/chebyshev.js`
 - `getStateFromChebyshev(data, jd)` - Interpolate position/velocity at given JDTDB
 - `generateCurveFromChebyshev(data, start, end, step)` - Generate orbit curve points
 - `loadChebyshevData(url)` - Load Chebyshev JSON file
 
-### `assets/platform/js/mission.js`
-- Main application logic
-- Scene management (Earth mode, Moon mode)
-- Animation control
+### Core Utilities
+
+#### `assets/platform/js/core/constants.js`
+- `PHYSICS_CONSTANTS` - Earth/Moon radii, distances, axial inclination
+- `TIME_CONSTANTS` - Step duration
+- `COLORS` - Axis, pole, plane, and SOI colors
+- `LIGHT_SETTINGS` - Primary, ambient, and craft light intensities
+
+#### `assets/platform/js/core/dom.js`
+- DOM element selection and manipulation
+- D3.js helper functions
+- Event handler management
+
+#### `assets/platform/js/utils/math-utils.js`
+- `distance3D()` - 3D distance calculation
+- `degreesToRadians()` / `radiansToDegrees()` - Angle conversion
+- `sphericalToCartesian()` - Coordinate conversion
+- `velocityToAngle()` - Velocity vector to angle
+
+### Rendering Modules (`assets/platform/js/rendering/`)
+
+#### `camera-controller.js`
+- Three camera types: main perspective, craft-attached, drone-attached
+- TrackballControls for user interaction
+- Methods: `setPosition()`, `setFov()`, `updateAspect()`, `dispose()`
+
+#### `spacecraft-renderer.js`
+- Two visualization modes: simple geometric, GLTF model
+- Drone object for camera targeting
+- Layer 1 rendering for separate lighting
+- Methods: `createSimple()`, `loadModel()`, `setVisible()`, `dispose()`
+
+#### `light-manager.js`
+- Two-layer lighting system:
+  - Primary light: For celestial bodies (layer 0)
+  - Craft light: For spacecraft (layer 1)
+- Methods: `create()`, `dispose()`
+
+#### `earth-renderer.js`
+- Earth sphere with texture and specular map
+- Axial tilt to 23.439° (Earth's inclination)
+- Polar axis with north/south pole markers
+- Methods: `setTextures()`, `create()`, `dispose()`
+
+#### `moon-renderer.js`
+- Moon sphere with displacement mapping
+- IAU lunar pole orientation
+- Polar axis with north/south pole markers
+- Methods: `setTextures()`, `create()`, `dispose()`
+
+#### `sky-renderer.js`
+- Two-layer background: starmap + constellation overlay
+- Additive blending for correct appearance
+- Follows camera for infinite sky effect
+- Methods: `setTextures()`, `create()`, `updatePosition()`, `setVisible()`, `dispose()`
+
+#### `scene-helpers.js`
+- XYZ axes helper
+- Ecliptic plane (grid + plane)
+- Equatorial plane (tilted by Earth's axial inclination)
+- Moon's Sphere of Influence wireframe
+- Granular visibility controls for each component
 
 ## Configuration
 
