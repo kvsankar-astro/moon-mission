@@ -23,6 +23,7 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 | `rendering/moon-renderer.js` | ✅ NEW | 275 | Moon rendering extracted |
 | `rendering/sky-renderer.js` | ✅ NEW | 180 | Starfield/constellations extracted |
 | `rendering/scene-helpers.js` | ✅ NEW | 260 | Axes/planes/SOI extracted |
+| `animation/animation-controller.js` | ✅ NEW | 324 | Animation state management |
 | `astro.js` | ✅ Working | - | Julian dates, lunar pole |
 | `astronomy-bodies.js` | ✅ Working | - | Moon/Earth via Astronomy Engine |
 | `chebyshev.js` | ✅ Working | - | Orbit interpolation |
@@ -45,13 +46,14 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 ### Recent Achievements (January 2026)
 
 1. **7 Renderer Classes Extracted**: Camera, spacecraft, lights, Earth, Moon, sky, scene helpers
-2. **Two-Layer Lighting System**: Separate lighting for celestial bodies (layer 0) and spacecraft (layer 1)
-3. **Constants Integrated**: COLORS and LIGHT_SETTINGS centralized in constants.js
-4. **All 47 Visual Regression Tests Passing**: Each extraction verified with SSIM-based comparison
+2. **Animation Controller Extracted**: Play/pause, speed, timeline management centralized
+3. **Two-Layer Lighting System**: Separate lighting for celestial bodies (layer 0) and spacecraft (layer 1)
+4. **Constants Integrated**: COLORS and LIGHT_SETTINGS centralized in constants.js
+5. **All 47 Visual Regression Tests Passing**: Each extraction verified with SSIM-based comparison
 
 ### Remaining Issues
 
-1. **Animation Logic Mixed**: Play/pause, speed, timeline still embedded in mission.js
+1. ~~**Animation Logic Mixed**~~: ✅ Extracted to AnimationController (Jan 17, 2026)
 2. **UI State Scattered**: Settings, view options spread across methods
 3. **Event Handlers Inline**: Button clicks, keyboard shortcuts not centralized
 4. **Global Variables**: Still has global vars, though reduced from original
@@ -267,28 +269,43 @@ npm test                           # All tests pass
 
 Extract components that manage state.
 
-### Iteration 8: Extract Animation Controller
-**Duration**: 3 days
+### Iteration 8: Extract Animation Controller ✅ COMPLETED
+**Duration**: Completed January 17, 2026
 **Goal**: Create `animation/animation-controller.js`
 
-**Responsibilities**:
-- Play/pause state
-- Speed control
-- Timeline position
-- Animation loop management
+**Status**: ✅ COMPLETED
 
-**New Module**: `assets/platform/js/animation/animation-controller.js`
+AnimationController class extracted to `assets/platform/js/animation/animation-controller.js` (324 lines):
 
-**Verification**:
-```bash
-npm test                           # All tests pass
-# Animation controls work: play, pause, speed, timeline
+**Features Implemented**:
+- Play/pause state management with `toggle()`, `play()`, `pause()`
+- Speed control with `faster()`, `slower()`, `resetSpeed()`, `setRealtimeSpeed()`
+- Timeline navigation: `stepForward()`, `stepBackward()`, `fastForward()`, `fastBackward()`
+- Event navigation: `goToStart()`, `goToEnd()`, `goToEvent()`, `goToNow()`
+- Animation tick with `tick(currentFrameTime)` for frame updates
+- Callback-based architecture for decoupling from DOM/scene
+
+**Architecture**:
+```javascript
+var animationController = new AnimationController({
+    onTimeChange: (time) => { /* sync animTime, update scene */ },
+    onPlayStateChange: (isPlaying) => { /* sync UI state */ },
+    onSpeedChange: (multiplier, isRealtime) => { /* sync speed state */ }
+});
+
+animationController.configure({
+    startTime: startTime,
+    endTime: endTime,
+    stepDurationMs: stepDuration,
+    stepsPerHop: 60
+});
 ```
 
-**Success Criteria**:
-- [ ] All tests pass
-- [ ] Animation state isolated in controller
-- [ ] UI controls communicate via controller
+**Completed**:
+- ✅ All tests pass (47/47)
+- ✅ Animation state isolated in controller
+- ✅ UI controls communicate via controller callbacks
+- ✅ Backward compatibility maintained via global state sync
 
 ---
 
@@ -544,7 +561,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 | 5 | Extract Coordinates | 🔄 | -/- | - |
 | 6 | Extract Telemetry | 🔄 | -/- | - |
 | 7 | Extract 2D Rendering | 🔄 | -/- | - |
-| 8 | Animation Controller | 🔄 | -/- | - |
+| 8 | Animation Controller | ✅ | 47/47 | Jan 17, 2026 |
 | 9 | Camera Controller | ✅ | 47/47 | Jan 17, 2026 |
 | 10 | UI State Manager | 🔄 | -/- | - |
 | 11 | Scene Builder | ✅ | 47/47 | Jan 16-17, 2026 |
@@ -578,7 +595,7 @@ The following renderer classes were extracted as part of Iteration 11:
 |--------|----------|-------------------|--------|
 | mission.js lines | 4,822 | ~4,300 | < 600 |
 | Global vars | 162 | ~100 (est.) | < 20 |
-| Modules | 7 | 14 | 15+ |
+| Modules | 7 | 15 | 15+ |
 | Max function length | 200+ | ~150 | < 50 |
 | Test count | 63 | 63 | 80+ |
 | Extracted renderers | 0 | 7 | 7 ✅ |
@@ -645,7 +662,9 @@ mission.js (AnimationScene class, ~4,300 lines)
 │   └── dom.js ✅
 ├── utils/
 │   └── math-utils.js ✅
-├── rendering/ ✅ NEW
+├── animation/ ✅ NEW
+│   └── animation-controller.js ✅
+├── rendering/ ✅
 │   ├── camera-controller.js ✅
 │   ├── spacecraft-renderer.js ✅
 │   ├── light-manager.js ✅
@@ -689,7 +708,7 @@ mission.js (entry point, ~500 lines)
 │   ├── scene-helpers.js ✅
 │   └── svg-utils.js 🔄
 ├── animation/
-│   └── animation-controller.js 🔄
+│   └── animation-controller.js ✅
 ├── ui/
 │   ├── ui-state.js 🔄
 │   └── event-handlers.js 🔄

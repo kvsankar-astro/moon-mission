@@ -33,6 +33,7 @@ import { EarthRenderer } from "./rendering/earth-renderer.js";
 import { MoonRenderer } from "./rendering/moon-renderer.js";
 import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
 import { CameraController } from "./rendering/camera-controller.js";
+import { AnimationController } from "./animation/animation-controller.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -183,6 +184,24 @@ var mousedownTimeout = UC.ZOOM_TIMEOUT;
 var fpsFrameCount = 0;
 var fpsLastTime = 0;
 var fpsUpdateInterval = 1000; // Update FPS every 1000ms (1 second)
+
+// Animation Controller instance
+// Callbacks sync global state and update UI for backward compatibility
+var animationController = new AnimationController({
+    onTimeChange: (time) => {
+        animTime = time;  // Sync global animTime for backward compatibility
+        setLocation();    // Update scene positions
+    },
+    onPlayStateChange: (isPlaying) => {
+        animationRunning = isPlaying;  // Sync global state
+        stopAnimationFlag = !isPlaying;
+        updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
+    },
+    onSpeedChange: (multiplier, isRealtime) => {
+        animTimeStepMinutes = multiplier;  // Sync global state
+        realtimespeed = isRealtime;
+    }
+});
 
 function showWhatsNew() {
     $("#dialog-whatsnew").dialog("open");
@@ -2080,6 +2099,14 @@ async function initConfig() {
         timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         ticksPerAnimationStep = 1;
 
+        // Configure animation controller with mission timing
+        animationController.configure({
+            startTime: startTime,
+            endTime: endTime,
+            stepDurationMs: animationScenes[config].stepDurationInMilliSeconds,
+            stepsPerHop: animationScenes[config].stepsPerHop
+        });
+
         epochJD = "N/A";
         epochDate = "N/A";
 
@@ -2133,6 +2160,14 @@ async function initConfig() {
         latestEndTime = endTime;
         timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
         ticksPerAnimationStep = 1;
+
+        // Configure animation controller with mission timing
+        animationController.configure({
+            startTime: startTime,
+            endTime: endTime,
+            stepDurationMs: animationScenes[config].stepDurationInMilliSeconds,
+            stepsPerHop: animationScenes[config].stepsPerHop
+        });
 
         epochJD = "N/A";
         epochDate = "N/A";
@@ -2797,29 +2832,20 @@ function animateLoop() {
         fpsLastTime = curFrameTime;
     }
 
-    if (prevFrameTime != null) {    
+    // Update frame timing for delta calculations
+    if (prevFrameTime != null) {
         deltaFrameTime = curFrameTime - prevFrameTime;
     }
     prevFrameTime = curFrameTime;
-    
+
     ++animateLoopCount;
     if (animateLoopCount % ticksPerAnimationStep < 0.1) {
-        
+
         animateLoopCount = 0;
 
-        if (animationRunning) {
-            if (realtimespeed) {
-                animTime += deltaFrameTime;
-            } else {
-                animTime += animTimeStepMinutes * TC.ONE_MINUTE_MS;
-            }
-            
-            if (animTime > endTime - TC.ONE_MINUTE_MS) {
-                animTime = endTime - TC.ONE_MINUTE_MS;
-                stopAnimation();
-            }
-            setLocation();
-        }
+        // Use animation controller to advance time
+        // The controller's onTimeChange callback handles setLocation()
+        animationController.tick(curFrameTime);
     }
 
     if (animationScenes[config] && animationScenes[config].initialized3D && animationScenes[config].cameraControlsEnabled) {
@@ -3627,122 +3653,86 @@ async function processOrbitVectorsData() {
 }
 
 function cy3Animate() {
-
-    if (animationRunning) {
-        stopAnimation();
-    } else {
-        animationRunning = true;
-        stopAnimationFlag = false;
-        if (animTime >= endTime - TC.ONE_MINUTE_MS) animTime = startTime;
-        updateD3ElementText("#animate", "Pause");
-    }
+    // Delegate to animation controller
+    animationController.toggle();
 }
 
 function fastBackward() {
-    animTime -= animationScenes[config].stepsPerHop * TC.ONE_MINUTE_MS;
-    if (animTime < startTime) animTime = startTime;
-    setLocation();
+    // Delegate to animation controller (callback handles setLocation)
+    animationController.fastBackward();
 }
 
 function backward() {
-    animTime -= TC.ONE_MINUTE_MS;
-    if (animTime < startTime) animTime = startTime;
-    setLocation();
+    // Delegate to animation controller (callback handles setLocation)
+    animationController.stepBackward();
 }
 
 function stopAnimation() {
-    animationRunning = false;
-    stopAnimationFlag = true;
-    clearTimeout(timeoutHandle);
-    updateD3ElementText("#animate", "Play");
+    // Delegate to animation controller (callback handles UI update)
+    animationController.pause();
+    clearTimeout(timeoutHandle);  // Keep for backward compatibility
 }
 
 function forward() {
-    animTime += TC.ONE_MINUTE_MS;
-    if (animTime > endTime - TC.ONE_MINUTE_MS) {
-        animTime = endTime - TC.ONE_MINUTE_MS;
-    }
-    setLocation();
+    // Delegate to animation controller (callback handles setLocation)
+    animationController.stepForward();
 }
 
 function fastForward() {
-    animTime += animationScenes[config].stepsPerHop * TC.ONE_MINUTE_MS;
-    if (animTime > endTime - TC.ONE_MINUTE_MS) {
-        animTime = endTime - TC.ONE_MINUTE_MS;
-    }
-    setLocation();
+    // Delegate to animation controller (callback handles setLocation)
+    animationController.fastForward();
 }
 
 function missionStart() {
     missionStartCalled = true;
-    stopAnimation();
-    animTime = startTime;
-    // console.log("missionStart(): animTime = " + animTime);
-    setLocation();
+    // Delegate to animation controller (callback handles setLocation)
+    animationController.goToStart();
 }
 
 function missionSetTime() {
-    stopAnimation();
-    if (animTime < startTime) {
-        // console.log("missionSetTime(): animTime < startTime");
-        animTime = startTime;
-    } else if (animTime > endTime - TC.ONE_MINUTE_MS) {
-        // console.log("missionSetTime(): animTime >= endTime");
-        animTime = endTime - TC.ONE_MINUTE_MS;
-    }
-    setLocation();
+    // Set time via controller with bounds checking (callback handles setLocation)
+    animationController.goToEvent(animTime);
 }
 
 function missionNow() {
-    animTime = new Date().getTime();
-    // console.log(animTime);
-    missionSetTime();
+    // Delegate to animation controller
+    animationController.goToNow();
 }
 
 function missionTLI() {
-    animTime = timeTransLunarInjection;
-    missionSetTime();
+    // Go to TLI event time
+    animationController.goToEvent(timeTransLunarInjection);
 }
 
 function missionLunar() {
-    animTime = timeLunarOrbitInsertion;
-    missionSetTime();
+    // Go to LOI event time
+    animationController.goToEvent(timeLunarOrbitInsertion);
 }
 
 function missionEnd() {
-    animTime = endTime;
-    missionSetTime();
+    // Delegate to animation controller
+    animationController.goToEnd();
 }
 
 function faster() {
-    if (realtimespeed) {
-        realtimespeed = false;
-        animTimeStepMinutes = deltaFrameTime / TC.ONE_MINUTE_MS * UC.SPEED_CHANGE_FACTOR;
-    } else {
-        animTimeStepMinutes *= UC.SPEED_CHANGE_FACTOR;	
-    }
-// console.log("animTimeStepMinutes = " + animTimeStepMinutes);
+    // Delegate to animation controller (callback syncs global state)
+    animationController.faster();
 }
 
 function resetspeed() {
-    realtimespeed = false;
-    animTimeStepMinutes = 1;
+    // Delegate to animation controller (callback syncs global state)
+    animationController.resetSpeed();
     // console.log("animTimeStepMinutes = " + animTimeStepMinutes);
 }
 
 function slower() {
-    if (realtimespeed) {
-        realtimespeed = false;
-        animTimeStepMinutes = deltaFrameTime / TC.ONE_MINUTE_MS / UC.SPEED_CHANGE_FACTOR;
-    } else {
-        animTimeStepMinutes /= UC.SPEED_CHANGE_FACTOR;	
-    }
-    // console.log("animTimeStepMinutes = " + animTimeStepMinutes);
+    // Delegate to animation controller (callback syncs global state)
+    animationController.slower();
 }
 
 function realtime() {
-    realtimespeed = true;
-    // console.log("realtimespeed set to true");
+    // Delegate to animation controller (callback syncs global state)
+    animationController.setRealtimeSpeed();
 }
 
 function zoomChangeTransform(t) {
