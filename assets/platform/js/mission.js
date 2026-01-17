@@ -28,6 +28,9 @@ import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { SkyRenderer } from "./rendering/sky-renderer.js";
+import { LightManager } from "./rendering/light-manager.js";
+import { EarthRenderer } from "./rendering/earth-renderer.js";
+import { MoonRenderer } from "./rendering/moon-renderer.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -818,6 +821,15 @@ class AnimationScene {
         // Sky renderer (starmap and constellations)
         this.skyRenderer = null;
 
+        // Light manager
+        this.lightManager = null;
+
+        // Earth renderer
+        this.earthRenderer = null;
+
+        // Moon renderer
+        this.moonRenderer = null;
+
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
@@ -992,154 +1004,35 @@ class AnimationScene {
     }
     
     addEarth() {
-        // add Earth
+        // Create Earth renderer
+        this.earthRenderer = new EarthRenderer(earthRadius);
+        this.earthRenderer.setTextures(this.earthTexture, this.earthSpecularTexture);
+        this.earthRenderer.create(viewPolarAxes, viewPoles);
 
-        this.earthContainer = new THREE.Group();
-        this.earthContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
+        // Backward-compatible property references
+        this.earthContainer = this.earthRenderer.container;
+        this.earth = this.earthRenderer.mesh;
+        this.earthAxis = this.earthRenderer.axis;
+        this.earthNorthPoleSphere = this.earthRenderer.northPoleSphere;
+        this.earthSouthPoleSphere = this.earthRenderer.southPoleSphere;
 
-        // console.log("Creating Earth...");
-        // var earthColor = planetProperties["EARTH"]["color"];
-        var earthGeometry = new THREE.SphereGeometry(earthRadius, 100, 100);
-        var earthMaterial = new THREE.MeshPhongMaterial({
-            // color: primaryBodyColor, 
-            // specular: COL.BLACK,
-            // shininess: 1,
-            map: this.earthTexture,
-            // bumpMap: this.earthBumpMapTexture,
-            // bumpScale: 0.01,
-            specularMap: this.earthSpecularTexture, // shininess on oceans
-            specular: 0x101010,
-            // side: THREE.DoubleSide
-        });
-        this.earth = new THREE.Mesh(earthGeometry, earthMaterial);
-        this.earth.receiveShadow = false;
-        this.earth.castShadow = false;
-        this.earth.rotateX(Math.PI/2); // this is to get the orientation of the texture correct
-        this.earthContainer.add(this.earth);
-        // console.log("Created Earth");
-
-        // // add Earth glow
-
-        // var earthGlowMaterial = THREEx.createAtmosphereMaterial();
-        // earthGlowMaterial.uniforms.glowColor.value.set(0x00b3ff);
-        // earthGlowMaterial.uniforms.coeficient.value = 0.8;
-        // earthGlowMaterial.uniforms.power.value = 2.0;
-        // this.earthGlow = new THREE.Mesh(earthGeometry, earthGlowMaterial);
-        // this.earthGlow.scale.multiplyScalar(1.02);
-        // this.earth.add(this.earthGlow);
-
-        // add axes to Earth and Moon
-
-        var earthPoleScale = 1.2;
-        var earthNorthPolePoint = new THREE.Vector3(0, 0, +1 * earthRadius * earthPoleScale);
-        var earthSouthPolePoint = new THREE.Vector3(0, 0, -1 * earthRadius * earthPoleScale);
-        var earthAxisGeometry = new THREE.BufferGeometry();
-        const vertices = [];
-        vertices.push(earthNorthPolePoint.x, earthNorthPolePoint.y, earthNorthPolePoint.z);
-        vertices.push(earthSouthPolePoint.x, earthSouthPolePoint.y, earthSouthPolePoint.z);
-        earthAxisGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        var earthAxisMaterial = new THREE.LineBasicMaterial({color: COL.EARTH_AXIS});
-        this.earthAxis = new THREE.Line(earthAxisGeometry, earthAxisMaterial);
-        this.earthAxis.visible = viewPolarAxes;
-
-        var earthNorthPoleGeometry = new THREE.SphereGeometry(earthRadius/50, 100, 100);
-        var earthNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.NORTH_POLE, reflectivity: 0.0});
-        this.earthNorthPoleSphere = new THREE.Mesh(earthNorthPoleGeometry, earthNorthPoleMaterial);
-        this.earthNorthPoleSphere.castShadow = false;
-        this.earthNorthPoleSphere.receiveShadow = false;
-        this.earthNorthPoleSphere.position.set(0, 0, 0.985 * earthRadius);
-
-        var earthSouthPoleGeometry = new THREE.SphereGeometry(earthRadius/50, 100, 100);
-        var earthSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.SOUTH_POLE, reflectivity: 0.0}); 
-        this.earthSouthPoleSphere = new THREE.Mesh(earthSouthPoleGeometry, earthSouthPoleMaterial);
-        this.earthSouthPoleSphere.castShadow = false;
-        this.earthSouthPoleSphere.receiveShadow = false;
-        this.earthSouthPoleSphere.position.set(0, 0, -0.985 * earthRadius);
-
-        this.earthNorthPoleSphere.visible = viewPoles;
-        this.earthSouthPoleSphere.visible = viewPoles;
-        
         render();
     }
-    
+
     disposeEarth() {
-        if (this.earthContainer) {
-            // Dispose of Earth geometry
-            if (this.earth && this.earth.geometry) {
-                this.earth.geometry.dispose();
-            }
-            
-            // Dispose of Earth material
-            if (this.earth && this.earth.material) {
-                this.earth.material.dispose();
-            }
-            
-            // Dispose of Earth axis geometry
-            if (this.earthAxis && this.earthAxis.geometry) {
-                this.earthAxis.geometry.dispose();
-            }
-            
-            // Dispose of Earth axis material
-            if (this.earthAxis && this.earthAxis.material) {
-                this.earthAxis.material.dispose();
-            }
-            
-            // Dispose of Earth North Pole geometry
-            if (this.earthNorthPoleSphere && this.earthNorthPoleSphere.geometry) {
-                this.earthNorthPoleSphere.geometry.dispose();
-            }
-            
-            // Dispose of Earth North Pole material
-            if (this.earthNorthPoleSphere && this.earthNorthPoleSphere.material) {
-                this.earthNorthPoleSphere.material.dispose();
-            }
-            
-            // Dispose of Earth South Pole geometry
-            if (this.earthSouthPoleSphere && this.earthSouthPoleSphere.geometry) {
-                this.earthSouthPoleSphere.geometry.dispose();
-            }
-            
-            // Dispose of Earth South Pole material
-            if (this.earthSouthPoleSphere && this.earthSouthPoleSphere.material) {
-                this.earthSouthPoleSphere.material.dispose();
-            }
-            
-            // Remove Earth and its components from earthContainer
-            if (this.earth) {
-                this.earthContainer.remove(this.earth);
-            }
-            if (this.earthAxis) {
-                this.earthContainer.remove(this.earthAxis);
-            }
-            if (this.earthNorthPoleSphere) {
-                this.earthContainer.remove(this.earthNorthPoleSphere);
-            }
-            if (this.earthSouthPoleSphere) {
-                this.earthContainer.remove(this.earthSouthPoleSphere);
-            }
-            
-            // Remove earthContainer from its parent (if it has one)
-            if (this.earthContainer.parent) {
-                this.earthContainer.parent.remove(this.earthContainer);
-            }
-            
-            // Nullify references
-            this.earth = null;
-            this.earthAxis = null;
-            this.earthNorthPoleSphere = null;
-            this.earthSouthPoleSphere = null;
-            this.earthContainer = null;
+        if (this.earthRenderer) {
+            this.earthRenderer.dispose();
+            this.earthRenderer = null;
         }
-        
-        // Dispose of textures
-        if (this.earthTexture) {
-            this.earthTexture.dispose();
-            this.earthTexture = null;
-        }
-        if (this.earthSpecularTexture) {
-            this.earthSpecularTexture.dispose();
-            this.earthSpecularTexture = null;
-        }
+
+        // Clear backward-compatible references
+        this.earth = null;
+        this.earthAxis = null;
+        this.earthNorthPoleSphere = null;
+        this.earthSouthPoleSphere = null;
+        this.earthContainer = null;
+        this.earthTexture = null;
+        this.earthSpecularTexture = null;
     }
 
     addMoon() {
@@ -1148,94 +1041,25 @@ class AnimationScene {
             console.debug('Skipping moon creation - not a lunar mission');
             return;
         }
-        // add Moon
 
-        // var today = new Date();
-        // var today = eventInfos[0]["startTime"];
+        // Create Moon renderer
+        this.moonRenderer = new MoonRenderer(moonRadius);
+        this.moonRenderer.setTextures(this.moonMap, this.moonDisplacementMap);
+        this.moonRenderer.create(viewPolarAxes, viewPoles);
 
-        // var lp = lunar_pole(today);
-        // var alpha = lp["alpha"];
-        // var delta = lp["delta"];
-        // var long = lp["long"];
-        // var lat = lp["lat"];
-        // var W = lp["W"];
+        // Backward-compatible property references
+        this.moonContainer = this.moonRenderer.container;
+        this.moon = this.moonRenderer.mesh;
+        this.moonAxis = this.moonRenderer.axis;
+        this.moonAxisVector = this.moonRenderer.axisVector;
+        this.moonNorthPoleSphere = this.moonRenderer.northPoleSphere;
+        this.moonSouthPoleSphere = this.moonRenderer.southPoleSphere;
 
-        // console.log(`Lunar NP: (long, lat) = (${rad_to_deg(long)}, ${rad_to_deg(lat)}), W = ${rad_to_deg(W)}`);
-
-        // var npx = moonRadius * Math.cos(lat) * Math.cos(long); 
-        // var npy = moonRadius * Math.cos(lat) * Math.sin(long);
-        // var npz = moonRadius * Math.sin(lat);
-
-        // Stellarium rotation code for reference:
-        // https://github.com/Stellarium/stellarium/blob/22218a4b3f9c17d10208278594ac9e83912c726c/src/core/modules/Planet.cpp
-        // 
-        // this.moonContainer.rotateZ(Math.PI / 2 + alpha);
-        // this.moonContainer.rotateX(Math.PI / 2 - delta);
-        // this.moonContainer.rotateX(-1 * PC.EARTH_AXIS_INCLINATION_RADS);
-        // OR
-        // this.moonContainer.rotateZ(Math.PI / 2 + long);
-        // this.moonContainer.rotateX(Math.PI / 2 - lat);
-        // OR
-        // this.moonContainer.rotation.z = Math.PI / 2 + long
-        // this.moonContainer.rotation.x = Math.PI / 2 - lat;
-        // OR
-        // this.moonContainer.lookAt(npx, npy, npz);
-        
-        var moonColor = planetProperties["MOON"]["color"];
-        var moonGeometry = new THREE.SphereGeometry(moonRadius, 100, 100);
-        var moonMaterial = new THREE.MeshStandardMaterial({
-            map: this.moonMap,
-            bumpMap: this.moonDisplacementMap,
-            bumpScale: 0.003,  // Slightly adjusting for smoother surface details
-            displacementMap: this.moonDisplacementMap,
-            displacementScale: 0.008,  // Fine-tuning the displacement
-            displacementBias: -0.004, // Fine-tuning the displacement
-            roughness: 0.9,  // High roughness for a more matte finish
-            metalness: 0.0,  // No metallic reflections
-            emissive: 0x000000,  // No emissive light from the moon
-            emissiveIntensity: 0.0,  // Ensure no self-illumination
-        });
-        
-        this.moon = new THREE.Mesh(moonGeometry, moonMaterial);
-        this.moon.receiveShadow = true;
-        this.moon.castShadow = true;
-        this.moon.rotateX(Math.PI/2);
-
-        this.moonContainer = new THREE.Group();
-        this.moonContainer.add(this.moon);
+        // Add Moon SOI (managed by SceneHelpers)
         this.addMoonSOI();
 
+        // Set initial rotation
         this.rotateMoon();
-
-        var moonPoleScale = 1.5;
-        var moonNorthPolePoint = new THREE.Vector3(0, 0, +1 * moonRadius * moonPoleScale);
-        var moonSouthPolePoint = new THREE.Vector3(0, 0, -1 * moonRadius * moonPoleScale);
-        this.moonAxisVector = moonNorthPolePoint.clone().normalize();
-        var moonAxisGeometry = new THREE.BufferGeometry();
-        const vertices = [];
-        vertices.push(moonNorthPolePoint.x, moonNorthPolePoint.y, moonNorthPolePoint.z);
-        vertices.push(moonSouthPolePoint.x, moonSouthPolePoint.y, moonSouthPolePoint.z);
-        moonAxisGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        var moonAxisMaterial = new THREE.LineBasicMaterial({color: COL.MOON_AXIS});
-        this.moonAxis = new THREE.Line(moonAxisGeometry, moonAxisMaterial);
-        this.moonAxis.visible = viewPolarAxes;
-
-        var moonNorthPoleGeometry = new THREE.SphereGeometry(moonRadius/50, 100, 100);
-        var moonNorthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.NORTH_POLE, reflectivity: 0.0});
-        this.moonNorthPoleSphere = new THREE.Mesh(moonNorthPoleGeometry, moonNorthPoleMaterial);
-        this.moonNorthPoleSphere.castShadow = false;
-        this.moonNorthPoleSphere.receiveShadow = false;
-        this.moonNorthPoleSphere.position.set(0, 0, 0.985 * moonRadius);
-
-        var moonSouthPoleGeometry = new THREE.SphereGeometry(moonRadius/50, 100, 100);
-        var moonSouthPoleMaterial = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: COL.SOUTH_POLE, reflectivity: 0.0});
-        this.moonSouthPoleSphere = new THREE.Mesh(moonSouthPoleGeometry, moonSouthPoleMaterial);
-        this.moonSouthPoleSphere.castShadow = false;
-        this.moonSouthPoleSphere.receiveShadow = false;
-        this.moonSouthPoleSphere.position.set(0, 0, -0.985 * moonRadius);
-
-        this.moonNorthPoleSphere.visible = viewPoles;
-        this.moonSouthPoleSphere.visible = viewPoles;
 
         render();
     }
@@ -1245,85 +1069,24 @@ class AnimationScene {
         if (!globalConfig || !globalConfig.is_lunar) {
             return;
         }
-        if (this.moonContainer) {
-            // Dispose of moon geometry
-            if (this.moon && this.moon.geometry) {
-                this.moon.geometry.dispose();
-            }
-            
-            // Dispose of moon material
-            if (this.moon && this.moon.material) {
-                this.moon.material.dispose();
-            }
-            
-            // Dispose of moon SOI geometry and material
-            if (this.moonSOISphere) {
-                if (this.moonSOISphere.geometry) {
-                    this.moonSOISphere.geometry.dispose();
-                }
-                if (this.moonSOISphere.material) {
-                    this.moonSOISphere.material.dispose();
-                }
-            }
-            
-            // Dispose of moon axis geometry and material
-            if (this.moonAxis) {
-                if (this.moonAxis.geometry) {
-                    this.moonAxis.geometry.dispose();
-                }
-                if (this.moonAxis.material) {
-                    this.moonAxis.material.dispose();
-                }
-            }
-            
-            // Dispose of moon pole spheres
-            if (this.moonNorthPoleSphere) {
-                if (this.moonNorthPoleSphere.geometry) {
-                    this.moonNorthPoleSphere.geometry.dispose();
-                }
-                if (this.moonNorthPoleSphere.material) {
-                    this.moonNorthPoleSphere.material.dispose();
-                }
-            }
-            if (this.moonSouthPoleSphere) {
-                if (this.moonSouthPoleSphere.geometry) {
-                    this.moonSouthPoleSphere.geometry.dispose();
-                }
-                if (this.moonSouthPoleSphere.material) {
-                    this.moonSouthPoleSphere.material.dispose();
-                }
-            }
-            
-            // Remove moon and its components from the scene
-            this.moonContainer.remove(this.moon);
-            this.moonContainer.remove(this.moonSOISphere);
-            this.moonContainer.remove(this.moonAxis);
-            this.moonContainer.remove(this.moonNorthPoleSphere);
-            this.moonContainer.remove(this.moonSouthPoleSphere);
-            
-            // Remove moonContainer from its parent (if any)
-            if (this.moonContainer.parent) {
-                this.moonContainer.parent.remove(this.moonContainer);
-            }
-            
-            // Nullify references
-            this.moon = null;
-            this.moonSOISphere = null;
-            this.moonAxis = null;
-            this.moonNorthPoleSphere = null;
-            this.moonSouthPoleSphere = null;
-            this.moonContainer = null;
+
+        // Dispose Moon SOI first (managed by SceneHelpers)
+        this.disposeMoonSOI();
+
+        if (this.moonRenderer) {
+            this.moonRenderer.dispose();
+            this.moonRenderer = null;
         }
-        
-        // Dispose of textures
-        if (this.moonTexture) {
-            this.moonTexture.dispose();
-            this.moonTexture = null;
-        }
-        if (this.moonDisplacementMap) {
-            this.moonDisplacementMap.dispose();
-            this.moonDisplacementMap = null;
-        }
+
+        // Clear backward-compatible references
+        this.moon = null;
+        this.moonAxis = null;
+        this.moonAxisVector = null;
+        this.moonNorthPoleSphere = null;
+        this.moonSouthPoleSphere = null;
+        this.moonContainer = null;
+        this.moonMap = null;
+        this.moonDisplacementMap = null;
     }
     
     addMoonSOI() {
@@ -1709,21 +1472,15 @@ class AnimationScene {
     }
     
     addLight() {
-        // add light
-        this.light = new THREE.DirectionalLight(LT.PRIMARY_COLOR, LT.PRIMARY_INTENSITY);
-        this.motherContainer.add(this.light); // TODO attempt to fix lighting direction problem when piovoting on non-centered objects
+        // Create light manager and add lights
+        this.lightManager = new LightManager(this.motherContainer);
+        this.lightManager.create();
 
-        this.light2 = new THREE.DirectionalLight(LT.CRAFT_PRIMARY_COLOR, LT.CRAFT_PRIMARY_INTENSITY);
-        this.light2.layers.set(1);
-        this.motherContainer.add(this.light2);
+        // Backward-compatible property references
+        this.light = this.lightManager.primaryLight;
+        this.light2 = this.lightManager.craftLight;
 
-        var ambientLight = new THREE.AmbientLight(LT.AMBIENT_COLOR, LT.AMBIENT_INTENSITY); // soft white light
-        this.motherContainer.add(ambientLight);
-
-        var ambientLightForCraft = new THREE.AmbientLight(LT.CRAFT_AMBIENT_COLOR, LT.CRAFT_AMBIENT_INTENSITY); // soft white light
-        ambientLightForCraft.layers.set(1);
-        this.motherContainer.add(ambientLightForCraft);
-
+        // Add motherContainer to scene (legacy coupling)
         this.scene.add(this.motherContainer);
     }
 
@@ -1733,25 +1490,14 @@ class AnimationScene {
             return;
         }
 
-        if (this.light) {
-            this.motherContainer.remove(this.light);
-            this.light.dispose();
-            this.light = null;
+        if (this.lightManager) {
+            this.lightManager.dispose();
+            this.lightManager = null;
         }
 
-        if (this.light2) {
-            this.motherContainer.remove(this.light2);
-            this.light2.dispose();
-            this.light2 = null;
-        }
-
-        // Remove ambient lights
-        this.motherContainer.children.forEach(child => {
-            if (child instanceof THREE.AmbientLight) {
-                this.motherContainer.remove(child);
-                child.dispose();
-            }
-        });
+        // Clear backward-compatible references
+        this.light = null;
+        this.light2 = null;
 
         // If the motherContainer was added to the scene, remove it
         if (this.scene) {
