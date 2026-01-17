@@ -32,6 +32,7 @@ import { LightManager } from "./rendering/light-manager.js";
 import { EarthRenderer } from "./rendering/earth-renderer.js";
 import { MoonRenderer } from "./rendering/moon-renderer.js";
 import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
+import { CameraController } from "./rendering/camera-controller.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -834,6 +835,9 @@ class AnimationScene {
         // Spacecraft renderer
         this.spacecraftRenderer = null;
 
+        // Camera controller
+        this.cameraController = null;
+
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
@@ -847,13 +851,20 @@ class AnimationScene {
     setCameraPosition(x, y, z) {
         // console.log(`Setting camera position to (${x}, ${y}, ${z}).`);
 
-        this.camera.position.x = x;
-        this.camera.position.y = y;
-        this.camera.position.z = z;
+        if (this.cameraController) {
+            this.cameraController.setPosition(x, y, z);
+        }
 
-        this.skyContainer.position.setFromMatrixPosition(this.camera.matrixWorld);
-        this.camera.updateProjectionMatrix();
-        if (this.cameraControls) { this.cameraControls.update(); cameraControlsCallback(); }
+        // Update sky position to follow camera
+        if (this.skyContainer && this.camera) {
+            this.skyContainer.position.setFromMatrixPosition(this.camera.matrixWorld);
+        }
+
+        // Update controls
+        if (this.cameraController) {
+            this.cameraController.update();
+            cameraControlsCallback();
+        }
     }
 
     init3d(callback) {
@@ -1461,65 +1472,47 @@ class AnimationScene {
     }
 
     addCamera() {
-        // add camera
-        var angle = 50.0;
-        this.camera = new THREE.PerspectiveCamera(angle, this.width/this.height, 0.0001, 100000);
-        // console.log(`defaultCameraDistance=${defaultCameraDistance}`);
+        // Create camera controller
+        this.cameraController = new CameraController(this.width, this.height, defaultCameraDistance);
+        this.cameraController.controlsEnabled = this.cameraControlsEnabled;
+
+        // Create main camera
+        this.cameraController.createMainCamera(50);
         this.setCameraPosition(defaultCameraDistance, defaultCameraDistance, defaultCameraDistance);
-        this.camera.up.set(0, 0, 1);
 
-        this.craftCamera = new THREE.PerspectiveCamera(50, this.width/this.height, 0.0001, 100000);
-        this.craft.add(this.craftCamera);
-        this.craftCamera.up.set(0, 0, 1);
+        // Create craft and drone cameras
+        this.cameraController.createCraftCamera(this.craft, 50);
+        this.cameraController.createDroneCamera(this.drone, 100);
 
-        this.droneCamera = new THREE.PerspectiveCamera(100, this.width/this.height, 0.0001, 100000);
-        this.drone.add(this.droneCamera);
-
-        // add camera controls
+        // Create controls if enabled
         if (this.cameraControlsEnabled) {
-            this.cameraControls = new TrackballControls(this.camera, theSceneHandler.renderer.domElement, cameraControlsCallback);
-
-            // TrackballControls settings
-            this.cameraControls.rotateSpeed = 1.0;
-            this.cameraControls.zoomSpeed = 1.0;
-            this.cameraControls.panSpeed = 1.0;
-            this.cameraControls.noZoom = false;
-            this.cameraControls.noPan = false;
-            this.cameraControls.staticMoving = true;
-            this.cameraControls.dynamicDampingFactor = 0.3;
-            this.cameraControls.keys = [65, 83, 68];
-            this.cameraControls.addEventListener('change', render, {passive: true}); // TODO Verify   
+            this.cameraController.createControls(
+                theSceneHandler.renderer.domElement,
+                cameraControlsCallback,
+                render
+            );
         }
+
+        // Backward-compatible property references
+        this.camera = this.cameraController.camera;
+        this.craftCamera = this.cameraController.craftCamera;
+        this.droneCamera = this.cameraController.droneCamera;
+        this.cameraControls = this.cameraController.controls;
 
         this.setCameraParameters(null, true);
     }
 
     disposeCamera() {
-        if (this.camera) {
-            // Dispose of camera
-            this.camera.remove(this.camera.children);
-            this.camera = null;
+        if (this.cameraController) {
+            this.cameraController.dispose(this.craft, this.drone);
+            this.cameraController = null;
         }
 
-        if (this.craftCamera && this.craft) {
-            // Dispose of craft camera
-            this.craftCamera.remove(this.craftCamera.children);
-            this.craft.remove(this.craftCamera);
-            this.craftCamera = null;
-        }
-
-        if (this.droneCamera && this.drone) {
-            // Dispose of drone camera
-            this.droneCamera.remove(this.droneCamera.children);
-            this.drone.remove(this.droneCamera);
-            this.droneCamera = null;
-        }
-
-        if (this.cameraControls) {
-            // Dispose of camera controls
-            this.cameraControls.dispose();
-            this.cameraControls = null;
-        }
+        // Clear backward-compatible references
+        this.camera = null;
+        this.craftCamera = null;
+        this.droneCamera = null;
+        this.cameraControls = null;
     }
 
     async addSpacecraftModel() {
@@ -1587,20 +1580,22 @@ class AnimationScene {
         // console.log("setCameraParameters() called: isInitialization = " + isInitialization);
 
         var distance = null;
-        if (this.cameraControlsEnabled) {
-            var cameraControls = this.cameraControls;
-            var origin = new THREE.Vector3(0, 0, 0);
-            distance = cameraControls.getPos().distanceTo(origin);
+        if (this.cameraControlsEnabled && this.cameraController) {
+            distance = this.cameraController.getDistanceFromOrigin();
             // console.log("cameraDistance in setCameraParameters: " + distance);
         }
 
         if (moonPhaseCamera) {
-            this.camera.fov = 1.0;
+            if (this.cameraController) {
+                this.cameraController.setFov(1.0);
+                this.cameraController.setUp(0, 0, 1);
+            }
             this.setCameraPosition(0, 0, 0);
-            this.camera.up.set(0, 0, 1);
             this.craftVisible = false;
         } else {
-            this.camera.fov = 50.0;
+            if (this.cameraController) {
+                this.cameraController.setFov(50.0);
+            }
             this.craftVisible = true;
 
             const preferredDistance = this.getPreferredDistance(config);
@@ -1609,18 +1604,22 @@ class AnimationScene {
                 // This maintains the proper fractional positioning required for DEFAULT view
 
                 this.setCameraPosition(preferredDistance.x, preferredDistance.y, preferredDistance.z);
-                this.camera.up.set(0, 0, 1);
+                if (this.cameraController) {
+                    this.cameraController.setUp(0, 0, 1);
+                }
             } else {
                 // For non-DEFAULT planes: at initialization use defaultCameraDistance, otherwise use provided distance
                 const cameraDistance = isInitialization ? preferredDistance.length() : (distance !== null && distance > 0 ? distance : defaultCameraDistance);
-                
+
                 // Use planeCameraConfig for all non-DEFAULT plane selections
                 const config3D = planeCameraConfig[planeSelection];
                 if (config3D) {
                     this.setCameraPosition(config3D.posx * cameraDistance, config3D.posy * cameraDistance, config3D.posz * cameraDistance);
-                    this.camera.up.set(config3D.dirx, config3D.diry, config3D.dirz);
+                    if (this.cameraController) {
+                        this.cameraController.setUp(config3D.dirx, config3D.diry, config3D.dirz);
+                    }
                 }
-            }            
+            }
         }
 
         adjustCameraProjectionMatrixAndSkyAngle();
