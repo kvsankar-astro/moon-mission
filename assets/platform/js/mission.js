@@ -1,7 +1,7 @@
 
 // Copyright (c) 2013-2024 Sankaranarayanan Viswanathan. All rights reserved.
 
-import { deg_to_rad, lunar_pole } from "./astro.js";
+import { lunar_pole } from "./astro.js";
 import {
     CELESTIAL_BODIES as CB,
     COLORS as COL,
@@ -1155,8 +1155,8 @@ class AnimationScene {
     }
 
     addEarthLocations() {
-        this.dwingeloo = this.plotEarthLocation(deg_to_rad(6.39616944444), deg_to_rad(52.8120194444), "#FF0000");
-        this.chennai = this.plotEarthLocation(deg_to_rad(80.2707), deg_to_rad(13.0827), "#FF0000");
+        this.dwingeloo = this.plotEarthLocation(degreesToRadians(6.39616944444), degreesToRadians(52.8120194444), "#FF0000");
+        this.chennai = this.plotEarthLocation(degreesToRadians(80.2707), degreesToRadians(13.0827), "#FF0000");
 
         this.locations.map(x => x.visible = viewCraters);
     }
@@ -1192,7 +1192,7 @@ class AnimationScene {
             return;
         }
         // Moon selenographic origin (Prime Meridian = 0 degrees, Equator = 0 degrees) for reference
-        // this.plotMoonLocation(deg_to_rad(0), deg_to_rad(0), "#FF00FF"); // TODO 2021 - for testing - (0deg longitude == Prime Meridian, 0deg latitude)
+        // this.plotMoonLocation(degreesToRadians(0), degreesToRadians(0), "#FF00FF"); // TODO 2021 - for testing - (0deg longitude == Prime Meridian, 0deg latitude)
 
         // Some Moon locations for calibrsation
         //
@@ -1200,20 +1200,20 @@ class AnimationScene {
         //
         // https://astrogeology.usgs.gov/search/map/Moon/Research/Craters/GoranSalamuniccar_MoonCraters
         //
-        // this.plotMoonLocation(deg_to_rad(- 9.3),      deg_to_rad(+51.6), "#FF0000");      // Plato crater
-        // this.plotMoonLocation(deg_to_rad(- 1.1),      deg_to_rad(+40.6), "#FF0000");      // Mons Piton
-        // this.plotMoonLocation(deg_to_rad(+ 5.211),    deg_to_rad(+ 3.212), "#FF0000");    // Mosting A crater
-        // this.plotMoonLocation(deg_to_rad(+22.1),      deg_to_rad(-70.1), "#FF0000");      // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
-        // this.plotMoonLocation(deg_to_rad(+21.753904), deg_to_rad(-69.996092), "#FF0000"); // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
-        // this.plotMoonLocation(deg_to_rad(+24.3),      deg_to_rad(-71.3), "#FF0000");      // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
-        // this.plotMoonLocation(deg_to_rad(24.103513),  deg_to_rad(-71.365233), "#FF0000"); // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
+        // this.plotMoonLocation(degreesToRadians(- 9.3),      degreesToRadians(+51.6), "#FF0000");      // Plato crater
+        // this.plotMoonLocation(degreesToRadians(- 1.1),      degreesToRadians(+40.6), "#FF0000");      // Mons Piton
+        // this.plotMoonLocation(degreesToRadians(+ 5.211),    degreesToRadians(+ 3.212), "#FF0000");    // Mosting A crater
+        // this.plotMoonLocation(degreesToRadians(+22.1),      degreesToRadians(-70.1), "#FF0000");      // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
+        // this.plotMoonLocation(degreesToRadians(+21.753904), degreesToRadians(-69.996092), "#FF0000"); // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
+        // this.plotMoonLocation(degreesToRadians(+24.3),      degreesToRadians(-71.3), "#FF0000");      // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
+        // this.plotMoonLocation(degreesToRadians(24.103513),  degreesToRadians(-71.365233), "#FF0000"); // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
 
         // Plot landing sites from config
         if (globalConfig && globalConfig.landingSites) {
             globalConfig.landingSites.forEach(site => {
                 this.plotMoonLocation(
-                    deg_to_rad(site.longitude), 
-                    deg_to_rad(site.latitude), 
+                    degreesToRadians(site.longitude), 
+                    degreesToRadians(site.latitude), 
                     site.color
                 );
             });
@@ -1852,7 +1852,7 @@ class AnimationScene {
 
     rotateEarth() {
         // Greenwich Apparent Sidereal Time (hours × 15 = degrees, then to radians)
-        var mst = deg_to_rad(Astronomy.SiderealTime(new Date(animTime)) * 15);
+        var mst = degreesToRadians(Astronomy.SiderealTime(new Date(animTime)) * 15);
         this.earthContainer.rotation.z = mst;
         // this.losLine.geometry.verticesNeedUpdate = true;
     } 

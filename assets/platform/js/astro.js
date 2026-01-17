@@ -1,5 +1,7 @@
 // const ephemeris = require('./third-party/ephemeris-0.1.0.min.js');
 
+import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math-utils.js";
+
 // ============================================================================
 // Julian Date Conversion Functions
 // ============================================================================
@@ -74,22 +76,13 @@ Date.prototype.getT_TDB = function() {
 }
 
 
-export function deg_to_rad(deg) {
-	return deg * Math.PI / 180.0;
-}
+// Re-export angle conversion for backwards compatibility
+// Use degreesToRadians from math-utils.js as the canonical implementation
+export const deg_to_rad = degreesToRadians;
 
-function rad_to_deg(rad) {
-	return rad * 180.0 / Math.PI;
-}
-
-function normalize_rad(x) {
-	var y = (x % (2 * Math.PI));
-	return y < 0.0 ? y + (2 * Math.PI) : y;
-}
-
-function normalize_deg(x) {
-	var y = (x % 360.0);
-	return y < 0.0 ? y + 360.0 : y;
+// Normalize angle to [0, 360) degrees, then convert to radians
+function normalizeAndConvertToRadians(degrees) {
+    return degreesToRadians(normalizeAngle(degrees));
 }
 
 function dms(d, m, s) {
@@ -202,9 +195,9 @@ export function lunar_pole(dateArg) {
     // var delta_pa_deg = delta_iau_deg + 0.0220 * Math.sin(rad * WP_iau_deg) + 0.0007 * Math.sin((rad * WP_iau_deg) + E1);
     // var W_pa_deg     = W_iau_deg     + 0.01775 - 0.0507 * Math.cos(rad * WP_iau_deg) - 0.00034 * Math.cos((rad * WP_iau_deg) + E1);
 
-    var alpha_iau = deg_to_rad(normalize_deg(alpha_iau_deg));
-	var delta_iau = deg_to_rad(normalize_deg(delta_iau_deg));
-    var W_iau = deg_to_rad(normalize_deg(W_iau_deg));
+    var alpha_iau = normalizeAndConvertToRadians(alpha_iau_deg);
+	var delta_iau = normalizeAndConvertToRadians(delta_iau_deg);
+    var W_iau = normalizeAndConvertToRadians(W_iau_deg);
 
 	return  {"alpha": alpha_iau, 
              "delta": delta_iau, 
@@ -236,13 +229,13 @@ function test_lunar_pole() {
                 var lat = lp["lat"];
                 var q_long = lp["q_long"];
                 console.log(`${dt}: ` +
-                    `(NPα=${rad_to_deg(a).toFixed(5).padStart(9, '0')}, ` +
-                    `NPδ=${rad_to_deg(d).toFixed(5).padStart(9, '0')}, ` +
-                    `W=${rad_to_deg(w).toFixed(5).padStart(9, '0')}, ` +
-                    `WP=${rad_to_deg(wp).toFixed(5).padStart(9, '0')}, ` +
-                    `NPλ=${rad_to_deg(long).toFixed(5).padStart(9, '0')}, ` + 
-                    `NPβ=${rad_to_deg(lat).toFixed(5).padStart(9, '0')}, ` +
-                    `Qλ=${rad_to_deg(q_long).toFixed(5).padStart(9, '0')}`);
+                    `(NPα=${radiansToDegrees(a).toFixed(5).padStart(9, '0')}, ` +
+                    `NPδ=${radiansToDegrees(d).toFixed(5).padStart(9, '0')}, ` +
+                    `W=${radiansToDegrees(w).toFixed(5).padStart(9, '0')}, ` +
+                    `WP=${radiansToDegrees(wp).toFixed(5).padStart(9, '0')}, ` +
+                    `NPλ=${radiansToDegrees(long).toFixed(5).padStart(9, '0')}, ` + 
+                    `NPβ=${radiansToDegrees(lat).toFixed(5).padStart(9, '0')}, ` +
+                    `Qλ=${radiansToDegrees(q_long).toFixed(5).padStart(9, '0')}`);
             }    
         }
     }
@@ -251,7 +244,7 @@ function test_lunar_pole() {
 function test_moon() {
     var position = get_moon(new Date(Date.UTC(2010, 1-1, 1, 0, 0, 0)));
     console.log(`Gemotric: lon=${position.geometric.longitude}, lat=${position.geometric.latitude}`);
-    console.log(`Apparent: ra=${exports.rad_to_deg(position.altaz.topocentric.ra)}, dec=${exports.rad_to_deg(position.altaz.topocentric.dec)}`);
+    console.log(`Apparent: ra=${exports.radiansToDegrees(position.altaz.topocentric.ra)}, dec=${exports.radiansToDegrees(position.altaz.topocentric.dec)}`);
 }
 
 function run_tests() {
