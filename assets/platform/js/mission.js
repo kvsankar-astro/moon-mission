@@ -27,6 +27,7 @@ import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } 
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
+import { SkyRenderer } from "./rendering/sky-renderer.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -814,6 +815,9 @@ class AnimationScene {
         // Scene helpers (axes, planes, SOI) - managed by SceneHelpers class
         this.sceneHelpers = null;
 
+        // Sky renderer (starmap and constellations)
+        this.skyRenderer = null;
+
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
@@ -960,94 +964,31 @@ class AnimationScene {
     }
 
     addSky() {
-        // add Sky
+        // Create sky renderer
+        this.skyRenderer = new SkyRenderer(this.motherContainer, earthRadius);
+        this.skyRenderer.setTextures(this.skyTexture, this.skyConstellationTexture);
+        this.skyRenderer.create(viewSky);
 
-        this.skyContainer = new THREE.Group();
-        this.skyContainer.lookAt(0, Math.sin(PC.EARTH_AXIS_INCLINATION_RADS), Math.cos(PC.EARTH_AXIS_INCLINATION_RADS));
-
-        // console.log("Creating Sky...");
-
-        skyRadius = 200 * earthRadius;
-
-        var skyGeometry = new THREE.SphereGeometry(skyRadius);
-
-        var skyMaterial = new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending, map: this.skyTexture, opacity: 0.4 });
-        skyMaterial.side = THREE.BackSide;
-        var skyConstellationMaterial = new THREE.MeshBasicMaterial({ blending: THREE.AdditiveBlending, map: this.skyConstellationTexture, opacity: 0.1 });
-        skyConstellationMaterial.side = THREE.BackSide;
-
-        this.sky = new THREE.Mesh(skyGeometry, skyMaterial);
-        this.sky.receiveShadow = false;
-        this.sky.castShadow = false;
-        this.sky.rotateX(Math.PI/2); // this is to get the orientation of the texture correct
-        this.skyContainer.add(this.sky);
-
-        this.skyConstellation = new THREE.Mesh(skyGeometry, skyConstellationMaterial);
-        this.skyConstellation.receiveShadow = false;
-        this.skyConstellation.castShadow = false;
-        this.skyConstellation.rotateX(Math.PI/2); // this is to get the orientation of the texture correct
-        this.skyContainer.add(this.skyConstellation);
-
-        this.skyContainer.scale.set(-1, 1, 1);
-        this.skyContainer.rotateZ(Math.PI);
-
-        // console.log("Created Sky");
-        
-        this.motherContainer.add(this.skyContainer);
+        // Backward-compatible property references
+        this.skyContainer = this.skyRenderer.container;
+        this.sky = this.skyRenderer.skyMesh;
+        this.skyConstellation = this.skyRenderer.constellationMesh;
 
         render();
     }
 
     disposeSky() {
-        if (this.skyContainer) {
-            // Dispose of sky geometry
-            if (this.sky && this.sky.geometry) {
-                this.sky.geometry.dispose();
-            }
-            
-            // Dispose of sky material
-            if (this.sky && this.sky.material) {
-                this.sky.material.dispose();
-            }
-            
-            // Dispose of sky constellation geometry
-            if (this.skyConstellation && this.skyConstellation.geometry) {
-                this.skyConstellation.geometry.dispose();
-            }
-            
-            // Dispose of sky constellation material
-            if (this.skyConstellation && this.skyConstellation.material) {
-                this.skyConstellation.material.dispose();
-            }
-            
-            // Remove sky and sky constellation from skyContainer
-            if (this.sky) {
-                this.skyContainer.remove(this.sky);
-            }
-            if (this.skyConstellation) {
-                this.skyContainer.remove(this.skyConstellation);
-            }
-            
-            // Remove skyContainer from motherContainer
-            if (this.motherContainer) {
-                this.motherContainer.remove(this.skyContainer);
-            }
-            
-            // Nullify references
-            this.sky = null;
-            this.skyConstellation = null;
-            this.skyContainer = null;
+        if (this.skyRenderer) {
+            this.skyRenderer.dispose();
+            this.skyRenderer = null;
         }
-        
-        // Dispose of textures
-        if (this.skyTexture) {
-            this.skyTexture.dispose();
-            this.skyTexture = null;
-        }
-        if (this.skyConstellationTexture) {
-            this.skyConstellationTexture.dispose();
-            this.skyConstellationTexture = null;
-        }
+
+        // Clear backward-compatible references
+        this.sky = null;
+        this.skyConstellation = null;
+        this.skyContainer = null;
+        this.skyTexture = null;
+        this.skyConstellationTexture = null;
     }
     
     addEarth() {
