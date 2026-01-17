@@ -128,6 +128,47 @@ let browser, page;
 let consoleErrors = [];
 let pageErrors = [];
 
+// SSIM Score Tracking for regression detection
+// Scores are collected during test run and saved to JSON for comparison
+const SSIM_HISTORY_FILE = join(process.cwd(), 'test', 'screenshots', 'ssim-history.json');
+let ssimScores = {};  // Collects current run's SSIM scores
+
+/**
+ * Load previous SSIM scores from history file
+ * @returns {Object} Object with 'previous' and 'current' scores, or empty if no history
+ */
+function loadSsimHistory() {
+  try {
+    if (existsSync(SSIM_HISTORY_FILE)) {
+      return JSON.parse(readFileSync(SSIM_HISTORY_FILE, 'utf8'));
+    }
+  } catch (error) {
+    console.log(`Could not load SSIM history: ${error.message}`);
+  }
+  return { previous: {}, current: {} };
+}
+
+/**
+ * Save SSIM scores to history file
+ * Current scores become previous, new scores become current
+ * @param {Object} newScores - The SSIM scores from the current test run
+ */
+function saveSsimHistory(newScores) {
+  const history = loadSsimHistory();
+  const updatedHistory = {
+    previous: history.current,  // Current becomes previous
+    current: newScores,         // New scores become current
+    lastRun: new Date().toISOString()
+  };
+
+  try {
+    writeFileSync(SSIM_HISTORY_FILE, JSON.stringify(updatedHistory, null, 2));
+    console.log(`SSIM history saved to ${SSIM_HISTORY_FILE}`);
+  } catch (error) {
+    console.error(`Could not save SSIM history: ${error.message}`);
+  }
+}
+
 // Patterns to ignore in console error checking
 const IGNORED_ERROR_PATTERNS = [
   /favicon\.ico/i,  // Missing favicon is expected
@@ -194,6 +235,10 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
 
   // Determine if images match based on threshold
   const isMatch = ssimScore >= threshold;
+
+  // Record SSIM score for history tracking (use baselineName without extension as key)
+  const scoreKey = baselineName.replace(/\.png$/, '');
+  ssimScores[scoreKey] = ssimScore;
 
   // Always log SSIM score for test report
   const status = isMatch ? 'PASS' : 'FAIL';
@@ -610,6 +655,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   afterAll(async () => {
+    // Save SSIM scores to history file for regression tracking
+    if (Object.keys(ssimScores).length > 0) {
+      saveSsimHistory(ssimScores);
+    }
     await browser?.close();
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
@@ -3132,7 +3181,106 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Reset timeline to Launch for next test
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      
+
     }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
+  });
+
+  // SSIM Regression Detection Test
+  // This test runs last and compares current SSIM scores against previous run
+  describe('Test Suite 7: SSIM Regression Detection', () => {
+    it('SSIM scores should not regress from previous run', async () => {
+      await displayTestId(page, 'ssim-regression-check');
+
+      const history = loadSsimHistory();
+      const previousScores = history.current || {};  // Current from file becomes our "previous"
+      const currentScores = ssimScores;
+
+      // Skip if no previous scores exist (first run)
+      if (Object.keys(previousScores).length === 0) {
+        console.log('No previous SSIM scores found - skipping regression check (first run)');
+        return;
+      }
+
+      // Skip if no current scores collected
+      if (Object.keys(currentScores).length === 0) {
+        console.log('No current SSIM scores collected - skipping regression check');
+        return;
+      }
+
+      const regressions = [];
+      const improvements = [];
+      const unchanged = [];
+      const newTests = [];
+
+      // Compare each current score against previous
+      for (const [testName, currentScore] of Object.entries(currentScores)) {
+        if (previousScores[testName] !== undefined) {
+          const previousScore = previousScores[testName];
+          const diff = currentScore - previousScore;
+
+          if (diff < -0.001) {  // Regression threshold: drop of more than 0.001
+            regressions.push({
+              test: testName,
+              previous: previousScore,
+              current: currentScore,
+              diff: diff
+            });
+          } else if (diff > 0.001) {  // Improvement threshold
+            improvements.push({
+              test: testName,
+              previous: previousScore,
+              current: currentScore,
+              diff: diff
+            });
+          } else {
+            unchanged.push(testName);
+          }
+        } else {
+          newTests.push(testName);
+        }
+      }
+
+      // Log summary
+      console.log('\n=== SSIM Regression Report ===');
+      console.log(`Total tests compared: ${Object.keys(currentScores).length}`);
+      console.log(`Unchanged: ${unchanged.length}`);
+      console.log(`Improvements: ${improvements.length}`);
+      console.log(`Regressions: ${regressions.length}`);
+      console.log(`New tests: ${newTests.length}`);
+
+      if (improvements.length > 0) {
+        console.log('\n📈 Improvements:');
+        improvements.forEach(({ test, previous, current, diff }) => {
+          console.log(`  ✓ ${test}: ${previous.toFixed(4)} → ${current.toFixed(4)} (+${diff.toFixed(4)})`);
+        });
+      }
+
+      if (regressions.length > 0) {
+        console.log('\n📉 Regressions:');
+        regressions.forEach(({ test, previous, current, diff }) => {
+          console.log(`  ✗ ${test}: ${previous.toFixed(4)} → ${current.toFixed(4)} (${diff.toFixed(4)})`);
+        });
+      }
+
+      if (newTests.length > 0) {
+        console.log('\n🆕 New tests (no previous baseline):');
+        newTests.forEach(test => console.log(`  • ${test}`));
+      }
+
+      console.log('==============================\n');
+
+      // Fail if there are regressions
+      if (regressions.length > 0) {
+        const regressionDetails = regressions
+          .map(({ test, previous, current, diff }) =>
+            `${test}: ${previous.toFixed(4)} → ${current.toFixed(4)} (${diff.toFixed(4)})`)
+          .join('\n  ');
+
+        throw new Error(
+          `SSIM regression detected in ${regressions.length} test(s):\n  ${regressionDetails}\n\n` +
+          `This indicates visual quality has decreased compared to the previous run.`
+        );
+      }
+    }, TIMEOUTS.TEST_CASE_TIMEOUT);
   });
 });
