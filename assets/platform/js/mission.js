@@ -58,6 +58,7 @@ import { createModeActions } from "./app/mode-actions.js";
 import { createLockActions } from "./app/lock-actions.js";
 import { setChecked } from "./ui/ui-state.js";
 import { createBurnActions } from "./app/burn-actions.js";
+import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2770,26 +2771,6 @@ export function main() {
 
 // TODO - find a better way to handle the following
 
-function f1()  { zoomIn();          timeoutHandleZoom = setTimeout(f1,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f2()  { zoomOut();         timeoutHandleZoom = setTimeout(f2,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f3()  { panLeft();         timeoutHandleZoom = setTimeout(f3,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f4()  { panRight();        timeoutHandleZoom = setTimeout(f4,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f5()  { panUp();           timeoutHandleZoom = setTimeout(f5,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f6()  { panDown();         timeoutHandleZoom = setTimeout(f6,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f7()  { forward();         timeoutHandleZoom = setTimeout(f7,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f8()  { fastForward();     timeoutHandleZoom = setTimeout(f8,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f9()  { backward();        timeoutHandleZoom = setTimeout(f9,  mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f10() { fastBackward();    timeoutHandleZoom = setTimeout(f10, mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f11() { slower();          timeoutHandleZoom = setTimeout(f11, mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f12() { resetspeed();      timeoutHandleZoom = setTimeout(f12, mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f13() { faster();          timeoutHandleZoom = setTimeout(f13, mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-function f14() { realtime();        timeoutHandleZoom = setTimeout(f14, mousedownTimeout); if (mousedownTimeout > 10) { mousedownTimeout -= 10; }}
-
-function zoomFunction(f) {
-    mouseDown = true;
-    f();
-    timeoutHandleZoom = setTimeout(f, UC.ZOOM_TIMEOUT);
-}
 
 async function init(callback) {
     if (animationScenes[config] && animationScenes[config].state >= AnimationScene.SCENE_STATE_INIT_DONE) {
@@ -3534,6 +3515,26 @@ const {
     getTimeLunarOrbitInsertion: () => timeLunarOrbitInsertion,
     setMissionStartCalled: (val) => { missionStartCalled = val; },
     clearLegacyTimeout: () => { clearTimeout(timeoutHandle); },
+});
+
+const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRepeatMouseDownHandlers({
+    zoomIn,
+    zoomOut,
+    panLeft,
+    panRight,
+    panUp,
+    panDown,
+    forward,
+    fastForward,
+    backward,
+    fastBackward,
+    slower,
+    resetspeed,
+    faster,
+    realtime,
+    getDelayMs: () => mousedownTimeout,
+    setDelayMs: (val) => { mousedownTimeout = val; },
+    setTimeoutHandle: (handle) => { timeoutHandleZoom = handle; },
 });
 
 function zoomChangeTransform(t) {
