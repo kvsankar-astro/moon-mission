@@ -11,6 +11,20 @@
 import * as THREE from 'three';
 import { TrackballControls } from '../../../../third-party/TrackballControls.js';
 
+export const CAMERA_POSITION_MODE = Object.freeze({
+    MANUAL: 'manual',
+    EARTH: 'earth',
+    MOON: 'moon',
+    SPACECRAFT: 'spacecraft',
+});
+
+export const CAMERA_LOOK_MODE = Object.freeze({
+    MANUAL: 'manual',
+    EARTH: 'earth',
+    MOON: 'moon',
+    SPACECRAFT: 'spacecraft',
+});
+
 export class CameraController {
     /**
      * @param {number} width - Viewport width
@@ -30,6 +44,13 @@ export class CameraController {
         // Controls
         this.controls = null;
         this.controlsEnabled = true;
+
+        // From-to camera system (Iteration 17)
+        this.positionMode = CAMERA_POSITION_MODE.MANUAL;
+        this.lookMode = CAMERA_LOOK_MODE.MANUAL;
+        this.mountOffset = new THREE.Vector3();
+        this._mountWorld = new THREE.Vector3();
+        this._lookWorld = new THREE.Vector3();
     }
 
     /**
@@ -108,6 +129,77 @@ export class CameraController {
         }
 
         return this.controls;
+    }
+
+    /**
+     * Set the from-to modes without changing camera unless updateFromTo() is called.
+     * @param {string} positionMode
+     * @param {string} lookMode
+     */
+    setFromToModes(positionMode, lookMode) {
+        if (Object.values(CAMERA_POSITION_MODE).includes(positionMode)) {
+            this.positionMode = positionMode;
+        }
+        if (Object.values(CAMERA_LOOK_MODE).includes(lookMode)) {
+            this.lookMode = lookMode;
+        }
+    }
+
+    /**
+     * Apply the from-to camera system for the current frame.
+     * This is opt-in and has no effect while both modes are MANUAL.
+     *
+     * @param {Object} targets
+     * @param {THREE.Object3D} [targets.earth]
+     * @param {THREE.Object3D} [targets.moon]
+     * @param {THREE.Object3D} [targets.spacecraft]
+     */
+    updateFromTo({ earth, moon, spacecraft } = {}) {
+        if (!this.camera) return;
+
+        const hasPositionMount = this.positionMode !== CAMERA_POSITION_MODE.MANUAL;
+        const hasForcedLook = this.lookMode !== CAMERA_LOOK_MODE.MANUAL;
+        if (!hasPositionMount && !hasForcedLook) return;
+
+        const resolveTargetWorld = (mode, outVec) => {
+            if (mode === CAMERA_POSITION_MODE.EARTH || mode === CAMERA_LOOK_MODE.EARTH) {
+                if (earth) return earth.getWorldPosition(outVec);
+            }
+            if (mode === CAMERA_POSITION_MODE.MOON || mode === CAMERA_LOOK_MODE.MOON) {
+                if (moon) return moon.getWorldPosition(outVec);
+            }
+            if (mode === CAMERA_POSITION_MODE.SPACECRAFT || mode === CAMERA_LOOK_MODE.SPACECRAFT) {
+                if (spacecraft) return spacecraft.getWorldPosition(outVec);
+            }
+            return null;
+        };
+
+        // If mounted to a body, move camera with a stored offset and disable TrackballControls to avoid conflicts.
+        if (hasPositionMount) {
+            const mountPos = resolveTargetWorld(this.positionMode, this._mountWorld);
+            if (mountPos) {
+                if (this.controls) this.controls.enabled = false;
+                this.camera.position.copy(mountPos).add(this.mountOffset);
+            }
+        } else if (this.controls) {
+            // When not mounted, controls may be enabled (we may still disable rotation if forcing look).
+            this.controls.enabled = true;
+        }
+
+        // If forced lookAt is enabled, keep TrackballControls target in sync and disable rotation only.
+        if (hasForcedLook) {
+            const lookPos = resolveTargetWorld(this.lookMode, this._lookWorld);
+            if (lookPos) {
+                if (this.controls) {
+                    this.controls.target.copy(lookPos);
+                    this.controls.noRotate = true;
+                } else {
+                    this.camera.lookAt(lookPos);
+                }
+            }
+        } else if (this.controls) {
+            this.controls.noRotate = false;
+        }
     }
 
     /**
