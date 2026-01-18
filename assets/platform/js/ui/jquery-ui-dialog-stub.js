@@ -229,6 +229,12 @@
             const $wrapper = $el.data("dialogWrapper");
             return $wrapper || $();
         },
+
+        widgetElement(target) {
+            const $wrapper = dialogApi.widget(target);
+            if (!$wrapper || !$wrapper.length) return null;
+            return $wrapper.get ? $wrapper.get(0) : $wrapper[0] || null;
+        },
     };
 
     // Expose a tiny non-jQuery-UI API so app code can avoid calling $.fn.dialog directly,

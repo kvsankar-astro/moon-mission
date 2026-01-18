@@ -259,8 +259,46 @@ function showWhatsNew() {
     if (window.CY3Dialog?.open) {
         window.CY3Dialog.open("#dialog-whatsnew");
     } else {
-        $("#dialog-whatsnew").show();
+        const node = document.getElementById("dialog-whatsnew");
+        if (node) node.style.display = "";
     }
+}
+
+function readCheckedRadioValue(name, fallback = "") {
+    const node = document.querySelector(`input[name="${name}"]:checked`);
+    return node?.value ?? fallback;
+}
+
+function ensureIndeterminateProgressBar() {
+    const bar = document.getElementById("progressbar");
+    if (!bar) return;
+
+    bar.classList.add("ui-progressbar", "ui-progressbar-indeterminate");
+    let value = bar.querySelector(".ui-progressbar-value");
+    if (!value) {
+        value = document.createElement("div");
+        value.className = "ui-progressbar-value";
+        bar.insertBefore(value, bar.firstChild);
+    }
+}
+
+function showProgressBar() {
+    const bar = document.getElementById("progressbar");
+    if (!bar) return;
+    bar.style.display = "";
+}
+
+function hideProgressBar() {
+    const bar = document.getElementById("progressbar");
+    if (!bar) return;
+    bar.style.display = "none";
+}
+
+function toggleVisibilityById(id) {
+    const node = document.getElementById(id);
+    if (!node) return;
+    const isHidden = getComputedStyle(node).display === "none";
+    node.style.display = isHidden ? "" : "none";
 }
 
 // Spacecraft specific times and information
@@ -2066,7 +2104,7 @@ function onWindowResize() {
 }
 
 function setDimension(init_flag = false) {
-    var val = $('input[name=dimension]:checked').val();
+    var val = readCheckedRadioValue("dimension", currentDimension);
     // console.log(`setDimension() called with value ${val}`);
     currentDimension = val;
 
@@ -2084,9 +2122,8 @@ function setDimension(init_flag = false) {
             // console.log("Initializing 3D for " + config);
             var msg = "Loading 3D data. This may take a while. Please wait ..."
             // d3.select("#eventinfo").text(msg);
-            $("#progressbar").progressbar();
-            $("#progressbar").progressbar("option", "value", false);
-            $("#progressbar").show();
+            ensureIndeterminateProgressBar();
+            showProgressBar();
             updateProgressLabel(msg);
 
             animationScenes[config].processOrbitVectorsData3D();
@@ -2096,7 +2133,7 @@ function setDimension(init_flag = false) {
 
                 // console.log("init3d() callback called");
                 // d3.select("#eventinfo").text("");
-                $("#progressbar").hide();
+                hideProgressBar();
                 handleDimensionSwitch(val);
                 handlePlaneChange(dimensionChanged, init_flag);
                 setLocation();
@@ -2773,7 +2810,7 @@ function updateConfigFromMetadata() {
 async function processOrbitData() {
     // console.log("processOrbitData() called");
 
-    $("#progressbar").hide();
+    hideProgressBar();
     clearProgressLabel();
 
     // Update configuration from metadata if available
@@ -2907,9 +2944,8 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         // console.log("Loading orbit data for " + config);
 
         var msg = dataLoaded ? "" : ("Loading orbit data ... ");
-        $("#progressbar").progressbar();
-        $("#progressbar").progressbar("option", "value", false);
-        $("#progressbar").show();
+        ensureIndeterminateProgressBar();
+        showProgressBar();
         updateProgressLabel(msg);
         await sleep();
 
@@ -2925,14 +2961,14 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
             dataLoaded = true;
             orbitDataLoaded[config] = true;
 
-            $("#progressbar").hide();
+            hideProgressBar();
             await processOrbitData();
             await sleep();
             callback();
 
         } catch(error) {
             console.error("Error loading Chebyshev data:", error);
-            $("#progressbar").hide();
+            hideProgressBar();
             d3.select("#eventinfo").text("Error: failed to load orbit data.");
         }
     } else {
@@ -2945,7 +2981,8 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
 
 function computeSVGDimensions() {
     svgX = 0;
-    svgY = $("#svg-top-baseline").position().top;
+    const baseline = document.getElementById("svg-top-baseline");
+    svgY = baseline ? baseline.getBoundingClientRect().top : 0;
     svgWidth = window.innerWidth;
     svgHeight = window.innerHeight; // - (svgY + $("#footer-wrapper").outerHeight(true));
     offsetx = svgWidth * (1 / 2) - UC.SVG_ORIGIN_X;
@@ -3395,7 +3432,7 @@ const {
     render,
     getZoomTimeoutMs: () => UC.ZOOM_TIMEOUT,
     getZoomScale: () => UC.ZOOM_SCALE,
-    toggleInfo: () => { $("#stats").toggle(); },
+    toggleInfo: () => { toggleVisibilityById("stats"); },
 });
 
 const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRepeatMouseDownHandlers({
@@ -3506,11 +3543,11 @@ function handlePlaneChange(dimension_changed = false, init_flag = false) {
 const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createCameraActions({
     animationScenes,
     getConfig: () => config,
-    readCameraMode: () => $('input[name=camera]:checked').val(),
-    readPlaneSelection: () => $('input[name=plane]:checked').val(),
+    readCameraMode: () => readCheckedRadioValue("camera", "default"),
+    readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
     setPlaneSelection: (val) => { planeSelection = val; },
     handlePlaneChange,
-    readLookMode: () => $('input[name=look]:checked').val(),
+    readLookMode: () => readCheckedRadioValue("look", "AUTO"),
     render,
     getViewSky: () => viewSky,
 });
