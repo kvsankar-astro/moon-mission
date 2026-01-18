@@ -57,6 +57,7 @@ import { createCameraActions } from "./app/camera-actions.js";
 import { createModeActions } from "./app/mode-actions.js";
 import { createLockActions } from "./app/lock-actions.js";
 import { setChecked } from "./ui/ui-state.js";
+import { createBurnActions } from "./app/burn-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3759,19 +3760,11 @@ const { toggleJoyRide, toggleLanding } = createModeActions({
     setView,
 });
 
-function burnButtonHandler(index) {
-    // console.log("burnButtonHandler() called for event index: " + index);
-    // animTime = eventInfos[index]["startTime"];
-    if (eventInfos[index]["label"] == "⏰ Now") {
-        animTime = new Date().getTime();
-    } else {
-        // animTime = new Date(eventInfos[index]["startTime"].getTime() + (eventInfos[index]["durationSeconds"] * 1000 / 2));    
-        animTime = new Date(eventInfos[index]["startTime"].getTime()).getTime();
-    }
-    
-    // console.log("burnButtonHandler(): animTime = " + animTime + ", startTime = " + startTime + ", endTime = " + endTime);
-    missionSetTime();
-}
+const { burnButtonHandler } = createBurnActions({
+    getEventInfos: () => eventInfos,
+    setAnimTime: (val) => { animTime = val; },
+    missionSetTime,
+});
 
 // Expose variables globally for testing
 window.animationScenes = animationScenes;
