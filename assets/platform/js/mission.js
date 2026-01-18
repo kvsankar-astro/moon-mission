@@ -59,6 +59,7 @@ import { createLockActions } from "./app/lock-actions.js";
 import { setChecked } from "./ui/ui-state.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
+import { createNavigationActions } from "./app/navigation-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3517,26 +3518,6 @@ const {
     clearLegacyTimeout: () => { clearTimeout(timeoutHandle); },
 });
 
-const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRepeatMouseDownHandlers({
-    zoomIn,
-    zoomOut,
-    panLeft,
-    panRight,
-    panUp,
-    panDown,
-    forward,
-    fastForward,
-    backward,
-    fastBackward,
-    slower,
-    resetspeed,
-    faster,
-    realtime,
-    getDelayMs: () => mousedownTimeout,
-    setDelayMs: (val) => { mousedownTimeout = val; },
-    setTimeoutHandle: (handle) => { timeoutHandleZoom = handle; },
-});
-
 function zoomChangeTransform(t) {
     
     // Only process in 2D mode when svgContainer exists
@@ -3603,51 +3584,49 @@ function zoomChange(t) {
     showGreenwichLongitude();
 }
 
-function zoomOut() {
-    zoomFactor /= UC.ZOOM_SCALE;
-    var factor = 1/UC.ZOOM_SCALE;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
+const {
+    reset,
+    toggleInfo,
+    zoomIn,
+    zoomOut,
+    panLeft,
+    panRight,
+    panUp,
+    panDown,
+} = createNavigationActions({
+    getPanX: () => panx,
+    setPanX: (val) => { panx = val; },
+    getPanY: () => pany,
+    setPanY: (val) => { pany = val; },
+    getZoomFactor: () => zoomFactor,
+    setZoomFactor: (val) => { zoomFactor = val; },
+    zoomChange,
+    zoomEnd,
+    render,
+    getZoomTimeoutMs: () => UC.ZOOM_TIMEOUT,
+    getZoomScale: () => UC.ZOOM_SCALE,
+    toggleInfo: () => { $("#stats").toggle(); },
+});
 
-function zoomIn() {
-    zoomFactor *= UC.ZOOM_SCALE;
-    var factor = UC.ZOOM_SCALE;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
-
-function panLeft() {
-    panx += +10;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
-
-function panRight() {
-    panx += -10;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
-
-function panUp() {
-    pany += +10;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
-
-function panDown() {
-    pany += -10;
-    zoomChange(UC.ZOOM_TIMEOUT);
-}
-
-function reset() {
-
-    panx = 0;
-    pany = 0;
-    zoomFactor = 1;
-
-    zoomChange(UC.ZOOM_TIMEOUT);
-    zoomEnd();
-}
-
-function toggleInfo() {
-    $("#stats").toggle();
-}
+const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRepeatMouseDownHandlers({
+    zoomIn,
+    zoomOut,
+    panLeft,
+    panRight,
+    panUp,
+    panDown,
+    forward,
+    fastForward,
+    backward,
+    fastBackward,
+    slower,
+    resetspeed,
+    faster,
+    realtime,
+    getDelayMs: () => mousedownTimeout,
+    setDelayMs: (val) => { mousedownTimeout = val; },
+    setTimeoutHandle: (handle) => { timeoutHandleZoom = handle; },
+});
 
 const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
     animationScenes,
