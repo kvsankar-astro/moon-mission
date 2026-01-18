@@ -79,6 +79,7 @@ import {
     applyInitConfigAlreadyInitialized,
     shouldSkipInitConfig,
 } from "./app/init-config.js";
+import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -412,37 +413,18 @@ class SceneHandler {
             return;
         }
 
-        computeSVGDimensions();
-        var width = svgWidth;
-        var height = svgHeight; // - $("#svg-top-baseline").position().top;
-
-        // add renderer
-        this.renderer = new THREE.WebGLRenderer({antialias: true});
-        this.renderer.outputEncoding = THREE.sRGBEncoding;
-        // Use fixed pixel ratio in test mode for consistent visual regression testing
-        this.renderer.setPixelRatio(isTestMode ? 1.0 : window.devicePixelRatio);
-        this.renderer.setSize(width, height);
-        // this.renderer.domElement.style.display = "none";
-
-        // document.body.appendChild(renderer.domElement);
-        // console.log("Adding rendererer ...");
-        this.canvasNode = d3.select("#canvas-wrapper")[0][0].appendChild(this.renderer.domElement); // TODO find a better D3 way to do this
-        // this.canvasNode = d3.select("#canvas-wrapper").node().appendChild(this.renderer.domElement); // TODO find a better D3 way to do this
-
-        window.addEventListener('resize', onWindowResize, {passive: false}); // TODO verify 
-
-        // Prevent default drag behavior on the canvas
-        this.renderer.domElement.addEventListener('dragstart', function(e) {
-            e.preventDefault();
-            return false;
+        const { renderer, canvasNode } = initSceneHandlerDom({
+            d3,
+            bindSettingsPanel,
+            computeSVGDimensions,
+            getSvgWidth: () => svgWidth,
+            getSvgHeight: () => svgHeight,
+            isTestMode,
+            onWindowResize,
+            THREE,
         });
-        
-        // Also prevent selection
-        this.renderer.domElement.style.userSelect = 'none';
-        this.renderer.domElement.style.webkitUserSelect = 'none';
-        this.renderer.domElement.style.MozUserSelect = 'none';
-
-        bindSettingsPanel();
+        this.renderer = renderer;
+        this.canvasNode = canvasNode;
 
         this.initialized = true;
     }
