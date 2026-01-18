@@ -46,6 +46,7 @@ import {
 } from "./scene-state.js";
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
+import { applyViewSettings, readOriginMode, readViewSettings } from "./ui/ui-state.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -242,23 +243,22 @@ var moonPhaseCamera = false;
 
 // View variables
 
-var configGeo = $("#origin-earth").is(":checked"); 
-var configLunar = $("#origin-moon").is(":checked"); 
-var config = configGeo ? "geo" : (configLunar ? "lunar" : "undefined");
+var config = readOriginMode();
+var configGeo = (config === "geo");
+var configLunar = (config === "lunar");
 
-var viewOrbit = $("#view-orbit").is(":checked"); 
-var viewOrbitDescent = $("#view-orbit-descent").is(":checked"); 
- 
- 
-var viewCraters = $("#view-craters").is(":checked"); 
-var viewXYZAxes = $("#view-xyz-axes").is(":checked"); 
-var viewPoles = $("#view-poles").is(":checked"); 
-var viewPolarAxes = $("#view-polar-axes").is(":checked"); 
-var viewSky = $("#view-sky").is(":checked"); 
-var viewMoonSOI = $("#view-moonsoi").is(":checked");
-var viewEclipticPlane = $("#view-eclipticplane").is(":checked");
-var viewEquatorialPlane = $("#view-equatorialplane").is(":checked");
-var viewFPS = $("#view-fps").is(":checked");
+const initialViewSettings = readViewSettings();
+var viewOrbit = initialViewSettings.viewOrbit;
+var viewOrbitDescent = initialViewSettings.viewOrbitDescent;
+var viewCraters = initialViewSettings.viewCraters;
+var viewXYZAxes = initialViewSettings.viewXYZAxes;
+var viewPoles = initialViewSettings.viewPoles;
+var viewPolarAxes = initialViewSettings.viewPolarAxes;
+var viewSky = initialViewSettings.viewSky;
+var viewMoonSOI = initialViewSettings.viewMoonSOI;
+var viewEclipticPlane = initialViewSettings.viewEclipticPlane;
+var viewEquatorialPlane = initialViewSettings.viewEquatorialPlane;
+var viewFPS = initialViewSettings.viewFPS;
 
 let wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 let wait10 = () => wait(10);
@@ -3910,34 +3910,34 @@ function toggleJoyRide() {
     $("#joyride").prop("checked", joyRideFlag);
     if (joyRideFlag) {
         animationScenes[config].motherContainer.position.set(0, 0, 0);    
-        
-        $("#view-orbit").prop("checked", false); 
-        $("#view-orbit-descent").prop("checked", false); 
- 
- 
-        $("#view-craters").prop("checked", false); 
-        $("#view-xyz-axes").prop("checked", false); 
-        $("#view-poles").prop("checked", false); 
-        $("#view-polar-axes").prop("checked", false); 
-        $("#view-sky").prop("checked", true); 
-        $("#view-moonsoi").prop(":checked", false); 
-        $("#view-eclipticplane").prop(":checked", false); 
-        $("#view-equatorialplane").prop(":checked", false); 
+
+        applyViewSettings({
+            viewOrbit: false,
+            viewOrbitDescent: false,
+            viewCraters: false,
+            viewXYZAxes: false,
+            viewPoles: false,
+            viewPolarAxes: false,
+            viewSky: true,
+            viewMoonSOI: false,
+            viewEclipticPlane: false,
+            viewEquatorialPlane: false
+        });
         setView();
 
     } else {
-        $("#view-orbit").prop("checked", true);
-        $("#view-orbit-descent").prop("checked", true);  
- 
- 
-        $("#view-craters").prop("checked", true); 
-        $("#view-xyz-axes").prop("checked", true); 
-        $("#view-poles").prop("checked", true); 
-        $("#view-polar-axes").prop("checked", true);
-        $("#view-sky").prop("checked", true); 
-        $("#view-moonsoi").prop(":checked", false); 
-        $("#view-eclipticplane").prop(":checked", false); 
-        $("#view-equatorialplane").prop(":checked", false); 
+        applyViewSettings({
+            viewOrbit: true,
+            viewOrbitDescent: true,
+            viewCraters: true,
+            viewXYZAxes: true,
+            viewPoles: true,
+            viewPolarAxes: true,
+            viewSky: true,
+            viewMoonSOI: false,
+            viewEclipticPlane: false,
+            viewEquatorialPlane: false
+        });
         setView();
     }
     updateCraftScale();
@@ -3957,34 +3957,34 @@ function toggleLanding() {
     $("#landing").prop("checked", landingFlag);
     if (landingFlag) {
         animationScenes[config].motherContainer.position.set(0, 0, 0);    
-        
-        $("#view-orbit").prop("checked", false); 
-        $("#view-orbit-descent").prop("checked", true); 
- 
- 
-        $("#view-craters").prop("checked", false); 
-        $("#view-xyz-axes").prop("checked", false); 
-        $("#view-poles").prop("checked", false); 
-        $("#view-polar-axes").prop("checked", false); 
-        $("#view-sky").prop("checked", true); 
-        $("#view-moonsoi").prop(":checked", false); 
-        $("#view-eclipticplane").prop(":checked", false); 
-        $("#view-equatorialplane").prop(":checked", false); 
+
+        applyViewSettings({
+            viewOrbit: false,
+            viewOrbitDescent: true,
+            viewCraters: false,
+            viewXYZAxes: false,
+            viewPoles: false,
+            viewPolarAxes: false,
+            viewSky: true,
+            viewMoonSOI: false,
+            viewEclipticPlane: false,
+            viewEquatorialPlane: false
+        });
         setView();
 
     } else {
-        $("#view-orbit").prop("checked", true);
-        $("#view-orbit-descent").prop("checked", true);  
- 
- 
-        $("#view-craters").prop("checked", true); 
-        $("#view-xyz-axes").prop("checked", true); 
-        $("#view-poles").prop("checked", true); 
-        $("#view-polar-axes").prop("checked", true);
-        $("#view-sky").prop("checked", true); 
-        $("#view-moonsoi").prop(":checked", false); 
-        $("#view-eclipticplane").prop(":checked", false); 
-        $("#view-equatorialplane").prop(":checked", false); 
+        applyViewSettings({
+            viewOrbit: true,
+            viewOrbitDescent: true,
+            viewCraters: true,
+            viewXYZAxes: true,
+            viewPoles: true,
+            viewPolarAxes: true,
+            viewSky: true,
+            viewMoonSOI: false,
+            viewEclipticPlane: false,
+            viewEquatorialPlane: false
+        });
         setView();
     }
     updateCraftScale();
@@ -3994,19 +3994,18 @@ function toggleLanding() {
 function setView() {
     // console.log("setView() called");
 
-    viewOrbit = $("#view-orbit").is(":checked"); 
-    viewOrbitDescent = $("#view-orbit-descent").is(":checked"); 
- 
- 
-    viewCraters = $("#view-craters").is(":checked"); 
-    viewXYZAxes = $("#view-xyz-axes").is(":checked"); 
-    viewPoles = $("#view-poles").is(":checked"); 
-    viewPolarAxes = $("#view-polar-axes").is(":checked"); 
-    viewSky = $("#view-sky").is(":checked"); 
-    viewMoonSOI = $("#view-moonsoi").is(":checked"); 
-    viewEclipticPlane = $("#view-eclipticplane").is(":checked"); 
-    viewEquatorialPlane = $("#view-equatorialplane").is(":checked"); 
-    viewFPS = $("#view-fps").is(":checked"); 
+    const view = readViewSettings();
+    viewOrbit = view.viewOrbit;
+    viewOrbitDescent = view.viewOrbitDescent;
+    viewCraters = view.viewCraters;
+    viewXYZAxes = view.viewXYZAxes;
+    viewPoles = view.viewPoles;
+    viewPolarAxes = view.viewPolarAxes;
+    viewSky = view.viewSky;
+    viewMoonSOI = view.viewMoonSOI;
+    viewEclipticPlane = view.viewEclipticPlane;
+    viewEquatorialPlane = view.viewEquatorialPlane;
+    viewFPS = view.viewFPS;
 
     // Control FPS counter visibility
     setFPSCounterVisibility(viewFPS);
