@@ -46,7 +46,7 @@ import {
 } from "./scene-state.js";
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
-import { applyViewSettings, readOriginMode, readViewSettings } from "./ui/ui-state.js";
+import { readOriginMode, readViewSettings } from "./ui/ui-state.js";
 import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
 import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
 import { createEventBus } from "./core/event-bus.js";
@@ -54,6 +54,7 @@ import { startMissionApp } from "./app/mission-app.js";
 import { createAnimationActions } from "./app/animation-actions.js";
 import { createSettingsActions } from "./app/settings-actions.js";
 import { createCameraActions } from "./app/camera-actions.js";
+import { createModeActions } from "./app/mode-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3793,95 +3794,18 @@ const { toggleCamera, togglePlane } = createCameraActions({
     getViewSky: () => viewSky,
 });
 
-function toggleJoyRide() {
-    if (landingFlag) { toggleLanding(); }
-    joyRideFlag = !joyRideFlag;
-    animationScenes[config].craft.visible = !joyRideFlag;
-    animationScenes[config].craftEdges.visible = !joyRideFlag;
-    $("#joyridebutton").toggleClass("down");
-    $("#joyride").prop("checked", joyRideFlag);
-    if (joyRideFlag) {
-        animationScenes[config].motherContainer.position.set(0, 0, 0);    
-
-        applyViewSettings({
-            viewOrbit: false,
-            viewOrbitDescent: false,
-            viewCraters: false,
-            viewXYZAxes: false,
-            viewPoles: false,
-            viewPolarAxes: false,
-            viewSky: true,
-            viewMoonSOI: false,
-            viewEclipticPlane: false,
-            viewEquatorialPlane: false
-        });
-        setView();
-
-    } else {
-        applyViewSettings({
-            viewOrbit: true,
-            viewOrbitDescent: true,
-            viewCraters: true,
-            viewXYZAxes: true,
-            viewPoles: true,
-            viewPolarAxes: true,
-            viewSky: true,
-            viewMoonSOI: false,
-            viewEclipticPlane: false,
-            viewEquatorialPlane: false
-        });
-        setView();
-    }
-    updateCraftScale();
-    render();
-}
-
-function toggleLanding() {
-    // Check if landing is enabled in config
-    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-    if (!isLandingEnabled) return;
-    
-    if (joyRideFlag) { toggleJoyRide(); }
-    landingFlag = !landingFlag;
-    animationScenes[config].craft.visible = true;
-    animationScenes[config].craftEdges.visible = true;
-    $("#landingbutton").toggleClass("down");
-    $("#landing").prop("checked", landingFlag);
-    if (landingFlag) {
-        animationScenes[config].motherContainer.position.set(0, 0, 0);    
-
-        applyViewSettings({
-            viewOrbit: false,
-            viewOrbitDescent: true,
-            viewCraters: false,
-            viewXYZAxes: false,
-            viewPoles: false,
-            viewPolarAxes: false,
-            viewSky: true,
-            viewMoonSOI: false,
-            viewEclipticPlane: false,
-            viewEquatorialPlane: false
-        });
-        setView();
-
-    } else {
-        applyViewSettings({
-            viewOrbit: true,
-            viewOrbitDescent: true,
-            viewCraters: true,
-            viewXYZAxes: true,
-            viewPoles: true,
-            viewPolarAxes: true,
-            viewSky: true,
-            viewMoonSOI: false,
-            viewEclipticPlane: false,
-            viewEquatorialPlane: false
-        });
-        setView();
-    }
-    updateCraftScale();
-    render();
-}
+const { toggleJoyRide, toggleLanding } = createModeActions({
+    animationScenes,
+    getConfig: () => config,
+    getGlobalConfig: () => globalConfig,
+    render,
+    updateCraftScale,
+    getLandingFlag: () => landingFlag,
+    setLandingFlag: (val) => { landingFlag = val; },
+    getJoyRideFlag: () => joyRideFlag,
+    setJoyRideFlag: (val) => { joyRideFlag = val; },
+    setView,
+});
 
 function burnButtonHandler(index) {
     // console.log("burnButtonHandler() called for event index: " + index);
