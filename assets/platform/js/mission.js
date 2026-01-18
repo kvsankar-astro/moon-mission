@@ -37,7 +37,7 @@ import { LightManager } from "./rendering/light-manager.js";
 import { EarthRenderer } from "./rendering/earth-renderer.js";
 import { MoonRenderer } from "./rendering/moon-renderer.js";
 import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
-import { CameraController } from "./rendering/camera-controller.js";
+import { CameraController, CAMERA_LOOK_MODE } from "./rendering/camera-controller.js";
 import { AnimationController } from "./animation/animation-controller.js";
 import {
     computeSceneState,
@@ -285,7 +285,6 @@ const eventBus = createEventBus();
 var globalConfig = null; // Store loaded config from config.json
 var joyRideFlag = false;
 var landingFlag = false;
-var moonPhaseCamera = false;
 
 // View variables
 
@@ -424,8 +423,6 @@ class SceneHandler {
         if (animationScene.initialized3D) {
 
             updateCraftScale();
-
-            const shouldLookAtMoon = moonPhaseCamera;
             
             if (animationScene.lockOnEarth || (globalConfig && globalConfig.is_lunar && animationScene.lockOnMoon)) {
             
@@ -453,16 +450,6 @@ class SceneHandler {
                     moon: animationScene.moonContainer,
                     spacecraft: animationScene.craft,
                 });
-            }
-
-            const fromToIsForcingLook =
-                animationScene.cameraController?.lookMode &&
-                animationScene.cameraController.lookMode !== "manual";
-
-            // Legacy moon-phase camera (kept for now; once lookMode is wired, this can be removed).
-            if (!fromToIsForcingLook && shouldLookAtMoon && animationScene.secondaryBody3D && animationScene.camera) {
-                animationScene.secondaryBody3D.getWorldPosition(this.lookAtWorldTarget);
-                animationScene.camera.lookAt(this.lookAtWorldTarget);
             }
 
             if (joyRideFlag || landingFlag) {
@@ -1483,7 +1470,8 @@ class AnimationScene {
             // console.log("cameraDistance in setCameraParameters: " + distance);
         }
 
-        if (moonPhaseCamera) {
+        const isMoonCamera = this.cameraController?.lookMode === CAMERA_LOOK_MODE.MOON;
+        if (isMoonCamera) {
             if (this.cameraController) {
                 this.cameraController.setFov(1.0);
                 this.cameraController.setUp(0, 0, 1);
@@ -3526,8 +3514,6 @@ const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createC
     handlePlaneChange,
     readLookMode: () => $('input[name=look]:checked').val(),
     render,
-    getMoonPhaseCamera: () => moonPhaseCamera,
-    setMoonPhaseCamera: (val) => { moonPhaseCamera = val; },
     getViewSky: () => viewSky,
 });
 

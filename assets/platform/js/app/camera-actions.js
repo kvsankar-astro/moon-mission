@@ -7,8 +7,6 @@ export function createCameraActions({
     handlePlaneChange,
     readLookMode,
     render,
-    getMoonPhaseCamera,
-    setMoonPhaseCamera,
     getViewSky,
 }) {
     function setLookModeForScene(scene, mode) {
@@ -24,17 +22,14 @@ export function createCameraActions({
         const config = getConfig();
         const scene = animationScenes[config];
         if (scene && scene.initialized3D) {
-            // Maintain legacy boolean for now (keeps existing code paths stable).
             if (val === "default") {
-                setMoonPhaseCamera(false);
                 setLookModeForScene(scene, "manual");
             } else {
-                setMoonPhaseCamera(true);
                 setLookModeForScene(scene, "moon");
             }
 
             scene.setCameraParameters(false);
-            scene.skyContainer.visible = !getMoonPhaseCamera() && getViewSky();
+            scene.skyContainer.visible = scene.cameraController?.lookMode !== "moon" && getViewSky();
         }
 
         render();
