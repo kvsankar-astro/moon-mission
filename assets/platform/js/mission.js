@@ -60,6 +60,7 @@ import { setChecked } from "./ui/ui-state.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
+import { bindRepeatButtons } from "./app/repeat-button-bindings.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2796,23 +2797,6 @@ async function init(callback) {
 
     d3SelectAll("button").attr("disabled", true);
 
-    var handlers = {
-        "zoomin":       { "mousedown":  f1 },
-        "zoomout":      { "mousedown":  f2  },
-        "panleft":      { "mousedown":  f3  },
-        "panright":     { "mousedown":  f4  },
-        "panup":        { "mousedown":  f5  },
-        "pandown":      { "mousedown":  f6  },
-        "forward":      { "mousedown":  f7  },
-        "fastforward":  { "mousedown":  f8  },
-        "backward":     { "mousedown":  f9  },
-        "fastbackward": { "mousedown":  f10 },
-        "slower":       { "mousedown":  f11 },
-        "resetspeed":   { "mousedown":  f12 },
-        "faster":       { "mousedown":  f13 },
-        "realtime":     { "mousedown":  f14 },
-    };
-
     var buttons = [
         "zoomin", "zoomout",
         "panleft", "panright", "panup", "pandown",
@@ -2820,34 +2804,45 @@ async function init(callback) {
         "slower", "resetspeed", "faster", "realtime"
     ];
 
-    for (var i = 0; i < buttons.length; ++i) {
-
-        var b = buttons[i];
-
-        d3.select("#" + b).on("mousedown", handlers[b]["mousedown"]);
-
-        d3.select("#" + b).on("mouseup", function() {
-
+    bindRepeatButtons({
+        select: d3.select,
+        buttons,
+        onMouseDownById: {
+            zoomin: f1,
+            zoomout: f2,
+            panleft: f3,
+            panright: f4,
+            panup: f5,
+            pandown: f6,
+            forward: f7,
+            fastforward: f8,
+            backward: f9,
+            fastbackward: f10,
+            slower: f11,
+            resetspeed: f12,
+            faster: f13,
+            realtime: f14,
+        },
+        onMouseUp: function () {
             mousedownTimeout = UC.ZOOM_TIMEOUT;
             mouseDown = false;
             clearTimeout(timeoutHandleZoom);
             timeoutHandleZoom = null;
 
             zoomEnd();
-        });
-        d3.select("#" + b).on("mouseout", function() {
-
+        },
+        onMouseOut: function () {
             mouseDown = false;
             if (timeoutHandleZoom == null) return;
             clearTimeout(timeoutHandleZoom);
             timeoutHandleZoom = null;
 
             zoomEnd();
-        });
-        d3.select("#" + b).on("click", function() {
+        },
+        onClick: function () {
             // TODO - would there be a case where mousedown is not called?
-        });
-    }
+        },
+    });
 
     await sleep();
 
