@@ -53,6 +53,7 @@ import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { createAnimationActions } from "./app/animation-actions.js";
 import { createSettingsActions } from "./app/settings-actions.js";
+import { createCameraActions } from "./app/camera-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3779,11 +3780,18 @@ function handlePlaneChange(dimension_changed = false, init_flag = false) {
     }
 }
 
-function togglePlane() {
-    
-    planeSelection = $('input[name=plane]:checked').val();
-    handlePlaneChange(false, false);
-}
+const { toggleCamera, togglePlane } = createCameraActions({
+    animationScenes,
+    getConfig: () => config,
+    readCameraMode: () => $('input[name=camera]:checked').val(),
+    readPlaneSelection: () => $('input[name=plane]:checked').val(),
+    setPlaneSelection: (val) => { planeSelection = val; },
+    handlePlaneChange,
+    render,
+    getMoonPhaseCamera: () => moonPhaseCamera,
+    setMoonPhaseCamera: (val) => { moonPhaseCamera = val; },
+    getViewSky: () => viewSky,
+});
 
 function toggleJoyRide() {
     if (landingFlag) { toggleLanding(); }
@@ -3872,24 +3880,6 @@ function toggleLanding() {
         setView();
     }
     updateCraftScale();
-    render();
-}
-
-function toggleCamera() {
-    var val = $('input[name=camera]:checked').val();
-    // console.log("toggleCamera() called with value " + val);
-
-    if (val =="default") {
-        moonPhaseCamera = false;
-    } else {
-        moonPhaseCamera = true;
-    }
-
-    if (animationScenes[config] && animationScenes[config].initialized3D) {
-        animationScenes[config].setCameraParameters(false);
-        animationScenes[config].skyContainer.visible = !moonPhaseCamera && viewSky;
-    }
-
     render();
 }
 
