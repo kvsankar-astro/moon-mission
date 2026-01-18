@@ -73,6 +73,7 @@ import {
     computeLandingTimesUpdate,
     computeMissionEventTimes,
 } from "./app/config-times.js";
+import { createModeSwitchActions } from "./app/mode-switch.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -1781,62 +1782,16 @@ function handleGeoInit() {
 
 }
 
-function handleModeSwitch3(center, newMode, otherModes) {
+const {
+    switchToGeo: handleModeSwitchToGeo,
+    switchToLunar: handleModeSwitchToLunar,
+    switchMode: handleModeSwitch,
+    switchDimension: handleDimensionSwitch,
+} = createModeSwitchActions({
+    d3,
+    d3SelectAll,
+});
 
-    d3.select("#mode-" + newMode).attr("style", "color: blue; font-weight: bold");
-    d3.select("#mode-" + newMode).attr("disabled", null);
-    d3.selectAll("." + newMode).style("visibility", "visible");
-    d3.selectAll("." + newMode).attr("display", "block");
-
-    for (var i = 0; i < otherModes.length; ++i) {
-
-        var otherMode = otherModes[i];
-
-        d3.select("#mode-" + otherMode).attr("style", null);
-        d3.select("#mode-" + otherMode).attr("disabled", "disabled");
-        d3.selectAll("." + otherMode).style("visibility", "hidden");
-        d3.selectAll("." + otherMode).attr("display", "none");
-    }
-
-    d3.select("#center").text(center);
-}
-
-function handleModeSwitchToGeo() {
-    handleModeSwitch3("Earth", "geo", ["lunar"]);
-}
-
-function handleModeSwitchToLunar() {
-    handleModeSwitch3("Moon", "lunar", ["geo"]);
-}
-
-
-function handleModeSwitch(mode) {
-    if (mode == "geo") {
-        handleModeSwitchToGeo();
-    } else if (mode == "lunar") {
-        handleModeSwitchToLunar();
-    }
-}
-
-function handleDimensionSwitch(newDim) {
-
-    var oldDim = (newDim === "3D") ? "2D" : "3D";
-
-    // console.log("handleDimensionSwitch() called: oldDim = " + oldDim + "+ newDim = " + newDim);
-
-    d3.selectAll(".dimension-" + newDim).style("visibility", "visible");
-    d3.selectAll(".dimension-" + newDim).attr("display", "block");
-    d3.selectAll(".dimension-" + oldDim).style("visibility", "hidden");
-    d3.selectAll(".dimension-" + oldDim).attr("display", "none");
-
-    // if (newDim == "3D") {
-    //     $("#svg-wrapper").css("display", "none");
-    //     theSceneHandler.renderer.domElement.style.display = "block";
-    // } else {
-    //     $("#svg-wrapper").css("display", "block");
-    //     theSceneHandler.renderer.domElement.style.display = "none";
-    // }
-}
 
 function addEvents() {
     if (!globalConfig || !globalConfig.events || !globalConfig.eventConfigs) {
