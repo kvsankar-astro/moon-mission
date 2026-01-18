@@ -255,7 +255,12 @@ var animationController = new AnimationController({
 });
 
 function showWhatsNew() {
-    $("#dialog-whatsnew").dialog("open");
+    // Keep the legacy function but route through the lightweight dialog shim.
+    if (window.CY3Dialog?.open) {
+        window.CY3Dialog.open("#dialog-whatsnew");
+    } else {
+        $("#dialog-whatsnew").show();
+    }
 }
 
 // Spacecraft specific times and information

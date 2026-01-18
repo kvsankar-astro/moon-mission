@@ -154,6 +154,73 @@
         return this;
     };
 
+    function normalizeDialogTarget(target) {
+        if (!target) return $();
+        if (typeof target === "string") return $(target);
+        if (target instanceof $) return target;
+        return $(target);
+    }
+
+    const dialogApi = {
+        init(target, options) {
+            const $el = normalizeDialogTarget(target);
+            if (!$el.length) return $el;
+
+            $el.each(function () {
+                const $node = $(this);
+                const $wrapper = ensureDialog($node, options || {});
+
+                // Update title if changed.
+                if (typeof options?.title === "string") {
+                    const labelledBy = $wrapper.attr("aria-labelledby");
+                    if (labelledBy) {
+                        const titleNode = document.getElementById(labelledBy);
+                        if (titleNode) titleNode.textContent = options.title;
+                    }
+                }
+
+                applyPosition($wrapper, options || {});
+            });
+
+            return $el;
+        },
+
+        open(target) {
+            const $el = normalizeDialogTarget(target);
+            if (!$el.length) return $el;
+            $el.each(function () {
+                const $node = $(this);
+                const $wrapper = $node.data("dialogWrapper");
+                if ($wrapper) $wrapper.show();
+                else $node.show();
+            });
+            return $el;
+        },
+
+        close(target) {
+            const $el = normalizeDialogTarget(target);
+            if (!$el.length) return $el;
+            $el.each(function () {
+                const $node = $(this);
+                const $wrapper = $node.data("dialogWrapper");
+                if ($wrapper) $wrapper.hide();
+                else $node.hide();
+            });
+            return $el;
+        },
+
+        widget(target) {
+            const $el = normalizeDialogTarget(target).first();
+            if (!$el.length) return $();
+            const $wrapper = $el.data("dialogWrapper");
+            return $wrapper || $();
+        },
+    };
+
+    // Expose a tiny non-jQuery-UI API so app code can avoid calling $.fn.dialog directly,
+    // while keeping $.fn.dialog available for back-compat and tests.
+    window.CY3Dialog = window.CY3Dialog || dialogApi;
+
     function ensureProgressbar($el) {
         const existing = $el.data("progressbarValueDiv");
         if (existing) return existing;

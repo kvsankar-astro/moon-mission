@@ -10,7 +10,7 @@
  */
 export function bindSettingsPanel() {
     $("#settings-panel-button").on("click", function() {
-        $("#settings-panel").dialog({
+        const options = {
             dialogClass: "dialog",
             modal: false,
             position: {
@@ -21,14 +21,15 @@ export function bindSettingsPanel() {
             },
             title: "Settings",
             closeOnEscape: false
-        }).dialogExtend({
-            closable: true,
-            minimizable: false,
-            collapsable: false,
-        });
-        $("#settings-panel")
-            .closest('.ui-dialog')
-            .css({'background-image': 'none', 'border': '0', 'max-width': '80%', 'z-index': '9999'});
+        };
+
+        // Route through the lightweight dialog shim (not jQuery UI).
+        window.CY3Dialog?.init?.("#settings-panel", options);
+        window.CY3Dialog?.open?.("#settings-panel");
+
+        // Keep the existing styling adjustments applied to the wrapper.
+        window.CY3Dialog?.widget?.("#settings-panel")
+            ?.css({ "background-image": "none", border: "0", "max-width": "80%", "z-index": "9999" });
     });
 }
 
@@ -106,4 +107,3 @@ export function bindMainControls(handlers) {
 
     $("#info-button").on("click", toggleInfo);
 }
-
