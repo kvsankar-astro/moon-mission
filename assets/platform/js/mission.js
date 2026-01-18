@@ -346,7 +346,6 @@ function updateMoonUIFromConfig() {
     });
 
     applyMoonUiPatch({
-        $,
         setChecked,
         patch,
         setConfig: (val) => {
@@ -362,7 +361,6 @@ function updateLandingUIFromConfig() {
     });
 
     applyLandingUiPatch({
-        $,
         setChecked,
         patch,
         setLandingFlag: (val) => {

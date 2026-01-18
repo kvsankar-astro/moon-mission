@@ -31,23 +31,44 @@ export function computeMoonUiPatch({ globalConfig, currentConfig }) {
     return patch;
 }
 
-export function applyMoonUiPatch({ $, setChecked, patch, setConfig }) {
+function setVisible(node, visible) {
+    if (!node) return;
+    node.style.display = visible ? "" : "none";
+}
+
+function setVisibleForSelector(selector, visible) {
+    if (!selector) return;
+    const nodes = document.querySelectorAll(selector);
+    for (let i = 0; i < nodes.length; i++) {
+        setVisible(nodes[i], visible);
+    }
+}
+
+function getLabelForControlId(id) {
+    if (!id) return null;
+    const element = document.getElementById(id);
+    const wrapped = element?.closest?.("label");
+    if (wrapped) return wrapped;
+    return document.querySelector(`label[for="${id}"]`);
+}
+
+export function applyMoonUiPatch({ setChecked, patch, setConfig }) {
     if (!patch) return;
 
     for (let i = 0; i < patch.showLabelForIds.length; i++) {
         const id = patch.showLabelForIds[i];
-        $("#" + id).closest("label").show();
+        setVisible(getLabelForControlId(id), true);
     }
     for (let i = 0; i < patch.hideLabelForIds.length; i++) {
         const id = patch.hideLabelForIds[i];
-        $("#" + id).closest("label").hide();
+        setVisible(getLabelForControlId(id), false);
     }
 
     for (let i = 0; i < patch.showSelectors.length; i++) {
-        $(patch.showSelectors[i]).show();
+        setVisibleForSelector(patch.showSelectors[i], true);
     }
     for (let i = 0; i < patch.hideSelectors.length; i++) {
-        $(patch.hideSelectors[i]).hide();
+        setVisibleForSelector(patch.hideSelectors[i], false);
     }
 
     if (patch.nextConfig) {
@@ -90,23 +111,23 @@ export function computeLandingUiPatch({ globalConfig, landingFlag }) {
     return patch;
 }
 
-export function applyLandingUiPatch({ $, setChecked, patch, setLandingFlag }) {
+export function applyLandingUiPatch({ setChecked, patch, setLandingFlag }) {
     if (!patch) return;
 
     for (let i = 0; i < patch.showLabelForIds.length; i++) {
         const id = patch.showLabelForIds[i];
-        $("#" + id).closest("label").show();
+        setVisible(getLabelForControlId(id), true);
     }
     for (let i = 0; i < patch.hideLabelForIds.length; i++) {
         const id = patch.hideLabelForIds[i];
-        $("#" + id).closest("label").hide();
+        setVisible(getLabelForControlId(id), false);
     }
 
     for (let i = 0; i < patch.showSelectors.length; i++) {
-        $(patch.showSelectors[i]).show();
+        setVisibleForSelector(patch.showSelectors[i], true);
     }
     for (let i = 0; i < patch.hideSelectors.length; i++) {
-        $(patch.hideSelectors[i]).hide();
+        setVisibleForSelector(patch.hideSelectors[i], false);
     }
 
     if (typeof patch.nextLandingFlag === "boolean") {
@@ -115,7 +136,10 @@ export function applyLandingUiPatch({ $, setChecked, patch, setLandingFlag }) {
 
     for (let i = 0; i < patch.removeClasses.length; i++) {
         const { selector, className } = patch.removeClasses[i];
-        $(selector).removeClass(className);
+        const nodes = document.querySelectorAll(selector);
+        for (let j = 0; j < nodes.length; j++) {
+            nodes[j].classList.remove(className);
+        }
     }
 
     for (const [id, value] of Object.entries(patch.checked)) {
