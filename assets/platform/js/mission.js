@@ -61,6 +61,12 @@ import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
 import { bindRepeatButtons } from "./app/repeat-button-bindings.js";
+import {
+    applyLandingUiPatch,
+    applyMoonUiPatch,
+    computeLandingUiPatch,
+    computeMoonUiPatch,
+} from "./app/config-ui.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -357,58 +363,36 @@ function updateMissionMetadata() {
 }
 
 function updateMoonUIFromConfig() {
-    const isMoonEnabled = globalConfig && globalConfig.is_lunar;
-    
-    if (isMoonEnabled) {
-        // Show moon-related UI elements
-        $("#origin-moon").closest('label').show();
-        $("#origin-moon").show();
-        $("#view-moonsoi").closest('label').show();
-        $("#view-moonsoi").show();
-        $(".geo").show(); // Show "Lock on Moon" checkbox in geocentric mode
-    } else {
-        // Hide moon-related UI elements
-        $("#origin-moon").closest('label').hide();
-        $("#origin-moon").hide();
-        $("#view-moonsoi").closest('label').hide();
-        $("#view-moonsoi").hide();
-        $(".geo").hide(); // Hide "Lock on Moon" checkbox
-        
-        // If currently in lunar mode, switch to geo mode
-         if (config === "lunar") {
-             config = "geo";
-             setChecked("origin-earth", true);
-             setChecked("origin-moon", false);
-         }
-         
-         // Ensure moon-related checkboxes are unchecked
-         setChecked("checkbox-lock-moon", false);
-         setChecked("view-moonsoi", false);
-     }
- }
+    const patch = computeMoonUiPatch({
+        globalConfig,
+        currentConfig: config,
+    });
+
+    applyMoonUiPatch({
+        $,
+        setChecked,
+        patch,
+        setConfig: (val) => {
+            config = val;
+        },
+    });
+}
 
 function updateLandingUIFromConfig() {
-    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-    
-    if (isLandingEnabled) {
-        // Show landing UI elements
-        $("#landing").closest('label').show();
-        $("#landing").show();
-        $("#landingbutton").show();
-    } else {
-        // Hide landing UI elements and ensure landing is disabled
-        $("#landing").closest('label').hide();
-        $("#landing").hide();
-        $("#landingbutton").hide();
-        
-        // If landing is currently active, turn it off
-         if (landingFlag) {
-             landingFlag = false;
-             $("#landingbutton").removeClass("down");
-             setChecked("landing", false);
-         }
-     }
- }
+    const patch = computeLandingUiPatch({
+        globalConfig,
+        landingFlag,
+    });
+
+    applyLandingUiPatch({
+        $,
+        setChecked,
+        patch,
+        setLandingFlag: (val) => {
+            landingFlag = val;
+        },
+    });
+}
 
 function updateLandingTimesFromConfig() {
     if (globalConfig && globalConfig.landing && globalConfig.landing.enabled) {
