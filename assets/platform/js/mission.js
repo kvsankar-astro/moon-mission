@@ -47,6 +47,7 @@ import {
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
 import { applyViewSettings, readOriginMode, readViewSettings } from "./ui/ui-state.js";
+import { bindBurnButtons, bindMainControls, bindSettingsPanel } from "./ui/event-handlers.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -541,28 +542,7 @@ class SceneHandler {
         this.renderer.domElement.style.webkitUserSelect = 'none';
         this.renderer.domElement.style.MozUserSelect = 'none';
 
-        $("#settings-panel-button").on("click", function() {
-            $("#settings-panel").dialog({
-                dialogClass: "dialog",
-                modal: false,
-                position: {
-                    my: "left top",
-                    at: "left bottom",
-                    of: "#svg-top-baseline",
-                    collision: "fit flip"},
-                title: "Settings",
-                closeOnEscape: false
-                }).dialogExtend({
-                    closable: true,
-                    minimizable: false,
-                    collapsable: false,
-                    })/* .dialogExtend("collapse") */;
-            $("#settings-panel")
-                .closest('.ui-dialog')
-                // .addClass("transparent-panel")
-                .css({'background-image': 'none', 'border': '0', 'max-width': '80%', 'z-index': '9999'});
-
-                });
+        bindSettingsPanel();
 
         this.initialized = true;
     }
@@ -2219,8 +2199,9 @@ async function initConfig() {
                     .attr("title", eventInfos[i]["label"])
                     .html(eventInfos[i]["label"]);
 
-        $("#burn" + (i+1)).on("click", function() { burnButtonHandler(i); });
     }
+
+    bindBurnButtons(eventInfos.length, burnButtonHandler);
 
     var swiper1 = new Swiper('.swiper1', {
         direction: 'horizontal',
@@ -2773,48 +2754,21 @@ function animateLoop() {
 export function main() {
     const onloadStartTime = performance.now();
 
-    $("#reset").on("click", reset);
-
-    $("#origin-earth").on("click", toggleMode);
-    $("#origin-moon").on("click", toggleMode);
-    $("#camera-default").on("click", toggleCamera);
-    $("#camera-moon").on("click", toggleCamera);
-    $("#checkbox-lock-sc").on("click", toggleLockSC);
-    $("#checkbox-lock-moon").on("click", toggleLockMoon);
-    $("#checkbox-lock-earth").on("click", toggleLockEarth);
-
-    $("#checkbox-lock-default").on("click", togglePlane);
-    $("#checkbox-lock-xy").on("click", togglePlane);
-    $("#checkbox-lock-zx").on("click", togglePlane);
-    $("#checkbox-lock-yz").on("click", togglePlane);
-
-    $("#checkbox-lock-xy-minus").on("click", togglePlane);
-    $("#checkbox-lock-zx-minus").on("click", togglePlane);
-    $("#checkbox-lock-yz-minus").on("click", togglePlane);
-
-
-    $("#view-orbit").on("click", setView);
-    $("#view-orbit-descent").on("click", setView);
-    $("#view-craters").on("click", setView);
-    $("#view-xyz-axes").on("click", setView);
-    $("#view-poles").on("click", setView);
-    $("#view-polar-axes").on("click", setView);
-    $("#view-sky").on("click", setView);
-    $("#view-moonsoi").on("click", setView);
-    $("#view-eclipticplane").on("click", setView);
-    $("#view-equatorialplane").on("click", setView);
-    $("#view-fps").on("click", setView);
-
-    $("#dimension-2D").on("click", setDimensionTop);
-    $("#dimension-3D").on("click", setDimensionTop);
-
-    $("#animate").on("click", cy3Animate);
-    $("#joyride").on("click", toggleJoyRide);
-    $("#joyridebutton").on("click", toggleJoyRide);
-    $("#landing").on("click", toggleLanding);
-    $("#landingbutton").on("click", toggleLanding);
-
-    $("#info-button").on("click", toggleInfo);
+    bindMainControls({
+        reset,
+        toggleMode,
+        toggleCamera,
+        toggleLockSC,
+        toggleLockMoon,
+        toggleLockEarth,
+        togglePlane,
+        setView,
+        setDimensionTop,
+        cy3Animate,
+        toggleJoyRide,
+        toggleLanding,
+        toggleInfo
+    });
 
     initAnimation({'reset': true}); // no need to await here - we are just kickstarting the setup 
     const onloadEndTime = performance.now() - onloadStartTime;
