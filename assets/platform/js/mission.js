@@ -23,7 +23,7 @@ import {
     updateProgressLabel,
     updateSpacecraftMnemonic
 } from "./core/dom.js";
-import { getStateFromChebyshev, loadChebyshevData, generateCurveFromChebyshev } from "./chebyshev.js";
+import { getStateFromChebyshev, generateCurveFromChebyshev } from "./chebyshev.js";
 import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 import {
@@ -48,6 +48,7 @@ import { Animation3DController, Animation2DController } from "./controllers/inde
 import { computeSunLongitude } from "./services/ephemeris.js";
 import { applyViewSettings, readOriginMode, readViewSettings } from "./ui/ui-state.js";
 import { bindBurnButtons, bindMainControls, bindSettingsPanel } from "./ui/event-handlers.js";
+import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -334,46 +335,6 @@ function updateMissionMetadata() {
     // Update planetProperties for spacecraft to use correct mnemonic in 2D view
     if (globalConfig && globalConfig.spacecraft_mnemonic) {
         planetProperties["SC"]["name"] = globalConfig.spacecraft_mnemonic;
-    }
-}
-
-async function loadConfig() {
-    if (globalConfig !== null) {
-        return globalConfig; // Return cached config
-    }
-    
-    // Get config path from mission config set by HTML
-    if (!window.missionConfig || !window.missionConfig.dataPath) {
-        console.error('No mission configuration found. Please set window.missionConfig in your HTML file.');
-        return null;
-    }
-    
-    const configPath = window.missionConfig.dataPath + 'config.json';
-    console.debug(`Loading config from: ${configPath}`);
-    
-    try {
-        const response = await fetch(configPath);
-        if (response.ok) {
-            globalConfig = await response.json();
-            eventInfos = globalConfig.eventInfos || [];
-            console.debug('Config loaded successfully:', globalConfig);
-            
-            // Note: SC and craftId remain as "SC" for internal use
-            // globalConfig.spacecraft_mnemonic is used only for file path construction
-            
-            // Update UI elements based on config
-            updateMissionMetadata();
-            updateMoonUIFromConfig();
-            updateLandingUIFromConfig();
-            
-            return globalConfig;
-        } else {
-            console.warn('Could not load config.json, using defaults');
-            return null;
-        }
-    } catch (error) {
-        console.warn('Error loading config.json:', error);
-        return null;
     }
 }
 
@@ -2022,8 +1983,20 @@ async function initConfig() {
         return;
     }
 
-    // Load external configuration
-    const configData = await loadConfig();
+    if (globalConfig === null) {
+        globalConfig = await loadMissionConfig();
+        eventInfos = globalConfig?.eventInfos || [];
+
+        if (globalConfig) {
+            // Note: SC and craftId remain as "SC" for internal use
+            // globalConfig.spacecraft_mnemonic is used only for file path construction
+            updateMissionMetadata();
+            updateMoonUIFromConfig();
+            updateLandingUIFromConfig();
+        }
+    }
+
+    const configData = globalConfig;
     
     // Update landing times from config if available
     updateLandingTimesFromConfig();
@@ -2034,10 +2007,10 @@ async function initConfig() {
     addEvents();
 
     // Get TLI and LOI times from config (only for lunar missions)
-    if (globalConfig.is_lunar && globalConfig.events.tli) {
+    if (globalConfig?.is_lunar && globalConfig.events?.tli) {
         timeTransLunarInjection = new Date(globalConfig.events.tli.startTime).getTime();
     }
-    if (globalConfig.is_lunar && globalConfig.events.loi) {
+    if (globalConfig?.is_lunar && globalConfig.events?.loi) {
         timeLunarOrbitInsertion = new Date(globalConfig.events.loi.startTime).getTime();
     }
 
@@ -2083,8 +2056,12 @@ async function initConfig() {
             animationScenes[config].planetsForOrbits = cfg.planets;
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-            animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
+
+            const orbitUrls = resolveOrbitUrls(configData, config);
+            if (orbitUrls) {
+                animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
+                animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
+            }
         }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
@@ -2150,8 +2127,12 @@ async function initConfig() {
             animationScenes[config].planetsForOrbits = cfg.planets;
             animationScenes[config].planetsForLocations = cfg.planets;
             animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-            animationScenes[config].orbitsJson = `${window.missionConfig.dataPath}${cfg.orbits_file}.json`;
-            animationScenes[config].orbitsCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
+
+            const orbitUrls = resolveOrbitUrls(configData, config);
+            if (orbitUrls) {
+                animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
+                animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
+            }
         }
 
         animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
@@ -3114,18 +3095,17 @@ async function loadLandingDataAndProcess() {
     if (!landingDataLoaded) {
         // Use config data for landing if available
         const configData = globalConfig;
-        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-        let landingDataCheb = `${window.missionConfig.dataPath}landing-${spacecraftMnemonic}-cheb.json`;
-
-        if (configData && configData.landing) {
-            const cfg = configData.landing;
-            landingDataCheb = `${window.missionConfig.dataPath}${cfg.orbits_file}-cheb.json`;
+        const landingDataCheb = resolveLandingChebyshevUrl(configData);
+        if (!landingDataCheb) {
+            console.error("Landing Chebyshev path unavailable (missing window.missionConfig.dataPath)");
+            landingChebyshevLoaded = false;
+            return;
         }
 
         // Load Chebyshev data for landing phase
         try {
             console.log(`Loading landing Chebyshev data from ${landingDataCheb}`);
-            landingChebyshevData = await loadChebyshevData(landingDataCheb);
+            landingChebyshevData = await loadChebyshev(landingDataCheb);
             landingChebyshevLoaded = true;
             landingDataLoaded = true;
             console.log(`Landing Chebyshev data loaded: ${landingChebyshevData.segments.length} segments`);
@@ -3154,7 +3134,7 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
             const chebUrl = animationScenes[config].orbitsCheb;
             console.log(`Loading Chebyshev data from ${chebUrl}`);
 
-            chebyshevData[config] = await loadChebyshevData(chebUrl);
+            chebyshevData[config] = await loadChebyshev(chebUrl);
             chebyshevDataLoaded[config] = true;
             console.log(`Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`);
 
