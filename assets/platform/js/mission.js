@@ -75,6 +75,10 @@ import {
 } from "./app/config-times.js";
 import { createModeSwitchActions } from "./app/mode-switch.js";
 import { applyEventsUpdate, computeEventsUpdate } from "./app/config-events.js";
+import {
+    applyInitConfigAlreadyInitialized,
+    shouldSkipInitConfig,
+} from "./app/init-config.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -1798,27 +1802,18 @@ async function initConfig() {
 
     // console.log("initConfig() called");
 
-    if (animationScenes[config] && animationScenes[config].state >= AnimationScene.SCENE_STATE_INIT_CONFIG_DONE) {
+    const existingScene = animationScenes[config];
+    if (shouldSkipInitConfig({ animationScene: existingScene, AnimationScene })) {
         // console.log("initConfig() returning as already initialized");
-         if (config == "geo") {
-             handleModeSwitchToGeo();
-         } else if (config == "lunar") {
-             handleModeSwitchToLunar();
-         }
-
-         setChecked("checkbox-lock-moon", animationScenes[config].lockOnMoon);
-         setChecked("checkbox-lock-earth", animationScenes[config].lockOnEarth);
-         setChecked("checkbox-lock-sc", animationScenes[config].lockOnSC);
-
-         setChecked("checkbox-lock-xy", animationScenes[config].lockOnXY);
-         setChecked("checkbox-lock-zx", animationScenes[config].lockOnZX);
-         setChecked("checkbox-lock-yz", animationScenes[config].lockOnYZ);
-         setChecked("checkbox-lock-xy-minus", animationScenes[config].lockOnXYMinus);
-         setChecked("checkbox-lock-zx-minus", animationScenes[config].lockOnZXMinus);
-         setChecked("checkbox-lock-yz-minus", animationScenes[config].lockOnYZMinus);
-
-         return;
-     }
+        applyInitConfigAlreadyInitialized({
+            config,
+            handleModeSwitchToGeo,
+            handleModeSwitchToLunar,
+            setChecked,
+            animationScene: existingScene,
+        });
+        return;
+    }
 
     if (globalConfig === null) {
         globalConfig = await loadMissionConfig();
