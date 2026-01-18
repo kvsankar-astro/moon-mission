@@ -39,6 +39,13 @@ import { MoonRenderer } from "./rendering/moon-renderer.js";
 import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
 import { CameraController } from "./rendering/camera-controller.js";
 import { AnimationController } from "./animation/animation-controller.js";
+import {
+    computeSceneState,
+    // toScreenCoordinates, // used by controllers
+    // projectToPlane        // used by controllers
+} from "./scene-state.js";
+import { Animation3DController, Animation2DController } from "./controllers/index.js";
+import { computeSunLongitude } from "./services/ephemeris.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -226,6 +233,8 @@ var previousDimension = null;
 var dimensionChanged = false;
 var theSceneHandler = null;
 export var animationScenes = {};
+var animation3DControllers = {};  // Per-config 3D controllers
+var animation2DControllers = {};  // Per-config 2D controllers
 var globalConfig = null; // Store loaded config from config.json
 var joyRideFlag = false;
 var landingFlag = false;
@@ -1096,7 +1105,7 @@ class AnimationScene {
         this.addMoonSOI();
 
         // Set initial rotation
-        this.rotateMoon();
+        this.rotateMoon(animTime);
 
         render();
     }
@@ -1829,13 +1838,13 @@ class AnimationScene {
         return sphere;
     }
 
-    rotateMoon() {
+    rotateMoon(timeMs = animTime) {
         // Check if this is a lunar mission
         if (!globalConfig || !globalConfig.is_lunar) {
             return;
         }
 
-        var today = new Date(animTime);
+        var today = new Date(timeMs);
         var lp = lunar_pole(today);
         var alpha = lp["alpha"];
         var delta = lp["delta"];
@@ -1850,9 +1859,9 @@ class AnimationScene {
         // console.log(`rotateMoon: (long, lat) = (${rad_to_deg(long)}, ${rad_to_deg(lat)}), W = ${rad_to_deg(W)}`);
     }
 
-    rotateEarth() {
+    rotateEarth(timeMs = animTime) {
         // Greenwich Apparent Sidereal Time (hours × 15 = degrees, then to radians)
-        var mst = degreesToRadians(Astronomy.SiderealTime(new Date(animTime)) * 15);
+        var mst = degreesToRadians(Astronomy.SiderealTime(new Date(timeMs)) * 15);
         this.earthContainer.rotation.z = mst;
         // this.losLine.geometry.verticesNeedUpdate = true;
     } 
@@ -2060,7 +2069,13 @@ async function initConfig() {
 
         if (!animationScenes[config]) {
             // console.log("Creating new AnimationScene for " + config);
-            animationScenes[config] = new AnimationScene(config);    
+            animationScenes[config] = new AnimationScene(config);
+            // Create controllers for this config
+            animation3DControllers[config] = new Animation3DController(config, animationScenes[config]);
+            animation2DControllers[config] = new Animation2DController(config, {
+                planetProperties: planetProperties,
+                showPlanet: showPlanet
+            });
         }
 
         computeSVGDimensions();
@@ -2121,7 +2136,13 @@ async function initConfig() {
 
         if (!animationScenes[config]) {
             // console.log("Creating new AnimationScene for " + config);
-            animationScenes[config] = new AnimationScene(config);    
+            animationScenes[config] = new AnimationScene(config);
+            // Create controllers for this config
+            animation3DControllers[config] = new Animation3DController(config, animationScenes[config]);
+            animation2DControllers[config] = new Animation2DController(config, {
+                planetProperties: planetProperties,
+                showPlanet: showPlanet
+            });
         }
 
         computeSVGDimensions();
@@ -2348,20 +2369,28 @@ function isLocationAvaialable(planet, date) {
     return flag;
 }
 
-function setLabelLocation(planetKey) {
+function setLabelLocation(planetKey, bodyState = null) {
 
     var planetProps = planetProperties[planetKey];
 
-    if (isLocationAvaialable(planetKey, animTime)) {
+    const isAvailable = bodyState ? !!bodyState.available : isLocationAvaialable(planetKey, animTime);
 
-        // var index = timelineIndex - planetProperties[planetKey]["offset"];
+    if (isAvailable) {
 
-        var [planet_pos, planet_vel] = getBodyLocation(planetKey, animTime);
+        // Prefer computed state (functional core) when provided to avoid re-querying orbit data.
+        let planet_pos = bodyState?.position;
+        if (!planet_pos) {
+            // var index = timelineIndex - planetProperties[planetKey]["offset"];
+            var [posFromData, planet_vel] = getBodyLocation(planetKey, animTime);
+            planet_pos = posFromData;
+        }
+
         if (!planet_pos) {
             // Data not available, hide the label
             d3.select("#label-" + planetKey).attr("visibility", "hidden");
             return;
         }
+
         var x = xFactor * planet_pos[xVariable];
         var y = yFactor * planet_pos[yVariable];
 
@@ -2450,254 +2479,130 @@ function setLocation() {
         return;
     }
 
-    // console.log("setLocation(): timelineIndex = " + timelineIndex + ", timelineTotalSteps = " + timelineTotalSteps);
+    // =========================================================================
+    // 1. FUNCTIONAL CORE: Compute scene state
+    // =========================================================================
+    const sunLongitudeForFrame = computeSunLongitude(animTime);
+    const sceneState = computeSceneState(animTime, config, {
+        sunLongitude: sunLongitudeForFrame,
+        chebyshevData,
+        chebyshevDataLoaded,
+        landingChebyshevData,
+        landingChebyshevLoaded,
+        globalConfig,
+        startLandingTime,
+        endLandingTime,
+        eventInfos,
+        missionTimes: { timeTransLunarInjection, timeLunarOrbitInsertion },
+        planetsForLocations: animationScenes[config].planetsForLocations
+    });
 
-    // animTime = startTime + timelineIndex * animationScenes[config].stepDurationInMilliSeconds;
+    // Store sun longitude for global access (used by other parts of code)
+    sunLongitude = sceneState.sunLongitude;
+
+    // =========================================================================
+    // 2. Update date display
+    // =========================================================================
     var animTimeDate = new Date(animTime);
-    // console.log("animTimeDate = " + animTimeDate);
     animDate.html(animTimeDate);
-    // TODO: Replace above with custom formatting:
-    // animDate.html(formatDateTimeIST(animTime));
 
-    // Extract UTC date components for ephemeris calculations
-    var ephemDate = getDateComponentsUTC(animTime);
-    // console.log(ephemDate);
-    $const.tlong = 0.0; // longitude
-    $const.glat = 0.0; // latitude
-    $processor.init(); // TODO not sure whether this needs to be called every time or just once
-    var ephemSun = $moshier.body.sun;
-    $processor.calc(ephemDate, ephemSun);
-    // console.log(ephemSun.position);
-    sunLongitude = degreesToRadians(ephemSun.position.apparentLongitude);
-    // console.log("Sun longitude: " + sunLongitude * 180.0 / Math.PI);
+    // =========================================================================
+    // 3. Render with appropriate controller
+    // =========================================================================
+    const renderOptions = {
+        craftId,
+        pixelsPerAU: PIXELS_PER_AU,
+        primaryBody: animationScenes[config].primaryBody,
+        planetsForLocations: animationScenes[config].planetsForLocations,
+        updateCraftScale
+    };
 
-    // var ephemMoon = $moshier.body.moon;
-    // $processor.calc(ephemDate, ephemMoon);
-    // console.log(ephemMoon.position);
-
-    if (animationScenes[config] && animationScenes[config].initialized3D) {
-
-        var animationScene = animationScenes[config];
-        animationScene.light.position.set(Math.cos(sunLongitude), Math.sin(sunLongitude), 0).normalize();
-        animationScene.light2.position.set(Math.cos(sunLongitude), Math.sin(sunLongitude), 0).normalize();
-        animationScene.rotateEarth();
-        animationScene.rotateMoon();
-
-        adjustCameraProjectionMatrixAndSkyAngle();
-    }
-    
-    // console.log("animTime = " + animTime);
-    // console.log("helioCentricPhaseStartTime = " + helioCentricPhaseStartTime);
-    // console.log("lunarPhaseStartTime = " + lunarPhaseStartTime);
-
-    // Only show phase information for lunar missions
-    if (globalConfig && globalConfig.is_lunar) {
-        // These phase elements exist in HTML, not SVG, so they're safe to update
-        d3.select("#phase-1").html("Earth Bound Phase");
-        d3.select("#phase-2").html("Lunar Bound Phase");
-        d3.select("#phase-3").html("Lunar Orbit Phase");
-        
-        if (animTime < timeTransLunarInjection) {
-            d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
-        } else if (animTime < timeLunarOrbitInsertion) {
-            d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
-        } else {
-            d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+    if (currentDimension === "3D") {
+        // 3D rendering via controller
+        if (animation3DControllers[config]) {
+            animation3DControllers[config].render(sceneState, renderOptions);
         }
-    }
-
-    for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-
-
-        var planetKey = animationScenes[config].planetsForLocations[i];
-        var planetProps = planetProperties[planetKey];
-
-        if (isLocationAvaialable(planetKey, animTime)) {
-
-            var [craft_pos, craft_vel] = getBodyLocation(planetKey, animTime);
-            if (!craft_pos) {
-                // Data not available for this time, skip this planet
-                continue;
-            }
-            var [realx, realy, realz] = [craft_pos.x, craft_pos.y, craft_pos.z];
-            // console.log("realx = " + realx + ", realy = " + realy + ", realz = " + realz);
-            var craft_pos_next = null;
-            var craft_vel_next = null;
-            if (isLocationAvaialable(planetKey, animTime + TC.ONE_MINUTE_MS)) {
-                [craft_pos_next, craft_vel_next] = getBodyLocation(planetKey, animTime + TC.ONE_MINUTE_MS);
-            }
-            if (!craft_pos_next) {
-                // Use current position for next if not available
-                craft_pos_next = craft_pos;
-                craft_vel_next = craft_vel;
-            }
-            var [realx_next, realy_next, realz_next] = [craft_pos_next.x, craft_pos_next.y, craft_pos_next.z]; 
-
-            var realx_screen = +1 * (realx / PC.KM_PER_AU) * PIXELS_PER_AU;
-            var realy_screen = +1 * (realy / PC.KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
-            var realz_screen = +1 * (realz / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-            var realx_screen_next = +1 * (realx_next / PC.KM_PER_AU) * PIXELS_PER_AU;
-            var realy_screen_next = +1 * (realy_next / PC.KM_PER_AU) * PIXELS_PER_AU; // note the sign; it's +1
-            var realz_screen_next = +1 * (realz_next / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-            // Only calculate 2D SVG coordinates and update DOM in 2D mode
-            var newx, newy, newz, x, y, z, vx, vy, vz;
-            if (currentDimension == "2D") {
-                [x, y, z] = [xFactor*craft_pos[xVariable], yFactor*craft_pos[yVariable], zFactor*craft_pos[zVariable]];
-                [vx, vy, vz] = [xFactor*craft_vel[xVariable], yFactor*craft_vel[yVariable], zFactor*craft_vel[zVariable]];
-
-                newx = +1 * (x / PC.KM_PER_AU) * PIXELS_PER_AU;
-                newy = -1 * (y / PC.KM_PER_AU) * PIXELS_PER_AU;
-                newz = +1 * (z / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-                d3.select("#" + planetKey)
-                    .attr("visibility", showPlanet(planetKey) ? "visible" : "hidden")
-                    .attr("cx", newx)
-                    .attr("cy", newy);
-            }
-
-            if (planetKey == animationScenes[config].secondaryBody) {
-                if (animationScenes[config] && animationScenes[config].initialized3D) {
-                    animationScenes[config].secondaryBody3D.position.set(realx_screen, realy_screen, realz_screen);
-                }                
-            } else if (planetKey == craftId) {
-                if (animationScenes[config] && animationScenes[config].initialized3D) {
-                    
-                    animationScenes[config].craft.position.set(realx_screen, realy_screen, realz_screen);
-                    
-                    var droneScale = 1.05;
-                    var [deltax, deltay, deltaz] = [realx_screen_next - realx_screen, realy_screen_next - realy_screen, realz_screen_next - realz_screen];
-                    animationScenes[config].drone.position.set(
-                        droneScale*(realx_screen-deltax), 
-                        droneScale*(realy_screen-deltay), 
-                        droneScale*(realz_screen-deltaz));
-                    // console.log("drone position 1 = ", animationScenes[config].drone.position);
-
-                    animationScenes[config].craft.lookAt(realx_screen_next, realy_screen_next, realz_screen_next);
-                    animationScenes[config].drone.lookAt(realx_screen, realy_screen, realz_screen);
-                    animationScenes[config].craft.up.set(0, 0, 1);
-                    // animationScenes[config].drone.up.set(0, 0, 1);
-                    updateCraftScale();
-                }                                
-            }
-
-            if (planetKey == "SC") {
-                
-                // Only update 2D-specific craftData in 2D mode
-                if (currentDimension == "2D") {
-                    craftData["x"] = newx;
-                    craftData["y"] = newy;
-                    craftData["z"] = newz;
-                }
-                
-                var r = craft_pos.length();
-
-                var pbr;
-                if (config == "geo") {
-                    pbr = PC.EARTH_RADIUS_KM;
-                } else if (config == "lunar") {
-                    pbr = PC.MOON_RADIUS_KM;
-                }
-
-                var altitude = r - pbr;
-                d3.select("#distance-" + planetKey + "-" + animationScenes[config].primaryBody).text(FORMAT_METRIC(r));
-                d3.select("#altitude-" + planetKey + "-" + animationScenes[config].primaryBody).text(FORMAT_METRIC(altitude));
-
-                var v = craft_vel.length();
-                d3.select("#velocity-" + planetKey + "-" + animationScenes[config].primaryBody).text(FORMAT_METRIC(v));
-
-                if (config == "geo" && globalConfig.is_lunar) {
-                    // relative to Moon (only for lunar missions)
-
-                    var [moon_pos, moon_vel] = getBodyLocation("MOON", animTime);
-                    if (moon_pos) {
-                        var dr = moon_pos.distanceTo(craft_pos);
-                        var dv = moon_vel.distanceTo(craft_vel);
-
-                        var altitudeMoon = dr - PC.MOON_RADIUS_KM;
-                        d3.select("#distance-" + planetKey +"-MOON").text(FORMAT_METRIC(dr));
-                        d3.select("#altitude-" + planetKey +"-MOON").text(FORMAT_METRIC(altitudeMoon));
-                        d3.select("#velocity-" + planetKey +"-MOON").text(FORMAT_METRIC(dv));
-                    }
-                }
-
-                if (config == "lunar") {
-                    // relative to Earth
-
-                    var [earth_pos, earth_vel] = getBodyLocation("EARTH", animTime);
-                    if (!earth_pos) continue;
-                    var dr = earth_pos.distanceTo(craft_pos);
-                    var dv = earth_vel.distanceTo(craft_vel);
-
-                    var altitudeEarth = dr - PC.EARTH_RADIUS_KM;
-                    d3.select("#distance-" + planetKey +"-EARTH").text(FORMAT_METRIC(dr));
-                    d3.select("#altitude-" + planetKey +"-EARTH").text(FORMAT_METRIC(altitudeEarth));
-                    d3.select("#velocity-" + planetKey +"-EARTH").text(FORMAT_METRIC(dv));
-                }
-
-                if (currentDimension === "2D") {
-                    // show burn
-                    craftData["angle"] = velocityToAngle(vx, vy);
-                    var transformString = "translate (" + newx + ", " + newy + ") ";
-                    transformString += "rotate(" + craftData["angle"] + " 0 0) ";
-                    transformString += "scale (" + 1/zoomFactor + " " + 1/zoomFactor + ") ";
-                    d3.select("#burng").attr("transform", transformString);
-                }
-            }
-
-        } else {
-
-            // if (animationScenes[config].initialized3D) {
-            //     animationScenes[config].craft.visible = false;    
-            // }            
-
-            d3.select("#" + planetKey)
-                .attr("visibility", "hidden");
-
-            d3.select("#distance-" + planetKey).text("");
-            d3.select("#velocity-" + planetKey).text("");
-            d3.select("#distance-" + planetKey + "-Earth").text("");
-            d3.select("#velocity-" + planetKey + "-Earth").text("");
-            d3.select("#distance-" + planetKey + "-Moon").text("");
-            d3.select("#velocity-" + planetKey + "-Moon").text("");
+        if (animationScenes[config] && animationScenes[config].initialized3D) {
+            adjustCameraProjectionMatrixAndSkyAngle();
         }
-    }
+    } else {
+        // 2D rendering via controller
+        if (animation2DControllers[config]) {
+            animation2DControllers[config].setPlaneConfig({
+                xVariable, yVariable, zVariable,
+                xFactor, yFactor, zFactor
+            });
+            animation2DControllers[config].setZoomPan(zoomFactor, panx, pany);
+            animation2DControllers[config].render(sceneState, renderOptions);
 
-    // Only run 2D-specific functions in 2D mode
-    if (currentDimension == "2D") {
+            // Keep legacy craftData in sync (used by zoom/label helpers like adjustLabelLocations())
+            if (typeof animation2DControllers[config].getCraftData === "function") {
+                const latestCraftData = animation2DControllers[config].getCraftData();
+                if (latestCraftData && Number.isFinite(latestCraftData.x) && Number.isFinite(latestCraftData.y)) {
+                    craftData = latestCraftData;
+                }
+            }
+        }
+
+        // 2D-specific: labels, zoom transform, Greenwich longitude
         for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-
             var planetKey = animationScenes[config].planetsForLocations[i];
-            setLabelLocation(planetKey);
+            setLabelLocation(planetKey, sceneState.bodies[planetKey]);
         }
-
         zoomChangeTransform(0);
         showGreenwichLongitude();
     }
 
-    for (var i = 0; i < eventInfos.length; ++i) {
-        // var burnTime = new Date(eventInfos[i]["startTime"].getTime() + (eventInfos[i]["durationSeconds"] * 1000 / 2));
-        var burnTime = new Date(eventInfos[i]["startTime"].getTime());
-        var burnFlag = eventInfos[i]["burnFlag"];
-        if (!burnFlag) {
-            continue;
-        }
-        var difftime = Math.abs(animTimeDate.getTime() - burnTime.getTime());
-        if (difftime < 1 * 20 * 60 * 1000) {
+    // =========================================================================
+    // 4. Update shared UI: telemetry display
+    // =========================================================================
+    if (sceneState.telemetry) {
+        const tel = sceneState.telemetry;
+        const primaryBody = animationScenes[config].primaryBody;
 
+        d3.select("#distance-SC-" + primaryBody).text(FORMAT_METRIC(tel.distancePrimary));
+        d3.select("#altitude-SC-" + primaryBody).text(FORMAT_METRIC(tel.altitudePrimary));
+        d3.select("#velocity-SC-" + primaryBody).text(FORMAT_METRIC(tel.velocityPrimary));
 
-            if (eventInfos[i]["body"] === "SC") {
-                d3.select("#burng").style("visibility", "visible");
-                updateEventInfo(eventInfos[i]["infoText"]);
-                break;                
-                updateEventInfo(eventInfos[i]["infoText"]);
-                break;
-            }
-        } else {
-            d3.select("#burng").style("visibility", "hidden");
-            clearEventInfo();
+        if (tel.distanceMoon !== undefined && tel.distanceMoon !== null) {
+            d3.select("#distance-SC-MOON").text(FORMAT_METRIC(tel.distanceMoon));
+            d3.select("#altitude-SC-MOON").text(FORMAT_METRIC(tel.altitudeMoon));
+            d3.select("#velocity-SC-MOON").text(FORMAT_METRIC(tel.velocityMoon));
         }
+
+        if (tel.distanceEarth !== undefined && tel.distanceEarth !== null) {
+            d3.select("#distance-SC-EARTH").text(FORMAT_METRIC(tel.distanceEarth));
+            d3.select("#altitude-SC-EARTH").text(FORMAT_METRIC(tel.altitudeEarth));
+            d3.select("#velocity-SC-EARTH").text(FORMAT_METRIC(tel.velocityEarth));
+        }
+    }
+
+    // =========================================================================
+    // 5. Update shared UI: phase indicator
+    // =========================================================================
+    if (globalConfig && globalConfig.is_lunar) {
+        d3.select("#phase-1").html("Earth Bound Phase");
+        d3.select("#phase-2").html("Lunar Bound Phase");
+        d3.select("#phase-3").html("Lunar Orbit Phase");
+
+        if (sceneState.phase === "earth-bound") {
+            d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
+        } else if (sceneState.phase === "lunar-bound") {
+            d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
+        } else if (sceneState.phase === "lunar-orbit") {
+            d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+        }
+    }
+
+    // =========================================================================
+    // 6. Update shared UI: event/burn indicator
+    // =========================================================================
+    if (sceneState.activeEvent) {
+        d3.select("#burng").style("visibility", "visible");
+        updateEventInfo(sceneState.activeEvent.infoText);
+    } else {
+        d3.select("#burng").style("visibility", "hidden");
+        clearEventInfo();
     }
 
     render();
@@ -2775,11 +2680,18 @@ function adjustLabelLocations() {
     
     d3.select("#label-" + animationScenes[config].primaryBody).attr("font-size", (10/zoomFactor));
 
-    var transformString = "translate (" + craftData["x"] + ", " + craftData["y"] + ") ";
-    transformString += "rotate(" + craftData["angle"] + " 0 0) ";
+    const burnX = craftData["x"];
+    const burnY = craftData["y"];
+    const burnAngle = craftData["angle"];
+    if (!Number.isFinite(burnX) || !Number.isFinite(burnY)) {
+        return;
+    }
+
+    var transformString = `translate(${burnX}, ${burnY}) `;
+    transformString += `rotate(${burnAngle || 0} 0 0) `;
     var burnZoomFactor = Math.max(0.25, zoomFactor);
     // console.log("zoomFactor = " + zoomFactor);
-    transformString += "scale (" + 1/burnZoomFactor + " " + 1/burnZoomFactor + ") ";
+    transformString += `scale(${1 / burnZoomFactor} ${1 / burnZoomFactor}) `;
     d3.select("#burng").attr("transform", transformString);
 
 }
