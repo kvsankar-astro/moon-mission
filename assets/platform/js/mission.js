@@ -74,6 +74,7 @@ import {
     computeMissionEventTimes,
 } from "./app/config-times.js";
 import { createModeSwitchActions } from "./app/mode-switch.js";
+import { applyEventsUpdate, computeEventsUpdate } from "./app/config-events.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -1793,58 +1794,6 @@ const {
 });
 
 
-function addEvents() {
-    if (!globalConfig || !globalConfig.events || !globalConfig.eventConfigs) {
-        console.warn('Events configuration not loaded, using default events');
-        return;
-    }
-
-    const events = globalConfig.events;
-    const eventConfigs = globalConfig.eventConfigs;
-    
-    eventInfos = [];
-    
-    const configEvents = eventConfigs[config] || [];
-    
-    for (const eventKey of configEvents) {
-        const eventData = events[eventKey];
-        if (!eventData) {
-            console.warn(`Event ${eventKey} not found in configuration`);
-            continue;
-        }
-        
-        let startTime;
-        if (eventData.startTime === "dynamic") {
-            if (eventKey === "now") {
-                startTime = new Date();
-            } else if (eventKey.endsWith("DataEnd")) {
-                const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
-                startTime = new Date(getStartAndEndTimes(spacecraftMnemonic)[1]);
-            } else {
-                console.warn(`Dynamic start time not handled for event ${eventKey}`);
-                continue;
-            }
-        } else {
-            startTime = new Date(eventData.startTime);
-        }
-        
-        const eventInfo = {
-            startTime: startTime,
-            durationSeconds: eventData.durationSeconds,
-            label: eventData.label,
-            burnFlag: eventData.burnFlag,
-            infoText: eventData.infoText,
-            body: eventData.body
-        };
-        
-        eventInfos.push(eventInfo);
-    }
-    
-    eventInfos.sort(function(a, b) {
-        return a.startTime - b.startTime;
-    });
-}
-
 async function initConfig() {
 
     // console.log("initConfig() called");
@@ -1907,7 +1856,19 @@ async function initConfig() {
     // Update landing UI visibility from config
     updateLandingUIFromConfig();
 
-    addEvents();
+    applyEventsUpdate({
+        update: computeEventsUpdate({
+            globalConfig,
+            config,
+            nowDate: new Date(),
+            getDataEndTimeMs: (spacecraftMnemonic) =>
+                getStartAndEndTimes(spacecraftMnemonic)[1],
+        }),
+        setEventInfos: (val) => {
+            eventInfos = val;
+        },
+        console,
+    });
 
     // Get TLI and LOI times from config (only for lunar missions)
     const missionEventTimes = computeMissionEventTimes({ globalConfig });
