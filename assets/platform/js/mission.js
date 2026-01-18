@@ -57,6 +57,13 @@ import { createCameraActions } from "./app/camera-actions.js";
 import { createModeActions } from "./app/mode-actions.js";
 import { createLockActions } from "./app/lock-actions.js";
 import { setChecked } from "./ui/ui-state.js";
+import {
+    ensureIndeterminateProgressBar,
+    hideElementById,
+    readCheckedRadioValue,
+    showElementById,
+    toggleVisibilityById,
+} from "./ui/dom-helpers.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -259,46 +266,8 @@ function showWhatsNew() {
     if (window.CY3Dialog?.open) {
         window.CY3Dialog.open("#dialog-whatsnew");
     } else {
-        const node = document.getElementById("dialog-whatsnew");
-        if (node) node.style.display = "";
+        showElementById("dialog-whatsnew");
     }
-}
-
-function readCheckedRadioValue(name, fallback = "") {
-    const node = document.querySelector(`input[name="${name}"]:checked`);
-    return node?.value ?? fallback;
-}
-
-function ensureIndeterminateProgressBar() {
-    const bar = document.getElementById("progressbar");
-    if (!bar) return;
-
-    bar.classList.add("ui-progressbar", "ui-progressbar-indeterminate");
-    let value = bar.querySelector(".ui-progressbar-value");
-    if (!value) {
-        value = document.createElement("div");
-        value.className = "ui-progressbar-value";
-        bar.insertBefore(value, bar.firstChild);
-    }
-}
-
-function showProgressBar() {
-    const bar = document.getElementById("progressbar");
-    if (!bar) return;
-    bar.style.display = "";
-}
-
-function hideProgressBar() {
-    const bar = document.getElementById("progressbar");
-    if (!bar) return;
-    bar.style.display = "none";
-}
-
-function toggleVisibilityById(id) {
-    const node = document.getElementById(id);
-    if (!node) return;
-    const isHidden = getComputedStyle(node).display === "none";
-    node.style.display = isHidden ? "" : "none";
 }
 
 // Spacecraft specific times and information
@@ -2122,8 +2091,8 @@ function setDimension(init_flag = false) {
             // console.log("Initializing 3D for " + config);
             var msg = "Loading 3D data. This may take a while. Please wait ..."
             // d3.select("#eventinfo").text(msg);
-            ensureIndeterminateProgressBar();
-            showProgressBar();
+            ensureIndeterminateProgressBar("progressbar");
+            showElementById("progressbar");
             updateProgressLabel(msg);
 
             animationScenes[config].processOrbitVectorsData3D();
@@ -2133,7 +2102,7 @@ function setDimension(init_flag = false) {
 
                 // console.log("init3d() callback called");
                 // d3.select("#eventinfo").text("");
-                hideProgressBar();
+                hideElementById("progressbar");
                 handleDimensionSwitch(val);
                 handlePlaneChange(dimensionChanged, init_flag);
                 setLocation();
@@ -2810,7 +2779,7 @@ function updateConfigFromMetadata() {
 async function processOrbitData() {
     // console.log("processOrbitData() called");
 
-    hideProgressBar();
+    hideElementById("progressbar");
     clearProgressLabel();
 
     // Update configuration from metadata if available
@@ -2944,8 +2913,8 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         // console.log("Loading orbit data for " + config);
 
         var msg = dataLoaded ? "" : ("Loading orbit data ... ");
-        ensureIndeterminateProgressBar();
-        showProgressBar();
+        ensureIndeterminateProgressBar("progressbar");
+        showElementById("progressbar");
         updateProgressLabel(msg);
         await sleep();
 
@@ -2961,14 +2930,14 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
             dataLoaded = true;
             orbitDataLoaded[config] = true;
 
-            hideProgressBar();
+            hideElementById("progressbar");
             await processOrbitData();
             await sleep();
             callback();
 
         } catch(error) {
             console.error("Error loading Chebyshev data:", error);
-            hideProgressBar();
+            hideElementById("progressbar");
             d3.select("#eventinfo").text("Error: failed to load orbit data.");
         }
     } else {
