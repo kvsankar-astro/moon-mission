@@ -64,6 +64,7 @@ import {
     showElementById,
     toggleVisibilityById,
 } from "./ui/dom-helpers.js";
+import { createDimensionActions } from "./app/dimension-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -2041,6 +2042,39 @@ async function initConfig() {
     console.debug("initConfig(" + config + ") returning - state at SCENE_STATE_ADD_CURVE_DONE");
 }
 
+const dimensionActions = createDimensionActions({
+    d3,
+    getConfig: () => config,
+    animationScenes,
+    getCurrentDimension: () => currentDimension,
+    setCurrentDimension: (val) => {
+        currentDimension = val;
+    },
+    getPreviousDimension: () => previousDimension,
+    setPreviousDimension: (val) => {
+        previousDimension = val;
+    },
+    setDimensionChanged: (val) => {
+        dimensionChanged = val;
+    },
+    getDimensionChanged: () => dimensionChanged,
+    setSvgContainer: (val) => {
+        svgContainer = val;
+    },
+    initSVG,
+    loadOrbitDataIfNeededAndProcess,
+    handleDimensionSwitch,
+    handlePlaneChange,
+    setLocation,
+    adjustLabelLocations,
+    getStartLandingFlag: () => startLandingFlag,
+    clearStartLandingFlag: () => {
+        startLandingFlag = false;
+    },
+    toggleLanding: () => toggleLanding(),
+    updateProgressLabel,
+});
+
 const { toggleMode, setDimensionTop, setView } = createSettingsActions({
     getConfig: () => config,
     setConfig: (val) => { config = val; },
@@ -2065,74 +2099,11 @@ const { toggleMode, setDimensionTop, setView } = createSettingsActions({
         viewEquatorialPlane = view.viewEquatorialPlane;
         viewFPS = view.viewFPS;
     },
-    setDimension,
+    setDimension: dimensionActions.setDimension,
 });
 
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
-}
-
-function setDimension(init_flag = false) {
-    var val = readCheckedRadioValue("dimension", currentDimension);
-    // console.log(`setDimension() called with value ${val}`);
-    currentDimension = val;
-
-    if (currentDimension != previousDimension) {
-        dimensionChanged = true;
-    }
-
-    if (val == "3D") {
-        // Clean up SVG when switching to 3D mode
-        d3.select("svg").remove();
-        svgContainer = null;
-
-        if (!animationScenes[config].initialized3D) {
-
-            // console.log("Initializing 3D for " + config);
-            var msg = "Loading 3D data. This may take a while. Please wait ..."
-            // d3.select("#eventinfo").text(msg);
-            ensureIndeterminateProgressBar("progressbar");
-            showElementById("progressbar");
-            updateProgressLabel(msg);
-
-            animationScenes[config].processOrbitVectorsData3D();
-            animationScenes[config].processLandingVectors();
-            
-            animationScenes[config].init3d(function() {
-
-                // console.log("init3d() callback called");
-                // d3.select("#eventinfo").text("");
-                hideElementById("progressbar");
-                handleDimensionSwitch(val);
-                handlePlaneChange(dimensionChanged, init_flag);
-                setLocation();
-                if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
-            });
-
-        } else {
-
-            handleDimensionSwitch(val);
-            handlePlaneChange(dimensionChanged, init_flag);
-            setLocation();
-            if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
-        }
-    } else {
-        
-        initSVG();
-        loadOrbitDataIfNeededAndProcess(function() {
-            if (currentDimension !== "2D") {
-                return;
-            }
-            handleDimensionSwitch(val);
-            handlePlaneChange(dimensionChanged, init_flag);
-            setLocation();
-            adjustLabelLocations();
-            if (startLandingFlag) { startLandingFlag = false; toggleLanding(); }
-        });
-    }
-
-    dimensionChanged = false;
-    previousDimension = currentDimension;
 }
 
 function showPlanet(planet) {
@@ -2508,7 +2479,7 @@ async function initAnimation(flags) {
                 // console.log("Orbit data already processed for " + config);
                 if (flags.reset) { missionStart(); } else { setLocation(); };
                 // realtime();
-                setDimension(true);
+                dimensionActions.setDimension(true);
                 setView();
                 updateCraftScale();
                 // startLandingFlag = true;
