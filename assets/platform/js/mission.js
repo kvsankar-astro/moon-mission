@@ -51,6 +51,7 @@ import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
 import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
+import { createAnimationActions } from "./app/animation-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3506,88 +3507,31 @@ async function processOrbitVectorsData() {
     d3.select("#epochdate").html(epochDate);
 }
 
-function cy3Animate() {
-    // Delegate to animation controller
-    animationController.toggle();
-}
-
-function fastBackward() {
-    // Delegate to animation controller (callback handles setLocation)
-    animationController.fastBackward();
-}
-
-function backward() {
-    // Delegate to animation controller (callback handles setLocation)
-    animationController.stepBackward();
-}
-
-function stopAnimation() {
-    // Delegate to animation controller (callback handles UI update)
-    animationController.pause();
-    clearTimeout(timeoutHandle);  // Keep for backward compatibility
-}
-
-function forward() {
-    // Delegate to animation controller (callback handles setLocation)
-    animationController.stepForward();
-}
-
-function fastForward() {
-    // Delegate to animation controller (callback handles setLocation)
-    animationController.fastForward();
-}
-
-function missionStart() {
-    missionStartCalled = true;
-    // Delegate to animation controller (callback handles setLocation)
-    animationController.goToStart();
-}
-
-function missionSetTime() {
-    // Set time via controller with bounds checking (callback handles setLocation)
-    animationController.goToEvent(animTime);
-}
-
-function missionNow() {
-    // Delegate to animation controller
-    animationController.goToNow();
-}
-
-function missionTLI() {
-    // Go to TLI event time
-    animationController.goToEvent(timeTransLunarInjection);
-}
-
-function missionLunar() {
-    // Go to LOI event time
-    animationController.goToEvent(timeLunarOrbitInsertion);
-}
-
-function missionEnd() {
-    // Delegate to animation controller
-    animationController.goToEnd();
-}
-
-function faster() {
-    // Delegate to animation controller (callback syncs global state)
-    animationController.faster();
-}
-
-function resetspeed() {
-    // Delegate to animation controller (callback syncs global state)
-    animationController.resetSpeed();
-    // console.log("animTimeStepMinutes = " + animTimeStepMinutes);
-}
-
-function slower() {
-    // Delegate to animation controller (callback syncs global state)
-    animationController.slower();
-}
-
-function realtime() {
-    // Delegate to animation controller (callback syncs global state)
-    animationController.setRealtimeSpeed();
-}
+const {
+    cy3Animate,
+    fastBackward,
+    backward,
+    stopAnimation,
+    forward,
+    fastForward,
+    missionStart,
+    missionSetTime,
+    missionNow,
+    missionTLI,
+    missionLunar,
+    missionEnd,
+    faster,
+    resetspeed,
+    slower,
+    realtime,
+} = createAnimationActions({
+    animationController,
+    getAnimTime: () => animTime,
+    getTimeTransLunarInjection: () => timeTransLunarInjection,
+    getTimeLunarOrbitInsertion: () => timeLunarOrbitInsertion,
+    setMissionStartCalled: (val) => { missionStartCalled = val; },
+    clearLegacyTimeout: () => { clearTimeout(timeoutHandle); },
+});
 
 function zoomChangeTransform(t) {
     
