@@ -47,9 +47,10 @@ import {
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
 import { applyViewSettings, readOriginMode, readViewSettings } from "./ui/ui-state.js";
-import { bindBurnButtons, bindMainControls, bindSettingsPanel } from "./ui/event-handlers.js";
+import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
 import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
 import { createEventBus } from "./core/event-bus.js";
+import { startMissionApp } from "./app/mission-app.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -245,7 +246,6 @@ var animation2DControllers = {};  // Per-config 2D controllers
 
 // Event bus for decoupling UI ↔ mission orchestration
 const eventBus = createEventBus();
-let eventBusWired = false;
 var globalConfig = null; // Store loaded config from config.json
 var joyRideFlag = false;
 var landingFlag = false;
@@ -2741,50 +2741,26 @@ function animateLoop() {
 }
 
 export function main() {
-    const onloadStartTime = performance.now();
-
-    if (!eventBusWired) {
-        eventBusWired = true;
-
-        const forwardEvent = (fn) => (payload) => fn(payload?.event);
-
-        eventBus.on("ui:reset", forwardEvent(reset));
-        eventBus.on("settings:originChanged", forwardEvent(toggleMode));
-        eventBus.on("camera:viewChanged", forwardEvent(toggleCamera));
-        eventBus.on("camera:lockOn", (payload) => {
-            const target = payload?.target;
-            const event = payload?.event;
-            if (target === "SC") return toggleLockSC(event);
-            if (target === "MOON") return toggleLockMoon(event);
-            if (target === "EARTH") return toggleLockEarth(event);
-        });
-        eventBus.on("camera:planeChanged", forwardEvent(togglePlane));
-        eventBus.on("settings:viewChanged", forwardEvent(setView));
-        eventBus.on("settings:dimensionChanged", forwardEvent(setDimensionTop));
-        eventBus.on("animation:toggle", forwardEvent(cy3Animate));
-        eventBus.on("mode:joyRideToggle", forwardEvent(toggleJoyRide));
-        eventBus.on("mission:landingToggle", forwardEvent(toggleLanding));
-        eventBus.on("ui:infoToggle", forwardEvent(toggleInfo));
-    }
-
-    bindMainControls({
-        reset: (event) => eventBus.emit("ui:reset", { event }),
-        toggleMode: (event) => eventBus.emit("settings:originChanged", { event }),
-        toggleCamera: (event) => eventBus.emit("camera:viewChanged", { event }),
-        toggleLockSC: (event) => eventBus.emit("camera:lockOn", { target: "SC", event }),
-        toggleLockMoon: (event) => eventBus.emit("camera:lockOn", { target: "MOON", event }),
-        toggleLockEarth: (event) => eventBus.emit("camera:lockOn", { target: "EARTH", event }),
-        togglePlane: (event) => eventBus.emit("camera:planeChanged", { event }),
-        setView: (event) => eventBus.emit("settings:viewChanged", { event }),
-        setDimensionTop: (event) => eventBus.emit("settings:dimensionChanged", { event }),
-        cy3Animate: (event) => eventBus.emit("animation:toggle", { event }),
-        toggleJoyRide: (event) => eventBus.emit("mode:joyRideToggle", { event }),
-        toggleLanding: (event) => eventBus.emit("mission:landingToggle", { event }),
-        toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),
+    const onloadEndTime = startMissionApp({
+        eventBus,
+        handlers: {
+            reset,
+            toggleMode,
+            toggleCamera,
+            toggleLockSC,
+            toggleLockMoon,
+            toggleLockEarth,
+            togglePlane,
+            setView,
+            setDimensionTop,
+            cy3Animate,
+            toggleJoyRide,
+            toggleLanding,
+            toggleInfo,
+            initAnimation,
+        },
     });
 
-    initAnimation({'reset': true}); // no need to await here - we are just kickstarting the setup 
-    const onloadEndTime = performance.now() - onloadStartTime;
     // console.log("onload() took " + onloadEndTime + " ms");
 }
 
