@@ -68,6 +68,11 @@ import {
     computeMoonUiPatch,
 } from "./app/config-ui.js";
 import { applyMissionMetadata } from "./app/mission-metadata.js";
+import {
+    applyLandingTimesUpdate,
+    computeLandingTimesUpdate,
+    computeMissionEventTimes,
+} from "./app/config-times.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -352,39 +357,6 @@ function updateLandingUIFromConfig() {
         },
     });
 }
-
-function updateLandingTimesFromConfig() {
-    if (globalConfig && globalConfig.landing && globalConfig.landing.enabled) {
-        const cfg = globalConfig.landing;
-
-        // Calculate start time from config using time-utils
-        startLandingTime = createUTCTimestamp(
-            parseInt(cfg.start_year),
-            parseInt(cfg.start_month),
-            parseInt(cfg.start_day),
-            parseInt(cfg.start_hour),
-            parseInt(cfg.start_minute)
-        );
-
-        // Calculate end time from config using time-utils
-        endLandingTime = createUTCTimestamp(
-            parseInt(cfg.stop_year),
-            parseInt(cfg.stop_month),
-            parseInt(cfg.stop_day),
-            parseInt(cfg.stop_hour),
-            parseInt(cfg.stop_minute)
-        );
-
-        console.debug('Updated landing times from config:', {
-            startLandingTime: new Date(startLandingTime),
-            endLandingTime: new Date(endLandingTime)
-        });
-    } else if (!globalConfig || !globalConfig.landing) {
-        console.debug('Using default landing times (no config.landing found)');
-    }
-    // If landing.enabled is false, no message is logged
-}
-
 
 function getStartAndEndTimes(id) {
     let startTime, endTime;
@@ -1966,7 +1938,16 @@ async function initConfig() {
     const configData = globalConfig;
     
     // Update landing times from config if available
-    updateLandingTimesFromConfig();
+    applyLandingTimesUpdate({
+        update: computeLandingTimesUpdate({ globalConfig, createUTCTimestamp }),
+        setStartLandingTime: (val) => {
+            startLandingTime = val;
+        },
+        setEndLandingTime: (val) => {
+            endLandingTime = val;
+        },
+        console,
+    });
     
     // Update landing UI visibility from config
     updateLandingUIFromConfig();
@@ -1974,11 +1955,12 @@ async function initConfig() {
     addEvents();
 
     // Get TLI and LOI times from config (only for lunar missions)
-    if (globalConfig?.is_lunar && globalConfig.events?.tli) {
-        timeTransLunarInjection = new Date(globalConfig.events.tli.startTime).getTime();
+    const missionEventTimes = computeMissionEventTimes({ globalConfig });
+    if (typeof missionEventTimes.timeTransLunarInjection === "number") {
+        timeTransLunarInjection = missionEventTimes.timeTransLunarInjection;
     }
-    if (globalConfig?.is_lunar && globalConfig.events?.loi) {
-        timeLunarOrbitInsertion = new Date(globalConfig.events.loi.startTime).getTime();
+    if (typeof missionEventTimes.timeLunarOrbitInsertion === "number") {
+        timeLunarOrbitInsertion = missionEventTimes.timeLunarOrbitInsertion;
     }
 
     if (!theSceneHandler) {
