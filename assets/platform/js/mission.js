@@ -388,6 +388,7 @@ class SceneHandler {
         this.renderer = null;
         this.canvasNode = null;
         this.initialized = false;
+        this.lookAtWorldTarget = new THREE.Vector3();
 
         this.init();
     }
@@ -424,9 +425,7 @@ class SceneHandler {
 
             updateCraftScale();
 
-            if (moonPhaseCamera) {
-                animationScene.camera.lookAt(animationScene.secondaryBody3D.position);            
-            }
+            const shouldLookAtMoon = moonPhaseCamera;
             
             if (animationScene.lockOnEarth || (globalConfig && globalConfig.is_lunar && animationScene.lockOnMoon)) {
             
@@ -446,6 +445,11 @@ class SceneHandler {
             } else {
                 animationScene.motherContainer.position.set(0, 0, 0);
             }               
+
+            if (shouldLookAtMoon && animationScene.secondaryBody3D && animationScene.camera) {
+                animationScene.secondaryBody3D.getWorldPosition(this.lookAtWorldTarget);
+                animationScene.camera.lookAt(this.lookAtWorldTarget);
+            }
 
             if (joyRideFlag || landingFlag) {
 
