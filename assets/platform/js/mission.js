@@ -375,17 +375,17 @@ function updateMoonUIFromConfig() {
         $(".geo").hide(); // Hide "Lock on Moon" checkbox
         
         // If currently in lunar mode, switch to geo mode
-        if (config === "lunar") {
-            config = "geo";
-            $("#origin-earth").prop("checked", true);
-            $("#origin-moon").prop("checked", false);
-        }
-        
-        // Ensure moon-related checkboxes are unchecked
-        $("#checkbox-lock-moon").prop("checked", false);
-        $("#view-moonsoi").prop("checked", false);
-    }
-}
+         if (config === "lunar") {
+             config = "geo";
+             setChecked("origin-earth", true);
+             setChecked("origin-moon", false);
+         }
+         
+         // Ensure moon-related checkboxes are unchecked
+         setChecked("checkbox-lock-moon", false);
+         setChecked("view-moonsoi", false);
+     }
+ }
 
 function updateLandingUIFromConfig() {
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
@@ -402,13 +402,13 @@ function updateLandingUIFromConfig() {
         $("#landingbutton").hide();
         
         // If landing is currently active, turn it off
-        if (landingFlag) {
-            landingFlag = false;
-            $("#landingbutton").removeClass("down");
-            $("#landing").prop("checked", false);
-        }
-    }
-}
+         if (landingFlag) {
+             landingFlag = false;
+             $("#landingbutton").removeClass("down");
+             setChecked("landing", false);
+         }
+     }
+ }
 
 function updateLandingTimesFromConfig() {
     if (globalConfig && globalConfig.landing && globalConfig.landing.enabled) {
@@ -1981,25 +1981,25 @@ async function initConfig() {
 
     if (animationScenes[config] && animationScenes[config].state >= AnimationScene.SCENE_STATE_INIT_CONFIG_DONE) {
         // console.log("initConfig() returning as already initialized");
-        if (config == "geo") {
-            handleModeSwitchToGeo();
-        } else if (config == "lunar") {
-            handleModeSwitchToLunar();
-        }
+         if (config == "geo") {
+             handleModeSwitchToGeo();
+         } else if (config == "lunar") {
+             handleModeSwitchToLunar();
+         }
 
-        d3.select("#checkbox-lock-moon").property("checked", animationScenes[config].lockOnMoon);
-        d3.select("#checkbox-lock-earth").property("checked", animationScenes[config].lockOnEarth);   
-        d3.select("#checkbox-lock-sc").property("checked", animationScenes[config].lockOnSC);
+         setChecked("checkbox-lock-moon", animationScenes[config].lockOnMoon);
+         setChecked("checkbox-lock-earth", animationScenes[config].lockOnEarth);
+         setChecked("checkbox-lock-sc", animationScenes[config].lockOnSC);
 
-        d3.select("#checkbox-lock-xy").property("checked", animationScenes[config].lockOnXY);
-        d3.select("#checkbox-lock-zx").property("checked", animationScenes[config].lockOnZX);
-        d3.select("#checkbox-lock-yz").property("checked", animationScenes[config].lockOnYZ);
-        d3.select("#checkbox-lock-xy-minus").property("checked", animationScenes[config].lockOnXYMinus);
-        d3.select("#checkbox-lock-zx-minus").property("checked", animationScenes[config].lockOnZXMinus);
-        d3.select("#checkbox-lock-yz-minus").property("checked", animationScenes[config].lockOnYZMinus);
+         setChecked("checkbox-lock-xy", animationScenes[config].lockOnXY);
+         setChecked("checkbox-lock-zx", animationScenes[config].lockOnZX);
+         setChecked("checkbox-lock-yz", animationScenes[config].lockOnYZ);
+         setChecked("checkbox-lock-xy-minus", animationScenes[config].lockOnXYMinus);
+         setChecked("checkbox-lock-zx-minus", animationScenes[config].lockOnZXMinus);
+         setChecked("checkbox-lock-yz-minus", animationScenes[config].lockOnYZMinus);
 
-        return;
-    }
+         return;
+     }
 
     if (globalConfig === null) {
         globalConfig = await loadMissionConfig();
