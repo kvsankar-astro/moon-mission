@@ -55,6 +55,8 @@ import { createAnimationActions } from "./app/animation-actions.js";
 import { createSettingsActions } from "./app/settings-actions.js";
 import { createCameraActions } from "./app/camera-actions.js";
 import { createModeActions } from "./app/mode-actions.js";
+import { createLockActions } from "./app/lock-actions.js";
+import { setChecked } from "./ui/ui-state.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -3645,49 +3647,12 @@ function toggleInfo() {
     $("#stats").toggle();
 }
 
-function toggleLockSC() {
-    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
-    animationScenes[config].lockOnSC = !animationScenes[config].lockOnSC;
-    
-    animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
-    animationScenes[config].lockOnMoon = false;
-    d3.select("#checkbox-lock-moon").property("checked", false);
-    
-    animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
-    animationScenes[config].lockOnEarth = false;
-    d3.select("#checkbox-lock-earth").property("checked", false);
-
-    reset();
-}
-
-function toggleLockMoon() {
-    animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
-    animationScenes[config].lockOnMoon = !animationScenes[config].lockOnMoon;
-
-    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
-    animationScenes[config].lockOnSC = false;
-    d3.select("#checkbox-lock-sc").property("checked", false);
-
-    animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
-    animationScenes[config].lockOnEarth = false;
-    d3.select("#checkbox-lock-earth").property("checked", false);
-
-    reset();
-}
-
-function toggleLockEarth() {
-    animationScenes[config].previousLockOnEarth = animationScenes[config].lockOnEarth;
-    animationScenes[config].lockOnEarth = !animationScenes[config].lockOnEarth;
-    animationScenes[config].previousLockOnSC = animationScenes[config].lockOnSC;
-    animationScenes[config].lockOnSC = false;
-    d3.select("#checkbox-lock-sc").property("checked", false);
-    
-    animationScenes[config].previousLockOnMoon = animationScenes[config].lockOnMoon;
-    animationScenes[config].lockOnMoon = false;
-    d3.select("#checkbox-lock-moon").property("checked", false);
-
-    reset();
-}
+const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
+    animationScenes,
+    getConfig: () => config,
+    reset,
+    setChecked,
+});
 
 function toggleCameraPos() {
     var val = $('input[name=camera]:checked').val();
