@@ -3654,20 +3654,6 @@ const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
     setChecked,
 });
 
-function toggleCameraPos() {
-    var val = $('input[name=camera]:checked').val();
-    if (animationScenes[config] && animationScenes[config].initialized3D) {
-        animationScenes[config].toggleCameraPos(val);
-    }
-}
-
-function toggleCameraLook() {
-    var val = $('input[name=look]:checked').val();
-    if (animationScenes[config] && animationScenes[config].initialized3D) {
-        animationScenes[config].toggleCameraLook(val);
-    }
-}
-
 function handlePlaneChange(dimension_changed = false, init_flag = false) {
 
     // TODO Dimension/Plane combined state handler to be created and the dirty logic below to be simplified and readable
@@ -3746,13 +3732,14 @@ function handlePlaneChange(dimension_changed = false, init_flag = false) {
     }
 }
 
-const { toggleCamera, togglePlane } = createCameraActions({
+const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createCameraActions({
     animationScenes,
     getConfig: () => config,
     readCameraMode: () => $('input[name=camera]:checked').val(),
     readPlaneSelection: () => $('input[name=plane]:checked').val(),
     setPlaneSelection: (val) => { planeSelection = val; },
     handlePlaneChange,
+    readLookMode: () => $('input[name=look]:checked').val(),
     render,
     getMoonPhaseCamera: () => moonPhaseCamera,
     setMoonPhaseCamera: (val) => { moonPhaseCamera = val; },

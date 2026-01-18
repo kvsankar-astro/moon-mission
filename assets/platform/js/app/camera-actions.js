@@ -5,6 +5,7 @@ export function createCameraActions({
     readPlaneSelection,
     setPlaneSelection,
     handlePlaneChange,
+    readLookMode,
     render,
     getMoonPhaseCamera,
     setMoonPhaseCamera,
@@ -33,5 +34,21 @@ export function createCameraActions({
         handlePlaneChange(false, false);
     }
 
-    return { toggleCamera, togglePlane };
+    function toggleCameraPos() {
+        const val = readCameraMode();
+        const config = getConfig();
+        if (animationScenes[config] && animationScenes[config].initialized3D) {
+            animationScenes[config].toggleCameraPos(val);
+        }
+    }
+
+    function toggleCameraLook() {
+        const val = readLookMode();
+        const config = getConfig();
+        if (animationScenes[config] && animationScenes[config].initialized3D) {
+            animationScenes[config].toggleCameraLook(val);
+        }
+    }
+
+    return { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook };
 }
