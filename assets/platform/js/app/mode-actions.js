@@ -1,4 +1,4 @@
-import { applyViewSettings } from "../ui/ui-state.js";
+import { applyViewSettings, setChecked } from "../ui/ui-state.js";
 
 export function createModeActions({
     animationScenes,
@@ -12,6 +12,12 @@ export function createModeActions({
     setJoyRideFlag,
     setView,
 }) {
+    function toggleButtonDownState(id, isDown) {
+        const button = document.getElementById(id);
+        if (!button) return;
+        button.classList.toggle("down", !!isDown);
+    }
+
     function toggleJoyRide() {
         if (getLandingFlag()) {
             toggleLanding();
@@ -23,8 +29,8 @@ export function createModeActions({
         const scene = animationScenes[getConfig()];
         scene.craft.visible = !next;
         scene.craftEdges.visible = !next;
-        $("#joyridebutton").toggleClass("down");
-        $("#joyride").prop("checked", next);
+        toggleButtonDownState("joyridebutton", next);
+        setChecked("joyride", next);
 
         if (next) {
             scene.motherContainer.position.set(0, 0, 0);
@@ -75,8 +81,8 @@ export function createModeActions({
         const scene = animationScenes[getConfig()];
         scene.craft.visible = true;
         scene.craftEdges.visible = true;
-        $("#landingbutton").toggleClass("down");
-        $("#landing").prop("checked", next);
+        toggleButtonDownState("landingbutton", next);
+        setChecked("landing", next);
 
         if (next) {
             scene.motherContainer.position.set(0, 0, 0);
@@ -115,4 +121,3 @@ export function createModeActions({
 
     return { toggleJoyRide, toggleLanding };
 }
-
