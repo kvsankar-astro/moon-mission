@@ -52,6 +52,7 @@ import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOr
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { createAnimationActions } from "./app/animation-actions.js";
+import { createSettingsActions } from "./app/settings-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2210,38 +2211,35 @@ async function initConfig() {
     console.debug("initConfig(" + config + ") returning - state at SCENE_STATE_ADD_CURVE_DONE");
 }
 
-function toggleMode() {
-
-    var val = $('input[name=mode]:checked').val();
-    // console.log("toggleMode() called with value " + val + ", currentDimension = " + currentDimension);
-
-
-    if (config != val) {
-
-        if (animationScenes[config]) {
-            // console.log("animationScenes[config].state = " + animationScenes[config].state);
-            if (animationScenes[config].state != AnimationScene.SCENE_STATE_ADD_CURVE_DONE) {
-                animationScenes[config].stopCreation();
-                // console.log("Disposing of AnimationScene for " + config + ", as it's not fully initialized.");
-                animationScenes[config].dispose();
-                delete animationScenes[config];
-            } else {
-                // console.log("Not disposing of AnimationScene for " + config + ", as it's fully initialized: state = " + animationScenes[config].state);
-            }
-        }
-
-        config = val;
-        // orbitDataProcessed[config] = false;
-        initAnimation({'reset': false});
-    }
-}
+const { toggleMode, setDimensionTop, setView } = createSettingsActions({
+    getConfig: () => config,
+    setConfig: (val) => { config = val; },
+    animationScenes,
+    AnimationScene,
+    initAnimation,
+    readOriginMode,
+    readViewSettings,
+    setFPSCounterVisibility,
+    render,
+    getGlobalConfig: () => globalConfig,
+    setViewFlags: (view) => {
+        viewOrbit = view.viewOrbit;
+        viewOrbitDescent = view.viewOrbitDescent;
+        viewCraters = view.viewCraters;
+        viewXYZAxes = view.viewXYZAxes;
+        viewPoles = view.viewPoles;
+        viewPolarAxes = view.viewPolarAxes;
+        viewSky = view.viewSky;
+        viewMoonSOI = view.viewMoonSOI;
+        viewEclipticPlane = view.viewEclipticPlane;
+        viewEquatorialPlane = view.viewEquatorialPlane;
+        viewFPS = view.viewFPS;
+    },
+    setDimension,
+});
 
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
-}
-
-function setDimensionTop() {
-    setDimension(false);
 }
 
 function setDimension(init_flag = false) {
@@ -3874,64 +3872,6 @@ function toggleLanding() {
         setView();
     }
     updateCraftScale();
-    render();
-}
-
-function setView() {
-    // console.log("setView() called");
-
-    const view = readViewSettings();
-    viewOrbit = view.viewOrbit;
-    viewOrbitDescent = view.viewOrbitDescent;
-    viewCraters = view.viewCraters;
-    viewXYZAxes = view.viewXYZAxes;
-    viewPoles = view.viewPoles;
-    viewPolarAxes = view.viewPolarAxes;
-    viewSky = view.viewSky;
-    viewMoonSOI = view.viewMoonSOI;
-    viewEclipticPlane = view.viewEclipticPlane;
-    viewEquatorialPlane = view.viewEquatorialPlane;
-    viewFPS = view.viewFPS;
-
-    // Control FPS counter visibility
-    setFPSCounterVisibility(viewFPS);
-
-    ["geo", "lunar"].map(function(cfg) {
-        // console.log("Setting view for config: " + cfg);
-
-        if (animationScenes[cfg] && animationScenes[cfg].initialized3D) {
-            animationScenes[cfg].orbitLines.map((orbitLine) => {orbitLine.visible = viewOrbit;});
-            if (cfg == "lunar" && globalConfig && globalConfig.landing && globalConfig.landing.enabled) { 
-                animationScenes[cfg].landingOrbitLine.visible = viewOrbitDescent; 
-            }
-        
-            
-            animationScenes[cfg].locations.map(x => x.visible = viewCraters);
-        
-            animationScenes[cfg].axesHelper.visible = viewXYZAxes;
-        
-            animationScenes[cfg].earthNorthPoleSphere.visible = viewPoles;
-            animationScenes[cfg].earthSouthPoleSphere.visible = viewPoles;
-            
-            // Only show moon elements if this is a lunar mission
-            if (globalConfig && globalConfig.is_lunar) {
-                animationScenes[cfg].moonNorthPoleSphere.visible = viewPoles;
-                animationScenes[cfg].moonSouthPoleSphere.visible = viewPoles;
-                animationScenes[cfg].moonAxis.visible = viewPolarAxes;
-                animationScenes[cfg].moonSOISphere.visible = viewMoonSOI;
-            }
-        
-            animationScenes[cfg].earthAxis.visible = viewPolarAxes;
-            
-            animationScenes[cfg].skyContainer.visible = viewSky;  
-            animationScenes[cfg].eclipticPlaneHelper.visible = viewEclipticPlane;
-            animationScenes[cfg].eclipticPolarGridHelper.visible = viewEclipticPlane;
-            animationScenes[cfg].equatorialPlaneHelper.visible = viewEquatorialPlane;
-            animationScenes[cfg].equatorialPolarGridHelper.visible = viewEquatorialPlane;
-        }
-    
-    });
-
     render();
 }
 
