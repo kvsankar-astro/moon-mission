@@ -1,5 +1,27 @@
 (function () {
     if (typeof window === "undefined") return;
+
+    // Provide a tiny fallback so non-jQuery environments can still open/close panels.
+    // When jQuery is present, we replace this with the full dialog/progressbar shims below.
+    if (!window.CY3Dialog) {
+        window.CY3Dialog = {
+            init() {},
+            open(target) {
+                const node = typeof target === "string" ? document.querySelector(target) : target;
+                if (!node) return;
+                node.style.display = "";
+            },
+            close(target) {
+                const node = typeof target === "string" ? document.querySelector(target) : target;
+                if (!node) return;
+                node.style.display = "none";
+            },
+            widgetElement(target) {
+                return typeof target === "string" ? document.querySelector(target) : target;
+            },
+        };
+    }
+
     if (!window.jQuery) return;
 
     const $ = window.jQuery;
@@ -194,7 +216,7 @@
                 if (options.modal && $wrapper) {
                     const $overlay = ensureOverlay($wrapper, options);
                     $overlay.show();
-                    $("body").addClass("cy3-modal-open");
+                    document.body.classList.add("cy3-modal-open");
                 }
 
                 if ($wrapper) $wrapper.show();
@@ -217,7 +239,7 @@
                 if (options.modal && $wrapper) {
                     const $overlay = $wrapper.data("modalOverlay");
                     if ($overlay) $overlay.hide();
-                    $("body").removeClass("cy3-modal-open");
+                    document.body.classList.remove("cy3-modal-open");
                 }
             });
             return $el;
@@ -239,7 +261,7 @@
 
     // Expose a tiny non-jQuery-UI API so app code can avoid calling $.fn.dialog directly,
     // while keeping $.fn.dialog available for back-compat and tests.
-    window.CY3Dialog = window.CY3Dialog || dialogApi;
+    window.CY3Dialog = dialogApi;
 
     function ensureProgressbar($el) {
         const existing = $el.data("progressbarValueDiv");
