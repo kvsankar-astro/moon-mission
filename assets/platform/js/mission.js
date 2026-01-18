@@ -2791,9 +2791,9 @@ async function init(callback) {
     animationScenes[config].lockOnMoon = false;
     animationScenes[config].lockOnEarth = false;
     
-    d3.select("#checkbox-lock-sc").property("checked", false);
-    d3.select("#checkbox-lock-moon").property("checked", false);
-    d3.select("#checkbox-lock-earth").property("checked", false);
+    setChecked("checkbox-lock-sc", false);
+    setChecked("checkbox-lock-moon", false);
+    setChecked("checkbox-lock-earth", false);
 
     d3SelectAll("button").attr("disabled", true);
 
