@@ -80,6 +80,7 @@ import {
     shouldSkipInitConfig,
 } from "./app/init-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
+import { createStartEndTimesResolver } from "./app/start-end-times.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -365,32 +366,12 @@ function updateLandingUIFromConfig() {
     });
 }
 
-function getStartAndEndTimes(id) {
-    let startTime, endTime;
-
-    if (globalConfig && globalConfig[config]) {
-        const phaseConfig = globalConfig[config];
-        startTime = createUTCTimestamp(
-            parseInt(phaseConfig.start_year),
-            parseInt(phaseConfig.start_month),
-            parseInt(phaseConfig.start_day),
-            parseInt(phaseConfig.start_hour),
-            parseInt(phaseConfig.start_minute)
-        );
-        // Note: we should keep end times 1 minute (current resolution) less than the last orbit data point time argument
-        endTime = createUTCTimestamp(
-            parseInt(phaseConfig.stop_year),
-            parseInt(phaseConfig.stop_month),
-            parseInt(phaseConfig.stop_day),
-            parseInt(phaseConfig.stop_hour),
-            parseInt(phaseConfig.stop_minute)
-        ) - TC.ONE_MINUTE_MS;
-    } else {
-        return [null, null];
-    }
-
-    return [startTime, endTime];
-}
+const getStartAndEndTimes = createStartEndTimesResolver({
+    getGlobalConfig: () => globalConfig,
+    getConfig: () => config,
+    createUTCTimestamp,
+    oneMinuteMs: TC.ONE_MINUTE_MS,
+});
 
 class SceneHandler {
 
