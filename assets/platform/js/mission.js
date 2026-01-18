@@ -81,6 +81,7 @@ import {
 } from "./app/init-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 import { createStartEndTimesResolver } from "./app/start-end-times.js";
+import { initRepeatButtons } from "./app/init-repeat-buttons.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -2592,27 +2593,13 @@ async function init(callback) {
     panx = 0;
     pany = 0;
     
-    animationScenes[config].lockOnSC = false;
-    animationScenes[config].lockOnMoon = false;
-    animationScenes[config].lockOnEarth = false;
-    
-    setChecked("checkbox-lock-sc", false);
-    setChecked("checkbox-lock-moon", false);
-    setChecked("checkbox-lock-earth", false);
-
-    d3SelectAll("button").attr("disabled", true);
-
-    var buttons = [
-        "zoomin", "zoomout",
-        "panleft", "panright", "panup", "pandown",
-        "forward", "fastforward", "backward", "fastbackward",
-        "slower", "resetspeed", "faster", "realtime"
-    ];
-
-    bindRepeatButtons({
-        select: d3.select,
-        buttons,
-        onMouseDownById: {
+    initRepeatButtons({
+        d3SelectAll,
+        setChecked,
+        animationScene: animationScenes[config],
+        bindRepeatButtons,
+        d3Select: d3.select,
+        handlersById: {
             zoomin: f1,
             zoomout: f2,
             panleft: f3,
@@ -2628,24 +2615,18 @@ async function init(callback) {
             faster: f13,
             realtime: f14,
         },
-        onMouseUp: function () {
-            mousedownTimeout = UC.ZOOM_TIMEOUT;
-            mouseDown = false;
+        resetMouseRepeatState: ({ mouseOut } = {}) => {
+            if (mouseOut) {
+                mouseDown = false;
+                if (timeoutHandleZoom == null) return;
+            } else {
+                mousedownTimeout = UC.ZOOM_TIMEOUT;
+                mouseDown = false;
+            }
+
             clearTimeout(timeoutHandleZoom);
             timeoutHandleZoom = null;
-
             zoomEnd();
-        },
-        onMouseOut: function () {
-            mouseDown = false;
-            if (timeoutHandleZoom == null) return;
-            clearTimeout(timeoutHandleZoom);
-            timeoutHandleZoom = null;
-
-            zoomEnd();
-        },
-        onClick: function () {
-            // TODO - would there be a case where mousedown is not called?
         },
     });
 
