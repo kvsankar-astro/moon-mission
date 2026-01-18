@@ -6,6 +6,7 @@
 
     let dialogIdCounter = 0;
     let progressbarIdCounter = 0;
+    let overlayIdCounter = 0;
 
     function ensureDialog($el, options) {
         const existing = $el.data("dialogWrapper");
@@ -63,12 +64,36 @@
         $("body").append($wrapper);
 
         $el.data("dialogWrapper", $wrapper);
+        $el.data("dialogOptions", options || {});
 
         $closeButton.on("click", function () {
-            $wrapper.hide();
+            dialogApi.close($el);
         });
 
         return $wrapper;
+    }
+
+    function ensureOverlay($wrapper, options) {
+        const existing = $wrapper.data("modalOverlay");
+        if (existing) return existing;
+
+        const overlayId = `cy3-modal-${++overlayIdCounter}`;
+        const $overlay = $("<div></div>")
+            .addClass(["cy3-modal-overlay", options?.overlayClass || ""].filter(Boolean).join(" "))
+            .attr("id", overlayId)
+            .attr("role", "presentation")
+            .hide();
+
+        $("body").append($overlay);
+        $wrapper.data("modalOverlay", $overlay);
+
+        if (options?.closeOnOverlayClick) {
+            $overlay.on("click", function () {
+                dialogApi.close($wrapper.find(".ui-dialog-content").first());
+            });
+        }
+
+        return $overlay;
     }
 
     function applyPosition($wrapper, options) {
@@ -99,53 +124,25 @@
             const command = arg;
 
             if (command === "open") {
-                this.each(function () {
-                    const $el = $(this);
-                    const $wrapper = $el.data("dialogWrapper");
-                    if ($wrapper) $wrapper.show();
-                    else $el.show();
-                });
+                dialogApi.open(this);
                 return this;
             }
 
             if (command === "close") {
-                this.each(function () {
-                    const $el = $(this);
-                    const $wrapper = $el.data("dialogWrapper");
-                    if ($wrapper) $wrapper.hide();
-                    else $el.hide();
-                });
+                dialogApi.close(this);
                 return this;
             }
 
             if (command === "widget") {
-                const $el = this.first();
-                const $wrapper = $el.data("dialogWrapper");
-                return $wrapper || $();
+                return dialogApi.widget(this);
             }
 
             return this;
         }
 
         const options = arg || {};
-        this.each(function () {
-            const $el = $(this);
-            const $wrapper = ensureDialog($el, options);
-
-            // Update title if changed.
-            if (typeof options.title === "string") {
-                const labelledBy = $wrapper.attr("aria-labelledby");
-                if (labelledBy) {
-                    const titleNode = document.getElementById(labelledBy);
-                    if (titleNode) titleNode.textContent = options.title;
-                }
-            }
-
-            applyPosition($wrapper, options);
-
-            // Non-modal dialog: show immediately (matches current usage pattern).
-            $wrapper.show();
-        });
+        dialogApi.init(this, options);
+        dialogApi.open(this);
 
         return this;
     };
@@ -169,6 +166,7 @@
             $el.each(function () {
                 const $node = $(this);
                 const $wrapper = ensureDialog($node, options || {});
+                $node.data("dialogOptions", options || {});
 
                 // Update title if changed.
                 if (typeof options?.title === "string") {
@@ -191,6 +189,14 @@
             $el.each(function () {
                 const $node = $(this);
                 const $wrapper = $node.data("dialogWrapper");
+                const options = $node.data("dialogOptions") || {};
+
+                if (options.modal && $wrapper) {
+                    const $overlay = ensureOverlay($wrapper, options);
+                    $overlay.show();
+                    $("body").addClass("cy3-modal-open");
+                }
+
                 if ($wrapper) $wrapper.show();
                 else $node.show();
             });
@@ -203,8 +209,16 @@
             $el.each(function () {
                 const $node = $(this);
                 const $wrapper = $node.data("dialogWrapper");
+                const options = $node.data("dialogOptions") || {};
+
                 if ($wrapper) $wrapper.hide();
                 else $node.hide();
+
+                if (options.modal && $wrapper) {
+                    const $overlay = $wrapper.data("modalOverlay");
+                    if ($overlay) $overlay.hide();
+                    $("body").removeClass("cy3-modal-open");
+                }
             });
             return $el;
         },

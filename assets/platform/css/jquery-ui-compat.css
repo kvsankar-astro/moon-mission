@@ -8,6 +8,17 @@
   z-index: 100;
 }
 
+body.cy3-modal-open {
+  overflow: hidden;
+}
+
+.cy3-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9990;
+}
+
 .ui-widget {
   font-family: inherit;
   font-size: 1em;
@@ -131,4 +142,3 @@
     transform: translateX(60%);
   }
 }
-
