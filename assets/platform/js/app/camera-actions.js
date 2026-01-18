@@ -11,19 +11,30 @@ export function createCameraActions({
     setMoonPhaseCamera,
     getViewSky,
 }) {
+    function setLookModeForScene(scene, mode) {
+        if (!scene || !scene.cameraController?.setFromToModes) return;
+
+        // Only look mode is changed for now; position remains manual.
+        scene.cameraController.setFromToModes("manual", mode);
+    }
+
     function toggleCamera() {
         const val = readCameraMode();
 
-        if (val === "default") {
-            setMoonPhaseCamera(false);
-        } else {
-            setMoonPhaseCamera(true);
-        }
-
         const config = getConfig();
-        if (animationScenes[config] && animationScenes[config].initialized3D) {
-            animationScenes[config].setCameraParameters(false);
-            animationScenes[config].skyContainer.visible = !getMoonPhaseCamera() && getViewSky();
+        const scene = animationScenes[config];
+        if (scene && scene.initialized3D) {
+            // Maintain legacy boolean for now (keeps existing code paths stable).
+            if (val === "default") {
+                setMoonPhaseCamera(false);
+                setLookModeForScene(scene, "manual");
+            } else {
+                setMoonPhaseCamera(true);
+                setLookModeForScene(scene, "moon");
+            }
+
+            scene.setCameraParameters(false);
+            scene.skyContainer.visible = !getMoonPhaseCamera() && getViewSky();
         }
 
         render();
