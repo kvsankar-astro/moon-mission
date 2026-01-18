@@ -446,7 +446,21 @@ class SceneHandler {
                 animationScene.motherContainer.position.set(0, 0, 0);
             }               
 
-            if (shouldLookAtMoon && animationScene.secondaryBody3D && animationScene.camera) {
+            // Iteration 17: from-to camera system hook (defaults to manual/manual => no-op).
+            if (animationScene.cameraController?.updateFromTo) {
+                animationScene.cameraController.updateFromTo({
+                    earth: animationScene.earthContainer,
+                    moon: animationScene.moonContainer,
+                    spacecraft: animationScene.craft,
+                });
+            }
+
+            const fromToIsForcingLook =
+                animationScene.cameraController?.lookMode &&
+                animationScene.cameraController.lookMode !== "manual";
+
+            // Legacy moon-phase camera (kept for now; once lookMode is wired, this can be removed).
+            if (!fromToIsForcingLook && shouldLookAtMoon && animationScene.secondaryBody3D && animationScene.camera) {
                 animationScene.secondaryBody3D.getWorldPosition(this.lookAtWorldTarget);
                 animationScene.camera.lookAt(this.lookAtWorldTarget);
             }
