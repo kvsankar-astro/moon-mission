@@ -67,6 +67,7 @@ import {
     computeLandingUiPatch,
     computeMoonUiPatch,
 } from "./app/config-ui.js";
+import { applyMissionMetadata } from "./app/mission-metadata.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -318,48 +319,6 @@ async function fetchMetadata(baseFileName) {
         console.warn(`No metadata file found: ${metaFileName}, using defaults`);
     }
     return null; // Fallback to defaults
-}
-
-function updateDynamicLabels() {
-    if (!globalConfig) return;
-
-    // Get spacecraft name from config (fallback to defaults)
-    const spacecraftName = globalConfig.mission_name || 'Spacecraft';
-    const spacecraftShort = globalConfig.mission_name_short || globalConfig.spacecraft_mnemonic || 'SC';
-    const ui = globalConfig.ui || {};
-
-    // Update page title
-    document.title = ui.pageTitle || `${spacecraftName} - Orbit Animation`;
-
-    // Update mission link in header
-    const missionLink = document.getElementById('mission-link');
-    if (missionLink) {
-        missionLink.textContent = ui.headerTitle || spacecraftName;
-        missionLink.href = globalConfig.mission_url || '#';
-    }
-
-    // Update dynamic UI labels (use config ui values if available, else compute)
-    const labelElements = [
-        { id: 'label-lock-spacecraft', text: ui.lockOnLabel || spacecraftName },
-        { id: 'label-orbit', text: ui.orbitLabel || `${spacecraftShort} Orbit` },
-        { id: 'label-orbit-descent', text: ui.descentOrbitLabel || `${spacecraftShort} Descent Orbit` }
-    ];
-
-    updateMultipleElementsText(labelElements, true);
-
-    // Update spacecraft mnemonic in the dedicated span element
-    updateSpacecraftMnemonic(spacecraftShort);
-
-    // console.debug('Dynamic labels updated:', { spacecraftName, spacecraftShort });
-}
-
-function updateMissionMetadata() {
-    updateDynamicLabels();
-    
-    // Update planetProperties for spacecraft to use correct mnemonic in 2D view
-    if (globalConfig && globalConfig.spacecraft_mnemonic) {
-        planetProperties["SC"]["name"] = globalConfig.spacecraft_mnemonic;
-    }
 }
 
 function updateMoonUIFromConfig() {
@@ -1989,14 +1948,20 @@ async function initConfig() {
         globalConfig = await loadMissionConfig();
         eventInfos = globalConfig?.eventInfos || [];
 
-        if (globalConfig) {
-            // Note: SC and craftId remain as "SC" for internal use
-            // globalConfig.spacecraft_mnemonic is used only for file path construction
-            updateMissionMetadata();
-            updateMoonUIFromConfig();
-            updateLandingUIFromConfig();
-        }
-    }
+         if (globalConfig) {
+             // Note: SC and craftId remain as "SC" for internal use
+             // globalConfig.spacecraft_mnemonic is used only for file path construction
+             applyMissionMetadata({
+                 globalConfig,
+                 planetProperties,
+                 document,
+                 updateMultipleElementsText,
+                 updateSpacecraftMnemonic,
+             });
+             updateMoonUIFromConfig();
+             updateLandingUIFromConfig();
+         }
+     }
 
     const configData = globalConfig;
     
