@@ -90,6 +90,7 @@ import { createDimensionsActions } from "./app/dimensions-actions.js";
 import { applySceneTextures } from "./app/scene-texture-actions.js";
 import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
 import { createSceneCameraPositionActions } from "./app/scene-camera-position-actions.js";
+import { createSceneCreationActions } from "./app/scene-creation-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -396,6 +397,8 @@ const sceneCameraPositionActions = createSceneCameraPositionActions({
     cameraControlsCallback,
     distance3D,
 });
+
+const sceneCreationActions = createSceneCreationActions();
 
 // View variables
 
@@ -705,7 +708,7 @@ class AnimationScene {
 
 
     stopCreation() {
-        this.stopCreationFlag = true;
+        sceneCreationActions.stopCreation(this);
     }
 
     setCameraPosition(x, y, z) {
