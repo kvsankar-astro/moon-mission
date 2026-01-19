@@ -328,18 +328,6 @@ let wait20 = () => wait(20);
 let wait50 = () => wait(50);
 async function sleep() { return new Promise(requestAnimationFrame); } // The Promise resolves after the next frame is painted
 
-function fetchJson(url, callback = null, callbackError = null) {
-    fetch(url, { headers: { 'accept': 'application/json; charset=utf8;' } }) 
-      .then(r => { return r.json(); })  
-      .then(r => {
-        if (callback !== null) callback(r);
-      })  
-      .catch(err => {
-        if (callbackError !== null) callbackError(err);
-    }); 
-};  
-
-
 async function fetchMetadata(baseFileName) {
     // baseFileName can be like "geo-CY3" or "geo-CY3-cheb.json"
     // We need to derive the meta filename pattern: "geo-CY3-meta.json"
@@ -546,31 +534,6 @@ function updateCraftScale() {
 function cameraControlsCallback() {
     craftScaleActions.cameraControlsCallback();
 }
-
-// Based on https://stackoverflow.com/a/32038265
-THREE.Object3D.prototype.rotateAroundWorldAxis = function() {
-
-    // rotate object around axis in world space (the axis passes through point)
-    // axis is assumed to be normalized
-    // assumes object does not have a rotated parent
-
-    var q = new THREE.Quaternion();
-
-    return function rotateAroundWorldAxis( point, axis, angle ) {
-
-        q.setFromAxisAngle( axis, angle );
-
-        this.applyQuaternion( q );
-
-        this.position.sub( point );
-        this.position.applyQuaternion( q );
-        this.position.add( point );
-
-        return this;
-
-    }
-
-}();
 
 class AnimationScene {
     
