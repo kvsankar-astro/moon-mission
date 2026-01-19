@@ -73,6 +73,7 @@ import { createOrbitElementsActions } from "./app/orbit-elements-actions.js";
 import { createOrbitVectorsActions } from "./app/orbit-vectors-actions.js";
 import { createZoomActions } from "./app/zoom-actions.js";
 import { createLabelActions } from "./app/label-actions.js";
+import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -2775,105 +2776,10 @@ function updateConfigFromMetadata() {
     }
 }
 
+let orbitProcessActions = null;
+
 async function processOrbitData() {
-    // console.log("processOrbitData() called");
-
-    hideElementById("progressbar");
-    clearProgressLabel();
-
-    // Update configuration from metadata if available
-    updateConfigFromMetadata();
-    
-    // Only process SVG orbit vectors in 2D mode
-    if (currentDimension === "2D") {
-        await processOrbitVectorsData();
-    }
-    await sleep();
-
-    // TODO d3v7 handling
-    // var zoom = d3.zoom().on("zoom", handleZoom).on("end", zoomEnd);
-
-    // console.log("offsetx = " + offsetx + ", panx = " + panx + ", offsety = " + offsety + ", pany = " + pany);
-
-    // Only create SVG rect in 2D mode
-    if (currentDimension === "2D") {
-        svgRect = d3.select("#svg")
-            .append("rect")
-                .attr("id", "svg-rect")
-                .attr("point-events", "all")
-                .attr("class", "overlay")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("width", svgWidth)
-                .attr("height", svgHeight)
-                .attr("style", "fill:none;stroke:black;stroke-width:0;fill-opacity:0;stroke-opacity:0")
-                // .attr("class", "background")
-                .call(d3.behavior.zoom()
-                    .translate([offsetx+panx, offsety+pany])
-                    .scale(zoomFactor)
-                    .on("zoom", handleZoom)
-                    .on("zoomend", zoomEnd));
-    }
-
-    // TODO d3v7 way of zoom
-    // svgRect = d3.select("#svg")
-    //     .append("rect")
-    //         .attr("id", "svg-rect")
-    //         .attr("class", "overlay")
-    //         .attr("x", 0)
-    //         .attr("y", 0)
-    //         .attr("width", svgWidth)
-    //         .attr("height", svgHeight)
-    //         .attr("style", "fill:none;stroke:black;stroke-width:0;fill-opacity:0;stroke-opacity:0")
-    //         // .attr("class", "background");
-    //         .zoom(zoom);
-        
-    // TODO handle error with d3v7        
-    // d3.select("#svg-rect").call(zoom
-    //     .translateBy(offsetx+panx, offsety+pany)
-    //     .scaleBy(zoomFactor)
-    //     );
-
-    // svgRect = d3.select("#svg")
-    //     .append("rect")
-    //         .attr("id", "svg-rect")
-    //         .attr("class", "overlay")
-    //         .attr("x", 0)
-    //         .attr("y", 0)
-    //         .attr("width", svgWidth)
-    //         .attr("height", svgHeight)
-    //         .attr("style", "fill:none;stroke:black;stroke-width:0;fill-opacity:0;stroke-opacity:0")
-    //         // .attr("class", "background")
-    //         .call(zoom.transform,
-    //             d3.zoomIdentity
-    //             .translate([offsetx+panx, offsety+pany])
-    //             .call(zoom.transform,
-    //                 d3.zoomIdentity
-    //             .scale(zoomFactor)
-    //             .on("zoom", zoom)
-    //             .on("zoomend", zoomEnd)));
-
-    if (!missionStartCalled) {
-        missionStart();
-    }
-    d3SelectAll("button").attr("disabled", null);
-
-    /*
-    if (!bannerShown) {
-        bannerShown = true;
-        $("#banner").dialog({height: 200, width: 400, modal: true});
-    }
-    */
-
-    if (!animationRunning) {
-        updateD3ElementText("#animate", "Play");
-    }
-
-    zoomChangeTransform(0);
-
-    orbitDataProcessed[config] = true;
-
-    // console.log("processOrbitData() returning");
+    return orbitProcessActions.processOrbitData();
 }
 
 const {
@@ -2900,6 +2806,38 @@ const {
     getTimeLunarOrbitInsertion: () => timeLunarOrbitInsertion,
     setMissionStartCalled: (val) => { missionStartCalled = val; },
     clearLegacyTimeout: () => { clearTimeout(timeoutHandle); },
+});
+
+orbitProcessActions = createOrbitProcessActions({
+    d3,
+    d3SelectAll,
+    hideElementById,
+    clearProgressLabel,
+    updateConfigFromMetadata,
+    getCurrentDimension: () => currentDimension,
+    processOrbitVectorsData,
+    sleep,
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+    setSvgRect: (val) => {
+        svgRect = val;
+    },
+    getOffsetX: () => offsetx,
+    getOffsetY: () => offsety,
+    getPanX: () => panx,
+    getPanY: () => pany,
+    getZoomFactor: () => zoomFactor,
+    handleZoom,
+    zoomEnd,
+    getMissionStartCalled: () => missionStartCalled,
+    missionStart,
+    getAnimationRunning: () => animationRunning,
+    updateAnimateButtonText: () => {
+        updateD3ElementText("#animate", "Play");
+    },
+    zoomChangeTransform,
+    getConfig: () => config,
+    orbitDataProcessed,
 });
 
 const {
