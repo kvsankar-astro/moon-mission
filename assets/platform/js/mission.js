@@ -65,6 +65,7 @@ import {
     toggleVisibilityById,
 } from "./ui/dom-helpers.js";
 import { createDimensionActions } from "./app/dimension-actions.js";
+import { createSvgActions } from "./app/svg-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -409,7 +410,7 @@ class SceneHandler {
         const { renderer, canvasNode } = initSceneHandlerDom({
             d3,
             bindSettingsPanel,
-            computeSVGDimensions,
+            computeSVGDimensions: svgActions.computeSVGDimensions,
             getSvgWidth: () => svgWidth,
             getSvgHeight: () => svgHeight,
             isTestMode,
@@ -833,7 +834,7 @@ class AnimationScene {
     }
 
     computeDimensions() {
-        computeSVGDimensions();
+        svgActions.computeSVGDimensions();
         this.width = svgWidth;
         this.height = svgHeight;
     }
@@ -1778,6 +1779,39 @@ const {
     d3SelectAll,
 });
 
+const svgActions = createSvgActions({
+    d3,
+    getConfig: () => config,
+    getCurrentDimension: () => currentDimension,
+    setSvgContainer: (val) => {
+        svgContainer = val;
+    },
+    setDataLoaded: (val) => {
+        dataLoaded = val;
+    },
+    setSvgX: (val) => {
+        svgX = val;
+    },
+    setSvgY: (val) => {
+        svgY = val;
+    },
+    setSvgWidth: (val) => {
+        svgWidth = val;
+    },
+    setSvgHeight: (val) => {
+        svgHeight = val;
+    },
+    setOffsetX: (val) => {
+        offsetx = val;
+    },
+    setOffsetY: (val) => {
+        offsety = val;
+    },
+    getOffsetX: () => offsetx,
+    getOffsetY: () => offsety,
+    updateProgressLabel,
+});
+
 
 async function initConfig() {
 
@@ -1872,7 +1906,7 @@ async function initConfig() {
             });
         }
 
-        computeSVGDimensions();
+        svgActions.computeSVGDimensions();
     
         PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
         // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
@@ -1943,7 +1977,7 @@ async function initConfig() {
             });
         }
 
-        computeSVGDimensions();
+        svgActions.computeSVGDimensions();
     
         PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
         // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
@@ -2061,7 +2095,7 @@ const dimensionActions = createDimensionActions({
     setSvgContainer: (val) => {
         svgContainer = val;
     },
-    initSVG,
+    initSVG: svgActions.initSVG,
     loadOrbitDataIfNeededAndProcess,
     handleDimensionSwitch,
     handlePlaneChange,
@@ -2723,7 +2757,7 @@ async function init(callback) {
 
     await sleep();
     if (currentDimension == "2D") {
-        initSVG();
+        svgActions.initSVG();
     }
 
     await sleep();
@@ -2917,62 +2951,6 @@ async function loadOrbitDataIfNeededAndProcess(callback) {
         await sleep();
         callback();
     }
-}
-
-function computeSVGDimensions() {
-    svgX = 0;
-    const baseline = document.getElementById("svg-top-baseline");
-    svgY = baseline ? baseline.getBoundingClientRect().top : 0;
-    svgWidth = window.innerWidth;
-    svgHeight = window.innerHeight; // - (svgY + $("#footer-wrapper").outerHeight(true));
-    offsetx = svgWidth * (1 / 2) - UC.SVG_ORIGIN_X;
-    offsety = svgHeight * (1 / 2) - UC.SVG_ORIGIN_Y;
-
-    // console.log("svgX = " + svgX + ", svgY = " + svgY + ", svgWidth = " + svgWidth + ", svgHeight = " + svgHeight + 
-    //     ", offsetx = " + offsetx + ", offsety = " + offsety);
-}
-
-function initSVG() {
-    d3.select("svg").remove();
-
-    computeSVGDimensions();
-
-    svgContainer = d3.select("#svg-wrapper")
-        .attr("class", config + " dimension-2D")
-        .append("svg")
-            .attr("id", "svg")
-            // .attr("x", svgX)
-            // .attr("y", svgY)
-            // .attr("width", svgWidth)
-            // .attr("height", svgHeight)    
-            .attr("overflow", "visible") // added for SVG elements to be visible in Chrome 36+; TODO side effects analysis
-            .attr("class", "dimension-2D")
-            .attr("display", currentDimension === "2D" ? "block" : "none")
-            .style("visibility", currentDimension === "2D" ? "visible" : "hidden")
-        .append("g")
-            .attr("transform", "translate(" + offsetx + ", " + offsety + ")");
-
-    //  d3.select("svg")
-    //     // .attr("x", svgX)
-    //     // .attr("y", svgY)
-    //     .attr("width", svgWidth)
-    //     .attr("height", svgHeight);
-
-    updateProgressLabel("Loading orbit data ...");
-
-    dataLoaded = false;
-
-    /*
-    d3.xhr("whatsnew-cy3.html")
-        .get(function(error, data) {
-            if (error) {
-                // console.log("Error: unable to load whatsnew.html");
-            } else {
-                // console.log("whatsnew.html = " + data);
-                updateD3ElementHTML("#banner", data.response);
-           }
-        });
-    */
 }
 
 function handleZoom(event) {
@@ -3458,8 +3436,7 @@ function handlePlaneChange(dimension_changed = false, init_flag = false) {
     }
 
     if (currentDimension == "2D") {
-
-        initSVG();
+        svgActions.initSVG();
         loadOrbitDataIfNeededAndProcess(function() {
             handleDimensionSwitch(currentDimension);
             setLocation();  
