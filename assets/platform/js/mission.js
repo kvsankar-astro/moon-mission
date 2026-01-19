@@ -80,6 +80,7 @@ import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
 import { createBodyRotationActions } from "./app/body-rotation-actions.js";
+import { createLocationActions } from "./app/location-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -328,6 +329,17 @@ const bodyRotationActions = createBodyRotationActions({
     Astronomy,
     degreesToRadians,
     PC,
+});
+
+const locationActions = createLocationActions({
+    THREE,
+    sphericalToCartesian,
+    degreesToRadians,
+    COL,
+    getEarthRadius: () => earthRadius,
+    getMoonRadius: () => moonRadius,
+    getGlobalConfig: () => globalConfig,
+    getViewCraters: () => viewCraters,
 });
 
 // View variables
@@ -918,90 +930,19 @@ class AnimationScene {
     }
 
     addEarthLocations() {
-        this.dwingeloo = this.plotEarthLocation(degreesToRadians(6.39616944444), degreesToRadians(52.8120194444), "#FF0000");
-        this.chennai = this.plotEarthLocation(degreesToRadians(80.2707), degreesToRadians(13.0827), "#FF0000");
-
-        this.locations.map(x => x.visible = viewCraters);
+        locationActions.addEarthLocations({ scene: this });
     }
 
     disposeEarthLocations() {
-        if (this.locations) {
-            this.locations.forEach(location => {
-                if (location.geometry) {
-                    location.geometry.dispose();
-                }
-                if (location.material) {
-                    location.material.dispose();
-                }
-                this.earthContainer.remove(location);
-            });
-            this.locations = [];
-        }
-
-        // Specifically dispose of Dwingeloo and Chennai locations
-        if (this.dwingeloo) {
-            this.earthContainer.remove(this.dwingeloo);
-            this.dwingeloo = null;
-        }
-        if (this.chennai) {
-            this.earthContainer.remove(this.chennai);
-            this.chennai = null;
-        }
+        locationActions.disposeEarthLocations({ scene: this });
     }
     
     addMoonLocations() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-        // Moon selenographic origin (Prime Meridian = 0 degrees, Equator = 0 degrees) for reference
-        // this.plotMoonLocation(degreesToRadians(0), degreesToRadians(0), "#FF00FF"); // TODO 2021 - for testing - (0deg longitude == Prime Meridian, 0deg latitude)
-
-        // Some Moon locations for calibrsation
-        //
-        // Some of the values are from Wikipedia and some are from NASA:
-        //
-        // https://astrogeology.usgs.gov/search/map/Moon/Research/Craters/GoranSalamuniccar_MoonCraters
-        //
-        // this.plotMoonLocation(degreesToRadians(- 9.3),      degreesToRadians(+51.6), "#FF0000");      // Plato crater
-        // this.plotMoonLocation(degreesToRadians(- 1.1),      degreesToRadians(+40.6), "#FF0000");      // Mons Piton
-        // this.plotMoonLocation(degreesToRadians(+ 5.211),    degreesToRadians(+ 3.212), "#FF0000");    // Mosting A crater
-        // this.plotMoonLocation(degreesToRadians(+22.1),      degreesToRadians(-70.1), "#FF0000");      // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
-        // this.plotMoonLocation(degreesToRadians(+21.753904), degreesToRadians(-69.996092), "#FF0000"); // Manzinus C - https://en.wikipedia.org/wiki/Manzinus_(crater) 
-        // this.plotMoonLocation(degreesToRadians(+24.3),      degreesToRadians(-71.3), "#FF0000");      // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
-        // this.plotMoonLocation(degreesToRadians(24.103513),  degreesToRadians(-71.365233), "#FF0000"); // Simpelius N - https://en.wikipedia.org/wiki/Simpelius_(crater) 
-
-        // Plot landing sites from config
-        if (globalConfig && globalConfig.landingSites) {
-            globalConfig.landingSites.forEach(site => {
-                this.plotMoonLocation(
-                    degreesToRadians(site.longitude), 
-                    degreesToRadians(site.latitude), 
-                    site.color
-                );
-            });
-        }
-
-        this.locations.map(x => x.visible = viewCraters);
+        locationActions.addMoonLocations({ scene: this });
     }
 
     disposeMoonLocations() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-        if (this.locations) {
-            this.locations.forEach(location => {
-                if (location.geometry) {
-                    location.geometry.dispose();
-                }
-                if (location.material) {
-                    location.material.dispose();
-                }
-                this.moonContainer.remove(location);
-            });
-            this.locations = [];
-        }
+        locationActions.disposeMoonLocations({ scene: this });
     }
 
     setPrimaryAndSecondaryBodies() {
@@ -1413,40 +1354,6 @@ class AnimationScene {
     cameraDisntance(position) {
         return distance3D(position);
     }   
-
-    plotEarthLocation(long, lat, color) {
-        var locationRadiusScale = 0.001;
-        var geometry = new THREE.SphereGeometry(locationRadiusScale * earthRadius, 100, 100);
-        var material = new THREE.MeshPhysicalMaterial({color: COL.BLACK, emissive: color, reflectivity: 0.0, transparent: false, opacity: 0.2});
-        var sphere = new THREE.Mesh(geometry, material);
-        sphere.castShadow = false;
-        sphere.receiveShadow = false;
-        var radiusScale = 1 - (locationRadiusScale/2);
-        const pos = sphericalToCartesian(radiusScale * earthRadius, long, lat);
-        sphere.position.set(pos.x, pos.y, pos.z);
-        this.locations.push(sphere);
-        this.earthContainer.add(sphere);
-        return sphere;
-    }
-
-    plotMoonLocation(long, lat, color) {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-        var locationRadiusScale = 0.005;
-        var geometry = new THREE.SphereGeometry(locationRadiusScale * moonRadius, 100, 100);
-        var material = new THREE.MeshStandardMaterial({color: color, emissive: color, transparent: false, opacity: 1.0});
-        var sphere = new THREE.Mesh(geometry, material);
-        sphere.castShadow = false;
-        sphere.receiveShadow = false;
-        var radiusScale = 1.005 - (locationRadiusScale/2);
-        const pos = sphericalToCartesian(radiusScale * moonRadius, long, lat);
-        sphere.position.set(pos.x, pos.y, pos.z);
-        this.locations.push(sphere);
-        this.moonContainer.add(sphere);
-        return sphere;
-    }
 
     rotateMoon(timeMs = animTime) {
         bodyRotationActions.rotateMoon({
