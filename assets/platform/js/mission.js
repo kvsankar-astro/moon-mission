@@ -78,6 +78,7 @@ import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createCraftScaleActions } from "./app/craft-scale-actions.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createSceneCameraActions } from "./app/scene-camera-actions.js";
+import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -303,6 +304,23 @@ const eventBus = createEventBus();
 var globalConfig = null; // Store loaded config from config.json
 var joyRideFlag = false;
 var landingFlag = false;
+
+const orbitCurveActions = createOrbitCurveActions({
+    THREE,
+    generateCurveFromChebyshev,
+    chebyshevDataLoaded,
+    chebyshevData,
+    getStepMs: (config) => animationScenes[config].stepDurationInMilliSeconds,
+    getStartTime: () => startTime,
+    getLatestEndTime: () => latestEndTime,
+    getLandingEnabled: () => !!(globalConfig && globalConfig.landing && globalConfig.landing.enabled),
+    getLandingChebyshevLoaded: () => landingChebyshevLoaded,
+    getLandingChebyshevData: () => landingChebyshevData,
+    getStartLandingTime: () => startLandingTime,
+    getEndLandingTime: () => endLandingTime,
+    PC,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+});
 
 // View variables
 
@@ -1369,70 +1387,19 @@ class AnimationScene {
     }
 
     processOrbitVectorsData3D() {
-
-        nOrbitPoints = 0;
-
-        // Generate SC curve from Chebyshev data
-        if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-            const stepMs = animationScenes[config].stepDurationInMilliSeconds;
-            const vectors = generateCurveFromChebyshev(
-                chebyshevData[config],
-                startTime,
-                latestEndTime,
-                stepMs
-            );
-
-            for (const vec of vectors) {
-                const x = (vec.x / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const y = (vec.y / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const z = (vec.z / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-                const vx = (vec.vx / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const vy = (vec.vy / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const vz = (vec.vz / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-                this.curve.push(new THREE.Vector3(x, y, z));
-                this.curveVelocities.push(new THREE.Vector3(vx, vy, vz));
-
-                ++nOrbitPoints;
-            }
-        }
-
-        // console.log("nOrbitPoints = " + nOrbitPoints);
+        nOrbitPoints = orbitCurveActions.addOrbitCurveVectors({
+            config,
+            curve: this.curve,
+            curveVelocities: this.curveVelocities,
+        });
     }
 
     processLandingVectors() {
-        // Check if landing is enabled in config
-        const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-        if (!isLandingEnabled || config != "lunar") return;
-
-        nLandingPoints = 0;
-
-        // Generate landing curve from Chebyshev data
-        if (landingChebyshevLoaded && landingChebyshevData) {
-            const stepMs = 1000; // Landing data uses 1-second resolution
-            const vectors = generateCurveFromChebyshev(
-                landingChebyshevData,
-                startLandingTime,
-                endLandingTime,
-                stepMs
-            );
-
-            for (const vec of vectors) {
-                const x = (vec.x / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const y = (vec.y / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const z = (vec.z / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-                const vx = (vec.vx / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const vy = (vec.vy / PC.KM_PER_AU) * PIXELS_PER_AU;
-                const vz = (vec.vz / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-                this.landingCurve.push(new THREE.Vector3(x, y, z));
-                this.landingCurveVelocities.push(new THREE.Vector3(vx, vy, vz));
-
-                ++nLandingPoints;
-            }
-        }
+        nLandingPoints = orbitCurveActions.addLandingCurveVectors({
+            config,
+            landingCurve: this.landingCurve,
+            landingCurveVelocities: this.landingCurveVelocities,
+        });
     }
 
     cameraDisntance(position) {
