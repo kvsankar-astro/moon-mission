@@ -66,6 +66,7 @@ import {
 } from "./ui/dom-helpers.js";
 import { createDimensionActions } from "./app/dimension-actions.js";
 import { createSvgActions } from "./app/svg-actions.js";
+import { createPlaneActions } from "./app/plane-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -151,15 +152,12 @@ var progress = 0;
 var bannerShown = false;
 var stopZoom = false;
 var sunLongitude = 0.0;
-var planeChanged = false;
-var planeChangesPending = false;
 
 // animation control
 var mouseDown = false;
 
 // defaults for XY plane
 var planeSelection = "DEFAULT"; // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
-var previousPlaneSelection = null; // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
 var plane = "XY"; // XY, YZ, ZX
 var xVariable = "x";
 var yVariable = "y";
@@ -621,52 +619,6 @@ const planeCameraConfig = {
     "XY-": { posx: 0, posy: 0, posz: -1, dirx: 0, diry: 1, dirz: 0 },
     "YZ-": { posx: -1, posy: 0, posz: 0, dirx: 0, diry: 0, dirz: 1 },
     "ZX-": { posx: 0, posy: -1, posz: 0, dirx: 1, diry: 0, dirz: 0 }
-};
-
-// JSON map for plane selection 2D configuration variables
-const planeVariableConfig = {
-    "DEFAULT": { 
-        plane: "DEFAULT", 
-        xFactor: 1, yFactor: 1, zFactor: 1,
-        xVariable: "x", yVariable: "y", zVariable: "z",
-        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
-    },
-    "XY": { 
-        plane: "XY", 
-        xFactor: 1, yFactor: 1, zFactor: 1,
-        xVariable: "x", yVariable: "y", zVariable: "z",
-        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
-    },
-    "YZ": { 
-        plane: "YZ", 
-        xFactor: 1, yFactor: 1, zFactor: 1,
-        xVariable: "y", yVariable: "z", zVariable: "x",
-        vxVariable: "vy", vyVariable: "vz", vzVariable: "vx"
-    },
-    "ZX": { 
-        plane: "ZX", 
-        xFactor: 1, yFactor: 1, zFactor: 1,
-        xVariable: "z", yVariable: "x", zVariable: "y",
-        vxVariable: "vz", vyVariable: "vx", vzVariable: "vy"
-    },
-    "XY-": { 
-        plane: "XY", 
-        xFactor: -1, yFactor: 1, zFactor: 1,
-        xVariable: "x", yVariable: "y", zVariable: "z",
-        vxVariable: "vx", vyVariable: "vy", vzVariable: "vz"
-    },
-    "YZ-": { 
-        plane: "YZ", 
-        xFactor: -1, yFactor: 1, zFactor: 1,
-        xVariable: "y", yVariable: "z", zVariable: "x",
-        vxVariable: "vy", vyVariable: "vz", vzVariable: "vx"
-    },
-    "ZX-": { 
-        plane: "ZX", 
-        xFactor: -1, yFactor: 1, zFactor: 1,
-        xVariable: "z", yVariable: "x", zVariable: "y",
-        vxVariable: "vz", vyVariable: "vx", vzVariable: "vy"
-    }
 };
 
 class AnimationScene {
@@ -1812,6 +1764,29 @@ const svgActions = createSvgActions({
     updateProgressLabel,
 });
 
+const planeActions = createPlaneActions({
+    getPlaneSelection: () => planeSelection,
+    setPlaneVariables: (planeConfig) => {
+        plane = planeConfig.plane;
+        xFactor = planeConfig.xFactor;
+        yFactor = planeConfig.yFactor;
+        zFactor = planeConfig.zFactor;
+        xVariable = planeConfig.xVariable;
+        yVariable = planeConfig.yVariable;
+        zVariable = planeConfig.zVariable;
+        vxVariable = planeConfig.vxVariable;
+        vyVariable = planeConfig.vyVariable;
+        vzVariable = planeConfig.vzVariable;
+    },
+    getCurrentDimension: () => currentDimension,
+    animationScenes,
+    getConfig: () => config,
+    initSVG: svgActions.initSVG,
+    loadOrbitDataIfNeededAndProcess,
+    handleDimensionSwitch,
+    setLocation,
+});
+
 
 async function initConfig() {
 
@@ -2098,7 +2073,7 @@ const dimensionActions = createDimensionActions({
     initSVG: svgActions.initSVG,
     loadOrbitDataIfNeededAndProcess,
     handleDimensionSwitch,
-    handlePlaneChange,
+    handlePlaneChange: planeActions.handlePlaneChange,
     setLocation,
     adjustLabelLocations,
     getStartLandingFlag: () => startLandingFlag,
@@ -3380,90 +3355,13 @@ const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
     setChecked,
 });
 
-function handlePlaneChange(dimension_changed = false, init_flag = false) {
-
-    // TODO Dimension/Plane combined state handler to be created and the dirty logic below to be simplified and readable
-    // Current implementation: 
-    // If the plane is changed while in 2D (or 3D), an equivalent change will be done in 3D (or 2D, respectively).
-    // That plane change will be seen when the dimension is switched.
-    // Please note that the SVG is constrained to 6 views as it's 2D. 
-    // Also note that if the 3D view is altered by the user, it won't be reset simply because of switching to 2D, not changing the plane there and coming back to 3D.
-
-    var oldPlaneSelection = previousPlaneSelection;
-
-    if (planeSelection != previousPlaneSelection) {
-        planeChanged = true;
-        previousPlaneSelection = planeSelection;
-        planeChangesPending = true;
-    } else {
-        planeChanged = false;
-    }
-
-    // console.debug("handlePlaneChange(): init_flag=" + init_flag + ", dimension_changed=" + dimension_changed + ", planeChanged=" + planeChanged, ", " + oldPlaneSelection + " -> " + planeSelection);
-    
-    if (init_flag && planeSelection == "DEFAULT") {
-        // console.debug("handlePlaneChange(): init_flag is true and planeSelection is DEFAULT; so returning without changes.");
-        planeChangesPending = false;
-        return;
-    }
-    if ((!dimension_changed && !planeChanged)) {
-        // console.debug("handlePlaneChange(): dimension_changed is false and planeChanged is false; so returning without changes.");
-        return;
-    }
-    if (dimension_changed && !planeChangesPending) {
-        // console.debug("handlePlaneChange(): dimension_changed is true and planeChangesPending is false; so returning without changes.");
-        return;
-    }
-
-    // Apply plane variable configuration for all plane selections
-    const planeConfig = planeVariableConfig[planeSelection];
-    if (planeConfig) {
-        plane = planeConfig.plane;
-        xFactor = planeConfig.xFactor;
-        yFactor = planeConfig.yFactor;
-        zFactor = planeConfig.zFactor;
-        xVariable = planeConfig.xVariable;
-        yVariable = planeConfig.yVariable;
-        zVariable = planeConfig.zVariable;
-        vxVariable = planeConfig.vxVariable;
-        vyVariable = planeConfig.vyVariable;
-        vzVariable = planeConfig.vzVariable;
-    }
-
-    // Apply camera parameters for 3D mode after plane selection logic
-    if (currentDimension == "3D") {
-        animationScenes[config].setCameraParameters(init_flag);
-    }
-
-    if (currentDimension == "2D") {
-        svgActions.initSVG();
-        loadOrbitDataIfNeededAndProcess(function() {
-            handleDimensionSwitch(currentDimension);
-            setLocation();  
-        });
-        
-
-    } else if (currentDimension == "3D") {
-
-        // TODO check logic
-        loadOrbitDataIfNeededAndProcess(function() {
-            handleDimensionSwitch(currentDimension);
-            setLocation();    
-        })
-    }
-
-    if (planeChangesPending && dimension_changed) {
-        planeChangesPending = false;
-    }
-}
-
 const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createCameraActions({
     animationScenes,
     getConfig: () => config,
     readCameraMode: () => readCheckedRadioValue("camera", "default"),
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
     setPlaneSelection: (val) => { planeSelection = val; },
-    handlePlaneChange,
+    handlePlaneChange: planeActions.handlePlaneChange,
     readLookMode: () => readCheckedRadioValue("look", "AUTO"),
     render,
     getViewSky: () => viewSky,
