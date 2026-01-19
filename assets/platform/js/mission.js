@@ -82,6 +82,7 @@ import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
 import { createBodyRotationActions } from "./app/body-rotation-actions.js";
 import { createLocationActions } from "./app/location-actions.js";
 import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js";
+import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bodies-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -356,6 +357,11 @@ const spacecraftCurveActions = createSpacecraftCurveActions({
     render,
     wait10,
     createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
+});
+
+const primarySecondaryBodiesActions = createPrimarySecondaryBodiesActions({
+    getConfig: () => config,
+    getGlobalConfig: () => globalConfig,
 });
 
 // View variables
@@ -927,47 +933,7 @@ class AnimationScene {
     }
 
     setPrimaryAndSecondaryBodies() {
-        // set primary and secondary bodies
-                
-        if (config == "geo") {
-
-            this.primaryBody3D = this.earthContainer;
-            this.secondaryBody3D = this.moonContainer;
-
-            this.earthContainer.add(this.earthAxis);
-            this.earthContainer.add(this.earthNorthPoleSphere);
-            this.earthContainer.add(this.earthSouthPoleSphere);
-
-            // Only add moon components if this is a lunar mission
-            if (globalConfig && globalConfig.is_lunar && this.moonContainer) {
-                this.moonContainer.add(this.moonAxis);
-                this.moonContainer.add(this.moonNorthPoleSphere);
-                this.moonContainer.add(this.moonSouthPoleSphere);
-            }
-                
-        
-        } else if (config == "lunar") {
-        
-            this.primaryBody3D = this.moonContainer;
-            this.secondaryBody3D = this.earthContainer;
-
-            // Only add moon components if this is a lunar mission
-            if (globalConfig && globalConfig.is_lunar && this.moonContainer) {
-                this.moonContainer.add(this.moonAxis);
-                this.moonContainer.add(this.moonNorthPoleSphere);
-                this.moonContainer.add(this.moonSouthPoleSphere);
-            }
-
-            this.earthContainer.add(this.earthAxis);
-            this.earthContainer.add(this.earthNorthPoleSphere);
-            this.earthContainer.add(this.earthSouthPoleSphere);
-        
-        }
-
-        this.motherContainer.add(this.primaryBody3D);
-        if (this.secondaryBody3D) {
-            this.motherContainer.add(this.secondaryBody3D);
-        }    
+        primarySecondaryBodiesActions.setPrimaryAndSecondaryBodies(this);
     }
 
     addSpacecraftCurve() {
