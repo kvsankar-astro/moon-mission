@@ -79,6 +79,7 @@ import { createCraftScaleActions } from "./app/craft-scale-actions.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
+import { createBodyRotationActions } from "./app/body-rotation-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -320,6 +321,13 @@ const orbitCurveActions = createOrbitCurveActions({
     getEndLandingTime: () => endLandingTime,
     PC,
     getPixelsPerAU: () => PIXELS_PER_AU,
+});
+
+const bodyRotationActions = createBodyRotationActions({
+    lunar_pole,
+    Astronomy,
+    degreesToRadians,
+    PC,
 });
 
 // View variables
@@ -1441,31 +1449,18 @@ class AnimationScene {
     }
 
     rotateMoon(timeMs = animTime) {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-
-        var today = new Date(timeMs);
-        var lp = lunar_pole(today);
-        var alpha = lp["alpha"];
-        var delta = lp["delta"];
-        var W = lp["W"];
-        
-        this.moonContainer.rotation.set(0, 0, 0);
-        this.moonContainer.rotateX(-1 * PC.EARTH_AXIS_INCLINATION_RADS);
-        this.moonContainer.rotateZ(+1 * (Math.PI / 2 + alpha));
-        this.moonContainer.rotateX(+1 * (Math.PI / 2 - delta));
-        this.moonContainer.rotateZ(+1 * W);
-
-        // console.log(`rotateMoon: (long, lat) = (${rad_to_deg(long)}, ${rad_to_deg(lat)}), W = ${rad_to_deg(W)}`);
+        bodyRotationActions.rotateMoon({
+            timeMs,
+            globalConfig,
+            moonContainer: this.moonContainer,
+        });
     }
 
     rotateEarth(timeMs = animTime) {
-        // Greenwich Apparent Sidereal Time (hours × 15 = degrees, then to radians)
-        var mst = degreesToRadians(Astronomy.SiderealTime(new Date(timeMs)) * 15);
-        this.earthContainer.rotation.z = mst;
-        // this.losLine.geometry.verticesNeedUpdate = true;
+        bodyRotationActions.rotateEarth({
+            timeMs,
+            earthContainer: this.earthContainer,
+        });
     } 
 
     dispose() {
