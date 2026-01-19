@@ -68,6 +68,7 @@ import { createDimensionActions } from "./app/dimension-actions.js";
 import { createSvgActions } from "./app/svg-actions.js";
 import { createPlaneActions } from "./app/plane-actions.js";
 import { createOrbitLoadActions } from "./app/orbit-load-actions.js";
+import { createLandingLoadActions } from "./app/landing-load-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1788,6 +1789,22 @@ const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
     },
 });
 
+const { loadLandingDataAndProcess } = createLandingLoadActions({
+    getGlobalConfig: () => globalConfig,
+    getLandingDataLoaded: () => landingDataLoaded,
+    setLandingDataLoaded: (val) => {
+        landingDataLoaded = val;
+    },
+    setLandingChebyshevLoaded: (val) => {
+        landingChebyshevLoaded = val;
+    },
+    setLandingChebyshevData: (val) => {
+        landingChebyshevData = val;
+    },
+    resolveLandingChebyshevUrl,
+    loadChebyshev,
+});
+
 const planeActions = createPlaneActions({
     getPlaneSelection: () => planeSelection,
     setPlaneVariables: (planeConfig) => {
@@ -2879,35 +2896,6 @@ async function processOrbitData() {
     orbitDataProcessed[config] = true;
 
     // console.log("processOrbitData() returning");
-}
-
-async function loadLandingDataAndProcess() {
-    // Check if landing is enabled in config
-    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-    if (!isLandingEnabled) return;
-
-    if (!landingDataLoaded) {
-        // Use config data for landing if available
-        const configData = globalConfig;
-        const landingDataCheb = resolveLandingChebyshevUrl(configData);
-        if (!landingDataCheb) {
-            console.error("Landing Chebyshev path unavailable (missing window.missionConfig.dataPath)");
-            landingChebyshevLoaded = false;
-            return;
-        }
-
-        // Load Chebyshev data for landing phase
-        try {
-            console.log(`Loading landing Chebyshev data from ${landingDataCheb}`);
-            landingChebyshevData = await loadChebyshev(landingDataCheb);
-            landingChebyshevLoaded = true;
-            landingDataLoaded = true;
-            console.log(`Landing Chebyshev data loaded: ${landingChebyshevData.segments.length} segments`);
-        } catch (chebError) {
-            console.error(`Failed to load landing Chebyshev data: ${chebError}`);
-            landingChebyshevLoaded = false;
-        }
-    }
 }
 
 function handleZoom(event) {
