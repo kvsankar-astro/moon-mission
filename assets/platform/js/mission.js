@@ -71,6 +71,7 @@ import { createOrbitLoadActions } from "./app/orbit-load-actions.js";
 import { createLandingLoadActions } from "./app/landing-load-actions.js";
 import { createOrbitElementsActions } from "./app/orbit-elements-actions.js";
 import { createOrbitVectorsActions } from "./app/orbit-vectors-actions.js";
+import { createZoomActions } from "./app/zoom-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1856,6 +1857,30 @@ const { processOrbitVectorsData } = createOrbitVectorsActions({
     },
 });
 
+const { handleZoom, handleZoomNew, zoomEnd, zoomChangeTransform, zoomChange } = createZoomActions({
+    d3,
+    getSvgContainer: () => svgContainer,
+    getCurrentDimension: () => currentDimension,
+    animationScenes,
+    getConfig: () => config,
+    getZoomFactor: () => zoomFactor,
+    setZoomFactor: (val) => {
+        zoomFactor = val;
+    },
+    getPanX: () => panx,
+    setPanX: (val) => {
+        panx = val;
+    },
+    getPanY: () => pany,
+    setPanY: (val) => {
+        pany = val;
+    },
+    getOffsetX: () => offsetx,
+    getOffsetY: () => offsety,
+    adjustLabelLocations,
+    showGreenwichLongitude,
+});
+
 const planeActions = createPlaneActions({
     getPlaneSelection: () => planeSelection,
     setPlaneVariables: (planeConfig) => {
@@ -2949,29 +2974,6 @@ async function processOrbitData() {
     // console.log("processOrbitData() returning");
 }
 
-function handleZoom(event) {
-    var x = d3.event.translate[0];
-    var y = d3.event.translate[1];
-    zoomFactor = d3.event.scale;
-    panx = x - offsetx;
-    pany = y - offsety;
-    zoomChangeTransform();
-}
-
-function handleZoomNew(event) {
-    // console.log(event);
-    x = event.transform.x || 0;
-    y = event.transform.y || 0;
-    zoomFactor = event.transform.k || 1;
-    panx = x - offsetx;
-    pany = y - offsety;
-    zoomChangeTransform();
-}
-
-function zoomEnd() {
-    adjustLabelLocations();
-}
-
 const {
     cy3Animate,
     fastBackward,
@@ -2997,72 +2999,6 @@ const {
     setMissionStartCalled: (val) => { missionStartCalled = val; },
     clearLegacyTimeout: () => { clearTimeout(timeoutHandle); },
 });
-
-function zoomChangeTransform(t) {
-    
-    // Only process in 2D mode when svgContainer exists
-    if (!svgContainer || currentDimension !== "2D") {
-        return;
-    }
-
-    var cy3x = 0;
-    var cy3y = 0;
-
-    if (animationScenes[config].lockOnSC) {
-        var scElement = d3.select("#SC");
-        if (!scElement.empty()) {
-            cy3x = parseFloat(scElement.attr("cx"));
-            cy3y = parseFloat(scElement.attr("cy"));
-        }
-    }
-
-    if (animationScenes[config].lockOnMoon) {
-        var moonElement = d3.select("#MOON");
-        if (!moonElement.empty()) {
-            cy3x = parseFloat(moonElement.attr("cx"));
-            cy3y = parseFloat(moonElement.attr("cy"));
-        }
-    }
-
-    if (animationScenes[config].lockOnEarth) {
-        var earthElement = d3.select("#EARTH");
-        if (!earthElement.empty()) {
-            cy3x = parseFloat(earthElement.attr("cx"));
-            cy3y = parseFloat(earthElement.attr("cy"));
-        }
-    }
-
-    var container = svgContainer;
-    // if (t != 0) {
-    //     container = svgContainer.transition().delay(t);
-    // }
-
-    container
-        .attr("transform",
-            "matrix("
-            + zoomFactor
-            + ", 0"
-            + ", 0"
-            + ", " + zoomFactor
-            + ", " + (offsetx+panx+cy3x-zoomFactor*(cy3x)-cy3x)
-            + ", " + (offsety+pany+cy3y-zoomFactor*(cy3y)-cy3y)
-            + ")"
-        );
-
-    // var zoom = d3.zoom().on("zoom", handleZoom).on("end", adjustLabelLocations);
-
-    // sychronize D3's state // TODO
-    // svgRect && svgRect
-    //     .call(zoom.transform,
-    //         d3.zoomIdentity
-    //         .translate([offsetx+panx, offsety+pany])
-    //         .scale(zoomFactor));
-}
-
-function zoomChange(t) {
-    zoomChangeTransform(t);
-    showGreenwichLongitude();
-}
 
 const {
     reset,
