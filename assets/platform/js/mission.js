@@ -88,6 +88,7 @@ import { createSceneInitActions } from "./app/scene-init-actions.js";
 import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
 import { createDimensionsActions } from "./app/dimensions-actions.js";
 import { applySceneTextures } from "./app/scene-texture-actions.js";
+import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -382,6 +383,12 @@ const dimensionsActions = createDimensionsActions({
     computeSVGDimensions: () => svgActions.computeSVGDimensions(),
     getSvgWidth: () => svgWidth,
     getSvgHeight: () => svgHeight,
+});
+
+const scene3dInitActions = createScene3dInitActions({
+    THREE,
+    loadSceneTextures,
+    applySceneTextures,
 });
 
 // View variables
@@ -715,24 +722,7 @@ class AnimationScene {
     }
 
     init3d(callback) {
-        if (this.initialized3D) {
-            return;
-        }
-
-        const scene = this;
-
-        loadSceneTextures({
-            THREE,
-            minFilter: THREE.LinearFilter,
-        }).then((textures) => {
-            applySceneTextures(scene, textures);
-
-            scene.init3dRest(); // We can't call callback until we are done
-            callback();
-
-        }, (error) => {
-            console.error("Error: couldn't load textures:", error);
-        });
+        scene3dInitActions.init3d(this, callback);
 
         // var loader = new THREE.TextureLoader();
 
