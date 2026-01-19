@@ -72,6 +72,7 @@ import { createLandingLoadActions } from "./app/landing-load-actions.js";
 import { createOrbitElementsActions } from "./app/orbit-elements-actions.js";
 import { createOrbitVectorsActions } from "./app/orbit-vectors-actions.js";
 import { createZoomActions } from "./app/zoom-actions.js";
+import { createLabelActions } from "./app/label-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1857,6 +1858,28 @@ const { processOrbitVectorsData } = createOrbitVectorsActions({
     },
 });
 
+const { setLabelLocation, showGreenwichLongitude, adjustLabelLocations } = createLabelActions({
+    d3,
+    Astronomy,
+    getCurrentDimension: () => currentDimension,
+    getConfig: () => config,
+    animationScenes,
+    planetProperties,
+    showPlanet,
+    isLocationAvaialable,
+    getAnimTime: () => animTime,
+    getBodyLocation,
+    PC,
+    UC,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    getZoomFactor: () => zoomFactor,
+    getXFactor: () => xFactor,
+    getYFactor: () => yFactor,
+    getXVariable: () => xVariable,
+    getYVariable: () => yVariable,
+    getCraftData: () => craftData,
+});
+
 const { handleZoom, handleZoomNew, zoomEnd, zoomChangeTransform, zoomChange } = createZoomActions({
     d3,
     getSvgContainer: () => svgContainer,
@@ -2264,49 +2287,6 @@ function isLocationAvaialable(planet, date) {
     return flag;
 }
 
-function setLabelLocation(planetKey, bodyState = null) {
-
-    var planetProps = planetProperties[planetKey];
-
-    const isAvailable = bodyState ? !!bodyState.available : isLocationAvaialable(planetKey, animTime);
-
-    if (isAvailable) {
-
-        // Prefer computed state (functional core) when provided to avoid re-querying orbit data.
-        let planet_pos = bodyState?.position;
-        if (!planet_pos) {
-            // var index = timelineIndex - planetProperties[planetKey]["offset"];
-            var [posFromData, planet_vel] = getBodyLocation(planetKey, animTime);
-            planet_pos = posFromData;
-        }
-
-        if (!planet_pos) {
-            // Data not available, hide the label
-            d3.select("#label-" + planetKey).attr("visibility", "hidden");
-            return;
-        }
-
-        var x = xFactor * planet_pos[xVariable];
-        var y = yFactor * planet_pos[yVariable];
-
-        var newx = +1 * (x / PC.KM_PER_AU) * PIXELS_PER_AU;
-        var newy = -1 * (y / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-        var labelx = newx + planetProps.labelOffsetX/zoomFactor;
-        var labely = newy + planetProps.labelOffsetY/zoomFactor;
-
-        d3.select("#label-" + planetKey)
-            .attr("visibility", showPlanet(planetKey) ? "visible" : "hidden")
-            .attr("x", labelx)
-            .attr("y", labely)
-            .attr("font-size", 10/zoomFactor);
-
-    } else {
-        d3.select("#label-" + planetKey)
-            .attr("visibility", "hidden");
-    }
-}
-
 function getBodyLocation(craftid, t) {
     // console.log("getBodyLocation(" + craftId + ", " + t + ")");
 
@@ -2511,84 +2491,6 @@ function adjustCameraProjectionMatrixAndSkyAngle() {
         animationScenes[config].cameraControls.update();
         cameraControlsCallback();
     }
-}
-
-function showGreenwichLongitude() {
-    if (currentDimension != "2D") return;
-    
-    if (config == "helio") return;
-
-    // Greenwich Apparent Sidereal Time in degrees (hours × 15)
-    var mst = Astronomy.SiderealTime(new Date(animTime)) * 15;
-
-    var radialLength = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-
-    var x1 = 0;
-    var y1 = 0;
-    var x2 = +1 * radialLength * Math.cos(mst/PC.DEGREES_PER_RADIAN);
-    var y2 = -1 * radialLength * Math.sin(mst/PC.DEGREES_PER_RADIAN);
-
-    d3.select("#Greenwich")
-        .attr("x1", x1)
-        .attr("y1", y1)
-        .attr("x2", x2)
-        .attr("y2", y2);
-}
-
-function adjustLabelLocations() {
-
-    for (var i = 0; i < animationScenes[config].planetsForOrbits.length; ++i) {
-        var planetKey = animationScenes[config].planetsForLocations[i];
-        d3.selectAll("#orbit-" + planetKey).attr("r", (0.5/zoomFactor));
-        var strokeWidth = planetProperties[planetKey]["stroke-width"];
-        d3.selectAll("#ellipse-orbit-" + planetKey).attr("stroke-width", (strokeWidth/zoomFactor));
-    }
-
-    // d3.select("#" + primaryBody).attr("r", (primaryBodyRadius/zoomFactor));
-
-    for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-
-        var planetKey = animationScenes[config].planetsForLocations[i];
-        setLabelLocation(planetKey);
-
-        var planetProps = planetProperties[planetKey];
-        
-        if (planetKey == "MOON") {
-            var moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-            d3.selectAll("#" + planetKey).attr("r", Math.max(moonRadius, (planetProps.r/zoomFactor)));
-        } else {
-            d3.selectAll("#" + planetKey).attr("r", (planetProps.r/zoomFactor));
-        }
-
-        d3.select("#orbit-" + planetKey)
-            .selectAll("path")
-            .attr("style", "stroke: " + planetProps.orbitcolor + "; stroke-width: " + (1.0/zoomFactor) + "; fill: none");
-
-        d3.select("#label-" + planetKey).attr("font-size", (10/zoomFactor));
-    }
-
-    d3.select("#Greenwich").attr("style", "stroke: LightBlue; stroke-opacity: 0.5; " + "stroke-width: " + (0.5/zoomFactor));
-    
-    var radialLength = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-    d3.select("#label-" + animationScenes[config].primaryBody).attr("x", (-1 * radialLength + UC.CENTER_LABEL_OFFSET_X/zoomFactor));
-    d3.select("#label-" + animationScenes[config].primaryBody).attr("y", (-1 * radialLength + UC.CENTER_LABEL_OFFSET_Y/zoomFactor));
-    
-    d3.select("#label-" + animationScenes[config].primaryBody).attr("font-size", (10/zoomFactor));
-
-    const burnX = craftData["x"];
-    const burnY = craftData["y"];
-    const burnAngle = craftData["angle"];
-    if (!Number.isFinite(burnX) || !Number.isFinite(burnY)) {
-        return;
-    }
-
-    var transformString = `translate(${burnX}, ${burnY}) `;
-    transformString += `rotate(${burnAngle || 0} 0 0) `;
-    var burnZoomFactor = Math.max(0.25, zoomFactor);
-    // console.log("zoomFactor = " + zoomFactor);
-    transformString += `scale(${1 / burnZoomFactor} ${1 / burnZoomFactor}) `;
-    d3.select("#burng").attr("transform", transformString);
-
 }
 
 async function initAnimation(flags) {
