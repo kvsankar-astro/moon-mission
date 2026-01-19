@@ -77,6 +77,7 @@ import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createCraftScaleActions } from "./app/craft-scale-actions.js";
 import { getPlaneCameraPose } from "./app/plane-camera-config.js";
+import { computePreferredCameraDistance } from "./app/camera-parameter-helpers.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1357,18 +1358,29 @@ class AnimationScene {
             }
             this.craftVisible = true;
 
-            const preferredDistance = this.getPreferredDistance(config);
+            const preferredDistance = computePreferredCameraDistance({
+                missionConfig: config,
+                defaultCameraDistance,
+            });
             if (planeSelection === "DEFAULT") {
                 // For DEFAULT plane, always use the computed default positioning regardless of passed distance
                 // This maintains the proper fractional positioning required for DEFAULT view
 
-                this.setCameraPosition(preferredDistance.x, preferredDistance.y, preferredDistance.z);
+                this.setCameraPosition(
+                    preferredDistance.position.x,
+                    preferredDistance.position.y,
+                    preferredDistance.position.z,
+                );
                 if (this.cameraController) {
                     this.cameraController.setUp(0, 0, 1);
                 }
             } else {
                 // For non-DEFAULT planes: at initialization use defaultCameraDistance, otherwise use provided distance
-                const cameraDistance = isInitialization ? preferredDistance.length() : (distance !== null && distance > 0 ? distance : defaultCameraDistance);
+                const cameraDistance = isInitialization
+                    ? preferredDistance.magnitude
+                    : distance !== null && distance > 0
+                        ? distance
+                        : defaultCameraDistance;
 
                 const pose = getPlaneCameraPose({
                     planeSelection,
@@ -1389,23 +1401,6 @@ class AnimationScene {
         }
 
         adjustCameraProjectionMatrixAndSkyAngle();
-    }
-
-    getPreferredDistance(config) {
-        // Returns the preferred camera distance as a Vector3 for the given config
-        if (config == "geo") {
-            return new THREE.Vector3(
-                -1*defaultCameraDistance/6, 
-                -1*defaultCameraDistance/30, 
-                defaultCameraDistance/24
-            );
-        } else {
-            return new THREE.Vector3(
-                -defaultCameraDistance/96, 
-                -defaultCameraDistance/96, 
-                -defaultCameraDistance/96
-            );
-        }
     }
 
     processOrbitVectorsData3D() {
