@@ -84,6 +84,7 @@ import { createLocationActions } from "./app/location-actions.js";
 import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js";
 import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bodies-actions.js";
 import { loadSceneTextures } from "./app/texture-loader.js";
+import { createSceneInitActions } from "./app/scene-init-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -363,6 +364,13 @@ const spacecraftCurveActions = createSpacecraftCurveActions({
 const primarySecondaryBodiesActions = createPrimarySecondaryBodiesActions({
     getConfig: () => config,
     getGlobalConfig: () => globalConfig,
+});
+
+const sceneInitActions = createSceneInitActions({
+    THREE,
+    render,
+    wait20,
+    clearEventInfo,
 });
 
 // View variables
@@ -1125,32 +1133,7 @@ class AnimationScene {
     }
     
     init3dRest() {
-
-        // console.log("init3dRest() called");
-
-        this.scene = new THREE.Scene();
-        this.motherContainer = new THREE.Group();
-
-        this.computeDimensions(); render(); wait20().then();
-        this.addLight(); render(); wait20().then();
-        this.addSky(); render(); wait20().then();
-        this.addMoon(); render(); wait20().then();
-        this.addEarth(); render(); wait20().then();
-        
-        this.setPrimaryAndSecondaryBodies(); render(); wait20().then();
-        this.addSpacecraft(); render(); wait20().then();
-        // await this.addSpacecraftModel(); render(); wait20().then();
-        this.addCamera(); render(); wait20().then();
-        this.initialized3D = true; render(); wait20().then();
-
-        this.addEarthLocations(); render(); wait20().then();
-        this.addMoonLocations(); render(); wait20().then();   
-
-        this.addSpacecraftCurve(); render(); wait20().then();
-        this.addLineOfSight(); render(); wait20().then();
-        this.addAxesHelper(); render(); wait20().then();
-
-        clearEventInfo();
+        sceneInitActions.init3dRest(this);
     }
 
     setCameraParameters(isInitialization = false) {
