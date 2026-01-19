@@ -86,6 +86,7 @@ import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bod
 import { loadSceneTextures } from "./app/texture-loader.js";
 import { createSceneInitActions } from "./app/scene-init-actions.js";
 import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
+import { createDimensionsActions } from "./app/dimensions-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -375,6 +376,12 @@ const sceneInitActions = createSceneInitActions({
 });
 
 const sceneDisposeActions = createSceneDisposeActions();
+
+const dimensionsActions = createDimensionsActions({
+    computeSVGDimensions: () => svgActions.computeSVGDimensions(),
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+});
 
 // View variables
 
@@ -751,9 +758,7 @@ class AnimationScene {
     }
 
     computeDimensions() {
-        svgActions.computeSVGDimensions();
-        this.width = svgWidth;
-        this.height = svgHeight;
+        dimensionsActions.computeDimensions(this);
     }
 
     addSky() {
