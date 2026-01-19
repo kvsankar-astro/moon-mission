@@ -74,6 +74,7 @@ import { createOrbitVectorsActions } from "./app/orbit-vectors-actions.js";
 import { createZoomActions } from "./app/zoom-actions.js";
 import { createLabelActions } from "./app/label-actions.js";
 import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
+import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1826,6 +1827,30 @@ const { processOrbitElementsData } = createOrbitElementsActions({
     },
 });
 
+const {
+    shouldDrawOrbit,
+    planetStartTime,
+    isLocationAvaialable,
+    getBodyLocation,
+} = createBodyLocationActions({
+    THREE,
+    getConfig: () => config,
+    getGlobalConfig: () => globalConfig,
+    getStartTime: () => startTime,
+    getEndTimeSC: () => endTimeSC,
+    getStartLandingTime: () => startLandingTime,
+    getEndLandingTime: () => endLandingTime,
+    chebyshevDataLoaded,
+    chebyshevData,
+    getLandingChebyshevLoaded: () => landingChebyshevLoaded,
+    getLandingChebyshevData: () => landingChebyshevData,
+    getStateFromChebyshev,
+    getMoonState,
+    getEarthFromMoonState,
+    getStartAndEndTimes,
+    TC,
+});
+
 const { processOrbitVectorsData } = createOrbitVectorsActions({
     d3,
     sleep,
@@ -2258,95 +2283,6 @@ function onWindowResize() {
 
 function showPlanet(planet) {
     return true;
-}
-
-function shouldDrawOrbit(planet) {
-    return ((planet == "MARS") ||
-            (planet == "SC") ||
-            (planet == "MOON") ||
-            (planet == "EARTH") || 
- 
-            (((config == "lunar") || (config == "helio")) && (planet == "CSS")));
-}
-
-function planetStartTime(planet) {
-    var times = getStartAndEndTimes(planet);
-    return times[0];
-}
-
-function isLocationAvaialable(planet, date) {
-    var flag = false;
-    if (planet === "SC" && chebyshevDataLoaded[config] && chebyshevData[config]?.time_range) {
-        const jd = new Date(date).getJD_TDB();
-        const range = chebyshevData[config].time_range;
-        flag = (jd >= range.start) && (jd <= range.end);
-    } else {
-        flag = ((date >= startTime) && (date <= endTimeSC));
-    }
-    // var d = new Date(date);
-    // console.log("isLocationAvaialable() called for body " + planet + " for time " + d + ": returning " + flag);
-    return flag;
-}
-
-function getBodyLocation(craftid, t) {
-    // console.log("getBodyLocation(" + craftId + ", " + t + ")");
-
-    // Check if landing is enabled before using landing time range
-    const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
-
-    // For SC (spacecraft), use Chebyshev data
-    if (craftid === "SC") {
-        // Landing phase - use landing Chebyshev
-        if ((config == "lunar") && isLandingEnabled && (t >= startLandingTime) && (t < endLandingTime - TC.ONE_SECOND_MS)) {
-            if (landingChebyshevLoaded && landingChebyshevData) {
-                const jd = new Date(t).getJD_TDB();
-                const state = getStateFromChebyshev(landingChebyshevData, jd);
-                if (state) {
-                    return [
-                        new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
-                        new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz)
-                    ];
-                }
-            }
-            console.debug(`Landing Chebyshev data not available for time ${t}`);
-            return [null, null];
-        }
-
-        // Regular orbital phase - use Chebyshev
-        if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-            const jd = new Date(t).getJD_TDB();
-            const state = getStateFromChebyshev(chebyshevData[config], jd);
-            if (state) {
-                return [
-                    new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
-                    new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz)
-                ];
-            }
-        }
-        console.debug(`Chebyshev data not available for SC at time ${t}`);
-        return [null, null];
-    }
-
-    // Use Astronomy Engine for Moon and Earth positions
-    if (craftid === "MOON" && config === "geo") {
-        const state = getMoonState(t);
-        return [
-            new THREE.Vector3(state.x, state.y, state.z),
-            new THREE.Vector3(state.vx, state.vy, state.vz)
-        ];
-    }
-
-    if (craftid === "EARTH" && config === "lunar") {
-        const state = getEarthFromMoonState(t);
-        return [
-            new THREE.Vector3(state.x, state.y, state.z),
-            new THREE.Vector3(state.vx, state.vy, state.vz)
-        ];
-    }
-
-    // Unknown body
-    console.error(`Unknown body: ${craftid} in config ${config}`);
-    return [null, null];
 }
 
 function setLocation() {
