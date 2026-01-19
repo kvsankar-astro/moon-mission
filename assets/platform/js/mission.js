@@ -75,6 +75,7 @@ import { createZoomActions } from "./app/zoom-actions.js";
 import { createLabelActions } from "./app/label-actions.js";
 import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBodyLocationActions } from "./app/body-location-actions.js";
+import { createCraftScaleActions } from "./app/craft-scale-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -538,56 +539,11 @@ class SceneHandler {
 }
 
 function updateCraftScale() {
-    if (animationScenes[config] && animationScenes[config].initialized3D) {
-
-        // var origin = new THREE.Vector3(0, 0, 0);
-        // var target = new THREE.Vector3();
-        // var craftLocation = animationScenes[config].craft.getWorldPosition(target);
-        // var distance = animationScenes[config].cameraControls.getWorldPos().distanceTo(craftLocation);
-        // var scale =  distance / defaultCameraDistance;
-
-        var craftLocation = new THREE.Vector3();
-        animationScenes[config].craft.getWorldPosition(craftLocation);
-        
-        var cameraLocation = new THREE.Vector3();
-
-        if (joyRideFlag) {
-            animationScenes[config].camera.getWorldPosition(cameraLocation); // not craftCamera
-        } else if (landingFlag) {
-            animationScenes[config].droneCamera.getWorldPosition(cameraLocation);
-        } else {
-            animationScenes[config].camera.getWorldPosition(cameraLocation);
-        }
-        
-        var distance = cameraLocation.distanceTo(craftLocation);
-        var scale =  distance / defaultCameraDistance;
-        if (landingFlag) { scale = scale * 5; }
-        // console.log(`Setting scale to ${scale}`); // TODO seems to be buggy
-
-        animationScenes[config].craft.scale.set(scale, scale, scale);
-        animationScenes[config].drone.scale.set(scale, scale, scale);
-        
-        // animationScenes[config].craft.scale.set(10, 10, 10);
-
-        if (isLocationAvaialable("SC", animTime)) {
-            // console.log(`SC location avaialble: setting SC visibility to ${animationScenes[config].craftVisible}`);
-            animationScenes[config].craft.visible = animationScenes[config].craftVisible;
-            animationScenes[config].drone.visible = false;
-        } else {
-            // console.log(`SC location NOT avaialble: setting SC visibility to false`);
-            animationScenes[config].craft.visible = false;
-            animationScenes[config].drone.visible = false;
-        }
-
-    }
+    craftScaleActions.updateCraftScale();
 }
 
 function cameraControlsCallback() {
-    // console.log("cameraControlsCallback() called");
-    // Check if scene is still valid before updating craft scale
-    if (animationScenes[config] && animationScenes[config].craft && animationScenes[config].initialized3D) {
-        updateCraftScale();
-    }
+    craftScaleActions.cameraControlsCallback();
 }
 
 // Based on https://stackoverflow.com/a/32038265
@@ -1849,6 +1805,17 @@ const {
     getEarthFromMoonState,
     getStartAndEndTimes,
     TC,
+});
+
+const craftScaleActions = createCraftScaleActions({
+    THREE,
+    animationScenes,
+    getConfig: () => config,
+    getJoyRideFlag: () => joyRideFlag,
+    getLandingFlag: () => landingFlag,
+    getDefaultCameraDistance: () => defaultCameraDistance,
+    getAnimTime: () => animTime,
+    isLocationAvaialable,
 });
 
 const { processOrbitVectorsData } = createOrbitVectorsActions({
