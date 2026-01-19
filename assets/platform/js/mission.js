@@ -67,6 +67,7 @@ import {
 import { createDimensionActions } from "./app/dimension-actions.js";
 import { createSvgActions } from "./app/svg-actions.js";
 import { createPlaneActions } from "./app/plane-actions.js";
+import { createOrbitLoadActions } from "./app/orbit-load-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1764,6 +1765,29 @@ const svgActions = createSvgActions({
     updateProgressLabel,
 });
 
+const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
+    d3,
+    sleep,
+    getConfig: () => config,
+    animationScenes,
+    orbitDataLoaded,
+    chebyshevData,
+    chebyshevDataLoaded,
+    getDataLoaded: () => dataLoaded,
+    setDataLoaded: (val) => {
+        dataLoaded = val;
+    },
+    loadChebyshev,
+    processOrbitData,
+    ensureIndeterminateProgressBar,
+    showElementById,
+    hideElementById,
+    updateProgressLabel,
+    setEventInfoText: (text) => {
+        d3.select("#eventinfo").text(text);
+    },
+});
+
 const planeActions = createPlaneActions({
     getPlaneSelection: () => planeSelection,
     setPlaneVariables: (planeConfig) => {
@@ -2883,48 +2907,6 @@ async function loadLandingDataAndProcess() {
             console.error(`Failed to load landing Chebyshev data: ${chebError}`);
             landingChebyshevLoaded = false;
         }
-    }
-}
-
-async function loadOrbitDataIfNeededAndProcess(callback) {
-
-    if (!orbitDataLoaded[config]) {
-
-        // console.log("Loading orbit data for " + config);
-
-        var msg = dataLoaded ? "" : ("Loading orbit data ... ");
-        ensureIndeterminateProgressBar("progressbar");
-        showElementById("progressbar");
-        updateProgressLabel(msg);
-        await sleep();
-
-        try {
-            // Load Chebyshev JSON for spacecraft (SC) trajectory
-            const chebUrl = animationScenes[config].orbitsCheb;
-            console.log(`Loading Chebyshev data from ${chebUrl}`);
-
-            chebyshevData[config] = await loadChebyshev(chebUrl);
-            chebyshevDataLoaded[config] = true;
-            console.log(`Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`);
-
-            dataLoaded = true;
-            orbitDataLoaded[config] = true;
-
-            hideElementById("progressbar");
-            await processOrbitData();
-            await sleep();
-            callback();
-
-        } catch(error) {
-            console.error("Error loading Chebyshev data:", error);
-            hideElementById("progressbar");
-            d3.select("#eventinfo").text("Error: failed to load orbit data.");
-        }
-    } else {
-        // console.log("Orbit data already loaded for " + config);
-        await processOrbitData();
-        await sleep();
-        callback();
     }
 }
 
