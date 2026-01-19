@@ -91,6 +91,7 @@ import { applySceneTextures } from "./app/scene-texture-actions.js";
 import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
 import { createSceneCameraPositionActions } from "./app/scene-camera-position-actions.js";
 import { createSceneCreationActions } from "./app/scene-creation-actions.js";
+import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processing-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -399,6 +400,17 @@ const sceneCameraPositionActions = createSceneCameraPositionActions({
 });
 
 const sceneCreationActions = createSceneCreationActions();
+
+const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
+    orbitCurveActions,
+    getConfig: () => config,
+    setOrbitPointsCount: (count) => {
+        nOrbitPoints = count;
+    },
+    setLandingPointsCount: (count) => {
+        nLandingPoints = count;
+    },
+});
 
 // View variables
 
@@ -1158,19 +1170,11 @@ class AnimationScene {
     }
 
     processOrbitVectorsData3D() {
-        nOrbitPoints = orbitCurveActions.addOrbitCurveVectors({
-            config,
-            curve: this.curve,
-            curveVelocities: this.curveVelocities,
-        });
+        orbitVectorProcessingActions.processOrbitVectorsData3D(this);
     }
 
     processLandingVectors() {
-        nLandingPoints = orbitCurveActions.addLandingCurveVectors({
-            config,
-            landingCurve: this.landingCurve,
-            landingCurveVelocities: this.landingCurveVelocities,
-        });
+        orbitVectorProcessingActions.processLandingVectors(this);
     }
 
     cameraDisntance(position) {
