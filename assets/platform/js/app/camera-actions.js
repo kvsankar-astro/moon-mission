@@ -8,6 +8,8 @@ export function createCameraActions({
     readLookMode,
     render,
     getViewSky,
+    applyCameraPosToggle,
+    applyCameraLookToggle,
 }) {
     function setLookModeForScene(scene, mode) {
         if (!scene || !scene.cameraController?.setFromToModes) return;
@@ -42,18 +44,12 @@ export function createCameraActions({
 
     function toggleCameraPos() {
         const val = readCameraMode();
-        const config = getConfig();
-        if (animationScenes[config] && animationScenes[config].initialized3D) {
-            animationScenes[config].toggleCameraPos(val);
-        }
+        applyCameraPosToggle(val);
     }
 
     function toggleCameraLook() {
         const val = readLookMode();
-        const config = getConfig();
-        if (animationScenes[config] && animationScenes[config].initialized3D) {
-            animationScenes[config].toggleCameraLook(val);
-        }
+        applyCameraLookToggle(val);
     }
 
     return { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook };

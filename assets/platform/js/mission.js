@@ -77,6 +77,7 @@ import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createCraftScaleActions } from "./app/craft-scale-actions.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
+import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1434,66 +1435,6 @@ class AnimationScene {
         }
     }
 
-    toggleCameraPos(val) {
-        // console.log("toggleCameraPos() called in mode " + this.name + " and target origin position " + val);
-
-        if ((this.name == "geo") && (val == "EARTH")) { 
-            // console.log("Setting camera position to Origin/Earth.");
-            this.camera.position.set(0, 0, 0)
-        };
-        if ((this.name == "geo") && (val == "MOON")) { 
-            // console.log("Setting camera position to Moon.");
-            this.camera.position.set(this.secondaryBody3D.position);
-        };
-        if ((this.name == "lunar") && (val == "EARTH")) { 
-            // console.log("Setting camera position to Earth.");
-            this.camera.position.set(this.secondaryBody3D.position);
-        };
-        if ((this.name == "lunar") && (val == "MOON")) {
-            // console.log("Setting camera position to Origin/Moon.");
-            this.camera.position.set(0, 0, 0);
-        };
-
-        theSceneHandler.render(this);
-    }
-
-    toggleCameraLook(val) {
-        // console.log("toggleCameraLook() called in mode " + this.name + " and target look position " + val);
-
-        if (this.name == "geo") {
-
-            if (val == "EARTH") { 
-                // console.log("Setting camera look to Origin/Earth.");
-                this.camera.lookAt(0, 0, 0);
-                // this.camera.lookAt(this.secondaryBody3D.position);
-            }
-            if (val == "MOON") { 
-                // console.log("Setting camera look to Moon.");
-                this.camera.lookAt(this.secondaryBody3D.position);
-            }
-            if (val == "SC") {
-                // console.log("Setting camera look to the craft.");
-                this.camera.lookAt(this.craft.position);	
-            }
-        }
-
-        if (this.name == "lunar") {
-
-            if (val == "EARTH") { 
-                // console.log("Setting camera look to Earth.");
-                this.camera.lookAt(this.secondaryBody3D.position);
-            }
-            if (val == "MOON") {
-                // console.log("Setting camera look to Origin/Moon.");
-                this.camera.lookAt(0, 0, 0);
-            }
-            if (val == "SC") {
-                // console.log("Setting camera look to the craft.");
-                this.camera.lookAt(this.craft.position);
-            }
-        }
-    }
-
     cameraDisntance(position) {
         return distance3D(position);
     }   
@@ -2710,6 +2651,15 @@ const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
     setChecked,
 });
 
+const sceneCameraActions = createSceneCameraActions({
+    animationScenes,
+    getConfig: () => config,
+    renderScene: (scene) => {
+        if (!theSceneHandler) return;
+        theSceneHandler.render(scene);
+    },
+});
+
 const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createCameraActions({
     animationScenes,
     getConfig: () => config,
@@ -2720,6 +2670,8 @@ const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createC
     readLookMode: () => readCheckedRadioValue("look", "AUTO"),
     render,
     getViewSky: () => viewSky,
+    applyCameraPosToggle: sceneCameraActions.toggleCameraPos,
+    applyCameraLookToggle: sceneCameraActions.toggleCameraLook,
 });
 
 const { toggleJoyRide, toggleLanding } = createModeActions({
