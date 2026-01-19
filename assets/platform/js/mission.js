@@ -83,6 +83,7 @@ import { createBodyRotationActions } from "./app/body-rotation-actions.js";
 import { createLocationActions } from "./app/location-actions.js";
 import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js";
 import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bodies-actions.js";
+import { loadSceneTextures } from "./app/texture-loader.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -699,54 +700,24 @@ class AnimationScene {
             return;
         }
 
-        var scene = this;
+        const scene = this;
 
-        const getTextures = ()=> new Promise((resolve, reject)=>{
-          const loader = new THREE.TextureLoader();
-          THREE.DefaultLoadingManager.onLoad = ()=>resolve(textures);
-          const textures = [
-            
-            "images/earth/2_no_clouds_8k.jpg",
-            "images/earth/earthspec1k.jpg",
-            "images/moon/Solarsystemscope_texture_8k_moon.jpg",
-            "images/moon/ldem_16_gsfc.png",
-            "images/sky/starmap_4k.jpg",
-            "images/sky/constellation_figures.jpg",
+        loadSceneTextures({
+            THREE,
+            minFilter: THREE.LinearFilter,
+        }).then((textures) => {
+            scene.earthTexture = textures.earthTexture;
+            scene.earthSpecularTexture = textures.earthSpecularTexture;
+            scene.moonMap = textures.moonMap;
+            scene.moonDisplacementMap = textures.moonDisplacementMap;
+            scene.skyTexture = textures.skyTexture;
+            scene.skyConstellationTexture = textures.skyConstellationTexture;
 
-          ].map(filename=>loader.load(filename));
-        });
-
-        getTextures().then(async result=>{
-
-            // console.log("Loaded textures: ", result);
-
-            var mapIndex = 0;
-
-            scene.earthTexture = result[mapIndex++];
-            scene.earthTexture.minFilter = THREE.LinearFilter;
-
-            scene.earthSpecularTexture = result[mapIndex++];
-            scene.earthSpecularTexture.minFilter = THREE.LinearFilter;
-
-            scene.moonMap = result[mapIndex++];
-            scene.moonMap.minFilter = THREE.LinearFilter;
-
-            scene.moonDisplacementMap = result[mapIndex++];
-            scene.moonDisplacementMap.minFilter = THREE.LinearFilter;
-
-            scene.skyTexture = result[mapIndex++];
-            scene.skyTexture.minFilter = THREE.LinearFilter;
-            // scene.skyTexture.flipY = false;
-
-            scene.skyConstellationTexture = result[mapIndex++];
-            scene.skyConstellationTexture.minFilter = THREE.LinearFilter;
-            // scene.skyConstellationTexture.flipY = false;
-            
             scene.init3dRest(); // We can't call callback until we are done
             callback();
 
         }, (error) => {
-            console.error("Error: couldn't load textures: " + erorr);
+            console.error("Error: couldn't load textures:", error);
         });
 
         // var loader = new THREE.TextureLoader();
