@@ -89,6 +89,7 @@ import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
 import { createDimensionsActions } from "./app/dimensions-actions.js";
 import { applySceneTextures } from "./app/scene-texture-actions.js";
 import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
+import { createSceneCameraPositionActions } from "./app/scene-camera-position-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -389,6 +390,11 @@ const scene3dInitActions = createScene3dInitActions({
     THREE,
     loadSceneTextures,
     applySceneTextures,
+});
+
+const sceneCameraPositionActions = createSceneCameraPositionActions({
+    cameraControlsCallback,
+    distance3D,
 });
 
 // View variables
@@ -703,22 +709,7 @@ class AnimationScene {
     }
 
     setCameraPosition(x, y, z) {
-        // console.log(`Setting camera position to (${x}, ${y}, ${z}).`);
-
-        if (this.cameraController) {
-            this.cameraController.setPosition(x, y, z);
-        }
-
-        // Update sky position to follow camera
-        if (this.skyContainer && this.camera) {
-            this.skyContainer.position.setFromMatrixPosition(this.camera.matrixWorld);
-        }
-
-        // Update controls
-        if (this.cameraController) {
-            this.cameraController.update();
-            cameraControlsCallback();
-        }
+        sceneCameraPositionActions.setCameraPosition(this, x, y, z);
     }
 
     init3d(callback) {
@@ -1180,7 +1171,7 @@ class AnimationScene {
     }
 
     cameraDisntance(position) {
-        return distance3D(position);
+        return sceneCameraPositionActions.cameraDisntance(position);
     }   
 
     rotateMoon(timeMs = animTime) {
