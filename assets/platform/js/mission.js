@@ -81,6 +81,7 @@ import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
 import { createBodyRotationActions } from "./app/body-rotation-actions.js";
 import { createLocationActions } from "./app/location-actions.js";
+import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -340,6 +341,19 @@ const locationActions = createLocationActions({
     getMoonRadius: () => moonRadius,
     getGlobalConfig: () => globalConfig,
     getViewCraters: () => viewCraters,
+});
+
+const spacecraftCurveActions = createSpacecraftCurveActions({
+    THREE,
+    getGlobalConfig: () => globalConfig,
+    getConfig: () => config,
+    getCraftId: () => craftId,
+    planetProperties,
+    getOrbitPointsCount: () => nOrbitPoints,
+    getLandingPointsCount: () => nLandingPoints,
+    getViewOrbitDescent: () => viewOrbitDescent,
+    render,
+    createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
 });
 
 // View variables
@@ -990,78 +1004,11 @@ class AnimationScene {
     }
 
     addSpacecraftCurve() {
-        // add spacecraft orbiter orbit
-        this.orbitLines = [];
-        this.pointsPerSlice = 100;
-        this.startingIndex = 0;
-        this.leftOrbitPoints = nOrbitPoints;
-
-        var craftOrbitColor = planetProperties[craftId]["orbitcolor"];
-        this.orbitMaterial = new THREE.LineBasicMaterial({color: craftOrbitColor, linewidth: 0.2});
-
-        this.addCurve(); // TODO should we prefix await here?
-
-
-        if (config == "lunar" && globalConfig && globalConfig.landing && globalConfig.landing.enabled && this.landingCurve.length > 0) {
-            // console.log("Adding landing curve ...");
-            var landingCurves = new THREE.CatmullRomCurve3(this.landingCurve);
-            var landingOrbitGeometry = new THREE.BufferGeometry();
-            const vertexVectors = landingCurves.getSpacedPoints(nLandingPoints * 40);
-            const vertices = [];
-            vertexVectors.forEach(function(elem) { vertices.push(elem.x, elem.y, elem.z); }); 
-            landingOrbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            var landingOrbitColor = "#FFFFE0"; // Light yellow for landing orbit
-            var landingOrbitMaterial = new THREE.LineBasicMaterial({color: landingOrbitColor, linewidth: 0.2});
-            this.landingOrbitLine = new THREE.Line(landingOrbitGeometry, landingOrbitMaterial);
-            this.landingOrbitLine.visible = viewOrbitDescent;
-            this.motherContainer.add(this.landingOrbitLine);
-            render();
-            // console.log("Added landing curve.");
-        }
-
+        spacecraftCurveActions.addSpacecraftCurve(this);
     }
 
     disposeSpacecraftCurve() {
-        // Dispose of orbit lines
-        if (this.orbitLines) {
-            this.orbitLines.forEach(line => {
-                if (line.geometry) {
-                    line.geometry.dispose();
-                }
-                if (line.material) {
-                    line.material.dispose();
-                }
-                this.motherContainer.remove(line);
-            });
-            this.orbitLines = [];
-        }
-
-        // Dispose of orbit material
-        if (this.orbitMaterial) {
-            this.orbitMaterial.dispose();
-            this.orbitMaterial = null;
-        }
-
-        // Dispose of landing orbit line
-        if (this.landingOrbitLine) {
-            if (this.landingOrbitLine.geometry) {
-                this.landingOrbitLine.geometry.dispose();
-            }
-            if (this.landingOrbitLine.material) {
-                this.landingOrbitLine.material.dispose();
-            }
-            this.motherContainer.remove(this.landingOrbitLine);
-            this.landingOrbitLine = null;
-        }
-
-        // Clear curve data
-        this.chandrayaanCurve = [];
-        this.landingCurve = [];
-
-        // Reset orbit-related variables
-        this.pointsPerSlice = 0;
-        this.startingIndex = 0;
-        this.leftOrbitPoints = 0;
+        spacecraftCurveActions.disposeSpacecraftCurve(this);
     }
 
 
