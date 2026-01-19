@@ -85,6 +85,7 @@ import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js"
 import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bodies-actions.js";
 import { loadSceneTextures } from "./app/texture-loader.js";
 import { createSceneInitActions } from "./app/scene-init-actions.js";
+import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -372,6 +373,8 @@ const sceneInitActions = createSceneInitActions({
     wait20,
     clearEventInfo,
 });
+
+const sceneDisposeActions = createSceneDisposeActions();
 
 // View variables
 
@@ -1205,33 +1208,7 @@ class AnimationScene {
     } 
 
     dispose() {
-        console.debug('Disposing AnimationScene with complete WebGL cleanup...');
-        
-        // Dispose all scene components
-        this.disposeEarthLocations();
-        this.disposeEarth();
-        this.disposeSky();
-        this.disposeMoonLocations();
-        this.disposeMoon();
-        this.disposeSpacecraftModel();
-        this.disposeSpacecraftCurve();
-        this.disposeMoonSOI();
-        this.disposeLineOfSight();
-        this.disposeAxesHelper();
-        this.disposeLight();
-        this.disposeCamera();
-        this.disposeSpacecraft();
-
-        // Dispose sceneHelpers instance
-        if (this.sceneHelpers) {
-            this.sceneHelpers = null;
-        }
-
-        // IMPORTANT: Don't dispose scene and motherContainer 
-        // as these may be reused by the new mode initialization
-        // Just dispose their WebGL resources, not the containers themselves
-        
-        console.debug('AnimationScene disposal completed');
+        sceneDisposeActions.dispose(this);
     }
 }
 
