@@ -92,6 +92,7 @@ import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
 import { createSceneCameraPositionActions } from "./app/scene-camera-position-actions.js";
 import { createSceneCreationActions } from "./app/scene-creation-actions.js";
 import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processing-actions.js";
+import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -411,6 +412,8 @@ const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
         nLandingPoints = count;
     },
 });
+
+const lineOfSightActions = createLineOfSightActions();
 
 // View variables
 
@@ -960,29 +963,11 @@ class AnimationScene {
 
     
     addLineOfSight() {
-        // this.losLineGeometry = new THREE.BufferGeometry();
-        // this.losLine = new THREE.Line(this.losLineGeometry, losLineMaterial);        
-        // this.losLine.frustumCulled = false;
-        // this.motherContainer.add(this.losLine);        
-        // this.losLine.visible = false; // TODO add a control flag for this
+        lineOfSightActions.addLineOfSight(this);
     }
 
     disposeLineOfSight() {
-        if (this.losLine) {
-            if (this.losLine.geometry) {
-                this.losLine.geometry.dispose();
-            }
-            if (this.losLine.material) {
-                this.losLine.material.dispose();
-            }
-            this.motherContainer.remove(this.losLine);
-            this.losLine = null;
-        }
-
-        if (this.losLineGeometry) {
-            this.losLineGeometry.dispose();
-            this.losLineGeometry = null;
-        }
+        lineOfSightActions.disposeLineOfSight(this);
     }
 
     addAxesHelper() {
