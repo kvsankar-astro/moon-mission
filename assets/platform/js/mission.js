@@ -69,6 +69,7 @@ import { createSvgActions } from "./app/svg-actions.js";
 import { createPlaneActions } from "./app/plane-actions.js";
 import { createOrbitLoadActions } from "./app/orbit-load-actions.js";
 import { createLandingLoadActions } from "./app/landing-load-actions.js";
+import { createOrbitElementsActions } from "./app/orbit-elements-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1805,6 +1806,22 @@ const { loadLandingDataAndProcess } = createLandingLoadActions({
     loadChebyshev,
 });
 
+const { processOrbitElementsData } = createOrbitElementsActions({
+    getSvgContainer: () => svgContainer,
+    getConfig: () => config,
+    animationScenes,
+    planetProperties,
+    PC,
+    PIXELS_PER_AU,
+    getZoomFactor: () => zoomFactor,
+    setEpochJD: (val) => {
+        epochJD = val;
+    },
+    setEpochDate: (val) => {
+        epochDate = val;
+    },
+});
+
 const planeActions = createPlaneActions({
     getPlaneSelection: () => planeSelection,
     setPlaneVariables: (planeConfig) => {
@@ -2920,59 +2937,6 @@ function handleZoomNew(event) {
 function zoomEnd() {
     adjustLabelLocations();
 }
-
-function processOrbitElementsData() {
-
-    // console.log("processOrbitElementsData() called");
-    
-    // Only process if svgContainer exists (2D mode)
-    if (!svgContainer) {
-        console.debug("SVG container not initialized, skipping processOrbitElementsData");
-        return;
-    }
-
-    // Add elliptical orbits
-
-    for (var i = 0; i < animationScenes[config].planetsForOrbits.length; ++i) {
-
-        var planetKey = animationScenes[config].planetsForOrbits[i];
-        var planetProps = planetProperties[planetKey];
-        var planetId = planetProps.id;
-        var planet = animationScenes[config].orbits[planetId];
-        var elements = planet["elements"];
-
-        // console.log("Processing orbit data of " + planetKey);
-
-        for (var jd in elements) { // only 1 is expected
-
-            var el = elements[jd];
-            epochJD = jd;
-            epochDate = el.date;
-            // consoloe.log(planetKey + ": epochjd: " + epochjd + ", epochDate: " + epochDate);
-
-            var cx = -1 * (el.a / PC.KM_PER_AU) * el.ec * PIXELS_PER_AU;
-            var cy = 0 * PIXELS_PER_AU;
-            var rx = (el.a / PC.KM_PER_AU) * PIXELS_PER_AU;
-            var ry = rx * (Math.sqrt(1 - el.ec * el.ec));
-
-            var angle = parseFloat(el.om) + parseFloat(el.w);
-            while (angle >= PC.DEGREES_PER_CIRCLE) angle -= PC.DEGREES_PER_CIRCLE;
-            angle = -1 * angle;
-
-            svgContainer.append("ellipse")
-                .attr("id", "ellipse-orbit-" + planetKey)
-                .attr("cx", cx)
-                .attr("cy", cy)
-                .attr("rx", rx)
-                .attr("ry", ry)
-                .attr("stroke", planetProps.orbitcolor)
-                .attr("stroke-width", (1.0/zoomFactor))
-                .attr("fill", "none")
-                .attr("transform", "rotate(" + angle + " 0 0)");
-        }
-    }
-}
-
 
 async function processOrbitVectorsData() {
     // Add spacecraft orbits (2D SVG mode)
