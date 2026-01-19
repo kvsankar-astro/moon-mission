@@ -76,8 +76,7 @@ import { createLabelActions } from "./app/label-actions.js";
 import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createCraftScaleActions } from "./app/craft-scale-actions.js";
-import { getPlaneCameraPose } from "./app/plane-camera-config.js";
-import { computePreferredCameraDistance } from "./app/camera-parameter-helpers.js";
+import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -1338,67 +1337,32 @@ class AnimationScene {
     setCameraParameters(isInitialization = false) {
         // console.log("setCameraParameters() called: isInitialization = " + isInitialization);
 
-        var distance = null;
+        let controllerDistance = null;
         if (this.cameraControlsEnabled && this.cameraController) {
-            distance = this.cameraController.getDistanceFromOrigin();
-            // console.log("cameraDistance in setCameraParameters: " + distance);
+            controllerDistance = this.cameraController.getDistanceFromOrigin();
         }
 
-        const isMoonCamera = this.cameraController?.lookMode === CAMERA_LOOK_MODE.MOON;
-        if (isMoonCamera) {
-            if (this.cameraController) {
-                this.cameraController.setFov(1.0);
-                this.cameraController.setUp(0, 0, 1);
-            }
-            this.setCameraPosition(0, 0, 0);
-            this.craftVisible = false;
-        } else {
-            if (this.cameraController) {
-                this.cameraController.setFov(50.0);
-            }
-            this.craftVisible = true;
+        const params = computeSceneCameraParameters({
+            isMoonCamera: this.cameraController?.lookMode === CAMERA_LOOK_MODE.MOON,
+            planeSelection,
+            missionConfig: config,
+            isInitialization,
+            controllerDistance,
+            defaultCameraDistance,
+        });
 
-            const preferredDistance = computePreferredCameraDistance({
-                missionConfig: config,
-                defaultCameraDistance,
-            });
-            if (planeSelection === "DEFAULT") {
-                // For DEFAULT plane, always use the computed default positioning regardless of passed distance
-                // This maintains the proper fractional positioning required for DEFAULT view
-
-                this.setCameraPosition(
-                    preferredDistance.position.x,
-                    preferredDistance.position.y,
-                    preferredDistance.position.z,
-                );
-                if (this.cameraController) {
-                    this.cameraController.setUp(0, 0, 1);
-                }
-            } else {
-                // For non-DEFAULT planes: at initialization use defaultCameraDistance, otherwise use provided distance
-                const cameraDistance = isInitialization
-                    ? preferredDistance.magnitude
-                    : distance !== null && distance > 0
-                        ? distance
-                        : defaultCameraDistance;
-
-                const pose = getPlaneCameraPose({
-                    planeSelection,
-                    missionConfig: config,
-                    cameraDistance,
-                });
-                if (pose) {
-                    this.setCameraPosition(
-                        pose.position.x,
-                        pose.position.y,
-                        pose.position.z,
-                    );
-                    if (this.cameraController) {
-                        this.cameraController.setUp(pose.up.x, pose.up.y, pose.up.z);
-                    }
-                }
+        if (this.cameraController) {
+            this.cameraController.setFov(params.fov);
+            if (params.up) {
+                this.cameraController.setUp(params.up.x, params.up.y, params.up.z);
             }
         }
+
+        if (params.position) {
+            this.setCameraPosition(params.position.x, params.position.y, params.position.z);
+        }
+
+        this.craftVisible = params.craftVisible;
 
         adjustCameraProjectionMatrixAndSkyAngle();
     }
