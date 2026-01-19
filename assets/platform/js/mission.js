@@ -76,6 +76,7 @@ import { createLabelActions } from "./app/label-actions.js";
 import { createOrbitProcessActions } from "./app/orbit-process-actions.js";
 import { createBodyLocationActions } from "./app/body-location-actions.js";
 import { createCraftScaleActions } from "./app/craft-scale-actions.js";
+import { getPlaneCameraPose } from "./app/plane-camera-config.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -570,20 +571,6 @@ THREE.Object3D.prototype.rotateAroundWorldAxis = function() {
     }
 
 }();
-
-// JSON map for plane selection camera positions and orientations
-const planeCameraConfig = {
-    "DEFAULT": { 
-        geo: { posx: -1/6, posy: -1/30, posz: 1/24, dirx: 0, diry: 0, dirz: 1 },
-        lunar: { posx: -1/96, posy: -1/96, posz: -1/96, dirx: 0, diry: 0, dirz: 1 }
-    },
-    "XY": { posx: 0, posy: 0, posz: 1, dirx: 0, diry: 1, dirz: 0 },
-    "YZ": { posx: 1, posy: 0, posz: 0, dirx: 0, diry: 0, dirz: 1 },
-    "ZX": { posx: 0, posy: 1, posz: 0, dirx: 1, diry: 0, dirz: 0 },
-    "XY-": { posx: 0, posy: 0, posz: -1, dirx: 0, diry: 1, dirz: 0 },
-    "YZ-": { posx: -1, posy: 0, posz: 0, dirx: 0, diry: 0, dirz: 1 },
-    "ZX-": { posx: 0, posy: -1, posz: 0, dirx: 1, diry: 0, dirz: 0 }
-};
 
 class AnimationScene {
     
@@ -1420,12 +1407,19 @@ class AnimationScene {
                 // For non-DEFAULT planes: at initialization use defaultCameraDistance, otherwise use provided distance
                 const cameraDistance = isInitialization ? preferredDistance.length() : (distance !== null && distance > 0 ? distance : defaultCameraDistance);
 
-                // Use planeCameraConfig for all non-DEFAULT plane selections
-                const config3D = planeCameraConfig[planeSelection];
-                if (config3D) {
-                    this.setCameraPosition(config3D.posx * cameraDistance, config3D.posy * cameraDistance, config3D.posz * cameraDistance);
+                const pose = getPlaneCameraPose({
+                    planeSelection,
+                    missionConfig: config,
+                    cameraDistance,
+                });
+                if (pose) {
+                    this.setCameraPosition(
+                        pose.position.x,
+                        pose.position.y,
+                        pose.position.z,
+                    );
                     if (this.cameraController) {
-                        this.cameraController.setUp(config3D.dirx, config3D.diry, config3D.dirz);
+                        this.cameraController.setUp(pose.up.x, pose.up.y, pose.up.z);
                     }
                 }
             }
