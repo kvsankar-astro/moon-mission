@@ -352,7 +352,9 @@ const spacecraftCurveActions = createSpacecraftCurveActions({
     getOrbitPointsCount: () => nOrbitPoints,
     getLandingPointsCount: () => nLandingPoints,
     getViewOrbitDescent: () => viewOrbitDescent,
+    getViewOrbit: () => viewOrbit,
     render,
+    wait10,
     createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
 });
 
@@ -375,10 +377,18 @@ var viewEclipticPlane = initialViewSettings.viewEclipticPlane;
 var viewEquatorialPlane = initialViewSettings.viewEquatorialPlane;
 var viewFPS = initialViewSettings.viewFPS;
 
-let wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-let wait10 = () => wait(10);
-let wait20 = () => wait(20);
-let wait50 = () => wait(50);
+function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+function wait10() {
+    return wait(10);
+}
+function wait20() {
+    return wait(20);
+}
+function wait50() {
+    return wait(50);
+}
 async function sleep() { return new Promise(requestAnimationFrame); } // The Promise resolves after the next frame is painted
 
 async function fetchMetadata(baseFileName) {
@@ -756,49 +766,6 @@ class AnimationScene {
         svgActions.computeSVGDimensions();
         this.width = svgWidth;
         this.height = svgHeight;
-    }
-
-    async addCurve() {
-
-        var scene = this;
-
-        // [0  .. 420) => [320 .. 420), [220 .. 320), [120 .. 220), [20 .. 120), [0, 20)
-
-        scene.startingIndex = scene.leftOrbitPoints;
-        // console.log("addCurve(): startingIndex = " + scene.startingIndex, ", nPoints = " + scene.leftOrbitPoints);
-
-        do {
-            var nPoints = Math.min(scene.leftOrbitPoints, scene.pointsPerSlice);
-            if (nPoints <= 0) {
-                break;
-            } else {
-                scene.startingIndex -= nPoints;
-                scene.leftOrbitPoints -= nPoints;
-            }
-
-            var arr = scene.curve.slice(scene.startingIndex, scene.startingIndex + nPoints + 1); // +1 because we want the last point
-            var curves = new THREE.CatmullRomCurve3(arr);
-        
-            var orbitGeometry = new THREE.BufferGeometry();
-            const vertexVectors = curves.getSpacedPoints(nPoints * 40);
-            const vertices = [];
-            vertexVectors.forEach(function(elem) { vertices.push(elem.x, elem.y, elem.z); }); 
-            orbitGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            var orbitLine = new THREE.Line(orbitGeometry, scene.orbitMaterial);
-            orbitLine.visible = viewOrbit;
-            scene.orbitLines.push(orbitLine);
-            scene.motherContainer.add(orbitLine);
-            render();
-            await wait10();
-            if (this.stopCreationFlag) {
-                // console.log("Stopping creation of " + scene.name + " scene");
-                break;
-            }
-        } while (true);
-
-        // console.log("addCurve() done for " + scene.name);
-        this.state = AnimationScene.SCENE_STATE_ADD_CURVE_DONE;
-        // timeoutHandler();
     }
 
     addSky() {

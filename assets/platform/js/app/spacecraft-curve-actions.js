@@ -7,9 +7,50 @@ export function createSpacecraftCurveActions({
     getOrbitPointsCount,
     getLandingPointsCount,
     getViewOrbitDescent,
+    getViewOrbit,
     render,
+    wait10,
     createLineMaterial,
 }) {
+    async function addCurve(scene) {
+        scene.startingIndex = scene.leftOrbitPoints;
+
+        do {
+            const points = Math.min(scene.leftOrbitPoints, scene.pointsPerSlice);
+            if (points <= 0) {
+                break;
+            }
+
+            scene.startingIndex -= points;
+            scene.leftOrbitPoints -= points;
+
+            const arr = scene.curve.slice(scene.startingIndex, scene.startingIndex + points + 1);
+            const curves = new THREE.CatmullRomCurve3(arr);
+
+            const orbitGeometry = new THREE.BufferGeometry();
+            const vertexVectors = curves.getSpacedPoints(points * 40);
+            const vertices = [];
+            vertexVectors.forEach(function (elem) {
+                vertices.push(elem.x, elem.y, elem.z);
+            });
+            orbitGeometry.setAttribute(
+                "position",
+                new THREE.Float32BufferAttribute(vertices, 3),
+            );
+            const orbitLine = new THREE.Line(orbitGeometry, scene.orbitMaterial);
+            orbitLine.visible = getViewOrbit();
+            scene.orbitLines.push(orbitLine);
+            scene.motherContainer.add(orbitLine);
+            render();
+            await wait10();
+            if (scene.stopCreationFlag) {
+                break;
+            }
+        } while (true);
+
+        scene.state = scene.constructor.SCENE_STATE_ADD_CURVE_DONE;
+    }
+
     function addSpacecraftCurve(scene) {
         scene.orbitLines = [];
         scene.pointsPerSlice = 100;
@@ -19,7 +60,7 @@ export function createSpacecraftCurveActions({
         const craftOrbitColor = planetProperties[getCraftId()]["orbitcolor"];
         scene.orbitMaterial = createLineMaterial(craftOrbitColor);
 
-        scene.addCurve();
+        addCurve(scene);
 
         const config = getConfig();
         const globalConfig = getGlobalConfig();
@@ -93,4 +134,3 @@ export function createSpacecraftCurveActions({
 
     return { addSpacecraftCurve, disposeSpacecraftCurve };
 }
-
