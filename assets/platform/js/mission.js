@@ -87,6 +87,7 @@ import { loadSceneTextures } from "./app/texture-loader.js";
 import { createSceneInitActions } from "./app/scene-init-actions.js";
 import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
 import { createDimensionsActions } from "./app/dimensions-actions.js";
+import { applySceneTextures } from "./app/scene-texture-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -724,12 +725,7 @@ class AnimationScene {
             THREE,
             minFilter: THREE.LinearFilter,
         }).then((textures) => {
-            scene.earthTexture = textures.earthTexture;
-            scene.earthSpecularTexture = textures.earthSpecularTexture;
-            scene.moonMap = textures.moonMap;
-            scene.moonDisplacementMap = textures.moonDisplacementMap;
-            scene.skyTexture = textures.skyTexture;
-            scene.skyConstellationTexture = textures.skyConstellationTexture;
+            applySceneTextures(scene, textures);
 
             scene.init3dRest(); // We can't call callback until we are done
             callback();
