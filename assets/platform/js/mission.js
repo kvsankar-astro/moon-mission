@@ -96,6 +96,7 @@ import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
 import { createAxesHelperActions } from "./app/axes-helper-actions.js";
 import { createLightActions } from "./app/light-actions.js";
 import { createSpacecraftActions } from "./app/spacecraft-actions.js";
+import { createSceneCameraControllerActions } from "./app/scene-camera-controller-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -432,6 +433,14 @@ const spacecraftActions = createSpacecraftActions({
     SpacecraftRenderer,
     planetProperties,
     getCraftSize: () => craftSize,
+});
+
+const sceneCameraControllerActions = createSceneCameraControllerActions({
+    CameraController,
+    getDefaultCameraDistance: () => defaultCameraDistance,
+    getRendererDomElement: () => theSceneHandler.renderer.domElement,
+    cameraControlsCallback,
+    render,
 });
 
 // View variables
@@ -988,47 +997,11 @@ class AnimationScene {
     }
 
     addCamera() {
-        // Create camera controller
-        this.cameraController = new CameraController(this.width, this.height, defaultCameraDistance);
-        this.cameraController.controlsEnabled = this.cameraControlsEnabled;
-
-        // Create main camera
-        this.cameraController.createMainCamera(50);
-        this.setCameraPosition(defaultCameraDistance, defaultCameraDistance, defaultCameraDistance);
-
-        // Create craft and drone cameras
-        this.cameraController.createCraftCamera(this.craft, 50);
-        this.cameraController.createDroneCamera(this.drone, 100);
-
-        // Create controls if enabled
-        if (this.cameraControlsEnabled) {
-            this.cameraController.createControls(
-                theSceneHandler.renderer.domElement,
-                cameraControlsCallback,
-                render
-            );
-        }
-
-        // Backward-compatible property references
-        this.camera = this.cameraController.camera;
-        this.craftCamera = this.cameraController.craftCamera;
-        this.droneCamera = this.cameraController.droneCamera;
-        this.cameraControls = this.cameraController.controls;
-
-        this.setCameraParameters(null, true);
+        sceneCameraControllerActions.addCamera(this);
     }
 
     disposeCamera() {
-        if (this.cameraController) {
-            this.cameraController.dispose(this.craft, this.drone);
-            this.cameraController = null;
-        }
-
-        // Clear backward-compatible references
-        this.camera = null;
-        this.craftCamera = null;
-        this.droneCamera = null;
-        this.cameraControls = null;
+        sceneCameraControllerActions.disposeCamera(this);
     }
 
     async addSpacecraftModel() {
