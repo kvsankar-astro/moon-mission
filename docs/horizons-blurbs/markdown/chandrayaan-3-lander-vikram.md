@@ -1,0 +1,111 @@
+# Chandrayaan-3 Lander Vikram
+
+## Quick Reference
+
+| Field | Value |
+|-------|-------|
+| **HORIZONS ID** | -158 |
+| **Agency** | ISRO |
+| **Type** | Lander |
+| **Launch Date** | 2023-July-14 |
+| **Mass** | 3900.0 kg |
+| **Landing Date** | 2023-Aug-23 |
+| **Landing Site** | Shiv Shakti Point |
+| **Landing Coordinates** | 69.373, 32.319 |
+| **Trajectory Start** | 2023-Jul-14 09:25 |
+| **Trajectory End** | 2023-Sep-06 12:31 |
+| **URL** | https://www.isro.gov.in/Chandrayaan3_New.html |
+
+## JPL HORIZONS Data
+
+```
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+******************************************************************************
+ Revised: 2023-Aug-23    Chandrayaan-3 Spacecraft Lander / (Moon)         -158
+                       https://www.isro.gov.in/Chandrayaan3_New.html
+https://www.isro.gov.in/media_isro/image/index/Chandrayaan3/ShivShakti_point.webp
+
+ UPDATE:
+  Lunar soft-landing 2023-Aug-23 @ 12:32 UTC at coordinates -69.373 deg. (S), 
+  32.319 deg. (E), site named Shiv Shakti Point.
+
+ PURPOSE
+  The primary objective of ISRO's Chandrayaan-3 is to demonstrate the ability 
+  to soft-land and operate a robotic rover on the lunar surface. 
+
+  Scientific goals include studies of lunar topography, mineralogy, elemental 
+  abundance, the lunar exosphere, and signatures of hydroxyl and water ice.
+
+ BACKGROUND
+  Chandrayaan-3 was launched 2023-July-14 @ 09:05 UTC from Satish Dhawan 
+  Space Centre on Sriharikota Island, India on a GSLV-MK3 rocket.
+
+  The payload consists of a propulsion module, a lander (Vikram), and a 
+  rover (Pragyan). 
+
+  After launch into Earth parking orbit (170 x 36500 km altitude), a series
+  of maneuvers will progressively raise the apogee of the spacecraft until 
+  a subsequent trans-lunar injection burn places the lander/rover into a 
+  100 km circular lunar polar orbit. 
+
+  The lander will then touch down in the lunar south polar region, nominally 
+  69.367621 deg. S, 32.348126 deg. E, with a velocity less than 2 m/s vertical
+  and 0.5 m/s horizontal, slope <= 120 degrees. The prime landing site target 
+  zone is 4 x 2.4 km in dimension.
+
+  The propulsion module will remain in lunar orbit to act as a communications
+  relay between the lander and Earth. The lander and rover are designed to 
+  operate for one lunar daylight period, about 14 Earth days.
+
+ SPACECRAFT DETAILS
+  Launch mass       : 3900 kg
+  Lunar lander  mass: 1752 kg (solar arrays ~ 738 W)
+  Lander Propulsion : bi-propellant propulsion (MMH + MON3), 
+                      4 nos. of 800 N throttleable engines 
+                      8 nos. of 58 N 
+  Rover mass        : 26 kg   (solar arrays ~  50 W)
+                      6 wheels
+
+ SCIENCE PAYLOADS
+   Lander:
+    Radio Anatomy of Moon Bound Hypersensitive Ionosphere & Atmosphere (RAMBHA)
+    Chandra's Surface Thermo physical Experiment (ChaSTE)
+    Instrument for Lunar Seismic Activity (ILSA)
+    Laser Retroreflector Array (LRA, from NASA)
+   Propulsion module:
+    Spectro-polarimetry of HAbitable Planet Earth (SHAPE)
+   Rover:
+    Alpha Particle X-Ray Spectrometer (APXS)
+    Laser Induced Breakdown Spectroscope (LIBS) Propulsion Module:
+
+ TRAJECTORY: 
+  Post-launch trajectories from ISRO/JPLNAV for LANDER:
+
+  Trajectory name                             Start (TDB)        Stop (TDB)
+  ---------------------------------------- ----------------- -----------------
+  ch3_spk_traj_history_od013_v1            2023-Jul-14 09:25 2023-Jul-20 10:11 
+  ch3_traj_burn_od016_v1_EBN-4_f_v1        2023-Jul-20 10:11 2023-Jul-25 10:01
+  ch3_traj_od023_v1                        2023-Jul-25 10:01 2023-Jul-31 22:01
+  ch3_traj_od025_v1                        2023-Jul-31 22:01 2023-Aug-06 23:59
+  ch3_traj_burn_od028_v1                   2023-Aug-03 12:01 2023-Aug-05 14:36
+  ch3_traj_burn_od030_v1                   2023-Aug-05 14:36 2023-Aug-07 13:56
+  ch3_traj_od035_v1                        2023-Aug-07 13:56 2023-Aug-09 11:36
+  ch3_traj_od037_v1                        2023-Aug-09 11:36 2023-Aug-11 05:16 
+  ch3_traj_burn_od040_v1_LBN-4             2023-Aug-11 05:16 2023-Aug-14 08:01
+  ch3_traj_burn_od044_v1_LBN-5             2023-Aug-14 08:01 2023-Aug-15 11:06
+  ch3_traj_od045_v1                        2023-Aug-15 11:06 2023-Aug-16 03:49
+  ch3_traj_od047_v1                        2023-Aug-16 03:41 2023-Aug-16 15:56
+  ch3_traj_od048_v1                        2023-Aug-16 15:56 2023-Aug-17 12:01
+  ch3_traj_burn_od049_v1_DEOR-1_f          2023-Aug-17 12:01 2023-Aug-18 12:01
+  ch3_traj_burn_od052_v1_DEOR-2_f          2023-Aug-18 12:01 2023-Aug-18 23:36
+  ch3_traj_od053_v1                        2023-Aug-18 23:36 2023-Aug-19 23:36
+  ch3_traj_od054_v1                        2023-Aug-19 23:36 2023-Sep-06 12:35
+  ch3_traj_od056_v1                        2023-Aug-20 14:11 2023-Aug-21 16:01
+  ch3_traj_od059_v1                        2023-Aug-21 16:01 2023-Sep-06 12:31
+*******************************************************************************
+```
+
+---
+*Fetched from JPL HORIZONS on 2026-01-20 10:46 UTC*

@@ -1,0 +1,90 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Mar 22, 2016         Apollo 9 S-IVB (Spacecraft)              -399090 
+
+ BACKGROUND:
+  Launched: March 3, 1969 @ 16:00 GMT/UTC from Kennedy Space Center, USA into 
+   an initial 117 x 119 mile Earth orbit.
+
+  The primary objective of Apollo 9 was an Earth-orbital engineering test of 
+  the first crewed lunar module (LM). Concurrent prime objectives included 
+  an overall checkout of launch vehicle and spacecraft systems, the crew, new
+  Apollo spacesuit during EVA, and procedures.
+
+  Built by the Douglas Aircraft Company, the S-IVB served as the third stage 
+  on the Saturn V. It had one J-2 engine which was fired three times. 
+
+  On the first day, and after orbit injection of the combined S-IVB stage and 
+  its SLA-LM-CSM payload, the S-IVB propellant tanks were vented to change the 
+  orbit to 123 by 127 miles. 
+
+  The Command Service Module separated and the SLA panel walls jettisoned, 
+  transposing the CSM to 180 degrees toward the Lunar Module atop the S-IVB. 
+
+  The CSM docked with the LM in the second orbit. The linked modules ejected 
+  from the S-IVB, and the thrust placed the CSM-LM a safe distance away for a
+  62-second restart of the S-IVB, which raised the apogee to 1,895 miles. 
+
+  To achieve a hyperbolic orbit for the planned disposal trajectory, the S-IVB 
+  restarted a second time for four minutes, two seconds. It resulted in a less 
+  than desired maximum velocity increase and was off nominal by about 11%.
+
+  A third S-IVB burn achieved heliocentric orbit.
+
+  The Apollo 9 astronauts returned to Earth on March 13, 1969 @ 05:01 GMT/UTC, 
+  the spacecraft splashing down in the Atlantic Ocean, east of the Bahamas.
+
+  Apollo 9 astronauts:
+   James A. McDivitt      (Commander)
+   David R. Scott         (Command Module Pilot)
+   Russell L. Schweickart (Lunar Module Pilot)
+ 
+ SPACECRAFT TRAJECTORY:
+  The trajectory here is a reconstruction of the Apollo 9 S-IVB stage Earth 
+  departure trajectory developed by Daniel R. Adamo under contract to NASA in 
+  2012. The trajectory spans the time interval from 1969-Mar-03 23:38 to 
+  March 11 @ 00:05 GMT/UTC.
+
+  To extrapolate to future times, the following heliocentric IAU76 J2000 
+  ecliptic osculating elements can be manually input into Horizons as starting 
+  conditions for a ballistic numerical integration using the telnet or e-mail 
+  interfaces: 
+
+  EPOCH= 2440291.500000000 ! A.D. 1969-Mar-11 00:00:00.0000 (TDB)
+   EC= 7.559593998213560E-02 QR= 8.541248554847344E-01 IN= 1.037413445176991E+00
+   OM= 3.424287332995036E+02 W = 1.489051256795729E+01 Tp=  2440136.634835941251
+
+... where
+
+    EPOCH    Epoch Julian Day Number, Barycentric Dynamical Time
+      EC     Eccentricity, e
+      QR     Periapsis distance, q (au)
+      IN     Inclination w.r.t xy-plane, i (degrees)
+      OM     Longitude of Ascending Node, OMEGA, (degrees)
+      W      Argument of Perifocus, w (degrees)
+      Tp     Time of periapsis (Julian Day Number)
+
+  Uncertainties and errors in the extrapolated position prediction will increase
+  as the time from the EPOCH increases. Predictions for this man-made object 
+  years past the EPOCH are problematic due to unmodeled-but-cumulative solar   
+  pressure and out-gassing accelerations, yet no further tracking data to 
+  characterize the forces.
+
+ Supplemental orbital elements (FYI, at same epoch):
+  N = 1.109723543313163E+00 MA= 1.718575185950277E+02 TA= 1.729791202858778E+02
+  A = 9.239735007959919E-01 AD= 9.938221461072493E-01 PR= 3.244051206890618E+02
+ 
+... where
+
+      N      Mean motion, n (degrees/day) 
+      MA     Mean anomaly, M (degrees)
+      TA     True anomaly, nu (degrees)
+      A      Semi-major axis, a (au)
+      AD     Apoapsis distance (au)
+      PR     Sidereal orbit period (day)
+
+  See Horizons documentation for more information on how to use these elements.
+  Contact "adamod@earthlink.com" for more information on the reconstruction.
+*******************************************************************************

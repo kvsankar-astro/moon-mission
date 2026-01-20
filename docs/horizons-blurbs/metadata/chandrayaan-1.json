@@ -1,0 +1,23 @@
+{
+  "horizons_id": -86,
+  "name": "Chandrayaan-1",
+  "revision_date": null,
+  "target_body": null,
+  "launch_date": "October 22, \n 2008",
+  "launch_site": null,
+  "mass_kg": 1050.0,
+  "dimensions": "1.5 meter cube, plus extended solar panel",
+  "agency": "ISRO",
+  "mission_type": "Orbiter",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://directory.eoportal.org/web/eoportal/satellite-missions/c-missions/chandrayaan-1#spacecraft",
+  "payloads": [],
+  "raw_sections": {}
+}

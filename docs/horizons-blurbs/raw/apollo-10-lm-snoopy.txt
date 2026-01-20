@@ -1,0 +1,88 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Mar 22, 2016          Apollo 10 LM (Spacecraft)               -399101 
+
+ BACKGROUND:
+  Launched: May 18, 1969 @ 16:49 GMT/UTC from Kennedy Space Center, USA 
+
+  Apollo 10 was the fourth manned mission in the United States Apollo space 
+  program, and the second (after Apollo 8) to orbit the Moon. It was a 
+  "dress rehearsal" for the first Moon landing, testing all of the components 
+  and procedures, just short of actually landing.  This helped refine the
+  model of the lunar gravity field for future landing accuracy.
+
+  The Lunar Module (LM), whose later ascent-stage post-jettison trajectory is 
+  represented here, came within 14.4 km of the lunar surface (May 22 @ 21:30:43
+  GMT/UTC), the point where the powered descent to the lunar surface would have
+  begun for an actual landing.
+
+  During autonomous lunar orbit operations, and after closest approach, the LM 
+  then jettisoned its descent stage at a selenocentric altitude of 58.2 km. 
+  Because the crewed LM ascent stage was not launched from the Moon's surface, 
+  docking with the Command Service Module (CSM) in lunar orbit was achieved 
+  with considerable propellant remaining on the LM. After docking and crew 
+  transfer from the LM to CSM, the LM was jettisoned and the surplus propellant
+  expended in ground-commanded separation and depletion burns, ultimately 
+  departing the Earth-Moon space with a heliocentric trajectory estimated here.
+
+  The LM descent-stage was left in lunar orbit but eventually crashed into the
+  lunar surface. It was not tracked.
+
+  The Apollo 10 astronauts returned to Earth on May 26, 1969 @ 16:52:23 GMT/UTC,
+  the spacecraft splashing down in the Pacific Ocean, 740 km east of American 
+  Samoa.
+
+  Apollo 10 astronauts:
+   Thomas P. Stafford     (Commander)
+   John W. Young          (Command Module Pilot)
+   Eugene A. Cernan       (Lunar Module Pilot)
+ 
+ SPACECRAFT TRAJECTORY:
+  The trajectory here is a reconstruction of the Apollo 10 Lunar Module ascent
+  stage ("Snoopy") departure trajectory developed by Daniel R. Adamo under 
+  contract to NASA in 2012. The trajectory spans the time interval from 
+  1969-May-23 05:38 to May 28 @ 00:06 (GMT/UTC).
+
+  To extrapolate to future times, the following heliocentric IAU76 J2000 
+  ecliptic osculating elements can be manually input into Horizons as starting 
+  conditions for a ballistic numerical integration using the telnet or e-mail 
+  interfaces: 
+
+  EPOCH= 2440369.50 ! A.D. 1969-May-28 00:00:00.0 (TDB)
+   EC= 1.019060921246732E-01 QR= 8.529502470438327E-01 IN= 1.768522392707621E-01
+   OM= 6.388513395075357E+01 W = 4.378387492993282E+01 Tp=  2440246.670238981955
+
+... where
+
+    EPOCH    Epoch Julian Day Number, Barycentric Dynamical Time
+      EC     Eccentricity, e
+      QR     Periapsis distance, q (au)
+      IN     Inclination w.r.t xy-plane, i (degrees)
+      OM     Longitude of Ascending Node, OMEGA, (degrees)
+      W      Argument of Perifocus, w (degrees)
+      Tp     Time of periapsis (Julian Day Number)
+
+  Uncertainties and errors in the extrapolated position prediction will increase
+  as the time from the EPOCH increases. Predictions for this man-made object 
+  years past the EPOCH are problematic due to unmodeled-but-cumulative solar   
+  pressure and out-gassing accelerations, yet no further tracking data to 
+  characterize the forces.
+
+ Supplemental orbital elements (FYI, at same epoch):
+   N = 1.064881177193962E+00 MA= 1.307991005072184E+02 TA= 1.389309449363020E+02
+   A = 9.497339193199819E-01 AD= 1.046517591596131E+00 PR= 3.380658872651178E+02
+ 
+... where
+
+      N      Mean motion, n (degrees/day) 
+      MA     Mean anomaly, M (degrees)
+      TA     True anomaly, nu (degrees)
+      A      Semi-major axis, a (au)
+      AD     Apoapsis distance (au)
+      PR     Sidereal orbit period (day)
+
+ See Horizons documentation for more information on how to use these elements.
+ Contact "adamod@earthlink.com" for more information on the reconstruction.
+*******************************************************************************

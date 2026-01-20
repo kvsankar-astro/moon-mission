@@ -1,0 +1,27 @@
+{
+  "horizons_id": -242,
+  "name": "Lunar Trailblazer",
+  "revision_date": "Sep 10, 2025",
+  "target_body": "Sun",
+  "launch_date": null,
+  "launch_site": null,
+  "mass_kg": 200.0,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "Orbiter",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://trailblazer.caltech.edu/index.html",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "Lunar Trailblazer was a NASA mission to understand the form, abundance, and \n distribution of water on the Moon, and the lunar water cycle:\n\n * Determine the form and abundance of water on the sunlit side of the Moon\n * Measure how the distribution of water changes across the lunar surface \n over time\n * Determine the form and abundance of ice inside permanently shadowed \n craters -- locations that do not receive direct sunlight\n * Develop high-resolution temperature maps of the lunar surface and study \n how temperature affects the distribution of water\n * Improve understanding of water cycles on airless bodies in the solar \n system\n\n After launch, a 4-7 month cruise phase to a lunar polar orbit ~100 km \n over the Moon's surface was planned, with two trajectory correction\n maneuvers before a lunar flyby March 3. A second lunar flyby was planned \n for May 8, before entering lunar orbit July 7.\n\n Over the following ~1.5 years, it was to orbit the Moon 12 times a day for \n the science mission phase.\n\n SPACECRAFT PHYSICAL PROPERTIES:\n Total mass: 200 kg\n 3.5 meters wide with two solar panels deployed\n\n INSTRUMENTS:\n High-resolution Volatiles and Minerals Moon Mapper (HVM3, a shortwave \n infrared imaging spetrometer)\n Lunar Thermal Mapper (LTM, mid-imfrared imager)\n\n SPACECRAFT TRAJECTORY: \n Final post-launch reconstruction from navigation (JPL). A fit to tracking, \n optical and radar astrometry through April 10, predicts thereafter. \n\n Includes 24 hours of 2 way radiometric data post launch, and radar and \n optical astrometric observations between Mar 1 to Apr 10 2025. No maneuvers\n were performed.\n \n Trajectory files Start (TDB) Stop (TDB)\n ------------------------------------------------- ----------- -----------\n ltb_trj_od007v1 2025-Feb-27 2051-Jan-01\n*******************************************************************************",
+    "SPACECRAFT TRAJECTORY": "Final post-launch reconstruction from navigation (JPL). A fit to tracking, \n optical and radar astrometry through April 10, predicts thereafter. \n\n Includes 24 hours of 2 way radiometric data post launch, and radar and \n optical astrometric observations between Mar 1 to Apr 10 2025. No maneuvers\n were performed.\n \n Trajectory files Start (TDB) Stop (TDB)\n ------------------------------------------------- ----------- -----------\n ltb_trj_od007v1 2025-Feb-27 2051-Jan-01\n*******************************************************************************",
+    "TRAJECTORY": "Final post-launch reconstruction from navigation (JPL). A fit to tracking, \n optical and radar astrometry through April 10, predicts thereafter. \n\n Includes 24 hours of 2 way radiometric data post launch, and radar and \n optical astrometric observations between Mar 1 to Apr 10 2025. No maneuvers\n were performed.\n \n Trajectory files Start (TDB) Stop (TDB)\n ------------------------------------------------- ----------- -----------\n ltb_trj_od007v1 2025-Feb-27 2051-Jan-01\n*******************************************************************************"
+  }
+}

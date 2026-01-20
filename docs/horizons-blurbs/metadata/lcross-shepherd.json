@@ -1,0 +1,25 @@
+{
+  "horizons_id": -18,
+  "name": "LCROSS Shepherd",
+  "revision_date": "Jul 30, 2013",
+  "target_body": null,
+  "launch_date": "2009-Jun-18",
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "Impactor",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://www.nasa.gov/mission_pages/LCROSS/overview/index.html",
+  "payloads": [],
+  "raw_sections": {
+    "PAYLOAD": "2 near-infrared spectrometers\n 1 visible light spectrometer\n 2 mid-infrared cameras \n 2 near-infrared cameras\n 1 visible-light camera\n 1 visible-light radiometer \n\n SPACECRAFT TRAJECTORY (JPL NAV): \n Trajectory name Start Stop\n ----------------------------- ----------- -----------\n Cycle3_20090618_P30_p0sig_v01 2009-Jun-18 2009-Jun-23 pre-launch planning\n lx090707a 2009-Jun-23 2009-Jun-30 data:Jun 23 - Jul 7\n lx090722a_postTCM5a 2009-Jun-30 2009-Jul-20 data:to Jul 22\n lx090726a_postTCM5a 2009-Jul-20 2009-Aug-25 data:to Jul 26\n lx090904a_TCM6_od 2009-Aug-25 2009-Sep-02 data:to Sep 03\n 18_lx090925b_TCM8_drm 2009-Sep-02 2009-Oct-01 data:to ~Sep 28\n 18_lx091007a_TCM9_recon_final 2009-Oct-01 2009-Oct-06 data:to ~Oct 6\n 18_lx091009d_final_SSC_impact 2009-Oct-06 2009-Oct-09 data:to end-of-mission\n*******************************************************************************"
+  }
+}
