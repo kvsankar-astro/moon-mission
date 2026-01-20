@@ -35,15 +35,14 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Start test server
-        run: node test/server-manager.js start
-
       - name: Run tests
-        run: npx cross-env HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
-
-      - name: Stop test server
-        if: always()
-        run: node test/server-manager.js stop
+        run: |
+          # Start Vite server in background
+          npx vite --port 8111 &
+          # Wait for server to be ready
+          sleep 5
+          # Run tests
+          npx cross-env HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
 
       - name: Prepare deployment directory
         run: |
