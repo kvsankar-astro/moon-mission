@@ -1,12 +1,10 @@
 .claude
+.playwright-mcp/
 # =========================
 # Generated Data Files
 # =========================
-# Orbit data files
-*.npz
-*-CY3.json
+# Orbit data backup files (originals are tracked)
 *-CY3.json.bak
-*-CY3-meta.json
 
 # Daily generated data
 today-*.json
@@ -17,23 +15,16 @@ previous.json
 # =========================
 # Assets and Archives
 # =========================
-# Data directories
-# Chandrayaan 3
-assets/chandrayaan3/data/
-# But track the main configuration file
-!assets/chandrayaan3/data/config.json
-assets/chandrayaan3/archive/
-# NISAR
-assets/nisar/data/
-# But track the main configuration file
-!assets/nisar/data/config.json
-assets/nisar/archive/
+# Backup and intermediate files in any mission data folder
+assets/*/data/*.bak
+assets/*/data/*-jq.json
+
+# Archive folders (per-mission and global)
+assets/*/archive/
+archive/
 
 # Large models
 assets/chandrayaan3/models/cy3.glb
-
-# Archive folders
-archive/
 
 # =========================
 # Large Image Files
@@ -45,7 +36,6 @@ images/moon/lro-cgi-kit/
 images/moon/moon.png
 
 # Binary data files
-*.npy
 de421.bsp
 
 # =========================
@@ -78,6 +68,7 @@ build/
 # =========================
 .vscode/
 .idea/
+*.code-workspace
 *.swp
 *.swo
 *~
@@ -103,10 +94,48 @@ Desktop.ini
 *.log
 
 # =========================
+# Testing
+# =========================
+# Track baseline screenshots for visual regression testing
+!test/screenshots/baseline/*.png
+# But ignore temporary test output and current screenshots
+test/screenshots/current/
+test/screenshots/diff/
+test/screenshots/analysis/
+test/screenshots/*current.png
+test/screenshots/baseline/*-current.png
+test/screenshots/ssim-latest.json
+test/temp/
+# Test run reports (timestamped logs and CSV files)
+test/reports/
+
+# Temporary test development files
+test/baseline-ui-tests.js
+test/find-ids.js
+test/observe-plane-selection.js
+test/plane-selection-expected-behaviors.md
+test/plane-selection-observations.json
+test/quick-interaction-test.js
+test/timing-test.js
+test/screenshots/clean-plane-*.png
+test/screenshots/plane-*.png
+
+# Windows temp files
+nul
+
+# =========================
 # Project Specific
 # =========================
-# Temporary directories
+# Generated orbit data (intermediate files from orbits.py)
+# Only Chebyshev files (*-cheb.json) and metadata (*-meta.json) are committed
+data-generated/
+
+# Legacy temporary directories
 data-fetched/
 
 # Deployment configuration (contains credentials)
 deploy-config.json
+
+# Test server temp files
+.test-server.*
+tmpclaude-*

@@ -1,0 +1,60 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Jan 13, 2026          LRO Spacecraft / (Moon)                     -85
+                               http://lro.gsfc.nasa.gov/
+
+ BACKGROUND:
+  The Lunar Reconnaissance Orbiter (LRO) was launched 2009-Jun-18 9:32 UTC
+  from Cape Canaveral, FL (USA) launch complex 41 on an Atlas V booster.
+
+  Following a 4-day transfer to the Moon and orbit insertion, the spacecraft 
+  was placed in an elliptical low-circular polar orbit (~50 km) for a nominal 
+  1-year mission.  
+
+  LRO returns global data, such as day-night temperature maps, a global 
+  geodetic grid, high resolution color imaging and the moon's UV albedo. 
+  There is emphasis on the polar regions of the moon where continuous access 
+  to solar illumination may be possible and the prospect of water in the 
+  permanently shadowed regions at the poles may exist.
+
+  It is now conducting an extended mission as a communication relay/south pole
+  observing in a low-maintenance orbit.
+
+ PAYLOAD 
+  Cosmic Ray Telescope for the Effects of Radiation (CRaTER)
+  Diviner Lunar Radiometer Experiment (DLRE)
+  Lyman Alpha Mapping Project (LAMP)
+  Lunar Exploration Neutron Detector (LEND)
+  Lunar Orbiter Laser Altimeter (LOLA) 
+  Lunar Reconnaissance Orbiter Camera (LROC)
+  Mini-RF Technology Demonstration (Mini-RF) 
+
+ SPACECRAFT PHYSICAL CHARACTERISTICS:
+  Built at Goddard Spaceflight Center (GSFC)
+  * One year primary mission in ~50 km polar orbit, 
+  * LRO Total Mass ~ 1000 kg/400 W
+  * 100 kg/100W payload capacity
+  * 3-axis stabilized pointed platform (~ 60 arc-sec or better pointing)
+  * Articulated solar arrays and Li-Ion battery
+  * Spacecraft to provide thermal control services to payload elements 
+     if req'd
+  * Ka-band high rate downlink ( 100-300 Mbps, 900 Gb/day), 
+     S-band up/down low rate
+  * Centralized MOC operates mission and flows level 0 data to PI's, 
+     PI delivers high level data to PDS
+  * Command & Data Handling : MIL-STD-1553, RS 422, & High Speed Serial 
+     Service, PowerPC Architecture, 200-400 Gb SSR, CCSDS
+  * Mono or bi-prop propulsion (500-700 kg fuel)
+
+ SPACECRAFT TRAJECTORY: 
+  Final reconstructed trajectory segments are from PDS.  Periodic "tag-up" 
+  solutions begin 2025-Sep-15, with prediction after 2026-Jan-07.
+
+  Trajectory name                   Start (TDB)          Stop (TDB)
+  ----------------------------   -----------------   -----------------
+  Reconstructed trajectory       2009-Jun-18 22:16   2025-Sep-15 00:01
+  Concatenated predict updates   2025-Sep-15 00:01   2026-Jan-07 00:01
+  558day_20260107_01             2026-Jan-07 00:01   2027-Jul-18 23:59
+******************************************************************************

@@ -1,0 +1,25 @@
+{
+  "horizons_id": -176,
+  "name": "GRAIL-SS Stage",
+  "revision_date": "Oct 04, 2011",
+  "target_body": null,
+  "launch_date": null,
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "Second Stage",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "http://moon.mit.edu/",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "GRAIL (Gravity Recovery and Interior Laboratory) will fly twin spacecraft in \n tandem orbits around the moon for several months to measure its gravity \n field. The mission is designed to answer questions about Earth's moon and \n provide scientists a better understanding of how Earth and other rocky \n planets in the solar system formed.\n\n Post-launch reconstructed trajectory w/prediction (JPL Navigation):\n\n * Nominal time of depletion burn: 2011-Sep-12 15:08:23 UTC\n * Some acceleration seen after this time (residual thrusting)\n Treated as exponential decay to ~0 by time of trajectory file start\n * \"Basic\" solar radiation pressure model for predicted segment\n\n Solution is a fit to this dataset:\n Radar tracking : 2011-Sep-12 15:11-17:48 UTC (Millstone & Haystack)\n Ground-tracking: 2011-Sep-12 15:09-15:15 UTC (118 measurements Maui GEODSS) \n\n Trajectory name Start Stop\n --------------------------------- ----------- -----------\n GRSS_0910_99_50yr-stratcom 2011 SEP 12 2061 AUG 30\n*******************************************************************************"
+  }
+}

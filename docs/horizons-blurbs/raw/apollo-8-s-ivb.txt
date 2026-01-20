@@ -1,0 +1,80 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Mar 22, 2016         Apollo 8 S-IVB (Spacecraft)              -399080 
+ 
+ BACKGROUND:
+  Launched: December 21, 1968 @ 12:51 GMT/UTC from Kennedy Space Center, USA
+
+  Built by the Douglas Aircraft Company. Served as the third stage on the 
+  Saturn V.  It had one J-2 engine. Fired twice: first for the orbit insertion
+  after second stage cutoff and again for translunar injection (TLI).
+
+  The stage was jettisoned after final burn.
+
+  Five hours after launch, Mission Control sent a command to the S-IVB booster 
+  to vent its remaining fuel through its engine bell to change the booster's 
+  trajectory. It then passed the Moon and entered into a heliocentric orbit, 
+  so as to pose no further hazard to Apollo 8. 
+
+  Apollo 8 took three days to travel to the Moon. It orbited ten times over 
+  the course of 20 hours, during which the crew made a Christmas Eve television
+  broadcast where they read the first 10 verses from the Book of Genesis. At 
+  the time, the broadcast was the most watched TV program in history.
+
+  The Apollo 8 astronauts returned to Earth on December 27, 1968, when their 
+  spacecraft splashed down in the northern Pacific Ocean.
+
+  Apollo 8 astronauts:
+   Frank F. Borman II   (Commander)
+   James A. Lovell, Jr. (Command Module Pilot)
+   William A. Anders    (Lunar Module Pilot)
+ 
+ SPACECRAFT TRAJECTORY:
+  The trajectory here is a reconstruction of the Apollo 8 S-IVB stage Earth 
+  departure trajectory developed by Daniel R. Adamo under contract to NASA in 
+  2012. The trajectory spans the time interval from 1968-Dec-21 16:05 to 
+  December 31 @ 00:05 GMT/UTC.
+
+  To extrapolate to future times, the following heliocentric IAU76 J2000 
+  ecliptic osculating elements can be manually input into Horizons as starting 
+  conditions for a ballistic numerical integration using the telnet or e-mail 
+  interfaces: 
+
+  EPOCH= 2440221.500000000 ! A.D. 1968-Dec-31 00:00:00.0000 (TDB)
+   EC= 4.594586734707368E-02 QR= 9.008209402020564E-01 IN= 9.745851433100881E-01
+   OM= 2.720471751023382E+02 W = 2.788500790417957E+01 Tp=  2440074.780212379061
+
+... where
+
+    EPOCH    Epoch Julian Day Number, Barycentric Dynamical Time
+      EC     Eccentricity, e                                                   
+      QR     Periapsis distance, q (au)                                        
+      IN     Inclination w.r.t xy-plane, i (degrees)                           
+      OM     Longitude of Ascending Node, OMEGA, (degrees)                     
+      W      Argument of Perifocus, w (degrees)                                
+      Tp     Time of periapsis (Julian Day Number)    
+
+ Uncertainties and errors in the extrapolated position prediction will increase 
+ as the time from the EPOCH increases. Predictions for this man-made object 
+ years past the EPOCH are problematic due to unmodeled-but-cumulative solar 
+ pressure and out-gassing accelerations, yet no further tracking data to 
+ characterize the forces.
+
+ Supplemental orbital elements (FYI, at same epoch):
+  N = 1.074251304907078E+00 MA= 1.576139233076617E+02 TA= 1.595174300484132E+02
+  A = 9.442031739825445E-01 AD= 9.875854077630325E-01 PR= 3.351171167822223E+02
+
+... where
+
+      N      Mean motion, n (degrees/day)                                      
+      MA     Mean anomaly, M (degrees)                                         
+      TA     True anomaly, nu (degrees)                                        
+      A      Semi-major axis, a (au)                                           
+      AD     Apoapsis distance (au)                                            
+      PR     Sidereal orbit period (day)      
+ 
+ See Horizons documentation for more information on how to use these elements.
+ Contact "adamod@earthlink.com" for more information on the reconstruction.
+*******************************************************************************

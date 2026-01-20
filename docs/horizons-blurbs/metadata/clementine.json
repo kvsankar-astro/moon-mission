@@ -1,0 +1,26 @@
+{
+  "horizons_id": -40,
+  "name": "Clementine",
+  "revision_date": "Jan 08, 2008",
+  "target_body": null,
+  "launch_date": "1994-Jan-25",
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "NASA/DoD",
+  "mission_type": "Orbiter",
+  "cospar_id": null,
+  "trajectory_start": "1994-Feb-19 12:59",
+  "trajectory_end": "1994-May-03 12:59",
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://science.nasa.gov/mission/clementine/",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "Deep Space Program Science Experiment (DSPSE), better known as Clementine,\n was launched 1994-Jan-25 @ 16:34 UTC from Vandenberg Air Force Base (SLC-4W), \n California on a Titan 2G launch vehicle.\n\n After launch, the spacecraft remained in a temporary parking orbit around the\n Earth until Feb. 3, 1994, at which time a solid-propellant rocket sent the \n vehicle to the Moon. After two Earth flybys, Feb. 5 and Feb. 15, Clementine \n successfully entered an elliptical polar orbit (about 430 x 2950 kilometers) \n around the Moon on Feb. 19, 1994, with a period of five days.\n\n It departed Lunar orbit 1994-May-03 to rendevous with near-Earth asteroid \n 1620 Geographos, but an 11-minute thruster malfunction on May 7, 1994 caused\n spin-up to 80 rpm while depleting the fuel supply. The mission was\n terminated 1994-Aug-8, the spacecraft left in heliocentric space. It was\n briefly recovered in 1995.\n\n The BMDO assigned responsibility for the Clementine spacecraft design, \n manufacture, integration, and mission execution to the Naval Research \n Laboratory (NRL). The Lawrence Livermore National Laboratory (LLNL) provided \n lightweight imaging sensors developed under the sponsorship of BMDO. \n\n MISSION\n Its purpose was to map the Moon and test lightweight sensors and spacecraft\n components by exposing them to the environment of outer space. \n\n Between February 26 and April 22, 1994, Clementine returned more than \n 1.8 million digital images of the Moon.\n \n Review of Clementine data indicated the possible existence of ice within some \n of the moon's craters (South Pole). This discovery was confirmed in early \n 1998 by NASA's Lunar Prospector.\n\n TRAJECTORY \n Corrected version of NRL release, covers LOI and mapping phase only:\n Trajectory name Start (TDB) Stop (TDB)\n ------------------------------------ ----------------- -----------------\n clem_nrl 1994-Feb-19 12:59 1994-May-03 12:59 \n \n Also on-line (SCID -40000) is an extended runout constructed in 2024, a fit\n to 1995 post-recovery tracking data.\n\n Other segments off-line:\n LEO & PHASING LOOP A: 1994-Jan-26 00:01 to 1994-Feb-02 13:01\n DEPARTURE & PHASING LOOP B: 1994-May-04 03:31 to 1994-May-06 13:31\n\n See the above web page for details on the Clementine mission.\n*******************************************************************************",
+    "TRAJECTORY": "Corrected version of NRL release, covers LOI and mapping phase only:\n Trajectory name Start (TDB) Stop (TDB)\n ------------------------------------ ----------------- -----------------\n clem_nrl 1994-Feb-19 12:59 1994-May-03 12:59 \n \n Also on-line (SCID -40000) is an extended runout constructed in 2024, a fit\n to 1995 post-recovery tracking data.\n\n Other segments off-line:\n LEO & PHASING LOOP A: 1994-Jan-26 00:01 to 1994-Feb-02 13:01\n DEPARTURE & PHASING LOOP B: 1994-May-04 03:31 to 1994-May-06 13:31\n\n See the above web page for details on the Clementine mission.\n*******************************************************************************"
+  }
+}

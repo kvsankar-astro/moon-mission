@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+
+<!-- Copyright (c) 2013-2024 Sankaranarayanan Viswanathan. All rights reserved. -->
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        
+        <meta name="description" content="Chandrayaan 3 Orbit Animation by Sankar Viswanathan">
+        <meta name="author" content="Sankaranarayanan Viswanathan">
+        <meta name="keywords" content="chandrayaan, chandrayaan3, moon, isro, india, space, astronomy, animation">
+
+        <!-- Facebook Meta Tags -->
+        <meta property="og:url" content="https://sankara.net/chandrayaan3.html">
+        <meta property="og:type" content="website">
+        <meta property="og:title" content="Chandrayaan 3 Orbit Animation">
+        <meta property="og:description" content="Chandrayaan 3 Orbit Animation in 3D by Sankar Viswanathan">
+        <meta property="og:image" content="https://sankara.net/assets/chandrayaan3/images/chandrayaan3-screenshot.png">
+
+        <!-- Twitter Meta Tags -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta property="twitter:domain" content="sankara.net">
+        <meta property="twitter:url" content="https://sankara.net/chandrayaan3.html">
+        <meta name="twitter:title" content="Chandrayaan 3 Orbit Animation">
+        <meta name="twitter:description" content="Chandrayaan 3 Orbit Animation in 3D by Sankar Viswanathan">
+        <meta name="twitter:image" content="https://sankara.net/assets/chandrayaan3/images/chandrayaan3-screenshot.png">
+
+        <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
+        <link rel="stylesheet" href="assets/platform/css/jquery-ui-compat.css">
+        <link rel="stylesheet" type="text/css" href="assets/platform/css/mission.css">
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+
+        <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.179.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.179.1/examples/jsm/",
+                "swiper": "https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.mjs",
+                "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm"
+            }
+        }
+        </script>
+
+        <script src="third-party/d3.v3.min.js"></script>
+        <script src="third-party/jquery-1.9.1.js"></script>
+        <script src="assets/platform/js/ui/jquery-ui-dialog-stub.js"></script>
+        <script src="third-party/threex.atmospherematerial.js"></script>
+        <script src="third-party/ephemeris-0.1.0.min.js"></script>
+        <script src="https://unpkg.com/astronomy-engine/astronomy.browser.js"></script>
+
+        <script type="module" src="assets/platform/js/astro.js"></script>
+        <script>
+            // Mission configuration with URL parameter support
+            // Usage: ?mission=cy2 or ?mission=cy3
+            // If no mission param, show selection page
+            (function() {
+                const missionMap = {
+                    'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+                    'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+                    'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+                    'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
+                    'art1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
+                    'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+                    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+                    'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+                    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
+                    'artemis1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' }
+                };
+
+                const params = new URLSearchParams(window.location.search);
+                const missionParam = params.get('mission');
+
+                if (!missionParam) {
+                    // No mission specified - show selection page
+                    window.missionConfig = null;
+                    window.showMissionSelector = true;
+                } else {
+                    const mission = missionMap[missionParam.toLowerCase()] || missionMap['cy3'];
+                    window.missionConfig = {
+                        missionName: mission.name,
+                        dataPath: `assets/${mission.folder}/data/`,
+                        modelPath: `assets/${mission.folder}/models/`
+                    };
+                    window.showMissionSelector = false;
+                }
+            })();
+        </script>
+        <script type="module" src="assets/platform/js/mission.js"></script>
+
+        <title>Moon Mission - Orbit Animation</title>
+    </head>
+
+    <body>
+
+        <!-- Mission Selector (shown when no mission param) -->
+        <div id="mission-selector" style="display: none;">
+            <div style="max-width: 800px; margin: 50px auto; padding: 20px; font-family: Lato, sans-serif; text-align: center;">
+                <h1 style="color: #ffa000; margin-bottom: 10px;">Moon Mission Animations</h1>
+                <h2 style="color: #888; font-weight: normal; margin-bottom: 40px;">by Sankar Viswanathan</h2>
+
+                <label style="display: inline-flex; align-items: center; gap: 10px; color: #ccc; margin-bottom: 30px;">
+                    <input id="selector-relative-mode" type="checkbox">
+                    Earth–Moon axis fixed (mode=relative)
+                </label>
+
+                <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+                    <a href="?mission=cy3" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 3</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2023 - Successful Landing</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">India's historic Moon landing in the south pole region</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=cy2" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 2</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2019 - Soft Landing Attempt</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Full mission including Vikram's final descent</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=a11" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Apollo 11 S-IVB</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">1969 - First Moon Landing</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Third stage trajectory during the historic mission</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=a10" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Apollo 10 "Snoopy"</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">1969 - Lunar Module</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Dress rehearsal LM that descended to 14.4 km</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=art1" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Artemis 1</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2022 - Orion Test Flight</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">NASA's return to the Moon - Distant Retrograde Orbit</p>
+                        </div>
+                    </a>
+                </div>
+
+                <p style="color: #555; margin-top: 40px; font-size: 14px;">
+                    Created using NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/" style="color: #ffa000;">HORIZONS</a> Ephemerides
+                </p>
+            </div>
+        </div>
+
+        <div id="wrapper" class="wrapper flex-container">
+
+        <div id="header" class="header">
+            <div class="navbar flex-container">
+
+                <button id="settings-panel-button">☰ Settings</button>
+                
+                <div id="blurb" class="blurb">
+                    <h1><a id="mission-link" href=""><!-- mission name injected by JS --></a> Orbit Animation.</h1>
+                    <h2>Created by <a href="https://sankara.net/">Sankar Viswanathan</a> using NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/">HORIZONS</a> Ephemerides.</h2>
+                    <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/chandrayaan3">Github</a>.
+                        Works best in desktop screens. Chrome works better than Firefox.</p>
+                </div>
+                
+                <div id="test-id-display" style="position: fixed; top: 10px; right: 150px; color: #ffff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;"></div>
+                <div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;">
+                    FPS: 0
+                </div>
+    
+            </div>
+    
+            <div id="settings-panel" class="settings-panel"> <!-- First row buttons -->
+    
+                <div id="settings-panel-fieldset" class="flex-container">
+                    <!-- <legend>Settings</legend> -->
+                    <fieldset autocomplete="off">
+                        <legend class="config-label config-first-label">Origin/Phase:</legend>
+                        <input id="origin-earth" type="radio" name="mode" value="geo" checked="checked">
+                        <label for="origin-earth">Earth</label>
+                        <input id="origin-moon" type="radio" name="mode" value="lunar">
+                        <label for="origin-moon">Moon</label>
+                    </fieldset>
+    
+                    <fieldset autocomplete="off">
+                        <legend class="config-label">Camera:</legend>
+                        <input type="radio" name="camera" value="default" id="camera-default" checked="checked">
+                        <label for="camera-default">Default</label>
+                        <input type ="radio" name="camera" value="moon" id="camera-moon">
+                        <label for="camera-moon">Moon</label>
+                    </fieldset>
+    
+                    <fieldset autocomplete="off">
+                        <legend class="config-label">Lock On:</legend>
+                        <input type="checkbox" id="checkbox-lock-sc">
+                        <label for="checkbox-lock-sc" id="label-lock-spacecraft"><!-- injected by JS --></label>
+                        <span class="geo"><input type="checkbox" id="checkbox-lock-moon"></span>
+                        <label class="geo" for="checkbox-lock-moon">Moon</label>
+                        <span class="lunar"><input type="checkbox" id="checkbox-lock-earth"></span>
+                        <label class="lunar" for="checkbox-lock-earth">Earth</label>
+                    </fieldset>
+    
+                    <fieldset autocomplete="off">
+                        <legend class="config-label">Plane</legend>
+                        <input type="radio" name="plane" value="DEFAULT" id="checkbox-lock-default" checked="checked">
+                        <label for="checkbox-lock-default">DEFAULT</label>
+                        <input type="radio" name="plane" value="XY" id="checkbox-lock-xy">
+                        <label for="checkbox-lock-xy">XY</label>
+                        <input type="radio" name="plane" value="YZ" id="checkbox-lock-yz">
+                        <label for="checkbox-lock-yz">YZ</label>
+                        <input type="radio" name="plane" value="ZX" id="checkbox-lock-zx">
+                        <label for="checkbox-lock-zx">ZX</label>
+                        <input type="radio" name="plane" value="XY-" id="checkbox-lock-xy-minus">
+                        <label for="checkbox-lock-xy-minus">XY-</label>
+                        <input type="radio" name="plane" value="YZ-" id="checkbox-lock-yz-minus">
+                        <label for="checkbox-lock-yz-minus">YZ-</label>
+                        <input type="radio" name="plane" value="ZX-" id="checkbox-lock-zx-minus">
+                        <label for="checkbox-lock-zx-minus">ZX-</label>
+                    </fieldset>
+                
+                    <fieldset autocomplete="off" class="dimension-3D">
+                        <legend class="config-label">View</legend>
+                        <input id="landing" type="checkbox">
+                        <label for="landing">Landing!</label>
+                        <input id="joyride" type="checkbox">
+                        <label for="joyride">Joy Ride!</label>
+                        <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
+                        <label for="view-orbit" id="label-orbit"><!-- injected by JS --></label>
+                        <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
+                        <label for="view-orbit-descent" id="label-orbit-descent"><!-- injected by JS --></label>
+                        <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
+                        <label for="view-craters">Locations</label>
+                        <input type="checkbox" name="view" value="xyz" id="view-xyz-axes" checked="checked">
+                        <label for="view-xyz-axes">XYZ Axes</label>
+                        <input type="checkbox" name="view" value="poles" id="view-poles" checked="checked">
+                        <label for="view-poles">Poles</label>
+                        <input type="checkbox" name="view" value="polar-axes" id="view-polar-axes" checked="checked">
+                        <label for="view-polar-axes">Polar Axes</label>
+                        <input type="checkbox" name="view" value="sky" id="view-sky" checked="checked">
+                        <label for="view-sky">Stellar Sky</label>
+                        <input type="checkbox" name="view" value="moonsoi" id="view-moonsoi">
+                        <label for="view-moonsoi">Moon's SOI</label>                        
+                        <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">
+                        <label for="view-eclipticplane">Ecliptic Plane</label>                       
+                        <input type="checkbox" name="view" value="equatorialplane" id="view-equatorialplane">
+                        <label for="view-equatorialplane">Equatorial Plane</label>
+                        <input type="checkbox" name="view" value="fps" id="view-fps">
+                        <label for="view-fps">FPS Counter</label>
+
+                                            <!--
+                        <span class="config-label">Camera Placed At:</span>
+                        <input type="radio" name="camera" value="AUTO"  id="camerapos-auto" onclick="toggleCameraPos()" checked="checked">Auto</input>
+                        <input type="radio" name="camera" value="CY3"   id="camerapos-cy3"   onclick="toggleCameraPos()">CY3</input>
+                        <input type="radio" name="camera" value="EARTH" id="camerapos-earth" onclick="toggleCameraPos()">Earth</input>
+                        <input type="radio" name="camera" value="MOON"  id="camerapos-moon"  onclick="toggleCameraPos()">Moon</input>
+    
+                        <span class="hspace">|</span>
+    
+                        <span class="config-label">Camera Looking At:</span>
+                        <input type="radio" name="look" value="AUTO"  id="cameralook-auto" onclick="toggleCameraLook()" checked="checked">Auto</input>
+                        <input type="radio" name="look" value="CY3"   id="cameralook-cy3"   onclick="toggleCameraLook()">CY3</input>
+                        <input type="radio" name="look" value="EARTH" id="cameralook-earth" onclick="toggleCameraLook()">Earth</input>
+                        <input type="radio" name="look" value="MOON"  id="cameralook-moon"  onclick="toggleCameraLook()">Moon</input>
+                        -->
+                    </fieldset>
+    
+                    <fieldset autocomplete="off">
+                        <legend class="config-label">Dimension:</legend>
+                        <input type ="radio" name="dimension" value="2D" id="dimension-2D">
+                        <label for="dimension-2D">2D</label>
+                        <input type ="radio" name="dimension" value="3D" id="dimension-3D" checked="checked">
+                        <label for="dimension-3D">3D</label>
+                    </fieldset>
+    
+                </div>
+            </div> <!-- settings panel -->
+    
+            <div id="control-panel" class="control-panel">
+    
+    
+                <div id="animation-control-panel">
+                    <div class="vspace"></div>
+    
+                    <div id="animationbuttons" class="swiper swiper1">
+                        <div class="swiper-wrapper">
+                            <div class="swiper-slide"><button id="animate"    type="button" class="button">Play</button></div>
+                            <div class="swiper-slide"><button id="slower"     type="button" class="button">Slower</button></div>
+                            <div class="swiper-slide"><button id="resetspeed" type="button" class="button">Reset</button></div>
+                            <div class="swiper-slide"><button id="faster"     type="button" class="button">Faster</button></div>
+                            <div class="swiper-slide"><button id="realtime"   type="button" class="button">Realtime</button></div>
+                            <!-- <div class="swiper-slide"><span id="animspeed"></span></div> -->
+            
+                            <div class="swiper-slide"><span class="hspace">|</span></div>
+
+                            <div class="swiper-slide"><button id="landingbutton" type="button" class="button" title="Landing!">✈ Landing!</button></div>
+                            <div class="swiper-slide"><button id="joyridebutton" type="button" class="button" title="🎢 Joy Ride!">🎢 Joy Ride!</button></div>
+            
+                            <div class="swiper-slide"><span class="hspace">|</span></div>
+
+                            <div class="swiper-slide"><button id="fastbackward"       type="button" class="button" title="Fast rewind">&lt;&lt;</button></div> <!-- &#x25C1; --> 
+                            <div class="swiper-slide"><button id="backward"           type="button" class="button" title="Rewind">&lt;</button></div> <!-- &#x25C3; --> 
+                            <div class="swiper-slide"><button id="forward"            type="button" class="button" title="Forward">&gt;</button></div> <!-- &#x25B9; -->  
+                            <div class="swiper-slide"><button id="fastforward"        type="button" class="button" title="Fast forward">&gt;&gt;</button></div> <!-- &#x25B7; -->             
+                        </div>
+                    </div>
+                    <div class="vspace"></div>
+                    
+                    <!-- <span class="config-label config-first-label">Timeline:</span> -->
+    
+                    <!-- <span id="burnbuttons"></span>     -->
+
+                    <div class="swiper swiper2">
+                        <div id="burnbuttons" class="swiper-wrapper">
+                            <!-- burn buttons will get added here dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="vspace"></div>
+    
+                    <div id="eventinfo" class="eventinfo"></div>
+    
+                </div> <!-- First row buttons -->
+        
+            </div> <!-- control panel -->
+        </div>        
+
+        <div id="content-wrapper" class="content-wrapper flex-container">
+        
+        <div id="svg-top-baseline"></div>
+
+        <div id="banner" class="banner" title="Some quick info before you start...">
+        </div>
+
+        <div id="progressbar" class="progressbar">
+            <div id="progressbar-label" class="progressbar-label"></div>
+        </div>
+
+        <!--
+        <div id="zoom-panel" class="zoom-panel dimension-2D desktoponly">
+            <table class="desktoponly">
+            <tr>
+                <td></td>
+                <td><button id="panup"      type="button" class="navbutton">&#x25B2;</button></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td><button id="panleft"    type="button" class="navbutton" title="Pan left">&#x25C0;</button></td>
+                <td><button id="reset"      type="button" class="navbutton" title="Reset zoom/pan settings">&#x25C8;</button></td>
+                <td><button id="panright"   type="button" class="navbutton" title="Pan right">&#x25B6;</button></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td><button id="pandown"    type="button" class="navbutton" title="Pan down">&#x25BC;</button></td>
+                <td></td>
+            </tr>
+            <tr><td></td><td></td><td></td></tr>
+            <tr>
+                <td></td>
+                <td><button id="zoomin"     type="button" class="navbutton" title="Zoom in"><b>+</b></button></td>
+                <td></td>                     
+            </tr>
+            <tr>
+                <td></td>
+                <td><button id="zoomout"    type="button" class="navbutton" title="Zoom out"><b>-</b></button></td>
+                <td></td>                    
+            </tr>
+            </table>
+        </div>
+        -->
+
+        <div id="svg-wrapper" class="svg-wrapper dimension-2D">
+        </div>
+        <div id="canvas-wrapper" class="canvas-wrapper dimension-3D">
+        </div>
+
+        </div> <!-- content-wrapper -->
+
+        <div id="footer-wrapper" class="footer-wrapper">
+
+            <div id="stats" class="stats prevent-select">
+
+                <div> <!-- extended statistics / Relative to Earth -->
+                    <table>
+                    <tr>
+                        <th colspan="2"><b>Relative to Earth</b></th>
+                    </tr>
+                    <!-- <tr>
+                        <td>Vehicle</td>
+                        <td><label class="sc">Chandrayaan 3</label></td>
+                    </tr> -->
+                    <tr>
+                        <td>Distance (km): </td>
+                        <td><label id="distance-SC-EARTH" class="sc"></label></td>
+                    </tr>
+                    <tr>
+                        <td>Altitude (km): </td>
+                        <td><label id="altitude-SC-EARTH" class="sc"></label></td>
+                    </tr>
+                    <tr>
+                        <td>Velocity (km/s): </td>
+                        <td><label id="velocity-SC-EARTH" class="sc"></label></td>
+                    </tr>
+                    </table>
+                </div>
+
+                <div class="vspace"></div>
+
+                <div> <!-- extended statistics / Relative to Moon -->
+                    <table>
+                    <tr>
+                        <th colspan="2"><b>Relative to Moon</b></th>
+                    </tr>
+                    <!-- <tr>
+                        <td>Vehicle</td>
+                        <td><label class="sc">Chandrayaan 3</label></td>
+                    </tr> -->
+                    <tr>
+                        <td>Distance (km): </td>
+                        <td><label id="distance-SC-MOON" class="sc"></label></td>
+                    </tr>
+                    <tr>
+                        <td>Altitude (km): </td>
+                        <td><label id="altitude-SC-MOON" class="sc"></label></td>
+                    </tr>
+                    <tr>
+                        <td>Velocity (km/s): </td>
+                        <td><label id="velocity-SC-MOON" class="sc"></label></td>
+                    </tr>
+                    </table>
+                </div>
+            </div> <!-- stats wrapper -->
+            
+            <button id="info-button" type="button" class="button">Info</button>
+    
+            <div id="date" class="date"></div>
+
+            <div class="info desktoponly">
+                <table>
+                <tr>
+                    <!-- <td>Orbit data epoch: JD = <label id="epochjd"></label> | UTC = <label id="epochdate"></label></td> -->
+                    <td id="label-phase-prefix"><span id="spacecraft-mnemonic"><!-- injected by JS --></span> phase: 
+                    <label id="phase-1"></label> | 
+                    <label id="phase-2"></label> | 
+                    <label id="phase-3"></label>
+                    </td>
+                </tr>
+                </table>
+            </div> <!-- info -->
+
+            <div class="copyright desktoponly">
+                Copyright &copy; 2013-2025 Sankaranarayanan Viswanathan. All rights reserved.
+            </div> <!-- copyright -->
+        </div> <!-- footer-wrapper -->
+    </div> <!-- wrapper -->
+
+    <script>
+        // Show mission selector or main app based on URL param
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.showMissionSelector) {
+                document.getElementById('mission-selector').style.display = 'block';
+                document.getElementById('wrapper').style.display = 'none';
+                var progressbar = document.getElementById('progressbar');
+                if (progressbar) progressbar.style.display = 'none';
+                document.body.style.background = '#0a0a15';
+                document.body.style.overflow = 'hidden';
+                document.body.style.height = '100vh';
+                document.documentElement.style.overflow = 'hidden';
+                document.title = 'Moon Mission Animations';
+
+                // Selector-only: append/remove mode=relative on mission links.
+                var relativeToggle = document.getElementById('selector-relative-mode');
+                if (relativeToggle) {
+                    var links = Array.from(document.querySelectorAll('#mission-selector a[href^="?mission="]'));
+
+                    function updateMissionLinks() {
+                        links.forEach(function(link) {
+                            try {
+                                var url = new URL(link.getAttribute('href'), window.location.href);
+                                if (relativeToggle.checked) {
+                                    url.searchParams.set('mode', 'relative');
+                                } else {
+                                    url.searchParams.delete('mode');
+                                }
+                                link.setAttribute('href', '?' + url.searchParams.toString());
+                            } catch (e) {
+                                // Ignore malformed hrefs.
+                            }
+                        });
+                    }
+
+                    relativeToggle.addEventListener('change', updateMissionLinks);
+                    updateMissionLinks();
+                }
+            }
+        });
+    </script>
+    </body>
+</html>
+
+<!-- end of file -->

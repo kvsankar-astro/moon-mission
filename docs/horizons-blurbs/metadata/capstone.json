@@ -1,0 +1,29 @@
+{
+  "horizons_id": -1176,
+  "name": "CAPSTONE",
+  "revision_date": "Jan 12, 2026",
+  "target_body": null,
+  "launch_date": null,
+  "launch_site": null,
+  "mass_kg": 25.0,
+  "dimensions": "34 cm x 34 cm x 61 cm",
+  "agency": "NASA",
+  "mission_type": "NRHO Pathfinder",
+  "cospar_id": null,
+  "trajectory_start": "2022-Jun-28 10:07",
+  "trajectory_end": "2026-Feb-03 15:29",
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://www.nasa.gov/directorates/spacetech/small_spacecraft/capstone",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "NASA's \"Cislunar Autonomous Positioning System Technology Operations and \n Navigation Experiment\" (CAPSTONE) is a 12U CubeSat pathfinder for Gateway, \n a future Moon-orbiting outpost in NASA's Artemis program.\n\n Launched from Mahia Peninsula, New Zealand on an Electron rocket (Rocket Lab)\n June 28, 2022, at 09:55:52 UTC. \n\n Remained attached to Photon upper-stage for first six days, through apogee \n raising maneuvers. Separation and start of independent operations occurred \n July 4, 2022.\n\n After a three-month journey to its target destination, CAPSTONE will orbit \n the Moon for at least six months, testing navigation technologies and \n dynamics of the near rectilinear halo-shaped (NRHO) orbit to be used by \n Gateway. \n\n Every seven days, the trajectory will bring CAPSTONE within 1,000 miles of \n one lunar pole at periapse, and 43,500 miles from the other pole at apoapse. \n \n The NRHO provides the advantage of an unobstructed view of Earth in addition \n to coverage of the lunar South Pole.\n\n MISSION GOALS:\n - Verify the characteristics of a cis-lunar near rectilinear halo orbit for \n future spacecraft\n - Demonstrate the NRHO as an efficient path to the Moon's surface and back\n - Demonstrate spacecraft-to-spacecraft navigation services (with LRO)\n - Lay a foundation for commercial support of future lunar operations\n - Gain experience with small dedicated launches of CubeSats beyond low-Earth \n orbit, to the Moon, and elsewhere \n\n SPACECRAFT PHYSICAL CHARACTERISTICS:\n * Dimensions (bus) : 34 cm x 34 cm x 61 cm\n * Launch mass : 25 kg\n * Power : Two solar panel extensions from bus\n * Propulsion : 8 hydrazine thrusters\n\n SPACECRAFT TRAJECTORY:\n Trajectory from launch, with tag-up predictions from navigation.\n Data through January 05, 2026. Prediction thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ---------------------------------------- ----------------- -----------------\n photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15\n Merge of 114 files (od007 to od---) 2022-Jul-04 17:15 2026-Feb-03 15:29\n *******************************************************************************",
+    "MISSION GOALS": "- Verify the characteristics of a cis-lunar near rectilinear halo orbit for \n future spacecraft\n - Demonstrate the NRHO as an efficient path to the Moon's surface and back\n - Demonstrate spacecraft-to-spacecraft navigation services (with LRO)\n - Lay a foundation for commercial support of future lunar operations\n - Gain experience with small dedicated launches of CubeSats beyond low-Earth \n orbit, to the Moon, and elsewhere \n\n SPACECRAFT PHYSICAL CHARACTERISTICS:\n * Dimensions (bus) : 34 cm x 34 cm x 61 cm\n * Launch mass : 25 kg\n * Power : Two solar panel extensions from bus\n * Propulsion : 8 hydrazine thrusters\n\n SPACECRAFT TRAJECTORY:\n Trajectory from launch, with tag-up predictions from navigation.\n Data through January 05, 2026. Prediction thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ---------------------------------------- ----------------- -----------------\n photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15\n Merge of 114 files (od007 to od---) 2022-Jul-04 17:15 2026-Feb-03 15:29\n *******************************************************************************",
+    "SPACECRAFT PHYSICAL CHARACTERISTICS": "* Dimensions (bus) : 34 cm x 34 cm x 61 cm\n * Launch mass : 25 kg\n * Power : Two solar panel extensions from bus\n * Propulsion : 8 hydrazine thrusters\n\n SPACECRAFT TRAJECTORY:\n Trajectory from launch, with tag-up predictions from navigation.\n Data through January 05, 2026. Prediction thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ---------------------------------------- ----------------- -----------------\n photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15\n Merge of 114 files (od007 to od---) 2022-Jul-04 17:15 2026-Feb-03 15:29\n *******************************************************************************",
+    "SPACECRAFT TRAJECTORY": "Trajectory from launch, with tag-up predictions from navigation.\n Data through January 05, 2026. Prediction thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ---------------------------------------- ----------------- -----------------\n photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15\n Merge of 114 files (od007 to od---) 2022-Jul-04 17:15 2026-Feb-03 15:29\n *******************************************************************************",
+    "TRAJECTORY": "Trajectory from launch, with tag-up predictions from navigation.\n Data through January 05, 2026. Prediction thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ---------------------------------------- ----------------- -----------------\n photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15\n Merge of 114 files (od007 to od---) 2022-Jul-04 17:15 2026-Feb-03 15:29\n *******************************************************************************"
+  }
+}

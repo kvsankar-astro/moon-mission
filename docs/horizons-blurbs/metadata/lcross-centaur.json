@@ -1,0 +1,23 @@
+{
+  "horizons_id": -18900,
+  "name": "LCROSS Centaur",
+  "revision_date": "Jul 30, 2013",
+  "target_body": null,
+  "launch_date": "2009-Jun-18",
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "Impactor",
+  "cospar_id": null,
+  "trajectory_start": "2009-Oct-09 01:50",
+  "trajectory_end": "2009-Oct-09 11:32",
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://www.nasa.gov/mission_pages/LCROSS/overview/index.html",
+  "payloads": [],
+  "raw_sections": {}
+}

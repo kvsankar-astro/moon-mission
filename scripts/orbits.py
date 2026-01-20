@@ -180,10 +180,12 @@ def print_config():
     print(f"orbits_file = {orbits_file}")
 
 def get_horizons_start_time(planet):
-    return f"{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}"
+    # HORIZONS API requires single quotes around datetime values with spaces
+    return f"'{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}'"
 
 def get_horizons_stop_time(planet):
-    return f"{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}"    
+    # HORIZONS API requires single quotes around datetime values with spaces
+    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}'"    
     
 
 def set_start_and_stop_times():
@@ -199,8 +201,9 @@ def set_start_and_stop_times():
 
     # If step size is >= 60 seconds and divisible by 60, use minutes
     # Otherwise, calculate number of steps to use 1-second default
+    # HORIZONS API requires single quotes around values with spaces
     if step_size_in_seconds >= 60 and step_size_in_seconds % 60 == 0:
-        step_size = f"{step_size_in_seconds // 60} m"  # Convert to minutes
+        step_size = f"'{step_size_in_seconds // 60} m'"  # Convert to minutes (quoted for HORIZONS)
     else:
         # Calculate total number of steps needed at 1-second intervals
         total_seconds = stop_time_gm - start_time_gm
@@ -264,11 +267,10 @@ def save_orbit_data_json():
             json.dump(orbits, fh, indent=2)
         
         print_debug(f"JSON data written to {orbits_file}.json")
-        
-        # Copy to project root
-        json_filename = os.path.basename(f"{orbits_file}.json")
-        copy_to_data_dir(f"{orbits_file}.json", json_filename, mission)
-        
+
+        # Note: Raw JSON is NOT copied to data dir - only Chebyshev files are used
+        # The raw JSON stays in data-generated/ for debugging/archival
+
         # Verify the file was created and has content
         if os.path.exists(f"{orbits_file}.json") and os.path.getsize(f"{orbits_file}.json") > 0:
             print_debug(f"File {orbits_file}.json exists and has content")
@@ -304,46 +306,89 @@ def save_orbit_data():
             print_error(f"Can't write to {ho_file_name}: {e}")
 
 def fetch_horizons_data(planet, options):
+    """Fetch data from JPL HORIZONS using the modern API endpoint.
+
+    Uses https://ssd.jpl.nasa.gov/api/horizons.api (recommended since 2021)
+    instead of the legacy horizons_batch.cgi endpoint.
+    """
     table_type_map = {
         'elements': ('ELEMENTS', 'elements_content'),
         'vectors': ('VECTORS', 'vectors_content')
     }
-    
+
     try:
         table_type, content_key = table_type_map[options['table_type']]
     except KeyError:
         raise ValueError(f"Invalid table_type: {options['table_type']}")
 
-    base_url = "https://ssd.jpl.nasa.gov/horizons_batch.cgi"
+    # Modern API endpoint (recommended since September 2021)
+    base_url = "https://ssd.jpl.nasa.gov/api/horizons.api"
+
+    # Build parameters - note: modern API doesn't need quotes around values
     params = {
-        'batch': '1',
-        'COMMAND': f"'{planet_codes[planet]}'",
-        'TABLE_TYPE': f"'{table_type}'",
-        'CENTER': f"'{center}'",
-        'CSV_FORMAT': "'YES'"
+        'format': 'text',  # Get text output (same as batch interface)
+        'COMMAND': str(planet_codes[planet]),
+        'OBJ_DATA': 'NO',  # Skip object data header
+        'MAKE_EPHEM': 'YES',
+        'EPHEM_TYPE': table_type,
+        'CENTER': center,
+        'CSV_FORMAT': 'YES'
     }
-    
+
     if options.get('range'):
         params.update({
-            'START_TIME': f"'{options['start_time']}'",
-            'STOP_TIME': f"'{options['stop_time']}'",
-            'STEP_SIZE': f"'{options['step_size']}'"
+            'START_TIME': options['start_time'],
+            'STOP_TIME': options['stop_time'],
+            'STEP_SIZE': options['step_size']
         })
     else:
-        params['TLIST'] = f"{jd}'"
+        params['TLIST'] = str(jd)
 
     print_debug(f"url = {base_url}")
     print_debug(f"params = {params}")
 
-    try:
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()  # Raises an HTTPError for bad responses
-        
-        orbits_raw.setdefault(planet, {})[content_key] = response.text
-        return True
-    except requests.RequestException as e:
-        print_error(f"HTTP request failed: {str(e)}")
-        return False
+    # Retry logic with exponential backoff
+    max_retries = 3
+    timeout_seconds = 300  # 5 minutes timeout for large data fetches
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                wait_time = 5 * (2 ** (attempt - 1))  # Exponential backoff: 5s, 10s, 20s
+                print_debug(f"Retry attempt {attempt + 1}/{max_retries} after {wait_time}s...")
+                time.sleep(wait_time)
+
+            # Use streaming to handle large responses reliably
+            response = requests.get(base_url, params=params, timeout=timeout_seconds, stream=True)
+            response.raise_for_status()  # Raises an HTTPError for bad responses
+
+            # Read response in chunks to avoid connection issues with large data
+            content_bytes = b''
+            for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
+                content_bytes += chunk
+
+            content_text = content_bytes.decode('utf-8')
+            print_debug(f"Downloaded {len(content_text)} characters")
+
+            # Check for HORIZONS error messages in response
+            if '$$SOE' not in content_text:
+                if 'No ephemeris' in content_text or 'Cannot find' in content_text:
+                    print_error(f"HORIZONS error: Object not found or no ephemeris available")
+                    print_debug(f"Response preview: {content_text[:500]}")
+                    return False
+
+            orbits_raw.setdefault(planet, {})[content_key] = content_text
+            return True
+        except requests.Timeout:
+            print_error(f"Request timed out (attempt {attempt + 1}/{max_retries})")
+            if attempt == max_retries - 1:
+                return False
+        except requests.RequestException as e:
+            print_error(f"HTTP request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+            if attempt == max_retries - 1:
+                return False
+
+    return False
 
 def fetch_elements(planet):
     print_debug(f"Fetching elements for planet {planet} ...")
@@ -434,7 +479,7 @@ def parse_horizons_elements(code, planet):
                 rec = {
                     'jdct': jdct,
                     'x': x, 'y': y, 'z': z,
-                    'vx': vy, 'vy': vx, 'vz': vz  # Note: vx and vy are swapped as in original
+                    'vx': vx, 'vy': vy, 'vz': vz
                 }
 
                 if planet not in orbits:
@@ -503,12 +548,11 @@ def save_orbit_data_npy():
         
         # Save all data to a single .npz file
         np.savez_compressed(npz_file, **npz_data)
-        
+
         print_debug(f"All NPY data written to {npz_file}")
-        
-        # Copy NPZ file to project root
-        npz_filename = os.path.basename(npz_file)
-        copy_to_data_dir(npz_file, npz_filename, mission)
+
+        # Note: NPZ is NOT copied to data dir - only Chebyshev files are used
+        # The NPZ stays in data-generated/ for compress-orbits.py to read
         
         # Generate metadata JSON file
         # Convert step size from seconds to minutes for metadata
@@ -614,8 +658,8 @@ def main():
     print("Running ...")
 
     parser = argparse.ArgumentParser(description="Orbit data fetcher and processor")
-    parser.add_argument("--mission", required=True, 
-                        help="Mission name (e.g., chandrayaan3, nisar)")
+    parser.add_argument("--mission", required=True,
+                        help="Mission name (e.g., chandrayaan3)")
     parser.add_argument("--phase", "--phases", nargs="+", 
                         help="Phase(s) of the mission to process (default: all phases from config)")
     parser.add_argument("--data-dir", default=None, help="Base data directory (default: timestamped)")
@@ -644,8 +688,9 @@ def main():
     if args.data_dir:
         base_data_dir = args.data_dir
     else:
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        base_data_dir = os.path.join(project_root, "assets", mission, "archive", "data-fetched", timestamp)
+        # Output to data-generated/<mission>/ (gitignored)
+        # Only metadata files are copied to assets/<mission>/data/
+        base_data_dir = os.path.join(project_root, "data-generated", mission)
     
     print(f"Mission: {mission}")
     print(f"Available phases: {', '.join(available_phases)}")

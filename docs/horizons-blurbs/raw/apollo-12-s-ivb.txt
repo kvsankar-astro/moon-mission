@@ -1,0 +1,95 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Mar 22, 2016         Apollo 12 S-IVB (Spacecraft)             -399120 
+
+ BACKGROUND:
+  Launched: November 14, 1969 @ 16:22 GMT/UTC from Kennedy Space Center, USA 
+
+  Apollo 12 was the second manned mission to land on the Moon and the sixth 
+  manned mission in the United States Apollo space program. 
+
+  It achieved a precise landing at the planned location, the site of the 
+  Surveyor 3 unmanned probe which had landed April 20, 1967. Two moonwalks 
+  visited Surveyor 3 and removed parts for return to Earth. Conrad and Bean 
+  performed 31 hours of lunar surface activity while Gordon remained in the 
+  Command Module orbiting the Moon. Apollo 12 carried the first color 
+  television camera to the lunar surface. 
+
+  The Apollo 12 astronauts returned to Earth on November 24, 1969 @ 20:58 
+  GMT/UTC, the spacecraft splashing down in the Pacific Ocean, 800 km east 
+  of American Samoa.
+
+  Built by the Douglas Aircraft Company, the S-IVB served as the third stage 
+  on the Saturn V. It had one J-2 engine which was fired twice.
+
+  Apollo 12 astronauts:
+   Charles "Pete" Conrad, Jr. (Commander)
+   Richard F. Gordon, Jr.     (Command Module Pilot)
+   Alan L. Bean               (Lunar Module Pilot)
+ 
+ SPACECRAFT TRAJECTORY:
+  The trajectory here is a reconstruction of the Apollo 12 S-IVB stage Earth 
+  departure trajectory developed by Daniel R. Adamo under contract to NASA in 
+  2012. The trajectory spans the time interval from 1969-Nov-14 19:33 to 
+  December 06 @ 00:06 GMT/UTC.
+
+  Propellant dumps following TLI and CSM/LM ejection targeted a lunar approach
+  leading to heliocentric disposal and were performed according to plan, but 
+  were based on a post-TLI trajectory that did not account for shortfall in the
+  TLI delta-V.
+
+  Consequently, the dumps over-corrected and resulted in a lunar encounter 3.4
+  times higher than desired, exceeding the threshold for the lunar gravity 
+  assist necessary to escape Earth-Moon space.
+
+  The achieved S-IVB disposal trajectory therefore ended up in a gravitational 
+  weak-stability region of Earth-Moon space only loosely bound to the Earth, 
+  with a periapse inside the Moon's orbit.
+
+  Over prolonged time-spans of years, small perturbations could easily have 
+  drifted the Apollo 12 S-IVB stage into interplanetary/heliocentric space 
+  sometime after 1976, if not before.
+
+  To extrapolate to future times, the following heliocentric IAU76 J2000 
+  ecliptic osculating elements can be manually input into Horizons as starting 
+  conditions for a ballistic numerical integration using the telnet or e-mail 
+  interfaces: 
+
+  EPOCH = 2440561.50 ! A.D. 1969-Dec-06 00:00:00.0 (TDB)
+   EC= 3.788077679293159E-02 QR= 9.895270525906216E-01 IN= 5.742003975916762E-02
+   OM= 3.492340571440683E+01 W = 4.664715199038439E+01 Tp=  2440569.022123539820
+
+... where
+
+    EPOCH    Epoch Julian Day Number, Barycentric Dynamical Time
+      EC     Eccentricity, e
+      QR     Periapsis distance, q (au)
+      IN     Inclination w.r.t xy-plane, i (degrees)
+      OM     Longitude of Ascending Node, OMEGA, (degrees)
+      W      Argument of Perifocus, w (degrees)
+      Tp     Time of periapsis (Julian Day Number)
+
+  Uncertainties and errors in the extrapolated position prediction will increase
+  as the time from the EPOCH increases. Predictions for this man-made object 
+  years past the EPOCH are problematic due to unmodeled-but-cumulative solar   
+  pressure and out-gassing accelerations, yet no further tracking data to 
+  characterize the forces.
+
+  Supplemental orbital elements (FYI, at same epoch):
+   N = 9.449436351342855E-01 MA= 3.528920172383751E+02 TA= 3.523284678961845E+02
+   A = 1.028486936673184E+00 AD= 1.067446820755747E+00 PR= 3.809751043498384E+02
+ 
+... where
+
+      N      Mean motion, n (degrees/day) 
+      MA     Mean anomaly, M (degrees)
+      TA     True anomaly, nu (degrees)
+      A      Semi-major axis, a (au)
+      AD     Apoapsis distance (au)
+      PR     Sidereal orbit period (day)
+
+ See Horizons documentation for more information on how to use these elements.
+ Contact "adamod@earthlink.com" for more information on the reconstruction.
+*******************************************************************************

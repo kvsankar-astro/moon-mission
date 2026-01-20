@@ -1,0 +1,85 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Jun 02, 2014              LADEE (spacecraft)                      -12
+                               http://www.nasa.gov/LADEE/
+                http://www.spaceflight101.com/ladee-science-overview.html
+
+ Launch   : 2013-Sep-07 03:27 UTC launch (opening of daily 5-minute window)
+ Injection: 2013-Sep-07 03:50:27 UTC
+ 
+ UPDATE (2014-Jun-02):
+  Final/definitive trajectory from LADEE flight ops is now available.
+
+ UPDATE (2014-Apr-18):
+  LADEE impacted the surface of the moon, as planned, between 9:30 and 
+  10:22 p.m. PDT Thursday, April 17. Final trajectory update here is 
+  forthcoming.
+
+ UPDATE (2014-Feb-02):
+   Mission extended 28 days, with lunar impact on or around 2014-Apr-21.
+
+ SCIENCE MISSION
+   Lunar Atmosphere and Dust Environment Explorer (LADEE) is a robotic lunar
+   orbiter designed to gather information on the tenuous lunar atmosphere,
+   conditions near the surface, and environmental influences on 
+   electrostatically levitated lunar dust.
+   
+   The mission will baseline global density, composition, and time variability
+   of the lunar atmosphere before it is perturbed by future human activities. 
+
+   It will also attempt to resolve a mystery from the last time humans were 
+   on the Moon, by determining if Apollo astronaut sightings of diffuse 
+   emission at 10s of km above the surface were caused by sodium glow or dust.
+
+   The mission is managed and operated by NASA-Ames with launch and technology 
+   demonstration support from NASA Goddard and the Deep Space Network (DSN).
+
+ TRAJECTORY
+   LADEE launched from the Wallops Flight Facility (Virginia) on a Minotaur V.
+   Trans-lunar injection via STAR 37 FM upper stage.
+
+   Nominal mission duration is ~160 days: 30 days to Moon via a series of
+   phasing orbits; 30 days for checkout; 100 days of science operations.
+
+   The spacecraft will approach the moon from its leading edge, travel behind 
+   the moon out of sight of the Earth, re-emerge, and execute a three-minute 
+   Lunar Orbit Insertion maneuver. This will place LADEE in an elliptical 
+   retrograde equatorial orbit with an orbital period of ~24 hours.
+
+   A series of maneuvers will then be performed to circularize the orbit at an
+   altitude of 156-miles (250-kilometers).  
+
+   The 100-day Science Phase is to occur in an ~ 113 minute orbit that will 
+   vary between 20-60 kilometers altitude due to the moon's non-uniform gravity
+   field.  During the Science Phase, the moon will rotate more than three times 
+   underneath the LADEE orbit. Periselene will occur over the dawn terminator.
+
+   Following the Science Phase, a decommissioning period is planned, during 
+   which the altitude will be reduced until the spacecraft impacts the lunar 
+   surface.
+
+ SPACECRAFT:
+   Mass : 383 kg
+   Power: 295 watts
+   Comm : S-band with 10 Kbps science data rate
+
+ LADEE SCIENCE PAYLOAD (50 kg total): 
+   UVS : Ultraviolet and Visible Light Spectrometer (atmospheric composition)
+   NMS : Neutral Mass Spectrometer (atmospheric variations)
+   LDEX: Lunar Dust Experiment (collect and analyze dust samples)
+
+   Lunar Laser Communications Technology Demonstration (32.8 kg, 136.5 watts) 
+     Designed to demonstrate a sending and receiving data from missions using 
+     lasers instead of radio signals. The laser link from Earth to lunar orbit 
+     will have a down-link data rate of 622 Mb/s, compared to current radio 
+     methods (about 100 Mb/s).
+
+ SPACECRAFT TRAJECTORY (from NASA-Ames navigation) 
+   Trajectory name                                    Start         Stop
+   --------------------------------------------    -----------   -----------
+   ladee_final_definitive_01_phasing               2013-Sep-07   2013-Oct-05
+   ladee_final_definitive_02_LOAcommissioning      2013-Oct-05   2013-Nov-21
+   ladee_final_definitive_03_science               2013-Nov-21   2014-Apr-18
+*******************************************************************************

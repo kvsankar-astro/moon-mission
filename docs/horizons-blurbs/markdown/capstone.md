@@ -1,0 +1,76 @@
+# CAPSTONE
+
+## Quick Reference
+
+| Field | Value |
+|-------|-------|
+| **HORIZONS ID** | -1176 |
+| **Agency** | NASA |
+| **Type** | NRHO Pathfinder |
+| **Mass** | 25.0 kg |
+| **Trajectory Start** | 2022-Jun-28 10:07 |
+| **Trajectory End** | 2026-Feb-03 15:29 |
+| **URL** | https://www.nasa.gov/directorates/spacetech/small_spacecraft/capstone |
+| **Last Updated** | Jan 12, 2026 |
+
+## JPL HORIZONS Data
+
+```
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+******************************************************************************
+ Revised: Jan 12, 2026        CAPSTONE / Spacecraft (Moon)               -1176
+      https://www.nasa.gov/directorates/spacetech/small_spacecraft/capstone
+
+ BACKGROUND:
+  NASA's "Cislunar Autonomous Positioning System Technology Operations and 
+  Navigation Experiment" (CAPSTONE) is a 12U CubeSat pathfinder for Gateway, 
+  a future Moon-orbiting outpost in NASA's Artemis program.
+
+  Launched from Mahia Peninsula, New Zealand on an Electron rocket (Rocket Lab)
+  June 28, 2022, at 09:55:52 UTC. 
+
+  Remained attached to Photon upper-stage for first six days, through apogee 
+  raising maneuvers. Separation and start of independent operations occurred 
+  July 4, 2022.
+
+  After a three-month journey to its target destination, CAPSTONE will orbit 
+  the Moon for at least six months, testing navigation technologies and 
+  dynamics of the near rectilinear halo-shaped (NRHO) orbit to be used by 
+  Gateway. 
+
+  Every seven days, the trajectory will bring CAPSTONE within 1,000 miles of 
+  one lunar pole at periapse, and 43,500 miles from the other pole at apoapse. 
+  
+  The NRHO provides the advantage of an unobstructed view of Earth in addition 
+  to coverage of the lunar South Pole.
+
+ MISSION GOALS:
+  - Verify the characteristics of a cis-lunar near rectilinear halo orbit for 
+     future spacecraft
+  - Demonstrate the NRHO as an efficient path to the Moon's surface and back
+  - Demonstrate spacecraft-to-spacecraft navigation services (with LRO)
+  - Lay a foundation for commercial support of future lunar operations
+  - Gain experience with small dedicated launches of CubeSats beyond low-Earth 
+     orbit, to the Moon, and elsewhere 
+
+ SPACECRAFT PHYSICAL CHARACTERISTICS:
+   * Dimensions (bus)    : 34 cm x 34 cm x 61 cm
+   * Launch mass         : 25 kg
+   * Power               : Two solar panel extensions from bus
+   * Propulsion          : 8 hydrazine thrusters
+
+ SPACECRAFT TRAJECTORY:
+  Trajectory from launch, with tag-up predictions from navigation.
+  Data through January 05, 2026. Prediction thereafter.
+
+  Trajectory name                              Start (TDB)    Stop (TDB)
+  ----------------------------------------  ----------------- -----------------
+  photon_capstone_full_mission              2022-Jun-28 10:07 2022-Jul-04 17:15
+  Merge of 114 files (od007 to od---)       2022-Jul-04 17:15 2026-Feb-03 15:29
+ *******************************************************************************
+```
+
+---
+*Fetched from JPL HORIZONS on 2026-01-20 10:45 UTC*

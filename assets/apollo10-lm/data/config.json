@@ -1,0 +1,96 @@
+{
+  "spacecraft_mnemonic": "SNOOPY",
+  "spacecraft_id": -399101,
+  "mission_name": "Apollo 10 LM Snoopy",
+  "mission_name_short": "A10",
+  "mission_url": "https://en.wikipedia.org/wiki/Apollo_10",
+  "is_lunar": true,
+
+  "ui": {
+    "pageTitle": "Apollo 10 LM 'Snoopy' Trajectory",
+    "headerTitle": "Apollo 10 Snoopy",
+    "lockOnLabel": "Snoopy LM",
+    "orbitLabel": "Snoopy Trajectory",
+    "descentOrbitLabel": "Snoopy Trajectory"
+  },
+
+  "phases": ["geo", "lunar"],
+
+  "geo": {
+    "start_year": "1969", "start_month": "05", "start_day": "23",
+    "start_hour": "05", "start_minute": "38",
+    "stop_year": "1969", "stop_month": "05", "stop_day": "28",
+    "stop_hour": "00", "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-SNOOPY"
+  },
+
+  "lunar": {
+    "start_year": "1969", "start_month": "05", "start_day": "23",
+    "start_hour": "05", "start_minute": "38",
+    "stop_year": "1969", "stop_month": "05", "stop_day": "28",
+    "stop_hour": "00", "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-SNOOPY"
+  },
+
+  "events": {
+    "closestApproach": {
+      "startTime": "1969-05-22T21:30:43Z",
+      "durationSeconds": 0,
+      "label": "Closest Approach (14.4 km)",
+      "burnFlag": false,
+      "infoText": "Snoopy descended to just 14.4 km (47,400 ft) above the lunar surface - the point where powered descent would begin for an actual landing. This was the dress rehearsal for Apollo 11.",
+      "body": "SC"
+    },
+    "descentStageJettison": {
+      "startTime": "1969-05-22T21:44:00Z",
+      "durationSeconds": 0,
+      "label": "Descent Stage Jettison",
+      "burnFlag": false,
+      "infoText": "Snoopy jettisoned its descent stage at 58.2 km altitude. The ascent stage then fired to return to lunar orbit for rendezvous with Charlie Brown (CSM).",
+      "body": "SC"
+    },
+    "trackingStart": {
+      "startTime": "1969-05-23T05:38:00Z",
+      "durationSeconds": 0,
+      "label": "Snoopy Tracking Begins",
+      "burnFlag": false,
+      "infoText": "Start of reconstructed Snoopy trajectory data. Snoopy was jettisoned from Charlie Brown CSM 25 minutes earlier at 05:13 UTC, and is now departing lunar orbit on its way to heliocentric orbit.",
+      "body": "SC"
+    },
+    "crewTransfer": {
+      "startTime": "1969-05-23T03:25:00Z",
+      "durationSeconds": 0,
+      "label": "Crew Returns to CSM",
+      "burnFlag": false,
+      "infoText": "Stafford and Cernan transferred back to Command Module 'Charlie Brown' after the successful lunar descent rehearsal.",
+      "body": "SC"
+    },
+    "lmJettison": {
+      "startTime": "1969-05-23T05:13:00Z",
+      "durationSeconds": 0,
+      "label": "Snoopy Jettisoned",
+      "burnFlag": false,
+      "infoText": "The LM ascent stage 'Snoopy' was jettisoned from the CSM. Remaining propellant was burned to send it into heliocentric orbit - where it remains to this day.",
+      "body": "SC"
+    },
+    "dataEnd": {
+      "startTime": "1969-05-28T00:06:00Z",
+      "durationSeconds": 0,
+      "label": "Snoopy Departs Forever",
+      "burnFlag": false,
+      "infoText": "End of reconstructed trajectory data. Snoopy continues on its heliocentric orbit around the Sun - where it remains to this day, the only Apollo Lunar Module still in space.",
+      "body": "SC"
+    }
+  },
+
+  "eventConfigs": {
+    "geo": ["trackingStart", "dataEnd"],
+    "lunar": ["trackingStart", "dataEnd"]
+  }
+}

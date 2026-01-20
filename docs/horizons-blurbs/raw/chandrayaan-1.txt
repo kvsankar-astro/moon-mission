@@ -1,0 +1,45 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: 2016-Oct-10       Chandrayaan-1 Spacecraft / (Moon)               -86 
+https://directory.eoportal.org/web/eoportal/satellite-missions/c-missions/chandrayaan-1#spacecraft
+           https://solarsystem.nasa.gov/missions/chandrayaan-1/in-depth/
+
+ Trajectory extended: 2020-Dec-05 (extrapolation, no new data)
+
+ Chandrayaan-1 was India's first mission to the Moon. It launched October 22, 
+ 2008 on a PSLV (Polar Satellite Launch Vehicle, PSLV-C11) from the Satish 
+ Dhawan Space Center (SDSC) in Sriharikota, India. 
+
+ Launch mass       : 1050 kg
+ Lunar orbital mass: 550 kg
+ Dimensions        : 1.5 meter cube, plus extended solar panel
+
+ RESULTS:
+ The mission studied the Moon's environment and surface processes for a period 
+ of about nine months during 2008-2009, establishing ...
+
+   1) A tenuous but active hydrosphere, 
+   2) a volcanically active and geologically dynamic Moon, and 
+   3) global melting of Moon's surface regions and formation of magma 
+      ocean early in the history of Moon.
+
+ On Aug. 29, 2009, ISRO abruptly lost contact with the Chandrayaan-1 
+ spacecraft. All attempts to recover the mission failed.
+
+ The spacecraft operationally completed 312 days in orbit, making more than 
+ 3400 functional orbits of the moon, but the planned mission of two years was 
+ cut in half. About 95% of the mission objectives were completed, including 
+ collection of over 70,000 images. 
+
+ TRAJECTORY: The inactive spacecraft, still in orbit around the Moon, was 
+  detected by radar echoes seven times over Jul-Sep 2016 using the Goldstone 
+  Solar System Radar. Delay and Doppler measurements were used to estimate 
+  the current trajectory available here. 
+
+  Trajectory name               Start (TDB)  Stop  (TDB)
+  ----------------------------  -----------  -----------
+  traj_ch1_161007               2016-Jul-02  2020-Sep-01
+  traj_ch1_010920-011022        2020-Sep-01  2022-Oct-01
+*******************************************************************************

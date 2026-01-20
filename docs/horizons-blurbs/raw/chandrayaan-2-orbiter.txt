@@ -1,0 +1,65 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+******************************************************************************
+ Revised: Jan 12, 2026    Chandrayaan-2 Orbiter Spacecraft / (Moon)       -152 
+
+ NOTE: This is the ORBITER trajectory. The lander ("Vikram") separated from 
+       the orbiter on 2019-Sep-02 07:45 UTC. The LANDER trajectory ID is -153.
+
+ PURPOSE
+  The primary objective of ISRO's Chandrayaan-2 is to demonstrate the ability 
+  to soft-land on the lunar surface and operate a robotic rover on the surface. 
+  Scientific goals include studies of lunar topography, mineralogy, elemental 
+  abundance, the lunar exosphere, and signatures of hydroxyl and water ice.
+
+ BACKGROUND
+  Chandrayaan-2 launched 2019-July-22 @ 09:13 UTC from Satish Dhawan Space 
+  Centre on Sriharikota Island, India. Launch vehicle was a GSLV-MK3.
+
+  Mission consists of an orbiter, a lander ("Vikram") and a rover ("Pragyan")
+
+  After launch into Earth parking orbit (170 x 40400 km altitude), a series
+  of maneuvers will progressively raise the apogee of the spacecraft until 
+  a subsequent trans-lunar injection burn. Injection to lunar transfer orbit
+  will occur 2019-Aug-14.
+ 
+  It was inserted into an initial elliptic lunar orbit on Aug 20 
+  (114 x 18072 km) and the first of a sequence of maneuvers executed,
+  lowering apoapsis to 4412 km.
+
+  The orbiter was eventually placed in a 119 x 127 km nearly circular polar
+  orbit after a series of engine burns.
+
+  The lander subsequently separated on 2019-Sep-02 07:45 UTC and will touch
+  down at predetermined site close to the lunar south pole.  
+
+  Touchdown is to occur 2019-Sep-07 on a high plain between two craters, 
+  Manzinus C and Simpelius N, about 70 degrees south of the equator.
+
+  [NOTE: landing failed, lander & rover were lost]
+
+  The orbiter mission covers 1 year, in a 100-km circular polar orbit.
+
+  The six-wheeled Pragyan rover, whose name means "wisdom" in Sanskrit, will
+  be deployed from a ramp after landing. It is solar-powered and capable of 
+  traveling up to 500 meters on the lunar surface at a speed of 1 cm/s. 
+
+  The lander/rover missions are planned for 14-15 days (1 lunar daylight
+  interval).
+
+ SPACECRAFT DETAILS
+  Launch mass       : 3850 kg
+  Lunar orbital mass: 2379 kg (solar arrays ~1000 W
+  Lunar lander  mass: 1471 kg (solar arrays ~ 650 W)
+  Rover mass        : 27 kg   (solar arrays ~  50 W)
+
+ TRAJECTORY: 
+  This is a merge of post-launch trajectory solutions fit to tracking data 
+  through 2026-Jan-10, with a prediction thereafter.
+
+  Trajectory name                             Start (TDB)        Stop (TDB)
+  ----------------------------------------- ----------------- -----------------
+  ch2o_spk_190722-[200901_od*]_v*_dsn.V0.*  2019-Jul-22 09:31 2020-Jun-01 09:01
+  ISRO_CH2*-OD*                             2020-Jun-01 09:01 2026-Feb-20 23:00
+*******************************************************************************

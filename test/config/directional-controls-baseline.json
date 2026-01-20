@@ -1,0 +1,35 @@
+{
+  "testMode": "geocentric-3D",
+  "startingPoint": "Launch",
+  "timelineValues": [
+    "Fri Jul 14 2023 14:53:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:54:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:55:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:56:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:57:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:58:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:02:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:06:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:10:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:14:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:18:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:17:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:16:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:15:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:14:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:13:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:09:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:05:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 15:01:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:57:00 GMT+0530 (India Standard Time)",
+    "Fri Jul 14 2023 14:53:00 GMT+0530 (India Standard Time)"
+  ],
+  "testSequence": [
+    "Launch (baseline)",
+    "> x5",
+    ">> x5",
+    "< x5",
+    "<< x5"
+  ],
+  "created": "2025-08-15T03:23:57.744Z"
+}

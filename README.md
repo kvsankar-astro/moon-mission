@@ -1,10 +1,12 @@
 
-## Chandrayaan 3 orbit animation
+## Moon Mission Orbit Animations
 
-This project holds the source code for the 3D and 2D animations used
-in http://sankara.net/chandrayaan3.html. That page shows an animation
-of the orbit of the ISRO <a href="https://www.isro.gov.in/Chandrayaan3_New.html">
-Chandrayaan 3</a> mission.
+A multi-mission platform for 3D and 2D orbital animations of lunar missions. Currently supports:
+
+- **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
+- **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
+- **[Apollo 10 LM](http://sankara.net/mission.html?mission=apollo10-lm)** (1969) - Snoopy lunar module
+- **[Apollo 11 S-IVB](http://sankara.net/mission.html?mission=apollo11-sivb)** (1969) - Saturn V third stage
 
 ![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
 
@@ -21,8 +23,43 @@ I created this animation for educational purposes. It has the following features
 * Realistic textures for Earth and Moon in 3D mode
 * Astronomically correct rendering of sunlight on Earth and Moon, poles, and polar axes
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
-* A Joy Ride feature which lets you fly along with Chandrayaan 3
-    
+* A Joy Ride feature which lets you fly along with the spacecraft
+
+## Multi-Mission Support
+
+The platform supports multiple lunar missions through a configuration-driven architecture:
+
+### URL Parameters
+- `mission.html` - Shows mission selector page
+- `mission.html?mission=cy3` - Chandrayaan 3
+- `mission.html?mission=cy2` - Chandrayaan 2
+- `mission.html?mission=apollo10-lm` - Apollo 10 LM (Snoopy)
+- `mission.html?mission=apollo11-sivb` - Apollo 11 S-IVB
+
+### Adding a New Mission
+
+To add a new mission, create a mission folder and configuration:
+
+1. **Create mission folder structure:**
+   ```
+   assets/<mission-name>/
+   ├── data/
+   │   ├── config.json          # Mission configuration
+   │   ├── geo-<ID>-cheb.json   # Geocentric orbit data
+   │   ├── lunar-<ID>-cheb.json # Selenocentric orbit data
+   │   └── landing-<ID>-cheb.json # Landing phase (optional)
+   ├── models/                   # 3D spacecraft models (optional)
+   └── images/                   # Screenshots
+   ```
+
+2. **Create `config.json`** with mission parameters (see [docs/developer.md](docs/developer.md) for full schema)
+
+3. **Generate orbit data** from JPL HORIZONS using `scripts/orbits.py`
+
+4. **Register mission** in `mission.html` missionMap
+
+See [docs/developer.md](docs/developer.md) for detailed instructions.
+
 ## Design
 
 ## High level design
@@ -38,8 +75,12 @@ The 3D mode uses THREE JS.
 JQuery and JQueryUI are used for control and information panels.
 
 Orbit data is fetched offline from JPL/NASA HORIZONS.
-This data in CSV format is processed a bit and converted into JSON or NPZ format 
-for use in the animation. A few astronomy functions are based on Steve Moshier's routines.
+This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
+Moon and Earth positions are computed dynamically using Astronomy Engine.
+
+**Time Systems:** The application uses TDB (Barycentric Dynamical Time) for all astronomical calculations
+and Chebyshev lookups, matching the time system used by JPL HORIZONS. UTC is used for user-facing display.
+See [docs/developer.md](docs/developer.md) for detailed technical documentation.
 
 Mission configuration, including all event timings and descriptions, is centralized in 
 `assets/chandrayaan3/data/config.json` for easy maintenance and modification.
@@ -52,8 +93,8 @@ The Python script `scripts/orbits.py` is used to fetch orbit data during develop
 #### Usage
 
 ```bash
-# Fetch geocentric orbit data (JSON and NPZ formats generated automatically)
-python scripts/orbits.py --phase geo
+# Fetch geocentric orbit data
+python scripts/orbits.py --mission chandrayaan3 --phase geo
 
 # Fetch selenocentric orbit data  
 python scripts/orbits.py --phase lunar
@@ -84,16 +125,13 @@ Raw orbit data obtained from JPL is stored into timestamped archive directories:
     ├── ho-<id>-vectors.txt     # co-ordinates for a period of time
     └── ho-<id>-orbit.txt       # orbital elements for one instant of time
 
-Orbit data for use by the JavaScript is written in JSON and NPZ formats and placed in `assets/chandrayaan3/data/`:
+Orbit data for use by the JavaScript is placed in `assets/chandrayaan3/data/`:
 
-    geo-CY3.json                # geocentric orbit data (elements and vectors) 
-    geo-CY3.npz                 # compressed NumPy format (faster loading)
+    geo-CY3-cheb.json           # geocentric Chebyshev coefficients for SC trajectory
     geo-CY3-meta.json           # metadata (step size, timing info)
-    lunar-CY3.json              # selenocentric orbit data 
-    lunar-CY3.npz               # compressed format
+    lunar-CY3-cheb.json         # selenocentric Chebyshev coefficients
     lunar-CY3-meta.json         # metadata
-    landing-CY3.json            # landing phase orbit data (high resolution)
-    landing-CY3.npz             # compressed format
+    landing-CY3-cheb.json       # landing phase Chebyshev coefficients (high resolution)
     landing-CY3-meta.json       # metadata
     config.json                 # mission configuration and events
     
@@ -103,63 +141,91 @@ Orbit data for use by the JavaScript is written in JSON and NPZ formats and plac
 The project follows a platform-based architecture that separates reusable components from mission-specific assets:
 
 ```
-cy3/
-├── chandrayaan3.html              # Main HTML entry point
+moon-mission/
+├── mission.html                   # Main entry point with mission selector
+├── index.html                     # Redirects to mission.html
 ├── assets/
 │   ├── platform/                  # Reusable platform components
 │   │   ├── css/
 │   │   │   └── mission.css        # Core styling (mission-agnostic)
 │   │   └── js/
-│   │       ├── mission.js         # Core animation logic
+│   │       ├── mission.js         # Core animation engine (AnimationScene class)
 │   │       ├── astro.js           # Astronomy calculations
-│   │       └── npyreader.js       # Data format readers
-│   └── chandrayaan3/              # Mission-specific assets
-│       ├── data/
-│       │   ├── config.json        # Mission configuration
-│       │   ├── *.json             # Orbit data files (not in Git)
-│       │   └── *.npz              # Compressed orbit data (not in Git)
-│       ├── html/
-│       │   └── whatsnew-cy3.html  # Mission-specific pages
-│       ├── images/
-│       │   └── chandrayaan3-screenshot.png
-│       ├── js/
-│       │   └── ga.js              # Analytics
-│       └── models/
-│           └── *.glb              # 3D spacecraft models
+│   │       ├── chebyshev.js       # Chebyshev polynomial interpolation
+│   │       ├── astronomy-bodies.js # Astronomy Engine wrapper
+│   │       ├── core/              # Core utilities
+│   │       │   ├── constants.js   # Physics, color, and light constants
+│   │       │   └── dom.js         # DOM manipulation utilities
+│   │       ├── rendering/         # Extracted renderer classes
+│   │       │   ├── camera-controller.js    # Camera and controls management
+│   │       │   ├── spacecraft-renderer.js  # Spacecraft visualization
+│   │       │   ├── light-manager.js        # Two-layer lighting system
+│   │       │   ├── earth-renderer.js       # Earth sphere and axis
+│   │       │   ├── moon-renderer.js        # Moon sphere and axis
+│   │       │   ├── sky-renderer.js         # Starfield and constellations
+│   │       │   └── scene-helpers.js        # Axes, planes, SOI wireframe
+│   │       └── utils/
+│   │           └── math-utils.js  # Mathematical utilities
+│   ├── chandrayaan3/              # Chandrayaan 3 mission assets
+│   │   ├── data/
+│   │   │   ├── config.json        # Mission configuration
+│   │   │   └── *-cheb.json        # Chebyshev orbit data
+│   │   ├── images/
+│   │   └── models/                # 3D spacecraft models
+│   ├── chandrayaan2/              # Chandrayaan 2 mission assets
+│   │   ├── data/
+│   │   │   ├── config.json        # Mission configuration
+│   │   │   └── *-cheb.json        # Chebyshev orbit data
+│   │   └── images/
+│   ├── apollo10-lm/               # Apollo 10 LM (Snoopy) assets
+│   │   └── data/
+│   └── apollo11-sivb/             # Apollo 11 S-IVB assets
+│       └── data/
 ├── third-party/                   # External libraries
-│   ├── css/
-│   │   └── ui-darkness/           # jQuery UI theme
-│   └── *.js                       # JavaScript libraries
 ├── images/                        # Shared textures (Earth, Moon, stars)
-│   ├── earth/
-│   ├── moon/
-│   └── sky/
-└── scripts/                       # Build and data scripts
-    ├── build.py
-    ├── deploy.py
-    └── orbits.py
+├── scripts/                       # Build and data scripts
+│   ├── orbits.py                  # Fetch orbit data from HORIZONS
+│   ├── compress-orbits.py         # Convert to Chebyshev format
+│   ├── convert-cy2-json.py        # Convert legacy CY2 JSON data
+│   ├── merge-cy2-vikram.py        # Merge Orbiter + Vikram trajectories
+│   ├── build.py                   # Build for deployment
+│   └── deploy.py                  # Deploy to server
+└── test/                          # Visual regression tests
 ```
 
 #### Platform Components (Reusable)
 
-- **`assets/platform/js/mission.js`** - Core animation engine, mission-agnostic
+- **`assets/platform/js/mission.js`** - Core animation engine (AnimationScene class)
 - **`assets/platform/js/astro.js`** - Astronomical calculations and utilities
-- **`assets/platform/js/npyreader.js`** - Data format readers (JSON, NPZ)
+- **`assets/platform/js/chebyshev.js`** - Chebyshev polynomial interpolation for orbit data
+- **`assets/platform/js/astronomy-bodies.js`** - Astronomy Engine wrapper for Moon/Earth calculations
+- **`assets/platform/js/core/constants.js`** - Centralized physics, color, and light constants
+- **`assets/platform/js/core/dom.js`** - DOM manipulation utilities and D3.js integration
+- **`assets/platform/js/utils/math-utils.js`** - Mathematical utilities (vectors, conversions)
 - **`assets/platform/css/mission.css`** - Base styling for any mission
+
+#### Rendering Modules (Extracted from mission.js)
+
+- **`rendering/camera-controller.js`** - Camera management (main, craft-attached, drone cameras)
+- **`rendering/spacecraft-renderer.js`** - Spacecraft visualization (geometric and GLTF modes)
+- **`rendering/light-manager.js`** - Two-layer lighting (primary for celestial bodies, secondary for spacecraft)
+- **`rendering/earth-renderer.js`** - Earth sphere with textures and polar axis
+- **`rendering/moon-renderer.js`** - Moon sphere with displacement mapping and polar axis
+- **`rendering/sky-renderer.js`** - Starfield and constellation background
+- **`rendering/scene-helpers.js`** - Axes, ecliptic/equatorial planes, SOI wireframe
 
 #### Mission-Specific Assets
 
 - **`assets/chandrayaan3/data/config.json`** - Mission timeline, events, spacecraft parameters
 - **`assets/chandrayaan3/data/*.json`** - Orbit data (geocentric, selenocentric, landing phases)
 - **`assets/chandrayaan3/models/*.glb`** - 3D models of Chandrayaan-3 spacecraft
-- **`assets/chandrayaan3/js/ga.js`** - Mission-specific analytics
 
 #### Third-Party Libraries
 
 - **D3.js v3** - 2D SVG rendering and data visualization
 - **Three.js** - 3D WebGL rendering engine
-- **jQuery/jQuery UI** - DOM manipulation and UI components
-- **Ephemeris.js** - Astronomical calculations library
+- **jQuery (legacy)** - DOM manipulation, plus a lightweight dialog shim for panels
+- **Astronomy Engine** - High-precision ephemeris calculations for Moon/Earth positions
 
 ## Build and Deployment
 
@@ -243,6 +309,37 @@ Create `deploy-config.json` for deployment settings:
    python scripts/deploy.py sftp
    ```
 
+## Testing
+
+The project includes automated UI testing for comprehensive functionality verification.
+
+### Running Tests
+
+```bash
+# Recommended: manage the test server and run the full UI suite (SSIM-based)
+make test
+
+# Without make (manual server management)
+node test/server-manager.js start
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
+node test/server-manager.js stop
+
+# If you already have a server running, run the UI suite directly
+npx vitest test/ui.test.js --run
+
+# Override the server URL (default is http://localhost:8111)
+VITE_TEST_BASE_URL=http://localhost:8000 npx vitest test/ui.test.js --run
+```
+
+### Test Coverage
+
+- **UI Elements:** Timeline controls, animation controls, view toggles
+- **Dual Modes:** Earth-centered and Moon-centered orbital perspectives  
+- **Visual Regression:** Screenshot comparison with baseline images using SSIM
+- **Error Detection:** Console error monitoring during test execution
+
+Tests verify UI functionality across orbital modes and control states. See [docs/testing/](docs/testing/) for detailed test documentation.
+
 ### Hosting
 
 At present the page can be hosted statically. There are no server components needed.
@@ -275,19 +372,35 @@ npx http-server
   
 ## Future work
 
-The code base needs a rewrite. The very first release was for the Mars Orbiter Mission launch in 2013. 
-Minor changes were made later to support MOM Mars orbit insertion and the Pluto flyby of New Horizons.
+The code base is undergoing incremental modernization. The very first release was for the Mars Orbiter Mission launch in 2013. After supporting several missions, the code grew into a large monolithic file.
 
-After a gap of 6 years, this was been modified again in 2019 to support the Chandrayaan 2 mission. 
-The major changes were for 3D support. In that process, the code quality has degraded.
+### Modernization Progress (January 2026)
 
-After another gap of 4 years, it has now been prepped for Chandrayaan 3. 
+A systematic refactoring effort has extracted modular components from the monolithic `mission.js`:
 
-The rewrite will focus on present-day JavaScript tooling, better abstraction, 
-better separation of concerns (2D vs. 3D, model vs. rendering, etc.), extensibility
-(how does one extend the code for a new mission easily merely by changing configurations), 
-performance (decrease the load time; improve rendering smoothness; on-demand loading of high resolution
-LRO textures), and responsive UX. The current UX is not too great mobile screens. 
+**Completed:**
+- ✅ Extracted 7 renderer classes to `assets/platform/js/rendering/`
+- ✅ Centralized constants (physics, colors, lights) in `core/constants.js`
+- ✅ DOM utilities extracted to `core/dom.js`
+- ✅ Math utilities extracted to `utils/math-utils.js`
+- ✅ Animation controller extracted to `assets/platform/js/animation/animation-controller.js`
+- ✅ UI event binding centralized in `assets/platform/js/ui/event-handlers.js`
+- ✅ Lightweight pub/sub added in `assets/platform/js/core/event-bus.js`
+- ✅ Multi-mission support with configuration-driven architecture
+- ✅ Visual regression testing with SSIM-based comparison (48 tests)
+
+**In Progress:**
+- UI state management refactoring
+- Further reduce `assets/platform/js/mission.js` to orchestration-only
+
+**Future Goals:**
+- Further reduce `mission.js` to orchestration-only (~500 lines)
+- TypeScript migration for better maintainability
+- jQuery UI migration to lighter alternatives
+- Responsive UX for mobile screens
+- On-demand loading of high-resolution textures
+
+See [docs/modernization-plan-2026.md](docs/modernization-plan-2026.md) for the detailed roadmap. 
 
 ## Use of Generative AI
 

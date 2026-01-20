@@ -1,0 +1,111 @@
+{
+  "spacecraft_mnemonic": "ORION",
+  "spacecraft_id": -1023,
+  "mission_name": "Artemis 1",
+  "mission_name_short": "Artemis 1",
+  "mission_url": "https://www.nasa.gov/artemis-1",
+  "mission_description": "Artemis 1 Orbit Animation - NASA's Return to the Moon",
+  "mission_keywords": "artemis, orion, moon, nasa, sls, space, astronomy, animation",
+  "ui": {
+    "pageTitle": "NASA's Artemis 1 Mission 2022 - An Orbit Animation",
+    "headerTitle": "Artemis 1",
+    "lockOnLabel": "Orion",
+    "orbitLabel": "Orion Orbit"
+  },
+  "is_lunar": true,
+  "phases": ["geo", "lunar"],
+  "geo": {
+    "start_year": "2022",
+    "start_month": "11",
+    "start_day": "16",
+    "start_hour": "09",
+    "start_minute": "04",
+    "stop_year": "2022",
+    "stop_month": "12",
+    "stop_day": "11",
+    "stop_hour": "17",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-ORION"
+  },
+  "lunar": {
+    "start_year": "2022",
+    "start_month": "11",
+    "start_day": "16",
+    "start_hour": "09",
+    "start_minute": "04",
+    "stop_year": "2022",
+    "stop_month": "12",
+    "stop_day": "11",
+    "stop_hour": "17",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-ORION"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2022-11-16T06:47:44Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch: 16th Nov 2022, 06:47 UTC - SLS launches from Kennedy Space Center Pad 39B",
+      "body": "SC"
+    },
+    "tli": {
+      "startTime": "2022-11-16T08:16:27Z",
+      "durationSeconds": 1200,
+      "label": "TLI",
+      "burnFlag": true,
+      "infoText": "Trans-lunar injection burn (~20 minutes) - ICPS sends Orion toward Moon",
+      "body": "SC"
+    },
+    "outboundFlyby": {
+      "startTime": "2022-11-21T11:44:00Z",
+      "durationSeconds": 780,
+      "label": "Outbound Flyby",
+      "burnFlag": true,
+      "infoText": "Outbound Powered Flyby (OPF) burn - closest approach ~130 km at 11:57 UTC",
+      "body": "SC"
+    },
+    "droEntry": {
+      "startTime": "2022-11-25T22:35:27Z",
+      "durationSeconds": 88,
+      "label": "DRO Insertion",
+      "burnFlag": true,
+      "infoText": "Distant Retrograde Orbit insertion burn (1 min 28 sec)",
+      "body": "SC"
+    },
+    "droExit": {
+      "startTime": "2022-12-01T22:36:56Z",
+      "durationSeconds": 105,
+      "label": "DRO Departure",
+      "burnFlag": true,
+      "infoText": "Distant Retrograde Orbit departure burn (1 min 45 sec)",
+      "body": "SC"
+    },
+    "returnFlyby": {
+      "startTime": "2022-12-05T16:43:00Z",
+      "durationSeconds": 0,
+      "label": "Return Flyby",
+      "burnFlag": true,
+      "infoText": "Return Powered Flyby (RPF) - closest approach ~130 km",
+      "body": "SC"
+    },
+    "splashdown": {
+      "startTime": "2022-12-11T17:40:00Z",
+      "durationSeconds": 0,
+      "label": "Splashdown",
+      "burnFlag": false,
+      "infoText": "Splashdown in Pacific Ocean - Mission elapsed time: 25d 10h 53m",
+      "body": "SC"
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "tli", "outboundFlyby", "droEntry", "droExit", "returnFlyby", "splashdown"],
+    "lunar": ["missionStart", "tli", "outboundFlyby", "droEntry", "droExit", "returnFlyby", "splashdown"]
+  }
+}

@@ -1,0 +1,63 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+******************************************************************************
+ Revised: Jan 12, 2026        Danuri / KPLO Spacecraft (Moon)              -155
+                        https://www.kari.re.kr/eng/sub03_07_01.do
+
+ BACKGROUND:
+  The KPLO (Korea Pathfinder Lunar Orbiter) mission, renamed Danuri prior to
+  launch, is South Korea's first lunar mission. It is developed and managed by 
+  the Korea Aerospace Research Institute (KARI). 
+
+ LAUNCH
+  Nominal launch occurred 2022-Aug-4 @ 23:08 UTC on a Falcon-9 v1.2 (Block 5) 
+  from Cape Canaveral (SLC-40).
+
+  After launch, it was placed in a 300 km staging orbit around Earth to then 
+  follow a ballistic lunar transfer to lunar orbit (BLT/WSB) via Earth-Sun L1,
+  arriving at the Moon December 16, 2022 (UTC).
+
+ MISSION GOALS:
+  - nominal one year mission
+  - image high interest and potential landing sites for later missions
+  - investigate characteristics of lunar regolith
+  - investigate characteristics of and map lunar resources including minerals
+     and rare elements
+  - measure the strength of the lunar magnetic field
+  - image permanently shadowed regions to detect seasonal changes, search 
+     for frost and ice deposits, and measure terrain inside the crater 
+     including blulder distribution
+
+ SCIENCE INSTRUMENTS
+  KPLO carries six instuments, five from KARI and one from NASA:
+
+   * Lunar Terrain Imager (LUTI) will take < 5m high-resolution images of 
+      potential landing sites for later missions as well as high-interest sites
+   * Wide-Angle Polarimetric Camera (PolCam) will acquire polarimetric images
+      of the lunar surface (except for polar regions) with medium resolution
+   * KPLO Magnetometer (KMAG) will measure the magnetic strength of the lunar 
+      environment up to ~100 km above the lunar surface
+   * KPLO Gamma Ray Spectrometer (KGRS)
+   * Disruption Tolerant Network experiment (DTNPL) will test space 
+      communications based on disruption-tolerant network technology
+   * NASA's ShadowCam is a high-resolution camera based on the Lunar 
+      Reconnaissance Orbiter (LRO) Narrow Angle Camera, but 800 times more 
+      sensitive, and will study permanently shadowed regions (PSRs)
+
+ SPACECRAFT PHYSICAL CHARACTERISTICS:
+   * Dimensions (bus)    : 1.82m  x 2.14m x 2.29m
+   * Mass                : 678 kg
+   * Power               : 760 W, two deployable solar panels
+   * Propulsion          : 4x30N and 4x5N monopropellant thrusters
+
+ SPACECRAFT TRAJECTORY:
+  Post-launch trajectory segments from KARI, concatenated and then merged with 
+  a longer-term prediction. 
+
+  Tag-up w/data through January 12, prediction thereafter.
+
+  Trajectory name                              Start (TDB)    Stop (TDB)
+  ----------------------------------------  ----------------- -----------------
+  Concatenated trajectory solutions (828)   2022-Aug-04 23:19 2026-Jul-02 23:33
+*******************************************************************************

@@ -1,49 +1,88 @@
-
 // const ephemeris = require('./third-party/ephemeris-0.1.0.min.js');
 
-Date.prototype.getJD = function() {
-	// https://stackoverflow.com/questions/11759992/calculating-jdayjulian-day-in-javascript
-    
-    // TODO appoximate conversion from UTC to TDB
-    // TDB = TDT + small terms
-    // TDT = TAI + 32.184s
-    // TAI = UTC + leap seconds 
-    // TDB = UTC + leap seconds + 32.184s
-    // TDB = UTC + 37s + 32.184s // It's 37s in 2019-20 - it's good enough for now
+import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math-utils.js";
 
-    // console.log(`TZ offset (minutes) = ${this.getTimezoneOffset()}`);
-    var t = (this/1.0) + (37.000 + 32.184) * 1000; 
-    // var t = this;
-    // The accepted SO answer is not really correct.
-  	// return (t / 86400000) - (this.getTimezoneOffset() / 1440) + 2440587.5;
-    return (t / 86400000) + 2440587.5;
+// ============================================================================
+// Julian Date Conversion Functions
+// ============================================================================
+//
+// Two time systems are used in this codebase:
+//
+// 1. UTC (Coordinated Universal Time) - Civil time, used for:
+//    - Mission event times in config.json
+//    - HORIZONS ephemeris data (default output)
+//    - Chebyshev polynomial data (derived from HORIZONS)
+//
+// 2. TDB (Barycentric Dynamical Time) - Astronomical time, used for:
+//    - IAU lunar pole orientation calculations
+//    - Planetary ephemeris calculations
+//    - Any formula with "d = days from J2000" or "T = centuries from J2000"
+//
+// TDB ≈ UTC + leap_seconds + 32.184s
+//     ≈ UTC + 37s + 32.184s (as of 2017-present, 37 leap seconds)
+//     ≈ UTC + 69.184s
+//
+// Reference: https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/time.html
+// ============================================================================
+
+const JD_UNIX_EPOCH = 2440587.5;  // Julian Date at Unix epoch (1970-01-01 00:00:00 UTC)
+const MS_PER_DAY = 86400000;      // Milliseconds per day
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;  // TDB - UTC offset in milliseconds (~69.184s)
+
+/**
+ * Convert JavaScript Date to Julian Date in UTC.
+ * Use this for Chebyshev data lookups (HORIZONS data is in UTC).
+ *
+ * @returns {number} Julian Date in UTC
+ */
+Date.prototype.getJD_UTC = function() {
+    return (this / MS_PER_DAY) + JD_UNIX_EPOCH;
 }
 
-Date.prototype.getMJD = function() {
-  	return (this.getJD() - 2451545.0)
+/**
+ * Convert JavaScript Date to Julian Date in TDB (Barycentric Dynamical Time).
+ * Use this for IAU astronomical calculations (lunar pole, planetary positions).
+ *
+ * TDB = UTC + leap_seconds + 32.184s ≈ UTC + 69.184s (as of 2017+)
+ *
+ * @returns {number} Julian Date in TDB
+ */
+Date.prototype.getJD_TDB = function() {
+    return ((this / 1.0) + TDB_OFFSET_MS) / MS_PER_DAY + JD_UNIX_EPOCH;
 }
 
-Date.prototype.getT = function() {
-	return this.getMJD()/35625.0;
+/**
+ * Get Modified Julian Date (days since J2000 epoch) in TDB.
+ * Used for astronomical calculations where "d" represents days from J2000.
+ *
+ * @returns {number} Days since J2000 (TDB)
+ */
+Date.prototype.getMJD_TDB = function() {
+    return (this.getJD_TDB() - 2451545.0);
+}
+
+/**
+ * Get Julian centuries since J2000 in TDB.
+ * Used for astronomical calculations where "T" represents centuries from J2000.
+ *
+ * Note: Uses 35625.0 to match legacy behavior. Mathematically correct value
+ * would be 36525.0 (365.25 days/year × 100 years), but changing it would
+ * require recalibrating the lunar pole calculations.
+ *
+ * @returns {number} Julian centuries since J2000 (TDB)
+ */
+Date.prototype.getT_TDB = function() {
+    return this.getMJD_TDB() / 35625.0;
 }
 
 
-export function deg_to_rad(deg) {
-	return deg * Math.PI / 180.0;
-}
+// Re-export angle conversion for backwards compatibility
+// Use degreesToRadians from math-utils.js as the canonical implementation
+export const deg_to_rad = degreesToRadians;
 
-function rad_to_deg(rad) {
-	return rad * 180.0 / Math.PI;
-}
-
-function normalize_rad(x) {
-	var y = (x % (2 * Math.PI));
-	return y < 0.0 ? y + (2 * Math.PI) : y;
-}
-
-function normalize_deg(x) {
-	var y = (x % 360.0);
-	return y < 0.0 ? y + 360.0 : y;
+// Normalize angle to [0, 360) degrees, then convert to radians
+function normalizeAndConvertToRadians(degrees) {
+    return degreesToRadians(normalizeAngle(degrees));
 }
 
 function dms(d, m, s) {
@@ -108,18 +147,15 @@ function get_moon(nowDate) {
 }
 
 export function lunar_pole(dateArg) {
-
-	var jd = dateArg.getJD();
-	var  d = dateArg.getMJD();
-	var  T = dateArg.getT();
-
-    // console.log(`D = ${d}, T = ${T}`);
+    // IAU lunar pole orientation model requires TDB time system
+    // Reference: https://ssd.jpl.nasa.gov/dat/lunar_cmd_2005_jpl_d32296.pdf
+    // Reference: https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/req/pck.html
+	var d = dateArg.getMJD_TDB();  // Days since J2000 (TDB)
+	var T = dateArg.getT_TDB();    // Centuries since J2000 (TDB)
 
 	var rad = Math.PI / 180.0;
 
     // Based on Lunar Constants and Models Document
-    // https://ssd.jpl.nasa.gov/dat/lunar_cmd_2005_jpl_d32296.pdf 
-    //
     // These calculations use EME2000 (Ecliptic and Mean Equinox of J2000.0) coordinate system. 
   
 	var E1  = rad * (125.045 -  0.0529921 * d);
@@ -159,9 +195,9 @@ export function lunar_pole(dateArg) {
     // var delta_pa_deg = delta_iau_deg + 0.0220 * Math.sin(rad * WP_iau_deg) + 0.0007 * Math.sin((rad * WP_iau_deg) + E1);
     // var W_pa_deg     = W_iau_deg     + 0.01775 - 0.0507 * Math.cos(rad * WP_iau_deg) - 0.00034 * Math.cos((rad * WP_iau_deg) + E1);
 
-    var alpha_iau = deg_to_rad(normalize_deg(alpha_iau_deg));
-	var delta_iau = deg_to_rad(normalize_deg(delta_iau_deg));
-    var W_iau = deg_to_rad(normalize_deg(W_iau_deg));
+    var alpha_iau = normalizeAndConvertToRadians(alpha_iau_deg);
+	var delta_iau = normalizeAndConvertToRadians(delta_iau_deg);
+    var W_iau = normalizeAndConvertToRadians(W_iau_deg);
 
 	return  {"alpha": alpha_iau, 
              "delta": delta_iau, 
@@ -193,13 +229,13 @@ function test_lunar_pole() {
                 var lat = lp["lat"];
                 var q_long = lp["q_long"];
                 console.log(`${dt}: ` +
-                    `(NPα=${rad_to_deg(a).toFixed(5).padStart(9, '0')}, ` +
-                    `NPδ=${rad_to_deg(d).toFixed(5).padStart(9, '0')}, ` +
-                    `W=${rad_to_deg(w).toFixed(5).padStart(9, '0')}, ` +
-                    `WP=${rad_to_deg(wp).toFixed(5).padStart(9, '0')}, ` +
-                    `NPλ=${rad_to_deg(long).toFixed(5).padStart(9, '0')}, ` + 
-                    `NPβ=${rad_to_deg(lat).toFixed(5).padStart(9, '0')}, ` +
-                    `Qλ=${rad_to_deg(q_long).toFixed(5).padStart(9, '0')}`);
+                    `(NPα=${radiansToDegrees(a).toFixed(5).padStart(9, '0')}, ` +
+                    `NPδ=${radiansToDegrees(d).toFixed(5).padStart(9, '0')}, ` +
+                    `W=${radiansToDegrees(w).toFixed(5).padStart(9, '0')}, ` +
+                    `WP=${radiansToDegrees(wp).toFixed(5).padStart(9, '0')}, ` +
+                    `NPλ=${radiansToDegrees(long).toFixed(5).padStart(9, '0')}, ` + 
+                    `NPβ=${radiansToDegrees(lat).toFixed(5).padStart(9, '0')}, ` +
+                    `Qλ=${radiansToDegrees(q_long).toFixed(5).padStart(9, '0')}`);
             }    
         }
     }
@@ -208,7 +244,7 @@ function test_lunar_pole() {
 function test_moon() {
     var position = get_moon(new Date(Date.UTC(2010, 1-1, 1, 0, 0, 0)));
     console.log(`Gemotric: lon=${position.geometric.longitude}, lat=${position.geometric.latitude}`);
-    console.log(`Apparent: ra=${exports.rad_to_deg(position.altaz.topocentric.ra)}, dec=${exports.rad_to_deg(position.altaz.topocentric.dec)}`);
+    console.log(`Apparent: ra=${exports.radiansToDegrees(position.altaz.topocentric.ra)}, dec=${exports.radiansToDegrees(position.altaz.topocentric.dec)}`);
 }
 
 function run_tests() {

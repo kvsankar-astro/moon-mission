@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Build script for multi-mission orbit visualization project
+Build script for orbit visualization project
 Creates a dist folder with only files needed for deployment
-Supports multiple missions (chandrayaan3, nisar, etc.)
 """
 
 import os
@@ -129,7 +128,7 @@ def build(dist_dir="dist", clean=True, missions=None):
         ("assets/platform/css/mission.css", "assets/platform/css/mission.css"),
         ("assets/platform/js/astro.js", "assets/platform/js/astro.js"),
         ("assets/platform/js/mission.js", "assets/platform/js/mission.js"),
-        ("assets/platform/js/npyreader.js", "assets/platform/js/npyreader.js"),
+        ("assets/platform/js/chebyshev.js", "assets/platform/js/chebyshev.js"),
         
         # Third-party libraries
         ("third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css", "third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css"),
