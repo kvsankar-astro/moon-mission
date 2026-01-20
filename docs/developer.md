@@ -7,9 +7,14 @@ The platform supports multiple lunar missions through configuration-driven desig
 ### URL Routing
 
 ```
-mission.html              → Mission selector page
-mission.html?mission=cy3  → Chandrayaan 3
-mission.html?mission=cy2  → Chandrayaan 2
+mission.html                          → Mission selector page
+mission.html?mission=cy3              → Chandrayaan 3
+mission.html?mission=cy2              → Chandrayaan 2
+mission.html?mission=apollo10-lm      → Apollo 10 LM (Snoopy)
+mission.html?mission=apollo11-sivb    → Apollo 11 S-IVB
+mission.html?mission=artemis1         → Artemis 1
+
+Additional short aliases also exist (e.g. `a10`, `a11`, `art1`); see `missionMap` in `mission.html`.
 ```
 
 The `missionMap` in `mission.html` maps URL parameters to mission folders:
@@ -18,8 +23,12 @@ The `missionMap` in `mission.html` maps URL parameters to mission folders:
 const missionMap = {
     'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
+    'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
+    'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+    'art1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
     'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 LM', year: '1969' },
     'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+    'artemis1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
 };
 ```
 
@@ -54,6 +63,12 @@ The config.json file defines all mission parameters. Required sections:
   "mission_name_short": "XX",
   "mission_url": "https://...",
   "is_lunar": true,
+
+  // Optional-but-used-by-the-UI fields (see existing missions for examples)
+  "mission_description": "Short description",
+  "mission_keywords": "comma,separated,keywords",
+  "mission_github": "https://github.com/...",
+  "mission_image": "assets/<mission-name>/images/<screenshot>.png",
 
   "ui": {
     "pageTitle": "Mission Page Title",
@@ -147,8 +162,8 @@ Add mission card to selector UI:
 ### Step 5: Test
 
 ```bash
-# Start dev server
-npx vite --port 8111
+# Start dev server (any static server works; Vite is the easiest here)
+npm run dev -- --port 8111
 
 # Open in browser
 http://localhost:8111/mission.html?mission=<id>
@@ -226,18 +241,123 @@ NASA JPL HORIZONS API
 
 **Important:** HORIZONS outputs data with JDTDB timestamps in ECLIPJ2000 frame. The Chebyshev compression preserves these timestamps without conversion.
 
+### Fetching Orbit Data (`scripts/orbits.py`)
+
+`scripts/orbits.py` fetches and processes orbit vectors from the HORIZONS API using a mission's `assets/<mission>/data/config.json`.
+
+```bash
+# Fetch all enabled phases from the mission config (geo/lunar/landing)
+python scripts/orbits.py --mission chandrayaan3
+
+# Fetch specific phases
+python scripts/orbits.py --mission chandrayaan3 --phase geo
+python scripts/orbits.py --mission chandrayaan3 --phase lunar landing
+
+# Write raw HORIZONS outputs to a custom folder
+python scripts/orbits.py --mission chandrayaan3 --data-dir data-generated/chandrayaan3/my-run
+```
+
+By default, raw outputs go under `data-generated/<mission>/...`. The script copies derived `*-cheb.json` and `*-meta.json` outputs into `assets/<mission>/data/` for use by the web app.
+
+#### Raw Output Files
+
+The HORIZONS request outputs are saved as plain text files (useful for debugging and provenance), typically including:
+
+- `ho-<id>-elements.txt` - orbital elements at one instant of time
+- `ho-<id>-vectors.txt` - state vectors over a period of time (used for Chebyshev compression)
+- `ho-<id>-orbit.txt` - orbital elements at one instant of time
+
 ### Chebyshev Data Structure
 
 ```json
 {
+  "format": "chebyshev-ephemeris",
+  "version": "1.0",
+  "metadata": {
+    "segments_count": 2066
+  },
+  "time_range": {
+    "start": 2460139.890972222,
+    "end": 2460194.022916667
+  },
   "segments": [
     {
       "t_start": 2460139.89,  // JDTDB
       "t_end": 2460140.89,    // JDTDB
-      "coeffs": { "x": [...], "y": [...], "z": [...], ... }
+      "cx": [ ... ],
+      "cy": [ ... ],
+      "cz": [ ... ]
     }
   ]
 }
+```
+
+## Build and Deployment
+
+The repository includes Python scripts to build a deployable static folder and optionally deploy it.
+
+### Build (`scripts/build.py`)
+
+```bash
+# Default build output: dist/
+python scripts/build.py
+
+# Build without cleaning existing dist
+python scripts/build.py --no-clean
+
+# Build to a custom directory
+python scripts/build.py --dist my-dist
+```
+
+### Deploy (`scripts/deploy.py`)
+
+```bash
+# Create deployment config template
+python scripts/deploy.py config
+
+# Deploy to local directory
+python scripts/deploy.py local --target /path/to/deployment
+
+# Deploy via SFTP (requires config)
+python scripts/deploy.py sftp
+
+# Dry run (show what would be done)
+python scripts/deploy.py local --target /path/to/deployment --dry-run
+```
+
+#### Deployment Configuration
+
+`scripts/deploy.py config` generates a `deploy-config.json` template. The file supports local and SFTP deployment targets.
+
+Example:
+
+```json
+{
+  "local": {
+    "target_dir": "/path/to/local/deployment"
+  },
+  "sftp": {
+    "host": "example.com",
+    "port": 22,
+    "username": "your-username",
+    "password": "your-password or leave empty for key auth",
+    "key_filename": "/path/to/private/key (optional)",
+    "remote_dir": "/path/to/remote/deployment"
+  }
+}
+```
+
+### Development Workflow (Build/Deploy)
+
+```bash
+# 1) (Optional) regenerate orbit data
+python scripts/orbits.py --mission chandrayaan3
+
+# 2) build a deployable static folder
+python scripts/build.py
+
+# 3) deploy
+python scripts/deploy.py local --target /path/to/deployment
 ```
 
 ## Coordinate Systems

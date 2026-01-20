@@ -45,6 +45,18 @@ def copy_file(src, dst):
     shutil.copy2(src, dst)
     print_info(f"Copied: {src} -> {dst}")
 
+def copy_tree(src_dir, dst_dir, ignore=None):
+    """Copy a directory tree into dist, optionally ignoring some entries."""
+    if not os.path.exists(src_dir):
+        print_error(f"Directory not found: {src_dir}")
+        return 0
+
+    ensure_dir(os.path.dirname(dst_dir))
+    shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True, ignore=ignore)
+
+    # Best-effort count for reporting
+    return sum(len(files) for _, _, files in os.walk(dst_dir))
+
 def discover_missions():
     """Auto-discover available missions from assets directory"""
     assets_dir = "assets"
@@ -54,12 +66,10 @@ def discover_missions():
         for item in os.listdir(assets_dir):
             mission_path = os.path.join(assets_dir, item)
             config_path = os.path.join(mission_path, "data", "config.json")
-            html_path = f"{item}.html"
             
-            # Check if it's a valid mission (has config.json and HTML file)
+            # Check if it's a valid mission (has config.json)
             if (os.path.isdir(mission_path) and 
-                os.path.exists(config_path) and 
-                os.path.exists(html_path) and
+                os.path.exists(config_path) and
                 item != "platform"):
                 missions.append(item)
     
@@ -116,133 +126,37 @@ def build(dist_dir="dist", clean=True, missions=None):
     
     print_info(f"Building distribution in {dist_path}...")
     
-    # Build files list dynamically for all missions
-    files_to_copy = []
-    
-    # Common files (shared across all missions)
-    common_files = [
-        # Favicon if exists
-        ("favicon.ico", "favicon.ico") if os.path.exists("favicon.ico") else None,
-        
-        # Platform files (shared CSS/JS)
-        ("assets/platform/css/mission.css", "assets/platform/css/mission.css"),
-        ("assets/platform/js/astro.js", "assets/platform/js/astro.js"),
-        ("assets/platform/js/mission.js", "assets/platform/js/mission.js"),
-        ("assets/platform/js/chebyshev.js", "assets/platform/js/chebyshev.js"),
-        
-        # Third-party libraries
-        ("third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css", "third-party/css/ui-darkness/jquery-ui-1.10.3.custom.min.css"),
-        ("third-party/d3.v3.min.js", "third-party/d3.v3.min.js"),
-        ("third-party/jquery-1.9.1.js", "third-party/jquery-1.9.1.js"),
-        ("third-party/jquery-ui-1.10.3.custom.min.js", "third-party/jquery-ui-1.10.3.custom.min.js"),
-        ("third-party/jquery.dialogextend.min.js", "third-party/jquery.dialogextend.min.js"),
-        ("third-party/threex.atmospherematerial.js", "third-party/threex.atmospherematerial.js"),
-        ("third-party/ephemeris-0.1.0.min.js", "third-party/ephemeris-0.1.0.min.js"),
-        ("third-party/TrackballControls.js", "third-party/TrackballControls.js"),
-        ("third-party/three.min.js", "third-party/three.min.js"),
-        
-        # Texture images (shared across missions)
-        ("images/earth/2_no_clouds_8k.jpg", "images/earth/2_no_clouds_8k.jpg"),
-        ("images/earth/earthspec1k.jpg", "images/earth/earthspec1k.jpg"),
-        ("images/moon/Solarsystemscope_texture_8k_moon.jpg", "images/moon/Solarsystemscope_texture_8k_moon.jpg"),
-        ("images/moon/ldem_16_gsfc.png", "images/moon/ldem_16_gsfc.png"),
-        ("images/sky/starmap_4k.jpg", "images/sky/starmap_4k.jpg"),
-        ("images/sky/constellation_figures.jpg", "images/sky/constellation_figures.jpg"),
-    ]
-    
-    files_to_copy.extend([f for f in common_files if f is not None])
-    
-    # Add mission-specific files
-    for mission in missions:
-        print_info(f"Processing mission: {mission}")
-        
-        # Load mission config
-        mission_config = load_mission_config(mission)
-        phases = mission_config.get('phases', ['geo'])
-        spacecraft_mnemonic = mission_config.get('spacecraft_mnemonic', 'SC')
-        
-        # Mission HTML file
-        html_file = f"{mission}.html"
-        if os.path.exists(html_file):
-            files_to_copy.append((html_file, html_file))
-        
-        # Mission config file
-        config_file = f"assets/{mission}/data/config.json"
-        if os.path.exists(config_file):
-            files_to_copy.append((config_file, config_file))
-        
-        # Mission-specific JS files (like GA)
-        js_dir = f"assets/{mission}/js"
-        if os.path.exists(js_dir):
-            for js_file in os.listdir(js_dir):
-                if js_file.endswith('.js'):
-                    src_path = os.path.join(js_dir, js_file)
-                    files_to_copy.append((src_path, src_path))
-        
-        # 3D models
-        models_dir = f"assets/{mission}/models"
-        if os.path.exists(models_dir):
-            for model_file in os.listdir(models_dir):
-                if model_file.endswith(('.glb', '.gltf')):
-                    src_path = os.path.join(models_dir, model_file)
-                    files_to_copy.append((src_path, src_path))
-        
-        # Screenshots/images
-        images_dir = f"assets/{mission}/images"
-        if os.path.exists(images_dir):
-            for img_file in os.listdir(images_dir):
-                if img_file.endswith(('.png', '.jpg', '.jpeg')):
-                    src_path = os.path.join(images_dir, img_file)
-                    files_to_copy.append((src_path, src_path))
-        
-        # Phase-specific orbit data files
-        for phase in phases:
-            phase_config = mission_config.get(phase, {})
-            if phase_config.get('enabled', True):  # Skip disabled phases
-                # NPZ and meta files for each phase
-                base_filename = f"{phase}-{spacecraft_mnemonic}"
-                data_files = [
-                    f"assets/{mission}/data/{base_filename}.npz",
-                    f"assets/{mission}/data/{base_filename}-meta.json"
-                ]
-                
-                for data_file in data_files:
-                    if os.path.exists(data_file):
-                        files_to_copy.append((data_file, data_file))
-                    else:
-                        print_info(f"Data file not found (will be generated): {data_file}")
-        
-        print_info(f"Mission {mission}: Found files")
-    
-    # CSS UI theme images directory (referenced by CSS)
-    css_images_dir = "third-party/css/ui-darkness/images"
-    
-    # Copy individual files
     copied_files = 0
     missing_files = 0
-    
-    for item in files_to_copy:
-        if item is None:
-            continue
-        src, dst = item
-        if os.path.exists(src):
-            copy_file(src, os.path.join(dist_path, dst))
+
+    # Entry points for the multi-mission app
+    for html_file in ["mission.html", "index.html"]:
+        if os.path.exists(html_file):
+            copy_file(html_file, os.path.join(dist_path, html_file))
             copied_files += 1
         else:
-            print_error(f"File not found: {src}")
+            print_error(f"File not found: {html_file}")
             missing_files += 1
-    
-    # Copy CSS UI theme images directory
-    if os.path.exists(css_images_dir):
-        print_info(f"Copying CSS theme images: {css_images_dir}")
-        dst_css_images = os.path.join(dist_path, css_images_dir)
-        ensure_dir(dst_css_images)
-        for file in os.listdir(css_images_dir):
-            src_file = os.path.join(css_images_dir, file)
-            dst_file = os.path.join(dst_css_images, file)
-            if os.path.isfile(src_file):
-                shutil.copy2(src_file, dst_file)
-                copied_files += 1
+
+    # Optional favicon
+    if os.path.exists("favicon.ico"):
+        copy_file("favicon.ico", os.path.join(dist_path, "favicon.ico"))
+        copied_files += 1
+
+    # Shared runtime assets
+    copied_files += copy_tree("assets/platform", os.path.join(dist_path, "assets", "platform"))
+    copied_files += copy_tree("third-party", os.path.join(dist_path, "third-party"))
+    copied_files += copy_tree("images", os.path.join(dist_path, "images"))
+
+    # Mission assets (exclude raw archives by default)
+    ignore_archives = shutil.ignore_patterns("archive")
+    for mission in missions:
+        print_info(f"Copying mission assets: {mission}")
+        copied_files += copy_tree(
+            os.path.join("assets", mission),
+            os.path.join(dist_path, "assets", mission),
+            ignore=ignore_archives,
+        )
     
     # Create build info file
     build_info = {

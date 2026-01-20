@@ -38,6 +38,38 @@ If work is paused and resumed later with fresh context, use this as the “hando
 
 ## Current State Assessment (Updated January 20, 2026)
 
+## README Snapshot (January 2026)
+
+This section mirrors the high-level progress/status that previously lived in `README.md`, preserved here to keep the README user-focused while retaining the historical status summary.
+
+The code base is undergoing incremental modernization. The very first release was for the Mars Orbiter Mission launch in 2013. After supporting several missions, the code grew into a large monolithic file.
+
+### Modernization Progress (January 2026)
+
+A systematic refactoring effort has extracted modular components from the monolithic `mission.js`:
+
+**Completed:**
+- ✅ Extracted 7 renderer classes to `assets/platform/js/rendering/`
+- ✅ Centralized constants (physics, colors, lights) in `core/constants.js`
+- ✅ DOM utilities extracted to `core/dom.js`
+- ✅ Math utilities extracted to `utils/math-utils.js`
+- ✅ Animation controller extracted to `assets/platform/js/animation/animation-controller.js`
+- ✅ UI event binding centralized in `assets/platform/js/ui/event-handlers.js`
+- ✅ Lightweight pub/sub added in `assets/platform/js/core/event-bus.js`
+- ✅ Multi-mission support with configuration-driven architecture
+- ✅ Visual regression testing with SSIM-based comparison (48 tests)
+
+**In Progress:**
+- UI state management refactoring
+- Further reduce `assets/platform/js/mission.js` to orchestration-only
+
+**Future Goals:**
+- Further reduce `mission.js` to orchestration-only (~500 lines)
+- TypeScript migration for better maintainability
+- jQuery UI migration to lighter alternatives
+- Responsive UX for mobile screens
+- On-demand loading of high-resolution textures
+
 ### What We Have
 
 | Component | Status | Lines/Size | Notes |
