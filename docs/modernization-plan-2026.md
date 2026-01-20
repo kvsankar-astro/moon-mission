@@ -6,17 +6,49 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 
 **Key Principle**: Every iteration must pass all existing tests before proceeding.
 
-## Current State Assessment (Updated January 17, 2026)
+## Continuity Notes (Pause/Resume)
+
+If work is paused and resumed later with fresh context, use this as the “handoff” checklist.
+
+**Pause checkpoint (January 20, 2026)**:
+- Branch: `feature/mission-modernization`
+- Last known-good commit: `b37ce8b` (“Extract sky add/dispose actions”)
+- `assets/platform/js/mission.js` size at checkpoint: 1,937 lines
+- Tests at checkpoint: 48/48 passing (SSIM-based UI tests)
+
+**How to resume quickly**:
+- Start/reuse test server (preferred port 8111): `node test/server-manager.js`
+- Run UI tests (common local loop):
+  - `HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run`
+- If adding missions/config only: run the full suite before resuming refactors: `npx vitest`
+
+**SSIM history policy (important)**:
+- Do not commit SSIM “map churn”. Keep the committed `current`/`previous` SSIM maps stable unless intentionally updating baselines.
+- Only update `test/screenshots/ssim-history.json`’s `lastRun` timestamp for “latest run” bookkeeping.
+
+**Architecture guardrails**:
+- Prefer “functional core / imperative shell”: keep computations pure, isolate DOM/THREE side effects in `assets/platform/js/app/*` action modules.
+- Avoid capturing global values at module creation time. If values can change, pass getters (example: `getPixelsPerAU()`).
+- Do not modify tests.
+
+**Next planned extractions (to continue shrinking mission.js)**:
+- Extract `AnimationScene.addEarth()` / `disposeEarth()` into `assets/platform/js/app/earth-actions.js`
+- Extract `AnimationScene.addMoon()` / `disposeMoon()` (+ Moon SOI) into `assets/platform/js/app/moon-actions.js`
+- Continue moving remaining SceneHandler/AnimationScene glue into small `app/*` modules until mission.js is primarily orchestration
+
+## Current State Assessment (Updated January 20, 2026)
 
 ### What We Have
 
 | Component | Status | Lines/Size | Notes |
 |-----------|--------|------------|-------|
-| `mission.js` | Refactoring | ~4,300 | AnimationScene class, still large but improving |
+| `mission.js` | Refactoring | 1,937 | AnimationScene + SceneHandler, steadily shrinking |
 | `core/constants.js` | ✅ Working | 83 | PHYSICS, COLORS, LIGHT_SETTINGS integrated |
 | `core/dom.js` | ✅ Working | 289 | DOM utilities |
+| `core/event-bus.js` | ✅ NEW | - | Lightweight pub/sub used for UI → handlers routing |
 | `utils/math-utils.js` | ✅ Working | 150 | Math utilities |
 | `utils/time-utils.js` | ✅ NEW | 220 | Time/date utilities |
+| `data/mission-data.js` | ✅ NEW | - | Mission config + Chebyshev loading with caching |
 | `rendering/camera-controller.js` | ✅ NEW | 225 | Camera management extracted |
 | `rendering/spacecraft-renderer.js` | ✅ NEW | 324 | Spacecraft visualization extracted |
 | `rendering/light-manager.js` | ✅ NEW | 80 | Two-layer lighting extracted |
@@ -25,6 +57,9 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 | `rendering/sky-renderer.js` | ✅ NEW | 180 | Starfield/constellations extracted |
 | `rendering/scene-helpers.js` | ✅ NEW | 260 | Axes/planes/SOI extracted |
 | `animation/animation-controller.js` | ✅ NEW | 324 | Animation state management |
+| `ui/ui-state.js` | ✅ NEW | - | Centralized checkbox read/write + applyViewSettings() |
+| `ui/event-handlers.js` | ✅ NEW | - | Centralized DOM event binding |
+| `app/*` action modules | ✅ NEW | 56 files | Imperative-shell extractions from mission.js into focused modules |
 | `astro.js` | ✅ Working | - | Julian dates, lunar pole |
 | `astronomy-bodies.js` | ✅ Working | - | Moon/Earth via Astronomy Engine |
 | `chebyshev.js` | ✅ Working | - | Orbit interpolation |
@@ -33,9 +68,9 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 
 | Test Suite | Tests | Coverage |
 |------------|-------|----------|
-| `ui.test.js` | 47 | Visual regression, UI interactions |
-| `mission-smoke.test.js` | 16 | Multi-mission smoke tests |
-| `chebyshev-accuracy.test.js` | - | Data accuracy |
+| `ui.test.js` | 48 | Visual regression, UI interactions (SSIM-based) |
+| `mission-smoke.test.js` | 12 | Multi-mission smoke tests (3 missions × 4 configs) |
+| `chebyshev-accuracy.test.js` | 20 | Chebyshev compression acceptance tests |
 
 ### Multi-Mission Support (Working)
 
@@ -50,14 +85,17 @@ This plan outlines the incremental modernization of `mission.js` from a 4,822-li
 2. **Animation Controller Extracted**: Play/pause, speed, timeline management centralized
 3. **Two-Layer Lighting System**: Separate lighting for celestial bodies (layer 0) and spacecraft (layer 1)
 4. **Constants Integrated**: COLORS and LIGHT_SETTINGS centralized in constants.js
-5. **All 47 Visual Regression Tests Passing**: Each extraction verified with SSIM-based comparison
+5. **Imperative Shell Extracted into Actions**: 50+ action modules under `assets/platform/js/app/` for focused side-effect code
+6. **Event Bus + App Wiring Added**: UI events route through `core/event-bus.js` + `app/mission-app.js` to keep mission.js orchestration-focused
+7. **All 48 Visual Regression Tests Passing**: Each extraction verified with SSIM-based comparison
 
 ### Remaining Issues
 
 1. ~~**Animation Logic Mixed**~~: ✅ Extracted to AnimationController (Jan 17, 2026)
-2. **UI State Scattered**: Settings, view options spread across methods
-3. **Event Handlers Inline**: Button clicks, keyboard shortcuts not centralized
+2. **UI State Still Partially Scattered**: `ui/ui-state.js` exists, but some settings are still read/written in multiple places
+3. ~~**Event Handlers Inline**~~: ✅ Centralized in `ui/event-handlers.js` and routed via `app/mission-app.js`
 4. **Global Variables**: Still has global vars, though reduced from original
+5. **Mission.js Still Large**: Several remaining “glue” methods (e.g., Earth/Moon add/dispose) still live on AnimationScene and should be extracted
 
 ---
 
@@ -94,7 +132,7 @@ UC.ZOOM_SCALE         // UI constants
 **Completed**:
 - ✅ All constants imported with short aliases (PC, TC, UC, FC, COL, LT, CB)
 - ✅ No redundant global var re-declarations of constants
-- ✅ All 47 tests pass
+- ✅ All tests pass (48/48)
 
 ---
 
@@ -117,7 +155,7 @@ import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } f
 - ✅ `distance3D()` used for distance calculations
 - ✅ `sphericalToCartesian()` used for coordinate conversions
 - ✅ `velocityToAngle()` used for velocity vector calculations
-- ✅ All 47 tests pass
+- ✅ All tests pass (48/48)
 
 ---
 
@@ -155,7 +193,7 @@ export const LIGHT_SETTINGS = {
 - ✅ COLORS exported from constants.js
 - ✅ LIGHT_SETTINGS exported from constants.js
 - ✅ Used by light-manager.js, earth-renderer.js, moon-renderer.js, scene-helpers.js
-- ✅ All 47 tests pass
+- ✅ All tests pass (48/48)
 
 ---
 
@@ -311,7 +349,7 @@ animationController.configure({
 ```
 
 **Completed**:
-- ✅ All tests pass (47/47)
+- ✅ All tests pass (48/48)
 - ✅ Animation state isolated in controller
 - ✅ UI controls communicate via controller callbacks
 - ✅ Backward compatibility maintained via global state sync
@@ -338,7 +376,7 @@ CameraController class extracted to `assets/platform/js/rendering/camera-control
 - ✅ Main, craft, and drone cameras managed
 - ✅ TrackballControls integrated
 - ✅ AnimationScene uses CameraController via property references
-- ✅ All 47 tests pass
+- ✅ All tests pass (48/48)
 
 ---
 
@@ -353,6 +391,16 @@ CameraController class extracted to `assets/platform/js/rendering/camera-control
 - Panel visibility
 
 **New Module**: `assets/platform/js/ui/ui-state.js`
+
+**Status**: 🚧 IN PROGRESS (partial)
+
+**What’s done**:
+- ✅ Centralized checkbox read/write and view settings patching via `readViewSettings()` / `applyViewSettings()`
+- ✅ Removed a known buggy checkbox update pattern by routing changes through real `.checked` updates
+
+**Still needed**:
+- [ ] Centralize remaining scattered UI state (beyond view checkboxes) behind `ui-state.js`
+- [ ] Add a single “read UI → computed state → apply UI” flow for settings-driven updates
 
 **Verification**:
 ```bash
@@ -397,7 +445,7 @@ Instead of a single SceneBuilder, rendering has been split into 7 specialized cl
 - ✅ Lighting setup isolated
 - ✅ Axes and planes isolated
 - ✅ Sky/starfield isolated
-- ✅ All 47 tests pass
+- ✅ All tests pass (48/48)
 
 **Remaining (for full Scene Builder)**:
 - [ ] Orbit curve generation (still in mission.js)
@@ -405,7 +453,7 @@ Instead of a single SceneBuilder, rendering has been split into 7 specialized cl
 
 ---
 
-### Iteration 12: Extract Event Handlers
+### Iteration 12: Extract Event Handlers ✅ LARGELY COMPLETED
 **Duration**: 2 days
 **Goal**: Create `ui/event-handlers.js` for UI event binding
 
@@ -416,6 +464,15 @@ Instead of a single SceneBuilder, rendering has been split into 7 specialized cl
 - Window resize handling
 
 **New Module**: `assets/platform/js/ui/event-handlers.js`
+
+**Status**: ✅ LARGELY COMPLETED
+
+**What’s done**:
+- ✅ Centralized DOM event binding in `assets/platform/js/ui/event-handlers.js`
+- ✅ Routed UI events through `assets/platform/js/core/event-bus.js` + `assets/platform/js/app/mission-app.js`
+
+**Still needed**:
+- [ ] Centralize any remaining ad-hoc bindings (e.g., keyboard shortcuts) behind the same entry points
 
 **Verification**:
 ```bash
@@ -434,7 +491,7 @@ npm test                           # All tests pass
 
 Establish clean architecture with clear module boundaries.
 
-### Iteration 13: Create Mission Data Manager
+### Iteration 13: Create Mission Data Manager ✅ LARGELY COMPLETED
 **Duration**: 2 days
 **Goal**: Create `data/mission-data.js` for mission-specific data handling
 
@@ -446,6 +503,15 @@ Establish clean architecture with clear module boundaries.
 
 **New Module**: `assets/platform/js/data/mission-data.js`
 
+**Status**: ✅ LARGELY COMPLETED
+
+**What’s done**:
+- ✅ Mission config loading and URL resolution via `assets/platform/js/data/mission-data.js`
+- ✅ Cached loading for Chebyshev JSON to avoid redundant fetches
+
+**Still needed**:
+- [ ] Consolidate any remaining mission config reads in mission.js behind the data module (where practical)
+
 **Verification**:
 ```bash
 npm test                           # All tests pass
@@ -454,7 +520,7 @@ npm test                           # All tests pass
 
 ---
 
-### Iteration 14: Create Event Bus
+### Iteration 14: Create Event Bus ✅ COMPLETED
 **Duration**: 2 days
 **Goal**: Create `core/event-bus.js` for inter-module communication
 
@@ -464,6 +530,12 @@ npm test                           # All tests pass
 - Enable loose coupling
 
 **New Module**: `assets/platform/js/core/event-bus.js`
+
+**Status**: ✅ COMPLETED
+
+**What’s done**:
+- ✅ `assets/platform/js/core/event-bus.js` provides `on/off/once/emit/clear`
+- ✅ `mission.js` uses a single event bus instance for UI routing via `assets/platform/js/app/mission-app.js`
 
 **Events**:
 - `animation:play`, `animation:pause`, `animation:timeChanged`
@@ -479,7 +551,7 @@ npm test                           # All tests pass
 
 ---
 
-### Iteration 15: Refactor Main Entry Point
+### Iteration 15: Refactor Main Entry Point 🚧 IN PROGRESS
 **Duration**: 2 days
 **Goal**: Slim down mission.js to orchestration only
 
@@ -563,21 +635,21 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 
 | Iteration | Description | Status | Tests | Date |
 |-----------|-------------|--------|-------|------|
-| 1 | Fix Constants Integration | ✅ | 47/47 | Jan 2026 |
-| 2 | Integrate Math Utils | ✅ | 47/47 | Jan 2026 |
-| 3 | Extract Color Constants | ✅ | 47/47 | Jan 2026 |
+| 1 | Fix Constants Integration | ✅ | 48/48 | Jan 2026 |
+| 2 | Integrate Math Utils | ✅ | 48/48 | Jan 2026 |
+| 3 | Extract Color Constants | ✅ | 48/48 | Jan 2026 |
 | 4 | Extract Time Utils | ✅ | 48/48 | Jan 17, 2026 |
 | 5 | Consolidate Angle Utils | ✅ | 48/48 | Jan 17, 2026 |
 | 6 | Extract Telemetry | ⏭️ | N/A | Jan 17, 2026 |
 | 7 | Extract 2D Rendering | 🔄 | -/- | - |
-| 8 | Animation Controller | ✅ | 47/47 | Jan 17, 2026 |
-| 9 | Camera Controller | ✅ | 47/47 | Jan 17, 2026 |
-| 10 | UI State Manager | 🔄 | -/- | - |
-| 11 | Scene Builder | ✅ | 47/47 | Jan 16-17, 2026 |
-| 12 | Event Handlers | 🔄 | -/- | - |
-| 13 | Mission Data Manager | 🔄 | -/- | - |
-| 14 | Event Bus | 🔄 | -/- | - |
-| 15 | Refactor Entry Point | 🔄 | -/- | - |
+| 8 | Animation Controller | ✅ | 48/48 | Jan 17, 2026 |
+| 9 | Camera Controller | ✅ | 48/48 | Jan 17, 2026 |
+| 10 | UI State Manager | 🚧 | 48/48 | Jan 2026 |
+| 11 | Scene Builder | ✅ | 48/48 | Jan 16-17, 2026 |
+| 12 | Event Handlers | ✅ | 48/48 | Jan 2026 |
+| 13 | Mission Data Manager | ✅ | 48/48 | Jan 2026 |
+| 14 | Event Bus | ✅ | 48/48 | Jan 2026 |
+| 15 | Refactor Entry Point | 🚧 | 48/48 | Jan 2026 |
 
 **Legend**: 🔄 Planned | 🚧 In Progress | ✅ Complete | ⏭️ Skipped | ⚠️ Blocked
 
@@ -587,12 +659,30 @@ The following renderer classes were extracted as part of Iteration 11:
 
 | Class | Extracted | Lines | Tests |
 |-------|-----------|-------|-------|
-| SpacecraftRenderer | Jan 17, 2026 | 324 | 47/47 |
-| LightManager | Jan 17, 2026 | 80 | 47/47 |
-| EarthRenderer | Jan 17, 2026 | 250 | 47/47 |
-| MoonRenderer | Jan 17, 2026 | 275 | 47/47 |
-| SkyRenderer | Jan 16, 2026 | 180 | 47/47 |
-| SceneHelpers | Jan 16, 2026 | 260 | 47/47 |
+| SpacecraftRenderer | Jan 17, 2026 | 324 | 48/48 |
+| LightManager | Jan 17, 2026 | 80 | 48/48 |
+| EarthRenderer | Jan 17, 2026 | 250 | 48/48 |
+| MoonRenderer | Jan 17, 2026 | 275 | 48/48 |
+| SkyRenderer | Jan 16, 2026 | 180 | 48/48 |
+| SceneHelpers | Jan 16, 2026 | 260 | 48/48 |
+
+---
+
+The following additional work was completed during the ongoing Iteration 15 refactor to keep `mission.js` focused on orchestration:
+
+**Imperative-shell action modules (examples)**:
+- Scene lifecycle: `scene-init-actions.js`, `scene-dispose-actions.js`, `scene-3d-init-actions.js`, `scene-texture-actions.js`, `texture-loader.js`
+- Rendering toggles & camera wiring: `scene-camera-actions.js`, `scene-camera-controller-actions.js`, `scene-camera-position-actions.js`, `scene-creation-actions.js`
+- Orbit/curve processing: `orbit-load-actions.js`, `landing-load-actions.js`, `orbit-process-actions.js`, `orbit-vector-processing-actions.js`, `orbit-curve-actions.js`, `spacecraft-curve-actions.js`
+- UI interaction glue: `zoom-actions.js`, `label-actions.js`, `settings-actions.js`, `mode-actions.js`, `lock-actions.js`, `camera-actions.js`, `navigation-actions.js`, `burn-actions.js`
+
+**Functional-core helpers (pure computations)**:
+- `computePrimarySecondaryBodies` (primary/secondary selection from config/state)
+- `computeSceneDimensions` (width/height/pixels-per-unit calculations)
+- `computeCameraDistance` (preferred camera distance based on target + mode)
+
+**Lesson learned / guardrail**:
+- Avoid capturing global values at module construction time. Prefer passing getters (e.g., `getPixelsPerAU()`) so computed values stay current.
 
 ---
 
@@ -602,9 +692,10 @@ The following renderer classes were extracted as part of Iteration 11:
 
 | Metric | Original | Current (Jan 2026) | Target |
 |--------|----------|-------------------|--------|
-| mission.js lines | 4,822 | ~4,300 | < 600 |
+| mission.js lines | 4,822 | 1,937 | < 600 |
 | Global vars | 162 | ~100 (est.) | < 20 |
-| Modules | 7 | 16 | 15+ |
+| JS modules under `assets/platform/js/` | 7 | 83 | 80+ (maintainable, cohesive) |
+| Action modules under `assets/platform/js/app/` | 0 | 56 | 60+ (continue extracting glue) |
 | Max function length | 200+ | ~150 | < 50 |
 | Test count | 63 | 63 | 80+ |
 | Extracted renderers | 0 | 7 | 7 ✅ |
@@ -665,13 +756,21 @@ Run after each iteration:
 ### Current State (January 2026)
 
 ```
-mission.js (AnimationScene class, ~4,300 lines)
+mission.js (AnimationScene + SceneHandler, ~1,900 lines)
 ├── core/
 │   ├── constants.js ✅
 │   └── dom.js ✅
+│   └── event-bus.js ✅
 ├── utils/
 │   ├── math-utils.js ✅
 │   └── time-utils.js ✅
+├── data/
+│   └── mission-data.js ✅
+├── ui/
+│   ├── ui-state.js ✅
+│   └── event-handlers.js ✅
+├── app/ ✅
+│   └── *-actions.js ✅ (imperative shell)
 ├── animation/ ✅ NEW
 │   └── animation-controller.js ✅
 ├── rendering/ ✅
@@ -699,14 +798,13 @@ mission.js (entry point, ~500 lines)
 ├── core/
 │   ├── constants.js ✅
 │   ├── dom.js ✅
-│   └── event-bus.js 🔄
+│   └── event-bus.js ✅
 ├── utils/
 │   ├── math-utils.js ✅
 │   ├── time-utils.js ✅
-│   ├── coordinates.js 🔄
-│   └── telemetry.js 🔄
+│   └── telemetry.js ⏭️ (skipped: too trivial to wrap)
 ├── data/
-│   ├── mission-data.js 🔄
+│   ├── mission-data.js ✅
 │   └── chebyshev.js ✅
 ├── rendering/
 │   ├── camera-controller.js ✅
@@ -720,14 +818,16 @@ mission.js (entry point, ~500 lines)
 ├── animation/
 │   └── animation-controller.js ✅
 ├── ui/
-│   ├── ui-state.js 🔄
-│   └── event-handlers.js 🔄
+│   ├── ui-state.js 🚧
+│   └── event-handlers.js ✅
+└── app/
+    └── *-actions.js ✅
 └── external/
     ├── astro.js ✅
     └── astronomy-bodies.js ✅
 ```
 
-**Legend**: ✅ Complete | 🔄 Planned
+**Legend**: ✅ Complete | 🚧 In Progress | 🔄 Planned | ⏭️ Skipped
 
 ---
 
