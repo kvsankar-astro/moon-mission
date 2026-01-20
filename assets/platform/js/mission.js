@@ -94,6 +94,7 @@ import { createSceneCreationActions } from "./app/scene-creation-actions.js";
 import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processing-actions.js";
 import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
 import { createAxesHelperActions } from "./app/axes-helper-actions.js";
+import { createLightActions } from "./app/light-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -420,6 +421,10 @@ const axesHelperActions = createAxesHelperActions({
     SceneHelpers,
     getPixelsPerAU: () => PIXELS_PER_AU,
     PC,
+});
+
+const lightActions = createLightActions({
+    LightManager,
 });
 
 // View variables
@@ -991,37 +996,11 @@ class AnimationScene {
     }
     
     addLight() {
-        // Create light manager and add lights
-        this.lightManager = new LightManager(this.motherContainer);
-        this.lightManager.create();
-
-        // Backward-compatible property references
-        this.light = this.lightManager.primaryLight;
-        this.light2 = this.lightManager.craftLight;
-
-        // Add motherContainer to scene (legacy coupling)
-        this.scene.add(this.motherContainer);
+        lightActions.addLight(this);
     }
 
     disposeLight() {
-        // In 2D mode, motherContainer doesn't exist
-        if (!this.motherContainer) {
-            return;
-        }
-
-        if (this.lightManager) {
-            this.lightManager.dispose();
-            this.lightManager = null;
-        }
-
-        // Clear backward-compatible references
-        this.light = null;
-        this.light2 = null;
-
-        // If the motherContainer was added to the scene, remove it
-        if (this.scene) {
-            this.scene.remove(this.motherContainer);
-        }
+        lightActions.disposeLight(this);
     }
 
     addCamera() {
