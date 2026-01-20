@@ -41,7 +41,10 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SFTP_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p ${{ secrets.SFTP_PORT }} -H ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts
+          # Skip host key verification (Hostgator may block GitHub Actions IPs for keyscan)
+          echo "Host *" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+          echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
       - name: Deploy to Hostgator via rsync
         run: |
