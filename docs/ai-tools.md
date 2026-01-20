@@ -2,6 +2,12 @@
 
 This repository may use AI tooling to accelerate development, refactoring, bug fixes, and documentation updates.
 
+## How we use them
+
+- Follow repo conventions in `AGENTS.md`.
+- Validate AI-assisted changes the same way as any other change (for example: `make test` for UI regressions).
+- Don’t paste or commit secrets (deploy credentials, keys, or personal tokens).
+
 ## Tools
 
 - **Codex CLI** - OpenAI's terminal-based coding assistant (used for codebase changes, refactoring, and documentation updates).
