@@ -95,6 +95,7 @@ import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processin
 import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
 import { createAxesHelperActions } from "./app/axes-helper-actions.js";
 import { createLightActions } from "./app/light-actions.js";
+import { createSpacecraftActions } from "./app/spacecraft-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -425,6 +426,12 @@ const axesHelperActions = createAxesHelperActions({
 
 const lightActions = createLightActions({
     LightManager,
+});
+
+const spacecraftActions = createSpacecraftActions({
+    SpacecraftRenderer,
+    planetProperties,
+    getCraftSize: () => craftSize,
 });
 
 // View variables
@@ -941,34 +948,11 @@ class AnimationScene {
 
 
     addSpacecraft() {
-        const craftColor = planetProperties["SC"]["color"];
-
-        // Create spacecraft renderer
-        this.spacecraftRenderer = new SpacecraftRenderer(this.motherContainer, craftSize, craftColor);
-        this.spacecraftRenderer.createSimple();
-
-        // Backward-compatible property references
-        this.craft = this.spacecraftRenderer.craft;
-        this.craftInner = this.spacecraftRenderer.craftInner;
-        this.craftEdges = this.spacecraftRenderer.craftEdges;
-        this.craftAxesHelper = this.spacecraftRenderer.axesHelper;
-        this.craftVisible = this.spacecraftRenderer.visible;
-        this.drone = this.spacecraftRenderer.drone;
+        spacecraftActions.addSpacecraft(this);
     }
 
     disposeSpacecraft() {
-        if (this.spacecraftRenderer) {
-            this.spacecraftRenderer.dispose();
-            this.spacecraftRenderer = null;
-        }
-
-        // Clear backward-compatible references
-        this.craft = null;
-        this.craftInner = null;
-        this.craftEdges = null;
-        this.craftAxesHelper = null;
-        this.craftVisible = false;
-        this.drone = null;
+        spacecraftActions.disposeSpacecraft(this);
     }
 
     
