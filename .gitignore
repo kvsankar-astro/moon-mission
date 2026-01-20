@@ -15,17 +15,16 @@ previous.json
 # =========================
 # Assets and Archives
 # =========================
-# Data directories
-# Chandrayaan 3 - ignore only non-essential files
-assets/chandrayaan3/data/*.bak
-assets/chandrayaan3/data/*-jq.json
-assets/chandrayaan3/archive/
+# Backup and intermediate files in any mission data folder
+assets/*/data/*.bak
+assets/*/data/*-jq.json
+
+# Archive folders (per-mission and global)
+assets/*/archive/
+archive/
 
 # Large models
 assets/chandrayaan3/models/cy3.glb
-
-# Archive folders
-archive/
 
 # =========================
 # Large Image Files
@@ -126,7 +125,11 @@ nul
 # =========================
 # Project Specific
 # =========================
-# Temporary directories
+# Generated orbit data (intermediate files from orbits.py)
+# Only Chebyshev files (*-cheb.json) and metadata (*-meta.json) are committed
+data-generated/
+
+# Legacy temporary directories
 data-fetched/
 
 # Deployment configuration (contains credentials)

@@ -267,11 +267,10 @@ def save_orbit_data_json():
             json.dump(orbits, fh, indent=2)
         
         print_debug(f"JSON data written to {orbits_file}.json")
-        
-        # Copy to project root
-        json_filename = os.path.basename(f"{orbits_file}.json")
-        copy_to_data_dir(f"{orbits_file}.json", json_filename, mission)
-        
+
+        # Note: Raw JSON is NOT copied to data dir - only Chebyshev files are used
+        # The raw JSON stays in data-generated/ for debugging/archival
+
         # Verify the file was created and has content
         if os.path.exists(f"{orbits_file}.json") and os.path.getsize(f"{orbits_file}.json") > 0:
             print_debug(f"File {orbits_file}.json exists and has content")
@@ -549,12 +548,11 @@ def save_orbit_data_npy():
         
         # Save all data to a single .npz file
         np.savez_compressed(npz_file, **npz_data)
-        
+
         print_debug(f"All NPY data written to {npz_file}")
-        
-        # Copy NPZ file to project root
-        npz_filename = os.path.basename(npz_file)
-        copy_to_data_dir(npz_file, npz_filename, mission)
+
+        # Note: NPZ is NOT copied to data dir - only Chebyshev files are used
+        # The NPZ stays in data-generated/ for compress-orbits.py to read
         
         # Generate metadata JSON file
         # Convert step size from seconds to minutes for metadata
@@ -690,8 +688,9 @@ def main():
     if args.data_dir:
         base_data_dir = args.data_dir
     else:
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        base_data_dir = os.path.join(project_root, "assets", mission, "archive", "data-fetched", timestamp)
+        # Output to data-generated/<mission>/ (gitignored)
+        # Only metadata files are copied to assets/<mission>/data/
+        base_data_dir = os.path.join(project_root, "data-generated", mission)
     
     print(f"Mission: {mission}")
     print(f"Available phases: {', '.join(available_phases)}")

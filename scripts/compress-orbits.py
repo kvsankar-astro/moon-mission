@@ -32,17 +32,27 @@ from numpy.polynomial import chebyshev as cheb
 # Default mission (for backwards compatibility)
 DEFAULT_MISSION = "chandrayaan3"
 
-# Base assets directory
-ASSETS_DIR = Path(__file__).parent.parent / "assets"
+# Base directories
+PROJECT_ROOT = Path(__file__).parent.parent
+ASSETS_DIR = PROJECT_ROOT / "assets"
+GENERATED_DIR_BASE = PROJECT_ROOT / "data-generated"
 
 # Will be set based on --mission argument
-DATA_DIR = None
+DATA_DIR = None       # Output: assets/<mission>/data/ (Chebyshev files)
+GENERATED_DIR = None  # Input: data-generated/<mission>/ (NPZ files from orbits.py)
 PHASES = None
 
 
-def load_mission_config(mission_name: str) -> tuple[Path, dict]:
-    """Load mission configuration and return DATA_DIR and PHASES."""
+def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
+    """Load mission configuration and return DATA_DIR, GENERATED_DIR, and PHASES.
+
+    Returns:
+        data_dir: assets/<mission>/data/ - for output Chebyshev files
+        generated_dir: data-generated/<mission>/ - for input NPZ files
+        phases: dict of phase configurations
+    """
     data_dir = ASSETS_DIR / mission_name / "data"
+    generated_dir = GENERATED_DIR_BASE / mission_name
     config_file = data_dir / "config.json"
 
     if not config_file.exists():
@@ -77,7 +87,7 @@ def load_mission_config(mission_name: str) -> tuple[Path, dict]:
             "tolerance_km": tolerance,
         }
 
-    return data_dir, phases
+    return data_dir, generated_dir, phases
 
 
 # ============================================================================
@@ -648,8 +658,8 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
         return False
 
     config = PHASES[phase_name]
-    npz_path = DATA_DIR / config["npz"]
-    cheb_path = DATA_DIR / config["cheb"]
+    npz_path = GENERATED_DIR / config["npz"]  # Read from data-generated/
+    cheb_path = DATA_DIR / config["cheb"]     # Write to assets/<mission>/data/
 
     print(f"\n{'=' * 60}")
     print(f"Compressing {phase_name} phase")
@@ -660,6 +670,7 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
 
     if not npz_path.exists():
         print(f"Error: Source file not found: {npz_path}")
+        print(f"  Run 'python scripts/orbits.py --mission=<mission>' first to generate NPZ files")
         return False
 
     if dry_run:
@@ -736,7 +747,7 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
 
 
 def main():
-    global DATA_DIR, PHASES
+    global DATA_DIR, GENERATED_DIR, PHASES
 
     parser = argparse.ArgumentParser(
         description="Compress ephemeris data using Chebyshev polynomials"
@@ -770,7 +781,7 @@ def main():
     args = parser.parse_args()
 
     # Load mission configuration
-    DATA_DIR, PHASES = load_mission_config(args.mission)
+    DATA_DIR, GENERATED_DIR, PHASES = load_mission_config(args.mission)
 
     if not PHASES:
         print(f"Error: No phases found for mission '{args.mission}'")
@@ -789,7 +800,8 @@ def main():
     print("Chebyshev Polynomial Compression")
     print("=================================")
     print(f"Mission: {args.mission}")
-    print(f"Data directory: {DATA_DIR}")
+    print(f"Input (NPZ): {GENERATED_DIR}")
+    print(f"Output (Chebyshev): {DATA_DIR}")
     print(f"Phases: {', '.join(phases)}")
     print(f"Validate: {validate}")
     print(f"Dry run: {args.dry_run}")
