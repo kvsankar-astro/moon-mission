@@ -25,10 +25,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start test server
+        run: node test/server-manager.js start
+
       - name: Run tests
-        run: |
-          npx playwright install --with-deps chromium
-          npm test
+        run: npx cross-env HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
+
+      - name: Stop test server
+        if: always()
+        run: node test/server-manager.js stop
 
       - name: Prepare deployment directory
         run: |
