@@ -1,0 +1,20 @@
+{
+  "step_size_seconds": 60,
+  "step_size_minutes": 1.0,
+  "start_time": "2022-11-16 09:04",
+  "end_time": "2022-12-11 17:19",
+  "planets": [
+    "MOON",
+    "SC"
+  ],
+  "phase": "geo",
+  "center": "@399",
+  "generated_by": "orbits.py",
+  "generated_at": "2026-01-20T11:27:38.903837",
+  "python_config": {
+    "start_time": "2022-11-16 09:04",
+    "end_time": "2022-12-11 17:19"
+  },
+  "MOON_vectors_count": 36496,
+  "SC_vectors_count": 36496
+}

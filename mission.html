@@ -65,10 +65,12 @@
                     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
                     'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
                     'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
+                    'art1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
                     'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
                     'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
                     'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
-                    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' }
+                    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
+                    'artemis1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' }
                 };
 
                 const params = new URLSearchParams(window.location.search);
@@ -140,6 +142,16 @@
                             <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Apollo 10 "Snoopy"</h3>
                             <p style="color: #aaa; margin: 0 0 15px 0;">1969 - Lunar Module</p>
                             <p style="color: #666; font-size: 14px; margin: 0;">Dress rehearsal LM that descended to 14.4 km</p>
+                        </div>
+                    </a>
+
+                    <a href="?mission=art1" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #4a90d9; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(74,144,217,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #4a90d9; margin: 0 0 10px 0;">Artemis 1</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2022 - Orion Test Flight</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">NASA's return to the Moon - Distant Retrograde Orbit</p>
                         </div>
                     </a>
                 </div>
