@@ -93,6 +93,7 @@ import { createSceneCameraPositionActions } from "./app/scene-camera-position-ac
 import { createSceneCreationActions } from "./app/scene-creation-actions.js";
 import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processing-actions.js";
 import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
+import { createAxesHelperActions } from "./app/axes-helper-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -414,6 +415,12 @@ const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
 });
 
 const lineOfSightActions = createLineOfSightActions();
+
+const axesHelperActions = createAxesHelperActions({
+    SceneHelpers,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    PC,
+});
 
 // View variables
 
@@ -971,40 +978,16 @@ class AnimationScene {
     }
 
     addAxesHelper() {
-        // Create SceneHelpers instance if not already created
-        if (!this.sceneHelpers) {
-            this.sceneHelpers = new SceneHelpers(this.motherContainer);
-        }
-
-        const axesSize = 2 * PIXELS_PER_AU * PC.EARTH_MOON_DISTANCE_MEAN_AU;
-        const gridRadius = earthRadius * 64;
-        const eclipticPlaneSize = earthRadius * 128;
-        const equatorialPlaneSize = earthRadius * 144;
-
-        this.sceneHelpers.createAxesHelper(axesSize, viewXYZAxes);
-        this.sceneHelpers.createEclipticPlane(gridRadius, eclipticPlaneSize, viewEclipticPlane);
-        this.sceneHelpers.createEquatorialPlane(gridRadius, equatorialPlaneSize, viewEquatorialPlane);
-
-        // Backward-compatible property references for setView()
-        this.axesHelper = this.sceneHelpers.axesHelper;
-        this.eclipticPolarGridHelper = this.sceneHelpers.eclipticPolarGridHelper;
-        this.eclipticPlaneHelper = this.sceneHelpers.eclipticPlaneHelper;
-        this.equatorialPolarGridHelper = this.sceneHelpers.equatorialPolarGridHelper;
-        this.equatorialPlaneHelper = this.sceneHelpers.equatorialPlaneHelper;
+        axesHelperActions.addAxesHelper(this, {
+            earthRadius,
+            viewXYZAxes,
+            viewEclipticPlane,
+            viewEquatorialPlane,
+        });
     }
 
     disposeAxesHelper() {
-        if (this.sceneHelpers) {
-            this.sceneHelpers.disposeAxesHelper();
-            this.sceneHelpers.disposeEclipticPlane();
-            this.sceneHelpers.disposeEquatorialPlane();
-        }
-        // Clear backward-compatible references
-        this.axesHelper = null;
-        this.eclipticPolarGridHelper = null;
-        this.eclipticPlaneHelper = null;
-        this.equatorialPolarGridHelper = null;
-        this.equatorialPlaneHelper = null;
+        axesHelperActions.disposeAxesHelper(this);
     }
     
     addLight() {
