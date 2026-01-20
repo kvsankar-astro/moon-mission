@@ -17,5 +17,6 @@ This repository may use AI tooling to accelerate development, refactoring, bug f
 ## Tool-specific notes
 
 - Session notes from any of these tools may be kept in repo documentation when relevant.
+- `AGENTS.md` - Repository guidelines for contributors and coding agents.
 - `CLAUDE.md` - Notes/workflows intended for Claude-based tooling.
 - `GEMINI.md` - Notes/workflows intended for Gemini-based tooling.
