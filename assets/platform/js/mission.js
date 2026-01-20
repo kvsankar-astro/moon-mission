@@ -98,6 +98,7 @@ import { createLightActions } from "./app/light-actions.js";
 import { createSpacecraftActions } from "./app/spacecraft-actions.js";
 import { createSceneCameraControllerActions } from "./app/scene-camera-controller-actions.js";
 import { createSpacecraftModelActions } from "./app/spacecraft-model-actions.js";
+import { createSkyActions } from "./app/sky-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -452,6 +453,11 @@ const spacecraftModelActions = createSpacecraftModelActions({
     getModelPathPrefix: () => window.missionConfig.modelPath,
 });
 
+const skyActions = createSkyActions({
+    SkyRenderer,
+    render,
+});
+
 // View variables
 
 var config = readOriginMode();
@@ -794,31 +800,11 @@ class AnimationScene {
     }
 
     addSky() {
-        // Create sky renderer
-        this.skyRenderer = new SkyRenderer(this.motherContainer, earthRadius);
-        this.skyRenderer.setTextures(this.skyTexture, this.skyConstellationTexture);
-        this.skyRenderer.create(viewSky);
-
-        // Backward-compatible property references
-        this.skyContainer = this.skyRenderer.container;
-        this.sky = this.skyRenderer.skyMesh;
-        this.skyConstellation = this.skyRenderer.constellationMesh;
-
-        render();
+        skyActions.addSky(this, { earthRadius, viewSky });
     }
 
     disposeSky() {
-        if (this.skyRenderer) {
-            this.skyRenderer.dispose();
-            this.skyRenderer = null;
-        }
-
-        // Clear backward-compatible references
-        this.sky = null;
-        this.skyConstellation = null;
-        this.skyContainer = null;
-        this.skyTexture = null;
-        this.skyConstellationTexture = null;
+        skyActions.disposeSky(this);
     }
     
     addEarth() {
