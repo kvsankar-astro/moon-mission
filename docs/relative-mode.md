@@ -1,6 +1,6 @@
 # Relative Mode (Earth–Moon Axis Fixed)
 
-This document describes the design and implementation plan for a **URL-only** display mode that shows spacecraft orbits in an **Earth-centered rotating frame** where the **Earth→Moon axis is always the +X axis**.
+This document describes the design and implementation for a display mode that shows spacecraft orbits in an **Earth-centered rotating frame** where the **Earth→Moon axis is always the +X axis**.
 
 ## Goals
 
@@ -18,7 +18,10 @@ This document describes the design and implementation plan for a **URL-only** di
 
 Notes:
 - `mode=relative` is **additive** and defaults to the current behavior when absent.
-- This is intentionally URL-only so that existing test entrypoints remain unchanged.
+
+### Settings panel toggle
+
+The Settings panel includes a **Relative** checkbox under **Origin/Phase**. Toggling it reloads the page with (or without) `mode=relative`.
 
 ### Mission selector toggle
 
@@ -62,9 +65,9 @@ A new script generates relative-mode ephemeris from the mission’s existing **g
 - Output:
   - `assets/<mission>/data/relative-<SPACECRAFT>-cheb.json`
 
-The script:
+The script (high level):
 1. Loads `SC_vectors` from the NPZ file.
-2. Obtains `r_EM(t), v_EM(t)` at each sample time (preferably from the same NPZ if available; otherwise the mission must include MOON state).
+2. Loads `MOON_vectors` from the same NPZ to obtain `r_EM(t), v_EM(t)` at each sample time.
 3. Computes `r_rel(t)` using the basis definition above.
 4. Fits Chebyshev segments (same tolerance-driven algorithm as `scripts/compress-orbits.py`).
 5. Writes `relative-<SPACECRAFT>-cheb.json` in the standard Chebyshev format.
@@ -88,9 +91,27 @@ python scripts/orbits.py --mission=<mission> --phase=geo
 python scripts/generate-relative-orbits.py --mission=<mission>
 ```
 
+Batch generation helpers:
+
+```bash
+# Multiple missions
+python scripts/generate-relative-orbits.py --mission chandrayaan2 apollo11-sivb apollo10-lm
+
+# All missions under assets/ except some (optionally generate NPZ if missing)
+python scripts/generate-relative-orbits.py --all --exclude artemis1 --ensure-npz
+```
+
 Then view:
 
 ```text
 mission.html?mission=<id>&mode=relative
 ```
 
+## Pre-generated relative files in repo
+
+These missions have committed `relative-<SPACECRAFT>-cheb.json` files:
+
+- `assets/artemis1/data/relative-ORION-cheb.json`
+- `assets/chandrayaan2/data/relative-CY2-cheb.json`
+- `assets/apollo11-sivb/data/relative-SIVB-cheb.json`
+- `assets/apollo10-lm/data/relative-SNOOPY-cheb.json`

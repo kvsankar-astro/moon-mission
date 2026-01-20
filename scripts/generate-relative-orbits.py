@@ -15,12 +15,15 @@ Output:
 
 Usage:
   python scripts/generate-relative-orbits.py --mission=artemis1
+  python scripts/generate-relative-orbits.py --mission chandrayaan2 apollo11-sivb apollo10-lm
+  python scripts/generate-relative-orbits.py --all --exclude artemis1
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -98,8 +101,8 @@ def load_vectors_from_npz(npz_path: Path) -> tuple[np.ndarray, np.ndarray, np.nd
     Returns:
       jd: (N,) julian dates (TDB per HORIZONS convention used in repo)
       sc_pos: (N,3) km
-      moon_pos_vel: (N,6) km and km/s (pos then vel)
-      spacecraft_mnemonic: e.g. ORION, CY3, etc.
+      moon_pos: (N,3) km
+      moon_vel: (N,3) km/s
     """
     data = np.load(npz_path)
 
@@ -123,7 +126,6 @@ def load_vectors_from_npz(npz_path: Path) -> tuple[np.ndarray, np.ndarray, np.nd
     moon_pos = np.stack([moon["x"], moon["y"], moon["z"]], axis=1).astype(float)
     moon_vel = np.stack([moon["vx"], moon["vy"], moon["vz"]], axis=1).astype(float)
 
-    # Spacecraft mnemonic is not in NPZ; caller derives it from mission config.
     return jd, sc_pos, moon_pos, moon_vel
 
 
@@ -142,36 +144,68 @@ def load_compressor_module():
     return module
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate relative-mode Chebyshev ephemeris from geo NPZ")
-    parser.add_argument("--mission", required=True, help="Mission folder name under assets/, e.g. artemis1")
-    parser.add_argument(
-        "--tolerance-km",
-        type=float,
-        default=5.0,
-        help="Compression tolerance in km (default: 5.0; matches orbital phases)",
-    )
-    parser.add_argument(
-        "--phase",
-        default="geo",
-        help="Source phase to derive relative mode from (default: geo)",
-    )
-    args = parser.parse_args()
+def discover_missions() -> list[str]:
+    missions: list[str] = []
+    if not ASSETS_DIR.exists():
+        return missions
 
-    mission = args.mission
+    for entry in ASSETS_DIR.iterdir():
+        if not entry.is_dir():
+            continue
+        if entry.name == "platform":
+            continue
+        if (entry / "data" / "config.json").exists():
+            missions.append(entry.name)
+
+    return sorted(missions)
+
+
+def ensure_source_npz(mission: str, phase: str, npz_path: Path) -> None:
+    if npz_path.exists():
+        return
+
+    print(f"Source NPZ missing: {npz_path}")
+    print(f"Running: python scripts/orbits.py --mission={mission} --phase {phase}")
+
+    subprocess.check_call(
+        [
+            sys.executable,
+            str(PROJECT_ROOT / "scripts" / "orbits.py"),
+            "--mission",
+            mission,
+            "--phase",
+            phase,
+        ],
+        cwd=str(PROJECT_ROOT),
+    )
+
+
+def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: float, force: bool, ensure_npz: bool) -> None:
     cfg = load_config(mission)
     mnemonic = cfg.get("spacecraft_mnemonic", "SC")
 
-    if args.phase not in cfg:
-        print(f"Error: phase '{args.phase}' not found in {mission} config.json")
-        sys.exit(1)
+    if phase not in cfg:
+        raise ValueError(f"Phase '{phase}' not found in {mission} config.json")
 
-    source_orbits_base = Path(cfg[args.phase].get("orbits_file", f"{args.phase}-{mnemonic}")).name
+    source_orbits_base = Path(cfg[phase].get("orbits_file", f"{phase}-{mnemonic}")).name
     npz_path = GENERATED_DIR_BASE / mission / f"{source_orbits_base}.npz"
+    if ensure_npz:
+        ensure_source_npz(mission, phase, npz_path)
+
     if not npz_path.exists():
-        print(f"Error: Source NPZ not found: {npz_path}")
-        print("Run: python scripts/orbits.py --mission=<mission> --phase=geo")
-        sys.exit(1)
+        raise FileNotFoundError(
+            f"Source NPZ not found: {npz_path}. "
+            f"Run: python scripts/orbits.py --mission={mission} --phase {phase}",
+        )
+
+    out_dir = ASSETS_DIR / mission / "data"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    out_base = f"relative-{mnemonic}"
+    cheb_path = out_dir / f"{out_base}-cheb.json"
+    if cheb_path.exists() and not force:
+        print(f"Skipping {mission}: {cheb_path.name} already exists (use --force to overwrite)")
+        return
 
     print(f"Generating relative mode for mission={mission} from {npz_path.name}")
 
@@ -198,19 +232,15 @@ def main() -> None:
     sc_vectors["z"] = rel_pos[:, 2]
 
     # Write intermediate NPZ to data-generated for inspection/debugging
-    out_base = f"relative-{mnemonic}"
     generated_out = GENERATED_DIR_BASE / mission / f"{out_base}.npz"
+    generated_out.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(generated_out, SC_vectors=sc_vectors)
     print(f"Wrote {generated_out}")
 
     # Compress to Chebyshev JSON (reuse compress-orbits.py algorithms)
     compressor = load_compressor_module()
     npz_data = compressor.load_npz(generated_out)
-    segments = compressor.compress_orbit_data_tolerance(npz_data, tolerance_km=args.tolerance_km)
-
-    out_dir = ASSETS_DIR / mission / "data"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    cheb_path = out_dir / f"{out_base}-cheb.json"
+    segments = compressor.compress_orbit_data_tolerance(npz_data, tolerance_km=tolerance_km)
 
     output = {
         "format": "chebyshev-ephemeris",
@@ -218,7 +248,7 @@ def main() -> None:
         "metadata": {
             "source": str(generated_out.name),
             "created": datetime.now(timezone.utc).isoformat(),
-            "tolerance_km": float(args.tolerance_km),
+            "tolerance_km": float(tolerance_km),
             "segments_count": len(segments),
             "coordinate_frame": "J2000",
             "units": {"time": "julian_date", "position": "km"},
@@ -233,6 +263,53 @@ def main() -> None:
     print(f"Wrote {cheb_path}")
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Generate relative-mode Chebyshev ephemeris from geo NPZ")
+    parser.add_argument("--mission", nargs="+", help="Mission folder name(s) under assets/, e.g. artemis1")
+    parser.add_argument("--all", action="store_true", help="Generate for all missions under assets/")
+    parser.add_argument("--exclude", nargs="*", default=[], help="Mission folder names to skip")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing relative cheb output")
+    parser.add_argument("--ensure-npz", action="store_true", help="If source NPZ is missing, run scripts/orbits.py first")
+    parser.add_argument(
+        "--tolerance-km",
+        type=float,
+        default=5.0,
+        help="Compression tolerance in km (default: 5.0; matches orbital phases)",
+    )
+    parser.add_argument(
+        "--phase",
+        default="geo",
+        help="Source phase to derive relative mode from (default: geo)",
+    )
+    args = parser.parse_args()
+
+    excludes = {e.strip() for e in (args.exclude or []) if e and isinstance(e, str)}
+
+    if args.all:
+        missions = [m for m in discover_missions() if m not in excludes]
+    else:
+        missions = []
+        if args.mission:
+            missions = [m.strip() for m in args.mission if m and isinstance(m, str)]
+        missions = [m for m in missions if m not in excludes]
+
+    if not missions:
+        print("Error: No missions selected (use --mission <name...> or --all)")
+        sys.exit(1)
+
+    for mission in missions:
+        try:
+            generate_relative_for_mission(
+                mission=mission,
+                phase=args.phase,
+                tolerance_km=float(args.tolerance_km),
+                force=bool(args.force),
+                ensure_npz=bool(args.ensure_npz),
+            )
+        except Exception as exc:
+            print(f"Error generating relative data for {mission}: {exc}")
+            sys.exit(1)
+
+
 if __name__ == "__main__":
     main()
-

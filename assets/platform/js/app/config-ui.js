@@ -11,13 +11,13 @@ export function computeMoonUiPatch({ globalConfig, currentConfig }) {
     };
 
     if (isMoonEnabled) {
-        patch.showLabelForIds.push("origin-moon", "view-moonsoi");
-        patch.showSelectors.push("#origin-moon", "#view-moonsoi", ".geo");
+        patch.showLabelForIds.push("origin-moon", "origin-relative", "view-moonsoi");
+        patch.showSelectors.push("#origin-moon", "#origin-relative", "#view-moonsoi", ".geo");
         return patch;
     }
 
-    patch.hideLabelForIds.push("origin-moon", "view-moonsoi");
-    patch.hideSelectors.push("#origin-moon", "#view-moonsoi", ".geo");
+    patch.hideLabelForIds.push("origin-moon", "origin-relative", "view-moonsoi");
+    patch.hideSelectors.push("#origin-moon", "#origin-relative", "#view-moonsoi", ".geo");
 
     if (currentConfig === "lunar") {
         patch.nextConfig = "geo";
@@ -25,6 +25,7 @@ export function computeMoonUiPatch({ globalConfig, currentConfig }) {
         patch.checked["origin-moon"] = false;
     }
 
+    patch.checked["origin-relative"] = false;
     patch.checked["checkbox-lock-moon"] = false;
     patch.checked["view-moonsoi"] = false;
 
