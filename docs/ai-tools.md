@@ -10,6 +10,6 @@ This repository may use AI tooling to accelerate development, refactoring, bug f
 
 ## Tool-specific notes
 
-- (This tool) Codex CLI session notes may be kept in repo documentation when relevant.
+- Session notes from any of these tools may be kept in repo documentation when relevant.
 - `CLAUDE.md` - Notes/workflows intended for Claude-based tooling.
 - `GEMINI.md` - Notes/workflows intended for Gemini-based tooling.
