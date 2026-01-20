@@ -1,0 +1,77 @@
+name: Deploy to Hostgator via SFTP
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy to sankara.net
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm test
+
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p dist-pages
+          # Copy HTML files
+          cp index.html mission.html dist-pages/
+          # Copy assets (mission data, JS, CSS)
+          cp -r assets dist-pages/
+          # Copy images (Earth/Moon textures)
+          cp -r images dist-pages/
+          # Copy third-party libraries
+          cp -r third-party dist-pages/
+
+      - name: Verify build artifacts
+        run: |
+          echo "Build completed. Checking artifacts..."
+          ls -la dist-pages/
+          test -f dist-pages/index.html
+          test -f dist-pages/mission.html
+          test -d dist-pages/assets
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SFTP_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.SFTP_PORT }} -H ${{ secrets.SFTP_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Hostgator via rsync
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+            ./dist-pages/ \
+            ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }}
+        timeout-minutes: 10
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Site URL: https://sankara.net/astro/lunar-missions/"
+          echo "📦 Deployed from: dist-pages/"
+          echo "📁 Remote path: ${{ secrets.SFTP_REMOTE_PATH }}"
