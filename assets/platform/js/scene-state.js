@@ -38,7 +38,8 @@ export function computeBodyState(bodyId, time, config, data) {
         landingChebyshevLoaded,
         globalConfig,
         startLandingTime,
-        endLandingTime
+        endLandingTime,
+        frameMode
     } = data;
 
     // Check if landing is enabled
@@ -101,6 +102,19 @@ export function computeBodyState(bodyId, time, config, data) {
     // Moon position (only in geo config)
     if (bodyId === "MOON" && config === "geo") {
         const state = getMoonState(time);
+
+        // Relative mode: Earth-centered rotating frame where Moon is always on +X.
+        // Keep real scale by using the instantaneous Earth–Moon distance.
+        if (frameMode === "relative") {
+            const r = Math.sqrt(state.x * state.x + state.y * state.y + state.z * state.z);
+            const drdt = r > 0 ? (state.x * state.vx + state.y * state.vy + state.z * state.vz) / r : 0;
+            return {
+                position: { x: r, y: 0, z: 0 },
+                velocity: { vx: drdt, vy: 0, vz: 0 },
+                available: true
+            };
+        }
+
         return {
             position: { x: state.x, y: state.y, z: state.z },
             velocity: { vx: state.vx, vy: state.vy, vz: state.vz },
@@ -328,7 +342,8 @@ export function computeSceneState(time, config, options) {
         endLandingTime,
         eventInfos,
         missionTimes,
-        planetsForLocations
+        planetsForLocations,
+        frameMode
     } = options;
 
     if (providedSunLongitude === undefined || providedSunLongitude === null) {
@@ -347,7 +362,8 @@ export function computeSceneState(time, config, options) {
         landingChebyshevLoaded,
         globalConfig,
         startLandingTime,
-        endLandingTime
+        endLandingTime,
+        frameMode
     };
 
     for (const bodyId of planetsForLocations) {

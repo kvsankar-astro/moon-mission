@@ -104,6 +104,11 @@
                 <h1 style="color: #ffa000; margin-bottom: 10px;">Moon Mission Animations</h1>
                 <h2 style="color: #888; font-weight: normal; margin-bottom: 40px;">by Sankar Viswanathan</h2>
 
+                <label style="display: inline-flex; align-items: center; gap: 10px; color: #ccc; margin-bottom: 30px;">
+                    <input id="selector-relative-mode" type="checkbox">
+                    Earth–Moon axis fixed (mode=relative)
+                </label>
+
                 <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
                     <a href="?mission=cy3" style="text-decoration: none;">
                         <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
@@ -479,6 +484,31 @@
                 document.body.style.height = '100vh';
                 document.documentElement.style.overflow = 'hidden';
                 document.title = 'Moon Mission Animations';
+
+                // Selector-only: append/remove mode=relative on mission links.
+                var relativeToggle = document.getElementById('selector-relative-mode');
+                if (relativeToggle) {
+                    var links = Array.from(document.querySelectorAll('#mission-selector a[href^="?mission="]'));
+
+                    function updateMissionLinks() {
+                        links.forEach(function(link) {
+                            try {
+                                var url = new URL(link.getAttribute('href'), window.location.href);
+                                if (relativeToggle.checked) {
+                                    url.searchParams.set('mode', 'relative');
+                                } else {
+                                    url.searchParams.delete('mode');
+                                }
+                                link.setAttribute('href', '?' + url.searchParams.toString());
+                            } catch (e) {
+                                // Ignore malformed hrefs.
+                            }
+                        });
+                    }
+
+                    relativeToggle.addEventListener('change', updateMissionLinks);
+                    updateMissionLinks();
+                }
             }
         });
     </script>

@@ -132,6 +132,9 @@ import { TrackballControls } from '../../../third-party/TrackballControls.js';
 
 // Check if running in test mode (for consistent visual regression testing)
 const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
+const urlMode = new URLSearchParams(window.location.search).get('mode');
+const isRelativeMode = urlMode === "relative";
+const frameMode = isRelativeMode ? "relative" : "inertial";
 
 // orbit and location related data
 
@@ -459,6 +462,12 @@ const skyActions = createSkyActions({
 });
 
 // View variables
+
+// Relative mode is Earth-centered; force Earth origin selection without changing defaults for normal runs.
+if (isRelativeMode) {
+    setChecked("origin-earth", true);
+    setChecked("origin-moon", false);
+}
 
 var config = readOriginMode();
 var configGeo = (config === "geo");
@@ -1447,6 +1456,17 @@ async function initConfig() {
                 animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
             }
         }
+
+        // URL-only: mode=relative loads a precomputed rotating-frame orbit file.
+        // Keep config as "geo" (Earth origin) to avoid changing existing UI flows.
+        if (isRelativeMode) {
+            const dataPath = window?.missionConfig?.dataPath;
+            const relativeBase = `relative-${spacecraftMnemonic}`;
+            if (typeof dataPath === "string" && dataPath.length > 0) {
+                animationScenes[config].orbitsJson = `${dataPath}${relativeBase}.json`;
+                animationScenes[config].orbitsCheb = `${dataPath}${relativeBase}-cheb.json`;
+            }
+        }
         animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
         animationScenes[config].stepsPerHop = 4;
 
@@ -1674,7 +1694,8 @@ function setLocation() {
         endLandingTime,
         eventInfos,
         missionTimes: { timeTransLunarInjection, timeLunarOrbitInsertion },
-        planetsForLocations: animationScenes[config].planetsForLocations
+        planetsForLocations: animationScenes[config].planetsForLocations,
+        frameMode,
     });
 
     // Store sun longitude for global access (used by other parts of code)
