@@ -97,6 +97,7 @@ import { createAxesHelperActions } from "./app/axes-helper-actions.js";
 import { createLightActions } from "./app/light-actions.js";
 import { createSpacecraftActions } from "./app/spacecraft-actions.js";
 import { createSceneCameraControllerActions } from "./app/scene-camera-controller-actions.js";
+import { createSpacecraftModelActions } from "./app/spacecraft-model-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -441,6 +442,14 @@ const sceneCameraControllerActions = createSceneCameraControllerActions({
     getRendererDomElement: () => theSceneHandler.renderer.domElement,
     cameraControlsCallback,
     render,
+});
+
+const spacecraftModelActions = createSpacecraftModelActions({
+    SpacecraftRenderer,
+    planetProperties,
+    getCraftSize: () => craftSize,
+    getGlobalConfig: () => globalConfig,
+    getModelPathPrefix: () => window.missionConfig.modelPath,
 });
 
 // View variables
@@ -1005,35 +1014,11 @@ class AnimationScene {
     }
 
     async addSpacecraftModel() {
-        if (!globalConfig?.spacecraftModel?.enabled) {
-            return;
-        }
-
-        const craftColor = planetProperties["SC"]["color"];
-        const modelPath = window.missionConfig.modelPath + globalConfig.spacecraftModel.file;
-
-        // Create spacecraft renderer for GLTF model
-        this.spacecraftRenderer = new SpacecraftRenderer(this.motherContainer, craftSize, craftColor);
-        await this.spacecraftRenderer.loadModel(modelPath);
-
-        // Backward-compatible property references
-        this.craft = this.spacecraftRenderer.craft;
-        this.craftInner = this.spacecraftRenderer.craftInner;
-        this.craftAxesHelper = this.spacecraftRenderer.axesHelper;
-        this.craftVisible = this.spacecraftRenderer.visible;
+        await spacecraftModelActions.addSpacecraftModel(this);
     }
 
     disposeSpacecraftModel() {
-        if (this.spacecraftRenderer) {
-            this.spacecraftRenderer.disposeModel();
-            this.spacecraftRenderer = null;
-        }
-
-        // Clear backward-compatible references
-        this.craft = null;
-        this.craftInner = null;
-        this.craftAxesHelper = null;
-        this.craftVisible = false;
+        spacecraftModelActions.disposeSpacecraftModel(this);
     }
     
     init3dRest() {
