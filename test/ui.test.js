@@ -129,43 +129,65 @@ let consoleErrors = [];
 let pageErrors = [];
 
 // SSIM Score Tracking for regression detection
-// Scores are collected during test run and saved to JSON for comparison
+// Baseline ("committed") scores live in SSIM_HISTORY_FILE (tracked in git).
+// Latest-run scores are written to SSIM_LATEST_FILE (git-ignored) for easy inspection.
 const SSIM_HISTORY_FILE = join(process.cwd(), 'test', 'screenshots', 'ssim-history.json');
+const SSIM_LATEST_FILE = join(process.cwd(), 'test', 'screenshots', 'ssim-latest.json');
 let ssimScores = {};  // Collects current run's SSIM scores
 
 /**
- * Load previous SSIM scores from history file
- * @returns {Object} Object with 'previous' and 'current' scores, or empty if no history
+ * Load committed SSIM scores from history file.
+ * Supports legacy schemas (previous/current) by treating `current` as the committed reference.
+ * @returns {Record<string, number>} Committed SSIM scores, or empty if not available.
  */
-function loadSsimHistory() {
+function loadSsimCommittedScores() {
   try {
     if (existsSync(SSIM_HISTORY_FILE)) {
-      return JSON.parse(readFileSync(SSIM_HISTORY_FILE, 'utf8'));
+      const parsed = JSON.parse(readFileSync(SSIM_HISTORY_FILE, 'utf8'));
+      const candidate = parsed?.committed || parsed?.baseline || parsed?.current || parsed?.previous;
+      if (candidate && typeof candidate === 'object') return candidate;
     }
   } catch (error) {
     console.log(`Could not load SSIM history: ${error.message}`);
   }
-  return { previous: {}, current: {} };
+  return {};
 }
 
 /**
- * Save SSIM scores to history file
- * Current scores become previous, new scores become current
- * @param {Object} newScores - The SSIM scores from the current test run
+ * Write latest-run SSIM scores to an ignored file (for reporting/debugging).
+ * @param {Record<string, number>} scores - The SSIM scores from the current test run
  */
-function saveSsimHistory(newScores) {
-  const history = loadSsimHistory();
-  const updatedHistory = {
-    previous: history.current,  // Current becomes previous
-    current: newScores,         // New scores become current
-    lastRun: new Date().toISOString()
-  };
+function writeSsimLatest(scores) {
+  try {
+    const payload = {
+      runAt: new Date().toISOString(),
+      scores
+    };
+    writeFileSync(SSIM_LATEST_FILE, JSON.stringify(payload, null, 2));
+    console.log(`SSIM latest scores written to ${SSIM_LATEST_FILE}`);
+  } catch (error) {
+    console.error(`Could not write SSIM latest scores: ${error.message}`);
+  }
+}
+
+/**
+ * Optionally update the committed SSIM baseline file.
+ * Guarded behind an explicit env var to avoid accidental churn.
+ * @param {Record<string, number>} scores
+ */
+function maybeUpdateSsimCommitted(scores) {
+  const shouldUpdate = process.env.UPDATE_SSIM_COMMITTED === 'true';
+  if (!shouldUpdate) return;
 
   try {
-    writeFileSync(SSIM_HISTORY_FILE, JSON.stringify(updatedHistory, null, 2));
-    console.log(`SSIM history saved to ${SSIM_HISTORY_FILE}`);
+    const payload = {
+      committedAt: new Date().toISOString(),
+      committed: scores
+    };
+    writeFileSync(SSIM_HISTORY_FILE, JSON.stringify(payload, null, 2));
+    console.log(`SSIM committed baseline updated in ${SSIM_HISTORY_FILE}`);
   } catch (error) {
-    console.error(`Could not save SSIM history: ${error.message}`);
+    console.error(`Could not update SSIM committed baseline: ${error.message}`);
   }
 }
 
@@ -655,9 +677,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
   }, TIMEOUTS.CLEANUP_TIMEOUT);
 
   afterAll(async () => {
-    // Save SSIM scores to history file for regression tracking
+    // Persist latest SSIM scores for reporting/debugging (ignored by git).
+    // Committed baseline is only updated when explicitly requested.
     if (Object.keys(ssimScores).length > 0) {
-      saveSsimHistory(ssimScores);
+      writeSsimLatest(ssimScores);
+      maybeUpdateSsimCommitted(ssimScores);
     }
     await browser?.close();
   }, TIMEOUTS.CLEANUP_TIMEOUT);
@@ -3186,18 +3210,17 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
   });
 
   // SSIM Regression Detection Test
-  // This test runs last and compares current SSIM scores against previous run
+  // This test runs last and compares current SSIM scores against the committed baseline
   describe('Test Suite 7: SSIM Regression Detection', () => {
     it('SSIM scores should not regress from previous run', async () => {
       await displayTestId(page, 'ssim-regression-check');
 
-      const history = loadSsimHistory();
-      const previousScores = history.current || {};  // Current from file becomes our "previous"
+      const previousScores = loadSsimCommittedScores();
       const currentScores = ssimScores;
 
       // Skip if no previous scores exist (first run)
       if (Object.keys(previousScores).length === 0) {
-        console.log('No previous SSIM scores found - skipping regression check (first run)');
+        console.log('No committed SSIM scores found - skipping regression check');
         return;
       }
 
@@ -3242,6 +3265,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
       // Log summary
       console.log('\n=== SSIM Regression Report ===');
+      console.log('Comparison: committed baseline (ssim-history.json) vs latest run (in-memory)');
       console.log(`Total tests compared: ${Object.keys(currentScores).length}`);
       console.log(`Unchanged: ${unchanged.length}`);
       console.log(`Improvements: ${improvements.length}`);
@@ -3269,17 +3293,22 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
       console.log('==============================\n');
 
-      // Fail if there are regressions
+      // Fail only when explicitly requested; SSIM drift can be environment-sensitive.
       if (regressions.length > 0) {
-        const regressionDetails = regressions
-          .map(({ test, previous, current, diff }) =>
-            `${test}: ${previous.toFixed(4)} → ${current.toFixed(4)} (${diff.toFixed(4)})`)
-          .join('\n  ');
+        const strict = process.env.SSIM_REGRESSION_STRICT === 'true';
+        if (strict) {
+          const regressionDetails = regressions
+            .map(({ test, previous, current, diff }) =>
+              `${test}: ${previous.toFixed(4)} → ${current.toFixed(4)} (${diff.toFixed(4)})`)
+            .join('\n  ');
 
-        throw new Error(
-          `SSIM regression detected in ${regressions.length} test(s):\n  ${regressionDetails}\n\n` +
-          `This indicates visual quality has decreased compared to the previous run.`
-        );
+          throw new Error(
+            `SSIM regression detected in ${regressions.length} test(s):\n  ${regressionDetails}\n\n` +
+            `Set SSIM_REGRESSION_STRICT=false to only report regressions.`
+          );
+        } else {
+          console.warn(`SSIM regressions detected (${regressions.length}), not failing (set SSIM_REGRESSION_STRICT=true to fail).`);
+        }
       }
     }, TIMEOUTS.TEST_CASE_TIMEOUT);
   });

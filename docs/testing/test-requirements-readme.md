@@ -18,7 +18,7 @@ This directory contains all test-related specifications, requirements, and resea
 - 48 tests covering core UI flows across 3D and 2D modes
 - Visual regression testing with SSIM-based screenshot comparison
 - Baseline images in `test/screenshots/baseline/` (missing baselines are created automatically)
-- Per-run SSIM history persisted in `test/screenshots/ssim-history.json`
+- Committed SSIM baseline in `test/screenshots/ssim-history.json` + latest-run scores in `test/screenshots/ssim-latest.json` (git-ignored)
 
 ### **Configuration**
 - **Base URL**: controlled via `VITE_TEST_BASE_URL` (defaults to `http://localhost:8111`)
@@ -47,15 +47,16 @@ Test developers should refer to these documents when:
 
 ### **File Structure**
 ```
-test/
-├── ui.test.js                        # Main UI/visual regression suite
-├── config/                           # Test configuration files
-└── screenshots/
-    ├── baseline/                    # baseline images (committed; currently 84)
-    ├── current/                     # Runtime screenshots (ignored)
-    ├── diff/                        # Optional/manual artifacts (ignored)
-    └── ssim-history.json            # SSIM history (written by ui.test.js)
-```
+	test/
+	├── ui.test.js                        # Main UI/visual regression suite
+	├── config/                           # Test configuration files
+	└── screenshots/
+	    ├── baseline/                    # baseline images (committed; currently 84)
+	    ├── current/                     # Runtime screenshots (ignored)
+	    ├── diff/                        # Optional/manual artifacts (ignored)
+	    ├── ssim-history.json            # Committed SSIM baseline (tracked)
+	    └── ssim-latest.json             # Latest-run SSIM scores (ignored)
+	```
 
 ### **Test Categories**
 - **Earth / Moon origin**: key flows validated in both perspectives

@@ -104,6 +104,7 @@ test/screenshots/diff/
 test/screenshots/analysis/
 test/screenshots/*current.png
 test/screenshots/baseline/*-current.png
+test/screenshots/ssim-latest.json
 test/temp/
 # Test run reports (timestamped logs and CSV files)
 test/reports/

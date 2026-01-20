@@ -25,4 +25,4 @@ At the moment, `test/ui.test.js` does not load any files from `test/config/`.
 ## Related Directories
 
 - **Test implementation**: `test/ui.test.js`
-- **Screenshots / SSIM history**: `test/screenshots/`
+- **Screenshots / SSIM artifacts**: `test/screenshots/`

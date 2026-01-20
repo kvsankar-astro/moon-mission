@@ -375,7 +375,8 @@ const SSIM_THRESHOLD = {
 
 Baseline images: `test/screenshots/baseline/`
 Current images: `test/screenshots/current/`
-SSIM score history: `test/screenshots/ssim-history.json`
+Committed SSIM baseline: `test/screenshots/ssim-history.json`
+Latest-run SSIM scores: `test/screenshots/ssim-latest.json` (git-ignored)
 
 Run tests:
 ```bash

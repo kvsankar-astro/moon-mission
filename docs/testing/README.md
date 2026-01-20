@@ -13,7 +13,7 @@ make test
 
 - **Main UI suite**: `test/ui.test.js` (currently 48 tests)
 - **Smoke suite**: `test/mission-smoke.test.js` (loads multiple missions/configs; asserts no console/page errors)
-- **SSIM tracking**: per-screenshot SSIM scores are persisted to `test/screenshots/ssim-history.json`
+- **SSIM tracking**: committed SSIM baseline in `test/screenshots/ssim-history.json` + latest-run scores in `test/screenshots/ssim-latest.json` (git-ignored)
 
 ## Running Tests
 
@@ -52,24 +52,26 @@ node test/server-manager.js stop
 make baseline
 ```
 
-SSIM history (`test/screenshots/ssim-history.json`) stores:
-- `current`: SSIM scores from the latest run
-- `previous`: SSIM scores from the prior run
-- `lastRun`: timestamp
+SSIM baseline (`test/screenshots/ssim-history.json`) stores:
+- `committed`: SSIM scores from the committed baseline (reference for drift)
+- `committedAt`: timestamp for when the baseline was recorded
+
+Latest-run SSIM scores are written to `test/screenshots/ssim-latest.json` (git-ignored).
 
 ## File Layout (Relevant)
 
 ```
-test/
-├── ui.test.js
-├── mission-smoke.test.js
-├── server-manager.js
-└── screenshots/
-    ├── baseline/          # committed reference images
-    ├── current/           # latest run screenshots (usually git-ignored)
-    ├── diff/              # optional/manual artifacts (not required by ui.test.js)
-    └── ssim-history.json  # SSIM score history (written by ui.test.js)
-```
+	test/
+	├── ui.test.js
+	├── mission-smoke.test.js
+	├── server-manager.js
+	└── screenshots/
+	    ├── baseline/          # committed reference images
+	    ├── current/           # latest run screenshots (usually git-ignored)
+	    ├── diff/              # optional/manual artifacts (not required by ui.test.js)
+	    ├── ssim-history.json  # committed SSIM baseline (tracked)
+	    └── ssim-latest.json   # latest-run SSIM scores (ignored)
+	```
 
 ## Troubleshooting
 
