@@ -10,7 +10,7 @@ Tests run with `?testMode=true` URL parameter which:
 - Enables anti-aliasing for consistent visual output
 
 ### Key Files
-- `test/ui.test.js` - Main test file with SSIM-based comparison (47 tests)
+- `test/ui.test.js` - Main test file with SSIM-based comparison (48 tests)
 - `assets/platform/js/mission.js` - Product code with testMode support
 - `scripts/ssim-compare.js` - SSIM comparison utility for manual analysis
 - `docs/testing/` - Test documentation and specifications
@@ -85,6 +85,8 @@ This is a multi-mission platform for 3D and 2D animations of lunar mission orbit
 - `mission.html` - Mission selector page (no params)
 - `mission.html?mission=cy3` - Chandrayaan 3
 - `mission.html?mission=cy2` - Chandrayaan 2
+- `mission.html?mission=a10` - Apollo 10 LM (Snoopy)
+- `mission.html?mission=a11` - Apollo 11 S-IVB
 
 ### Mission Configuration
 Each mission has its own folder under `assets/<mission>/`:
@@ -119,7 +121,7 @@ The project consists of several major components:
    - `assets/platform/js/core/constants.js` - Centralized physics, color, and light constants
    - `assets/platform/css/mission.css` - Styling for the application
    - Uses THREE.js for 3D rendering and D3.js for 2D SVG rendering
-   - jQuery/jQuery UI for UI controls
+   - jQuery (legacy) plus a lightweight dialog shim (`assets/platform/js/ui/jquery-ui-dialog-stub.js`)
 
 3. **Data Formats**:
    - Chebyshev polynomial files: `geo-<ID>-cheb.json`, `lunar-<ID>-cheb.json`, `landing-<ID>-cheb.json`
@@ -140,9 +142,15 @@ python scripts/orbits.py --mission=chandrayaan3 --phase=landing
 
 ### Running the Application
 
-Since this is a static site, use a local web server to avoid CORS issues:
+For development, use a local web server (or Vite) to avoid CORS issues:
 ```bash
-# Using Python
+# Preferred (matches test server defaults)
+npx vite --port 8111
+
+# Or run the default dev server port
+npm run dev
+
+# Or using Python
 python -m http.server 8000
 
 # Using Node.js http-server (if installed)

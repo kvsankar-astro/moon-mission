@@ -15,19 +15,15 @@ This directory contains all test-related specifications, requirements, and resea
 ## Test Implementation
 
 ### **Test Suite: `../ui.test.js`**
-- 35 tests covering all functionality
-- Visual regression testing with baseline images
-- Centralized zoom configuration using `TEST_MODES`
-- Scene state handling for both Earth and Moon modes
-- Sky background management for consistent testing
+- 48 tests covering core UI flows across 3D and 2D modes
+- Visual regression testing with SSIM-based screenshot comparison
+- Baseline images in `test/screenshots/baseline/` (missing baselines are created automatically)
+- Per-run SSIM history persisted in `test/screenshots/ssim-history.json`
 
 ### **Configuration**
-- **Zoom Configuration**: Centralized `TEST_MODES` with specific zoom levels
-  - Earth poles/polar axes: 10 steps
-  - Moon SOI: 30 steps
-  - Zoom restoration after SOI tests
-- **Scene Management**: Context-aware scene state checking
-- **Visual Consistency**: Sky background disabled during tests
+- **Base URL**: controlled via `VITE_TEST_BASE_URL` (defaults to `http://localhost:8111`)
+- **Render determinism**: tests use `?testMode=true` to enforce consistent pixel ratio and AA settings
+- **Thresholds**: SSIM thresholds are defined in `test/ui.test.js` (single source of truth)
 
 ## Purpose
 
@@ -52,24 +48,22 @@ Test developers should refer to these documents when:
 ### **File Structure**
 ```
 test/
-├── ui.test.js                        # Main test suite (35 tests)
+├── ui.test.js                        # Main UI/visual regression suite
 ├── config/                           # Test configuration files
-├── test-requirements/               # This documentation directory
 └── screenshots/
-    ├── baseline/                    # 67 baseline images (committed)
+    ├── baseline/                    # baseline images (committed; currently 84)
     ├── current/                     # Runtime screenshots (ignored)
-    ├── diff/                        # Difference images (ignored)
-    └── analysis/                    # Analysis output (ignored)
+    ├── diff/                        # Optional/manual artifacts (ignored)
+    └── ssim-history.json            # SSIM history (written by ui.test.js)
 ```
 
 ### **Test Categories**
-- **Earth Mode**: 21 tests (page load, controls, view toggles, mode switching)
-- **Moon Mode**: 14 tests (specialized lunar functionality, locations, landing)
-- **Coverage**: UI elements, timeline navigation, view controls, plane selection, mode switching
+- **Earth / Moon origin**: key flows validated in both perspectives
+- **3D / 2D rendering**: mode switching and baseline rendering checks
+- **Coverage**: UI elements, timeline navigation, view controls, plane selection, stability checks
 
 ## Related Files
 
-- **Main test implementation**: `../ui.test.js`
-- **Test configuration**: `../config/`
-- **Baseline images**: `../screenshots/baseline/` (67 PNG files)
-- **TypeScript support**: `../../src/types/globals.d.ts`
+- **Main test implementation**: `test/ui.test.js`
+- **Test configuration**: `test/config/`
+- **Baseline images**: `test/screenshots/baseline/`

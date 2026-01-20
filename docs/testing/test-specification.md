@@ -9,26 +9,28 @@ This document describes the test cases for validating the Chandrayaan-3 mission 
 
 ### Screenshot Requirements
 - Any screenshot must be taken with the Settings panel closed.
-- Screenshots must be taken at full page resolution.
+- Screenshots are taken at the viewport level (the test suite uses Playwright `fullPage: false`).
 - First-time screenshots automatically become baseline images.
-- Visual comparison allows pixel differences within specified tolerance using named constants.
+- Visual comparison uses SSIM thresholds (Structural Similarity Index), which is robust to minor anti-aliasing differences.
 - Screenshot directories are automatically created: `test/screenshots/current` and `test/screenshots/baseline`.
 
 ### Screenshot Tolerance Constants
-- `EXACT`: 0 pixels - For exact visual matches (critical UI states).
-- `APPROX`: 10 pixels - For minor rendering differences (standard tests).
-- `BROAD`: 200 pixels - For complex 3D scenes with acceptable variations.
+The SSIM score ranges from 0.0 → 1.0 (1.0 = identical).
+
+- `EXACT` (`SSIM_THRESHOLD.IDENTICAL`): 0.99
+- `APPROX_MATCH` (`SSIM_THRESHOLD.SIMILAR`): 0.98
+- `BROAD_MATCH` (`SSIM_THRESHOLD.DIFFERENT`): 0.97
 
 ### Screenshot Folder Structure
 The test suite uses a standardized screenshot organization:
 - **`test/screenshots/baseline/`** - Reference images for visual comparison.
 - **`test/screenshots/current/`** - Latest test run screenshots.
-- **`test/screenshots/diff/`** - Difference images showing visual changes (auto-generated when differences detected).
+- **`test/screenshots/diff/`** - Optional/manual artifacts (not required by `test/ui.test.js`).
 
 ### Test Execution Modes
-The test script supports two primary execution modes:
-- **Baseline Mode**: Generates new baseline images without comparison against existing baselines. Use when updating reference images or creating new test cases.
-- **Verify Mode** (default): Compares current screenshots against existing baselines and reports differences. Used for regression testing and validation.
+If a baseline image is missing, the test suite copies the current screenshot into `test/screenshots/baseline/`.
+
+To intentionally regenerate baselines, use `make baseline` (recommended) or delete specific baseline PNGs and re-run the suite.
 
 ### State Management Requirements
 - Every test case must leave the animation in a stopped state after completion.
@@ -82,8 +84,8 @@ The test script supports two primary execution modes:
 ### URL and Environment Configuration Requirements
 - Tests shall not use hardcoded URLs or ports.
 - Base URL configurable via environment variables:
-  - `VITE_TEST_BASE_URL`: Complete test URL (e.g., `http://localhost:8000`).
-- Test target path: `/chandrayaan3.html` appended to base URL.
+  - `VITE_TEST_BASE_URL`: Base URL (e.g., `http://localhost:8111`).
+- Test target path: `/mission.html?mission=cy3&testMode=true` appended to base URL.
 
 ### Browser Configuration Requirements
 - Tests run in Chromium browser with specific launch arguments:
@@ -91,7 +93,7 @@ The test script supports two primary execution modes:
   - Garbage collection access: `--expose-gc`
   - Sandbox prevention: `--no-sandbox`
 - Browser mode configurable via environment variables:
-  - `HEADLESS=true` for headless mode (default should be `false`)
+  - `HEADLESS=true` for headless mode (default is headless; use `HEADLESS=false` to see the browser)
   - `SLOWMO=milliseconds` for slowed interactions.
 
 ### Timeout Configuration Requirements
@@ -100,7 +102,7 @@ All timeout values shall use named constants, not hardcoded values:
 **Scene and Rendering Timeouts:**
 - `SCENE_READY_TIMEOUT`: 15000ms - Wait for WebGL context and orbit rendering.
 - `STABLE_RENDER_TIMEOUT`: 3000ms - Wait for scene stabilization.
-- `ORBIT_RENDER_TIMEOUT`: 20000ms - Wait for orbit curve completion.
+- `ORBIT_RENDER_TIMEOUT`: 120000ms - Wait for orbit curve completion (slow software rendering / WSL).
 
 **UI Interaction Timeouts:**
 - `SETTINGS_PANEL_TIMEOUT`: 8000ms - Settings panel open/close operations.
@@ -683,15 +685,18 @@ This section provides specific implementation guidance for the test requirements
 ### Screenshot Implementation Details
 
 **File Naming Convention:**
-- Earth mode: `geo-` prefix (e.g., `geo-3d-initial-load.png`)
-- Moon mode: `lunar-` prefix (e.g., `lunar-3d-page-load.png`)
-- 2D Earth mode: `earth-2d-` prefix (e.g., `earth-2d-page-load.png`)
-- 2D Moon mode: `moon-2d-` prefix (e.g., `moon-2d-page-load.png`)
+- Screenshot filenames are derived from the test ID and the captured state.
+- Common prefixes:
+  - `earth-3d-*`
+  - `moon-3d-*`
+  - `earth-2d-*`
+  - `moon-2d-*`
+- Common suffixes for multi-state screenshots: `-enabled/-disabled`, `-checked/-unchecked`, `-initial/-final`, etc.
 
 **Tolerance Constants:**
-- Use `TOLERANCE.EXACT` (0 pixels) for critical UI states
-- Use `TOLERANCE.LOW` (10 pixels) for minor rendering differences
-- Use `TOLERANCE.MID` (200 pixels) for complex 3D scenes
+- `TOLERANCE.EXACT` (SSIM 0.99): critical UI states
+- `TOLERANCE.APPROX_MATCH` (SSIM 0.98): standard visual comparisons (default)
+- `TOLERANCE.BROAD_MATCH` (SSIM 0.97): allowed variation cases (e.g., 2D scenes)
 
 ### Test Execution Implementation
 
@@ -789,8 +794,8 @@ await chromium.launch({
 ```
 
 **Environment Variables:**
-- `VITE_TEST_BASE_URL`: Base URL (e.g., `http://localhost:8001`)
-- `HEADLESS=true`: Run in headless mode
+- `VITE_TEST_BASE_URL`: Base URL (e.g., `http://localhost:8111`)
+- `HEADLESS=true`: Run in headless mode (default); use `HEADLESS=false` to see the browser
 - `SLOWMO=milliseconds`: Slow down interactions
 
 ### Error Handling Implementation

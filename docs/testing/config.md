@@ -1,6 +1,6 @@
 # Test Configuration Files
 
-This directory contains configuration files used by the test suite at runtime.
+This document describes files under `test/config/` that may be used by tests at runtime.
 
 ## Contents
 
@@ -16,13 +16,13 @@ This folder contains:
 
 ## Usage
 
-These files are automatically loaded by the test suite during execution:
-- Tests compare actual results against baseline values
-- Configuration files define expected behaviors and test sequences
-- Files are read programmatically by `baseline-ui.test.js`
+At the moment, `test/ui.test.js` does not load any files from `test/config/`.
+
+`test/config/directional-controls-baseline.json` is currently a legacy artifact and can be:
+- deleted (if confirmed unused), or
+- wired back in if we want to validate directional/timeline expectations from a declarative baseline file.
 
 ## Related Directories
 
-- **Test implementation**: `../baseline-ui.test.js`
-- **Test requirements**: `../test-requirements/` 
-- **Test results**: `../reports/` and `../screenshots/`
+- **Test implementation**: `test/ui.test.js`
+- **Screenshots / SSIM history**: `test/screenshots/`

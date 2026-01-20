@@ -224,7 +224,7 @@ moon-mission/
 
 - **D3.js v3** - 2D SVG rendering and data visualization
 - **Three.js** - 3D WebGL rendering engine
-- **jQuery/jQuery UI** - DOM manipulation and UI components
+- **jQuery (legacy)** - DOM manipulation, plus a lightweight dialog shim for panels
 - **Astronomy Engine** - High-precision ephemeris calculations for Moon/Earth positions
 
 ## Build and Deployment
@@ -316,11 +316,19 @@ The project includes automated UI testing for comprehensive functionality verifi
 ### Running Tests
 
 ```bash
-# Run complete test suite (47 tests)
-npm test
+# Recommended: manage the test server and run the full UI suite (SSIM-based)
+make test
 
-# Run with custom server URL
-VITE_TEST_BASE_URL=http://localhost:8000 npm test
+# Without make (manual server management)
+node test/server-manager.js start
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
+node test/server-manager.js stop
+
+# If you already have a server running, run the UI suite directly
+npx vitest test/ui.test.js --run
+
+# Override the server URL (default is http://localhost:8111)
+VITE_TEST_BASE_URL=http://localhost:8000 npx vitest test/ui.test.js --run
 ```
 
 ### Test Coverage
@@ -375,13 +383,15 @@ A systematic refactoring effort has extracted modular components from the monoli
 - ✅ Centralized constants (physics, colors, lights) in `core/constants.js`
 - ✅ DOM utilities extracted to `core/dom.js`
 - ✅ Math utilities extracted to `utils/math-utils.js`
+- ✅ Animation controller extracted to `assets/platform/js/animation/animation-controller.js`
+- ✅ UI event binding centralized in `assets/platform/js/ui/event-handlers.js`
+- ✅ Lightweight pub/sub added in `assets/platform/js/core/event-bus.js`
 - ✅ Multi-mission support with configuration-driven architecture
-- ✅ Visual regression testing with SSIM-based comparison (47 tests)
+- ✅ Visual regression testing with SSIM-based comparison (48 tests)
 
 **In Progress:**
-- Animation controller extraction
 - UI state management refactoring
-- Event handler consolidation
+- Further reduce `assets/platform/js/mission.js` to orchestration-only
 
 **Future Goals:**
 - Further reduce `mission.js` to orchestration-only (~500 lines)

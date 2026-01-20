@@ -368,15 +368,20 @@ Tests use SSIM (Structural Similarity Index) for image comparison.
 const SSIM_THRESHOLD = {
   IDENTICAL: 0.99,
   VERY_SIMILAR: 0.98,
-  SIMILAR: 0.95,
-  DIFFERENT: 0.90
+  SIMILAR: 0.98,
+  DIFFERENT: 0.97
 };
 ```
 
 Baseline images: `test/screenshots/baseline/`
 Current images: `test/screenshots/current/`
+SSIM score history: `test/screenshots/ssim-history.json`
 
 Run tests:
 ```bash
-npx vitest run test/ui.test.js
+# Recommended: manages server on port 8111
+make test
+
+# If you already have a server running (default baseUrl is http://localhost:8111)
+npx vitest test/ui.test.js --run
 ```
