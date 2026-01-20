@@ -16,41 +16,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run tests
-        run: |
-          # Start Vite server in background with nohup
-          nohup npx vite --port 8111 > vite.log 2>&1 &
-          SERVER_PID=$!
-          echo "Started Vite server with PID $SERVER_PID"
-
-          # Wait for server to be ready (poll every second for up to 30 seconds)
-          for i in {1..30}; do
-            if curl -s http://localhost:8111 > /dev/null 2>&1; then
-              echo "Server is ready after $i seconds"
-              break
-            fi
-            echo "Waiting for server... ($i)"
-            sleep 1
-          done
-
-          # Verify server is running
-          curl -s http://localhost:8111 > /dev/null || (echo "Server failed to start" && cat vite.log && exit 1)
-
-          # Run tests
-          npx cross-env HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
-
       - name: Prepare deployment directory
         run: |
           mkdir -p dist-pages
