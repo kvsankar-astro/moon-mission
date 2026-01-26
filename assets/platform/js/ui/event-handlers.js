@@ -65,6 +65,7 @@ export function bindMainControls(handlers) {
     const {
         reset,
         toggleMode,
+        toggleRelativeMode,
         toggleCamera,
         toggleLockSC,
         toggleLockMoon,
@@ -82,6 +83,7 @@ export function bindMainControls(handlers) {
 
     onClick("origin-earth", toggleMode);
     onClick("origin-moon", toggleMode);
+    onClick("origin-relative", toggleRelativeMode);
     onClick("camera-default", toggleCamera);
     onClick("camera-moon", toggleCamera);
     onClick("checkbox-lock-sc", toggleLockSC);

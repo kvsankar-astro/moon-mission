@@ -463,9 +463,32 @@ const skyActions = createSkyActions({
 
 // View variables
 
+const ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
+
+function consumeOriginOverrideFromSession() {
+    try {
+        const override = sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+        if (override === "lunar") {
+            setChecked("origin-moon", true);
+            setChecked("origin-earth", false);
+            setChecked("origin-relative", false);
+        } else if (override === "geo") {
+            setChecked("origin-earth", true);
+            setChecked("origin-moon", false);
+            setChecked("origin-relative", false);
+        }
+        sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+    } catch {
+        // Ignore storage errors (private browsing, disabled storage, etc.)
+    }
+}
+
+consumeOriginOverrideFromSession();
+
 // Relative mode is Earth-centered; force Earth origin selection without changing defaults for normal runs.
 if (isRelativeMode) {
-    setChecked("origin-earth", true);
+    setChecked("origin-relative", true);
+    setChecked("origin-earth", false);
     setChecked("origin-moon", false);
 }
 
@@ -1065,13 +1088,58 @@ class AnimationScene {
         return sceneCameraPositionActions.cameraDisntance(position);
     }   
 
-    rotateMoon(timeMs = animTime) {
-        bodyRotationActions.rotateMoon({
-            timeMs,
-            globalConfig,
-            moonContainer: this.moonContainer,
-        });
-    }
+	rotateMoon(timeMs = animTime) {
+	    if (!globalConfig || !globalConfig.is_lunar) return;
+	    if (!this.moonContainer) return;
+
+	    if (frameMode === "relative" && config === "geo") {
+	        const moonState = getMoonState(timeMs);
+	        const r = new THREE.Vector3(moonState.x, moonState.y, moonState.z);
+	        const v = new THREE.Vector3(moonState.vx, moonState.vy, moonState.vz);
+
+	        if (r.lengthSq() === 0) return;
+
+	        const xHat = r.clone().normalize();
+	        const zHat = new THREE.Vector3().crossVectors(r, v);
+	        if (zHat.lengthSq() === 0) return;
+	        zHat.normalize();
+	        const yHat = new THREE.Vector3().crossVectors(zHat, xHat);
+	        if (yHat.lengthSq() === 0) return;
+	        yHat.normalize();
+
+	        // Relative frame basis:
+	        // - local (relative) axes expressed in inertial coords are {xHat, yHat, zHat}.
+	        // - makeBasis() yields M = [xHat yHat zHat] mapping relative->inertial.
+	        // - We want B = M^T mapping inertial->relative (world coords in relative mode).
+	        const relativeToInertial = new THREE.Matrix4().makeBasis(xHat, yHat, zHat);
+	        const inertialToRelative = relativeToInertial.clone().transpose();
+	        const qFrame = new THREE.Quaternion().setFromRotationMatrix(inertialToRelative);
+
+	        // Moon orientation in inertial frame (IAU pole model, matching existing rotateMoon()).
+	        const date = new Date(timeMs);
+	        const lp = lunar_pole(date);
+	        const alpha = lp["alpha"];
+	        const delta = lp["delta"];
+	        const W = lp["W"];
+
+	        const qInertial = new THREE.Quaternion();
+	        const qx1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -1 * PC.EARTH_AXIS_INCLINATION_RADS);
+	        const qz2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2 + alpha);
+	        const qx3 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2 - delta);
+	        const qz4 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), W);
+	        qInertial.multiply(qx1).multiply(qz2).multiply(qx3).multiply(qz4);
+
+	        // Convert inertial orientation into the relative-frame world coordinates.
+	        this.moonContainer.quaternion.copy(qFrame).multiply(qInertial);
+	        return;
+	    }
+
+	    bodyRotationActions.rotateMoon({
+	        timeMs,
+	        globalConfig,
+	        moonContainer: this.moonContainer,
+	    });
+	}
 
     rotateEarth(timeMs = animTime) {
         bodyRotationActions.rotateEarth({
@@ -1665,6 +1733,47 @@ const { toggleMode, setDimensionTop, setView } = createSettingsActions({
     setDimension: dimensionActions.setDimension,
 });
 
+function navigateWithRelativeMode(enabled) {
+    const url = new URL(window.location.href);
+    if (enabled) {
+        url.searchParams.set("mode", "relative");
+    } else {
+        url.searchParams.delete("mode");
+    }
+    window.location.href = url.toString();
+}
+
+function toggleRelativeMode() {
+    if (isRelativeMode) return;
+    try {
+        sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+    } catch {
+        // Ignore storage errors
+    }
+    navigateWithRelativeMode(true);
+}
+
+function toggleModeGuarded() {
+    if (!isRelativeMode) {
+        toggleMode();
+        return;
+    }
+
+    // Relative mode is URL-driven (mode=relative). Exiting requires a reload to reset frame/orbit sources.
+    const nextOrigin = readOriginMode();
+    try {
+        if (nextOrigin === "lunar") {
+            sessionStorage.setItem(ORIGIN_OVERRIDE_STORAGE_KEY, "lunar");
+        } else {
+            sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+        }
+    } catch {
+        // Ignore storage errors
+    }
+
+    navigateWithRelativeMode(false);
+}
+
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
 }
@@ -1898,7 +2007,8 @@ export function main() {
         eventBus,
         handlers: {
             reset,
-            toggleMode,
+            toggleMode: toggleModeGuarded,
+            toggleRelativeMode,
             toggleCamera,
             toggleLockSC,
             toggleLockMoon,
