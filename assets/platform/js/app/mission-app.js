@@ -10,6 +10,7 @@ function wireEventBus(eventBus, handlers) {
 
     eventBus.on("ui:reset", forwardEvent(handlers.reset));
     eventBus.on("settings:originChanged", forwardEvent(handlers.toggleMode));
+    eventBus.on("settings:relativeModeChanged", forwardEvent(handlers.toggleRelativeMode));
     eventBus.on("camera:viewChanged", forwardEvent(handlers.toggleCamera));
     eventBus.on("camera:lockOn", (payload) => {
         const target = payload?.target;
@@ -35,6 +36,7 @@ export function startMissionApp({ eventBus, handlers }) {
     bindMainControls({
         reset: (event) => eventBus.emit("ui:reset", { event }),
         toggleMode: (event) => eventBus.emit("settings:originChanged", { event }),
+        toggleRelativeMode: (event) => eventBus.emit("settings:relativeModeChanged", { event }),
         toggleCamera: (event) => eventBus.emit("camera:viewChanged", { event }),
         toggleLockSC: (event) => eventBus.emit("camera:lockOn", { target: "SC", event }),
         toggleLockMoon: (event) => eventBus.emit("camera:lockOn", { target: "MOON", event }),
@@ -53,4 +55,3 @@ export function startMissionApp({ eventBus, handlers }) {
     const onloadEndTime = performance.now() - onloadStartTime;
     return onloadEndTime;
 }
-

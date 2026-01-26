@@ -26,6 +26,7 @@ export function setChecked(idOrSelector, checked) {
 }
 
 export function readOriginMode() {
+    if (getChecked("origin-relative")) return "geo";
     if (getChecked("origin-earth")) return "geo";
     if (getChecked("origin-moon")) return "lunar";
     return "undefined";
@@ -69,4 +70,3 @@ export function applyViewSettings(patch) {
         setChecked(id, value);
     }
 }
-
