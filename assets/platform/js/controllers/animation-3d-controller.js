@@ -38,7 +38,12 @@ export class Animation3DController {
             return;
         }
 
-        const { craftId = "SC", pixelsPerAU = 250, updateCraftScale } = options;
+        const {
+            craftId = "SC",
+            pixelsPerAU = 250,
+            updateCraftScale,
+            landingFreezeTime = null,
+        } = options;
         this.pixelsPerAU = pixelsPerAU;
         // Carry sun direction for lighting (supports relative frame)
         this.scene.stateSunDirection = state.sunDirection;
@@ -51,7 +56,7 @@ export class Animation3DController {
         this.scene.rotateMoon(state.time);
 
         // 3. Update body positions
-        this.updateBodyPositions(state.bodies, craftId);
+        this.updateBodyPositions(state.bodies, craftId, state.time, landingFreezeTime);
 
         // 4. Update spacecraft scale (depends on camera distance)
         if (updateCraftScale) {
@@ -89,7 +94,7 @@ export class Animation3DController {
      * @param {Object} bodies - Body states keyed by ID
      * @param {string} craftId - Spacecraft ID
      */
-    updateBodyPositions(bodies, craftId) {
+    updateBodyPositions(bodies, craftId, stateTime, landingFreezeTime) {
         for (const [bodyId, bodyState] of Object.entries(bodies)) {
             if (!bodyState || !bodyState.available) {
                 continue;
@@ -102,7 +107,7 @@ export class Animation3DController {
                 this.updateSecondaryBodyPosition(screenPos);
             } else if (bodyId === craftId) {
                 // Spacecraft
-                this.updateSpacecraftPosition(bodyState, screenPos, bodies);
+                this.updateSpacecraftPosition(bodyState, screenPos, bodies, stateTime, landingFreezeTime);
             }
         }
     }
@@ -127,7 +132,7 @@ export class Animation3DController {
      * @param {Object} screenPos - Current screen position
      * @param {Object} allBodies - All body states (for next position calculation)
      */
-    updateSpacecraftPosition(bodyState, screenPos, allBodies) {
+    updateSpacecraftPosition(bodyState, screenPos, allBodies, stateTime, landingFreezeTime) {
         if (!this.scene.craft) {
             return;
         }
@@ -136,8 +141,22 @@ export class Animation3DController {
         this.scene.craft.position.set(screenPos.x, screenPos.y, screenPos.z);
 
         // Calculate next position for orientation (prefer Chebyshev-derived next position from state)
-        const nextPos = bodyState.nextPosition || this.calculateNextPosition(bodyState);
-        const nextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
+        const shouldFreeze = typeof landingFreezeTime === "number" && stateTime >= landingFreezeTime;
+        if (!shouldFreeze) {
+            this._frozenNextScreenPos = null;
+        }
+
+        let nextScreenPos;
+        if (shouldFreeze) {
+            if (!this._frozenNextScreenPos) {
+                const nextPos = bodyState.nextPosition || this.calculateNextPosition(bodyState);
+                this._frozenNextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
+            }
+            nextScreenPos = this._frozenNextScreenPos;
+        } else {
+            const nextPos = bodyState.nextPosition || this.calculateNextPosition(bodyState);
+            nextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
+        }
 
         // Update drone position (follows spacecraft at offset)
         if (this.scene.drone) {

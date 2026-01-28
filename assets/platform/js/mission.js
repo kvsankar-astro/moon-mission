@@ -1840,7 +1840,8 @@ function setLocation() {
         pixelsPerAU: PIXELS_PER_AU,
         primaryBody: animationScenes[config].primaryBody,
         planetsForLocations: animationScenes[config].planetsForLocations,
-        updateCraftScale
+        updateCraftScale,
+        landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
     };
 
     if (currentDimension === "3D") {
