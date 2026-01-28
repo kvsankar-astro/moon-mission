@@ -48,7 +48,7 @@ export function computeBodyState(bodyId, time, config, data) {
     // Spacecraft position from Chebyshev data
     if (bodyId === "SC") {
         const computeScStateAtTime = (t) => {
-            // Landing phase - use landing Chebyshev (Moon-centered data)
+            // Landing phase - use landing Chebyshev
             if (isLandingEnabled &&
                 t >= startLandingTime && t < endLandingTime - TC.ONE_SECOND_MS) {
 
@@ -56,31 +56,11 @@ export function computeBodyState(bodyId, time, config, data) {
                     const jd = new Date(t).getJD_TDB();
                     const state = getStateFromChebyshev(landingChebyshevData, jd);
                     if (state) {
-                        if (config === "lunar") {
-                            return {
-                                position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
-                                velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
-                                available: true
-                            };
-                        }
-
-                        // In geo (inertial frame), translate Moon-centered state to geocentric.
-                        if (config === "geo" && frameMode !== "relative") {
-                            const moon = getMoonState(t);
-                            return {
-                                position: {
-                                    x: state.pos.x + moon.x,
-                                    y: state.pos.y + moon.y,
-                                    z: state.pos.z + moon.z,
-                                },
-                                velocity: {
-                                    vx: state.vel.vx + moon.vx,
-                                    vy: state.vel.vy + moon.vy,
-                                    vz: state.vel.vz + moon.vz,
-                                },
-                                available: true
-                            };
-                        }
+                        return {
+                            position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
+                            velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
+                            available: true
+                        };
                     }
                 }
 

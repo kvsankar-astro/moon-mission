@@ -179,8 +179,8 @@ var landingMetadata = {};
 // Chebyshev ephemeris data (replaces NPZ for spacecraft position)
 var chebyshevDataLoaded = { "geo": false, "lunar": false };
 var chebyshevData = {};  // { "geo": chebData, "lunar": chebData }
-var landingChebyshevLoaded = false;
-var landingChebyshevData = null;
+var landingChebyshevLoaded = { geo: false, lunar: false };
+var landingChebyshevData = {};
 var nOrbitPoints = 0;
 var nLandingPoints = 0;
 var progress = 0;
@@ -337,8 +337,8 @@ const orbitCurveActions = createOrbitCurveActions({
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
     getLandingEnabled: () => !!(globalConfig && globalConfig.landing && globalConfig.landing.enabled),
-    getLandingChebyshevLoaded: () => landingChebyshevLoaded,
-    getLandingChebyshevData: () => landingChebyshevData,
+    getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
+    getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
     getStartLandingTime: () => startLandingTime,
     getEndLandingTime: () => endLandingTime,
     PC,
@@ -1234,15 +1234,16 @@ const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
 
 const { loadLandingDataAndProcess } = createLandingLoadActions({
     getGlobalConfig: () => globalConfig,
+    getConfigsList: () => Object.keys(animationScenes),
     getLandingDataLoaded: () => landingDataLoaded,
     setLandingDataLoaded: (val) => {
         landingDataLoaded = val;
     },
-    setLandingChebyshevLoaded: (val) => {
-        landingChebyshevLoaded = val;
+    setLandingChebyshevLoaded: (cfg, val) => {
+        landingChebyshevLoaded[cfg] = val;
     },
-    setLandingChebyshevData: (val) => {
-        landingChebyshevData = val;
+    setLandingChebyshevData: (cfg, val) => {
+        landingChebyshevData[cfg] = val;
     },
     resolveLandingChebyshevUrl,
     loadChebyshev,
@@ -1279,8 +1280,8 @@ const {
     getEndLandingTime: () => endLandingTime,
     chebyshevDataLoaded,
     chebyshevData,
-    getLandingChebyshevLoaded: () => landingChebyshevLoaded,
-    getLandingChebyshevData: () => landingChebyshevData,
+    getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
+    getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
     getStateFromChebyshev,
     getMoonState,
     getEarthFromMoonState,
@@ -1800,8 +1801,8 @@ function setLocation() {
         sunLongitude: sunLongitudeForFrame,
         chebyshevData,
         chebyshevDataLoaded,
-        landingChebyshevData,
-        landingChebyshevLoaded,
+        landingChebyshevData: landingChebyshevData[config],
+        landingChebyshevLoaded: landingChebyshevLoaded[config],
         globalConfig,
         startLandingTime,
         endLandingTime,

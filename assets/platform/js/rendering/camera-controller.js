@@ -236,7 +236,8 @@ export class CameraController {
 
         const hasPositionMount = this.positionMode !== CAMERA_POSITION_MODE.MANUAL;
         const hasForcedLook = this.lookMode !== CAMERA_LOOK_MODE.MANUAL;
-        const wantsFreeFly = hasPositionMount && !hasForcedLook;
+        // Use TrackballControls even in mounted+manual-aim modes to retain intuitive zoom/pan.
+        const wantsFreeFly = false;
         this._targets = { earth: earth ?? null, moon: moon ?? null, spacecraft: spacecraft ?? null };
 
         if (!hasPositionMount && !hasForcedLook) {
@@ -282,15 +283,25 @@ export class CameraController {
             this._setFreeFlyEnabled(false);
         }
 
-        // If forced lookAt is enabled, keep TrackballControls target in sync and disable rotation (zoom stays enabled).
+        // If forced lookAt is enabled, keep TrackballControls target in sync.
+        // For manual-position cameras we still allow orbiting around the fixed target so users can inspect it.
         if (hasForcedLook) {
             const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
             if (lookPos) {
-                this._updateCameraUpForLookTarget(this.lookMode, lookPos);
+                const allowOrbitAroundTarget =
+                    (this.positionMode === CAMERA_POSITION_MODE.MANUAL) ||
+                    (this.positionMode !== this.lookMode);
+
+                // Keep horizon stable when we allow orbiting; otherwise align to target's up.
+                if (allowOrbitAroundTarget) {
+                    this.camera.up.set(0, 0, 1);
+                } else {
+                    this._updateCameraUpForLookTarget(this.lookMode, lookPos);
+                }
                 if (this.controls) {
                     this.controls.target.copy(lookPos);
-                    this.controls.noRotate = true;
-                    this.controls.noPan = true;
+                    this.controls.noRotate = !allowOrbitAroundTarget;
+                    this.controls.noPan = !allowOrbitAroundTarget;
                     // Force immediate alignment without relying on TrackballControls.update().
                     this.camera.lookAt(lookPos);
                 } else {

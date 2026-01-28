@@ -65,15 +65,19 @@ export function resolveOrbitUrls(configData, mode) {
     };
 }
 
-export function resolveLandingChebyshevUrl(configData) {
+export function resolveLandingChebyshevUrl(configData, cfgKey = null) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
 
     const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
     const overrideBase = configData?.landing?.orbits_file;
-    const filename = overrideBase
-        ? `${overrideBase}-cheb.json`
-        : `landing-${spacecraftMnemonic}-cheb.json`;
+    const base = overrideBase || `landing-${spacecraftMnemonic}`;
+
+    const suffix = cfgKey ? `-${cfgKey}` : "";
+    const filename = `${base}${suffix}-cheb.json`;
+
+    // Fall back to legacy (no suffix) name when cfgKey not provided or file missing;
+    // the caller will handle fetch errors if the file does not exist.
 
     return `${dataPath}${filename}`;
 }
@@ -101,4 +105,3 @@ export async function loadChebyshev(url) {
     chebyshevPromiseCache.set(url, promise);
     return promise;
 }
-

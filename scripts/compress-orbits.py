@@ -87,6 +87,20 @@ def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
             "tolerance_km": tolerance,
         }
 
+    # Synthetic landing variants for origin-specific datasets (geo/lunar)
+    if "landing" in phases:
+        base = Path(phases["landing"]["npz"]).stem.replace("-cheb", "")
+        phases["landing-geo"] = {
+            "npz": f"{base}-geo.npz",
+            "cheb": f"{base}-geo-cheb.json",
+            "tolerance_km": 2,
+        }
+        phases["landing-lunar"] = {
+            "npz": f"{base}-lunar.npz",
+            "cheb": f"{base}-lunar-cheb.json",
+            "tolerance_km": 2,
+        }
+
     return data_dir, generated_dir, phases
 
 

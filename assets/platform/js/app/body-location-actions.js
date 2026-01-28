@@ -60,6 +60,7 @@ export function createBodyLocationActions({
         const globalConfig = getGlobalConfig();
         const isLandingEnabled =
             globalConfig && globalConfig.landing && globalConfig.landing.enabled;
+        const cfgKey = getConfig();
 
         // For SC (spacecraft), use Chebyshev data
         if (craftid === "SC") {
@@ -67,31 +68,14 @@ export function createBodyLocationActions({
             const endLandingTime = getEndLandingTime();
             const frameMode = typeof getFrameMode === "function" ? getFrameMode() : "inertial";
 
-            // Landing phase - use landing Chebyshev (Moon-centered data)
-            if (
-                isLandingEnabled &&
-                t >= startLandingTime &&
-                t < endLandingTime - TC.ONE_SECOND_MS
-            ) {
-                if (getLandingChebyshevLoaded() && getLandingChebyshevData()) {
-                    const jd = new Date(t).getJD_TDB();
-                    const state = getStateFromChebyshev(getLandingChebyshevData(), jd);
+            // Landing phase (and post-landing hold) - always use landing Chebyshev if available.
+            if (isLandingEnabled && t >= startLandingTime) {
+                if (getLandingChebyshevLoaded(cfgKey) && getLandingChebyshevData(cfgKey)) {
+                    // Clamp to the landing data end to avoid stepping out of range.
+                    const tLanding = Math.min(t, endLandingTime - TC.ONE_SECOND_MS);
+                    const jd = new Date(tLanding).getJD_TDB();
+                    const state = getStateFromChebyshev(getLandingChebyshevData(cfgKey), jd);
                     if (state) {
-                        if (config === "geo" && frameMode !== "relative") {
-                            const moonState = getMoonState(t);
-                            return [
-                                new THREE.Vector3(
-                                    state.pos.x + moonState.x,
-                                    state.pos.y + moonState.y,
-                                    state.pos.z + moonState.z,
-                                ),
-                                new THREE.Vector3(
-                                    state.vel.vx + moonState.vx,
-                                    state.vel.vy + moonState.vy,
-                                    state.vel.vz + moonState.vz,
-                                ),
-                            ];
-                        }
                         return [
                             new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
                             new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz),

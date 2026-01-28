@@ -1,5 +1,6 @@
 export function createLandingLoadActions({
     getGlobalConfig,
+    getConfigsList,
     getLandingDataLoaded,
     setLandingDataLoaded,
     setLandingChebyshevLoaded,
@@ -16,30 +17,36 @@ export function createLandingLoadActions({
 
         if (getLandingDataLoaded()) return;
 
-        const landingDataCheb = resolveLandingChebyshevUrl(globalConfig);
-        if (!landingDataCheb) {
-            console.error(
-                "Landing Chebyshev path unavailable (missing window.missionConfig.dataPath)",
-            );
-            setLandingChebyshevLoaded(false);
-            return;
+        const configs = getConfigsList();
+        let anyLoaded = false;
+
+        for (const cfg of configs) {
+            const landingDataCheb = resolveLandingChebyshevUrl(globalConfig, cfg);
+            if (!landingDataCheb) {
+                console.warn(
+                    `Landing Chebyshev path unavailable for ${cfg} (missing dataPath or filename)`,
+                );
+                setLandingChebyshevLoaded(cfg, false);
+                continue;
+            }
+
+            try {
+                console.log(`Loading landing Chebyshev data for ${cfg} from ${landingDataCheb}`);
+                const landingChebyshevData = await loadChebyshev(landingDataCheb);
+                setLandingChebyshevData(cfg, landingChebyshevData);
+                setLandingChebyshevLoaded(cfg, true);
+                anyLoaded = true;
+                console.log(
+                    `Landing Chebyshev data loaded (${cfg}): ${landingChebyshevData.segments.length} segments`,
+                );
+            } catch (chebError) {
+                console.error(`Failed to load landing Chebyshev data for ${cfg}: ${chebError}`);
+                setLandingChebyshevLoaded(cfg, false);
+            }
         }
 
-        try {
-            console.log(`Loading landing Chebyshev data from ${landingDataCheb}`);
-            const landingChebyshevData = await loadChebyshev(landingDataCheb);
-            setLandingChebyshevData(landingChebyshevData);
-            setLandingChebyshevLoaded(true);
-            setLandingDataLoaded(true);
-            console.log(
-                `Landing Chebyshev data loaded: ${landingChebyshevData.segments.length} segments`,
-            );
-        } catch (chebError) {
-            console.error(`Failed to load landing Chebyshev data: ${chebError}`);
-            setLandingChebyshevLoaded(false);
-        }
+        setLandingDataLoaded(anyLoaded);
     }
 
     return { loadLandingDataAndProcess };
 }
-

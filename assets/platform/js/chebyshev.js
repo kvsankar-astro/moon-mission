@@ -92,6 +92,8 @@ export function evaluateChebyshevDerivative(coeffs, x, tSpan) {
  * @returns {Object|null} Segment containing the time, or null if not found
  */
 export function findSegment(segments, jd) {
+    if (!segments || segments.length === 0) return null;
+
     let low = 0;
     let high = segments.length - 1;
 
@@ -176,6 +178,10 @@ export function getVelocityFromChebyshev(chebData, jd) {
  * @returns {Object|null} {pos: {x,y,z}, vel: {vx,vy,vz}} or null if out of range
  */
 export function getStateFromChebyshev(chebData, jd) {
+    if (!chebData || !chebData.segments || chebData.segments.length === 0) {
+        return null;
+    }
+
     const segment = findSegment(chebData.segments, jd);
     if (!segment) {
         return null;
@@ -223,8 +229,10 @@ export async function loadChebyshevData(url) {
 // ============================================================================
 
 /**
- * Generate curve points from Chebyshev data by sampling at regular intervals.
- * This replaces the NPZ vector data for orbit curve rendering.
+ * Generate curve points from Chebyshev data.
+ * Sampling adapts per segment using its polynomial degree (number of coeffs),
+ * allowing longer steps for low‑order segments while keeping a cap at the
+ * original fixed cadence (stepMs).
  *
  * @param {Object} chebData - Chebyshev JSON data object
  * @param {number} startTimeMs - Start time as JavaScript timestamp (ms)
@@ -245,19 +253,49 @@ export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, ste
         return JD_UNIX_EPOCH + ms / 86400000;
     };
 
-    for (let t = startTimeMs; t <= endTimeMs; t += stepMs) {
-        const jd = msToJD(t);
-        const state = getStateFromChebyshev(chebData, jd);
+    const JD_UNIX_EPOCH = 2440587.5;
+    const jdToMs = (jd) => (jd - JD_UNIX_EPOCH) * 86400000;
 
-        if (state) {
-            vectors.push({
-                x: state.pos.x,
-                y: state.pos.y,
-                z: state.pos.z,
-                vx: state.vel.vx,
-                vy: state.vel.vy,
-                vz: state.vel.vz
-            });
+    for (const seg of chebData.segments || []) {
+        const segStartMs = jdToMs(seg.t_start);
+        const segEndMs = jdToMs(seg.t_end);
+
+        const clampedStart = Math.max(startTimeMs, segStartMs);
+        const clampedEnd = Math.min(endTimeMs, segEndMs);
+        if (clampedStart > clampedEnd) continue;
+
+        const durationMs = Math.max(clampedEnd - clampedStart, 0);
+        const maxSamplesAtBaseStep = Math.max(2, Math.ceil(durationMs / stepMs));
+
+        const degreeEstimate = Math.max(
+            seg?.cx?.length ?? 0,
+            seg?.cy?.length ?? 0,
+            seg?.cz?.length ?? 0,
+        );
+        // Aim for ~3 points per polynomial degree, but never exceed the base cadence.
+        const samples = Math.min(
+            maxSamplesAtBaseStep,
+            Math.max(2, Math.ceil(degreeEstimate * 3)),
+        );
+
+        const denom = samples > 1 ? samples - 1 : 1;
+        const step = durationMs / denom;
+
+        for (let i = 0; i < samples; i++) {
+            const t = i === samples - 1 ? clampedEnd : clampedStart + step * i;
+            const jd = msToJD(t);
+            const state = getStateFromChebyshev(chebData, jd);
+
+            if (state) {
+                vectors.push({
+                    x: state.pos.x,
+                    y: state.pos.y,
+                    z: state.pos.z,
+                    vx: state.vel.vx,
+                    vy: state.vel.vy,
+                    vz: state.vel.vz,
+                });
+            }
         }
     }
 

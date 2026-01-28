@@ -180,35 +180,54 @@ export function createCameraActions({
         });
     }
 
-    function applyFixedFov(scene, positionMode) {
-        const toggle = document.getElementById("camera-fov-fixed");
-        const fixedEnabled = toggle ? toggle.checked : true;
+    function applyFixedFov(scene, positionMode, lookMode) {
+        const toggle = document.getElementById("camera-fov-one-degree");
+        const wantsFixed = !!toggle?.checked;
+        const isEligible =
+            (positionMode === "earth" || positionMode === "moon") &&
+            (lookMode === "earth" || lookMode === "moon");
         if (toggle) {
-            toggle.disabled = !(positionMode === "earth" || positionMode === "moon");
+            toggle.disabled = !isEligible;
         }
+
         const controller = scene?.cameraController;
         if (!controller) return;
 
-        const shouldFix = fixedEnabled && (positionMode === "earth" || positionMode === "moon");
+        const shouldFix = wantsFixed && isEligible;
         if (shouldFix) {
             if (savedFov === null) {
                 const current = scene?.camera?.fov ?? controller.camera?.fov;
                 savedFov = Number.isFinite(current) ? current : 50;
             }
             controller.setFov(1);
+            // Reset zoom/standoff when enabling fixed FoV so the view is centered.
+            if (positionMode !== "manual") {
+                snapMountedCamera(scene, positionMode, lookMode, { preserveDistance: false });
+            }
+            if (controller.controls) {
+                controller.controls.noZoom = true;
+            }
         } else if (savedFov !== null) {
             controller.setFov(savedFov);
             savedFov = null;
+            if (controller.controls) {
+                controller.controls.noZoom = false;
+            }
         }
     }
 
-    function updateFovIndicator(positionMode) {
-        const node = document.getElementById("camera-fov-indicator");
-        if (!node) return;
-        const toggle = document.getElementById("camera-fov-fixed");
-        const fixed = toggle ? toggle.checked && (positionMode === "earth" || positionMode === "moon") : positionMode === "earth" || positionMode === "moon";
-        node.textContent = fixed ? "FoV: 1° (fixed)" : "FoV: default";
-        node.classList.toggle("is-active", fixed);
+    function updateFovIndicator(positionMode, lookMode) {
+        const indicator = document.getElementById("camera-fov-indicator");
+        const toggle = document.getElementById("camera-fov-one-degree");
+        const isEligible =
+            (positionMode === "earth" || positionMode === "moon") &&
+            (lookMode === "earth" || lookMode === "moon");
+        const fixed = !!toggle?.checked && isEligible;
+        if (toggle) toggle.disabled = !isEligible;
+        if (indicator) {
+            indicator.textContent = "";
+            indicator.classList.toggle("is-active", fixed);
+        }
     }
 
     function estimateRadius(scene, mode) {
@@ -355,7 +374,7 @@ export function createCameraActions({
         // Snap to a deterministic offset (do not preserve previous offset).
         // We intentionally use a small standoff to feel like a "from the center" viewpoint.
         const baseRadius = estimateRadius(scene, positionMode);
-        const defaultDistance = Number.isFinite(baseRadius) ? Math.max(baseRadius * 0.1, 0.01) : 10;
+        const defaultDistance = Number.isFinite(baseRadius) ? Math.max(baseRadius * 0.02, 0.01) : 1;
         const distance = preserveDistance
             ? Math.max(controller.mountOffset?.length?.() ?? defaultDistance, 0.01)
             : defaultDistance;
@@ -417,8 +436,8 @@ export function createCameraActions({
         const config = getConfig();
         const scene = animationScenes[config];
         updateLockOnAvailability(scene, positionMode, lookMode);
-        applyFixedFov(scene, positionMode);
-        updateFovIndicator(positionMode);
+        applyFixedFov(scene, positionMode, lookMode);
+        updateFovIndicator(positionMode, lookMode);
 
         const shouldSnap = positionMode !== lastAppliedPositionMode;
         if (!scene || !scene.initialized3D) {

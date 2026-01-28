@@ -72,9 +72,9 @@ export function createSettingsActions({
             }
         });
 
+        // Force an immediate redraw of the active scene.
         render();
     }
 
     return { toggleMode, setDimensionTop, setView };
 }
-

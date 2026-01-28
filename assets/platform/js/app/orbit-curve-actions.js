@@ -49,9 +49,9 @@ export function createOrbitCurveActions({
 
         if (!getLandingEnabled() || config != "lunar") return nLandingPoints;
 
-        if (getLandingChebyshevLoaded() && getLandingChebyshevData()) {
+        if (getLandingChebyshevLoaded(config) && getLandingChebyshevData(config)) {
             const vectors = generateCurveFromChebyshev(
-                getLandingChebyshevData(),
+                getLandingChebyshevData(config),
                 getStartLandingTime(),
                 getEndLandingTime(),
                 1000, // Landing data uses 1-second resolution
@@ -78,4 +78,3 @@ export function createOrbitCurveActions({
 
     return { addOrbitCurveVectors, addLandingCurveVectors };
 }
-

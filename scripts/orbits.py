@@ -76,29 +76,45 @@ def load_config(mission_name):
             if phase_name not in full_config:
                 print_error(f"Phase '{phase_name}' listed in phases but not defined in config")
                 sys.exit(1)
-            
+
             phase_config = full_config[phase_name]
-            
+
             # Skip disabled phases
             if not phase_config.get('enabled', True):
                 print_debug(f"Skipping disabled phase: {phase_name}")
                 continue
-            
+
             # Convert center mnemonic to JPL code
             if 'center' not in phase_config:
                 print_error(f"Phase '{phase_name}' missing 'center' configuration")
                 sys.exit(1)
-                
+
             center_mnemonic = phase_config['center']
             if center_mnemonic in center_codes:
                 phase_config['center'] = center_codes[center_mnemonic]
             else:
                 print_error(f"Unknown center mnemonic: {center_mnemonic}")
                 sys.exit(1)
-            
+
             phases_config[phase_name] = phase_config
-        
-        return phases_config, available_phases
+
+            # Special handling: also produce an Earth-centered landing phase for geo origin.
+            if phase_name == "landing":
+                # Duplicate with Earth center and suffixes for filenames
+                landing_geo = phase_config.copy()
+                landing_geo['center'] = JPL_EARTH_CENTER
+                landing_geo['orbits_file'] = f"{phase_config['orbits_file']}-geo"
+                phases_config['landing-geo'] = landing_geo
+                # Keep lunar-centered version labeled explicitly for clarity
+                landing_lunar = phase_config.copy()
+                landing_lunar['center'] = phase_config['center']
+                landing_lunar['orbits_file'] = f"{phase_config['orbits_file']}-lunar"
+                phases_config['landing-lunar'] = landing_lunar
+
+        # Append synthetic phases to the list so they can be selected via CLI
+        augmented_phases = available_phases + [p for p in ['landing-geo', 'landing-lunar'] if p not in available_phases]
+
+        return phases_config, augmented_phases
     except FileNotFoundError:
         print_error(f"Configuration file not found: {config_file}")
         sys.exit(1)
@@ -722,4 +738,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

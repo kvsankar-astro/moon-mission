@@ -129,7 +129,7 @@ export function bindMainControls(handlers) {
     onChange("camera-position", changeCameraFromTo);
     onChange("camera-look", changeCameraFromTo);
     onChangeAll('input[name="camera-pair"]', changeCameraFromTo);
-    onChange("camera-fov-fixed", changeCameraFromTo);
+    onChange("camera-fov-one-degree", changeCameraFromTo);
     onClick("checkbox-lock-sc", toggleLockSC);
     onClick("checkbox-lock-moon", toggleLockMoon);
     onClick("checkbox-lock-earth", toggleLockEarth);
