@@ -1,34 +1,13 @@
-export function computeMoonUiPatch({ globalConfig, currentConfig }) {
-    const isMoonEnabled = !!globalConfig?.is_lunar;
-
+export function computeMoonUiPatch() {
+    // Always show moon-related controls; availability is managed elsewhere.
     /** @type {{ nextConfig?: string, showSelectors: string[], hideSelectors: string[], showLabelForIds: string[], hideLabelForIds: string[], checked: Record<string, boolean> }} */
     const patch = {
-        showSelectors: [],
+        showSelectors: ["#origin-moon", "#origin-relative", "#view-moonsoi", ".geo"],
         hideSelectors: [],
-        showLabelForIds: [],
+        showLabelForIds: ["origin-moon", "origin-relative", "view-moonsoi"],
         hideLabelForIds: [],
         checked: {},
     };
-
-    if (isMoonEnabled) {
-        patch.showLabelForIds.push("origin-moon", "origin-relative", "view-moonsoi");
-        patch.showSelectors.push("#origin-moon", "#origin-relative", "#view-moonsoi", ".geo");
-        return patch;
-    }
-
-    patch.hideLabelForIds.push("origin-moon", "origin-relative", "view-moonsoi");
-    patch.hideSelectors.push("#origin-moon", "#origin-relative", "#view-moonsoi", ".geo");
-
-    if (currentConfig === "lunar") {
-        patch.nextConfig = "geo";
-        patch.checked["origin-earth"] = true;
-        patch.checked["origin-moon"] = false;
-    }
-
-    patch.checked["origin-relative"] = false;
-    patch.checked["checkbox-lock-moon"] = false;
-    patch.checked["view-moonsoi"] = false;
-
     return patch;
 }
 
