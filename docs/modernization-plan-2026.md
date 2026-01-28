@@ -129,6 +129,8 @@ A systematic refactoring effort has extracted modular components from the monoli
 4. **Global Variables**: Still has global vars, though reduced from original
 5. **Mission.js Still Large**: Several remaining “glue” methods (e.g., Earth/Moon add/dispose) still live on AnimationScene and should be extracted
 6. **TODO**: Split landing ephemeris into `landing-geo` and `landing-lunar` to avoid frame mixing in Earth origin
+7. **TODO**: Review landing camera up-vector for Moon-proximity rides (recent fix keeps Z-up; validate with SSIM)
+8. **TODO**: Confirm landing orientation jitter resolved by 1s next-step in `computeBodyState` (landing window)
 
 ---
 

@@ -672,8 +672,6 @@ class SceneHandler {
                     closerAngleRads = earthAngleRads;
                     distance = craftEarthDistance;
                     radius = earthRadius;
-                    animationScene.craftCamera.up.set(0, 0, 1);
-                    animationScene.droneCamera.up.set(0, 1, 0);
 
                 } else {
 
@@ -681,9 +679,27 @@ class SceneHandler {
                     closerAngleRads = moonAngleRads;
                     distance = craftMoonDistance;
                     radius = moonRadius;
-                    animationScene.craftCamera.up.set(1, 0, 0);
-                    animationScene.droneCamera.up.set(1, 0, 0);
                 }
+                
+                // Stable up vector:
+                // - When Moon is closer: use radial vector from Moon center to craft (keeps Moon "below")
+                // - Otherwise: align with body's local +Z
+                let upDir;
+                if (closerBody === animationScene.moonContainer) {
+                    upDir = new THREE.Vector3()
+                        .subVectors(animationScene.craft.position, animationScene.moonContainer.position)
+                        .normalize();
+                    if (upDir.lengthSq() === 0) {
+                        upDir.set(0, 0, 1);
+                    }
+                } else {
+                    upDir = new THREE.Vector3(0, 0, 1)
+                        .applyQuaternion(closerBody.quaternion)
+                        .normalize();
+                }
+
+                animationScene.craftCamera.up.copy(upDir);
+                animationScene.droneCamera.up.copy(upDir);
                 
                 // var v1 = new THREE.Vector3();
                 // var v2 = new THREE.Vector3();

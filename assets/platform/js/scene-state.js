@@ -108,7 +108,15 @@ export function computeBodyState(bodyId, time, config, data) {
             return { position: null, velocity: null, nextPosition: null, nextVelocity: null, available: false };
         }
 
-        const nextTime = time + TC.ONE_MINUTE_MS;
+        // Use finer step near landing to stabilize orientation (landing data is 1s resolution)
+        const nextStepMs =
+            (isLandingEnabled &&
+             time >= startLandingTime &&
+             time < endLandingTime - TC.ONE_SECOND_MS)
+                ? TC.ONE_SECOND_MS
+                : TC.ONE_MINUTE_MS;
+
+        const nextTime = time + nextStepMs;
         const next = computeScStateAtTime(nextTime);
 
         return {
