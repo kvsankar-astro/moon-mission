@@ -128,6 +128,7 @@ A systematic refactoring effort has extracted modular components from the monoli
 3. ~~**Event Handlers Inline**~~: ✅ Centralized in `ui/event-handlers.js` and routed via `app/mission-app.js`
 4. **Global Variables**: Still has global vars, though reduced from original
 5. **Mission.js Still Large**: Several remaining “glue” methods (e.g., Earth/Moon add/dispose) still live on AnimationScene and should be extracted
+6. **TODO**: Split landing ephemeris into `landing-geo` and `landing-lunar` to avoid frame mixing in Earth origin
 
 ---
 

@@ -48,22 +48,43 @@ export function computeBodyState(bodyId, time, config, data) {
     // Spacecraft position from Chebyshev data
     if (bodyId === "SC") {
         const computeScStateAtTime = (t) => {
-            // Landing phase - use landing Chebyshev
-            if (config === "lunar" && isLandingEnabled &&
+            // Landing phase - use landing Chebyshev (Moon-centered data)
+            if (isLandingEnabled &&
                 t >= startLandingTime && t < endLandingTime - TC.ONE_SECOND_MS) {
 
                 if (landingChebyshevLoaded && landingChebyshevData) {
                     const jd = new Date(t).getJD_TDB();
                     const state = getStateFromChebyshev(landingChebyshevData, jd);
                     if (state) {
-                        return {
-                            position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
-                            velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
-                            available: true
-                        };
+                        if (config === "lunar") {
+                            return {
+                                position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
+                                velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
+                                available: true
+                            };
+                        }
+
+                        // In geo (inertial frame), translate Moon-centered state to geocentric.
+                        if (config === "geo" && frameMode !== "relative") {
+                            const moon = getMoonState(t);
+                            return {
+                                position: {
+                                    x: state.pos.x + moon.x,
+                                    y: state.pos.y + moon.y,
+                                    z: state.pos.z + moon.z,
+                                },
+                                velocity: {
+                                    vx: state.vel.vx + moon.vx,
+                                    vy: state.vel.vy + moon.vy,
+                                    vz: state.vel.vz + moon.vz,
+                                },
+                                available: true
+                            };
+                        }
                     }
                 }
-                return { position: null, velocity: null, available: false };
+
+                // If landing data missing, fall through to regular ephemeris
             }
 
             // Regular orbital phase - use Chebyshev
@@ -352,6 +373,33 @@ export function computeSceneState(time, config, options) {
 
     // 1. Sun position for lighting (input from imperative shell)
     const sunLongitude = providedSunLongitude;
+    let sunDirection = {
+        x: Math.cos(sunLongitude),
+        y: Math.sin(sunLongitude),
+        z: 0,
+    };
+
+    // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
+    if (frameMode === "relative" && config === "geo") {
+        const moon = getMoonState(time); // geocentric inertial
+        const r = moon;
+        const v = { x: moon.vx, y: moon.vy, z: moon.vz };
+
+        const xHat = normalize(r);
+        const zHat = normalize(cross(r, v));
+        const yHat = normalize(cross(zHat, xHat));
+
+        // Rotation matrix inertial->relative is [xHat yHat zHat]^T
+        const transform = (vec) => ({
+            x: xHat.x * vec.x + xHat.y * vec.y + xHat.z * vec.z,
+            y: yHat.x * vec.x + yHat.y * vec.y + yHat.z * vec.z,
+            z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
+        });
+
+        const relSun = transform(sunDirection);
+        const relNorm = normalize(relSun);
+        sunDirection = relNorm;
+    }
 
     // 2. Body states
     const bodies = {};
@@ -387,9 +435,25 @@ export function computeSceneState(time, config, options) {
         time,
         config,
         sunLongitude,
+        sunDirection,
         bodies,
         telemetry,
         phase,
         activeEvent
+    };
+}
+
+// Vector helpers (keep small and local)
+function normalize(v) {
+    const mag = Math.sqrt((v.x ?? 0) * (v.x ?? 0) + (v.y ?? 0) * (v.y ?? 0) + (v.z ?? 0) * (v.z ?? 0));
+    if (mag === 0) return { x: 0, y: 0, z: 0 };
+    return { x: v.x / mag, y: v.y / mag, z: v.z / mag };
+}
+
+function cross(a, b) {
+    return {
+        x: (a.y ?? 0) * (b.z ?? 0) - (a.z ?? 0) * (b.y ?? 0),
+        y: (a.z ?? 0) * (b.x ?? 0) - (a.x ?? 0) * (b.z ?? 0),
+        z: (a.x ?? 0) * (b.y ?? 0) - (a.y ?? 0) * (b.x ?? 0),
     };
 }

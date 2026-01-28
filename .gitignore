@@ -139,3 +139,6 @@ deploy-config.json
 # Test server temp files
 .test-server.*
 tmpclaude-*
+
+# Dev server manager temp files
+.dev-server.*

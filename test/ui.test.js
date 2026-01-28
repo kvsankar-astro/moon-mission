@@ -297,6 +297,32 @@ async function closeSettingsPanel(page) {
   }
 }
 
+async function resetCameraToManual(page) {
+  await openSettingsPanel(page);
+
+  await page.selectOption('#camera-position', 'manual');
+  await page.selectOption('#camera-look', 'manual');
+
+  // Always dispatch change events so the app can re-apply defaults even if values were already selected.
+  await page.dispatchEvent('#camera-position', 'change');
+  await page.dispatchEvent('#camera-look', 'change');
+
+  // Emulate the legacy "camera default" reset distance/orientation in 3D mode.
+  await page.evaluate(() => {
+    const cfg = document.getElementById('origin-moon')?.checked ? 'lunar' : 'geo';
+    const scene = window.animationScenes?.[cfg];
+    if (!scene?.initialized3D) return;
+    scene.setCameraParameters(true);
+    const controls = scene.cameraController?.controls;
+    if (controls?.target) {
+      controls.target.set(0, 0, 0);
+      controls.noRotate = false;
+      controls.noPan = false;
+      controls.update();
+    }
+  });
+}
+
 // Wait for scene to be ready
 async function waitForScene(page) {
   try {
@@ -803,7 +829,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Settings elements
       const settingsElements = [
-        '#origin-earth', '#origin-moon', '#camera-default', '#camera-moon',
+        '#origin-earth', '#origin-moon', '#camera-position', '#camera-look',
         '#checkbox-lock-sc', '#checkbox-lock-moon', '#checkbox-lock-earth',
         '#checkbox-lock-default', '#checkbox-lock-xy', '#checkbox-lock-yz', '#checkbox-lock-zx',
         '#checkbox-lock-xy-minus', '#checkbox-lock-yz-minus', '#checkbox-lock-zx-minus',
@@ -1131,7 +1157,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       
@@ -1169,7 +1195,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#dimension-3D');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
@@ -1734,7 +1760,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
 
       // Set default camera and plane to ensure a clean state
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       await page.click('#checkbox-lock-default');
 
 
@@ -1843,7 +1869,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
@@ -1882,7 +1908,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.click('#dimension-3D');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
@@ -2360,7 +2386,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
       // Reset camera to default position and plane to ensure a clean state
       await openSettingsPanel(page);
-      await page.click('#camera-default');
+      await resetCameraToManual(page);
       await page.click('#checkbox-lock-default');
       await closeSettingsPanel(page);
       await openSettingsPanel(page);

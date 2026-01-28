@@ -40,6 +40,8 @@ export class Animation3DController {
 
         const { craftId = "SC", pixelsPerAU = 250, updateCraftScale } = options;
         this.pixelsPerAU = pixelsPerAU;
+        // Carry sun direction for lighting (supports relative frame)
+        this.scene.stateSunDirection = state.sunDirection;
 
         // 1. Update lighting from sun position
         this.updateLighting(state.sunLongitude);
@@ -69,11 +71,17 @@ export class Animation3DController {
             return;
         }
 
-        const x = Math.cos(sunLongitude);
-        const y = Math.sin(sunLongitude);
-
-        this.scene.light.position.set(x, y, 0).normalize();
-        this.scene.light2.position.set(x, y, 0).normalize();
+        // Prefer precomputed sun direction (supports relative frame); fall back to longitude.
+        const dir = this.scene.stateSunDirection;
+        if (dir && Number.isFinite(dir.x) && Number.isFinite(dir.y) && Number.isFinite(dir.z)) {
+            this.scene.light.position.set(dir.x, dir.y, dir.z).normalize();
+            this.scene.light2.position.set(dir.x, dir.y, dir.z).normalize();
+        } else {
+            const x = Math.cos(sunLongitude);
+            const y = Math.sin(sunLongitude);
+            this.scene.light.position.set(x, y, 0).normalize();
+            this.scene.light2.position.set(x, y, 0).normalize();
+        }
     }
 
     /**

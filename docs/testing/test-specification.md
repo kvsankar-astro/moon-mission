@@ -43,7 +43,8 @@ To intentionally regenerate baselines, use `make baseline` (recommended) or dele
 - Tests that fail cleanup trigger a force state reset.
 - This state is (for Earth or Moon origin):
 -- Dimension > 3D is checked (`#dimension-3D`)
--- Camera > Default is checked (`#camera-default`)
+-- Camera Position is Manual Control (`#camera-position` = `manual`)
+-- Look At Target is Manual Aim (`#camera-look` = `manual`)
 -- Camera > Zoom level is 1.0 (default zoom)
 -- Plane > DEFAULT is checked (`#checkbox-lock-default`)
 -- View > Landing is unchecked (`#landing`)

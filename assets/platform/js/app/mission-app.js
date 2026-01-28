@@ -11,7 +11,7 @@ function wireEventBus(eventBus, handlers) {
     eventBus.on("ui:reset", forwardEvent(handlers.reset));
     eventBus.on("settings:originChanged", forwardEvent(handlers.toggleMode));
     eventBus.on("settings:relativeModeChanged", forwardEvent(handlers.toggleRelativeMode));
-    eventBus.on("camera:viewChanged", forwardEvent(handlers.toggleCamera));
+    eventBus.on("camera:fromToChanged", forwardEvent(handlers.changeCameraFromTo));
     eventBus.on("camera:lockOn", (payload) => {
         const target = payload?.target;
         const event = payload?.event;
@@ -33,11 +33,20 @@ export function startMissionApp({ eventBus, handlers }) {
 
     wireEventBus(eventBus, handlers);
 
+    // Reset "from-to" camera UI on reload so behavior is predictable (Manual + Manual).
+    // Browsers can restore <select> state on Ctrl-R/BFCache without firing 'change'.
+    const resetFromToDefaults = () => {
+        const positionSelect = document.getElementById("camera-position");
+        const lookSelect = document.getElementById("camera-look");
+        if (positionSelect) positionSelect.value = "manual";
+        if (lookSelect) lookSelect.value = "manual";
+    };
+
     bindMainControls({
         reset: (event) => eventBus.emit("ui:reset", { event }),
         toggleMode: (event) => eventBus.emit("settings:originChanged", { event }),
         toggleRelativeMode: (event) => eventBus.emit("settings:relativeModeChanged", { event }),
-        toggleCamera: (event) => eventBus.emit("camera:viewChanged", { event }),
+        changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
         toggleLockSC: (event) => eventBus.emit("camera:lockOn", { target: "SC", event }),
         toggleLockMoon: (event) => eventBus.emit("camera:lockOn", { target: "MOON", event }),
         toggleLockEarth: (event) => eventBus.emit("camera:lockOn", { target: "EARTH", event }),
@@ -51,6 +60,24 @@ export function startMissionApp({ eventBus, handlers }) {
     });
 
     handlers.initAnimation({ reset: true }); // no need to await - kickstarts setup
+
+    const applyFromTo = () => eventBus.emit("camera:fromToChanged", { event: null });
+
+    const enforceDefaultsAndApply = () => {
+        resetFromToDefaults();
+        applyFromTo();
+    };
+
+    // Enforce defaults immediately and also after a short delay to override any late restore.
+    requestAnimationFrame(enforceDefaultsAndApply);
+    setTimeout(enforceDefaultsAndApply, 250);
+    setTimeout(enforceDefaultsAndApply, 750);
+
+    window.addEventListener("pageshow", () => {
+        requestAnimationFrame(enforceDefaultsAndApply);
+        setTimeout(enforceDefaultsAndApply, 250);
+        setTimeout(enforceDefaultsAndApply, 750);
+    });
 
     const onloadEndTime = performance.now() - onloadStartTime;
     return onloadEndTime;

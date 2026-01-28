@@ -62,20 +62,218 @@ body {
 
 .settings-panel {
     display: none;
+    pointer-events: all;
+    font-family: "Lato", sans-serif;
+    color: #e8e8e8;
+    background: rgba(10, 12, 20, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+    width: 300px;
+    min-width: 260px;
+    max-width: 90vw;
+}
+
+.settings-panel fieldset {
+    float: none;
 }
 
 #settings-panel-button {
-    background-color: black; 
-    color: white; 
+    background: rgba(20, 20, 30, 0.8);
+    color: #fff;
     margin: 0px;
-    padding: 0px;
-    padding-right: 10px;
-    border: none;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 #settings-panel-fieldset {
     display: flex;
     flex-direction: column;
+    gap: 12px;
+}
+
+#settings-panel-button:hover {
+    background: rgba(40, 40, 55, 0.9);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.settings-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.settings-panel__title {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.settings-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.settings-panel__collapse {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 14px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.settings-panel__close {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 13px;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.settings-panel__collapse:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.settings-panel__close:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.settings-panel__body {
+    padding: 10px 12px 14px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.settings-panel__sections {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-section {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 8px 10px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-section__title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0 4px;
+}
+
+.settings-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-options--pairs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+
+.settings-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #dcdcdc;
+    cursor: pointer;
+}
+
+.settings-option label {
+    cursor: pointer;
+}
+
+.settings-option.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.settings-option.is-disabled label,
+.settings-option.is-disabled span {
+    cursor: not-allowed;
+}
+
+.settings-subtitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.settings-note {
+    margin-top: 6px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.settings-note.is-active {
+    color: #ffcc66;
+}
+
+.camera-fromto-selects {
+    display: none;
+}
+
+.settings-option input {
+    margin: 0;
+    accent-color: #ffb347;
+}
+
+.settings-panel select {
+    width: 100%;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 12px;
+}
+
+.settings-panel input[type="checkbox"],
+.settings-panel input[type="radio"] {
+    width: 14px;
+    height: 14px;
+}
+
+.settings-panel.is-collapsed .settings-panel__body {
+    display: none;
+}
+
+.settings-panel.is-collapsed .settings-panel__collapse {
+    transform: rotate(-90deg);
 }
 
 .wrapper {
@@ -383,6 +581,74 @@ input, textarea, select, [contenteditable="true"] {
 /* Re-enable pointer events for all interactive elements */
 button, input, textarea, select, a, [role="button"], [onclick] {
     pointer-events: all;
+}
+
+/* Camera overlay (separate from Settings dialog) */
+.camera-overlay-wrapper {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 10050;
+    font-family: "Lato", sans-serif;
+}
+
+.camera-overlay-toggle {
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+}
+
+.camera-overlay {
+    width: 260px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.70);
+    color: #fff;
+}
+
+.camera-overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.camera-overlay-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.camera-overlay-close {
+    font-size: 14px;
+    line-height: 14px;
+    padding: 2px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(0, 0, 0, 0.25);
+    color: #fff;
+    cursor: pointer;
+}
+
+.camera-overlay-body {
+    font-size: 12px;
+    padding: 8px;
+}
+
+.camera-overlay-body > div {
+    margin: 0 0 4px 0;
+}
+
+.camera-overlay-recenter {
+    margin-top: 6px;
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.10);
+    color: #fff;
+    cursor: pointer;
 }
 
 /* end of file */

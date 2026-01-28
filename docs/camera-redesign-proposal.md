@@ -93,3 +93,35 @@ This dropdown determines what the camera is pointing at, overriding manual mouse
     *   `Target: Earth`
 
 This layered approach provides maximum flexibility, is far more intuitive, and would be designed to prevent the bugs and control conflicts present in the current system.
+
+---
+
+## Implementation Notes (Current Behavior)
+
+To avoid ambiguous or self-referential camera states, the UI now uses a **Camera Pair** selector and enforces **valid camera pairs** only. This is a permanent behavior (not just a troubleshooting mode).
+
+### Allowed Position → Look At pairs
+
+*   **Manual →** Manual, Moon, Spacecraft
+*   **Earth →** Moon, Spacecraft
+*   **Moon →** Manual, Earth, Spacecraft
+*   **Spacecraft →** Earth, Moon
+
+**Disallowed:** Earth→Earth, Moon→Moon, Spacecraft→Spacecraft, and any other pair not listed above.
+
+The UI exposes these as a single **Camera Pair** radio list (e.g., “Earth → Moon”) rather than two independent dropdowns.
+
+### Lock On availability (only when Look At = Manual)
+
+When **Look At** is not Manual, all Lock On options are disabled (greyed out).  
+When **Look At** is Manual, the enabled Lock On targets depend on **Camera Position**:
+
+*   **Camera = Manual:** Lock On → Craft, Moon, Earth
+*   **Camera = Earth:** Lock On → Craft, Moon
+*   **Camera = Moon:** Lock On → Craft, Earth
+*   **Camera = Spacecraft:** Lock On → Earth, Moon
+
+### Fixed FoV behavior
+
+A **Fixed FoV** toggle is provided in the Camera section. When enabled and the **Camera Position** is **Earth** or **Moon**, the FoV is fixed to **1°** for a consistent “from the center” view.  
+When the toggle is off or Camera Position is anything else, FoV returns to its prior value.

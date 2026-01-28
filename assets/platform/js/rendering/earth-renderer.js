@@ -78,19 +78,23 @@ export class EarthRenderer {
      * @private
      */
     _createAxis(visible) {
-        const poleScale = 1.2;
-        const northPoint = new THREE.Vector3(0, 0, this.radius * poleScale);
-        const southPoint = new THREE.Vector3(0, 0, -this.radius * poleScale);
+        const poleScaleOuter = 1.2;
+        const poleScaleInner = 1.02; // leave a gap inside the sphere
+
+        const northOuter = new THREE.Vector3(0, 0, this.radius * poleScaleOuter);
+        const northInner = new THREE.Vector3(0, 0, this.radius * poleScaleInner);
+        const southInner = new THREE.Vector3(0, 0, -this.radius * poleScaleInner);
+        const southOuter = new THREE.Vector3(0, 0, -this.radius * poleScaleOuter);
 
         const geometry = new THREE.BufferGeometry();
         const vertices = [
-            northPoint.x, northPoint.y, northPoint.z,
-            southPoint.x, southPoint.y, southPoint.z
+            northOuter.x, northOuter.y, northOuter.z, northInner.x, northInner.y, northInner.z,
+            southInner.x, southInner.y, southInner.z, southOuter.x, southOuter.y, southOuter.z
         ];
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
 
-        const material = new THREE.LineBasicMaterial({ color: COL.EARTH_AXIS });
-        this.axis = new THREE.Line(geometry, material);
+        const material = new THREE.LineBasicMaterial({ color: COL.EARTH_AXIS, depthTest: true, depthWrite: false });
+        this.axis = new THREE.LineSegments(geometry, material);
         this.axis.visible = visible;
     }
 

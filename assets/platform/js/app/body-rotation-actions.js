@@ -26,4 +26,3 @@ export function createBodyRotationActions({ lunar_pole, Astronomy, degreesToRadi
 
     return { rotateMoon, rotateEarth };
 }
-

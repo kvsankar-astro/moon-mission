@@ -46,7 +46,7 @@ import {
 } from "./scene-state.js";
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
-import { readOriginMode, readViewSettings } from "./ui/ui-state.js";
+import { applyCameraFromTo, readCameraLookMode, readCameraPositionMode, readOriginMode, readViewSettings } from "./ui/ui-state.js";
 import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
 import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
 import { createEventBus } from "./core/event-bus.js";
@@ -1052,7 +1052,6 @@ class AnimationScene {
         }
 
         const params = computeSceneCameraParameters({
-            isMoonCamera: this.cameraController?.lookMode === CAMERA_LOOK_MODE.MOON,
             planeSelection,
             missionConfig: config,
             isInitialization,
@@ -1283,6 +1282,7 @@ const {
     getEarthFromMoonState,
     getStartAndEndTimes,
     TC,
+    getFrameMode: () => frameMode,
 });
 
 const craftScaleActions = createCraftScaleActions({
@@ -1922,9 +1922,15 @@ function adjustCameraProjectionMatrixAndSkyAngle() {
     if (animationScenes[config].cameraControlsEnabled) {
         // console.debug("Updating skyContainer position and camera controls for 3D scene");
         animationScenes[config].camera.updateProjectionMatrix();
-        animationScenes[config].skyContainer.position.setFromMatrixPosition(animationScenes[config].camera.matrixWorld);
-        animationScenes[config].cameraControls.update();
-        cameraControlsCallback();
+        animationScenes[config].camera.updateMatrixWorld?.(true);
+        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
+
+        // TrackballControls.update() reorients the camera toward its internal target even if the user
+        // isn't interacting. When mounted free-fly is active, this causes "snap back" behavior.
+        if (!animationScenes[config].cameraController?._freeFlyActive) {
+            animationScenes[config].cameraControls.update();
+            cameraControlsCallback();
+        }
     }
 }
 
@@ -1944,6 +1950,9 @@ async function initAnimation(flags) {
                 // realtime();
                 dimensionActions.setDimension(true);
                 setView();
+                // Proposal 2: ensure the current from-to camera settings are applied after init.
+                // This also resets camera parameters in manual/manual mode for consistent startup.
+                changeCameraFromTo();
                 updateCraftScale();
                 // startLandingFlag = true;
                 // cy3Animate();
@@ -1993,10 +2002,20 @@ function animateLoop() {
     }
 
     if (animationScenes[config] && animationScenes[config].initialized3D && animationScenes[config].cameraControlsEnabled) {
-        animationScenes[config].skyContainer.position.setFromMatrixPosition(animationScenes[config].camera.matrixWorld);
-        animationScenes[config].cameraControls.update();
-        cameraControlsCallback();
+        // Keep sky centered on the camera without relying on matrixWorld timing.
+        animationScenes[config].camera.updateMatrixWorld?.(true);
+        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
+        // Keep sky centered on the camera without relying on matrixWorld timing.
+        animationScenes[config].camera.updateMatrixWorld?.(true);
+        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
+
+        if (!animationScenes[config].cameraController?._freeFlyActive) {
+            animationScenes[config].cameraControls.update();
+            cameraControlsCallback();
+        }
     }
+
+    updateCameraOverlay();
 
     requestAnimationFrame(animateLoop);
  
@@ -2009,7 +2028,7 @@ export function main() {
             reset,
             toggleMode: toggleModeGuarded,
             toggleRelativeMode,
-            toggleCamera,
+            changeCameraFromTo,
             toggleLockSC,
             toggleLockMoon,
             toggleLockEarth,
@@ -2023,6 +2042,8 @@ export function main() {
             initAnimation,
         },
     });
+
+    initCameraOverlay();
 
     // console.log("onload() took " + onloadEndTime + " ms");
 }
@@ -2326,28 +2347,121 @@ const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
     setChecked,
 });
 
-const sceneCameraActions = createSceneCameraActions({
+const { changeCameraFromTo, togglePlane, recenterMountedCamera } = createCameraActions({
     animationScenes,
     getConfig: () => config,
-    renderScene: (scene) => {
-        if (!theSceneHandler) return;
-        theSceneHandler.render(scene);
-    },
-});
-
-const { toggleCamera, togglePlane, toggleCameraPos, toggleCameraLook } = createCameraActions({
-    animationScenes,
-    getConfig: () => config,
-    readCameraMode: () => readCheckedRadioValue("camera", "default"),
+    readCameraPositionMode,
+    readCameraLookMode,
+    applyCameraFromTo,
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
     setPlaneSelection: (val) => { planeSelection = val; },
     handlePlaneChange: planeActions.handlePlaneChange,
-    readLookMode: () => readCheckedRadioValue("look", "AUTO"),
     render,
     getViewSky: () => viewSky,
-    applyCameraPosToggle: sceneCameraActions.toggleCameraPos,
-    applyCameraLookToggle: sceneCameraActions.toggleCameraLook,
 });
+
+let cameraOverlayState = null;
+let lastCameraOverlayUpdateMs = 0;
+
+function initCameraOverlay() {
+    if (isTestMode) return;
+
+    const wrapper = document.getElementById("camera-overlay-wrapper");
+    const toggle = document.getElementById("camera-overlay-toggle");
+    const panel = document.getElementById("camera-overlay");
+    const close = document.getElementById("camera-overlay-close");
+    const recenter = document.getElementById("camera-overlay-recenter");
+
+    if (!wrapper || !toggle || !panel || !close || !recenter) return;
+
+    wrapper.hidden = false;
+
+    const openPanel = () => { panel.hidden = false; };
+    const closePanel = () => { panel.hidden = true; };
+
+    toggle.addEventListener("click", () => {
+        panel.hidden ? openPanel() : closePanel();
+        updateCameraOverlay(true);
+    });
+    close.addEventListener("click", closePanel);
+    recenter.addEventListener("click", () => {
+        recenterMountedCamera();
+        updateCameraOverlay(true);
+    });
+
+    cameraOverlayState = {
+        panel,
+        mode: document.getElementById("camera-overlay-mode"),
+        look: document.getElementById("camera-overlay-look"),
+        posUnits: document.getElementById("camera-overlay-pos-units"),
+        posKm: document.getElementById("camera-overlay-pos-km"),
+        mountDist: document.getElementById("camera-overlay-mount-dist"),
+        tmp: new THREE.Vector3(),
+    };
+}
+
+function estimateBodyRadius(scene, mode) {
+    const mesh = mode === "earth"
+        ? scene?.earth
+        : mode === "moon"
+            ? scene?.moon
+            : null;
+    const geometry = mesh?.geometry;
+    if (!geometry) return null;
+    if (!geometry.boundingSphere) geometry.computeBoundingSphere?.();
+    const r = geometry.boundingSphere?.radius;
+    return Number.isFinite(r) && r > 0 ? r : null;
+}
+
+function updateCameraOverlay(force = false) {
+    if (!cameraOverlayState?.panel || cameraOverlayState.panel.hidden) return;
+
+    const now = performance.now();
+    if (!force && now - lastCameraOverlayUpdateMs < 200) return;
+    lastCameraOverlayUpdateMs = now;
+
+    const scene = animationScenes[config];
+    const camera = scene?.camera;
+    if (!scene?.initialized3D || !camera) return;
+
+    const positionMode = readCameraPositionMode();
+    const lookMode = readCameraLookMode();
+
+    const kmPerUnit = Number.isFinite(PIXELS_PER_AU) && PIXELS_PER_AU > 0
+        ? (PC.KM_PER_AU / PIXELS_PER_AU)
+        : null;
+
+    camera.getWorldPosition(cameraOverlayState.tmp);
+    const { x, y, z } = cameraOverlayState.tmp;
+
+    if (cameraOverlayState.mode) cameraOverlayState.mode.textContent = positionMode;
+    if (cameraOverlayState.look) cameraOverlayState.look.textContent = lookMode;
+    if (cameraOverlayState.posUnits) cameraOverlayState.posUnits.textContent = `${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}`;
+    if (cameraOverlayState.posKm && kmPerUnit) {
+        cameraOverlayState.posKm.textContent = `${(x * kmPerUnit).toFixed(0)}, ${(y * kmPerUnit).toFixed(0)}, ${(z * kmPerUnit).toFixed(0)}`;
+    } else if (cameraOverlayState.posKm) {
+        cameraOverlayState.posKm.textContent = "-";
+    }
+
+    if (cameraOverlayState.mountDist) {
+        if (positionMode === "earth" || positionMode === "moon") {
+            const controller = scene.cameraController;
+            const distance = controller?.mountOffset?.length?.();
+            const radius = estimateBodyRadius(scene, positionMode);
+            const inside = Number.isFinite(distance) && Number.isFinite(radius) ? (distance < radius) : null;
+            const distKm = kmPerUnit && Number.isFinite(distance) ? (distance * kmPerUnit).toFixed(0) : "-";
+            const insideLabel = inside === null ? "?" : (inside ? "inside" : "outside");
+            cameraOverlayState.mountDist.textContent = `${Number.isFinite(distance) ? distance.toFixed(2) : "-"} u (${distKm} km) • ${insideLabel}`;
+        } else if (positionMode === "spacecraft") {
+            const controller = scene.cameraController;
+            const distance = controller?.mountOffset?.length?.();
+            const distKm = kmPerUnit && Number.isFinite(distance) ? (distance * kmPerUnit).toFixed(0) : "-";
+            cameraOverlayState.mountDist.textContent = `${Number.isFinite(distance) ? distance.toFixed(2) : "-"} u (${distKm} km)`;
+        } else {
+            cameraOverlayState.mountDist.textContent = "-";
+        }
+    }
+}
 
 const { toggleJoyRide, toggleLanding } = createModeActions({
     animationScenes,

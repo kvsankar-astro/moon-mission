@@ -2,22 +2,12 @@ import { computePreferredCameraDistance } from "./camera-parameter-helpers.js";
 import { getPlaneCameraPose } from "./plane-camera-config.js";
 
 export function computeSceneCameraParameters({
-    isMoonCamera,
     planeSelection,
     missionConfig,
     isInitialization,
     controllerDistance,
     defaultCameraDistance,
 }) {
-    if (isMoonCamera) {
-        return {
-            fov: 1.0,
-            craftVisible: false,
-            position: { x: 0, y: 0, z: 0 },
-            up: { x: 0, y: 0, z: 1 },
-        };
-    }
-
     const preferredDistance = computePreferredCameraDistance({
         missionConfig,
         defaultCameraDistance,
@@ -51,4 +41,3 @@ export function computeSceneCameraParameters({
         up: pose?.up ?? null,
     };
 }
-

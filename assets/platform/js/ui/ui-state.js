@@ -25,6 +25,18 @@ export function setChecked(idOrSelector, checked) {
     element.checked = !!checked;
 }
 
+function getSelectValue(idOrSelector, fallback = "") {
+    const element = getElement(idOrSelector);
+    const value = element?.value;
+    return value !== undefined && value !== null && value !== "" ? value : fallback;
+}
+
+function setSelectValue(idOrSelector, value) {
+    const element = getElement(idOrSelector);
+    if (!element) return;
+    element.value = value;
+}
+
 export function readOriginMode() {
     if (getChecked("origin-relative")) return "geo";
     if (getChecked("origin-earth")) return "geo";
@@ -69,4 +81,18 @@ export function applyViewSettings(patch) {
         if (!id) continue;
         setChecked(id, value);
     }
+}
+
+export function readCameraPositionMode() {
+    return getSelectValue("camera-position", "manual");
+}
+
+export function readCameraLookMode() {
+    return getSelectValue("camera-look", "manual");
+}
+
+export function applyCameraFromTo(patch) {
+    if (!patch) return;
+    if (patch.positionMode) setSelectValue("camera-position", patch.positionMode);
+    if (patch.lookMode) setSelectValue("camera-look", patch.lookMode);
 }

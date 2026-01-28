@@ -27,6 +27,10 @@ export function createCraftScaleActions({
 
         const distance = cameraLocation.distanceTo(craftLocation);
         let scale = distance / getDefaultCameraDistance();
+        const fov = scene?.camera?.fov;
+        if (Number.isFinite(fov) && fov > 0) {
+            scale = scale * (fov / 50);
+        }
         if (getLandingFlag()) scale = scale * 5;
 
         scene.craft.scale.set(scale, scale, scale);
@@ -50,4 +54,3 @@ export function createCraftScaleActions({
 
     return { updateCraftScale, cameraControlsCallback };
 }
-

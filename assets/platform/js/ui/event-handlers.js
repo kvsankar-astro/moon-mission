@@ -11,10 +11,42 @@ function onClick(id, handler) {
     element.addEventListener("click", handler);
 }
 
+function onChange(id, handler) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.addEventListener("change", handler);
+}
+
+function onChangeAll(selector, handler) {
+    const elements = document.querySelectorAll(selector);
+    if (!elements.length) return;
+    elements.forEach((element) => element.addEventListener("change", handler));
+}
+
 /**
  * Bind the Settings panel opener.
  */
 export function bindSettingsPanel() {
+    const collapseButton = document.getElementById("settings-panel-collapse");
+    if (collapseButton && !collapseButton.dataset.bound) {
+        collapseButton.dataset.bound = "true";
+        collapseButton.addEventListener("click", function () {
+            const panel = document.getElementById("settings-panel");
+            if (!panel) return;
+            const collapsed = panel.classList.toggle("is-collapsed");
+            collapseButton.setAttribute("aria-expanded", String(!collapsed));
+            collapseButton.textContent = collapsed ? "▸" : "▾";
+        });
+    }
+
+    const closeButton = document.getElementById("settings-panel-close");
+    if (closeButton && !closeButton.dataset.bound) {
+        closeButton.dataset.bound = "true";
+        closeButton.addEventListener("click", function () {
+            window.CY3Dialog?.close?.("#settings-panel");
+        });
+    }
+
     onClick("settings-panel-button", function () {
         const options = {
             dialogClass: "dialog",
@@ -40,6 +72,16 @@ export function bindSettingsPanel() {
             wrapper.style.border = "0";
             wrapper.style.maxWidth = "80%";
             wrapper.style.zIndex = "9999";
+            const titleBar = wrapper.querySelector(".ui-dialog-titlebar");
+            if (titleBar) titleBar.style.display = "none";
+        }
+
+        const panel = document.getElementById("settings-panel");
+        const collapseButton = document.getElementById("settings-panel-collapse");
+        if (panel && collapseButton) {
+            const collapsed = panel.classList.contains("is-collapsed");
+            collapseButton.setAttribute("aria-expanded", String(!collapsed));
+            collapseButton.textContent = collapsed ? "▸" : "▾";
         }
     });
 }
@@ -66,7 +108,7 @@ export function bindMainControls(handlers) {
         reset,
         toggleMode,
         toggleRelativeMode,
-        toggleCamera,
+        changeCameraFromTo,
         toggleLockSC,
         toggleLockMoon,
         toggleLockEarth,
@@ -84,8 +126,10 @@ export function bindMainControls(handlers) {
     onClick("origin-earth", toggleMode);
     onClick("origin-moon", toggleMode);
     onClick("origin-relative", toggleRelativeMode);
-    onClick("camera-default", toggleCamera);
-    onClick("camera-moon", toggleCamera);
+    onChange("camera-position", changeCameraFromTo);
+    onChange("camera-look", changeCameraFromTo);
+    onChangeAll('input[name="camera-pair"]', changeCameraFromTo);
+    onChange("camera-fov-fixed", changeCameraFromTo);
     onClick("checkbox-lock-sc", toggleLockSC);
     onClick("checkbox-lock-moon", toggleLockMoon);
     onClick("checkbox-lock-earth", toggleLockEarth);

@@ -188,110 +188,242 @@
     
             </div>
     
-            <div id="settings-panel" class="settings-panel"> <!-- First row buttons -->
-    
-                <div id="settings-panel-fieldset" class="flex-container">
-                    <!-- <legend>Settings</legend> -->
-                    <fieldset autocomplete="off">
-                        <legend class="config-label config-first-label">Origin/Phase:</legend>
-                        <input id="origin-earth" type="radio" name="mode" value="geo" checked="checked">
-                        <label for="origin-earth">Earth</label>
-                        <input id="origin-moon" type="radio" name="mode" value="lunar">
-                        <label for="origin-moon">Moon</label>
-                        <input id="origin-relative" type="radio" name="mode" value="relative" title="Earth–Moon axis fixed (mode=relative)">
-                        <label for="origin-relative" title="Earth–Moon axis fixed (mode=relative)">Relative</label>
-                    </fieldset>
-    
-                    <fieldset autocomplete="off">
-                        <legend class="config-label">Camera:</legend>
-                        <input type="radio" name="camera" value="default" id="camera-default" checked="checked">
-                        <label for="camera-default">Default</label>
-                        <input type ="radio" name="camera" value="moon" id="camera-moon">
-                        <label for="camera-moon">Moon</label>
-                    </fieldset>
-    
-                    <fieldset autocomplete="off">
-                        <legend class="config-label">Lock On:</legend>
-                        <input type="checkbox" id="checkbox-lock-sc">
-                        <label for="checkbox-lock-sc" id="label-lock-spacecraft"><!-- injected by JS --></label>
-                        <span class="geo"><input type="checkbox" id="checkbox-lock-moon"></span>
-                        <label class="geo" for="checkbox-lock-moon">Moon</label>
-                        <span class="lunar"><input type="checkbox" id="checkbox-lock-earth"></span>
-                        <label class="lunar" for="checkbox-lock-earth">Earth</label>
-                    </fieldset>
-    
-                    <fieldset autocomplete="off">
-                        <legend class="config-label">Plane</legend>
-                        <input type="radio" name="plane" value="DEFAULT" id="checkbox-lock-default" checked="checked">
-                        <label for="checkbox-lock-default">DEFAULT</label>
-                        <input type="radio" name="plane" value="XY" id="checkbox-lock-xy">
-                        <label for="checkbox-lock-xy">XY</label>
-                        <input type="radio" name="plane" value="YZ" id="checkbox-lock-yz">
-                        <label for="checkbox-lock-yz">YZ</label>
-                        <input type="radio" name="plane" value="ZX" id="checkbox-lock-zx">
-                        <label for="checkbox-lock-zx">ZX</label>
-                        <input type="radio" name="plane" value="XY-" id="checkbox-lock-xy-minus">
-                        <label for="checkbox-lock-xy-minus">XY-</label>
-                        <input type="radio" name="plane" value="YZ-" id="checkbox-lock-yz-minus">
-                        <label for="checkbox-lock-yz-minus">YZ-</label>
-                        <input type="radio" name="plane" value="ZX-" id="checkbox-lock-zx-minus">
-                        <label for="checkbox-lock-zx-minus">ZX-</label>
-                    </fieldset>
-                
-                    <fieldset autocomplete="off" class="dimension-3D">
-                        <legend class="config-label">View</legend>
-                        <input id="landing" type="checkbox">
-                        <label for="landing">Landing!</label>
-                        <input id="joyride" type="checkbox">
-                        <label for="joyride">Joy Ride!</label>
-                        <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
-                        <label for="view-orbit" id="label-orbit"><!-- injected by JS --></label>
-                        <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
-                        <label for="view-orbit-descent" id="label-orbit-descent"><!-- injected by JS --></label>
-                        <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
-                        <label for="view-craters">Locations</label>
-                        <input type="checkbox" name="view" value="xyz" id="view-xyz-axes" checked="checked">
-                        <label for="view-xyz-axes">XYZ Axes</label>
-                        <input type="checkbox" name="view" value="poles" id="view-poles" checked="checked">
-                        <label for="view-poles">Poles</label>
-                        <input type="checkbox" name="view" value="polar-axes" id="view-polar-axes" checked="checked">
-                        <label for="view-polar-axes">Polar Axes</label>
-                        <input type="checkbox" name="view" value="sky" id="view-sky" checked="checked">
-                        <label for="view-sky">Stellar Sky</label>
-                        <input type="checkbox" name="view" value="moonsoi" id="view-moonsoi">
-                        <label for="view-moonsoi">Moon's SOI</label>                        
-                        <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">
-                        <label for="view-eclipticplane">Ecliptic Plane</label>                       
-                        <input type="checkbox" name="view" value="equatorialplane" id="view-equatorialplane">
-                        <label for="view-equatorialplane">Equatorial Plane</label>
-                        <input type="checkbox" name="view" value="fps" id="view-fps">
-                        <label for="view-fps">FPS Counter</label>
+            <div id="settings-panel" class="settings-panel">
+                <div class="settings-panel__header">
+                    <div class="settings-panel__title">Settings</div>
+                    <div class="settings-panel__actions">
+                        <button id="settings-panel-collapse" class="settings-panel__collapse" type="button" aria-expanded="true" aria-label="Collapse settings panel">▾</button>
+                        <button id="settings-panel-close" class="settings-panel__close" type="button" aria-label="Close settings panel">✕</button>
+                    </div>
+                </div>
+                <div id="settings-panel-body" class="settings-panel__body">
+                    <div id="settings-panel-fieldset" class="settings-panel__sections">
+                        <fieldset autocomplete="off" class="settings-section">
+                            <legend class="settings-section__title">Origin / Phase</legend>
+                            <div class="settings-options">
+                                <label class="settings-option">
+                                    <input id="origin-earth" type="radio" name="mode" value="geo" checked="checked">
+                                    <span>Earth</span>
+                                </label>
+                                <label class="settings-option geo">
+                                    <input id="origin-moon" type="radio" name="mode" value="lunar">
+                                    <span>Moon</span>
+                                </label>
+                                <label class="settings-option geo" title="Earth–Moon axis fixed (mode=relative)">
+                                    <input id="origin-relative" type="radio" name="mode" value="relative" title="Earth–Moon axis fixed (mode=relative)">
+                                    <span>Relative</span>
+                                </label>
+                            </div>
+                        </fieldset>
 
-                                            <!--
-                        <span class="config-label">Camera Placed At:</span>
-                        <input type="radio" name="camera" value="AUTO"  id="camerapos-auto" onclick="toggleCameraPos()" checked="checked">Auto</input>
-                        <input type="radio" name="camera" value="CY3"   id="camerapos-cy3"   onclick="toggleCameraPos()">CY3</input>
-                        <input type="radio" name="camera" value="EARTH" id="camerapos-earth" onclick="toggleCameraPos()">Earth</input>
-                        <input type="radio" name="camera" value="MOON"  id="camerapos-moon"  onclick="toggleCameraPos()">Moon</input>
-    
-                        <span class="hspace">|</span>
-    
-                        <span class="config-label">Camera Looking At:</span>
-                        <input type="radio" name="look" value="AUTO"  id="cameralook-auto" onclick="toggleCameraLook()" checked="checked">Auto</input>
-                        <input type="radio" name="look" value="CY3"   id="cameralook-cy3"   onclick="toggleCameraLook()">CY3</input>
-                        <input type="radio" name="look" value="EARTH" id="cameralook-earth" onclick="toggleCameraLook()">Earth</input>
-                        <input type="radio" name="look" value="MOON"  id="cameralook-moon"  onclick="toggleCameraLook()">Moon</input>
-                        -->
-                    </fieldset>
-    
-                    <fieldset autocomplete="off">
-                        <legend class="config-label">Dimension:</legend>
-                        <input type ="radio" name="dimension" value="2D" id="dimension-2D">
-                        <label for="dimension-2D">2D</label>
-                        <input type ="radio" name="dimension" value="3D" id="dimension-3D" checked="checked">
-                        <label for="dimension-3D">3D</label>
-                    </fieldset>
-    
+                        <fieldset autocomplete="off" class="settings-section settings-section--camera">
+                            <legend class="settings-section__title">Camera</legend>
+                            <div class="settings-subtitle">Camera Pair</div>
+                            <div class="settings-options settings-options--pairs">
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="manual__manual" checked>
+                                    <span>Manual → Manual</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="manual__moon">
+                                    <span>Manual → Moon</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="manual__spacecraft">
+                                    <span>Manual → Craft</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="earth__moon">
+                                    <span>Earth → Moon</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="earth__spacecraft">
+                                    <span>Earth → Craft</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="moon__manual">
+                                    <span>Moon → Manual</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="moon__earth">
+                                    <span>Moon → Earth</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="moon__spacecraft">
+                                    <span>Moon → Craft</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="spacecraft__earth">
+                                    <span>Craft → Earth</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="camera-pair" value="spacecraft__moon">
+                                    <span>Craft → Moon</span>
+                                </label>
+                            </div>
+
+                            <div class="settings-subtitle">Lock On (manual aim only)</div>
+                            <div class="settings-options">
+                                <div class="settings-option">
+                                    <input type="checkbox" id="checkbox-lock-sc">
+                                    <label for="checkbox-lock-sc" id="label-lock-spacecraft"><!-- injected by JS --></label>
+                                </div>
+                                <div class="settings-option geo">
+                                    <input type="checkbox" id="checkbox-lock-moon">
+                                    <label for="checkbox-lock-moon">Moon</label>
+                                </div>
+                                <div class="settings-option lunar">
+                                    <input type="checkbox" id="checkbox-lock-earth">
+                                    <label for="checkbox-lock-earth">Earth</label>
+                                </div>
+                            </div>
+
+                            <div class="settings-row">
+                                <label class="settings-option">
+                                    <input type="checkbox" id="camera-fov-fixed" checked>
+                                    <span>Fixed FoV (1° when mounted on Earth/Moon)</span>
+                                </label>
+                                <div id="camera-fov-indicator" class="settings-note">FoV: default</div>
+                            </div>
+
+                            <div class="camera-fromto-selects" aria-hidden="true">
+                                <select id="camera-position" name="camera-position" aria-label="Camera position">
+                                    <option value="manual" selected>Manual Control</option>
+                                    <option value="earth">Earth</option>
+                                    <option value="moon">Moon</option>
+                                    <option value="spacecraft">Spacecraft</option>
+                                </select>
+                                <select id="camera-look" name="camera-look" aria-label="Look at target">
+                                    <option value="manual" selected>Manual Aim</option>
+                                    <option value="earth">Earth</option>
+                                    <option value="moon">Moon</option>
+                                    <option value="spacecraft">Spacecraft</option>
+                                </select>
+                            </div>
+                        </fieldset>
+
+                        <fieldset autocomplete="off" class="settings-section">
+                            <legend class="settings-section__title">Plane</legend>
+                            <div class="settings-options">
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="DEFAULT" id="checkbox-lock-default" checked="checked">
+                                    <span>DEFAULT</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="XY" id="checkbox-lock-xy">
+                                    <span>XY</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="YZ" id="checkbox-lock-yz">
+                                    <span>YZ</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="ZX" id="checkbox-lock-zx">
+                                    <span>ZX</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="XY-" id="checkbox-lock-xy-minus">
+                                    <span>XY-</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="YZ-" id="checkbox-lock-yz-minus">
+                                    <span>YZ-</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="plane" value="ZX-" id="checkbox-lock-zx-minus">
+                                    <span>ZX-</span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <fieldset autocomplete="off" class="settings-section dimension-3D">
+                            <legend class="settings-section__title">View</legend>
+                            <div class="settings-options">
+                                <label class="settings-option">
+                                    <input id="landing" type="checkbox">
+                                    <span>Landing!</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input id="joyride" type="checkbox">
+                                    <span>Joy Ride!</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
+                                    <span id="label-orbit"><!-- injected by JS --></span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
+                                    <span id="label-orbit-descent"><!-- injected by JS --></span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
+                                    <span>Locations</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="xyz" id="view-xyz-axes" checked="checked">
+                                    <span>XYZ Axes</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="poles" id="view-poles" checked="checked">
+                                    <span>Poles</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="polar-axes" id="view-polar-axes" checked="checked">
+                                    <span>Polar Axes</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="sky" id="view-sky" checked="checked">
+                                    <span>Stellar Sky</span>
+                                </label>
+                                <label class="settings-option geo">
+                                    <input type="checkbox" name="view" value="moonsoi" id="view-moonsoi">
+                                    <span>Moon's SOI</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">
+                                    <span>Ecliptic Plane</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="equatorialplane" id="view-equatorialplane">
+                                    <span>Equatorial Plane</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="fps" id="view-fps">
+                                    <span>FPS Counter</span>
+                                </label>
+                            </div>
+
+                            <!--
+                            <span class="config-label">Camera Placed At:</span>
+                            <input type="radio" name="camera" value="AUTO"  id="camerapos-auto" onclick="toggleCameraPos()" checked="checked">Auto</input>
+                            <input type="radio" name="camera" value="CY3"   id="camerapos-cy3"   onclick="toggleCameraPos()">CY3</input>
+                            <input type="radio" name="camera" value="EARTH" id="camerapos-earth" onclick="toggleCameraPos()">Earth</input>
+                            <input type="radio" name="camera" value="MOON"  id="camerapos-moon"  onclick="toggleCameraPos()">Moon</input>
+
+                            <span class="hspace">|</span>
+
+                            <span class="config-label">Camera Looking At:</span>
+                            <input type="radio" name="look" value="AUTO"  id="cameralook-auto" onclick="toggleCameraLook()" checked="checked">Auto</input>
+                            <input type="radio" name="look" value="CY3"   id="cameralook-cy3"   onclick="toggleCameraLook()">CY3</input>
+                            <input type="radio" name="look" value="EARTH" id="cameralook-earth" onclick="toggleCameraLook()">Earth</input>
+                            <input type="radio" name="look" value="MOON"  id="cameralook-moon"  onclick="toggleCameraLook()">Moon</input>
+                            -->
+                        </fieldset>
+
+                        <fieldset autocomplete="off" class="settings-section">
+                            <legend class="settings-section__title">Dimension</legend>
+                            <div class="settings-options">
+                                <label class="settings-option">
+                                    <input type="radio" name="dimension" value="2D" id="dimension-2D">
+                                    <span>2D</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="radio" name="dimension" value="3D" id="dimension-3D" checked="checked">
+                                    <span>3D</span>
+                                </label>
+                            </div>
+                        </fieldset>
+                    </div>
                 </div>
             </div> <!-- settings panel -->
     
@@ -514,6 +646,25 @@
             }
         });
     </script>
+
+    <!-- Separate camera debug/controls overlay (kept out of Settings dialog) -->
+    <div id="camera-overlay-wrapper" class="camera-overlay-wrapper" hidden>
+        <button id="camera-overlay-toggle" type="button" class="camera-overlay-toggle">Camera</button>
+        <div id="camera-overlay" class="camera-overlay" hidden>
+            <div class="camera-overlay-header">
+                <div class="camera-overlay-title">Camera</div>
+                <button id="camera-overlay-close" type="button" class="camera-overlay-close">×</button>
+            </div>
+            <div class="camera-overlay-body">
+                <div><b>Position</b>: <span id="camera-overlay-mode"></span></div>
+                <div><b>Look</b>: <span id="camera-overlay-look"></span></div>
+                <div><b>XYZ</b> (u): <span id="camera-overlay-pos-units"></span></div>
+                <div><b>XYZ</b> (km): <span id="camera-overlay-pos-km"></span></div>
+                <div><b>Mount</b>: <span id="camera-overlay-mount-dist"></span></div>
+                <button id="camera-overlay-recenter" type="button" class="camera-overlay-recenter">Recenter</button>
+            </div>
+        </div>
+    </div>
     </body>
 </html>
 

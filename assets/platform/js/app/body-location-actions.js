@@ -15,6 +15,7 @@ export function createBodyLocationActions({
     getEarthFromMoonState,
     getStartAndEndTimes,
     TC,
+    getFrameMode,
 }) {
     function shouldDrawOrbit(planet) {
         const config = getConfig();
@@ -64,10 +65,10 @@ export function createBodyLocationActions({
         if (craftid === "SC") {
             const startLandingTime = getStartLandingTime();
             const endLandingTime = getEndLandingTime();
+            const frameMode = typeof getFrameMode === "function" ? getFrameMode() : "inertial";
 
-            // Landing phase - use landing Chebyshev
+            // Landing phase - use landing Chebyshev (Moon-centered data)
             if (
-                config == "lunar" &&
                 isLandingEnabled &&
                 t >= startLandingTime &&
                 t < endLandingTime - TC.ONE_SECOND_MS
@@ -76,6 +77,21 @@ export function createBodyLocationActions({
                     const jd = new Date(t).getJD_TDB();
                     const state = getStateFromChebyshev(getLandingChebyshevData(), jd);
                     if (state) {
+                        if (config === "geo" && frameMode !== "relative") {
+                            const moonState = getMoonState(t);
+                            return [
+                                new THREE.Vector3(
+                                    state.pos.x + moonState.x,
+                                    state.pos.y + moonState.y,
+                                    state.pos.z + moonState.z,
+                                ),
+                                new THREE.Vector3(
+                                    state.vel.vx + moonState.vx,
+                                    state.vel.vy + moonState.vy,
+                                    state.vel.vz + moonState.vz,
+                                ),
+                            ];
+                        }
                         return [
                             new THREE.Vector3(state.pos.x, state.pos.y, state.pos.z),
                             new THREE.Vector3(state.vel.vx, state.vel.vy, state.vel.vz),
@@ -130,4 +146,3 @@ export function createBodyLocationActions({
         getBodyLocation,
     };
 }
-
