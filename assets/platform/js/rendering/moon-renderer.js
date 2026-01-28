@@ -69,8 +69,12 @@ export class MoonRenderer {
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.receiveShadow = true;
         this.mesh.castShadow = true;
+        this.mesh.frustumCulled = false;
         this.mesh.rotateX(Math.PI / 2);
         this.container.add(this.mesh);
+
+        // Avoid culling the container to prevent pop-in at extreme viewpoints
+        this.container.frustumCulled = false;
 
         // Create axis and poles (not added to container yet - done by parent)
         this._createAxis(axisVisible);

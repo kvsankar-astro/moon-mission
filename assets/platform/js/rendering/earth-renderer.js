@@ -65,8 +65,12 @@ export class EarthRenderer {
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.receiveShadow = false;
         this.mesh.castShadow = false;
+        this.mesh.frustumCulled = false;
         this.mesh.rotateX(Math.PI / 2);  // Orient texture correctly
         this.container.add(this.mesh);
+
+        // Avoid culling the container to prevent pop-in at extreme viewpoints
+        this.container.frustumCulled = false;
 
         // Create axis and poles (not added to container yet - done by parent)
         this._createAxis(axisVisible);
