@@ -652,11 +652,6 @@ class SceneHandler {
 
             if (joyRideFlag || landingFlag) {
 
-                // During landing, hide Earth in lunar config to avoid popping in/out in the close-up view.
-                if (landingFlag && config === "lunar" && animationScene.earthContainer) {
-                    animationScene.earthContainer.visible = false;
-                }
-
                 var craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
                 var craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer) 
                     ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position) 
@@ -718,9 +713,6 @@ class SceneHandler {
 
 
             } else {
-                if (animationScene.earthContainer) {
-                    animationScene.earthContainer.visible = true;
-                }
                 this.renderer.autoClear = true;
                 animationScene.camera.layers.set(0);
                 this.renderer.render(animationScene.scene, animationScene.camera);    
