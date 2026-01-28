@@ -652,84 +652,56 @@ class SceneHandler {
 
             if (joyRideFlag || landingFlag) {
 
-                let specialCamera = null;
+                var craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
+                var craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer) 
+                    ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position) 
+                    : Infinity;
+                var earthAngleRads = Math.asin(earthRadius / craftEarthDistance);
+                var moonAngleRads = Math.asin(moonRadius / craftMoonDistance);
 
-                const hasLandingSite = landingFlag &&
-                    globalConfig?.landingSites?.length > 0 &&
-                    animationScene.moonContainer;
+                var closerBody;
+                var closerAngleRads;
+                var radius;
+                var distance;
+                if (craftEarthDistance < craftMoonDistance) {
 
-                if (hasLandingSite) {
-                    // Hover above primary landing site, looking straight down.
-                    const primarySite = globalConfig.landingSites[0];
-                    const lon = degreesToRadians(primarySite.longitude);
-                    const lat = degreesToRadians(primarySite.latitude);
-                    const local = sphericalToCartesian(moonRadius, lon, lat);
-                    const worldPos = animationScene.moonContainer.localToWorld(
-                        new THREE.Vector3(local.x, local.y, local.z)
-                    );
-                    const normal = new THREE.Vector3(local.x, local.y, local.z)
-                        .normalize()
-                        .applyQuaternion(animationScene.moonContainer.quaternion)
-                        .normalize();
+                    closerBody = animationScene.earthContainer;
+                    closerAngleRads = earthAngleRads;
+                    distance = craftEarthDistance;
+                    radius = earthRadius;
 
-                    const altitude = moonRadius * 1.5;
-                    const camPos = worldPos.clone().add(normal.clone().multiplyScalar(altitude));
-
-                    animationScene.camera.position.copy(camPos);
-                    animationScene.camera.up.copy(normal);
-                    animationScene.camera.lookAt(worldPos);
-
-                    specialCamera = animationScene.camera;
                 } else {
-                    // Existing joyride behavior (craft/drone cameras), with stable up handling.
-                    var craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
-                    var craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer) 
-                        ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position) 
-                        : Infinity;
-                    var earthAngleRads = Math.asin(earthRadius / craftEarthDistance);
-                    var moonAngleRads = Math.asin(moonRadius / craftMoonDistance);
 
-                    var closerBody;
-                    var closerAngleRads;
-                    var radius;
-                    var distance;
-                    if (craftEarthDistance < craftMoonDistance) {
-
-                        closerBody = animationScene.earthContainer;
-                        closerAngleRads = earthAngleRads;
-                        distance = craftEarthDistance;
-                        radius = earthRadius;
-
-                    } else {
-
-                        closerBody = animationScene.moonContainer;
-                        closerAngleRads = moonAngleRads;
-                        distance = craftMoonDistance;
-                        radius = moonRadius;
-                    }
-                    
-                    let upDir;
-                    if (closerBody === animationScene.moonContainer) {
-                        upDir = new THREE.Vector3()
-                            .subVectors(animationScene.craft.position, animationScene.moonContainer.position)
-                            .normalize();
-                        if (upDir.lengthSq() === 0) {
-                            upDir.set(0, 0, 1);
-                        }
-                    } else {
-                        upDir = new THREE.Vector3(0, 0, 1)
-                            .applyQuaternion(closerBody.quaternion)
-                            .normalize();
-                    }
-
-                    animationScene.craftCamera.up.copy(upDir);
-                    animationScene.droneCamera.up.copy(upDir);
-
-                    animationScene.craftCamera.lookAt(closerBody.position); 
-                    animationScene.droneCamera.lookAt(animationScene.craft.position); 
-
-                    specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
+                    closerBody = animationScene.moonContainer;
+                    closerAngleRads = moonAngleRads;
+                    distance = craftMoonDistance;
+                    radius = moonRadius;
                 }
+                
+                // Stable up vector:
+                // - When Moon is closer: use radial vector from Moon center to craft (keeps Moon "below")
+                // - Otherwise: align with body's local +Z
+                let upDir;
+                if (closerBody === animationScene.moonContainer) {
+                    upDir = new THREE.Vector3()
+                        .subVectors(animationScene.craft.position, animationScene.moonContainer.position)
+                        .normalize();
+                    if (upDir.lengthSq() === 0) {
+                        upDir.set(0, 0, 1);
+                    }
+                } else {
+                    upDir = new THREE.Vector3(0, 0, 1)
+                        .applyQuaternion(closerBody.quaternion)
+                        .normalize();
+                }
+
+                animationScene.craftCamera.up.copy(upDir);
+                animationScene.droneCamera.up.copy(upDir);
+
+                animationScene.craftCamera.lookAt(closerBody.position); 
+                animationScene.droneCamera.lookAt(animationScene.craft.position); 
+
+                var specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
 
                 this.renderer.autoClear = true;
                 specialCamera.layers.set(0);
