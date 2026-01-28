@@ -465,6 +465,14 @@ export function createCameraActions({
                 }
                 // Lift any visibility overrides when returning to free camera.
                 updateMountedBodyVisibility(scene, positionMode);
+                // Re-enable full controls for manual/manual
+                if (scene.cameraController?.controls) {
+                    scene.cameraController.controls.enabled = true;
+                    scene.cameraController.controls.noRotate = false;
+                    scene.cameraController.controls.noPan = false;
+                    scene.cameraController._setFreeFlyEnabled?.(false);
+                    scene.cameraController.controls.update?.();
+                }
             }
         }
 
