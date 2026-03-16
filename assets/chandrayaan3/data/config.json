@@ -8,12 +8,6 @@
   "mission_keywords": "chandrayaan, chandrayaan3, moon, isro, india, space, astronomy, animation",
   "mission_github": "https://github.com/kvsankar/chandrayaan3",
   "mission_image": "assets/chandrayaan3/images/chandrayaan3-screenshot.png",
-  "ephemeris_source": "npz",
-  "ephemeris_sources": {
-    "SC": "npz",
-    "MOON": "npz",
-    "EARTH": "npz"
-  },
   "ui": {
     "pageTitle": "ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation",
     "headerTitle": "Chandrayaan 3",

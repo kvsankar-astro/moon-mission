@@ -37,6 +37,7 @@ images/moon/moon.png
 
 # Binary data files
 de421.bsp
+*.npz
 
 # =========================
 # Development Environment

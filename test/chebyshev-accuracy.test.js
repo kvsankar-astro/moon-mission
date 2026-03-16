@@ -40,6 +40,11 @@ const DATA_FILES = [
   { name: 'landing-lunar', npz: 'landing-CY3-lunar.npz', cheb: 'landing-CY3-lunar-cheb.json', tolerance: TOLERANCE.LANDING }
 ];
 
+const AVAILABLE_DATA_FILES = DATA_FILES.filter((dataFile) =>
+  existsSync(join(DATA_DIR, dataFile.npz))
+);
+const HAS_NPZ_DATA = AVAILABLE_DATA_FILES.length > 0;
+
 // ============================================================================
 // NPZ File Parsing (adapted from npyreader.js for Node.js)
 // ============================================================================
@@ -570,7 +575,8 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
   // Main acceptance tests for each data file
   for (const dataFile of DATA_FILES) {
-    describe(`${dataFile.name} phase data`, () => {
+    const describeDataFile = existsSync(join(DATA_DIR, dataFile.npz)) ? describe : describe.skip;
+    describeDataFile(`${dataFile.name} phase data`, () => {
       const npzPath = join(DATA_DIR, dataFile.npz);
       const chebPath = join(DATA_DIR, dataFile.cheb);
 
@@ -742,7 +748,9 @@ describe('Chebyshev Ephemeris Accuracy', () => {
   });
 });
 
-describe('Integration: Full accuracy validation', () => {
+const describeIntegration = HAS_NPZ_DATA ? describe : describe.skip;
+
+describeIntegration('Integration: Full accuracy validation', () => {
   // This test runs a complete validation across all phases
   // and provides a consolidated report
 
@@ -750,7 +758,7 @@ describe('Integration: Full accuracy validation', () => {
     const results = [];
     let allPassed = true;
 
-    for (const dataFile of DATA_FILES) {
+    for (const dataFile of AVAILABLE_DATA_FILES) {
       const npzPath = join(DATA_DIR, dataFile.npz);
       const chebPath = join(DATA_DIR, dataFile.cheb);
 
