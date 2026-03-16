@@ -21,7 +21,7 @@ export default defineConfig({
   
   // Server configuration
   server: {
-    port: 8000,
+    port: 7274,
     host: '127.0.0.1', // Use IPv4 only
     open: false, // Don't auto-open browser (useful for tests)
     cors: true,

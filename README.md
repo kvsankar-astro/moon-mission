@@ -37,7 +37,7 @@ npm run dev
 
 Open:
 
-`http://localhost:8000/mission.html?mission=cy3`
+`http://localhost:7274/mission.html?mission=cy3`
 
 ## Multi-Mission Support
 
@@ -98,7 +98,7 @@ npm run dev
 
 Or Python's built-in server:
 ```bash
-python -m http.server 8000
+python -m http.server 7274
 ```
 
 Or Node.js http-server:

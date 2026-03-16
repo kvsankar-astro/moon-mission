@@ -162,11 +162,11 @@ Add mission card to selector UI:
 ### Step 5: Test
 
 ```bash
-# Start dev server (any static server works; Vite is the easiest here)
-npm run dev -- --port 8111
+# Start dev server (any static server works; Vite uses port 7274 by default here)
+npm run dev
 
 # Open in browser
-http://localhost:8111/mission.html?mission=<id>
+http://localhost:7274/mission.html?mission=<id>
 ```
 
 ---

@@ -14,7 +14,7 @@
 ## Build, Test, and Development Commands
 
 - `npm install` — install JS dependencies.
-- `npm run dev` — run Vite dev server (default `http://localhost:8000/`).
+- `npm run dev` — run Vite dev server (default `http://localhost:7274/`).
 - `make test` — recommended UI test run (starts server on `8111`, runs Vitest, stops server).
 - `make baseline` — regenerate visual baselines (use only when changes are intentional).
 - `python scripts/build.py` — create a deployable static folder in `dist/`.
@@ -41,4 +41,3 @@
 
 - Don’t commit credentials or deployment config: `deploy-config.json` is intentionally git-ignored.
 - Don’t commit generated artifacts: `dist/`, `data-generated/`, `.test-server.*`, and `node_modules/` are ignored by design.
-

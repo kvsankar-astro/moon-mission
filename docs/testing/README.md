@@ -30,7 +30,7 @@ If you already have a server running:
 npx vitest test/ui.test.js --run
 
 # Override server URL if needed
-HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8000 npx vitest test/ui.test.js --run
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:7274 npx vitest test/ui.test.js --run
 ```
 
 Manual server management (no `make` required):
