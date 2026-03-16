@@ -1,8 +1,17 @@
+import { generateCurveFromNpz } from "../data/npz-ephemeris.js";
+
 export function createOrbitCurveActions({
     THREE,
     generateCurveFromChebyshev,
     chebyshevDataLoaded,
     chebyshevData,
+    npzData,
+    npzDataLoaded,
+    getLandingNpzLoaded,
+    getLandingNpzData,
+    getEphemerisSource,
+    resolveBodySource,
+    generateBodyCurve,
     getStepMs,
     getStartTime,
     getLatestEndTime,
@@ -17,14 +26,32 @@ export function createOrbitCurveActions({
     function addOrbitCurveVectors({ config, curve, curveVelocities }) {
         let nOrbitPoints = 0;
 
-        if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-            const vectors = generateCurveFromChebyshev(
-                chebyshevData[config],
-                getStartTime(),
-                getLatestEndTime(),
-                getStepMs(config),
-            );
+        const vectors =
+            typeof generateBodyCurve === "function"
+                ? generateBodyCurve({
+                      bodyId: "SC",
+                      config,
+                      startTimeMs: getStartTime(),
+                      endTimeMs: getLatestEndTime(),
+                      stepMs: getStepMs(config),
+                      npzData,
+                      npzDataLoaded,
+                      chebyshevData,
+                      chebyshevDataLoaded,
+                      resolvedSource:
+                          typeof resolveBodySource === "function"
+                              ? resolveBodySource("SC")
+                              : typeof getEphemerisSource === "function"
+                                ? getEphemerisSource()
+                                : "chebyshev",
+                      defaultSpacecraftSource:
+                          typeof getEphemerisSource === "function"
+                              ? getEphemerisSource()
+                              : "chebyshev",
+                  })
+                : [];
 
+        if (vectors.length > 0) {
             const pixelsPerAU = getPixelsPerAU();
             for (const vec of vectors) {
                 const x = (vec.x / PC.KM_PER_AU) * pixelsPerAU;
@@ -49,14 +76,35 @@ export function createOrbitCurveActions({
 
         if (!getLandingEnabled() || config != "lunar") return nLandingPoints;
 
-        if (getLandingChebyshevLoaded(config) && getLandingChebyshevData(config)) {
-            const vectors = generateCurveFromChebyshev(
+        let vectors = [];
+        const landingSource =
+            typeof resolveBodySource === "function"
+                ? resolveBodySource("SC")
+                : typeof getEphemerisSource === "function"
+                  ? getEphemerisSource()
+                  : "chebyshev";
+
+        if (landingSource === "npz" && getLandingNpzLoaded(config) && getLandingNpzData(config)) {
+            const landingBucket = getLandingNpzData(config);
+            const landingSeries = landingBucket?.SC || landingBucket?.sc || null;
+            if (landingSeries) {
+                vectors = generateCurveFromNpz(
+                    landingSeries,
+                    getStartLandingTime(),
+                    getEndLandingTime(),
+                    1000,
+                );
+            }
+        } else if (getLandingChebyshevLoaded(config) && getLandingChebyshevData(config)) {
+            vectors = generateCurveFromChebyshev(
                 getLandingChebyshevData(config),
                 getStartLandingTime(),
                 getEndLandingTime(),
                 1000, // Landing data uses 1-second resolution
             );
+        }
 
+        if (vectors.length > 0) {
             const pixelsPerAU = getPixelsPerAU();
             for (const vec of vectors) {
                 const x = (vec.x / PC.KM_PER_AU) * pixelsPerAU;

@@ -36,7 +36,8 @@ const TOLERANCE = {
 const DATA_FILES = [
   { name: 'geo', npz: 'geo-CY3.npz', cheb: 'geo-CY3-cheb.json', tolerance: TOLERANCE.ORBITAL },
   { name: 'lunar', npz: 'lunar-CY3.npz', cheb: 'lunar-CY3-cheb.json', tolerance: TOLERANCE.ORBITAL },
-  { name: 'landing', npz: 'landing-CY3.npz', cheb: 'landing-CY3-cheb.json', tolerance: TOLERANCE.LANDING }
+  { name: 'landing-geo', npz: 'landing-CY3-geo.npz', cheb: 'landing-CY3-geo-cheb.json', tolerance: TOLERANCE.LANDING },
+  { name: 'landing-lunar', npz: 'landing-CY3-lunar.npz', cheb: 'landing-CY3-lunar-cheb.json', tolerance: TOLERANCE.LANDING }
 ];
 
 // ============================================================================

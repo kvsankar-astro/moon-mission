@@ -243,11 +243,11 @@ export async function loadChebyshevData(url) {
 export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, stepMs) {
     const vectors = [];
 
-    // Helper to convert JS timestamp to Julian Date
+    // HORIZONS-backed ephemerides in this repo are stored in UTC Julian dates.
     const msToJD = (ms) => {
         const date = new Date(ms);
-        if (typeof date.getJD_TDB === "function") {
-            return date.getJD_TDB();
+        if (typeof date.getJD_UTC === "function") {
+            return date.getJD_UTC();
         }
         const JD_UNIX_EPOCH = 2440587.5;
         return JD_UNIX_EPOCH + ms / 86400000;

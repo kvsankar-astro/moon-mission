@@ -8,8 +8,9 @@
  * - This module = functional core (pure calculations)
  * - mission.js = imperative shell (applies state to DOM/3D)
  */
-import { getStateFromChebyshev } from "./chebyshev.js";
-import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
+import {
+    getBodyEphemerisState,
+} from "./data/ephemeris-provider.js";
 import { PHYSICS_CONSTANTS as PC, TIME_CONSTANTS as TC } from "./core/constants.js";
 
 // ============================================================================
@@ -24,6 +25,7 @@ import { PHYSICS_CONSTANTS as PC, TIME_CONSTANTS as TC } from "./core/constants.
  * @param {string} config - Configuration: "geo" or "lunar"
  * @param {Object} data - Data sources
  * @param {Object} data.chebyshevData - Chebyshev data keyed by config
+ * @param {Object} data.landingNpzData - Landing phase NPZ data
  * @param {Object} data.landingChebyshevData - Landing phase Chebyshev data
  * @param {Object} data.globalConfig - Mission configuration
  * @param {number} data.startLandingTime - Landing phase start time
@@ -34,53 +36,45 @@ export function computeBodyState(bodyId, time, config, data) {
     const {
         chebyshevData,
         chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        landingNpzData,
+        landingNpzLoaded,
         landingChebyshevData,
         landingChebyshevLoaded,
         globalConfig,
         startLandingTime,
         endLandingTime,
-        frameMode
+        frameMode,
+        ephemerisSource,
+        bodySources,
     } = data;
 
+    const spacecraftMnemonic = (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase();
     // Check if landing is enabled
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
 
-    // Spacecraft position from Chebyshev data
     if (bodyId === "SC") {
         const computeScStateAtTime = (t) => {
-            // Landing phase - use landing Chebyshev
-            if (isLandingEnabled &&
-                t >= startLandingTime && t < endLandingTime - TC.ONE_SECOND_MS) {
-
-                if (landingChebyshevLoaded && landingChebyshevData) {
-                    const jd = new Date(t).getJD_TDB();
-                    const state = getStateFromChebyshev(landingChebyshevData, jd);
-                    if (state) {
-                        return {
-                            position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
-                            velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
-                            available: true
-                        };
-                    }
-                }
-
-                // If landing data missing, fall through to regular ephemeris
-            }
-
-            // Regular orbital phase - use Chebyshev
-            if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-                const jd = new Date(t).getJD_TDB();
-                const state = getStateFromChebyshev(chebyshevData[config], jd);
-                if (state) {
-                    return {
-                        position: { x: state.pos.x, y: state.pos.y, z: state.pos.z },
-                        velocity: { vx: state.vel.vx, vy: state.vel.vy, vz: state.vel.vz },
-                        available: true
-                    };
-                }
-            }
-
-            return { position: null, velocity: null, available: false };
+            return getBodyEphemerisState({
+                bodyId,
+                timeMs: t,
+                config,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                landingNpzData,
+                landingNpzLoaded,
+                landingChebyshevData,
+                landingChebyshevLoaded,
+                globalConfig,
+                startLandingTime,
+                endLandingTime,
+                bodySources,
+                defaultSpacecraftSource: ephemerisSource,
+                spacecraftMnemonic,
+            });
         };
 
         const current = computeScStateAtTime(time);
@@ -108,13 +102,36 @@ export function computeBodyState(bodyId, time, config, data) {
         };
     }
 
-    // Moon position (only in geo config)
     if (bodyId === "MOON" && config === "geo") {
-        const state = getMoonState(time);
+        const ephemerisState = getBodyEphemerisState({
+            bodyId,
+            timeMs: time,
+            config,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            defaultSpacecraftSource: ephemerisSource,
+            spacecraftMnemonic,
+        });
+
+        if (!ephemerisState.available) {
+            return ephemerisState;
+        }
+
+        const state = {
+            x: ephemerisState.position.x,
+            y: ephemerisState.position.y,
+            z: ephemerisState.position.z,
+            vx: ephemerisState.velocity.vx,
+            vy: ephemerisState.velocity.vy,
+            vz: ephemerisState.velocity.vz,
+        };
 
         // Relative mode: Earth-centered rotating frame where Moon is always on +X.
         // Keep real scale by using the instantaneous Earth–Moon distance.
-        if (frameMode === "relative") {
+        if (state && frameMode === "relative") {
             const r = Math.sqrt(state.x * state.x + state.y * state.y + state.z * state.z);
             const drdt = r > 0 ? (state.x * state.vx + state.y * state.vy + state.z * state.vz) / r : 0;
             return {
@@ -124,21 +141,47 @@ export function computeBodyState(bodyId, time, config, data) {
             };
         }
 
-        return {
+        return state ? {
             position: { x: state.x, y: state.y, z: state.z },
             velocity: { vx: state.vx, vy: state.vy, vz: state.vz },
             available: true
-        };
+        } : { position: null, velocity: null, available: false };
     }
 
-    // Earth position (only in lunar config)
     if (bodyId === "EARTH" && config === "lunar") {
-        const state = getEarthFromMoonState(time);
-        return {
-            position: { x: state.x, y: state.y, z: state.z },
-            velocity: { vx: state.vx, vy: state.vy, vz: state.vz },
-            available: true
+        const ephemerisState = getBodyEphemerisState({
+            bodyId,
+            timeMs: time,
+            config,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            defaultSpacecraftSource: ephemerisSource,
+            spacecraftMnemonic,
+        });
+
+        if (!ephemerisState.available) {
+            return ephemerisState;
+        }
+
+        const state = {
+            x: ephemerisState.position.x,
+            y: ephemerisState.position.y,
+            z: ephemerisState.position.z,
+            vx: ephemerisState.velocity.vx,
+            vy: ephemerisState.velocity.vy,
+            vz: ephemerisState.velocity.vz,
         };
+
+        return state
+            ? {
+                  position: { x: state.x, y: state.y, z: state.z },
+                  velocity: { vx: state.vx, vy: state.vy, vz: state.vz },
+                  available: true,
+              }
+            : { position: null, velocity: null, available: false };
     }
 
     // Unknown body or wrong config
@@ -344,6 +387,10 @@ export function computeSceneState(time, config, options) {
         sunLongitude: providedSunLongitude,
         chebyshevData,
         chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        landingNpzData,
+        landingNpzLoaded,
         landingChebyshevData,
         landingChebyshevLoaded,
         globalConfig,
@@ -352,7 +399,9 @@ export function computeSceneState(time, config, options) {
         eventInfos,
         missionTimes,
         planetsForLocations,
-        frameMode
+        frameMode,
+        ephemerisSource,
+        bodySources,
     } = options;
 
     if (providedSunLongitude === undefined || providedSunLongitude === null) {
@@ -369,9 +418,28 @@ export function computeSceneState(time, config, options) {
 
     // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo") {
-        const moon = getMoonState(time); // geocentric inertial
-        const r = moon;
-        const v = { x: moon.vx, y: moon.vy, z: moon.vz };
+        const moonState = getBodyEphemerisState({
+            bodyId: "MOON",
+            timeMs: time,
+            config,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            defaultSpacecraftSource: ephemerisSource,
+            spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
+        });
+
+        if (!moonState.available) {
+            throw new Error("Moon state unavailable for relative frame");
+        }
+        const r = moonState.position;
+        const v = {
+            x: moonState.velocity.vx,
+            y: moonState.velocity.vy,
+            z: moonState.velocity.vz,
+        };
 
         const xHat = normalize(r);
         const zHat = normalize(cross(r, v));
@@ -394,12 +462,18 @@ export function computeSceneState(time, config, options) {
     const dataForBodies = {
         chebyshevData,
         chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        landingNpzData,
+        landingNpzLoaded,
         landingChebyshevData,
         landingChebyshevLoaded,
         globalConfig,
         startLandingTime,
         endLandingTime,
-        frameMode
+        frameMode,
+        ephemerisSource,
+        bodySources,
     };
 
     for (const bodyId of planetsForLocations) {

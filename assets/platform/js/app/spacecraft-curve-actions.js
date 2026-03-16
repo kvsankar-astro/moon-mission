@@ -12,6 +12,13 @@ export function createSpacecraftCurveActions({
     wait10,
     createLineMaterial,
 }) {
+    function isValidVector3(point) {
+        return !!point &&
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y) &&
+            Number.isFinite(point.z);
+    }
+
     async function addCurve(scene) {
         scene.startingIndex = scene.leftOrbitPoints;
 
@@ -24,7 +31,13 @@ export function createSpacecraftCurveActions({
             scene.startingIndex -= points;
             scene.leftOrbitPoints -= points;
 
-            const arr = scene.curve.slice(scene.startingIndex, scene.startingIndex + points + 1);
+            const arr = scene.curve
+                .slice(scene.startingIndex, scene.startingIndex + points + 1)
+                .filter(isValidVector3);
+            if (arr.length < 2) {
+                continue;
+            }
+
             const curves = new THREE.CatmullRomCurve3(arr);
 
             const orbitGeometry = new THREE.BufferGeometry();
@@ -55,7 +68,7 @@ export function createSpacecraftCurveActions({
         scene.orbitLines = [];
         scene.pointsPerSlice = 100;
         scene.startingIndex = 0;
-        scene.leftOrbitPoints = getOrbitPointsCount();
+        scene.leftOrbitPoints = scene.curve.filter(isValidVector3).length;
 
         const craftOrbitColor = planetProperties[getCraftId()]["orbitcolor"];
         scene.orbitMaterial = createLineMaterial(craftOrbitColor);
@@ -71,7 +84,12 @@ export function createSpacecraftCurveActions({
             globalConfig.landing.enabled &&
             scene.landingCurve.length > 0
         ) {
-            const landingCurves = new THREE.CatmullRomCurve3(scene.landingCurve);
+            const validLandingCurve = scene.landingCurve.filter(isValidVector3);
+            if (validLandingCurve.length < 2) {
+                return;
+            }
+
+            const landingCurves = new THREE.CatmullRomCurve3(validLandingCurve);
             const landingOrbitGeometry = new THREE.BufferGeometry();
             const vertexVectors = landingCurves.getSpacedPoints(getLandingPointsCount() * 40);
             const vertices = [];

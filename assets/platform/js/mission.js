@@ -23,8 +23,7 @@ import {
     updateProgressLabel,
     updateSpacecraftMnemonic
 } from "./core/dom.js";
-import { getStateFromChebyshev, generateCurveFromChebyshev } from "./chebyshev.js";
-import { getMoonState, getEarthFromMoonState } from "./astronomy-bodies.js";
+import { generateCurveFromChebyshev } from "./chebyshev.js";
 import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 import {
     createUTCTimestamp,
@@ -48,7 +47,16 @@ import { Animation3DController, Animation2DController } from "./controllers/inde
 import { computeSunLongitude } from "./services/ephemeris.js";
 import { applyCameraFromTo, readCameraLookMode, readCameraPositionMode, readOriginMode, readViewSettings } from "./ui/ui-state.js";
 import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
-import { loadChebyshev, loadMissionConfig, resolveLandingChebyshevUrl, resolveOrbitUrls } from "./data/mission-data.js";
+import {
+    getEphemerisSource,
+    loadChebyshev,
+    loadMissionConfig,
+    loadNpz,
+    resolveLandingChebyshevUrl,
+    resolveLandingNpzUrl,
+    resolveOrbitNpzUrl,
+    resolveOrbitUrls,
+} from "./data/mission-data.js";
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { createAnimationActions } from "./app/animation-actions.js";
@@ -115,6 +123,12 @@ import {
     computeLandingTimesUpdate,
     computeMissionEventTimes,
 } from "./app/config-times.js";
+import {
+    generateBodyCurve,
+    getBodyEphemerisRange,
+    getBodyEphemerisState,
+    resolveBodySource,
+} from "./data/ephemeris-provider.js";
 import { createModeSwitchActions } from "./app/mode-switch.js";
 import { applyEventsUpdate, computeEventsUpdate } from "./app/config-events.js";
 import {
@@ -175,10 +189,40 @@ var landingDataLoaded = false;
 var landingDataProcessed = false;
 var landingData = {};
 var landingMetadata = {};
+var ephemerisSource = "chebyshev"; // "chebyshev" (default) or "npz"
+function getActiveEphemerisSource(cfg = config) {
+    return ephemerisSource;
+}
+const ephemerisRecords = {}; // config -> { npz?: { url, bodies }, chebyshev?: { url } }
+const ephemerisStatuses = {}; // config -> { npz?: { status, message }, chebyshev?: { status, message } }
+let bodyEphemerisSources = {}; // optional per-body overrides from config
+
+function bindInfoPanelControls() {
+    const toggle = document.getElementById("info-panel-toggle");
+    const panel = document.getElementById("info-panel");
+    const close = document.getElementById("info-panel-close");
+    if (!toggle || !panel || !close) return;
+
+    const show = () => {
+        panel.classList.remove("info-panel--hidden");
+        toggle.classList.add("hidden");
+    };
+    const hide = () => {
+        panel.classList.add("info-panel--hidden");
+        toggle.classList.remove("hidden");
+    };
+
+    toggle.addEventListener("click", show);
+    close.addEventListener("click", hide);
+}
 
 // Chebyshev ephemeris data (replaces NPZ for spacecraft position)
 var chebyshevDataLoaded = { "geo": false, "lunar": false };
 var chebyshevData = {};  // { "geo": chebData, "lunar": chebData }
+var npzDataLoaded = { geo: false, lunar: false };
+var npzData = {}; // { geo: {SC, MOON, EARTH}, lunar: {...} }
+var landingNpzLoaded = { geo: false, lunar: false };
+var landingNpzData = {};
 var landingChebyshevLoaded = { geo: false, lunar: false };
 var landingChebyshevData = {};
 var nOrbitPoints = 0;
@@ -333,6 +377,18 @@ const orbitCurveActions = createOrbitCurveActions({
     generateCurveFromChebyshev,
     chebyshevDataLoaded,
     chebyshevData,
+    npzData,
+    npzDataLoaded,
+    getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
+    getLandingNpzData: (cfg = config) => landingNpzData[cfg],
+    getEphemerisSource: (cfg = config) => getActiveEphemerisSource(cfg),
+    resolveBodySource: (bodyId) =>
+        resolveBodySource({
+            bodyId,
+            bodySources: bodyEphemerisSources,
+            defaultSpacecraftSource: ephemerisSource,
+        }),
+    generateBodyCurve,
     getStepMs: (config) => animationScenes[config].stepDurationInMilliSeconds,
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
@@ -537,6 +593,103 @@ async function fetchMetadata(baseFileName) {
         console.warn(`No metadata file found: ${metaFileName}, using defaults`);
     }
     return null; // Fallback to defaults
+}
+
+function updateEphemerisPanel() {
+    const panel = document.getElementById("info-panel-body");
+    if (!panel) return;
+
+    if (!globalConfig) {
+        panel.innerHTML = "Mission configuration has not loaded yet.";
+        return;
+    }
+
+    const missionName = globalConfig?.mission_name || "Mission";
+    const sc = globalConfig?.spacecraft_mnemonic || "SC";
+    const epSrc = ephemerisSource.toUpperCase();
+    const phases = globalConfig?.phases || [];
+
+    const statusBadge = (cfg, source) => {
+        const s = ephemerisStatuses[cfg]?.[source]?.status || "pending";
+        const msg = ephemerisStatuses[cfg]?.[source]?.message || "";
+        const cls =
+            s === "ok"
+                ? "info-panel__status--ok"
+                : s === "error"
+                  ? "info-panel__status--err"
+                  : s === "loading"
+                    ? "info-panel__status--warn"
+                    : "info-panel__status--pending";
+        return `<span class="info-panel__status ${cls}">${s.toUpperCase()}</span>${msg ? ` <span>${msg}</span>` : ""}`;
+    };
+
+    const bodySourceRows = ["SC", "MOON", "EARTH", "SUN"]
+        .map((bodyId) => {
+            const source = resolveBodySource({
+                bodyId,
+                bodySources: bodyEphemerisSources,
+                defaultSpacecraftSource: ephemerisSource,
+            });
+            return `<div class="info-panel__kv"><span>${bodyId}</span><span>${source.toUpperCase()}</span></div>`;
+        })
+        .join("");
+
+    const phaseRows = phases
+        .map((cfg) => {
+            const phaseConfig = globalConfig?.[cfg] || {};
+            const sourceRows = ["npz", "chebyshev"]
+                .map((source) => {
+                    const record = ephemerisRecords[cfg]?.[source];
+                    const file = record?.url ? record.url.split("/").pop() : "—";
+                    return `
+                        <div class="info-panel__subrow">
+                            <div class="info-panel__kv">
+                                <span>${source.toUpperCase()}</span>
+                                <span>${file}</span>
+                            </div>
+                            <div>${statusBadge(cfg, source)}</div>
+                        </div>
+                    `;
+                })
+                .join("");
+
+            const timeWindow =
+                [phaseConfig.start_year, phaseConfig.start_month, phaseConfig.start_day].every(Boolean)
+                    ? `${phaseConfig.start_year}-${phaseConfig.start_month}-${phaseConfig.start_day} ${phaseConfig.start_hour || "00"}:${phaseConfig.start_minute || "00"} -> ${phaseConfig.stop_year || "—"}-${phaseConfig.stop_month || "—"}-${phaseConfig.stop_day || "—"} ${phaseConfig.stop_hour || "00"}:${phaseConfig.stop_minute || "00"}`
+                    : "—";
+
+            return `
+                <section class="info-panel__section">
+                    <div class="info-panel__section-title">${cfg.toUpperCase()}</div>
+                    <div class="info-panel__kv"><span>Center</span><span>${phaseConfig.center || "—"}</span></div>
+                    <div class="info-panel__kv"><span>Planets</span><span>${(phaseConfig.planets || []).join(", ") || "—"}</span></div>
+                    <div class="info-panel__kv"><span>Orbit File</span><span>${phaseConfig.orbits_file || "—"}</span></div>
+                    <div class="info-panel__kv"><span>Step</span><span>${phaseConfig.step_size_in_seconds || "—"} s</span></div>
+                    <div class="info-panel__kv"><span>Window</span><span>${timeWindow}</span></div>
+                    <div class="info-panel__subsection-title">Ephemeris Files</div>
+                    ${sourceRows}
+                </section>`;
+        })
+        .join("");
+
+    panel.innerHTML = `
+        <section class="info-panel__section">
+            <div class="info-panel__section-title">Mission</div>
+            <div class="info-panel__kv"><span>Name</span><span>${missionName}</span></div>
+            <div class="info-panel__kv"><span>Short Name</span><span>${globalConfig?.mission_name_short || "—"}</span></div>
+            <div class="info-panel__kv"><span>Spacecraft</span><span>${sc}</span></div>
+            <div class="info-panel__kv"><span>Default Source</span><span>${epSrc}</span></div>
+            <div class="info-panel__kv"><span>Phases</span><span>${phases.join(", ") || "—"}</span></div>
+            <div class="info-panel__kv"><span>Landing</span><span>${globalConfig?.landing?.enabled ? "Enabled" : "Disabled"}</span></div>
+            <div class="info-panel__kv"><span>Events</span><span>${Object.keys(globalConfig?.events || {}).length}</span></div>
+            <div class="info-panel__kv"><span>Landing Sites</span><span>${(globalConfig?.landingSites || []).length}</span></div>
+        </section>
+        <section class="info-panel__section">
+            <div class="info-panel__section-title">Body Sources</div>
+            ${bodySourceRows}
+        </section>
+        ${phaseRows || '<section class="info-panel__section">No ephemeris requests yet.</section>'}
+    `;
 }
 
 function updateMoonUIFromConfig() {
@@ -1096,9 +1249,24 @@ class AnimationScene {
 	    if (!this.moonContainer) return;
 
 	    if (frameMode === "relative" && config === "geo") {
-	        const moonState = getMoonState(timeMs);
-	        const r = new THREE.Vector3(moonState.x, moonState.y, moonState.z);
-	        const v = new THREE.Vector3(moonState.vx, moonState.vy, moonState.vz);
+            const moonState = getBodyEphemerisState({
+                bodyId: "MOON",
+                timeMs,
+                config,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                resolvedSource: resolveBodySource({
+                    bodyId: "MOON",
+                    bodySources: bodyEphemerisSources,
+                    defaultSpacecraftSource: ephemerisSource,
+                }),
+                defaultSpacecraftSource: ephemerisSource,
+            });
+            if (!moonState.available) return;
+	        const r = new THREE.Vector3(moonState.position.x, moonState.position.y, moonState.position.z);
+	        const v = new THREE.Vector3(moonState.velocity.vx, moonState.velocity.vy, moonState.velocity.vz);
 
 	        if (r.lengthSq() === 0) return;
 
@@ -1217,11 +1385,14 @@ const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
     orbitDataLoaded,
     chebyshevData,
     chebyshevDataLoaded,
+    npzData,
+    npzDataLoaded,
     getDataLoaded: () => dataLoaded,
     setDataLoaded: (val) => {
         dataLoaded = val;
     },
     loadChebyshev,
+    loadNpz,
     processOrbitData,
     ensureIndeterminateProgressBar,
     showElementById,
@@ -1230,6 +1401,23 @@ const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
     setEventInfoText: (text) => {
         d3.select("#eventinfo").text(text);
     },
+    getEphemerisSource: () => ephemerisSource,
+    getBodiesForConfig: (cfg = config) => animationScenes[cfg]?.planetsForLocations || [],
+    onEphemerisLoaded: ({ config, source, url, bodies = [] }) => {
+        ephemerisRecords[config] = ephemerisRecords[config] || {};
+        ephemerisRecords[config][source] = { url, bodies };
+        updateEphemerisPanel();
+    },
+    onEphemerisStatus: (cfg, source, status, message = "") => {
+        ephemerisStatuses[cfg] = ephemerisStatuses[cfg] || {};
+        ephemerisStatuses[cfg][source] = { status, message };
+        updateEphemerisPanel();
+    },
+    getBodySource: (bodyId) => resolveBodySource({
+        bodyId,
+        bodySources: bodyEphemerisSources,
+        defaultSpacecraftSource: ephemerisSource,
+    }),
 });
 
 const { loadLandingDataAndProcess } = createLandingLoadActions({
@@ -1239,13 +1427,21 @@ const { loadLandingDataAndProcess } = createLandingLoadActions({
     setLandingDataLoaded: (val) => {
         landingDataLoaded = val;
     },
+    setLandingNpzLoaded: (cfg, val) => {
+        landingNpzLoaded[cfg] = val;
+    },
+    setLandingNpzData: (cfg, val) => {
+        landingNpzData[cfg] = val;
+    },
     setLandingChebyshevLoaded: (cfg, val) => {
         landingChebyshevLoaded[cfg] = val;
     },
     setLandingChebyshevData: (cfg, val) => {
         landingChebyshevData[cfg] = val;
     },
+    resolveLandingNpzUrl,
     resolveLandingChebyshevUrl,
+    loadNpz,
     loadChebyshev,
 });
 
@@ -1280,14 +1476,24 @@ const {
     getEndLandingTime: () => endLandingTime,
     chebyshevDataLoaded,
     chebyshevData,
+    npzData,
+    npzDataLoaded,
+    getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
+    getLandingNpzData: (cfg = config) => landingNpzData[cfg],
     getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
     getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
-    getStateFromChebyshev,
-    getMoonState,
-    getEarthFromMoonState,
     getStartAndEndTimes,
     TC,
     getFrameMode: () => frameMode,
+    getEphemerisSource: (cfg = config) => getActiveEphemerisSource(cfg),
+    resolveBodySource: (bodyId) =>
+        resolveBodySource({
+            bodyId,
+            bodySources: bodyEphemerisSources,
+            defaultSpacecraftSource: ephemerisSource,
+        }),
+    getBodyEphemerisRange,
+    getBodyEphemerisState,
 });
 
 const craftScaleActions = createCraftScaleActions({
@@ -1312,7 +1518,16 @@ const { processOrbitVectorsData } = createOrbitVectorsActions({
     shouldDrawOrbit,
     chebyshevDataLoaded,
     chebyshevData,
-    generateCurveFromChebyshev,
+    npzData,
+    npzDataLoaded,
+    getEphemerisSource: (cfg = config) => getActiveEphemerisSource(cfg),
+    resolveBodySource: (bodyId) =>
+        resolveBodySource({
+            bodyId,
+            bodySources: bodyEphemerisSources,
+            defaultSpacecraftSource: ephemerisSource,
+        }),
+    generateBodyCurve,
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
     getZoomFactor: () => zoomFactor,
@@ -1424,6 +1639,16 @@ async function initConfig() {
     if (globalConfig === null) {
         globalConfig = await loadMissionConfig();
         eventInfos = globalConfig?.eventInfos || [];
+        ephemerisSource = getEphemerisSource(globalConfig);
+        bodyEphemerisSources = globalConfig?.ephemeris_sources || {};
+        for (const cfg of globalConfig?.phases || []) {
+            ephemerisStatuses[cfg] = {
+                npz: { status: "pending", message: "" },
+                chebyshev: { status: "pending", message: "" },
+            };
+        }
+        bindInfoPanelControls();
+        updateEphemerisPanel();
 
          if (globalConfig) {
              // Note: SC and craftId remain as "SC" for internal use
@@ -1528,6 +1753,10 @@ async function initConfig() {
                 animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
                 animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
             }
+            const orbitNpz = resolveOrbitNpzUrl(configData, config);
+            if (orbitNpz) {
+                animationScenes[config].orbitsNpz = orbitNpz;
+            }
         }
 
         // URL-only: mode=relative loads a precomputed rotating-frame orbit file.
@@ -1609,6 +1838,10 @@ async function initConfig() {
             if (orbitUrls) {
                 animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
                 animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
+            }
+            const orbitNpz = resolveOrbitNpzUrl(configData, config);
+            if (orbitNpz) {
+                animationScenes[config].orbitsNpz = orbitNpz;
             }
         }
 
@@ -1801,6 +2034,10 @@ function setLocation() {
         sunLongitude: sunLongitudeForFrame,
         chebyshevData,
         chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        landingNpzData: landingNpzData[config],
+        landingNpzLoaded: landingNpzLoaded[config],
         landingChebyshevData: landingChebyshevData[config],
         landingChebyshevLoaded: landingChebyshevLoaded[config],
         globalConfig,
@@ -1810,6 +2047,8 @@ function setLocation() {
         missionTimes: { timeTransLunarInjection, timeLunarOrbitInsertion },
         planetsForLocations: animationScenes[config].planetsForLocations,
         frameMode,
+        bodySources: bodyEphemerisSources,
+        ephemerisSource: getActiveEphemerisSource(config),
     });
 
     // Store sun longitude for global access (used by other parts of code)

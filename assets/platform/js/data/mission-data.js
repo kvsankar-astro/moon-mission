@@ -1,4 +1,5 @@
 import { loadChebyshevData } from "../chebyshev.js";
+import { loadNpzEphemeris } from "./npz-ephemeris.js";
 
 let missionConfigLoaded = false;
 let missionConfigValue = null;
@@ -6,6 +7,8 @@ let missionConfigPromise = null;
 
 const chebyshevValueCache = new Map(); // url -> data
 const chebyshevPromiseCache = new Map(); // url -> Promise<data>
+const npzValueCache = new Map(); // url -> body series map
+const npzPromiseCache = new Map(); // url -> Promise<data>
 
 export function getMissionDataPath() {
     const dataPath = window?.missionConfig?.dataPath;
@@ -65,6 +68,16 @@ export function resolveOrbitUrls(configData, mode) {
     };
 }
 
+export function resolveOrbitNpzUrl(configData, mode) {
+    const dataPath = getMissionDataPath();
+    if (!dataPath) return null;
+
+    const cfg = configData?.[mode];
+    if (!cfg?.orbits_file) return null;
+
+    return `${dataPath}${cfg.orbits_file}.npz`;
+}
+
 export function resolveLandingChebyshevUrl(configData, cfgKey = null) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
@@ -80,6 +93,18 @@ export function resolveLandingChebyshevUrl(configData, cfgKey = null) {
     // the caller will handle fetch errors if the file does not exist.
 
     return `${dataPath}${filename}`;
+}
+
+export function resolveLandingNpzUrl(configData, cfgKey = null) {
+    const dataPath = getMissionDataPath();
+    if (!dataPath) return null;
+
+    const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
+    const overrideBase = configData?.landing?.orbits_file;
+    const base = overrideBase || `landing-${spacecraftMnemonic}`;
+
+    const suffix = cfgKey ? `-${cfgKey}` : "";
+    return `${dataPath}${base}${suffix}.npz`;
 }
 
 export async function loadChebyshev(url) {
@@ -104,4 +129,36 @@ export async function loadChebyshev(url) {
 
     chebyshevPromiseCache.set(url, promise);
     return promise;
+}
+
+export async function loadNpz(url) {
+    if (!url) throw new Error("loadNpz(url) requires a URL");
+
+    const cachedValue = npzValueCache.get(url);
+    if (cachedValue) return cachedValue;
+
+    const cachedPromise = npzPromiseCache.get(url);
+    if (cachedPromise) return cachedPromise;
+
+    const promise = loadNpzEphemeris(url)
+        .then((data) => {
+            npzValueCache.set(url, data);
+            npzPromiseCache.delete(url);
+            return data;
+        })
+        .catch((error) => {
+            npzPromiseCache.delete(url);
+            throw error;
+        });
+
+    npzPromiseCache.set(url, promise);
+    return promise;
+}
+
+export function getEphemerisSource(configData) {
+    const source =
+        configData?.ephemeris_source ||
+        configData?.ephemeris?.source ||
+        "chebyshev";
+    return typeof source === "string" ? source.toLowerCase() : "chebyshev";
 }

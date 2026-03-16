@@ -9,7 +9,11 @@ export function createOrbitVectorsActions({
     shouldDrawOrbit,
     chebyshevDataLoaded,
     chebyshevData,
-    generateCurveFromChebyshev,
+    npzData,
+    npzDataLoaded,
+    getEphemerisSource,
+    resolveBodySource,
+    generateBodyCurve,
     getStartTime,
     getLatestEndTime,
     getZoomFactor,
@@ -44,17 +48,32 @@ export function createOrbitVectorsActions({
                     return;
                 }
 
-                // Generate vectors from Chebyshev data
                 let vectors = [];
-                if (chebyshevDataLoaded[config] && chebyshevData[config]) {
-                    const stepMs = animationScenes[config].stepDurationInMilliSeconds;
-                    vectors = generateCurveFromChebyshev(
-                        chebyshevData[config],
-                        getStartTime(),
-                        getLatestEndTime(),
-                        stepMs,
-                    );
-                }
+                const stepMs = animationScenes[config].stepDurationInMilliSeconds;
+                vectors =
+                    typeof generateBodyCurve === "function"
+                        ? generateBodyCurve({
+                              bodyId: planetKey,
+                              config,
+                              startTimeMs: getStartTime(),
+                              endTimeMs: getLatestEndTime(),
+                              stepMs,
+                              npzData,
+                              npzDataLoaded,
+                              chebyshevData,
+                              chebyshevDataLoaded,
+                              resolvedSource:
+                                  typeof resolveBodySource === "function"
+                                      ? resolveBodySource(planetKey)
+                                      : typeof getEphemerisSource === "function"
+                                        ? getEphemerisSource()
+                                        : "chebyshev",
+                              defaultSpacecraftSource:
+                                  typeof getEphemerisSource === "function"
+                                      ? getEphemerisSource()
+                                      : "chebyshev",
+                          })
+                        : [];
 
                 if (vectors.length === 0) {
                     console.warn(

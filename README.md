@@ -50,6 +50,10 @@ URL parameters:
 - `mission.html?mission=apollo11-sivb` - Apollo 11 S-IVB
 - `mission.html?mission=artemis1` - Artemis 1
 
+### Debugging with NPZ ephemeris
+
+To bypass Chebyshev and the Astronomy Engine for orbit data, set `"ephemeris_source": "npz"` in a mission's `config.json`, and place matching `.npz` files (e.g., `geo-<SC>.npz`, `lunar-<SC>.npz`, and when applicable `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz`) alongside the other data files. Earth, Moon, and spacecraft positions will then be read directly from the HORIZONS NPZ vectors.
+
 Developer documentation (adding missions, orbit pipeline, build/deploy scripts): [docs/developer.md](docs/developer.md)
 
 ## Design
