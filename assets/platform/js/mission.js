@@ -388,6 +388,129 @@ export var animationScenes = {};
 var animation3DControllers = {};  // Per-config 3D controllers
 var animation2DControllers = {};  // Per-config 2D controllers
 
+function getSceneForConfig(cfg = config) {
+    return animationScenes[cfg];
+}
+
+function ensureSceneViewState(scene) {
+    if (!scene) return null;
+
+    if (typeof scene.planeSelection !== "string") scene.planeSelection = planeSelection;
+    if (typeof scene.plane !== "string") scene.plane = plane;
+    if (typeof scene.xVariable !== "string") scene.xVariable = xVariable;
+    if (typeof scene.yVariable !== "string") scene.yVariable = yVariable;
+    if (typeof scene.zVariable !== "string") scene.zVariable = zVariable;
+    if (typeof scene.vxVariable !== "string") scene.vxVariable = vxVariable;
+    if (typeof scene.vyVariable !== "string") scene.vyVariable = vyVariable;
+    if (typeof scene.vzVariable !== "string") scene.vzVariable = vzVariable;
+    if (!Number.isFinite(scene.xFactor)) scene.xFactor = xFactor;
+    if (!Number.isFinite(scene.yFactor)) scene.yFactor = yFactor;
+    if (!Number.isFinite(scene.zFactor)) scene.zFactor = zFactor;
+    if (!Number.isFinite(scene.zoomFactor)) scene.zoomFactor = zoomFactor;
+    if (!Number.isFinite(scene.panx)) scene.panx = panx;
+    if (!Number.isFinite(scene.pany)) scene.pany = pany;
+
+    return scene;
+}
+
+function getActiveSceneViewState(cfg = config) {
+    return ensureSceneViewState(getSceneForConfig(cfg));
+}
+
+function getPlaneSelectionState(cfg = config) {
+    // Keep legacy global plane-selection semantics for visual stability.
+    return planeSelection;
+}
+
+function setPlaneSelectionState(value, cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) scene.planeSelection = value;
+    planeSelection = value;
+}
+
+function setPlaneVariablesState(planeConfig, cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) {
+        scene.plane = planeConfig.plane;
+        scene.xFactor = planeConfig.xFactor;
+        scene.yFactor = planeConfig.yFactor;
+        scene.zFactor = planeConfig.zFactor;
+        scene.xVariable = planeConfig.xVariable;
+        scene.yVariable = planeConfig.yVariable;
+        scene.zVariable = planeConfig.zVariable;
+        scene.vxVariable = planeConfig.vxVariable;
+        scene.vyVariable = planeConfig.vyVariable;
+        scene.vzVariable = planeConfig.vzVariable;
+    }
+
+    // Transitional fallback for code paths not yet scene-scoped.
+    plane = planeConfig.plane;
+    xFactor = planeConfig.xFactor;
+    yFactor = planeConfig.yFactor;
+    zFactor = planeConfig.zFactor;
+    xVariable = planeConfig.xVariable;
+    yVariable = planeConfig.yVariable;
+    zVariable = planeConfig.zVariable;
+    vxVariable = planeConfig.vxVariable;
+    vyVariable = planeConfig.vyVariable;
+    vzVariable = planeConfig.vzVariable;
+}
+
+function getPlaneVariablesState(cfg = config) {
+    return {
+        // Keep legacy global plane-variable semantics for visual stability.
+        plane: plane,
+        xFactor: xFactor,
+        yFactor: yFactor,
+        zFactor: zFactor,
+        xVariable: xVariable,
+        yVariable: yVariable,
+        zVariable: zVariable,
+        vxVariable: vxVariable,
+        vyVariable: vyVariable,
+        vzVariable: vzVariable,
+    };
+}
+
+function getZoomFactorState(cfg = config) {
+    // Keep legacy global zoom semantics to avoid visual drift across suites.
+    return zoomFactor;
+}
+
+function setZoomFactorState(value, cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) scene.zoomFactor = value;
+    zoomFactor = value;
+}
+
+function getPanXState(cfg = config) {
+    // Keep legacy global pan semantics to avoid visual drift across suites.
+    return panx;
+}
+
+function setPanXState(value, cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) scene.panx = value;
+    panx = value;
+}
+
+function getPanYState(cfg = config) {
+    // Keep legacy global pan semantics to avoid visual drift across suites.
+    return pany;
+}
+
+function setPanYState(value, cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) scene.pany = value;
+    pany = value;
+}
+
+function resetViewTransformState(cfg = config) {
+    setZoomFactorState(1, cfg);
+    setPanXState(0, cfg);
+    setPanYState(0, cfg);
+}
+
 // Event bus for decoupling UI ↔ mission orchestration
 const eventBus = createEventBus();
 var globalConfig = null; // Store loaded config from config.json
@@ -988,6 +1111,22 @@ class AnimationScene {
         this.stopCreationFlag = false;
 
         this.state = AnimationScene.SCENE_STATE_START;
+
+        // Per-scene view state (transition away from global view variables).
+        this.planeSelection = planeSelection;
+        this.plane = plane;
+        this.xVariable = xVariable;
+        this.yVariable = yVariable;
+        this.zVariable = zVariable;
+        this.vxVariable = vxVariable;
+        this.vyVariable = vyVariable;
+        this.vzVariable = vzVariable;
+        this.xFactor = xFactor;
+        this.yFactor = yFactor;
+        this.zFactor = zFactor;
+        this.zoomFactor = zoomFactor;
+        this.panx = panx;
+        this.pany = pany;
     }
 
 
@@ -1430,7 +1569,7 @@ const { processOrbitElementsData } = createOrbitElementsActions({
     planetProperties,
     PC,
     PIXELS_PER_AU,
-    getZoomFactor: () => zoomFactor,
+    getZoomFactor: () => getZoomFactorState(config),
     setEpochJD: (val) => {
         epochJD = val;
     },
@@ -1508,13 +1647,16 @@ const { processOrbitVectorsData } = createOrbitVectorsActions({
     generateBodyCurve,
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
-    getZoomFactor: () => zoomFactor,
-    getPlaneVariables: () => ({
-        xFactor,
-        yFactor,
-        xVariable,
-        yVariable,
-    }),
+    getZoomFactor: () => getZoomFactorState(config),
+    getPlaneVariables: () => {
+        const vars = getPlaneVariablesState(config);
+        return {
+            xFactor: vars.xFactor,
+            yFactor: vars.yFactor,
+            xVariable: vars.xVariable,
+            yVariable: vars.yVariable,
+        };
+    },
     planetStartTime,
     PC,
     UC,
@@ -1541,11 +1683,11 @@ const { setLabelLocation, showGreenwichLongitude, adjustLabelLocations } = creat
     PC,
     UC,
     getPixelsPerAU: () => PIXELS_PER_AU,
-    getZoomFactor: () => zoomFactor,
-    getXFactor: () => xFactor,
-    getYFactor: () => yFactor,
-    getXVariable: () => xVariable,
-    getYVariable: () => yVariable,
+    getZoomFactor: () => getZoomFactorState(config),
+    getXFactor: () => getPlaneVariablesState(config).xFactor,
+    getYFactor: () => getPlaneVariablesState(config).yFactor,
+    getXVariable: () => getPlaneVariablesState(config).xVariable,
+    getYVariable: () => getPlaneVariablesState(config).yVariable,
     getCraftData: () => craftData,
 });
 
@@ -1555,17 +1697,17 @@ const { handleZoom, handleZoomNew, zoomEnd, zoomChangeTransform, zoomChange } = 
     getCurrentDimension: () => currentDimension,
     animationScenes,
     getConfig: () => config,
-    getZoomFactor: () => zoomFactor,
+    getZoomFactor: () => getZoomFactorState(config),
     setZoomFactor: (val) => {
-        zoomFactor = val;
+        setZoomFactorState(val, config);
     },
-    getPanX: () => panx,
+    getPanX: () => getPanXState(config),
     setPanX: (val) => {
-        panx = val;
+        setPanXState(val, config);
     },
-    getPanY: () => pany,
+    getPanY: () => getPanYState(config),
     setPanY: (val) => {
-        pany = val;
+        setPanYState(val, config);
     },
     getOffsetX: () => offsetx,
     getOffsetY: () => offsety,
@@ -1574,18 +1716,9 @@ const { handleZoom, handleZoomNew, zoomEnd, zoomChangeTransform, zoomChange } = 
 });
 
 const planeActions = createPlaneActions({
-    getPlaneSelection: () => planeSelection,
+    getPlaneSelection: () => getPlaneSelectionState(config),
     setPlaneVariables: (planeConfig) => {
-        plane = planeConfig.plane;
-        xFactor = planeConfig.xFactor;
-        yFactor = planeConfig.yFactor;
-        zFactor = planeConfig.zFactor;
-        xVariable = planeConfig.xVariable;
-        yVariable = planeConfig.yVariable;
-        zVariable = planeConfig.zVariable;
-        vxVariable = planeConfig.vxVariable;
-        vyVariable = planeConfig.vyVariable;
-        vzVariable = planeConfig.vzVariable;
+        setPlaneVariablesState(planeConfig, config);
     },
     getCurrentDimension: () => currentDimension,
     animationScenes,
@@ -2061,11 +2194,20 @@ function setLocation() {
     } else {
         // 2D rendering via controller
         if (animation2DControllers[config]) {
+            const planeVars = getPlaneVariablesState(config);
             animation2DControllers[config].setPlaneConfig({
-                xVariable, yVariable, zVariable,
-                xFactor, yFactor, zFactor
+                xVariable: planeVars.xVariable,
+                yVariable: planeVars.yVariable,
+                zVariable: planeVars.zVariable,
+                xFactor: planeVars.xFactor,
+                yFactor: planeVars.yFactor,
+                zFactor: planeVars.zFactor,
             });
-            animation2DControllers[config].setZoomPan(zoomFactor, panx, pany);
+            animation2DControllers[config].setZoomPan(
+                getZoomFactorState(config),
+                getPanXState(config),
+                getPanYState(config),
+            );
             animation2DControllers[config].render(sceneState, renderOptions);
 
             // Keep legacy craftData in sync (used by zoom/label helpers like adjustLabelLocations())
@@ -2314,9 +2456,7 @@ async function init(callback) {
     const fnStartTime = performance.now();
     // console.log("init() called");
 
-    zoomFactor = 1;
-    panx = 0;
-    pany = 0;
+    resetViewTransformState(config);
     
     initRepeatButtons({
         d3SelectAll,
@@ -2534,9 +2674,9 @@ orbitProcessActions = createOrbitProcessActions({
     },
     getOffsetX: () => offsetx,
     getOffsetY: () => offsety,
-    getPanX: () => panx,
-    getPanY: () => pany,
-    getZoomFactor: () => zoomFactor,
+    getPanX: () => getPanXState(config),
+    getPanY: () => getPanYState(config),
+    getZoomFactor: () => getZoomFactorState(config),
     handleZoom,
     zoomEnd,
     getMissionStartCalled: () => missionStartCalled,
@@ -2560,12 +2700,12 @@ const {
     panUp,
     panDown,
 } = createNavigationActions({
-    getPanX: () => panx,
-    setPanX: (val) => { panx = val; },
-    getPanY: () => pany,
-    setPanY: (val) => { pany = val; },
-    getZoomFactor: () => zoomFactor,
-    setZoomFactor: (val) => { zoomFactor = val; },
+    getPanX: () => getPanXState(config),
+    setPanX: (val) => { setPanXState(val, config); },
+    getPanY: () => getPanYState(config),
+    setPanY: (val) => { setPanYState(val, config); },
+    getZoomFactor: () => getZoomFactorState(config),
+    setZoomFactor: (val) => { setZoomFactorState(val, config); },
     zoomChange,
     zoomEnd,
     render,
@@ -2608,7 +2748,7 @@ const { changeCameraFromTo, togglePlane, recenterMountedCamera } = createCameraA
     readCameraLookMode,
     applyCameraFromTo,
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
-    setPlaneSelection: (val) => { planeSelection = val; },
+    setPlaneSelection: (val) => { setPlaneSelectionState(val, config); },
     handlePlaneChange: planeActions.handlePlaneChange,
     render,
     getViewSky: () => viewSky,
