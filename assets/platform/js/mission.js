@@ -1422,7 +1422,14 @@ const { loadOrbitDataIfNeededAndProcess } = createOrbitLoadActions({
 
 const { loadLandingDataAndProcess } = createLandingLoadActions({
     getGlobalConfig: () => globalConfig,
-    getConfigsList: () => Object.keys(animationScenes),
+    getConfigsList: () => {
+        const configuredLandingModes = (globalConfig?.phases || []).filter(
+            (phase) => phase === "geo" || phase === "lunar",
+        );
+        return configuredLandingModes.length > 0
+            ? configuredLandingModes
+            : Object.keys(animationScenes);
+    },
     getLandingDataLoaded: () => landingDataLoaded,
     setLandingDataLoaded: (val) => {
         landingDataLoaded = val;

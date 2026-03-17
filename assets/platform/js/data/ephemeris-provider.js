@@ -151,6 +151,47 @@ export function selectSeriesFromChebyshev(
     );
 }
 
+function getLandingStateFromSource({
+    source,
+    landingTimeMs,
+    normalizedBodyId,
+    spacecraftMnemonic,
+    landingNpzData,
+    landingNpzLoaded,
+    landingChebyshevData,
+    landingChebyshevLoaded,
+}) {
+    const landingJd = getHorizonsJulianDate(landingTimeMs);
+
+    if (source === "npz" && landingNpzLoaded && landingNpzData) {
+        const landingSeries =
+            landingNpzData[normalizedBodyId] ||
+            landingNpzData[spacecraftMnemonic] ||
+            landingNpzData.SC ||
+            null;
+        const landingState = landingSeries
+            ? getStateFromNpzSeries(landingSeries, landingJd)
+            : null;
+        const state = convertRawState(landingState, "npz");
+        if (state.available) {
+            return state;
+        }
+    }
+
+    if (landingChebyshevLoaded && landingChebyshevData) {
+        const landingState = getStateFromChebyshev(
+            landingChebyshevData,
+            landingJd,
+        );
+        const state = convertRawState(landingState, "chebyshev");
+        if (state.available) {
+            return state;
+        }
+    }
+
+    return null;
+}
+
 export function getBodyEphemerisRange({
     bodyId,
     config,
@@ -229,35 +270,23 @@ export function getBodyEphemerisState({
             landingEnabled &&
             typeof startLandingTime === "number" &&
             typeof endLandingTime === "number" &&
-            timeMs >= startLandingTime
+            timeMs >= startLandingTime &&
+            timeMs < endLandingTime
         ) {
             const landingTimeMs = Math.min(timeMs, endLandingTime - 1000);
-            const landingJd = getHorizonsJulianDate(landingTimeMs);
 
-            if (source === "npz" && landingNpzLoaded && landingNpzData) {
-                const landingSeries =
-                    landingNpzData[normalizedBodyId] ||
-                    landingNpzData[spacecraftMnemonic] ||
-                    landingNpzData.SC ||
-                    null;
-                const landingState = landingSeries
-                    ? getStateFromNpzSeries(landingSeries, landingJd)
-                    : null;
-                const state = convertRawState(landingState, "npz");
-                if (state.available) {
-                    return state;
-                }
-            }
-
-            if (landingChebyshevLoaded && landingChebyshevData) {
-                const landingState = getStateFromChebyshev(
-                    landingChebyshevData,
-                    landingJd,
-                );
-                const state = convertRawState(landingState, "chebyshev");
-                if (state.available) {
-                    return state;
-                }
+            const landingState = getLandingStateFromSource({
+                source,
+                landingTimeMs,
+                normalizedBodyId,
+                spacecraftMnemonic,
+                landingNpzData,
+                landingNpzLoaded,
+                landingChebyshevData,
+                landingChebyshevLoaded,
+            });
+            if (landingState?.available) {
+                return landingState;
             }
         }
     }
