@@ -107,6 +107,8 @@ import { createSpacecraftActions } from "./app/spacecraft-actions.js";
 import { createSceneCameraControllerActions } from "./app/scene-camera-controller-actions.js";
 import { createSpacecraftModelActions } from "./app/spacecraft-model-actions.js";
 import { createSkyActions } from "./app/sky-actions.js";
+import { createEarthActions } from "./app/earth-actions.js";
+import { createMoonActions } from "./app/moon-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -534,6 +536,21 @@ const spacecraftModelActions = createSpacecraftModelActions({
 
 const skyActions = createSkyActions({
     SkyRenderer,
+    render,
+});
+
+const earthActions = createEarthActions({
+    EarthRenderer,
+    render,
+});
+
+const moonActions = createMoonActions({
+    MoonRenderer,
+    getMoonRadius: () => moonRadius,
+    getGlobalConfig: () => globalConfig,
+    getViewPolarAxes: () => viewPolarAxes,
+    getViewPoles: () => viewPoles,
+    getAnimTime: () => animTime,
     render,
 });
 
@@ -1017,89 +1034,23 @@ class AnimationScene {
     }
     
     addEarth() {
-        // Create Earth renderer
-        this.earthRenderer = new EarthRenderer(earthRadius);
-        this.earthRenderer.setTextures(this.earthTexture, this.earthSpecularTexture);
-        this.earthRenderer.create(viewPolarAxes, viewPoles);
-
-        // Backward-compatible property references
-        this.earthContainer = this.earthRenderer.container;
-        this.earth = this.earthRenderer.mesh;
-        this.earthAxis = this.earthRenderer.axis;
-        this.earthNorthPoleSphere = this.earthRenderer.northPoleSphere;
-        this.earthSouthPoleSphere = this.earthRenderer.southPoleSphere;
-
-        render();
+        earthActions.addEarth(this, {
+            earthRadius,
+            viewPolarAxes,
+            viewPoles,
+        });
     }
 
     disposeEarth() {
-        if (this.earthRenderer) {
-            this.earthRenderer.dispose();
-            this.earthRenderer = null;
-        }
-
-        // Clear backward-compatible references
-        this.earth = null;
-        this.earthAxis = null;
-        this.earthNorthPoleSphere = null;
-        this.earthSouthPoleSphere = null;
-        this.earthContainer = null;
-        this.earthTexture = null;
-        this.earthSpecularTexture = null;
+        earthActions.disposeEarth(this);
     }
 
     addMoon() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            console.debug('Skipping moon creation - not a lunar mission');
-            return;
-        }
-
-        // Create Moon renderer
-        this.moonRenderer = new MoonRenderer(moonRadius);
-        this.moonRenderer.setTextures(this.moonMap, this.moonDisplacementMap);
-        this.moonRenderer.create(viewPolarAxes, viewPoles);
-
-        // Backward-compatible property references
-        this.moonContainer = this.moonRenderer.container;
-        this.moon = this.moonRenderer.mesh;
-        this.moonAxis = this.moonRenderer.axis;
-        this.moonAxisVector = this.moonRenderer.axisVector;
-        this.moonNorthPoleSphere = this.moonRenderer.northPoleSphere;
-        this.moonSouthPoleSphere = this.moonRenderer.southPoleSphere;
-
-        // Add Moon SOI (managed by SceneHelpers)
-        this.addMoonSOI();
-
-        // Set initial rotation
-        this.rotateMoon(animTime);
-
-        render();
+        moonActions.addMoon(this);
     }
 
     disposeMoon() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-
-        // Dispose Moon SOI first (managed by SceneHelpers)
-        this.disposeMoonSOI();
-
-        if (this.moonRenderer) {
-            this.moonRenderer.dispose();
-            this.moonRenderer = null;
-        }
-
-        // Clear backward-compatible references
-        this.moon = null;
-        this.moonAxis = null;
-        this.moonAxisVector = null;
-        this.moonNorthPoleSphere = null;
-        this.moonSouthPoleSphere = null;
-        this.moonContainer = null;
-        this.moonMap = null;
-        this.moonDisplacementMap = null;
+        moonActions.disposeMoon(this);
     }
     
     addMoonSOI() {
