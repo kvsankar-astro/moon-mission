@@ -197,7 +197,27 @@ const ephemerisRecords = {}; // config -> { npz?: { url, bodies }, chebyshev?: {
 const ephemerisStatuses = {}; // config -> { npz?: { status, message }, chebyshev?: { status, message } }
 let bodyEphemerisSources = {}; // optional per-body overrides from config
 
+// UI feature flags (default off for stable screenshots/regressions).
+const UI_FEATURE_FLAGS = {
+    showMissionInfoPanel: false,
+};
+
+function isMissionInfoPanelEnabled() {
+    const override = window?.CY3_UI_FLAGS?.showMissionInfoPanel;
+    if (typeof override === "boolean") {
+        return override;
+    }
+    return UI_FEATURE_FLAGS.showMissionInfoPanel;
+}
+
 function bindInfoPanelControls() {
+    const wrapper = document.getElementById("info-panel-wrapper");
+    const enabled = isMissionInfoPanelEnabled();
+    if (wrapper) {
+        wrapper.style.display = enabled ? "" : "none";
+    }
+    if (!enabled) return;
+
     const toggle = document.getElementById("info-panel-toggle");
     const panel = document.getElementById("info-panel");
     const close = document.getElementById("info-panel-close");
@@ -2118,25 +2138,56 @@ function setLocation() {
     // =========================================================================
     // 4. Update shared UI: telemetry display
     // =========================================================================
+    const setMetricText = (selector, value) => {
+        d3.select(selector).text(Number.isFinite(value) ? FORMAT_METRIC(value) : "");
+    };
+
     if (sceneState.telemetry) {
         const tel = sceneState.telemetry;
         const primaryBody = animationScenes[config].primaryBody;
 
-        d3.select("#distance-SC-" + primaryBody).text(FORMAT_METRIC(tel.distancePrimary));
-        d3.select("#altitude-SC-" + primaryBody).text(FORMAT_METRIC(tel.altitudePrimary));
-        d3.select("#velocity-SC-" + primaryBody).text(FORMAT_METRIC(tel.velocityPrimary));
+        setMetricText("#distance-SC-" + primaryBody, tel.distancePrimary);
+        setMetricText("#altitude-SC-" + primaryBody, tel.altitudePrimary);
+        setMetricText("#velocity-SC-" + primaryBody, tel.velocityPrimary);
 
-        if (tel.distanceMoon !== undefined && tel.distanceMoon !== null) {
-            d3.select("#distance-SC-MOON").text(FORMAT_METRIC(tel.distanceMoon));
-            d3.select("#altitude-SC-MOON").text(FORMAT_METRIC(tel.altitudeMoon));
-            d3.select("#velocity-SC-MOON").text(FORMAT_METRIC(tel.velocityMoon));
+        const hasMoonSecondary = tel.distanceMoon !== undefined && tel.distanceMoon !== null;
+        const hasEarthSecondary = tel.distanceEarth !== undefined && tel.distanceEarth !== null;
+
+        // Always write both panels each frame so stale values never linger.
+        if (hasMoonSecondary) {
+            setMetricText("#distance-SC-MOON", tel.distanceMoon);
+            setMetricText("#altitude-SC-MOON", tel.altitudeMoon);
+            setMetricText("#velocity-SC-MOON", tel.velocityMoon);
+        } else if (primaryBody === "MOON") {
+            setMetricText("#distance-SC-MOON", tel.distancePrimary);
+            setMetricText("#altitude-SC-MOON", tel.altitudePrimary);
+            setMetricText("#velocity-SC-MOON", tel.velocityPrimary);
+        } else {
+            setMetricText("#distance-SC-MOON", null);
+            setMetricText("#altitude-SC-MOON", null);
+            setMetricText("#velocity-SC-MOON", null);
         }
 
-        if (tel.distanceEarth !== undefined && tel.distanceEarth !== null) {
-            d3.select("#distance-SC-EARTH").text(FORMAT_METRIC(tel.distanceEarth));
-            d3.select("#altitude-SC-EARTH").text(FORMAT_METRIC(tel.altitudeEarth));
-            d3.select("#velocity-SC-EARTH").text(FORMAT_METRIC(tel.velocityEarth));
+        if (hasEarthSecondary) {
+            setMetricText("#distance-SC-EARTH", tel.distanceEarth);
+            setMetricText("#altitude-SC-EARTH", tel.altitudeEarth);
+            setMetricText("#velocity-SC-EARTH", tel.velocityEarth);
+        } else if (primaryBody === "EARTH") {
+            setMetricText("#distance-SC-EARTH", tel.distancePrimary);
+            setMetricText("#altitude-SC-EARTH", tel.altitudePrimary);
+            setMetricText("#velocity-SC-EARTH", tel.velocityPrimary);
+        } else {
+            setMetricText("#distance-SC-EARTH", null);
+            setMetricText("#altitude-SC-EARTH", null);
+            setMetricText("#velocity-SC-EARTH", null);
         }
+    } else {
+        setMetricText("#distance-SC-EARTH", null);
+        setMetricText("#altitude-SC-EARTH", null);
+        setMetricText("#velocity-SC-EARTH", null);
+        setMetricText("#distance-SC-MOON", null);
+        setMetricText("#altitude-SC-MOON", null);
+        setMetricText("#velocity-SC-MOON", null);
     }
 
     // =========================================================================

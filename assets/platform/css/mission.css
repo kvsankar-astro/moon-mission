@@ -82,13 +82,13 @@ body {
     background: rgba(20, 20, 30, 0.8);
     color: #fff;
     margin: 0px;
-    padding: 6px 10px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 10px 6px 0px;
+    border: none;
     border-radius: 8px;
     font-size: 12px;
     cursor: pointer;
     backdrop-filter: blur(6px);
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 #settings-panel-fieldset {
@@ -99,7 +99,6 @@ body {
 
 #settings-panel-button:hover {
     background: rgba(40, 40, 55, 0.9);
-    border-color: rgba(255, 255, 255, 0.35);
 }
 
 .settings-panel__header {
