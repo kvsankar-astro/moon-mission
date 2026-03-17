@@ -11,6 +11,7 @@ export function applyInitConfigAlreadyInitialized({
     handleModeSwitchToLunar,
     setChecked,
     animationScene,
+    syncPlaneSelection,
 }) {
     if (config === "geo") {
         handleModeSwitchToGeo();
@@ -28,5 +29,8 @@ export function applyInitConfigAlreadyInitialized({
     setChecked("checkbox-lock-xy-minus", animationScene.lockOnXYMinus);
     setChecked("checkbox-lock-zx-minus", animationScene.lockOnZXMinus);
     setChecked("checkbox-lock-yz-minus", animationScene.lockOnYZMinus);
-}
 
+    if (typeof syncPlaneSelection === "function") {
+        syncPlaneSelection(animationScene?.planeSelection);
+    }
+}

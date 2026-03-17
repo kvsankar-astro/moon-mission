@@ -11,13 +11,13 @@ export function createSettingsActions({
     getGlobalConfig,
     setViewFlags,
     setDimension,
+    onConfigChanged,
 }) {
     function toggleMode() {
         const val = readOriginMode();
+        const oldConfig = getConfig();
 
-        if (getConfig() !== val) {
-            const oldConfig = getConfig();
-
+        if (oldConfig !== val) {
             if (animationScenes[oldConfig]) {
                 if (animationScenes[oldConfig].state !== AnimationScene.SCENE_STATE_ADD_CURVE_DONE) {
                     animationScenes[oldConfig].stopCreation();
@@ -28,6 +28,7 @@ export function createSettingsActions({
 
             setConfig(val);
             initAnimation({ reset: false });
+            onConfigChanged?.(val, oldConfig);
         }
     }
 

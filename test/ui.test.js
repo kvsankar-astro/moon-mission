@@ -2750,7 +2750,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const comparison = await compareScreenshots(
         page,
         `${testId}.png`,
-        `${testId}.png`,
+        'earth-2d-plane-selection-default.png',
         `${testId} 2D Mode`,
         TOLERANCE.BROAD_MATCH
       );
@@ -2880,13 +2880,19 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('Page Load in Moon 2D Mode', async () => {
       const testId = 'moon-2d-page-load';
       await startTest(page, testId); // Uses default suite timeline (#burn1)
-      
+
+      // Ensure we're in Moon mode for consistent baseline comparison
+      await ensureOriginMode(page, 'moon');
+      await openSettingsPanel(page);
+      await page.click('#checkbox-lock-default');
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
       // Take screenshot in 2D mode
       const comparison = await compareScreenshots(
         page,
         `${testId}.png`,
-        `${testId}.png`,
+        'moon-2d-plane-selection-default.png',
         `${testId} Moon 2D Mode`,
         TOLERANCE.BROAD_MATCH
       );

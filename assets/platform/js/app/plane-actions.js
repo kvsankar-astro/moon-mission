@@ -96,29 +96,37 @@ export function createPlaneActions({
     handleDimensionSwitch,
     setLocation,
 }) {
-    let previousPlaneSelection = null;
-    let planeChangesPending = false;
+    const planeChangeStateByConfig = new Map();
+
+    function getPlaneChangeState(config) {
+        if (!planeChangeStateByConfig.has(config)) {
+            planeChangeStateByConfig.set(config, {
+                previousPlaneSelection: null,
+                planeChangesPending: false,
+            });
+        }
+        return planeChangeStateByConfig.get(config);
+    }
 
     function handlePlaneChange(dimension_changed = false, init_flag = false) {
         const selection = getPlaneSelection();
+        const config = getConfig();
+        const planeChangeState = getPlaneChangeState(config);
 
         let planeChanged = false;
-        if (selection !== previousPlaneSelection) {
+        if (selection !== planeChangeState.previousPlaneSelection) {
             planeChanged = true;
-            previousPlaneSelection = selection;
-            planeChangesPending = true;
+            planeChangeState.previousPlaneSelection = selection;
+            planeChangeState.planeChangesPending = true;
         } else {
             planeChanged = false;
         }
 
         if (init_flag && selection === "DEFAULT") {
-            planeChangesPending = false;
+            planeChangeState.planeChangesPending = false;
             return;
         }
         if (!dimension_changed && !planeChanged) {
-            return;
-        }
-        if (dimension_changed && !planeChangesPending) {
             return;
         }
 
@@ -129,7 +137,7 @@ export function createPlaneActions({
 
         const currentDimension = getCurrentDimension();
         if (currentDimension === "3D") {
-            animationScenes[getConfig()].setCameraParameters(init_flag);
+            animationScenes[config].setCameraParameters(init_flag);
         }
 
         if (currentDimension === "2D") {
@@ -145,8 +153,8 @@ export function createPlaneActions({
             });
         }
 
-        if (planeChangesPending && dimension_changed) {
-            planeChangesPending = false;
+        if (planeChangeState.planeChangesPending && dimension_changed) {
+            planeChangeState.planeChangesPending = false;
         }
     }
 

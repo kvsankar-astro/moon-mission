@@ -257,18 +257,34 @@ var sunLongitude = 0.0;
 // animation control
 var mouseDown = false;
 
-// defaults for XY plane
-var planeSelection = "DEFAULT"; // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
-var plane = "XY"; // XY, YZ, ZX
-var xVariable = "x";
-var yVariable = "y";
-var zVariable = "z";
-var vxVariable = "vx";
-var vyVariable = "vy";
-var vzVariable = "vz";
-var xFactor = 1;
-var yFactor = 1;
-var zFactor = 1;
+const DEFAULT_VIEW_STATE = Object.freeze({
+    planeSelection: "DEFAULT", // DEFAULT, XY, YZ, ZX, XY-, YZ-, ZX-
+    plane: "XY", // XY, YZ, ZX
+    xVariable: "x",
+    yVariable: "y",
+    zVariable: "z",
+    vxVariable: "vx",
+    vyVariable: "vy",
+    vzVariable: "vz",
+    xFactor: 1,
+    yFactor: 1,
+    zFactor: 1,
+    zoomFactor: 1,
+    panx: 0,
+    pany: 0,
+});
+
+var planeSelection = DEFAULT_VIEW_STATE.planeSelection;
+var plane = DEFAULT_VIEW_STATE.plane;
+var xVariable = DEFAULT_VIEW_STATE.xVariable;
+var yVariable = DEFAULT_VIEW_STATE.yVariable;
+var zVariable = DEFAULT_VIEW_STATE.zVariable;
+var vxVariable = DEFAULT_VIEW_STATE.vxVariable;
+var vyVariable = DEFAULT_VIEW_STATE.vyVariable;
+var vzVariable = DEFAULT_VIEW_STATE.vzVariable;
+var xFactor = DEFAULT_VIEW_STATE.xFactor;
+var yFactor = DEFAULT_VIEW_STATE.yFactor;
+var zFactor = DEFAULT_VIEW_STATE.zFactor;
 
 //
 // Orbit data related variables
@@ -295,9 +311,9 @@ var svgContainer;
 var svgRect;
 var viewBoxWidth;
 var viewBoxHeight;
-var zoomFactor = 1;
-var panx = 0;
-var pany = 0;
+var zoomFactor = DEFAULT_VIEW_STATE.zoomFactor;
+var panx = DEFAULT_VIEW_STATE.panx;
+var pany = DEFAULT_VIEW_STATE.pany;
 var defaultCameraDistance = 0;
 
 //
@@ -388,27 +404,151 @@ export var animationScenes = {};
 var animation3DControllers = {};  // Per-config 3D controllers
 var animation2DControllers = {};  // Per-config 2D controllers
 
+const PLANE_SELECTION_RADIO_IDS = Object.freeze({
+    DEFAULT: "checkbox-lock-default",
+    XY: "checkbox-lock-xy",
+    YZ: "checkbox-lock-yz",
+    ZX: "checkbox-lock-zx",
+    "XY-": "checkbox-lock-xy-minus",
+    "YZ-": "checkbox-lock-yz-minus",
+    "ZX-": "checkbox-lock-zx-minus",
+});
+
+const PLANE_SELECTION_VARIABLES = Object.freeze({
+    DEFAULT: {
+        plane: "DEFAULT",
+        xFactor: 1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "x",
+        yVariable: "y",
+        zVariable: "z",
+        vxVariable: "vx",
+        vyVariable: "vy",
+        vzVariable: "vz",
+    },
+    XY: {
+        plane: "XY",
+        xFactor: 1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "x",
+        yVariable: "y",
+        zVariable: "z",
+        vxVariable: "vx",
+        vyVariable: "vy",
+        vzVariable: "vz",
+    },
+    YZ: {
+        plane: "YZ",
+        xFactor: 1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "y",
+        yVariable: "z",
+        zVariable: "x",
+        vxVariable: "vy",
+        vyVariable: "vz",
+        vzVariable: "vx",
+    },
+    ZX: {
+        plane: "ZX",
+        xFactor: 1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "z",
+        yVariable: "x",
+        zVariable: "y",
+        vxVariable: "vz",
+        vyVariable: "vx",
+        vzVariable: "vy",
+    },
+    "XY-": {
+        plane: "XY",
+        xFactor: -1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "x",
+        yVariable: "y",
+        zVariable: "z",
+        vxVariable: "vx",
+        vyVariable: "vy",
+        vzVariable: "vz",
+    },
+    "YZ-": {
+        plane: "YZ",
+        xFactor: -1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "y",
+        yVariable: "z",
+        zVariable: "x",
+        vxVariable: "vy",
+        vyVariable: "vz",
+        vzVariable: "vx",
+    },
+    "ZX-": {
+        plane: "ZX",
+        xFactor: -1,
+        yFactor: 1,
+        zFactor: 1,
+        xVariable: "z",
+        yVariable: "x",
+        zVariable: "y",
+        vxVariable: "vz",
+        vyVariable: "vx",
+        vzVariable: "vy",
+    },
+});
+
 function getSceneForConfig(cfg = config) {
     return animationScenes[cfg];
+}
+
+function normalizePlaneSelection(selection) {
+    if (typeof selection === "string" && PLANE_SELECTION_RADIO_IDS[selection]) {
+        return selection;
+    }
+    return DEFAULT_VIEW_STATE.planeSelection;
+}
+
+function syncPlaneSelectionControls(selection) {
+    const normalized = normalizePlaneSelection(selection);
+    Object.entries(PLANE_SELECTION_RADIO_IDS).forEach(([planeId, radioId]) => {
+        setChecked(radioId, planeId === normalized);
+    });
+    return normalized;
+}
+
+function getPlaneVariablesForSelection(selection) {
+    const normalized = normalizePlaneSelection(selection);
+    return PLANE_SELECTION_VARIABLES[normalized] || PLANE_SELECTION_VARIABLES.DEFAULT;
+}
+
+function syncPlaneStateForConfig(cfg = config) {
+    const selection = getPlaneSelectionState(cfg);
+    const normalizedSelection = syncPlaneSelectionControls(selection);
+    setPlaneSelectionState(normalizedSelection, cfg);
+    setPlaneVariablesState(getPlaneVariablesForSelection(normalizedSelection), cfg);
 }
 
 function ensureSceneViewState(scene) {
     if (!scene) return null;
 
-    if (typeof scene.planeSelection !== "string") scene.planeSelection = planeSelection;
-    if (typeof scene.plane !== "string") scene.plane = plane;
-    if (typeof scene.xVariable !== "string") scene.xVariable = xVariable;
-    if (typeof scene.yVariable !== "string") scene.yVariable = yVariable;
-    if (typeof scene.zVariable !== "string") scene.zVariable = zVariable;
-    if (typeof scene.vxVariable !== "string") scene.vxVariable = vxVariable;
-    if (typeof scene.vyVariable !== "string") scene.vyVariable = vyVariable;
-    if (typeof scene.vzVariable !== "string") scene.vzVariable = vzVariable;
-    if (!Number.isFinite(scene.xFactor)) scene.xFactor = xFactor;
-    if (!Number.isFinite(scene.yFactor)) scene.yFactor = yFactor;
-    if (!Number.isFinite(scene.zFactor)) scene.zFactor = zFactor;
-    if (!Number.isFinite(scene.zoomFactor)) scene.zoomFactor = zoomFactor;
-    if (!Number.isFinite(scene.panx)) scene.panx = panx;
-    if (!Number.isFinite(scene.pany)) scene.pany = pany;
+    if (typeof scene.planeSelection !== "string") scene.planeSelection = DEFAULT_VIEW_STATE.planeSelection;
+    if (typeof scene.plane !== "string") scene.plane = DEFAULT_VIEW_STATE.plane;
+    if (typeof scene.xVariable !== "string") scene.xVariable = DEFAULT_VIEW_STATE.xVariable;
+    if (typeof scene.yVariable !== "string") scene.yVariable = DEFAULT_VIEW_STATE.yVariable;
+    if (typeof scene.zVariable !== "string") scene.zVariable = DEFAULT_VIEW_STATE.zVariable;
+    if (typeof scene.vxVariable !== "string") scene.vxVariable = DEFAULT_VIEW_STATE.vxVariable;
+    if (typeof scene.vyVariable !== "string") scene.vyVariable = DEFAULT_VIEW_STATE.vyVariable;
+    if (typeof scene.vzVariable !== "string") scene.vzVariable = DEFAULT_VIEW_STATE.vzVariable;
+    if (!Number.isFinite(scene.xFactor)) scene.xFactor = DEFAULT_VIEW_STATE.xFactor;
+    if (!Number.isFinite(scene.yFactor)) scene.yFactor = DEFAULT_VIEW_STATE.yFactor;
+    if (!Number.isFinite(scene.zFactor)) scene.zFactor = DEFAULT_VIEW_STATE.zFactor;
+    if (!Number.isFinite(scene.zoomFactor)) scene.zoomFactor = DEFAULT_VIEW_STATE.zoomFactor;
+    if (!Number.isFinite(scene.panx)) scene.panx = DEFAULT_VIEW_STATE.panx;
+    if (!Number.isFinite(scene.pany)) scene.pany = DEFAULT_VIEW_STATE.pany;
 
     return scene;
 }
@@ -418,14 +558,21 @@ function getActiveSceneViewState(cfg = config) {
 }
 
 function getPlaneSelectionState(cfg = config) {
-    // Keep legacy global plane-selection semantics for visual stability.
-    return planeSelection;
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) {
+        return normalizePlaneSelection(scene.planeSelection);
+    }
+    if (cfg === config && typeof planeSelection === "string") {
+        return normalizePlaneSelection(planeSelection);
+    }
+    return DEFAULT_VIEW_STATE.planeSelection;
 }
 
 function setPlaneSelectionState(value, cfg = config) {
+    const normalized = normalizePlaneSelection(value);
     const scene = getActiveSceneViewState(cfg);
-    if (scene) scene.planeSelection = value;
-    planeSelection = value;
+    if (scene) scene.planeSelection = normalized;
+    planeSelection = normalized;
 }
 
 function setPlaneVariablesState(planeConfig, cfg = config) {
@@ -457,18 +604,48 @@ function setPlaneVariablesState(planeConfig, cfg = config) {
 }
 
 function getPlaneVariablesState(cfg = config) {
+    const scene = getActiveSceneViewState(cfg);
+    if (scene) {
+        return {
+            plane: scene.plane,
+            xFactor: scene.xFactor,
+            yFactor: scene.yFactor,
+            zFactor: scene.zFactor,
+            xVariable: scene.xVariable,
+            yVariable: scene.yVariable,
+            zVariable: scene.zVariable,
+            vxVariable: scene.vxVariable,
+            vyVariable: scene.vyVariable,
+            vzVariable: scene.vzVariable,
+        };
+    }
+
+    if (cfg === config) {
+        return {
+            plane: plane,
+            xFactor: xFactor,
+            yFactor: yFactor,
+            zFactor: zFactor,
+            xVariable: xVariable,
+            yVariable: yVariable,
+            zVariable: zVariable,
+            vxVariable: vxVariable,
+            vyVariable: vyVariable,
+            vzVariable: vzVariable,
+        };
+    }
+
     return {
-        // Keep legacy global plane-variable semantics for visual stability.
-        plane: plane,
-        xFactor: xFactor,
-        yFactor: yFactor,
-        zFactor: zFactor,
-        xVariable: xVariable,
-        yVariable: yVariable,
-        zVariable: zVariable,
-        vxVariable: vxVariable,
-        vyVariable: vyVariable,
-        vzVariable: vzVariable,
+        plane: DEFAULT_VIEW_STATE.plane,
+        xFactor: DEFAULT_VIEW_STATE.xFactor,
+        yFactor: DEFAULT_VIEW_STATE.yFactor,
+        zFactor: DEFAULT_VIEW_STATE.zFactor,
+        xVariable: DEFAULT_VIEW_STATE.xVariable,
+        yVariable: DEFAULT_VIEW_STATE.yVariable,
+        zVariable: DEFAULT_VIEW_STATE.zVariable,
+        vxVariable: DEFAULT_VIEW_STATE.vxVariable,
+        vyVariable: DEFAULT_VIEW_STATE.vyVariable,
+        vzVariable: DEFAULT_VIEW_STATE.vzVariable,
     };
 }
 
@@ -506,9 +683,9 @@ function setPanYState(value, cfg = config) {
 }
 
 function resetViewTransformState(cfg = config) {
-    setZoomFactorState(1, cfg);
-    setPanXState(0, cfg);
-    setPanYState(0, cfg);
+    setZoomFactorState(DEFAULT_VIEW_STATE.zoomFactor, cfg);
+    setPanXState(DEFAULT_VIEW_STATE.panx, cfg);
+    setPanYState(DEFAULT_VIEW_STATE.pany, cfg);
 }
 
 // Event bus for decoupling UI ↔ mission orchestration
@@ -709,6 +886,7 @@ if (isRelativeMode) {
 }
 
 var config = readOriginMode();
+syncPlaneSelectionControls(planeSelection);
 var configGeo = (config === "geo");
 var configLunar = (config === "lunar");
 
@@ -1113,20 +1291,20 @@ class AnimationScene {
         this.state = AnimationScene.SCENE_STATE_START;
 
         // Per-scene view state (transition away from global view variables).
-        this.planeSelection = planeSelection;
-        this.plane = plane;
-        this.xVariable = xVariable;
-        this.yVariable = yVariable;
-        this.zVariable = zVariable;
-        this.vxVariable = vxVariable;
-        this.vyVariable = vyVariable;
-        this.vzVariable = vzVariable;
-        this.xFactor = xFactor;
-        this.yFactor = yFactor;
-        this.zFactor = zFactor;
-        this.zoomFactor = zoomFactor;
-        this.panx = panx;
-        this.pany = pany;
+        this.planeSelection = DEFAULT_VIEW_STATE.planeSelection;
+        this.plane = DEFAULT_VIEW_STATE.plane;
+        this.xVariable = DEFAULT_VIEW_STATE.xVariable;
+        this.yVariable = DEFAULT_VIEW_STATE.yVariable;
+        this.zVariable = DEFAULT_VIEW_STATE.zVariable;
+        this.vxVariable = DEFAULT_VIEW_STATE.vxVariable;
+        this.vyVariable = DEFAULT_VIEW_STATE.vyVariable;
+        this.vzVariable = DEFAULT_VIEW_STATE.vzVariable;
+        this.xFactor = DEFAULT_VIEW_STATE.xFactor;
+        this.yFactor = DEFAULT_VIEW_STATE.yFactor;
+        this.zFactor = DEFAULT_VIEW_STATE.zFactor;
+        this.zoomFactor = DEFAULT_VIEW_STATE.zoomFactor;
+        this.panx = DEFAULT_VIEW_STATE.panx;
+        this.pany = DEFAULT_VIEW_STATE.pany;
     }
 
 
@@ -1312,6 +1490,7 @@ class AnimationScene {
 
     setCameraParameters(isInitialization = false) {
         // console.log("setCameraParameters() called: isInitialization = " + isInitialization);
+        const sceneViewState = ensureSceneViewState(this);
 
         let controllerDistance = null;
         if (this.cameraControlsEnabled && this.cameraController) {
@@ -1319,8 +1498,8 @@ class AnimationScene {
         }
 
         const params = computeSceneCameraParameters({
-            planeSelection,
-            missionConfig: config,
+            planeSelection: sceneViewState?.planeSelection || DEFAULT_VIEW_STATE.planeSelection,
+            missionConfig: this.name,
             isInitialization,
             controllerDistance,
             defaultCameraDistance,
@@ -1743,6 +1922,11 @@ async function initConfig() {
             handleModeSwitchToLunar,
             setChecked,
             animationScene: existingScene,
+            syncPlaneSelection: (selection) => {
+                const normalized = normalizePlaneSelection(selection);
+                setPlaneSelectionState(normalized, config);
+                syncPlaneSelectionControls(normalized);
+            },
         });
         return;
     }
@@ -2080,6 +2264,9 @@ const { toggleMode, setDimensionTop, setView } = createSettingsActions({
         viewFPS = view.viewFPS;
     },
     setDimension: dimensionActions.setDimension,
+    onConfigChanged: (newConfig) => {
+        syncPlaneStateForConfig(newConfig);
+    },
 });
 
 function navigateWithRelativeMode(enabled) {
