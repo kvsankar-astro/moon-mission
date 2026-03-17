@@ -147,6 +147,17 @@ import {
     syncPlaneSelectionControls,
 } from "./app/plane-view-state.js";
 import { createSceneViewStateActions } from "./app/scene-view-state.js";
+import { createRelativeModeActions } from "./app/relative-mode.js";
+import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
+import { createCameraOverlayActions } from "./app/camera-overlay.js";
+import { createSceneUiUpdateActions } from "./app/scene-ui-update-actions.js";
+import { createInitOrchestrationActions } from "./app/init-orchestration.js";
+import {
+    computeAnimationStepState,
+    updateFpsCounterState,
+    updateFrameDeltaState,
+    updateThreeDLoopCamera,
+} from "./app/animation-loop.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -206,44 +217,17 @@ const ephemerisRecords = {}; // config -> { npz?: { url, bodies }, chebyshev?: {
 const ephemerisStatuses = {}; // config -> { npz?: { status, message }, chebyshev?: { status, message } }
 let bodyEphemerisSources = {}; // optional per-body overrides from config
 
-// UI feature flags (default off for stable screenshots/regressions).
-const UI_FEATURE_FLAGS = {
-    showMissionInfoPanel: false,
-};
-
-function isMissionInfoPanelEnabled() {
-    const override = window?.CY3_UI_FLAGS?.showMissionInfoPanel;
-    if (typeof override === "boolean") {
-        return override;
-    }
-    return UI_FEATURE_FLAGS.showMissionInfoPanel;
-}
-
-function bindInfoPanelControls() {
-    const wrapper = document.getElementById("info-panel-wrapper");
-    const enabled = isMissionInfoPanelEnabled();
-    if (wrapper) {
-        wrapper.style.display = enabled ? "" : "none";
-    }
-    if (!enabled) return;
-
-    const toggle = document.getElementById("info-panel-toggle");
-    const panel = document.getElementById("info-panel");
-    const close = document.getElementById("info-panel-close");
-    if (!toggle || !panel || !close) return;
-
-    const show = () => {
-        panel.classList.remove("info-panel--hidden");
-        toggle.classList.add("hidden");
-    };
-    const hide = () => {
-        panel.classList.add("info-panel--hidden");
-        toggle.classList.remove("hidden");
-    };
-
-    toggle.addEventListener("click", show);
-    close.addEventListener("click", hide);
-}
+const {
+    bindInfoPanelControls,
+    updateEphemerisPanel,
+} = createEphemerisInfoPanelActions({
+    getGlobalConfig: () => globalConfig,
+    getEphemerisSource: () => ephemerisSource,
+    getEphemerisRecords: () => ephemerisRecords,
+    getEphemerisStatuses: () => ephemerisStatuses,
+    getBodyEphemerisSources: () => bodyEphemerisSources,
+    resolveBodySource,
+});
 
 // Chebyshev ephemeris data (replaces NPZ for spacecraft position)
 var chebyshevDataLoaded = { "geo": false, "lunar": false };
@@ -631,34 +615,26 @@ const moonActions = createMoonActions({
 
 // View variables
 
-const ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
+let toggleMode;
+let setDimensionTop;
+let setView;
 
-function consumeOriginOverrideFromSession() {
-    try {
-        const override = sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY);
-        if (override === "lunar") {
-            setChecked("origin-moon", true);
-            setChecked("origin-earth", false);
-            setChecked("origin-relative", false);
-        } else if (override === "geo") {
-            setChecked("origin-earth", true);
-            setChecked("origin-moon", false);
-            setChecked("origin-relative", false);
-        }
-        sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
-    } catch {
-        // Ignore storage errors (private browsing, disabled storage, etc.)
-    }
-}
+const {
+    consumeOriginOverrideFromSession,
+    applyRelativeModeOriginSelection,
+    toggleRelativeMode,
+    toggleModeGuarded,
+} = createRelativeModeActions({
+    isRelativeMode,
+    setChecked,
+    readOriginMode,
+    getToggleMode: () => toggleMode,
+});
 
 consumeOriginOverrideFromSession();
 
 // Relative mode is Earth-centered; force Earth origin selection without changing defaults for normal runs.
-if (isRelativeMode) {
-    setChecked("origin-relative", true);
-    setChecked("origin-earth", false);
-    setChecked("origin-moon", false);
-}
+applyRelativeModeOriginSelection();
 
 var config = readOriginMode();
 syncPlaneSelectionControls(planeSelection, setChecked);
@@ -706,103 +682,6 @@ async function fetchMetadata(baseFileName) {
         console.warn(`No metadata file found: ${metaFileName}, using defaults`);
     }
     return null; // Fallback to defaults
-}
-
-function updateEphemerisPanel() {
-    const panel = document.getElementById("info-panel-body");
-    if (!panel) return;
-
-    if (!globalConfig) {
-        panel.innerHTML = "Mission configuration has not loaded yet.";
-        return;
-    }
-
-    const missionName = globalConfig?.mission_name || "Mission";
-    const sc = globalConfig?.spacecraft_mnemonic || "SC";
-    const epSrc = ephemerisSource.toUpperCase();
-    const phases = globalConfig?.phases || [];
-
-    const statusBadge = (cfg, source) => {
-        const s = ephemerisStatuses[cfg]?.[source]?.status || "pending";
-        const msg = ephemerisStatuses[cfg]?.[source]?.message || "";
-        const cls =
-            s === "ok"
-                ? "info-panel__status--ok"
-                : s === "error"
-                  ? "info-panel__status--err"
-                  : s === "loading"
-                    ? "info-panel__status--warn"
-                    : "info-panel__status--pending";
-        return `<span class="info-panel__status ${cls}">${s.toUpperCase()}</span>${msg ? ` <span>${msg}</span>` : ""}`;
-    };
-
-    const bodySourceRows = ["SC", "MOON", "EARTH", "SUN"]
-        .map((bodyId) => {
-            const source = resolveBodySource({
-                bodyId,
-                bodySources: bodyEphemerisSources,
-                defaultSpacecraftSource: ephemerisSource,
-            });
-            return `<div class="info-panel__kv"><span>${bodyId}</span><span>${source.toUpperCase()}</span></div>`;
-        })
-        .join("");
-
-    const phaseRows = phases
-        .map((cfg) => {
-            const phaseConfig = globalConfig?.[cfg] || {};
-            const sourceRows = ["npz", "chebyshev"]
-                .map((source) => {
-                    const record = ephemerisRecords[cfg]?.[source];
-                    const file = record?.url ? record.url.split("/").pop() : "—";
-                    return `
-                        <div class="info-panel__subrow">
-                            <div class="info-panel__kv">
-                                <span>${source.toUpperCase()}</span>
-                                <span>${file}</span>
-                            </div>
-                            <div>${statusBadge(cfg, source)}</div>
-                        </div>
-                    `;
-                })
-                .join("");
-
-            const timeWindow =
-                [phaseConfig.start_year, phaseConfig.start_month, phaseConfig.start_day].every(Boolean)
-                    ? `${phaseConfig.start_year}-${phaseConfig.start_month}-${phaseConfig.start_day} ${phaseConfig.start_hour || "00"}:${phaseConfig.start_minute || "00"} -> ${phaseConfig.stop_year || "—"}-${phaseConfig.stop_month || "—"}-${phaseConfig.stop_day || "—"} ${phaseConfig.stop_hour || "00"}:${phaseConfig.stop_minute || "00"}`
-                    : "—";
-
-            return `
-                <section class="info-panel__section">
-                    <div class="info-panel__section-title">${cfg.toUpperCase()}</div>
-                    <div class="info-panel__kv"><span>Center</span><span>${phaseConfig.center || "—"}</span></div>
-                    <div class="info-panel__kv"><span>Planets</span><span>${(phaseConfig.planets || []).join(", ") || "—"}</span></div>
-                    <div class="info-panel__kv"><span>Orbit File</span><span>${phaseConfig.orbits_file || "—"}</span></div>
-                    <div class="info-panel__kv"><span>Step</span><span>${phaseConfig.step_size_in_seconds || "—"} s</span></div>
-                    <div class="info-panel__kv"><span>Window</span><span>${timeWindow}</span></div>
-                    <div class="info-panel__subsection-title">Ephemeris Files</div>
-                    ${sourceRows}
-                </section>`;
-        })
-        .join("");
-
-    panel.innerHTML = `
-        <section class="info-panel__section">
-            <div class="info-panel__section-title">Mission</div>
-            <div class="info-panel__kv"><span>Name</span><span>${missionName}</span></div>
-            <div class="info-panel__kv"><span>Short Name</span><span>${globalConfig?.mission_name_short || "—"}</span></div>
-            <div class="info-panel__kv"><span>Spacecraft</span><span>${sc}</span></div>
-            <div class="info-panel__kv"><span>Default Source</span><span>${epSrc}</span></div>
-            <div class="info-panel__kv"><span>Phases</span><span>${phases.join(", ") || "—"}</span></div>
-            <div class="info-panel__kv"><span>Landing</span><span>${globalConfig?.landing?.enabled ? "Enabled" : "Disabled"}</span></div>
-            <div class="info-panel__kv"><span>Events</span><span>${Object.keys(globalConfig?.events || {}).length}</span></div>
-            <div class="info-panel__kv"><span>Landing Sites</span><span>${(globalConfig?.landingSites || []).length}</span></div>
-        </section>
-        <section class="info-panel__section">
-            <div class="info-panel__section-title">Body Sources</div>
-            ${bodySourceRows}
-        </section>
-        ${phaseRows || '<section class="info-panel__section">No ephemeris requests yet.</section>'}
-    `;
 }
 
 function updateMoonUIFromConfig() {
@@ -2014,7 +1893,11 @@ const dimensionActions = createDimensionActions({
     updateProgressLabel,
 });
 
-const { toggleMode, setDimensionTop, setView } = createSettingsActions({
+({
+    toggleMode,
+    setDimensionTop,
+    setView,
+} = createSettingsActions({
     getConfig: () => config,
     setConfig: (val) => { config = val; },
     animationScenes,
@@ -2042,48 +1925,14 @@ const { toggleMode, setDimensionTop, setView } = createSettingsActions({
     onConfigChanged: (newConfig) => {
         syncPlaneStateForConfig(newConfig);
     },
+}));
+
+const sceneUiUpdateActions = createSceneUiUpdateActions({
+    d3,
+    formatMetric: FORMAT_METRIC,
+    updateEventInfo,
+    clearEventInfo,
 });
-
-function navigateWithRelativeMode(enabled) {
-    const url = new URL(window.location.href);
-    if (enabled) {
-        url.searchParams.set("mode", "relative");
-    } else {
-        url.searchParams.delete("mode");
-    }
-    window.location.href = url.toString();
-}
-
-function toggleRelativeMode() {
-    if (isRelativeMode) return;
-    try {
-        sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
-    } catch {
-        // Ignore storage errors
-    }
-    navigateWithRelativeMode(true);
-}
-
-function toggleModeGuarded() {
-    if (!isRelativeMode) {
-        toggleMode();
-        return;
-    }
-
-    // Relative mode is URL-driven (mode=relative). Exiting requires a reload to reset frame/orbit sources.
-    const nextOrigin = readOriginMode();
-    try {
-        if (nextOrigin === "lunar") {
-            sessionStorage.setItem(ORIGIN_OVERRIDE_STORAGE_KEY, "lunar");
-        } else {
-            sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
-        }
-    } catch {
-        // Ignore storage errors
-    }
-
-    navigateWithRelativeMode(false);
-}
 
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
@@ -2136,10 +1985,11 @@ function setLocation() {
     // =========================================================================
     // 3. Render with appropriate controller
     // =========================================================================
+    const primaryBody = animationScenes[config].primaryBody;
     const renderOptions = {
         craftId,
         pixelsPerAU: PIXELS_PER_AU,
-        primaryBody: animationScenes[config].primaryBody,
+        primaryBody,
         planetsForLocations: animationScenes[config].planetsForLocations,
         updateCraftScale,
         landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
@@ -2193,85 +2043,17 @@ function setLocation() {
     // =========================================================================
     // 4. Update shared UI: telemetry display
     // =========================================================================
-    const setMetricText = (selector, value) => {
-        d3.select(selector).text(Number.isFinite(value) ? FORMAT_METRIC(value) : "");
-    };
-
-    if (sceneState.telemetry) {
-        const tel = sceneState.telemetry;
-        const primaryBody = animationScenes[config].primaryBody;
-
-        setMetricText("#distance-SC-" + primaryBody, tel.distancePrimary);
-        setMetricText("#altitude-SC-" + primaryBody, tel.altitudePrimary);
-        setMetricText("#velocity-SC-" + primaryBody, tel.velocityPrimary);
-
-        const hasMoonSecondary = tel.distanceMoon !== undefined && tel.distanceMoon !== null;
-        const hasEarthSecondary = tel.distanceEarth !== undefined && tel.distanceEarth !== null;
-
-        // Always write both panels each frame so stale values never linger.
-        if (hasMoonSecondary) {
-            setMetricText("#distance-SC-MOON", tel.distanceMoon);
-            setMetricText("#altitude-SC-MOON", tel.altitudeMoon);
-            setMetricText("#velocity-SC-MOON", tel.velocityMoon);
-        } else if (primaryBody === "MOON") {
-            setMetricText("#distance-SC-MOON", tel.distancePrimary);
-            setMetricText("#altitude-SC-MOON", tel.altitudePrimary);
-            setMetricText("#velocity-SC-MOON", tel.velocityPrimary);
-        } else {
-            setMetricText("#distance-SC-MOON", null);
-            setMetricText("#altitude-SC-MOON", null);
-            setMetricText("#velocity-SC-MOON", null);
-        }
-
-        if (hasEarthSecondary) {
-            setMetricText("#distance-SC-EARTH", tel.distanceEarth);
-            setMetricText("#altitude-SC-EARTH", tel.altitudeEarth);
-            setMetricText("#velocity-SC-EARTH", tel.velocityEarth);
-        } else if (primaryBody === "EARTH") {
-            setMetricText("#distance-SC-EARTH", tel.distancePrimary);
-            setMetricText("#altitude-SC-EARTH", tel.altitudePrimary);
-            setMetricText("#velocity-SC-EARTH", tel.velocityPrimary);
-        } else {
-            setMetricText("#distance-SC-EARTH", null);
-            setMetricText("#altitude-SC-EARTH", null);
-            setMetricText("#velocity-SC-EARTH", null);
-        }
-    } else {
-        setMetricText("#distance-SC-EARTH", null);
-        setMetricText("#altitude-SC-EARTH", null);
-        setMetricText("#velocity-SC-EARTH", null);
-        setMetricText("#distance-SC-MOON", null);
-        setMetricText("#altitude-SC-MOON", null);
-        setMetricText("#velocity-SC-MOON", null);
-    }
+    sceneUiUpdateActions.updateTelemetry(sceneState, primaryBody);
 
     // =========================================================================
     // 5. Update shared UI: phase indicator
     // =========================================================================
-    if (globalConfig && globalConfig.is_lunar) {
-        d3.select("#phase-1").html("Earth Bound Phase");
-        d3.select("#phase-2").html("Lunar Bound Phase");
-        d3.select("#phase-3").html("Lunar Orbit Phase");
-
-        if (sceneState.phase === "earth-bound") {
-            d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
-        } else if (sceneState.phase === "lunar-bound") {
-            d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
-        } else if (sceneState.phase === "lunar-orbit") {
-            d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
-        }
-    }
+    sceneUiUpdateActions.updatePhaseIndicator(sceneState, globalConfig);
 
     // =========================================================================
     // 6. Update shared UI: event/burn indicator
     // =========================================================================
-    if (sceneState.activeEvent) {
-        d3.select("#burng").style("visibility", "visible");
-        updateEventInfo(sceneState.activeEvent.infoText);
-    } else {
-        d3.select("#burng").style("visibility", "hidden");
-        clearEventInfo();
-    }
+    sceneUiUpdateActions.updateActiveEvent(sceneState);
 
     render();
 }
@@ -2293,38 +2075,7 @@ function adjustCameraProjectionMatrixAndSkyAngle() {
 }
 
 async function initAnimation(flags) {
-    
-    try {
-        await initConfig();
-        await init(function() {});
-    
-        await (async function waitUntilOrbitDataProcessed() {
-            if (!orbitDataProcessed[config]) {
-                // console.log("Waiting for orbit data to be processed for " + config);
-                setTimeout(waitUntilOrbitDataProcessed, 50);
-            } else {
-                // console.log("Orbit data already processed for " + config);
-                if (flags.reset) { missionStart(); } else { setLocation(); };
-                // realtime();
-                dimensionActions.setDimension(true);
-                setView();
-                // Proposal 2: ensure the current from-to camera settings are applied after init.
-                // This also resets camera parameters in manual/manual mode for consistent startup.
-                changeCameraFromTo();
-                updateCraftScale();
-                // startLandingFlag = true;
-                // cy3Animate();
-            }
-        })();    
-    } catch (error) {
-        d3.select("#eventinfo").text("Failed to load the aninmation. Please restart the browser and try again.");
-        console.error("Error: exception in initAnimation(): " + error);
-        d3SelectAll("button").attr("disabled", true);
-        return;
-    }
-
-    render();
-    requestAnimationFrame(animateLoop);
+    return initOrchestrationActions.initAnimation(flags);
 }
 
 function animateLoop() {
@@ -2332,46 +2083,46 @@ function animateLoop() {
     curFrameTime = performance.now();
 
     // Update FPS counter
-    fpsFrameCount++;
-    if (fpsLastTime === 0) {
-        fpsLastTime = curFrameTime;
-    }
-    if (curFrameTime - fpsLastTime >= fpsUpdateInterval) {
-        const fps = Math.round(fpsFrameCount * 1000 / (curFrameTime - fpsLastTime));
-        updateFPSCounter(fps);
-        fpsFrameCount = 0;
-        fpsLastTime = curFrameTime;
-    }
+    ({
+        fpsFrameCount,
+        fpsLastTime,
+    } = updateFpsCounterState({
+        curFrameTime,
+        fpsFrameCount,
+        fpsLastTime,
+        fpsUpdateInterval,
+        updateFPSCounter,
+    }));
 
     // Update frame timing for delta calculations
-    if (prevFrameTime != null) {
-        deltaFrameTime = curFrameTime - prevFrameTime;
-    }
-    prevFrameTime = curFrameTime;
+    ({
+        prevFrameTime,
+        deltaFrameTime,
+    } = updateFrameDeltaState({
+        curFrameTime,
+        prevFrameTime,
+        deltaFrameTime,
+    }));
 
-    ++animateLoopCount;
-    if (animateLoopCount % ticksPerAnimationStep < 0.1) {
-
-        animateLoopCount = 0;
+    const {
+        animateLoopCount: nextAnimateLoopCount,
+        shouldAdvance,
+    } = computeAnimationStepState({
+        animateLoopCount,
+        ticksPerAnimationStep,
+    });
+    animateLoopCount = nextAnimateLoopCount;
+    if (shouldAdvance) {
 
         // Use animation controller to advance time
         // The controller's onTimeChange callback handles setLocation()
         animationController.tick(curFrameTime);
     }
 
-    if (animationScenes[config] && animationScenes[config].initialized3D && animationScenes[config].cameraControlsEnabled) {
-        // Keep sky centered on the camera without relying on matrixWorld timing.
-        animationScenes[config].camera.updateMatrixWorld?.(true);
-        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
-        // Keep sky centered on the camera without relying on matrixWorld timing.
-        animationScenes[config].camera.updateMatrixWorld?.(true);
-        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
-
-        if (!animationScenes[config].cameraController?._freeFlyActive) {
-            animationScenes[config].cameraControls.update();
-            cameraControlsCallback();
-        }
-    }
+    updateThreeDLoopCamera({
+        scene: animationScenes[config],
+        cameraControlsCallback,
+    });
 
     updateCameraOverlay();
 
@@ -2716,108 +2467,37 @@ const { changeCameraFromTo, togglePlane, recenterMountedCamera } = createCameraA
     getViewSky: () => viewSky,
 });
 
-let cameraOverlayState = null;
-let lastCameraOverlayUpdateMs = 0;
+const initOrchestrationActions = createInitOrchestrationActions({
+    initConfig,
+    init,
+    getConfig: () => config,
+    isOrbitDataProcessed: (cfg) => !!orbitDataProcessed[cfg],
+    missionStart,
+    setLocation,
+    setDimension: (value) => {
+        dimensionActions.setDimension(value);
+    },
+    getSetView: () => setView,
+    getChangeCameraFromTo: () => changeCameraFromTo,
+    updateCraftScale,
+    d3,
+    d3SelectAll,
+    render,
+    requestAnimationFrame,
+    animateLoop,
+});
 
-function initCameraOverlay() {
-    if (isTestMode) return;
-
-    const wrapper = document.getElementById("camera-overlay-wrapper");
-    const toggle = document.getElementById("camera-overlay-toggle");
-    const panel = document.getElementById("camera-overlay");
-    const close = document.getElementById("camera-overlay-close");
-    const recenter = document.getElementById("camera-overlay-recenter");
-
-    if (!wrapper || !toggle || !panel || !close || !recenter) return;
-
-    wrapper.hidden = false;
-
-    const openPanel = () => { panel.hidden = false; };
-    const closePanel = () => { panel.hidden = true; };
-
-    toggle.addEventListener("click", () => {
-        panel.hidden ? openPanel() : closePanel();
-        updateCameraOverlay(true);
-    });
-    close.addEventListener("click", closePanel);
-    recenter.addEventListener("click", () => {
-        recenterMountedCamera();
-        updateCameraOverlay(true);
-    });
-
-    cameraOverlayState = {
-        panel,
-        mode: document.getElementById("camera-overlay-mode"),
-        look: document.getElementById("camera-overlay-look"),
-        posUnits: document.getElementById("camera-overlay-pos-units"),
-        posKm: document.getElementById("camera-overlay-pos-km"),
-        mountDist: document.getElementById("camera-overlay-mount-dist"),
-        tmp: new THREE.Vector3(),
-    };
-}
-
-function estimateBodyRadius(scene, mode) {
-    const mesh = mode === "earth"
-        ? scene?.earth
-        : mode === "moon"
-            ? scene?.moon
-            : null;
-    const geometry = mesh?.geometry;
-    if (!geometry) return null;
-    if (!geometry.boundingSphere) geometry.computeBoundingSphere?.();
-    const r = geometry.boundingSphere?.radius;
-    return Number.isFinite(r) && r > 0 ? r : null;
-}
-
-function updateCameraOverlay(force = false) {
-    if (!cameraOverlayState?.panel || cameraOverlayState.panel.hidden) return;
-
-    const now = performance.now();
-    if (!force && now - lastCameraOverlayUpdateMs < 200) return;
-    lastCameraOverlayUpdateMs = now;
-
-    const scene = animationScenes[config];
-    const camera = scene?.camera;
-    if (!scene?.initialized3D || !camera) return;
-
-    const positionMode = readCameraPositionMode();
-    const lookMode = readCameraLookMode();
-
-    const kmPerUnit = Number.isFinite(PIXELS_PER_AU) && PIXELS_PER_AU > 0
-        ? (PC.KM_PER_AU / PIXELS_PER_AU)
-        : null;
-
-    camera.getWorldPosition(cameraOverlayState.tmp);
-    const { x, y, z } = cameraOverlayState.tmp;
-
-    if (cameraOverlayState.mode) cameraOverlayState.mode.textContent = positionMode;
-    if (cameraOverlayState.look) cameraOverlayState.look.textContent = lookMode;
-    if (cameraOverlayState.posUnits) cameraOverlayState.posUnits.textContent = `${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}`;
-    if (cameraOverlayState.posKm && kmPerUnit) {
-        cameraOverlayState.posKm.textContent = `${(x * kmPerUnit).toFixed(0)}, ${(y * kmPerUnit).toFixed(0)}, ${(z * kmPerUnit).toFixed(0)}`;
-    } else if (cameraOverlayState.posKm) {
-        cameraOverlayState.posKm.textContent = "-";
-    }
-
-    if (cameraOverlayState.mountDist) {
-        if (positionMode === "earth" || positionMode === "moon") {
-            const controller = scene.cameraController;
-            const distance = controller?.mountOffset?.length?.();
-            const radius = estimateBodyRadius(scene, positionMode);
-            const inside = Number.isFinite(distance) && Number.isFinite(radius) ? (distance < radius) : null;
-            const distKm = kmPerUnit && Number.isFinite(distance) ? (distance * kmPerUnit).toFixed(0) : "-";
-            const insideLabel = inside === null ? "?" : (inside ? "inside" : "outside");
-            cameraOverlayState.mountDist.textContent = `${Number.isFinite(distance) ? distance.toFixed(2) : "-"} u (${distKm} km) • ${insideLabel}`;
-        } else if (positionMode === "spacecraft") {
-            const controller = scene.cameraController;
-            const distance = controller?.mountOffset?.length?.();
-            const distKm = kmPerUnit && Number.isFinite(distance) ? (distance * kmPerUnit).toFixed(0) : "-";
-            cameraOverlayState.mountDist.textContent = `${Number.isFinite(distance) ? distance.toFixed(2) : "-"} u (${distKm} km)`;
-        } else {
-            cameraOverlayState.mountDist.textContent = "-";
-        }
-    }
-}
+const { initCameraOverlay, updateCameraOverlay } = createCameraOverlayActions({
+    THREE,
+    isTestMode,
+    getAnimationScenes: () => animationScenes,
+    getConfig: () => config,
+    readCameraPositionMode,
+    readCameraLookMode,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    getKmPerAu: () => PC.KM_PER_AU,
+    recenterMountedCamera,
+});
 
 const { toggleJoyRide, toggleLanding } = createModeActions({
     animationScenes,
