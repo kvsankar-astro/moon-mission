@@ -1,0 +1,265 @@
+import { degreesToRadians, distance3D, sphericalToCartesian } from "../utils/math-utils.js";
+import { SkyRenderer } from "../rendering/sky-renderer.js";
+import { LightManager } from "../rendering/light-manager.js";
+import { EarthRenderer } from "../rendering/earth-renderer.js";
+import { MoonRenderer } from "../rendering/moon-renderer.js";
+import { SpacecraftRenderer } from "../rendering/spacecraft-renderer.js";
+import { CameraController } from "../rendering/camera-controller.js";
+import { createOrbitCurveActions } from "./orbit-curve-actions.js";
+import { createBodyRotationActions } from "./body-rotation-actions.js";
+import { createLocationActions } from "./location-actions.js";
+import { createSpacecraftCurveActions } from "./spacecraft-curve-actions.js";
+import { createPrimarySecondaryBodiesActions } from "./primary-secondary-bodies-actions.js";
+import { loadSceneTextures } from "./texture-loader.js";
+import { createSceneInitActions } from "./scene-init-actions.js";
+import { createSceneDisposeActions } from "./scene-dispose-actions.js";
+import { createDimensionsActions } from "./dimensions-actions.js";
+import { applySceneTextures } from "./scene-texture-actions.js";
+import { createScene3dInitActions } from "./scene-3d-init-actions.js";
+import { createSceneCameraPositionActions } from "./scene-camera-position-actions.js";
+import { createSceneCreationActions } from "./scene-creation-actions.js";
+import { createOrbitVectorProcessingActions } from "./orbit-vector-processing-actions.js";
+import { createLineOfSightActions } from "./line-of-sight-actions.js";
+import { createAxesHelperActions } from "./axes-helper-actions.js";
+import { createLightActions } from "./light-actions.js";
+import { createSpacecraftActions } from "./spacecraft-actions.js";
+import { createSceneCameraControllerActions } from "./scene-camera-controller-actions.js";
+import { createSpacecraftModelActions } from "./spacecraft-model-actions.js";
+import { createSkyActions } from "./sky-actions.js";
+import { createEarthActions } from "./earth-actions.js";
+import { createMoonActions } from "./moon-actions.js";
+
+function createMissionSceneActionBundle(deps) {
+    const {
+        THREE,
+        Astronomy,
+        lunar_pole,
+        COL,
+        PC,
+        generateCurveFromChebyshev,
+        chebyshevDataLoaded,
+        chebyshevData,
+        npzData,
+        npzDataLoaded,
+        getLandingNpzLoaded,
+        getLandingNpzData,
+        getEphemerisSource,
+        resolveBodySource,
+        generateBodyCurve,
+        getStepMs,
+        getStartTime,
+        getLatestEndTime,
+        getLandingEnabled,
+        getLandingChebyshevLoaded,
+        getLandingChebyshevData,
+        getStartLandingTime,
+        getEndLandingTime,
+        getPixelsPerAU,
+        getGlobalConfig,
+        getConfig,
+        getCraftId,
+        planetProperties,
+        getOrbitPointsCount,
+        getLandingPointsCount,
+        getViewOrbitDescent,
+        getViewOrbit,
+        render,
+        wait10,
+        wait20,
+        clearEventInfo,
+        computeSVGDimensions,
+        getSvgWidth,
+        getSvgHeight,
+        cameraControlsCallback,
+        setOrbitPointsCount,
+        setLandingPointsCount,
+        getCraftSize,
+        getDefaultCameraDistance,
+        getRendererDomElement,
+        getModelPathPrefix,
+        getMoonRadius,
+        getViewPolarAxes,
+        getViewPoles,
+        getAnimTime,
+        getEarthRadius,
+        getViewCraters,
+        SceneHelpers,
+    } = deps;
+
+    const orbitCurveActions = createOrbitCurveActions({
+        THREE,
+        generateCurveFromChebyshev,
+        chebyshevDataLoaded,
+        chebyshevData,
+        npzData,
+        npzDataLoaded,
+        getLandingNpzLoaded,
+        getLandingNpzData,
+        getEphemerisSource,
+        resolveBodySource,
+        generateBodyCurve,
+        getStepMs,
+        getStartTime,
+        getLatestEndTime,
+        getLandingEnabled,
+        getLandingChebyshevLoaded,
+        getLandingChebyshevData,
+        getStartLandingTime,
+        getEndLandingTime,
+        PC,
+        getPixelsPerAU,
+    });
+
+    const bodyRotationActions = createBodyRotationActions({
+        lunar_pole,
+        Astronomy,
+        degreesToRadians,
+        PC,
+    });
+
+    const locationActions = createLocationActions({
+        THREE,
+        sphericalToCartesian,
+        degreesToRadians,
+        COL,
+        getEarthRadius,
+        getMoonRadius,
+        getGlobalConfig,
+        getViewCraters,
+    });
+
+    const spacecraftCurveActions = createSpacecraftCurveActions({
+        THREE,
+        getGlobalConfig,
+        getConfig,
+        getCraftId,
+        planetProperties,
+        getOrbitPointsCount,
+        getLandingPointsCount,
+        getViewOrbitDescent,
+        getViewOrbit,
+        render,
+        wait10,
+        createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
+    });
+
+    const primarySecondaryBodiesActions = createPrimarySecondaryBodiesActions({
+        getConfig,
+        getGlobalConfig,
+    });
+
+    const sceneInitActions = createSceneInitActions({
+        THREE,
+        render,
+        wait20,
+        clearEventInfo,
+    });
+
+    const sceneDisposeActions = createSceneDisposeActions();
+
+    const dimensionsActions = createDimensionsActions({
+        computeSVGDimensions,
+        getSvgWidth,
+        getSvgHeight,
+    });
+
+    const scene3dInitActions = createScene3dInitActions({
+        THREE,
+        loadSceneTextures,
+        applySceneTextures,
+    });
+
+    const sceneCameraPositionActions = createSceneCameraPositionActions({
+        cameraControlsCallback,
+        distance3D,
+    });
+
+    const sceneCreationActions = createSceneCreationActions();
+
+    const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
+        orbitCurveActions,
+        getConfig,
+        setOrbitPointsCount,
+        setLandingPointsCount,
+    });
+
+    const lineOfSightActions = createLineOfSightActions();
+
+    const axesHelperActions = createAxesHelperActions({
+        SceneHelpers,
+        getPixelsPerAU,
+        PC,
+    });
+
+    const lightActions = createLightActions({
+        LightManager,
+    });
+
+    const spacecraftActions = createSpacecraftActions({
+        SpacecraftRenderer,
+        planetProperties,
+        getCraftSize,
+    });
+
+    const sceneCameraControllerActions = createSceneCameraControllerActions({
+        CameraController,
+        getDefaultCameraDistance,
+        getRendererDomElement,
+        cameraControlsCallback,
+        render,
+    });
+
+    const spacecraftModelActions = createSpacecraftModelActions({
+        SpacecraftRenderer,
+        planetProperties,
+        getCraftSize,
+        getGlobalConfig,
+        getModelPathPrefix,
+    });
+
+    const skyActions = createSkyActions({
+        SkyRenderer,
+        render,
+    });
+
+    const earthActions = createEarthActions({
+        EarthRenderer,
+        render,
+    });
+
+    const moonActions = createMoonActions({
+        MoonRenderer,
+        getMoonRadius,
+        getGlobalConfig,
+        getViewPolarAxes,
+        getViewPoles,
+        getAnimTime,
+        render,
+    });
+
+    return {
+        orbitCurveActions,
+        bodyRotationActions,
+        locationActions,
+        spacecraftCurveActions,
+        primarySecondaryBodiesActions,
+        sceneInitActions,
+        sceneDisposeActions,
+        dimensionsActions,
+        scene3dInitActions,
+        sceneCameraPositionActions,
+        sceneCreationActions,
+        orbitVectorProcessingActions,
+        lineOfSightActions,
+        axesHelperActions,
+        lightActions,
+        spacecraftActions,
+        sceneCameraControllerActions,
+        spacecraftModelActions,
+        skyActions,
+        earthActions,
+        moonActions,
+    };
+}
+
+export { createMissionSceneActionBundle };

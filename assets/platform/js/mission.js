@@ -24,19 +24,12 @@ import {
     updateSpacecraftMnemonic
 } from "./core/dom.js";
 import { generateCurveFromChebyshev } from "./chebyshev.js";
-import { degreesToRadians, distance3D, sphericalToCartesian, velocityToAngle } from "./utils/math-utils.js";
 import {
     createUTCTimestamp,
     formatDateTimeIST,
     getDateComponentsUTC
 } from "./utils/time-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
-import { SkyRenderer } from "./rendering/sky-renderer.js";
-import { LightManager } from "./rendering/light-manager.js";
-import { EarthRenderer } from "./rendering/earth-renderer.js";
-import { MoonRenderer } from "./rendering/moon-renderer.js";
-import { SpacecraftRenderer } from "./rendering/spacecraft-renderer.js";
-import { CameraController, CAMERA_LOOK_MODE } from "./rendering/camera-controller.js";
 import { AnimationController } from "./animation/animation-controller.js";
 import {
     computeSceneState,
@@ -72,29 +65,6 @@ import {
 } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createSceneCameraActions } from "./app/scene-camera-actions.js";
-import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
-import { createBodyRotationActions } from "./app/body-rotation-actions.js";
-import { createLocationActions } from "./app/location-actions.js";
-import { createSpacecraftCurveActions } from "./app/spacecraft-curve-actions.js";
-import { createPrimarySecondaryBodiesActions } from "./app/primary-secondary-bodies-actions.js";
-import { loadSceneTextures } from "./app/texture-loader.js";
-import { createSceneInitActions } from "./app/scene-init-actions.js";
-import { createSceneDisposeActions } from "./app/scene-dispose-actions.js";
-import { createDimensionsActions } from "./app/dimensions-actions.js";
-import { applySceneTextures } from "./app/scene-texture-actions.js";
-import { createScene3dInitActions } from "./app/scene-3d-init-actions.js";
-import { createSceneCameraPositionActions } from "./app/scene-camera-position-actions.js";
-import { createSceneCreationActions } from "./app/scene-creation-actions.js";
-import { createOrbitVectorProcessingActions } from "./app/orbit-vector-processing-actions.js";
-import { createLineOfSightActions } from "./app/line-of-sight-actions.js";
-import { createAxesHelperActions } from "./app/axes-helper-actions.js";
-import { createLightActions } from "./app/light-actions.js";
-import { createSpacecraftActions } from "./app/spacecraft-actions.js";
-import { createSceneCameraControllerActions } from "./app/scene-camera-controller-actions.js";
-import { createSpacecraftModelActions } from "./app/spacecraft-model-actions.js";
-import { createSkyActions } from "./app/sky-actions.js";
-import { createEarthActions } from "./app/earth-actions.js";
-import { createMoonActions } from "./app/moon-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -142,6 +112,7 @@ import {
     createMissionWiringActions,
 } from "./app/mission-context-builders.js";
 import { createMissionStateAccess } from "./app/mission-state-access.js";
+import { createMissionSceneActionBundle } from "./app/mission-scene-action-bundle.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -477,8 +448,34 @@ const runtimeFlags = {
     landing: false,
 };
 
-const orbitCurveActions = createOrbitCurveActions({
+const {
+    orbitCurveActions,
+    bodyRotationActions,
+    locationActions,
+    spacecraftCurveActions,
+    primarySecondaryBodiesActions,
+    sceneInitActions,
+    sceneDisposeActions,
+    dimensionsActions,
+    scene3dInitActions,
+    sceneCameraPositionActions,
+    sceneCreationActions,
+    orbitVectorProcessingActions,
+    lineOfSightActions,
+    axesHelperActions,
+    lightActions,
+    spacecraftActions,
+    sceneCameraControllerActions,
+    spacecraftModelActions,
+    skyActions,
+    earthActions,
+    moonActions,
+} = createMissionSceneActionBundle({
     THREE,
+    Astronomy,
+    lunar_pole,
+    COL,
+    PC,
     generateCurveFromChebyshev,
     chebyshevDataLoaded,
     chebyshevData,
@@ -494,7 +491,7 @@ const orbitCurveActions = createOrbitCurveActions({
             defaultSpacecraftSource: ephemerisSource,
         }),
     generateBodyCurve,
-    getStepMs: (config) => animationScenes[config].stepDurationInMilliSeconds,
+    getStepMs: (cfg) => animationScenes[cfg].stepDurationInMilliSeconds,
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
     getLandingEnabled: () => !!(globalConfig && globalConfig.landing && globalConfig.landing.enabled),
@@ -502,30 +499,7 @@ const orbitCurveActions = createOrbitCurveActions({
     getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
     getStartLandingTime: () => startLandingTime,
     getEndLandingTime: () => endLandingTime,
-    PC,
     getPixelsPerAU: () => PIXELS_PER_AU,
-});
-
-const bodyRotationActions = createBodyRotationActions({
-    lunar_pole,
-    Astronomy,
-    degreesToRadians,
-    PC,
-});
-
-const locationActions = createLocationActions({
-    THREE,
-    sphericalToCartesian,
-    degreesToRadians,
-    COL,
-    getEarthRadius: () => earthRadius,
-    getMoonRadius: () => moonRadius,
-    getGlobalConfig: () => globalConfig,
-    getViewCraters: () => viewCraters,
-});
-
-const spacecraftCurveActions = createSpacecraftCurveActions({
-    THREE,
     getGlobalConfig: () => globalConfig,
     getConfig: () => config,
     getCraftId: () => craftId,
@@ -536,105 +510,29 @@ const spacecraftCurveActions = createSpacecraftCurveActions({
     getViewOrbit: () => viewOrbit,
     render,
     wait10,
-    createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
-});
-
-const primarySecondaryBodiesActions = createPrimarySecondaryBodiesActions({
-    getConfig: () => config,
-    getGlobalConfig: () => globalConfig,
-});
-
-const sceneInitActions = createSceneInitActions({
-    THREE,
-    render,
     wait20,
     clearEventInfo,
-});
-
-const sceneDisposeActions = createSceneDisposeActions();
-
-const dimensionsActions = createDimensionsActions({
     computeSVGDimensions: () => svgActions.computeSVGDimensions(),
     getSvgWidth: () => svgWidth,
     getSvgHeight: () => svgHeight,
-});
-
-const scene3dInitActions = createScene3dInitActions({
-    THREE,
-    loadSceneTextures,
-    applySceneTextures,
-});
-
-const sceneCameraPositionActions = createSceneCameraPositionActions({
     cameraControlsCallback,
-    distance3D,
-});
-
-const sceneCreationActions = createSceneCreationActions();
-
-const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
-    orbitCurveActions,
-    getConfig: () => config,
     setOrbitPointsCount: (count) => {
         nOrbitPoints = count;
     },
     setLandingPointsCount: (count) => {
         nLandingPoints = count;
     },
-});
-
-const lineOfSightActions = createLineOfSightActions();
-
-const axesHelperActions = createAxesHelperActions({
-    SceneHelpers,
-    getPixelsPerAU: () => PIXELS_PER_AU,
-    PC,
-});
-
-const lightActions = createLightActions({
-    LightManager,
-});
-
-const spacecraftActions = createSpacecraftActions({
-    SpacecraftRenderer,
-    planetProperties,
     getCraftSize: () => craftSize,
-});
-
-const sceneCameraControllerActions = createSceneCameraControllerActions({
-    CameraController,
     getDefaultCameraDistance: () => defaultCameraDistance,
     getRendererDomElement: () => theSceneHandler.renderer.domElement,
-    cameraControlsCallback,
-    render,
-});
-
-const spacecraftModelActions = createSpacecraftModelActions({
-    SpacecraftRenderer,
-    planetProperties,
-    getCraftSize: () => craftSize,
-    getGlobalConfig: () => globalConfig,
     getModelPathPrefix: () => window.missionConfig.modelPath,
-});
-
-const skyActions = createSkyActions({
-    SkyRenderer,
-    render,
-});
-
-const earthActions = createEarthActions({
-    EarthRenderer,
-    render,
-});
-
-const moonActions = createMoonActions({
-    MoonRenderer,
     getMoonRadius: () => moonRadius,
-    getGlobalConfig: () => globalConfig,
     getViewPolarAxes: () => viewPolarAxes,
     getViewPoles: () => viewPoles,
     getAnimTime: () => animTime,
-    render,
+    getEarthRadius: () => earthRadius,
+    getViewCraters: () => viewCraters,
+    SceneHelpers,
 });
 
 // View variables
