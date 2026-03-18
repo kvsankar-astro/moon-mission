@@ -151,10 +151,14 @@ import { createRelativeModeActions } from "./app/relative-mode.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createCameraOverlayActions } from "./app/camera-overlay.js";
 import { createSceneUiUpdateActions } from "./app/scene-ui-update-actions.js";
+import { createSceneFrameUiActions } from "./app/scene-frame-ui-actions.js";
+import { createScene2DFrameActions } from "./app/scene-2d-frame-actions.js";
 import { createInitOrchestrationActions } from "./app/init-orchestration.js";
 import { createSceneHandlerClass } from "./app/scene-handler-class.js";
 import { createAnimationSceneClass } from "./app/animation-scene-class.js";
 import { createInitConfigSceneSetupActions } from "./app/init-config-scene-setup.js";
+import { createInitConfigOrchestrationActions } from "./app/init-config-orchestration.js";
+import { createInitConfigUiActions } from "./app/init-config-ui-actions.js";
 import { createRuntimeInitActions } from "./app/runtime-init.js";
 import { createRuntimeUiControlsActions } from "./app/runtime-ui-controls.js";
 import {
@@ -163,6 +167,8 @@ import {
     updateFrameDeltaState,
     updateThreeDLoopCamera,
 } from "./app/animation-loop.js";
+import { executeAnimationFrame } from "./app/scene-frame-loop-actions.js";
+import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -1170,6 +1176,70 @@ const initConfigSceneSetupActions = createInitConfigSceneSetupActions({
     },
 });
 
+const initConfigOrchestrationActions = createInitConfigOrchestrationActions({
+    loadMissionConfig,
+    getGlobalConfig: () => globalConfig,
+    setGlobalConfig: (value) => {
+        globalConfig = value;
+    },
+    setEventInfos: (value) => {
+        eventInfos = value;
+    },
+    getEphemerisSource,
+    setEphemerisSource: (value) => {
+        ephemerisSource = value;
+    },
+    setBodyEphemerisSources: (value) => {
+        bodyEphemerisSources = value;
+    },
+    setEphemerisStatusesForConfig: (cfg, status) => {
+        ephemerisStatuses[cfg] = status;
+    },
+    bindInfoPanelControls,
+    updateEphemerisPanel,
+    applyMissionMetadata,
+    getPlanetProperties: () => planetProperties,
+    documentRef: document,
+    updateMultipleElementsText,
+    updateSpacecraftMnemonic,
+    updateMoonUIFromConfig,
+    updateLandingUIFromConfig,
+    applyLandingTimesUpdate,
+    computeLandingTimesUpdate,
+    createUTCTimestamp,
+    setStartLandingTime: (value) => {
+        startLandingTime = value;
+    },
+    setEndLandingTime: (value) => {
+        endLandingTime = value;
+    },
+    consoleRef: console,
+    applyEventsUpdate,
+    computeEventsUpdate,
+    getConfig: () => config,
+    getDataEndTimeMs: (spacecraftMnemonic) => getStartAndEndTimes(spacecraftMnemonic)[1],
+    computeMissionEventTimes,
+    setTimeTransLunarInjection: (value) => {
+        timeTransLunarInjection = value;
+    },
+    setTimeLunarOrbitInsertion: (value) => {
+        timeLunarOrbitInsertion = value;
+    },
+    getSceneHandler: () => theSceneHandler,
+    setSceneHandler: (value) => {
+        theSceneHandler = value;
+    },
+    SceneHandlerClass: SceneHandler,
+});
+
+const initConfigUiActions = createInitConfigUiActions({
+    d3,
+    getEventInfos: () => eventInfos,
+    bindBurnButtons,
+    getBurnButtonHandler: () => burnButtonHandler,
+    SwiperClass: Swiper,
+});
+
 
 async function initConfig() {
 
@@ -1193,78 +1263,11 @@ async function initConfig() {
         return;
     }
 
-    if (globalConfig === null) {
-        globalConfig = await loadMissionConfig();
-        eventInfos = globalConfig?.eventInfos || [];
-        ephemerisSource = getEphemerisSource(globalConfig);
-        bodyEphemerisSources = globalConfig?.ephemeris_sources || {};
-        for (const cfg of globalConfig?.phases || []) {
-            ephemerisStatuses[cfg] = {
-                npz: { status: "pending", message: "" },
-                chebyshev: { status: "pending", message: "" },
-            };
-        }
-        bindInfoPanelControls();
-        updateEphemerisPanel();
-
-         if (globalConfig) {
-             // Note: SC and craftId remain as "SC" for internal use
-             // globalConfig.spacecraft_mnemonic is used only for file path construction
-             applyMissionMetadata({
-                 globalConfig,
-                 planetProperties,
-                 document,
-                 updateMultipleElementsText,
-                 updateSpacecraftMnemonic,
-             });
-             updateMoonUIFromConfig();
-             updateLandingUIFromConfig();
-         }
-     }
+    await initConfigOrchestrationActions.ensureGlobalConfigLoaded();
 
     const configData = globalConfig;
-    
-    // Update landing times from config if available
-    applyLandingTimesUpdate({
-        update: computeLandingTimesUpdate({ globalConfig, createUTCTimestamp }),
-        setStartLandingTime: (val) => {
-            startLandingTime = val;
-        },
-        setEndLandingTime: (val) => {
-            endLandingTime = val;
-        },
-        console,
-    });
-    
-    // Update landing UI visibility from config
-    updateLandingUIFromConfig();
-
-    applyEventsUpdate({
-        update: computeEventsUpdate({
-            globalConfig,
-            config,
-            nowDate: new Date(),
-            getDataEndTimeMs: (spacecraftMnemonic) =>
-                getStartAndEndTimes(spacecraftMnemonic)[1],
-        }),
-        setEventInfos: (val) => {
-            eventInfos = val;
-        },
-        console,
-    });
-
-    // Get TLI and LOI times from config (only for lunar missions)
-    const missionEventTimes = computeMissionEventTimes({ globalConfig });
-    if (typeof missionEventTimes.timeTransLunarInjection === "number") {
-        timeTransLunarInjection = missionEventTimes.timeTransLunarInjection;
-    }
-    if (typeof missionEventTimes.timeLunarOrbitInsertion === "number") {
-        timeLunarOrbitInsertion = missionEventTimes.timeLunarOrbitInsertion;
-    }
-
-    if (!theSceneHandler) {
-        theSceneHandler = new SceneHandler();
-    }    
+    initConfigOrchestrationActions.applyConfigDerivedUpdates();
+    initConfigOrchestrationActions.ensureSceneHandlerInitialized();
 
     if (config === "geo") {
         initConfigSceneSetupActions.configureGeoScene({
@@ -1277,38 +1280,7 @@ async function initConfig() {
         });
     }
 
-    // Add event buttons
-
-    d3.select("#burnbuttons").html("");
-    for (let i = 0; i < eventInfos.length; ++i) {
-
-        // console.log("Adding button " + eventInfos[i]["label"]);
-
-        d3.select("#burnbuttons")
-            .append("div")
-                .attr("class", "swiper-slide")
-                .append("button")
-                    .attr("id", "burn" + (i+1))
-                    .attr("type", "button")
-                    .attr("class", "button burnbutton")
-                    .attr("title", eventInfos[i]["label"])
-                    .html(eventInfos[i]["label"]);
-
-    }
-
-    bindBurnButtons(eventInfos.length, burnButtonHandler);
-
-    var swiper1 = new Swiper('.swiper1', {
-        direction: 'horizontal',
-        loop: true,
-        slidesPerView: 'auto',
-      });
-
-    var swiper2 = new Swiper('.swiper2', {
-        direction: 'horizontal',
-        loop: true,
-        slidesPerView: 'auto',
-      });
+    initConfigUiActions.configureInitConfigControls();
 
 
     animationScenes[config].state = AnimationScene.SCENE_STATE_INIT_CONFIG_DONE;
@@ -1389,6 +1361,27 @@ const sceneUiUpdateActions = createSceneUiUpdateActions({
     clearEventInfo,
 });
 
+const sceneFrameUiActions = createSceneFrameUiActions({
+    getAnimDate: () => animDate,
+    sceneUiUpdateActions,
+});
+
+const scene2DFrameActions = createScene2DFrameActions({
+    animation2DControllers,
+    animationScenes,
+    getConfig: () => config,
+    getPlaneVariables: () => getPlaneVariablesState(config),
+    getZoomFactor: () => getZoomFactorState(config),
+    getPanX: () => getPanXState(config),
+    getPanY: () => getPanYState(config),
+    setCraftData: (value) => {
+        craftData = value;
+    },
+    setLabelLocation,
+    zoomChangeTransform,
+    showGreenwichLongitude,
+});
+
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
 }
@@ -1432,12 +1425,6 @@ function setLocation() {
     sunLongitude = sceneState.sunLongitude;
 
     // =========================================================================
-    // 2. Update date display
-    // =========================================================================
-    var animTimeDate = new Date(animTime);
-    animDate.html(animTimeDate);
-
-    // =========================================================================
     // 3. Render with appropriate controller
     // =========================================================================
     const primaryBody = animationScenes[config].primaryBody;
@@ -1459,74 +1446,24 @@ function setLocation() {
             adjustCameraProjectionMatrixAndSkyAngle();
         }
     } else {
-        // 2D rendering via controller
-        if (animation2DControllers[config]) {
-            const planeVars = getPlaneVariablesState(config);
-            animation2DControllers[config].setPlaneConfig({
-                xVariable: planeVars.xVariable,
-                yVariable: planeVars.yVariable,
-                zVariable: planeVars.zVariable,
-                xFactor: planeVars.xFactor,
-                yFactor: planeVars.yFactor,
-                zFactor: planeVars.zFactor,
-            });
-            animation2DControllers[config].setZoomPan(
-                getZoomFactorState(config),
-                getPanXState(config),
-                getPanYState(config),
-            );
-            animation2DControllers[config].render(sceneState, renderOptions);
-
-            // Keep legacy craftData in sync (used by zoom/label helpers like adjustLabelLocations())
-            if (typeof animation2DControllers[config].getCraftData === "function") {
-                const latestCraftData = animation2DControllers[config].getCraftData();
-                if (latestCraftData && Number.isFinite(latestCraftData.x) && Number.isFinite(latestCraftData.y)) {
-                    craftData = latestCraftData;
-                }
-            }
-        }
-
-        // 2D-specific: labels, zoom transform, Greenwich longitude
-        for (var i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-            var planetKey = animationScenes[config].planetsForLocations[i];
-            setLabelLocation(planetKey, sceneState.bodies[planetKey]);
-        }
-        zoomChangeTransform(0);
-        showGreenwichLongitude();
+        scene2DFrameActions.render2DFrame({ sceneState, renderOptions });
     }
 
-    // =========================================================================
-    // 4. Update shared UI: telemetry display
-    // =========================================================================
-    sceneUiUpdateActions.updateTelemetry(sceneState, primaryBody);
-
-    // =========================================================================
-    // 5. Update shared UI: phase indicator
-    // =========================================================================
-    sceneUiUpdateActions.updatePhaseIndicator(sceneState, globalConfig);
-
-    // =========================================================================
-    // 6. Update shared UI: event/burn indicator
-    // =========================================================================
-    sceneUiUpdateActions.updateActiveEvent(sceneState);
+    sceneFrameUiActions.updateFrameUi({
+        animTime,
+        sceneState,
+        primaryBody,
+        globalConfig,
+    });
 
     render();
 }
 
 function adjustCameraProjectionMatrixAndSkyAngle() {
-    if (animationScenes[config].cameraControlsEnabled) {
-        // console.debug("Updating skyContainer position and camera controls for 3D scene");
-        animationScenes[config].camera.updateProjectionMatrix();
-        animationScenes[config].camera.updateMatrixWorld?.(true);
-        animationScenes[config].skyContainer.position.copy(animationScenes[config].camera.position);
-
-        // TrackballControls.update() reorients the camera toward its internal target even if the user
-        // isn't interacting. When mounted free-fly is active, this causes "snap back" behavior.
-        if (!animationScenes[config].cameraController?._freeFlyActive) {
-            animationScenes[config].cameraControls.update();
-            cameraControlsCallback();
-        }
-    }
+    adjustSceneCameraProjectionAndSky({
+        scene: animationScenes[config],
+        cameraControlsCallback,
+    });
 }
 
 async function initAnimation(flags) {
@@ -1534,52 +1471,32 @@ async function initAnimation(flags) {
 }
 
 function animateLoop() {
-       
-    curFrameTime = performance.now();
-
-    // Update FPS counter
     ({
+        curFrameTime,
         fpsFrameCount,
         fpsLastTime,
-    } = updateFpsCounterState({
-        curFrameTime,
+        prevFrameTime,
+        deltaFrameTime,
+        animateLoopCount,
+    } = executeAnimationFrame({
+        performanceRef: performance,
         fpsFrameCount,
         fpsLastTime,
         fpsUpdateInterval,
         updateFPSCounter,
-    }));
-
-    // Update frame timing for delta calculations
-    ({
         prevFrameTime,
         deltaFrameTime,
-    } = updateFrameDeltaState({
-        curFrameTime,
-        prevFrameTime,
-        deltaFrameTime,
-    }));
-
-    const {
-        animateLoopCount: nextAnimateLoopCount,
-        shouldAdvance,
-    } = computeAnimationStepState({
         animateLoopCount,
         ticksPerAnimationStep,
-    });
-    animateLoopCount = nextAnimateLoopCount;
-    if (shouldAdvance) {
-
-        // Use animation controller to advance time
-        // The controller's onTimeChange callback handles setLocation()
-        animationController.tick(curFrameTime);
-    }
-
-    updateThreeDLoopCamera({
-        scene: animationScenes[config],
+        updateFpsCounterState,
+        updateFrameDeltaState,
+        computeAnimationStepState,
+        animationController,
+        getScene: () => animationScenes[config],
         cameraControlsCallback,
-    });
-
-    updateCameraOverlay();
+        updateThreeDLoopCamera,
+        updateCameraOverlay,
+    }));
 
     requestAnimationFrame(animateLoop);
  
