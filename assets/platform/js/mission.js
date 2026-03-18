@@ -136,8 +136,9 @@ import { createRelativeModeActions } from "./app/relative-mode.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createSceneHandlerClass } from "./app/scene-handler-class.js";
 import { createAnimationSceneClass } from "./app/animation-scene-class.js";
-import { createRuntimeBootstrapActions } from "./app/runtime-bootstrap-actions.js";
 import { createMissionWiringComposition } from "./app/mission-wiring-composition.js";
+import { createMissionBridgeActions } from "./app/mission-bridge-actions.js";
+import { createMissionRuntimeBootstrap } from "./app/mission-runtime-bootstrap.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -319,6 +320,45 @@ var fpsFrameCount = 0;
 var fpsLastTime = 0;
 var fpsUpdateInterval = 1000; // Update FPS every 1000ms (1 second)
 
+const {
+    showWhatsNew,
+    wait,
+    wait10,
+    wait20,
+    sleep,
+    fetchMetadata,
+    updateMoonUIFromConfig,
+    updateLandingUIFromConfig,
+    updateCraftScale,
+    cameraControlsCallback,
+    onWindowResize,
+    showPlanet,
+    setLocation,
+    adjustCameraProjectionMatrixAndSkyAngle,
+} = createMissionBridgeActions({
+    windowRef: window,
+    showElementById,
+    computeMoonUiPatch,
+    applyMoonUiPatch,
+    computeLandingUiPatch,
+    applyLandingUiPatch,
+    setChecked,
+    getGlobalConfig: () => globalConfig,
+    getConfig: () => config,
+    setConfig: (val) => {
+        config = val;
+    },
+    getLandingFlag: () => runtimeFlags.landing,
+    setLandingFlag: (val) => {
+        runtimeFlags.landing = val;
+    },
+    getCraftScaleActions: () => craftScaleActions,
+    getSceneFrameOrchestrationActions: () => sceneFrameOrchestrationActions,
+    render,
+    adjustSceneCameraProjectionAndSky,
+    getAnimationScenes: () => animationScenes,
+});
+
 // Animation Controller instance
 // Callbacks sync global state and update UI for backward compatibility
 var animationController = new AnimationController({
@@ -339,15 +379,6 @@ var animationController = new AnimationController({
         eventBus.emit("animation:speedChanged", { multiplier, isRealtime });
     }
 });
-
-function showWhatsNew() {
-    // Keep the legacy function but route through the lightweight dialog shim.
-    if (window.CY3Dialog?.open) {
-        window.CY3Dialog.open("#dialog-whatsnew");
-    } else {
-        showElementById("dialog-whatsnew");
-    }
-}
 
 // Spacecraft specific times and information
 var timeTransLunarInjection;
@@ -644,63 +675,6 @@ var viewEclipticPlane = initialViewSettings.viewEclipticPlane;
 var viewEquatorialPlane = initialViewSettings.viewEquatorialPlane;
 var viewFPS = initialViewSettings.viewFPS;
 
-function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
-function wait10() {
-    return wait(10);
-}
-function wait20() {
-    return wait(20);
-}
-async function sleep() { return new Promise(requestAnimationFrame); } // The Promise resolves after the next frame is painted
-
-async function fetchMetadata(baseFileName) {
-    // baseFileName can be like "geo-CY3" or "geo-CY3-cheb.json"
-    // We need to derive the meta filename pattern: "geo-CY3-meta.json"
-    const baseName = baseFileName.replace(/-cheb\.json$/, '').replace(/\.json$/, '');
-    const metaFileName = `${baseName}-meta.json`;
-    try {
-        const response = await fetch(metaFileName);
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.warn(`No metadata file found: ${metaFileName}, using defaults`);
-    }
-    return null; // Fallback to defaults
-}
-
-function updateMoonUIFromConfig() {
-    const patch = computeMoonUiPatch({
-        globalConfig,
-        currentConfig: config,
-    });
-
-    applyMoonUiPatch({
-        setChecked,
-        patch,
-        setConfig: (val) => {
-            config = val;
-        },
-    });
-}
-
-function updateLandingUIFromConfig() {
-    const patch = computeLandingUiPatch({
-        globalConfig,
-        landingFlag: runtimeFlags.landing,
-    });
-
-    applyLandingUiPatch({
-        setChecked,
-        patch,
-        setLandingFlag: (val) => {
-            runtimeFlags.landing = val;
-        },
-    });
-}
-
 const SceneHandler = createSceneHandlerClass({
     THREE,
     d3,
@@ -720,14 +694,6 @@ const SceneHandler = createSceneHandlerClass({
         moonRadius,
     }),
 });
-
-function updateCraftScale() {
-    craftScaleActions.updateCraftScale();
-}
-
-function cameraControlsCallback() {
-    craftScaleActions.cameraControlsCallback();
-}
 
 const AnimationScene = createAnimationSceneClass({
     THREE,
@@ -1185,25 +1151,6 @@ toggleMode = wiredToggleMode;
 setDimensionTop = wiredSetDimensionTop;
 setView = wiredSetView;
 
-function onWindowResize() {
-    render(); // TODO is this the right thing to do here?
-}
-
-function showPlanet(planet) {
-    return true;
-}
-
-function setLocation() {
-    sceneFrameOrchestrationActions.setLocation();
-}
-
-function adjustCameraProjectionMatrixAndSkyAngle() {
-    adjustSceneCameraProjectionAndSky({
-        scene: animationScenes[config],
-        cameraControlsCallback,
-    });
-}
-
 async function initAnimation(flags) {
     return runtimeBootstrapActions.initOrchestrationActions.initAnimation(flags);
 }
@@ -1273,7 +1220,7 @@ async function processOrbitData() {
     return runtimeBootstrapActions.processOrbitData();
 }
 
-runtimeBootstrapActions = createRuntimeBootstrapActions({
+runtimeBootstrapActions = createMissionRuntimeBootstrap({
     d3,
     d3SelectAll,
     hideElementById,
@@ -1326,11 +1273,6 @@ runtimeBootstrapActions = createRuntimeBootstrapActions({
     setPanYState,
     getZoomFactorState,
     setZoomFactorState,
-    getPanX: () => getPanXState(config),
-    getPanY: () => getPanYState(config),
-    getZoomFactor: () => getZoomFactorState(config),
-    getZoomTimeoutMs: () => UC.ZOOM_TIMEOUT,
-    getZoomScale: () => UC.ZOOM_SCALE,
     getMouseDownTimeout: () => mousedownTimeout,
     setMouseDownTimeout: (val) => {
         mousedownTimeout = val;
@@ -1390,7 +1332,6 @@ runtimeBootstrapActions = createRuntimeBootstrapActions({
         }
     },
     getPixelsPerAU: () => PIXELS_PER_AU,
-    getKmPerAu: () => PC.KM_PER_AU,
     handlePlaneChange: planeActions.handlePlaneChange,
     animationController,
     isTestMode,
