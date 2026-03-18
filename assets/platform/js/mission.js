@@ -70,8 +70,6 @@ import {
     showElementById,
     toggleVisibilityById,
 } from "./ui/dom-helpers.js";
-import { createDataflowWiringActions } from "./app/dataflow-wiring-actions.js";
-import { createViewSettingsWiringActions } from "./app/view-settings-wiring-actions.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createOrbitCurveActions } from "./app/orbit-curve-actions.js";
@@ -126,7 +124,6 @@ import {
     shouldSkipInitConfig,
 } from "./app/init-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
-import { createStartEndTimesResolver } from "./app/start-end-times.js";
 import { initRepeatButtons } from "./app/init-repeat-buttons.js";
 import {
     DEFAULT_VIEW_STATE,
@@ -139,10 +136,8 @@ import { createRelativeModeActions } from "./app/relative-mode.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createSceneHandlerClass } from "./app/scene-handler-class.js";
 import { createAnimationSceneClass } from "./app/animation-scene-class.js";
-import { createInitConfigFlowActions } from "./app/init-config-flow-actions.js";
-import { createInitConfigWiringActions } from "./app/init-config-wiring-actions.js";
-import { createSceneFrameWiringActions } from "./app/scene-frame-wiring-actions.js";
 import { createRuntimeBootstrapActions } from "./app/runtime-bootstrap-actions.js";
+import { createMissionWiringComposition } from "./app/mission-wiring-composition.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -706,13 +701,6 @@ function updateLandingUIFromConfig() {
     });
 }
 
-const getStartAndEndTimes = createStartEndTimesResolver({
-    getGlobalConfig: () => globalConfig,
-    getConfig: () => config,
-    createUTCTimestamp,
-    oneMinuteMs: TC.ONE_MINUTE_MS,
-});
-
 const SceneHandler = createSceneHandlerClass({
     THREE,
     d3,
@@ -836,22 +824,105 @@ const {
     zoomChangeTransform,
     zoomChange,
     planeActions,
-} = createDataflowWiringActions({
+    initConfigSceneSetupActions,
+    initConfigOrchestrationActions,
+    initConfigUiActions,
+    initConfig,
+    dimensionActions,
+    toggleMode: wiredToggleMode,
+    setDimensionTop: wiredSetDimensionTop,
+    setView: wiredSetView,
+    sceneUiUpdateActions,
+    sceneFrameUiActions,
+    scene2DFrameActions,
+    sceneFrameOrchestrationActions,
+    getStartAndEndTimes,
+} = createMissionWiringComposition({
     d3,
     THREE,
     Astronomy,
-    sleep,
+    windowRef: window,
+    documentRef: document,
+    consoleRef: console,
+    SwiperClass: Swiper,
+    PC,
+    TC,
+    UC,
+    formatMetric: FORMAT_METRIC,
+    updateEventInfo,
+    clearEventInfo,
     updateProgressLabel,
     ensureIndeterminateProgressBar,
     showElementById,
     hideElementById,
+    sleep,
     loadChebyshev,
     loadNpz,
     processOrbitData,
     resolveLandingNpzUrl,
     resolveLandingChebyshevUrl,
+    createUTCTimestamp,
+    animationScenes,
+    animation3DControllers,
+    animation2DControllers,
+    orbitDataLoaded,
+    orbitDataProcessed,
+    chebyshevData,
+    chebyshevDataLoaded,
+    npzData,
+    npzDataLoaded,
+    ephemerisRecords,
+    ephemerisStatuses,
+    planetProperties,
+    animationController,
+    AnimationScene,
+    Animation3DController,
+    Animation2DController,
+    SceneHandlerClass: SceneHandler,
+    resolveOrbitUrls,
+    resolveOrbitNpzUrl,
+    loadMissionConfig,
+    bindInfoPanelControls,
+    updateEphemerisPanel,
+    applyMissionMetadata,
+    updateMultipleElementsText,
+    updateSpacecraftMnemonic,
+    updateMoonUIFromConfig,
+    updateLandingUIFromConfig,
+    applyLandingTimesUpdate,
+    computeLandingTimesUpdate,
+    applyEventsUpdate,
+    computeEventsUpdate,
+    computeMissionEventTimes,
+    bindBurnButtons,
+    shouldSkipInitConfig,
+    applyInitConfigAlreadyInitialized,
+    normalizePlaneSelection,
+    syncPlaneSelectionControls,
+    setChecked,
+    setPlaneSelectionState,
+    readOriginMode,
+    readViewSettings,
+    setFPSCounterVisibility,
+    computeSunLongitude,
+    computeSceneState,
+    getBodyEphemerisRange,
+    getBodyEphemerisState,
+    generateBodyCurve,
+    getGlobalConfig: () => globalConfig,
     getConfig: () => config,
     getCurrentDimension: () => currentDimension,
+    setCurrentDimension: (val) => {
+        currentDimension = val;
+    },
+    getPreviousDimension: () => previousDimension,
+    setPreviousDimension: (val) => {
+        previousDimension = val;
+    },
+    setDimensionChanged: (val) => {
+        dimensionChanged = val;
+    },
+    getDimensionChanged: () => dimensionChanged,
     setSvgContainer: (val) => {
         svgContainer = val;
     },
@@ -878,27 +949,17 @@ const {
     },
     getOffsetX: () => offsetx,
     getOffsetY: () => offsety,
-    animationScenes,
-    orbitDataLoaded,
-    chebyshevData,
-    chebyshevDataLoaded,
-    npzData,
-    npzDataLoaded,
     getDataLoaded: () => dataLoaded,
     setEventInfoText: (text) => {
         d3.select("#eventinfo").text(text);
     },
     getEphemerisSource: () => ephemerisSource,
     getBodiesForConfig: (cfg = config) => animationScenes[cfg]?.planetsForLocations || [],
-    ephemerisRecords,
-    ephemerisStatuses,
-    updateEphemerisPanel,
     getBodySource: (bodyId) => resolveBodySource({
         bodyId,
         bodySources: bodyEphemerisSources,
         defaultSpacecraftSource: ephemerisSource,
     }),
-    getGlobalConfig: () => globalConfig,
     getConfigsList: () => {
         const configuredLandingModes = (globalConfig?.phases || []).filter(
             (phase) => phase === "geo" || phase === "lunar",
@@ -924,8 +985,6 @@ const {
         landingChebyshevData[cfg] = val;
     },
     getSvgContainer: () => svgContainer,
-    planetProperties,
-    PC,
     PIXELS_PER_AU,
     getZoomFactor: () => getZoomFactorState(config),
     setEpochJD: (val) => {
@@ -935,15 +994,55 @@ const {
         epochDate = val;
     },
     getStartTime: () => startTime,
+    setStartTime: (value) => {
+        startTime = value;
+    },
     getEndTimeSC: () => endTimeSC,
+    setEndTime: (value) => {
+        endTime = value;
+    },
+    setEndTimeSC: (value) => {
+        endTimeSC = value;
+    },
+    setLatestEndTime: (value) => {
+        latestEndTime = value;
+    },
+    getLatestEndTime: () => latestEndTime,
+    setTimelineTotalSteps: (value) => {
+        timelineTotalSteps = value;
+    },
+    setTicksPerAnimationStep: (value) => {
+        ticksPerAnimationStep = value;
+    },
+    setPixelsPerAU: (value) => {
+        PIXELS_PER_AU = value;
+    },
+    setDefaultCameraDistance: (value) => {
+        defaultCameraDistance = value;
+    },
+    setTrackWidth: (value) => {
+        trackWidth = value;
+    },
+    setEarthRadius: (value) => {
+        earthRadius = value;
+    },
+    setMoonRadius: (value) => {
+        moonRadius = value;
+    },
+    getEarthRadius: () => earthRadius,
+    getMoonRadius: () => moonRadius,
     getStartLandingTime: () => startLandingTime,
+    setStartLandingTime: (value) => {
+        startLandingTime = value;
+    },
     getEndLandingTime: () => endLandingTime,
+    setEndLandingTime: (value) => {
+        endLandingTime = value;
+    },
     getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
     getLandingNpzData: (cfg = config) => landingNpzData[cfg],
     getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
     getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
-    getStartAndEndTimes,
-    TC,
     getFrameMode: () => frameMode,
     getActiveEphemerisSource,
     resolveBodySourceFn: (bodyId) =>
@@ -952,14 +1051,10 @@ const {
             bodySources: bodyEphemerisSources,
             defaultSpacecraftSource: ephemerisSource,
         }),
-    getBodyEphemerisRange,
-    getBodyEphemerisState,
     getJoyRideFlag: () => runtimeFlags.joyRide,
     getLandingFlag: () => runtimeFlags.landing,
     getDefaultCameraDistance: () => defaultCameraDistance,
     getAnimTime: () => animTime,
-    generateBodyCurve,
-    getLatestEndTime: () => latestEndTime,
     getPlaneVariables: () => {
         const vars = getPlaneVariablesState(config);
         return {
@@ -969,7 +1064,6 @@ const {
             yVariable: vars.yVariable,
         };
     },
-    UC,
     getPixelsPerAU: () => PIXELS_PER_AU,
     getEpochJD: () => epochJD,
     getEpochDate: () => epochDate,
@@ -994,82 +1088,14 @@ const {
     },
     handleDimensionSwitch,
     setLocation,
-});
-
-const {
-    initConfigSceneSetupActions,
-    initConfigOrchestrationActions,
-    initConfigUiActions,
-} = createInitConfigWiringActions({
-    PC,
-    windowRef: window,
-    animationScenes,
-    animation3DControllers,
-    animation2DControllers,
-    AnimationScene,
-    Animation3DController,
-    Animation2DController,
-    planetProperties,
-    showPlanet,
-    computeSVGDimensions: () => svgActions.computeSVGDimensions(),
-    getSvgWidth: () => svgWidth,
-    getSvgHeight: () => svgHeight,
-    setPixelsPerAU: (value) => {
-        PIXELS_PER_AU = value;
-    },
-    setDefaultCameraDistance: (value) => {
-        defaultCameraDistance = value;
-    },
-    setTrackWidth: (value) => {
-        trackWidth = value;
-    },
-    setEarthRadius: (value) => {
-        earthRadius = value;
-    },
-    setMoonRadius: (value) => {
-        moonRadius = value;
-    },
-    getEarthRadius: () => earthRadius,
-    getMoonRadius: () => moonRadius,
-    setStartTime: (value) => {
-        startTime = value;
-    },
-    setEndTime: (value) => {
-        endTime = value;
-    },
-    setEndTimeSC: (value) => {
-        endTimeSC = value;
-    },
-    setLatestEndTime: (value) => {
-        latestEndTime = value;
-    },
-    setTimelineTotalSteps: (value) => {
-        timelineTotalSteps = value;
-    },
-    setTicksPerAnimationStep: (value) => {
-        ticksPerAnimationStep = value;
-    },
-    setEpochJD: (value) => {
-        epochJD = value;
-    },
-    setEpochDate: (value) => {
-        epochDate = value;
-    },
-    getStartAndEndTimes,
-    animationController,
-    resolveOrbitUrls,
-    resolveOrbitNpzUrl,
-    handleModeSwitchToGeo,
-    handleModeSwitchToLunar,
-    loadMissionConfig,
-    getGlobalConfig: () => globalConfig,
+    getPlanetProperties: () => planetProperties,
     setGlobalConfig: (value) => {
         globalConfig = value;
     },
     setEventInfos: (value) => {
         eventInfos = value;
     },
-    getEphemerisSource,
+    getEphemerisSourceFromData: getEphemerisSource,
     setEphemerisSource: (value) => {
         ephemerisSource = value;
     },
@@ -1079,30 +1105,6 @@ const {
     setEphemerisStatusesForConfig: (cfg, status) => {
         ephemerisStatuses[cfg] = status;
     },
-    bindInfoPanelControls,
-    updateEphemerisPanel,
-    applyMissionMetadata,
-    getPlanetProperties: () => planetProperties,
-    documentRef: document,
-    updateMultipleElementsText,
-    updateSpacecraftMnemonic,
-    updateMoonUIFromConfig,
-    updateLandingUIFromConfig,
-    applyLandingTimesUpdate,
-    computeLandingTimesUpdate,
-    createUTCTimestamp,
-    setStartLandingTime: (value) => {
-        startLandingTime = value;
-    },
-    setEndLandingTime: (value) => {
-        endLandingTime = value;
-    },
-    consoleRef: console,
-    applyEventsUpdate,
-    computeEventsUpdate,
-    getConfig: () => config,
-    getDataEndTimeMs: (spacecraftMnemonic) => getStartAndEndTimes(spacecraftMnemonic)[1],
-    computeMissionEventTimes,
     setTimeTransLunarInjection: (value) => {
         timeTransLunarInjection = value;
     },
@@ -1113,85 +1115,25 @@ const {
     setSceneHandler: (value) => {
         theSceneHandler = value;
     },
-    SceneHandlerClass: SceneHandler,
-    d3,
     getEventInfos: () => eventInfos,
-    bindBurnButtons,
-    getBurnButtonHandler: () => burnButtonHandler,
-    SwiperClass: Swiper,
-});
-
-const { initConfig } = createInitConfigFlowActions({
-    getConfig: () => config,
-    getAnimationScene: (cfg) => animationScenes[cfg],
-    AnimationScene,
-    shouldSkipInitConfig,
-    applyInitConfigAlreadyInitialized,
+    getBurnButtonHandler: () => runtimeBootstrapActions?.burnButtonHandler,
     handleModeSwitchToGeo,
     handleModeSwitchToLunar,
-    setChecked,
-    normalizePlaneSelection,
-    setPlaneSelectionState,
-    syncPlaneSelectionControls,
-    initConfigOrchestrationActions,
-    getGlobalConfig: () => globalConfig,
-    initConfigSceneSetupActions,
     isRelativeMode,
-    initConfigUiActions,
     setSceneState: (cfg, state) => {
         if (animationScenes[cfg]) {
             animationScenes[cfg].state = state;
         }
     },
-    consoleRef: console,
-});
-
-const {
-    dimensionActions,
-    toggleMode: wiredToggleMode,
-    setDimensionTop: wiredSetDimensionTop,
-    setView: wiredSetView,
-} = createViewSettingsWiringActions({
-    d3,
-    getConfig: () => config,
-    animationScenes,
-    getCurrentDimension: () => currentDimension,
-    setCurrentDimension: (val) => {
-        currentDimension = val;
-    },
-    getPreviousDimension: () => previousDimension,
-    setPreviousDimension: (val) => {
-        previousDimension = val;
-    },
-    setDimensionChanged: (val) => {
-        dimensionChanged = val;
-    },
-    getDimensionChanged: () => dimensionChanged,
-    setSvgContainer: (val) => {
-        svgContainer = val;
-    },
-    initSVG: svgActions.initSVG,
-    loadOrbitDataIfNeededAndProcess,
-    handleDimensionSwitch,
-    handlePlaneChange: planeActions.handlePlaneChange,
-    setLocation,
-    adjustLabelLocations,
+    initAnimation,
     getStartLandingFlag: () => startLandingFlag,
     clearStartLandingFlag: () => {
         startLandingFlag = false;
     },
-    toggleLanding: () => toggleLanding(),
-    updateProgressLabel,
+    toggleLanding: () => runtimeBootstrapActions.toggleLanding(),
     setConfig: (val) => {
         config = val;
     },
-    AnimationScene,
-    initAnimation,
-    readOriginMode,
-    readViewSettings,
-    setFPSCounterVisibility,
-    render,
-    getGlobalConfig: () => globalConfig,
     setViewFlags: (view) => {
         viewOrbit = view.viewOrbit;
         viewOrbitDescent = view.viewOrbitDescent;
@@ -1208,68 +1150,40 @@ const {
     onConfigChanged: (newConfig) => {
         syncPlaneStateForConfig(newConfig);
     },
+    getAnimDate: () => animDate,
+    getPlaneVariablesStateForConfig: () => getPlaneVariablesState(config),
+    getZoomFactorStateForConfig: () => getZoomFactorState(config),
+    getPanXStateForConfig: () => getPanXState(config),
+    getPanYStateForConfig: () => getPanYState(config),
+    setCraftData: (value) => {
+        craftData = value;
+    },
+    isOrbitDataProcessed: (cfg) => orbitDataProcessed[cfg],
+    getChebyshevData: () => chebyshevData,
+    getChebyshevDataLoaded: () => chebyshevDataLoaded,
+    getNpzData: () => npzData,
+    getNpzDataLoaded: () => npzDataLoaded,
+    getLandingNpzDataByConfig: (cfg) => landingNpzData[cfg],
+    getLandingNpzLoadedByConfig: (cfg) => landingNpzLoaded[cfg],
+    getLandingChebyshevDataByConfig: (cfg) => landingChebyshevData[cfg],
+    getLandingChebyshevLoadedByConfig: (cfg) => landingChebyshevLoaded[cfg],
+    getMissionTimes: () => ({ timeTransLunarInjection, timeLunarOrbitInsertion }),
+    getBodySources: () => bodyEphemerisSources,
+    getActiveEphemerisSourceForConfig: (cfg) => getActiveEphemerisSource(cfg),
+    setSunLongitude: (value) => {
+        sunLongitude = value;
+    },
+    getCraftId: () => craftId,
+    updateCraftScale,
+    adjustCameraProjectionMatrixAndSkyAngle,
+    render,
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
 });
 
 toggleMode = wiredToggleMode;
 setDimensionTop = wiredSetDimensionTop;
 setView = wiredSetView;
-
-const {
-    sceneUiUpdateActions,
-    sceneFrameUiActions,
-    scene2DFrameActions,
-    sceneFrameOrchestrationActions,
-} = createSceneFrameWiringActions({
-    d3,
-    formatMetric: FORMAT_METRIC,
-    updateEventInfo,
-    clearEventInfo,
-    getAnimDate: () => animDate,
-    animation2DControllers,
-    animationScenes,
-    getConfig: () => config,
-    getPlaneVariables: () => getPlaneVariablesState(config),
-    getZoomFactor: () => getZoomFactorState(config),
-    getPanX: () => getPanXState(config),
-    getPanY: () => getPanYState(config),
-    setCraftData: (value) => {
-        craftData = value;
-    },
-    setLabelLocation,
-    zoomChangeTransform,
-    showGreenwichLongitude,
-    isOrbitDataProcessed: (cfg) => orbitDataProcessed[cfg],
-    getAnimTime: () => animTime,
-    computeSunLongitude,
-    computeSceneState,
-    getChebyshevData: () => chebyshevData,
-    getChebyshevDataLoaded: () => chebyshevDataLoaded,
-    getNpzData: () => npzData,
-    getNpzDataLoaded: () => npzDataLoaded,
-    getLandingNpzData: (cfg) => landingNpzData[cfg],
-    getLandingNpzLoaded: (cfg) => landingNpzLoaded[cfg],
-    getLandingChebyshevData: (cfg) => landingChebyshevData[cfg],
-    getLandingChebyshevLoaded: (cfg) => landingChebyshevLoaded[cfg],
-    getGlobalConfig: () => globalConfig,
-    getStartLandingTime: () => startLandingTime,
-    getEndLandingTime: () => endLandingTime,
-    getEventInfos: () => eventInfos,
-    getMissionTimes: () => ({ timeTransLunarInjection, timeLunarOrbitInsertion }),
-    getAnimationScene: (cfg) => animationScenes[cfg],
-    getFrameMode: () => frameMode,
-    getBodySources: () => bodyEphemerisSources,
-    getActiveEphemerisSource: (cfg) => getActiveEphemerisSource(cfg),
-    setSunLongitude: (value) => {
-        sunLongitude = value;
-    },
-    getCraftId: () => craftId,
-    getPixelsPerAU: () => PIXELS_PER_AU,
-    updateCraftScale,
-    getCurrentDimension: () => currentDimension,
-    animation3DControllers,
-    adjustCameraProjectionMatrixAndSkyAngle,
-    render,
-});
 
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
@@ -1291,7 +1205,7 @@ function adjustCameraProjectionMatrixAndSkyAngle() {
 }
 
 async function initAnimation(flags) {
-    return initOrchestrationActions.initAnimation(flags);
+    return runtimeBootstrapActions.initOrchestrationActions.initAnimation(flags);
 }
 
 function animateLoop() {
@@ -1319,7 +1233,7 @@ function animateLoop() {
         getScene: () => animationScenes[config],
         cameraControlsCallback,
         updateThreeDLoopCamera,
-        updateCameraOverlay,
+        updateCameraOverlay: () => runtimeBootstrapActions.updateCameraOverlay(),
     }));
 
     requestAnimationFrame(animateLoop);
@@ -1330,25 +1244,25 @@ export function main() {
     const onloadEndTime = startMissionApp({
         eventBus,
         handlers: {
-            reset,
+            reset: () => runtimeBootstrapActions.reset(),
             toggleMode: toggleModeGuarded,
             toggleRelativeMode,
-            changeCameraFromTo,
-            toggleLockSC,
-            toggleLockMoon,
-            toggleLockEarth,
-            togglePlane,
+            changeCameraFromTo: () => runtimeBootstrapActions.changeCameraFromTo(),
+            toggleLockSC: () => runtimeBootstrapActions.toggleLockSC(),
+            toggleLockMoon: () => runtimeBootstrapActions.toggleLockMoon(),
+            toggleLockEarth: () => runtimeBootstrapActions.toggleLockEarth(),
+            togglePlane: () => runtimeBootstrapActions.togglePlane(),
             setView,
             setDimensionTop,
-            cy3Animate,
-            toggleJoyRide,
-            toggleLanding,
-            toggleInfo,
+            cy3Animate: () => runtimeBootstrapActions.cy3Animate(),
+            toggleJoyRide: () => runtimeBootstrapActions.toggleJoyRide(),
+            toggleLanding: () => runtimeBootstrapActions.toggleLanding(),
+            toggleInfo: () => runtimeBootstrapActions.toggleInfo(),
             initAnimation,
         },
     });
 
-    initCameraOverlay();
+    runtimeBootstrapActions.initCameraOverlay();
 
     // console.log("onload() took " + onloadEndTime + " ms");
 }
@@ -1359,59 +1273,7 @@ async function processOrbitData() {
     return runtimeBootstrapActions.processOrbitData();
 }
 
-const {
-    init,
-    cy3Animate,
-    fastBackward,
-    backward,
-    stopAnimation,
-    forward,
-    fastForward,
-    missionStart,
-    missionSetTime,
-    missionNow,
-    missionTLI,
-    missionLunar,
-    missionEnd,
-    faster,
-    resetspeed,
-    slower,
-    realtime,
-    reset,
-    toggleInfo,
-    zoomIn,
-    zoomOut,
-    panLeft,
-    panRight,
-    panUp,
-    panDown,
-    f1,
-    f2,
-    f3,
-    f4,
-    f5,
-    f6,
-    f7,
-    f8,
-    f9,
-    f10,
-    f11,
-    f12,
-    f13,
-    f14,
-    toggleLockSC,
-    toggleLockMoon,
-    toggleLockEarth,
-    changeCameraFromTo,
-    togglePlane,
-    recenterMountedCamera,
-    toggleJoyRide,
-    toggleLanding,
-    burnButtonHandler,
-    initOrchestrationActions,
-    initCameraOverlay,
-    updateCameraOverlay,
-} = (runtimeBootstrapActions = createRuntimeBootstrapActions({
+runtimeBootstrapActions = createRuntimeBootstrapActions({
     d3,
     d3SelectAll,
     hideElementById,
@@ -1535,7 +1397,7 @@ const {
     THREE,
     UC,
     PC,
-}));
+});
 
 // Expose variables globally for testing
 window.animationScenes = animationScenes;
