@@ -29,8 +29,6 @@ function initializeMissionViewState({
 
     return {
         config,
-        configGeo: config === "geo",
-        configLunar: config === "lunar",
         ...readViewSettings(),
         toggleRelativeMode,
         toggleModeGuarded,

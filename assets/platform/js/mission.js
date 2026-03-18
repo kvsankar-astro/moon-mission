@@ -6,7 +6,6 @@ import {
     CELESTIAL_BODIES as CB,
     COLORS as COL,
     FORMAT_CONSTANTS as FC,
-    LIGHT_SETTINGS as LT,
     PHYSICS_CONSTANTS as PC,
     TIME_CONSTANTS as TC,
     UI_CONSTANTS as UC
@@ -26,8 +25,6 @@ import {
 import { generateCurveFromChebyshev } from "./chebyshev.js";
 import {
     createUTCTimestamp,
-    formatDateTimeIST,
-    getDateComponentsUTC
 } from "./utils/time-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { AnimationController } from "./animation/animation-controller.js";
@@ -41,7 +38,6 @@ import { computeSunLongitude } from "./services/ephemeris.js";
 import { applyCameraFromTo, readCameraLookMode, readCameraPositionMode, readOriginMode, readViewSettings } from "./ui/ui-state.js";
 import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
 import {
-    getEphemerisSource,
     loadChebyshev,
     loadMissionConfig,
     loadNpz,
@@ -64,7 +60,6 @@ import {
     toggleVisibilityById,
 } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
-import { createSceneCameraActions } from "./app/scene-camera-actions.js";
 import { createBurnActions } from "./app/burn-actions.js";
 import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
 import { createNavigationActions } from "./app/navigation-actions.js";
@@ -106,6 +101,7 @@ import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionBridgeActions } from "./app/mission-bridge-actions.js";
 import { createMissionStateAccess } from "./app/mission-state-access.js";
 import { createMissionSceneActionBundle } from "./app/mission-scene-action-bundle.js";
+import { buildMissionRuntimeWireupConfig } from "./app/mission-runtime-wireup-config.js";
 import { createMissionRuntimeWireup } from "./app/mission-runtime-wireup.js";
 import { initializeMissionViewState } from "./app/mission-view-bootstrap.js";
 import { createMissionSceneBootstrap } from "./app/mission-scene-bootstrap.js";
@@ -120,8 +116,6 @@ import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-act
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { TrackballControls } from '../../../third-party/TrackballControls.js';
 
 // Check if running in test mode (for consistent visual regression testing)
 const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
@@ -551,8 +545,6 @@ const initialMissionViewState = initializeMissionViewState({
 
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
 config = initialMissionViewState.config;
-var configGeo = initialMissionViewState.configGeo;
-var configLunar = initialMissionViewState.configLunar;
 var viewOrbit = initialMissionViewState.viewOrbit;
 var viewOrbitDescent = initialMissionViewState.viewOrbitDescent;
 var viewCraters = initialMissionViewState.viewCraters;
@@ -640,10 +632,6 @@ function render() {
     // console.log("render() global function called");
     var animationScene = animationScenes[config];
     theSceneHandler.render(animationScene);
-}
-
-function handleGeoInit() {
-
 }
 
 const {
@@ -751,141 +739,120 @@ const missionStateAccess = createMissionStateAccess({
     syncPlaneStateForConfig,
 });
 
-missionRuntimeWireup = createMissionRuntimeWireup({
-    wiringDeps: {
-        d3,
-        THREE,
-        Astronomy,
-        windowRef: window,
-        documentRef: document,
-        consoleRef: console,
-        SwiperClass: Swiper,
-        PC,
-        TC,
-        UC,
-        formatMetric: FORMAT_METRIC,
-        updateEventInfo,
-        clearEventInfo,
-        updateProgressLabel,
-        ensureIndeterminateProgressBar,
-        showElementById,
-        hideElementById,
-        sleep,
-        loadChebyshev,
-        loadNpz,
-        processOrbitData,
-        resolveLandingNpzUrl,
-        resolveLandingChebyshevUrl,
-        createUTCTimestamp,
-        animationScenes,
-        animation3DControllers,
-        animation2DControllers,
-        orbitDataLoaded,
-        orbitDataProcessed,
-        chebyshevData,
-        chebyshevDataLoaded,
-        npzData,
-        npzDataLoaded,
-        ephemerisRecords,
-        ephemerisStatuses,
-        planetProperties,
-        animationController,
-        AnimationScene,
-        Animation3DController,
-        Animation2DController,
-        SceneHandlerClass: SceneHandler,
-        resolveOrbitUrls,
-        resolveOrbitNpzUrl,
-        loadMissionConfig,
-        bindInfoPanelControls,
-        updateEphemerisPanel,
-        applyMissionMetadata,
-        updateMultipleElementsText,
-        updateSpacecraftMnemonic,
-        updateMoonUIFromConfig,
-        updateLandingUIFromConfig,
-        applyLandingTimesUpdate,
-        computeLandingTimesUpdate,
-        applyEventsUpdate,
-        computeEventsUpdate,
-        computeMissionEventTimes,
-        bindBurnButtons,
-        shouldSkipInitConfig,
-        applyInitConfigAlreadyInitialized,
-        normalizePlaneSelection,
-        syncPlaneSelectionControls,
-        setChecked,
-        setPlaneSelectionState,
-        readOriginMode,
-        readViewSettings,
-        setFPSCounterVisibility,
-        computeSunLongitude,
-        computeSceneState,
-        getBodyEphemerisRange,
-        getBodyEphemerisState,
-        generateBodyCurve,
-        PIXELS_PER_AU,
-        setZoomFactorState,
-        setPanXState,
-        setPanYState,
-        showPlanet,
-        handleDimensionSwitch,
-        setLocation,
-        handleModeSwitchToGeo,
-        handleModeSwitchToLunar,
-        isRelativeMode,
-        initAnimation,
-        updateCraftScale,
-        adjustCameraProjectionMatrixAndSkyAngle,
-        render,
-        stateAccess: missionStateAccess,
+missionRuntimeWireup = createMissionRuntimeWireup(buildMissionRuntimeWireupConfig({
+    d3,
+    d3SelectAll,
+    THREE,
+    Astronomy,
+    windowRef: window,
+    documentRef: document,
+    consoleRef: console,
+    SwiperClass: Swiper,
+    PC,
+    TC,
+    UC,
+    formatMetric: FORMAT_METRIC,
+    updateEventInfo,
+    clearEventInfo,
+    updateProgressLabel,
+    ensureIndeterminateProgressBar,
+    showElementById,
+    hideElementById,
+    sleep,
+    loadChebyshev,
+    loadNpz,
+    processOrbitData,
+    resolveLandingNpzUrl,
+    resolveLandingChebyshevUrl,
+    createUTCTimestamp,
+    animationScenes,
+    animation3DControllers,
+    animation2DControllers,
+    orbitDataLoaded,
+    orbitDataProcessed,
+    chebyshevData,
+    chebyshevDataLoaded,
+    npzData,
+    npzDataLoaded,
+    ephemerisRecords,
+    ephemerisStatuses,
+    planetProperties,
+    animationController,
+    AnimationScene,
+    Animation3DController,
+    Animation2DController,
+    SceneHandlerClass: SceneHandler,
+    resolveOrbitUrls,
+    resolveOrbitNpzUrl,
+    loadMissionConfig,
+    bindInfoPanelControls,
+    updateEphemerisPanel,
+    applyMissionMetadata,
+    updateMultipleElementsText,
+    updateSpacecraftMnemonic,
+    updateMoonUIFromConfig,
+    updateLandingUIFromConfig,
+    applyLandingTimesUpdate,
+    computeLandingTimesUpdate,
+    applyEventsUpdate,
+    computeEventsUpdate,
+    computeMissionEventTimes,
+    bindBurnButtons,
+    shouldSkipInitConfig,
+    applyInitConfigAlreadyInitialized,
+    normalizePlaneSelection,
+    syncPlaneSelectionControls,
+    setChecked,
+    setPlaneSelectionState,
+    readOriginMode,
+    readViewSettings,
+    setFPSCounterVisibility,
+    computeSunLongitude,
+    computeSceneState,
+    getBodyEphemerisRange,
+    getBodyEphemerisState,
+    generateBodyCurve,
+    PIXELS_PER_AU,
+    setZoomFactorState,
+    setPanXState,
+    setPanYState,
+    showPlanet,
+    handleDimensionSwitch,
+    setLocation,
+    handleModeSwitchToGeo,
+    handleModeSwitchToLunar,
+    isRelativeMode,
+    initAnimation,
+    updateCraftScale,
+    adjustCameraProjectionMatrixAndSkyAngle,
+    render,
+    stateAccess: missionStateAccess,
+    clearProgressLabel,
+    updateD3ElementText,
+    createNavigationActions,
+    createRepeatMouseDownHandlers,
+    createLockActions,
+    createCameraActions,
+    createModeActions,
+    createBurnActions,
+    readCameraPositionMode,
+    readCameraLookMode,
+    applyCameraFromTo,
+    readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
+    toggleStatsVisibility: () => {
+        toggleVisibilityById("stats");
     },
-    runtimeBootstrapDeps: {
-        d3,
-        d3SelectAll,
-        hideElementById,
-        clearProgressLabel,
-        updateD3ElementText,
-        createNavigationActions,
-        createRepeatMouseDownHandlers,
-        createLockActions,
-        createCameraActions,
-        createModeActions,
-        createBurnActions,
-        readCameraPositionMode,
-        readCameraLookMode,
-        applyCameraFromTo,
-        readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
-        setPlaneSelectionState,
-        setChecked,
-        toggleStatsVisibility: () => {
-            toggleVisibilityById("stats");
-        },
-        requestAnimationFrame,
-        clearTimeoutFn: clearTimeout,
-        bindRepeatButtons,
-        initRepeatButtons,
-        resetViewTransformState,
-        render,
-        sleep,
-        updateCraftScale,
-        setLocation,
-        getPanXState,
-        setPanXState,
-        getPanYState,
-        setPanYState,
-        getZoomFactorState,
-        setZoomFactorState,
-        animateLoop,
-        orbitDataProcessed,
-        animationController,
-        isTestMode,
-        THREE,
-        UC,
-        PC,
-        stateAccess: missionStateAccess,
-    },
-});
+    requestAnimationFrame,
+    clearTimeoutFn: clearTimeout,
+    bindRepeatButtons,
+    initRepeatButtons,
+    resetViewTransformState,
+    getPanXState,
+    getPanYState,
+    getZoomFactorState,
+    animateLoop,
+    isTestMode,
+}));
 
 toggleMode = missionRuntimeWireup.toggleMode;
 setDimensionTop = missionRuntimeWireup.setDimensionTop;
