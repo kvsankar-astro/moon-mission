@@ -152,6 +152,11 @@ import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createCameraOverlayActions } from "./app/camera-overlay.js";
 import { createSceneUiUpdateActions } from "./app/scene-ui-update-actions.js";
 import { createInitOrchestrationActions } from "./app/init-orchestration.js";
+import { createSceneHandlerClass } from "./app/scene-handler-class.js";
+import { createAnimationSceneClass } from "./app/animation-scene-class.js";
+import { createInitConfigSceneSetupActions } from "./app/init-config-scene-setup.js";
+import { createRuntimeInitActions } from "./app/runtime-init.js";
+import { createRuntimeUiControlsActions } from "./app/runtime-ui-controls.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -450,8 +455,10 @@ const {
 // Event bus for decoupling UI ↔ mission orchestration
 const eventBus = createEventBus();
 var globalConfig = null; // Store loaded config from config.json
-var joyRideFlag = false;
-var landingFlag = false;
+const runtimeFlags = {
+    joyRide: false,
+    landing: false,
+};
 
 const orbitCurveActions = createOrbitCurveActions({
     THREE,
@@ -663,9 +670,6 @@ function wait10() {
 function wait20() {
     return wait(20);
 }
-function wait50() {
-    return wait(50);
-}
 async function sleep() { return new Promise(requestAnimationFrame); } // The Promise resolves after the next frame is painted
 
 async function fetchMetadata(baseFileName) {
@@ -702,14 +706,14 @@ function updateMoonUIFromConfig() {
 function updateLandingUIFromConfig() {
     const patch = computeLandingUiPatch({
         globalConfig,
-        landingFlag,
+        landingFlag: runtimeFlags.landing,
     });
 
     applyLandingUiPatch({
         setChecked,
         patch,
         setLandingFlag: (val) => {
-            landingFlag = val;
+            runtimeFlags.landing = val;
         },
     });
 }
@@ -721,155 +725,25 @@ const getStartAndEndTimes = createStartEndTimesResolver({
     oneMinuteMs: TC.ONE_MINUTE_MS,
 });
 
-class SceneHandler {
-
-    constructor() {
-        // console.log("SceneHandler ctor called");
-
-        this.scene = null;
-        this.renderer = null;
-        this.canvasNode = null;
-        this.initialized = false;
-        this.lookAtWorldTarget = new THREE.Vector3();
-
-        this.init();
-    }
-
-    init() {
-
-        // console.log("SceneHandler init() called");
-
-        if (this.initialized) {
-            return;
-        }
-
-        const { renderer, canvasNode } = initSceneHandlerDom({
-            d3,
-            bindSettingsPanel,
-            computeSVGDimensions: svgActions.computeSVGDimensions,
-            getSvgWidth: () => svgWidth,
-            getSvgHeight: () => svgHeight,
-            isTestMode,
-            onWindowResize,
-            THREE,
-        });
-        this.renderer = renderer;
-        this.canvasNode = canvasNode;
-
-        this.initialized = true;
-    }
-
-    render(animationScene) {
-
-        // console.log("SceneHandler.render() called");
-
-        if (animationScene.initialized3D) {
-
-            updateCraftScale();
-            
-            if (animationScene.lockOnEarth || (globalConfig && globalConfig.is_lunar && animationScene.lockOnMoon)) {
-            
-                var x = animationScene.secondaryBody3D.position.x;
-                var y = animationScene.secondaryBody3D.position.y;
-                var z = animationScene.secondaryBody3D.position.z;
-                animationScene.motherContainer.position.set(-x, -y, -z);
-                // animationScene.camera.lookAt(animationScene.secondaryBody3D.position);
-
-            } else if (animationScene.lockOnSC) {
-                
-                var x = animationScene.craft.position.x;
-                var y = animationScene.craft.position.y;
-                var z = animationScene.craft.position.z;
-                animationScene.motherContainer.position.set(-x, -y, -z);
-                // animationScene.camera.lookAt(animationScene.craft.position);                
-            } else {
-                animationScene.motherContainer.position.set(0, 0, 0);
-            }               
-
-            // Iteration 17: from-to camera system hook (defaults to manual/manual => no-op).
-            if (animationScene.cameraController?.updateFromTo) {
-                animationScene.cameraController.updateFromTo({
-                    earth: animationScene.earthContainer,
-                    moon: animationScene.moonContainer,
-                    spacecraft: animationScene.craft,
-                });
-            }
-
-            if (joyRideFlag || landingFlag) {
-
-                var craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
-                var craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer) 
-                    ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position) 
-                    : Infinity;
-                var earthAngleRads = Math.asin(earthRadius / craftEarthDistance);
-                var moonAngleRads = Math.asin(moonRadius / craftMoonDistance);
-
-                var closerBody;
-                var closerAngleRads;
-                var radius;
-                var distance;
-                if (craftEarthDistance < craftMoonDistance) {
-
-                    closerBody = animationScene.earthContainer;
-                    closerAngleRads = earthAngleRads;
-                    distance = craftEarthDistance;
-                    radius = earthRadius;
-
-                } else {
-
-                    closerBody = animationScene.moonContainer;
-                    closerAngleRads = moonAngleRads;
-                    distance = craftMoonDistance;
-                    radius = moonRadius;
-                }
-                
-                // Stable up vector:
-                // - When Moon is closer: use radial vector from Moon center to craft (keeps Moon "below")
-                // - Otherwise: align with body's local +Z
-                let upDir;
-                if (closerBody === animationScene.moonContainer) {
-                    upDir = new THREE.Vector3()
-                        .subVectors(animationScene.craft.position, animationScene.moonContainer.position)
-                        .normalize();
-                    if (upDir.lengthSq() === 0) {
-                        upDir.set(0, 0, 1);
-                    }
-                } else {
-                    upDir = new THREE.Vector3(0, 0, 1)
-                        .applyQuaternion(closerBody.quaternion)
-                        .normalize();
-                }
-
-                animationScene.craftCamera.up.copy(upDir);
-                animationScene.droneCamera.up.copy(upDir);
-
-                animationScene.craftCamera.lookAt(closerBody.position); 
-                animationScene.droneCamera.lookAt(animationScene.craft.position); 
-
-                var specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
-
-                this.renderer.autoClear = true;
-                specialCamera.layers.set(0);
-                this.renderer.render(animationScene.scene, specialCamera);    
-
-                this.renderer.autoClear = false;
-                specialCamera.layers.set(1);
-                this.renderer.render(animationScene.scene, specialCamera);    
-
-
-            } else {
-                this.renderer.autoClear = true;
-                animationScene.camera.layers.set(0);
-                this.renderer.render(animationScene.scene, animationScene.camera);    
-
-                this.renderer.autoClear = false;
-                animationScene.camera.layers.set(1);
-                this.renderer.render(animationScene.scene, animationScene.camera);    
-
-            }
-        }
-    }
-}
+const SceneHandler = createSceneHandlerClass({
+    THREE,
+    d3,
+    bindSettingsPanel,
+    initSceneHandlerDom,
+    computeSVGDimensions: () => svgActions.computeSVGDimensions(),
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+    isTestMode,
+    onWindowResize,
+    updateCraftScale,
+    getRuntimeState: () => ({
+        globalConfig,
+        joyRideFlag: runtimeFlags.joyRide,
+        landingFlag: runtimeFlags.landing,
+        earthRadius,
+        moonRadius,
+    }),
+});
 
 function updateCraftScale() {
     craftScaleActions.updateCraftScale();
@@ -879,393 +753,60 @@ function cameraControlsCallback() {
     craftScaleActions.cameraControlsCallback();
 }
 
-class AnimationScene {
-    
-    static SCENE_STATE_START = 0;
-    static SCENE_STATE_INIT_CONFIG_DONE = 1;
-    static SCENE_STATE_INIT_DONE = 2;
-    static SCENE_STATE_ADD_CURVE_DONE = 3;
-
-    constructor(name) {
-
-        // console.log("AnimationScene ctor called for " + name);
-
-        this.name = name;
-
-        this.orbits = {};
-
-        this.initialized3D = false;
-
-        this.earth = null;
-        this.earthContainer = null;
-        this.earthAxis = null;
-        this.earthGlow = null;
-
-        this.moon = null;
-        this.moonAxisRotationAngle = 0;
-
-        this.primaryBody3D = null;
-        this.secondaryBody3D = null;
-        this.craft = null;
-        this.camera = null;
-        this.cameraControlsEnabled = true;
-        this.cameraControls = null;
-        this.scene = null;
-        this.renderer = null;
-        this.curve = [];
-        this.landingCurve = [];
-        this.curveVelocities = [];
-        this.landingCurveVelocities = [];
-
-        this.locations = [];
-
-        // Scene helpers (axes, planes, SOI) - managed by SceneHelpers class
-        this.sceneHelpers = null;
-
-        // Sky renderer (starmap and constellations)
-        this.skyRenderer = null;
-
-        // Light manager
-        this.lightManager = null;
-
-        // Earth renderer
-        this.earthRenderer = null;
-
-        // Moon renderer
-        this.moonRenderer = null;
-
-        // Spacecraft renderer
-        this.spacecraftRenderer = null;
-
-        // Camera controller
-        this.cameraController = null;
-
-        this.stopCreationFlag = false;
-
-        this.state = AnimationScene.SCENE_STATE_START;
-
-        // Per-scene view state (transition away from global view variables).
-        this.planeSelection = DEFAULT_VIEW_STATE.planeSelection;
-        this.plane = DEFAULT_VIEW_STATE.plane;
-        this.xVariable = DEFAULT_VIEW_STATE.xVariable;
-        this.yVariable = DEFAULT_VIEW_STATE.yVariable;
-        this.zVariable = DEFAULT_VIEW_STATE.zVariable;
-        this.vxVariable = DEFAULT_VIEW_STATE.vxVariable;
-        this.vyVariable = DEFAULT_VIEW_STATE.vyVariable;
-        this.vzVariable = DEFAULT_VIEW_STATE.vzVariable;
-        this.xFactor = DEFAULT_VIEW_STATE.xFactor;
-        this.yFactor = DEFAULT_VIEW_STATE.yFactor;
-        this.zFactor = DEFAULT_VIEW_STATE.zFactor;
-        this.zoomFactor = DEFAULT_VIEW_STATE.zoomFactor;
-        this.panx = DEFAULT_VIEW_STATE.panx;
-        this.pany = DEFAULT_VIEW_STATE.pany;
-    }
-
-
-    stopCreation() {
-        sceneCreationActions.stopCreation(this);
-    }
-
-    setCameraPosition(x, y, z) {
-        sceneCameraPositionActions.setCameraPosition(this, x, y, z);
-    }
-
-    init3d(callback) {
-        scene3dInitActions.init3d(this, callback);
-
-        // var loader = new THREE.TextureLoader();
-
-        // // console.log("Loading texture ...");
-
-        // loader.load(
-        //     'images/2_no_clouds_8k.jpg',
-
-        //     function(texture) {
-
-        //         // console.log("Loaded texture.");
-        //         scene.earthTexture = texture;
-        //         await scene.init3dRest();
-        //         callback();
-
-        //     });
-
-        /* DON'T PUT ANY CODE HERE */
-    }
-
-    computeDimensions() {
-        dimensionsActions.computeDimensions(this);
-    }
-
-    addSky() {
-        skyActions.addSky(this, { earthRadius, viewSky });
-    }
-
-    disposeSky() {
-        skyActions.disposeSky(this);
-    }
-    
-    addEarth() {
-        earthActions.addEarth(this, {
-            earthRadius,
-            viewPolarAxes,
-            viewPoles,
-        });
-    }
-
-    disposeEarth() {
-        earthActions.disposeEarth(this);
-    }
-
-    addMoon() {
-        moonActions.addMoon(this);
-    }
-
-    disposeMoon() {
-        moonActions.disposeMoon(this);
-    }
-    
-    addMoonSOI() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-
-        // Create SceneHelpers instance if not already created
-        if (!this.sceneHelpers) {
-            this.sceneHelpers = new SceneHelpers(this.motherContainer);
-        }
-
-        this.sceneHelpers.createMoonSOI(this.moon, moonRadius, viewMoonSOI);
-
-        // Backward-compatible property reference for setView()
-        this.moonSOISphere = this.sceneHelpers.moonSOISphere;
-    }
-
-    disposeMoonSOI() {
-        // Check if this is a lunar mission
-        if (!globalConfig || !globalConfig.is_lunar) {
-            return;
-        }
-        if (this.sceneHelpers) {
-            this.sceneHelpers.disposeMoonSOI();
-        }
-        this.moonSOISphere = null;
-    }
-
-    addEarthLocations() {
-        locationActions.addEarthLocations({ scene: this });
-    }
-
-    disposeEarthLocations() {
-        locationActions.disposeEarthLocations({ scene: this });
-    }
-    
-    addMoonLocations() {
-        locationActions.addMoonLocations({ scene: this });
-    }
-
-    disposeMoonLocations() {
-        locationActions.disposeMoonLocations({ scene: this });
-    }
-
-    setPrimaryAndSecondaryBodies() {
-        primarySecondaryBodiesActions.setPrimaryAndSecondaryBodies(this);
-    }
-
-    addSpacecraftCurve() {
-        spacecraftCurveActions.addSpacecraftCurve(this);
-    }
-
-    disposeSpacecraftCurve() {
-        spacecraftCurveActions.disposeSpacecraftCurve(this);
-    }
-
-
-
-    addSpacecraft() {
-        spacecraftActions.addSpacecraft(this);
-    }
-
-    disposeSpacecraft() {
-        spacecraftActions.disposeSpacecraft(this);
-    }
-
-    
-
-    
-    addLineOfSight() {
-        lineOfSightActions.addLineOfSight(this);
-    }
-
-    disposeLineOfSight() {
-        lineOfSightActions.disposeLineOfSight(this);
-    }
-
-    addAxesHelper() {
-        axesHelperActions.addAxesHelper(this, {
-            earthRadius,
-            viewXYZAxes,
-            viewEclipticPlane,
-            viewEquatorialPlane,
-        });
-    }
-
-    disposeAxesHelper() {
-        axesHelperActions.disposeAxesHelper(this);
-    }
-    
-    addLight() {
-        lightActions.addLight(this);
-    }
-
-    disposeLight() {
-        lightActions.disposeLight(this);
-    }
-
-    addCamera() {
-        sceneCameraControllerActions.addCamera(this);
-    }
-
-    disposeCamera() {
-        sceneCameraControllerActions.disposeCamera(this);
-    }
-
-    async addSpacecraftModel() {
-        await spacecraftModelActions.addSpacecraftModel(this);
-    }
-
-    disposeSpacecraftModel() {
-        spacecraftModelActions.disposeSpacecraftModel(this);
-    }
-    
-    init3dRest() {
-        sceneInitActions.init3dRest(this);
-    }
-
-    setCameraParameters(isInitialization = false) {
-        // console.log("setCameraParameters() called: isInitialization = " + isInitialization);
-        const sceneViewState = ensureSceneViewState(this);
-
-        let controllerDistance = null;
-        if (this.cameraControlsEnabled && this.cameraController) {
-            controllerDistance = this.cameraController.getDistanceFromOrigin();
-        }
-
-        const params = computeSceneCameraParameters({
-            planeSelection: sceneViewState?.planeSelection || DEFAULT_VIEW_STATE.planeSelection,
-            missionConfig: this.name,
-            isInitialization,
-            controllerDistance,
-            defaultCameraDistance,
-        });
-
-        if (this.cameraController) {
-            this.cameraController.setFov(params.fov);
-            if (params.up) {
-                this.cameraController.setUp(params.up.x, params.up.y, params.up.z);
-            }
-        }
-
-        if (params.position) {
-            this.setCameraPosition(params.position.x, params.position.y, params.position.z);
-        }
-
-        this.craftVisible = params.craftVisible;
-
-        adjustCameraProjectionMatrixAndSkyAngle();
-    }
-
-    processOrbitVectorsData3D() {
-        orbitVectorProcessingActions.processOrbitVectorsData3D(this);
-    }
-
-    processLandingVectors() {
-        orbitVectorProcessingActions.processLandingVectors(this);
-    }
-
-    cameraDisntance(position) {
-        return sceneCameraPositionActions.cameraDisntance(position);
-    }   
-
-	rotateMoon(timeMs = animTime) {
-	    if (!globalConfig || !globalConfig.is_lunar) return;
-	    if (!this.moonContainer) return;
-
-	    if (frameMode === "relative" && config === "geo") {
-            const moonState = getBodyEphemerisState({
-                bodyId: "MOON",
-                timeMs,
-                config,
-                npzData,
-                npzDataLoaded,
-                chebyshevData,
-                chebyshevDataLoaded,
-                resolvedSource: resolveBodySource({
-                    bodyId: "MOON",
-                    bodySources: bodyEphemerisSources,
-                    defaultSpacecraftSource: ephemerisSource,
-                }),
-                defaultSpacecraftSource: ephemerisSource,
-            });
-            if (!moonState.available) return;
-	        const r = new THREE.Vector3(moonState.position.x, moonState.position.y, moonState.position.z);
-	        const v = new THREE.Vector3(moonState.velocity.vx, moonState.velocity.vy, moonState.velocity.vz);
-
-	        if (r.lengthSq() === 0) return;
-
-	        const xHat = r.clone().normalize();
-	        const zHat = new THREE.Vector3().crossVectors(r, v);
-	        if (zHat.lengthSq() === 0) return;
-	        zHat.normalize();
-	        const yHat = new THREE.Vector3().crossVectors(zHat, xHat);
-	        if (yHat.lengthSq() === 0) return;
-	        yHat.normalize();
-
-	        // Relative frame basis:
-	        // - local (relative) axes expressed in inertial coords are {xHat, yHat, zHat}.
-	        // - makeBasis() yields M = [xHat yHat zHat] mapping relative->inertial.
-	        // - We want B = M^T mapping inertial->relative (world coords in relative mode).
-	        const relativeToInertial = new THREE.Matrix4().makeBasis(xHat, yHat, zHat);
-	        const inertialToRelative = relativeToInertial.clone().transpose();
-	        const qFrame = new THREE.Quaternion().setFromRotationMatrix(inertialToRelative);
-
-	        // Moon orientation in inertial frame (IAU pole model, matching existing rotateMoon()).
-	        const date = new Date(timeMs);
-	        const lp = lunar_pole(date);
-	        const alpha = lp["alpha"];
-	        const delta = lp["delta"];
-	        const W = lp["W"];
-
-	        const qInertial = new THREE.Quaternion();
-	        const qx1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -1 * PC.EARTH_AXIS_INCLINATION_RADS);
-	        const qz2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2 + alpha);
-	        const qx3 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2 - delta);
-	        const qz4 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), W);
-	        qInertial.multiply(qx1).multiply(qz2).multiply(qx3).multiply(qz4);
-
-	        // Convert inertial orientation into the relative-frame world coordinates.
-	        this.moonContainer.quaternion.copy(qFrame).multiply(qInertial);
-	        return;
-	    }
-
-	    bodyRotationActions.rotateMoon({
-	        timeMs,
-	        globalConfig,
-	        moonContainer: this.moonContainer,
-	    });
-	}
-
-    rotateEarth(timeMs = animTime) {
-        bodyRotationActions.rotateEarth({
-            timeMs,
-            earthContainer: this.earthContainer,
-        });
-    } 
-
-    dispose() {
-        sceneDisposeActions.dispose(this);
-    }
-}
+const AnimationScene = createAnimationSceneClass({
+    THREE,
+    PC,
+    DEFAULT_VIEW_STATE,
+    SceneHelpers,
+    lunar_pole,
+    sceneCreationActions,
+    sceneCameraPositionActions,
+    scene3dInitActions,
+    dimensionsActions,
+    skyActions,
+    earthActions,
+    moonActions,
+    locationActions,
+    primarySecondaryBodiesActions,
+    spacecraftCurveActions,
+    spacecraftActions,
+    lineOfSightActions,
+    axesHelperActions,
+    lightActions,
+    sceneCameraControllerActions,
+    spacecraftModelActions,
+    sceneInitActions,
+    orbitVectorProcessingActions,
+    bodyRotationActions,
+    sceneDisposeActions,
+    ensureSceneViewState,
+    computeSceneCameraParameters,
+    adjustCameraProjectionMatrixAndSkyAngle,
+    getDefaultCameraDistance: () => defaultCameraDistance,
+    getBodyEphemerisState,
+    resolveBodySource,
+    getRuntimeState: () => ({
+        globalConfig,
+        frameMode,
+        config,
+        npzData,
+        npzDataLoaded,
+        chebyshevData,
+        chebyshevDataLoaded,
+        bodyEphemerisSources,
+        ephemerisSource,
+        animTime,
+        earthRadius,
+        moonRadius,
+        viewSky,
+        viewPolarAxes,
+        viewPoles,
+        viewMoonSOI,
+        viewXYZAxes,
+        viewEclipticPlane,
+        viewEquatorialPlane,
+    }),
+});
 
 function render() {
     // console.log("render() global function called");
@@ -1450,8 +991,8 @@ const craftScaleActions = createCraftScaleActions({
     THREE,
     animationScenes,
     getConfig: () => config,
-    getJoyRideFlag: () => joyRideFlag,
-    getLandingFlag: () => landingFlag,
+    getJoyRideFlag: () => runtimeFlags.joyRide,
+    getLandingFlag: () => runtimeFlags.landing,
     getDefaultCameraDistance: () => defaultCameraDistance,
     getAnimTime: () => animTime,
     isLocationAvaialable,
@@ -1562,6 +1103,73 @@ const planeActions = createPlaneActions({
     setLocation,
 });
 
+const initConfigSceneSetupActions = createInitConfigSceneSetupActions({
+    PC,
+    windowRef: window,
+    animationScenes,
+    animation3DControllers,
+    animation2DControllers,
+    AnimationScene,
+    Animation3DController,
+    Animation2DController,
+    planetProperties,
+    showPlanet,
+    computeSVGDimensions: () => svgActions.computeSVGDimensions(),
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+    setPixelsPerAU: (value) => {
+        PIXELS_PER_AU = value;
+    },
+    setDefaultCameraDistance: (value) => {
+        defaultCameraDistance = value;
+    },
+    setTrackWidth: (value) => {
+        trackWidth = value;
+    },
+    setEarthRadius: (value) => {
+        earthRadius = value;
+    },
+    setMoonRadius: (value) => {
+        moonRadius = value;
+    },
+    getEarthRadius: () => earthRadius,
+    getMoonRadius: () => moonRadius,
+    setStartTime: (value) => {
+        startTime = value;
+    },
+    setEndTime: (value) => {
+        endTime = value;
+    },
+    setEndTimeSC: (value) => {
+        endTimeSC = value;
+    },
+    setLatestEndTime: (value) => {
+        latestEndTime = value;
+    },
+    setTimelineTotalSteps: (value) => {
+        timelineTotalSteps = value;
+    },
+    setTicksPerAnimationStep: (value) => {
+        ticksPerAnimationStep = value;
+    },
+    setEpochJD: (value) => {
+        epochJD = value;
+    },
+    setEpochDate: (value) => {
+        epochDate = value;
+    },
+    getStartAndEndTimes,
+    animationController,
+    resolveOrbitUrls,
+    resolveOrbitNpzUrl,
+    handleModeSwitchToGeo,
+    handleModeSwitchToLunar,
+    setRelativeOrbitUrls: ({ scene, orbitsJson, orbitsCheb }) => {
+        scene.orbitsJson = orbitsJson;
+        scene.orbitsCheb = orbitsCheb;
+    },
+});
+
 
 async function initConfig() {
 
@@ -1658,169 +1266,16 @@ async function initConfig() {
         theSceneHandler = new SceneHandler();
     }    
 
-    if (config == "geo") {
-
-        if (!animationScenes[config]) {
-            // console.log("Creating new AnimationScene for " + config);
-            animationScenes[config] = new AnimationScene(config);
-            // Create controllers for this config
-            animation3DControllers[config] = new Animation3DController(config, animationScenes[config]);
-            animation2DControllers[config] = new Animation2DController(config, {
-                planetProperties: planetProperties,
-                showPlanet: showPlanet
-            });
-        }
-
-        svgActions.computeSVGDimensions();
-    
-        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
-        // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
-
-        defaultCameraDistance = 2 * PC.EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
-
-        trackWidth = 0.6;
-
-        earthRadius = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-        moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-        
-        animationScenes[config].primaryBody = "EARTH";
-        animationScenes[config].primaryBodyRadius = earthRadius;
-
-        animationScenes[config].secondaryBody = "MOON";
-        animationScenes[config].secondaryBodyRadius = moonRadius;
-
-        // Use config data if available, otherwise use defaults
-        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-        if (configData && configData[config]) {
-            const cfg = configData[config];
-            animationScenes[config].planetsForOrbits = cfg.planets;
-            animationScenes[config].planetsForLocations = cfg.planets;
-            animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-
-            const orbitUrls = resolveOrbitUrls(configData, config);
-            if (orbitUrls) {
-                animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
-                animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
-            }
-            const orbitNpz = resolveOrbitNpzUrl(configData, config);
-            if (orbitNpz) {
-                animationScenes[config].orbitsNpz = orbitNpz;
-            }
-        }
-
-        // URL-only: mode=relative loads a precomputed rotating-frame orbit file.
-        // Keep config as "geo" (Earth origin) to avoid changing existing UI flows.
-        if (isRelativeMode) {
-            const dataPath = window?.missionConfig?.dataPath;
-            const relativeBase = `relative-${spacecraftMnemonic}`;
-            if (typeof dataPath === "string" && dataPath.length > 0) {
-                animationScenes[config].orbitsJson = `${dataPath}${relativeBase}.json`;
-                animationScenes[config].orbitsCheb = `${dataPath}${relativeBase}-cheb.json`;
-            }
-        }
-        animationScenes[config].orbitsJsonFileSizeInBytes = 34793 * 1024; // TODO
-        animationScenes[config].stepsPerHop = 4;
-
-        startTime                  = getStartAndEndTimes("EARTH")[0];
-        endTime                    = getStartAndEndTimes("EARTH")[1];
-        endTimeSC                 = getStartAndEndTimes(spacecraftMnemonic)[1];
-
-        latestEndTime = endTime;
-        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
-        ticksPerAnimationStep = 1;
-
-        // Configure animation controller with mission timing
-        animationController.configure({
-            startTime: startTime,
-            endTime: endTime,
-            stepDurationMs: animationScenes[config].stepDurationInMilliSeconds,
-            stepsPerHop: animationScenes[config].stepsPerHop
+    if (config === "geo") {
+        initConfigSceneSetupActions.configureGeoScene({
+            configData,
+            isRelativeMode,
         });
-
-        epochJD = "N/A";
-        epochDate = "N/A";
-
-        // timelineIndex = 0; // Don't reset in case we are switching between modes
-
-        handleModeSwitchToGeo();
-
-    } else if (config == "lunar") {
-
-        if (!animationScenes[config]) {
-            // console.log("Creating new AnimationScene for " + config);
-            animationScenes[config] = new AnimationScene(config);
-            // Create controllers for this config
-            animation3DControllers[config] = new Animation3DController(config, animationScenes[config]);
-            animation2DControllers[config] = new Animation2DController(config, {
-                planetProperties: planetProperties,
-                showPlanet: showPlanet
-            });
-        }
-
-        svgActions.computeSVGDimensions();
-    
-        PIXELS_PER_AU = Math.min(svgWidth, svgHeight) / (1.2 * (2 * PC.EARTH_MOON_DISTANCE_MEAN_AU)); 
-        // The smaller dimension of the screen should fit 120% of the whole Moon orbit around Earth
-        
-        defaultCameraDistance = 2 * PC.EARTH_MOON_DISTANCE_MEAN_AU * PIXELS_PER_AU;
-
-        trackWidth = 0.6;
-
-        earthRadius = (PC.EARTH_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU;
-        moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * PIXELS_PER_AU * 0.997;        
-
-        animationScenes[config].primaryBody = "MOON";
-        animationScenes[config].primaryBodyRadius = moonRadius;
-
-        animationScenes[config].secondaryBody = "EARTH";
-        animationScenes[config].secondaryBodyRadius = earthRadius;
-
-        // Use config data if available, otherwise use defaults
-        const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-        if (configData && configData[config]) {
-            const cfg = configData[config];
-            animationScenes[config].planetsForOrbits = cfg.planets;
-            animationScenes[config].planetsForLocations = cfg.planets;
-            animationScenes[config].stepDurationInMilliSeconds = cfg.step_size_in_seconds * 1000; // Convert to milliseconds
-
-            const orbitUrls = resolveOrbitUrls(configData, config);
-            if (orbitUrls) {
-                animationScenes[config].orbitsJson = orbitUrls.orbitsJson;
-                animationScenes[config].orbitsCheb = orbitUrls.orbitsCheb;
-            }
-            const orbitNpz = resolveOrbitNpzUrl(configData, config);
-            if (orbitNpz) {
-                animationScenes[config].orbitsNpz = orbitNpz;
-            }
-        }
-
-        animationScenes[config].orbitsJsonFileSizeInBytes = 34800 * 1024; // TODO
-        animationScenes[config].stepsPerHop = 4;
-
-        startTime                  = getStartAndEndTimes("EARTH")[0];
-        endTime                    = getStartAndEndTimes("EARTH")[1];
-        endTimeSC                 = getStartAndEndTimes(spacecraftMnemonic)[1];
-
-        latestEndTime = endTime;
-        timelineTotalSteps = (latestEndTime - startTime) / animationScenes[config].stepDurationInMilliSeconds;
-        ticksPerAnimationStep = 1;
-
-        // Configure animation controller with mission timing
-        animationController.configure({
-            startTime: startTime,
-            endTime: endTime,
-            stepDurationMs: animationScenes[config].stepDurationInMilliSeconds,
-            stepsPerHop: animationScenes[config].stepsPerHop
+    } else if (config === "lunar") {
+        initConfigSceneSetupActions.configureLunarScene({
+            configData,
         });
-
-        epochJD = "N/A";
-        epochDate = "N/A";
-
-        // timelineIndex = 0; // Don't reset in case we are switching between modes
-
-        handleModeSwitchToLunar();
-
-    } 
+    }
 
     // Add event buttons
 
@@ -2157,175 +1612,59 @@ export function main() {
     // console.log("onload() took " + onloadEndTime + " ms");
 }
 
-// TODO - find a better way to handle the following
-
-
-async function init(callback) {
-    if (animationScenes[config] && animationScenes[config].state >= AnimationScene.SCENE_STATE_INIT_DONE) {
-        // console.log("init() returning as already initialized");
-        return;
-    }
-
-    const fnStartTime = performance.now();
-    // console.log("init() called");
-
-    resetViewTransformState(config);
-    
-    initRepeatButtons({
-        d3SelectAll,
-        setChecked,
-        animationScene: animationScenes[config],
-        bindRepeatButtons,
-        d3Select: d3.select,
-        handlersById: {
-            zoomin: f1,
-            zoomout: f2,
-            panleft: f3,
-            panright: f4,
-            panup: f5,
-            pandown: f6,
-            forward: f7,
-            fastforward: f8,
-            backward: f9,
-            fastbackward: f10,
-            slower: f11,
-            resetspeed: f12,
-            faster: f13,
-            realtime: f14,
-        },
-        resetMouseRepeatState: ({ mouseOut } = {}) => {
-            if (mouseOut) {
-                mouseDown = false;
-                if (timeoutHandleZoom == null) return;
-            } else {
-                mousedownTimeout = UC.ZOOM_TIMEOUT;
-                mouseDown = false;
-            }
-
-            clearTimeout(timeoutHandleZoom);
-            timeoutHandleZoom = null;
-            zoomEnd();
-        },
-    });
-
-    await sleep();
-
-    // $("#settings-panel").dialog({
-    //     dialogClass: "dialog desktoponly",
-    //     modal: false,
-    //     position: {
-    //         my: "right top",
-    //         at: "right top",
-    //         of: "#blurb",
-    //         collision: "fit flip"},
-    //     title: "Settings",
-    //     closeOnEscape: false
-    // }).dialogExtend({
-    //     closable: false,
-    //     "dblclick" : "collapse",
-    //     minimizable: false,
-    //     minimizeLocation: 'right',
-    //     collapsable: true,
-    // })/* .dialogExtend("collapse") */;
-    // $("#settings-panel")
-    //     .closest('.ui-dialog')
-    //     .addClass("transparent-panel")
-    //     .css({'background': 'transparent', 'background-image': 'none', 'border': '0'});
-
-    // $("#animation-control-panel").dialog({
-    //     dialogClass: "dialog",
-    //     modal: false,
-    //     position: {
-    //         my: "left top",
-    //         at: "left bottom",
-    //         of: "#settings-panel",
-    //         collision: "fit flip"},
-    //     width: "100%",
-    //     maxWidth: "100%",
-    //     /* height: '300', */
-    //     resizable: false,
-    //     // title: "Controls",
-    //     closeOnEscape: false
-    // }).dialogExtend({
-    //     titlebar: 'none',
-    //     closable: false,
-    //     "dblclick" : "collapse",
-    //     minimizable: false,
-    //     minimizeLocation: 'right',
-    //     collapsable: true,
-    // });
-    // $("#animation-control-panel")
-    //     .closest('.ui-dialog')
-    //     .addClass("transparent-panel")
-    //     .css({'background': 'transparent', 'background-image': 'none', 'border': '0'});
-
-    let isMobile = window.matchMedia("only screen and (max-width: 600px)").matches;
-
-    // Let's not show the zoom panel at all. TODO Find a better solution later.
-    // if (!isMobile) {
-    //     $("#zoom-panel").dialog({
-    //         dialogClass: "dialog dimension-2D desktoponly",
-    //         modal: false,
-    //         position: {
-    //             my: "left top",
-    //             at: "left bottom",
-    //             of: "#animation-control-panel",
-    //             collision: "fit flip"},
-    //         title: "Pan/Zoom",
-    //         closeOnEscape: false
-    //     }).dialogExtend({
-    //         closable: false,
-    //         "dblclick" : "collapse",
-    //         minimizable: true,
-    //         minimizeLocation: 'right',
-    //         collapsable: true,
-    //     });
-    //     $("#zoom-panel")
-    //         .closest('.ui-dialog')
-    //         .addClass("transparent-panel")
-    //         .addClass("desktoponly")
-    //         .css({'background': 'transparent', 'background-image': 'none', 'border': '0', 'margin-top': '20px'});    
-    // }
-
-    // $("#stats").dialog({
-    //     dialogClass: "dialog notitledialog",
-    //     modal: false,
-    //     position: {
-    //         my: "left bottom",
-    //         at: "left bottom-50",
-    //         of: window,
-    //         collision: "fit flip"},
-    //         title: "Information",
-    //         minimizable: true,
-    //         collapsable: true,
-    //         closeOnEscape: false
-    //     }).dialogExtend({
-    //         closable: false,
-    //         "dblclick" : "collapse",
-    //         minimizable: true,
-    //         minimizeLocation: 'right',
-    //         collapsable: true,
-    // });
-    // $("#stats")
-    //     .closest('.ui-dialog')
-    //     .addClass("transparent-panel")
-    //     .css({'background': 'transparent', 'background-image': 'none', 'border': '0'});
-
-    animDate = d3.select("#date");
-
-    await sleep();
-    if (currentDimension == "2D") {
-        svgActions.initSVG();
-    }
-
-    await sleep();
-    loadOrbitDataIfNeededAndProcess(callback);
-    loadLandingDataAndProcess();
-
-    const fnDuration = performance.now() - fnStartTime;
-    animationScenes[config].state = AnimationScene.SCENE_STATE_INIT_DONE;
-    // console.log("init() returning: took " + fnDuration + " ms");
-}
+const { init } = createRuntimeInitActions({
+    getConfig: () => config,
+    getScene: (cfg) => animationScenes[cfg],
+    getSceneStateInitDone: () => AnimationScene.SCENE_STATE_INIT_DONE,
+    setSceneState: (cfg, state) => {
+        if (animationScenes[cfg]) {
+            animationScenes[cfg].state = state;
+        }
+    },
+    resetViewTransformState,
+    initRepeatButtons,
+    d3SelectAll,
+    setChecked,
+    bindRepeatButtons,
+    d3Select: d3.select,
+    getHandlersById: () => ({
+        zoomin: f1,
+        zoomout: f2,
+        panleft: f3,
+        panright: f4,
+        panup: f5,
+        pandown: f6,
+        forward: f7,
+        fastforward: f8,
+        backward: f9,
+        fastbackward: f10,
+        slower: f11,
+        resetspeed: f12,
+        faster: f13,
+        realtime: f14,
+    }),
+    getTimeoutHandleZoom: () => timeoutHandleZoom,
+    setTimeoutHandleZoom: (value) => {
+        timeoutHandleZoom = value;
+    },
+    setMousedownTimeout: (value) => {
+        mousedownTimeout = value;
+    },
+    setMouseDown: (value) => {
+        mouseDown = value;
+    },
+    getZoomTimeoutMs: () => UC.ZOOM_TIMEOUT,
+    clearTimeoutFn: clearTimeout,
+    zoomEnd,
+    sleep,
+    setAnimDate: (value) => {
+        animDate = value;
+    },
+    getCurrentDimension: () => currentDimension,
+    initSVG: () => svgActions.initSVG(),
+    loadOrbitDataIfNeededAndProcess,
+    loadLandingDataAndProcess,
+});
 
 function updateConfigFromMetadata() {
     // Update step duration from metadata if available
@@ -2412,28 +1751,56 @@ const {
     panRight,
     panUp,
     panDown,
-} = createNavigationActions({
+    f1,
+    f2,
+    f3,
+    f4,
+    f5,
+    f6,
+    f7,
+    f8,
+    f9,
+    f10,
+    f11,
+    f12,
+    f13,
+    f14,
+    toggleLockSC,
+    toggleLockMoon,
+    toggleLockEarth,
+    changeCameraFromTo,
+    togglePlane,
+    recenterMountedCamera,
+    toggleJoyRide,
+    toggleLanding,
+    burnButtonHandler,
+} = createRuntimeUiControlsActions({
+    createNavigationActions,
+    createRepeatMouseDownHandlers,
+    createLockActions,
+    createCameraActions,
+    createModeActions,
+    createBurnActions,
     getPanX: () => getPanXState(config),
-    setPanX: (val) => { setPanXState(val, config); },
+    setPanX: (val) => {
+        setPanXState(val, config);
+    },
     getPanY: () => getPanYState(config),
-    setPanY: (val) => { setPanYState(val, config); },
+    setPanY: (val) => {
+        setPanYState(val, config);
+    },
     getZoomFactor: () => getZoomFactorState(config),
-    setZoomFactor: (val) => { setZoomFactorState(val, config); },
+    setZoomFactor: (val) => {
+        setZoomFactorState(val, config);
+    },
     zoomChange,
     zoomEnd,
     render,
     getZoomTimeoutMs: () => UC.ZOOM_TIMEOUT,
     getZoomScale: () => UC.ZOOM_SCALE,
-    toggleInfo: () => { toggleVisibilityById("stats"); },
-});
-
-const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRepeatMouseDownHandlers({
-    zoomIn,
-    zoomOut,
-    panLeft,
-    panRight,
-    panUp,
-    panDown,
+    toggleStatsVisibility: () => {
+        toggleVisibilityById("stats");
+    },
     forward,
     fastForward,
     backward,
@@ -2442,29 +1809,41 @@ const { f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14 } = createRe
     resetspeed,
     faster,
     realtime,
-    getDelayMs: () => mousedownTimeout,
-    setDelayMs: (val) => { mousedownTimeout = val; },
-    setTimeoutHandle: (handle) => { timeoutHandleZoom = handle; },
-});
-
-const { toggleLockSC, toggleLockMoon, toggleLockEarth } = createLockActions({
+    getMouseDownTimeout: () => mousedownTimeout,
+    setMouseDownTimeout: (val) => {
+        mousedownTimeout = val;
+    },
+    setTimeoutHandleZoom: (handle) => {
+        timeoutHandleZoom = handle;
+    },
     animationScenes,
     getConfig: () => config,
-    reset,
     setChecked,
-});
-
-const { changeCameraFromTo, togglePlane, recenterMountedCamera } = createCameraActions({
-    animationScenes,
-    getConfig: () => config,
     readCameraPositionMode,
     readCameraLookMode,
     applyCameraFromTo,
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
-    setPlaneSelection: (val) => { setPlaneSelectionState(val, config); },
+    setPlaneSelection: (val) => {
+        setPlaneSelectionState(val, config);
+    },
     handlePlaneChange: planeActions.handlePlaneChange,
-    render,
     getViewSky: () => viewSky,
+    getGlobalConfig: () => globalConfig,
+    updateCraftScale,
+    getLandingFlag: () => runtimeFlags.landing,
+    setLandingFlag: (val) => {
+        runtimeFlags.landing = val;
+    },
+    getJoyRideFlag: () => runtimeFlags.joyRide,
+    setJoyRideFlag: (val) => {
+        runtimeFlags.joyRide = val;
+    },
+    setView,
+    getEventInfos: () => eventInfos,
+    setAnimTime: (val) => {
+        animTime = val;
+    },
+    missionSetTime,
 });
 
 const initOrchestrationActions = createInitOrchestrationActions({
@@ -2497,25 +1876,6 @@ const { initCameraOverlay, updateCameraOverlay } = createCameraOverlayActions({
     getPixelsPerAU: () => PIXELS_PER_AU,
     getKmPerAu: () => PC.KM_PER_AU,
     recenterMountedCamera,
-});
-
-const { toggleJoyRide, toggleLanding } = createModeActions({
-    animationScenes,
-    getConfig: () => config,
-    getGlobalConfig: () => globalConfig,
-    render,
-    updateCraftScale,
-    getLandingFlag: () => landingFlag,
-    setLandingFlag: (val) => { landingFlag = val; },
-    getJoyRideFlag: () => joyRideFlag,
-    setJoyRideFlag: (val) => { joyRideFlag = val; },
-    setView,
-});
-
-const { burnButtonHandler } = createBurnActions({
-    getEventInfos: () => eventInfos,
-    setAnimTime: (val) => { animTime = val; },
-    missionSetTime,
 });
 
 // Expose variables globally for testing
