@@ -102,14 +102,13 @@ import {
     syncPlaneSelectionControls,
 } from "./app/plane-view-state.js";
 import { createSceneViewStateActions } from "./app/scene-view-state.js";
-import { createRelativeModeActions } from "./app/relative-mode.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
-import { createSceneHandlerClass } from "./app/scene-handler-class.js";
-import { createAnimationSceneClass } from "./app/animation-scene-class.js";
 import { createMissionBridgeActions } from "./app/mission-bridge-actions.js";
 import { createMissionStateAccess } from "./app/mission-state-access.js";
 import { createMissionSceneActionBundle } from "./app/mission-scene-action-bundle.js";
 import { createMissionRuntimeWireup } from "./app/mission-runtime-wireup.js";
+import { initializeMissionViewState } from "./app/mission-view-bootstrap.js";
+import { createMissionSceneBootstrap } from "./app/mission-scene-bootstrap.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -540,44 +539,39 @@ let toggleMode;
 let setDimensionTop;
 let setView;
 
-const {
-    consumeOriginOverrideFromSession,
-    applyRelativeModeOriginSelection,
-    toggleRelativeMode,
-    toggleModeGuarded,
-} = createRelativeModeActions({
+const initialMissionViewState = initializeMissionViewState({
     isRelativeMode,
     setChecked,
     readOriginMode,
+    syncPlaneSelectionControls,
+    planeSelection,
+    readViewSettings,
     getToggleMode: () => toggleMode,
 });
 
-consumeOriginOverrideFromSession();
+const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
+config = initialMissionViewState.config;
+var configGeo = initialMissionViewState.configGeo;
+var configLunar = initialMissionViewState.configLunar;
+var viewOrbit = initialMissionViewState.viewOrbit;
+var viewOrbitDescent = initialMissionViewState.viewOrbitDescent;
+var viewCraters = initialMissionViewState.viewCraters;
+var viewXYZAxes = initialMissionViewState.viewXYZAxes;
+var viewPoles = initialMissionViewState.viewPoles;
+var viewPolarAxes = initialMissionViewState.viewPolarAxes;
+var viewSky = initialMissionViewState.viewSky;
+var viewMoonSOI = initialMissionViewState.viewMoonSOI;
+var viewEclipticPlane = initialMissionViewState.viewEclipticPlane;
+var viewEquatorialPlane = initialMissionViewState.viewEquatorialPlane;
+var viewFPS = initialMissionViewState.viewFPS;
 
-// Relative mode is Earth-centered; force Earth origin selection without changing defaults for normal runs.
-applyRelativeModeOriginSelection();
-
-var config = readOriginMode();
-syncPlaneSelectionControls(planeSelection, setChecked);
-var configGeo = (config === "geo");
-var configLunar = (config === "lunar");
-
-const initialViewSettings = readViewSettings();
-var viewOrbit = initialViewSettings.viewOrbit;
-var viewOrbitDescent = initialViewSettings.viewOrbitDescent;
-var viewCraters = initialViewSettings.viewCraters;
-var viewXYZAxes = initialViewSettings.viewXYZAxes;
-var viewPoles = initialViewSettings.viewPoles;
-var viewPolarAxes = initialViewSettings.viewPolarAxes;
-var viewSky = initialViewSettings.viewSky;
-var viewMoonSOI = initialViewSettings.viewMoonSOI;
-var viewEclipticPlane = initialViewSettings.viewEclipticPlane;
-var viewEquatorialPlane = initialViewSettings.viewEquatorialPlane;
-var viewFPS = initialViewSettings.viewFPS;
-
-const SceneHandler = createSceneHandlerClass({
+const { SceneHandler, AnimationScene } = createMissionSceneBootstrap({
     THREE,
     d3,
+    PC,
+    DEFAULT_VIEW_STATE,
+    SceneHelpers,
+    lunar_pole,
     bindSettingsPanel,
     initSceneHandlerDom,
     computeSVGDimensions: () => missionRuntimeWireup.svgActions.computeSVGDimensions(),
@@ -586,21 +580,13 @@ const SceneHandler = createSceneHandlerClass({
     isTestMode,
     onWindowResize,
     updateCraftScale,
-    getRuntimeState: () => ({
+    getSceneHandlerRuntimeState: () => ({
         globalConfig,
         joyRideFlag: runtimeFlags.joyRide,
         landingFlag: runtimeFlags.landing,
         earthRadius,
         moonRadius,
     }),
-});
-
-const AnimationScene = createAnimationSceneClass({
-    THREE,
-    PC,
-    DEFAULT_VIEW_STATE,
-    SceneHelpers,
-    lunar_pole,
     sceneCreationActions,
     sceneCameraPositionActions,
     scene3dInitActions,
@@ -627,7 +613,7 @@ const AnimationScene = createAnimationSceneClass({
     getDefaultCameraDistance: () => defaultCameraDistance,
     getBodyEphemerisState,
     resolveBodySource,
-    getRuntimeState: () => ({
+    getAnimationSceneRuntimeState: () => ({
         globalConfig,
         frameMode,
         config,
