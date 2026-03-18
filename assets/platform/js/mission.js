@@ -153,14 +153,17 @@ import { createCameraOverlayActions } from "./app/camera-overlay.js";
 import { createSceneUiUpdateActions } from "./app/scene-ui-update-actions.js";
 import { createSceneFrameUiActions } from "./app/scene-frame-ui-actions.js";
 import { createScene2DFrameActions } from "./app/scene-2d-frame-actions.js";
+import { createSceneFrameOrchestrationActions } from "./app/scene-frame-orchestration-actions.js";
 import { createInitOrchestrationActions } from "./app/init-orchestration.js";
 import { createSceneHandlerClass } from "./app/scene-handler-class.js";
 import { createAnimationSceneClass } from "./app/animation-scene-class.js";
 import { createInitConfigSceneSetupActions } from "./app/init-config-scene-setup.js";
 import { createInitConfigOrchestrationActions } from "./app/init-config-orchestration.js";
 import { createInitConfigUiActions } from "./app/init-config-ui-actions.js";
+import { createInitConfigFlowActions } from "./app/init-config-flow-actions.js";
 import { createRuntimeInitActions } from "./app/runtime-init.js";
 import { createRuntimeUiControlsActions } from "./app/runtime-ui-controls.js";
+import { createRuntimeInitDeps, createRuntimeUiControlsDeps } from "./app/runtime-deps.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -1240,52 +1243,30 @@ const initConfigUiActions = createInitConfigUiActions({
     SwiperClass: Swiper,
 });
 
-
-async function initConfig() {
-
-    // console.log("initConfig() called");
-
-    const existingScene = animationScenes[config];
-    if (shouldSkipInitConfig({ animationScene: existingScene, AnimationScene })) {
-        // console.log("initConfig() returning as already initialized");
-        applyInitConfigAlreadyInitialized({
-            config,
-            handleModeSwitchToGeo,
-            handleModeSwitchToLunar,
-            setChecked,
-            animationScene: existingScene,
-            syncPlaneSelection: (selection) => {
-                const normalized = normalizePlaneSelection(selection);
-                setPlaneSelectionState(normalized, config);
-                syncPlaneSelectionControls(normalized, setChecked);
-            },
-        });
-        return;
-    }
-
-    await initConfigOrchestrationActions.ensureGlobalConfigLoaded();
-
-    const configData = globalConfig;
-    initConfigOrchestrationActions.applyConfigDerivedUpdates();
-    initConfigOrchestrationActions.ensureSceneHandlerInitialized();
-
-    if (config === "geo") {
-        initConfigSceneSetupActions.configureGeoScene({
-            configData,
-            isRelativeMode,
-        });
-    } else if (config === "lunar") {
-        initConfigSceneSetupActions.configureLunarScene({
-            configData,
-        });
-    }
-
-    initConfigUiActions.configureInitConfigControls();
-
-
-    animationScenes[config].state = AnimationScene.SCENE_STATE_INIT_CONFIG_DONE;
-    console.debug("initConfig(" + config + ") returning - state at SCENE_STATE_ADD_CURVE_DONE");
-}
+const { initConfig } = createInitConfigFlowActions({
+    getConfig: () => config,
+    getAnimationScene: (cfg) => animationScenes[cfg],
+    AnimationScene,
+    shouldSkipInitConfig,
+    applyInitConfigAlreadyInitialized,
+    handleModeSwitchToGeo,
+    handleModeSwitchToLunar,
+    setChecked,
+    normalizePlaneSelection,
+    setPlaneSelectionState,
+    syncPlaneSelectionControls,
+    initConfigOrchestrationActions,
+    getGlobalConfig: () => globalConfig,
+    initConfigSceneSetupActions,
+    isRelativeMode,
+    initConfigUiActions,
+    setSceneState: (cfg, state) => {
+        if (animationScenes[cfg]) {
+            animationScenes[cfg].state = state;
+        }
+    },
+    consoleRef: console,
+});
 
 const dimensionActions = createDimensionActions({
     d3,
@@ -1382,6 +1363,43 @@ const scene2DFrameActions = createScene2DFrameActions({
     showGreenwichLongitude,
 });
 
+const sceneFrameOrchestrationActions = createSceneFrameOrchestrationActions({
+    getConfig: () => config,
+    isOrbitDataProcessed: (cfg) => orbitDataProcessed[cfg],
+    getAnimTime: () => animTime,
+    computeSunLongitude,
+    computeSceneState,
+    getChebyshevData: () => chebyshevData,
+    getChebyshevDataLoaded: () => chebyshevDataLoaded,
+    getNpzData: () => npzData,
+    getNpzDataLoaded: () => npzDataLoaded,
+    getLandingNpzData: (cfg) => landingNpzData[cfg],
+    getLandingNpzLoaded: (cfg) => landingNpzLoaded[cfg],
+    getLandingChebyshevData: (cfg) => landingChebyshevData[cfg],
+    getLandingChebyshevLoaded: (cfg) => landingChebyshevLoaded[cfg],
+    getGlobalConfig: () => globalConfig,
+    getStartLandingTime: () => startLandingTime,
+    getEndLandingTime: () => endLandingTime,
+    getEventInfos: () => eventInfos,
+    getMissionTimes: () => ({ timeTransLunarInjection, timeLunarOrbitInsertion }),
+    getAnimationScene: (cfg) => animationScenes[cfg],
+    getFrameMode: () => frameMode,
+    getBodySources: () => bodyEphemerisSources,
+    getActiveEphemerisSource: (cfg) => getActiveEphemerisSource(cfg),
+    setSunLongitude: (value) => {
+        sunLongitude = value;
+    },
+    getCraftId: () => craftId,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    updateCraftScale,
+    getCurrentDimension: () => currentDimension,
+    animation3DControllers,
+    adjustCameraProjectionMatrixAndSkyAngle,
+    scene2DFrameActions,
+    sceneFrameUiActions,
+    render,
+});
+
 function onWindowResize() {
     render(); // TODO is this the right thing to do here?
 }
@@ -1391,72 +1409,7 @@ function showPlanet(planet) {
 }
 
 function setLocation() {
-
-    if (!orbitDataProcessed[config]) {
-        return;
-    }
-
-    // =========================================================================
-    // 1. FUNCTIONAL CORE: Compute scene state
-    // =========================================================================
-    const sunLongitudeForFrame = computeSunLongitude(animTime);
-    const sceneState = computeSceneState(animTime, config, {
-        sunLongitude: sunLongitudeForFrame,
-        chebyshevData,
-        chebyshevDataLoaded,
-        npzData,
-        npzDataLoaded,
-        landingNpzData: landingNpzData[config],
-        landingNpzLoaded: landingNpzLoaded[config],
-        landingChebyshevData: landingChebyshevData[config],
-        landingChebyshevLoaded: landingChebyshevLoaded[config],
-        globalConfig,
-        startLandingTime,
-        endLandingTime,
-        eventInfos,
-        missionTimes: { timeTransLunarInjection, timeLunarOrbitInsertion },
-        planetsForLocations: animationScenes[config].planetsForLocations,
-        frameMode,
-        bodySources: bodyEphemerisSources,
-        ephemerisSource: getActiveEphemerisSource(config),
-    });
-
-    // Store sun longitude for global access (used by other parts of code)
-    sunLongitude = sceneState.sunLongitude;
-
-    // =========================================================================
-    // 3. Render with appropriate controller
-    // =========================================================================
-    const primaryBody = animationScenes[config].primaryBody;
-    const renderOptions = {
-        craftId,
-        pixelsPerAU: PIXELS_PER_AU,
-        primaryBody,
-        planetsForLocations: animationScenes[config].planetsForLocations,
-        updateCraftScale,
-        landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
-    };
-
-    if (currentDimension === "3D") {
-        // 3D rendering via controller
-        if (animation3DControllers[config]) {
-            animation3DControllers[config].render(sceneState, renderOptions);
-        }
-        if (animationScenes[config] && animationScenes[config].initialized3D) {
-            adjustCameraProjectionMatrixAndSkyAngle();
-        }
-    } else {
-        scene2DFrameActions.render2DFrame({ sceneState, renderOptions });
-    }
-
-    sceneFrameUiActions.updateFrameUi({
-        animTime,
-        sceneState,
-        primaryBody,
-        globalConfig,
-    });
-
-    render();
+    sceneFrameOrchestrationActions.setLocation();
 }
 
 function adjustCameraProjectionMatrixAndSkyAngle() {
@@ -1529,7 +1482,7 @@ export function main() {
     // console.log("onload() took " + onloadEndTime + " ms");
 }
 
-const { init } = createRuntimeInitActions({
+const { init } = createRuntimeInitActions(createRuntimeInitDeps({
     getConfig: () => config,
     getScene: (cfg) => animationScenes[cfg],
     getSceneStateInitDone: () => AnimationScene.SCENE_STATE_INIT_DONE,
@@ -1581,7 +1534,7 @@ const { init } = createRuntimeInitActions({
     initSVG: () => svgActions.initSVG(),
     loadOrbitDataIfNeededAndProcess,
     loadLandingDataAndProcess,
-});
+}));
 
 function updateConfigFromMetadata() {
     // Update step duration from metadata if available
@@ -1691,25 +1644,20 @@ const {
     toggleJoyRide,
     toggleLanding,
     burnButtonHandler,
-} = createRuntimeUiControlsActions({
+} = createRuntimeUiControlsActions(createRuntimeUiControlsDeps({
     createNavigationActions,
     createRepeatMouseDownHandlers,
     createLockActions,
     createCameraActions,
     createModeActions,
     createBurnActions,
-    getPanX: () => getPanXState(config),
-    setPanX: (val) => {
-        setPanXState(val, config);
-    },
-    getPanY: () => getPanYState(config),
-    setPanY: (val) => {
-        setPanYState(val, config);
-    },
-    getZoomFactor: () => getZoomFactorState(config),
-    setZoomFactor: (val) => {
-        setZoomFactorState(val, config);
-    },
+    getConfig: () => config,
+    getPanXState,
+    setPanXState,
+    getPanYState,
+    setPanYState,
+    getZoomFactorState,
+    setZoomFactorState,
     zoomChange,
     zoomEnd,
     render,
@@ -1734,15 +1682,12 @@ const {
         timeoutHandleZoom = handle;
     },
     animationScenes,
-    getConfig: () => config,
     setChecked,
     readCameraPositionMode,
     readCameraLookMode,
     applyCameraFromTo,
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
-    setPlaneSelection: (val) => {
-        setPlaneSelectionState(val, config);
-    },
+    setPlaneSelectionState,
     handlePlaneChange: planeActions.handlePlaneChange,
     getViewSky: () => viewSky,
     getGlobalConfig: () => globalConfig,
@@ -1761,7 +1706,7 @@ const {
         animTime = val;
     },
     missionSetTime,
-});
+}));
 
 const initOrchestrationActions = createInitOrchestrationActions({
     initConfig,
