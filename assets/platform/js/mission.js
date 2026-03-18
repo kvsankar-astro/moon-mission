@@ -136,9 +136,11 @@ import { createRelativeModeActions } from "./app/relative-mode.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createSceneHandlerClass } from "./app/scene-handler-class.js";
 import { createAnimationSceneClass } from "./app/animation-scene-class.js";
-import { createMissionWiringComposition } from "./app/mission-wiring-composition.js";
 import { createMissionBridgeActions } from "./app/mission-bridge-actions.js";
-import { createMissionRuntimeBootstrap } from "./app/mission-runtime-bootstrap.js";
+import {
+    createMissionRuntimeBootstrapActions,
+    createMissionWiringActions,
+} from "./app/mission-context-builders.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -770,6 +772,305 @@ const {
     d3SelectAll,
 });
 
+const missionStateAccess = {
+    getGlobalConfig: () => globalConfig,
+    setGlobalConfig: (value) => {
+        globalConfig = value;
+    },
+    getConfig: () => config,
+    setConfig: (val) => {
+        config = val;
+    },
+    getCurrentDimension: () => currentDimension,
+    setCurrentDimension: (val) => {
+        currentDimension = val;
+    },
+    getPreviousDimension: () => previousDimension,
+    setPreviousDimension: (val) => {
+        previousDimension = val;
+    },
+    setDimensionChanged: (val) => {
+        dimensionChanged = val;
+    },
+    getDimensionChanged: () => dimensionChanged,
+    setSvgContainer: (val) => {
+        svgContainer = val;
+    },
+    getSvgContainer: () => svgContainer,
+    setDataLoaded: (val) => {
+        dataLoaded = val;
+    },
+    getDataLoaded: () => dataLoaded,
+    setSvgX: (val) => {
+        svgX = val;
+    },
+    setSvgY: (val) => {
+        svgY = val;
+    },
+    setSvgWidth: (val) => {
+        svgWidth = val;
+    },
+    getSvgWidth: () => svgWidth,
+    setSvgHeight: (val) => {
+        svgHeight = val;
+    },
+    getSvgHeight: () => svgHeight,
+    setOffsetX: (val) => {
+        offsetx = val;
+    },
+    setOffsetY: (val) => {
+        offsety = val;
+    },
+    getOffsetX: () => offsetx,
+    getOffsetY: () => offsety,
+    setEventInfoText: (text) => {
+        d3.select("#eventinfo").text(text);
+    },
+    getEphemerisSource: () => ephemerisSource,
+    getBodiesForConfig: (cfg = config) => animationScenes[cfg]?.planetsForLocations || [],
+    getBodySource: (bodyId) =>
+        resolveBodySource({
+            bodyId,
+            bodySources: bodyEphemerisSources,
+            defaultSpacecraftSource: ephemerisSource,
+        }),
+    getConfigsList: () => {
+        const configuredLandingModes = (globalConfig?.phases || []).filter(
+            (phase) => phase === "geo" || phase === "lunar",
+        );
+        return configuredLandingModes.length > 0
+            ? configuredLandingModes
+            : Object.keys(animationScenes);
+    },
+    getLandingDataLoaded: () => landingDataLoaded,
+    setLandingDataLoaded: (val) => {
+        landingDataLoaded = val;
+    },
+    setLandingNpzLoaded: (cfg, val) => {
+        landingNpzLoaded[cfg] = val;
+    },
+    setLandingNpzData: (cfg, val) => {
+        landingNpzData[cfg] = val;
+    },
+    setLandingChebyshevLoaded: (cfg, val) => {
+        landingChebyshevLoaded[cfg] = val;
+    },
+    setLandingChebyshevData: (cfg, val) => {
+        landingChebyshevData[cfg] = val;
+    },
+    getZoomFactor: () => getZoomFactorState(config),
+    setEpochJD: (val) => {
+        epochJD = val;
+    },
+    setEpochDate: (val) => {
+        epochDate = val;
+    },
+    getStartTime: () => startTime,
+    setStartTime: (value) => {
+        startTime = value;
+    },
+    getEndTimeSC: () => endTimeSC,
+    setEndTime: (value) => {
+        endTime = value;
+    },
+    setEndTimeSC: (value) => {
+        endTimeSC = value;
+    },
+    setLatestEndTime: (value) => {
+        latestEndTime = value;
+    },
+    getLatestEndTime: () => latestEndTime,
+    setTimelineTotalSteps: (value) => {
+        timelineTotalSteps = value;
+    },
+    setTicksPerAnimationStep: (value) => {
+        ticksPerAnimationStep = value;
+    },
+    setPixelsPerAU: (value) => {
+        PIXELS_PER_AU = value;
+    },
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    setDefaultCameraDistance: (value) => {
+        defaultCameraDistance = value;
+    },
+    getDefaultCameraDistance: () => defaultCameraDistance,
+    setTrackWidth: (value) => {
+        trackWidth = value;
+    },
+    setEarthRadius: (value) => {
+        earthRadius = value;
+    },
+    getEarthRadius: () => earthRadius,
+    setMoonRadius: (value) => {
+        moonRadius = value;
+    },
+    getMoonRadius: () => moonRadius,
+    getStartLandingTime: () => startLandingTime,
+    setStartLandingTime: (value) => {
+        startLandingTime = value;
+    },
+    getEndLandingTime: () => endLandingTime,
+    setEndLandingTime: (value) => {
+        endLandingTime = value;
+    },
+    getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
+    getLandingNpzData: (cfg = config) => landingNpzData[cfg],
+    getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
+    getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
+    getFrameMode: () => frameMode,
+    getActiveEphemerisSource,
+    resolveBodySourceFn: (bodyId) =>
+        resolveBodySource({
+            bodyId,
+            bodySources: bodyEphemerisSources,
+            defaultSpacecraftSource: ephemerisSource,
+        }),
+    getJoyRideFlag: () => runtimeFlags.joyRide,
+    setJoyRideFlag: (val) => {
+        runtimeFlags.joyRide = val;
+    },
+    getLandingFlag: () => runtimeFlags.landing,
+    setLandingFlag: (val) => {
+        runtimeFlags.landing = val;
+    },
+    getAnimTime: () => animTime,
+    setAnimTime: (val) => {
+        animTime = val;
+    },
+    getPlaneVariables: () => {
+        const vars = getPlaneVariablesState(config);
+        return {
+            xFactor: vars.xFactor,
+            yFactor: vars.yFactor,
+            xVariable: vars.xVariable,
+            yVariable: vars.yVariable,
+        };
+    },
+    getEpochJD: () => epochJD,
+    getEpochDate: () => epochDate,
+    setEpochDisplay: ({ epochJD, epochDate }) => {
+        d3.select("#epochjd").html(epochJD);
+        d3.select("#epochdate").html(epochDate);
+    },
+    getXFactor: () => getPlaneVariablesState(config).xFactor,
+    getYFactor: () => getPlaneVariablesState(config).yFactor,
+    getXVariable: () => getPlaneVariablesState(config).xVariable,
+    getYVariable: () => getPlaneVariablesState(config).yVariable,
+    getCraftData: () => craftData,
+    setCraftData: (value) => {
+        craftData = value;
+    },
+    getPanX: () => getPanXState(config),
+    getPanY: () => getPanYState(config),
+    getPlaneSelection: () => getPlaneSelectionState(config),
+    setPlaneVariables: (planeConfig) => {
+        setPlaneVariablesState(planeConfig, config);
+    },
+    getPlanetProperties: () => planetProperties,
+    setEventInfos: (value) => {
+        eventInfos = value;
+    },
+    getEventInfos: () => eventInfos,
+    getEphemerisSourceFromData: getEphemerisSource,
+    setEphemerisSource: (value) => {
+        ephemerisSource = value;
+    },
+    setBodyEphemerisSources: (value) => {
+        bodyEphemerisSources = value;
+    },
+    setEphemerisStatusesForConfig: (cfg, status) => {
+        ephemerisStatuses[cfg] = status;
+    },
+    setTimeTransLunarInjection: (value) => {
+        timeTransLunarInjection = value;
+    },
+    getTimeTransLunarInjection: () => timeTransLunarInjection,
+    setTimeLunarOrbitInsertion: (value) => {
+        timeLunarOrbitInsertion = value;
+    },
+    getTimeLunarOrbitInsertion: () => timeLunarOrbitInsertion,
+    getSceneHandler: () => theSceneHandler,
+    setSceneHandler: (value) => {
+        theSceneHandler = value;
+    },
+    getBurnButtonHandler: () => runtimeBootstrapActions?.burnButtonHandler,
+    setSceneState: (cfg, state) => {
+        if (animationScenes[cfg]) {
+            animationScenes[cfg].state = state;
+        }
+    },
+    getSceneStateInitDone: () => AnimationScene.SCENE_STATE_INIT_DONE,
+    getStartLandingFlag: () => startLandingFlag,
+    clearStartLandingFlag: () => {
+        startLandingFlag = false;
+    },
+    toggleLanding: () => runtimeBootstrapActions.toggleLanding(),
+    setViewFlags: (view) => {
+        viewOrbit = view.viewOrbit;
+        viewOrbitDescent = view.viewOrbitDescent;
+        viewCraters = view.viewCraters;
+        viewXYZAxes = view.viewXYZAxes;
+        viewPoles = view.viewPoles;
+        viewPolarAxes = view.viewPolarAxes;
+        viewSky = view.viewSky;
+        viewMoonSOI = view.viewMoonSOI;
+        viewEclipticPlane = view.viewEclipticPlane;
+        viewEquatorialPlane = view.viewEquatorialPlane;
+        viewFPS = view.viewFPS;
+    },
+    onConfigChanged: (newConfig) => {
+        syncPlaneStateForConfig(newConfig);
+    },
+    getAnimDate: () => animDate,
+    setAnimDate: (value) => {
+        animDate = value;
+    },
+    getPlaneVariablesStateForConfig: () => getPlaneVariablesState(config),
+    getZoomFactorStateForConfig: () => getZoomFactorState(config),
+    getPanXStateForConfig: () => getPanXState(config),
+    getPanYStateForConfig: () => getPanYState(config),
+    isOrbitDataProcessed: (cfg) => orbitDataProcessed[cfg],
+    getChebyshevData: () => chebyshevData,
+    getChebyshevDataLoaded: () => chebyshevDataLoaded,
+    getNpzData: () => npzData,
+    getNpzDataLoaded: () => npzDataLoaded,
+    getLandingNpzDataByConfig: (cfg) => landingNpzData[cfg],
+    getLandingNpzLoadedByConfig: (cfg) => landingNpzLoaded[cfg],
+    getLandingChebyshevDataByConfig: (cfg) => landingChebyshevData[cfg],
+    getLandingChebyshevLoadedByConfig: (cfg) => landingChebyshevLoaded[cfg],
+    getMissionTimes: () => ({ timeTransLunarInjection, timeLunarOrbitInsertion }),
+    getBodySources: () => bodyEphemerisSources,
+    getActiveEphemerisSourceForConfig: (cfg) => getActiveEphemerisSource(cfg),
+    setSunLongitude: (value) => {
+        sunLongitude = value;
+    },
+    getCraftId: () => craftId,
+    getAnimationScenes: () => animationScenes,
+    getMouseDownTimeout: () => mousedownTimeout,
+    setMouseDownTimeout: (val) => {
+        mousedownTimeout = val;
+    },
+    getTimeoutHandleZoom: () => timeoutHandleZoom,
+    setTimeoutHandleZoom: (handle) => {
+        timeoutHandleZoom = handle;
+    },
+    setMouseDown: (value) => {
+        mouseDown = value;
+    },
+    getViewSky: () => viewSky,
+    setMissionStartCalled: (val) => {
+        missionStartCalled = val;
+    },
+    clearLegacyTimeout: () => {
+        clearTimeout(timeoutHandle);
+    },
+    getMissionStartCalled: () => missionStartCalled,
+    getAnimationRunning: () => animationRunning,
+    setSvgRect: (val) => {
+        svgRect = val;
+    },
+};
+
 const {
     svgActions,
     loadOrbitDataIfNeededAndProcess,
@@ -803,7 +1104,7 @@ const {
     scene2DFrameActions,
     sceneFrameOrchestrationActions,
     getStartAndEndTimes,
-} = createMissionWiringComposition({
+} = createMissionWiringActions({
     d3,
     THREE,
     Astronomy,
@@ -875,276 +1176,21 @@ const {
     getBodyEphemerisRange,
     getBodyEphemerisState,
     generateBodyCurve,
-    getGlobalConfig: () => globalConfig,
-    getConfig: () => config,
-    getCurrentDimension: () => currentDimension,
-    setCurrentDimension: (val) => {
-        currentDimension = val;
-    },
-    getPreviousDimension: () => previousDimension,
-    setPreviousDimension: (val) => {
-        previousDimension = val;
-    },
-    setDimensionChanged: (val) => {
-        dimensionChanged = val;
-    },
-    getDimensionChanged: () => dimensionChanged,
-    setSvgContainer: (val) => {
-        svgContainer = val;
-    },
-    setDataLoaded: (val) => {
-        dataLoaded = val;
-    },
-    setSvgX: (val) => {
-        svgX = val;
-    },
-    setSvgY: (val) => {
-        svgY = val;
-    },
-    setSvgWidth: (val) => {
-        svgWidth = val;
-    },
-    setSvgHeight: (val) => {
-        svgHeight = val;
-    },
-    setOffsetX: (val) => {
-        offsetx = val;
-    },
-    setOffsetY: (val) => {
-        offsety = val;
-    },
-    getOffsetX: () => offsetx,
-    getOffsetY: () => offsety,
-    getDataLoaded: () => dataLoaded,
-    setEventInfoText: (text) => {
-        d3.select("#eventinfo").text(text);
-    },
-    getEphemerisSource: () => ephemerisSource,
-    getBodiesForConfig: (cfg = config) => animationScenes[cfg]?.planetsForLocations || [],
-    getBodySource: (bodyId) => resolveBodySource({
-        bodyId,
-        bodySources: bodyEphemerisSources,
-        defaultSpacecraftSource: ephemerisSource,
-    }),
-    getConfigsList: () => {
-        const configuredLandingModes = (globalConfig?.phases || []).filter(
-            (phase) => phase === "geo" || phase === "lunar",
-        );
-        return configuredLandingModes.length > 0
-            ? configuredLandingModes
-            : Object.keys(animationScenes);
-    },
-    getLandingDataLoaded: () => landingDataLoaded,
-    setLandingDataLoaded: (val) => {
-        landingDataLoaded = val;
-    },
-    setLandingNpzLoaded: (cfg, val) => {
-        landingNpzLoaded[cfg] = val;
-    },
-    setLandingNpzData: (cfg, val) => {
-        landingNpzData[cfg] = val;
-    },
-    setLandingChebyshevLoaded: (cfg, val) => {
-        landingChebyshevLoaded[cfg] = val;
-    },
-    setLandingChebyshevData: (cfg, val) => {
-        landingChebyshevData[cfg] = val;
-    },
-    getSvgContainer: () => svgContainer,
     PIXELS_PER_AU,
-    getZoomFactor: () => getZoomFactorState(config),
-    setEpochJD: (val) => {
-        epochJD = val;
-    },
-    setEpochDate: (val) => {
-        epochDate = val;
-    },
-    getStartTime: () => startTime,
-    setStartTime: (value) => {
-        startTime = value;
-    },
-    getEndTimeSC: () => endTimeSC,
-    setEndTime: (value) => {
-        endTime = value;
-    },
-    setEndTimeSC: (value) => {
-        endTimeSC = value;
-    },
-    setLatestEndTime: (value) => {
-        latestEndTime = value;
-    },
-    getLatestEndTime: () => latestEndTime,
-    setTimelineTotalSteps: (value) => {
-        timelineTotalSteps = value;
-    },
-    setTicksPerAnimationStep: (value) => {
-        ticksPerAnimationStep = value;
-    },
-    setPixelsPerAU: (value) => {
-        PIXELS_PER_AU = value;
-    },
-    setDefaultCameraDistance: (value) => {
-        defaultCameraDistance = value;
-    },
-    setTrackWidth: (value) => {
-        trackWidth = value;
-    },
-    setEarthRadius: (value) => {
-        earthRadius = value;
-    },
-    setMoonRadius: (value) => {
-        moonRadius = value;
-    },
-    getEarthRadius: () => earthRadius,
-    getMoonRadius: () => moonRadius,
-    getStartLandingTime: () => startLandingTime,
-    setStartLandingTime: (value) => {
-        startLandingTime = value;
-    },
-    getEndLandingTime: () => endLandingTime,
-    setEndLandingTime: (value) => {
-        endLandingTime = value;
-    },
-    getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
-    getLandingNpzData: (cfg = config) => landingNpzData[cfg],
-    getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
-    getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
-    getFrameMode: () => frameMode,
-    getActiveEphemerisSource,
-    resolveBodySourceFn: (bodyId) =>
-        resolveBodySource({
-            bodyId,
-            bodySources: bodyEphemerisSources,
-            defaultSpacecraftSource: ephemerisSource,
-        }),
-    getJoyRideFlag: () => runtimeFlags.joyRide,
-    getLandingFlag: () => runtimeFlags.landing,
-    getDefaultCameraDistance: () => defaultCameraDistance,
-    getAnimTime: () => animTime,
-    getPlaneVariables: () => {
-        const vars = getPlaneVariablesState(config);
-        return {
-            xFactor: vars.xFactor,
-            yFactor: vars.yFactor,
-            xVariable: vars.xVariable,
-            yVariable: vars.yVariable,
-        };
-    },
-    getPixelsPerAU: () => PIXELS_PER_AU,
-    getEpochJD: () => epochJD,
-    getEpochDate: () => epochDate,
-    setEpochDisplay: ({ epochJD, epochDate }) => {
-        d3.select("#epochjd").html(epochJD);
-        d3.select("#epochdate").html(epochDate);
-    },
-    showPlanet,
-    getXFactor: () => getPlaneVariablesState(config).xFactor,
-    getYFactor: () => getPlaneVariablesState(config).yFactor,
-    getXVariable: () => getPlaneVariablesState(config).xVariable,
-    getYVariable: () => getPlaneVariablesState(config).yVariable,
-    getCraftData: () => craftData,
     setZoomFactorState,
-    getPanX: () => getPanXState(config),
     setPanXState,
-    getPanY: () => getPanYState(config),
     setPanYState,
-    getPlaneSelection: () => getPlaneSelectionState(config),
-    setPlaneVariables: (planeConfig) => {
-        setPlaneVariablesState(planeConfig, config);
-    },
+    showPlanet,
     handleDimensionSwitch,
     setLocation,
-    getPlanetProperties: () => planetProperties,
-    setGlobalConfig: (value) => {
-        globalConfig = value;
-    },
-    setEventInfos: (value) => {
-        eventInfos = value;
-    },
-    getEphemerisSourceFromData: getEphemerisSource,
-    setEphemerisSource: (value) => {
-        ephemerisSource = value;
-    },
-    setBodyEphemerisSources: (value) => {
-        bodyEphemerisSources = value;
-    },
-    setEphemerisStatusesForConfig: (cfg, status) => {
-        ephemerisStatuses[cfg] = status;
-    },
-    setTimeTransLunarInjection: (value) => {
-        timeTransLunarInjection = value;
-    },
-    setTimeLunarOrbitInsertion: (value) => {
-        timeLunarOrbitInsertion = value;
-    },
-    getSceneHandler: () => theSceneHandler,
-    setSceneHandler: (value) => {
-        theSceneHandler = value;
-    },
-    getEventInfos: () => eventInfos,
-    getBurnButtonHandler: () => runtimeBootstrapActions?.burnButtonHandler,
     handleModeSwitchToGeo,
     handleModeSwitchToLunar,
     isRelativeMode,
-    setSceneState: (cfg, state) => {
-        if (animationScenes[cfg]) {
-            animationScenes[cfg].state = state;
-        }
-    },
     initAnimation,
-    getStartLandingFlag: () => startLandingFlag,
-    clearStartLandingFlag: () => {
-        startLandingFlag = false;
-    },
-    toggleLanding: () => runtimeBootstrapActions.toggleLanding(),
-    setConfig: (val) => {
-        config = val;
-    },
-    setViewFlags: (view) => {
-        viewOrbit = view.viewOrbit;
-        viewOrbitDescent = view.viewOrbitDescent;
-        viewCraters = view.viewCraters;
-        viewXYZAxes = view.viewXYZAxes;
-        viewPoles = view.viewPoles;
-        viewPolarAxes = view.viewPolarAxes;
-        viewSky = view.viewSky;
-        viewMoonSOI = view.viewMoonSOI;
-        viewEclipticPlane = view.viewEclipticPlane;
-        viewEquatorialPlane = view.viewEquatorialPlane;
-        viewFPS = view.viewFPS;
-    },
-    onConfigChanged: (newConfig) => {
-        syncPlaneStateForConfig(newConfig);
-    },
-    getAnimDate: () => animDate,
-    getPlaneVariablesStateForConfig: () => getPlaneVariablesState(config),
-    getZoomFactorStateForConfig: () => getZoomFactorState(config),
-    getPanXStateForConfig: () => getPanXState(config),
-    getPanYStateForConfig: () => getPanYState(config),
-    setCraftData: (value) => {
-        craftData = value;
-    },
-    isOrbitDataProcessed: (cfg) => orbitDataProcessed[cfg],
-    getChebyshevData: () => chebyshevData,
-    getChebyshevDataLoaded: () => chebyshevDataLoaded,
-    getNpzData: () => npzData,
-    getNpzDataLoaded: () => npzDataLoaded,
-    getLandingNpzDataByConfig: (cfg) => landingNpzData[cfg],
-    getLandingNpzLoadedByConfig: (cfg) => landingNpzLoaded[cfg],
-    getLandingChebyshevDataByConfig: (cfg) => landingChebyshevData[cfg],
-    getLandingChebyshevLoadedByConfig: (cfg) => landingChebyshevLoaded[cfg],
-    getMissionTimes: () => ({ timeTransLunarInjection, timeLunarOrbitInsertion }),
-    getBodySources: () => bodyEphemerisSources,
-    getActiveEphemerisSourceForConfig: (cfg) => getActiveEphemerisSource(cfg),
-    setSunLongitude: (value) => {
-        sunLongitude = value;
-    },
-    getCraftId: () => craftId,
     updateCraftScale,
     adjustCameraProjectionMatrixAndSkyAngle,
     render,
-    getSvgWidth: () => svgWidth,
-    getSvgHeight: () => svgHeight,
+    stateAccess: missionStateAccess,
 });
 
 toggleMode = wiredToggleMode;
@@ -1220,7 +1266,7 @@ async function processOrbitData() {
     return runtimeBootstrapActions.processOrbitData();
 }
 
-runtimeBootstrapActions = createMissionRuntimeBootstrap({
+runtimeBootstrapActions = createMissionRuntimeBootstrapActions({
     d3,
     d3SelectAll,
     hideElementById,
@@ -1264,80 +1310,20 @@ runtimeBootstrapActions = createMissionRuntimeBootstrap({
     loadOrbitDataIfNeededAndProcess,
     loadLandingDataAndProcess,
     processOrbitVectorsData,
-    getConfig: () => config,
-    getAnimationScenes: () => animationScenes,
-    getCurrentDimension: () => currentDimension,
     getPanXState,
     setPanXState,
     getPanYState,
     setPanYState,
     getZoomFactorState,
     setZoomFactorState,
-    getMouseDownTimeout: () => mousedownTimeout,
-    setMouseDownTimeout: (val) => {
-        mousedownTimeout = val;
-    },
-    getTimeoutHandleZoom: () => timeoutHandleZoom,
-    setTimeoutHandleZoom: (handle) => {
-        timeoutHandleZoom = handle;
-    },
-    setMouseDown: (value) => {
-        mouseDown = value;
-    },
-    setAnimDate: (value) => {
-        animDate = value;
-    },
-    getViewSky: () => viewSky,
-    getGlobalConfig: () => globalConfig,
-    getLandingFlag: () => runtimeFlags.landing,
-    setLandingFlag: (val) => {
-        runtimeFlags.landing = val;
-    },
-    getJoyRideFlag: () => runtimeFlags.joyRide,
-    setJoyRideFlag: (val) => {
-        runtimeFlags.joyRide = val;
-    },
-    getEventInfos: () => eventInfos,
-    getAnimTime: () => animTime,
-    setAnimTime: (val) => {
-        animTime = val;
-    },
-    getTimeTransLunarInjection: () => timeTransLunarInjection,
-    getTimeLunarOrbitInsertion: () => timeLunarOrbitInsertion,
-    setMissionStartCalled: (val) => {
-        missionStartCalled = val;
-    },
-    clearLegacyTimeout: () => {
-        clearTimeout(timeoutHandle);
-    },
-    getMissionStartCalled: () => missionStartCalled,
-    getAnimationRunning: () => animationRunning,
-    getSvgWidth: () => svgWidth,
-    getSvgHeight: () => svgHeight,
-    setSvgRect: (val) => {
-        svgRect = val;
-    },
-    getOffsetX: () => offsetx,
-    getOffsetY: () => offsety,
-    getStartTime: () => startTime,
-    getLatestEndTime: () => latestEndTime,
-    setTimelineTotalSteps: (value) => {
-        timelineTotalSteps = value;
-    },
     orbitDataProcessed,
-    getSceneStateInitDone: () => AnimationScene.SCENE_STATE_INIT_DONE,
-    setSceneState: (cfg, state) => {
-        if (animationScenes[cfg]) {
-            animationScenes[cfg].state = state;
-        }
-    },
-    getPixelsPerAU: () => PIXELS_PER_AU,
     handlePlaneChange: planeActions.handlePlaneChange,
     animationController,
     isTestMode,
     THREE,
     UC,
     PC,
+    stateAccess: missionStateAccess,
 });
 
 // Expose variables globally for testing
