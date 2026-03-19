@@ -19,7 +19,6 @@ import {
 import { generateCurveFromChebyshev } from "./chebyshev.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { AnimationController } from "./animation/animation-controller.js";
-import { readOriginMode, readViewSettings, setChecked } from "./ui/ui-state.js";
 import { bindSettingsPanel } from "./ui/event-handlers.js";
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
@@ -30,12 +29,6 @@ import {
 } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import {
-    applyLandingUiPatch,
-    applyMoonUiPatch,
-    computeLandingUiPatch,
-    computeMoonUiPatch,
-} from "./app/config-ui.js";
-import {
     generateBodyCurve,
     getBodyEphemerisState,
     resolveBodySource,
@@ -43,16 +36,13 @@ import {
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 import {
     DEFAULT_VIEW_STATE,
-    getPlaneVariablesForSelection,
-    normalizePlaneSelection,
-    syncPlaneSelectionControls,
 } from "./app/plane-view-state.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionLegacyState } from "./app/mission-legacy-state.js";
 import { createMissionRuntimeEntry } from "./app/mission-runtime-entry.js";
 import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
 import { buildMissionRuntimeStaticDeps } from "./app/mission-runtime-static-deps.js";
-import { createMissionViewComposition } from "./app/mission-view-composition.js";
+import { createMissionViewEntry } from "./app/mission-view-entry.js";
 import {
     computeAnimationStepState,
     updateFpsCounterState,
@@ -201,16 +191,11 @@ const {
     sceneViewStateActions,
     modeSwitchActions,
     initialMissionViewState,
-} = createMissionViewComposition({
+} = createMissionViewEntry({
     d3,
     d3SelectAll,
     windowRef: window,
     showElementById,
-    computeMoonUiPatch,
-    applyMoonUiPatch,
-    computeLandingUiPatch,
-    applyLandingUiPatch,
-    setChecked,
     getGlobalConfig: () => globalConfig,
     getConfig: () => config,
     setConfig: (val) => {
@@ -225,11 +210,7 @@ const {
     render,
     adjustSceneCameraProjectionAndSky,
     getAnimationScenes: () => animationScenes,
-    defaultViewState: DEFAULT_VIEW_STATE,
     getSceneForConfig,
-    normalizePlaneSelection,
-    getPlaneVariablesForSelection,
-    syncPlaneSelectionControls,
     getLegacyPlaneSelection: () => planeSelection,
     setLegacyPlaneSelection: (value) => {
         planeSelection = value;
@@ -271,8 +252,6 @@ const {
         pany = value;
     },
     isRelativeMode,
-    readOriginMode,
-    readViewSettings,
     getToggleMode: () => toggleMode,
     planeSelection,
 });
