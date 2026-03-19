@@ -12,81 +12,35 @@ import {
 } from "./core/constants.js";
 import {
     clearEventInfo,
-    clearProgressLabel,
     d3SelectAll,
-    setFPSCounterVisibility,
     updateD3ElementText,
-    updateEventInfo,
     updateFPSCounter,
-    updateMultipleElementsText,
-    updateProgressLabel,
-    updateSpacecraftMnemonic
 } from "./core/dom.js";
 import { generateCurveFromChebyshev } from "./chebyshev.js";
-import {
-    createUTCTimestamp,
-} from "./utils/time-utils.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { AnimationController } from "./animation/animation-controller.js";
-import {
-    computeSceneState,
-} from "./scene-state.js";
-import { Animation3DController, Animation2DController } from "./controllers/index.js";
-import { computeSunLongitude } from "./services/ephemeris.js";
-import { applyCameraFromTo, readCameraLookMode, readCameraPositionMode, readOriginMode, readViewSettings } from "./ui/ui-state.js";
-import { bindBurnButtons, bindSettingsPanel } from "./ui/event-handlers.js";
-import {
-    loadChebyshev,
-    loadMissionConfig,
-    loadNpz,
-    resolveLandingChebyshevUrl,
-    resolveLandingNpzUrl,
-    resolveOrbitNpzUrl,
-    resolveOrbitUrls,
-} from "./data/mission-data.js";
+import { readOriginMode, readViewSettings, setChecked } from "./ui/ui-state.js";
+import { bindSettingsPanel } from "./ui/event-handlers.js";
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
-import { createCameraActions } from "./app/camera-actions.js";
-import { createModeActions } from "./app/mode-actions.js";
-import { createLockActions } from "./app/lock-actions.js";
-import { setChecked } from "./ui/ui-state.js";
 import {
-    ensureIndeterminateProgressBar,
-    hideElementById,
     readCheckedRadioValue,
     showElementById,
     toggleVisibilityById,
 } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
-import { createBurnActions } from "./app/burn-actions.js";
-import { createRepeatMouseDownHandlers } from "./app/repeat-mousedown.js";
-import { createNavigationActions } from "./app/navigation-actions.js";
-import { bindRepeatButtons } from "./app/repeat-button-bindings.js";
 import {
     applyLandingUiPatch,
     applyMoonUiPatch,
     computeLandingUiPatch,
     computeMoonUiPatch,
 } from "./app/config-ui.js";
-import { applyMissionMetadata } from "./app/mission-metadata.js";
-import {
-    applyLandingTimesUpdate,
-    computeLandingTimesUpdate,
-    computeMissionEventTimes,
-} from "./app/config-times.js";
 import {
     generateBodyCurve,
-    getBodyEphemerisRange,
     getBodyEphemerisState,
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
-import { applyEventsUpdate, computeEventsUpdate } from "./app/config-events.js";
-import {
-    applyInitConfigAlreadyInitialized,
-    shouldSkipInitConfig,
-} from "./app/init-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
-import { initRepeatButtons } from "./app/init-repeat-buttons.js";
 import {
     DEFAULT_VIEW_STATE,
     getPlaneVariablesForSelection,
@@ -97,6 +51,7 @@ import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionLegacyState } from "./app/mission-legacy-state.js";
 import { createMissionRuntimeEntry } from "./app/mission-runtime-entry.js";
 import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
+import { buildMissionRuntimeStaticDeps } from "./app/mission-runtime-static-deps.js";
 import { createMissionViewComposition } from "./app/mission-view-composition.js";
 import {
     computeAnimationStepState,
@@ -530,7 +485,7 @@ const missionStateCells = {
     AnimationScene,
     bridgeActions,
     modeSwitchActions,
-    staticWireupDeps: {
+    staticWireupDeps: buildMissionRuntimeStaticDeps({
         d3,
         d3SelectAll,
         THREE,
@@ -539,22 +494,7 @@ const missionStateCells = {
         documentRef: document,
         consoleRef: console,
         SwiperClass: Swiper,
-        PC,
-        TC,
-        UC,
         formatMetric: FORMAT_METRIC,
-        updateEventInfo,
-        clearEventInfo,
-        updateProgressLabel,
-        ensureIndeterminateProgressBar,
-        showElementById,
-        hideElementById,
-        loadChebyshev,
-        loadNpz,
-        processOrbitData,
-        resolveLandingNpzUrl,
-        resolveLandingChebyshevUrl,
-        createUTCTimestamp,
         animationScenes,
         animation3DControllers,
         animation2DControllers,
@@ -569,54 +509,13 @@ const missionStateCells = {
         planetProperties,
         animationController,
         AnimationScene,
-        Animation3DController,
-        Animation2DController,
         SceneHandlerClass: SceneHandler,
-        resolveOrbitUrls,
-        resolveOrbitNpzUrl,
-        loadMissionConfig,
         bindInfoPanelControls,
         updateEphemerisPanel,
-        applyMissionMetadata,
-        updateMultipleElementsText,
-        updateSpacecraftMnemonic,
-        applyLandingTimesUpdate,
-        computeLandingTimesUpdate,
-        applyEventsUpdate,
-        computeEventsUpdate,
-        computeMissionEventTimes,
-        bindBurnButtons,
-        shouldSkipInitConfig,
-        applyInitConfigAlreadyInitialized,
-        normalizePlaneSelection,
-        syncPlaneSelectionControls,
-        setChecked,
-        readOriginMode,
-        readViewSettings,
-        setFPSCounterVisibility,
-        computeSunLongitude,
-        computeSceneState,
-        getBodyEphemerisRange,
-        getBodyEphemerisState,
-        generateBodyCurve,
         PIXELS_PER_AU,
         render,
-        clearProgressLabel,
-        updateD3ElementText,
-        createNavigationActions,
-        createRepeatMouseDownHandlers,
-        createLockActions,
-        createCameraActions,
-        createModeActions,
-        createBurnActions,
-        readCameraPositionMode,
-        readCameraLookMode,
-        applyCameraFromTo,
-        requestAnimationFrame,
-        clearTimeoutFn: clearTimeout,
-        bindRepeatButtons,
-        initRepeatButtons,
-    },
+        processOrbitData,
+    }),
     readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
     toggleStatsVisibility: () => {
         toggleVisibilityById("stats");
