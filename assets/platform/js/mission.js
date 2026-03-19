@@ -30,8 +30,6 @@ import { SceneHelpers } from "./rendering/scene-helpers.js";
 import { AnimationController } from "./animation/animation-controller.js";
 import {
     computeSceneState,
-    // toScreenCoordinates, // used by controllers
-    // projectToPlane        // used by controllers
 } from "./scene-state.js";
 import { Animation3DController, Animation2DController } from "./controllers/index.js";
 import { computeSunLongitude } from "./services/ephemeris.js";
@@ -98,7 +96,7 @@ import {
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionLegacyState } from "./app/mission-legacy-state.js";
 import { createMissionRuntimeEntry } from "./app/mission-runtime-entry.js";
-import { createMissionSceneRuntime } from "./app/mission-scene-runtime.js";
+import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
 import { createMissionViewComposition } from "./app/mission-view-composition.js";
 import {
     computeAnimationStepState,
@@ -119,21 +117,15 @@ const isRelativeMode = urlMode === "relative";
 const frameMode = isRelativeMode ? "relative" : "inertial";
 
 let {
-    SC,
     craftSize,
     planetProperties,
-    FORMAT_PERCENT,
     FORMAT_METRIC,
     craftId,
     config,
     missionStartCalled,
     orbitDataLoaded,
     orbitDataProcessed,
-    orbitData,
     landingDataLoaded,
-    landingDataProcessed,
-    landingData,
-    landingMetadata,
     ephemerisSource,
     chebyshevDataLoaded,
     chebyshevData,
@@ -145,9 +137,6 @@ let {
     landingChebyshevData,
     nOrbitPoints,
     nLandingPoints,
-    progress,
-    bannerShown,
-    stopZoom,
     sunLongitude,
     mouseDown,
     planeSelection,
@@ -171,12 +160,9 @@ let {
     offsety,
     trackWidth,
     earthRadius,
-    skyRadius,
     moonRadius,
     svgContainer,
     svgRect,
-    viewBoxWidth,
-    viewBoxHeight,
     zoomFactor,
     panx,
     pany,
@@ -191,17 +177,11 @@ let {
     startLandingTime,
     endLandingTime,
     timelineTotalSteps,
-    stepsPerHop,
-    orbitsJsonFileSizeInBytes,
     animDate,
     animTime,
-    animTimeStepMinutes,
-    realtimespeed,
     prevFrameTime,
-    curFrameTime,
     deltaFrameTime,
     animationRunning,
-    stopAnimationFlag,
     startLandingFlag,
     timeoutHandle,
     timeoutHandleZoom,
@@ -342,6 +322,8 @@ const {
     planeSelection,
 });
 
+const eventBus = createEventBus();
+
 // Animation Controller instance
 // Callbacks sync global state and update UI for backward compatibility
 var animationController = new AnimationController({
@@ -352,140 +334,93 @@ var animationController = new AnimationController({
     },
     onPlayStateChange: (isPlaying) => {
         animationRunning = isPlaying;  // Sync global state
-        stopAnimationFlag = !isPlaying;
         updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
     onSpeedChange: (multiplier, isRealtime) => {
-        animTimeStepMinutes = multiplier;  // Sync global state
-        realtimespeed = isRealtime;
         eventBus.emit("animation:speedChanged", { multiplier, isRealtime });
     }
 });
 
-// Event bus for decoupling UI ↔ mission orchestration
-const eventBus = createEventBus();
 var globalConfig = null; // Store loaded config from config.json
 const runtimeFlags = {
     joyRide: false,
     landing: false,
 };
 
-const { SceneHandler, AnimationScene } = createMissionSceneRuntime({
-    sceneActionDeps: {
-        THREE,
-        Astronomy,
-        lunar_pole,
-        COL,
-        PC,
-        generateCurveFromChebyshev,
-        chebyshevDataLoaded,
-        chebyshevData,
-        npzData,
-        npzDataLoaded,
-        getLandingNpzLoaded: (cfg = config) => !!landingNpzLoaded[cfg],
-        getLandingNpzData: (cfg = config) => landingNpzData[cfg],
-        getEphemerisSource: (cfg = config) => getActiveEphemerisSource(cfg),
-        resolveBodySource: (bodyId) =>
-            resolveBodySource({
-                bodyId,
-                bodySources: bodyEphemerisSources,
-                defaultSpacecraftSource: ephemerisSource,
-            }),
-        generateBodyCurve,
-        getStepMs: (cfg) => animationScenes[cfg].stepDurationInMilliSeconds,
-        getStartTime: () => startTime,
-        getLatestEndTime: () => latestEndTime,
-        getLandingEnabled: () => !!(globalConfig && globalConfig.landing && globalConfig.landing.enabled),
-        getLandingChebyshevLoaded: (cfg = config) => !!landingChebyshevLoaded[cfg],
-        getLandingChebyshevData: (cfg = config) => landingChebyshevData[cfg],
-        getStartLandingTime: () => startLandingTime,
-        getEndLandingTime: () => endLandingTime,
-        getPixelsPerAU: () => PIXELS_PER_AU,
-        getGlobalConfig: () => globalConfig,
-        getConfig: () => config,
-        getCraftId: () => craftId,
-        planetProperties,
-        getOrbitPointsCount: () => nOrbitPoints,
-        getLandingPointsCount: () => nLandingPoints,
-        getViewOrbitDescent: () => viewOrbitDescent,
-        getViewOrbit: () => viewOrbit,
-        render,
-        wait10: bridgeActions.wait10,
-        wait20: bridgeActions.wait20,
-        clearEventInfo,
-        computeSVGDimensions: () => missionRuntimeWireup.svgActions.computeSVGDimensions(),
-        getSvgWidth: () => svgWidth,
-        getSvgHeight: () => svgHeight,
-        cameraControlsCallback: bridgeActions.cameraControlsCallback,
-        setOrbitPointsCount: (count) => {
-            nOrbitPoints = count;
-        },
-        setLandingPointsCount: (count) => {
-            nLandingPoints = count;
-        },
-        getCraftSize: () => craftSize,
-        getDefaultCameraDistance: () => defaultCameraDistance,
-        getRendererDomElement: () => theSceneHandler.renderer.domElement,
-        getModelPathPrefix: () => window.missionConfig.modelPath,
-        getMoonRadius: () => moonRadius,
-        getViewPolarAxes: () => viewPolarAxes,
-        getViewPoles: () => viewPoles,
-        getAnimTime: () => animTime,
-        getEarthRadius: () => earthRadius,
-        getViewCraters: () => viewCraters,
-        SceneHelpers,
+const { SceneHandler, AnimationScene } = createMissionSceneEntry({
+    d3,
+    THREE,
+    Astronomy,
+    lunar_pole,
+    COL,
+    PC,
+    DEFAULT_VIEW_STATE,
+    SceneHelpers,
+    bindSettingsPanel,
+    initSceneHandlerDom,
+    computeSceneCameraParameters,
+    isTestMode,
+    frameMode,
+    generateCurveFromChebyshev,
+    chebyshevDataLoaded,
+    chebyshevData,
+    npzData,
+    npzDataLoaded,
+    landingNpzLoaded,
+    landingNpzData,
+    getActiveEphemerisSource,
+    resolveBodySource,
+    getBodyEphemerisSources: () => bodyEphemerisSources,
+    generateBodyCurve,
+    getAnimationScenes: () => animationScenes,
+    getStartTime: () => startTime,
+    getLatestEndTime: () => latestEndTime,
+    getLandingEnabled: () => !!(globalConfig && globalConfig.landing && globalConfig.landing.enabled),
+    landingChebyshevLoaded,
+    landingChebyshevData,
+    getStartLandingTime: () => startLandingTime,
+    getEndLandingTime: () => endLandingTime,
+    getPixelsPerAU: () => PIXELS_PER_AU,
+    getGlobalConfig: () => globalConfig,
+    getConfig: () => config,
+    getCraftId: () => craftId,
+    planetProperties,
+    getOrbitPointsCount: () => nOrbitPoints,
+    getLandingPointsCount: () => nLandingPoints,
+    getViewOrbitDescent: () => viewOrbitDescent,
+    getViewOrbit: () => viewOrbit,
+    render,
+    bridgeActions,
+    clearEventInfo,
+    getMissionRuntimeWireup: () => missionRuntimeWireup,
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+    setOrbitPointsCount: (count) => {
+        nOrbitPoints = count;
     },
-    sceneBootstrapDeps: {
-        THREE,
-        d3,
-        PC,
-        DEFAULT_VIEW_STATE,
-        SceneHelpers,
-        lunar_pole,
-        bindSettingsPanel,
-        initSceneHandlerDom,
-        computeSVGDimensions: () => missionRuntimeWireup.svgActions.computeSVGDimensions(),
-        getSvgWidth: () => svgWidth,
-        getSvgHeight: () => svgHeight,
-        isTestMode,
-        onWindowResize: bridgeActions.onWindowResize,
-        updateCraftScale: bridgeActions.updateCraftScale,
-        getSceneHandlerRuntimeState: () => ({
-            globalConfig,
-            joyRideFlag: runtimeFlags.joyRide,
-            landingFlag: runtimeFlags.landing,
-            earthRadius,
-            moonRadius,
-        }),
-        ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
-        computeSceneCameraParameters,
-        adjustCameraProjectionMatrixAndSkyAngle: bridgeActions.adjustCameraProjectionMatrixAndSkyAngle,
-        getDefaultCameraDistance: () => defaultCameraDistance,
-        getBodyEphemerisState,
-        resolveBodySource,
-        getAnimationSceneRuntimeState: () => ({
-            globalConfig,
-            frameMode,
-            config,
-            npzData,
-            npzDataLoaded,
-            chebyshevData,
-            chebyshevDataLoaded,
-            bodyEphemerisSources,
-            ephemerisSource,
-            animTime,
-            earthRadius,
-            moonRadius,
-            viewSky,
-            viewPolarAxes,
-            viewPoles,
-            viewMoonSOI,
-            viewXYZAxes,
-            viewEclipticPlane,
-            viewEquatorialPlane,
-        }),
+    setLandingPointsCount: (count) => {
+        nLandingPoints = count;
     },
+    getCraftSize: () => craftSize,
+    getDefaultCameraDistance: () => defaultCameraDistance,
+    getSceneHandler: () => theSceneHandler,
+    windowRef: window,
+    getMoonRadius: () => moonRadius,
+    getViewPolarAxes: () => viewPolarAxes,
+    getViewPoles: () => viewPoles,
+    getAnimTime: () => animTime,
+    getEarthRadius: () => earthRadius,
+    getViewCraters: () => viewCraters,
+    getRuntimeFlags: () => runtimeFlags,
+    ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
+    getBodyEphemerisState,
+    getEphemerisSource: () => ephemerisSource,
+    getViewSky: () => viewSky,
+    getViewMoonSOI: () => viewMoonSOI,
+    getViewXYZAxes: () => viewXYZAxes,
+    getViewEclipticPlane: () => viewEclipticPlane,
+    getViewEquatorialPlane: () => viewEquatorialPlane,
 });
 
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
@@ -503,7 +438,6 @@ var viewEquatorialPlane = initialMissionViewState.viewEquatorialPlane;
 var viewFPS = initialMissionViewState.viewFPS;
 
 function render() {
-    // console.log("render() global function called");
     var animationScene = animationScenes[config];
     theSceneHandler.render(animationScene);
 }
@@ -703,7 +637,6 @@ async function initAnimation(flags) {
 
 function animateLoop() {
     ({
-        curFrameTime,
         fpsFrameCount,
         fpsLastTime,
         prevFrameTime,
@@ -734,7 +667,7 @@ function animateLoop() {
 }
 
 export function main() {
-    const onloadEndTime = startMissionApp({
+    startMissionApp({
         eventBus,
         handlers: {
             reset: () => missionRuntimeWireup.runtimeBootstrapActions.reset(),
@@ -756,8 +689,6 @@ export function main() {
     });
 
     missionRuntimeWireup.runtimeBootstrapActions.initCameraOverlay();
-
-    // console.log("onload() took " + onloadEndTime + " ms");
 }
 
 async function processOrbitData() {
