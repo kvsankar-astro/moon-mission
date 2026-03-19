@@ -2,13 +2,24 @@
 
 ## Overview
 
-This document specifies the JSON format for Chebyshev polynomial-compressed ephemeris data. The format stores spacecraft positions as piecewise Chebyshev polynomial segments, allowing efficient storage and smooth interpolation at any time within the data range.
+This document defines the JSON format used for Chebyshev-compressed ephemeris data in this repository.
 
-## File Naming Convention
+The runtime consumes these files via `assets/platform/js/chebyshev.js` and reconstructs:
+- Position `(x, y, z)` in km
+- Velocity `(vx, vy, vz)` in km/s (analytic derivative of Chebyshev polynomials)
 
-- `geo-CY3-cheb.json` - Geocentric phase (Earth-centered)
-- `lunar-CY3-cheb.json` - Selenocentric phase (Moon-centered)
-- `landing-CY3-cheb.json` - Landing phase
+## File Naming
+
+Common files per mission in `assets/<mission>/data/`:
+
+- `geo-<ID>-cheb.json` - Earth-centered/or geocentric phase
+- `lunar-<ID>-cheb.json` - Moon-centered/selenocentric phase
+- `landing-<ID>-cheb.json` - Legacy landing file (may still exist)
+- `landing-<ID>-geo-cheb.json` - Landing data expressed in geo frame
+- `landing-<ID>-lunar-cheb.json` - Landing data expressed in lunar frame
+- `relative-<ID>-cheb.json` - Earth-centered rotating relative frame (`mode=relative`)
+
+`<ID>` is typically mission mnemonic from `config.json` (`spacecraft_mnemonic`).
 
 ## JSON Structure
 
@@ -18,9 +29,9 @@ This document specifies the JSON format for Chebyshev polynomial-compressed ephe
   "version": "1.0",
   "metadata": {
     "source": "geo-CY3.npz",
-    "created": "2026-01-13T12:00:00Z",
-    "segment_hours": 2,
-    "polynomial_degree": 20,
+    "created": "2026-01-14T02:30:29.667048+00:00",
+    "tolerance_km": 5,
+    "segments_count": 2066,
     "coordinate_frame": "J2000",
     "units": {
       "time": "julian_date",
@@ -28,105 +39,112 @@ This document specifies the JSON format for Chebyshev polynomial-compressed ephe
     }
   },
   "time_range": {
-    "start": 2460123.5,
-    "end": 2460180.5
+    "start": 2460139.890972222,
+    "end": 2460194.022916667
   },
   "segments": [
     {
-      "t_start": 2460123.5,
-      "t_end": 2460123.583333,
-      "cx": [1.0, 2.0, 3.0, ...],
-      "cy": [1.0, 2.0, 3.0, ...],
-      "cz": [1.0, 2.0, 3.0, ...]
+      "t_start": 2460139.890972222,
+      "t_end": 2460139.918055556,
+      "cx": [-233.13, 6782.74, 325.48],
+      "cy": [-8885.77, -5924.94, 1306.44],
+      "cz": [381.99, -132.79, -71.70]
     }
   ]
 }
 ```
 
-## Field Descriptions
+## Field Definitions
 
-### Root Level
+### Root Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `format` | string | Must be `"chebyshev-ephemeris"` |
-| `version` | string | Format version, currently `"1.0"` |
-| `metadata` | object | Information about the source data and compression parameters |
-| `time_range` | object | Overall time coverage |
-| `segments` | array | Array of polynomial segments |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `format` | string | yes | Must be `"chebyshev-ephemeris"` |
+| `version` | string | yes | Format version (`"1.0"`) |
+| `metadata` | object | yes | Source/compression metadata |
+| `time_range` | object | yes | Overall coverage |
+| `segments` | array | yes | Piecewise Chebyshev segments |
 
-### Metadata Object
+### `metadata`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `source` | string | Original data file name |
-| `created` | string | ISO 8601 timestamp of compression |
-| `segment_hours` | number | Length of each segment in hours |
-| `polynomial_degree` | number | Degree of Chebyshev polynomials used |
-| `coordinate_frame` | string | Reference frame (always "J2000") |
-| `units` | object | Units for time and position |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `source` | string | yes | Source NPZ filename |
+| `created` | string | yes | ISO timestamp of generation |
+| `tolerance_km` | number | yes | Compression tolerance used |
+| `segments_count` | number | yes | Number of segments written |
+| `coordinate_frame` | string | yes | Frame label (currently `"J2000"`) |
+| `units` | object | yes | Unit block |
+| `derived_from` | string | no | Present for derived products (for example relative mode) |
+| `mode` | string | no | Present for derived products (for example `"relative"`) |
 
-### Time Range Object
+Notes:
+- Older files/docs may mention `segment_hours` or `polynomial_degree`; current generator output does not require them.
+- Relative files usually include both `derived_from` and `mode`.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `start` | number | Julian date of first data point |
-| `end` | number | Julian date of last data point |
+### `units`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `time` | string | yes | `"julian_date"` |
+| `position` | string | yes | `"km"` |
+
+### `time_range`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `start` | number | yes | First sample JD |
+| `end` | number | yes | Last sample JD |
 
 ### Segment Object
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `t_start` | number | Julian date at segment start |
-| `t_end` | number | Julian date at segment end |
-| `cx` | array | Chebyshev coefficients for X coordinate |
-| `cy` | array | Chebyshev coefficients for Y coordinate |
-| `cz` | array | Chebyshev coefficients for Z coordinate |
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `t_start` | number | yes | Segment start JD |
+| `t_end` | number | yes | Segment end JD |
+| `cx` | number[] | yes | X-axis Chebyshev coefficients |
+| `cy` | number[] | yes | Y-axis Chebyshev coefficients |
+| `cz` | number[] | yes | Z-axis Chebyshev coefficients |
 
-## Chebyshev Polynomial Evaluation
+The number of coefficients can vary segment-to-segment (adaptive compression).
 
-To reconstruct a position at time `t` (Julian date):
+## Evaluation
 
-1. Find the segment where `t_start <= t <= t_end`
-2. Normalize time to [-1, 1]: `t_norm = 2 * (t - t_start) / (t_end - t_start) - 1`
-3. Evaluate each polynomial using the Clenshaw recurrence algorithm
-4. Result is (x, y, z) position in kilometers
+At runtime (`assets/platform/js/chebyshev.js`):
 
-### Clenshaw Recurrence Algorithm
+1. Find segment with `t_start <= jd <= t_end`.
+2. Normalize time to `[-1, 1]`:
+   - `t_norm = 2 * (jd - t_start) / (t_end - t_start) - 1`
+3. Evaluate `cx`, `cy`, `cz` via Clenshaw recurrence.
+4. Evaluate derivatives for velocity and scale by segment span in seconds.
 
-```
-function evaluateChebyshev(coeffs, x):
-    // x must be in [-1, 1]
-    n = length(coeffs)
-    if n == 0: return 0
-    if n == 1: return coeffs[0]
+Velocity units returned are km/s.
 
-    b_k1 = 0  // b_{k+1}
-    b_k2 = 0  // b_{k+2}
+## Time-Base Notes
 
-    for k from (n-1) down to 1:
-        b_k = coeffs[k] + 2 * x * b_k1 - b_k2
-        b_k2 = b_k1
-        b_k1 = b_k
+- Source HORIZONS products use Julian dates; this repo stores those values directly in NPZ/Chebyshev.
+- Runtime ephemeris lookup currently uses UTC-based Julian conversion helpers (`getJD_UTC`) to stay consistent with existing generated datasets.
+- Regeneration should keep the same project convention to avoid drift.
 
-    return coeffs[0] + x * b_k1 - b_k2
-```
+## Generation Pipeline
 
-## Accuracy Requirements
+Primary tools:
 
-For orbit visualization purposes:
-- Maximum position error: < 100 km for orbital phases
-- Maximum position error: < 5 km for landing phase
-- These errors are subpixel at typical visualization scales
+- `scripts/orbits.py`
+  - Fetches vectors and writes `data-generated/<mission>/*.npz` (+ metadata)
+  - Adds synthetic landing phases `landing-geo` and `landing-lunar` when landing is configured
+- `scripts/compress-orbits.py`
+  - Compresses NPZ to `assets/<mission>/data/*-cheb.json`
+  - Defaults: `tolerance_km=5` (orbit phases), `tolerance_km=2` (landing phases)
+- `scripts/generate-relative-orbits.py`
+  - Produces `relative-<ID>-cheb.json` (derived rotating-frame dataset)
 
-## Example Usage (JavaScript)
+## Accuracy Targets
 
-```javascript
-// Load the Chebyshev data
-const data = await fetch('geo-CY3-cheb.json').then(r => r.json());
+Current compression defaults in tooling:
 
-// Get position at a specific Julian date
-const jd = 2460150.5;
-const position = getPositionFromChebyshev(data.segments, jd);
-console.log(`Position: (${position.x}, ${position.y}, ${position.z}) km`);
-```
+- Orbit phases (`geo`, `lunar`, `relative`): tolerance 5 km
+- Landing phases (`landing`, `landing-geo`, `landing-lunar`): tolerance 2 km
+
+Validation is available in `scripts/compress-orbits.py` (`--validate`).

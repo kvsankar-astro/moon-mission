@@ -1,22 +1,22 @@
 # AI Tools and Assistance
 
-This repository may use AI tooling to accelerate development, refactoring, bug fixes, and documentation updates.
+This repository uses AI tooling for implementation, refactoring, debugging, and documentation work.
 
-## How we use them
+## Working principles
 
-- Follow repo conventions in `AGENTS.md`.
-- Validate AI-assisted changes the same way as any other change (for example: `make test` for UI regressions).
-- Don’t paste or commit secrets (deploy credentials, keys, or personal tokens).
+- Follow repository conventions in `AGENTS.md`.
+- Validate AI-assisted changes with the same rigor as human-authored changes.
+- Do not paste or commit secrets (deployment credentials, private keys, tokens).
+- Keep ephemeral notes/plans out of top-level docs; archive them under `docs/archived/` when they are no longer active.
 
-## Tools
+## Tooling used
 
-- **Codex CLI** - OpenAI's terminal-based coding assistant (used for codebase changes, refactoring, and documentation updates).
-- **Claude Code** - Anthropic's AI coding assistant (used for enhancements, refactoring, and bug fixes).
-- **Gemini CLI** - Google's AI assistant (used for development tasks and automation).
+- **Codex CLI** - terminal-based coding assistant for code changes, refactors, and doc updates.
+- **Claude Code** - coding assistant used for implementation/review tasks.
+- **Gemini CLI** - coding assistant used for development and automation tasks.
 
-## Tool-specific notes
+## Repo references
 
-- Session notes from any of these tools may be kept in repo documentation when relevant.
-- `AGENTS.md` - Repository guidelines for contributors and coding agents.
-- `CLAUDE.md` - Notes/workflows intended for Claude-based tooling.
-- `GEMINI.md` - Notes/workflows intended for Gemini-based tooling.
+- `AGENTS.md` - primary contributor/agent workflow and coding rules.
+- `CLAUDE.md` - Claude-oriented workflow notes.
+- `GEMINI.md` - Gemini-oriented workflow notes.

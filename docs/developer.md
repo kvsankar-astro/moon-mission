@@ -1,5 +1,10 @@
 # Developer Documentation
 
+## Open TODOs
+
+- TODO: Investigate camera "from-object" centering in from-to camera pairs. The camera may intentionally use a small offset for stability, but we need to verify whether any combinations allow the source ("from") object to become visible in-frame (self-looking behavior) and confirm expected behavior.
+- TODO: Complete final jQuery UI cleanup. Document and remove compatibility traces/stubs (for example `assets/platform/js/ui/jquery-ui-dialog-stub.js`, legacy `$.dialog`/`dialogExtend` pathways, and related legacy includes) once replacement behavior is fully covered.
+
 ## Multi-Mission Architecture
 
 The platform supports multiple lunar missions through configuration-driven design. Each mission is self-contained in its own folder under `assets/`.
@@ -23,11 +28,13 @@ The `missionMap` in `mission.html` maps URL parameters to mission folders:
 const missionMap = {
     'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
-    'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
     'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+    'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
     'art1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
-    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 LM', year: '1969' },
+    'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
+    'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
     'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
+    'apollo10-lm': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
     'artemis1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
 };
 ```
@@ -44,7 +51,10 @@ assets/<mission-name>/
 │   ├── config.json              # Mission configuration (required)
 │   ├── geo-<ID>-cheb.json       # Geocentric orbit data (required)
 │   ├── lunar-<ID>-cheb.json     # Selenocentric orbit data (required)
-│   └── landing-<ID>-cheb.json   # Landing phase data (optional)
+│   ├── relative-<ID>-cheb.json  # Relative-frame data (optional, mode=relative)
+│   ├── landing-<ID>-cheb.json   # Legacy landing phase data (optional)
+│   ├── landing-<ID>-geo-cheb.json   # Landing in Earth-centered frame (optional)
+│   └── landing-<ID>-lunar-cheb.json # Landing in Moon-centered frame (optional)
 ├── models/
 │   └── spacecraft.glb           # 3D model (optional)
 └── images/
@@ -63,6 +73,12 @@ The config.json file defines all mission parameters. Required sections:
   "mission_name_short": "XX",
   "mission_url": "https://...",
   "is_lunar": true,
+  "ephemeris_source": "chebyshev",      // Default source for SC
+  "ephemeris_sources": {                // Optional per-body overrides
+    "SC": "chebyshev",
+    "MOON": "astronomy",
+    "EARTH": "astronomy"
+  },
 
   // Optional-but-used-by-the-UI fields (see existing missions for examples)
   "mission_description": "Short description",
@@ -98,6 +114,12 @@ The config.json file defines all mission parameters. Required sections:
     "orbits_file": "lunar-<ID>"
   },
 
+  "landing": {
+    "enabled": true,                    // Optional
+    "center": "moon_center",
+    "orbits_file": "landing-<ID>"       // scripts can also generate -geo/-lunar variants
+  },
+
   "events": {
     "missionStart": {
       "startTime": "2023-07-14T09:23:00Z",
@@ -122,14 +144,18 @@ The config.json file defines all mission parameters. Required sections:
 **Option A: Fetch from JPL HORIZONS (for missions with tracking data)**
 
 ```bash
-# Fetch geocentric data
-python scripts/orbits.py --mission=<mission-name> --phase=geo
+# Fetch all enabled phases from config (recommended)
+python scripts/orbits.py --mission=<mission-name>
 
-# Fetch selenocentric data
-python scripts/orbits.py --mission=<mission-name> --phase=lunar
+# Fetch specific phases
+python scripts/orbits.py --mission=<mission-name> --phase geo lunar
 
-# Fetch landing phase (if applicable)
-python scripts/orbits.py --mission=<mission-name> --phase=landing
+# Landing variants (if landing is enabled)
+# `landing-geo` and `landing-lunar` are synthetic phases created by scripts/orbits.py
+python scripts/orbits.py --mission=<mission-name> --phase landing landing-geo landing-lunar
+
+# Optional: precompute relative-frame Chebyshev from geo NPZ
+python scripts/generate-relative-orbits.py --mission <mission-name>
 ```
 
 **Option B: Convert existing data (e.g., from legacy JSON)**
@@ -188,40 +214,32 @@ Search for IDs at: https://ssd.jpl.nasa.gov/horizons/
 
 ## Time Systems
 
-The application uses two time systems:
+The runtime currently uses both Julian-date conventions; keep them distinct:
 
-### TDB (Barycentric Dynamical Time)
-Used for all astronomical calculations and ephemeris data.
+### UTC-based Julian Date (runtime ephemeris sampling)
 
-- **Chebyshev polynomial lookups** - Spacecraft position interpolation
-- **Lunar pole calculations** - IAU orientation model
-- **Astronomy Engine calculations** - Moon/Earth positions
+Used by runtime ephemeris lookup for Chebyshev/NPZ state evaluation.
+
+- `assets/platform/js/data/ephemeris-provider.js` (`getHorizonsJulianDate`)
+- `assets/platform/js/chebyshev.js` (`generateCurveFromChebyshev`)
 
 ```javascript
-const jd = new Date(timestamp).getJD_TDB();
+const jd = new Date(timestamp).getJD_UTC();
 const state = getStateFromChebyshev(chebyshevData, jd);
 ```
 
-### UTC (Coordinated Universal Time)
-Used for user-facing display and mission event times.
+### TDB (astronomical orientation math)
 
-- **UI date/time display** - Shown in local timezone (IST)
-- **Mission events in config.json** - Launch, burns, landing times
+Used for IAU lunar pole/orientation calculations in `assets/platform/js/astro.js`.
 
-### Conversion
+- `Date.prototype.getJD_TDB()`
+- `Date.prototype.getMJD_TDB()`
+- `Date.prototype.getT_TDB()`
 
-TDB ≈ UTC + 69.184 seconds (as of 2017+)
+### UI/Event Times
 
-```javascript
-// TDB offset: leap_seconds (37s) + 32.184s
-const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
-```
-
-Functions defined in `assets/platform/js/astro.js`:
-- `Date.prototype.getJD_TDB()` - Julian Date in TDB
-- `Date.prototype.getJD_UTC()` - Julian Date in UTC
-- `Date.prototype.getMJD_TDB()` - Days since J2000 (TDB)
-- `Date.prototype.getT_TDB()` - Centuries since J2000 (TDB)
+- Mission events in `config.json` are UTC ISO timestamps.
+- UI displays local-time formatted values (currently IST-centric formatting in labels/text).
 
 ## Data Pipeline
 
@@ -230,16 +248,16 @@ Functions defined in `assets/platform/js/astro.js`:
 ```
 NASA JPL HORIZONS API
         ↓
-    orbits.py (fetches vectors)
+    orbits.py (fetches vectors per phase)
         ↓
-    *-vectors.txt (JDTDB, ECLIPJ2000)
+    data-generated/<mission>/*.npz + *-meta.json
         ↓
     compress-orbits.py
         ↓
-    *-cheb.json (Chebyshev coefficients)
+    assets/<mission>/data/*-cheb.json
 ```
 
-**Important:** HORIZONS outputs data with JDTDB timestamps in ECLIPJ2000 frame. The Chebyshev compression preserves these timestamps without conversion.
+`scripts/orbits.py` also exposes synthetic landing variants (`landing-geo`, `landing-lunar`) when landing is configured.
 
 ### Fetching Orbit Data (`scripts/orbits.py`)
 
@@ -257,7 +275,7 @@ python scripts/orbits.py --mission chandrayaan3 --phase lunar landing
 python scripts/orbits.py --mission chandrayaan3 --data-dir data-generated/chandrayaan3/my-run
 ```
 
-By default, raw outputs go under `data-generated/<mission>/...`. The script copies derived `*-cheb.json` and `*-meta.json` outputs into `assets/<mission>/data/` for use by the web app.
+By default, raw outputs go under `data-generated/<mission>/...`. `scripts/compress-orbits.py` writes `*-cheb.json` into `assets/<mission>/data/`.
 
 #### Raw Output Files
 
@@ -282,8 +300,8 @@ The HORIZONS request outputs are saved as plain text files (useful for debugging
   },
   "segments": [
     {
-      "t_start": 2460139.89,  // JDTDB
-      "t_end": 2460140.89,    // JDTDB
+      "t_start": 2460139.89,
+      "t_end": 2460140.89,
       "cx": [ ... ],
       "cy": [ ... ],
       "cz": [ ... ]
@@ -383,10 +401,9 @@ const eclState = Astronomy.RotateState(rot, eqState);
 ### Core Modules
 
 #### `assets/platform/js/mission.js`
-- Main application logic (AnimationScene class)
-- Scene management (Earth mode, Moon mode)
-- Animation control and orchestration
-- Integrates all renderer classes
+- Runtime composition/orchestration entrypoint
+- Wires app modules from `app/*`, `data/*`, `rendering/*`, and controllers
+- Maintains legacy-compatible state bridge and exports `animationScenes`
 
 #### `assets/platform/js/astro.js`
 - Julian Date conversion functions
@@ -398,7 +415,7 @@ const eclState = Astronomy.RotateState(rot, eqState);
 - `getEarthFromMoonState(timestamp)` - Earth position from Moon (selenocentric)
 
 #### `assets/platform/js/chebyshev.js`
-- `getStateFromChebyshev(data, jd)` - Interpolate position/velocity at given JDTDB
+- `getStateFromChebyshev(data, jd)` - Interpolate position/velocity at given Julian date
 - `generateCurveFromChebyshev(data, start, end, step)` - Generate orbit curve points
 - `loadChebyshevData(url)` - Load Chebyshev JSON file
 

@@ -1,80 +1,91 @@
-# Testing (UI + Visual Regression)
+# Test Strategy (UI + Visual Regression)
 
-This project uses Vitest + Playwright for automated UI testing, with SSIM-based visual regression (robust against minor anti-aliasing differences).
+This repository uses Vitest + Playwright with three complementary suites.
 
-## Quick Start
+## Goals
+
+- Catch user-visible regressions early (UI behavior and rendering).
+- Keep screenshot comparisons reproducible enough for baseline workflows.
+- Separate visual checks, smoke checks, and ephemeris accuracy checks.
+
+## Test Suites
+
+- **UI + visual regression** (`test/ui.test.js`)
+  - Primary CY3 end-to-end coverage (Earth/Moon, 2D/3D, camera/view interactions, full-run snapshots).
+  - Uses SSIM-based image comparisons against tracked baselines.
+  - Writes latest SSIM scores and reports SSIM drift against committed history.
+
+- **Cross-mission smoke** (`test/mission-smoke.test.js`)
+  - Functional smoke checks for non-CY3 missions (`a10`, `a11`, `cy2`) across origin/dimension combinations.
+  - Verifies load/runtime health and absence of console/page errors.
+  - No screenshot baselines.
+
+- **Chebyshev accuracy** (`test/chebyshev-accuracy.test.js`)
+  - Validates Chebyshev position accuracy against NPZ source data at interval samples.
+  - Phase blocks are automatically skipped when required NPZ files are not present.
+
+## Run Commands
+
+Quick default visual run (managed server lifecycle):
 
 ```bash
-npm install
 make test
 ```
 
-## What Runs
+Notes:
+- `make test` currently runs `test/ui.test.js` only (headless, port `8111`).
+- It does not automatically run `mission-smoke` or `chebyshev-accuracy`.
 
-- **Main UI suite**: `test/ui.test.js` (currently 48 tests)
-- **Smoke suite**: `test/mission-smoke.test.js` (loads multiple missions/configs; asserts no console/page errors)
-- **SSIM tracking**: committed SSIM baseline in `test/screenshots/ssim-history.json` + latest-run scores in `test/screenshots/ssim-latest.json` (git-ignored)
-
-## Running Tests
-
-Recommended (manages the test server on port 8111):
-
-```bash
-make test
-```
-
-If you already have a server running:
-
-```bash
-# Default baseUrl is http://localhost:8111
-npx vitest test/ui.test.js --run
-
-# Override server URL if needed
-HEADLESS=true VITE_TEST_BASE_URL=http://localhost:7274 npx vitest test/ui.test.js --run
-```
-
-Manual server management (no `make` required):
+Full local audit (recommended before larger merges):
 
 ```bash
 node test/server-manager.js start
 HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/mission-smoke.test.js --run
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/chebyshev-accuracy.test.js --run
 node test/server-manager.js stop
 ```
 
-## Baselines and SSIM
+Against a custom dev server:
 
-- Baselines live in `test/screenshots/baseline/` (tracked by git).
-- Each run writes current screenshots to `test/screenshots/current/`.
-- If a baseline image is missing, the current screenshot is copied into baseline (convenient for adding new tests).
-- Regenerate all baselines (intentional visual changes):
+```bash
+HEADLESS=true VITE_TEST_BASE_URL=http://localhost:7274 npx vitest test/ui.test.js --run
+```
+
+## Visual Baselines and SSIM Files
+
+- Tracked:
+  - `test/screenshots/baseline/*.png`
+  - `test/screenshots/ssim-history.json`
+- Ignored runtime artifacts:
+  - `test/screenshots/current/`
+  - `test/screenshots/diff/`
+  - `test/screenshots/analysis/`
+  - `test/screenshots/ssim-latest.json`
+  - `test/screenshots/ssim-diff-report.json`
+  - `test/screenshots/ssim-diff-report.csv`
+
+Regenerate baselines only for intentional visual changes:
 
 ```bash
 make baseline
 ```
 
-SSIM baseline (`test/screenshots/ssim-history.json`) stores:
-- `committed`: SSIM scores from the committed baseline (reference for drift)
-- `committedAt`: timestamp for when the baseline was recorded
+## Useful Env Flags
 
-Latest-run SSIM scores are written to `test/screenshots/ssim-latest.json` (git-ignored).
+- `VITE_TEST_BASE_URL` - target app URL (`http://localhost:8111` default in tests).
+- `HEADLESS=false` - run with visible browser for debugging.
+- `SSIM_REGRESSION_STRICT=true` - fail UI suite on SSIM regression report.
+- `UPDATE_SSIM_COMMITTED=true` - update `ssim-history.json` from current run (use intentionally).
 
-## File Layout (Relevant)
+## Conventions
 
-```
-	test/
-	├── ui.test.js
-	├── mission-smoke.test.js
-	├── server-manager.js
-	└── screenshots/
-	    ├── baseline/          # committed reference images
-	    ├── current/           # latest run screenshots (usually git-ignored)
-	    ├── diff/              # optional/manual artifacts (not required by ui.test.js)
-	    ├── ssim-history.json  # committed SSIM baseline (tracked)
-	    └── ssim-latest.json   # latest-run SSIM scores (ignored)
-	```
+- Screenshot IDs follow stable mode-first naming (for example `earth-3d-...`, `moon-2d-...`).
+- If test code and docs diverge, treat test code/config as source of truth and update docs.
+- Keep strategy docs concise; avoid duplicating per-test implementation details.
 
 ## Troubleshooting
 
-- **Port conflicts**: tests default to `http://localhost:8111`; stop existing servers or override `VITE_TEST_BASE_URL`.
-- **Slow rendering / timeouts**: try `HEADLESS=false` for debugging, or set `CI=true` to use longer timeouts.
-- **Baseline mismatch**: if the visual change is intentional, regenerate baselines with `make baseline`.
+- **Port conflicts**: `test/server-manager.js` reuses an existing server on `8111` in local mode; in CI mode it expects a clean port.
+- **Slow rendering/timeouts**: use headless mode for consistency; CI has built-in timeout scaling.
+- **Unexpected visual diffs**: confirm intent first, then regenerate baseline/SSIM artifacts deliberately.
