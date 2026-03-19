@@ -25,6 +25,7 @@ I created this animation for educational purposes. It has the following features
 * Astronomically correct rendering of sunlight on Earth and Moon, poles, and polar axes
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
 * A Joy Ride feature which lets you fly along with the spacecraft
+* Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
 
 ## Run locally
 
@@ -72,19 +73,23 @@ Orbit data is fetched offline from JPL/NASA HORIZONS.
 This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
 Moon and Earth positions are computed dynamically using Astronomy Engine.
 
-**Time Systems:** The application uses TDB (Barycentric Dynamical Time) for all astronomical calculations
-and Chebyshev lookups, matching the time system used by JPL HORIZONS. UTC is used for user-facing display.
-See [docs/developer.md](docs/developer.md) for detailed technical documentation.
+**Time Systems:** Runtime ephemeris sampling currently uses UTC-based Julian date helpers for
+Chebyshev/NPZ lookups, while TDB-based helpers are used for astronomical orientation math
+(for example lunar pole calculations). UTC is used for user-facing event times and display.
+See [docs/developer.md](docs/developer.md) for detailed technical notes.
 
 ## Testing
 
-The project includes automated UI testing (SSIM-based visual regression).
+The project includes automated testing with Vitest + Playwright.
 
 ```bash
 make test
 ```
 
-See [docs/testing/](docs/testing/) for detailed test documentation.
+`make test` runs the primary UI + visual regression suite (`test/ui.test.js`) on `http://localhost:8111`.
+
+For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
+- [docs/testing/README.md](docs/testing/README.md)
 
 ### Hosting
 
