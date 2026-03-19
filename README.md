@@ -124,7 +124,7 @@ npx http-server
 
 This project is undergoing incremental modernization (the earliest versions date back to 2013).
 
-See [docs/modernization-plan-2026.md](docs/modernization-plan-2026.md) for a detailed roadmap and current progress.
+See [docs/archived/modernization-plan-2026.md](docs/archived/modernization-plan-2026.md) for historical roadmap and progress context.
 
 ## AI assistance
 

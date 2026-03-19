@@ -250,7 +250,8 @@ moon-mission/
 │       └── data/
 ├── docs/                          # Documentation
 │   ├── developer.md               # Technical documentation
-│   ├── modernization-plan-2026.md # Modernization roadmap
+│   ├── archived/                  # Archived planning/refactor docs
+│   │   └── modernization-plan-2026.md
 │   └── testing/                   # Test documentation
 ├── scripts/                       # Data generation scripts
 ├── test/                          # Test files and baselines

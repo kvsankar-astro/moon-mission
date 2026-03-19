@@ -867,4 +867,4 @@ mission.js (entry point, ~500 lines)
 ---
 
 *Created: January 2026*
-*Based on: claude-mission-js-refactoring-proposal.md, gemini-mission-js-refactoring-proposal.md*
+*Based on: archived/claude-mission-js-refactoring-proposal.md, archived/gemini-mission-js-refactoring-proposal.md*
