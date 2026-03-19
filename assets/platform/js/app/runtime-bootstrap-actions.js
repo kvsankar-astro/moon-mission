@@ -250,6 +250,8 @@ function createRuntimeBootstrapActions(deps) {
         getConfig,
         isOrbitDataProcessed: (cfg) => !!orbitDataProcessed[cfg],
         missionStart: animationActions.missionStart,
+        missionSetTime: animationActions.missionSetTime,
+        setAnimTime,
         setLocation,
         setDimension: (value) => {
             setDimension(value);

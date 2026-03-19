@@ -42,6 +42,7 @@ function createMissionViewEntry(ctx) {
         setLegacyPanY,
         isRelativeMode,
         getToggleMode,
+        getCurrentAnimTime,
         planeSelection,
     } = ctx;
 
@@ -84,6 +85,7 @@ function createMissionViewEntry(ctx) {
         readOriginMode,
         readViewSettings,
         getToggleMode,
+        getCurrentAnimTime,
         planeSelection,
     });
 }

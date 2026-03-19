@@ -10,6 +10,7 @@ function createMissionRuntimeHandlersEntry(ctx) {
         toggleRelativeMode,
         getSetView,
         getSetDimensionTop,
+        getStartupAnimTimeOverride,
         getMissionRuntimeWireup,
         readLoopState,
         writeLoopState,
@@ -25,8 +26,23 @@ function createMissionRuntimeHandlersEntry(ctx) {
         updateThreeDLoopCamera,
     } = ctx;
 
+    let startupInitFlagsMerged = false;
+
     async function initAnimation(flags) {
-        return getMissionRuntimeWireup().runtimeBootstrapActions.initOrchestrationActions.initAnimation(flags);
+        const mergedFlags = {
+            ...(flags || {}),
+        };
+
+        if (!startupInitFlagsMerged) {
+            const startupAnimTimeOverride = Number(getStartupAnimTimeOverride?.());
+            if (Number.isFinite(startupAnimTimeOverride)) {
+                mergedFlags.startupAnimTimeOverride = startupAnimTimeOverride;
+                mergedFlags.reset = false;
+            }
+            startupInitFlagsMerged = true;
+        }
+
+        return getMissionRuntimeWireup().runtimeBootstrapActions.initOrchestrationActions.initAnimation(mergedFlags);
     }
 
     async function processOrbitData() {
@@ -70,20 +86,27 @@ function createMissionRuntimeHandlersEntry(ctx) {
         startMissionApp({
             eventBus,
             handlers: {
-                reset: () => getMissionRuntimeWireup().runtimeBootstrapActions.reset(),
-                toggleMode: toggleModeGuarded,
-                toggleRelativeMode,
-                changeCameraFromTo: () => getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(),
-                toggleLockSC: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockSC(),
-                toggleLockMoon: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockMoon(),
-                toggleLockEarth: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockEarth(),
-                togglePlane: () => getMissionRuntimeWireup().runtimeBootstrapActions.togglePlane(),
-                setView: getSetView(),
-                setDimensionTop: getSetDimensionTop(),
-                cy3Animate: () => getMissionRuntimeWireup().runtimeBootstrapActions.cy3Animate(),
-                toggleJoyRide: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleJoyRide(),
-                toggleLanding: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLanding(),
-                toggleInfo: () => getMissionRuntimeWireup().runtimeBootstrapActions.toggleInfo(),
+                reset: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.reset(event),
+                toggleMode: (event) => toggleModeGuarded(event),
+                toggleRelativeMode: (event) => toggleRelativeMode(event),
+                changeCameraFromTo: (event) =>
+                    getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(event),
+                toggleLockSC: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockSC(event),
+                toggleLockMoon: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockMoon(event),
+                toggleLockEarth: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockEarth(event),
+                togglePlane: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.togglePlane(event),
+                setView: (event) => {
+                    const setView = getSetView();
+                    return typeof setView === "function" ? setView(event) : undefined;
+                },
+                setDimensionTop: (event) => {
+                    const setDimensionTop = getSetDimensionTop();
+                    return typeof setDimensionTop === "function" ? setDimensionTop(event) : undefined;
+                },
+                cy3Animate: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.cy3Animate(event),
+                toggleJoyRide: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleJoyRide(event),
+                toggleLanding: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLanding(event),
+                toggleInfo: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleInfo(event),
                 initAnimation,
             },
         });

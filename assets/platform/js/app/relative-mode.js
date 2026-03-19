@@ -1,4 +1,5 @@
 const ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
+const ANIM_TIME_OVERRIDE_STORAGE_KEY = "cy3.animTimeOverride";
 
 function createRelativeModeActions(deps) {
     const {
@@ -6,7 +7,38 @@ function createRelativeModeActions(deps) {
         setChecked,
         readOriginMode,
         getToggleMode,
+        getCurrentAnimTime,
     } = deps;
+
+    function getLabelForControlId(id) {
+        const element = document.getElementById(id);
+        const wrapped = element?.closest?.("label");
+        if (wrapped) return wrapped;
+        return document.querySelector(`label[for="${id}"]`);
+    }
+
+    function setOriginOptionDisabled(id, disabled) {
+        const element = document.getElementById(id);
+        if (!element) return;
+        element.disabled = !!disabled;
+
+        const label = getLabelForControlId(id);
+        if (label) {
+            label.style.display = "";
+            label.style.opacity = disabled ? "0.65" : "";
+        }
+    }
+
+    function syncOriginOptionAvailability() {
+        const isRelativeSelected = !!document.getElementById("origin-relative")?.checked;
+        const selectedMode = isRelativeSelected
+            ? "relative"
+            : (readOriginMode() === "lunar" ? "moon" : "earth");
+
+        setOriginOptionDisabled("origin-earth", selectedMode === "earth");
+        setOriginOptionDisabled("origin-moon", selectedMode === "moon");
+        setOriginOptionDisabled("origin-relative", selectedMode === "relative");
+    }
 
     function consumeOriginOverrideFromSession() {
         try {
@@ -24,6 +56,33 @@ function createRelativeModeActions(deps) {
         } catch {
             // Ignore storage errors (private browsing, disabled storage, etc.)
         }
+
+        syncOriginOptionAvailability();
+    }
+
+    function consumeAnimTimeOverrideFromSession() {
+        try {
+            const value = sessionStorage.getItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+            sessionStorage.removeItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        } catch {
+            // Ignore storage errors (private browsing, disabled storage, etc.)
+            return null;
+        }
+    }
+
+    function persistAnimTimeOverrideToSession() {
+        try {
+            const currentAnimTime = Number(getCurrentAnimTime?.());
+            if (Number.isFinite(currentAnimTime)) {
+                sessionStorage.setItem(ANIM_TIME_OVERRIDE_STORAGE_KEY, String(currentAnimTime));
+            } else {
+                sessionStorage.removeItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+            }
+        } catch {
+            // Ignore storage errors (private browsing, disabled storage, etc.)
+        }
     }
 
     function applyRelativeModeOriginSelection() {
@@ -31,6 +90,7 @@ function createRelativeModeActions(deps) {
         setChecked("origin-relative", true);
         setChecked("origin-earth", false);
         setChecked("origin-moon", false);
+        syncOriginOptionAvailability();
     }
 
     function navigateWithRelativeMode(enabled) {
@@ -50,6 +110,8 @@ function createRelativeModeActions(deps) {
         } catch {
             // Ignore storage errors
         }
+
+        persistAnimTimeOverrideToSession();
         navigateWithRelativeMode(true);
     }
 
@@ -59,6 +121,7 @@ function createRelativeModeActions(deps) {
             if (typeof toggleMode === "function") {
                 toggleMode();
             }
+            syncOriginOptionAvailability();
             return;
         }
 
@@ -74,15 +137,18 @@ function createRelativeModeActions(deps) {
             // Ignore storage errors
         }
 
+        persistAnimTimeOverrideToSession();
         navigateWithRelativeMode(false);
     }
 
     return {
         consumeOriginOverrideFromSession,
+        consumeAnimTimeOverrideFromSession,
         applyRelativeModeOriginSelection,
         navigateWithRelativeMode,
         toggleRelativeMode,
         toggleModeGuarded,
+        syncOriginOptionAvailability,
     };
 }
 

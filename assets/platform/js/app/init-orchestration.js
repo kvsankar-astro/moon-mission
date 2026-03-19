@@ -5,6 +5,8 @@ function createInitOrchestrationActions(deps) {
         getConfig,
         isOrbitDataProcessed,
         missionStart,
+        missionSetTime,
+        setAnimTime,
         setLocation,
         setDimension,
         getSetView,
@@ -41,7 +43,17 @@ function createInitOrchestrationActions(deps) {
 
             await waitUntilOrbitDataProcessed({
                 onReady: () => {
-                    if (flags.reset) {
+                    const startupAnimTimeOverride = Number(flags?.startupAnimTimeOverride);
+                    const hasStartupAnimTimeOverride = Number.isFinite(startupAnimTimeOverride);
+
+                    if (hasStartupAnimTimeOverride) {
+                        setAnimTime?.(startupAnimTimeOverride);
+                        if (typeof missionSetTime === "function") {
+                            missionSetTime();
+                        } else {
+                            setLocation();
+                        }
+                    } else if (flags.reset) {
                         missionStart();
                     } else {
                         setLocation();

@@ -1828,7 +1828,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
       // Switch to Moon mode
       await openSettingsPanel(page);
-      await page.click('#origin-moon');
+      if (!await page.isChecked('#origin-moon')) {
+        await page.click('#origin-moon');
+      }
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
 
       // Ensure landing is disabled initially (it might be auto-enabled)
@@ -2862,7 +2864,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     beforeAll(async () => {
       // Switch to Moon mode and 2D mode for entire test suite
       await openSettingsPanel(page);
-      await page.click('#origin-moon');
+      if (!await page.isChecked('#origin-moon')) {
+        await page.click('#origin-moon');
+      }
       await page.click('#dimension-2D');
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
@@ -2871,7 +2875,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     afterAll(async () => {
       // Return to Earth mode and 3D mode after test suite completes
       await openSettingsPanel(page);
-      await page.click('#origin-earth');
+      if (!await page.isChecked('#origin-earth')) {
+        await page.click('#origin-earth');
+      }
       await page.click('#dimension-3D');
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
@@ -3088,7 +3094,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       try {
         // Configure for Earth 3D mode
         await openSettingsPanel(page);
-        await page.click('#origin-earth');
+        if (!await page.isChecked('#origin-earth')) {
+          await page.click('#origin-earth');
+        }
         await page.click('#dimension-3D');
         await closeSettingsPanel(page);
         await selectPlaneForFullRun(page, 'earth-3d');
@@ -3158,7 +3166,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       try {
         // Configure for Moon 3D mode
         await openSettingsPanel(page);
-        await page.click('#origin-moon');
+        if (!await page.isChecked('#origin-moon')) {
+          await page.click('#origin-moon');
+        }
         await page.click('#dimension-3D');
         
         // Ensure stellar sky is disabled for consistent baseline comparison
@@ -3238,7 +3248,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       try {
         // Configure for Earth 2D mode
         await openSettingsPanel(page);
-        await page.click('#origin-earth');
+        if (!await page.isChecked('#origin-earth')) {
+          await page.click('#origin-earth');
+        }
         await page.click('#dimension-2D');
         await closeSettingsPanel(page);
         await waitForScene(page);
@@ -3308,7 +3320,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       try {
         // Configure for Moon 2D mode
         await openSettingsPanel(page);
-        await page.click('#origin-moon');
+        if (!await page.isChecked('#origin-moon')) {
+          await page.click('#origin-moon');
+        }
         await page.click('#dimension-2D');
         await closeSettingsPanel(page);
         await waitForScene(page);

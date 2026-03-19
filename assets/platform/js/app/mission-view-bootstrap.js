@@ -8,9 +8,11 @@ function initializeMissionViewState({
     planeSelection,
     readViewSettings,
     getToggleMode,
+    getCurrentAnimTime,
 }) {
     const {
         consumeOriginOverrideFromSession,
+        consumeAnimTimeOverrideFromSession,
         applyRelativeModeOriginSelection,
         toggleRelativeMode,
         toggleModeGuarded,
@@ -19,9 +21,11 @@ function initializeMissionViewState({
         setChecked,
         readOriginMode,
         getToggleMode,
+        getCurrentAnimTime,
     });
 
     consumeOriginOverrideFromSession();
+    const startupAnimTimeOverride = consumeAnimTimeOverrideFromSession();
     applyRelativeModeOriginSelection();
 
     const config = readOriginMode();
@@ -29,6 +33,7 @@ function initializeMissionViewState({
 
     return {
         config,
+        startupAnimTimeOverride,
         ...readViewSettings(),
         toggleRelativeMode,
         toggleModeGuarded,

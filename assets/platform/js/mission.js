@@ -248,6 +248,7 @@ const {
     },
     isRelativeMode,
     getToggleMode: () => toggleMode,
+    getCurrentAnimTime: () => animTime,
     planeSelection,
 });
 
@@ -451,6 +452,7 @@ const {
     toggleRelativeMode,
     getSetView: () => setView,
     getSetDimensionTop: () => setDimensionTop,
+    getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     getMissionRuntimeWireup: () => missionRuntimeWireup,
     readLoopState: () => ({
         fpsFrameCount,

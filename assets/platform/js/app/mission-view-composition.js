@@ -43,6 +43,7 @@ function createMissionViewComposition(ctx) {
         readOriginMode,
         readViewSettings,
         getToggleMode,
+        getCurrentAnimTime,
         planeSelection,
     } = ctx;
 
@@ -99,6 +100,7 @@ function createMissionViewComposition(ctx) {
         planeSelection,
         readViewSettings,
         getToggleMode,
+        getCurrentAnimTime,
     });
 
     return {
