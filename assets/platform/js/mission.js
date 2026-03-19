@@ -22,11 +22,7 @@ import { AnimationController } from "./animation/animation-controller.js";
 import { bindSettingsPanel } from "./ui/event-handlers.js";
 import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
-import {
-    readCheckedRadioValue,
-    showElementById,
-    toggleVisibilityById,
-} from "./ui/dom-helpers.js";
+import { showElementById } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import {
     generateBodyCurve,
@@ -39,9 +35,9 @@ import {
 } from "./app/plane-view-state.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionLegacyState } from "./app/mission-legacy-state.js";
-import { createMissionRuntimeEntry } from "./app/mission-runtime-entry.js";
+import { createMissionRuntimeHandlersEntry } from "./app/mission-runtime-handlers-entry.js";
+import { createMissionRuntimeWireupEntry } from "./app/mission-runtime-wireup-entry.js";
 import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
-import { buildMissionRuntimeStaticDeps } from "./app/mission-runtime-static-deps.js";
 import { createMissionViewEntry } from "./app/mission-view-entry.js";
 import {
     computeAnimationStepState,
@@ -49,7 +45,6 @@ import {
     updateFrameDeltaState,
     updateThreeDLoopCamera,
 } from "./app/animation-loop.js";
-import { executeAnimationFrame } from "./app/scene-frame-loop-actions.js";
 import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
 
 import Swiper from 'swiper';
@@ -442,11 +437,61 @@ const missionStateCells = {
     craftId: bindReadonlyStateCell(() => craftId),
 };
 
-({ missionRuntimeWireup } = createMissionRuntimeEntry({
+const {
+    initAnimation,
+    processOrbitData,
+    animateLoop,
+    main,
+} = createMissionRuntimeHandlersEntry({
+    performanceRef: performance,
+    requestAnimationFrameRef: requestAnimationFrame,
+    startMissionApp,
+    eventBus,
+    toggleModeGuarded,
+    toggleRelativeMode,
+    getSetView: () => setView,
+    getSetDimensionTop: () => setDimensionTop,
+    getMissionRuntimeWireup: () => missionRuntimeWireup,
+    readLoopState: () => ({
+        fpsFrameCount,
+        fpsLastTime,
+        prevFrameTime,
+        deltaFrameTime,
+        animateLoopCount,
+    }),
+    writeLoopState: (nextLoopState) => {
+        fpsFrameCount = nextLoopState.fpsFrameCount;
+        fpsLastTime = nextLoopState.fpsLastTime;
+        prevFrameTime = nextLoopState.prevFrameTime;
+        deltaFrameTime = nextLoopState.deltaFrameTime;
+        animateLoopCount = nextLoopState.animateLoopCount;
+    },
+    getFpsUpdateInterval: () => fpsUpdateInterval,
+    getTicksPerAnimationStep: () => ticksPerAnimationStep,
+    updateFPSCounter,
+    updateFpsCounterState,
+    updateFrameDeltaState,
+    computeAnimationStepState,
+    getAnimationController: () => animationController,
+    getScene: () => animationScenes[config],
+    getCameraControlsCallback: () => bridgeActions.cameraControlsCallback,
+    updateThreeDLoopCamera,
+});
+
+({ missionRuntimeWireup } = createMissionRuntimeWireupEntry({
     d3,
+    d3SelectAll,
+    THREE,
+    Astronomy,
+    windowRef: window,
+    documentRef: document,
+    consoleRef: console,
+    SwiperClass: Swiper,
+    formatMetric: FORMAT_METRIC,
     missionStateCells,
     runtimeFlags,
     animationScenes,
+    orbitDataLoaded,
     orbitDataProcessed,
     chebyshevData,
     chebyshevDataLoaded,
@@ -457,48 +502,23 @@ const missionStateCells = {
     landingChebyshevData,
     landingChebyshevLoaded,
     planetProperties,
+    ephemerisRecords,
     ephemerisStatuses,
     resolveBodySource,
     getActiveEphemerisSource,
     sceneViewStateActions,
     AnimationScene,
+    SceneHandlerClass: SceneHandler,
     bridgeActions,
     modeSwitchActions,
-    staticWireupDeps: buildMissionRuntimeStaticDeps({
-        d3,
-        d3SelectAll,
-        THREE,
-        Astronomy,
-        windowRef: window,
-        documentRef: document,
-        consoleRef: console,
-        SwiperClass: Swiper,
-        formatMetric: FORMAT_METRIC,
-        animationScenes,
-        animation3DControllers,
-        animation2DControllers,
-        orbitDataLoaded,
-        orbitDataProcessed,
-        chebyshevData,
-        chebyshevDataLoaded,
-        npzData,
-        npzDataLoaded,
-        ephemerisRecords,
-        ephemerisStatuses,
-        planetProperties,
-        animationController,
-        AnimationScene,
-        SceneHandlerClass: SceneHandler,
-        bindInfoPanelControls,
-        updateEphemerisPanel,
-        PIXELS_PER_AU,
-        render,
-        processOrbitData,
-    }),
-    readPlaneSelection: () => readCheckedRadioValue("plane", "DEFAULT"),
-    toggleStatsVisibility: () => {
-        toggleVisibilityById("stats");
-    },
+    animation3DControllers,
+    animation2DControllers,
+    animationController,
+    bindInfoPanelControls,
+    updateEphemerisPanel,
+    pixelsPerAU: PIXELS_PER_AU,
+    render,
+    processOrbitData,
     animateLoop,
     initAnimation,
     isRelativeMode,
@@ -508,70 +528,7 @@ const missionStateCells = {
 toggleMode = missionRuntimeWireup.toggleMode;
 setDimensionTop = missionRuntimeWireup.setDimensionTop;
 setView = missionRuntimeWireup.setView;
-
-async function initAnimation(flags) {
-    return missionRuntimeWireup.runtimeBootstrapActions.initOrchestrationActions.initAnimation(flags);
-}
-
-function animateLoop() {
-    ({
-        fpsFrameCount,
-        fpsLastTime,
-        prevFrameTime,
-        deltaFrameTime,
-        animateLoopCount,
-    } = executeAnimationFrame({
-        performanceRef: performance,
-        fpsFrameCount,
-        fpsLastTime,
-        fpsUpdateInterval,
-        updateFPSCounter,
-        prevFrameTime,
-        deltaFrameTime,
-        animateLoopCount,
-        ticksPerAnimationStep,
-        updateFpsCounterState,
-        updateFrameDeltaState,
-        computeAnimationStepState,
-        animationController,
-        getScene: () => animationScenes[config],
-        cameraControlsCallback: bridgeActions.cameraControlsCallback,
-        updateThreeDLoopCamera,
-        updateCameraOverlay: () => missionRuntimeWireup.runtimeBootstrapActions.updateCameraOverlay(),
-    }));
-
-    requestAnimationFrame(animateLoop);
- 
-}
-
-export function main() {
-    startMissionApp({
-        eventBus,
-        handlers: {
-            reset: () => missionRuntimeWireup.runtimeBootstrapActions.reset(),
-            toggleMode: toggleModeGuarded,
-            toggleRelativeMode,
-            changeCameraFromTo: () => missionRuntimeWireup.runtimeBootstrapActions.changeCameraFromTo(),
-            toggleLockSC: () => missionRuntimeWireup.runtimeBootstrapActions.toggleLockSC(),
-            toggleLockMoon: () => missionRuntimeWireup.runtimeBootstrapActions.toggleLockMoon(),
-            toggleLockEarth: () => missionRuntimeWireup.runtimeBootstrapActions.toggleLockEarth(),
-            togglePlane: () => missionRuntimeWireup.runtimeBootstrapActions.togglePlane(),
-            setView,
-            setDimensionTop,
-            cy3Animate: () => missionRuntimeWireup.runtimeBootstrapActions.cy3Animate(),
-            toggleJoyRide: () => missionRuntimeWireup.runtimeBootstrapActions.toggleJoyRide(),
-            toggleLanding: () => missionRuntimeWireup.runtimeBootstrapActions.toggleLanding(),
-            toggleInfo: () => missionRuntimeWireup.runtimeBootstrapActions.toggleInfo(),
-            initAnimation,
-        },
-    });
-
-    missionRuntimeWireup.runtimeBootstrapActions.initCameraOverlay();
-}
-
-async function processOrbitData() {
-    return missionRuntimeWireup.runtimeBootstrapActions.processOrbitData();
-}
+export { main };
 
 // Expose variables globally for testing
 window.animationScenes = animationScenes;
