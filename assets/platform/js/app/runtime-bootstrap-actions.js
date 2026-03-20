@@ -6,7 +6,22 @@ import { createOrbitProcessActions } from "./orbit-process-actions.js";
 import { createInitOrchestrationActions } from "./init-orchestration.js";
 import { createCameraOverlayActions } from "./camera-overlay.js";
 
-function createRuntimeBootstrapActions(deps) {
+function createRuntimeBootstrapActions(ports) {
+    const {
+        uiPort = {},
+        renderPort = {},
+        dataPort = {},
+        clockPort = {},
+        statePort = {},
+    } = ports || {};
+    const deps = {
+        ...uiPort,
+        ...renderPort,
+        ...dataPort,
+        ...clockPort,
+        ...statePort,
+    };
+
     const {
         d3,
         d3SelectAll,
@@ -47,6 +62,7 @@ function createRuntimeBootstrapActions(deps) {
         loadOrbitDataIfNeededAndProcess,
         loadLandingDataAndProcess,
         processOrbitVectorsData,
+        handlePlaneChange,
         getConfig,
         getAnimationScenes,
         getCurrentDimension,
@@ -101,6 +117,25 @@ function createRuntimeBootstrapActions(deps) {
         PC,
     } = deps;
 
+    const resolvePanX = typeof getPanX === "function"
+        ? getPanX
+        : () => getPanXState(getConfig());
+    const resolvePanY = typeof getPanY === "function"
+        ? getPanY
+        : () => getPanYState(getConfig());
+    const resolveZoomFactor = typeof getZoomFactor === "function"
+        ? getZoomFactor
+        : () => getZoomFactorState(getConfig());
+    const resolveZoomTimeoutMs = typeof getZoomTimeoutMs === "function"
+        ? getZoomTimeoutMs
+        : () => UC.ZOOM_TIMEOUT;
+    const resolveZoomScale = typeof getZoomScale === "function"
+        ? getZoomScale
+        : () => UC.ZOOM_SCALE;
+    const resolveKmPerAu = typeof getKmPerAu === "function"
+        ? getKmPerAu
+        : () => PC.KM_PER_AU;
+
     function updateConfigFromMetadata() {
         const cfg = getConfig();
         const scene = getAnimationScenes()[cfg];
@@ -134,9 +169,9 @@ function createRuntimeBootstrapActions(deps) {
         setSvgRect,
         getOffsetX,
         getOffsetY,
-        getPanX,
-        getPanY,
-        getZoomFactor,
+        getPanX: resolvePanX,
+        getPanY: resolvePanY,
+        getZoomFactor: resolveZoomFactor,
         handleZoom,
         zoomEnd,
         getMissionStartCalled,
@@ -167,8 +202,8 @@ function createRuntimeBootstrapActions(deps) {
         zoomChange,
         zoomEnd,
         render,
-        getZoomTimeoutMs,
-        getZoomScale,
+        getZoomTimeoutMs: resolveZoomTimeoutMs,
+        getZoomScale: resolveZoomScale,
         toggleStatsVisibility,
         forward: animationActions.forward,
         fastForward: animationActions.fastForward,
@@ -188,7 +223,7 @@ function createRuntimeBootstrapActions(deps) {
         applyCameraFromTo,
         readPlaneSelection,
         setPlaneSelectionState,
-        handlePlaneChange: deps.handlePlaneChange,
+        handlePlaneChange,
         getViewSky,
         getGlobalConfig,
         updateCraftScale,
@@ -233,7 +268,7 @@ function createRuntimeBootstrapActions(deps) {
         setTimeoutHandleZoom,
         setMousedownTimeout: setMouseDownTimeout,
         setMouseDown,
-        getZoomTimeoutMs,
+        getZoomTimeoutMs: resolveZoomTimeoutMs,
         clearTimeoutFn,
         zoomEnd,
         sleep,
@@ -274,7 +309,7 @@ function createRuntimeBootstrapActions(deps) {
         readCameraPositionMode,
         readCameraLookMode,
         getPixelsPerAU,
-        getKmPerAu,
+        getKmPerAu: resolveKmPerAu,
         recenterMountedCamera: uiControlsActions.recenterMountedCamera,
     });
 

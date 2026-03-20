@@ -5,7 +5,22 @@ import { createViewSettingsWiringActions } from "./view-settings-wiring-actions.
 import { createSceneFrameWiringActions } from "./scene-frame-wiring-actions.js";
 import { createStartEndTimesResolver } from "./start-end-times.js";
 
-function createMissionWiringComposition(ctx) {
+function createMissionWiringComposition(ports) {
+    const {
+        uiPort = {},
+        renderPort = {},
+        dataPort = {},
+        clockPort = {},
+        statePort = {},
+    } = ports || {};
+    const ctx = {
+        ...uiPort,
+        ...renderPort,
+        ...dataPort,
+        ...clockPort,
+        ...statePort,
+    };
+
     const getStartAndEndTimes = createStartEndTimesResolver({
         getGlobalConfig: ctx.getGlobalConfig,
         getConfig: ctx.getConfig,

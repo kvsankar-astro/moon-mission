@@ -1,20 +1,12 @@
 import { createMissionWiringComposition } from "./mission-wiring-composition.js";
 import { createMissionRuntimeBootstrap } from "./mission-runtime-bootstrap.js";
 
-function createMissionWiringActions(deps) {
-    const { stateAccess, ...staticDeps } = deps;
-    return createMissionWiringComposition({
-        ...staticDeps,
-        ...stateAccess,
-    });
+function createMissionWiringActions(ports) {
+    return createMissionWiringComposition(ports);
 }
 
-function createMissionRuntimeBootstrapActions(deps) {
-    const { stateAccess, ...staticDeps } = deps;
-    return createMissionRuntimeBootstrap({
-        ...staticDeps,
-        ...stateAccess,
-    });
+function createMissionRuntimeBootstrapActions(ports) {
+    return createMissionRuntimeBootstrap(ports);
 }
 
 export {
