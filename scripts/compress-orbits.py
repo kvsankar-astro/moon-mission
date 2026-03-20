@@ -23,6 +23,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.polynomial import chebyshev as cheb
+from ephemeris_manifest import ensure_manifest_file, resolve_project_path
 
 
 # ============================================================================
@@ -62,43 +63,44 @@ def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
 
-    # Get spacecraft mnemonic for file naming
-    mnemonic = config.get("spacecraft_mnemonic", "SC")
+    manifest_path = data_dir / "ephemeris-manifest.json"
+    manifest = ensure_manifest_file(
+        manifest_path=manifest_path,
+        mission_name=mission_name,
+        config=config,
+    )
 
-    # Build PHASES dict from config
     phases = {}
-    available_phases = config.get("phases", [])
+    manifest_phases = manifest.get("phases", {})
 
-    for phase_name in available_phases:
-        phase_config = config.get(phase_name, {})
-        if not phase_config.get("enabled", True):
+    for phase_name, phase_config in manifest_phases.items():
+        artifacts = phase_config.get("artifacts", {})
+        npz_artifact = artifacts.get("npz", {})
+        cheb_artifact = artifacts.get("chebyshev", {})
+
+        npz_generated_rel = npz_artifact.get("generated") if isinstance(npz_artifact, dict) else None
+        npz_runtime = npz_artifact.get("runtime") if isinstance(npz_artifact, dict) else None
+        cheb_runtime = cheb_artifact.get("runtime") if isinstance(cheb_artifact, dict) else None
+
+        npz_path = resolve_project_path(PROJECT_ROOT, npz_generated_rel)
+        if npz_path is None and isinstance(npz_runtime, str) and npz_runtime:
+            npz_path = generated_dir / Path(npz_runtime).name
+
+        if not isinstance(cheb_runtime, str) or not cheb_runtime:
+            orbits_file = phase_config.get("orbits_file")
+            if isinstance(orbits_file, str) and orbits_file:
+                cheb_runtime = f"{Path(orbits_file).name}-cheb.json"
+
+        if npz_path is None or not isinstance(cheb_runtime, str) or not cheb_runtime:
+            print(f"Warning: skipping phase '{phase_name}' due to incomplete manifest artifacts")
             continue
 
-        orbits_file = phase_config.get("orbits_file", f"{phase_name}-{mnemonic}")
-        # Extract just the filename without path
-        orbits_file = Path(orbits_file).name
-
-        # Landing phase needs tighter tolerance
-        tolerance = 2 if phase_name == "landing" else 5
-
+        tolerance = phase_config.get("tolerance_km", 2 if phase_name.startswith("landing") else 5)
         phases[phase_name] = {
-            "npz": f"{orbits_file}.npz",
-            "cheb": f"{orbits_file}-cheb.json",
+            "npz_path": npz_path,
+            "npz_source": Path(npz_runtime).name if isinstance(npz_runtime, str) and npz_runtime else npz_path.name,
+            "cheb_path": data_dir / cheb_runtime,
             "tolerance_km": tolerance,
-        }
-
-    # Synthetic landing variants for origin-specific datasets (geo/lunar)
-    if "landing" in phases:
-        base = Path(phases["landing"]["npz"]).stem.replace("-cheb", "")
-        phases["landing-geo"] = {
-            "npz": f"{base}-geo.npz",
-            "cheb": f"{base}-geo-cheb.json",
-            "tolerance_km": 2,
-        }
-        phases["landing-lunar"] = {
-            "npz": f"{base}-lunar.npz",
-            "cheb": f"{base}-lunar-cheb.json",
-            "tolerance_km": 2,
         }
 
     return data_dir, generated_dir, phases
@@ -672,8 +674,8 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
         return False
 
     config = PHASES[phase_name]
-    npz_path = GENERATED_DIR / config["npz"]  # Read from data-generated/
-    cheb_path = DATA_DIR / config["cheb"]     # Write to assets/<mission>/data/
+    npz_path = config["npz_path"]
+    cheb_path = config["cheb_path"]
 
     print(f"\n{'=' * 60}")
     print(f"Compressing {phase_name} phase")
@@ -718,7 +720,7 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
         "format": "chebyshev-ephemeris",
         "version": "1.0",
         "metadata": {
-            "source": config["npz"],
+            "source": config["npz_source"],
             "created": datetime.now(timezone.utc).isoformat(),
             "tolerance_km": config["tolerance_km"],
             "segments_count": len(segments),

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "apollo10-lm",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-SNOOPY",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-SNOOPY.npz",
+          "generated": "data-generated/apollo10-lm/geo-SNOOPY.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-SNOOPY-cheb.json",
+          "generated": "assets/apollo10-lm/data/geo-SNOOPY-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-SNOOPY-meta.json",
+          "generated": "data-generated/apollo10-lm/geo-SNOOPY-meta.json"
+        },
+        "json": {
+          "runtime": "geo-SNOOPY.json",
+          "generated": "data-generated/apollo10-lm/geo-SNOOPY.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-SNOOPY",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-SNOOPY.npz",
+          "generated": "data-generated/apollo10-lm/lunar-SNOOPY.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-SNOOPY-cheb.json",
+          "generated": "assets/apollo10-lm/data/lunar-SNOOPY-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-SNOOPY-meta.json",
+          "generated": "data-generated/apollo10-lm/lunar-SNOOPY-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-SNOOPY.json",
+          "generated": "data-generated/apollo10-lm/lunar-SNOOPY.json"
+        }
+      }
+    }
+  }
+}

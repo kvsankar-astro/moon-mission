@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "artemis1",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-ORION",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-ORION.npz",
+          "generated": "data-generated/artemis1/geo-ORION.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-ORION-cheb.json",
+          "generated": "assets/artemis1/data/geo-ORION-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-ORION-meta.json",
+          "generated": "data-generated/artemis1/geo-ORION-meta.json"
+        },
+        "json": {
+          "runtime": "geo-ORION.json",
+          "generated": "data-generated/artemis1/geo-ORION.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-ORION",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-ORION.npz",
+          "generated": "data-generated/artemis1/lunar-ORION.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-ORION-cheb.json",
+          "generated": "assets/artemis1/data/lunar-ORION-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-ORION-meta.json",
+          "generated": "data-generated/artemis1/lunar-ORION-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-ORION.json",
+          "generated": "data-generated/artemis1/lunar-ORION.json"
+        }
+      }
+    }
+  }
+}

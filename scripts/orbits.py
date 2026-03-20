@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 import re
 import numpy as np
 import shutil
+from pathlib import Path
+from ephemeris_manifest import ensure_manifest_file
 
 # constants - ephemerides related
 
@@ -54,6 +56,13 @@ def load_config(mission_name):
     try:
         with open(config_file, 'r', encoding='utf-8') as f:
             full_config = json.load(f)
+
+        manifest_path = Path(project_root) / "assets" / mission_name / "data" / "ephemeris-manifest.json"
+        ensure_manifest_file(
+            manifest_path=manifest_path,
+            mission_name=mission_name,
+            config=full_config,
+        )
         
         # Add spacecraft to planet_codes if it has an ID in config
         if 'spacecraft_id' in full_config:

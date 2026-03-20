@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "apollo11-sivb",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-SIVB",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-SIVB.npz",
+          "generated": "data-generated/apollo11-sivb/geo-SIVB.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-SIVB-cheb.json",
+          "generated": "assets/apollo11-sivb/data/geo-SIVB-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-SIVB-meta.json",
+          "generated": "data-generated/apollo11-sivb/geo-SIVB-meta.json"
+        },
+        "json": {
+          "runtime": "geo-SIVB.json",
+          "generated": "data-generated/apollo11-sivb/geo-SIVB.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-SIVB",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-SIVB.npz",
+          "generated": "data-generated/apollo11-sivb/lunar-SIVB.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-SIVB-cheb.json",
+          "generated": "assets/apollo11-sivb/data/lunar-SIVB-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-SIVB-meta.json",
+          "generated": "data-generated/apollo11-sivb/lunar-SIVB-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-SIVB.json",
+          "generated": "data-generated/apollo11-sivb/lunar-SIVB.json"
+        }
+      }
+    }
+  }
+}

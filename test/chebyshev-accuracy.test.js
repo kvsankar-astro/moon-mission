@@ -12,15 +12,21 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { basename, isAbsolute, join } from 'path';
 import JSZip from 'jszip';
-import { describe, expect, it, beforeAll } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import {
+  resolveManifestGeneratedArtifact,
+  resolveManifestRuntimeArtifact
+} from '../assets/platform/js/core/domain/ephemeris-manifest.js';
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const DATA_DIR = join(process.cwd(), 'assets', 'chandrayaan3', 'data');
+const TEST_MISSION = process.env.CHEB_TEST_MISSION || 'chandrayaan3';
+const DATA_DIR = join(process.cwd(), 'assets', TEST_MISSION, 'data');
+const MANIFEST_PATH = join(DATA_DIR, 'ephemeris-manifest.json');
 
 // Test configuration
 const TEST_INTERVAL_SECONDS = 30;  // Sample every 30 seconds
@@ -32,16 +38,110 @@ const TOLERANCE = {
   LANDING: 2      // 2 km for landing phase (highest precision)
 };
 
-// Data files to test
-const DATA_FILES = [
-  { name: 'geo', npz: 'geo-CY3.npz', cheb: 'geo-CY3-cheb.json', tolerance: TOLERANCE.ORBITAL },
-  { name: 'lunar', npz: 'lunar-CY3.npz', cheb: 'lunar-CY3-cheb.json', tolerance: TOLERANCE.ORBITAL },
-  { name: 'landing-geo', npz: 'landing-CY3-geo.npz', cheb: 'landing-CY3-geo-cheb.json', tolerance: TOLERANCE.LANDING },
-  { name: 'landing-lunar', npz: 'landing-CY3-lunar.npz', cheb: 'landing-CY3-lunar-cheb.json', tolerance: TOLERANCE.LANDING }
+function toAbsoluteProjectPath(pathValue) {
+  if (typeof pathValue !== 'string' || pathValue.trim().length === 0) return null;
+  const normalized = pathValue.replace(/\\/g, '/').trim();
+  if (/^(https?:)?\/\//.test(normalized)) return null;
+  if (isAbsolute(normalized)) return normalized;
+  return join(process.cwd(), normalized);
+}
+
+function toAbsoluteMissionDataPath(pathValue) {
+  if (typeof pathValue !== 'string' || pathValue.trim().length === 0) return null;
+  const normalized = pathValue.replace(/\\/g, '/').trim().replace(/^\.?\//, '');
+  return join(DATA_DIR, normalized);
+}
+
+function loadDataFilesFromManifest() {
+  if (!existsSync(MANIFEST_PATH)) return null;
+
+  try {
+    const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf-8'));
+    const phases = manifest?.phases;
+    if (!phases || typeof phases !== 'object') return null;
+
+    const files = Object.entries(phases)
+      .map(([phaseName, phaseDef]) => {
+        const npzGenerated = resolveManifestGeneratedArtifact(manifest, phaseName, 'npz');
+        const npzRuntime = resolveManifestRuntimeArtifact(manifest, phaseName, 'npz');
+        const chebGenerated = resolveManifestGeneratedArtifact(manifest, phaseName, 'chebyshev');
+        const chebRuntime = resolveManifestRuntimeArtifact(manifest, phaseName, 'chebyshev');
+
+        const npzPath = toAbsoluteProjectPath(npzGenerated) || toAbsoluteMissionDataPath(npzRuntime);
+        const chebPath = toAbsoluteProjectPath(chebGenerated) || toAbsoluteMissionDataPath(chebRuntime);
+        if (!npzPath || !chebPath) return null;
+
+        const fallbackTolerance = phaseName.startsWith('landing')
+          ? TOLERANCE.LANDING
+          : TOLERANCE.ORBITAL;
+        const toleranceFromManifest = Number(phaseDef?.tolerance_km);
+        const tolerance = Number.isFinite(toleranceFromManifest)
+          ? toleranceFromManifest
+          : fallbackTolerance;
+
+        const expectedSource = basename((npzRuntime || npzGenerated || npzPath).replace(/\\/g, '/'));
+
+        return {
+          name: phaseName,
+          npzPath,
+          chebPath,
+          npzLabel: basename(npzPath),
+          chebLabel: basename(chebPath),
+          expectedSource,
+          tolerance
+        };
+      })
+      .filter(Boolean);
+
+    return files.length > 0 ? files : null;
+  } catch (error) {
+    console.warn(`Could not parse ephemeris manifest at ${MANIFEST_PATH}: ${error.message}`);
+    return null;
+  }
+}
+
+// Data files to test (manifest-driven with fallback to legacy CY3 conventions)
+const DATA_FILES = loadDataFilesFromManifest() || [
+  {
+    name: 'geo',
+    npzPath: join(DATA_DIR, 'geo-CY3.npz'),
+    chebPath: join(DATA_DIR, 'geo-CY3-cheb.json'),
+    npzLabel: 'geo-CY3.npz',
+    chebLabel: 'geo-CY3-cheb.json',
+    expectedSource: 'geo-CY3.npz',
+    tolerance: TOLERANCE.ORBITAL
+  },
+  {
+    name: 'lunar',
+    npzPath: join(DATA_DIR, 'lunar-CY3.npz'),
+    chebPath: join(DATA_DIR, 'lunar-CY3-cheb.json'),
+    npzLabel: 'lunar-CY3.npz',
+    chebLabel: 'lunar-CY3-cheb.json',
+    expectedSource: 'lunar-CY3.npz',
+    tolerance: TOLERANCE.ORBITAL
+  },
+  {
+    name: 'landing-geo',
+    npzPath: join(DATA_DIR, 'landing-CY3-geo.npz'),
+    chebPath: join(DATA_DIR, 'landing-CY3-geo-cheb.json'),
+    npzLabel: 'landing-CY3-geo.npz',
+    chebLabel: 'landing-CY3-geo-cheb.json',
+    expectedSource: 'landing-CY3-geo.npz',
+    tolerance: TOLERANCE.LANDING
+  },
+  {
+    name: 'landing-lunar',
+    npzPath: join(DATA_DIR, 'landing-CY3-lunar.npz'),
+    chebPath: join(DATA_DIR, 'landing-CY3-lunar-cheb.json'),
+    npzLabel: 'landing-CY3-lunar.npz',
+    chebLabel: 'landing-CY3-lunar-cheb.json',
+    expectedSource: 'landing-CY3-lunar.npz',
+    tolerance: TOLERANCE.LANDING
+  }
 ];
 
 const AVAILABLE_DATA_FILES = DATA_FILES.filter((dataFile) =>
-  existsSync(join(DATA_DIR, dataFile.npz))
+  existsSync(dataFile.npzPath)
 );
 const HAS_NPZ_DATA = AVAILABLE_DATA_FILES.length > 0;
 
@@ -575,16 +675,16 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
   // Main acceptance tests for each data file
   for (const dataFile of DATA_FILES) {
-    const describeDataFile = existsSync(join(DATA_DIR, dataFile.npz)) ? describe : describe.skip;
+    const describeDataFile = existsSync(dataFile.npzPath) ? describe : describe.skip;
     describeDataFile(`${dataFile.name} phase data`, () => {
-      const npzPath = join(DATA_DIR, dataFile.npz);
-      const chebPath = join(DATA_DIR, dataFile.cheb);
+      const npzPath = dataFile.npzPath;
+      const chebPath = dataFile.chebPath;
 
-      it(`should have NPZ source file available: ${dataFile.npz}`, () => {
+      it(`should have NPZ source file available: ${dataFile.npzLabel}`, () => {
         expect(existsSync(npzPath)).toBe(true);
       });
 
-      it(`should have Chebyshev JSON file: ${dataFile.cheb}`, () => {
+      it(`should have Chebyshev JSON file: ${dataFile.chebLabel}`, () => {
         // This test is expected to FAIL until the compression is implemented
         expect(existsSync(chebPath)).toBe(true);
       });
@@ -592,7 +692,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
       it(`should have valid Chebyshev format structure`, async () => {
         // Skip if file doesn't exist (TDD - test written before implementation)
         if (!existsSync(chebPath)) {
-          console.log(`Skipping format validation: ${dataFile.cheb} does not exist yet`);
+          console.log(`Skipping format validation: ${dataFile.chebLabel} does not exist yet`);
           expect(existsSync(chebPath)).toBe(true);  // Will fail, as expected
           return;
         }
@@ -605,7 +705,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
         // Validate metadata
         expect(chebData.metadata).toBeDefined();
-        expect(chebData.metadata.source).toBe(dataFile.npz);
+        expect(chebData.metadata.source).toBe(dataFile.expectedSource);
         expect(chebData.metadata.coordinate_frame).toBe('J2000');
         expect(chebData.metadata.units.time).toBe('julian_date');
         expect(chebData.metadata.units.position).toBe('km');
@@ -636,7 +736,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
       it(`should have contiguous segment coverage`, async () => {
         if (!existsSync(chebPath)) {
-          console.log(`Skipping contiguity test: ${dataFile.cheb} does not exist yet`);
+          console.log(`Skipping contiguity test: ${dataFile.chebLabel} does not exist yet`);
           expect(existsSync(chebPath)).toBe(true);
           return;
         }
@@ -658,7 +758,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
       it(`should match NPZ positions within ${dataFile.tolerance} km at 30-second intervals`, async () => {
         if (!existsSync(chebPath)) {
-          console.log(`Skipping accuracy test: ${dataFile.cheb} does not exist yet`);
+          console.log(`Skipping accuracy test: ${dataFile.chebLabel} does not exist yet`);
           expect(existsSync(chebPath)).toBe(true);
           return;
         }
@@ -691,7 +791,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
 
       it(`should cover the same time range as the NPZ data`, async () => {
         if (!existsSync(chebPath)) {
-          console.log(`Skipping range test: ${dataFile.cheb} does not exist yet`);
+          console.log(`Skipping range test: ${dataFile.chebLabel} does not exist yet`);
           expect(existsSync(chebPath)).toBe(true);
           return;
         }
@@ -759,8 +859,8 @@ describeIntegration('Integration: Full accuracy validation', () => {
     let allPassed = true;
 
     for (const dataFile of AVAILABLE_DATA_FILES) {
-      const npzPath = join(DATA_DIR, dataFile.npz);
-      const chebPath = join(DATA_DIR, dataFile.cheb);
+      const npzPath = dataFile.npzPath;
+      const chebPath = dataFile.chebPath;
 
       if (!existsSync(npzPath)) {
         results.push({
