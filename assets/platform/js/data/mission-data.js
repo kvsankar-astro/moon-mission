@@ -4,6 +4,12 @@ import {
     resolveManifestRuntimeArtifact,
     toLandingPhaseKey,
 } from "../core/domain/ephemeris-manifest.js";
+import {
+    formatMissionConfigDiagnostics,
+    normalizeMissionConfig,
+    parseMissionConfig,
+    validateMissionConfig,
+} from "../core/domain/mission-config.js";
 
 let missionConfigLoaded = false;
 let missionConfigValue = null;
@@ -78,18 +84,32 @@ export async function loadMissionConfig() {
                 return null;
             }
 
-            const config = await response.json();
+            const rawConfig = await response.json();
             const manifestUrl = getMissionManifestUrl();
             if (manifestUrl) {
                 try {
                     const manifestResponse = await fetch(manifestUrl);
                     if (manifestResponse.ok) {
-                        config.ephemeris_manifest = await manifestResponse.json();
+                        rawConfig.ephemeris_manifest = await manifestResponse.json();
                     }
                 } catch (manifestError) {
                     console.debug("Could not load ephemeris-manifest.json:", manifestError);
                 }
             }
+
+            const parsedConfig = parseMissionConfig(rawConfig);
+            const diagnostics = validateMissionConfig(parsedConfig);
+            if (diagnostics.errors.length > 0) {
+                throw new Error(formatMissionConfigDiagnostics(diagnostics));
+            }
+
+            if (diagnostics.warnings.length > 0) {
+                for (let i = 0; i < diagnostics.warnings.length; i++) {
+                    console.warn(diagnostics.warnings[i]);
+                }
+            }
+
+            const config = normalizeMissionConfig(parsedConfig);
             console.debug("Config loaded successfully:", config);
             return config;
         } catch (error) {
