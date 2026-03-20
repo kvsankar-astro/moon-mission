@@ -1,4 +1,5 @@
 import { applyViewSettings, setChecked } from "../ui/ui-state.js";
+import { planRuntimeModeToggle } from "../core/domain/ui-transition-plan.js";
 
 export function createModeActions({
     animationScenes,
@@ -18,105 +19,48 @@ export function createModeActions({
         button.classList.toggle("down", !!isDown);
     }
 
-    function toggleJoyRide() {
-        if (getLandingFlag()) {
-            toggleLanding();
-        }
+    function applyModeTransition(transitionPlan) {
+        if (!transitionPlan.allowed) return;
 
-        const next = !getJoyRideFlag();
-        setJoyRideFlag(next);
+        setJoyRideFlag(transitionPlan.nextFlags.joyRide);
+        setLandingFlag(transitionPlan.nextFlags.landing);
 
         const scene = animationScenes[getConfig()];
-        scene.craft.visible = !next;
-        scene.craftEdges.visible = !next;
-        toggleButtonDownState("joyridebutton", next);
-        setChecked("joyride", next);
+        scene.craft.visible = transitionPlan.craftVisibility.craftVisible;
+        scene.craftEdges.visible = transitionPlan.craftVisibility.craftEdgesVisible;
 
-        if (next) {
+        if (transitionPlan.shouldResetMotherContainer) {
             scene.motherContainer.position.set(0, 0, 0);
-            applyViewSettings({
-                viewOrbit: false,
-                viewOrbitDescent: false,
-                viewCraters: false,
-                viewXYZAxes: false,
-                viewPoles: false,
-                viewPolarAxes: false,
-                viewSky: true,
-                viewMoonSOI: false,
-                viewEclipticPlane: false,
-                viewEquatorialPlane: false,
-            });
-            setView();
-        } else {
-            applyViewSettings({
-                viewOrbit: true,
-                viewOrbitDescent: true,
-                viewCraters: true,
-                viewXYZAxes: true,
-                viewPoles: true,
-                viewPolarAxes: true,
-                viewSky: true,
-                viewMoonSOI: false,
-                viewEclipticPlane: false,
-                viewEquatorialPlane: false,
-            });
-            setView();
         }
+
+        toggleButtonDownState("joyridebutton", transitionPlan.controlStates.joyRide);
+        toggleButtonDownState("landingbutton", transitionPlan.controlStates.landing);
+        setChecked("joyride", transitionPlan.controlStates.joyRide);
+        setChecked("landing", transitionPlan.controlStates.landing);
+
+        applyViewSettings(transitionPlan.viewSettings);
+        setView();
 
         updateCraftScale();
         render();
     }
 
+    function toggleJoyRide() {
+        applyModeTransition(planRuntimeModeToggle({
+            intent: "joyride",
+            joyRideActive: getJoyRideFlag(),
+            landingActive: getLandingFlag(),
+            landingEnabled: !!getGlobalConfig()?.landing?.enabled,
+        }));
+    }
+
     function toggleLanding() {
-        const isLandingEnabled = getGlobalConfig()?.landing?.enabled;
-        if (!isLandingEnabled) return;
-
-        if (getJoyRideFlag()) {
-            toggleJoyRide();
-        }
-
-        const next = !getLandingFlag();
-        setLandingFlag(next);
-
-        const scene = animationScenes[getConfig()];
-        scene.craft.visible = true;
-        scene.craftEdges.visible = true;
-        toggleButtonDownState("landingbutton", next);
-        setChecked("landing", next);
-
-        if (next) {
-            scene.motherContainer.position.set(0, 0, 0);
-            applyViewSettings({
-                viewOrbit: false,
-                viewOrbitDescent: true,
-                viewCraters: false,
-                viewXYZAxes: false,
-                viewPoles: false,
-                viewPolarAxes: false,
-                viewSky: true,
-                viewMoonSOI: false,
-                viewEclipticPlane: false,
-                viewEquatorialPlane: false,
-            });
-            setView();
-        } else {
-            applyViewSettings({
-                viewOrbit: true,
-                viewOrbitDescent: true,
-                viewCraters: true,
-                viewXYZAxes: true,
-                viewPoles: true,
-                viewPolarAxes: true,
-                viewSky: true,
-                viewMoonSOI: false,
-                viewEclipticPlane: false,
-                viewEquatorialPlane: false,
-            });
-            setView();
-        }
-
-        updateCraftScale();
-        render();
+        applyModeTransition(planRuntimeModeToggle({
+            intent: "landing",
+            joyRideActive: getJoyRideFlag(),
+            landingActive: getLandingFlag(),
+            landingEnabled: !!getGlobalConfig()?.landing?.enabled,
+        }));
     }
 
     return { toggleJoyRide, toggleLanding };

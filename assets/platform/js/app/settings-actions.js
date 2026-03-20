@@ -1,3 +1,5 @@
+import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
+
 export function createSettingsActions({
     getConfig,
     setConfig,
@@ -14,22 +16,25 @@ export function createSettingsActions({
     onConfigChanged,
 }) {
     function toggleMode() {
-        const val = readOriginMode();
-        const oldConfig = getConfig();
+        const previousConfig = getConfig();
+        const previousScene = animationScenes[previousConfig];
+        const transitionPlan = planOriginModeTransition({
+            currentConfig: previousConfig,
+            requestedConfig: readOriginMode(),
+            currentSceneState: previousScene?.state,
+            addCurveDoneState: AnimationScene.SCENE_STATE_ADD_CURVE_DONE,
+        });
+        if (!transitionPlan.shouldSwitch) return;
 
-        if (oldConfig !== val) {
-            if (animationScenes[oldConfig]) {
-                if (animationScenes[oldConfig].state !== AnimationScene.SCENE_STATE_ADD_CURVE_DONE) {
-                    animationScenes[oldConfig].stopCreation();
-                    animationScenes[oldConfig].dispose();
-                    delete animationScenes[oldConfig];
-                }
-            }
-
-            setConfig(val);
-            initAnimation({ reset: false });
-            onConfigChanged?.(val, oldConfig);
+        if (transitionPlan.shouldDisposeCurrentScene && previousScene) {
+            previousScene.stopCreation();
+            previousScene.dispose();
+            delete animationScenes[previousConfig];
         }
+
+        setConfig(transitionPlan.nextConfig);
+        initAnimation({ reset: false });
+        onConfigChanged?.(transitionPlan.nextConfig, transitionPlan.previousConfig);
     }
 
     function setDimensionTop() {

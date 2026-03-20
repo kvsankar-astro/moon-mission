@@ -4,6 +4,7 @@ import {
     readCheckedRadioValue,
     showElementById,
 } from "../ui/dom-helpers.js";
+import { planDimensionTransition } from "../core/domain/ui-transition-plan.js";
 
 export function createDimensionActions({
     d3,
@@ -28,16 +29,19 @@ export function createDimensionActions({
     updateProgressLabel,
 }) {
     function setDimension(init_flag = false) {
-        const val = readCheckedRadioValue("dimension", getCurrentDimension());
-        setCurrentDimension(val);
+        const transitionPlan = planDimensionTransition({
+            requestedDimension: readCheckedRadioValue("dimension", getCurrentDimension()),
+            previousDimension: getPreviousDimension(),
+        });
+        setCurrentDimension(transitionPlan.nextCurrentDimension);
 
-        if (getCurrentDimension() !== getPreviousDimension()) {
+        if (transitionPlan.dimensionChanged) {
             setDimensionChanged(true);
         }
 
         const config = getConfig();
 
-        if (val === "3D") {
+        if (transitionPlan.is3D) {
             // Clean up SVG when switching to 3D mode
             d3.select("svg").remove();
             setSvgContainer(null);
@@ -54,7 +58,7 @@ export function createDimensionActions({
 
                 scene.init3d(function () {
                     hideElementById("progressbar");
-                    handleDimensionSwitch(val);
+                    handleDimensionSwitch(transitionPlan.requestedDimension);
                     handlePlaneChange(getDimensionChanged(), init_flag);
                     setLocation();
                     if (getStartLandingFlag()) {
@@ -63,7 +67,7 @@ export function createDimensionActions({
                     }
                 });
             } else {
-                handleDimensionSwitch(val);
+                handleDimensionSwitch(transitionPlan.requestedDimension);
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
                 if (getStartLandingFlag()) {
@@ -75,7 +79,7 @@ export function createDimensionActions({
             initSVG();
             loadOrbitDataIfNeededAndProcess(function () {
                 if (getCurrentDimension() !== "2D") return;
-                handleDimensionSwitch(val);
+                handleDimensionSwitch(transitionPlan.requestedDimension);
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
                 adjustLabelLocations();
@@ -87,9 +91,8 @@ export function createDimensionActions({
         }
 
         setDimensionChanged(false);
-        setPreviousDimension(getCurrentDimension());
+        setPreviousDimension(transitionPlan.nextPreviousDimension);
     }
 
     return { setDimension };
 }
-
