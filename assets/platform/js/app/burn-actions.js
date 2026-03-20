@@ -1,3 +1,5 @@
+import { EVENT_KIND } from "../core/domain/event-time-resolver.js";
+
 export function createBurnActions({
     getEventInfos,
     setAnimTime,
@@ -5,10 +7,13 @@ export function createBurnActions({
 }) {
     function burnButtonHandler(index) {
         const eventInfos = getEventInfos();
-        if (eventInfos[index]["label"] === "\u23F0 Now") {
+        const eventInfo = eventInfos[index];
+        if (!eventInfo) return;
+
+        if (eventInfo.kind === EVENT_KIND.NOW) {
             setAnimTime(new Date().getTime());
         } else {
-            setAnimTime(new Date(eventInfos[index]["startTime"].getTime()).getTime());
+            setAnimTime(new Date(eventInfo.startTime.getTime()).getTime());
         }
 
         missionSetTime();

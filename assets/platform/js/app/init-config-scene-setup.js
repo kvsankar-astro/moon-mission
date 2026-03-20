@@ -1,3 +1,8 @@
+import {
+    applyModeSwitchForPhase,
+    resolvePhaseDescriptor,
+} from "../core/domain/phase-compat.js";
+
 function createInitConfigSceneSetupActions(deps) {
     const {
         PC,
@@ -18,6 +23,8 @@ function createInitConfigSceneSetupActions(deps) {
         setTrackWidth,
         setEarthRadius,
         setMoonRadius,
+        getEarthRadius,
+        getMoonRadius,
         setStartTime,
         setEndTime,
         setEndTimeSC,
@@ -103,22 +110,27 @@ function createInitConfigSceneSetupActions(deps) {
         setEpochDate("N/A");
     }
 
-    function configureGeoScene({ configData, isRelativeMode }) {
-        const scene = ensureSceneAndControllers("geo");
-        applySceneScale();
+    function configureSceneForPhase({ phaseKey, configData, isRelativeMode = false }) {
+        const scene = ensureSceneAndControllers(phaseKey);
+        const descriptor = resolvePhaseDescriptor(phaseKey, configData);
+        applySceneScale({ moonScale: descriptor.moonScale });
 
-        scene.primaryBody = "EARTH";
-        scene.primaryBodyRadius = deps.getEarthRadius();
-        scene.secondaryBody = "MOON";
-        scene.secondaryBodyRadius = deps.getMoonRadius();
+        scene.primaryBody = descriptor.primaryBody;
+        scene.primaryBodyRadius = descriptor.primaryBody === "MOON"
+            ? getMoonRadius()
+            : getEarthRadius();
+        scene.secondaryBody = descriptor.secondaryBody;
+        scene.secondaryBodyRadius = descriptor.secondaryBody === "MOON"
+            ? getMoonRadius()
+            : getEarthRadius();
 
         const spacecraftMnemonic = applyOrbitConfig({
             configData,
-            sceneConfig: "geo",
+            sceneConfig: phaseKey,
             scene,
         });
 
-        if (isRelativeMode) {
+        if (isRelativeMode && descriptor.allowRelativeOrbitOverride) {
             const dataPath = windowRef?.missionConfig?.dataPath;
             const relativeBase = `relative-${spacecraftMnemonic}`;
             if (typeof dataPath === "string" && dataPath.length > 0) {
@@ -130,36 +142,19 @@ function createInitConfigSceneSetupActions(deps) {
             }
         }
 
-        scene.orbitsJsonFileSizeInBytes = 34793 * 1024;
-        scene.stepsPerHop = 4;
+        scene.orbitsJsonFileSizeInBytes = descriptor.orbitFileSizeBytes;
+        scene.stepsPerHop = descriptor.stepsPerHop;
         applyTimelineConfig({ scene, spacecraftMnemonic });
-        handleModeSwitchToGeo();
-    }
-
-    function configureLunarScene({ configData }) {
-        const scene = ensureSceneAndControllers("lunar");
-        applySceneScale({ moonScale: 0.997 });
-
-        scene.primaryBody = "MOON";
-        scene.primaryBodyRadius = deps.getMoonRadius();
-        scene.secondaryBody = "EARTH";
-        scene.secondaryBodyRadius = deps.getEarthRadius();
-
-        const spacecraftMnemonic = applyOrbitConfig({
-            configData,
-            sceneConfig: "lunar",
-            scene,
+        applyModeSwitchForPhase({
+            phaseKey,
+            globalConfig: configData,
+            switchToGeo: handleModeSwitchToGeo,
+            switchToLunar: handleModeSwitchToLunar,
         });
-
-        scene.orbitsJsonFileSizeInBytes = 34800 * 1024;
-        scene.stepsPerHop = 4;
-        applyTimelineConfig({ scene, spacecraftMnemonic });
-        handleModeSwitchToLunar();
     }
 
     return {
-        configureGeoScene,
-        configureLunarScene,
+        configureSceneForPhase,
     };
 }
 

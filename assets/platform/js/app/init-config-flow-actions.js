@@ -26,6 +26,7 @@ function createInitConfigFlowActions(deps) {
         if (shouldSkipInitConfig({ animationScene: existingScene, AnimationScene })) {
             applyInitConfigAlreadyInitialized({
                 config,
+                globalConfig: getGlobalConfig(),
                 handleModeSwitchToGeo,
                 handleModeSwitchToLunar,
                 setChecked,
@@ -45,16 +46,11 @@ function createInitConfigFlowActions(deps) {
         initConfigOrchestrationActions.applyConfigDerivedUpdates();
         initConfigOrchestrationActions.ensureSceneHandlerInitialized();
 
-        if (config === "geo") {
-            initConfigSceneSetupActions.configureGeoScene({
-                configData,
-                isRelativeMode,
-            });
-        } else if (config === "lunar") {
-            initConfigSceneSetupActions.configureLunarScene({
-                configData,
-            });
-        }
+        initConfigSceneSetupActions.configureSceneForPhase({
+            phaseKey: config,
+            configData,
+            isRelativeMode,
+        });
 
         initConfigUiActions.configureInitConfigControls();
 

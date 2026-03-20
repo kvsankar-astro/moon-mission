@@ -1,3 +1,5 @@
+import { resolveEventInstant } from "../core/domain/event-time-resolver.js";
+
 export function computeEventsUpdate({
     globalConfig,
     config,
@@ -28,29 +30,30 @@ export function computeEventsUpdate({
             continue;
         }
 
-        let startTime;
-        if (eventData.startTime === "dynamic") {
-            if (eventKey === "now") {
-                startTime = new Date(nowDate);
-            } else if (eventKey.endsWith("DataEnd")) {
-                const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
-                const endMs = getDataEndTimeMs?.(spacecraftMnemonic);
-                startTime = new Date(endMs);
-            } else {
-                warnings.push(`Dynamic start time not handled for event ${eventKey}`);
-                continue;
-            }
-        } else {
-            startTime = new Date(eventData.startTime);
+        const resolvedTime = resolveEventInstant(eventData, {
+            eventKey,
+            nowDate,
+            getDataEndTimeMs,
+            spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
+            missionTimes: globalConfig?.missionTimes || {},
+        });
+
+        if (!resolvedTime.ok) {
+            warnings.push(resolvedTime.warning);
+            continue;
         }
 
+        const startTime = new Date(resolvedTime.timestampMs);
         eventInfos.push({
+            key: eventKey,
+            kind: resolvedTime.kind,
             startTime,
             durationSeconds: eventData.durationSeconds,
             label: eventData.label,
             burnFlag: eventData.burnFlag,
             infoText: eventData.infoText,
             body: eventData.body,
+            timeSource: eventData.timeSource || null,
         });
     }
 
@@ -78,4 +81,3 @@ export function applyEventsUpdate({ update, setEventInfos, console }) {
         setEventInfos?.(update.eventInfos);
     }
 }
-

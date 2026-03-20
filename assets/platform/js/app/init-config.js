@@ -1,3 +1,5 @@
+import { applyModeSwitchForPhase } from "../core/domain/phase-compat.js";
+
 export function shouldSkipInitConfig({ animationScene, AnimationScene }) {
     return (
         !!animationScene &&
@@ -7,17 +9,19 @@ export function shouldSkipInitConfig({ animationScene, AnimationScene }) {
 
 export function applyInitConfigAlreadyInitialized({
     config,
+    globalConfig,
     handleModeSwitchToGeo,
     handleModeSwitchToLunar,
     setChecked,
     animationScene,
     syncPlaneSelection,
 }) {
-    if (config === "geo") {
-        handleModeSwitchToGeo();
-    } else if (config === "lunar") {
-        handleModeSwitchToLunar();
-    }
+    applyModeSwitchForPhase({
+        phaseKey: config,
+        globalConfig,
+        switchToGeo: handleModeSwitchToGeo,
+        switchToLunar: handleModeSwitchToLunar,
+    });
 
     setChecked("checkbox-lock-moon", animationScene.lockOnMoon);
     setChecked("checkbox-lock-earth", animationScene.lockOnEarth);

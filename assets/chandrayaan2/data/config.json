@@ -224,6 +224,10 @@
       "body": "SC"
     },
     "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
       "startTime": "dynamic",
       "durationSeconds": 0,
       "label": "Now",
@@ -232,6 +236,11 @@
       "body": ""
     },
     "cy2DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "CY2"
+      },
       "startTime": "dynamic",
       "durationSeconds": 0,
       "label": "CY2 Data End",

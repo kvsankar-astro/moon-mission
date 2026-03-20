@@ -1,3 +1,5 @@
+import { resolveLandingDataPhaseKeys } from "../domain/phase-compat.js";
+
 function createMissionStateStore(ctx) {
     const {
         state,
@@ -90,12 +92,10 @@ function createMissionStateStore(ctx) {
                 defaultSpacecraftSource: getState("ephemerisSource"),
             }),
         getConfigsList: () => {
-            const configuredLandingModes = (getState("globalConfig")?.phases || []).filter(
-                (phase) => phase === "geo" || phase === "lunar",
-            );
-            return configuredLandingModes.length > 0
-                ? configuredLandingModes
-                : Object.keys(animationScenes);
+            const fallbackPhases = Object.keys(animationScenes);
+            return resolveLandingDataPhaseKeys(getState("globalConfig"), {
+                fallbackPhaseKeys: fallbackPhases,
+            });
         },
         getLandingDataLoaded: () => getState("landingDataLoaded"),
         setLandingDataLoaded: (val) => {
