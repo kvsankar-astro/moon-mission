@@ -1,3 +1,5 @@
+import { planFrameStep } from "../core/plans/frame-plan.js";
+
 function createSceneFrameOrchestrationActions(deps) {
     const {
         getConfig,
@@ -27,10 +29,8 @@ function createSceneFrameOrchestrationActions(deps) {
         getPixelsPerAU,
         updateCraftScale,
         getCurrentDimension,
-        animation3DControllers,
-        adjustCameraProjectionMatrixAndSkyAngle,
-        scene2DFrameActions,
-        sceneFrameUiActions,
+        frameRenderer,
+        frameUiUpdater,
         render,
     } = deps;
 
@@ -46,8 +46,12 @@ function createSceneFrameOrchestrationActions(deps) {
             return;
         }
 
-        const sceneState = computeSceneState(animTime, config, {
-            sunLongitude: computeSunLongitude(animTime),
+        const framePlan = planFrameStep({
+            config,
+            animTime,
+            scene,
+            computeSunLongitude,
+            computeSceneState,
             chebyshevData: getChebyshevData(),
             chebyshevDataLoaded: getChebyshevDataLoaded(),
             npzData: getNpzData(),
@@ -61,42 +65,22 @@ function createSceneFrameOrchestrationActions(deps) {
             endLandingTime: getEndLandingTime(),
             eventInfos: getEventInfos(),
             missionTimes: getMissionTimes(),
-            planetsForLocations: scene.planetsForLocations,
             frameMode: getFrameMode(),
             bodySources: getBodySources(),
             ephemerisSource: getActiveEphemerisSource(config),
-        });
-
-        setSunLongitude(sceneState.sunLongitude);
-
-        const primaryBody = scene.primaryBody;
-        const startLandingTime = getStartLandingTime();
-        const renderOptions = {
             craftId: getCraftId(),
             pixelsPerAU: getPixelsPerAU(),
-            primaryBody,
-            planetsForLocations: scene.planetsForLocations,
             updateCraftScale,
-            landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
-        };
+            currentDimension: getCurrentDimension(),
+        });
 
-        if (getCurrentDimension() === "3D") {
-            if (animation3DControllers[config]) {
-                animation3DControllers[config].render(sceneState, renderOptions);
-            }
-            if (scene.initialized3D) {
-                adjustCameraProjectionMatrixAndSkyAngle();
-            }
-        } else {
-            scene2DFrameActions.render2DFrame({ sceneState, renderOptions });
+        if (!framePlan.shouldRun) {
+            return;
         }
 
-        sceneFrameUiActions.updateFrameUi({
-            animTime,
-            sceneState,
-            primaryBody,
-            globalConfig: getGlobalConfig(),
-        });
+        setSunLongitude(framePlan.statePatchIntent.sunLongitude);
+        frameRenderer.applyRenderIntent(framePlan.renderIntent);
+        frameUiUpdater.applyUiIntent(framePlan.uiIntent);
 
         render();
     }

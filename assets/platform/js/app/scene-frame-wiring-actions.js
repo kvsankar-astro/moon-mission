@@ -2,6 +2,8 @@ import { createSceneUiUpdateActions } from "./scene-ui-update-actions.js";
 import { createSceneFrameUiActions } from "./scene-frame-ui-actions.js";
 import { createScene2DFrameActions } from "./scene-2d-frame-actions.js";
 import { createSceneFrameOrchestrationActions } from "./scene-frame-orchestration-actions.js";
+import { createFrameRenderer } from "../shell/render/frame-renderer.js";
+import { createFrameUiUpdater } from "../shell/ui/frame-ui-updater.js";
 
 function createSceneFrameWiringActions(deps) {
     const {
@@ -78,6 +80,16 @@ function createSceneFrameWiringActions(deps) {
         showGreenwichLongitude,
     });
 
+    const frameRenderer = createFrameRenderer({
+        animation3DControllers,
+        adjustCameraProjectionMatrixAndSkyAngle,
+        scene2DFrameActions,
+    });
+
+    const frameUiUpdater = createFrameUiUpdater({
+        sceneFrameUiActions,
+    });
+
     const sceneFrameOrchestrationActions = createSceneFrameOrchestrationActions({
         getConfig,
         isOrbitDataProcessed,
@@ -106,10 +118,8 @@ function createSceneFrameWiringActions(deps) {
         getPixelsPerAU,
         updateCraftScale,
         getCurrentDimension,
-        animation3DControllers,
-        adjustCameraProjectionMatrixAndSkyAngle,
-        scene2DFrameActions,
-        sceneFrameUiActions,
+        frameRenderer,
+        frameUiUpdater,
         render,
     });
 

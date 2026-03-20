@@ -1,6 +1,8 @@
-import { createMissionStateAccess } from "./mission-state-access.js";
 import { buildMissionRuntimeWireupConfig } from "./mission-runtime-wireup-config.js";
 import { createMissionRuntimeWireup } from "./mission-runtime-wireup.js";
+import { createMissionStateStore } from "../core/state/mission-state-store.js";
+import { createMissionUiEffects } from "../shell/ui/mission-ui-effects.js";
+import { createClockEffects } from "../shell/time/clock-effects.js";
 
 function createMissionRuntimeEntry(ctx) {
     const {
@@ -36,8 +38,7 @@ function createMissionRuntimeEntry(ctx) {
 
     let missionRuntimeWireup = null;
 
-    const missionStateAccess = createMissionStateAccess({
-        d3,
+    const missionStateStore = createMissionStateStore({
         state: missionStateCells,
         runtimeFlags,
         animationScenes,
@@ -58,6 +59,17 @@ function createMissionRuntimeEntry(ctx) {
         getRuntimeBootstrapActions: () => missionRuntimeWireup?.runtimeBootstrapActions,
         getAnimationSceneInitDone: () => AnimationScene.SCENE_STATE_INIT_DONE,
     });
+
+    const missionUiEffects = createMissionUiEffects({ d3 });
+    const missionClockEffects = createClockEffects({
+        clearTimeoutFn: clearTimeout,
+        getLegacyTimeoutHandle: missionStateStore.getLegacyTimeoutHandle,
+    });
+    const missionStateAccess = {
+        ...missionStateStore,
+        ...missionUiEffects,
+        ...missionClockEffects,
+    };
 
     const modeSwitchWireupActions = {
         handleDimensionSwitch: modeSwitchActions.switchDimension,

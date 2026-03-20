@@ -4,12 +4,12 @@
  * Works on Windows, macOS, and Linux
  *
  * Features:
- *   - Preferred port (8111) with automatic reuse of existing servers
+ *   - Preferred port (8111) with deterministic ownership by default
  *   - In CI mode: fails if port is in use (clean state required)
- *   - In local mode: reuses existing server on the port (reuseExistingServer pattern)
+ *   - Optional local reuse mode via TEST_SERVER_REUSE=true
  *
  * Usage:
- *   node test/server-manager.js start   - Start the test server (or reuse existing)
+ *   node test/server-manager.js start   - Start the test server
  *   node test/server-manager.js stop    - Stop the test server (if we started it)
  *   node test/server-manager.js status  - Check server status
  */
@@ -22,9 +22,16 @@ import { createConnection } from 'net';
 const TEST_PORT = 8111;
 const PID_FILE = join(process.cwd(), '.test-server.pid');
 const STATE_FILE = join(process.cwd(), '.test-server.json');
+const POWERSHELL_EXE = process.env.SystemRoot
+  ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
+  : 'powershell';
+const NETSTAT_EXE = process.env.SystemRoot
+  ? `${process.env.SystemRoot}\\System32\\netstat.exe`
+  : 'netstat';
 
 // Check if running in CI environment
 const isCI = process.env.CI === 'true' || process.env.CI === '1' || !!process.env.GITHUB_ACTIONS;
+const allowReuse = process.env.TEST_SERVER_REUSE === 'true' || process.env.TEST_SERVER_REUSE === '1';
 
 function isPortInUse(port) {
   return new Promise((resolve) => {
@@ -78,6 +85,52 @@ function isProcessRunning(pid) {
   }
 }
 
+function runPowershell(script, timeout = 15000) {
+  const exe = POWERSHELL_EXE.includes(' ') ? `"${POWERSHELL_EXE}"` : POWERSHELL_EXE;
+  return execSync(`${exe} -NoProfile -Command "${script}"`, { stdio: 'ignore', timeout });
+}
+
+function killPidWindows(pid) {
+  // Prefer PowerShell Stop-Process; taskkill can hang in some environments.
+  try {
+    runPowershell(`Stop-Process -Id ${pid} -Force -ErrorAction Stop`);
+    return;
+  } catch (e) {
+    // Fallback
+  }
+
+  try {
+    execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore', timeout: 15000 });
+  } catch (e) {
+    // Best effort
+  }
+}
+
+function killListenersOnPortWindows(port) {
+  try {
+    const exe = NETSTAT_EXE.includes(' ') ? `"${NETSTAT_EXE}"` : NETSTAT_EXE;
+    const output = execSync(`${exe} -ano -p tcp`, { encoding: 'utf-8', timeout: 15000 });
+    const lines = output.split(/\r?\n/);
+    const pids = new Set();
+
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || !line.includes(`:${port}`) || !line.includes('LISTENING')) continue;
+      const parts = line.split(/\s+/);
+      const pid = parts[parts.length - 1];
+      if (/^\d+$/.test(pid)) {
+        pids.add(Number(pid));
+      }
+    }
+
+    for (const pid of pids) {
+      killPidWindows(pid);
+    }
+  } catch (e) {
+    // Best effort
+  }
+}
+
 async function startServer() {
   const state = getState();
 
@@ -91,16 +144,15 @@ async function startServer() {
   const portInUse = await isPortInUse(TEST_PORT);
 
   if (portInUse) {
-    if (isCI) {
-      // In CI, we need a clean state - fail if port is in use
-      console.error(`Error: Port ${TEST_PORT} is already in use (CI mode requires clean state)`);
+    if (isCI || !allowReuse) {
+      const modeText = isCI ? 'CI mode requires clean state' : 'deterministic mode requires an owned server';
+      console.error(`Error: Port ${TEST_PORT} is already in use (${modeText})`);
       process.exit(1);
-    } else {
-      // In local mode, reuse the existing server (reuseExistingServer pattern)
-      console.log(`Reusing existing server on port ${TEST_PORT} (reuseExistingServer mode)`);
-      saveState({ port: TEST_PORT, pid: null, ownedByUs: false, reused: true });
-      return true;
     }
+
+    console.log(`Reusing existing server on port ${TEST_PORT} (TEST_SERVER_REUSE=true)`);
+    saveState({ port: TEST_PORT, pid: null, ownedByUs: false, reused: true });
+    return true;
   }
 
   console.log(`Starting Vite server on port ${TEST_PORT}...`);
@@ -154,7 +206,7 @@ async function stopServer() {
     try {
       // On Windows, we need to kill the process tree
       if (process.platform === 'win32') {
-        execSync(`taskkill /F /T /PID ${pid}`, { stdio: 'ignore' });
+        killPidWindows(pid);
       } else {
         process.kill(-pid, 'SIGTERM');  // Kill process group
         await new Promise(r => setTimeout(r, 1000));
@@ -181,16 +233,7 @@ async function stopServer() {
     console.log(`Port ${TEST_PORT} still in use, attempting cleanup...`);
     try {
       if (process.platform === 'win32') {
-        // Find and kill process on port (Windows)
-        const result = execSync(`netstat -ano | findstr :${TEST_PORT} | findstr LISTENING`, { encoding: 'utf-8' });
-        const lines = result.trim().split('\n');
-        for (const line of lines) {
-          const parts = line.trim().split(/\s+/);
-          const portPid = parts[parts.length - 1];
-          if (portPid && !isNaN(parseInt(portPid))) {
-            execSync(`taskkill /F /PID ${portPid}`, { stdio: 'ignore' });
-          }
-        }
+        killListenersOnPortWindows(TEST_PORT);
       } else {
         // Unix - use fuser or lsof
         execSync(`fuser -k ${TEST_PORT}/tcp 2>/dev/null || lsof -ti:${TEST_PORT} | xargs kill -9 2>/dev/null || true`, { stdio: 'ignore' });
@@ -220,24 +263,71 @@ async function serverStatus() {
   return portInUse;
 }
 
-// Main
-const command = process.argv[2];
+async function cleanupPort() {
+  const portInUse = await isPortInUse(TEST_PORT);
+  if (!portInUse) {
+    clearState();
+    console.log(`Port ${TEST_PORT} is already clean`);
+    return;
+  }
 
-switch (command) {
-  case 'start':
-    startServer();
-    break;
-  case 'stop':
-    stopServer();
-    break;
-  case 'status':
-    serverStatus();
-    break;
-  default:
-    console.log('Usage: node test/server-manager.js [start|stop|status]');
-    console.log('');
-    console.log('Environment:');
-    console.log('  CI=true    Force CI mode (fail if port in use)');
-    console.log('  CI not set Local mode (reuse existing server)');
+  console.log(`Cleaning listeners on port ${TEST_PORT}...`);
+  try {
+    if (process.platform === 'win32') {
+      killListenersOnPortWindows(TEST_PORT);
+    } else {
+      execSync(`fuser -k ${TEST_PORT}/tcp 2>/dev/null || lsof -ti:${TEST_PORT} | xargs kill -9 2>/dev/null || true`, { stdio: 'ignore' });
+    }
+  } catch (e) {
+    // Best effort
+  }
+
+  clearState();
+
+  // Give the OS a short window to release sockets after termination.
+  let stillInUse = false;
+  for (let i = 0; i < 6; i++) {
+    stillInUse = await isPortInUse(TEST_PORT);
+    if (!stillInUse) break;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  if (stillInUse) {
+    console.error(`Port ${TEST_PORT} is still in use after cleanup`);
     process.exit(1);
+  }
+
+  console.log(`Port ${TEST_PORT} cleanup complete`);
 }
+
+// Main
+async function main() {
+  const command = process.argv[2];
+
+  switch (command) {
+    case 'start':
+      await startServer();
+      break;
+    case 'stop':
+      await stopServer();
+      break;
+    case 'status':
+      await serverStatus();
+      break;
+    case 'cleanup-port':
+      await cleanupPort();
+      break;
+    default:
+      console.log('Usage: node test/server-manager.js [start|stop|status|cleanup-port]');
+      console.log('');
+      console.log('Environment:');
+      console.log('  CI=true                 Force CI mode (fail if port in use)');
+      console.log('  TEST_SERVER_REUSE=true  Allow local reuse of existing server on 8111');
+      process.exit(1);
+  }
+}
+
+main().catch((error) => {
+  console.error(`server-manager error: ${error?.message || error}`);
+  process.exit(1);
+});

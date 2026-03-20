@@ -1,3 +1,12 @@
+import {
+    planCameraPairTransition,
+    resolveAllowedLooks,
+    resolveAllowedPositions,
+    resolveLockAvailability,
+    resolvePairFromValue,
+    resolvePairKey,
+} from "../core/domain/camera-policy.js";
+
 export function createCameraActions({
     animationScenes,
     getConfig,
@@ -14,55 +23,6 @@ export function createCameraActions({
     let lastAppliedPositionMode = "manual";
     let savedFov = null;
 
-    const allowedLookByPosition = {
-        manual: ["manual", "moon", "spacecraft"],
-        earth: ["moon", "spacecraft"],
-        moon: ["manual", "earth", "spacecraft"],
-        spacecraft: ["earth", "moon"],
-    };
-
-    const allowedPositionByLook = (() => {
-        const map = {
-            manual: [],
-            earth: [],
-            moon: [],
-            spacecraft: [],
-        };
-        for (const [position, looks] of Object.entries(allowedLookByPosition)) {
-            looks.forEach((look) => {
-                if (!map[look]) map[look] = [];
-                map[look].push(position);
-            });
-        }
-        return map;
-    })();
-
-    const lockOnAvailability = {
-        manual: new Set(["sc", "moon", "earth"]),
-        earth: new Set(["sc", "moon"]),
-        moon: new Set(["sc", "earth"]),
-        spacecraft: new Set(["earth", "moon"]),
-    };
-
-    const pairValueMap = new Map([
-        ["manual__manual", { positionMode: "manual", lookMode: "manual" }],
-        ["manual__moon", { positionMode: "manual", lookMode: "moon" }],
-        ["manual__spacecraft", { positionMode: "manual", lookMode: "spacecraft" }],
-        ["earth__moon", { positionMode: "earth", lookMode: "moon" }],
-        ["earth__spacecraft", { positionMode: "earth", lookMode: "spacecraft" }],
-        ["moon__manual", { positionMode: "moon", lookMode: "manual" }],
-        ["moon__earth", { positionMode: "moon", lookMode: "earth" }],
-        ["moon__spacecraft", { positionMode: "moon", lookMode: "spacecraft" }],
-        ["spacecraft__earth", { positionMode: "spacecraft", lookMode: "earth" }],
-        ["spacecraft__moon", { positionMode: "spacecraft", lookMode: "moon" }],
-    ]);
-    const pairKeyByMode = new Map(
-        Array.from(pairValueMap.entries()).map(([key, value]) => [
-            `${value.positionMode}__${value.lookMode}`,
-            key,
-        ]),
-    );
-
     const mountedBodyOverride = {
         earth: { hidden: null },
         moon: { hidden: null },
@@ -78,38 +38,11 @@ export function createCameraActions({
     }
 
     function getAllowedLook(positionMode) {
-        return allowedLookByPosition[positionMode] || ["manual"];
+        return resolveAllowedLooks(positionMode);
     }
 
     function getAllowedPosition(lookMode) {
-        return allowedPositionByLook[lookMode] || ["manual"];
-    }
-
-    function normalizeFromTo({ positionMode, lookMode, sourceId }) {
-        let nextPosition = positionMode;
-        let nextLook = lookMode;
-        const allowedLook = getAllowedLook(nextPosition);
-        const allowedPosition = getAllowedPosition(nextLook);
-
-        if (sourceId === "camera-position") {
-            if (!allowedLook.includes(nextLook)) {
-                nextLook = allowedLook[0];
-            }
-        } else if (sourceId === "camera-look") {
-            if (!allowedPosition.includes(nextPosition)) {
-                nextPosition = allowedPosition[0];
-            }
-        } else {
-            if (!allowedLook.includes(nextLook)) {
-                nextLook = allowedLook[0];
-            }
-            const allowedPositionAfterLook = getAllowedPosition(nextLook);
-            if (!allowedPositionAfterLook.includes(nextPosition)) {
-                nextPosition = allowedPositionAfterLook[0];
-            }
-        }
-
-        return { positionMode: nextPosition, lookMode: nextLook };
+        return resolveAllowedPositions(lookMode);
     }
 
     function updateSelectOptions(selectId, allowedValues) {
@@ -126,8 +59,8 @@ export function createCameraActions({
         updateSelectOptions("camera-position", getAllowedPosition(lookMode));
     }
 
-    function updateCameraPairSelection(positionMode, lookMode) {
-        const key = pairKeyByMode.get(`${positionMode}__${lookMode}`) || "manual__manual";
+    function updateCameraPairSelection(positionMode, lookMode, pairKeyOverride) {
+        const key = pairKeyOverride || resolvePairKey(positionMode, lookMode);
         const selected = document.querySelector(`input[name="camera-pair"][value="${key}"]`);
         if (selected && !selected.checked) {
             selected.checked = true;
@@ -136,8 +69,7 @@ export function createCameraActions({
 
     function resolvePairFromEvent(event) {
         const value = event?.target?.value;
-        if (!value) return null;
-        return pairValueMap.get(value) || null;
+        return resolvePairFromValue(value);
     }
 
     function updateLockOption(scene, { id, enabled, flagKey }) {
@@ -159,9 +91,7 @@ export function createCameraActions({
     }
 
     function updateLockOnAvailability(scene, positionMode, lookMode) {
-        const allowSet = lookMode === "manual"
-            ? lockOnAvailability[positionMode] || new Set()
-            : new Set();
+        const allowSet = new Set(resolveLockAvailability(positionMode, lookMode));
 
         updateLockOption(scene, {
             id: "checkbox-lock-sc",
@@ -413,25 +343,39 @@ export function createCameraActions({
 
     function changeCameraFromTo(event) {
         const sourceId = event?.target?.id;
+        const pairSelection = event?.target?.name === "camera-pair"
+            ? resolvePairFromEvent(event)
+            : null;
+
         if (event?.target?.name === "camera-pair") {
-            const resolved = resolvePairFromEvent(event);
-            if (resolved) {
-                applyCameraFromTo?.(resolved);
+            if (pairSelection) {
+                applyCameraFromTo?.(pairSelection);
             }
         }
 
         let positionMode = readCameraPositionMode();
         let lookMode = readCameraLookMode();
 
-        const normalized = normalizeFromTo({ positionMode, lookMode, sourceId });
-        if (normalized.positionMode !== positionMode || normalized.lookMode !== lookMode) {
-            applyCameraFromTo?.(normalized);
-            positionMode = normalized.positionMode;
-            lookMode = normalized.lookMode;
+        const transitionPlan = planCameraPairTransition({
+            positionMode,
+            lookMode,
+            sourceId,
+        });
+
+        if (
+            transitionPlan.positionMode !== positionMode ||
+            transitionPlan.lookMode !== lookMode
+        ) {
+            applyCameraFromTo?.({
+                positionMode: transitionPlan.positionMode,
+                lookMode: transitionPlan.lookMode,
+            });
+            positionMode = transitionPlan.positionMode;
+            lookMode = transitionPlan.lookMode;
         }
 
         updateFromToOptionStates(positionMode, lookMode);
-        updateCameraPairSelection(positionMode, lookMode);
+        updateCameraPairSelection(positionMode, lookMode, transitionPlan.pairKey);
 
         const config = getConfig();
         const scene = animationScenes[config];

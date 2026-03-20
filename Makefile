@@ -12,6 +12,7 @@
 
 TEST_PORT = 8111
 TEST_URL = http://localhost:$(TEST_PORT)
+NODE ?= node
 
 .PHONY: test test-fast test-headed baseline server-start server-stop server-status clean help
 
@@ -31,39 +32,34 @@ help:
 
 # Start the test server
 server-start:
-	node test/server-manager.js start
+	$(NODE) test/server-manager.js start
 
 # Stop the test server
 server-stop:
-	node test/server-manager.js stop
+	$(NODE) test/server-manager.js stop
 
 # Check server status
 server-status:
-	node test/server-manager.js status
+	$(NODE) test/server-manager.js status
 
 # Run all tests (headless)
-test: server-start
-	-npx cross-env HEADLESS=true VITE_TEST_BASE_URL=$(TEST_URL) npx vitest test/ui.test.js --run
-	$(MAKE) server-stop
+test:
+	$(NODE) test/run-ui-tests.js test
 
 # Run tests with fail-fast
-test-fast: server-start
-	-npx cross-env HEADLESS=true VITE_TEST_BASE_URL=$(TEST_URL) npx vitest test/ui.test.js --run --bail=1
-	$(MAKE) server-stop
+test-fast:
+	$(NODE) test/run-ui-tests.js test-fast
 
 # Run tests with visible browser
-test-headed: server-start
-	-npx cross-env HEADLESS=false VITE_TEST_BASE_URL=$(TEST_URL) npx vitest test/ui.test.js --run
-	$(MAKE) server-stop
+test-headed:
+	$(NODE) test/run-ui-tests.js test-headed
 
 # Regenerate baseline screenshots
 baseline:
-	node test/server-manager.js start
 	@echo "Clearing existing baselines..."
 	-rm -f test/screenshots/baseline/*.png
 	@echo "Running tests to generate new baselines (headless)..."
-	-npx cross-env HEADLESS=true VITE_TEST_BASE_URL=$(TEST_URL) npx vitest test/ui.test.js --run
-	node test/server-manager.js stop
+	$(NODE) test/run-ui-tests.js baseline
 	@echo "Baselines generated in test/screenshots/baseline/"
 
 # Clean up test artifacts
