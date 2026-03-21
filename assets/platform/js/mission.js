@@ -46,6 +46,7 @@ import {
     updateThreeDLoopCamera,
 } from "./app/animation-loop.js";
 import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
+import { createRuntimeInteractionState } from "./core/state/runtime-interaction-state.js";
 import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
@@ -65,7 +66,7 @@ let {
     FORMAT_METRIC,
     craftId,
     config: initialConfig,
-    missionStartCalled,
+    missionStartCalled: initialMissionStartCalled,
     orbitDataLoaded,
     orbitDataProcessed,
     landingDataLoaded,
@@ -81,7 +82,7 @@ let {
     nOrbitPoints,
     nLandingPoints,
     sunLongitude,
-    mouseDown,
+    mouseDown: initialMouseDown,
     planeSelection,
     plane,
     xVariable,
@@ -122,12 +123,12 @@ let {
     animDate,
     animTime,
     animationRunning,
-    startLandingFlag,
-    timeoutHandle,
-    timeoutHandleZoom,
+    startLandingFlag: initialStartLandingFlag,
+    timeoutHandle: initialLegacyTimeoutHandle,
+    timeoutHandleZoom: initialTimeoutHandleZoom,
     dataLoaded,
     ticksPerAnimationStep,
-    mousedownTimeout,
+    mousedownTimeout: initialMouseDownTimeout,
     fpsUpdateInterval,
     timeTransLunarInjection,
     timeLunarOrbitInsertion,
@@ -194,6 +195,14 @@ const runtimeSessionState = createRuntimeSessionState({
 const runtimeFlags = runtimeSessionState.getRuntimeFlags();
 const runtimeLoopState = createRuntimeLoopState({
     initialDeltaFrameTime: TC.ONE_MINUTE_MS,
+});
+const runtimeInteractionState = createRuntimeInteractionState({
+    initialMissionStartCalled,
+    initialStartLandingFlag,
+    initialMouseDown,
+    initialMouseDownTimeout,
+    initialTimeoutHandleZoom,
+    initialLegacyTimeoutHandle,
 });
 
 const {
@@ -439,7 +448,10 @@ const missionStateCells = {
     timeTransLunarInjection: bindStateCell(() => timeTransLunarInjection, (value) => { timeTransLunarInjection = value; }),
     timeLunarOrbitInsertion: bindStateCell(() => timeLunarOrbitInsertion, (value) => { timeLunarOrbitInsertion = value; }),
     theSceneHandler: bindStateCell(() => theSceneHandler, (value) => { theSceneHandler = value; }),
-    startLandingFlag: bindStateCell(() => startLandingFlag, (value) => { startLandingFlag = value; }),
+    startLandingFlag: bindStateCell(
+        () => runtimeInteractionState.getStartLandingFlag(),
+        (value) => { runtimeInteractionState.setStartLandingFlag(value); },
+    ),
     viewOrbit: bindStateCell(() => runtimeViewState.getViewOrbit(), (value) => { runtimeViewState.setViewOrbit(value); }),
     viewOrbitDescent: bindStateCell(
         () => runtimeViewState.getViewOrbitDescent(),
@@ -464,11 +476,23 @@ const missionStateCells = {
     ),
     viewFPS: bindStateCell(() => runtimeViewState.getViewFPS(), (value) => { runtimeViewState.setViewFPS(value); }),
     animDate: bindStateCell(() => animDate, (value) => { animDate = value; }),
-    mousedownTimeout: bindStateCell(() => mousedownTimeout, (value) => { mousedownTimeout = value; }),
-    timeoutHandleZoom: bindStateCell(() => timeoutHandleZoom, (value) => { timeoutHandleZoom = value; }),
-    mouseDown: bindStateCell(() => mouseDown, (value) => { mouseDown = value; }),
-    missionStartCalled: bindStateCell(() => missionStartCalled, (value) => { missionStartCalled = value; }),
-    timeoutHandle: bindReadonlyStateCell(() => timeoutHandle),
+    mousedownTimeout: bindStateCell(
+        () => runtimeInteractionState.getMouseDownTimeout(),
+        (value) => { runtimeInteractionState.setMouseDownTimeout(value); },
+    ),
+    timeoutHandleZoom: bindStateCell(
+        () => runtimeInteractionState.getTimeoutHandleZoom(),
+        (value) => { runtimeInteractionState.setTimeoutHandleZoom(value); },
+    ),
+    mouseDown: bindStateCell(
+        () => runtimeInteractionState.getMouseDown(),
+        (value) => { runtimeInteractionState.setMouseDown(value); },
+    ),
+    missionStartCalled: bindStateCell(
+        () => runtimeInteractionState.getMissionStartCalled(),
+        (value) => { runtimeInteractionState.setMissionStartCalled(value); },
+    ),
+    timeoutHandle: bindReadonlyStateCell(() => runtimeInteractionState.getLegacyTimeoutHandle()),
     animationRunning: bindReadonlyStateCell(() => runtimeSessionState.getAnimationRunning()),
     svgRect: bindStateCell(() => svgRect, (value) => { svgRect = value; }),
     sunLongitude: bindStateCell(() => sunLongitude, (value) => { sunLongitude = value; }),
