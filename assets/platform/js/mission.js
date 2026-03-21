@@ -46,6 +46,7 @@ import {
     updateThreeDLoopCamera,
 } from "./app/animation-loop.js";
 import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
+import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 
 import Swiper from 'swiper';
@@ -108,7 +109,6 @@ let {
     panx,
     pany,
     defaultCameraDistance,
-    animateLoopCount,
     epochJD,
     epochDate,
     startTime,
@@ -120,8 +120,6 @@ let {
     timelineTotalSteps,
     animDate,
     animTime,
-    prevFrameTime,
-    deltaFrameTime,
     animationRunning,
     startLandingFlag,
     timeoutHandle,
@@ -129,8 +127,6 @@ let {
     dataLoaded,
     ticksPerAnimationStep,
     mousedownTimeout,
-    fpsFrameCount,
-    fpsLastTime,
     fpsUpdateInterval,
     timeTransLunarInjection,
     timeLunarOrbitInsertion,
@@ -188,6 +184,9 @@ const runtimeSessionState = createRuntimeSessionState({
     initialLanding: false,
 });
 const runtimeFlags = runtimeSessionState.getRuntimeFlags();
+const runtimeLoopState = createRuntimeLoopState({
+    initialDeltaFrameTime: TC.ONE_MINUTE_MS,
+});
 
 const {
     bridgeActions,
@@ -461,19 +460,9 @@ const {
     getSetDimensionTop: () => setDimensionTop,
     getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     getMissionRuntimeWireup: () => missionRuntimeWireup,
-    readLoopState: () => ({
-        fpsFrameCount,
-        fpsLastTime,
-        prevFrameTime,
-        deltaFrameTime,
-        animateLoopCount,
-    }),
+    readLoopState: () => runtimeLoopState.getLoopState(),
     writeLoopState: (nextLoopState) => {
-        fpsFrameCount = nextLoopState.fpsFrameCount;
-        fpsLastTime = nextLoopState.fpsLastTime;
-        prevFrameTime = nextLoopState.prevFrameTime;
-        deltaFrameTime = nextLoopState.deltaFrameTime;
-        animateLoopCount = nextLoopState.animateLoopCount;
+        runtimeLoopState.setLoopState(nextLoopState);
     },
     getFpsUpdateInterval: () => fpsUpdateInterval,
     getTicksPerAnimationStep: () => ticksPerAnimationStep,
