@@ -48,6 +48,7 @@ import {
 import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
 import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
+import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -63,7 +64,7 @@ let {
     planetProperties,
     FORMAT_METRIC,
     craftId,
-    config,
+    config: initialConfig,
     missionStartCalled,
     orbitDataLoaded,
     orbitDataProcessed,
@@ -131,9 +132,9 @@ let {
     timeTransLunarInjection,
     timeLunarOrbitInsertion,
     eventInfos,
-    currentDimension,
-    previousDimension,
-    dimensionChanged,
+    currentDimension: initialCurrentDimension,
+    previousDimension: initialPreviousDimension,
+    dimensionChanged: initialDimensionChanged,
     theSceneHandler,
     animationScenes,
     animation3DControllers,
@@ -149,7 +150,14 @@ let {
 
 export { animationScenes };
 
-function getActiveEphemerisSource(cfg = config) {
+const runtimeViewState = createRuntimeViewState({
+    initialConfig,
+    initialCurrentDimension,
+    initialPreviousDimension,
+    initialDimensionChanged,
+});
+
+function getActiveEphemerisSource(cfg = runtimeViewState.getConfig()) {
     return ephemerisSource;
 }
 const ephemerisRecords = {}; // config -> { npz?: { url, bodies }, chebyshev?: { url } }
@@ -170,7 +178,7 @@ const {
 
 let missionRuntimeWireup = null;
 
-function getSceneForConfig(cfg = config) {
+function getSceneForConfig(cfg = runtimeViewState.getConfig()) {
     return animationScenes[cfg];
 }
 
@@ -199,9 +207,9 @@ const {
     windowRef: window,
     showElementById,
     getGlobalConfig: () => globalConfig,
-    getConfig: () => config,
+    getConfig: () => runtimeViewState.getConfig(),
     setConfig: (val) => {
-        config = val;
+        runtimeViewState.setConfig(val);
     },
     getLandingFlag: () => runtimeSessionState.getLandingFlag(),
     setLandingFlag: (val) => {
@@ -257,6 +265,22 @@ const {
     getToggleMode: () => toggleMode,
     getCurrentAnimTime: () => runtimeSessionState.getAnimTime(),
     planeSelection,
+});
+
+const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
+runtimeViewState.setConfig(initialMissionViewState.config);
+runtimeViewState.setViewFlags({
+    viewOrbit: initialMissionViewState.viewOrbit,
+    viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
+    viewCraters: initialMissionViewState.viewCraters,
+    viewXYZAxes: initialMissionViewState.viewXYZAxes,
+    viewPoles: initialMissionViewState.viewPoles,
+    viewPolarAxes: initialMissionViewState.viewPolarAxes,
+    viewSky: initialMissionViewState.viewSky,
+    viewMoonSOI: initialMissionViewState.viewMoonSOI,
+    viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
+    viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
+    viewFPS: initialMissionViewState.viewFPS,
 });
 
 const eventBus = createEventBus();
@@ -316,13 +340,13 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getEndLandingTime: () => endLandingTime,
     getPixelsPerAU: () => PIXELS_PER_AU,
     getGlobalConfig: () => globalConfig,
-    getConfig: () => config,
+    getConfig: () => runtimeViewState.getConfig(),
     getCraftId: () => craftId,
     planetProperties,
     getOrbitPointsCount: () => nOrbitPoints,
     getLandingPointsCount: () => nLandingPoints,
-    getViewOrbitDescent: () => viewOrbitDescent,
-    getViewOrbit: () => viewOrbit,
+    getViewOrbitDescent: () => runtimeViewState.getViewOrbitDescent(),
+    getViewOrbit: () => runtimeViewState.getViewOrbit(),
     render,
     bridgeActions,
     clearEventInfo,
@@ -340,38 +364,24 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getSceneHandler: () => theSceneHandler,
     windowRef: window,
     getMoonRadius: () => moonRadius,
-    getViewPolarAxes: () => viewPolarAxes,
-    getViewPoles: () => viewPoles,
+    getViewPolarAxes: () => runtimeViewState.getViewPolarAxes(),
+    getViewPoles: () => runtimeViewState.getViewPoles(),
     getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEarthRadius: () => earthRadius,
-    getViewCraters: () => viewCraters,
+    getViewCraters: () => runtimeViewState.getViewCraters(),
     getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
     getBodyEphemerisState,
     getEphemerisSource: () => ephemerisSource,
-    getViewSky: () => viewSky,
-    getViewMoonSOI: () => viewMoonSOI,
-    getViewXYZAxes: () => viewXYZAxes,
-    getViewEclipticPlane: () => viewEclipticPlane,
-    getViewEquatorialPlane: () => viewEquatorialPlane,
+    getViewSky: () => runtimeViewState.getViewSky(),
+    getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
+    getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
+    getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
+    getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
 });
 
-const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
-config = initialMissionViewState.config;
-var viewOrbit = initialMissionViewState.viewOrbit;
-var viewOrbitDescent = initialMissionViewState.viewOrbitDescent;
-var viewCraters = initialMissionViewState.viewCraters;
-var viewXYZAxes = initialMissionViewState.viewXYZAxes;
-var viewPoles = initialMissionViewState.viewPoles;
-var viewPolarAxes = initialMissionViewState.viewPolarAxes;
-var viewSky = initialMissionViewState.viewSky;
-var viewMoonSOI = initialMissionViewState.viewMoonSOI;
-var viewEclipticPlane = initialMissionViewState.viewEclipticPlane;
-var viewEquatorialPlane = initialMissionViewState.viewEquatorialPlane;
-var viewFPS = initialMissionViewState.viewFPS;
-
 function render() {
-    var animationScene = animationScenes[config];
+    var animationScene = animationScenes[runtimeViewState.getConfig()];
     theSceneHandler.render(animationScene);
 }
 
@@ -380,10 +390,19 @@ const bindReadonlyStateCell = (get) => ({ get, set: () => {} });
 
 const missionStateCells = {
     globalConfig: bindStateCell(() => globalConfig, (value) => { globalConfig = value; }),
-    config: bindStateCell(() => config, (value) => { config = value; }),
-    currentDimension: bindStateCell(() => currentDimension, (value) => { currentDimension = value; }),
-    previousDimension: bindStateCell(() => previousDimension, (value) => { previousDimension = value; }),
-    dimensionChanged: bindStateCell(() => dimensionChanged, (value) => { dimensionChanged = value; }),
+    config: bindStateCell(() => runtimeViewState.getConfig(), (value) => { runtimeViewState.setConfig(value); }),
+    currentDimension: bindStateCell(
+        () => runtimeViewState.getCurrentDimension(),
+        (value) => { runtimeViewState.setCurrentDimension(value); },
+    ),
+    previousDimension: bindStateCell(
+        () => runtimeViewState.getPreviousDimension(),
+        (value) => { runtimeViewState.setPreviousDimension(value); },
+    ),
+    dimensionChanged: bindStateCell(
+        () => runtimeViewState.getDimensionChanged(),
+        (value) => { runtimeViewState.setDimensionChanged(value); },
+    ),
     svgContainer: bindStateCell(() => svgContainer, (value) => { svgContainer = value; }),
     dataLoaded: bindStateCell(() => dataLoaded, (value) => { dataLoaded = value; }),
     svgX: bindStateCell(() => svgX, (value) => { svgX = value; }),
@@ -421,17 +440,29 @@ const missionStateCells = {
     timeLunarOrbitInsertion: bindStateCell(() => timeLunarOrbitInsertion, (value) => { timeLunarOrbitInsertion = value; }),
     theSceneHandler: bindStateCell(() => theSceneHandler, (value) => { theSceneHandler = value; }),
     startLandingFlag: bindStateCell(() => startLandingFlag, (value) => { startLandingFlag = value; }),
-    viewOrbit: bindStateCell(() => viewOrbit, (value) => { viewOrbit = value; }),
-    viewOrbitDescent: bindStateCell(() => viewOrbitDescent, (value) => { viewOrbitDescent = value; }),
-    viewCraters: bindStateCell(() => viewCraters, (value) => { viewCraters = value; }),
-    viewXYZAxes: bindStateCell(() => viewXYZAxes, (value) => { viewXYZAxes = value; }),
-    viewPoles: bindStateCell(() => viewPoles, (value) => { viewPoles = value; }),
-    viewPolarAxes: bindStateCell(() => viewPolarAxes, (value) => { viewPolarAxes = value; }),
-    viewSky: bindStateCell(() => viewSky, (value) => { viewSky = value; }),
-    viewMoonSOI: bindStateCell(() => viewMoonSOI, (value) => { viewMoonSOI = value; }),
-    viewEclipticPlane: bindStateCell(() => viewEclipticPlane, (value) => { viewEclipticPlane = value; }),
-    viewEquatorialPlane: bindStateCell(() => viewEquatorialPlane, (value) => { viewEquatorialPlane = value; }),
-    viewFPS: bindStateCell(() => viewFPS, (value) => { viewFPS = value; }),
+    viewOrbit: bindStateCell(() => runtimeViewState.getViewOrbit(), (value) => { runtimeViewState.setViewOrbit(value); }),
+    viewOrbitDescent: bindStateCell(
+        () => runtimeViewState.getViewOrbitDescent(),
+        (value) => { runtimeViewState.setViewOrbitDescent(value); },
+    ),
+    viewCraters: bindStateCell(() => runtimeViewState.getViewCraters(), (value) => { runtimeViewState.setViewCraters(value); }),
+    viewXYZAxes: bindStateCell(() => runtimeViewState.getViewXYZAxes(), (value) => { runtimeViewState.setViewXYZAxes(value); }),
+    viewPoles: bindStateCell(() => runtimeViewState.getViewPoles(), (value) => { runtimeViewState.setViewPoles(value); }),
+    viewPolarAxes: bindStateCell(
+        () => runtimeViewState.getViewPolarAxes(),
+        (value) => { runtimeViewState.setViewPolarAxes(value); },
+    ),
+    viewSky: bindStateCell(() => runtimeViewState.getViewSky(), (value) => { runtimeViewState.setViewSky(value); }),
+    viewMoonSOI: bindStateCell(() => runtimeViewState.getViewMoonSOI(), (value) => { runtimeViewState.setViewMoonSOI(value); }),
+    viewEclipticPlane: bindStateCell(
+        () => runtimeViewState.getViewEclipticPlane(),
+        (value) => { runtimeViewState.setViewEclipticPlane(value); },
+    ),
+    viewEquatorialPlane: bindStateCell(
+        () => runtimeViewState.getViewEquatorialPlane(),
+        (value) => { runtimeViewState.setViewEquatorialPlane(value); },
+    ),
+    viewFPS: bindStateCell(() => runtimeViewState.getViewFPS(), (value) => { runtimeViewState.setViewFPS(value); }),
     animDate: bindStateCell(() => animDate, (value) => { animDate = value; }),
     mousedownTimeout: bindStateCell(() => mousedownTimeout, (value) => { mousedownTimeout = value; }),
     timeoutHandleZoom: bindStateCell(() => timeoutHandleZoom, (value) => { timeoutHandleZoom = value; }),
@@ -471,7 +502,7 @@ const {
     updateFrameDeltaState,
     computeAnimationStepState,
     getAnimationController: () => animationController,
-    getScene: () => animationScenes[config],
+    getScene: () => animationScenes[runtimeViewState.getConfig()],
     getCameraControlsCallback: () => bridgeActions.cameraControlsCallback,
     updateThreeDLoopCamera,
 });
