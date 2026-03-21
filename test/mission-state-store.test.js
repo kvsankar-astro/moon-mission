@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMissionStateStore } from "../assets/platform/js/core/state/mission-state-store.js";
 
 function createCell(initialValue) {
@@ -83,61 +83,84 @@ function createStateCells() {
     };
 }
 
-function createStore() {
-    const runtimeFlags = {
-        joyRide: false,
-        landing: false,
-    };
+function createStore(overrides = {}) {
+    const runtimeFlags =
+        overrides.runtimeFlags ||
+        {
+            joyRide: false,
+            landing: false,
+        };
 
-    const animationScenes = {
-        geo: { planetsForLocations: ["EARTH"] },
-        lunar: { planetsForLocations: ["MOON"] },
-    };
+    const animationScenes =
+        overrides.animationScenes ||
+        {
+            geo: { planetsForLocations: ["EARTH"] },
+            lunar: { planetsForLocations: ["MOON"] },
+        };
 
-    const planeState = {
-        xFactor: 1,
-        yFactor: 1,
-        xVariable: "x",
-        yVariable: "y",
-    };
+    const planeState =
+        overrides.planeState ||
+        {
+            xFactor: 1,
+            yFactor: 1,
+            xVariable: "x",
+            yVariable: "y",
+        };
 
-    const state = createStateCells();
+    const state = overrides.state || createStateCells();
+    const landingNpzData = overrides.landingNpzData || {};
+    const landingNpzLoaded = overrides.landingNpzLoaded || {};
+    const landingChebyshevData = overrides.landingChebyshevData || {};
+    const landingChebyshevLoaded = overrides.landingChebyshevLoaded || {};
+    const runtimeBootstrapActions =
+        overrides.runtimeBootstrapActions ||
+        {
+            toggleLanding: () => {},
+        };
+    const syncPlaneStateForConfig = overrides.syncPlaneStateForConfig || (() => {});
 
     return {
         runtimeFlags,
+        state,
+        landingNpzData,
+        landingNpzLoaded,
+        landingChebyshevData,
+        landingChebyshevLoaded,
+        runtimeBootstrapActions,
+        syncPlaneStateForConfig,
         store: createMissionStateStore({
             state,
             runtimeFlags,
             animationScenes,
-            orbitDataProcessed: { geo: true, lunar: false },
-            chebyshevData: {},
-            chebyshevDataLoaded: {},
-            npzData: {},
-            npzDataLoaded: {},
-            landingNpzData: {},
-            landingNpzLoaded: {},
-            landingChebyshevData: {},
-            landingChebyshevLoaded: {},
-            planetProperties: {},
-            ephemerisStatuses: {},
-            resolveBodySource: ({ bodyId }) => bodyId,
-            getActiveEphemerisSource: () => "chebyshev",
-            getPlaneVariablesState: () => planeState,
-            getZoomFactorState: () => 1,
-            getPanXState: () => 0,
-            getPanYState: () => 0,
-            getPlaneSelectionState: () => "DEFAULT",
-            setPlaneVariablesState: (next) => {
-                planeState.xFactor = next.xFactor;
-                planeState.yFactor = next.yFactor;
-                planeState.xVariable = next.xVariable;
-                planeState.yVariable = next.yVariable;
-            },
-            getRuntimeBootstrapActions: () => ({
-                toggleLanding: () => {},
-            }),
-            getAnimationSceneInitDone: () => true,
-            syncPlaneStateForConfig: () => {},
+            orbitDataProcessed: overrides.orbitDataProcessed || { geo: true, lunar: false },
+            chebyshevData: overrides.chebyshevData || {},
+            chebyshevDataLoaded: overrides.chebyshevDataLoaded || {},
+            npzData: overrides.npzData || {},
+            npzDataLoaded: overrides.npzDataLoaded || {},
+            landingNpzData,
+            landingNpzLoaded,
+            landingChebyshevData,
+            landingChebyshevLoaded,
+            planetProperties: overrides.planetProperties || {},
+            ephemerisStatuses: overrides.ephemerisStatuses || {},
+            resolveBodySource: overrides.resolveBodySource || (({ bodyId }) => bodyId),
+            getActiveEphemerisSource: overrides.getActiveEphemerisSource || (() => "chebyshev"),
+            getPlaneVariablesState: overrides.getPlaneVariablesState || (() => planeState),
+            getZoomFactorState: overrides.getZoomFactorState || (() => 1),
+            getPanXState: overrides.getPanXState || (() => 0),
+            getPanYState: overrides.getPanYState || (() => 0),
+            getPlaneSelectionState: overrides.getPlaneSelectionState || (() => "DEFAULT"),
+            setPlaneVariablesState:
+                overrides.setPlaneVariablesState ||
+                ((next) => {
+                    planeState.xFactor = next.xFactor;
+                    planeState.yFactor = next.yFactor;
+                    planeState.xVariable = next.xVariable;
+                    planeState.yVariable = next.yVariable;
+                }),
+            getRuntimeBootstrapActions: overrides.getRuntimeBootstrapActions || (() => runtimeBootstrapActions),
+            getAnimationSceneInitDone: overrides.getAnimationSceneInitDone || (() => true),
+            syncPlaneStateForConfig,
         }),
     };
 }
@@ -163,5 +186,140 @@ describe("createMissionStateStore", () => {
         expect(store.setEventInfoText).toBeUndefined();
         expect(store.setEpochDisplay).toBeUndefined();
         expect(store.clearLegacyTimeout).toBeUndefined();
+    });
+
+    it("falls back to animation scene keys when global config has no phases", () => {
+        const { store } = createStore({
+            animationScenes: {
+                phaseA: { planetsForLocations: ["EARTH"] },
+                phaseB: { planetsForLocations: ["MOON"] },
+            },
+        });
+
+        store.setGlobalConfig({});
+
+        expect(store.getConfigsList()).toEqual(["phaseA", "phaseB"]);
+    });
+
+    it("uses configured global phases and excludes landing in getConfigsList", () => {
+        const { store } = createStore({
+            animationScenes: {
+                fallbackA: { planetsForLocations: ["EARTH"] },
+                fallbackB: { planetsForLocations: ["MOON"] },
+            },
+        });
+
+        store.setGlobalConfig({ phases: ["geo", "landing", "lunar"] });
+
+        expect(store.getConfigsList()).toEqual(["geo", "lunar"]);
+    });
+
+    it("setViewFlags updates every view state cell", () => {
+        const { store, state } = createStore();
+        const nextFlags = {
+            viewOrbit: false,
+            viewOrbitDescent: true,
+            viewCraters: true,
+            viewXYZAxes: true,
+            viewPoles: true,
+            viewPolarAxes: true,
+            viewSky: false,
+            viewMoonSOI: true,
+            viewEclipticPlane: true,
+            viewEquatorialPlane: true,
+            viewFPS: true,
+        };
+
+        store.setViewFlags(nextFlags);
+
+        expect(state.viewOrbit.get()).toBe(false);
+        expect(state.viewOrbitDescent.get()).toBe(true);
+        expect(state.viewCraters.get()).toBe(true);
+        expect(state.viewXYZAxes.get()).toBe(true);
+        expect(state.viewPoles.get()).toBe(true);
+        expect(state.viewPolarAxes.get()).toBe(true);
+        expect(state.viewSky.get()).toBe(false);
+        expect(state.viewMoonSOI.get()).toBe(true);
+        expect(state.viewEclipticPlane.get()).toBe(true);
+        expect(state.viewEquatorialPlane.get()).toBe(true);
+        expect(state.viewFPS.get()).toBe(true);
+    });
+
+    it("onConfigChanged delegates to syncPlaneStateForConfig with new config", () => {
+        const syncPlaneStateForConfig = vi.fn();
+        const { store } = createStore({ syncPlaneStateForConfig });
+
+        store.onConfigChanged("lunar");
+
+        expect(syncPlaneStateForConfig).toHaveBeenCalledTimes(1);
+        expect(syncPlaneStateForConfig).toHaveBeenCalledWith("lunar");
+    });
+
+    it("passes body sources and default source to getBodySource and resolveBodySourceFn", () => {
+        const resolveBodySource = vi.fn(({ bodyId, bodySources, defaultSpacecraftSource }) => {
+            return bodySources[bodyId] || defaultSpacecraftSource;
+        });
+        const { store } = createStore({ resolveBodySource });
+
+        store.setBodyEphemerisSources({ MOON: "npz" });
+        store.setEphemerisSource("chebyshev");
+
+        expect(store.getBodySource("MOON")).toBe("npz");
+        expect(store.resolveBodySourceFn("EARTH")).toBe("chebyshev");
+        expect(resolveBodySource).toHaveBeenNthCalledWith(1, {
+            bodyId: "MOON",
+            bodySources: { MOON: "npz" },
+            defaultSpacecraftSource: "chebyshev",
+        });
+        expect(resolveBodySource).toHaveBeenNthCalledWith(2, {
+            bodyId: "EARTH",
+            bodySources: { MOON: "npz" },
+            defaultSpacecraftSource: "chebyshev",
+        });
+    });
+
+    it("stores and reads landing data buckets per config through explicit and active config getters", () => {
+        const { store } = createStore();
+
+        store.setLandingNpzLoaded("geo", true);
+        store.setLandingNpzData("geo", { phase: "geo-npz" });
+        store.setLandingNpzLoaded("lunar", false);
+        store.setLandingNpzData("lunar", { phase: "lunar-npz" });
+        store.setLandingChebyshevLoaded("geo", false);
+        store.setLandingChebyshevData("geo", { phase: "geo-cheb" });
+        store.setLandingChebyshevLoaded("lunar", true);
+        store.setLandingChebyshevData("lunar", { phase: "lunar-cheb" });
+
+        expect(store.getLandingNpzDataByConfig("geo")).toEqual({ phase: "geo-npz" });
+        expect(store.getLandingNpzDataByConfig("lunar")).toEqual({ phase: "lunar-npz" });
+        expect(store.getLandingNpzLoadedByConfig("geo")).toBe(true);
+        expect(store.getLandingNpzLoadedByConfig("lunar")).toBe(false);
+        expect(store.getLandingChebyshevDataByConfig("geo")).toEqual({ phase: "geo-cheb" });
+        expect(store.getLandingChebyshevDataByConfig("lunar")).toEqual({ phase: "lunar-cheb" });
+        expect(store.getLandingChebyshevLoadedByConfig("geo")).toBe(false);
+        expect(store.getLandingChebyshevLoadedByConfig("lunar")).toBe(true);
+
+        store.setConfig("geo");
+        expect(store.getLandingNpzLoaded()).toBe(true);
+        expect(store.getLandingNpzData()).toEqual({ phase: "geo-npz" });
+        expect(store.getLandingChebyshevLoaded()).toBe(false);
+        expect(store.getLandingChebyshevData()).toEqual({ phase: "geo-cheb" });
+
+        store.setConfig("lunar");
+        expect(store.getLandingNpzLoaded()).toBe(false);
+        expect(store.getLandingNpzData()).toEqual({ phase: "lunar-npz" });
+        expect(store.getLandingChebyshevLoaded()).toBe(true);
+        expect(store.getLandingChebyshevData()).toEqual({ phase: "lunar-cheb" });
+    });
+
+    it("toggleLanding delegates to runtime bootstrap actions", () => {
+        const toggleLanding = vi.fn();
+        const { store } = createStore({
+            runtimeBootstrapActions: { toggleLanding },
+        });
+
+        store.toggleLanding();
+
+        expect(toggleLanding).toHaveBeenCalledTimes(1);
     });
 });

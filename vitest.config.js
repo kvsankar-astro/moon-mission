@@ -20,5 +20,23 @@ export default defineConfig({
     globalSetup: undefined,
     // Maximum time for the entire test suite (10 minutes)
     bail: 0,  // Don't bail on first failure
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary', 'html', 'lcov'],
+      reportsDirectory: './coverage/unit',
+      all: false,
+      exclude: [
+        'test/**',
+        'scripts/**',
+        'node_modules/**',
+        'dist/**'
+      ],
+      thresholds: {
+        lines: 87,
+        branches: 82,
+        functions: 50,
+        statements: 87
+      }
+    }
   }
 });
