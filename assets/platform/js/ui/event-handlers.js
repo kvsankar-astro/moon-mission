@@ -23,6 +23,10 @@ function onChangeAll(selector, handler) {
     elements.forEach((element) => element.addEventListener("change", handler));
 }
 
+function getMissionDialogApi() {
+    return window.MissionDialog || window.CY3Dialog || null;
+}
+
 /**
  * Bind the Settings panel opener.
  */
@@ -43,7 +47,7 @@ export function bindSettingsPanel() {
     if (closeButton && !closeButton.dataset.bound) {
         closeButton.dataset.bound = "true";
         closeButton.addEventListener("click", function () {
-            window.CY3Dialog?.close?.("#settings-panel");
+            getMissionDialogApi()?.close?.("#settings-panel");
         });
     }
 
@@ -62,11 +66,12 @@ export function bindSettingsPanel() {
         };
 
         // Route through the lightweight dialog shim (not jQuery UI).
-        window.CY3Dialog?.init?.("#settings-panel", options);
-        window.CY3Dialog?.open?.("#settings-panel");
+        const dialogApi = getMissionDialogApi();
+        dialogApi?.init?.("#settings-panel", options);
+        dialogApi?.open?.("#settings-panel");
 
         // Keep the existing styling adjustments applied to the wrapper.
-        const wrapper = window.CY3Dialog?.widgetElement?.("#settings-panel");
+        const wrapper = dialogApi?.widgetElement?.("#settings-panel");
         if (wrapper) {
             wrapper.style.backgroundImage = "none";
             wrapper.style.border = "0";
@@ -115,6 +120,8 @@ export function bindMainControls(handlers) {
         togglePlane,
         setView,
         setDimensionTop,
+        toggleAnimation,
+        // Legacy compatibility while callers migrate.
         cy3Animate,
         toggleJoyRide,
         toggleLanding,
@@ -158,7 +165,10 @@ export function bindMainControls(handlers) {
     onClick("dimension-2D", setDimensionTop);
     onClick("dimension-3D", setDimensionTop);
 
-    onClick("animate", cy3Animate);
+    const animateHandler = typeof toggleAnimation === "function" ? toggleAnimation : cy3Animate;
+    if (typeof animateHandler === "function") {
+        onClick("animate", animateHandler);
+    }
     onClick("joyride", toggleJoyRide);
     onClick("joyridebutton", toggleJoyRide);
     onClick("landing", toggleLanding);

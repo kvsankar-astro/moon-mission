@@ -6,8 +6,12 @@ export function createAnimationActions({
     setMissionStartCalled,
     clearLegacyTimeout,
 }) {
+    const toggleAnimation = () => animationController.toggle();
+
     return {
-        cy3Animate: () => animationController.toggle(),
+        toggleAnimation,
+        // Backward compatibility while shared handlers migrate off CY3 naming.
+        cy3Animate: toggleAnimation,
         fastBackward: () => animationController.fastBackward(),
         backward: () => animationController.stepBackward(),
         stopAnimation: () => {
@@ -31,4 +35,3 @@ export function createAnimationActions({
         realtime: () => animationController.setRealtimeSpeed(),
     };
 }
-

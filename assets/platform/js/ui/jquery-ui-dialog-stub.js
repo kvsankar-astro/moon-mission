@@ -1,10 +1,8 @@
 (function () {
     if (typeof window === "undefined") return;
 
-    // Provide a tiny fallback so non-jQuery environments can still open/close panels.
-    // When jQuery is present, we replace this with the full dialog/progressbar shims below.
-    if (!window.CY3Dialog) {
-        window.CY3Dialog = {
+    function createFallbackDialogApi() {
+        return {
             init() {},
             open(target) {
                 const node = typeof target === "string" ? document.querySelector(target) : target;
@@ -20,6 +18,15 @@
                 return typeof target === "string" ? document.querySelector(target) : target;
             },
         };
+    }
+
+    // Provide a tiny fallback so non-jQuery environments can still open/close panels.
+    // When jQuery is present, we replace this with the full dialog/progressbar shims below.
+    if (!window.MissionDialog) {
+        window.MissionDialog = window.CY3Dialog || createFallbackDialogApi();
+    }
+    if (!window.CY3Dialog) {
+        window.CY3Dialog = window.MissionDialog;
     }
 
     if (!window.jQuery) return;
@@ -99,9 +106,17 @@
         const existing = $wrapper.data("modalOverlay");
         if (existing) return existing;
 
-        const overlayId = `cy3-modal-${++overlayIdCounter}`;
+        const overlayId = `mission-modal-${++overlayIdCounter}`;
         const $overlay = $("<div></div>")
-            .addClass(["cy3-modal-overlay", options?.overlayClass || ""].filter(Boolean).join(" "))
+            .addClass(
+                [
+                    "mission-modal-overlay",
+                    "cy3-modal-overlay",
+                    options?.overlayClass || "",
+                ]
+                    .filter(Boolean)
+                    .join(" "),
+            )
             .attr("id", overlayId)
             .attr("role", "presentation")
             .hide();
@@ -216,6 +231,7 @@
                 if (options.modal && $wrapper) {
                     const $overlay = ensureOverlay($wrapper, options);
                     $overlay.show();
+                    document.body.classList.add("mission-modal-open");
                     document.body.classList.add("cy3-modal-open");
                 }
 
@@ -239,6 +255,7 @@
                 if (options.modal && $wrapper) {
                     const $overlay = $wrapper.data("modalOverlay");
                     if ($overlay) $overlay.hide();
+                    document.body.classList.remove("mission-modal-open");
                     document.body.classList.remove("cy3-modal-open");
                 }
             });
@@ -261,6 +278,7 @@
 
     // Expose a tiny non-jQuery-UI API so app code can avoid calling $.fn.dialog directly,
     // while keeping $.fn.dialog available for back-compat and tests.
+    window.MissionDialog = dialogApi;
     window.CY3Dialog = dialogApi;
 
     function ensureProgressbar($el) {

@@ -7,6 +7,12 @@ function wireEventBus(eventBus, handlers) {
     eventBusWired = true;
 
     const forwardEvent = (fn) => (payload) => fn(payload?.event);
+    const resolveHandler = (primary, legacy) =>
+        typeof primary === "function"
+            ? primary
+            : typeof legacy === "function"
+              ? legacy
+              : () => {};
 
     eventBus.on("ui:reset", forwardEvent(handlers.reset));
     eventBus.on("settings:originChanged", forwardEvent(handlers.toggleMode));
@@ -22,7 +28,10 @@ function wireEventBus(eventBus, handlers) {
     eventBus.on("camera:planeChanged", forwardEvent(handlers.togglePlane));
     eventBus.on("settings:viewChanged", forwardEvent(handlers.setView));
     eventBus.on("settings:dimensionChanged", forwardEvent(handlers.setDimensionTop));
-    eventBus.on("animation:toggle", forwardEvent(handlers.cy3Animate));
+    eventBus.on(
+        "animation:toggle",
+        forwardEvent(resolveHandler(handlers.toggleAnimation, handlers.cy3Animate)),
+    );
     eventBus.on("mode:joyRideToggle", forwardEvent(handlers.toggleJoyRide));
     eventBus.on("mission:landingToggle", forwardEvent(handlers.toggleLanding));
     eventBus.on("ui:infoToggle", forwardEvent(handlers.toggleInfo));
@@ -53,7 +62,7 @@ export function startMissionApp({ eventBus, handlers }) {
         togglePlane: (event) => eventBus.emit("camera:planeChanged", { event }),
         setView: (event) => eventBus.emit("settings:viewChanged", { event }),
         setDimensionTop: (event) => eventBus.emit("settings:dimensionChanged", { event }),
-        cy3Animate: (event) => eventBus.emit("animation:toggle", { event }),
+        toggleAnimation: (event) => eventBus.emit("animation:toggle", { event }),
         toggleJoyRide: (event) => eventBus.emit("mode:joyRideToggle", { event }),
         toggleLanding: (event) => eventBus.emit("mission:landingToggle", { event }),
         toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),

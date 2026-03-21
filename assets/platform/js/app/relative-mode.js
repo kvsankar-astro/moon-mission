@@ -1,5 +1,7 @@
-const ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
-const ANIM_TIME_OVERRIDE_STORAGE_KEY = "cy3.animTimeOverride";
+const ORIGIN_OVERRIDE_STORAGE_KEY = "mission.originOverride";
+const LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
+const ANIM_TIME_OVERRIDE_STORAGE_KEY = "mission.animTimeOverride";
+const LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY = "cy3.animTimeOverride";
 
 function createRelativeModeActions(deps) {
     const {
@@ -42,7 +44,9 @@ function createRelativeModeActions(deps) {
 
     function consumeOriginOverrideFromSession() {
         try {
-            const override = sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+            const override =
+                sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY) ??
+                sessionStorage.getItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
             if (override === "lunar") {
                 setChecked("origin-moon", true);
                 setChecked("origin-earth", false);
@@ -53,6 +57,7 @@ function createRelativeModeActions(deps) {
                 setChecked("origin-relative", false);
             }
             sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+            sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
         } catch {
             // Ignore storage errors (private browsing, disabled storage, etc.)
         }
@@ -62,8 +67,11 @@ function createRelativeModeActions(deps) {
 
     function consumeAnimTimeOverrideFromSession() {
         try {
-            const value = sessionStorage.getItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+            const value =
+                sessionStorage.getItem(ANIM_TIME_OVERRIDE_STORAGE_KEY) ??
+                sessionStorage.getItem(LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY);
             sessionStorage.removeItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+            sessionStorage.removeItem(LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY);
             const parsed = Number(value);
             return Number.isFinite(parsed) ? parsed : null;
         } catch {
@@ -77,8 +85,10 @@ function createRelativeModeActions(deps) {
             const currentAnimTime = Number(getCurrentAnimTime?.());
             if (Number.isFinite(currentAnimTime)) {
                 sessionStorage.setItem(ANIM_TIME_OVERRIDE_STORAGE_KEY, String(currentAnimTime));
+                sessionStorage.setItem(LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY, String(currentAnimTime));
             } else {
                 sessionStorage.removeItem(ANIM_TIME_OVERRIDE_STORAGE_KEY);
+                sessionStorage.removeItem(LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY);
             }
         } catch {
             // Ignore storage errors (private browsing, disabled storage, etc.)
@@ -107,6 +117,7 @@ function createRelativeModeActions(deps) {
         if (isRelativeMode) return;
         try {
             sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+            sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
         } catch {
             // Ignore storage errors
         }
@@ -130,8 +141,10 @@ function createRelativeModeActions(deps) {
         try {
             if (nextOrigin === "lunar") {
                 sessionStorage.setItem(ORIGIN_OVERRIDE_STORAGE_KEY, "lunar");
+                sessionStorage.setItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY, "lunar");
             } else {
                 sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+                sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
             }
         } catch {
             // Ignore storage errors

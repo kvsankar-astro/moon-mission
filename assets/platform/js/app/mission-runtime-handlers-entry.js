@@ -103,7 +103,11 @@ function createMissionRuntimeHandlersEntry(ctx) {
                     const setDimensionTop = getSetDimensionTop();
                     return typeof setDimensionTop === "function" ? setDimensionTop(event) : undefined;
                 },
-                cy3Animate: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.cy3Animate(event),
+                toggleAnimation: (event) => {
+                    const runtimeActions = getMissionRuntimeWireup().runtimeBootstrapActions;
+                    const handler = runtimeActions.toggleAnimation || runtimeActions.cy3Animate;
+                    return typeof handler === "function" ? handler(event) : undefined;
+                },
                 toggleJoyRide: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleJoyRide(event),
                 toggleLanding: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLanding(event),
                 toggleInfo: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleInfo(event),

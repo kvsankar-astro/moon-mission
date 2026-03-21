@@ -20,8 +20,9 @@ function createMissionBridgeActions(deps) {
     } = deps;
 
     function showWhatsNew() {
-        if (windowRef.CY3Dialog?.open) {
-            windowRef.CY3Dialog.open("#dialog-whatsnew");
+        const dialogApi = windowRef.MissionDialog || windowRef.CY3Dialog;
+        if (dialogApi?.open) {
+            dialogApi.open("#dialog-whatsnew");
         } else {
             showElementById("dialog-whatsnew");
         }
