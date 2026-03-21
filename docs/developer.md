@@ -325,6 +325,12 @@ python scripts/build.py --no-clean
 
 # Build to a custom directory
 python scripts/build.py --dist my-dist
+
+# Deterministic build metadata timestamp (ISO-8601)
+python scripts/build.py --build-date 2026-03-21T00:00:00+00:00
+
+# Or use SOURCE_DATE_EPOCH for reproducible pipelines
+$env:SOURCE_DATE_EPOCH=1774051200; python scripts/build.py
 ```
 
 ### Deploy (`scripts/deploy.py`)

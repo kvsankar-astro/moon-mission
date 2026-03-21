@@ -8,8 +8,9 @@ import os
 import shutil
 import json
 import stat
-from datetime import datetime
+from datetime import datetime, timezone
 import argparse
+from pathlib import Path
 
 def print_info(message):
     print(f"[INFO] {message}")
@@ -27,7 +28,7 @@ def remove_readonly(func, path, _):
 
 def safe_rmtree(path):
     """Safely remove directory tree, handling Windows permission issues"""
-    if os.path.exists(path):
+    if Path(path).exists():
         try:
             shutil.rmtree(path, onerror=remove_readonly)
         except PermissionError as e:
@@ -37,92 +38,131 @@ def safe_rmtree(path):
 
 def ensure_dir(path):
     """Create directory if it doesn't exist"""
-    os.makedirs(path, exist_ok=True)
+    Path(path).mkdir(parents=True, exist_ok=True)
 
 def copy_file(src, dst):
     """Copy a single file"""
-    ensure_dir(os.path.dirname(dst))
+    src_path = Path(src)
+    dst_path = Path(dst)
+    ensure_dir(dst_path.parent)
     shutil.copy2(src, dst)
-    print_info(f"Copied: {src} -> {dst}")
+    print_info(f"Copied: {src_path} -> {dst_path}")
 
 def copy_tree(src_dir, dst_dir, ignore=None):
     """Copy a directory tree into dist, optionally ignoring some entries."""
-    if not os.path.exists(src_dir):
+    src_path = Path(src_dir)
+    dst_path = Path(dst_dir)
+    if not src_path.exists():
         print_error(f"Directory not found: {src_dir}")
         return 0
 
-    ensure_dir(os.path.dirname(dst_dir))
+    ensure_dir(dst_path.parent)
     shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True, ignore=ignore)
 
     # Best-effort count for reporting
-    return sum(len(files) for _, _, files in os.walk(dst_dir))
+    return sum(len(files) for _, _, files in os.walk(dst_path))
 
-def discover_missions():
+def get_project_root(project_root=None):
+    if project_root:
+        return Path(project_root).resolve()
+    return Path(__file__).resolve().parent.parent
+
+def resolve_project_path(project_root, path_value):
+    path = Path(path_value)
+    if path.is_absolute():
+        return path
+    return project_root / path
+
+def discover_missions(project_root):
     """Auto-discover available missions from assets directory"""
-    assets_dir = "assets"
+    assets_dir = project_root / "assets"
     missions = []
     
-    if os.path.exists(assets_dir):
+    if assets_dir.exists():
         for item in os.listdir(assets_dir):
-            mission_path = os.path.join(assets_dir, item)
-            config_path = os.path.join(mission_path, "data", "config.json")
+            mission_path = assets_dir / item
+            config_path = mission_path / "data" / "config.json"
             
             # Check if it's a valid mission (has config.json)
-            if (os.path.isdir(mission_path) and 
-                os.path.exists(config_path) and
+            if (mission_path.is_dir() and 
+                config_path.exists() and
                 item != "platform"):
                 missions.append(item)
     
     return sorted(missions)
 
-def load_mission_config(mission):
+def load_mission_config(project_root, mission):
     """Load mission configuration"""
-    config_path = f"assets/{mission}/data/config.json"
+    config_path = project_root / "assets" / mission / "data" / "config.json"
     try:
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print_error(f"Error reading config for {mission}: {e}")
         return {}
 
-def build(dist_dir="dist", clean=True, missions=None):
-    """Build the distribution folder"""
-    
-    # Get project root (parent of scripts directory)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    
-    # Change to project root
-    os.chdir(project_root)
-    
-    # Auto-discover missions if none specified
+def resolve_build_date(build_date=None, now_fn=None):
+    if build_date:
+        normalized = build_date.strip()
+        if not normalized:
+            raise ValueError("--build-date cannot be empty")
+        if normalized.endswith("Z"):
+            normalized = f"{normalized[:-1]}+00:00"
+        try:
+            return datetime.fromisoformat(normalized).isoformat()
+        except ValueError as error:
+            raise ValueError(f"Invalid --build-date '{build_date}'. Expected ISO-8601 format.") from error
+
+    source_date_epoch = os.environ.get("SOURCE_DATE_EPOCH")
+    if source_date_epoch:
+        try:
+            epoch = int(source_date_epoch)
+        except ValueError as error:
+            raise ValueError("SOURCE_DATE_EPOCH must be an integer Unix timestamp.") from error
+        return datetime.fromtimestamp(epoch, tz=timezone.utc).isoformat()
+
+    clock = now_fn or (lambda: datetime.now(timezone.utc))
+    value = clock()
+    if not isinstance(value, datetime):
+        raise ValueError("now_fn must return a datetime instance")
+    return value.isoformat()
+
+def normalize_missions(missions):
     if missions is None:
-        missions = discover_missions()
-        print_info(f"Auto-discovered missions: {', '.join(missions)}")
-    elif isinstance(missions, str):
-        missions = [missions]
+        return None
+    if isinstance(missions, str):
+        return [missions]
+    return list(missions)
+
+def build(dist_dir="dist", clean=True, missions=None, project_root=None, build_date=None, now_fn=None):
+    """Build the distribution folder."""
+    project_root_path = get_project_root(project_root)
+    dist_path = resolve_project_path(project_root_path, dist_dir)
+
+    # Auto-discover missions if none specified
+    missions_list = normalize_missions(missions)
+    if missions_list is None:
+        missions_list = discover_missions(project_root_path)
+        print_info(f"Auto-discovered missions: {', '.join(missions_list)}")
     
-    if not missions:
+    if not missions_list:
         print_error("No missions found or specified!")
         return
     
-    print_info(f"Building missions: {', '.join(missions)}")
-    
-    # Full path to dist directory
-    dist_path = os.path.join(project_root, dist_dir)
+    print_info(f"Building missions: {', '.join(missions_list)}")
     
     # Create dist directory if it doesn't exist
     ensure_dir(dist_path)
     
     # Clean dist directory contents if requested
-    if clean and os.path.exists(dist_path):
-        print_info(f"Cleaning {dist_dir} directory contents...")
+    if clean and dist_path.exists():
+        print_info(f"Cleaning {dist_path} directory contents...")
         for item in os.listdir(dist_path):
-            item_path = os.path.join(dist_path, item)
-            if os.path.isdir(item_path):
+            item_path = dist_path / item
+            if item_path.is_dir():
                 safe_rmtree(item_path)
             else:
-                os.remove(item_path)
+                item_path.unlink()
     
     print_info(f"Building distribution in {dist_path}...")
     
@@ -131,44 +171,46 @@ def build(dist_dir="dist", clean=True, missions=None):
 
     # Entry points for the multi-mission app
     for html_file in ["mission.html", "index.html"]:
-        if os.path.exists(html_file):
-            copy_file(html_file, os.path.join(dist_path, html_file))
+        source_file = project_root_path / html_file
+        if source_file.exists():
+            copy_file(source_file, dist_path / html_file)
             copied_files += 1
         else:
             print_error(f"File not found: {html_file}")
             missing_files += 1
 
     # Optional favicon
-    if os.path.exists("favicon.ico"):
-        copy_file("favicon.ico", os.path.join(dist_path, "favicon.ico"))
+    favicon_path = project_root_path / "favicon.ico"
+    if favicon_path.exists():
+        copy_file(favicon_path, dist_path / "favicon.ico")
         copied_files += 1
 
     # Shared runtime assets
-    copied_files += copy_tree("assets/platform", os.path.join(dist_path, "assets", "platform"))
-    copied_files += copy_tree("third-party", os.path.join(dist_path, "third-party"))
-    copied_files += copy_tree("images", os.path.join(dist_path, "images"))
+    copied_files += copy_tree(project_root_path / "assets" / "platform", dist_path / "assets" / "platform")
+    copied_files += copy_tree(project_root_path / "third-party", dist_path / "third-party")
+    copied_files += copy_tree(project_root_path / "images", dist_path / "images")
 
     # Mission assets (exclude raw archives by default)
     ignore_archives = shutil.ignore_patterns("archive")
-    for mission in missions:
+    for mission in missions_list:
         print_info(f"Copying mission assets: {mission}")
         copied_files += copy_tree(
-            os.path.join("assets", mission),
-            os.path.join(dist_path, "assets", mission),
+            project_root_path / "assets" / mission,
+            dist_path / "assets" / mission,
             ignore=ignore_archives,
         )
     
     # Create build info file
     build_info = {
-        "build_date": datetime.now().isoformat(),
+        "build_date": resolve_build_date(build_date=build_date, now_fn=now_fn),
         "build_type": "production",
         "version": "1.0.0",
-        "missions": missions,
+        "missions": missions_list,
         "files_copied": copied_files,
         "files_missing": missing_files
     }
     
-    with open(os.path.join(dist_path, "build-info.json"), "w") as f:
+    with open(dist_path / "build-info.json", "w", encoding="utf-8") as f:
         json.dump(build_info, f, indent=2)
     
     # Count total files
@@ -182,11 +224,16 @@ def build(dist_dir="dist", clean=True, missions=None):
     # List directory structure
     print_info("\nDirectory structure:")
     for root, dirs, files in os.walk(dist_path):
-        level = root.replace(dist_path, "").count(os.sep)
-        indent = " " * 2 * level
-        print(f"{indent}{os.path.basename(root)}/")
-        subindent = " " * 2 * (level + 1)
-        for file in sorted(files)[:10]:  # Show first 10 files, sorted
+        dirs.sort()
+        files = sorted(files)
+        root_path = Path(root)
+        level = root_path.relative_to(dist_path).parts
+        level_count = len(level)
+        indent = " " * 2 * level_count
+        folder_name = dist_path.name if root_path == dist_path else root_path.name
+        print(f"{indent}{folder_name}/")
+        subindent = " " * 2 * (level_count + 1)
+        for file in files[:10]:  # Show first 10 files, sorted
             print(f"{subindent}{file}")
         if len(files) > 10:
             print(f"{subindent}... and {len(files) - 10} more files")
@@ -197,11 +244,25 @@ def main():
     parser.add_argument("--no-clean", action="store_true", help="Don't clean dist directory before building")
     parser.add_argument("--mission", "--missions", nargs="+", 
                         help="Specific mission(s) to build (default: all discovered missions)")
+    parser.add_argument("--project-root", help="Project root path (default: auto-detect from script location)")
+    parser.add_argument(
+        "--build-date",
+        help="ISO timestamp for deterministic build-info.json (default: SOURCE_DATE_EPOCH or current UTC time)",
+    )
     
     args = parser.parse_args()
     
-    missions = args.mission if hasattr(args, 'mission') and args.mission else None
-    build(dist_dir=args.dist, clean=not args.no_clean, missions=missions)
+    missions = args.mission if hasattr(args, "mission") and args.mission else None
+    try:
+        build(
+            dist_dir=args.dist,
+            clean=not args.no_clean,
+            missions=missions,
+            project_root=args.project_root,
+            build_date=args.build_date,
+        )
+    except ValueError as error:
+        parser.error(str(error))
 
 if __name__ == "__main__":
     main()
