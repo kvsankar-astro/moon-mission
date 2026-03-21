@@ -19,6 +19,10 @@ import {
   resolveManifestGeneratedArtifact,
   resolveManifestRuntimeArtifact
 } from '../assets/platform/js/core/domain/ephemeris-manifest.js';
+import {
+  evaluateChebyshev,
+  getPositionFromChebyshev
+} from '../assets/platform/js/core/domain/ephemeris-core.js';
 
 // ============================================================================
 // Constants
@@ -323,90 +327,8 @@ async function loadNpzFile(filePath) {
 }
 
 // ============================================================================
-// Chebyshev Polynomial Evaluation
+// Chebyshev Polynomial Evaluation (shared core/domain implementation)
 // ============================================================================
-
-/**
- * Evaluate a Chebyshev polynomial using the Clenshaw recurrence algorithm.
- *
- * Implementation based on the specification in docs/chebyshev-format-spec.md:
- *
- *   function evaluateChebyshev(coeffs, x):
- *     // x must be in [-1, 1]
- *     n = length(coeffs)
- *     if n == 0: return 0
- *     if n == 1: return coeffs[0]
- *
- *     b_k1 = 0  // b_{k+1}
- *     b_k2 = 0  // b_{k+2}
- *
- *     for k from (n-1) down to 1:
- *       b_k = coeffs[k] + 2 * x * b_k1 - b_k2
- *       b_k2 = b_k1
- *       b_k1 = b_k
- *
- *     return coeffs[0] + x * b_k1 - b_k2
- *
- * @param {number[]} coeffs - Chebyshev coefficients [c0, c1, c2, ...]
- * @param {number} x - Normalized time in range [-1, 1]
- * @returns {number} Evaluated polynomial value
- */
-function evaluateChebyshev(coeffs, x) {
-  const n = coeffs.length;
-
-  if (n === 0) return 0;
-  if (n === 1) return coeffs[0];
-
-  let b_k1 = 0;  // b_{k+1}
-  let b_k2 = 0;  // b_{k+2}
-
-  // Iterate from n-1 down to 1
-  for (let k = n - 1; k >= 1; k--) {
-    const b_k = coeffs[k] + 2 * x * b_k1 - b_k2;
-    b_k2 = b_k1;
-    b_k1 = b_k;
-  }
-
-  return coeffs[0] + x * b_k1 - b_k2;
-}
-
-/**
- * Find the segment containing a given Julian date
- * @param {Object[]} segments - Array of segment objects
- * @param {number} jd - Julian date to find
- * @returns {Object|null} Segment containing the time, or null if not found
- */
-function findSegment(segments, jd) {
-  for (const segment of segments) {
-    if (jd >= segment.t_start && jd <= segment.t_end) {
-      return segment;
-    }
-  }
-  return null;
-}
-
-/**
- * Get position from Chebyshev data at a specific Julian date
- * @param {Object} chebData - Loaded Chebyshev JSON data
- * @param {number} jd - Julian date
- * @returns {Object|null} Position {x, y, z} in km, or null if out of range
- */
-function getPositionFromChebyshev(chebData, jd) {
-  const segment = findSegment(chebData.segments, jd);
-  if (!segment) {
-    return null;
-  }
-
-  // Normalize time to [-1, 1] as per spec:
-  // t_norm = 2 * (t - t_start) / (t_end - t_start) - 1
-  const t_norm = 2 * (jd - segment.t_start) / (segment.t_end - segment.t_start) - 1;
-
-  return {
-    x: evaluateChebyshev(segment.cx, t_norm),
-    y: evaluateChebyshev(segment.cy, t_norm),
-    z: evaluateChebyshev(segment.cz, t_norm)
-  };
-}
 
 // ============================================================================
 // NPZ Interpolation
