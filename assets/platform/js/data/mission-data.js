@@ -1,15 +1,20 @@
 import { loadChebyshevData } from "../chebyshev.js";
 import { loadNpzEphemeris } from "./npz-ephemeris.js";
 import {
-    resolveManifestRuntimeArtifact,
-    toLandingPhaseKey,
-} from "../core/domain/ephemeris-manifest.js";
-import {
     formatMissionConfigDiagnostics,
     normalizeMissionConfig,
     parseMissionConfig,
     validateMissionConfig,
 } from "../core/domain/mission-config.js";
+import {
+    extractEphemerisManifest,
+    resolveLandingChebyshevAssetUrl,
+    resolveLandingNpzAssetUrl,
+    resolveMissionConfigUrl,
+    resolveMissionManifestUrl,
+    resolveOrbitAssetUrls,
+    resolveOrbitNpzAssetUrl,
+} from "../core/domain/mission-asset-resolver.js";
 
 let missionConfigLoaded = false;
 let missionConfigValue = null;
@@ -27,43 +32,11 @@ export function getMissionDataPath() {
 }
 
 export function getMissionConfigUrl() {
-    const dataPath = getMissionDataPath();
-    if (!dataPath) return null;
-    return `${dataPath}config.json`;
+    return resolveMissionConfigUrl(getMissionDataPath());
 }
 
 export function getMissionManifestUrl() {
-    const dataPath = getMissionDataPath();
-    if (!dataPath) return null;
-    return `${dataPath}ephemeris-manifest.json`;
-}
-
-function normalizeRelativePath(pathValue) {
-    if (typeof pathValue !== "string") return null;
-    const trimmed = pathValue.trim();
-    if (!trimmed) return null;
-    return trimmed.replace(/\\/g, "/");
-}
-
-function resolveDataUrl(dataPath, relativePath) {
-    const normalized = normalizeRelativePath(relativePath);
-    if (!normalized) return null;
-    if (/^(https?:)?\/\//.test(normalized) || normalized.startsWith("/")) {
-        return normalized;
-    }
-    const relative = normalized.replace(/^\.?\//, "");
-    return dataPath.endsWith("/") ? `${dataPath}${relative}` : `${dataPath}/${relative}`;
-}
-
-function getEphemerisManifest(configData) {
-    return configData?.ephemeris_manifest || configData?.ephemerisManifest || null;
-}
-
-function resolveManifestPhaseArtifactUrl(configData, phaseKey, artifactKey) {
-    const dataPath = getMissionDataPath();
-    if (!dataPath) return null;
-    const runtimePath = resolveManifestRuntimeArtifact(getEphemerisManifest(configData), phaseKey, artifactKey);
-    return resolveDataUrl(dataPath, runtimePath);
+    return resolveMissionManifestUrl(getMissionDataPath());
 }
 
 export async function loadMissionConfig() {
@@ -128,72 +101,48 @@ export function resolveOrbitUrls(configData, mode) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
 
-    const cfg = configData?.[mode];
-    const manifestJsonUrl = resolveManifestPhaseArtifactUrl(configData, mode, "json");
-    const manifestChebUrl = resolveManifestPhaseArtifactUrl(configData, mode, "chebyshev");
-    const legacyBase = cfg?.orbits_file;
-
-    const orbitsJson = manifestJsonUrl || resolveDataUrl(dataPath, legacyBase ? `${legacyBase}.json` : null);
-    const orbitsCheb = manifestChebUrl || resolveDataUrl(dataPath, legacyBase ? `${legacyBase}-cheb.json` : null);
-    if (!orbitsJson && !orbitsCheb) return null;
-
-    return {
-        orbitsJson,
-        orbitsCheb,
-    };
+    return resolveOrbitAssetUrls({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        phaseKey: mode,
+        phaseConfig: configData?.[mode],
+    });
 }
 
 export function resolveOrbitNpzUrl(configData, mode) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
 
-    const cfg = configData?.[mode];
-    const manifestNpzUrl = resolveManifestPhaseArtifactUrl(configData, mode, "npz");
-    if (manifestNpzUrl) return manifestNpzUrl;
-    if (!cfg?.orbits_file) return null;
-
-    return resolveDataUrl(dataPath, `${cfg.orbits_file}.npz`);
+    return resolveOrbitNpzAssetUrl({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        phaseKey: mode,
+        phaseConfig: configData?.[mode],
+    });
 }
 
 export function resolveLandingChebyshevUrl(configData, cfgKey = null) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
 
-    const landingPhaseKey = toLandingPhaseKey(cfgKey);
-    const manifestLandingSpecific = resolveManifestPhaseArtifactUrl(configData, landingPhaseKey, "chebyshev");
-    if (manifestLandingSpecific) return manifestLandingSpecific;
-    const manifestLanding = resolveManifestPhaseArtifactUrl(configData, "landing", "chebyshev");
-    if (manifestLanding) return manifestLanding;
-
-    const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-    const overrideBase = configData?.landing?.orbits_file;
-    const base = overrideBase || `landing-${spacecraftMnemonic}`;
-
-    const suffix = cfgKey ? `-${cfgKey}` : "";
-    const filename = `${base}${suffix}-cheb.json`;
-
-    // Fall back to legacy (no suffix) name when cfgKey not provided or file missing;
-    // the caller will handle fetch errors if the file does not exist.
-
-    return `${dataPath}${filename}`;
+    return resolveLandingChebyshevAssetUrl({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        configData,
+        cfgKey,
+    });
 }
 
 export function resolveLandingNpzUrl(configData, cfgKey = null) {
     const dataPath = getMissionDataPath();
     if (!dataPath) return null;
 
-    const landingPhaseKey = toLandingPhaseKey(cfgKey);
-    const manifestLandingSpecific = resolveManifestPhaseArtifactUrl(configData, landingPhaseKey, "npz");
-    if (manifestLandingSpecific) return manifestLandingSpecific;
-    const manifestLanding = resolveManifestPhaseArtifactUrl(configData, "landing", "npz");
-    if (manifestLanding) return manifestLanding;
-
-    const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
-    const overrideBase = configData?.landing?.orbits_file;
-    const base = overrideBase || `landing-${spacecraftMnemonic}`;
-
-    const suffix = cfgKey ? `-${cfgKey}` : "";
-    return resolveDataUrl(dataPath, `${base}${suffix}.npz`);
+    return resolveLandingNpzAssetUrl({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        configData,
+        cfgKey,
+    });
 }
 
 export async function loadChebyshev(url) {
