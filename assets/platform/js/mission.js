@@ -46,6 +46,7 @@ import {
     updateThreeDLoopCamera,
 } from "./app/animation-loop.js";
 import { adjustSceneCameraProjectionAndSky } from "./app/scene-camera-upkeep-actions.js";
+import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -180,6 +181,13 @@ function getSceneForConfig(cfg = config) {
 let toggleMode;
 let setDimensionTop;
 let setView;
+const runtimeSessionState = createRuntimeSessionState({
+    initialAnimTime: animTime,
+    initialAnimationRunning: animationRunning,
+    initialJoyRide: false,
+    initialLanding: false,
+});
+const runtimeFlags = runtimeSessionState.getRuntimeFlags();
 
 const {
     bridgeActions,
@@ -196,9 +204,9 @@ const {
     setConfig: (val) => {
         config = val;
     },
-    getLandingFlag: () => runtimeFlags.landing,
+    getLandingFlag: () => runtimeSessionState.getLandingFlag(),
     setLandingFlag: (val) => {
-        runtimeFlags.landing = val;
+        runtimeSessionState.setLandingFlag(val);
     },
     getCraftScaleActions: () => missionRuntimeWireup?.craftScaleActions,
     getSceneFrameOrchestrationActions: () => missionRuntimeWireup?.sceneFrameOrchestrationActions,
@@ -248,7 +256,7 @@ const {
     },
     isRelativeMode,
     getToggleMode: () => toggleMode,
-    getCurrentAnimTime: () => animTime,
+    getCurrentAnimTime: () => runtimeSessionState.getAnimTime(),
     planeSelection,
 });
 
@@ -258,12 +266,12 @@ const eventBus = createEventBus();
 // Callbacks sync global state and update UI for backward compatibility
 var animationController = new AnimationController({
     onTimeChange: (time) => {
-        animTime = time;  // Sync global animTime for backward compatibility
+        runtimeSessionState.setAnimTime(time);
         bridgeActions.setLocation();    // Update scene positions
         eventBus.emit("animation:timeChanged", { time });
     },
     onPlayStateChange: (isPlaying) => {
-        animationRunning = isPlaying;  // Sync global state
+        runtimeSessionState.setAnimationRunning(isPlaying);
         updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
@@ -273,10 +281,6 @@ var animationController = new AnimationController({
 });
 
 var globalConfig = null; // Store loaded config from config.json
-const runtimeFlags = {
-    joyRide: false,
-    landing: false,
-};
 
 const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     d3,
@@ -339,10 +343,10 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getMoonRadius: () => moonRadius,
     getViewPolarAxes: () => viewPolarAxes,
     getViewPoles: () => viewPoles,
-    getAnimTime: () => animTime,
+    getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEarthRadius: () => earthRadius,
     getViewCraters: () => viewCraters,
-    getRuntimeFlags: () => runtimeFlags,
+    getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
     getBodyEphemerisState,
     getEphemerisSource: () => ephemerisSource,
@@ -406,7 +410,10 @@ const missionStateCells = {
     startLandingTime: bindStateCell(() => startLandingTime, (value) => { startLandingTime = value; }),
     endLandingTime: bindStateCell(() => endLandingTime, (value) => { endLandingTime = value; }),
     frameMode: bindReadonlyStateCell(() => frameMode),
-    animTime: bindStateCell(() => animTime, (value) => { animTime = value; }),
+    animTime: bindStateCell(
+        () => runtimeSessionState.getAnimTime(),
+        (value) => { runtimeSessionState.setAnimTime(value); },
+    ),
     craftData: bindStateCell(() => craftData, (value) => { craftData = value; }),
     eventInfos: bindStateCell(() => eventInfos, (value) => { eventInfos = value; }),
     ephemerisSource: bindStateCell(() => ephemerisSource, (value) => { ephemerisSource = value; }),
@@ -432,7 +439,7 @@ const missionStateCells = {
     mouseDown: bindStateCell(() => mouseDown, (value) => { mouseDown = value; }),
     missionStartCalled: bindStateCell(() => missionStartCalled, (value) => { missionStartCalled = value; }),
     timeoutHandle: bindReadonlyStateCell(() => timeoutHandle),
-    animationRunning: bindReadonlyStateCell(() => animationRunning),
+    animationRunning: bindReadonlyStateCell(() => runtimeSessionState.getAnimationRunning()),
     svgRect: bindStateCell(() => svgRect, (value) => { svgRect = value; }),
     sunLongitude: bindStateCell(() => sunLongitude, (value) => { sunLongitude = value; }),
     craftId: bindReadonlyStateCell(() => craftId),
