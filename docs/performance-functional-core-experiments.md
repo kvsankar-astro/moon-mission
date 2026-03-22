@@ -111,3 +111,43 @@ Reducing these redundant ephemeris queries should improve frame-time consistency
 ### Result
 - SC body-state hot path improved by ~`6-7%` mean.
 - Relative GEO scene-state benchmark improved by ~`12.0%` mean vs Experiment 2 snapshot.
+
+## Experiment 4: Switch Moon Ephemeris Source from Astronomy to NPZ (Config-Only)
+
+### Hypothesis
+Moon state computation via `astronomy-engine` is now the dominant cost in the remaining functional-core path. Switching Moon to precomputed NPZ vectors should significantly reduce per-frame compute cost with minimal behavioral risk.
+
+### Change
+- `assets/chandrayaan3/data/config.json`
+  - `ephemeris_sources.MOON`: `"astronomy"` -> `"npz"`
+- `scripts/bench-functional-core-scene-state.js`
+  - Added NPZ loading support from disk, so benchmark scenarios are valid when a body source is set to `npz`.
+  - This keeps benchmark tooling aligned with runtime source selection behavior.
+
+### Measurement
+- Relative mode (`geo`, `frameMode=relative`, `includeNextState=false`), astronomy source:
+  - mean-of-means `0.013444 ms`
+  - median-of-medians `0.012300 ms`
+  - mean p95 `0.014150 ms`
+  - mean p99 `0.033675 ms`
+- Relative mode, NPZ source:
+  - mean-of-means `0.001991 ms`
+  - median-of-medians `0.001200 ms`
+  - mean p95 `0.001925 ms`
+  - mean p99 `0.002862 ms`
+- Inertial mode (`geo`, `frameMode=inertial`, `includeNextState=false`), astronomy source:
+  - mean-of-means `0.013675 ms`
+  - median-of-medians `0.012300 ms`
+- Inertial mode, NPZ source:
+  - mean-of-means `0.001505 ms`
+  - median-of-medians `0.001100 ms`
+
+### Result
+- Relative-mode mean improved by ~`85.2%` (about `6.8x` faster).
+- Relative-mode p99 improved by ~`91.5%`.
+- Inertial-mode mean improved by ~`89.0%` (about `9.1x` faster).
+
+### Validation
+- Unit tests: pass.
+- UI tests: pass (`48/48`).
+- SSIM regressions: `0`.
