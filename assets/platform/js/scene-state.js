@@ -49,6 +49,7 @@ export function computeBodyState(bodyId, time, config, data) {
         ephemerisSource,
         bodySources,
         includeNextState,
+        precomputedBodyEphemeris,
     } = data;
 
     const spacecraftMnemonic = (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase();
@@ -115,18 +116,20 @@ export function computeBodyState(bodyId, time, config, data) {
     }
 
     if (bodyId === "MOON" && config === "geo") {
-        const ephemerisState = getBodyEphemerisState({
-            bodyId,
-            timeMs: time,
-            config,
-            npzData,
-            npzDataLoaded,
-            chebyshevData,
-            chebyshevDataLoaded,
-            bodySources,
-            defaultSpacecraftSource: ephemerisSource,
-            spacecraftMnemonic,
-        });
+        const ephemerisState =
+            precomputedBodyEphemeris?.MOON ||
+            getBodyEphemerisState({
+                bodyId,
+                timeMs: time,
+                config,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                bodySources,
+                defaultSpacecraftSource: ephemerisSource,
+                spacecraftMnemonic,
+            });
 
         if (!ephemerisState.available) {
             return ephemerisState;
@@ -414,6 +417,7 @@ export function computeSceneState(time, config, options) {
         frameMode,
         ephemerisSource,
         bodySources,
+        includeNextState,
     } = options;
 
     if (providedSunLongitude === undefined || providedSunLongitude === null) {
@@ -428,9 +432,11 @@ export function computeSceneState(time, config, options) {
         z: 0,
     };
 
+    let relativeFrameMoonState = null;
+
     // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo") {
-        const moonState = getBodyEphemerisState({
+        relativeFrameMoonState = getBodyEphemerisState({
             bodyId: "MOON",
             timeMs: time,
             config,
@@ -443,14 +449,14 @@ export function computeSceneState(time, config, options) {
             spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
         });
 
-        if (!moonState.available) {
+        if (!relativeFrameMoonState.available) {
             throw new Error("Moon state unavailable for relative frame");
         }
-        const r = moonState.position;
+        const r = relativeFrameMoonState.position;
         const v = {
-            x: moonState.velocity.vx,
-            y: moonState.velocity.vy,
-            z: moonState.velocity.vz,
+            x: relativeFrameMoonState.velocity.vx,
+            y: relativeFrameMoonState.velocity.vy,
+            z: relativeFrameMoonState.velocity.vz,
         };
 
         const xHat = normalize(r);
@@ -486,6 +492,10 @@ export function computeSceneState(time, config, options) {
         frameMode,
         ephemerisSource,
         bodySources,
+        includeNextState,
+        precomputedBodyEphemeris: relativeFrameMoonState
+            ? { MOON: relativeFrameMoonState }
+            : null,
     };
 
     for (const bodyId of planetsForLocations) {

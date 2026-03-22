@@ -38,3 +38,46 @@ This document tracks experiment-driven performance work on the functional core.
 - Unit tests: pass.
 - UI tests: pass.
 - SSIM regressions: `0`.
+
+## Experiment 2: Remove Redundant Ephemeris Work in Scene Composition
+
+### Hypothesis
+Two avoidable costs were present in the scene-state functional core:
+- `includeNextState` was not being forwarded through `computeSceneState`, so 2D scene computation still performed unnecessary SC next-state lookups.
+- Relative GEO mode computed Moon ephemeris twice per frame (Sun-frame transform + body-state pass).
+
+Reducing these redundant ephemeris queries should improve frame-time consistency and average cost without changing rendering behavior.
+
+### Change
+- `assets/platform/js/scene-state.js`
+  - `computeSceneState` now forwards `includeNextState` to body-state computation.
+  - Relative GEO computation now reuses the Moon ephemeris state already fetched for Sun-direction frame transform.
+  - `computeBodyState("MOON", "geo", ...)` accepts optional `precomputedBodyEphemeris.MOON`.
+- `scripts/bench-functional-core-scene-state.js`
+  - Added `--frame-mode` argument (`inertial` or `relative`) for reproducible mode-specific benchmarking.
+- `test/scene-state.test.js`
+  - Added coverage for `computeSceneState` forwarding `includeNextState`.
+  - Added coverage that relative mode performs only one Moon ephemeris lookup.
+  - Added coverage for `computeBodyState` Moon precomputed-state reuse.
+
+### Measurement
+- Relative-mode benchmark (before change):
+  - `computeSceneState` with `frameMode=relative`, `includeNextState=false`
+  - Aggregate mean-of-means: `0.024713 ms`
+  - Aggregate mean p95: `0.027287 ms`
+  - Aggregate mean p99: `0.084250 ms`
+- Relative-mode benchmark (after change):
+  - `node scripts/bench-functional-core-scene-state.js --config geo --frame-mode relative --rounds 8 --samples 6000 --warmup 1500 --include-next-state false`
+  - Aggregate mean-of-means: `0.016381 ms`
+  - Aggregate mean p95: `0.018700 ms`
+  - Aggregate mean p99: `0.045200 ms`
+- Inertial-mode check after forwarding `includeNextState`:
+  - `--frame-mode inertial --include-next-state true`: mean-of-means `0.015956 ms`
+  - `--frame-mode inertial --include-next-state false`: mean-of-means `0.015123 ms`
+
+### Result
+- Relative GEO path improved substantially after removing duplicate Moon lookup:
+  - mean-of-means improved by ~`33.7%`
+  - mean p95 improved by ~`31.5%`
+  - mean p99 improved by ~`46.3%`
+- Inertial path also improved modestly when `includeNextState=false` is active in scene-state composition.

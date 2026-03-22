@@ -58,6 +58,7 @@ function parseArgs(argv) {
         warmup: 500,
         config: "geo",
         includeNextState: false,
+        frameMode: "inertial",
     };
 
     for (let i = 2; i < argv.length; i++) {
@@ -66,6 +67,7 @@ function parseArgs(argv) {
         if (arg === "--samples") args.samples = Number(argv[++i] || args.samples);
         if (arg === "--warmup") args.warmup = Number(argv[++i] || args.warmup);
         if (arg === "--config") args.config = String(argv[++i] || args.config);
+        if (arg === "--frame-mode") args.frameMode = String(argv[++i] || args.frameMode);
         if (arg === "--include-next-state") {
             const raw = String(argv[++i] || "false").toLowerCase();
             args.includeNextState = raw === "true" || raw === "1" || raw === "yes";
@@ -202,6 +204,7 @@ function main() {
         phaseKey: args.config,
         includeNextState: args.includeNextState,
     });
+    inputs.options.frameMode = args.frameMode;
     const timeline = buildTimeline(inputs.startTimeMs, inputs.endTimeMs, args.samples);
 
     const rounds = [];
@@ -247,6 +250,7 @@ function main() {
             warmup: args.warmup,
             rounds: args.rounds,
             includeNextState: args.includeNextState,
+            frameMode: args.frameMode,
         },
     };
 
