@@ -81,3 +81,33 @@ Reducing these redundant ephemeris queries should improve frame-time consistency
   - mean p95 improved by ~`31.5%`
   - mean p99 improved by ~`46.3%`
 - Inertial path also improved modestly when `includeNextState=false` is active in scene-state composition.
+
+## Experiment 3: Remove Per-Call Date Allocation in JD Conversion
+
+### Hypothesis
+`getHorizonsJulianDate` is called on every ephemeris lookup and was allocating a `Date` object even when `Date#getJD_UTC` is unavailable. Eliminating that allocation on the common path should reduce GC pressure and improve core throughput.
+
+### Change
+- `assets/platform/js/data/ephemeris-provider.js`
+  - Added module-level constants for Julian-date conversion.
+  - Added one-time capability check `HAS_DATE_GET_JD_UTC`.
+  - Uses direct arithmetic conversion without allocating `Date` when `getJD_UTC` is not available.
+- Added `test/ephemeris-provider.test.js`
+  - Verifies Julian-date conversion at Unix epoch and a mission-era UTC timestamp.
+
+### Measurement
+- Targeted SC body-state benchmark (before change):
+  - `--include-next-state=false`: mean-of-means `0.000558 ms`
+  - `--include-next-state=true`: mean-of-means `0.001000 ms`
+- Targeted SC body-state benchmark (after change):
+  - `node scripts/bench-functional-core-sc-body-state.js --rounds 10 --samples 20000 --warmup 5000 --include-next-state false`
+  - mean-of-means `0.000520 ms`, mean p95 `0.000600 ms`, mean p99 `0.000920 ms`
+  - `node scripts/bench-functional-core-sc-body-state.js --rounds 10 --samples 20000 --warmup 5000 --include-next-state true`
+  - mean-of-means `0.000938 ms`, mean p95 `0.001070 ms`, mean p99 `0.001620 ms`
+- Scene-state relative-mode check (after change):
+  - `node scripts/bench-functional-core-scene-state.js --config geo --frame-mode relative --rounds 8 --samples 6000 --warmup 1500 --include-next-state false`
+  - mean-of-means `0.014408 ms` (previous experiment: `0.016381 ms`)
+
+### Result
+- SC body-state hot path improved by ~`6-7%` mean.
+- Relative GEO scene-state benchmark improved by ~`12.0%` mean vs Experiment 2 snapshot.

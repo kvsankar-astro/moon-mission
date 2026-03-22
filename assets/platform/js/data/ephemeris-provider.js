@@ -9,6 +9,12 @@ const DEFAULT_SOURCE_BY_BODY = {
     SUN: "astronomy",
 };
 
+const JD_UNIX_EPOCH = 2440587.5;
+const MS_PER_DAY = 86400000;
+const HAS_DATE_GET_JD_UTC =
+    typeof Date !== "undefined" &&
+    typeof Date.prototype.getJD_UTC === "function";
+
 function normalizeBodyId(bodyId) {
     return typeof bodyId === "string" ? bodyId.toUpperCase() : "";
 }
@@ -71,13 +77,10 @@ function convertRawState(rawState, source) {
 }
 
 export function getHorizonsJulianDate(timeMs) {
-    const date = new Date(timeMs);
-    if (typeof date.getJD_UTC === "function") {
-        return date.getJD_UTC();
+    if (HAS_DATE_GET_JD_UTC) {
+        return new Date(timeMs).getJD_UTC();
     }
-
-    const JD_UNIX_EPOCH = 2440587.5;
-    return JD_UNIX_EPOCH + timeMs / 86400000;
+    return JD_UNIX_EPOCH + timeMs / MS_PER_DAY;
 }
 
 export function resolveBodySource({
