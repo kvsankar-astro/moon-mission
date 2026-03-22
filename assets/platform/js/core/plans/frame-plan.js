@@ -17,6 +17,7 @@ function buildSceneStateOptions({
     frameMode,
     bodySources,
     ephemerisSource,
+    includeNextState,
 }) {
     return {
         sunLongitude,
@@ -37,6 +38,7 @@ function buildSceneStateOptions({
         frameMode,
         bodySources,
         ephemerisSource,
+        includeNextState,
     };
 }
 
@@ -114,6 +116,7 @@ function planFrameStep(input) {
         frameMode,
         bodySources,
         ephemerisSource,
+        includeNextState: currentDimension !== "2D",
     });
     const sceneState = computeSceneState(animTime, config, sceneStateOptions);
     const primaryBody = scene.primaryBody;

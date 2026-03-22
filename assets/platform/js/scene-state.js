@@ -48,6 +48,7 @@ export function computeBodyState(bodyId, time, config, data) {
         frameMode,
         ephemerisSource,
         bodySources,
+        includeNextState,
     } = data;
 
     const spacecraftMnemonic = (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase();
@@ -80,6 +81,17 @@ export function computeBodyState(bodyId, time, config, data) {
         const current = computeScStateAtTime(time);
         if (!current.available) {
             return { position: null, velocity: null, nextPosition: null, nextVelocity: null, available: false };
+        }
+
+        const shouldIncludeNextState = includeNextState !== false;
+        if (!shouldIncludeNextState) {
+            return {
+                position: current.position,
+                velocity: current.velocity,
+                nextPosition: current.position,
+                nextVelocity: current.velocity,
+                available: true,
+            };
         }
 
         // Use finer step near landing to stabilize orientation (landing data is 1s resolution)

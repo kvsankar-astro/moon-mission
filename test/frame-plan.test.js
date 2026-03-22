@@ -71,6 +71,7 @@ describe("planFrameStep", () => {
                 frameMode: "inertial",
                 ephemerisSource: "chebyshev",
                 planetsForLocations: ["EARTH", "MOON"],
+                includeNextState: true,
             }),
         );
 
@@ -105,18 +106,20 @@ describe("planFrameStep", () => {
             initialized3D: false,
         };
 
+        const computeSceneState = vi.fn(() => ({
+            sunLongitude: 0.5,
+            phase: "lunar-orbit",
+            activeEvent: null,
+            telemetry: null,
+            bodies: {},
+        }));
+
         const plan = planFrameStep({
             config: "lunar",
             animTime: 42,
             scene,
             computeSunLongitude: () => 0.5,
-            computeSceneState: () => ({
-                sunLongitude: 0.5,
-                phase: "lunar-orbit",
-                activeEvent: null,
-                telemetry: null,
-                bodies: {},
-            }),
+            computeSceneState,
             chebyshevData: {},
             chebyshevDataLoaded: {},
             npzData: {},
@@ -140,6 +143,13 @@ describe("planFrameStep", () => {
         });
 
         expect(plan.shouldRun).toBe(true);
+        expect(computeSceneState).toHaveBeenCalledWith(
+            42,
+            "lunar",
+            expect.objectContaining({
+                includeNextState: false,
+            }),
+        );
         expect(plan.renderIntent.dimension).toBe("2D");
         expect(plan.renderIntent.shouldAdjustCameraProjection).toBe(false);
         expect(plan.renderIntent.renderOptions.landingFreezeTime).toBeNull();
