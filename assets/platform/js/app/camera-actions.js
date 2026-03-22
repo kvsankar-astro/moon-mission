@@ -194,8 +194,23 @@ export function createCameraActions({
         return scene.craft ?? null;
     }
 
+    function updateMountedCraftVisibility(scene, positionMode) {
+        if (!scene?.craft) return;
+
+        const hideCraft = positionMode === "spacecraft";
+        scene.hideCraftForMountedCamera = hideCraft;
+
+        if (hideCraft) {
+            scene.craft.visible = false;
+            if (scene.drone) scene.drone.visible = false;
+        }
+    }
+
     function updateMountedBodyVisibility(scene, positionMode) {
-        if (!scene?.cameraController) return;
+        if (!scene) return;
+
+        updateMountedCraftVisibility(scene, positionMode);
+        if (!scene.cameraController) return;
 
         const controller = scene.cameraController;
 

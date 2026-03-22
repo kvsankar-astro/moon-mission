@@ -37,7 +37,7 @@ export function createCraftScaleActions({
         scene.drone.scale.set(scale, scale, scale);
 
         if (isLocationAvaialable("SC", getAnimTime())) {
-            scene.craft.visible = scene.craftVisible;
+            scene.craft.visible = scene.craftVisible && !scene.hideCraftForMountedCamera;
             scene.drone.visible = false;
         } else {
             scene.craft.visible = false;
