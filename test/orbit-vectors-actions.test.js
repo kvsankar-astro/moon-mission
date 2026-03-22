@@ -1,0 +1,120 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { createOrbitVectorsActions } from "../assets/platform/js/app/orbit-vectors-actions.js";
+
+function createChain() {
+    return {
+        append() {
+            return this;
+        },
+        attr() {
+            return this;
+        },
+        style() {
+            return this;
+        },
+        text() {
+            return this;
+        },
+        select() {
+            return this;
+        },
+    };
+}
+
+function createLineBuilder() {
+    const line = () => "M0,0";
+    line.x = () => line;
+    line.y = () => line;
+    line.interpolate = () => line;
+    return line;
+}
+
+function createActionsHarness() {
+    const svgContainer = createChain();
+    const state = {
+        startTimeMs: 0,
+        endTimeMs: 60000,
+        source: "chebyshev",
+    };
+
+    const generateBodyCurve = vi.fn(() => [
+        { x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0 },
+        { x: 2, y: 3, z: 4, vx: 0, vy: 0, vz: 0 },
+    ]);
+
+    const actions = createOrbitVectorsActions({
+        d3: {
+            svg: {
+                line: createLineBuilder,
+            },
+            select: () => createChain(),
+        },
+        sleep: async () => {},
+        getSvgContainer: () => svgContainer,
+        getCurrentDimension: () => "2D",
+        getConfig: () => "geo",
+        animationScenes: {
+            geo: {
+                planetsForLocations: ["SC"],
+                stepDurationInMilliSeconds: 60000,
+                primaryBody: "EARTH",
+                primaryBodyRadius: 1,
+            },
+        },
+        planetProperties: {
+            SC: { orbitcolor: "#fff", r: 1, color: "#fff", name: "SC" },
+            EARTH: { color: "#00f", name: "Earth" },
+        },
+        shouldDrawOrbit: () => true,
+        chebyshevDataLoaded: {},
+        chebyshevData: {},
+        npzData: {},
+        npzDataLoaded: {},
+        getEphemerisSource: () => state.source,
+        resolveBodySource: () => state.source,
+        generateBodyCurve,
+        getStartTime: () => state.startTimeMs,
+        getLatestEndTime: () => state.endTimeMs,
+        getZoomFactor: () => 1,
+        getPlaneVariables: () => ({
+            xFactor: 1,
+            yFactor: 1,
+            xVariable: "x",
+            yVariable: "y",
+        }),
+        planetStartTime: () => 0,
+        PC: { KM_PER_AU: 1 },
+        UC: {
+            CENTER_LABEL_OFFSET_X: 0,
+            CENTER_LABEL_OFFSET_Y: 0,
+        },
+        getPixelsPerAU: () => 1,
+        getEpochJD: () => 2451545,
+        getEpochDate: () => new Date("2000-01-01T12:00:00Z"),
+        setEpochDisplay: () => {},
+    });
+
+    return { actions, state, generateBodyCurve };
+}
+
+describe("createOrbitVectorsActions", () => {
+    it("reuses generated body curves when source and time range are unchanged", async () => {
+        const { actions, generateBodyCurve } = createActionsHarness();
+
+        await actions.processOrbitVectorsData();
+        await actions.processOrbitVectorsData();
+
+        expect(generateBodyCurve).toHaveBeenCalledTimes(1);
+    });
+
+    it("invalidates cached curves when the time range changes", async () => {
+        const { actions, state, generateBodyCurve } = createActionsHarness();
+
+        await actions.processOrbitVectorsData();
+        state.endTimeMs = 120000;
+        await actions.processOrbitVectorsData();
+
+        expect(generateBodyCurve).toHaveBeenCalledTimes(2);
+    });
+});

@@ -26,6 +26,51 @@ export function createOrbitVectorsActions({
     getEpochDate,
     setEpochDisplay,
 }) {
+    const curveCacheByConfig = new Map();
+
+    function resolveBodyOrbitVectors({
+        bodyId,
+        config,
+        stepMs,
+        resolvedSource,
+        defaultSpacecraftSource,
+    }) {
+        const startTimeMs = getStartTime();
+        const endTimeMs = getLatestEndTime();
+        const cacheKey = `${resolvedSource}|${startTimeMs}|${endTimeMs}|${stepMs}`;
+
+        let configCache = curveCacheByConfig.get(config);
+        if (!configCache) {
+            configCache = new Map();
+            curveCacheByConfig.set(config, configCache);
+        }
+
+        const cached = configCache.get(bodyId);
+        if (cached && cached.cacheKey === cacheKey) {
+            return cached.vectors;
+        }
+
+        const vectors =
+            typeof generateBodyCurve === "function"
+                ? generateBodyCurve({
+                      bodyId,
+                      config,
+                      startTimeMs,
+                      endTimeMs,
+                      stepMs,
+                      npzData,
+                      npzDataLoaded,
+                      chebyshevData,
+                      chebyshevDataLoaded,
+                      resolvedSource,
+                      defaultSpacecraftSource,
+                  })
+                : [];
+
+        configCache.set(bodyId, { cacheKey, vectors });
+        return vectors;
+    }
+
     async function processOrbitVectorsData() {
         // Add spacecraft orbits (2D SVG mode)
 
@@ -48,32 +93,24 @@ export function createOrbitVectorsActions({
                     return;
                 }
 
-                let vectors = [];
                 const stepMs = animationScenes[config].stepDurationInMilliSeconds;
-                vectors =
-                    typeof generateBodyCurve === "function"
-                        ? generateBodyCurve({
-                              bodyId: planetKey,
-                              config,
-                              startTimeMs: getStartTime(),
-                              endTimeMs: getLatestEndTime(),
-                              stepMs,
-                              npzData,
-                              npzDataLoaded,
-                              chebyshevData,
-                              chebyshevDataLoaded,
-                              resolvedSource:
-                                  typeof resolveBodySource === "function"
-                                      ? resolveBodySource(planetKey)
-                                      : typeof getEphemerisSource === "function"
-                                        ? getEphemerisSource()
-                                        : "chebyshev",
-                              defaultSpacecraftSource:
-                                  typeof getEphemerisSource === "function"
-                                      ? getEphemerisSource()
-                                      : "chebyshev",
-                          })
-                        : [];
+                const resolvedSource =
+                    typeof resolveBodySource === "function"
+                        ? resolveBodySource(planetKey)
+                        : typeof getEphemerisSource === "function"
+                          ? getEphemerisSource()
+                          : "chebyshev";
+                const defaultSpacecraftSource =
+                    typeof getEphemerisSource === "function"
+                        ? getEphemerisSource()
+                        : "chebyshev";
+                const vectors = resolveBodyOrbitVectors({
+                    bodyId: planetKey,
+                    config,
+                    stepMs,
+                    resolvedSource,
+                    defaultSpacecraftSource,
+                });
 
                 if (vectors.length === 0) {
                     console.warn(
