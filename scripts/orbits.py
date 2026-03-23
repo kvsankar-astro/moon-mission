@@ -22,6 +22,7 @@ from ephemeris_manifest import ensure_manifest_file
 # JPL NAIF IDs for celestial bodies (spacecraft IDs will be loaded from config)
 JPL_MOON        = 301
 JPL_EARTH       = 399
+JPL_SUN         = 10
 
 JPL_EARTH_CENTER = '@399'
 JPL_MOON_CENTER = '@301'
@@ -29,7 +30,8 @@ JPL_MOON_CENTER = '@301'
 # Planet codes dictionary - will be populated from config
 planet_codes = {
     "MOON":     JPL_MOON,
-    "EARTH":    JPL_EARTH
+    "EARTH":    JPL_EARTH,
+    "SUN":      JPL_SUN
 }
 
 phase = None
@@ -191,7 +193,11 @@ def init_config(option, config):
 
     step_size_in_seconds = config[option]['step_size_in_seconds']
 
-    planets = config[option]['planets']
+    planets = list(config[option]['planets'])
+
+    # Always include Sun vectors in NPZ so runtime lighting can use NPZ-backed longitude.
+    if "SUN" not in planets:
+        planets.append("SUN")
 
     center = config[option]['center']
 
@@ -260,8 +266,11 @@ def save_fetched_data():
             ho_file_name = f"{data_dir}/ho-{fn}-elements.txt"
             try:
                 with open(ho_file_name, 'w') as fh:
-                    horizons = orbits_raw[planet]['elements_content']
-                    fh.write(horizons)
+                    horizons = orbits_raw.get(planet, {}).get('elements_content')
+                    if horizons:
+                        fh.write(horizons)
+                    else:
+                        fh.write(f"No elements content for {planet}\n")
             except IOError as e:
                 print_error(f"Can't write to {ho_file_name}: {e}")
                 return False
@@ -318,7 +327,10 @@ def save_orbit_data():
         ho_file_name = f"{data_dir}/ho-{fn}-orbit.txt"
         try:
             with open(ho_file_name, 'w') as fh:
-                elements = orbits[planet]['elements']
+                elements = orbits.get(planet, {}).get('elements')
+                if not elements:
+                    print_debug(f"Skipping orbit elements export for {planet}: no elements data")
+                    continue
                 
                 # print_debug(f"Planet {planet} has elements at: {','.join(sorted(elements.keys()))}")
                 
@@ -650,9 +662,10 @@ def process_phase(current_phase, base_data_dir, config):
 
     # Fetch data for all planets
     for planet in planets:
-        if not fetch_elements(planet):
-            print_error(f"Failed to fetch elements for {planet}. Exiting.")
-            return False
+        if planet != "SUN":
+            if not fetch_elements(planet):
+                print_error(f"Failed to fetch elements for {planet}. Exiting.")
+                return False
         if not fetch_vectors(planet):
             print_error(f"Failed to fetch vectors for {planet}. Exiting.")
             return False
@@ -663,7 +676,8 @@ def process_phase(current_phase, base_data_dir, config):
         return False
     
     for planet in planets:
-        parse_horizons_elements('elements', planet)
+        if planet != "SUN":
+            parse_horizons_elements('elements', planet)
         parse_horizons_elements('vectors', planet)
 
     save_orbit_data()

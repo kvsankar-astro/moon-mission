@@ -46,28 +46,43 @@ function createSceneFrameOrchestrationActions(deps) {
             return;
         }
 
+        const npzData = getNpzData();
+        const npzDataLoaded = getNpzDataLoaded();
+        const bodySources = getBodySources();
+        const activeEphemerisSource = getActiveEphemerisSource(config);
+        const globalConfig = getGlobalConfig();
+        const computeSunLongitudeForFrame = (timeMs) =>
+            computeSunLongitude(timeMs, {
+                config,
+                npzData,
+                npzDataLoaded,
+                bodySources,
+                defaultSpacecraftSource: activeEphemerisSource,
+                spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
+            });
+
         const framePlan = planFrameStep({
             config,
             animTime,
             scene,
-            computeSunLongitude,
+            computeSunLongitude: computeSunLongitudeForFrame,
             computeSceneState,
             chebyshevData: getChebyshevData(),
             chebyshevDataLoaded: getChebyshevDataLoaded(),
-            npzData: getNpzData(),
-            npzDataLoaded: getNpzDataLoaded(),
+            npzData,
+            npzDataLoaded,
             landingNpzData: getLandingNpzData(config),
             landingNpzLoaded: getLandingNpzLoaded(config),
             landingChebyshevData: getLandingChebyshevData(config),
             landingChebyshevLoaded: getLandingChebyshevLoaded(config),
-            globalConfig: getGlobalConfig(),
+            globalConfig,
             startLandingTime: getStartLandingTime(),
             endLandingTime: getEndLandingTime(),
             eventInfos: getEventInfos(),
             missionTimes: getMissionTimes(),
             frameMode: getFrameMode(),
-            bodySources: getBodySources(),
-            ephemerisSource: getActiveEphemerisSource(config),
+            bodySources,
+            ephemerisSource: activeEphemerisSource,
             craftId: getCraftId(),
             pixelsPerAU: getPixelsPerAU(),
             updateCraftScale,

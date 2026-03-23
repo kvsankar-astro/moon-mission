@@ -67,7 +67,12 @@ export function createOrbitLoadActions({
                     typeof getBodiesForConfig === "function"
                         ? getBodiesForConfig(config)
                         : animationScenes[config].planetsForLocations || [];
-                for (const bodyId of configuredBodies) {
+                const requiredBodies = new Set([
+                    ...(Array.isArray(configuredBodies) ? configuredBodies : []),
+                    "SUN",
+                ]);
+
+                for (const bodyId of requiredBodies) {
                     const source =
                         typeof getBodySource === "function"
                             ? getBodySource(bodyId)
