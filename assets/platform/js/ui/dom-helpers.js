@@ -34,6 +34,10 @@ export function ensureIndeterminateProgressBar(progressbarId = "progressbar") {
     if (!bar) return;
 
     bar.classList.add("ui-progressbar", "ui-progressbar-indeterminate");
+    bar.setAttribute("role", "progressbar");
+    bar.removeAttribute("aria-valuenow");
+    bar.removeAttribute("aria-valuemin");
+    bar.removeAttribute("aria-valuemax");
     let value = bar.querySelector(".ui-progressbar-value");
     if (!value) {
         value = document.createElement("div");
@@ -42,3 +46,34 @@ export function ensureIndeterminateProgressBar(progressbarId = "progressbar") {
     }
 }
 
+function getOrCreateProgressValueDiv(progressbarId = "progressbar") {
+    const bar = document.getElementById(progressbarId);
+    if (!bar) return { bar: null, valueDiv: null };
+
+    let valueDiv = bar.querySelector(".ui-progressbar-value");
+    if (!valueDiv) {
+        valueDiv = document.createElement("div");
+        valueDiv.className = "ui-progressbar-value";
+        bar.insertBefore(valueDiv, bar.firstChild);
+    }
+
+    return { bar, valueDiv };
+}
+
+export function ensureDeterminateProgressBar(progressbarId = "progressbar", value = 0) {
+    const { bar, valueDiv } = getOrCreateProgressValueDiv(progressbarId);
+    if (!bar || !valueDiv) return;
+
+    const normalized = Number.isFinite(value) ? Math.min(100, Math.max(0, value)) : 0;
+    bar.classList.add("ui-progressbar");
+    bar.classList.remove("ui-progressbar-indeterminate");
+    bar.setAttribute("role", "progressbar");
+    bar.setAttribute("aria-valuemin", "0");
+    bar.setAttribute("aria-valuemax", "100");
+    bar.setAttribute("aria-valuenow", String(Math.round(normalized)));
+    valueDiv.style.width = `${normalized}%`;
+}
+
+export function setProgressBarValue(progressbarId = "progressbar", value = 0) {
+    ensureDeterminateProgressBar(progressbarId, value);
+}

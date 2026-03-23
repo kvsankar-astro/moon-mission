@@ -23,6 +23,7 @@ export function createOrbitLoadActions({
     getBodiesForConfig,
     onEphemerisLoaded,
     onEphemerisStatus,
+    loadProgress,
 }) {
     const recordEphemeris =
         typeof onEphemerisLoaded === "function"
@@ -32,15 +33,32 @@ export function createOrbitLoadActions({
         typeof onEphemerisStatus === "function"
             ? onEphemerisStatus
             : () => {};
+    const progress =
+        loadProgress &&
+        typeof loadProgress.beginSessionIfNeeded === "function" &&
+        typeof loadProgress.setStage === "function" &&
+        typeof loadProgress.completeStage === "function" &&
+        typeof loadProgress.abortSession === "function" &&
+        typeof loadProgress.isActive === "function"
+            ? loadProgress
+            : null;
 
     async function loadOrbitDataIfNeededAndProcess(callback) {
         const config = getConfig();
 
         if (!orbitDataLoaded[config]) {
             const msg = getDataLoaded() ? "" : "Loading orbit data ... ";
-            ensureIndeterminateProgressBar("progressbar");
-            showElementById("progressbar");
-            updateProgressLabel(msg);
+            if (progress) {
+                progress.beginSessionIfNeeded({
+                    includeLanding: true,
+                    label: msg || "Loading orbit data ...",
+                });
+                progress.setStage("orbit", 0, msg || "Loading orbit data ...");
+            } else {
+                ensureIndeterminateProgressBar("progressbar");
+                showElementById("progressbar");
+                updateProgressLabel(msg);
+            }
             await sleep();
             const requiredSources = new Set();
 
@@ -61,6 +79,19 @@ export function createOrbitLoadActions({
                     }
                 }
 
+                const totalSources = Math.max(1, requiredSources.size);
+                let completedSources = 0;
+                const updateOrbitSourceProgress = () => {
+                    completedSources += 1;
+                    if (progress) {
+                        progress.setStage(
+                            "orbit",
+                            completedSources / totalSources,
+                            "Loading orbit data ...",
+                        );
+                    }
+                };
+
                 if (requiredSources.has("npz")) {
                     setStatus(config, "npz", "loading");
                     const npzUrl = animationScenes[config].orbitsNpz;
@@ -80,6 +111,7 @@ export function createOrbitLoadActions({
                         bodies: Object.keys(npzData[config] || {}),
                     });
                     setStatus(config, "npz", "ok");
+                    updateOrbitSourceProgress();
                 }
 
                 if (requiredSources.has("chebyshev")) {
@@ -101,18 +133,35 @@ export function createOrbitLoadActions({
                         url: chebUrl,
                     });
                     setStatus(config, "chebyshev", "ok");
+                    updateOrbitSourceProgress();
+                }
+
+                if (requiredSources.size === 0 && progress) {
+                    progress.completeStage("orbit", "Loading orbit data ...");
                 }
 
                 setDataLoaded(true);
                 orbitDataLoaded[config] = true;
 
-                hideElementById("progressbar");
+                if (progress) {
+                    progress.completeStage("orbit", "Loading orbit data ...");
+                    progress.setStage("process", 0, "Processing orbit data ...");
+                } else {
+                    hideElementById("progressbar");
+                }
                 await processOrbitData();
+                if (progress) {
+                    progress.completeStage("process", "Processing orbit data ...");
+                }
                 await sleep();
                 callback();
             } catch (error) {
                 console.error("Error loading orbit ephemeris data:", error);
-                hideElementById("progressbar");
+                if (progress) {
+                    progress.abortSession();
+                } else {
+                    hideElementById("progressbar");
+                }
                 setEventInfoText("Error: failed to load orbit data.");
                 for (const source of requiredSources) {
                     setStatus(config, source, "error", error?.message || String(error));
@@ -121,7 +170,13 @@ export function createOrbitLoadActions({
             return;
         }
 
+        if (progress && progress.isActive()) {
+            progress.setStage("process", 0, "Processing orbit data ...");
+        }
         await processOrbitData();
+        if (progress && progress.isActive()) {
+            progress.completeStage("process", "Processing orbit data ...");
+        }
         await sleep();
         callback();
     }

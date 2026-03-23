@@ -23,6 +23,7 @@ function createViewSettingsWiringActions(deps) {
         clearStartLandingFlag,
         toggleLanding,
         updateProgressLabel,
+        loadProgress,
         setConfig,
         AnimationScene,
         initAnimation,
@@ -56,6 +57,7 @@ function createViewSettingsWiringActions(deps) {
         clearStartLandingFlag,
         toggleLanding,
         updateProgressLabel,
+        loadProgress,
     });
 
     const { toggleMode, setDimensionTop, setView } = createSettingsActions({

@@ -28,9 +28,6 @@ export function createOrbitProcessActions({
     async function processOrbitData() {
         // console.log("processOrbitData() called");
 
-        hideElementById("progressbar");
-        clearProgressLabel();
-
         // Update configuration from metadata if available
         updateConfigFromMetadata();
 
@@ -137,4 +134,3 @@ export function createOrbitProcessActions({
 
     return { processOrbitData };
 }
-

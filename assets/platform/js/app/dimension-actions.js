@@ -27,7 +27,18 @@ export function createDimensionActions({
     clearStartLandingFlag,
     toggleLanding,
     updateProgressLabel,
+    loadProgress,
 }) {
+    const progress =
+        loadProgress &&
+        typeof loadProgress.beginSessionIfNeeded === "function" &&
+        typeof loadProgress.setStage === "function" &&
+        typeof loadProgress.completeStage === "function" &&
+        typeof loadProgress.completeSession === "function" &&
+        typeof loadProgress.isActive === "function"
+            ? loadProgress
+            : null;
+
     function setDimension(init_flag = false) {
         const transitionPlan = planDimensionTransition({
             requestedDimension: readCheckedRadioValue("dimension", getCurrentDimension()),
@@ -49,15 +60,28 @@ export function createDimensionActions({
             const scene = animationScenes[config];
             if (!scene.initialized3D) {
                 const msg = "Loading 3D data. This may take a while. Please wait ...";
-                ensureIndeterminateProgressBar("progressbar");
-                showElementById("progressbar");
-                updateProgressLabel(msg);
+                if (progress) {
+                    progress.beginSessionIfNeeded({
+                        includeLanding: true,
+                        label: msg,
+                    });
+                    progress.setStage("scene", 0, msg);
+                } else {
+                    ensureIndeterminateProgressBar("progressbar");
+                    showElementById("progressbar");
+                    updateProgressLabel(msg);
+                }
 
                 scene.processOrbitVectorsData3D();
                 scene.processLandingVectors();
 
                 scene.init3d(function () {
-                    hideElementById("progressbar");
+                    if (progress) {
+                        progress.completeStage("scene", "Preparing 3D scene ...");
+                        progress.completeSession("Ready");
+                    } else {
+                        hideElementById("progressbar");
+                    }
                     handleDimensionSwitch(transitionPlan.requestedDimension);
                     handlePlaneChange(getDimensionChanged(), init_flag);
                     setLocation();
@@ -67,6 +91,10 @@ export function createDimensionActions({
                     }
                 });
             } else {
+                if (progress && progress.isActive()) {
+                    progress.completeStage("scene", "Preparing 3D scene ...");
+                    progress.completeSession("Ready");
+                }
                 handleDimensionSwitch(transitionPlan.requestedDimension);
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
@@ -78,7 +106,12 @@ export function createDimensionActions({
         } else {
             initSVG();
             loadOrbitDataIfNeededAndProcess(function () {
-                if (getCurrentDimension() !== "2D") return;
+                if (getCurrentDimension() !== "2D") {
+                    if (progress && progress.isActive()) {
+                        progress.completeSession("Ready");
+                    }
+                    return;
+                }
                 handleDimensionSwitch(transitionPlan.requestedDimension);
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
@@ -86,6 +119,10 @@ export function createDimensionActions({
                 if (getStartLandingFlag()) {
                     clearStartLandingFlag();
                     toggleLanding();
+                }
+                if (progress && progress.isActive()) {
+                    progress.completeStage("scene", "Preparing 2D view ...");
+                    progress.completeSession("Ready");
                 }
             });
         }

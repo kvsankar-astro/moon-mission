@@ -33,10 +33,34 @@ function createInitConfigOrchestrationActions(deps) {
         getSceneHandler,
         setSceneHandler,
         SceneHandlerClass,
+        loadProgress,
     } = deps;
+    const progress =
+        loadProgress &&
+        typeof loadProgress.beginSessionIfNeeded === "function" &&
+        typeof loadProgress.setStage === "function" &&
+        typeof loadProgress.completeStage === "function"
+            ? loadProgress
+            : null;
 
     async function ensureGlobalConfigLoaded() {
-        if (getGlobalConfig() !== null) {
+        const hasGlobalConfig = getGlobalConfig() !== null;
+
+        if (progress) {
+            const progressActive =
+                typeof progress.isActive === "function" && progress.isActive();
+            if (!hasGlobalConfig) {
+                progress.beginSessionIfNeeded({
+                    includeLanding: true,
+                    label: "Loading mission configuration ...",
+                });
+                progress.setStage("config", 0, "Loading mission configuration ...");
+            } else if (progressActive) {
+                progress.completeStage("config", "Loading mission configuration ...");
+            }
+        }
+
+        if (hasGlobalConfig) {
             return;
         }
 
@@ -64,6 +88,10 @@ function createInitConfigOrchestrationActions(deps) {
             });
             updateMoonUIFromConfig();
             updateLandingUIFromConfig();
+        }
+
+        if (progress) {
+            progress.completeStage("config", "Loading mission configuration ...");
         }
     }
 

@@ -11,7 +11,16 @@ export function createLandingLoadActions({
     resolveLandingChebyshevUrl,
     loadNpz,
     loadChebyshev,
+    loadProgress,
 }) {
+    const progress =
+        loadProgress &&
+        typeof loadProgress.setStage === "function" &&
+        typeof loadProgress.completeStage === "function" &&
+        typeof loadProgress.isActive === "function"
+            ? loadProgress
+            : null;
+
     async function loadLandingDataAndProcess() {
         const globalConfig = getGlobalConfig();
 
@@ -23,10 +32,38 @@ export function createLandingLoadActions({
 
         const configs = getConfigsList();
         let anyLoaded = false;
+        const plannedLandingUrls = {};
+        const totalLandingTasks = configs.reduce((count, cfg) => {
+            const npzUrl = resolveLandingNpzUrl(globalConfig, cfg);
+            const chebUrl = resolveLandingChebyshevUrl(globalConfig, cfg);
+            plannedLandingUrls[cfg] = { npzUrl, chebUrl };
+            return count + (npzUrl ? 1 : 0) + (chebUrl ? 1 : 0);
+        }, 0);
+        let completedLandingTasks = 0;
+
+        const shouldTrackLandingProgress = !!(progress && progress.isActive());
+        const updateLandingProgress = () => {
+            if (!shouldTrackLandingProgress || totalLandingTasks <= 0) return;
+            completedLandingTasks += 1;
+            progress.setStage(
+                "landing",
+                completedLandingTasks / totalLandingTasks,
+                "Loading landing data ...",
+            );
+        };
+
+        if (shouldTrackLandingProgress) {
+            if (totalLandingTasks <= 0) {
+                progress.completeStage("landing", "Loading landing data ...");
+            } else {
+                progress.setStage("landing", 0, "Loading landing data ...");
+            }
+        }
 
         for (const cfg of configs) {
+            const { npzUrl: landingDataNpz, chebUrl: landingDataCheb } = plannedLandingUrls[cfg] || {};
+
             try {
-                const landingDataNpz = resolveLandingNpzUrl(globalConfig, cfg);
                 if (landingDataNpz) {
                     console.log(`Loading landing NPZ data for ${cfg} from ${landingDataNpz}`);
                     const landingNpzData = await loadNpz(landingDataNpz);
@@ -42,10 +79,13 @@ export function createLandingLoadActions({
             } catch (npzError) {
                 console.warn(`Failed to load landing NPZ data for ${cfg}: ${npzError}`);
                 setLandingNpzLoaded(cfg, false);
+            } finally {
+                if (landingDataNpz) {
+                    updateLandingProgress();
+                }
             }
 
             try {
-                const landingDataCheb = resolveLandingChebyshevUrl(globalConfig, cfg);
                 if (!landingDataCheb) {
                     console.warn(
                         `Landing Chebyshev path unavailable for ${cfg} (missing dataPath or filename)`,
@@ -65,7 +105,15 @@ export function createLandingLoadActions({
             } catch (chebError) {
                 console.warn(`Failed to load landing Chebyshev data for ${cfg}: ${chebError}`);
                 setLandingChebyshevLoaded(cfg, false);
+            } finally {
+                if (landingDataCheb) {
+                    updateLandingProgress();
+                }
             }
+        }
+
+        if (shouldTrackLandingProgress && totalLandingTasks > 0) {
+            progress.completeStage("landing", "Loading landing data ...");
         }
 
         setLandingDataLoaded(anyLoaded);

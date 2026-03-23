@@ -28,8 +28,10 @@ import {
 import { createUTCTimestamp } from "../utils/time-utils.js";
 import { bindBurnButtons } from "../ui/event-handlers.js";
 import {
+    ensureDeterminateProgressBar,
     ensureIndeterminateProgressBar,
     hideElementById,
+    setProgressBarValue,
     showElementById,
 } from "../ui/dom-helpers.js";
 import {
@@ -122,6 +124,8 @@ function buildMissionRuntimeStaticDeps(ctx) {
         updateEventInfo,
         clearEventInfo,
         updateProgressLabel,
+        ensureDeterminateProgressBar,
+        setProgressBarValue,
         ensureIndeterminateProgressBar,
         showElementById,
         hideElementById,

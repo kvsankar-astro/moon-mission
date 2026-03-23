@@ -4,6 +4,7 @@ import { createInitConfigFlowActions } from "./init-config-flow-actions.js";
 import { createViewSettingsWiringActions } from "./view-settings-wiring-actions.js";
 import { createSceneFrameWiringActions } from "./scene-frame-wiring-actions.js";
 import { createStartEndTimesResolver } from "./start-end-times.js";
+import { createLoadProgressController } from "./load-progress-controller.js";
 
 function createMissionWiringComposition(ports) {
     const {
@@ -26,6 +27,14 @@ function createMissionWiringComposition(ports) {
         getConfig: ctx.getConfig,
         createUTCTimestamp: ctx.createUTCTimestamp,
         oneMinuteMs: ctx.TC.ONE_MINUTE_MS,
+    });
+    const loadProgress = createLoadProgressController({
+        ensureDeterminateProgressBar: ctx.ensureDeterminateProgressBar,
+        setProgressBarValue: ctx.setProgressBarValue,
+        showElementById: ctx.showElementById,
+        hideElementById: ctx.hideElementById,
+        updateProgressLabel: ctx.updateProgressLabel,
+        clearProgressLabel: ctx.clearProgressLabel,
     });
 
     const dataflow = createDataflowWiringActions({
@@ -125,6 +134,7 @@ function createMissionWiringComposition(ports) {
         setPlaneVariables: ctx.setPlaneVariables,
         handleDimensionSwitch: ctx.handleDimensionSwitch,
         setLocation: ctx.setLocation,
+        loadProgress,
     });
 
     const initConfigWiring = createInitConfigWiringActions({
@@ -200,6 +210,7 @@ function createMissionWiringComposition(ports) {
         bindBurnButtons: ctx.bindBurnButtons,
         getBurnButtonHandler: ctx.getBurnButtonHandler,
         SwiperClass: ctx.SwiperClass,
+        loadProgress,
     });
 
     const { initConfig } = createInitConfigFlowActions({
@@ -244,6 +255,7 @@ function createMissionWiringComposition(ports) {
         clearStartLandingFlag: ctx.clearStartLandingFlag,
         toggleLanding: ctx.toggleLanding,
         updateProgressLabel: ctx.updateProgressLabel,
+        loadProgress,
         setConfig: ctx.setConfig,
         AnimationScene: ctx.AnimationScene,
         initAnimation: ctx.initAnimation,

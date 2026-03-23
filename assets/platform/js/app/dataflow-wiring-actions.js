@@ -113,6 +113,7 @@ function createDataflowWiringActions(deps) {
         loadOrbitDataIfNeededAndProcessOverride,
         handleDimensionSwitch,
         setLocation,
+        loadProgress,
     } = deps;
 
     const svgActions = createSvgActions({
@@ -165,6 +166,7 @@ function createDataflowWiringActions(deps) {
             updateEphemerisPanel();
         },
         getBodySource,
+        loadProgress,
     });
 
     const { loadLandingDataAndProcess } = createLandingLoadActions({
@@ -180,6 +182,7 @@ function createDataflowWiringActions(deps) {
         resolveLandingChebyshevUrl,
         loadNpz,
         loadChebyshev,
+        loadProgress,
     });
 
     const { processOrbitElementsData } = createOrbitElementsActions({

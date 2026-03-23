@@ -76,6 +76,7 @@ function createInitConfigWiringActions(deps) {
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
+        loadProgress,
     } = deps;
 
     const initConfigSceneSetupActions = createInitConfigSceneSetupActions({
@@ -153,6 +154,7 @@ function createInitConfigWiringActions(deps) {
         getSceneHandler,
         setSceneHandler,
         SceneHandlerClass,
+        loadProgress,
     });
 
     const initConfigUiActions = createInitConfigUiActions({
