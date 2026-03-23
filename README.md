@@ -98,12 +98,14 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
-CI deployments (GitHub Pages and Hostgator) stage runtime `.npz` ephemeris files from a separate data repository before publishing. By default workflows use:
+CI workflows (tests + deploy) stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`.npz`, `*-cheb.json`, `*-meta.json`, manifests), shared textures (`images/`), mission screenshots (`assets/*/images/`), and vendored runtime libraries (`third-party/`).
+
+By default workflows use:
 
 - `MISSION_DATA_REPO = kvsankar/moon-mission-data`
 - `MISSION_DATA_REF = main`
 
-You can override these via GitHub repository variables with the same names, and provide `DATA_REPO_TOKEN` when the data repo is private.
+You can override these via GitHub repository variables with the same names. No extra token is needed when the data repo is public.
 
 For development, you can use the Vite dev server:
 ```bash

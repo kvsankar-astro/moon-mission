@@ -2,6 +2,7 @@
 
 ## Open TODOs
 
+- TODO: Revisit ephemeris source strategy. We currently run a hybrid setup (`SC=chebyshev`, selected body overrides like `SUN=npz`, and `MOON=npz` for CY3). Evaluate a pure Chebyshev path, quantify performance/SSIM impact, and remove NPZ runtime/deployment dependency only after parity is proven.
 - TODO: Investigate camera "from-object" centering in from-to camera pairs. The camera may intentionally use a small offset for stability, but we need to verify whether any combinations allow the source ("from") object to become visible in-frame (self-looking behavior) and confirm expected behavior.
 - TODO: Complete final jQuery UI cleanup. Document and remove compatibility traces/stubs (for example `assets/platform/js/ui/jquery-ui-dialog-stub.js`, legacy `$.dialog`/`dialogExtend` pathways, and related legacy includes) once replacement behavior is fully covered.
 
