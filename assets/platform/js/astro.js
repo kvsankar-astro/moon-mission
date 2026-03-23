@@ -1,5 +1,3 @@
-// const ephemeris = require('./third-party/ephemeris-0.1.0.min.js');
-
 import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math-utils.js";
 
 // ============================================================================
