@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeEventsUpdate } from "../assets/platform/js/app/config-events.js";
+import { computeEventsUpdate } from "../src/platform/js/app/config-events.js";
 
 describe("computeEventsUpdate", () => {
     it("resolves typed event kinds and keeps sorted timeline", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeInteractionState } from "../assets/platform/js/core/state/runtime-interaction-state.js";
+import { createRuntimeInteractionState } from "../src/platform/js/core/state/runtime-interaction-state.js";
 
 describe("runtime-interaction-state", () => {
     it("tracks mission/landing and mouse interaction flags", () => {

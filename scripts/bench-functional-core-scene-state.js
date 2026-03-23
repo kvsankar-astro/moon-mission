@@ -5,7 +5,7 @@ import { performance } from "node:perf_hooks";
 import * as Astronomy from "astronomy-engine";
 import JSZip from "jszip";
 
-import { computeSceneState } from "../assets/platform/js/scene-state.js";
+import { computeSceneState } from "../src/platform/js/scene-state.js";
 
 globalThis.Astronomy = Astronomy;
 

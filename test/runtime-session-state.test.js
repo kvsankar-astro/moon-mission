@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeSessionState } from "../assets/platform/js/core/state/runtime-session-state.js";
+import { createRuntimeSessionState } from "../src/platform/js/core/state/runtime-session-state.js";
 
 describe("runtime-session-state", () => {
     it("tracks animation timing and play state", () => {

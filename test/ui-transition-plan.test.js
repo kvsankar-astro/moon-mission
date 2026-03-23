@@ -3,7 +3,7 @@ import {
     planDimensionTransition,
     planOriginModeTransition,
     planRuntimeModeToggle,
-} from "../assets/platform/js/core/domain/ui-transition-plan.js";
+} from "../src/platform/js/core/domain/ui-transition-plan.js";
 
 describe("ui-transition-plan", () => {
     describe("planOriginModeTransition", () => {

@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 
 - Entry points: `mission.html` (mission selector + app), `index.html` (redirect).
-- Shared platform code: `assets/platform/` (`css/` + `js/` ES modules).
+- Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Mission content: `assets/<mission>/`
   - `data/` (`config.json`, `*-cheb.json`, `*-meta.json`)
   - `models/`, `images/`, optional `js/`, `html/`
@@ -21,7 +21,7 @@
 
 ## Coding Style & Naming Conventions
 
-- JavaScript (ES modules) lives under `assets/platform/js/` and `assets/<mission>/js/`.
+- JavaScript (ES modules) lives under `src/platform/js/` and `assets/<mission>/js/`.
 - Keep diffs focused; avoid reformat-only changes unless necessary.
 - Prefer small, single-purpose modules and pure functions where practical.
 - Tests are `*.test.js` under `test/`.

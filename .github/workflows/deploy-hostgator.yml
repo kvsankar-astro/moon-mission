@@ -67,8 +67,9 @@ jobs:
           mkdir -p dist-pages
           # Copy HTML files
           cp index.html mission.html dist-pages/
-          # Copy assets (platform JS/CSS and mission configs)
+          # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
+          cp -r src dist-pages/
 
       - name: Stage mission runtime data assets
         run: |
@@ -84,6 +85,7 @@ jobs:
           test -f dist-pages/index.html
           test -f dist-pages/mission.html
           test -d dist-pages/assets
+          test -d dist-pages/src/platform
           test -d dist-pages/images
           test -d dist-pages/third-party
           find dist-pages/assets -name "*.npz" | sort

@@ -4,7 +4,7 @@
 
 This document defines the JSON format used for Chebyshev-compressed ephemeris data in this repository.
 
-The runtime consumes these files via `assets/platform/js/chebyshev.js` and reconstructs:
+The runtime consumes these files via `src/platform/js/chebyshev.js` and reconstructs:
 - Position `(x, y, z)` in km
 - Velocity `(vx, vy, vz)` in km/s (analytic derivative of Chebyshev polynomials)
 
@@ -111,7 +111,7 @@ The number of coefficients can vary segment-to-segment (adaptive compression).
 
 ## Evaluation
 
-At runtime (`assets/platform/js/chebyshev.js`):
+At runtime (`src/platform/js/chebyshev.js`):
 
 1. Find segment with `t_start <= jd <= t_end`.
 2. Normalize time to `[-1, 1]`:

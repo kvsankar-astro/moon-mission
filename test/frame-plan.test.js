@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { planFrameStep } from "../assets/platform/js/core/plans/frame-plan.js";
+import { planFrameStep } from "../src/platform/js/core/plans/frame-plan.js";
 
 describe("planFrameStep", () => {
     it("returns non-running plan when scene is missing", () => {

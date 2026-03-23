@@ -3,7 +3,7 @@ import {
     computeAnimationStepState,
     updateFpsCounterState,
     updateFrameDeltaState,
-} from "../assets/platform/js/app/animation-loop.js";
+} from "../src/platform/js/app/animation-loop.js";
 
 describe("animation-loop core helpers", () => {
     it("initializes fpsLastTime from the first frame when it is zero", () => {

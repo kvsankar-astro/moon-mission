@@ -3,7 +3,7 @@ import {
     EVENT_KIND,
     inferLegacyEventKind,
     resolveEventInstant,
-} from "../assets/platform/js/core/domain/event-time-resolver.js";
+} from "../src/platform/js/core/domain/event-time-resolver.js";
 
 describe("event-time-resolver", () => {
     it("resolves fixed event time", () => {

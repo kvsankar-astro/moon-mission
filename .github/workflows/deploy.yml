@@ -72,8 +72,9 @@ jobs:
           mkdir -p dist-pages
           # Copy HTML files
           cp index.html mission.html dist-pages/
-          # Copy assets (platform JS/CSS and mission configs)
+          # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
+          cp -r src dist-pages/
 
       - name: Stage mission runtime data assets
         run: |

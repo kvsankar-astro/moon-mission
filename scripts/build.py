@@ -224,7 +224,11 @@ def build(
         copied_files += 1
 
     # Shared runtime assets
-    copied_files += copy_tree(project_root_path / "assets" / "platform", dist_path / "assets" / "platform")
+    platform_source = project_root_path / "src" / "platform"
+    if not platform_source.exists():
+        # Backward-compatible fallback for older checkouts.
+        platform_source = project_root_path / "assets" / "platform"
+    copied_files += copy_tree(platform_source, dist_path / "src" / "platform")
     copied_files += copy_tree(project_root_path / "third-party", dist_path / "third-party")
     copied_files += copy_tree(project_root_path / "images", dist_path / "images")
 

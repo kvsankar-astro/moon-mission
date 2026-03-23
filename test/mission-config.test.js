@@ -5,7 +5,7 @@ import {
     normalizeMissionConfig,
     parseMissionConfig,
     validateMissionConfig,
-} from "../assets/platform/js/core/domain/mission-config.js";
+} from "../src/platform/js/core/domain/mission-config.js";
 
 describe("mission-config pipeline", () => {
     it("rejects non-object mission configs", () => {

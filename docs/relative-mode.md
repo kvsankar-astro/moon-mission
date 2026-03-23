@@ -35,7 +35,7 @@ The selector page (`mission.html` without `mission=`) has a checkbox that append
 
 ## Mode Switching and Time Preservation
 
-Relative-mode switching logic is in `assets/platform/js/app/relative-mode.js`.
+Relative-mode switching logic is in `src/platform/js/app/relative-mode.js`.
 
 - Animation time is preserved across reload using session storage key:
   - `cy3.animTimeOverride`

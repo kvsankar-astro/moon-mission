@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMissionStateStore } from "../assets/platform/js/core/state/mission-state-store.js";
+import { createMissionStateStore } from "../src/platform/js/core/state/mission-state-store.js";
 
 function createCell(initialValue) {
     let value = initialValue;

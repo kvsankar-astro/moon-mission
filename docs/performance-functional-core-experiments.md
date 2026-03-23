@@ -8,10 +8,10 @@ This document tracks experiment-driven performance work on the functional core.
 2D frame rendering does not require a forward ephemeris sample (`nextPosition` / `nextVelocity`) for spacecraft orientation, so skipping that second lookup should reduce per-frame functional-core cost.
 
 ### Change
-- `assets/platform/js/core/plans/frame-plan.js`
+- `src/platform/js/core/plans/frame-plan.js`
   - Added `includeNextState` to scene-state options.
   - Sets `includeNextState: false` for `currentDimension === "2D"`.
-- `assets/platform/js/scene-state.js`
+- `src/platform/js/scene-state.js`
   - `computeBodyState("SC", ...)` now skips the second ephemeris query when `includeNextState === false` and reuses current state as next state.
 - Tests
   - Updated `test/frame-plan.test.js` for 2D/3D `includeNextState` assertions.
@@ -49,7 +49,7 @@ Two avoidable costs were present in the scene-state functional core:
 Reducing these redundant ephemeris queries should improve frame-time consistency and average cost without changing rendering behavior.
 
 ### Change
-- `assets/platform/js/scene-state.js`
+- `src/platform/js/scene-state.js`
   - `computeSceneState` now forwards `includeNextState` to body-state computation.
   - Relative GEO computation now reuses the Moon ephemeris state already fetched for Sun-direction frame transform.
   - `computeBodyState("MOON", "geo", ...)` accepts optional `precomputedBodyEphemeris.MOON`.
@@ -88,7 +88,7 @@ Reducing these redundant ephemeris queries should improve frame-time consistency
 `getHorizonsJulianDate` is called on every ephemeris lookup and was allocating a `Date` object even when `Date#getJD_UTC` is unavailable. Eliminating that allocation on the common path should reduce GC pressure and improve core throughput.
 
 ### Change
-- `assets/platform/js/data/ephemeris-provider.js`
+- `src/platform/js/data/ephemeris-provider.js`
   - Added module-level constants for Julian-date conversion.
   - Added one-time capability check `HAS_DATE_GET_JD_UTC`.
   - Uses direct arithmetic conversion without allocating `Date` when `getJD_UTC` is not available.
@@ -163,12 +163,12 @@ As a low-risk first step, we can keep the existing JSON data model and enable de
 
 ### Change
 - Runtime transport loader
-  - `assets/platform/js/chebyshev.js`
+  - `src/platform/js/chebyshev.js`
     - Added transport selection (`auto` / `gzip` / `json`) via `missionConfig.chebyshev_transport`.
     - In `auto`, the loader attempts `<cheb>.json.gz` first when gzip decompression is available, then falls back to `.json`.
     - Added explicit `.json.gz` decode path using `DecompressionStream("gzip")`.
 - Functional-core transport helpers
-  - `assets/platform/js/core/domain/chebyshev-transport.js`
+  - `src/platform/js/core/domain/chebyshev-transport.js`
     - Added pure helpers for URL/transport normalization and gzip-candidate resolution.
 - Build and tooling
   - `scripts/build.py`

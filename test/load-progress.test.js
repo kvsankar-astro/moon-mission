@@ -5,7 +5,7 @@ import {
     computeLoadProgressPercent,
     createLoadProgressState,
     setLoadProgressStage,
-} from "../assets/platform/js/core/domain/load-progress.js";
+} from "../src/platform/js/core/domain/load-progress.js";
 
 describe("load-progress domain helpers", () => {
     it("starts at 0% and reaches 100% when all stages complete", () => {

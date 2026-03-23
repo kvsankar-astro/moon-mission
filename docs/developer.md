@@ -4,7 +4,7 @@
 
 - TODO: Revisit ephemeris source strategy. We currently run a hybrid setup (`SC=chebyshev`, selected body overrides like `SUN=npz`, and `MOON=npz` for CY3). Evaluate a pure Chebyshev path, quantify performance/SSIM impact, and remove NPZ runtime/deployment dependency only after parity is proven.
 - TODO: Investigate camera "from-object" centering in from-to camera pairs. The camera may intentionally use a small offset for stability, but we need to verify whether any combinations allow the source ("from") object to become visible in-frame (self-looking behavior) and confirm expected behavior.
-- TODO: Complete final jQuery UI cleanup. Document and remove compatibility traces/stubs (for example `assets/platform/js/ui/jquery-ui-dialog-stub.js`, legacy `$.dialog`/`dialogExtend` pathways, and related legacy includes) once replacement behavior is fully covered.
+- TODO: Complete final jQuery UI cleanup. Document and remove compatibility traces/stubs (for example `src/platform/js/ui/jquery-ui-dialog-stub.js`, legacy `$.dialog`/`dialogExtend` pathways, and related legacy includes) once replacement behavior is fully covered.
 
 ## Multi-Mission Architecture
 
@@ -221,8 +221,8 @@ The runtime currently uses both Julian-date conventions; keep them distinct:
 
 Used by runtime ephemeris lookup for Chebyshev/NPZ state evaluation.
 
-- `assets/platform/js/data/ephemeris-provider.js` (`getHorizonsJulianDate`)
-- `assets/platform/js/chebyshev.js` (`generateCurveFromChebyshev`)
+- `src/platform/js/data/ephemeris-provider.js` (`getHorizonsJulianDate`)
+- `src/platform/js/chebyshev.js` (`generateCurveFromChebyshev`)
 
 ```javascript
 const jd = new Date(timestamp).getJD_UTC();
@@ -231,7 +231,7 @@ const state = getStateFromChebyshev(chebyshevData, jd);
 
 ### TDB (astronomical orientation math)
 
-Used for IAU lunar pole/orientation calculations in `assets/platform/js/astro.js`.
+Used for IAU lunar pole/orientation calculations in `src/platform/js/astro.js`.
 
 - `Date.prototype.getJD_TDB()`
 - `Date.prototype.getMJD_TDB()`
@@ -407,45 +407,45 @@ const eclState = Astronomy.RotateState(rot, eqState);
 
 ### Core Modules
 
-#### `assets/platform/js/mission.js`
+#### `src/platform/js/mission.js`
 - Runtime composition/orchestration entrypoint
 - Wires app modules from `app/*`, `data/*`, `rendering/*`, and controllers
 - Maintains legacy-compatible state bridge and exports `animationScenes`
 
-#### `assets/platform/js/astro.js`
+#### `src/platform/js/astro.js`
 - Julian Date conversion functions
 - Lunar pole orientation (IAU model)
 
-#### `assets/platform/js/astronomy-bodies.js`
+#### `src/platform/js/astronomy-bodies.js`
 - Astronomy Engine wrapper
 - `getMoonState(timestamp)` - Moon position from Earth (geocentric)
 - `getEarthFromMoonState(timestamp)` - Earth position from Moon (selenocentric)
 
-#### `assets/platform/js/chebyshev.js`
+#### `src/platform/js/chebyshev.js`
 - `getStateFromChebyshev(data, jd)` - Interpolate position/velocity at given Julian date
 - `generateCurveFromChebyshev(data, start, end, step)` - Generate orbit curve points
 - `loadChebyshevData(url)` - Load Chebyshev JSON file
 
 ### Core Utilities
 
-#### `assets/platform/js/core/constants.js`
+#### `src/platform/js/core/constants.js`
 - `PHYSICS_CONSTANTS` - Earth/Moon radii, distances, axial inclination
 - `TIME_CONSTANTS` - Step duration
 - `COLORS` - Axis, pole, plane, and SOI colors
 - `LIGHT_SETTINGS` - Primary, ambient, and craft light intensities
 
-#### `assets/platform/js/core/dom.js`
+#### `src/platform/js/core/dom.js`
 - DOM element selection and manipulation
 - D3.js helper functions
 - Event handler management
 
-#### `assets/platform/js/utils/math-utils.js`
+#### `src/platform/js/utils/math-utils.js`
 - `distance3D()` - 3D distance calculation
 - `degreesToRadians()` / `radiansToDegrees()` - Angle conversion
 - `sphericalToCartesian()` - Coordinate conversion
 - `velocityToAngle()` - Velocity vector to angle
 
-### Rendering Modules (`assets/platform/js/rendering/`)
+### Rendering Modules (`src/platform/js/rendering/`)
 
 #### `camera-controller.js`
 - Three camera types: main perspective, craft-attached, drone-attached

@@ -4,8 +4,8 @@ import {
     normalizeChebyshevTransport,
     shouldAttemptGzipTransport,
     toChebyshevGzipCandidateUrl,
-} from "../assets/platform/js/core/domain/chebyshev-transport.js";
-import { loadChebyshevData } from "../assets/platform/js/chebyshev.js";
+} from "../src/platform/js/core/domain/chebyshev-transport.js";
+import { loadChebyshevData } from "../src/platform/js/chebyshev.js";
 
 describe("chebyshev transport domain helpers", () => {
     it("normalizes transport preferences", () => {

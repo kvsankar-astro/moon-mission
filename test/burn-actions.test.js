@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createBurnActions } from "../assets/platform/js/app/burn-actions.js";
+import { createBurnActions } from "../src/platform/js/app/burn-actions.js";
 
 describe("createBurnActions", () => {
     it("uses typed now events instead of label text", () => {

@@ -6,7 +6,7 @@ import {
     getDefaultPhaseKey,
     resolveLandingDataPhaseKeys,
     resolvePhaseDescriptor,
-} from "../assets/platform/js/core/domain/phase-compat.js";
+} from "../src/platform/js/core/domain/phase-compat.js";
 
 describe("phase-compat", () => {
     it("provides configured and fallback phase keys", () => {

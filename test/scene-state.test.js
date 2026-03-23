@@ -1,11 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("../assets/platform/js/data/ephemeris-provider.js", () => ({
+vi.mock("../src/platform/js/data/ephemeris-provider.js", () => ({
     getBodyEphemerisState: vi.fn(),
 }));
 
-import { getBodyEphemerisState } from "../assets/platform/js/data/ephemeris-provider.js";
-import { computeBodyState, computeSceneState } from "../assets/platform/js/scene-state.js";
+import { getBodyEphemerisState } from "../src/platform/js/data/ephemeris-provider.js";
+import { computeBodyState, computeSceneState } from "../src/platform/js/scene-state.js";
 
 function createData(overrides = {}) {
     return {

@@ -4,7 +4,7 @@ import {
     resolveManifestGeneratedArtifact,
     resolveManifestRuntimeArtifact,
     toLandingPhaseKey,
-} from "../assets/platform/js/core/domain/ephemeris-manifest.js";
+} from "../src/platform/js/core/domain/ephemeris-manifest.js";
 
 const manifest = {
     format: "ephemeris-manifest",

@@ -24,7 +24,7 @@
     }
   },
   "include": [
-    "assets/platform/js/**/*.js",
+    "src/platform/js/**/*.js",
     "assets/chandrayaan3/js/**/*.js",
     "src/types/**/*.d.ts"
   ],

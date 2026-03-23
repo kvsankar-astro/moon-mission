@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { performance } from "node:perf_hooks";
 import * as Astronomy from "astronomy-engine";
 
-import { computeBodyState } from "../assets/platform/js/scene-state.js";
+import { computeBodyState } from "../src/platform/js/scene-state.js";
 
 globalThis.Astronomy = Astronomy;
 

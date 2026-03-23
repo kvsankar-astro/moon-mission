@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeViewState } from "../assets/platform/js/core/state/runtime-view-state.js";
+import { createRuntimeViewState } from "../src/platform/js/core/state/runtime-view-state.js";
 
 describe("runtime-view-state", () => {
     it("tracks config and dimension state", () => {

@@ -4,7 +4,7 @@ import {
     findSegment,
     getPositionFromChebyshev,
     getStateFromChebyshev,
-} from "../assets/platform/js/core/domain/ephemeris-core.js";
+} from "../src/platform/js/core/domain/ephemeris-core.js";
 
 describe("ephemeris-core", () => {
     it("evaluates Chebyshev polynomials using Clenshaw recurrence", () => {

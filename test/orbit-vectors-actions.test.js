@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createOrbitVectorsActions } from "../assets/platform/js/app/orbit-vectors-actions.js";
+import { createOrbitVectorsActions } from "../src/platform/js/app/orbit-vectors-actions.js";
 
 function createChain() {
     return {

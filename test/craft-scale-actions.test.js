@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
 
-import { createCraftScaleActions } from "../assets/platform/js/app/craft-scale-actions.js";
+import { createCraftScaleActions } from "../src/platform/js/app/craft-scale-actions.js";
 
 function createScene({
     craftVisible = true,

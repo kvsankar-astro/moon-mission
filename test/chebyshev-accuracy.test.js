@@ -18,11 +18,11 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveManifestGeneratedArtifact,
   resolveManifestRuntimeArtifact
-} from '../assets/platform/js/core/domain/ephemeris-manifest.js';
+} from '../src/platform/js/core/domain/ephemeris-manifest.js';
 import {
   evaluateChebyshev,
   getPositionFromChebyshev
-} from '../assets/platform/js/core/domain/ephemeris-core.js';
+} from '../src/platform/js/core/domain/ephemeris-core.js';
 
 // ============================================================================
 // Constants

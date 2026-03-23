@@ -7,7 +7,7 @@ import {
     resolveLockAvailability,
     resolvePairFromValue,
     resolvePairKey,
-} from "../assets/platform/js/core/domain/camera-policy.js";
+} from "../src/platform/js/core/domain/camera-policy.js";
 
 describe("camera-policy", () => {
     it("resolves allowed look/position modes", () => {

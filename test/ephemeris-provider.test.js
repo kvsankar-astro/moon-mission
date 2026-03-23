@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getHorizonsJulianDate } from "../assets/platform/js/data/ephemeris-provider.js";
+import { getHorizonsJulianDate } from "../src/platform/js/data/ephemeris-provider.js";
 
 describe("ephemeris-provider", () => {
     it("converts Unix epoch to Julian Date", () => {

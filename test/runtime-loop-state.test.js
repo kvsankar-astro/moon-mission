@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRuntimeLoopState } from "../assets/platform/js/core/state/runtime-loop-state.js";
+import { createRuntimeLoopState } from "../src/platform/js/core/state/runtime-loop-state.js";
 
 describe("runtime-loop-state", () => {
     it("tracks loop counters and timing fields", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createEventBus } from "../assets/platform/js/core/event-bus.js";
+import { createEventBus } from "../src/platform/js/core/event-bus.js";
 
 describe("event-bus", () => {
     it("validates event name and listener arguments for on()", () => {

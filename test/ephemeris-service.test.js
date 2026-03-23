@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { computeSunLongitude } from "../assets/platform/js/services/ephemeris.js";
+import { computeSunLongitude } from "../src/platform/js/services/ephemeris.js";
 
 function installLegacySunGlobals(apparentLongitudeDeg = 90) {
     const legacySun = { position: { apparentLongitude: 0 } };

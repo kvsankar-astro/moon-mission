@@ -8,7 +8,7 @@ import {
     resolveMissionManifestUrl,
     resolveOrbitAssetUrls,
     resolveOrbitNpzAssetUrl,
-} from "../assets/platform/js/core/domain/mission-asset-resolver.js";
+} from "../src/platform/js/core/domain/mission-asset-resolver.js";
 
 describe("mission-asset-resolver", () => {
     it("normalizes and joins data path URLs", () => {

@@ -7,7 +7,6 @@
   "mission_description": "Chandrayaan 2 Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "chandrayaan, chandrayaan2, moon, isro, india, space, astronomy, animation, vikram, pragyan",
   "mission_github": "https://github.com/kvsankar/chandrayaan2",
-  "mission_image": "assets/chandrayaan2/images/chandrayaan2-screenshot.png",
   "ui": {
     "pageTitle": "ISRO's Chandrayaan 2 Mission 2019 - An Orbit Animation",
     "headerTitle": "Chandrayaan 2",
