@@ -3,10 +3,6 @@
  * This tells TypeScript about globals that exist at runtime
  */
 
-// jQuery (loaded via script tag)
-declare var $: JQueryStatic;
-declare var jQuery: JQueryStatic;
-
 // D3.js v3 (loaded via script tag) 
 declare var d3: any; // D3 v3 has different types than modern D3
 

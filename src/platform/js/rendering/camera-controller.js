@@ -9,7 +9,7 @@
  */
 
 import * as THREE from 'three';
-import { TrackballControls } from '../../../../third-party/TrackballControls.js';
+import { TrackballControls } from "./trackball-controls-adapter.js";
 import { MountedFreeFlyControls } from "./mounted-freefly-controls.js";
 
 export const CAMERA_POSITION_MODE = Object.freeze({
@@ -126,7 +126,7 @@ export class CameraController {
         }
 
         this._rendererDomElement = domElement;
-        this.controls = new TrackballControls(this.camera, domElement, callback);
+        this.controls = new TrackballControls(this.camera, domElement);
 
         // TrackballControls settings
         this.controls.rotateSpeed = 1.0;
@@ -136,7 +136,7 @@ export class CameraController {
         this.controls.noPan = false;
         this.controls.staticMoving = true;
         this.controls.dynamicDampingFactor = 0.3;
-        this.controls.keys = [65, 83, 68];  // A, S, D keys
+        this.controls.keys = ["KeyA", "KeyS", "KeyD"];
 
         // Proposal 2: "from-to" camera system support. We capture mountOffset from user interactions
         // before triggering any render so mounted modes retain user-rotated/zoomed offsets.

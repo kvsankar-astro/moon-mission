@@ -114,13 +114,6 @@ export function createOrbitProcessActions({
         }
         d3SelectAll("button").attr("disabled", null);
 
-        /*
-        if (!bannerShown) {
-            bannerShown = true;
-            $("#banner").dialog({height: 200, width: 400, modal: true});
-        }
-        */
-
         if (!getAnimationRunning()) {
             updateAnimateButtonText();
         }
