@@ -114,9 +114,6 @@ export function bindMainControls(handlers) {
         toggleMode,
         toggleRelativeMode,
         changeCameraFromTo,
-        toggleLockSC,
-        toggleLockMoon,
-        toggleLockEarth,
         togglePlane,
         setView,
         setDimensionTop,
@@ -137,9 +134,6 @@ export function bindMainControls(handlers) {
     onChange("camera-look", changeCameraFromTo);
     onChangeAll('input[name="camera-pair"]', changeCameraFromTo);
     onChange("camera-fov-one-degree", changeCameraFromTo);
-    onClick("checkbox-lock-sc", toggleLockSC);
-    onClick("checkbox-lock-moon", toggleLockMoon);
-    onClick("checkbox-lock-earth", toggleLockEarth);
 
     onClick("checkbox-lock-default", togglePlane);
     onClick("checkbox-lock-xy", togglePlane);

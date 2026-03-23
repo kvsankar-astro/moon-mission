@@ -857,7 +857,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Settings elements
       const settingsElements = [
         '#origin-earth', '#origin-moon',
-        '#checkbox-lock-sc', '#checkbox-lock-moon', '#checkbox-lock-earth',
         '#checkbox-lock-default', '#checkbox-lock-xy', '#checkbox-lock-yz', '#checkbox-lock-zx',
         '#checkbox-lock-xy-minus', '#checkbox-lock-yz-minus', '#checkbox-lock-zx-minus',
         '#landing', '#joyride', '#view-orbit', '#view-orbit-descent', '#view-craters',
