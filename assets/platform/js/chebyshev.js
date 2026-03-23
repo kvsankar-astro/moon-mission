@@ -15,6 +15,12 @@ import {
     getStateFromChebyshev,
     getVelocityFromChebyshev,
 } from "./core/domain/ephemeris-core.js";
+import {
+    isGzipUrl,
+    normalizeChebyshevTransport,
+    shouldAttemptGzipTransport,
+    toChebyshevGzipCandidateUrl,
+} from "./core/domain/chebyshev-transport.js";
 
 export {
     evaluateChebyshev,
@@ -33,14 +39,102 @@ export {
  * Load Chebyshev JSON data from a URL.
  *
  * @param {string} url - URL to the Chebyshev JSON file
+ * @param {Object} [options] - Optional dependency injection hooks for tests
  * @returns {Promise<Object>} Parsed Chebyshev data object
  */
-export async function loadChebyshevData(url) {
-    const response = await fetch(url);
+export async function loadChebyshevData(url, options = {}) {
+    if (typeof url !== "string" || !url.trim()) {
+        throw new Error("loadChebyshevData(url) requires a non-empty URL string");
+    }
+
+    const fetchFn = typeof options.fetchFn === "function" ? options.fetchFn : fetch;
+    const decodeGzipJson =
+        typeof options.decodeGzipJson === "function" ? options.decodeGzipJson : decodeGzipJsonResponse;
+    const transport = normalizeChebyshevTransport(
+        options.transport ?? readChebyshevTransportPreference(),
+    );
+    const canDecompressGzip =
+        typeof options.canDecompressGzip === "boolean"
+            ? options.canDecompressGzip
+            : typeof DecompressionStream === "function";
+
+    if (isGzipUrl(url)) {
+        return fetchChebyshevGzipJson(url, fetchFn, decodeGzipJson);
+    }
+
+    const shouldAttemptGzip = shouldAttemptGzipTransport({
+        url,
+        transport,
+        canDecompressGzip,
+    });
+
+    if (shouldAttemptGzip) {
+        const gzipUrl = toChebyshevGzipCandidateUrl(url);
+        if (gzipUrl) {
+            try {
+                return await fetchChebyshevGzipJson(gzipUrl, fetchFn, decodeGzipJson);
+            } catch (gzipError) {
+                if (transport === "gzip") {
+                    throw gzipError;
+                }
+                console.debug(`Chebyshev gzip transport unavailable at ${gzipUrl}; falling back to JSON`, gzipError);
+            }
+        }
+    }
+
+    return fetchChebyshevJson(url, fetchFn);
+}
+
+function readChebyshevTransportPreference() {
+    const configuredTransport = globalThis?.window?.missionConfig?.chebyshev_transport;
+    return normalizeChebyshevTransport(configuredTransport);
+}
+
+async function fetchChebyshevJson(url, fetchFn) {
+    const response = await fetchFn(url);
     if (!response.ok) {
         throw new Error(`Failed to load Chebyshev data from ${url}: ${response.status}`);
     }
     return await response.json();
+}
+
+async function fetchChebyshevGzipJson(url, fetchFn, decodeGzipJson) {
+    const response = await fetchFn(url);
+    if (!response.ok) {
+        throw new Error(`Failed to load gzip Chebyshev data from ${url}: ${response.status}`);
+    }
+    return decodeGzipJson(response, url);
+}
+
+async function decodeGzipJsonResponse(response, url = "unknown") {
+    const contentEncoding = response?.headers?.get?.("content-encoding") || "";
+    if (/\bgzip\b/i.test(contentEncoding)) {
+        return response.json();
+    }
+
+    if (typeof DecompressionStream !== "function") {
+        throw new Error(`Gzip Chebyshev transport requires DecompressionStream support (${url})`);
+    }
+
+    const fallbackJsonResponse = typeof response.clone === "function" ? response.clone() : null;
+
+    try {
+        const compressedBytes = await response.arrayBuffer();
+        const compressedStream = new Blob([compressedBytes]).stream();
+        const decompressedStream = compressedStream.pipeThrough(new DecompressionStream("gzip"));
+        const jsonText = await new Response(decompressedStream).text();
+
+        return JSON.parse(jsonText);
+    } catch (error) {
+        if (fallbackJsonResponse) {
+            try {
+                return await fallbackJsonResponse.json();
+            } catch (_) {
+                // Continue to throw explicit gzip decode error below.
+            }
+        }
+        throw new Error(`Invalid gzip Chebyshev JSON payload at ${url}: ${error.message}`);
+    }
 }
 
 // ============================================================================

@@ -8,6 +8,7 @@ import os
 import shutil
 import json
 import stat
+import gzip
 from datetime import datetime, timezone
 import argparse
 from pathlib import Path
@@ -61,6 +62,35 @@ def copy_tree(src_dir, dst_dir, ignore=None):
 
     # Best-effort count for reporting
     return sum(len(files) for _, _, files in os.walk(dst_path))
+
+def gzip_bytes(payload, compresslevel=9):
+    """Create deterministic gzip bytes (mtime=0)."""
+    return gzip.compress(payload, compresslevel=compresslevel, mtime=0)
+
+def generate_chebyshev_gzip_companions(dist_path):
+    """
+    Generate *.json.gz companions for all *-cheb.json files in dist assets.
+    Returns tuple: (files_written, raw_total_bytes, gzip_total_bytes)
+    """
+    cheb_files = sorted(dist_path.glob("assets/**/*-cheb.json"))
+    written = 0
+    raw_total = 0
+    gzip_total = 0
+
+    for cheb_file in cheb_files:
+        raw_bytes = cheb_file.read_bytes()
+        gz_bytes = gzip_bytes(raw_bytes)
+        gz_path = cheb_file.with_suffix(f"{cheb_file.suffix}.gz")
+
+        existing = gz_path.read_bytes() if gz_path.exists() else None
+        if existing != gz_bytes:
+            gz_path.write_bytes(gz_bytes)
+            written += 1
+
+        raw_total += len(raw_bytes)
+        gzip_total += len(gz_bytes)
+
+    return written, raw_total, gzip_total
 
 def get_project_root(project_root=None):
     if project_root:
@@ -134,7 +164,15 @@ def normalize_missions(missions):
         return [missions]
     return list(missions)
 
-def build(dist_dir="dist", clean=True, missions=None, project_root=None, build_date=None, now_fn=None):
+def build(
+    dist_dir="dist",
+    clean=True,
+    missions=None,
+    project_root=None,
+    build_date=None,
+    now_fn=None,
+    compress_chebyshev=True,
+):
     """Build the distribution folder."""
     project_root_path = get_project_root(project_root)
     dist_path = resolve_project_path(project_root_path, dist_dir)
@@ -199,6 +237,14 @@ def build(dist_dir="dist", clean=True, missions=None, project_root=None, build_d
             dist_path / "assets" / mission,
             ignore=ignore_archives,
         )
+
+    if compress_chebyshev:
+        written, raw_total, gzip_total = generate_chebyshev_gzip_companions(dist_path)
+        savings_pct = (1 - (gzip_total / raw_total)) * 100 if raw_total else 0
+        print_info(
+            f"Generated {written} Chebyshev gzip companions "
+            f"({raw_total} -> {gzip_total} bytes, {savings_pct:.1f}% smaller)",
+        )
     
     # Create build info file
     build_info = {
@@ -246,6 +292,11 @@ def main():
                         help="Specific mission(s) to build (default: all discovered missions)")
     parser.add_argument("--project-root", help="Project root path (default: auto-detect from script location)")
     parser.add_argument(
+        "--no-compress-chebyshev",
+        action="store_true",
+        help="Skip generating *.json.gz companions for *-cheb.json files in dist",
+    )
+    parser.add_argument(
         "--build-date",
         help="ISO timestamp for deterministic build-info.json (default: SOURCE_DATE_EPOCH or current UTC time)",
     )
@@ -260,6 +311,7 @@ def main():
             missions=missions,
             project_root=args.project_root,
             build_date=args.build_date,
+            compress_chebyshev=not args.no_compress_chebyshev,
         )
     except ValueError as error:
         parser.error(str(error))

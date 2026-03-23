@@ -43,7 +43,9 @@
     "test:unvalidated": "cross-env TEST_VALIDATION_MODE=unvalidated VITE_TEST_BASE_URL=http://localhost:8009 vitest test/ui.test.js --reporter=basic --no-coverage",
     "test:all": "cross-env TEST_VALIDATION_MODE=all VITE_TEST_BASE_URL=http://localhost:8009 vitest test/ui.test.js --reporter=basic --no-coverage",
     "validate:test": "node scripts/validate-test.js",
-    "analyze:tests": "node scripts/analyze-test-categories.js"
+    "analyze:tests": "node scripts/analyze-test-categories.js",
+    "bench:cheb-transport": "node scripts/bench-chebyshev-transport.js",
+    "compress:cheb": "python scripts/compress-chebyshev-gzip.py"
   },
   "keywords": [
     "chandrayaan3",

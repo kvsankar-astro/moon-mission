@@ -151,3 +151,66 @@ Moon state computation via `astronomy-engine` is now the dominant cost in the re
 - Unit tests: pass.
 - UI tests: pass (`48/48`).
 - SSIM regressions: `0`.
+
+## Experiment 5: Chebyshev Transport Compression (gzip + Flat-Buffer Comparison)
+
+### Hypothesis
+Chebyshev JSON payloads are transfer-heavy and parse-heavy. A transport optimization can reduce load-time pressure by:
+- Shrinking payload bytes over the wire.
+- Optionally reducing decode cost when moving from JSON to a flat binary layout.
+
+As a low-risk first step, we can keep the existing JSON data model and enable deterministic gzip transport with JSON fallback.
+
+### Change
+- Runtime transport loader
+  - `assets/platform/js/chebyshev.js`
+    - Added transport selection (`auto` / `gzip` / `json`) via `missionConfig.chebyshev_transport`.
+    - In `auto`, the loader attempts `<cheb>.json.gz` first when gzip decompression is available, then falls back to `.json`.
+    - Added explicit `.json.gz` decode path using `DecompressionStream("gzip")`.
+- Functional-core transport helpers
+  - `assets/platform/js/core/domain/chebyshev-transport.js`
+    - Added pure helpers for URL/transport normalization and gzip-candidate resolution.
+- Build and tooling
+  - `scripts/build.py`
+    - Generates deterministic `*.json.gz` companions for every `*-cheb.json` in `dist/` (can be disabled via `--no-compress-chebyshev`).
+  - `scripts/compress-chebyshev-gzip.py`
+    - Generates deterministic `*.json.gz` companions in `assets/` for local/dev/test serving.
+  - `scripts/bench-chebyshev-transport.js`
+    - Added reproducible benchmark for JSON/gzip/brotli vs flat binary transport variants.
+  - `package.json`
+    - Added `npm run bench:cheb-transport` and `npm run compress:cheb`.
+
+### Measurement
+Command:
+- `node scripts/bench-chebyshev-transport.js --rounds 60 --warmup 12`
+
+Representative results (`geo-CY3-cheb.json`):
+- Size:
+  - JSON: `997305 B`
+  - JSON+gzip: `262018 B` (`-73.7%`)
+  - JSON+brotli: `212328 B` (`-78.7%`)
+  - Flat F64+brotli: `181884 B` (`-81.8%`)
+  - Flat F32+brotli: `96144 B` (`-90.4%`)
+- Decode cost:
+  - JSON parse: `3.075 ms`
+  - gzip -> JSON parse: `5.419 ms`
+  - Flat F64 decode: `0.033 ms`
+  - gzip -> Flat F64 decode: `0.631 ms`
+
+Representative results (`lunar-CY3-cheb.json`):
+- Size:
+  - JSON: `1004189 B`
+  - JSON+gzip: `260504 B` (`-74.1%`)
+  - JSON+brotli: `210438 B` (`-79.0%`)
+  - Flat F64+brotli: `180953 B` (`-82.0%`)
+  - Flat F32+brotli: `95115 B` (`-90.5%`)
+- Decode cost:
+  - JSON parse: `3.087 ms`
+  - gzip -> JSON parse: `5.761 ms`
+  - Flat F64 decode: `0.018 ms`
+  - gzip -> Flat F64 decode: `0.631 ms`
+
+### Result
+- Deterministic gzip transport delivers major transfer reduction (~`73-74%`) while preserving the existing JSON model.
+- Flat-buffer transport can beat gzip+JSON on both bytes and decode time, but requires a schema/loader migration and accuracy gating (especially for F32).
+- Selected implementation for this slice: gzip transport with JSON fallback (low risk, immediate network benefit, no functional-core behavior change).
