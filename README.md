@@ -96,6 +96,15 @@ For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy
 At present the page can be hosted statically. There are no server components needed.
 However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CORS issues.
 
+### Deployment Data Repository
+
+CI deployments (GitHub Pages and Hostgator) stage runtime `.npz` ephemeris files from a separate data repository before publishing. By default workflows use:
+
+- `MISSION_DATA_REPO = kvsankar/moon-mission-data`
+- `MISSION_DATA_REF = main`
+
+You can override these via GitHub repository variables with the same names, and provide `DATA_REPO_TOKEN` when the data repo is private.
+
 For development, you can use the Vite dev server:
 ```bash
 npm run dev

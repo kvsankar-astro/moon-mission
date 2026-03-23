@@ -6,6 +6,9 @@
   "mission_url": "https://www.nasa.gov/artemis-1",
   "mission_description": "Artemis 1 Orbit Animation - NASA's Return to the Moon",
   "mission_keywords": "artemis, orion, moon, nasa, sls, space, astronomy, animation",
+  "ephemeris_sources": {
+    "SUN": "npz"
+  },
   "ui": {
     "pageTitle": "NASA's Artemis 1 Mission 2022 - An Orbit Animation",
     "headerTitle": "Artemis 1",

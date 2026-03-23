@@ -1,0 +1,22 @@
+{
+  "step_size_seconds": 60,
+  "step_size_minutes": 1.0,
+  "start_time": "2019-07-22 09:31",
+  "end_time": "2019-09-06 20:26",
+  "planets": [
+    "SC",
+    "EARTH",
+    "SUN"
+  ],
+  "phase": "lunar",
+  "center": "@301",
+  "generated_by": "orbits.py",
+  "generated_at": "2026-03-23T13:45:10.398125",
+  "python_config": {
+    "start_time": "2019-07-22 09:31",
+    "end_time": "2019-09-06 20:26"
+  },
+  "SC_vectors_count": 66896,
+  "EARTH_vectors_count": 66896,
+  "SUN_vectors_count": 66896
+}

@@ -5,16 +5,18 @@
   "end_time": "2022-12-11 17:19",
   "planets": [
     "SC",
-    "EARTH"
+    "EARTH",
+    "SUN"
   ],
   "phase": "lunar",
   "center": "@301",
   "generated_by": "orbits.py",
-  "generated_at": "2026-01-20T11:28:02.892693",
+  "generated_at": "2026-03-23T13:43:22.069225",
   "python_config": {
     "start_time": "2022-11-16 09:04",
     "end_time": "2022-12-11 17:19"
   },
   "SC_vectors_count": 36496,
-  "EARTH_vectors_count": 36496
+  "EARTH_vectors_count": 36496,
+  "SUN_vectors_count": 36496
 }

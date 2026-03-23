@@ -7,6 +7,10 @@ on:
       - master
   workflow_dispatch:  # Allow manual triggering
 
+env:
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -37,6 +41,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout mission data repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
+          token: ${{ secrets.DATA_REPO_TOKEN || github.token }}
+
       - name: Prepare deployment directory
         run: |
           mkdir -p dist-pages
@@ -49,6 +61,13 @@ jobs:
           # Copy third-party libraries
           cp -r third-party dist-pages/
 
+      - name: Stage NPZ ephemeris artifacts
+        run: |
+          python scripts/stage-ephemeris-data.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --dist-root ./dist-pages
+
       - name: Verify build artifacts
         run: |
           echo "Build completed. Checking artifacts..."
@@ -56,6 +75,7 @@ jobs:
           test -f dist-pages/index.html
           test -f dist-pages/mission.html
           test -d dist-pages/assets
+          find dist-pages/assets -name "*.npz" | sort
 
       - name: Setup SSH key
         run: |
@@ -84,4 +104,5 @@ jobs:
           echo "✅ Deployment completed successfully!"
           echo "🌐 Site URL: https://sankara.net/astro/lunar-missions/"
           echo "📦 Deployed from: dist-pages/"
+          echo "🗂️ Mission data: ${MISSION_DATA_REPO}@${MISSION_DATA_REF}"
           echo "📁 Remote path: ${{ secrets.SFTP_REMOTE_PATH }}"

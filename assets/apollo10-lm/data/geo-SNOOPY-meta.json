@@ -5,16 +5,18 @@
   "end_time": "1969-05-28 00:06",
   "planets": [
     "MOON",
-    "SC"
+    "SC",
+    "SUN"
   ],
   "phase": "geo",
   "center": "@399",
   "generated_by": "orbits.py",
-  "generated_at": "2026-01-16T06:55:33.433718",
+  "generated_at": "2026-03-23T13:41:05.920705",
   "python_config": {
     "start_time": "1969-05-23 05:38",
     "end_time": "1969-05-28 00:06"
   },
   "MOON_vectors_count": 6869,
-  "SC_vectors_count": 6869
+  "SC_vectors_count": 6869,
+  "SUN_vectors_count": 6869
 }

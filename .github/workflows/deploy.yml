@@ -7,6 +7,10 @@ on:
       - master
   workflow_dispatch:  # Allow manual triggering
 
+env:
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
+
 permissions:
   contents: read
   pages: write
@@ -42,6 +46,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Checkout mission data repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
+          token: ${{ secrets.DATA_REPO_TOKEN || github.token }}
+
       - name: Prepare deployment directory
         run: |
           mkdir -p dist-pages
@@ -53,6 +65,13 @@ jobs:
           cp -r images dist-pages/
           # Copy third-party libraries
           cp -r third-party dist-pages/
+
+      - name: Stage NPZ ephemeris artifacts
+        run: |
+          python scripts/stage-ephemeris-data.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --dist-root ./dist-pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
