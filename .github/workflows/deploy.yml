@@ -52,7 +52,6 @@ jobs:
           repository: ${{ env.MISSION_DATA_REPO }}
           ref: ${{ env.MISSION_DATA_REF }}
           path: mission-data
-          token: ${{ secrets.DATA_REPO_TOKEN || github.token }}
 
       - name: Prepare deployment directory
         run: |
