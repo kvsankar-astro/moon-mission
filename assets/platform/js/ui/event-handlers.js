@@ -132,7 +132,8 @@ export function bindMainControls(handlers) {
     onClick("origin-relative", toggleRelativeMode);
     onChange("camera-position", changeCameraFromTo);
     onChange("camera-look", changeCameraFromTo);
-    onChangeAll('input[name="camera-pair"]', changeCameraFromTo);
+    onChangeAll('input[name="camera-position-pill"]', changeCameraFromTo);
+    onChangeAll('input[name="camera-look-pill"]', changeCameraFromTo);
     onChange("camera-fov-one-degree", changeCameraFromTo);
 
     onClick("checkbox-lock-default", togglePlane);

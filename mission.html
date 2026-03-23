@@ -224,47 +224,43 @@
 
                         <fieldset autocomplete="off" class="settings-section settings-section--camera">
                             <legend class="settings-section__title">Camera</legend>
-                            <div class="settings-subtitle">Camera Pair</div>
-                            <div class="settings-options settings-options--pairs">
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="manual__manual" checked>
-                                    <span>Manual → Manual</span>
+                            <div class="settings-subtitle">Camera Position</div>
+                            <div class="camera-pill-group" role="radiogroup" aria-label="Camera position">
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-position-pill" value="manual" id="camera-position-pill-manual" checked>
+                                    <span>Manual</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="manual__moon">
-                                    <span>Manual → Moon</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-position-pill" value="earth" id="camera-position-pill-earth">
+                                    <span>Earth</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="manual__spacecraft">
-                                    <span>Manual → Craft</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-position-pill" value="moon" id="camera-position-pill-moon">
+                                    <span>Moon</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="earth__moon">
-                                    <span>Earth → Moon</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-position-pill" value="spacecraft" id="camera-position-pill-spacecraft">
+                                    <span>Craft</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="earth__spacecraft">
-                                    <span>Earth → Craft</span>
+                            </div>
+
+                            <div class="settings-subtitle">Look At</div>
+                            <div class="camera-pill-group" role="radiogroup" aria-label="Camera look target">
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-look-pill" value="manual" id="camera-look-pill-manual" checked>
+                                    <span>Manual</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="moon__manual">
-                                    <span>Moon → Manual</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-look-pill" value="earth" id="camera-look-pill-earth">
+                                    <span>Earth</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="moon__earth">
-                                    <span>Moon → Earth</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-look-pill" value="moon" id="camera-look-pill-moon">
+                                    <span>Moon</span>
                                 </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="moon__spacecraft">
-                                    <span>Moon → Craft</span>
-                                </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="spacecraft__earth">
-                                    <span>Craft → Earth</span>
-                                </label>
-                                <label class="settings-option">
-                                    <input type="radio" name="camera-pair" value="spacecraft__moon">
-                                    <span>Craft → Moon</span>
+                                <label class="camera-pill">
+                                    <input type="radio" name="camera-look-pill" value="spacecraft" id="camera-look-pill-spacecraft">
+                                    <span>Craft</span>
                                 </label>
                             </div>
 

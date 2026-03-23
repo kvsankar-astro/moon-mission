@@ -19,6 +19,7 @@ export function createCameraActions({
     render,
     getViewSky,
 }) {
+    const CAMERA_MODE_VALUES = ["manual", "earth", "moon", "spacecraft"];
     let pendingApplyHandle = null;
     let lastAppliedPositionMode = "manual";
     let savedFov = null;
@@ -54,12 +55,49 @@ export function createCameraActions({
         }
     }
 
-    function updateFromToOptionStates(positionMode, lookMode) {
-        updateSelectOptions("camera-look", getAllowedLook(positionMode));
-        updateSelectOptions("camera-position", getAllowedPosition(lookMode));
+    function updatePillOptions(groupName, allowedValues) {
+        const inputs = document.querySelectorAll(`input[name="${groupName}"]`);
+        if (!inputs.length) return;
+        const allowed = new Set(allowedValues);
+
+        inputs.forEach((input) => {
+            const enabled = allowed.has(input.value);
+            input.disabled = !enabled;
+            const wrapper = input.closest(".camera-pill");
+            if (wrapper) {
+                wrapper.classList.toggle("is-disabled", !enabled);
+            }
+        });
     }
 
-    function updateCameraPairSelection(positionMode, lookMode, pairKeyOverride) {
+    function updateFromToOptionStates(positionMode, lookMode) {
+        const allowedLookModes = getAllowedLook(positionMode);
+        const allowedPositionModes = getAllowedPosition(lookMode);
+
+        updateSelectOptions("camera-look", allowedLookModes);
+        updateSelectOptions("camera-position", allowedPositionModes);
+        // Keep pill controls fully interactive; normalization handles invalid
+        // combinations by auto-selecting the nearest valid pair.
+        updatePillOptions("camera-look-pill", CAMERA_MODE_VALUES);
+        updatePillOptions("camera-position-pill", CAMERA_MODE_VALUES);
+    }
+
+    function updateCameraModeSelection(positionMode, lookMode, pairKeyOverride) {
+        const positionPill = document.querySelector(
+            `input[name="camera-position-pill"][value="${positionMode}"]`,
+        );
+        if (positionPill && !positionPill.checked) {
+            positionPill.checked = true;
+        }
+
+        const lookPill = document.querySelector(
+            `input[name="camera-look-pill"][value="${lookMode}"]`,
+        );
+        if (lookPill && !lookPill.checked) {
+            lookPill.checked = true;
+        }
+
+        // Backward-compatible sync for legacy camera-pair radios (if present).
         const key = pairKeyOverride || resolvePairKey(positionMode, lookMode);
         const selected = document.querySelector(`input[name="camera-pair"][value="${key}"]`);
         if (selected && !selected.checked) {
@@ -357,12 +395,21 @@ export function createCameraActions({
     }
 
     function changeCameraFromTo(event) {
-        const sourceId = event?.target?.id;
-        const pairSelection = event?.target?.name === "camera-pair"
+        const targetName = event?.target?.name;
+        const sourceId = targetName === "camera-position-pill"
+            ? "camera-position"
+            : targetName === "camera-look-pill"
+                ? "camera-look"
+                : event?.target?.id;
+        const pairSelection = targetName === "camera-pair"
             ? resolvePairFromEvent(event)
             : null;
 
-        if (event?.target?.name === "camera-pair") {
+        if (targetName === "camera-position-pill") {
+            applyCameraFromTo?.({ positionMode: event?.target?.value });
+        } else if (targetName === "camera-look-pill") {
+            applyCameraFromTo?.({ lookMode: event?.target?.value });
+        } else if (targetName === "camera-pair") {
             if (pairSelection) {
                 applyCameraFromTo?.(pairSelection);
             }
@@ -390,7 +437,7 @@ export function createCameraActions({
         }
 
         updateFromToOptionStates(positionMode, lookMode);
-        updateCameraPairSelection(positionMode, lookMode, transitionPlan.pairKey);
+        updateCameraModeSelection(positionMode, lookMode, transitionPlan.pairKey);
 
         const config = getConfig();
         const scene = animationScenes[config];

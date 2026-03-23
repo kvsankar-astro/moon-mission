@@ -308,6 +308,20 @@ async function closeSettingsPanel(page) {
 }
 
 async function setCameraPair(page, pairValue = 'manual__manual') {
+  const [positionMode, lookMode] = pairValue.split('__');
+  const positionPillSelector = `input[name="camera-position-pill"][value="${positionMode}"]`;
+  const lookPillSelector = `input[name="camera-look-pill"][value="${lookMode}"]`;
+  const positionPill = page.locator(positionPillSelector);
+  const lookPill = page.locator(lookPillSelector);
+
+  if (await positionPill.count() && await lookPill.count()) {
+    await positionPill.first().check();
+    await positionPill.first().dispatchEvent('change');
+    await lookPill.first().check();
+    await lookPill.first().dispatchEvent('change');
+    return;
+  }
+
   const pairSelector = `input[name="camera-pair"][value="${pairValue}"]`;
   const pair = page.locator(pairSelector);
 
@@ -318,7 +332,6 @@ async function setCameraPair(page, pairValue = 'manual__manual') {
   }
 
   // Backward-compatible fallback for legacy UI that only exposed hidden selects.
-  const [positionMode, lookMode] = pairValue.split('__');
   await page.evaluate(({ positionMode, lookMode }) => {
     const positionSelect = document.querySelector('#camera-position');
     const lookSelect = document.querySelector('#camera-look');
@@ -869,9 +882,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         expect(await page.locator(selector).count()).toBe(1);
       }
 
-      // Camera controls are now exposed via camera-pair radios.
-      expect(await page.locator('input[name="camera-pair"][value="manual__manual"]').count()).toBe(1);
-      expect(await page.locator('input[name="camera-pair"][value="moon__manual"]').count()).toBe(1);
+      // Camera controls are exposed as compact position/look segmented pills.
+      expect(await page.locator('input[name="camera-position-pill"][value="manual"]').count()).toBe(1);
+      expect(await page.locator('input[name="camera-position-pill"][value="spacecraft"]').count()).toBe(1);
+      expect(await page.locator('input[name="camera-look-pill"][value="manual"]').count()).toBe(1);
+      expect(await page.locator('input[name="camera-look-pill"][value="earth"]').count()).toBe(1);
       
       await closeSettingsPanel(page);
     }, TIMEOUTS.TEST_CASE_TIMEOUT);
