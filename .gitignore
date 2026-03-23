@@ -146,3 +146,6 @@ tmpclaude-*
 
 # Dev server manager temp files
 .dev-server.*
+
+# Private local audit notes
+docs/third-party-audit-*.md
