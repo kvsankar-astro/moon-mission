@@ -36,6 +36,7 @@ function createInitConfigWiringActions(deps) {
         animationController,
         resolveOrbitUrls,
         resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         loadMissionConfig,
@@ -112,6 +113,7 @@ function createInitConfigWiringActions(deps) {
         animationController,
         resolveOrbitUrls,
         resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         setRelativeOrbitUrls: ({ scene, orbitsJson, orbitsCheb }) => {

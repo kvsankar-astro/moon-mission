@@ -170,6 +170,7 @@ function createMissionWiringComposition(ports) {
         animationController: ctx.animationController,
         resolveOrbitUrls: ctx.resolveOrbitUrls,
         resolveOrbitNpzUrl: ctx.resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl: ctx.resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo: ctx.handleModeSwitchToGeo,
         handleModeSwitchToLunar: ctx.handleModeSwitchToLunar,
         loadMissionConfig: ctx.loadMissionConfig,

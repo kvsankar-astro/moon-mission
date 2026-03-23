@@ -48,12 +48,16 @@ function createSceneFrameOrchestrationActions(deps) {
 
         const npzData = getNpzData();
         const npzDataLoaded = getNpzDataLoaded();
+        const chebyshevData = getChebyshevData();
+        const chebyshevDataLoaded = getChebyshevDataLoaded();
         const bodySources = getBodySources();
         const activeEphemerisSource = getActiveEphemerisSource(config);
         const globalConfig = getGlobalConfig();
         const computeSunLongitudeForFrame = (timeMs) =>
             computeSunLongitude(timeMs, {
                 config,
+                chebyshevData,
+                chebyshevDataLoaded,
                 npzData,
                 npzDataLoaded,
                 bodySources,
@@ -67,8 +71,8 @@ function createSceneFrameOrchestrationActions(deps) {
             scene,
             computeSunLongitude: computeSunLongitudeForFrame,
             computeSceneState,
-            chebyshevData: getChebyshevData(),
-            chebyshevDataLoaded: getChebyshevDataLoaded(),
+            chebyshevData,
+            chebyshevDataLoaded,
             npzData,
             npzDataLoaded,
             landingNpzData: getLandingNpzData(config),

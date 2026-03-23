@@ -22,6 +22,10 @@
         "json": {
           "runtime": "geo-SIVB.json",
           "generated": "data-generated/apollo11-sivb/geo-SIVB.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "geo-SIVB-sun-cheb.json",
+          "generated": "assets/apollo11-sivb/data/geo-SIVB-sun-cheb.json"
         }
       }
     },
@@ -44,6 +48,10 @@
         "json": {
           "runtime": "lunar-SIVB.json",
           "generated": "data-generated/apollo11-sivb/lunar-SIVB.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "lunar-SIVB-sun-cheb.json",
+          "generated": "assets/apollo11-sivb/data/lunar-SIVB-sun-cheb.json"
         }
       }
     }

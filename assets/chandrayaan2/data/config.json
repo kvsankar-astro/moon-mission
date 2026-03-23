@@ -15,7 +15,7 @@
     "descentOrbitLabel": "CY2 Descent Orbit"
   },
   "ephemeris_sources": {
-    "SUN": "npz"
+    "SUN": "chebyshev"
   },
   "is_lunar": true,
   "phases": ["geo", "lunar"],

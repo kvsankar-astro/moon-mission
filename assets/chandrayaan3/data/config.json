@@ -12,7 +12,7 @@
   "ephemeris_sources": {
     "SC": "chebyshev",
     "MOON": "npz",
-    "SUN": "npz"
+    "SUN": "chebyshev"
   },
   "ui": {
     "pageTitle": "ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation",

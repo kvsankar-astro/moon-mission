@@ -96,6 +96,25 @@ function resolveOrbitNpzAssetUrl({
     return resolveDataPathUrl(dataPath, `${legacyBase}.npz`);
 }
 
+function resolveOrbitSunChebyshevAssetUrl({
+    dataPath,
+    manifest,
+    phaseKey,
+    phaseConfig,
+}) {
+    const manifestSunChebUrl = resolveManifestPhaseArtifactUrl({
+        dataPath,
+        manifest,
+        phaseKey,
+        artifactKey: "sun_chebyshev",
+    });
+    if (manifestSunChebUrl) return manifestSunChebUrl;
+
+    const legacyBase = asTrimmedString(phaseConfig?.orbits_file);
+    if (!legacyBase) return null;
+    return resolveDataPathUrl(dataPath, `${legacyBase}-sun-cheb.json`);
+}
+
 function resolveLandingLegacyBase(configData) {
     const overrideBase = asTrimmedString(configData?.landing?.orbits_file);
     if (overrideBase) return overrideBase;
@@ -170,4 +189,5 @@ export {
     resolveMissionManifestUrl,
     resolveOrbitAssetUrls,
     resolveOrbitNpzAssetUrl,
+    resolveOrbitSunChebyshevAssetUrl,
 };

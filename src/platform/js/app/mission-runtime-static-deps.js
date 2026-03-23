@@ -23,6 +23,7 @@ import {
     resolveLandingChebyshevUrl,
     resolveLandingNpzUrl,
     resolveOrbitNpzUrl,
+    resolveOrbitSunChebyshevUrl,
     resolveOrbitUrls,
 } from "../data/mission-data.js";
 import { createUTCTimestamp } from "../utils/time-utils.js";
@@ -154,6 +155,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         SceneHandlerClass,
         resolveOrbitUrls,
         resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl,
         loadMissionConfig,
         bindInfoPanelControls,
         updateEphemerisPanel,

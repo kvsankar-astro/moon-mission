@@ -32,12 +32,11 @@ export function createLandingLoadActions({
 
         const configs = getConfigsList();
         let anyLoaded = false;
-        const plannedLandingUrls = {};
+        const plannedLandingChebUrls = {};
         const totalLandingTasks = configs.reduce((count, cfg) => {
-            const npzUrl = resolveLandingNpzUrl(globalConfig, cfg);
             const chebUrl = resolveLandingChebyshevUrl(globalConfig, cfg);
-            plannedLandingUrls[cfg] = { npzUrl, chebUrl };
-            return count + (npzUrl ? 1 : 0) + (chebUrl ? 1 : 0);
+            plannedLandingChebUrls[cfg] = chebUrl;
+            return count + (chebUrl ? 1 : 0);
         }, 0);
         let completedLandingTasks = 0;
 
@@ -61,29 +60,11 @@ export function createLandingLoadActions({
         }
 
         for (const cfg of configs) {
-            const { npzUrl: landingDataNpz, chebUrl: landingDataCheb } = plannedLandingUrls[cfg] || {};
+            const landingDataCheb = plannedLandingChebUrls[cfg];
 
-            try {
-                if (landingDataNpz) {
-                    console.log(`Loading landing NPZ data for ${cfg} from ${landingDataNpz}`);
-                    const landingNpzData = await loadNpz(landingDataNpz);
-                    setLandingNpzData(cfg, landingNpzData);
-                    setLandingNpzLoaded(cfg, true);
-                    anyLoaded = true;
-                    console.log(
-                        `Landing NPZ data loaded (${cfg}): bodies=${Object.keys(landingNpzData).join(",")}`,
-                    );
-                } else {
-                    setLandingNpzLoaded(cfg, false);
-                }
-            } catch (npzError) {
-                console.warn(`Failed to load landing NPZ data for ${cfg}: ${npzError}`);
-                setLandingNpzLoaded(cfg, false);
-            } finally {
-                if (landingDataNpz) {
-                    updateLandingProgress();
-                }
-            }
+            // Runtime now uses Chebyshev-only landing data.
+            setLandingNpzData(cfg, null);
+            setLandingNpzLoaded(cfg, false);
 
             try {
                 if (!landingDataCheb) {

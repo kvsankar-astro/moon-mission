@@ -1,17 +1,12 @@
 /**
  * Ephemeris Service
  *
- * Imperative-shell dependency wrapper around the external ephemeris globals:
- * - $moshier
- * - $processor
- * - $const
+ * Imperative-shell dependency wrapper for runtime ephemeris lookups.
  *
- * Kept separate from the functional core so scene state computation can remain pure.
+ * Sun longitude is intentionally Chebyshev-only (no fallback path).
  */
 
-import { degreesToRadians } from "../utils/math-utils.js";
-import { getDateComponentsUTC } from "../utils/time-utils.js";
-import { getStateFromNpzSeries } from "../data/npz-ephemeris.js";
+import { getStateFromChebyshev } from "../chebyshev.js";
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
@@ -33,9 +28,9 @@ function normalizeSource(source, fallback = "chebyshev") {
 function resolveSunSource(options) {
     const override = options?.bodySources?.SUN;
     if (typeof override === "string") {
-        return normalizeSource(override, "astronomy");
+        return normalizeSource(override, "chebyshev");
     }
-    return "astronomy";
+    return "chebyshev";
 }
 
 function toHorizonsJulianDate(timeMs) {
@@ -48,15 +43,20 @@ function toHorizonsJulianDate(timeMs) {
     return JD_UNIX_EPOCH + timeMs / MS_PER_DAY;
 }
 
-function resolveSunSeries(options) {
-    const npzData = options?.npzData;
-    if (!npzData) return null;
+function normalizeLongitudeRadians(angle) {
+    if (!Number.isFinite(angle)) return null;
+    return angle < 0 ? angle + TWO_PI : angle;
+}
 
-    const npzDataLoaded = options?.npzDataLoaded;
+function resolveSunChebyshevSeries(options) {
+    const chebyshevData = options?.chebyshevData;
+    if (!chebyshevData) return null;
+
+    const chebyshevDataLoaded = options?.chebyshevDataLoaded;
     const config = typeof options?.config === "string" ? options.config : null;
     const candidates = [];
 
-    // Prefer geocentric Sun vectors for continuity with the legacy geocentric model.
+    // Prefer geocentric Sun vectors to keep lighting continuity across phase switches.
     if (config !== "geo") {
         candidates.push("geo");
     }
@@ -65,80 +65,58 @@ function resolveSunSeries(options) {
     }
 
     for (const key of candidates) {
-        if (npzDataLoaded && !npzDataLoaded[key]) continue;
-        const series = npzData?.[key]?.SUN;
-        if (series) return series;
+        if (chebyshevDataLoaded && !chebyshevDataLoaded[key]) continue;
+        const series = chebyshevData?.[key]?.sun || chebyshevData?.[key]?.SUN;
+        if (series?.segments) return series;
     }
 
-    // Fallback: use any loaded SUN series that is available.
-    for (const [key, bucket] of Object.entries(npzData)) {
-        if (npzDataLoaded && !npzDataLoaded[key]) continue;
-        if (bucket?.SUN) return bucket.SUN;
+    // Fallback to any loaded sun series in memory for resilience during preloading order.
+    for (const [key, bucket] of Object.entries(chebyshevData)) {
+        if (chebyshevDataLoaded && !chebyshevDataLoaded[key]) continue;
+        const series = bucket?.sun || bucket?.SUN;
+        if (series?.segments) return series;
     }
 
     return null;
 }
 
-function normalizeLongitudeRadians(angle) {
-    if (!Number.isFinite(angle)) return null;
-    return angle < 0 ? angle + TWO_PI : angle;
-}
-
-function computeSunLongitudeFromNpz(timeMs, options) {
-    if (resolveSunSource(options) !== "npz") {
-        return null;
-    }
-
-    const sunSeries = resolveSunSeries(options);
+function computeSunLongitudeFromChebyshev(timeMs, options) {
+    const sunSeries = resolveSunChebyshevSeries(options);
     if (!sunSeries) return null;
 
     const jd = toHorizonsJulianDate(timeMs);
-    const state = getStateFromNpzSeries(sunSeries, jd);
+    const state = getStateFromChebyshev(sunSeries, jd);
     if (!state?.pos) return null;
 
     return normalizeLongitudeRadians(Math.atan2(state.pos.y, state.pos.x));
 }
 
-function computeSunLongitudeFromLegacy(timeMs) {
-    if (
-        typeof $const === "undefined" ||
-        typeof $processor === "undefined" ||
-        typeof $moshier === "undefined"
-    ) {
-        throw new Error(
-            "Legacy ephemeris globals are unavailable for sun longitude fallback",
-        );
-    }
-
-    const ephemDate = getDateComponentsUTC(timeMs);
-
-    // Configure ephemeris for geocentric calculation
-    $const.tlong = 0.0; // longitude
-    $const.glat = 0.0; // latitude
-    $processor.init();
-
-    const ephemSun = $moshier.body.sun;
-    $processor.calc(ephemDate, ephemSun);
-
-    return degreesToRadians(ephemSun.position.apparentLongitude);
-}
-
 /**
- * Compute sun longitude from ephemeris.
+ * Compute Sun longitude from ephemeris.
  *
- * Source preference:
- * 1. NPZ vectors when body source for SUN is configured as "npz"
- * 2. Legacy global ephemeris fallback ($moshier, $processor, $const)
+ * Requirement:
+ * - SUN source must be `chebyshev`
+ * - Sun Chebyshev series must be loaded for the phase (or geocentric fallback phase)
  *
  * @param {number} timeMs - Animation time (ms since epoch)
- * @param {Object} [options] - Optional runtime data for NPZ lookup
+ * @param {Object} [options] - Runtime lookup options
  * @returns {number} Sun longitude in radians
  */
 export function computeSunLongitude(timeMs, options) {
-    const npzLongitude = computeSunLongitudeFromNpz(timeMs, options);
-    if (Number.isFinite(npzLongitude)) {
-        return npzLongitude;
+    const source = resolveSunSource(options);
+    if (source !== "chebyshev") {
+        throw new Error(
+            `Unsupported SUN ephemeris source '${source}'. Configure SUN source as 'chebyshev' (no fallback enabled).`,
+        );
     }
 
-    return computeSunLongitudeFromLegacy(timeMs);
+    const longitude = computeSunLongitudeFromChebyshev(timeMs, options);
+    if (Number.isFinite(longitude)) {
+        return longitude;
+    }
+
+    const cfg = typeof options?.config === "string" ? options.config : "unknown";
+    throw new Error(
+        `SUN Chebyshev series unavailable for config '${cfg}' (no fallback enabled).`,
+    );
 }

@@ -132,6 +132,23 @@ export function createOrbitLoadActions({
                     console.log(
                         `Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`,
                     );
+
+                    const sunSource =
+                        typeof getBodySource === "function"
+                            ? getBodySource("SUN")
+                            : typeof getEphemerisSource === "function"
+                              ? getEphemerisSource()
+                              : "chebyshev";
+                    if (sunSource === "chebyshev") {
+                        const sunChebUrl = animationScenes[config].orbitsSunCheb;
+                        if (!sunChebUrl) {
+                            throw new Error(`Sun Chebyshev ephemeris path not configured for ${config}`);
+                        }
+                        console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
+                        const sunChebData = await loadChebyshev(sunChebUrl);
+                        chebyshevData[config].sun = sunChebData;
+                    }
+
                     recordEphemeris({
                         config,
                         source: "chebyshev",

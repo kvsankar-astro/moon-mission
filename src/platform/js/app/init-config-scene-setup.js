@@ -37,6 +37,7 @@ function createInitConfigSceneSetupActions(deps) {
         animationController,
         resolveOrbitUrls,
         resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         setRelativeOrbitUrls,
@@ -81,6 +82,10 @@ function createInitConfigSceneSetupActions(deps) {
             const orbitNpz = resolveOrbitNpzUrl(configData, sceneConfig);
             if (orbitNpz) {
                 scene.orbitsNpz = orbitNpz;
+            }
+            const orbitSunCheb = resolveOrbitSunChebyshevUrl(configData, sceneConfig);
+            if (orbitSunCheb) {
+                scene.orbitsSunCheb = orbitSunCheb;
             }
         }
 

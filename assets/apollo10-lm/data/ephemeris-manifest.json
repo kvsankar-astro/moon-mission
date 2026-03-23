@@ -22,6 +22,10 @@
         "json": {
           "runtime": "geo-SNOOPY.json",
           "generated": "data-generated/apollo10-lm/geo-SNOOPY.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "geo-SNOOPY-sun-cheb.json",
+          "generated": "assets/apollo10-lm/data/geo-SNOOPY-sun-cheb.json"
         }
       }
     },
@@ -44,6 +48,10 @@
         "json": {
           "runtime": "lunar-SNOOPY.json",
           "generated": "data-generated/apollo10-lm/lunar-SNOOPY.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "lunar-SNOOPY-sun-cheb.json",
+          "generated": "assets/apollo10-lm/data/lunar-SNOOPY-sun-cheb.json"
         }
       }
     }

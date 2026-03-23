@@ -22,6 +22,10 @@
         "json": {
           "runtime": "geo-ORION.json",
           "generated": "data-generated/artemis1/geo-ORION.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "geo-ORION-sun-cheb.json",
+          "generated": "assets/artemis1/data/geo-ORION-sun-cheb.json"
         }
       }
     },
@@ -44,6 +48,10 @@
         "json": {
           "runtime": "lunar-ORION.json",
           "generated": "data-generated/artemis1/lunar-ORION.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "lunar-ORION-sun-cheb.json",
+          "generated": "assets/artemis1/data/lunar-ORION-sun-cheb.json"
         }
       }
     }

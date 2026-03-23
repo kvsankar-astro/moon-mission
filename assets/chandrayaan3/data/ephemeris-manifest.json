@@ -22,6 +22,10 @@
         "json": {
           "runtime": "geo-CY3.json",
           "generated": "data-generated/chandrayaan3/geo-CY3.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "geo-CY3-sun-cheb.json",
+          "generated": "assets/chandrayaan3/data/geo-CY3-sun-cheb.json"
         }
       }
     },
@@ -44,6 +48,10 @@
         "json": {
           "runtime": "lunar-CY3.json",
           "generated": "data-generated/chandrayaan3/lunar-CY3.json"
+        },
+        "sun_chebyshev": {
+          "runtime": "lunar-CY3-sun-cheb.json",
+          "generated": "assets/chandrayaan3/data/lunar-CY3-sun-cheb.json"
         }
       }
     },

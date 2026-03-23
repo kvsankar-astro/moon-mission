@@ -14,6 +14,7 @@ import {
     resolveMissionManifestUrl,
     resolveOrbitAssetUrls,
     resolveOrbitNpzAssetUrl,
+    resolveOrbitSunChebyshevAssetUrl,
 } from "../core/domain/mission-asset-resolver.js";
 
 let missionConfigLoaded = false;
@@ -114,6 +115,18 @@ export function resolveOrbitNpzUrl(configData, mode) {
     if (!dataPath) return null;
 
     return resolveOrbitNpzAssetUrl({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        phaseKey: mode,
+        phaseConfig: configData?.[mode],
+    });
+}
+
+export function resolveOrbitSunChebyshevUrl(configData, mode) {
+    const dataPath = getMissionDataPath();
+    if (!dataPath) return null;
+
+    return resolveOrbitSunChebyshevAssetUrl({
         dataPath,
         manifest: extractEphemerisManifest(configData),
         phaseKey: mode,

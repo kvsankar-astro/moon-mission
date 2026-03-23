@@ -8,6 +8,7 @@ import {
     resolveMissionManifestUrl,
     resolveOrbitAssetUrls,
     resolveOrbitNpzAssetUrl,
+    resolveOrbitSunChebyshevAssetUrl,
 } from "../src/platform/js/core/domain/mission-asset-resolver.js";
 
 describe("mission-asset-resolver", () => {
@@ -105,6 +106,36 @@ describe("mission-asset-resolver", () => {
                 phaseConfig: { orbits_file: "legacy-lunar" },
             }),
         ).toBe("assets/ch3/data/legacy-lunar.npz");
+    });
+
+    it("resolves orbit Sun Chebyshev URL using manifest first then legacy fallback", () => {
+        const manifest = {
+            phases: {
+                geo: {
+                    artifacts: {
+                        sun_chebyshev: { runtime: "manifest/geo-sun-cheb.json" },
+                    },
+                },
+            },
+        };
+
+        expect(
+            resolveOrbitSunChebyshevAssetUrl({
+                dataPath: "assets/ch3/data/",
+                manifest,
+                phaseKey: "geo",
+                phaseConfig: { orbits_file: "legacy-geo" },
+            }),
+        ).toBe("assets/ch3/data/manifest/geo-sun-cheb.json");
+
+        expect(
+            resolveOrbitSunChebyshevAssetUrl({
+                dataPath: "assets/ch3/data/",
+                manifest: null,
+                phaseKey: "geo",
+                phaseConfig: { orbits_file: "legacy-geo" },
+            }),
+        ).toBe("assets/ch3/data/legacy-geo-sun-cheb.json");
     });
 
     it("resolves landing URLs with specific phase manifest precedence", () => {

@@ -6,7 +6,7 @@
   "mission_url": "https://en.wikipedia.org/wiki/Apollo_10",
   "is_lunar": true,
   "ephemeris_sources": {
-    "SUN": "npz"
+    "SUN": "chebyshev"
   },
 
   "ui": {
