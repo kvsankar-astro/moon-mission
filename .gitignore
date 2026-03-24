@@ -134,6 +134,12 @@ nul
 # Only Chebyshev files (*-cheb.json) and metadata (*-meta.json) are committed
 data-generated/
 
+# Runtime Chebyshev artifacts are generated locally and published via
+# moon-mission-data, not committed in moon-mission.
+assets/*/data/*-cheb.json
+assets/*/data/*-cheb.json.gz
+assets/*/data/*-meta.json
+
 # Legacy temporary directories
 data-fetched/
 
@@ -146,6 +152,11 @@ tmpclaude-*
 
 # Dev server manager temp files
 .dev-server.*
+.codex-vite-*.log
+
+# Local temporary build/deploy scratch outputs
+tmp-dist-*/
+tmp-deploy-meta/
 
 # Private local audit notes
 docs/third-party-audit-*.md
