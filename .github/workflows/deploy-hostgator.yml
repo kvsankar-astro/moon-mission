@@ -62,6 +62,13 @@ jobs:
           ref: ${{ env.MISSION_DATA_REF }}
           path: mission-data
 
+      - name: Regenerate data runtime asset manifest for current revisions
+        run: |
+          python mission-data/scripts/generate_runtime_asset_manifest.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --output provenance/runtime-asset-manifest.json
+
       - name: Prepare deployment directory
         run: |
           mkdir -p dist-pages
@@ -78,6 +85,16 @@ jobs:
             --data-root ./mission-data \
             --target-root ./dist-pages
 
+      - name: Write deployment version and manifest metadata
+        run: |
+          mkdir -p dist-pages/deployment
+          cp mission-data/provenance/runtime-asset-manifest.json dist-pages/deployment/runtime-asset-manifest.json
+          python scripts/write-deployment-metadata.py \
+            --output-root ./dist-pages \
+            --app-root . \
+            --data-root ./mission-data \
+            --site-url "https://sankara.net/astro/lunar-missions/"
+
       - name: Verify build artifacts
         run: |
           echo "Build completed. Checking artifacts..."
@@ -88,6 +105,9 @@ jobs:
           test -d dist-pages/src/platform
           test -d dist-pages/images
           test -d dist-pages/third-party
+          test -f dist-pages/deployment/version.json
+          test -f dist-pages/deployment/file-manifest.json
+          test -f dist-pages/deployment/runtime-asset-manifest.json
           find dist-pages/assets -name "*.npz" | sort
 
       - name: Setup SSH key
@@ -108,6 +128,38 @@ jobs:
             ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }}
         timeout-minutes: 10
 
+      - name: Audit deployed parity (nothing more, nothing less)
+        run: |
+          set -euo pipefail
+          audit_output="$(rsync -rcz --delete --dry-run --itemize-changes --out-format='%i|%n' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+            ./dist-pages/ \
+            ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }})"
+
+          if [ -n "$audit_output" ]; then
+            echo "Post-deploy rsync parity check output:"
+            echo "$audit_output"
+          fi
+
+          # Ignore directory timestamp lines (e.g. .d..t......|some-dir) and root dot entries.
+          drift_lines="$(printf '%s\n' "$audit_output" | awk -F'|' '
+            /^\*deleting / { print; next }
+            NF < 2 { next }
+            {
+              code=$1
+              if (code ~ /^\.d/ || code ~ /^cd/ || $2 == "." || $2 == "./") next
+              print
+            }
+          ')"
+
+          if [ -n "$drift_lines" ]; then
+            echo "ERROR: Deployment drift detected after publish:"
+            echo "$drift_lines"
+            exit 1
+          fi
+
+          echo "Post-deploy parity audit passed: remote matches dist-pages exactly."
+
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
@@ -118,4 +170,6 @@ jobs:
           echo "🌐 Site URL: https://sankara.net/astro/lunar-missions/"
           echo "📦 Deployed from: dist-pages/"
           echo "🗂️ Mission data: ${MISSION_DATA_REPO}@${MISSION_DATA_REF}"
+          echo "🔎 Version metadata: /deployment/version.json"
+          echo "🧾 Runtime data manifest: /deployment/runtime-asset-manifest.json"
           echo "📁 Remote path: ${{ secrets.SFTP_REMOTE_PATH }}"

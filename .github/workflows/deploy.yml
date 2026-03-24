@@ -34,6 +34,13 @@ jobs:
           ref: ${{ env.MISSION_DATA_REF }}
           path: mission-data
 
+      - name: Regenerate data runtime asset manifest for current revisions
+        run: |
+          python mission-data/scripts/generate_runtime_asset_manifest.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --output provenance/runtime-asset-manifest.json
+
       - name: Stage mission data for tests
         run: |
           python scripts/stage-ephemeris-data.py \
@@ -67,6 +74,13 @@ jobs:
           ref: ${{ env.MISSION_DATA_REF }}
           path: mission-data
 
+      - name: Regenerate data runtime asset manifest for current revisions
+        run: |
+          python mission-data/scripts/generate_runtime_asset_manifest.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --output provenance/runtime-asset-manifest.json
+
       - name: Prepare deployment directory
         run: |
           mkdir -p dist-pages
@@ -82,6 +96,16 @@ jobs:
             --app-root . \
             --data-root ./mission-data \
             --target-root ./dist-pages
+
+      - name: Write deployment version and manifest metadata
+        run: |
+          mkdir -p dist-pages/deployment
+          cp mission-data/provenance/runtime-asset-manifest.json dist-pages/deployment/runtime-asset-manifest.json
+          python scripts/write-deployment-metadata.py \
+            --output-root ./dist-pages \
+            --app-root . \
+            --data-root ./mission-data \
+            --site-url "https://kvsankar.github.io/moon-mission/"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

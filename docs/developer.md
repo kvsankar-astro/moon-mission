@@ -350,6 +350,30 @@ python scripts/deploy.py sftp
 python scripts/deploy.py local --target /path/to/deployment --dry-run
 ```
 
+### Deployment Metadata (`scripts/write-deployment-metadata.py`)
+
+When staging `dist-pages/` in CI, we also emit deployment metadata:
+
+```bash
+python scripts/write-deployment-metadata.py \
+  --output-root ./dist-pages \
+  --app-root . \
+  --data-root ./mission-data \
+  --site-url "https://sankara.net/astro/lunar-missions/"
+```
+
+Generated files:
+
+- `dist-pages/deployment/version.json` - app/data git revisions + CI run identifiers
+- `dist-pages/deployment/runtime-asset-manifest.json` - staged copy from `moon-mission-data`
+- `dist-pages/deployment/file-manifest.json` - deployed file paths + SHA-256 checksums
+
+For Hostgator deployments, workflow parity is audited post-publish with:
+
+- `rsync --dry-run --checksum --delete` against the remote target
+
+This verifies the deployed tree matches `dist-pages/` exactly (no missing/extra/drifted files).
+
 #### Deployment Configuration
 
 `scripts/deploy.py config` generates a `deploy-config.json` template. The file supports local and SFTP deployment targets.

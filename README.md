@@ -122,6 +122,26 @@ Or Node.js http-server:
 npx http-server
 ``` 
 
+### Deployed Version and Audit Artifacts
+
+Each deployment now publishes machine-readable metadata:
+
+- `/deployment/version.json` - deployed app/data repository commits, CI run metadata, and artifact summary
+- `/deployment/runtime-asset-manifest.json` - required runtime assets and SHA-256 values from `moon-mission-data`
+- `/deployment/file-manifest.json` - file list + SHA-256 for the deployed static tree
+
+For the production site this is available at:
+
+- `https://sankara.net/astro/lunar-missions/deployment/version.json`
+
+The Hostgator deploy workflow also runs a post-deploy parity audit (`rsync --dry-run --checksum --delete`) and fails if the remote tree differs from the staged deployment output.
+
+Quick CLI check:
+
+```bash
+python scripts/show-deployed-version.py
+```
+
 ## Credits
 
 * "Chandrayaan-2 in flight configuration" (https://skfb.ly/6SoMv) by tashtego is licensed under 
