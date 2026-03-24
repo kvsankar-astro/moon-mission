@@ -56,6 +56,7 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
 
     for manifest_path in sorted(assets_root.glob("*/data/ephemeris-manifest.json")):
         mission = manifest_path.parent.parent.name
+        data_dir = manifest_path.parent
         rel_manifest = Path("assets") / mission / "data" / "ephemeris-manifest.json"
         required[_norm(rel_manifest)] = RequiredArtifact(
             mission=mission,
@@ -85,7 +86,7 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
                 continue
 
             skip_generic_landing = phase == "landing" and has_landing_variants
-            for key in ("npz", "chebyshev", "meta"):
+            for key in ("npz", "chebyshev", "meta", "sun_chebyshev"):
                 artifact_cfg = artifacts.get(key, {})
                 if not isinstance(artifact_cfg, dict):
                     continue
@@ -116,6 +117,30 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
                         rel_path=gzip_rel_path,
                         optional=True,
                     )
+
+        # Relative-mode assets are selected at runtime via mode=relative and are
+        # not listed in ephemeris-manifest.json.
+        config_path = data_dir / "config.json"
+        if config_path.exists():
+            with config_path.open("r", encoding="utf-8") as handle:
+                config = json.load(handle)
+            mnemonic = config.get("spacecraft_mnemonic")
+            if isinstance(mnemonic, str) and mnemonic:
+                relative_runtime = f"relative-{mnemonic}-cheb.json"
+                relative_rel_path = Path("assets") / mission / "data" / relative_runtime
+                required[_norm(relative_rel_path)] = RequiredArtifact(
+                    mission=mission,
+                    phase="relative",
+                    rel_path=relative_rel_path,
+                    optional=False,
+                )
+                relative_gz = relative_rel_path.with_name(f"{relative_runtime}.gz")
+                required[_norm(relative_gz)] = RequiredArtifact(
+                    mission=mission,
+                    phase="relative",
+                    rel_path=relative_gz,
+                    optional=False,
+                )
 
     merged = list(required.values()) + list(optional.values())
     return sorted(merged, key=lambda item: (item.optional, _norm(item.rel_path)))

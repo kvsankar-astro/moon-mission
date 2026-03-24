@@ -107,6 +107,12 @@ jobs:
             --data-root ./mission-data \
             --site-url "https://kvsankar.github.io/moon-mission/"
 
+      - name: Verify staged runtime assets against manifest (existence + SHA)
+        run: |
+          python scripts/verify-staged-runtime-assets.py \
+            --staged-root ./dist-pages \
+            --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

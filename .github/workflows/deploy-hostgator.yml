@@ -95,6 +95,12 @@ jobs:
             --data-root ./mission-data \
             --site-url "https://sankara.net/astro/lunar-missions/"
 
+      - name: Verify staged runtime assets against manifest (existence + SHA)
+        run: |
+          python scripts/verify-staged-runtime-assets.py \
+            --staged-root ./dist-pages \
+            --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
+
       - name: Verify build artifacts
         run: |
           echo "Build completed. Checking artifacts..."
