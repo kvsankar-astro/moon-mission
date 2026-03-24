@@ -294,6 +294,38 @@ runtimeViewState.setViewFlags({
 
 const eventBus = createEventBus();
 
+function formatSpeedLabel(multiplier, isRealtime) {
+    if (isRealtime) return "RT";
+    if (!Number.isFinite(multiplier) || multiplier <= 0) return "1x";
+
+    let value = multiplier;
+    if (value >= 10) value = Math.round(value);
+    else if (value >= 1) value = Math.round(value * 10) / 10;
+    else value = Math.round(value * 100) / 100;
+
+    const text = String(value);
+    return `${text.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1")}x`;
+}
+
+function updateSpeedControlsUI(multiplier, isRealtime) {
+    const speedChip = document.getElementById("resetspeed");
+    const realtimeButton = document.getElementById("realtime");
+    const label = formatSpeedLabel(multiplier, isRealtime);
+
+    if (speedChip) {
+        speedChip.textContent = label;
+        speedChip.title = isRealtime
+            ? "Realtime mode active (click to reset to 1x)"
+            : `Current speed ${label} (click to reset to 1x)`;
+        speedChip.setAttribute("aria-label", `Current speed ${label}. Click to reset to 1x.`);
+    }
+
+    if (realtimeButton) {
+        realtimeButton.classList.toggle("down", !!isRealtime);
+        realtimeButton.setAttribute("aria-pressed", isRealtime ? "true" : "false");
+    }
+}
+
 // Animation Controller instance
 // Callbacks sync global state and update UI for backward compatibility
 var animationController = new AnimationController({
@@ -308,8 +340,16 @@ var animationController = new AnimationController({
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
     onSpeedChange: (multiplier, isRealtime) => {
+        updateSpeedControlsUI(multiplier, isRealtime);
         eventBus.emit("animation:speedChanged", { multiplier, isRealtime });
     }
+});
+
+window.addEventListener("load", function () {
+    updateSpeedControlsUI(
+        animationController.getSpeedMultiplier(),
+        animationController.getIsRealtimeSpeed(),
+    );
 });
 
 var globalConfig = null; // Store loaded config from config.json

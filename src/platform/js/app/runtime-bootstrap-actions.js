@@ -4,7 +4,6 @@ import { createRuntimeUiControlsActions } from "./runtime-ui-controls.js";
 import { createRuntimeInitDeps, createRuntimeUiControlsDeps } from "./runtime-deps.js";
 import { createOrbitProcessActions } from "./orbit-process-actions.js";
 import { createInitOrchestrationActions } from "./init-orchestration.js";
-import { createCameraOverlayActions } from "./camera-overlay.js";
 
 function createRuntimeBootstrapActions(ports) {
     const {
@@ -109,12 +108,7 @@ function createRuntimeBootstrapActions(ports) {
         orbitDataProcessed,
         getSceneStateInitDone,
         setSceneState,
-        getPixelsPerAU,
-        getKmPerAu,
-        isTestMode,
-        THREE,
         UC,
-        PC,
     } = deps;
 
     const resolvePanX = typeof getPanX === "function"
@@ -132,10 +126,6 @@ function createRuntimeBootstrapActions(ports) {
     const resolveZoomScale = typeof getZoomScale === "function"
         ? getZoomScale
         : () => UC.ZOOM_SCALE;
-    const resolveKmPerAu = typeof getKmPerAu === "function"
-        ? getKmPerAu
-        : () => PC.KM_PER_AU;
-
     function updateConfigFromMetadata() {
         const cfg = getConfig();
         const scene = getAnimationScenes()[cfg];
@@ -301,24 +291,10 @@ function createRuntimeBootstrapActions(ports) {
         animateLoop,
     });
 
-    const cameraOverlayActions = createCameraOverlayActions({
-        THREE,
-        isTestMode,
-        getAnimationScenes,
-        getConfig,
-        readCameraPositionMode,
-        readCameraLookMode,
-        getPixelsPerAU,
-        getKmPerAu: resolveKmPerAu,
-        recenterMountedCamera: uiControlsActions.recenterMountedCamera,
-    });
-
     return {
         init: runtimeInitActions.init,
         processOrbitData: () => orbitProcessActions.processOrbitData(),
         initOrchestrationActions,
-        initCameraOverlay: cameraOverlayActions.initCameraOverlay,
-        updateCameraOverlay: cameraOverlayActions.updateCameraOverlay,
         ...animationActions,
         ...uiControlsActions,
     };

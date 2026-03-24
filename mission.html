@@ -26,7 +26,7 @@
         <meta name="twitter:image" content="https://sankara.net/assets/chandrayaan3/images/chandrayaan3-screenshot.png">
 
         <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
         <link rel="stylesheet" href="src/platform/css/jquery-ui-compat.css">
@@ -91,7 +91,7 @@
         <script>
             // UI feature flags: set true to enable optional overlays.
             window.CY3_UI_FLAGS = {
-                showMissionInfoPanel: false
+                showMissionInfoPanel: true
             };
         </script>
         <script type="module" src="src/platform/js/mission.js"></script>
@@ -103,7 +103,7 @@
 
         <!-- Mission Selector (shown when no mission param) -->
         <div id="mission-selector" style="display: none;">
-            <div style="max-width: 800px; margin: 50px auto; padding: 20px; font-family: Lato, sans-serif; text-align: center;">
+            <div style="max-width: 800px; margin: 50px auto; padding: 20px; font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif; text-align: center;">
                 <h1 style="color: #ffa000; margin-bottom: 10px;">Moon Mission Animations</h1>
                 <h2 style="color: #888; font-weight: normal; margin-bottom: 40px;">by Sankar Viswanathan</h2>
 
@@ -175,7 +175,7 @@
         <div id="header" class="header">
             <div class="navbar flex-container">
 
-                <button id="settings-panel-button">☰ Settings</button>
+                <button id="settings-panel-button" type="button">Settings</button>
                 
                 <div id="blurb" class="blurb">
                     <h1><a id="mission-link" href=""><!-- mission name injected by JS --></a> Orbit Animation.</h1>
@@ -418,24 +418,37 @@
     
                     <div id="animationbuttons" class="swiper swiper1">
                         <div class="swiper-wrapper">
-                            <div class="swiper-slide"><button id="animate"    type="button" class="button">Play</button></div>
-                            <div class="swiper-slide"><button id="slower"     type="button" class="button">Slower</button></div>
-                            <div class="swiper-slide"><button id="resetspeed" type="button" class="button">Reset</button></div>
-                            <div class="swiper-slide"><button id="faster"     type="button" class="button">Faster</button></div>
-                            <div class="swiper-slide"><button id="realtime"   type="button" class="button">Realtime</button></div>
-                            <!-- <div class="swiper-slide"><span id="animspeed"></span></div> -->
-            
-                            <div class="swiper-slide"><span class="hspace">|</span></div>
+                            <div class="swiper-slide">
+                                <div class="controls-cluster controls-cluster--transport" aria-label="Transport controls">
+                                    <button id="fastbackward" type="button" class="button button--icon" title="Large backward step" aria-label="Large backward step">&laquo;</button>
+                                    <button id="backward" type="button" class="button button--icon" title="Small backward step" aria-label="Small backward step">&lsaquo;</button>
+                                    <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
+                                    <button id="forward" type="button" class="button button--icon" title="Small forward step" aria-label="Small forward step">&rsaquo;</button>
+                                    <button id="fastforward" type="button" class="button button--icon" title="Large forward step" aria-label="Large forward step">&raquo;</button>
+                                </div>
+                            </div>
 
-                            <div class="swiper-slide"><button id="landingbutton" type="button" class="button" title="Landing!">✈ Landing!</button></div>
-                            <div class="swiper-slide"><button id="joyridebutton" type="button" class="button" title="🎢 Joy Ride!">🎢 Joy Ride!</button></div>
-            
-                            <div class="swiper-slide"><span class="hspace">|</span></div>
+                            <div class="swiper-slide">
+                                <div class="controls-cluster controls-cluster--speed" aria-label="Speed controls">
+                                    <button id="slower" type="button" class="button button--icon" title="Slower" aria-label="Slower">−</button>
+                                    <button id="resetspeed" type="button" class="button button--speed" title="Reset speed to 1x">1x</button>
+                                    <button id="faster" type="button" class="button button--icon" title="Faster" aria-label="Faster">+</button>
+                                    <button id="realtime" type="button" class="button button--realtime" title="Realtime">Realtime</button>
+                                </div>
+                            </div>
 
-                            <div class="swiper-slide"><button id="fastbackward"       type="button" class="button" title="Fast rewind">&lt;&lt;</button></div> <!-- &#x25C1; --> 
-                            <div class="swiper-slide"><button id="backward"           type="button" class="button" title="Rewind">&lt;</button></div> <!-- &#x25C3; --> 
-                            <div class="swiper-slide"><button id="forward"            type="button" class="button" title="Forward">&gt;</button></div> <!-- &#x25B9; -->  
-                            <div class="swiper-slide"><button id="fastforward"        type="button" class="button" title="Fast forward">&gt;&gt;</button></div> <!-- &#x25B7; -->             
+                            <div class="swiper-slide">
+                                <div class="controls-cluster controls-cluster--modes" aria-label="Mission modes">
+                                    <button id="landingbutton" type="button" class="button" title="Landing">Landing</button>
+                                    <button id="joyridebutton" type="button" class="button" title="Joy Ride">Joy Ride</button>
+                                </div>
+                            </div>
+
+                            <div class="swiper-slide">
+                                <div class="controls-cluster controls-cluster--help" aria-label="Help">
+                                    <button id="shortcut-help" type="button" class="button button--icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="vspace"></div>
@@ -453,6 +466,20 @@
                     <div class="vspace"></div>
     
                     <div id="eventinfo" class="eventinfo"></div>
+
+                    <div id="shortcut-panel" class="shortcut-panel shortcut-panel--hidden" aria-live="polite">
+                        <div class="shortcut-panel__title">Keyboard</div>
+                        <div class="shortcut-panel__grid">
+                            <div><kbd>Space</kbd> / <kbd>K</kbd> Play/Pause</div>
+                            <div><kbd>J</kbd> / <kbd>L</kbd> Large Step</div>
+                            <div><kbd>←</kbd> / <kbd>→</kbd> Small Step</div>
+                            <div><kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>→</kbd> Large Step</div>
+                            <div><kbd>-</kbd> / <kbd>+</kbd> Slower/Faster</div>
+                            <div><kbd>0</kbd> Reset Speed</div>
+                            <div><kbd>R</kbd> Realtime</div>
+                            <div><kbd>?</kbd> Toggle Help</div>
+                        </div>
+                    </div>
     
                 </div> <!-- First row buttons -->
         
@@ -471,11 +498,11 @@
         </div>
 
         <div id="info-panel-wrapper" class="info-panel-wrapper">
-            <button id="info-panel-toggle" class="info-panel-toggle" title="Mission information">Mission Info</button>
+            <button id="info-panel-toggle" class="info-panel-toggle" title="Mission information">Mission</button>
             <div id="info-panel" class="info-panel info-panel--hidden">
                 <div class="info-panel__header">
-                    <div class="info-panel__title">Mission Information</div>
-                    <button id="info-panel-close" class="info-panel__close" title="Close">X</button>
+                    <div class="info-panel__title">Mission Info</div>
+                    <button id="info-panel-close" class="info-panel__close" type="button" title="Close">×</button>
                 </div>
                 <div id="info-panel-body" class="info-panel__body">
                     Loading mission info...
@@ -643,24 +670,6 @@
         });
     </script>
 
-    <!-- Separate camera debug/controls overlay (kept out of Settings dialog) -->
-    <div id="camera-overlay-wrapper" class="camera-overlay-wrapper" hidden>
-        <button id="camera-overlay-toggle" type="button" class="camera-overlay-toggle">Camera</button>
-        <div id="camera-overlay" class="camera-overlay" hidden>
-            <div class="camera-overlay-header">
-                <div class="camera-overlay-title">Camera</div>
-                <button id="camera-overlay-close" type="button" class="camera-overlay-close">×</button>
-            </div>
-            <div class="camera-overlay-body">
-                <div><b>Position</b>: <span id="camera-overlay-mode"></span></div>
-                <div><b>Look</b>: <span id="camera-overlay-look"></span></div>
-                <div><b>XYZ</b> (u): <span id="camera-overlay-pos-units"></span></div>
-                <div><b>XYZ</b> (km): <span id="camera-overlay-pos-km"></span></div>
-                <div><b>Mount</b>: <span id="camera-overlay-mount-dist"></span></div>
-                <button id="camera-overlay-recenter" type="button" class="camera-overlay-recenter">Recenter</button>
-            </div>
-        </div>
-    </div>
     </body>
 </html>
 

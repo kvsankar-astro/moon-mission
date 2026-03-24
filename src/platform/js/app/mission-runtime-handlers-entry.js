@@ -75,7 +75,6 @@ function createMissionRuntimeHandlersEntry(ctx) {
             getScene,
             cameraControlsCallback: getCameraControlsCallback(),
             updateThreeDLoopCamera,
-            updateCameraOverlay: () => getMissionRuntimeWireup().runtimeBootstrapActions.updateCameraOverlay(),
         });
 
         writeLoopState(nextLoopState);
@@ -114,8 +113,6 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 initAnimation,
             },
         });
-
-        getMissionRuntimeWireup().runtimeBootstrapActions.initCameraOverlay();
     }
 
     return {

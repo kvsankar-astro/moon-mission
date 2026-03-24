@@ -16,7 +16,6 @@ function executeAnimationFrame(deps) {
         getScene,
         cameraControlsCallback,
         updateThreeDLoopCamera,
-        updateCameraOverlay,
     } = deps;
 
     const curFrameTime = performanceRef.now();
@@ -49,8 +48,6 @@ function executeAnimationFrame(deps) {
         scene: getScene(),
         cameraControlsCallback,
     });
-
-    updateCameraOverlay();
 
     return {
         curFrameTime,
