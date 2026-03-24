@@ -17,6 +17,7 @@ export function createModeActions({
         const button = document.getElementById(id);
         if (!button) return;
         button.classList.toggle("down", !!isDown);
+        button.setAttribute("aria-pressed", isDown ? "true" : "false");
     }
 
     function applyModeTransition(transitionPlan) {

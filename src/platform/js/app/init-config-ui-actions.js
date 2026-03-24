@@ -32,14 +32,20 @@ function createInitConfigUiActions(deps) {
     function initializeSwipers() {
         new SwiperClass(".swiper1", {
             direction: "horizontal",
-            loop: true,
+            loop: false,
             slidesPerView: "auto",
+            watchOverflow: true,
+            freeMode: true,
+            spaceBetween: 6,
         });
 
         new SwiperClass(".swiper2", {
             direction: "horizontal",
-            loop: true,
+            loop: false,
             slidesPerView: "auto",
+            watchOverflow: true,
+            freeMode: true,
+            spaceBetween: 6,
         });
     }
 

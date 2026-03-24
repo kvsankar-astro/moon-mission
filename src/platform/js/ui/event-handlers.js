@@ -27,6 +27,51 @@ function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
 
+let keyboardShortcutsBound = false;
+let settingsPanelResizeBound = false;
+
+function isInteractiveInputTarget(target) {
+    if (!target) return false;
+    const tag = target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+    return target.isContentEditable === true;
+}
+
+function clickControlButton(id) {
+    const button = document.getElementById(id);
+    if (!button || button.disabled) return false;
+    button.click();
+    return true;
+}
+
+function toggleShortcutPanel(forceVisible) {
+    const panel = document.getElementById("shortcut-panel");
+    if (!panel) return;
+    const shouldShow = typeof forceVisible === "boolean"
+        ? forceVisible
+        : panel.classList.contains("shortcut-panel--hidden");
+    panel.classList.toggle("shortcut-panel--hidden", !shouldShow);
+}
+
+function adjustSettingsPanelBodyOverflow() {
+    const panel = document.getElementById("settings-panel");
+    const body = document.getElementById("settings-panel-body");
+    if (!panel || !body) return;
+    if (panel.classList.contains("is-collapsed")) return;
+
+    body.style.maxHeight = "none";
+    body.style.overflowY = "visible";
+
+    const panelRect = panel.getBoundingClientRect();
+    const bottomGapPx = 14;
+    const minBodyHeightPx = 220;
+    const availableHeight = Math.max(minBodyHeightPx, Math.floor(window.innerHeight - panelRect.top - bottomGapPx));
+    const needsScroll = body.scrollHeight > availableHeight + 1;
+
+    body.style.maxHeight = `${availableHeight}px`;
+    body.style.overflowY = needsScroll ? "auto" : "hidden";
+}
+
 /**
  * Bind the Settings panel opener.
  */
@@ -40,6 +85,10 @@ export function bindSettingsPanel() {
             const collapsed = panel.classList.toggle("is-collapsed");
             collapseButton.setAttribute("aria-expanded", String(!collapsed));
             collapseButton.textContent = collapsed ? "▸" : "▾";
+            if (!collapsed) {
+                adjustSettingsPanelBodyOverflow();
+                requestAnimationFrame(adjustSettingsPanelBodyOverflow);
+            }
         });
     }
 
@@ -58,7 +107,7 @@ export function bindSettingsPanel() {
             position: {
                 my: "left top",
                 at: "left bottom",
-                of: "#svg-top-baseline",
+                of: "#settings-panel-button",
                 collision: "fit flip"
             },
             title: "Settings",
@@ -87,6 +136,18 @@ export function bindSettingsPanel() {
             const collapsed = panel.classList.contains("is-collapsed");
             collapseButton.setAttribute("aria-expanded", String(!collapsed));
             collapseButton.textContent = collapsed ? "▸" : "▾";
+        }
+
+        adjustSettingsPanelBodyOverflow();
+        requestAnimationFrame(adjustSettingsPanelBodyOverflow);
+
+        if (!settingsPanelResizeBound) {
+            settingsPanelResizeBound = true;
+            window.addEventListener("resize", function () {
+                const panel = document.getElementById("settings-panel");
+                if (!panel || panel.style.display === "none") return;
+                adjustSettingsPanelBodyOverflow();
+            });
         }
     });
 }
@@ -170,4 +231,86 @@ export function bindMainControls(handlers) {
     onClick("landingbutton", toggleLanding);
 
     onClick("info-button", toggleInfo);
+}
+
+export function bindKeyboardShortcuts() {
+    if (keyboardShortcutsBound) return;
+    keyboardShortcutsBound = true;
+
+    onClick("shortcut-help", function () {
+        toggleShortcutPanel();
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented) return;
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (isInteractiveInputTarget(event.target)) return;
+
+        const key = event.key;
+        const lowerKey = typeof key === "string" ? key.toLowerCase() : "";
+
+        if (key === "Escape") {
+            toggleShortcutPanel(false);
+            return;
+        }
+
+        if (key === "?" || (key === "/" && event.shiftKey)) {
+            event.preventDefault();
+            toggleShortcutPanel();
+            return;
+        }
+
+        if (key === " " || lowerKey === "k") {
+            event.preventDefault();
+            clickControlButton("animate");
+            return;
+        }
+
+        if (key === "ArrowLeft") {
+            event.preventDefault();
+            clickControlButton(event.shiftKey ? "fastbackward" : "backward");
+            return;
+        }
+
+        if (key === "ArrowRight") {
+            event.preventDefault();
+            clickControlButton(event.shiftKey ? "fastforward" : "forward");
+            return;
+        }
+
+        if (lowerKey === "j") {
+            event.preventDefault();
+            clickControlButton("fastbackward");
+            return;
+        }
+
+        if (lowerKey === "l") {
+            event.preventDefault();
+            clickControlButton("fastforward");
+            return;
+        }
+
+        if (key === "-" || key === "_") {
+            event.preventDefault();
+            clickControlButton("slower");
+            return;
+        }
+
+        if (key === "+" || key === "=") {
+            event.preventDefault();
+            clickControlButton("faster");
+            return;
+        }
+
+        if (key === "0") {
+            event.preventDefault();
+            clickControlButton("resetspeed");
+            return;
+        }
+
+        if (lowerKey === "r") {
+            event.preventDefault();
+            clickControlButton("realtime");
+        }
+    });
 }

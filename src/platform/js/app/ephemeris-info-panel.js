@@ -1,5 +1,5 @@
 const UI_FEATURE_FLAGS = {
-    showMissionInfoPanel: false,
+    showMissionInfoPanel: true,
 };
 
 function createEphemerisInfoPanelActions(deps) {
@@ -93,7 +93,13 @@ function createEphemerisInfoPanelActions(deps) {
         const phaseRows = phases
             .map((cfg) => {
                 const phaseConfig = globalConfig?.[cfg] || {};
-                const sourceRows = ["npz", "chebyshev"]
+                const phaseStatus = ephemerisStatuses[cfg] || {};
+                const phaseRecords = ephemerisRecords[cfg] || {};
+                const phaseSources = Array.from(
+                    new Set(["chebyshev", ...Object.keys(phaseStatus), ...Object.keys(phaseRecords)]),
+                ).filter((source) => source === "chebyshev" || source === "npz");
+
+                const sourceRows = phaseSources
                     .map((source) => {
                         const record = ephemerisRecords[cfg]?.[source];
                         const file = record?.url ? record.url.split("/").pop() : "—";

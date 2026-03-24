@@ -106,31 +106,161 @@ a:hover { color: white; }
 
 .swiper {
     width: 100%;
+    overflow: visible;
+}
+
+.swiper2 {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
 }
 
 .swiper-slide{
     width: fit-content;
+    display: flex;
+    align-items: center;
+}
+
+#control-panel {
+    pointer-events: all;
+    width: calc(100vw - 8px);
+    margin: 6px auto 0;
+    padding: 5px 6px;
+    border-radius: var(--ui-radius-sm);
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    box-shadow: none;
+}
+
+#animation-control-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+#animationbuttons .swiper-wrapper,
+.swiper2 .swiper-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.controls-cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px;
+    border-radius: var(--ui-radius-sm);
+    background: rgba(15, 23, 36, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.controls-cluster--transport {
+    border-color: rgba(121, 171, 255, 0.32);
+}
+
+.controls-cluster--speed {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.controls-cluster--modes,
+.controls-cluster--help {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.button,
+.navbutton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--ui-text-1);
+    font-family: var(--ui-font-sans);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.button--icon {
+    width: 28px;
+    min-width: 28px;
+    padding: 0;
+}
+
+.button--primary {
+    min-width: 60px;
+}
+
+.button--speed {
+    min-width: 38px;
+    font-variant-numeric: tabular-nums;
+}
+
+.button--realtime {
+    min-width: 68px;
+}
+
+.button:hover,
+.navbutton:hover {
+    background: rgba(77, 141, 255, 0.14);
+    border-color: rgba(110, 162, 255, 0.6);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.24);
+}
+
+.button:focus-visible,
+.navbutton:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 1px;
+}
+
+#animate {
+    background: rgba(77, 141, 255, 0.22);
+    border-color: rgba(121, 171, 255, 0.75);
+    color: #f4f8ff;
+}
+
+#landingbutton,
+#joyridebutton {
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.burnbutton {
+    white-space: nowrap;
+    font-size: 9px;
+    padding: 0 7px;
+}
+
+#burnbuttons .swiper-slide {
+    margin-right: 0;
 }
 
 button.up {
-    color: black;
-    background: #ccc;
+    color: var(--ui-text-1);
+    background: rgba(255, 255, 255, 0.045);
     cursor: pointer;
-    border-top: solid 2px #eaeaea;
-    border-left: solid 2px #eaeaea;
-    border-bottom: solid 2px #777;
-    border-right: solid 2px #777;
-    padding: 5px 5px;
-
+    border: 1px solid var(--ui-border-1);
+    border-radius: var(--ui-radius-sm);
+    padding: 0 8px;
 }
 
 button.down {
-    color: black;
-    background: #bbb;
-    border-top: solid 2px #777;
-    border-left: solid 2px #777;
-    border-bottom:solid 2px  #eaeaea;
-    border-right: solid 2px #eaeaea;
+    color: #f5f9ff;
+    background: rgba(77, 141, 255, 0.28);
+    border: 1px solid rgba(121, 171, 255, 0.82);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.button.down:hover {
+    color: #ffffff;
+    background: rgba(77, 141, 255, 0.34);
+    border-color: rgba(146, 188, 255, 0.95);
 }
 
 .transparent-panel {
@@ -222,8 +352,10 @@ fieldset {
 
 #info-button {
     pointer-events: all;
-    margin: 0px;
-    margin-top: 10px;
+    margin: 0;
+    margin-top: 6px;
+    min-height: 27px;
+    padding: 0 8px;
 }
 
 .stats td { text-align: right; }
@@ -245,9 +377,55 @@ fieldset {
 }
 
 .eventinfo {
-  font-weight: bold;
-  color: white;
-  pointer-events: none;
+    min-height: 16px;
+    margin-top: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(226, 235, 250, 0.8);
+    pointer-events: none;
+}
+
+.shortcut-panel {
+    width: min(420px, calc(100vw - 20px));
+    margin-top: 2px;
+    padding: 8px 10px;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    background: rgba(10, 16, 27, 0.9);
+    color: var(--ui-text-1);
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.shortcut-panel--hidden {
+    display: none;
+}
+
+.shortcut-panel__title {
+    margin-bottom: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #b6d0ff;
+}
+
+.shortcut-panel__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 10px;
+}
+
+.shortcut-panel kbd {
+    display: inline-block;
+    padding: 0 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: #eaf2ff;
+    font-family: var(--ui-font-sans);
+    font-size: 9px;
+    font-weight: 700;
 }
 
 .geo table {
@@ -257,7 +435,8 @@ fieldset {
 }
 
 .hspace {
-  padding: 1em;
+    padding: 0 2px;
+    color: rgba(255, 255, 255, 0.2);
 }
 
 .mom {
@@ -265,15 +444,62 @@ fieldset {
 }
 
 .navbutton {
-  padding: 0px;
-  height: 2em;
-  width: 2em;
+    width: 27px;
+    padding: 0;
 }
 
 @media screen and (max-width: 600px) {
     .desktoponly {
       visibility: hidden;
       display: none;
+    }
+
+    #control-panel {
+        width: calc(100vw - 6px);
+        margin: 4px auto 0;
+        padding: 4px;
+    }
+
+    .button,
+    .navbutton,
+    #info-button {
+        min-height: 34px;
+        font-size: 11px;
+        padding: 0 10px;
+    }
+
+    .controls-cluster {
+        gap: 3px;
+        padding: 2px;
+    }
+
+    .button--icon {
+        width: 34px;
+        min-width: 34px;
+    }
+
+    .button--primary {
+        min-width: 68px;
+    }
+
+    .button--speed {
+        min-width: 42px;
+    }
+
+    .button--realtime {
+        min-width: 74px;
+    }
+
+    .burnbutton {
+        font-size: 10px;
+    }
+
+    .shortcut-panel {
+        width: calc(100vw - 12px);
+    }
+
+    .shortcut-panel__grid {
+        grid-template-columns: 1fr;
     }
 }
 
