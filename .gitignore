@@ -30,10 +30,6 @@ assets/chandrayaan3/models/cy3.glb
 # Large Image Files
 # =========================
 *.tif
-ldem_*.png
-lroc_color_poles_*.png
-images/moon/lro-cgi-kit/
-images/moon/moon.png
 
 # Binary data files
 de421.bsp
@@ -139,6 +135,11 @@ data-generated/
 assets/*/data/*-cheb.json
 assets/*/data/*-cheb.json.gz
 assets/*/data/*-meta.json
+
+# Runtime media and vendored assets are staged locally from moon-mission-data.
+assets/*/images/
+images/
+third-party/
 
 # Legacy temporary directories
 data-fetched/
