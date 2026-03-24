@@ -104,7 +104,11 @@ jobs:
           test -d dist-pages/assets
           test -d dist-pages/src/platform
           test -d dist-pages/images
-          test -d dist-pages/third-party
+          if [ -d dist-pages/third-party ]; then
+            echo "third-party assets present in build."
+          else
+            echo "third-party assets not present in data repo; continuing."
+          fi
           test -f dist-pages/deployment/version.json
           test -f dist-pages/deployment/file-manifest.json
           test -f dist-pages/deployment/runtime-asset-manifest.json
