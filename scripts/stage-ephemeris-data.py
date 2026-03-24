@@ -208,12 +208,19 @@ def stage_shared_tree(
     data_root: Path,
     target_root: Path,
     rel_dir: str,
+    *,
+    required: bool = True,
 ) -> int:
     source_root = data_root / rel_dir
     if not source_root.exists():
-        raise FileNotFoundError(
-            f"Required shared data directory not found in data repo: {source_root}",
+        if required:
+            raise FileNotFoundError(
+                f"Required shared data directory not found in data repo: {source_root}",
+            )
+        print(
+            f"Optional shared data directory not found in data repo: {source_root}",
         )
+        return 0
     copied = copy_tree_contents(source_root, target_root / rel_dir)
     print(f"Staged {copied} file(s) from {source_root.as_posix()}")
     return copied
@@ -299,8 +306,13 @@ def stage_runtime_assets(
         data_root=data_root,
         target_root=target_root,
     )
-    images_count = stage_shared_tree(data_root, target_root, "images")
-    third_party_count = stage_shared_tree(data_root, target_root, "third-party")
+    images_count = stage_shared_tree(data_root, target_root, "images", required=True)
+    third_party_count = stage_shared_tree(
+        data_root,
+        target_root,
+        "third-party",
+        required=False,
+    )
     mission_images_count = stage_mission_images(data_root, target_root)
 
     print(
