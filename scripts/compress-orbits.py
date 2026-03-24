@@ -111,35 +111,24 @@ def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
 # ============================================================================
 
 
-def load_npz(filepath: Path) -> dict:
-    """Load NPZ file and return dict with jd, x, y, z, vx, vy, vz arrays.
-
-    The NPZ files contain structured arrays:
-    - SC_vectors: spacecraft position/velocity with fields (jdct, x, y, z, vx, vy, vz)
-
-    Note: Velocity is computed from numerical derivatives of position for accuracy,
-    as NPZ velocity fields may have coordinate labeling issues.
-    """
-    data = np.load(filepath)
-    sc = data["SC_vectors"]
-
-    jd = sc["jdct"]
-    x, y, z = sc["x"], sc["y"], sc["z"]
+def _series_with_velocity(vectors: np.ndarray) -> dict:
+    """Build a position+velocity series from a structured NPZ vectors array."""
+    jd = vectors["jdct"]
+    x, y, z = vectors["x"], vectors["y"], vectors["z"]
     n = len(jd)
 
-    # Compute velocity from central differences of position (km/s)
+    # Compute velocity from central differences of position (km/s).
+    # We prefer this over NPZ velocity fields to avoid frame/label inconsistencies.
     vx = np.zeros(n)
     vy = np.zeros(n)
     vz = np.zeros(n)
 
-    # Interior points: central difference
     for i in range(1, n - 1):
         dt = (jd[i + 1] - jd[i - 1]) * 86400  # seconds
         vx[i] = (x[i + 1] - x[i - 1]) / dt
         vy[i] = (y[i + 1] - y[i - 1]) / dt
         vz[i] = (z[i + 1] - z[i - 1]) / dt
 
-    # Edge points: forward/backward difference
     if n > 1:
         dt0 = (jd[1] - jd[0]) * 86400
         vx[0] = (x[1] - x[0]) / dt0
@@ -153,9 +142,36 @@ def load_npz(filepath: Path) -> dict:
 
     return {
         "jd": jd,
-        "x": x, "y": y, "z": z,
-        "vx": vx, "vy": vy, "vz": vz,
+        "x": x,
+        "y": y,
+        "z": z,
+        "vx": vx,
+        "vy": vy,
+        "vz": vz,
     }
+
+
+def load_npz_by_body(filepath: Path) -> dict:
+    """Load all *_vectors series from NPZ and return {BODY_ID -> series}."""
+    data = np.load(filepath)
+    body_series = {}
+    for key in data.files:
+        if not key.endswith("_vectors"):
+            continue
+        body_id = key[: -len("_vectors")].upper()
+        body_series[body_id] = _series_with_velocity(data[key])
+    return body_series
+
+
+def load_npz(filepath: Path) -> dict:
+    """Backwards-compatible loader returning the spacecraft (SC) series only."""
+    body_series = load_npz_by_body(filepath)
+    if "SC" in body_series:
+        return body_series["SC"]
+    if not body_series:
+        raise KeyError(f"No *_vectors entries found in NPZ file: {filepath}")
+    first_body = sorted(body_series.keys())[0]
+    return body_series[first_body]
 
 
 def compress_segment(
@@ -695,25 +711,44 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
 
     # Load NPZ data
     print("\n  Loading NPZ data...")
-    npz_data = load_npz(npz_path)
-    print(f"    Data points: {len(npz_data['jd'])}")
-    print(f"    Time range: JD {npz_data['jd'][0]:.6f} to {npz_data['jd'][-1]:.6f}")
+    npz_by_body = load_npz_by_body(npz_path)
+    if not npz_by_body:
+        print(f"Error: no *_vectors data found in {npz_path}")
+        return False
+    body_ids = sorted(npz_by_body.keys())
+    print(f"    Bodies: {', '.join(body_ids)}")
+    ref_body = "SC" if "SC" in npz_by_body else body_ids[0]
+    ref_npz = npz_by_body[ref_body]
+    print(f"    Data points ({ref_body}): {len(ref_npz['jd'])}")
+    print(f"    Time range ({ref_body}): JD {ref_npz['jd'][0]:.6f} to {ref_npz['jd'][-1]:.6f}")
 
     # Compress using tolerance-driven algorithm
     print("\n  Compressing to Chebyshev polynomials...")
-    segments = compress_orbit_data_tolerance(
-        npz_data,
-        tolerance_km=config["tolerance_km"],
-    )
-    print(f"    Segments created: {len(segments)}")
+    body_output = {}
+    total_original_size = 0
+    total_compressed_size = 0
+    for body_id in body_ids:
+        body_npz = npz_by_body[body_id]
+        segments = compress_orbit_data_tolerance(
+            body_npz,
+            tolerance_km=config["tolerance_km"],
+        )
+        body_output[body_id] = {
+            "time_range": {
+                "start": float(body_npz["jd"][0]),
+                "end": float(body_npz["jd"][-1]),
+            },
+            "segments": segments,
+        }
+        print(f"    {body_id}: {len(segments)} segments")
 
-    # Calculate compression statistics
-    original_size = len(npz_data["jd"]) * 3 * 8  # 3 coords * 8 bytes
-    compressed_size = sum(
-        len(s["cx"]) * 3 * 8 + 16 for s in segments  # coeffs + time bounds
-    )
-    ratio = original_size / compressed_size
-    print(f"    Compression ratio: {ratio:.1f}x")
+        total_original_size += len(body_npz["jd"]) * 3 * 8
+        total_compressed_size += sum(
+            len(s["cx"]) * 3 * 8 + 16 for s in segments
+        )
+
+    ratio = total_original_size / total_compressed_size if total_compressed_size > 0 else 0
+    print(f"    Aggregate compression ratio: {ratio:.1f}x")
 
     # Create output structure
     output = {
@@ -723,16 +758,19 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
             "source": config["npz_source"],
             "created": datetime.now(timezone.utc).isoformat(),
             "tolerance_km": config["tolerance_km"],
-            "segments_count": len(segments),
+            "segments_count": int(sum(len(body_output[body]["segments"]) for body in body_ids)),
+            "bodies": body_ids,
             "coordinate_frame": "J2000",
             "units": {"time": "julian_date", "position": "km"},
         },
         "time_range": {
-            "start": float(npz_data["jd"][0]),
-            "end": float(npz_data["jd"][-1]),
+            "start": float(min(body_output[body]["time_range"]["start"] for body in body_ids)),
+            "end": float(max(body_output[body]["time_range"]["end"] for body in body_ids)),
         },
-        "segments": segments,
     }
+    output.update(body_output)
+    if "SC" in body_output:
+        output["segments"] = body_output["SC"]["segments"]
 
     # Write output
     print(f"\n  Writing {cheb_path}...")
@@ -745,19 +783,19 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
     # Validate if requested
     if validate:
         print("\n  Validating accuracy...")
-        result = validate_compression(
-            npz_data, segments, config["tolerance_km"]
-        )
-        print(f"    Samples tested: {result['sample_count']}")
-        print(f"    Max error: {result['max_error_km']:.3f} km")
-        print(f"    Mean error: {result['mean_error_km']:.3f} km")
-        print(f"    Tolerance: {result['tolerance_km']} km")
-        print(f"    Result: {'PASSED' if result['passed'] else 'FAILED'}")
+        for body_id in body_ids:
+            result = validate_compression(
+                npz_by_body[body_id],
+                body_output[body_id]["segments"],
+                config["tolerance_km"],
+            )
+            print(f"    {body_id}: samples={result['sample_count']}, max={result['max_error_km']:.3f} km, mean={result['mean_error_km']:.3f} km")
+            print(f"      Tolerance={result['tolerance_km']} km -> {'PASSED' if result['passed'] else 'FAILED'}")
 
-        if not result["passed"]:
-            print(f"\n  WARNING: Validation failed!")
-            print(f"    Max error {result['max_error_km']:.3f} km exceeds tolerance {result['tolerance_km']} km")
-            return False
+            if not result["passed"]:
+                print(f"\n  WARNING: Validation failed for {body_id}!")
+                print(f"    Max error {result['max_error_km']:.3f} km exceeds tolerance {result['tolerance_km']} km")
+                return False
 
     return True
 

@@ -4,9 +4,9 @@ import { getStateFromNpzSeries } from "./npz-ephemeris.js";
 
 const DEFAULT_SOURCE_BY_BODY = {
     SC: "chebyshev",
-    MOON: "astronomy",
-    EARTH: "astronomy",
-    SUN: "astronomy",
+    MOON: "chebyshev",
+    EARTH: "chebyshev",
+    SUN: "chebyshev",
 };
 
 const JD_UNIX_EPOCH = 2440587.5;
@@ -119,12 +119,18 @@ export function selectSeriesFromNpz(
     const normalizedBodyId = normalizeBodyId(bodyId);
     const normalizedSpacecraftMnemonic = normalizeBodyId(spacecraftMnemonic);
 
-    return (
-        bucket[normalizedBodyId] ||
-        bucket[normalizedSpacecraftMnemonic] ||
-        bucket.SC ||
-        null
-    );
+    if (bucket[normalizedBodyId]) {
+        return bucket[normalizedBodyId];
+    }
+
+    if (
+        normalizedBodyId === "SC" ||
+        normalizedBodyId === normalizedSpacecraftMnemonic
+    ) {
+        return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
+    }
+
+    return null;
 }
 
 export function selectSeriesFromChebyshev(
@@ -139,6 +145,10 @@ export function selectSeriesFromChebyshev(
     const normalizedBodyId = normalizeBodyId(bodyId);
     const normalizedSpacecraftMnemonic = normalizeBodyId(spacecraftMnemonic);
 
+    if (bucket[normalizedBodyId]) {
+        return bucket[normalizedBodyId];
+    }
+
     if (bucket.segments) {
         return normalizedBodyId === "SC" ||
             normalizedBodyId === normalizedSpacecraftMnemonic
@@ -146,12 +156,14 @@ export function selectSeriesFromChebyshev(
             : null;
     }
 
-    return (
-        bucket[normalizedBodyId] ||
-        bucket[normalizedSpacecraftMnemonic] ||
-        bucket.SC ||
-        null
-    );
+    if (
+        normalizedBodyId === "SC" ||
+        normalizedBodyId === normalizedSpacecraftMnemonic
+    ) {
+        return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
+    }
+
+    return null;
 }
 
 function getLandingStateFromSource({

@@ -11,7 +11,8 @@
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",
-    "MOON": "npz",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
     "SUN": "chebyshev"
   },
   "ui": {

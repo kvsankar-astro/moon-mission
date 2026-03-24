@@ -6,8 +6,12 @@
   "mission_url": "https://en.wikipedia.org/wiki/Apollo_10",
   "is_lunar": true,
   "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
     "SUN": "chebyshev"
   },
+  "ephemeris_source": "chebyshev",
 
   "ui": {
     "pageTitle": "Apollo 10 LM 'Snoopy' Trajectory",

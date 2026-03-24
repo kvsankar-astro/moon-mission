@@ -15,8 +15,12 @@
     "descentOrbitLabel": "CY2 Descent Orbit"
   },
   "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
     "SUN": "chebyshev"
   },
+  "ephemeris_source": "chebyshev",
   "is_lunar": true,
   "phases": ["geo", "lunar"],
   "geo": {

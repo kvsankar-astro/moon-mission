@@ -7,8 +7,12 @@
   "mission_description": "Artemis 1 Orbit Animation - NASA's Return to the Moon",
   "mission_keywords": "artemis, orion, moon, nasa, sls, space, astronomy, animation",
   "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
     "SUN": "chebyshev"
   },
+  "ephemeris_source": "chebyshev",
   "ui": {
     "pageTitle": "NASA's Artemis 1 Mission 2022 - An Orbit Animation",
     "headerTitle": "Artemis 1",

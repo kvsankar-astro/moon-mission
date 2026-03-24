@@ -25,6 +25,23 @@ export function createOrbitLoadActions({
     onEphemerisStatus,
     loadProgress,
 }) {
+    function getChebyshevBodySeries(chebData, bodyId) {
+        if (!chebData || !bodyId) return null;
+        if (chebData[bodyId]) return chebData[bodyId];
+        if (bodyId === "SC" && chebData.segments) return chebData;
+        return null;
+    }
+
+    function getChebyshevSegmentCount(chebData) {
+        if (!chebData || typeof chebData !== "object") return 0;
+        if (Array.isArray(chebData.segments)) return chebData.segments.length;
+        const seriesList = Object.values(chebData).filter(
+            (value) => value && Array.isArray(value.segments),
+        );
+        if (seriesList.length === 0) return 0;
+        return Math.max(...seriesList.map((series) => series.segments.length));
+    }
+
     const recordEphemeris =
         typeof onEphemerisLoaded === "function"
             ? onEphemerisLoaded
@@ -130,7 +147,7 @@ export function createOrbitLoadActions({
                     chebyshevData[config] = await loadChebyshev(chebUrl);
                     chebyshevDataLoaded[config] = true;
                     console.log(
-                        `Chebyshev data loaded for ${config}: ${chebyshevData[config].segments.length} segments`,
+                        `Chebyshev data loaded for ${config}: ${getChebyshevSegmentCount(chebyshevData[config])} segments`,
                     );
 
                     const sunSource =
@@ -140,13 +157,19 @@ export function createOrbitLoadActions({
                               ? getEphemerisSource()
                               : "chebyshev";
                     if (sunSource === "chebyshev") {
-                        const sunChebUrl = animationScenes[config].orbitsSunCheb;
-                        if (!sunChebUrl) {
-                            throw new Error(`Sun Chebyshev ephemeris path not configured for ${config}`);
+                        const hasSunInPrimaryFile = !!getChebyshevBodySeries(
+                            chebyshevData[config],
+                            "SUN",
+                        );
+                        if (!hasSunInPrimaryFile) {
+                            const sunChebUrl = animationScenes[config].orbitsSunCheb;
+                            if (!sunChebUrl) {
+                                throw new Error(`Sun Chebyshev ephemeris path not configured for ${config}`);
+                            }
+                            console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
+                            const sunChebData = await loadChebyshev(sunChebUrl);
+                            chebyshevData[config].SUN = sunChebData;
                         }
-                        console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
-                        const sunChebData = await loadChebyshev(sunChebUrl);
-                        chebyshevData[config].sun = sunChebData;
                     }
 
                     recordEphemeris({
