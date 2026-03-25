@@ -7,7 +7,19 @@ export function createCraftScaleActions({
     getDefaultCameraDistance,
     getAnimTime,
     isLocationAvaialable,
+    getViewportWidth,
 }) {
+    function readViewportWidth() {
+        if (typeof getViewportWidth === "function") {
+            const width = Number(getViewportWidth());
+            if (Number.isFinite(width) && width > 0) return width;
+        }
+        if (typeof window !== "undefined" && Number.isFinite(window.innerWidth)) {
+            return window.innerWidth;
+        }
+        return Number.POSITIVE_INFINITY;
+    }
+
     function updateCraftScale() {
         const config = getConfig();
         const scene = animationScenes[config];
@@ -32,6 +44,7 @@ export function createCraftScaleActions({
             scale = scale * (fov / 50);
         }
         if (getLandingFlag()) scale = scale * 5;
+        if (readViewportWidth() <= 600) scale = scale * 0.5;
 
         scene.craft.scale.set(scale, scale, scale);
         scene.drone.scale.set(scale, scale, scale);

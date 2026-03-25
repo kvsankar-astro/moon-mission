@@ -63,4 +63,39 @@ describe("createCraftScaleActions", () => {
 
         expect(scene.craft.visible).toBe(true);
     });
+
+    it("applies a 50% craft scale reduction on mobile viewport widths", () => {
+        const desktopScene = createScene({ cameraX: 100 });
+        const desktopActions = createCraftScaleActions({
+            THREE,
+            animationScenes: { geo: desktopScene },
+            getConfig: () => "geo",
+            getJoyRideFlag: () => false,
+            getLandingFlag: () => false,
+            getDefaultCameraDistance: () => 100,
+            getAnimTime: () => 0,
+            isLocationAvaialable: () => true,
+            getViewportWidth: () => 1200,
+        });
+        desktopActions.updateCraftScale();
+        const desktopScale = desktopScene.craft.scale.x;
+
+        const mobileScene = createScene({ cameraX: 100 });
+        const mobileActions = createCraftScaleActions({
+            THREE,
+            animationScenes: { geo: mobileScene },
+            getConfig: () => "geo",
+            getJoyRideFlag: () => false,
+            getLandingFlag: () => false,
+            getDefaultCameraDistance: () => 100,
+            getAnimTime: () => 0,
+            isLocationAvaialable: () => true,
+            getViewportWidth: () => 390,
+        });
+        mobileActions.updateCraftScale();
+
+        expect(mobileScene.craft.scale.x).toBeCloseTo(desktopScale * 0.5, 6);
+        expect(mobileScene.craft.scale.y).toBeCloseTo(desktopScale * 0.5, 6);
+        expect(mobileScene.craft.scale.z).toBeCloseTo(desktopScale * 0.5, 6);
+    });
 });
