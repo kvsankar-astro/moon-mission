@@ -11,6 +11,9 @@
 import * as THREE from 'three';
 import { PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 
+const SKY_STARMAP_OPACITY = 0.4;
+const SKY_CONSTELLATION_OPACITY = 0.06;
+
 export class SkyRenderer {
     /**
      * @param {THREE.Object3D} parentContainer - Container to add sky to
@@ -62,7 +65,7 @@ export class SkyRenderer {
         const skyMaterial = new THREE.MeshBasicMaterial({
             blending: THREE.AdditiveBlending,
             map: this.skyTexture,
-            opacity: 0.4
+            opacity: SKY_STARMAP_OPACITY
         });
         skyMaterial.side = THREE.BackSide;
 
@@ -76,7 +79,7 @@ export class SkyRenderer {
         const constellationMaterial = new THREE.MeshBasicMaterial({
             blending: THREE.AdditiveBlending,
             map: this.constellationTexture,
-            opacity: 0.1
+            opacity: SKY_CONSTELLATION_OPACITY
         });
         constellationMaterial.side = THREE.BackSide;
 

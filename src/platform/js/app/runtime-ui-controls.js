@@ -39,6 +39,7 @@ function createRuntimeUiControlsActions(deps) {
         setPlaneSelection,
         handlePlaneChange,
         getViewSky,
+        getViewConstellationLines,
         getGlobalConfig,
         updateCraftScale,
         getLandingFlag,
@@ -104,6 +105,7 @@ function createRuntimeUiControlsActions(deps) {
         handlePlaneChange,
         render,
         getViewSky,
+        getViewConstellationLines,
     });
 
     const modeActions = createModeActions({

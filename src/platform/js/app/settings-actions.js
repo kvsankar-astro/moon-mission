@@ -1,4 +1,5 @@
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
+import { applySkyLayerVisibility } from "./sky-visibility.js";
 
 export function createSettingsActions({
     getConfig,
@@ -47,14 +48,14 @@ export function createSettingsActions({
 
         setFPSCounterVisibility(view.viewFPS);
 
-        ["geo", "lunar"].map(function(cfg) {
+        ["geo", "lunar"].forEach(function(cfg) {
             if (animationScenes[cfg] && animationScenes[cfg].initialized3D) {
-                animationScenes[cfg].orbitLines.map((orbitLine) => { orbitLine.visible = view.viewOrbit; });
+                animationScenes[cfg].orbitLines.forEach((orbitLine) => { orbitLine.visible = view.viewOrbit; });
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
                     animationScenes[cfg].landingOrbitLine.visible = view.viewOrbitDescent;
                 }
 
-                animationScenes[cfg].locations.map(x => x.visible = view.viewCraters);
+                animationScenes[cfg].locations.forEach((x) => { x.visible = view.viewCraters; });
 
                 animationScenes[cfg].axesHelper.visible = view.viewXYZAxes;
 
@@ -70,7 +71,10 @@ export function createSettingsActions({
 
                 animationScenes[cfg].earthAxis.visible = view.viewPolarAxes;
 
-                animationScenes[cfg].skyContainer.visible = view.viewSky;
+                applySkyLayerVisibility(animationScenes[cfg], {
+                    viewSky: view.viewSky,
+                    viewConstellationLines: view.viewConstellationLines,
+                });
                 animationScenes[cfg].eclipticPlaneHelper.visible = view.viewEclipticPlane;
                 animationScenes[cfg].eclipticPolarGridHelper.visible = view.viewEclipticPlane;
                 animationScenes[cfg].equatorialPlaneHelper.visible = view.viewEquatorialPlane;

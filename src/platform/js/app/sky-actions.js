@@ -1,12 +1,15 @@
+import { applySkyLayerVisibility } from "./sky-visibility.js";
+
 export function createSkyActions({ SkyRenderer, render }) {
-    function addSky(scene, { earthRadius, viewSky }) {
+    function addSky(scene, { earthRadius, viewSky, viewConstellationLines }) {
         scene.skyRenderer = new SkyRenderer(scene.motherContainer, earthRadius);
         scene.skyRenderer.setTextures(scene.skyTexture, scene.skyConstellationTexture);
-        scene.skyRenderer.create(viewSky);
+        scene.skyRenderer.create(viewSky || viewConstellationLines);
 
         scene.skyContainer = scene.skyRenderer.container;
         scene.sky = scene.skyRenderer.skyMesh;
         scene.skyConstellation = scene.skyRenderer.constellationMesh;
+        applySkyLayerVisibility(scene, { viewSky, viewConstellationLines });
 
         render();
     }
@@ -26,4 +29,3 @@ export function createSkyActions({ SkyRenderer, render }) {
 
     return { addSky, disposeSky };
 }
-

@@ -52,6 +52,7 @@ const VIEW_SETTING_CHECKBOXES = {
     viewPoles: "view-poles",
     viewPolarAxes: "view-polar-axes",
     viewSky: "view-sky",
+    viewConstellationLines: "view-constellation-lines",
     viewMoonSOI: "view-moonsoi",
     viewEclipticPlane: "view-eclipticplane",
     viewEquatorialPlane: "view-equatorialplane",

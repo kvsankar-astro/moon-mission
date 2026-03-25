@@ -6,6 +6,7 @@ import {
     resolvePairFromValue,
     resolvePairKey,
 } from "../core/domain/camera-policy.js";
+import { applySkyLayerVisibility } from "./sky-visibility.js";
 
 export function createCameraActions({
     animationScenes,
@@ -18,6 +19,7 @@ export function createCameraActions({
     handlePlaneChange,
     render,
     getViewSky,
+    getViewConstellationLines,
 }) {
     const CAMERA_MODE_VALUES = ["manual", "earth", "moon", "spacecraft"];
     let pendingApplyHandle = null;
@@ -36,6 +38,13 @@ export function createCameraActions({
             moon: scene.moonContainer ?? null,
             spacecraft: scene.craft ?? null,
         };
+    }
+
+    function applySkyVisibility(scene) {
+        applySkyLayerVisibility(scene, {
+            viewSky: getViewSky(),
+            viewConstellationLines: getViewConstellationLines(),
+        });
     }
 
     function getAllowedLook(positionMode) {
@@ -460,7 +469,7 @@ export function createCameraActions({
 
         if (scene && scene.initialized3D) {
             scene.cameraController?.setFromToModes?.(positionMode, lookMode);
-            scene.skyContainer.visible = getViewSky();
+            applySkyVisibility(scene);
 
             ensureMountedVisibilityListener(scene);
 

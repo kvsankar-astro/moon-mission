@@ -3,8 +3,8 @@ export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthSpecularTexture: "images/earth/earthspec1k.jpg",
     moonMap: "images/moon/Solarsystemscope_texture_8k_moon.jpg",
     moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
-    skyTexture: "images/sky/starmap_4k.jpg",
-    skyConstellationTexture: "images/sky/constellation_figures.jpg",
+    skyTexture: "images/sky/starmap_2020_4k_stars.jpg",
+    skyConstellationTexture: "images/sky/constellation_figures_2020_4k.jpg",
 };
 
 function loadTexture(loader, fileName) {
@@ -43,4 +43,3 @@ export function loadSceneTextures({
         return byKey;
     });
 }
-

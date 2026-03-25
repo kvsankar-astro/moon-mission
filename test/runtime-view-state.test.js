@@ -36,16 +36,19 @@ describe("runtime-view-state", () => {
 
         expect(state.getViewOrbit()).toBe(true);
         expect(state.getViewMoonSOI()).toBe(false);
+        expect(state.getViewConstellationLines()).toBe(false);
 
         state.setViewFlags({
             viewOrbit: false,
             viewMoonSOI: true,
             viewXYZAxes: false,
+            viewConstellationLines: false,
         });
 
         expect(state.getViewOrbit()).toBe(false);
         expect(state.getViewMoonSOI()).toBe(true);
         expect(state.getViewXYZAxes()).toBe(false);
+        expect(state.getViewConstellationLines()).toBe(false);
 
         state.setViewEquatorialPlane(true);
         state.setViewFPS(false);

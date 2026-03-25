@@ -62,6 +62,7 @@ describe("ui-transition-plan", () => {
                 viewOrbit: false,
                 viewOrbitDescent: false,
                 viewSky: true,
+                viewConstellationLines: false,
             }));
 
             const disablePlan = planRuntimeModeToggle({
@@ -81,6 +82,7 @@ describe("ui-transition-plan", () => {
                 viewOrbit: true,
                 viewOrbitDescent: true,
                 viewSky: true,
+                viewConstellationLines: false,
             }));
         });
 
@@ -114,6 +116,7 @@ describe("ui-transition-plan", () => {
                 viewOrbit: false,
                 viewOrbitDescent: true,
                 viewSky: true,
+                viewConstellationLines: false,
             }));
 
             const disablePlan = planRuntimeModeToggle({
@@ -129,6 +132,7 @@ describe("ui-transition-plan", () => {
                 viewOrbit: true,
                 viewOrbitDescent: true,
                 viewSky: true,
+                viewConstellationLines: false,
             }));
         });
 

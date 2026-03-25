@@ -286,6 +286,7 @@ runtimeViewState.setViewFlags({
     viewPoles: initialMissionViewState.viewPoles,
     viewPolarAxes: initialMissionViewState.viewPolarAxes,
     viewSky: initialMissionViewState.viewSky,
+    viewConstellationLines: initialMissionViewState.viewConstellationLines,
     viewMoonSOI: initialMissionViewState.viewMoonSOI,
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
     viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
@@ -423,6 +424,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getBodyEphemerisState,
     getEphemerisSource: () => ephemerisSource,
     getViewSky: () => runtimeViewState.getViewSky(),
+    getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
     getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
@@ -505,6 +507,10 @@ const missionStateCells = {
         (value) => { runtimeViewState.setViewPolarAxes(value); },
     ),
     viewSky: bindStateCell(() => runtimeViewState.getViewSky(), (value) => { runtimeViewState.setViewSky(value); }),
+    viewConstellationLines: bindStateCell(
+        () => runtimeViewState.getViewConstellationLines(),
+        (value) => { runtimeViewState.setViewConstellationLines(value); },
+    ),
     viewMoonSOI: bindStateCell(() => runtimeViewState.getViewMoonSOI(), (value) => { runtimeViewState.setViewMoonSOI(value); }),
     viewEclipticPlane: bindStateCell(
         () => runtimeViewState.getViewEclipticPlane(),

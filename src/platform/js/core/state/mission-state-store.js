@@ -31,6 +31,10 @@ function createMissionStateStore(ctx) {
 
     const getState = (key) => state[key].get();
     const setState = (key, value) => state[key].set(value);
+    const setBooleanStateIfDefined = (key, value) => {
+        if (value === undefined) return;
+        setState(key, Boolean(value));
+    };
 
     return {
         getGlobalConfig: () => getState("globalConfig"),
@@ -256,18 +260,19 @@ function createMissionStateStore(ctx) {
             setState("startLandingFlag", false);
         },
         toggleLanding: () => getRuntimeBootstrapActions().toggleLanding(),
-        setViewFlags: (view) => {
-            setState("viewOrbit", view.viewOrbit);
-            setState("viewOrbitDescent", view.viewOrbitDescent);
-            setState("viewCraters", view.viewCraters);
-            setState("viewXYZAxes", view.viewXYZAxes);
-            setState("viewPoles", view.viewPoles);
-            setState("viewPolarAxes", view.viewPolarAxes);
-            setState("viewSky", view.viewSky);
-            setState("viewMoonSOI", view.viewMoonSOI);
-            setState("viewEclipticPlane", view.viewEclipticPlane);
-            setState("viewEquatorialPlane", view.viewEquatorialPlane);
-            setState("viewFPS", view.viewFPS);
+        setViewFlags: (view = {}) => {
+            setBooleanStateIfDefined("viewOrbit", view.viewOrbit);
+            setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
+            setBooleanStateIfDefined("viewCraters", view.viewCraters);
+            setBooleanStateIfDefined("viewXYZAxes", view.viewXYZAxes);
+            setBooleanStateIfDefined("viewPoles", view.viewPoles);
+            setBooleanStateIfDefined("viewPolarAxes", view.viewPolarAxes);
+            setBooleanStateIfDefined("viewSky", view.viewSky);
+            setBooleanStateIfDefined("viewConstellationLines", view.viewConstellationLines);
+            setBooleanStateIfDefined("viewMoonSOI", view.viewMoonSOI);
+            setBooleanStateIfDefined("viewEclipticPlane", view.viewEclipticPlane);
+            setBooleanStateIfDefined("viewEquatorialPlane", view.viewEquatorialPlane);
+            setBooleanStateIfDefined("viewFPS", view.viewFPS);
         },
         onConfigChanged: (newConfig) => {
             syncPlaneStateForConfig(newConfig);
@@ -312,6 +317,7 @@ function createMissionStateStore(ctx) {
             setState("mouseDown", value);
         },
         getViewSky: () => getState("viewSky"),
+        getViewConstellationLines: () => getState("viewConstellationLines"),
         setMissionStartCalled: (val) => {
             setState("missionStartCalled", val);
         },

@@ -14,8 +14,8 @@ const REQUIRED_RUNTIME_TEXTURES = [
   'images/earth/earthspec1k.jpg',
   'images/moon/Solarsystemscope_texture_8k_moon.jpg',
   'images/moon/ldem_16_gsfc.png',
-  'images/sky/starmap_4k.jpg',
-  'images/sky/constellation_figures.jpg',
+  'images/sky/starmap_2020_4k_stars.jpg',
+  'images/sky/constellation_figures_2020_4k.jpg',
 ];
 
 function runNode(args, env = process.env) {

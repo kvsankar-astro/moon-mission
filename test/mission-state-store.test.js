@@ -66,6 +66,7 @@ function createStateCells() {
         viewPoles: createCell(false),
         viewPolarAxes: createCell(false),
         viewSky: createCell(true),
+        viewConstellationLines: createCell(false),
         viewMoonSOI: createCell(false),
         viewEclipticPlane: createCell(false),
         viewEquatorialPlane: createCell(false),
@@ -224,6 +225,7 @@ describe("createMissionStateStore", () => {
             viewPoles: true,
             viewPolarAxes: true,
             viewSky: false,
+            viewConstellationLines: false,
             viewMoonSOI: true,
             viewEclipticPlane: true,
             viewEquatorialPlane: true,
@@ -239,10 +241,26 @@ describe("createMissionStateStore", () => {
         expect(state.viewPoles.get()).toBe(true);
         expect(state.viewPolarAxes.get()).toBe(true);
         expect(state.viewSky.get()).toBe(false);
+        expect(state.viewConstellationLines.get()).toBe(false);
         expect(state.viewMoonSOI.get()).toBe(true);
         expect(state.viewEclipticPlane.get()).toBe(true);
         expect(state.viewEquatorialPlane.get()).toBe(true);
         expect(state.viewFPS.get()).toBe(true);
+    });
+
+    it("setViewFlags preserves unspecified view state cells when patch is partial", () => {
+        const { store, state } = createStore();
+        state.viewOrbit.set(true);
+        state.viewSky.set(true);
+        state.viewConstellationLines.set(true);
+
+        store.setViewFlags({
+            viewSky: false,
+        });
+
+        expect(state.viewSky.get()).toBe(false);
+        expect(state.viewOrbit.get()).toBe(true);
+        expect(state.viewConstellationLines.get()).toBe(true);
     });
 
     it("onConfigChanged delegates to syncPlaneStateForConfig with new config", () => {

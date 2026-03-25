@@ -106,8 +106,8 @@ function createAnimationSceneClass(deps) {
         }
 
         addSky() {
-            const { earthRadius, viewSky } = getRuntimeState();
-            skyActions.addSky(this, { earthRadius, viewSky });
+            const { earthRadius, viewSky, viewConstellationLines } = getRuntimeState();
+            skyActions.addSky(this, { earthRadius, viewSky, viewConstellationLines });
         }
 
         disposeSky() {

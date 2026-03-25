@@ -213,6 +213,7 @@ export function bindMainControls(handlers) {
     onClick("view-poles", setView);
     onClick("view-polar-axes", setView);
     onClick("view-sky", setView);
+    onClick("view-constellation-lines", setView);
     onClick("view-moonsoi", setView);
     onClick("view-eclipticplane", setView);
     onClick("view-equatorialplane", setView);
