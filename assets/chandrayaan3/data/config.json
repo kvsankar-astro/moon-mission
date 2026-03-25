@@ -23,7 +23,7 @@
     "descentOrbitLabel": "CY3 Descent Orbit"
   },
   "is_lunar": true,
-  "phases": ["geo", "lunar", "landing"],
+  "origins": ["geo", "lunar"],
   "geo": {
     "start_year": "2023",
     "start_month": "07", 
@@ -233,7 +233,6 @@
   },
   "eventConfigs": {
     "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"],
-    "landing": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"]
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"]
   }
 }

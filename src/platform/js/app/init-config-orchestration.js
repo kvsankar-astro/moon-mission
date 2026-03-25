@@ -69,11 +69,9 @@ function createInitConfigOrchestrationActions(deps) {
         setEventInfos(loadedGlobalConfig?.eventInfos || []);
         setEphemerisSource(getEphemerisSource(loadedGlobalConfig));
         setBodyEphemerisSources(loadedGlobalConfig?.ephemeris_sources || {});
-        for (const cfg of loadedGlobalConfig?.phases || []) {
-            setEphemerisStatusesForConfig(cfg, {
-                npz: { status: "pending", message: "" },
-                chebyshev: { status: "pending", message: "" },
-            });
+        const origins = loadedGlobalConfig?.origins || [];
+        for (const cfg of origins) {
+            setEphemerisStatusesForConfig(cfg, {});
         }
         bindInfoPanelControls();
         updateEphemerisPanel();

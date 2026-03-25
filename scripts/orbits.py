@@ -77,15 +77,21 @@ def load_config(mission_name):
             
             print_debug(f"Added spacecraft {spacecraft_mnemonic} and SC with ID {spacecraft_id}")
         
-        # Get available phases from config
-        available_phases = full_config.get('phases', [])
-        print_debug(f"Available phases from config: {available_phases}")
+        # Get selectable origins from config.
+        available_origins = [
+            key for key in full_config.get('origins', [])
+            if key != 'landing'
+        ]
+        print_debug(f"Available origins from config: {available_origins}")
+        if not available_origins:
+            print_error("No origins configured. Add a non-empty 'origins' list in config.json")
+            sys.exit(1)
         
         # Process phase configurations
         phases_config = {}
-        for phase_name in available_phases:
+        for phase_name in available_origins:
             if phase_name not in full_config:
-                print_error(f"Phase '{phase_name}' listed in phases but not defined in config")
+                print_error(f"Origin '{phase_name}' listed in origins but not defined in config")
                 sys.exit(1)
 
             phase_config = full_config[phase_name]
@@ -109,21 +115,33 @@ def load_config(mission_name):
 
             phases_config[phase_name] = phase_config
 
-            # Special handling: also produce an Earth-centered landing phase for geo origin.
-            if phase_name == "landing":
-                # Duplicate with Earth center and suffixes for filenames
-                landing_geo = phase_config.copy()
-                landing_geo['center'] = JPL_EARTH_CENTER
-                landing_geo['orbits_file'] = f"{phase_config['orbits_file']}-geo"
-                phases_config['landing-geo'] = landing_geo
-                # Keep lunar-centered version labeled explicitly for clarity
-                landing_lunar = phase_config.copy()
-                landing_lunar['center'] = phase_config['center']
-                landing_lunar['orbits_file'] = f"{phase_config['orbits_file']}-lunar"
-                phases_config['landing-lunar'] = landing_lunar
+        # Landing is a high-resolution slice, not an origin.
+        landing_cfg = full_config.get('landing')
+        if isinstance(landing_cfg, dict) and landing_cfg.get('enabled', True):
+            if 'center' not in landing_cfg:
+                print_error("Landing config missing 'center' configuration")
+                sys.exit(1)
+            landing_center_mnemonic = landing_cfg['center']
+            if landing_center_mnemonic in center_codes:
+                landing_center = center_codes[landing_center_mnemonic]
+            else:
+                print_error(f"Unknown landing center mnemonic: {landing_center_mnemonic}")
+                sys.exit(1)
 
-        # Append synthetic phases to the list so they can be selected via CLI
-        augmented_phases = available_phases + [p for p in ['landing-geo', 'landing-lunar'] if p not in available_phases]
+            landing_base = landing_cfg.copy()
+            landing_base['center'] = landing_center
+
+            landing_geo = landing_base.copy()
+            landing_geo['center'] = JPL_EARTH_CENTER
+            landing_geo['orbits_file'] = f"{landing_base['orbits_file']}-geo"
+            phases_config['landing-geo'] = landing_geo
+
+            landing_lunar = landing_base.copy()
+            landing_lunar['orbits_file'] = f"{landing_base['orbits_file']}-lunar"
+            phases_config['landing-lunar'] = landing_lunar
+
+        # Append synthetic landing slices so they can be selected via CLI.
+        augmented_phases = available_origins + [p for p in ['landing-geo', 'landing-lunar'] if p not in available_origins]
 
         return phases_config, augmented_phases
     except FileNotFoundError:

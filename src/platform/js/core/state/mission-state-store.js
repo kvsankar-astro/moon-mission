@@ -1,4 +1,4 @@
-import { resolveLandingDataPhaseKeys } from "../domain/phase-compat.js";
+import { resolveLandingDataOriginKeys } from "../domain/origin-compat.js";
 
 function createMissionStateStore(ctx) {
     const {
@@ -92,9 +92,9 @@ function createMissionStateStore(ctx) {
                 defaultSpacecraftSource: getState("ephemerisSource"),
             }),
         getConfigsList: () => {
-            const fallbackPhases = Object.keys(animationScenes);
-            return resolveLandingDataPhaseKeys(getState("globalConfig"), {
-                fallbackPhaseKeys: fallbackPhases,
+            const fallbackOrigins = Object.keys(animationScenes);
+            return resolveLandingDataOriginKeys(getState("globalConfig"), {
+                fallbackOriginKeys: fallbackOrigins,
             });
         },
         getLandingDataLoaded: () => getState("landingDataLoaded"),

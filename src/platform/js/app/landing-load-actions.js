@@ -12,7 +12,17 @@ export function createLandingLoadActions({
     loadNpz,
     loadChebyshev,
     loadProgress,
+    onEphemerisLoaded,
+    onEphemerisStatus,
 }) {
+    const recordEphemeris =
+        typeof onEphemerisLoaded === "function"
+            ? onEphemerisLoaded
+            : () => {};
+    const setStatus =
+        typeof onEphemerisStatus === "function"
+            ? onEphemerisStatus
+            : () => {};
     const progress =
         loadProgress &&
         typeof loadProgress.setStage === "function" &&
@@ -65,6 +75,7 @@ export function createLandingLoadActions({
             // Runtime now uses Chebyshev-only landing data.
             setLandingNpzData(cfg, null);
             setLandingNpzLoaded(cfg, false);
+            setStatus(cfg, "landing-npz", "ok", "Not used (Chebyshev-only runtime)");
 
             try {
                 if (!landingDataCheb) {
@@ -72,13 +83,22 @@ export function createLandingLoadActions({
                         `Landing Chebyshev path unavailable for ${cfg} (missing dataPath or filename)`,
                     );
                     setLandingChebyshevLoaded(cfg, false);
+                    setStatus(cfg, "landing-chebyshev", "error", "Landing Chebyshev path unavailable");
                     continue;
                 }
 
+                setStatus(cfg, "landing-chebyshev", "loading");
                 console.log(`Loading landing Chebyshev data for ${cfg} from ${landingDataCheb}`);
                 const landingChebyshevData = await loadChebyshev(landingDataCheb);
                 setLandingChebyshevData(cfg, landingChebyshevData);
                 setLandingChebyshevLoaded(cfg, true);
+                recordEphemeris({
+                    config: cfg,
+                    source: "landing-chebyshev",
+                    url: landingDataCheb,
+                    bodies: Object.keys(landingChebyshevData || {}),
+                });
+                setStatus(cfg, "landing-chebyshev", "ok");
                 anyLoaded = true;
                 console.log(
                     `Landing Chebyshev data loaded (${cfg}): ${landingChebyshevData.segments.length} segments`,
@@ -86,6 +106,12 @@ export function createLandingLoadActions({
             } catch (chebError) {
                 console.warn(`Failed to load landing Chebyshev data for ${cfg}: ${chebError}`);
                 setLandingChebyshevLoaded(cfg, false);
+                setStatus(
+                    cfg,
+                    "landing-chebyshev",
+                    "error",
+                    chebError?.message || String(chebError),
+                );
             } finally {
                 if (landingDataCheb) {
                     updateLandingProgress();

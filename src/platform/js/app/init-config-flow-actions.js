@@ -46,8 +46,8 @@ function createInitConfigFlowActions(deps) {
         initConfigOrchestrationActions.applyConfigDerivedUpdates();
         initConfigOrchestrationActions.ensureSceneHandlerInitialized();
 
-        initConfigSceneSetupActions.configureSceneForPhase({
-            phaseKey: config,
+        initConfigSceneSetupActions.configureSceneForOrigin({
+            originKey: config,
             configData,
             isRelativeMode,
         });

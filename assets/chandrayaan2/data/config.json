@@ -22,7 +22,7 @@
   },
   "ephemeris_source": "chebyshev",
   "is_lunar": true,
-  "phases": ["geo", "lunar"],
+  "origins": ["geo", "lunar"],
   "geo": {
     "start_year": "2019",
     "start_month": "07",
@@ -257,7 +257,6 @@
   },
   "eventConfigs": {
     "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"],
-    "landing": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"]
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"]
   }
 }

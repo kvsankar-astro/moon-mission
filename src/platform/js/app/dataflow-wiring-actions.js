@@ -183,6 +183,16 @@ function createDataflowWiringActions(deps) {
         loadNpz,
         loadChebyshev,
         loadProgress,
+        onEphemerisLoaded: ({ config, source, url, bodies = [] }) => {
+            ephemerisRecords[config] = ephemerisRecords[config] || {};
+            ephemerisRecords[config][source] = { url, bodies };
+            updateEphemerisPanel();
+        },
+        onEphemerisStatus: (cfg, source, status, message = "") => {
+            ephemerisStatuses[cfg] = ephemerisStatuses[cfg] || {};
+            ephemerisStatuses[cfg][source] = { status, message };
+            updateEphemerisPanel();
+        },
     });
 
     const { processOrbitElementsData } = createOrbitElementsActions({

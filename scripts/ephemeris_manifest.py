@@ -48,9 +48,13 @@ def _build_phase_entry(*, mission_name: str, phase_name: str, orbits_file: str, 
 def build_default_manifest(mission_name: str, config: dict[str, Any]) -> dict[str, Any]:
     phases: dict[str, Any] = {}
     mnemonic = config.get("spacecraft_mnemonic", "SC")
-    configured_phases = config.get("phases", [])
+    configured_origins = [
+        origin_name
+        for origin_name in config.get("origins", [])
+        if origin_name != "landing"
+    ]
 
-    for phase_name in configured_phases:
+    for phase_name in configured_origins:
         phase_cfg = config.get(phase_name, {})
         if not isinstance(phase_cfg, dict):
             continue

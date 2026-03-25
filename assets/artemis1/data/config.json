@@ -13,6 +13,7 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
+  "origins": ["geo", "lunar"],
   "ui": {
     "pageTitle": "NASA's Artemis 1 Mission 2022 - An Orbit Animation",
     "headerTitle": "Artemis 1",
@@ -20,7 +21,6 @@
     "orbitLabel": "Orion Orbit"
   },
   "is_lunar": true,
-  "phases": ["geo", "lunar"],
   "geo": {
     "start_year": "2022",
     "start_month": "11",

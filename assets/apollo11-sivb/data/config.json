@@ -12,6 +12,7 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
+  "origins": ["geo", "lunar"],
 
   "ui": {
     "pageTitle": "Apollo 11 S-IVB Third Stage Trajectory",
@@ -20,8 +21,6 @@
     "orbitLabel": "S-IVB Trajectory",
     "descentOrbitLabel": "S-IVB Trajectory"
   },
-
-  "phases": ["geo", "lunar"],
 
   "geo": {
     "start_year": "1969", "start_month": "07", "start_day": "17",

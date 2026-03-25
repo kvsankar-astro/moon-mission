@@ -1,7 +1,7 @@
 import {
-    applyModeSwitchForPhase,
-    resolvePhaseDescriptor,
-} from "../core/domain/phase-compat.js";
+    applyModeSwitchForOrigin,
+    resolveOriginDescriptor,
+} from "../core/domain/origin-compat.js";
 
 function createInitConfigSceneSetupActions(deps) {
     const {
@@ -115,9 +115,9 @@ function createInitConfigSceneSetupActions(deps) {
         setEpochDate("N/A");
     }
 
-    function configureSceneForPhase({ phaseKey, configData, isRelativeMode = false }) {
-        const scene = ensureSceneAndControllers(phaseKey);
-        const descriptor = resolvePhaseDescriptor(phaseKey, configData);
+    function configureSceneForOrigin({ originKey, configData, isRelativeMode = false }) {
+        const scene = ensureSceneAndControllers(originKey);
+        const descriptor = resolveOriginDescriptor(originKey, configData);
         applySceneScale({ moonScale: descriptor.moonScale });
 
         scene.primaryBody = descriptor.primaryBody;
@@ -131,7 +131,7 @@ function createInitConfigSceneSetupActions(deps) {
 
         const spacecraftMnemonic = applyOrbitConfig({
             configData,
-            sceneConfig: phaseKey,
+            sceneConfig: originKey,
             scene,
         });
 
@@ -150,8 +150,8 @@ function createInitConfigSceneSetupActions(deps) {
         scene.orbitsJsonFileSizeInBytes = descriptor.orbitFileSizeBytes;
         scene.stepsPerHop = descriptor.stepsPerHop;
         applyTimelineConfig({ scene, spacecraftMnemonic });
-        applyModeSwitchForPhase({
-            phaseKey,
+        applyModeSwitchForOrigin({
+            originKey,
             globalConfig: configData,
             switchToGeo: handleModeSwitchToGeo,
             switchToLunar: handleModeSwitchToLunar,
@@ -159,7 +159,7 @@ function createInitConfigSceneSetupActions(deps) {
     }
 
     return {
-        configureSceneForPhase,
+        configureSceneForOrigin,
     };
 }
 

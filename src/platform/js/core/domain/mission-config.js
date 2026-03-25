@@ -21,13 +21,13 @@ function asStringArray(value) {
     return normalized;
 }
 
-function derivePhaseKeys(rawConfig) {
-    const configured = asStringArray(rawConfig?.phases);
-    if (configured.length > 0) return configured;
+function deriveOriginKeys(rawConfig) {
+    const configuredOrigins = asStringArray(rawConfig?.origins).filter((origin) => origin !== "landing");
+    if (configuredOrigins.length > 0) return configuredOrigins;
 
     if (!isPlainObject(rawConfig)) return [];
 
-    const knownNonPhaseKeys = new Set([
+    const knownNonOriginKeys = new Set([
         "spacecraft_mnemonic",
         "spacecraft_id",
         "mission_name",
@@ -47,11 +47,14 @@ function derivePhaseKeys(rawConfig) {
         "eventConfigs",
         "landingSites",
         "missionTimes",
+        "origins",
+        "phases",
     ]);
 
     const derived = [];
     for (const key of Object.keys(rawConfig)) {
-        if (knownNonPhaseKeys.has(key)) continue;
+        if (knownNonOriginKeys.has(key)) continue;
+        if (key === "landing") continue;
         const phase = rawConfig[key];
         if (!isPlainObject(phase)) continue;
         if (typeof phase.orbits_file === "string" || typeof phase.center === "string") {
@@ -73,7 +76,7 @@ function parseMissionConfig(rawConfig) {
 
     return {
         ...rawConfig,
-        phases: derivePhaseKeys(rawConfig),
+        origins: deriveOriginKeys(rawConfig),
     };
 }
 
@@ -81,22 +84,24 @@ function validateMissionConfig(parsedConfig) {
     const errors = [];
     const warnings = [];
 
-    const phaseKeys = derivePhaseKeys(parsedConfig);
-    if (phaseKeys.length === 0) {
-        errors.push("No mission phases were found. Add a non-empty `phases` array and phase definitions.");
+    const originKeys = deriveOriginKeys(parsedConfig);
+    if (originKeys.length === 0) {
+        errors.push(
+            "No mission origins were found. Add a non-empty `origins` array and origin definitions.",
+        );
     }
 
-    for (let i = 0; i < phaseKeys.length; i++) {
-        const phaseKey = phaseKeys[i];
-        const phaseConfig = parsedConfig?.[phaseKey];
-        if (!isPlainObject(phaseConfig)) {
-            errors.push(`Phase '${phaseKey}' is missing its configuration object.`);
+    for (let i = 0; i < originKeys.length; i++) {
+        const originKey = originKeys[i];
+        const originConfig = parsedConfig?.[originKey];
+        if (!isPlainObject(originConfig)) {
+            errors.push(`Origin '${originKey}' is missing its configuration object.`);
             continue;
         }
 
-        const orbitsFile = asTrimmedString(phaseConfig.orbits_file);
+        const orbitsFile = asTrimmedString(originConfig.orbits_file);
         if (!orbitsFile) {
-            warnings.push(`Phase '${phaseKey}' is missing 'orbits_file'; a default name will be synthesized.`);
+            warnings.push(`Origin '${originKey}' is missing 'orbits_file'; a default name will be synthesized.`);
         }
     }
 
@@ -155,18 +160,18 @@ function normalizeUiConfig(rawUi, missionName, missionShort) {
     };
 }
 
-function normalizePhaseConfigs(parsedConfig, phaseKeys, spacecraftMnemonic) {
-    const normalizedPhases = {};
-    for (let i = 0; i < phaseKeys.length; i++) {
-        const phaseKey = phaseKeys[i];
-        const phaseConfig = isPlainObject(parsedConfig?.[phaseKey]) ? parsedConfig[phaseKey] : {};
-        normalizedPhases[phaseKey] = {
-            ...phaseConfig,
-            enabled: phaseConfig.enabled !== false,
-            orbits_file: asTrimmedString(phaseConfig.orbits_file, `${phaseKey}-${spacecraftMnemonic}`),
+function normalizeOriginConfigs(parsedConfig, originKeys, spacecraftMnemonic) {
+    const normalizedOrigins = {};
+    for (let i = 0; i < originKeys.length; i++) {
+        const originKey = originKeys[i];
+        const originConfig = isPlainObject(parsedConfig?.[originKey]) ? parsedConfig[originKey] : {};
+        normalizedOrigins[originKey] = {
+            ...originConfig,
+            enabled: originConfig.enabled !== false,
+            orbits_file: asTrimmedString(originConfig.orbits_file, `${originKey}-${spacecraftMnemonic}`),
         };
     }
-    return normalizedPhases;
+    return normalizedOrigins;
 }
 
 function normalizeEvents(rawEvents) {
@@ -190,7 +195,7 @@ function normalizeEvents(rawEvents) {
     return normalized;
 }
 
-function normalizeEventConfigs(rawEventConfigs, phaseKeys) {
+function normalizeEventConfigs(rawEventConfigs, originKeys) {
     const eventConfigs = isPlainObject(rawEventConfigs) ? rawEventConfigs : {};
     const normalized = {};
 
@@ -202,10 +207,10 @@ function normalizeEventConfigs(rawEventConfigs, phaseKeys) {
             : [];
     }
 
-    for (let i = 0; i < phaseKeys.length; i++) {
-        const phaseKey = phaseKeys[i];
-        if (!normalized[phaseKey]) {
-            normalized[phaseKey] = [];
+    for (let i = 0; i < originKeys.length; i++) {
+        const originKey = originKeys[i];
+        if (!normalized[originKey]) {
+            normalized[originKey] = [];
         }
     }
 
@@ -231,7 +236,7 @@ function normalizeLandingSites(rawLandingSites) {
 }
 
 function normalizeMissionConfig(parsedConfig) {
-    const phaseKeys = derivePhaseKeys(parsedConfig);
+    const originKeys = deriveOriginKeys(parsedConfig);
     const spacecraftMnemonic = asTrimmedString(parsedConfig?.spacecraft_mnemonic, "SC");
     const missionName = asTrimmedString(parsedConfig?.mission_name, spacecraftMnemonic);
     const missionShort = asTrimmedString(parsedConfig?.mission_name_short, spacecraftMnemonic);
@@ -244,21 +249,21 @@ function normalizeMissionConfig(parsedConfig) {
         mission_name_short: missionShort,
         mission_url: asTrimmedString(parsedConfig?.mission_url, "#"),
         is_lunar: Boolean(parsedConfig?.is_lunar),
-        phases: phaseKeys,
+        origins: originKeys,
         ui: normalizeUiConfig(parsedConfig?.ui, missionName, missionShort),
         ephemeris_source: normalizeEphemerisSource(parsedConfig?.ephemeris_source),
         ephemeris_sources: isPlainObject(parsedConfig?.ephemeris_sources)
             ? { ...parsedConfig.ephemeris_sources }
             : {},
         events,
-        eventConfigs: normalizeEventConfigs(parsedConfig?.eventConfigs, phaseKeys),
+        eventConfigs: normalizeEventConfigs(parsedConfig?.eventConfigs, originKeys),
         landingSites: normalizeLandingSites(parsedConfig?.landingSites),
         missionTimes: isPlainObject(parsedConfig?.missionTimes) ? { ...parsedConfig.missionTimes } : {},
     };
 
-    const normalizedPhases = normalizePhaseConfigs(parsedConfig, phaseKeys, spacecraftMnemonic);
-    for (const [phaseKey, phaseValue] of Object.entries(normalizedPhases)) {
-        normalized[phaseKey] = phaseValue;
+    const normalizedOrigins = normalizeOriginConfigs(parsedConfig, originKeys, spacecraftMnemonic);
+    for (const [originKey, originValue] of Object.entries(normalizedOrigins)) {
+        normalized[originKey] = originValue;
     }
 
     return normalized;

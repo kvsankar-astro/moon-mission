@@ -13,20 +13,20 @@ describe("mission-config pipeline", () => {
         expect(() => parseMissionConfig([])).toThrow("Mission config must be a JSON object");
     });
 
-    it("reports validation errors for missing phase definitions", () => {
+    it("reports validation errors for missing origin definitions", () => {
         const parsed = parseMissionConfig({
             spacecraft_mnemonic: "SC",
-            phases: ["geo"],
+            origins: ["geo"],
         });
         const diagnostics = validateMissionConfig(parsed);
         expect(diagnostics.errors.length).toBeGreaterThan(0);
-        expect(diagnostics.errors[0]).toContain("Phase 'geo'");
+        expect(diagnostics.errors[0]).toContain("Origin 'geo'");
     });
 
     it("normalizes defaults for optional fields", () => {
         const parsed = parseMissionConfig({
             spacecraft_mnemonic: "TEST",
-            phases: ["geo"],
+            origins: ["geo"],
             geo: {
                 center: "earth_center",
             },
@@ -38,6 +38,8 @@ describe("mission-config pipeline", () => {
         expect(normalized.mission_name).toBe("TEST");
         expect(normalized.mission_name_short).toBe("TEST");
         expect(normalized.ephemeris_source).toBe("chebyshev");
+        expect(normalized.origins).toEqual(["geo"]);
+        expect(normalized.phases).toBeUndefined();
         expect(normalized.geo.orbits_file).toBe("geo-TEST");
         expect(Array.isArray(normalized.eventConfigs.geo)).toBe(true);
     });
@@ -60,12 +62,12 @@ describe("mission-config pipeline", () => {
 
             const normalized = normalizeMissionConfig(parsed);
             expect(normalized.spacecraft_mnemonic.length).toBeGreaterThan(0);
-            expect(normalized.phases.length).toBeGreaterThan(0);
+            expect(normalized.origins.length).toBeGreaterThan(0);
 
-            for (const phase of normalized.phases) {
-                expect(normalized[phase], `Phase '${phase}' missing in normalized ${missionId}`).toBeDefined();
-                expect(typeof normalized[phase].orbits_file).toBe("string");
-                expect(Array.isArray(normalized.eventConfigs[phase])).toBe(true);
+            for (const origin of normalized.origins) {
+                expect(normalized[origin], `Origin '${origin}' missing in normalized ${missionId}`).toBeDefined();
+                expect(typeof normalized[origin].orbits_file).toBe("string");
+                expect(Array.isArray(normalized.eventConfigs[origin])).toBe(true);
             }
         }
     });

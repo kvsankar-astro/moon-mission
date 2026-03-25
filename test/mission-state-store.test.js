@@ -20,7 +20,7 @@ function createReadonlyCell(value) {
 
 function createStateCells() {
     return {
-        globalConfig: createCell({ phases: ["geo", "lunar"] }),
+        globalConfig: createCell({ origins: ["geo", "lunar"] }),
         config: createCell("geo"),
         currentDimension: createCell("3D"),
         previousDimension: createCell(null),
@@ -188,7 +188,7 @@ describe("createMissionStateStore", () => {
         expect(store.clearLegacyTimeout).toBeUndefined();
     });
 
-    it("falls back to animation scene keys when global config has no phases", () => {
+    it("falls back to animation scene keys when global config has no origins", () => {
         const { store } = createStore({
             animationScenes: {
                 phaseA: { planetsForLocations: ["EARTH"] },
@@ -201,7 +201,7 @@ describe("createMissionStateStore", () => {
         expect(store.getConfigsList()).toEqual(["phaseA", "phaseB"]);
     });
 
-    it("uses configured global phases and excludes landing in getConfigsList", () => {
+    it("uses configured global origins and excludes landing in getConfigsList", () => {
         const { store } = createStore({
             animationScenes: {
                 fallbackA: { planetsForLocations: ["EARTH"] },
@@ -209,7 +209,7 @@ describe("createMissionStateStore", () => {
             },
         });
 
-        store.setGlobalConfig({ phases: ["geo", "landing", "lunar"] });
+        store.setGlobalConfig({ origins: ["geo", "landing", "lunar"] });
 
         expect(store.getConfigsList()).toEqual(["geo", "lunar"]);
     });

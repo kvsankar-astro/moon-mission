@@ -1,4 +1,4 @@
-import { applyModeSwitchForPhase } from "../core/domain/phase-compat.js";
+import { applyModeSwitchForOrigin } from "../core/domain/origin-compat.js";
 
 export function shouldSkipInitConfig({ animationScene, AnimationScene }) {
     return (
@@ -16,8 +16,8 @@ export function applyInitConfigAlreadyInitialized({
     animationScene,
     syncPlaneSelection,
 }) {
-    applyModeSwitchForPhase({
-        phaseKey: config,
+    applyModeSwitchForOrigin({
+        originKey: config,
         globalConfig,
         switchToGeo: handleModeSwitchToGeo,
         switchToLunar: handleModeSwitchToLunar,
