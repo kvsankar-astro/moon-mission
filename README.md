@@ -17,8 +17,8 @@ I created this animation for educational purposes. It has the following features
 
 * Real-world orbit data and predictions based on information available from JPL/NASA HORIZONS interface
 * Rendering of the orbit in 2D and 3D
-* Rendering of the orbit with either Earth or Moon at the center
-* Rendering of the orbit with views locked on Earth, Moon, or the spacecraft
+* Rendering with Earth-centered, Moon-centered, and Earth-Moon relative-frame origins
+* Camera from/to controls for mounted viewpoints (spacecraft, Earth, Moon)
 * Views aligned with J2000 reference axes
 * Information on all earth bound and moon bound maneuvers (engine burns)
 * Realistic textures for Earth and Moon in 3D mode
@@ -53,7 +53,11 @@ URL parameters:
 
 ### Debugging with NPZ ephemeris
 
-To bypass Chebyshev and the Astronomy Engine for orbit data, set `"ephemeris_source": "npz"` in a mission's `config.json`, and place matching `.npz` files (e.g., `geo-<SC>.npz`, `lunar-<SC>.npz`, and when applicable `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz`) alongside the other data files. Earth, Moon, and spacecraft positions will then be read directly from the HORIZONS NPZ vectors.
+Runtime supports `chebyshev`, `npz`, and `astronomy` body sources, configured per mission via `ephemeris_source` / `ephemeris_sources` in `config.json`.
+
+Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `EARTH`, and `SUN` by default.
+
+For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
 Developer documentation (adding missions, orbit pipeline, build/deploy scripts): [docs/developer.md](docs/developer.md)
 
@@ -67,11 +71,11 @@ using position data.
 
 The 3D mode uses THREE JS.
 
-JQuery and JQueryUI are used for control and information panels.
+jQuery is used in parts of the UI, with a lightweight compatibility dialog shim (`src/platform/js/ui/jquery-ui-dialog-stub.js`) instead of full jQuery UI.
 
 Orbit data is fetched offline from JPL/NASA HORIZONS.
 This data is processed and converted into Chebyshev polynomial format for efficient interpolation.
-Moon and Earth positions are computed dynamically using Astronomy Engine.
+The runtime supports Chebyshev/NPZ/Astronomy body providers, and current mission configs default to Chebyshev for all major bodies.
 
 **Time Systems:** Runtime ephemeris sampling currently uses UTC-based Julian date helpers for
 Chebyshev/NPZ lookups, while TDB-based helpers are used for astronomical orientation math
@@ -98,7 +102,7 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
-CI workflows (tests + deploy) stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`.npz`, `*-cheb.json`, `*-meta.json`, manifests), shared textures (`images/`), mission screenshots (`assets/*/images/`), and vendored runtime libraries (`third-party/`).
+CI workflows (tests + deploy) stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, and optional `.npz` / `*-meta.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
 
 By default workflows use:
 
