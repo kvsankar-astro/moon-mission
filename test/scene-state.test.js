@@ -166,4 +166,32 @@ describe("computeSceneState", () => {
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(1);
     });
+
+    it("skips Moon basis lookup when relative chebyshev data is already precomputed", () => {
+        getBodyEphemerisState.mockReturnValue({
+            position: { x: 1, y: 0, z: 0 },
+            velocity: { vx: 0, vy: 1, vz: 0 },
+            available: true,
+        });
+
+        computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC"],
+                chebyshevData: {
+                    geo: {
+                        metadata: { mode: "relative" },
+                    },
+                },
+            }),
+        );
+
+        expect(getBodyEphemerisState).toHaveBeenCalledTimes(1);
+        expect(
+            getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
+        ).toHaveLength(0);
+    });
 });

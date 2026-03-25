@@ -1,3 +1,5 @@
+import { getRelativeFrameQuaternion } from "../data/relative-frame-provider.js";
+
 function createAnimationSceneClass(deps) {
     const {
         THREE,
@@ -299,6 +301,37 @@ function createAnimationSceneClass(deps) {
             if (!this.moonContainer) return;
 
             if (runtimeState.frameMode === "relative" && runtimeState.config === "geo") {
+                const frameQuat = getRelativeFrameQuaternion({
+                    chebyshevData: runtimeState.chebyshevData,
+                    config: runtimeState.config,
+                    timeMs,
+                });
+
+                if (frameQuat) {
+                    const qFrame = new THREE.Quaternion(
+                        frameQuat.x,
+                        frameQuat.y,
+                        frameQuat.z,
+                        frameQuat.w,
+                    );
+
+                    const date = new Date(timeMs);
+                    const lp = lunar_pole(date);
+                    const alpha = lp.alpha;
+                    const delta = lp.delta;
+                    const W = lp.W;
+
+                    const qInertial = new THREE.Quaternion();
+                    const qx1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -1 * PC.EARTH_AXIS_INCLINATION_RADS);
+                    const qz2 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2 + alpha);
+                    const qx3 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI / 2 - delta);
+                    const qz4 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), W);
+                    qInertial.multiply(qx1).multiply(qz2).multiply(qx3).multiply(qz4);
+
+                    this.moonContainer.quaternion.copy(qFrame).multiply(qInertial);
+                    return;
+                }
+
                 const moonState = getBodyEphemerisState({
                     bodyId: "MOON",
                     timeMs,

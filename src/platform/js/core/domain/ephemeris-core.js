@@ -69,9 +69,9 @@ function findSegment(segments, jd) {
         const mid = Math.floor((low + high) / 2);
         const seg = segments[mid];
 
-        if (jd < seg.t_start) {
+        if (jd < seg.t_start - SEGMENT_BOUNDARY_EPSILON_JD) {
             high = mid - 1;
-        } else if (jd > seg.t_end) {
+        } else if (jd > seg.t_end + SEGMENT_BOUNDARY_EPSILON_JD) {
             low = mid + 1;
         } else {
             return seg;
@@ -89,8 +89,9 @@ function findSegment(segments, jd) {
  */
 function normalizeSegmentTime(segment, jd) {
     const tSpanJD = segment.t_end - segment.t_start;
+    const rawTNorm = 2 * (jd - segment.t_start) / tSpanJD - 1;
     return {
-        tNorm: 2 * (jd - segment.t_start) / tSpanJD - 1,
+        tNorm: Math.max(-1, Math.min(1, rawTNorm)),
         tSpanJD,
     };
 }
@@ -164,3 +165,4 @@ export {
     getVelocityFromChebyshev,
     normalizeSegmentTime,
 };
+const SEGMENT_BOUNDARY_EPSILON_JD = 1e-8;

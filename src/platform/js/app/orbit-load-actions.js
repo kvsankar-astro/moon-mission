@@ -42,6 +42,28 @@ export function createOrbitLoadActions({
         return Math.max(...seriesList.map((series) => series.segments.length));
     }
 
+    function mergeMissingChebyshevBodySeries(targetChebData, supportChebData) {
+        if (
+            !targetChebData ||
+            typeof targetChebData !== "object" ||
+            !supportChebData ||
+            typeof supportChebData !== "object"
+        ) {
+            return [];
+        }
+
+        const mergedBodies = [];
+        for (const [key, value] of Object.entries(supportChebData)) {
+            if (targetChebData[key]) continue;
+            if (key === "format" || key === "version" || key === "metadata" || key === "time_range") continue;
+            if (!value || !Array.isArray(value.segments)) continue;
+            targetChebData[key] = value;
+            mergedBodies.push(key);
+        }
+
+        return mergedBodies;
+    }
+
     const recordEphemeris =
         typeof onEphemerisLoaded === "function"
             ? onEphemerisLoaded
@@ -169,6 +191,28 @@ export function createOrbitLoadActions({
                             console.log(`Loading Sun Chebyshev data from ${sunChebUrl}`);
                             const sunChebData = await loadChebyshev(sunChebUrl);
                             chebyshevData[config].SUN = sunChebData;
+                        }
+                    }
+
+                    const needsMoonSeries = requiredBodies.has("MOON");
+                    const hasMoonSeries = !!getChebyshevBodySeries(
+                        chebyshevData[config],
+                        "MOON",
+                    );
+                    if (needsMoonSeries && !hasMoonSeries) {
+                        const supportChebUrl = animationScenes[config].relativeSupportOrbitsCheb;
+                        if (supportChebUrl && supportChebUrl !== chebUrl) {
+                            console.log(`Loading support Chebyshev data from ${supportChebUrl}`);
+                            const supportChebData = await loadChebyshev(supportChebUrl);
+                            const mergedBodies = mergeMissingChebyshevBodySeries(
+                                chebyshevData[config],
+                                supportChebData,
+                            );
+                            if (mergedBodies.length > 0) {
+                                console.log(
+                                    `Merged support Chebyshev series for ${config}: ${mergedBodies.join(",")}`,
+                                );
+                            }
                         }
                     }
 

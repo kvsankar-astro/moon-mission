@@ -433,9 +433,13 @@ export function computeSceneState(time, config, options) {
     };
 
     let relativeFrameMoonState = null;
+    const hasPrecomputedRelativeFrameData =
+        frameMode === "relative" &&
+        config === "geo" &&
+        chebyshevData?.[config]?.metadata?.mode === "relative";
 
     // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
-    if (frameMode === "relative" && config === "geo") {
+    if (frameMode === "relative" && config === "geo" && !hasPrecomputedRelativeFrameData) {
         relativeFrameMoonState = getBodyEphemerisState({
             bodyId: "MOON",
             timeMs: time,
