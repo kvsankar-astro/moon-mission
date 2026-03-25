@@ -304,6 +304,105 @@ def load_vectors_from_npz(npz_path: Path) -> tuple[np.ndarray, dict[str, np.ndar
     return jd, pos_by_body, vel_by_body
 
 
+def _series_time_range(series: dict) -> tuple[float, float]:
+    tr = series.get("time_range") if isinstance(series, dict) else None
+    if isinstance(tr, dict):
+        start = tr.get("start")
+        end = tr.get("end")
+        if start is not None and end is not None:
+            return float(start), float(end)
+
+    segments = series.get("segments") if isinstance(series, dict) else None
+    if not isinstance(segments, list) or len(segments) == 0:
+        raise ValueError("Chebyshev series is missing segments/time_range")
+
+    return float(segments[0]["t_start"]), float(segments[-1]["t_end"])
+
+
+def _sample_series_positions(series: dict, jd: np.ndarray) -> np.ndarray:
+    segments = series.get("segments") if isinstance(series, dict) else None
+    if not isinstance(segments, list) or len(segments) == 0:
+        raise ValueError("Chebyshev series is missing segments")
+
+    out = np.empty((len(jd), 3), dtype=float)
+    seg_idx = 0
+    eps = 1e-12
+
+    for i, t in enumerate(jd):
+        while seg_idx + 1 < len(segments) and t > float(segments[seg_idx]["t_end"]) + eps:
+            seg_idx += 1
+
+        seg = segments[seg_idx]
+        t_start = float(seg["t_start"])
+        t_end = float(seg["t_end"])
+        if t < t_start - eps or t > t_end + eps:
+            raise ValueError(
+                f"Julian date {t} outside Chebyshev segment bounds {t_start}..{t_end}",
+            )
+
+        span = t_end - t_start
+        t_norm = 0.0 if span == 0 else (2.0 * (t - t_start) / span - 1.0)
+        out[i, 0] = float(cheb.chebval(t_norm, seg["cx"]))
+        out[i, 1] = float(cheb.chebval(t_norm, seg["cy"]))
+        out[i, 2] = float(cheb.chebval(t_norm, seg["cz"]))
+
+    return out
+
+
+def load_vectors_from_cheb(cheb_path: Path, step_seconds: float) -> tuple[np.ndarray, dict[str, np.ndarray], dict[str, np.ndarray]]:
+    """
+    Load SC/MOON/SUN vectors by sampling a body-keyed Chebyshev file.
+
+    Returns:
+      jd
+      pos_by_body: {SC|MOON|SUN -> (N,3)}
+      vel_by_body: {SC|MOON|SUN -> (N,3)}
+    """
+    if step_seconds <= 0:
+        raise ValueError(f"step_seconds must be > 0, got {step_seconds}")
+
+    payload = json.loads(cheb_path.read_text(encoding="utf-8"))
+    for body_id in ("SC", "MOON", "SUN"):
+        if body_id not in payload:
+            raise ValueError(f"Chebyshev file missing '{body_id}' series: {cheb_path}")
+
+    step_jd = float(step_seconds) / SECONDS_PER_DAY
+    eps = 1e-12
+
+    sc_segments = payload["SC"].get("segments", [])
+    if not isinstance(sc_segments, list) or len(sc_segments) == 0:
+        raise ValueError("Chebyshev source SC series has no segments")
+
+    jd_parts: list[np.ndarray] = []
+    for seg in sc_segments:
+        t_start = float(seg["t_start"])
+        t_end = float(seg["t_end"])
+        count = int(np.floor((t_end - t_start) / step_jd)) + 1
+        part = t_start + np.arange(max(1, count), dtype=float) * step_jd
+        if part[-1] < t_end - eps:
+            part = np.append(part, t_end)
+        if len(jd_parts) > 0:
+            prev_last = jd_parts[-1][-1]
+            part = part[part > prev_last + eps]
+        if len(part) > 0:
+            jd_parts.append(part)
+
+    if len(jd_parts) == 0:
+        t_start = float(sc_segments[0]["t_start"])
+        jd = np.array([t_start], dtype=float)
+    else:
+        jd = np.concatenate(jd_parts)
+
+    pos_by_body = {}
+    vel_by_body = {}
+    for body_id in ("SC", "MOON", "SUN"):
+        pos = _sample_series_positions(payload[body_id], jd)
+        pos_by_body[body_id] = pos
+        vel_by_body[body_id] = compute_velocity_from_positions(jd, pos)
+
+    return jd, pos_by_body, vel_by_body
+
+
 def load_compressor_module():
     import importlib.util
 
@@ -352,7 +451,16 @@ def ensure_source_npz(mission: str, phase: str, npz_path: Path) -> None:
     )
 
 
-def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: float, force: bool, ensure_npz: bool) -> None:
+def generate_relative_for_mission(
+    *,
+    mission: str,
+    phase: str,
+    tolerance_km: float,
+    force: bool,
+    ensure_npz: bool,
+    source_cheb: str | None,
+    sample_step_seconds: float,
+) -> None:
     cfg = load_config(mission)
     mnemonic = cfg.get("spacecraft_mnemonic", "SC")
 
@@ -360,15 +468,30 @@ def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: flo
         raise ValueError(f"Phase '{phase}' not found in {mission} config.json")
 
     source_orbits_base = Path(cfg[phase].get("orbits_file", f"{phase}-{mnemonic}")).name
+    source_label = ""
     npz_path = GENERATED_DIR_BASE / mission / f"{source_orbits_base}.npz"
-    if ensure_npz:
-        ensure_source_npz(mission, phase, npz_path)
+    cheb_source_path: Path | None = None
 
-    if not npz_path.exists():
-        raise FileNotFoundError(
-            f"Source NPZ not found: {npz_path}. "
-            f"Run: python scripts/orbits.py --mission={mission} --phase {phase}",
-        )
+    if source_cheb:
+        cheb_source_path = Path(source_cheb)
+        if not cheb_source_path.is_absolute():
+            cheb_source_path = PROJECT_ROOT / cheb_source_path
+        if not cheb_source_path.exists():
+            raise FileNotFoundError(f"Source Chebyshev file not found: {cheb_source_path}")
+    else:
+        if ensure_npz:
+            ensure_source_npz(mission, phase, npz_path)
+
+        if not npz_path.exists():
+            default_cheb = ASSETS_DIR / mission / "data" / f"{source_orbits_base}-cheb.json"
+            if default_cheb.exists():
+                cheb_source_path = default_cheb
+            else:
+                raise FileNotFoundError(
+                    f"Source NPZ not found: {npz_path}. "
+                    f"Run: python scripts/orbits.py --mission={mission} --phase {phase}, "
+                    f"or provide --source-cheb",
+                )
 
     out_dir = ASSETS_DIR / mission / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -379,9 +502,21 @@ def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: flo
         print(f"Skipping {mission}: {cheb_path.name} already exists (use --force to overwrite)")
         return
 
-    print(f"Generating relative mode for mission={mission} from {npz_path.name}")
+    if cheb_source_path is not None:
+        source_label = cheb_source_path.name
+        print(
+            f"Generating relative mode for mission={mission} from {source_label} "
+            f"(step={sample_step_seconds}s)",
+        )
+        jd, pos_by_body, vel_by_body = load_vectors_from_cheb(
+            cheb_source_path,
+            sample_step_seconds,
+        )
+    else:
+        source_label = npz_path.name
+        print(f"Generating relative mode for mission={mission} from {source_label}")
+        jd, pos_by_body, vel_by_body = load_vectors_from_npz(npz_path)
 
-    jd, pos_by_body, vel_by_body = load_vectors_from_npz(npz_path)
     moon_pos = pos_by_body["MOON"]
     moon_vel = vel_by_body["MOON"]
 
@@ -441,7 +576,7 @@ def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: flo
             "bodies": ["SC", "MOON", "SUN", "FRAME_ROT"],
             "coordinate_frame": "relative-earth-moon",
             "units": {"time": "julian_date", "position": "km"},
-            "derived_from": str(npz_path.name),
+            "derived_from": source_label,
             "mode": "relative",
             "frame_definition": "x=Earth->Moon, z=angular-momentum, y=z×x",
         },
@@ -460,12 +595,25 @@ def generate_relative_for_mission(*, mission: str, phase: str, tolerance_km: flo
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Generate relative-mode Chebyshev ephemeris from geo NPZ")
+    parser = argparse.ArgumentParser(
+        description="Generate relative-mode Chebyshev ephemeris from geo NPZ or body-keyed Chebyshev source",
+    )
     parser.add_argument("--mission", nargs="+", help="Mission folder name(s) under assets/, e.g. artemis1")
     parser.add_argument("--all", action="store_true", help="Generate for all missions under assets/")
     parser.add_argument("--exclude", nargs="*", default=[], help="Mission folder names to skip")
     parser.add_argument("--force", action="store_true", help="Overwrite existing relative cheb output")
     parser.add_argument("--ensure-npz", action="store_true", help="If source NPZ is missing, run scripts/orbits.py first")
+    parser.add_argument(
+        "--source-cheb",
+        default=None,
+        help="Optional source body-cheb JSON path (must include SC/MOON/SUN). If set, NPZ is not required.",
+    )
+    parser.add_argument(
+        "--sample-step-seconds",
+        type=float,
+        default=60.0,
+        help="Sampling cadence (seconds) when --source-cheb is used (default: 60)",
+    )
     parser.add_argument(
         "--tolerance-km",
         type=float,
@@ -501,6 +649,8 @@ def main() -> None:
                 tolerance_km=float(args.tolerance_km),
                 force=bool(args.force),
                 ensure_npz=bool(args.ensure_npz),
+                source_cheb=args.source_cheb,
+                sample_step_seconds=float(args.sample_step_seconds),
             )
         except Exception as exc:
             print(f"Error generating relative data for {mission}: {exc}")

@@ -56,4 +56,25 @@ describe("ephemeris service sun longitude", () => {
             }),
         ).toThrow("SUN Chebyshev series unavailable");
     });
+
+    it("throws a clear error when Sun Chebyshev exists but timestamp is out of range", () => {
+        expect(() =>
+            computeSunLongitude(2 * 24 * 60 * 60 * 1000, {
+                config: "geo",
+                bodySources: { SUN: "chebyshev" },
+                chebyshevDataLoaded: { geo: true },
+                chebyshevData: {
+                    geo: {
+                        sun: buildConstantSunSeries({
+                            x: 1,
+                            y: 0,
+                            z: 0,
+                            tStart: 2440587.5,
+                            tEnd: 2440588.5,
+                        }),
+                    },
+                },
+            }),
+        ).toThrow("timestamp outside available ephemeris range");
+    });
 });

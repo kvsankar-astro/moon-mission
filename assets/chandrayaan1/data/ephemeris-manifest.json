@@ -1,0 +1,37 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "chandrayaan1",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-CH1-bodies",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "geo-CH1-bodies-cheb.json",
+          "generated": "assets/chandrayaan1/data/geo-CH1-bodies-cheb.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-CH1-bodies",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "lunar-CH1-bodies-cheb.json",
+          "generated": "assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json"
+        }
+      }
+    },
+    "relative": {
+      "orbits_file": "relative-CH1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "relative-CH1-cheb.json",
+          "generated": "assets/chandrayaan1/data/relative-CH1-cheb.json"
+        }
+      }
+    }
+  }
+}

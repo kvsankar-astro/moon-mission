@@ -1,0 +1,231 @@
+{
+  "spacecraft_mnemonic": "CH1",
+  "spacecraft_id": -86,
+  "mission_name": "Chandrayaan 1",
+  "mission_name_short": "CH1",
+  "mission_url": "https://science.nasa.gov/mission/chandrayaan-1/",
+  "mission_description": "Chandrayaan 1 Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "chandrayaan, chandrayaan1, moon, isro, india, space, astronomy, animation, mip",
+  "mission_github": "https://github.com/kvsankar/chandrayaan1",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "ISRO's Chandrayaan 1 Mission 2008 - An Orbit Animation",
+    "headerTitle": "Chandrayaan 1",
+    "lockOnLabel": "Chandrayaan 1",
+    "orbitLabel": "CH1 Orbit",
+    "descentOrbitLabel": "CH1 Orbit"
+  },
+  "is_lunar": true,
+  "origins": ["geo", "lunar"],
+  "geo": {
+    "start_year": "2008",
+    "start_month": "10",
+    "start_day": "22",
+    "start_hour": "01",
+    "start_minute": "12",
+    "stop_year": "2008",
+    "stop_month": "11",
+    "stop_day": "14",
+    "stop_hour": "19",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-CH1-bodies"
+  },
+  "lunar": {
+    "start_year": "2008",
+    "start_month": "10",
+    "start_day": "22",
+    "start_hour": "01",
+    "start_minute": "12",
+    "stop_year": "2008",
+    "stop_month": "11",
+    "stop_day": "14",
+    "stop_hour": "19",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-CH1-bodies"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated landing slice for Chandrayaan-1 in this profile.",
+    "start_year": "2008",
+    "start_month": "11",
+    "start_day": "14",
+    "start_hour": "14",
+    "start_minute": "36",
+    "stop_year": "2008",
+    "stop_month": "11",
+    "stop_day": "14",
+    "stop_hour": "15",
+    "stop_minute": "01",
+    "step_size_in_seconds": 1,
+    "planets": ["SC"],
+    "center": "moon_center",
+    "orbits_file": "landing-CH1"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for CH1 yet"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2008-10-22T01:12:00Z",
+      "durationSeconds": 0,
+      "label": "🚀 Launch",
+      "burnFlag": false,
+      "infoText": "Launch: 22 Oct 2008, 06:22 IST - PSLV-C11 injects Chandrayaan-1 (visualized from first available SPK sample)",
+      "body": "SC"
+    },
+    "ebn1": {
+      "startTime": "2008-10-23T03:30:00Z",
+      "durationSeconds": 1080,
+      "label": "🔥EBN#1",
+      "burnFlag": true,
+      "infoText": "EBN#1: 23 Oct 2008, 09:00 IST - first Earth orbit raise",
+      "body": "SC"
+    },
+    "ebn2": {
+      "startTime": "2008-10-25T00:18:00Z",
+      "durationSeconds": 960,
+      "label": "🔥EBN#2",
+      "burnFlag": true,
+      "infoText": "EBN#2: 25 Oct 2008, 05:48 IST - second Earth orbit raise",
+      "body": "SC"
+    },
+    "ebn3": {
+      "startTime": "2008-10-26T01:38:00Z",
+      "durationSeconds": 570,
+      "label": "🔥EBN#3",
+      "burnFlag": true,
+      "infoText": "EBN#3: 26 Oct 2008, 07:08 IST - third Earth orbit raise",
+      "body": "SC"
+    },
+    "ebn4": {
+      "startTime": "2008-10-29T02:08:00Z",
+      "durationSeconds": 180,
+      "label": "🔥EBN#4",
+      "burnFlag": true,
+      "infoText": "EBN#4: 29 Oct 2008, 07:38 IST - fourth Earth orbit raise",
+      "body": "SC"
+    },
+    "tli": {
+      "startTime": "2008-11-03T23:26:00Z",
+      "durationSeconds": 150,
+      "label": "🔥TLI",
+      "burnFlag": true,
+      "infoText": "TLI: 4 Nov 2008, 04:56 IST - entered lunar transfer trajectory",
+      "body": "SC"
+    },
+    "loi": {
+      "startTime": "2008-11-08T11:21:00Z",
+      "durationSeconds": 817,
+      "label": "🔥LOI",
+      "burnFlag": true,
+      "infoText": "LOI: 8 Nov 2008, 16:51 IST - lunar orbit insertion burn",
+      "body": "SC"
+    },
+    "lbn1": {
+      "startTime": "2008-11-09T14:33:00Z",
+      "durationSeconds": 57,
+      "label": "🔥LBN#1",
+      "burnFlag": true,
+      "infoText": "LBN#1: 9 Nov 2008, 20:03 IST - first lunar orbit reduction",
+      "body": "SC"
+    },
+    "lbn2": {
+      "startTime": "2008-11-10T16:28:00Z",
+      "durationSeconds": 866,
+      "label": "🔥LBN#2",
+      "burnFlag": true,
+      "infoText": "LBN#2: 10 Nov 2008, 21:58 IST - second lunar orbit reduction",
+      "body": "SC"
+    },
+    "lbn3": {
+      "startTime": "2008-11-11T13:00:00Z",
+      "durationSeconds": 31,
+      "label": "🔥LBN#3",
+      "burnFlag": true,
+      "infoText": "LBN#3: 11 Nov 2008, 18:30 IST - third lunar orbit reduction",
+      "body": "SC"
+    },
+    "polar100km": {
+      "startTime": "2008-11-12T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "100km Polar Orbit",
+      "burnFlag": false,
+      "infoText": "Final operational lunar polar orbit established at ~100 km",
+      "body": "SC"
+    },
+    "mipRelease": {
+      "startTime": "2008-11-14T14:36:00Z",
+      "durationSeconds": 0,
+      "label": "📦 MIP Release",
+      "burnFlag": false,
+      "infoText": "Moon Impact Probe separated from orbiter",
+      "body": "SC"
+    },
+    "mipImpact": {
+      "startTime": "2008-11-14T15:01:00Z",
+      "durationSeconds": 0,
+      "label": "💥 MIP Impact",
+      "burnFlag": false,
+      "infoText": "Moon Impact Probe struck near lunar south pole",
+      "body": "SC"
+    },
+    "orbitRaise200km": {
+      "startTime": "2009-05-19T03:30:00Z",
+      "durationSeconds": 0,
+      "label": "⬆️ 200km Orbit",
+      "burnFlag": false,
+      "infoText": "Orbiter altitude raised to ~200 km for thermal/orbital operations",
+      "body": "SC"
+    },
+    "missionEnd": {
+      "startTime": "2009-08-28T20:00:00Z",
+      "durationSeconds": 0,
+      "label": "CH1 Mission End",
+      "burnFlag": false,
+      "infoText": "Last contact with Chandrayaan-1",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "⏰ Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "ch1DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "CH1"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "🏁CH1 Data End",
+      "burnFlag": false,
+      "infoText": "Chandrayaan 1 Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "tli", "loi", "lbn1", "lbn2", "lbn3", "polar100km", "mipRelease", "mipImpact", "now", "ch1DataEnd"],
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "tli", "loi", "lbn1", "lbn2", "lbn3", "polar100km", "mipRelease", "mipImpact", "now", "ch1DataEnd"]
+  }
+}

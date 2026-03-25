@@ -82,13 +82,20 @@ function resolveSunChebyshevSeries(options) {
 
 function computeSunLongitudeFromChebyshev(timeMs, options) {
     const sunSeries = resolveSunChebyshevSeries(options);
-    if (!sunSeries) return null;
+    if (!sunSeries) {
+        return { status: "missing_series", longitude: null };
+    }
 
     const jd = toHorizonsJulianDate(timeMs);
     const state = getStateFromChebyshev(sunSeries, jd);
-    if (!state?.pos) return null;
+    if (!state?.pos) {
+        return { status: "out_of_range", longitude: null };
+    }
 
-    return normalizeLongitudeRadians(Math.atan2(state.pos.y, state.pos.x));
+    return {
+        status: "ok",
+        longitude: normalizeLongitudeRadians(Math.atan2(state.pos.y, state.pos.x)),
+    };
 }
 
 /**
@@ -110,12 +117,21 @@ export function computeSunLongitude(timeMs, options) {
         );
     }
 
-    const longitude = computeSunLongitudeFromChebyshev(timeMs, options);
-    if (Number.isFinite(longitude)) {
-        return longitude;
+    const result = computeSunLongitudeFromChebyshev(timeMs, options);
+    if (Number.isFinite(result?.longitude)) {
+        return result.longitude;
     }
 
     const cfg = typeof options?.config === "string" ? options.config : "unknown";
+    if (result?.status === "out_of_range") {
+        const iso =
+            Number.isFinite(timeMs) && typeof Date !== "undefined"
+                ? new Date(timeMs).toISOString()
+                : String(timeMs);
+        throw new Error(
+            `SUN Chebyshev state unavailable at '${iso}' for config '${cfg}' (timestamp outside available ephemeris range).`,
+        );
+    }
     throw new Error(
         `SUN Chebyshev series unavailable for config '${cfg}' (no fallback enabled).`,
     );

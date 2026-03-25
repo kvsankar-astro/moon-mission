@@ -54,15 +54,17 @@
         <script type="module" src="src/platform/js/astro.js"></script>
         <script>
             // Mission configuration with URL parameter support
-            // Usage: ?mission=cy2 or ?mission=cy3
+            // Usage: ?mission=cy1 or ?mission=cy2 or ?mission=cy3
             // If no mission param, show selection page
             (function() {
                 const missionMap = {
+                    'cy1': { name: 'chandrayaan1', folder: 'chandrayaan1', title: 'Chandrayaan 1', year: '2008' },
                     'cy2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
                     'cy3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
                     'a11': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
                     'a10': { name: 'apollo10-lm', folder: 'apollo10-lm', title: 'Apollo 10 Snoopy', year: '1969' },
                     'art1': { name: 'artemis1', folder: 'artemis1', title: 'Artemis 1', year: '2022' },
+                    'chandrayaan1': { name: 'chandrayaan1', folder: 'chandrayaan1', title: 'Chandrayaan 1', year: '2008' },
                     'chandrayaan2': { name: 'chandrayaan2', folder: 'chandrayaan2', title: 'Chandrayaan 2', year: '2019' },
                     'chandrayaan3': { name: 'chandrayaan3', folder: 'chandrayaan3', title: 'Chandrayaan 3', year: '2023' },
                     'apollo11-sivb': { name: 'apollo11-sivb', folder: 'apollo11-sivb', title: 'Apollo 11 S-IVB', year: '1969' },
@@ -113,6 +115,16 @@
                 </label>
 
                 <div style="display: flex; justify-content: center; gap: 30px; flex-wrap: wrap;">
+                    <a href="?mission=cy1" style="text-decoration: none;">
+                        <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
+                             onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
+                             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+                            <h3 style="color: #ffa000; margin: 0 0 10px 0;">Chandrayaan 1</h3>
+                            <p style="color: #aaa; margin: 0 0 15px 0;">2008 - India's First Lunar Mission</p>
+                            <p style="color: #666; font-size: 14px; margin: 0;">Historic ISRO orbiter mission with Moon Impact Probe timeline</p>
+                        </div>
+                    </a>
+
                     <a href="?mission=cy3" style="text-decoration: none;">
                         <div style="background: #1a1a2e; border: 2px solid #ffa000; border-radius: 10px; padding: 30px; width: 280px; transition: transform 0.2s, box-shadow 0.2s;"
                              onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 0 20px rgba(255,160,0,0.3)';"
