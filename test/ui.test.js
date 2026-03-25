@@ -276,11 +276,17 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
 
 // Simplified helper functions
 async function openSettingsPanel(page) {
-  // Use Playwright's auto-wait and retry capabilities
-  const panel = page.locator('#settings-panel');
-  if (!(await panel.isVisible())) {
-    await page.locator('#settings-panel-button').click();
-    await panel.waitFor({ state: 'visible', timeout: 5000 });
+  const toggle = page.locator('#settings-panel-button');
+  const expanded = await toggle.getAttribute('aria-expanded');
+  if (expanded !== 'true') {
+    await page.evaluate(() => {
+      const button = document.getElementById('settings-panel-button');
+      button?.click();
+    });
+    await page.waitForFunction(() => {
+      const button = document.getElementById('settings-panel-button');
+      return button?.getAttribute('aria-expanded') === 'true';
+    }, { timeout: 5000 });
   }
 
   // Ensure panel body is expanded; controls are not interactable when collapsed.
@@ -295,15 +301,17 @@ async function openSettingsPanel(page) {
 }
 
 async function closeSettingsPanel(page) {
-  const panel = page.locator('#settings-panel');
-  if (await panel.isVisible()) {
-    // Try the close button first, then fallback to jQuery if needed
-    try {
-      await page.getByRole('button', { name: 'close' }).click();
-    } catch {
-      await page.evaluate(() => $('#settings-panel').dialog('close'));
-    }
-    await panel.waitFor({ state: 'hidden', timeout: 2000 });
+  const toggle = page.locator('#settings-panel-button');
+  const expanded = await toggle.getAttribute('aria-expanded');
+  if (expanded === 'true') {
+    await page.evaluate(() => {
+      const button = document.getElementById('settings-panel-button');
+      button?.click();
+    });
+    await page.waitForFunction(() => {
+      const button = document.getElementById('settings-panel-button');
+      return button?.getAttribute('aria-expanded') === 'false';
+    }, { timeout: 3000 });
   }
 }
 
