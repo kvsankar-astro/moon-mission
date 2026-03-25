@@ -160,7 +160,7 @@
     "loi": {
       "startTime": "2019-08-20T03:32:00Z",
       "durationSeconds": 1738,
-      "label": "🌖 LBN#1/LOI",
+      "label": "🔥LBN#1/LOI",
       "burnFlag": true,
       "infoText": "LBN#1/LOI: 20th Aug, 09:02 IST - Target orbit: 118 x 18078, Achieved 114 x 18072",
       "body": "SC"
@@ -168,7 +168,7 @@
     "lbn2": {
       "startTime": "2019-08-21T07:20:00Z",
       "durationSeconds": 1228,
-      "label": "LBN#2",
+      "label": "🔥LBN#2",
       "burnFlag": true,
       "infoText": "LBN#2:     21st Aug, 12:50 IST - Target orbit: 121 x 4303, Achieved 118 x 4412",
       "body": "SC"
@@ -176,7 +176,7 @@
     "lbn3": {
       "startTime": "2019-08-28T03:34:00Z",
       "durationSeconds": 1190,
-      "label": "LBN#3",
+      "label": "🔥LBN#3",
       "burnFlag": true,
       "infoText": "LBN#3:     28th Aug, 09:04 IST - Target orbit: 178 x 1411, Achieved 179 x 1412",
       "body": "SC"
@@ -184,7 +184,7 @@
     "lbn4": {
       "startTime": "2019-08-30T12:48:00Z",
       "durationSeconds": 1155,
-      "label": "LBN#4",
+      "label": "🔥LBN#4",
       "burnFlag": true,
       "infoText": "LBN#4:     30th Aug, 18:18 IST - Target orbit: 126 x 164, Achieved 124 x 164",
       "body": "SC"
@@ -192,7 +192,7 @@
     "lbn5": {
       "startTime": "2019-09-01T12:51:00Z",
       "durationSeconds": 52,
-      "label": "LBN#5",
+      "label": "🔥LBN#5",
       "burnFlag": true,
       "infoText": "LBN#5:      1st Sep, 18:21 IST - Target orbit: 114 x 128, Achieved 119 x 127",
       "body": "SC"
@@ -200,7 +200,7 @@
     "vikramSeparation": {
       "startTime": "2019-09-02T07:45:00Z",
       "durationSeconds": 0,
-      "label": "VS",
+      "label": "🔥VS",
       "burnFlag": true,
       "infoText": "Vikram Separation: Vikram goes into a 119 km x 127 km orbit",
       "body": "SC"
@@ -208,7 +208,7 @@
     "vikramDeboost1": {
       "startTime": "2019-09-03T03:20:00Z",
       "durationSeconds": 4,
-      "label": "VD#1",
+      "label": "🔥VD#1",
       "burnFlag": true,
       "infoText": "Vikram Deorbit #1 for 4 seconds on 3rd September, at 08:50 IST",
       "body": "SC"
@@ -216,7 +216,7 @@
     "vikramDeboost2": {
       "startTime": "2019-09-04T22:12:00Z",
       "durationSeconds": 9,
-      "label": "VD#2",
+      "label": "🔥VD#2",
       "burnFlag": true,
       "infoText": "Vikram Deorbit #2 for 9 seconds on 4th September, at 03:42 IST",
       "body": "SC"

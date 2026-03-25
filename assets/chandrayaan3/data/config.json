@@ -160,7 +160,7 @@
     "loi": {
       "startTime": "2023-08-05T14:00:00Z",
       "durationSeconds": 0,
-      "label": "🌖 LBN#1/LOI",
+      "label": "🔥LBN#1/LOI",
       "burnFlag": true,
       "infoText": "LOI: 5th Aug, 19:30 IST - 164km x 18074km orbit",
       "body": "SC"
@@ -168,7 +168,7 @@
     "lbn1": {
       "startTime": "2023-08-06T17:49:00Z",
       "durationSeconds": 1228,
-      "label": "LBN#1",
+      "label": "🔥LBN#1",
       "burnFlag": true,
       "infoText": "LBN#1:     6th Aug, 23:19 IST - 170km x 4313km orbit",
       "body": "SC"
@@ -176,7 +176,7 @@
     "lbn2": {
       "startTime": "2023-08-09T08:21:00Z",
       "durationSeconds": 1190,
-      "label": "LBN#2",
+      "label": "🔥LBN#2",
       "burnFlag": true,
       "infoText": "LBN#2:     9th Aug, 13:51 IST - 174km x 1437km orbit",
       "body": "SC"
@@ -184,7 +184,7 @@
     "lbn3": {
       "startTime": "2023-08-14T06:38:00Z",
       "durationSeconds": 1155,
-      "label": "LBN#3",
+      "label": "🔥LBN#3",
       "burnFlag": true,
       "infoText": "LBN#3:    14th Aug, 12:08 IST - 150km x 177km orbit",
       "body": "SC"
@@ -192,7 +192,7 @@
     "lbn4": {
       "startTime": "2023-08-16T03:00:00Z",
       "durationSeconds": 52,
-      "label": "LBN#4",
+      "label": "🔥LBN#4",
       "burnFlag": true,
       "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
       "body": "SC"
