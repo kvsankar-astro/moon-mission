@@ -125,6 +125,10 @@ function createEphemerisInfoPanelActions(deps) {
         const originRows = origins
             .map((originKey) => {
                 const originConfig = globalConfig?.[originKey] || {};
+                const configuredPlanets = Array.isArray(originConfig.planets) ? originConfig.planets : [];
+                const planetsWithSun = configuredPlanets.includes("SUN")
+                    ? configuredPlanets
+                    : [...configuredPlanets, "SUN"];
                 const timeWindow =
                     [originConfig.start_year, originConfig.start_month, originConfig.start_day].every(Boolean)
                         ? `${originConfig.start_year}-${originConfig.start_month}-${originConfig.start_day} ${originConfig.start_hour || "00"}:${originConfig.start_minute || "00"} -> ${originConfig.stop_year || "—"}-${originConfig.stop_month || "—"}-${originConfig.stop_day || "—"} ${originConfig.stop_hour || "00"}:${originConfig.stop_minute || "00"}`
@@ -134,7 +138,7 @@ function createEphemerisInfoPanelActions(deps) {
                 <tr>
                     <td>${originKey.toUpperCase()}</td>
                     <td>${originConfig.center || "—"}</td>
-                    <td>${(originConfig.planets || []).join(", ") || "—"}</td>
+                    <td>${planetsWithSun.join(", ") || "—"}</td>
                     <td>${originConfig.orbits_file || "—"}</td>
                     <td>${originConfig.step_size_in_seconds || "—"}</td>
                     <td>${timeWindow}</td>
@@ -147,6 +151,9 @@ function createEphemerisInfoPanelActions(deps) {
             [landingConfig.start_year, landingConfig.start_month, landingConfig.start_day].every(Boolean)
                 ? `${landingConfig.start_year}-${landingConfig.start_month}-${landingConfig.start_day} ${landingConfig.start_hour || "00"}:${landingConfig.start_minute || "00"} -> ${landingConfig.stop_year || "—"}-${landingConfig.stop_month || "—"}-${landingConfig.stop_day || "—"} ${landingConfig.stop_hour || "00"}:${landingConfig.stop_minute || "00"}`
                 : "—";
+        const landingDataCenters = landingOriginKeys
+            .map((originKey) => globalConfig?.[originKey]?.center)
+            .filter((centerName, index, arr) => centerName && arr.indexOf(centerName) === index);
 
         function getExpectedOrbitSources(originKey) {
             const originConfig = globalConfig?.[originKey] || {};
@@ -313,7 +320,8 @@ function createEphemerisInfoPanelActions(deps) {
                     <thead>
                         <tr>
                             <th>Enabled</th>
-                            <th>Center</th>
+                            <th>Render Center</th>
+                            <th>Data Centers</th>
                             <th>Planets</th>
                             <th>Orbit File</th>
                             <th>Step (s)</th>
@@ -325,6 +333,7 @@ function createEphemerisInfoPanelActions(deps) {
                         <tr>
                             <td>${landingConfig.enabled ? "Yes" : "No"}</td>
                             <td>${landingConfig.center || "—"}</td>
+                            <td>${landingDataCenters.join(", ") || "—"}</td>
                             <td>${(landingConfig.planets || []).join(", ") || "—"}</td>
                             <td>${landingConfig.orbits_file || "—"}</td>
                             <td>${landingConfig.step_size_in_seconds || "—"}</td>
