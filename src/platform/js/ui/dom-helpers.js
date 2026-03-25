@@ -26,7 +26,7 @@ export function toggleVisibilityById(id) {
     const node = document.getElementById(id);
     if (!node) return;
     const isHidden = getComputedStyle(node).display === "none";
-    node.style.display = isHidden ? "" : "none";
+    node.style.display = isHidden ? "block" : "none";
 }
 
 export function ensureIndeterminateProgressBar(progressbarId = "progressbar") {

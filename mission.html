@@ -91,7 +91,7 @@
         <script>
             // UI feature flags: set true to enable optional overlays.
             window.CY3_UI_FLAGS = {
-                showMissionInfoPanel: true
+                showMissionInfoPanel: false
             };
         </script>
         <script type="module" src="src/platform/js/mission.js"></script>
@@ -175,7 +175,7 @@
         <div id="header" class="header">
             <div class="navbar flex-container">
 
-                <button id="settings-panel-button" type="button">Settings</button>
+                <button id="settings-panel-button" type="button" aria-expanded="false" aria-label="Toggle settings panel" title="Settings">&#9776;</button>
                 
                 <div id="blurb" class="blurb">
                     <h1><a id="mission-link" href=""><!-- mission name injected by JS --></a> Orbit Animation.</h1>
@@ -194,10 +194,6 @@
             <div id="settings-panel" class="settings-panel">
                 <div class="settings-panel__header">
                     <div class="settings-panel__title">Settings</div>
-                    <div class="settings-panel__actions">
-                        <button id="settings-panel-collapse" class="settings-panel__collapse" type="button" aria-expanded="true" aria-label="Collapse settings panel">▾</button>
-                        <button id="settings-panel-close" class="settings-panel__close" type="button" aria-label="Close settings panel">✕</button>
-                    </div>
                 </div>
                 <div id="settings-panel-body" class="settings-panel__body">
                     <div id="settings-panel-fieldset" class="settings-panel__sections">
@@ -415,6 +411,16 @@
             </div> <!-- settings panel -->
     
             <div id="control-panel" class="control-panel">
+                <button
+                    id="control-panel-toggle"
+                    class="control-panel__toggle"
+                    type="button"
+                    aria-expanded="true"
+                    aria-label="Collapse control panel"
+                    title="Collapse control panel"
+                >
+                    &#9664;
+                </button>
     
     
                 <div id="animation-control-panel">
@@ -450,6 +456,7 @@
 
                             <div class="swiper-slide">
                                 <div class="controls-cluster controls-cluster--help" aria-label="Help">
+                                    <button id="info-button" type="button" class="button" title="Telemetry panel">Info</button>
                                     <button id="shortcut-help" type="button" class="button button--icon" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button>
                                 </div>
                             </div>
@@ -502,7 +509,6 @@
         </div>
 
         <div id="info-panel-wrapper" class="info-panel-wrapper">
-            <button id="info-panel-toggle" class="info-panel-toggle" title="Mission information">Mission</button>
             <div id="info-panel" class="info-panel info-panel--hidden">
                 <div class="info-panel__header">
                     <div class="info-panel__title">Mission Info</div>
@@ -553,6 +559,27 @@
         </div>
 
         </div> <!-- content-wrapper -->
+
+        <div id="timeline-dock" class="timeline-dock" role="group" aria-label="Mission timeline">
+            <div class="timeline-dock__row">
+                <span id="timeline-start-label" class="timeline-dock__edge">--:--:--</span>
+                <div class="timeline-dock__track-wrap">
+                    <input
+                        id="timeline-slider"
+                        class="timeline-dock__slider"
+                        type="range"
+                        min="0"
+                        max="0"
+                        step="60000"
+                        value="0"
+                        aria-label="Mission timeline slider"
+                    >
+                    <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true"></div>
+                </div>
+                <span id="timeline-end-label" class="timeline-dock__edge">--:--:--</span>
+            </div>
+            <div id="timeline-current-label" class="timeline-dock__current">--</div>
+        </div>
 
         <div id="footer-wrapper" class="footer-wrapper">
 
@@ -609,8 +636,6 @@
                 </div>
             </div> <!-- stats wrapper -->
             
-            <button id="info-button" type="button" class="button">Info</button>
-    
             <div id="date" class="date"></div>
 
             <div class="info desktoponly">

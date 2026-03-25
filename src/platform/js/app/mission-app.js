@@ -1,4 +1,8 @@
-import { bindKeyboardShortcuts, bindMainControls } from "../ui/event-handlers.js";
+import {
+    bindControlPanelToggle,
+    bindKeyboardShortcuts,
+    bindMainControls,
+} from "../ui/event-handlers.js";
 
 let eventBusWired = false;
 
@@ -68,6 +72,7 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),
     });
     bindKeyboardShortcuts();
+    bindControlPanelToggle();
 
     handlers.initAnimation({ reset: true }); // no need to await - kickstarts setup
 

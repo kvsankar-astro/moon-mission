@@ -22,24 +22,27 @@ function createEphemerisInfoPanelActions(deps) {
 
     function bindInfoPanelControls() {
         const wrapper = document.getElementById("info-panel-wrapper");
+        const toggle = document.getElementById("info-panel-toggle");
         const enabled = isMissionInfoPanelEnabled();
         if (wrapper) {
             wrapper.style.display = enabled ? "" : "none";
         }
+        if (toggle) {
+            toggle.style.display = enabled ? "" : "none";
+        }
         if (!enabled) return;
 
-        const toggle = document.getElementById("info-panel-toggle");
         const panel = document.getElementById("info-panel");
         const close = document.getElementById("info-panel-close");
         if (!toggle || !panel || !close) return;
 
         const show = () => {
             panel.classList.remove("info-panel--hidden");
-            toggle.classList.add("hidden");
+            toggle.style.display = "none";
         };
         const hide = () => {
             panel.classList.add("info-panel--hidden");
-            toggle.classList.remove("hidden");
+            toggle.style.display = "";
         };
 
         toggle.addEventListener("click", show);

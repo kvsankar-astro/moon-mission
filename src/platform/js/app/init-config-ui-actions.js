@@ -35,7 +35,8 @@ function createInitConfigUiActions(deps) {
             loop: false,
             slidesPerView: "auto",
             watchOverflow: true,
-            freeMode: true,
+            freeMode: false,
+            allowTouchMove: false,
             spaceBetween: 6,
         });
 

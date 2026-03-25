@@ -50,6 +50,7 @@ import { createRuntimeInteractionState } from "./core/state/runtime-interaction-
 import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
+import { createTimelineDockController } from "./app/timeline-dock-controller.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -294,6 +295,50 @@ runtimeViewState.setViewFlags({
 });
 
 const eventBus = createEventBus();
+let timelineDockController = null;
+let lastTimelineEventsRef = null;
+
+function ensureTimelineDockController() {
+    if (timelineDockController) return timelineDockController;
+    timelineDockController = createTimelineDockController({
+        onSeekTime: (timeMs) => {
+            animationController.setTime(timeMs);
+        },
+        onMarkerSelect: (eventInfo) => {
+            if (!(eventInfo?.startTime instanceof Date)) return;
+            animationController.goToEvent(eventInfo.startTime.getTime());
+        },
+    });
+    timelineDockController.bind();
+    return timelineDockController;
+}
+
+function syncTimelineDock() {
+    if (!timelineDockController) return;
+
+    const cfg = runtimeViewState.getConfig();
+    const stepDurationMs = Math.max(
+        1,
+        Math.round(animationScenes[cfg]?.stepDurationInMilliSeconds || TC.ONE_MINUTE_MS),
+    );
+    const dockStartTime = Number.isFinite(startTime) ? startTime : 0;
+    const rawDockEndTime = Number.isFinite(latestEndTime)
+        ? latestEndTime - stepDurationMs
+        : dockStartTime;
+    const dockEndTime = Math.max(dockStartTime, rawDockEndTime);
+
+    timelineDockController.setRange({
+        startTimeMs: dockStartTime,
+        endTimeMs: dockEndTime,
+        stepMs: stepDurationMs,
+    });
+    timelineDockController.setCurrentTime(runtimeSessionState.getAnimTime());
+
+    if (eventInfos !== lastTimelineEventsRef) {
+        timelineDockController.setEvents(eventInfos || []);
+        lastTimelineEventsRef = eventInfos;
+    }
+}
 
 function formatSpeedLabel(multiplier, isRealtime) {
     if (isRealtime) return "RT";
@@ -333,6 +378,7 @@ var animationController = new AnimationController({
     onTimeChange: (time) => {
         runtimeSessionState.setAnimTime(time);
         bridgeActions.setLocation();    // Update scene positions
+        syncTimelineDock();
         eventBus.emit("animation:timeChanged", { time });
     },
     onPlayStateChange: (isPlaying) => {
@@ -351,6 +397,8 @@ window.addEventListener("load", function () {
         animationController.getSpeedMultiplier(),
         animationController.getIsRealtimeSpeed(),
     );
+    ensureTimelineDockController();
+    syncTimelineDock();
 });
 
 var globalConfig = null; // Store loaded config from config.json

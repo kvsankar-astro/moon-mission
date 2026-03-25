@@ -20,6 +20,26 @@
         return list.filter(Boolean).join(" ");
     }
 
+    function parsePositionPair(rawValue, defaults) {
+        if (typeof rawValue !== "string" || !rawValue.trim()) return defaults;
+        const parts = rawValue.trim().split(/\s+/);
+        if (parts.length === 1) return [parts[0], defaults[1]];
+        return [parts[0], parts[1]];
+    }
+
+    function resolveAnchorCoordinate(rect, horizontal, vertical) {
+        let x = rect.left;
+        let y = rect.top;
+
+        if (horizontal === "right") x = rect.right;
+        else if (horizontal === "center") x = rect.left + rect.width / 2;
+
+        if (vertical === "bottom") y = rect.bottom;
+        else if (vertical === "center") y = rect.top + rect.height / 2;
+
+        return { x, y };
+    }
+
     function applyDialogPosition(entry) {
         const position = entry.options?.position;
         if (!position || !position.of) return;
@@ -28,9 +48,33 @@
         if (!anchor) return;
 
         const rect = anchor.getBoundingClientRect();
+        const [atHorizontal, atVertical] = parsePositionPair(position.at, ["left", "top"]);
+        const [myHorizontal, myVertical] = parsePositionPair(position.my, ["left", "top"]);
+        const anchorPoint = resolveAnchorCoordinate(rect, atHorizontal, atVertical);
+
+        const wrapperRect = entry.wrapper.getBoundingClientRect();
+        const width = wrapperRect.width || entry.wrapper.offsetWidth || 0;
+        const height = wrapperRect.height || entry.wrapper.offsetHeight || 0;
+
+        let left = anchorPoint.x;
+        let top = anchorPoint.y;
+
+        if (myHorizontal === "center") left -= width / 2;
+        else if (myHorizontal === "right") left -= width;
+
+        if (myVertical === "center") top -= height / 2;
+        else if (myVertical === "bottom") top -= height;
+
+        // Keep dialog inside viewport for usability.
+        const margin = 8;
+        const maxLeft = Math.max(margin, window.innerWidth - width - margin);
+        const maxTop = Math.max(margin, window.innerHeight - height - margin);
+        left = Math.min(Math.max(left, margin), maxLeft);
+        top = Math.min(Math.max(top, margin), maxTop);
+
         entry.wrapper.style.position = "fixed";
-        entry.wrapper.style.top = `${Math.round(rect.bottom)}px`;
-        entry.wrapper.style.left = `${Math.round(rect.left)}px`;
+        entry.wrapper.style.top = `${Math.round(top)}px`;
+        entry.wrapper.style.left = `${Math.round(left)}px`;
     }
 
     function setDialogTitle(entry, title) {
