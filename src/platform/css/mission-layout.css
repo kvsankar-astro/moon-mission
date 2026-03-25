@@ -108,6 +108,7 @@ canvas {
     height: 24px;
     display: flex;
     align-items: center;
+    touch-action: none;
 }
 
 .timeline-dock__slider {
@@ -597,6 +598,13 @@ fieldset {
         box-shadow: 0 10px 26px rgba(0, 0, 0, 0.48);
         overflow: hidden;
     }
+    .settings-dialog .settings-panel__header {
+        padding: 7px 9px;
+    }
+    .settings-dialog .settings-panel__title {
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
     .settings-dialog .settings-panel {
         width: 100%;
         min-width: 0;
@@ -608,8 +616,68 @@ fieldset {
         box-shadow: none;
     }
     .settings-dialog .settings-panel__body {
-        max-height: calc(100vh - var(--timeline-dock-height) - 116px);
+        padding: 7px 8px 9px;
+        max-height: calc(100vh - var(--timeline-dock-height) - 124px);
         overflow-y: auto;
+    }
+    .settings-dialog .settings-panel__sections {
+        gap: 8px;
+    }
+    .settings-dialog .settings-section {
+        padding: 6px 7px 7px;
+        gap: 6px;
+    }
+    .settings-dialog .settings-section__title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 0 2px;
+        font-size: 10px;
+        letter-spacing: 0.06em;
+    }
+    .settings-dialog .settings-section--mobile-collapsible .settings-section__title {
+        cursor: pointer;
+    }
+    .settings-dialog .settings-section--mobile-collapsible .settings-section__title::after {
+        content: "▾";
+        font-size: 11px;
+        color: rgba(181, 208, 255, 0.9);
+    }
+    .settings-dialog .settings-section--mobile-collapsible.settings-section--collapsed .settings-section__title::after {
+        content: "▸";
+    }
+    .settings-dialog .settings-section--mobile-collapsible.settings-section--collapsed > :not(.settings-section__title) {
+        display: none;
+    }
+    .settings-dialog .settings-option {
+        font-size: 11px;
+        gap: 6px;
+    }
+    .settings-dialog .settings-option input {
+        width: 13px;
+        height: 13px;
+    }
+    .settings-dialog .settings-subtitle {
+        font-size: 10px;
+    }
+    .settings-dialog .camera-pill {
+        min-height: 24px;
+        font-size: 9px;
+        padding: 3px 5px;
+    }
+    .settings-dialog .camera-pill-group {
+        gap: 4px;
+    }
+    .settings-dialog .camera-pill-group--plane {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .settings-dialog .camera-pill-group--dimension {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .settings-dialog .settings-note {
+        margin-top: 3px;
+        font-size: 10px;
     }
     .date { font-size: 1.0em; }
     .stats { font-size: 0.86em; }
@@ -846,6 +914,7 @@ fieldset {
         width: 24px;
         height: 24px;
         top: 2px;
+        pointer-events: none;
     }
 
     .timeline-dock__marker::before {

@@ -31,6 +31,9 @@ let keyboardShortcutsBound = false;
 let settingsPanelResizeBound = false;
 let settingsOutsideClickBound = false;
 let shortcutPanelGlobalBound = false;
+let controlPanelResizeBound = false;
+let settingsAutoCollapsedControls = false;
+const mobileSettingsSectionState = new Map();
 
 function isInteractiveInputTarget(target) {
     if (!target) return false;
@@ -106,8 +109,25 @@ function adjustSettingsPanelBodyOverflow() {
 
     const panelRect = panel.getBoundingClientRect();
     const bottomGapPx = 14;
-    const minBodyHeightPx = 220;
-    const availableHeight = Math.max(minBodyHeightPx, Math.floor(window.innerHeight - panelRect.top - bottomGapPx));
+    const minBodyHeightPx = isMobileViewport() ? 140 : 220;
+    let availableHeight = Math.max(
+        minBodyHeightPx,
+        Math.floor(window.innerHeight - panelRect.top - bottomGapPx),
+    );
+
+    // When the settings content is inside a constrained dialog wrapper, clamp
+    // body height to the wrapper's usable space so long sections can scroll.
+    const dialogApi = getMissionDialogApi();
+    const wrapper = dialogApi?.widgetElement?.("#settings-panel");
+    if (wrapper) {
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const bodyRect = body.getBoundingClientRect();
+        const wrapperAvailable = Math.floor(wrapperRect.bottom - bodyRect.top - 8);
+        if (Number.isFinite(wrapperAvailable) && wrapperAvailable > 0) {
+            availableHeight = Math.max(minBodyHeightPx, Math.min(availableHeight, wrapperAvailable));
+        }
+    }
+
     const needsScroll = body.scrollHeight > availableHeight + 1;
 
     body.style.maxHeight = `${availableHeight}px`;
@@ -118,20 +138,106 @@ function applyMobileSettingsPanelLayout(wrapper) {
     if (!wrapper || window.innerWidth > 600) return;
     const header = document.getElementById("header");
     const headerBottom = header?.getBoundingClientRect()?.bottom ?? 0;
-    const panelTop = Math.round(headerBottom + 6);
+    const panelTop = Math.round(headerBottom + 5);
     const panelLeft = 6;
-    const bottomInset = 6;
-    const maxHeight = Math.max(
-        280,
-        Math.floor(window.innerHeight - panelTop - bottomInset),
-    );
-    const maxWidth = Math.min(360, Math.floor(window.innerWidth - panelLeft * 2));
+    const bottomInset = 10;
+    const viewportLimitedHeight = Math.floor(window.innerHeight - panelTop - bottomInset);
+    const targetHeight = Math.floor(window.innerHeight * 0.64);
+    const maxHeight = Math.max(240, Math.min(viewportLimitedHeight, targetHeight));
+    const maxWidth = Math.min(320, Math.floor(window.innerWidth - panelLeft * 2));
 
     wrapper.style.top = `${panelTop}px`;
     wrapper.style.left = `${panelLeft}px`;
     wrapper.style.width = `${maxWidth}px`;
     wrapper.style.maxWidth = `${maxWidth}px`;
     wrapper.style.maxHeight = `${maxHeight}px`;
+}
+
+function isMobileViewport() {
+    return window.innerWidth <= 600;
+}
+
+function resolveDefaultMobileSectionCollapsed(sectionKey) {
+    return sectionKey === "camera" || sectionKey === "view";
+}
+
+function setSettingsSectionCollapsed(section, collapsed) {
+    section.classList.toggle("settings-section--collapsed", collapsed);
+    const legend = section.querySelector(".settings-section__title");
+    if (!legend) return;
+    legend.setAttribute("aria-expanded", String(!collapsed));
+}
+
+function applyMobileSettingsSections() {
+    const sections = document.querySelectorAll("#settings-panel .settings-section");
+    if (!sections.length) return;
+
+    const mobile = isMobileViewport();
+
+    sections.forEach((section) => {
+        const legend = section.querySelector(".settings-section__title");
+        if (!legend) return;
+
+        section.classList.toggle("settings-section--mobile-collapsible", mobile);
+        if (!mobile) {
+            section.classList.remove("settings-section--collapsed");
+            legend.removeAttribute("role");
+            legend.removeAttribute("tabindex");
+            legend.removeAttribute("aria-expanded");
+            return;
+        }
+
+        const sectionKey = section.dataset.sectionKey || "";
+        const shouldCollapse = mobileSettingsSectionState.has(sectionKey)
+            ? mobileSettingsSectionState.get(sectionKey)
+            : resolveDefaultMobileSectionCollapsed(sectionKey);
+        setSettingsSectionCollapsed(section, shouldCollapse);
+
+        legend.setAttribute("role", "button");
+        legend.setAttribute("tabindex", "0");
+
+        if (!legend.dataset.mobileBound) {
+            legend.dataset.mobileBound = "true";
+            legend.addEventListener("click", function () {
+                if (!isMobileViewport()) return;
+                const nextCollapsed = !section.classList.contains("settings-section--collapsed");
+                setSettingsSectionCollapsed(section, nextCollapsed);
+                mobileSettingsSectionState.set(sectionKey, nextCollapsed);
+                adjustSettingsPanelBodyOverflow();
+                requestAnimationFrame(adjustSettingsPanelBodyOverflow);
+            });
+
+            legend.addEventListener("keydown", function (event) {
+                if (!isMobileViewport()) return;
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                legend.click();
+            });
+        }
+    });
+}
+
+function syncControlPanelInfoOffset(panel = document.getElementById("control-panel")) {
+    if (!panel) return;
+    const root = document.documentElement;
+    const collapsed = panel.classList.contains("control-panel--collapsed");
+    const height = collapsed ? 0 : Math.max(0, Math.round(panel.getBoundingClientRect().height));
+    root.style.setProperty("--control-panel-visual-height", `${height}px`);
+}
+
+function setControlPanelCollapsedState(collapsed) {
+    const panel = document.getElementById("control-panel");
+    const button = document.getElementById("control-panel-toggle");
+    if (!panel || !button) return;
+    panel.classList.toggle("control-panel--collapsed", collapsed);
+    button.setAttribute("aria-expanded", String(!collapsed));
+    button.textContent = collapsed ? "+" : "−";
+    button.setAttribute(
+        "aria-label",
+        collapsed ? "Show controls" : "Hide controls",
+    );
+    button.title = collapsed ? "Show controls" : "Hide controls";
+    requestAnimationFrame(() => syncControlPanelInfoOffset(panel));
 }
 
 /**
@@ -151,13 +257,20 @@ export function bindSettingsPanel() {
         settingsButton.setAttribute("aria-expanded", String(isOpen));
         settingsButton.classList.toggle("is-open", isOpen);
     };
+    const closeSettingsPanel = (dialogApi) => {
+        dialogApi?.close?.("#settings-panel");
+        updateSettingsButtonState(false);
+        if (settingsAutoCollapsedControls) {
+            setControlPanelCollapsedState(false);
+            settingsAutoCollapsedControls = false;
+        }
+    };
 
     onClick("settings-panel-button", function () {
         const dialogApi = getMissionDialogApi();
         const isOpen = readSettingsPanelOpen();
         if (isOpen) {
-            dialogApi?.close?.("#settings-panel");
-            updateSettingsButtonState(false);
+            closeSettingsPanel(dialogApi);
             return;
         }
 
@@ -190,8 +303,21 @@ export function bindSettingsPanel() {
             applyMobileSettingsPanelLayout(wrapper);
         }
 
+        applyMobileSettingsSections();
+
         adjustSettingsPanelBodyOverflow();
         requestAnimationFrame(adjustSettingsPanelBodyOverflow);
+
+        if (isMobileViewport()) {
+            const controlsPanel = document.getElementById("control-panel");
+            const controlsCollapsed = !!controlsPanel?.classList.contains("control-panel--collapsed");
+            settingsAutoCollapsedControls = !controlsCollapsed;
+            if (!controlsCollapsed) {
+                setControlPanelCollapsedState(true);
+            }
+        } else {
+            settingsAutoCollapsedControls = false;
+        }
 
         if (!settingsPanelResizeBound) {
             settingsPanelResizeBound = true;
@@ -201,6 +327,7 @@ export function bindSettingsPanel() {
                 const dialogApi = getMissionDialogApi();
                 const wrapper = dialogApi?.widgetElement?.("#settings-panel");
                 if (wrapper) applyMobileSettingsPanelLayout(wrapper);
+                applyMobileSettingsSections();
             });
         }
 
@@ -211,8 +338,7 @@ export function bindSettingsPanel() {
                 const dialogWrapper = dialogApi?.widgetElement?.("#settings-panel");
                 if (dialogWrapper && dialogWrapper.contains(event.target)) return;
                 if (settingsButton && settingsButton.contains(event.target)) return;
-                dialogApi?.close?.("#settings-panel");
-                updateSettingsButtonState(false);
+                closeSettingsPanel(dialogApi);
             });
         }
 
@@ -419,34 +545,17 @@ export function bindControlPanelToggle() {
     if (!panel || !button) return;
     if (button.dataset.bound === "true") return;
     button.dataset.bound = "true";
-
-    const syncInfoPanelOffset = () => {
-        const root = document.documentElement;
-        const collapsed = panel.classList.contains("control-panel--collapsed");
-        const height = collapsed ? 0 : Math.max(0, Math.round(panel.getBoundingClientRect().height));
-        root.style.setProperty("--control-panel-visual-height", `${height}px`);
-    };
-
-    const applyCollapsedState = (collapsed) => {
-        panel.classList.toggle("control-panel--collapsed", collapsed);
-        button.setAttribute("aria-expanded", String(!collapsed));
-        button.textContent = collapsed ? "+" : "−";
-        button.setAttribute(
-            "aria-label",
-            collapsed ? "Show controls" : "Hide controls",
-        );
-        button.title = collapsed ? "Show controls" : "Hide controls";
-        requestAnimationFrame(syncInfoPanelOffset);
-    };
-
-    applyCollapsedState(false);
-    requestAnimationFrame(syncInfoPanelOffset);
+    setControlPanelCollapsedState(false);
+    requestAnimationFrame(() => syncControlPanelInfoOffset(panel));
     button.addEventListener("click", function () {
         const collapsed = !panel.classList.contains("control-panel--collapsed");
-        applyCollapsedState(collapsed);
+        setControlPanelCollapsedState(collapsed);
     });
 
-    window.addEventListener("resize", function () {
-        syncInfoPanelOffset();
-    });
+    if (!controlPanelResizeBound) {
+        controlPanelResizeBound = true;
+        window.addEventListener("resize", function () {
+            syncControlPanelInfoOffset();
+        });
+    }
 }
