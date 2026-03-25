@@ -1220,9 +1220,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await openSettingsPanel(page);
       await page.click('#dimension-2D');
       expect(await page.locator('#dimension-2D:checked').count()).toBe(1);
+      await closeSettingsPanel(page);
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-      await closeSettingsPanel(page);
       
       
       // 2D Mode Screenshot
@@ -1981,9 +1981,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await openSettingsPanel(page);
       await page.click('#dimension-2D');
       expect(await page.locator('#dimension-2D:checked').count()).toBe(1);
+      await closeSettingsPanel(page);
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-      await closeSettingsPanel(page);
       
       
       // 2D Mode Screenshot
