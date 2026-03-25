@@ -529,6 +529,25 @@ export function createCameraActions({
     function togglePlane() {
         setPlaneSelection(readPlaneSelection());
         handlePlaneChange(false, false);
+
+        // Plane switches should preserve legacy centered behavior in manual view:
+        // reset TrackballControls pivot to scene origin so DEFAULT/plane views
+        // keep the origin centered on screen.
+        const positionMode = readCameraPositionMode();
+        const lookMode = readCameraLookMode();
+        if (positionMode === "manual" && lookMode === "manual") {
+            const config = getConfig();
+            const scene = animationScenes[config];
+            const controls = scene?.cameraController?.controls;
+            if (controls?.target) {
+                controls.target.set(0, 0, 0);
+                controls.noRotate = false;
+                controls.noPan = false;
+                scene.cameraController?._setFreeFlyEnabled?.(false);
+                controls.update?.();
+                render();
+            }
+        }
     }
 
     return { changeCameraFromTo, togglePlane, recenterMountedCamera };
