@@ -1,8 +1,8 @@
 {
-  "spacecraft_mnemonic": "CY2",
+  "spacecraft_mnemonic": "CH2",
   "spacecraft_id": -153,
   "mission_name": "Chandrayaan 2",
-  "mission_name_short": "CY2",
+  "mission_name_short": "CH2",
   "mission_url": "https://www.isro.gov.in/launcher/gslv-mk-iii-m1-chandrayaan-2-mission",
   "mission_description": "Chandrayaan 2 Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "chandrayaan, chandrayaan2, moon, isro, india, space, astronomy, animation, vikram, pragyan",
@@ -11,8 +11,8 @@
     "pageTitle": "ISRO's Chandrayaan 2 Mission 2019 - An Orbit Animation",
     "headerTitle": "Chandrayaan 2",
     "lockOnLabel": "Chandrayaan 2",
-    "orbitLabel": "CY2 Orbit",
-    "descentOrbitLabel": "CY2 Descent Orbit"
+    "orbitLabel": "CH2 Orbit",
+    "descentOrbitLabel": "CH2 Descent Orbit"
   },
   "ephemeris_sources": {
     "SC": "chebyshev",
@@ -23,6 +23,9 @@
   "ephemeris_source": "chebyshev",
   "is_lunar": true,
   "origins": ["geo", "lunar"],
+  "relative": {
+    "orbits_file": "relative-CY2"
+  },
   "geo": {
     "start_year": "2019",
     "start_month": "07",
@@ -98,7 +101,7 @@
   ],
   "spacecraftModel": {
     "enabled": false,
-    "comment": "3D model not available for CY2"
+    "comment": "3D model not available for CH2"
   },
   "events": {
     "missionStart": {
@@ -245,11 +248,11 @@
       "kind": "data_end",
       "timeSource": {
         "type": "data_end",
-        "spacecraftMnemonic": "CY2"
+        "spacecraftMnemonic": "CH2"
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "CY2 Data End",
+      "label": "CH2 Data End",
       "burnFlag": false,
       "infoText": "Chandrayaan 2 Data End",
       "body": ""

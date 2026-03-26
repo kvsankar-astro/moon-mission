@@ -137,7 +137,10 @@ function createInitConfigSceneSetupActions(deps) {
 
         if (isRelativeMode && descriptor.allowRelativeOrbitOverride) {
             const dataPath = windowRef?.missionConfig?.dataPath;
-            const relativeBase = `relative-${spacecraftMnemonic}`;
+            const configuredRelativeBase = configData?.relative?.orbits_file;
+            const relativeBase = (typeof configuredRelativeBase === "string" && configuredRelativeBase.length > 0)
+                ? configuredRelativeBase
+                : `relative-${spacecraftMnemonic}`;
             if (typeof dataPath === "string" && dataPath.length > 0) {
                 // Keep a pointer to the full geo ephemeris file so relative mode can
                 // pull non-spacecraft series (for example MOON) when needed.

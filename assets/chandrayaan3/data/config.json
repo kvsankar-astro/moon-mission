@@ -1,8 +1,8 @@
 {
-  "spacecraft_mnemonic": "CY3",
+  "spacecraft_mnemonic": "CH3",
   "spacecraft_id": -158,
   "mission_name": "Chandrayaan 3",
-  "mission_name_short": "CY3",
+  "mission_name_short": "CH3",
   "mission_url": "https://www.isro.gov.in/Chandrayaan3_New.html",
   "mission_description": "Chandrayaan 3 Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "chandrayaan, chandrayaan3, moon, isro, india, space, astronomy, animation",
@@ -19,11 +19,14 @@
     "pageTitle": "ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation",
     "headerTitle": "Chandrayaan 3",
     "lockOnLabel": "Chandrayaan 3",
-    "orbitLabel": "CY3 Orbit",
-    "descentOrbitLabel": "CY3 Descent Orbit"
+    "orbitLabel": "CH3 Orbit",
+    "descentOrbitLabel": "CH3 Descent Orbit"
   },
   "is_lunar": true,
   "origins": ["geo", "lunar"],
+  "relative": {
+    "orbits_file": "relative-CY3"
+  },
   "geo": {
     "start_year": "2023",
     "start_month": "07", 
@@ -221,11 +224,11 @@
       "kind": "data_end",
       "timeSource": {
         "type": "data_end",
-        "spacecraftMnemonic": "CY3"
+        "spacecraftMnemonic": "CH3"
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "🏁CY3 Data End",
+      "label": "🏁CH3 Data End",
       "burnFlag": false,
       "infoText": "Chandrayaan 3 Data End",
       "body": ""
