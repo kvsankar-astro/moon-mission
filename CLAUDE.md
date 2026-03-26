@@ -19,6 +19,9 @@ Assistant-facing notes for this repository.
 - Mission assets/config:
   - `assets/<mission>/data/config.json`
   - `assets/<mission>/data/ephemeris-manifest.json`
+- Shared authored landing content:
+  - `assets/mission-briefs.json`
+  - `assets/mission-images.json`
 
 Do not use legacy paths like `assets/platform/js/*` in new changes.
 
@@ -42,8 +45,14 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 ## CI quick reference
 
 - `.github/workflows/ci.yml`: unit tests
-- `.github/workflows/deploy.yml`: GitHub Pages deploy with staged data repo assets
-- `.github/workflows/deploy-hostgator.yml`: Hostgator deploy + parity audit
+- `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
+- `.github/workflows/deploy-hostgator.yml`: manual Hostgator deploy + parity audit
+
+## Landing brief quick reference
+
+- The mission selector/landing UI reads authored brief copy from `assets/mission-briefs.json`.
+- Curated CC BY-SA image carousel entries live in `assets/mission-images.json`.
+- The brief panel keeps the `Mission`, `HORIZONS Data`, and `Timelines` structure, with the image carousel displayed below the orbit preview.
 
 ## Data staging
 

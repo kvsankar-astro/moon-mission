@@ -10,6 +10,9 @@ This guide is the code-aligned reference for architecture, mission onboarding, d
 - Shared platform code:
   - `src/platform/css/*`
   - `src/platform/js/*`
+- Shared authored landing content:
+  - `assets/mission-briefs.json`
+  - `assets/mission-images.json`
 - Mission-specific runtime assets:
   - `assets/<mission>/data/config.json`
   - `assets/<mission>/data/ephemeris-manifest.json`
@@ -149,6 +152,20 @@ Generated intermediate/reference products are typically under `data-generated/<m
 - Astronomical orientation math still uses TDB-oriented helpers where required.
 - UI event timestamps are configured in UTC ISO format.
 
+## Landing Brief Content
+
+- The landing/selector UI opens a mission brief panel from `src/platform/js/index-landing.js`.
+- The text column is intentionally split into:
+  - `Mission`
+  - `HORIZONS Data`
+  - `Timelines`
+- Mission and HORIZONS prose are authored offline in `assets/mission-briefs.json`; there is no runtime sentence synthesis.
+- The `Timelines` section is still programmatic and renders three coverage bars from mission/config/HORIZONS metadata.
+- The visual column renders:
+  - a pilot orbit preview
+  - an image carousel directly below it
+- The carousel sources curated CC BY-SA entries from `assets/mission-images.json` and preserves full images with letterboxing/pillarboxing instead of cropping.
+
 ## Build and Deploy
 
 ### Local build output
@@ -178,11 +195,16 @@ Stages:
 
 - `.github/workflows/ci.yml`
   - runs `npm run test:unit`
+  - triggers on push, pull request, and manual dispatch
 - `.github/workflows/deploy.yml`
+  - manual-only (`workflow_dispatch`)
+  - runs unit tests first
   - stages data repo assets into `dist-pages/`
   - writes deployment metadata under `dist-pages/deployment/`
   - verifies staged runtime assets against the runtime manifest
 - `.github/workflows/deploy-hostgator.yml`
+  - manual-only (`workflow_dispatch`)
+  - runs unit tests first
   - same staging + metadata
   - deploys via rsync/SFTP
   - performs post-deploy parity audit

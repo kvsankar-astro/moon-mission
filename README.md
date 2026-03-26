@@ -1,13 +1,16 @@
 
 ## Moon Mission Orbit Animations
 
-A multi-mission platform for 3D and 2D orbital animations of lunar missions. Currently supports:
+A multi-mission platform for 3D and 2D orbital animations of lunar missions. The current selector covers 26 missions and mission objects, including:
 
 - **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
 - **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
+- **[Chandrayaan 1](http://sankara.net/mission.html?mission=chandrayaan1)** (2008) - India's first lunar mission
 - **[Apollo 10 LM](http://sankara.net/mission.html?mission=apollo10-lm)** (1969) - Snoopy lunar module
 - **[Apollo 11 S-IVB](http://sankara.net/mission.html?mission=apollo11-sivb)** (1969) - Saturn V third stage
 - **[Artemis 1](http://sankara.net/mission.html?mission=artemis1)** (2022) - Orion lunar mission
+- **[SLIM](http://sankara.net/mission.html?mission=slim)** (2024) - JAXA soft-landing mission
+- **[Danuri](http://sankara.net/mission.html?mission=kplo-danuri)** (2022) - Korea Pathfinder Lunar Orbiter
 
 ![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
 
@@ -26,6 +29,7 @@ I created this animation for educational purposes. It has the following features
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
 * A Joy Ride feature which lets you fly along with the spacecraft
 * Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
+* Mission brief panels with authored Mission and HORIZONS Data text, programmatic timeline bars, a pilot orbit preview, and curated CC BY-SA image carousels
 
 ## Run locally
 
@@ -60,6 +64,11 @@ Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `E
 For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
 Developer documentation (adding missions, orbit pipeline, build/deploy scripts): [docs/developer.md](docs/developer.md)
+
+Shared authored mission panel content lives in:
+
+- `assets/mission-briefs.json`
+- `assets/mission-images.json`
 
 ## Design
 
@@ -102,7 +111,7 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
-CI workflows (tests + deploy) stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, and optional `.npz` / `*-meta.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
+CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, and optional `.npz` / `*-meta.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
 
 By default workflows use:
 
@@ -110,6 +119,12 @@ By default workflows use:
 - `MISSION_DATA_REF = main`
 
 You can override these via GitHub repository variables with the same names. No extra token is needed when the data repo is public.
+
+Current workflow behavior:
+
+- `.github/workflows/ci.yml` runs on push, pull request, and manual trigger.
+- `.github/workflows/deploy.yml` is manual-only (`workflow_dispatch`) for GitHub Pages deploys.
+- `.github/workflows/deploy-hostgator.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
 
 For development, you can use the Vite dev server:
 ```bash

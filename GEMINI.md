@@ -20,6 +20,9 @@ This file provides Gemini-oriented project context aligned with the current code
   - `assets/<mission>/data/`
   - `assets/<mission>/images/`
   - `assets/<mission>/models/`
+- Shared authored landing content:
+  - `assets/mission-briefs.json`
+  - `assets/mission-images.json`
 
 Avoid legacy assumptions such as `chandrayaan3.html` or `assets/platform/js/*`.
 
@@ -43,3 +46,14 @@ python scripts/generate-relative-orbits.py --mission <mission>
 ```
 
 Runtime defaults currently use Chebyshev for all key bodies (`SC`, `MOON`, `EARTH`, `SUN`), with provider support still present for `npz` and `astronomy`.
+
+## Landing brief notes
+
+- Landing-page mission briefs use authored offline text from `assets/mission-briefs.json`.
+- Curated CC BY-SA image carousel entries live in `assets/mission-images.json`.
+- The panel structure is `Mission`, `HORIZONS Data`, and `Timelines`, with the image carousel rendered below the orbit preview.
+
+## CI / deploy notes
+
+- `.github/workflows/ci.yml` runs on push, pull request, and manual dispatch.
+- `.github/workflows/deploy.yml` and `.github/workflows/deploy-hostgator.yml` are manual-only deploy workflows.

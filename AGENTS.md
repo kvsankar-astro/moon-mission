@@ -4,6 +4,7 @@
 
 - Entry points: `mission.html` (mission selector + app), `index.html` (redirect).
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
+- Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.
 - Mission content: `assets/<mission>/`
   - `data/` (`config.json`, `*-cheb.json`, `*-meta.json`)
   - `models/`, `images/`, optional `js/`, `html/`
@@ -41,3 +42,4 @@
 
 - Don’t commit credentials or deployment config: `deploy-config.json` is intentionally git-ignored.
 - Don’t commit generated artifacts: `dist/`, `data-generated/`, `.test-server.*`, and `node_modules/` are ignored by design.
+- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or sankara.net by itself.
