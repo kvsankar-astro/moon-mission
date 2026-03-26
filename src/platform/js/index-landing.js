@@ -37,17 +37,21 @@
         "lunar-trailblazer": "lunar-trailblazer",
         "slim": "slim"
     };
-    var CC_BY_SA_IMAGE_BY_FOLDER = {
-        "artemis1": {
-            url: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
-            attribution: "Wikimedia Commons contributors",
-            license: "CC BY-SA 4.0",
-            sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG"
-        }
+    var DEFAULT_BRIEF_IMAGES_BY_FOLDER = {
+        "artemis1": [
+            {
+                url: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+                attribution: "Wikimedia Commons contributors",
+                license: "CC BY-SA 4.0",
+                sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+                caption: "Orion Multi-Purpose Crew Vehicle at Kennedy Space Center."
+            }
+        ]
     };
     var missionBriefCache = new Map();
     var orbitPreviewCache = new Map();
     var missionBriefTextPromise = null;
+    var missionImageTextPromise = null;
 
     function asTrimmedString(value) {
         if (typeof value !== "string") return "";
@@ -705,8 +709,25 @@
                 if (!response.ok) throw new Error("mission briefs missing");
                 return response.json();
             })
-            .catch(function() { return {}; });
+            .catch(function() {
+                missionBriefTextPromise = null;
+                return {};
+            });
         return missionBriefTextPromise;
+    }
+
+    function fetchMissionImageMap() {
+        if (missionImageTextPromise) return missionImageTextPromise;
+        missionImageTextPromise = fetch("assets/mission-images.json", { cache: "no-store" })
+            .then(function(response) {
+                if (!response.ok) throw new Error("mission images missing");
+                return response.json();
+            })
+            .catch(function() {
+                missionImageTextPromise = null;
+                return {};
+            });
+        return missionImageTextPromise;
     }
 
     function getAuthoredBriefEntry(briefTextMap, row) {
@@ -716,39 +737,69 @@
         return briefTextMap[folder] || null;
     }
 
-    function buildBriefFromMetadata(row, meta, authoredEntry) {
+    function getAuthoredImageEntries(imageMap, row) {
+        if (!imageMap || typeof imageMap !== "object") return null;
+        var folder = normalizeKey(row && row.folder);
+        if (!folder) return null;
+        return imageMap[folder] || null;
+    }
+
+    function normalizeBriefImages(images, row) {
+        if (!Array.isArray(images)) return [];
+        var title = asTrimmedString(row && row.title) || "Mission";
+        return images
+            .filter(function(image) {
+                return image && typeof image === "object" && asTrimmedString(image.url);
+            })
+            .map(function(image) {
+                return {
+                    url: asTrimmedString(image.url),
+                    attribution: asTrimmedString(image.attribution) || "Wikimedia Commons contributors",
+                    license: asTrimmedString(image.license) || "",
+                    sourceUrl: asTrimmedString(image.sourceUrl),
+                    caption: asTrimmedString(image.caption),
+                    alt: asTrimmedString(image.alt) || (title + " image")
+                };
+            });
+    }
+
+    function buildBriefFromMetadata(row, meta, authoredEntry, authoredImages) {
         var summary = pickSummaryFromMetadata(meta, row.description);
         var authored = authoredEntry && typeof authoredEntry === "object" ? authoredEntry : {};
         var title = asTrimmedString(row && row.title) || "Mission";
         var missionText = asTrimmedString(authored.mission) || asTrimmedString(authored.missionStory) || (title + " mission details will be added.");
         var horizonsData = asTrimmedString(authored.horizonsData) || asTrimmedString(authored.horizonsScope) || "HORIZONS object coverage details for this mission entry will be added.";
         var timelinesNote = asTrimmedString(authored.timelines) || asTrimmedString(authored.missionTimeline) || "The timeline bars compare mission timeline, HORIZONS availability, and animation coverage.";
+        var images = normalizeBriefImages(authoredImages || DEFAULT_BRIEF_IMAGES_BY_FOLDER[row.folder] || [], row);
         return {
             mission: missionText,
             horizonsData: horizonsData,
             timelines: timelinesNote,
             timelineSegments: buildTimelineSegments(row, meta),
             summary: summary,
-            image: CC_BY_SA_IMAGE_BY_FOLDER[row.folder] || null,
+            images: images,
+            image: images[0] || null,
             sourceUrl: "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json",
             sourceLabel: "HORIZONS metadata"
         };
     }
 
-    function buildFallbackBrief(row, authoredEntry) {
+    function buildFallbackBrief(row, authoredEntry, authoredImages) {
         var summary = ensureTrailingPeriod(row.description || "Mission timeline.");
         var authored = authoredEntry && typeof authoredEntry === "object" ? authoredEntry : {};
         var title = asTrimmedString(row && row.title) || "Mission";
         var missionText = asTrimmedString(authored.mission) || asTrimmedString(authored.missionStory) || (title + " mission details will be added.");
         var horizonsData = asTrimmedString(authored.horizonsData) || asTrimmedString(authored.horizonsScope) || "HORIZONS object coverage details for this mission entry will be added.";
         var timelinesNote = asTrimmedString(authored.timelines) || asTrimmedString(authored.missionTimeline) || "The timeline bars compare mission timeline, HORIZONS availability, and animation coverage.";
+        var images = normalizeBriefImages(authoredImages || DEFAULT_BRIEF_IMAGES_BY_FOLDER[row.folder] || [], row);
         return {
             mission: missionText,
             horizonsData: horizonsData,
             timelines: timelinesNote,
             timelineSegments: buildTimelineSegments(row, null),
             summary: summary,
-            image: CC_BY_SA_IMAGE_BY_FOLDER[row.folder] || null,
+            images: images,
+            image: images[0] || null,
             sourceUrl: "",
             sourceLabel: "Mission catalog"
         };
@@ -760,10 +811,13 @@
             return Promise.resolve(missionBriefCache.get(key));
         }
 
-        return fetchMissionBriefTextMap().then(function(briefTextMap) {
+        return Promise.all([fetchMissionBriefTextMap(), fetchMissionImageMap()]).then(function(results) {
+            var briefTextMap = results[0];
+            var imageMap = results[1];
             var authoredEntry = getAuthoredBriefEntry(briefTextMap, row);
+            var authoredImages = getAuthoredImageEntries(imageMap, row);
             if (!row.horizonsMetadataFile) {
-                var fallback = buildFallbackBrief(row, authoredEntry);
+                var fallback = buildFallbackBrief(row, authoredEntry, authoredImages);
                 missionBriefCache.set(key, fallback);
                 return fallback;
             }
@@ -775,12 +829,12 @@
                     return response.json();
                 })
                 .then(function(meta) {
-                    var brief = buildBriefFromMetadata(row, meta, authoredEntry);
+                    var brief = buildBriefFromMetadata(row, meta, authoredEntry, authoredImages);
                     missionBriefCache.set(key, brief);
                     return brief;
                 })
                 .catch(function() {
-                    var fallback = buildFallbackBrief(row, authoredEntry);
+                    var fallback = buildFallbackBrief(row, authoredEntry, authoredImages);
                     missionBriefCache.set(key, fallback);
                     return fallback;
                 });
@@ -1202,13 +1256,40 @@
             return html;
         }
 
+        function buildBriefImageCarouselHtml(images, safeTitle) {
+            if (!Array.isArray(images) || !images.length) {
+                return "<p class=\"landing-brief-attribution\">CC BY-SA craft image not mapped yet for this mission.</p>";
+            }
+            var firstImage = images[0];
+            var showControls = images.length > 1;
+            var html = "";
+            html += "<div class=\"landing-brief-carousel\" data-brief-carousel>";
+            html += "<figure class=\"landing-brief-hero\">";
+            html += "<img data-brief-carousel-image src=\"" + escapeHtml(firstImage.url) + "\" alt=\"" + escapeHtml(firstImage.alt || (safeTitle + " image")) + "\">";
+            html += "</figure>";
+            if (showControls) {
+                html += "<div class=\"landing-brief-carousel-controls\">";
+                html += "<button type=\"button\" class=\"landing-brief-carousel-btn\" data-brief-image-nav=\"-1\" aria-label=\"Previous image\">←</button>";
+                html += "<span class=\"landing-brief-carousel-counter\" data-brief-image-counter>1 / " + images.length + "</span>";
+                html += "<button type=\"button\" class=\"landing-brief-carousel-btn\" data-brief-image-nav=\"1\" aria-label=\"Next image\">→</button>";
+                html += "</div>";
+            }
+            html += "<p class=\"landing-brief-summary landing-brief-summary--compact\" data-brief-image-caption>";
+            html += escapeHtml(asTrimmedString(firstImage.caption) || "CC BY-SA mission image.");
+            html += "</p>";
+            html += "<p class=\"landing-brief-attribution\" data-brief-image-attribution></p>";
+            html += "</div>";
+            return html;
+        }
+
         function buildBriefPanelContent(row, brief, currentIndex, totalCount) {
-            var image = brief && brief.image ? brief.image : null;
+            var images = brief && Array.isArray(brief.images) ? brief.images : [];
             var missionText = asTrimmedString(brief && (brief.mission || brief.missionStory || brief.summary));
             var horizonsDataText = asTrimmedString(brief && (brief.horizonsData || brief.horizonsScope));
             var timelinesText = asTrimmedString(brief && (brief.timelines || brief.missionTimeline));
             var timelineSegments = brief && Array.isArray(brief.timelineSegments) ? brief.timelineSegments : [];
-            var safeTitle = escapeHtml(row.title);
+            var rawTitle = asTrimmedString(row.title);
+            var safeTitle = escapeHtml(rawTitle);
             var safeCountry = escapeHtml(row.country);
             var safeRange = escapeHtml(row.rangeLabel);
             var safeCounter = (Number.isFinite(currentIndex) ? (currentIndex + 1) : 1) + " / " + (totalCount || 1);
@@ -1231,23 +1312,6 @@
             html += "<div class=\"landing-brief-body\">";
             html += "<section class=\"landing-brief-col landing-brief-col--text\">";
 
-            if (image && asTrimmedString(image.url)) {
-                html += "<figure class=\"landing-brief-hero\">";
-                html += "<img src=\"" + escapeHtml(image.url) + "\" alt=\"" + safeTitle + " craft image\">";
-                html += "</figure>";
-                html += "<p class=\"landing-brief-attribution\">";
-                html += "Image: " + escapeHtml(asTrimmedString(image.attribution) || "CC BY-SA source");
-                if (asTrimmedString(image.license)) {
-                    html += " • " + escapeHtml(image.license);
-                }
-                if (asTrimmedString(image.sourceUrl)) {
-                    html += " • <a href=\"" + escapeHtml(image.sourceUrl) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Source</a>";
-                }
-                html += "</p>";
-            } else {
-                html += "<p class=\"landing-brief-attribution\">CC BY-SA craft image not mapped yet for this mission.</p>";
-            }
-
             html += "<p class=\"landing-brief-section-title\">Mission</p>";
             html += renderRichBlocks(missionText || ensureTrailingPeriod(row.description));
             html += "<p class=\"landing-brief-section-title\">HORIZONS Data</p>";
@@ -1266,6 +1330,8 @@
             html += "<section class=\"landing-brief-col landing-brief-col--viz\">";
             html += "<p class=\"landing-brief-section-title\">Orbit Preview (Pilot)</p>";
             html += "<div id=\"landing-brief-orbit-anim\" class=\"landing-brief-orbit-anim\">Loading 2D XY transfer preview...</div>";
+            html += "<p class=\"landing-brief-section-title\">Images</p>";
+            html += buildBriefImageCarouselHtml(images, rawTitle);
             html += "</section>";
             html += "</div>";
 
@@ -1280,6 +1346,55 @@
             html += "</div>";
             html += "</div>";
             return html;
+        }
+
+        function mountBriefImageCarousel(images) {
+            var carousel = briefPanel ? briefPanel.querySelector("[data-brief-carousel]") : null;
+            if (!carousel || !Array.isArray(images) || !images.length) return;
+
+            var imageEl = carousel.querySelector("[data-brief-carousel-image]");
+            var captionEl = carousel.querySelector("[data-brief-image-caption]");
+            var attributionEl = carousel.querySelector("[data-brief-image-attribution]");
+            var counterEl = carousel.querySelector("[data-brief-image-counter]");
+            var navButtons = Array.from(carousel.querySelectorAll("[data-brief-image-nav]"));
+            var activeIndex = 0;
+
+            function renderAttribution(image) {
+                var html = "Image: " + escapeHtml(asTrimmedString(image.attribution) || "Wikimedia Commons contributors");
+                if (asTrimmedString(image.license)) {
+                    html += " • " + escapeHtml(image.license);
+                }
+                if (asTrimmedString(image.sourceUrl)) {
+                    html += " • <a href=\"" + escapeHtml(image.sourceUrl) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Source</a>";
+                }
+                if (asTrimmedString(image.kind)) {
+                    html += " • " + escapeHtml(image.kind);
+                }
+                return html;
+            }
+
+            function updateImage(nextIndex) {
+                var image = images[nextIndex];
+                if (!image || !imageEl || !captionEl || !attributionEl) return;
+                activeIndex = nextIndex;
+                imageEl.src = image.url;
+                imageEl.alt = image.alt || "Mission image";
+                captionEl.textContent = asTrimmedString(image.caption) || "CC BY-SA mission image.";
+                attributionEl.innerHTML = renderAttribution(image);
+                if (counterEl) {
+                    counterEl.textContent = (activeIndex + 1) + " / " + images.length;
+                }
+            }
+
+            navButtons.forEach(function(button) {
+                button.addEventListener("click", function() {
+                    var delta = parseInt(button.getAttribute("data-brief-image-nav"), 10);
+                    if (delta !== -1 && delta !== 1) return;
+                    updateImage((activeIndex + delta + images.length) % images.length);
+                });
+            });
+
+            updateImage(0);
         }
 
         function mountBriefOrbitAnimation(row) {
@@ -1599,6 +1714,7 @@
             fetchMissionBrief(resolvedRow).then(function(brief) {
                 if (requestId !== activeBriefRequestId) return;
                 briefPanel.innerHTML = buildBriefPanelContent(resolvedRow, brief, activeBriefIndex, activeBriefSequence.length || 1);
+                mountBriefImageCarousel(brief && Array.isArray(brief.images) ? brief.images : []);
                 mountBriefOrbitAnimation(resolvedRow);
                 bindBriefControls();
             });

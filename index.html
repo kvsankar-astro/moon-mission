@@ -518,15 +518,57 @@
             border: 1px solid #2a3a63;
             border-radius: 10px;
             overflow: hidden;
-            background: rgba(12, 20, 40, 0.95);
+            background:
+                linear-gradient(180deg, rgba(20, 30, 55, 0.96), rgba(10, 16, 31, 0.96));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 250px;
         }
 
         .landing-brief-hero img {
             display: block;
             width: 100%;
-            height: auto;
-            max-height: 250px;
-            object-fit: cover;
+            height: 250px;
+            object-fit: contain;
+            object-position: center;
+            background: transparent;
+        }
+
+        .landing-brief-carousel {
+            margin: 0 0 14px 0;
+        }
+
+        .landing-brief-carousel-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 8px 0 6px 0;
+        }
+
+        .landing-brief-carousel-btn {
+            border: 1px solid #334871;
+            background: rgba(21, 33, 61, 0.95);
+            color: #d5def5;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 10px;
+            min-width: 40px;
+            min-height: 30px;
+        }
+
+        .landing-brief-carousel-btn:hover {
+            border-color: #5a79af;
+            background: rgba(28, 43, 78, 0.96);
+        }
+
+        .landing-brief-carousel-counter {
+            font-size: 12px;
+            color: #a8b9dd;
+            letter-spacing: 0.03em;
         }
 
         .landing-brief-attribution {
@@ -549,6 +591,12 @@
             font-size: 14px;
             line-height: 1.45;
             color: #dbe5ff;
+        }
+
+        .landing-brief-summary--compact {
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #b9caea;
         }
 
         .landing-brief-list {

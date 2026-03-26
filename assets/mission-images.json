@@ -1,0 +1,490 @@
+{
+  "chandrayaan1": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/70/Chandrayan1_small.JPG",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayan1_small.JPG",
+      "attribution": "Jijithnr",
+      "license": "CC BY-SA 3.0",
+      "caption": "Commemorative Chandrayaan-1 spacecraft artwork.",
+      "kind": "spacecraft artwork"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/More_Moon_Maps_%283119163164%29.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:More_Moon_Maps_(3119163164).jpg",
+      "attribution": "RidingWithRobots",
+      "license": "CC BY-SA 2.0",
+      "caption": "Moon-mapping graphic associated with Chandrayaan-1 science coverage.",
+      "kind": "mission map"
+    }
+  ],
+  "chandrayaan2": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan%202%20Module%20on%20GSLV%20MK%20III%20at%20Satish%20Dhawan%20Space%20Centre%20Second%20Launch%20Pad.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan_2_Module_on_GSLV_MK_III_at_Satish_Dhawan_Space_Centre_Second_Launch_Pad.jpg",
+      "attribution": "ISRO / RaviSankarRao upload",
+      "license": "CC BY-SA 4.0",
+      "caption": "Chandrayaan-2 module on GSLV Mk III at the Satish Dhawan launch pad.",
+      "kind": "mission hardware"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan-2%20Rover%20Engineering%20Model%202.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-2_Rover_Engineering_Model_2.jpg",
+      "attribution": "Dean Sumith",
+      "license": "CC BY-SA 4.0",
+      "caption": "Engineering model of the Chandrayaan-2 rover at Bangalore Space Expo 2018.",
+      "kind": "spacecraft model"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Animation_of_Chandrayaan-2_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Chandrayaan-2_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-phase trajectory animation for Chandrayaan-2.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Animation_of_Chandrayaan-2_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Chandrayaan-2_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Lunar-orbit animation for Chandrayaan-2.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Chandrayaan2_trajectory.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan2_trajectory.png",
+      "attribution": "Lamid58",
+      "license": "CC BY-SA 4.0",
+      "caption": "Static trajectory plot for the Chandrayaan-2 mission profile.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "chandrayaan3": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/LVM3%20Chandrayaan-3%20Lunar%20Mission-3.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:LVM3_Chandrayaan-3_Lunar_Mission-3.jpg",
+      "attribution": "Truckjunction",
+      "license": "CC BY-SA 4.0",
+      "caption": "LVM3-M4 heavy-lift rocket prepared for the Chandrayaan-3 mission.",
+      "kind": "launch vehicle"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan-3_separating.webp",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-3_separating.webp",
+      "attribution": "ISRO",
+      "license": "CC BY-SA 4.0",
+      "caption": "Chandrayaan-3 separating from the LVM3 upper stage.",
+      "kind": "spacecraft event"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/Animation_of_Chandrayaan-3_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Chandrayaan-3_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth orbit-raising animation for Chandrayaan-3.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/0/05/Animation_of_Chandrayaan-3_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Chandrayaan-3_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Moon-phase trajectory animation for Chandrayaan-3.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Chandrayaan-3_Lander_Powered_Descent_Profile.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-3_Lander_Powered_Descent_Profile.svg",
+      "attribution": "Ohsin",
+      "license": "CC BY-SA 4.0",
+      "caption": "Powered descent profile diagram from the Chandrayaan-3 landing campaign.",
+      "kind": "landing diagram"
+    }
+  ],
+  "chandrayaan2-vikram": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan%202%20Module%20on%20GSLV%20MK%20III%20at%20Satish%20Dhawan%20Space%20Centre%20Second%20Launch%20Pad.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan_2_Module_on_GSLV_MK_III_at_Satish_Dhawan_Space_Centre_Second_Launch_Pad.jpg",
+      "attribution": "ISRO / RaviSankarRao upload",
+      "license": "CC BY-SA 4.0",
+      "caption": "Integrated Chandrayaan-2 stack on GSLV Mk III at the launch pad.",
+      "kind": "mission hardware"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan-2%20Rover%20Engineering%20Model%202.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-2_Rover_Engineering_Model_2.jpg",
+      "attribution": "Dean Sumith",
+      "license": "CC BY-SA 4.0",
+      "caption": "Pragyan rover engineering model from the Chandrayaan-2 mission stack.",
+      "kind": "spacecraft model"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Chandrayaan2_orbit.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan2_orbit.svg",
+      "attribution": "Hans Erren",
+      "license": "CC BY-SA 4.0",
+      "caption": "Orbit-position diagram for the Chandrayaan-2 mission.",
+      "kind": "orbit diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Animation_of_Chandrayaan-2_%28LANDER%29_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Chandrayaan-2_(LANDER)_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Lander-specific lunar-orbit animation for Vikram.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Chandrayaan2_trajectory.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan2_trajectory.png",
+      "attribution": "Lamid58",
+      "license": "CC BY-SA 4.0",
+      "caption": "Trajectory plot used here as a Vikram mission-context schematic.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "chandrayaan3-vikram": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Chandrayaan-3_separating.webp",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-3_separating.webp",
+      "attribution": "ISRO",
+      "license": "CC BY-SA 4.0",
+      "caption": "Chandrayaan-3 separation event from the launch vehicle stage.",
+      "kind": "spacecraft event"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Pre_and_Post_hop_ramp_images%2C_as_captured_by_the_Lander_Imager-1_Camera.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pre_and_Post_hop_ramp_images,_as_captured_by_the_Lander_Imager-1_Camera.png",
+      "attribution": "ISRO",
+      "license": "CC BY-SA 4.0",
+      "caption": "Before-and-after hop imagery from the Vikram lander camera.",
+      "kind": "lander imagery"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/Chandrayaan-3_Lander_Powered_Descent_Profile.svg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chandrayaan-3_Lander_Powered_Descent_Profile.svg",
+      "attribution": "Ohsin",
+      "license": "CC BY-SA 4.0",
+      "caption": "Powered descent profile for the Chandrayaan-3 Vikram landing.",
+      "kind": "landing diagram"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/LVM3%20Chandrayaan-3%20Lunar%20Mission-2.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:LVM3_Chandrayaan-3_Lunar_Mission-2.jpg",
+      "attribution": "Truckjunction",
+      "license": "CC BY-SA 4.0",
+      "caption": "LVM3 launch vehicle portrait from the Chandrayaan-3 campaign.",
+      "kind": "launch vehicle"
+    }
+  ],
+  "artemis1": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+      "attribution": "Wikimedia Commons contributors",
+      "license": "CC BY-SA 4.0",
+      "caption": "Orion Multi-Purpose Crew Vehicle at Kennedy Space Center.",
+      "kind": "spacecraft"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/97/Animation_of_Artemis_I_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Artemis_I_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-Moon trajectory animation for Artemis I.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/a/a0/Animation_of_Artemis_I_around_Earth_-_Frame_rotating_with_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Artemis_I_around_Earth_-_Frame_rotating_with_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Rotating-frame Artemis I trajectory visualization.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "apollo8-sivb": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Apollo_8_on_board_of_USS_Yorktown_(51170834504).jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Apollo_8_on_board_of_USS_Yorktown_(51170834504).jpg",
+      "attribution": "Sergiy Galyonkin",
+      "license": "CC BY-SA 2.0",
+      "caption": "Apollo 8 command module on display aboard USS Yorktown.",
+      "kind": "spacecraft"
+    }
+  ],
+  "apollo9-sivb": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/The_Apollo_9_rocket,_a_Saturn_V_SA-504,_crawls_to_Launch_Complex_39.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:The_Apollo_9_rocket,_a_Saturn_V_SA-504,_crawls_to_Launch_Complex_39.png",
+      "attribution": "NASA",
+      "license": "CC BY-SA 4.0",
+      "caption": "Apollo 9 Saturn V rollout to Launch Complex 39.",
+      "kind": "rocket"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/S-IVB_ignition_from_Apollo_9.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:S-IVB_ignition_from_Apollo_9.jpg",
+      "attribution": "Charly Lebouc",
+      "license": "CC BY-SA 2.0",
+      "caption": "S-IVB second-burn ignition seen from Apollo 9.",
+      "kind": "stage imagery"
+    }
+  ],
+  "apollo10-lm": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Lunar_Module_Snoopy_Ascent_Stage.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lunar_Module_Snoopy_Ascent_Stage.jpg",
+      "attribution": "LeeDavisGraves",
+      "license": "CC BY-SA 4.0",
+      "caption": "Apollo 10 LM Snoopy ascent stage depiction.",
+      "kind": "spacecraft"
+    }
+  ],
+  "apollo10-sivb": [],
+  "apollo11-sivb": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Command_Module_of_Apollo_11.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Command_Module_of_Apollo_11.jpg",
+      "attribution": "Aviation poseidon",
+      "license": "CC BY-SA 4.0",
+      "caption": "Apollo 11 command module at the National Air and Space Museum.",
+      "kind": "spacecraft"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Apollo_11_command_module_hatch.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Apollo_11_command_module_hatch.jpg",
+      "attribution": "Mike Peel",
+      "license": "CC BY-SA 4.0",
+      "caption": "Hatch detail on the Apollo 11 command module.",
+      "kind": "spacecraft detail"
+    }
+  ],
+  "apollo12-sivb": [
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Recovered_F-1_engine_injector.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Recovered_F-1_engine_injector.jpg",
+      "attribution": "Loungeflyz",
+      "license": "CC BY-SA 4.0",
+      "caption": "Recovered F-1 injector from Apollo 12 engine hardware.",
+      "kind": "rocket hardware"
+    },
+    {
+      "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Recovered_F-1_Engine_parts_.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Recovered_F-1_Engine_parts_.jpg",
+      "attribution": "Loungeflyz",
+      "license": "CC BY-SA 4.0",
+      "caption": "Recovered Saturn V engine components associated with Apollo 12.",
+      "kind": "rocket hardware"
+    }
+  ],
+  "clementine": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/13/Clementine_lunar_orbiter_-_Smithsonian_Air_and_Space_Museum_-_2012-05-15.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Clementine_lunar_orbiter_-_Smithsonian_Air_and_Space_Museum_-_2012-05-15.jpg",
+      "attribution": "Tim Evanson",
+      "license": "CC BY-SA 2.0",
+      "caption": "Engineering backup of the Clementine orbiter on display.",
+      "kind": "spacecraft"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Animation_of_Clementine_trajectory_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Clementine_trajectory_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated Clementine lunar-orbit trajectory.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "lunar-prospector": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/94/Animation_of_Lunar_Prospector_trajectory_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Prospector_trajectory_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated Lunar Prospector orbit around the Moon.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/3/34/Animation_of_Lunar_Prospector_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Prospector_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated transfer trajectory for Lunar Prospector.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "lro": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Animation_of_Lunar_Reconnaissance_Orbiter_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Reconnaissance_Orbiter_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated Lunar Reconnaissance Orbiter trajectory segment.",
+      "kind": "trajectory diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/94/Animation_of_Lunar_Reconnaissance_Orbiter_trajectory_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Reconnaissance_Orbiter_trajectory_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-centered LRO trajectory phase.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "lcross-shepherd": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Animation_of_LCROSS_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_LCROSS_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated LCROSS trajectory from launch through impact sequence.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "lcross-centaur": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Animation_of_LCROSS_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_LCROSS_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated LCROSS path relevant to the Centaur impact leg.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "grail-ss-stage": [],
+  "grail-a-ebb": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/Animation_of_GRAIL-A_trajectory_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_GRAIL-A_trajectory_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Moon-centered trajectory schematic for GRAIL-A (Ebb).",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/84/Animation_of_GRAIL-A_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_GRAIL-A_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Cislunar trajectory schematic for GRAIL-A.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "grail-b-flow": [],
+  "ladee": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Animation_of_LADEE_trajectory.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_LADEE_trajectory.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated LADEE transfer trajectory.",
+      "kind": "trajectory diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Animation_of_LADEE_trajectory_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_LADEE_trajectory_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated LADEE lunar orbital evolution.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "capstone": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/CAPSTONE-LAUNCH.jpg",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:CAPSTONE-LAUNCH.jpg",
+      "attribution": "Yourong F. Wang",
+      "license": "CC BY-SA 4.0",
+      "caption": "CAPSTONE launch on Rocket Lab Electron.",
+      "kind": "launch vehicle"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/CAPSTONE_lunar_transfer.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:CAPSTONE_lunar_transfer.png",
+      "attribution": "Meithan",
+      "license": "CC BY-SA 4.0",
+      "caption": "Ballistic lunar transfer schematic for CAPSTONE.",
+      "kind": "trajectory diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Animation_of_CAPSTONE_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_CAPSTONE_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Animated CAPSTONE trajectory in Earth-centered view.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "lunar-flashlight": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Animation_of_Lunar_Flashlight_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Flashlight_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-frame trajectory for Lunar Flashlight.",
+      "kind": "trajectory diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/Animation_of_Lunar_Flashlight_around_Earth_-_Frame_rotating_with_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Lunar_Flashlight_around_Earth_-_Frame_rotating_with_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Moon-rotating frame for the Lunar Flashlight transfer path.",
+      "kind": "orbit schematic"
+    }
+  ],
+  "kplo-danuri": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/5/52/Animation_of_Danuri_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Danuri_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Moon-centered trajectory animation for Danuri.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/Animation_of_Danuri_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Danuri_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-frame transfer trajectory animation for Danuri.",
+      "kind": "trajectory diagram"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/2/24/Animation_of_Danuri_around_Sun_-_Frame_rotating_with_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_Danuri_around_Sun_-_Frame_rotating_with_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Heliocentric context view for the Danuri transfer phase.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "slim": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/fb/SLIM_half_scale_model.png",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:SLIM_half_scale_model.png",
+      "attribution": "Hms1103",
+      "license": "CC BY-SA 4.0",
+      "caption": "Photograph of a SLIM half-scale spacecraft model.",
+      "kind": "spacecraft model"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Animation_of_SLIM_around_Moon.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_SLIM_around_Moon.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Moon-centered trajectory animation for SLIM.",
+      "kind": "orbit schematic"
+    },
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/f/f0/Animation_of_SLIM_around_Earth.gif",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_SLIM_around_Earth.gif",
+      "attribution": "Phoenix7777",
+      "license": "CC BY-SA 4.0",
+      "caption": "Earth-frame transfer trajectory animation for SLIM.",
+      "kind": "trajectory diagram"
+    }
+  ],
+  "lunar-trailblazer": []
+}
