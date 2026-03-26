@@ -1,13 +1,372 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Redirecting...</title>
-    <script>
-        window.location.href = './mission.html';
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Lunar Mission Animations based on NASA JPL Horizons ephemeris data">
+    <title>Lunar Mission Animations</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #0a0a15;
+            color: #d9e2ff;
+            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+        }
+
+        .landing-shell {
+            width: min(2200px, calc(100vw - 24px));
+            max-width: 2200px;
+            margin: 34px auto 48px auto;
+            padding: 20px 24px 36px 24px;
+            box-sizing: border-box;
+        }
+
+        .landing-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .landing-title {
+            color: #ffa000;
+            margin: 0 0 8px 0;
+            font-size: 36px;
+            line-height: 1.15;
+        }
+
+        .landing-subtitle {
+            color: #9aa7c7;
+            margin: 0;
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .landing-view-picker {
+            display: inline-flex;
+            gap: 6px;
+            padding: 6px;
+            border-radius: 10px;
+            border: 1px solid #253055;
+            background: rgba(12, 19, 38, 0.85);
+        }
+
+        .landing-view-button {
+            border: 1px solid #2f3b66;
+            background: rgba(20, 31, 58, 0.9);
+            color: #c9d5f3;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+        }
+
+        .landing-view-button--active {
+            color: #0b1530;
+            border-color: #6da5ff;
+            background: linear-gradient(135deg, #8fb8ff, #66d2ff);
+        }
+
+        .landing-sort-controls {
+            display: none;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            color: #a9b6d6;
+            font-size: 12px;
+        }
+
+        .landing-sort-controls select {
+            background: rgba(16, 27, 53, 0.95);
+            border: 1px solid #30406f;
+            color: #d7e2ff;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .landing-sort-controls button {
+            background: rgba(16, 27, 53, 0.95);
+            border: 1px solid #30406f;
+            color: #d7e2ff;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .landing-sort-controls button:hover {
+            border-color: #5f7dc9;
+            color: #eef4ff;
+        }
+
+        .landing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 14px;
+        }
+
+        .landing-default-lanes {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .landing-lane {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .landing-lane__title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8fa8dc;
+        }
+
+        .landing-card {
+            display: block;
+            text-decoration: none;
+            border-radius: 12px;
+            border: 1px solid #2d3b67;
+            padding: 14px 14px 13px 14px;
+            background: rgba(16, 24, 46, 0.92);
+            color: #dde6ff;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .landing-card:hover {
+            transform: translateY(-2px);
+            border-color: #6da5ff;
+            box-shadow: 0 8px 24px rgba(35, 73, 148, 0.25);
+        }
+
+        .landing-card__title {
+            margin: 0 0 7px 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .landing-flag {
+            font-size: 0.72em;
+            margin-right: 6px;
+            opacity: 0.92;
+            vertical-align: 1px;
+        }
+
+        .landing-card__meta {
+            margin: 0 0 8px 0;
+            color: #91a3cc;
+            font-size: 12px;
+        }
+
+        .landing-card__desc {
+            margin: 0;
+            color: #aebcdf;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .landing-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .landing-kpi {
+            border: 1px solid #2a3760;
+            border-radius: 12px;
+            background: rgba(13, 22, 42, 0.9);
+            padding: 12px;
+        }
+
+        .landing-kpi__label {
+            margin: 0 0 4px 0;
+            color: #8fa1ca;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .landing-kpi__value {
+            margin: 0;
+            color: #e6eeff;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .landing-table-wrap {
+            overflow: hidden;
+            border: 1px solid #2b3a63;
+            border-radius: 12px;
+            background: rgba(13, 21, 40, 0.88);
+        }
+
+        .landing-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 0;
+            table-layout: fixed;
+        }
+
+        .landing-table th:nth-child(1),
+        .landing-table td:nth-child(1) { width: 13%; }
+        .landing-table th:nth-child(2),
+        .landing-table td:nth-child(2) { width: 8%; }
+        .landing-table th:nth-child(3),
+        .landing-table td:nth-child(3) { width: 8%; }
+        .landing-table th:nth-child(4),
+        .landing-table td:nth-child(4) { width: 7%; }
+        .landing-table th:nth-child(5),
+        .landing-table td:nth-child(5),
+        .landing-table th:nth-child(6),
+        .landing-table td:nth-child(6),
+        .landing-table th:nth-child(7),
+        .landing-table td:nth-child(7),
+        .landing-table th:nth-child(8),
+        .landing-table td:nth-child(8),
+        .landing-table th:nth-child(9),
+        .landing-table td:nth-child(9),
+        .landing-table th:nth-child(10),
+        .landing-table td:nth-child(10) { width: 9%; }
+        .landing-table th:nth-child(11),
+        .landing-table td:nth-child(11) { width: 5%; }
+        .landing-table th:nth-child(12),
+        .landing-table td:nth-child(12) { width: 3%; }
+        .landing-table th:nth-child(13),
+        .landing-table td:nth-child(13) { width: 2%; }
+
+        .landing-table th,
+        .landing-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #263457;
+            text-align: left;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .landing-table th {
+            color: #a9b9df;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(20, 31, 58, 0.85);
+        }
+
+        .landing-table td {
+            color: #dce6ff;
+        }
+
+        .landing-table a {
+            color: #8db9ff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .landing-timeline-group {
+            margin-bottom: 14px;
+            border-left: 2px solid #2f4376;
+            padding-left: 12px;
+        }
+
+        .landing-timeline-year {
+            margin: 0 0 8px 0;
+            color: #f7c16b;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .landing-timeline-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .landing-timeline-chip {
+            display: inline-block;
+            text-decoration: none;
+            border: 1px solid #35508f;
+            border-radius: 999px;
+            background: rgba(17, 29, 57, 0.95);
+            color: #dce6ff;
+            font-size: 12px;
+            padding: 6px 10px;
+        }
+
+        .landing-footer {
+            color: #64759d;
+            margin-top: 24px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        @media (max-width: 700px) {
+            .landing-shell { margin-top: 20px; padding: 14px; }
+            .landing-title { font-size: 27px; }
+            .landing-subtitle { font-size: 14px; }
+        }
+    </style>
 </head>
 <body>
-    <p>Redirecting to <a href="./mission.html">Moon Mission Animations</a>...</p>
+    <div class="landing-shell">
+        <div class="landing-topbar">
+            <div>
+                <h1 class="landing-title">Lunar Mission Animations</h1>
+                <h2 class="landing-subtitle">Based on NASA JPL HORIZONS ephemeris data, with ESA SPICE kernels for Chandrayaan 1</h2>
+            </div>
+            <div class="landing-view-picker" role="group" aria-label="Landing page view picker">
+                <button class="landing-view-button landing-view-button--active" data-view="default" type="button">Default</button>
+                <button class="landing-view-button" data-view="tiles" type="button">Tiles</button>
+                <button class="landing-view-button" data-view="table" type="button">Table</button>
+                <button class="landing-view-button" data-view="timeline" type="button">Timeline</button>
+            </div>
+        </div>
+
+        <div id="landing-sort-controls" class="landing-sort-controls">
+            <label for="landing-sort-field">Sort</label>
+            <select id="landing-sort-field">
+                <option value="title">Mission</option>
+                <option value="country">Country</option>
+                <option value="craftClass">Craft Class</option>
+                <option value="crewProfile">Crew Profile</option>
+                <option value="startYear">Timeline Start</option>
+                <option value="endYear">Timeline End</option>
+                <option value="spanYears">Duration</option>
+            </select>
+            <select id="landing-sort-order">
+                <option value="asc">Ascending</option>
+                <option value="desc">Descending</option>
+            </select>
+            <label for="landing-filter-craft">Filter</label>
+            <select id="landing-filter-craft">
+                <option value="">All Craft Classes</option>
+            </select>
+            <select id="landing-filter-crew">
+                <option value="">All Crew Profiles</option>
+            </select>
+            <button id="landing-controls-reset" type="button">Reset</button>
+        </div>
+
+        <div id="landing-view-root"></div>
+
+    </div>
+
+    <script src="src/platform/js/index-landing.js"></script>
 </body>
 </html>
+

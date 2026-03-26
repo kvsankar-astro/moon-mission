@@ -15,6 +15,9 @@ import { resolve } from 'path';
 export default defineConfig({
   // Root directory for the project
   root: '.',
+
+  // Treat project as multi-page app (separate landing and mission pages)
+  appType: 'mpa',
   
   // Public directory for static assets
   publicDir: '.',
