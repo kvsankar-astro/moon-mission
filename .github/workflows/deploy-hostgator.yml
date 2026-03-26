@@ -1,10 +1,6 @@
 name: Deploy to Hostgator via SFTP
 
 on:
-  push:
-    branches:
-      - main
-      - master
   workflow_dispatch:  # Allow manual triggering
 
 env:
