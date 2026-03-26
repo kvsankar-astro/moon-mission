@@ -551,6 +551,86 @@
             color: #dbe5ff;
         }
 
+        .landing-brief-list {
+            margin: 0 0 14px 0;
+            padding-left: 20px;
+            color: #dbe5ff;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .landing-brief-list li {
+            margin: 0 0 6px 0;
+        }
+
+        .landing-brief-summary a,
+        .landing-brief-list a,
+        .landing-brief-source a,
+        .landing-brief-attribution a {
+            color: #8db8ff;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .landing-brief-timeline-block {
+            margin: 0 0 14px 0;
+            display: grid;
+            gap: 8px;
+        }
+
+        .landing-brief-timeline-row {
+            display: grid;
+            gap: 4px;
+        }
+
+        .landing-brief-timeline-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .landing-brief-timeline-label {
+            font-size: 12px;
+            color: #b8c9ea;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .landing-brief-timeline-range {
+            font-size: 11px;
+            color: #8ea4d2;
+        }
+
+        .landing-brief-timeline-bar {
+            position: relative;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(36, 53, 84, 0.7);
+            border: 1px solid rgba(53, 78, 120, 0.65);
+            overflow: hidden;
+        }
+
+        .landing-brief-timeline-bar.is-unavailable {
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(44, 62, 94, 0.5) 0px,
+                rgba(44, 62, 94, 0.5) 6px,
+                rgba(28, 41, 66, 0.5) 6px,
+                rgba(28, 41, 66, 0.5) 12px
+            );
+        }
+
+        .landing-brief-timeline-segment {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            border-radius: 999px;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.35) inset;
+            opacity: 0.95;
+        }
+
         .landing-brief-highlights {
             margin: 0 0 14px 0;
             padding-left: 18px;

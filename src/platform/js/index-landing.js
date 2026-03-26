@@ -47,6 +47,7 @@
     };
     var missionBriefCache = new Map();
     var orbitPreviewCache = new Map();
+    var missionBriefTextPromise = null;
 
     function asTrimmedString(value) {
         if (typeof value !== "string") return "";
@@ -186,64 +187,242 @@
         return ensureTrailingPeriod(fallback || "Mission timeline from NASA JPL Horizons ephemeris metadata.");
     }
 
-    function parseTrajectoryRangeText(text) {
-        var cleaned = cleanMetadataText(text);
-        if (!cleaned) return "";
-        var re = /(\d{4}-[A-Za-z]{3}-\d{2}\s+\d{2}:\d{2}).{0,40}(\d{4}-[A-Za-z]{3}-\d{2}\s+\d{2}:\d{2})/;
-        var m = cleaned.match(re);
-        if (!m) return "";
-        return m[1] + " to " + m[2] + " (TDB)";
+    function parseCatalogUtc(value) {
+        var raw = asTrimmedString(value);
+        if (!raw || raw === "N/A") return null;
+        var dt = new Date(raw.replace(" ", "T") + "Z");
+        if (Number.isNaN(dt.getTime())) return null;
+        return dt;
     }
 
-    function pickOrbitHighlights(meta, row) {
-        var highlights = [];
-        var trajectoryStart = asTrimmedString(meta && meta.trajectory_start);
-        var trajectoryEnd = asTrimmedString(meta && meta.trajectory_end);
-        if (trajectoryStart && trajectoryEnd) {
-            highlights.push("Trajectory span in Horizons metadata: " + trajectoryStart + " to " + trajectoryEnd + " (TDB).");
-        } else {
-            var trajectoryText = cleanMetadataText(meta && meta.raw_sections && (meta.raw_sections["SPACECRAFT TRAJECTORY"] || meta.raw_sections.TRAJECTORY));
-            var derivedRange = parseTrajectoryRangeText(trajectoryText);
-            if (derivedRange) {
-                highlights.push("Trajectory span in Horizons metadata: " + derivedRange + ".");
+    function formatUtcHuman(value) {
+        var dt = value instanceof Date ? value : parseCatalogUtc(value);
+        if (!dt) return asTrimmedString(value);
+        var datePart = dt.toLocaleDateString("en-US", {
+            timeZone: "UTC",
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        });
+        var hh = String(dt.getUTCHours()).padStart(2, "0");
+        var mm = String(dt.getUTCMinutes()).padStart(2, "0");
+        return datePart + " " + hh + ":" + mm + " UTC";
+    }
+
+    function parseMonthNameIndex(name) {
+        var m = normalizeKey(name).slice(0, 3);
+        var map = {
+            jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+            jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+        };
+        return Number.isFinite(map[m]) ? map[m] : null;
+    }
+
+    function parseHorizonsDateTime(value) {
+        var raw = asTrimmedString(value);
+        if (!raw) return null;
+        var m = raw.match(/^(\d{4})[-\s]([A-Za-z]{3,})[-\s](\d{1,2})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (!m) return null;
+        var year = parseInt(m[1], 10);
+        var month = parseMonthNameIndex(m[2]);
+        var day = parseInt(m[3], 10);
+        var hour = m[4] ? parseInt(m[4], 10) : 0;
+        var minute = m[5] ? parseInt(m[5], 10) : 0;
+        var second = m[6] ? parseInt(m[6], 10) : 0;
+        if (!Number.isFinite(year) || month === null || !Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) {
+            return null;
+        }
+        var dt = new Date(Date.UTC(year, month, day, hour, minute, second));
+        return Number.isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function parseHorizonsDateWithFallbackYear(value, fallbackYear) {
+        var raw = asTrimmedString(value);
+        if (!raw) return null;
+        var withYear = parseHorizonsDateTime(raw);
+        if (withYear) return withYear;
+        var m = raw.match(/^([A-Za-z]{3,})\s+(\d{1,2})(?:\s*@?\s*(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (!m || !Number.isFinite(fallbackYear)) return null;
+        var month = parseMonthNameIndex(m[1]);
+        var day = parseInt(m[2], 10);
+        var hour = m[3] ? parseInt(m[3], 10) : 0;
+        var minute = m[4] ? parseInt(m[4], 10) : 0;
+        var second = m[5] ? parseInt(m[5], 10) : 0;
+        if (month === null || !Number.isFinite(day) || !Number.isFinite(hour) || !Number.isFinite(minute) || !Number.isFinite(second)) {
+            return null;
+        }
+        var dt = new Date(Date.UTC(fallbackYear, month, day, hour, minute, second));
+        return Number.isNaN(dt.getTime()) ? null : dt;
+    }
+
+    function extractApolloMissionBounds(meta, row) {
+        var background = asTrimmedString(meta && meta.raw_sections && meta.raw_sections.BACKGROUND);
+        if (!background) return null;
+        var launchDate = asTrimmedString(meta && meta.launch_date);
+        var launchYearMatch = launchDate.match(/(\d{4})/);
+        var year = launchYearMatch ? parseInt(launchYearMatch[1], 10) : (row && row.startYear ? row.startYear : null);
+        if (!Number.isFinite(year)) return null;
+
+        var launchMatch = background.match(/Launch\s+([A-Za-z]+)\s+(\d{1,2})\s+(\d{2}:\d{2}:\d{2})/i);
+        var splashMatch = background.match(/Splashdown\s+([A-Za-z]+)\s+(\d{1,2})\s+(\d{2}:\d{2}:\d{2})/i);
+        if (!launchMatch || !splashMatch) return null;
+
+        var launchMonth = parseMonthNameIndex(launchMatch[1]);
+        var splashMonth = parseMonthNameIndex(splashMatch[1]);
+        if (launchMonth === null || splashMonth === null) return null;
+
+        var launchParts = launchMatch[3].split(":").map(function(v) { return parseInt(v, 10); });
+        var splashParts = splashMatch[3].split(":").map(function(v) { return parseInt(v, 10); });
+        if (launchParts.length !== 3 || splashParts.length !== 3) return null;
+
+        var startDate = new Date(Date.UTC(year, launchMonth, parseInt(launchMatch[2], 10), launchParts[0], launchParts[1], launchParts[2]));
+        var endDate = new Date(Date.UTC(year, splashMonth, parseInt(splashMatch[2], 10), splashParts[0], splashParts[1], splashParts[2]));
+        if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+
+        return {
+            startDate: startDate,
+            endDate: endDate,
+            startLabel: formatUtcHuman(startDate),
+            endLabel: formatUtcHuman(endDate)
+        };
+    }
+
+    function inferMissionWindow(row, meta) {
+        var apolloBounds = extractApolloMissionBounds(meta, row);
+        if (apolloBounds) return apolloBounds;
+
+        var missionEndDate = parseCatalogUtc(row && row.missionEndTime);
+        var launchDate = parseCatalogUtc(row && row.launchTime);
+        var dataStart = parseCatalogUtc(row && row.dataStartTime);
+        var landingDate = parseCatalogUtc(row && row.landingTime);
+        var dataEnd = parseCatalogUtc(row && row.dataEndTime);
+        var startDate = launchDate && dataStart
+            ? new Date(Math.min(launchDate.getTime(), dataStart.getTime()))
+            : (launchDate || dataStart);
+        var endCandidates = [missionEndDate, landingDate, dataEnd].filter(Boolean);
+        var endDate = endCandidates.length
+            ? new Date(Math.max.apply(null, endCandidates.map(function(dt) { return dt.getTime(); })))
+            : null;
+
+        return {
+            startDate: startDate,
+            endDate: endDate,
+            startLabel: startDate ? formatUtcHuman(startDate) : "the mission start (UTC)",
+            endLabel: endDate ? formatUtcHuman(endDate) : "the mission end (UTC)"
+        };
+    }
+
+    function buildTimelineSegments(row, meta) {
+        var missionWindow = inferMissionWindow(row, meta);
+        var horizonsStart = parseHorizonsDateTime(meta && meta.trajectory_start);
+        var horizonsEnd = parseHorizonsDateTime(meta && meta.trajectory_end);
+        if ((!horizonsStart || !horizonsEnd) && meta) {
+            var inferred = inferHorizonsRangeFromRawSections(meta);
+            if (inferred) {
+                if (!horizonsStart) horizonsStart = inferred.startDate;
+                if (!horizonsEnd) horizonsEnd = inferred.endDate;
+            }
+        }
+        var coverageStart = parseCatalogUtc(row && row.dataStartTime);
+        var coverageEnd = parseCatalogUtc(row && row.dataEndTime);
+
+        var segments = [
+            {
+                key: "mission",
+                label: "Mission Timeline (config/events JSON)",
+                color: "#7cb3ff",
+                startDate: missionWindow.startDate,
+                endDate: missionWindow.endDate
+            },
+            {
+                key: "horizons",
+                label: "HORIZONS Availability (metadata JSON)",
+                color: "#8dcf8d",
+                startDate: horizonsStart,
+                endDate: horizonsEnd
+            },
+            {
+                key: "coverage",
+                label: "Animation Coverage (config JSON)",
+                color: "#f4b55f",
+                startDate: coverageStart,
+                endDate: coverageEnd
+            }
+        ];
+
+        var allDates = [];
+        segments.forEach(function(segment) {
+            if (segment.startDate) allDates.push(segment.startDate.getTime());
+            if (segment.endDate) allDates.push(segment.endDate.getTime());
+        });
+        var domainMin = allDates.length ? Math.min.apply(null, allDates) : null;
+        var domainMax = allDates.length ? Math.max.apply(null, allDates) : null;
+        if (domainMin !== null && domainMax !== null && domainMax <= domainMin) {
+            domainMax = domainMin + 1;
+        }
+
+        segments.forEach(function(segment) {
+            segment.startLabel = segment.startDate ? formatUtcHuman(segment.startDate) : "Not available";
+            segment.endLabel = segment.endDate ? formatUtcHuman(segment.endDate) : "Not available";
+            segment.available = Boolean(segment.startDate && segment.endDate);
+            if (!segment.available || domainMin === null || domainMax === null) {
+                segment.leftPct = 0;
+                segment.widthPct = 0;
+                return;
+            }
+            var startMs = segment.startDate.getTime();
+            var endMs = segment.endDate.getTime();
+            if (endMs < startMs) {
+                var tmp = startMs;
+                startMs = endMs;
+                endMs = tmp;
+            }
+            var left = ((startMs - domainMin) / (domainMax - domainMin)) * 100;
+            var right = ((endMs - domainMin) / (domainMax - domainMin)) * 100;
+            segment.leftPct = Math.max(0, Math.min(100, left));
+            segment.widthPct = Math.max(1.2, Math.min(100 - segment.leftPct, right - left));
+        });
+
+        return segments;
+    }
+
+    function inferHorizonsRangeFromRawSections(meta) {
+        var rawSections = meta && meta.raw_sections ? meta.raw_sections : {};
+        var candidates = [
+            rawSections["SPACECRAFT TRAJECTORY"],
+            rawSections.TRAJECTORY
+        ];
+        var fromCandidates = candidates.filter(function(v) { return asTrimmedString(v); }).join("\n");
+        var rawText = asTrimmedString(fromCandidates) || Object.keys(rawSections).map(function(key) {
+            return asTrimmedString(rawSections[key]);
+        }).filter(Boolean).join("\n");
+        if (!rawText) return null;
+
+        var dates = [];
+        var fullTokenRegex = /(\d{4}[-\s][A-Za-z]{3,}[-\s]\d{1,2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)/g;
+        var fullMatch;
+        while ((fullMatch = fullTokenRegex.exec(rawText)) !== null) {
+            var dt = parseHorizonsDateTime(fullMatch[1]);
+            if (dt) dates.push(dt);
+        }
+
+        var mixedRangeRegex = /(\d{4}-[A-Za-z]{3,}-\d{1,2}\s+\d{2}:\d{2}(?::\d{2})?)\s+to\s+([A-Za-z]{3,}\s+\d{1,2}\s*@?\s*\d{2}:\d{2}(?::\d{2})?)/gi;
+        var mixedMatch;
+        while ((mixedMatch = mixedRangeRegex.exec(rawText)) !== null) {
+            var start = parseHorizonsDateTime(mixedMatch[1]);
+            if (start) {
+                dates.push(start);
+                var end = parseHorizonsDateWithFallbackYear(mixedMatch[2], start.getUTCFullYear());
+                if (end) dates.push(end);
             }
         }
 
-        var backgroundSentences = sentenceSplit(meta && meta.raw_sections && meta.raw_sections.BACKGROUND);
-        var trajectorySentences = sentenceSplit(meta && meta.raw_sections && (meta.raw_sections["SPACECRAFT TRAJECTORY"] || meta.raw_sections.TRAJECTORY));
-        var pool = backgroundSentences.concat(trajectorySentences);
-        var keyPhrases = [
-            "trans-lunar",
-            "lunar orbit",
-            "retrograde",
-            "polar orbit",
-            "impact",
-            "soft-landing",
-            "elliptic",
-            "maneuver",
-            "trajectory"
-        ];
-        for (var i = 0; i < pool.length && highlights.length < 4; i += 1) {
-            var sentence = pool[i];
-            var lower = normalizeKey(sentence);
-            var matchesKeyword = keyPhrases.some(function(k) { return lower.indexOf(k) >= 0; });
-            if (!matchesKeyword) continue;
-            if (highlights.some(function(existing) { return normalizeKey(existing) === lower; })) continue;
-            if (sentence.length > 220) continue;
-            highlights.push(ensureTrailingPeriod(sentence));
-        }
-
-        if (row && row.launchTime && row.launchTime !== "N/A" && highlights.length < 4) {
-            highlights.push("Launch (UTC): " + row.launchTime + ".");
-        }
-        if (row && row.landingTime && row.landingTime !== "N/A" && highlights.length < 4) {
-            highlights.push("Landing/impact marker (UTC): " + row.landingTime + ".");
-        }
-
-        if (!highlights.length) {
-            highlights.push("Trajectory details are sourced from NASA JPL Horizons mission metadata.");
-        }
-        return highlights.slice(0, 4);
+        if (!dates.length) return null;
+        dates.sort(function(a, b) { return a.getTime() - b.getTime(); });
+        return {
+            startDate: dates[0],
+            endDate: dates[dates.length - 1]
+        };
     }
 
     function uniqStrings(values) {
@@ -408,6 +587,18 @@
                 return keyText.indexOf("impact") >= 0 || labelText.indexOf("impact") >= 0;
             });
 
+        var missionEndDate =
+            findFirstMatchingEventDate(events, function(eventKey, eventDef) {
+                var keyText = normalizeKey(eventKey);
+                var labelText = normalizeKey(eventDef.label);
+                return keyText === "missionend" || labelText.indexOf("mission end") >= 0;
+            }) ||
+            findFirstMatchingEventDate(events, function(eventKey, eventDef) {
+                var keyText = normalizeKey(eventKey);
+                var labelText = normalizeKey(eventDef.label);
+                return keyText === "dataend" || labelText.indexOf("data end") >= 0;
+            });
+
         var geoStart = parseConfigDateTime(config && config.geo, "start");
         var lunarStart = parseConfigDateTime(config && config.lunar, "start");
         var geoEnd = parseConfigDateTime(config && config.geo, "stop");
@@ -427,6 +618,7 @@
             tliDate: tliDate,
             loiDate: loiDate,
             landingDate: landingDate,
+            missionEndDate: missionEndDate,
             dataStart: dataStart,
             dataEnd: dataEnd
         };
@@ -446,12 +638,14 @@
                     tliTime: formatUtcDateTime(timing.tliDate),
                     loiTime: formatUtcDateTime(timing.loiDate),
                     landingTime: formatUtcDateTime(timing.landingDate),
+                    missionEndTime: formatUtcDateTime(timing.missionEndDate),
                     dataStartTime: formatUtcDateTime(timing.dataStart),
                     dataEndTime: formatUtcDateTime(timing.dataEnd),
                     launchSortKey: timing.launchDate ? timing.launchDate.getTime() : -Infinity,
                     tliSortKey: timing.tliDate ? timing.tliDate.getTime() : -Infinity,
                     loiSortKey: timing.loiDate ? timing.loiDate.getTime() : -Infinity,
                     landingSortKey: timing.landingDate ? timing.landingDate.getTime() : -Infinity,
+                    missionEndSortKey: timing.missionEndDate ? timing.missionEndDate.getTime() : -Infinity,
                     dataStartSortKey: timing.dataStart ? timing.dataStart.getTime() : -Infinity,
                     dataEndSortKey: timing.dataEnd ? timing.dataEnd.getTime() : -Infinity
                 });
@@ -490,40 +684,70 @@
             tliTime: "N/A",
             loiTime: "N/A",
             landingTime: "N/A",
+            missionEndTime: "N/A",
             dataStartTime: "N/A",
             dataEndTime: "N/A",
             launchSortKey: -Infinity,
             tliSortKey: -Infinity,
             loiSortKey: -Infinity,
             landingSortKey: -Infinity,
+            missionEndSortKey: -Infinity,
             dataStartSortKey: -Infinity,
             dataEndSortKey: -Infinity,
             accent: entry.card.accent || "#4a90d9"
         };
     }
 
-    function buildBriefFromMetadata(row, meta) {
+    function fetchMissionBriefTextMap() {
+        if (missionBriefTextPromise) return missionBriefTextPromise;
+        missionBriefTextPromise = fetch("assets/mission-briefs.json", { cache: "no-store" })
+            .then(function(response) {
+                if (!response.ok) throw new Error("mission briefs missing");
+                return response.json();
+            })
+            .catch(function() { return {}; });
+        return missionBriefTextPromise;
+    }
+
+    function getAuthoredBriefEntry(briefTextMap, row) {
+        if (!briefTextMap || typeof briefTextMap !== "object") return null;
+        var folder = normalizeKey(row && row.folder);
+        if (!folder) return null;
+        return briefTextMap[folder] || null;
+    }
+
+    function buildBriefFromMetadata(row, meta, authoredEntry) {
         var summary = pickSummaryFromMetadata(meta, row.description);
-        var highlights = pickOrbitHighlights(meta, row);
-        var image = CC_BY_SA_IMAGE_BY_FOLDER[row.folder] || null;
+        var authored = authoredEntry && typeof authoredEntry === "object" ? authoredEntry : {};
+        var title = asTrimmedString(row && row.title) || "Mission";
+        var missionText = asTrimmedString(authored.mission) || asTrimmedString(authored.missionStory) || (title + " mission details will be added.");
+        var horizonsData = asTrimmedString(authored.horizonsData) || asTrimmedString(authored.horizonsScope) || "HORIZONS object coverage details for this mission entry will be added.";
+        var timelinesNote = asTrimmedString(authored.timelines) || asTrimmedString(authored.missionTimeline) || "The timeline bars compare mission timeline, HORIZONS availability, and animation coverage.";
         return {
+            mission: missionText,
+            horizonsData: horizonsData,
+            timelines: timelinesNote,
+            timelineSegments: buildTimelineSegments(row, meta),
             summary: summary,
-            highlights: highlights,
-            image: image,
+            image: CC_BY_SA_IMAGE_BY_FOLDER[row.folder] || null,
             sourceUrl: "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json",
             sourceLabel: "HORIZONS metadata"
         };
     }
 
-    function buildFallbackBrief(row) {
+    function buildFallbackBrief(row, authoredEntry) {
+        var summary = ensureTrailingPeriod(row.description || "Mission timeline.");
+        var authored = authoredEntry && typeof authoredEntry === "object" ? authoredEntry : {};
+        var title = asTrimmedString(row && row.title) || "Mission";
+        var missionText = asTrimmedString(authored.mission) || asTrimmedString(authored.missionStory) || (title + " mission details will be added.");
+        var horizonsData = asTrimmedString(authored.horizonsData) || asTrimmedString(authored.horizonsScope) || "HORIZONS object coverage details for this mission entry will be added.";
+        var timelinesNote = asTrimmedString(authored.timelines) || asTrimmedString(authored.missionTimeline) || "The timeline bars compare mission timeline, HORIZONS availability, and animation coverage.";
         return {
-            summary: ensureTrailingPeriod(row.description || "Mission timeline."),
-            highlights: [
-                "Catalog timeline span: " + row.rangeLabel + ".",
-                row.dataStartTime !== "N/A" && row.dataEndTime !== "N/A"
-                    ? ("Animation data span (UTC): " + row.dataStartTime + " to " + row.dataEndTime + ".")
-                    : "Detailed orbit highlights will appear when Horizons mission metadata is available."
-            ],
+            mission: missionText,
+            horizonsData: horizonsData,
+            timelines: timelinesNote,
+            timelineSegments: buildTimelineSegments(row, null),
+            summary: summary,
             image: CC_BY_SA_IMAGE_BY_FOLDER[row.folder] || null,
             sourceUrl: "",
             sourceLabel: "Mission catalog"
@@ -536,28 +760,31 @@
             return Promise.resolve(missionBriefCache.get(key));
         }
 
-        if (!row.horizonsMetadataFile) {
-            var fallback = buildFallbackBrief(row);
-            missionBriefCache.set(key, fallback);
-            return Promise.resolve(fallback);
-        }
-
-        var metadataUrl = "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json";
-        return fetch(metadataUrl, { cache: "no-store" })
-            .then(function(response) {
-                if (!response.ok) throw new Error("metadata missing");
-                return response.json();
-            })
-            .then(function(meta) {
-                var brief = buildBriefFromMetadata(row, meta);
-                missionBriefCache.set(key, brief);
-                return brief;
-            })
-            .catch(function() {
-                var fallback = buildFallbackBrief(row);
+        return fetchMissionBriefTextMap().then(function(briefTextMap) {
+            var authoredEntry = getAuthoredBriefEntry(briefTextMap, row);
+            if (!row.horizonsMetadataFile) {
+                var fallback = buildFallbackBrief(row, authoredEntry);
                 missionBriefCache.set(key, fallback);
                 return fallback;
-            });
+            }
+
+            var metadataUrl = "docs/horizons-blurbs/metadata/" + row.horizonsMetadataFile + ".json";
+            return fetch(metadataUrl, { cache: "no-store" })
+                .then(function(response) {
+                    if (!response.ok) throw new Error("metadata missing");
+                    return response.json();
+                })
+                .then(function(meta) {
+                    var brief = buildBriefFromMetadata(row, meta, authoredEntry);
+                    missionBriefCache.set(key, brief);
+                    return brief;
+                })
+                .catch(function() {
+                    var fallback = buildFallbackBrief(row, authoredEntry);
+                    missionBriefCache.set(key, fallback);
+                    return fallback;
+                });
+        });
     }
 
     function fetchOrbitPreviewData(row) {
@@ -566,11 +793,13 @@
             return Promise.resolve(orbitPreviewCache.get(key));
         }
 
-        if (normalizeKey(row.folder) !== "chandrayaan3") {
+        var folder = normalizeKey(row && (row.folder || (row.entry && row.entry.folder)));
+        if (!folder) {
+            orbitPreviewCache.set(key, null);
             return Promise.resolve(null);
         }
 
-        var configUrl = "assets/chandrayaan3/data/config.json";
+        var configUrl = "assets/" + folder + "/data/config.json";
         return fetch(configUrl, { cache: "no-store" })
             .then(function(response) {
                 if (!response.ok) throw new Error("config unavailable");
@@ -579,7 +808,7 @@
             .then(function(config) {
                 var geoBase = asTrimmedString(config && config.geo && config.geo.orbits_file);
                 if (!geoBase) throw new Error("geo orbit file missing");
-                var chebUrl = "assets/chandrayaan3/data/" + geoBase + "-cheb.json";
+                var chebUrl = "assets/" + folder + "/data/" + geoBase + "-cheb.json";
                 return fetch(chebUrl, { cache: "no-store" })
                     .then(function(response) {
                         if (!response.ok) throw new Error("Chebyshev unavailable");
@@ -890,16 +1119,99 @@
             return -1;
         }
 
+        function renderTimelineSegmentsHtml(segments) {
+            if (!Array.isArray(segments) || !segments.length) return "";
+            var html = "";
+            html += "<div class=\"landing-brief-timeline-block\">";
+            segments.forEach(function(segment) {
+                var leftPct = Number.isFinite(segment.leftPct) ? segment.leftPct : 0;
+                var widthPct = Number.isFinite(segment.widthPct) ? segment.widthPct : 0;
+                html += "<div class=\"landing-brief-timeline-row\">";
+                html += "<div class=\"landing-brief-timeline-head\">";
+                html += "<span class=\"landing-brief-timeline-label\">" + escapeHtml(segment.label || "Timeline") + "</span>";
+                html += "<span class=\"landing-brief-timeline-range\">" + escapeHtml((segment.startLabel || "N/A") + " → " + (segment.endLabel || "N/A")) + "</span>";
+                html += "</div>";
+                html += "<div class=\"landing-brief-timeline-bar" + (segment.available ? "" : " is-unavailable") + "\">";
+                if (segment.available) {
+                    html += "<span class=\"landing-brief-timeline-segment\" style=\"left:" + leftPct.toFixed(3) + "%;width:" + widthPct.toFixed(3) + "%;background:" + escapeHtml(segment.color || "#7cb3ff") + ";\"></span>";
+                }
+                html += "</div>";
+                html += "</div>";
+            });
+            html += "</div>";
+            return html;
+        }
+
+        function renderInlineRichText(text) {
+            var escaped = escapeHtml(text || "");
+            escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+            escaped = escaped.replace(/\[([^\]]+)\]\(((?:https?:\/\/|(?:\.{1,2}\/)?docs\/)[^\s)]+)\)/g, function(_, label, url) {
+                return "<a href=\"" + escapeHtml(url) + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + label + "</a>";
+            });
+            escaped = escaped.replace(/(^|[\s(])((?:https?:\/\/|(?:\.{1,2}\/)?docs\/)[^\s)]+)/g, function(_, prefix, url) {
+                return prefix + "<a href=\"" + escapeHtml(url) + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + escapeHtml(url) + "</a>";
+            });
+            return escaped;
+        }
+
+        function renderRichBlocks(text) {
+            var raw = asTrimmedString(text);
+            if (!raw) return "";
+            var lines = raw.replace(/\r/g, "").split("\n");
+            var html = "";
+            var para = [];
+            var listItems = [];
+
+            function flushPara() {
+                if (!para.length) return;
+                html += "<p class=\"landing-brief-summary\">" + renderInlineRichText(para.join(" ")) + "</p>";
+                para = [];
+            }
+
+            function flushList() {
+                if (!listItems.length) return;
+                html += "<ul class=\"landing-brief-list\">";
+                for (var i = 0; i < listItems.length; i += 1) {
+                    html += "<li>" + renderInlineRichText(listItems[i]) + "</li>";
+                }
+                html += "</ul>";
+                listItems = [];
+            }
+
+            for (var i = 0; i < lines.length; i += 1) {
+                var line = asTrimmedString(lines[i]);
+                if (!line) {
+                    flushPara();
+                    flushList();
+                    continue;
+                }
+                if (/^[-*]\s+/.test(line)) {
+                    flushPara();
+                    listItems.push(line.replace(/^[-*]\s+/, ""));
+                    continue;
+                }
+                flushList();
+                para.push(line);
+            }
+            flushPara();
+            flushList();
+
+            if (!html) {
+                html = "<p class=\"landing-brief-summary\">" + renderInlineRichText(raw) + "</p>";
+            }
+            return html;
+        }
+
         function buildBriefPanelContent(row, brief, currentIndex, totalCount) {
             var image = brief && brief.image ? brief.image : null;
-            var summary = asTrimmedString(brief && brief.summary);
-            var highlights = Array.isArray(brief && brief.highlights) ? brief.highlights : [];
+            var missionText = asTrimmedString(brief && (brief.mission || brief.missionStory || brief.summary));
+            var horizonsDataText = asTrimmedString(brief && (brief.horizonsData || brief.horizonsScope));
+            var timelinesText = asTrimmedString(brief && (brief.timelines || brief.missionTimeline));
+            var timelineSegments = brief && Array.isArray(brief.timelineSegments) ? brief.timelineSegments : [];
             var safeTitle = escapeHtml(row.title);
             var safeCountry = escapeHtml(row.country);
             var safeRange = escapeHtml(row.rangeLabel);
             var safeCounter = (Number.isFinite(currentIndex) ? (currentIndex + 1) : 1) + " / " + (totalCount || 1);
-            var hasPilotPreview = normalizeKey(row.folder) === "chandrayaan3";
-
             var html = "";
             html += "<div class=\"landing-brief-header\">";
             html += "<div class=\"landing-brief-header-left\">";
@@ -936,15 +1248,13 @@
                 html += "<p class=\"landing-brief-attribution\">CC BY-SA craft image not mapped yet for this mission.</p>";
             }
 
-            html += "<p class=\"landing-brief-section-title\">Mission Blurb</p>";
-            html += "<p class=\"landing-brief-summary\">" + escapeHtml(summary || ensureTrailingPeriod(row.description)) + "</p>";
-
-            html += "<p class=\"landing-brief-section-title\">Orbit Highlights</p>";
-            html += "<ul class=\"landing-brief-highlights\">";
-            highlights.forEach(function(item) {
-                html += "<li>" + escapeHtml(item) + "</li>";
-            });
-            html += "</ul>";
+            html += "<p class=\"landing-brief-section-title\">Mission</p>";
+            html += renderRichBlocks(missionText || ensureTrailingPeriod(row.description));
+            html += "<p class=\"landing-brief-section-title\">HORIZONS Data</p>";
+            html += renderRichBlocks(horizonsDataText || "HORIZONS object coverage details are being curated.");
+            html += "<p class=\"landing-brief-section-title\">Timelines</p>";
+            html += renderRichBlocks(timelinesText || "The timeline bars below show mission, HORIZONS, and animation coverage ranges.");
+            html += renderTimelineSegmentsHtml(timelineSegments);
 
             html += "<p class=\"landing-brief-source\">Source: " + escapeHtml(brief.sourceLabel || "Mission metadata");
             if (asTrimmedString(brief.sourceUrl)) {
@@ -955,12 +1265,7 @@
 
             html += "<section class=\"landing-brief-col landing-brief-col--viz\">";
             html += "<p class=\"landing-brief-section-title\">Orbit Preview (Pilot)</p>";
-            if (hasPilotPreview) {
-                html += "<div id=\"landing-brief-orbit-anim\" class=\"landing-brief-orbit-anim\">Loading 2D XY transfer preview...</div>";
-                html += "<p class=\"landing-brief-attribution\">Scale: square view with side = 2.6 × Earth-Moon radius (Earth-centered).</p>";
-            } else {
-                html += "<div class=\"landing-brief-orbit-empty\">Orbit animation preview is currently available for Chandrayaan 3 in this pilot version.</div>";
-            }
+            html += "<div id=\"landing-brief-orbit-anim\" class=\"landing-brief-orbit-anim\">Loading 2D XY transfer preview...</div>";
             html += "</section>";
             html += "</div>";
 
