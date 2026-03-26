@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "ladee",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-LAD",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-LAD.npz",
+          "generated": "data-generated/ladee/geo-LAD.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-LAD-cheb.json",
+          "generated": "assets/ladee/data/geo-LAD-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-LAD-meta.json",
+          "generated": "data-generated/ladee/geo-LAD-meta.json"
+        },
+        "json": {
+          "runtime": "geo-LAD.json",
+          "generated": "data-generated/ladee/geo-LAD.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-LAD",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-LAD.npz",
+          "generated": "data-generated/ladee/lunar-LAD.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-LAD-cheb.json",
+          "generated": "assets/ladee/data/lunar-LAD-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-LAD-meta.json",
+          "generated": "data-generated/ladee/lunar-LAD-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-LAD.json",
+          "generated": "data-generated/ladee/lunar-LAD.json"
+        }
+      }
+    }
+  }
+}

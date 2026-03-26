@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "capstone",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-CAPS",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-CAPS.npz",
+          "generated": "data-generated/capstone/geo-CAPS.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-CAPS-cheb.json",
+          "generated": "assets/capstone/data/geo-CAPS-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-CAPS-meta.json",
+          "generated": "data-generated/capstone/geo-CAPS-meta.json"
+        },
+        "json": {
+          "runtime": "geo-CAPS.json",
+          "generated": "data-generated/capstone/geo-CAPS.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-CAPS",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-CAPS.npz",
+          "generated": "data-generated/capstone/lunar-CAPS.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-CAPS-cheb.json",
+          "generated": "assets/capstone/data/lunar-CAPS-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-CAPS-meta.json",
+          "generated": "data-generated/capstone/lunar-CAPS-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-CAPS.json",
+          "generated": "data-generated/capstone/lunar-CAPS.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "apollo12-sivb",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-A12S",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-A12S.npz",
+          "generated": "data-generated/apollo12-sivb/geo-A12S.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-A12S-cheb.json",
+          "generated": "assets/apollo12-sivb/data/geo-A12S-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-A12S-meta.json",
+          "generated": "data-generated/apollo12-sivb/geo-A12S-meta.json"
+        },
+        "json": {
+          "runtime": "geo-A12S.json",
+          "generated": "data-generated/apollo12-sivb/geo-A12S.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-A12S",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-A12S.npz",
+          "generated": "data-generated/apollo12-sivb/lunar-A12S.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-A12S-cheb.json",
+          "generated": "assets/apollo12-sivb/data/lunar-A12S-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-A12S-meta.json",
+          "generated": "data-generated/apollo12-sivb/lunar-A12S-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-A12S.json",
+          "generated": "data-generated/apollo12-sivb/lunar-A12S.json"
+        }
+      }
+    }
+  }
+}

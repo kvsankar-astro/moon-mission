@@ -1,0 +1,158 @@
+{
+  "spacecraft_mnemonic": "C2V",
+  "spacecraft_id": -153,
+  "mission_name": "Chandrayaan-2 Lander Vikram",
+  "mission_name_short": "C2V",
+  "mission_url": "",
+  "mission_description": "Chandrayaan-2 Lander Vikram Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "2, animation, chandrayaan, lander, mission, moon, orbit, vikram",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Chandrayaan-2 Lander Vikram - Orbit Animation",
+    "headerTitle": "Chandrayaan-2 Lander Vikram",
+    "lockOnLabel": "Chandrayaan-2 Lander Vikram",
+    "orbitLabel": "C2V Orbit",
+    "descentOrbitLabel": "C2V Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2019",
+    "start_month": "07",
+    "start_day": "22",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "2019",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-C2V"
+  },
+  "lunar": {
+    "start_year": "2019",
+    "start_month": "07",
+    "start_day": "22",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "2019",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-C2V"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2019",
+    "start_month": "07",
+    "start_day": "22",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "2019",
+    "stop_month": "07",
+    "stop_day": "22",
+    "stop_hour": "09",
+    "stop_minute": "31",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-C2V"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for C2V."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2019-07-22T09:13:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "separation": {
+      "startTime": "2019-09-02T07:45:00Z",
+      "durationSeconds": 0,
+      "label": "Lander Separation",
+      "burnFlag": false,
+      "infoText": "Vikram separated from orbiter",
+      "body": "SC"
+    },
+    "touchdownPlanned": {
+      "startTime": "2019-09-07T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Planned Touchdown",
+      "burnFlag": false,
+      "infoText": "Planned soft landing date",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "c2vDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "C2V"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1C2V Data End",
+      "burnFlag": false,
+      "infoText": "C2V Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "separation",
+      "touchdownPlanned",
+      "now",
+      "c2vDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "separation",
+      "touchdownPlanned",
+      "now",
+      "c2vDataEnd"
+    ]
+  }
+}

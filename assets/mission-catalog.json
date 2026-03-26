@@ -1,0 +1,620 @@
+{
+  "defaultMissionFolder": "chandrayaan3",
+  "views": {
+    "default": {
+      "laneOrder": [
+        "chandrayaan",
+        "artemis",
+        "apollo",
+        "other"
+      ],
+      "laneLabels": {
+        "chandrayaan": "Chandrayaan",
+        "artemis": "Artemis",
+        "apollo": "Apollo",
+        "other": "Other Missions"
+      },
+      "laneMembership": {
+        "chandrayaan": [
+          "chandrayaan1",
+          "chandrayaan2",
+          "chandrayaan3"
+        ],
+        "artemis": [
+          "artemis1"
+        ],
+        "apollo": [
+          "apollo8-sivb",
+          "apollo9-sivb",
+          "apollo10-lm",
+          "apollo10-sivb",
+          "apollo11-sivb",
+          "apollo12-sivb"
+        ]
+      }
+    },
+    "table": {
+      "defaultSortField": "title",
+      "defaultSortOrder": "asc"
+    },
+    "timeline": {
+      "groupBy": "startYear"
+    }
+  },
+  "missions": [
+    {
+      "key": "ch1",
+      "folder": "chandrayaan1",
+      "queryValue": "chandrayaan1",
+      "aliases": [
+        "chandrayaan1",
+        "ch1",
+        "cy1"
+      ],
+      "title": "Chandrayaan 1",
+      "subtitle": "India - 2008",
+      "description": "India's first lunar mission with Moon Impact Probe timeline.",
+      "accent": "#ffa000",
+      "country": "India",
+      "startYear": 2008,
+      "endYear": 2008,
+      "order": 10,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "ch2",
+      "folder": "chandrayaan2",
+      "queryValue": "chandrayaan2",
+      "aliases": [
+        "chandrayaan2",
+        "ch2",
+        "cy2"
+      ],
+      "title": "Chandrayaan 2",
+      "subtitle": "India - 2019",
+      "description": "Orbiter mission with Vikram descent timeline.",
+      "accent": "#ffa000",
+      "country": "India",
+      "startYear": 2019,
+      "endYear": 2019,
+      "order": 20,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "ch3",
+      "folder": "chandrayaan3",
+      "queryValue": "chandrayaan3",
+      "aliases": [
+        "chandrayaan3",
+        "ch3",
+        "cy3"
+      ],
+      "title": "Chandrayaan 3",
+      "subtitle": "India - 2023",
+      "description": "South-polar lunar landing mission profile.",
+      "accent": "#ffa000",
+      "country": "India",
+      "startYear": 2023,
+      "endYear": 2023,
+      "order": 30,
+      "dimensions": {
+        "missionType": "Propulsion Module",
+        "craftClass": "Propulsion Module",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "ch2-vikram",
+      "folder": "chandrayaan2-vikram",
+      "queryValue": "chandrayaan2-vikram",
+      "aliases": [
+        "chandrayaan2-vikram",
+        "c2v"
+      ],
+      "title": "Chandrayaan 2 Vikram",
+      "subtitle": "India - 2019",
+      "description": "Focused timeline for Vikram lander descent dynamics.",
+      "accent": "#f0a84d",
+      "country": "India",
+      "startYear": 2019,
+      "endYear": 2019,
+      "order": 40,
+      "dimensions": {
+        "missionType": "Lander",
+        "craftClass": "Lander",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "ch3-vikram",
+      "folder": "chandrayaan3-vikram",
+      "queryValue": "chandrayaan3-vikram",
+      "aliases": [
+        "chandrayaan3-vikram",
+        "c3v"
+      ],
+      "title": "Chandrayaan 3 Vikram",
+      "subtitle": "India - 2023",
+      "description": "High-resolution timeline for Vikram landing sequence.",
+      "accent": "#f0a84d",
+      "country": "India",
+      "startYear": 2023,
+      "endYear": 2023,
+      "order": 50,
+      "dimensions": {
+        "missionType": "Lander",
+        "craftClass": "Lander",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis1",
+      "folder": "artemis1",
+      "queryValue": "artemis1",
+      "aliases": [
+        "artemis1",
+        "art1"
+      ],
+      "title": "Artemis 1",
+      "subtitle": "United States - 2022",
+      "description": "Orion lunar test flight trajectory.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2022,
+      "endYear": 2022,
+      "order": 60,
+      "dimensions": {
+        "missionType": "Crewed Capsule",
+        "craftClass": "Capsule",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo8-sivb",
+      "folder": "apollo8-sivb",
+      "queryValue": "apollo8-sivb",
+      "aliases": [
+        "apollo8-sivb",
+        "a8s"
+      ],
+      "title": "Apollo 8 S-IVB",
+      "subtitle": "United States - 1968",
+      "description": "Saturn V third stage post-separation trajectory.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1968,
+      "endYear": 1968,
+      "order": 70,
+      "dimensions": {
+        "missionType": "Third Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo9-sivb",
+      "folder": "apollo9-sivb",
+      "queryValue": "apollo9-sivb",
+      "aliases": [
+        "apollo9-sivb",
+        "a9s"
+      ],
+      "title": "Apollo 9 S-IVB",
+      "subtitle": "United States - 1969",
+      "description": "S-IVB translunar trajectory reconstruction.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1969,
+      "endYear": 1969,
+      "order": 80,
+      "dimensions": {
+        "missionType": "Third Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo10-lm",
+      "folder": "apollo10-lm",
+      "queryValue": "apollo10-lm",
+      "aliases": [
+        "apollo10-lm",
+        "a10"
+      ],
+      "title": "Apollo 10 LM Snoopy",
+      "subtitle": "United States - 1969",
+      "description": "Lunar Module dress rehearsal descent profile.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1969,
+      "endYear": 1969,
+      "order": 90,
+      "dimensions": {
+        "missionType": "Lunar Module",
+        "craftClass": "Lunar Module",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo10-sivb",
+      "folder": "apollo10-sivb",
+      "queryValue": "apollo10-sivb",
+      "aliases": [
+        "apollo10-sivb",
+        "a10s"
+      ],
+      "title": "Apollo 10 S-IVB",
+      "subtitle": "United States - 1969",
+      "description": "S-IVB third-stage mission trajectory.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1969,
+      "endYear": 1969,
+      "order": 100,
+      "dimensions": {
+        "missionType": "Third Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo11-sivb",
+      "folder": "apollo11-sivb",
+      "queryValue": "apollo11-sivb",
+      "aliases": [
+        "apollo11-sivb",
+        "a11"
+      ],
+      "title": "Apollo 11 S-IVB",
+      "subtitle": "United States - 1969",
+      "description": "Third-stage trajectory during first Moon landing mission.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1969,
+      "endYear": 1969,
+      "order": 110,
+      "dimensions": {
+        "missionType": "Third Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "apollo12-sivb",
+      "folder": "apollo12-sivb",
+      "queryValue": "apollo12-sivb",
+      "aliases": [
+        "apollo12-sivb",
+        "a12s"
+      ],
+      "title": "Apollo 12 S-IVB",
+      "subtitle": "United States - 1969",
+      "description": "S-IVB translunar and post-impact trajectory.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1969,
+      "endYear": 1969,
+      "order": 120,
+      "dimensions": {
+        "missionType": "Third Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "clementine",
+      "folder": "clementine",
+      "queryValue": "clementine",
+      "aliases": [
+        "clementine",
+        "clm"
+      ],
+      "title": "Clementine",
+      "subtitle": "United States - 1994",
+      "description": "Lunar mapping mission arc.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1994,
+      "endYear": 1994,
+      "order": 130,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lunar-prospector",
+      "folder": "lunar-prospector",
+      "queryValue": "lunar-prospector",
+      "aliases": [
+        "lunar-prospector",
+        "lpro"
+      ],
+      "title": "Lunar Prospector",
+      "subtitle": "United States - 1998",
+      "description": "Lunar polar mapping and science mission.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1998,
+      "endYear": 1998,
+      "order": 140,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lro",
+      "folder": "lro",
+      "queryValue": "lro",
+      "aliases": [
+        "lro"
+      ],
+      "title": "LRO",
+      "subtitle": "United States - 2009",
+      "description": "Lunar Reconnaissance Orbiter mission segment.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2009,
+      "endYear": 2009,
+      "order": 150,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lcross-shepherd",
+      "folder": "lcross-shepherd",
+      "queryValue": "lcross-shepherd",
+      "aliases": [
+        "lcross-shepherd",
+        "lcsh"
+      ],
+      "title": "LCROSS Shepherd",
+      "subtitle": "United States - 2009",
+      "description": "Shepherding spacecraft impact sequence.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2009,
+      "endYear": 2009,
+      "order": 160,
+      "dimensions": {
+        "missionType": "Impactor",
+        "craftClass": "Impactor",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lcross-centaur",
+      "folder": "lcross-centaur",
+      "queryValue": "lcross-centaur",
+      "aliases": [
+        "lcross-centaur",
+        "lccn"
+      ],
+      "title": "LCROSS Centaur",
+      "subtitle": "United States - 2009",
+      "description": "Centaur upper-stage impact segment.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2009,
+      "endYear": 2009,
+      "order": 170,
+      "dimensions": {
+        "missionType": "Impactor",
+        "craftClass": "Impactor",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "grail-ss-stage",
+      "folder": "grail-ss-stage",
+      "queryValue": "grail-ss-stage",
+      "aliases": [
+        "grail-ss-stage",
+        "grss"
+      ],
+      "title": "GRAIL SS Stage",
+      "subtitle": "United States - 2011",
+      "description": "GRAIL support-stage trajectory segment.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2011,
+      "endYear": 2011,
+      "order": 180,
+      "dimensions": {
+        "missionType": "Second Stage",
+        "craftClass": "Stage",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "grail-a-ebb",
+      "folder": "grail-a-ebb",
+      "queryValue": "grail-a-ebb",
+      "aliases": [
+        "grail-a-ebb",
+        "graa"
+      ],
+      "title": "GRAIL A Ebb",
+      "subtitle": "United States - 2012",
+      "description": "Twin-spacecraft gravity mission trajectory (Ebb).",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2012,
+      "endYear": 2012,
+      "order": 190,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "grail-b-flow",
+      "folder": "grail-b-flow",
+      "queryValue": "grail-b-flow",
+      "aliases": [
+        "grail-b-flow",
+        "grab"
+      ],
+      "title": "GRAIL B Flow",
+      "subtitle": "United States - 2012",
+      "description": "Twin-spacecraft gravity mission trajectory (Flow).",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2012,
+      "endYear": 2012,
+      "order": 200,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "ladee",
+      "folder": "ladee",
+      "queryValue": "ladee",
+      "aliases": [
+        "ladee",
+        "lad"
+      ],
+      "title": "LADEE",
+      "subtitle": "United States - 2014",
+      "description": "Lunar atmosphere and dust environment mission.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2014,
+      "endYear": 2014,
+      "order": 210,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "capstone",
+      "folder": "capstone",
+      "queryValue": "capstone",
+      "aliases": [
+        "capstone",
+        "caps"
+      ],
+      "title": "CAPSTONE",
+      "subtitle": "United States - 2022",
+      "description": "Cislunar NRHO pathfinder mission.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2022,
+      "endYear": 2022,
+      "order": 220,
+      "dimensions": {
+        "missionType": "NRHO Pathfinder",
+        "craftClass": "Pathfinder",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lunar-flashlight",
+      "folder": "lunar-flashlight",
+      "queryValue": "lunar-flashlight",
+      "aliases": [
+        "lunar-flashlight",
+        "lfl"
+      ],
+      "title": "Lunar Flashlight",
+      "subtitle": "United States - 2022",
+      "description": "Smallsat mission targeting polar water-ice measurements.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2022,
+      "endYear": 2023,
+      "order": 230,
+      "dimensions": {
+        "missionType": "CubeSat",
+        "craftClass": "CubeSat",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "kplo-danuri",
+      "folder": "kplo-danuri",
+      "queryValue": "kplo-danuri",
+      "aliases": [
+        "kplo-danuri",
+        "kplo",
+        "danuri"
+      ],
+      "title": "KPLO Danuri",
+      "subtitle": "South Korea - 2022",
+      "description": "Korea Pathfinder Lunar Orbiter mission segment.",
+      "accent": "#65a7ff",
+      "country": "South Korea",
+      "startYear": 2022,
+      "endYear": 2022,
+      "order": 240,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "slim",
+      "folder": "slim",
+      "queryValue": "slim",
+      "aliases": [
+        "slim"
+      ],
+      "title": "SLIM",
+      "subtitle": "Japan - 2023",
+      "description": "Smart Lander for Investigating Moon mission profile.",
+      "accent": "#74a5ff",
+      "country": "Japan",
+      "startYear": 2023,
+      "endYear": 2024,
+      "order": 250,
+      "dimensions": {
+        "missionType": "Lander",
+        "craftClass": "Lander",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "lunar-trailblazer",
+      "folder": "lunar-trailblazer",
+      "queryValue": "lunar-trailblazer",
+      "aliases": [
+        "lunar-trailblazer",
+        "ltb"
+      ],
+      "title": "Lunar Trailblazer",
+      "subtitle": "United States - 2025",
+      "description": "Lunar water mapping orbiter trajectory segment.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2025,
+      "endYear": 2025,
+      "order": 260,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "lcross-centaur",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-LCCN",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-LCCN.npz",
+          "generated": "data-generated/lcross-centaur/geo-LCCN.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-LCCN-cheb.json",
+          "generated": "assets/lcross-centaur/data/geo-LCCN-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-LCCN-meta.json",
+          "generated": "data-generated/lcross-centaur/geo-LCCN-meta.json"
+        },
+        "json": {
+          "runtime": "geo-LCCN.json",
+          "generated": "data-generated/lcross-centaur/geo-LCCN.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-LCCN",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-LCCN.npz",
+          "generated": "data-generated/lcross-centaur/lunar-LCCN.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-LCCN-cheb.json",
+          "generated": "assets/lcross-centaur/data/lunar-LCCN-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-LCCN-meta.json",
+          "generated": "data-generated/lcross-centaur/lunar-LCCN-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-LCCN.json",
+          "generated": "data-generated/lcross-centaur/lunar-LCCN.json"
+        }
+      }
+    }
+  }
+}

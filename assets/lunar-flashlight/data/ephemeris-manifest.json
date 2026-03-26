@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "lunar-flashlight",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-LFL",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-LFL.npz",
+          "generated": "data-generated/lunar-flashlight/geo-LFL.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-LFL-cheb.json",
+          "generated": "assets/lunar-flashlight/data/geo-LFL-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-LFL-meta.json",
+          "generated": "data-generated/lunar-flashlight/geo-LFL-meta.json"
+        },
+        "json": {
+          "runtime": "geo-LFL.json",
+          "generated": "data-generated/lunar-flashlight/geo-LFL.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-LFL",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-LFL.npz",
+          "generated": "data-generated/lunar-flashlight/lunar-LFL.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-LFL-cheb.json",
+          "generated": "assets/lunar-flashlight/data/lunar-LFL-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-LFL-meta.json",
+          "generated": "data-generated/lunar-flashlight/lunar-LFL-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-LFL.json",
+          "generated": "data-generated/lunar-flashlight/lunar-LFL.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "lunar-prospector",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-LPRO",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-LPRO.npz",
+          "generated": "data-generated/lunar-prospector/geo-LPRO.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-LPRO-cheb.json",
+          "generated": "assets/lunar-prospector/data/geo-LPRO-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-LPRO-meta.json",
+          "generated": "data-generated/lunar-prospector/geo-LPRO-meta.json"
+        },
+        "json": {
+          "runtime": "geo-LPRO.json",
+          "generated": "data-generated/lunar-prospector/geo-LPRO.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-LPRO",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-LPRO.npz",
+          "generated": "data-generated/lunar-prospector/lunar-LPRO.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-LPRO-cheb.json",
+          "generated": "assets/lunar-prospector/data/lunar-LPRO-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-LPRO-meta.json",
+          "generated": "data-generated/lunar-prospector/lunar-LPRO-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-LPRO.json",
+          "generated": "data-generated/lunar-prospector/lunar-LPRO.json"
+        }
+      }
+    }
+  }
+}

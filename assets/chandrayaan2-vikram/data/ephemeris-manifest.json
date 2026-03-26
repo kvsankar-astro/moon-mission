@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "chandrayaan2-vikram",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-C2V",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-C2V.npz",
+          "generated": "data-generated/chandrayaan2-vikram/geo-C2V.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-C2V-cheb.json",
+          "generated": "assets/chandrayaan2-vikram/data/geo-C2V-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-C2V-meta.json",
+          "generated": "data-generated/chandrayaan2-vikram/geo-C2V-meta.json"
+        },
+        "json": {
+          "runtime": "geo-C2V.json",
+          "generated": "data-generated/chandrayaan2-vikram/geo-C2V.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-C2V",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-C2V.npz",
+          "generated": "data-generated/chandrayaan2-vikram/lunar-C2V.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-C2V-cheb.json",
+          "generated": "assets/chandrayaan2-vikram/data/lunar-C2V-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-C2V-meta.json",
+          "generated": "data-generated/chandrayaan2-vikram/lunar-C2V-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-C2V.json",
+          "generated": "data-generated/chandrayaan2-vikram/lunar-C2V.json"
+        }
+      }
+    }
+  }
+}

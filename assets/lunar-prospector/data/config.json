@@ -1,0 +1,148 @@
+{
+  "spacecraft_mnemonic": "LPRO",
+  "spacecraft_id": -25,
+  "mission_name": "Lunar Prospector",
+  "mission_name_short": "LPRO",
+  "mission_url": "http://lunarprospector.arc.nasa.gov/",
+  "mission_description": "Lunar Prospector Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, lunar, mission, moon, orbit, prospector",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Lunar Prospector - Orbit Animation",
+    "headerTitle": "Lunar Prospector",
+    "lockOnLabel": "Lunar Prospector",
+    "orbitLabel": "LPRO Orbit",
+    "descentOrbitLabel": "LPRO Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1998",
+    "start_month": "01",
+    "start_day": "07",
+    "start_hour": "03",
+    "start_minute": "00",
+    "stop_year": "1998",
+    "stop_month": "01",
+    "stop_day": "20",
+    "stop_hour": "00",
+    "stop_minute": "05",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LPRO"
+  },
+  "lunar": {
+    "start_year": "1998",
+    "start_month": "01",
+    "start_day": "07",
+    "start_hour": "03",
+    "start_minute": "00",
+    "stop_year": "1998",
+    "stop_month": "01",
+    "stop_day": "20",
+    "stop_hour": "00",
+    "stop_minute": "05",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LPRO"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1998",
+    "start_month": "01",
+    "start_day": "07",
+    "start_hour": "03",
+    "start_minute": "00",
+    "stop_year": "1998",
+    "stop_month": "01",
+    "stop_day": "07",
+    "stop_hour": "03",
+    "stop_minute": "00",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LPRO"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for LPRO."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1998-01-07T03:00:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "loi": {
+      "startTime": "1998-01-11T12:18:03Z",
+      "durationSeconds": 0,
+      "label": "LOI Arc Boundary",
+      "burnFlag": true,
+      "infoText": "Transfer to LOI segment boundary",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "lproDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LPRO"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1LPRO Data End",
+      "burnFlag": false,
+      "infoText": "LPRO Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "loi",
+      "now",
+      "lproDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "loi",
+      "now",
+      "lproDataEnd"
+    ]
+  }
+}

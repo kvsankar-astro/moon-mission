@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "kplo-danuri",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-KPLO",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-KPLO.npz",
+          "generated": "data-generated/kplo-danuri/geo-KPLO.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-KPLO-cheb.json",
+          "generated": "assets/kplo-danuri/data/geo-KPLO-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-KPLO-meta.json",
+          "generated": "data-generated/kplo-danuri/geo-KPLO-meta.json"
+        },
+        "json": {
+          "runtime": "geo-KPLO.json",
+          "generated": "data-generated/kplo-danuri/geo-KPLO.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-KPLO",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-KPLO.npz",
+          "generated": "data-generated/kplo-danuri/lunar-KPLO.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-KPLO-cheb.json",
+          "generated": "assets/kplo-danuri/data/lunar-KPLO-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-KPLO-meta.json",
+          "generated": "data-generated/kplo-danuri/lunar-KPLO-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-KPLO.json",
+          "generated": "data-generated/kplo-danuri/lunar-KPLO.json"
+        }
+      }
+    }
+  }
+}

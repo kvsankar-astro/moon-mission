@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "grail-b-flow",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-GRAB",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-GRAB.npz",
+          "generated": "data-generated/grail-b-flow/geo-GRAB.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-GRAB-cheb.json",
+          "generated": "assets/grail-b-flow/data/geo-GRAB-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-GRAB-meta.json",
+          "generated": "data-generated/grail-b-flow/geo-GRAB-meta.json"
+        },
+        "json": {
+          "runtime": "geo-GRAB.json",
+          "generated": "data-generated/grail-b-flow/geo-GRAB.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-GRAB",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-GRAB.npz",
+          "generated": "data-generated/grail-b-flow/lunar-GRAB.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-GRAB-cheb.json",
+          "generated": "assets/grail-b-flow/data/lunar-GRAB-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-GRAB-meta.json",
+          "generated": "data-generated/grail-b-flow/lunar-GRAB-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-GRAB.json",
+          "generated": "data-generated/grail-b-flow/lunar-GRAB.json"
+        }
+      }
+    }
+  }
+}

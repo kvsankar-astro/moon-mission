@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "slim",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-SLIM",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-SLIM.npz",
+          "generated": "data-generated/slim/geo-SLIM.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-SLIM-cheb.json",
+          "generated": "assets/slim/data/geo-SLIM-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-SLIM-meta.json",
+          "generated": "data-generated/slim/geo-SLIM-meta.json"
+        },
+        "json": {
+          "runtime": "geo-SLIM.json",
+          "generated": "data-generated/slim/geo-SLIM.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-SLIM",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-SLIM.npz",
+          "generated": "data-generated/slim/lunar-SLIM.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-SLIM-cheb.json",
+          "generated": "assets/slim/data/lunar-SLIM-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-SLIM-meta.json",
+          "generated": "data-generated/slim/lunar-SLIM-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-SLIM.json",
+          "generated": "data-generated/slim/lunar-SLIM.json"
+        }
+      }
+    }
+  }
+}

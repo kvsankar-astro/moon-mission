@@ -1,0 +1,148 @@
+{
+  "spacecraft_mnemonic": "A9S",
+  "spacecraft_id": -399090,
+  "mission_name": "Apollo 9 S-IVB",
+  "mission_name_short": "A9S",
+  "mission_url": "",
+  "mission_description": "Apollo 9 S-IVB Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "9, animation, apollo, ivb, mission, moon, orbit, s",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Apollo 9 S-IVB - Orbit Animation",
+    "headerTitle": "Apollo 9 S-IVB",
+    "lockOnLabel": "Apollo 9 S-IVB",
+    "orbitLabel": "A9S Orbit",
+    "descentOrbitLabel": "A9S Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1969",
+    "start_month": "03",
+    "start_day": "03",
+    "start_hour": "23",
+    "start_minute": "38",
+    "stop_year": "1969",
+    "stop_month": "03",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "05",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-A9S"
+  },
+  "lunar": {
+    "start_year": "1969",
+    "start_month": "03",
+    "start_day": "03",
+    "start_hour": "23",
+    "start_minute": "38",
+    "stop_year": "1969",
+    "stop_month": "03",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "05",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-A9S"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1969",
+    "start_month": "03",
+    "start_day": "03",
+    "start_hour": "23",
+    "start_minute": "38",
+    "stop_year": "1969",
+    "stop_month": "03",
+    "stop_day": "03",
+    "stop_hour": "23",
+    "stop_minute": "38",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-A9S"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for A9S."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1969-03-03T16:00:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "arcStart": {
+      "startTime": "1969-03-03T23:38:00Z",
+      "durationSeconds": 0,
+      "label": "Departure Arc Start",
+      "burnFlag": false,
+      "infoText": "Start of reconstructed departure arc",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "a9sDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "A9S"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1A9S Data End",
+      "burnFlag": false,
+      "infoText": "A9S Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "arcStart",
+      "now",
+      "a9sDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "arcStart",
+      "now",
+      "a9sDataEnd"
+    ]
+  }
+}

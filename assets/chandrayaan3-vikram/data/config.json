@@ -1,0 +1,148 @@
+{
+  "spacecraft_mnemonic": "C3V",
+  "spacecraft_id": -158,
+  "mission_name": "Chandrayaan-3 Lander Vikram",
+  "mission_name_short": "C3V",
+  "mission_url": "https://www.isro.gov.in/Chandrayaan3_New.html",
+  "mission_description": "Chandrayaan-3 Lander Vikram Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "3, animation, chandrayaan, lander, mission, moon, orbit, vikram",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Chandrayaan-3 Lander Vikram - Orbit Animation",
+    "headerTitle": "Chandrayaan-3 Lander Vikram",
+    "lockOnLabel": "Chandrayaan-3 Lander Vikram",
+    "orbitLabel": "C3V Orbit",
+    "descentOrbitLabel": "C3V Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2023",
+    "start_month": "07",
+    "start_day": "14",
+    "start_hour": "09",
+    "start_minute": "25",
+    "stop_year": "2023",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "12",
+    "stop_minute": "31",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-C3V"
+  },
+  "lunar": {
+    "start_year": "2023",
+    "start_month": "07",
+    "start_day": "14",
+    "start_hour": "09",
+    "start_minute": "25",
+    "stop_year": "2023",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "12",
+    "stop_minute": "31",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-C3V"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2023",
+    "start_month": "07",
+    "start_day": "14",
+    "start_hour": "09",
+    "start_minute": "25",
+    "stop_year": "2023",
+    "stop_month": "07",
+    "stop_day": "14",
+    "stop_hour": "09",
+    "stop_minute": "25",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-C3V"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for C3V."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2023-07-14T09:05:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "softLanding": {
+      "startTime": "2023-08-23T12:32:00Z",
+      "durationSeconds": 0,
+      "label": "Soft Landing",
+      "burnFlag": false,
+      "infoText": "Soft landing at Shiv Shakti Point",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "c3vDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "C3V"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1C3V Data End",
+      "burnFlag": false,
+      "infoText": "C3V Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "softLanding",
+      "now",
+      "c3vDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "softLanding",
+      "now",
+      "c3vDataEnd"
+    ]
+  }
+}
