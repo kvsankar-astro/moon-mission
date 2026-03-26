@@ -145,6 +145,7 @@
             background: rgba(16, 24, 46, 0.92);
             color: #dde6ff;
             transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            cursor: pointer;
         }
 
         .landing-card:hover {
@@ -177,6 +178,34 @@
             color: #aebcdf;
             font-size: 13px;
             line-height: 1.35;
+        }
+
+        .landing-card__actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .landing-card__btn {
+            border: 1px solid #334673;
+            color: #d3ddf5;
+            background: rgba(16, 26, 51, 0.95);
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .landing-card__btn--launch {
+            background: rgba(22, 36, 66, 0.95);
+            color: #d9e6ff;
+            border-color: #456498;
+        }
+
+        .landing-card__btn:hover {
+            border-color: #5f7eb4;
         }
 
         .landing-summary {
@@ -227,9 +256,9 @@
         .landing-table th:nth-child(2),
         .landing-table td:nth-child(2) { width: 8%; }
         .landing-table th:nth-child(3),
-        .landing-table td:nth-child(3) { width: 8%; }
+        .landing-table td:nth-child(3) { width: 7%; }
         .landing-table th:nth-child(4),
-        .landing-table td:nth-child(4) { width: 7%; }
+        .landing-table td:nth-child(4) { width: 6%; }
         .landing-table th:nth-child(5),
         .landing-table td:nth-child(5),
         .landing-table th:nth-child(6),
@@ -241,13 +270,13 @@
         .landing-table th:nth-child(9),
         .landing-table td:nth-child(9),
         .landing-table th:nth-child(10),
-        .landing-table td:nth-child(10) { width: 9%; }
+        .landing-table td:nth-child(10) { width: 8%; }
         .landing-table th:nth-child(11),
-        .landing-table td:nth-child(11) { width: 5%; }
+        .landing-table td:nth-child(11) { width: 4%; }
         .landing-table th:nth-child(12),
         .landing-table td:nth-child(12) { width: 3%; }
         .landing-table th:nth-child(13),
-        .landing-table td:nth-child(13) { width: 2%; }
+        .landing-table td:nth-child(13) { width: 11%; }
 
         .landing-table th,
         .landing-table td {
@@ -278,6 +307,25 @@
             font-weight: 600;
         }
 
+        .landing-table-actions-cell {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            overflow: visible;
+        }
+
+        .landing-table-action {
+            border: 1px solid #31456e;
+            color: #d3ddf5;
+            background: rgba(17, 27, 52, 0.95);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         .landing-timeline-group {
             margin-bottom: 14px;
             border-left: 2px solid #2f4376;
@@ -297,6 +345,12 @@
             gap: 8px;
         }
 
+        .landing-timeline-chip-wrap {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+
         .landing-timeline-chip {
             display: inline-block;
             text-decoration: none;
@@ -306,6 +360,231 @@
             color: #dce6ff;
             font-size: 12px;
             padding: 6px 10px;
+            cursor: pointer;
+        }
+
+        .landing-timeline-chip-launch {
+            display: inline-block;
+            border: 1px solid #35508f;
+            border-radius: 999px;
+            background: rgba(17, 29, 57, 0.95);
+            color: #8db9ff;
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 5px 8px;
+        }
+
+        .landing-brief-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 8, 21, 0.58);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease;
+            z-index: 1200;
+        }
+
+        .landing-brief-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: min(680px, 94vw);
+            height: 100vh;
+            background: rgba(8, 15, 32, 0.98);
+            border-left: 1px solid #2c3b63;
+            box-shadow: -16px 0 40px rgba(5, 10, 24, 0.65);
+            transform: translateX(104%);
+            transition: transform 0.2s ease;
+            z-index: 1201;
+            overflow-y: auto;
+            padding: 18px 18px 20px 18px;
+            box-sizing: border-box;
+        }
+
+        .landing-brief-panel.is-open {
+            transform: translateX(0);
+        }
+
+        .landing-brief-overlay.is-open {
+            opacity: 1;
+            pointer-events: none;
+        }
+
+        .landing-brief-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .landing-brief-title {
+            margin: 0;
+            font-size: 22px;
+            color: #ecf2ff;
+        }
+
+        .landing-brief-close {
+            border: 1px solid #334871;
+            background: rgba(21, 33, 61, 0.95);
+            color: #d5def5;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .landing-brief-meta {
+            margin: 0 0 12px 0;
+            font-size: 12px;
+            color: #9db0d9;
+        }
+
+        .landing-brief-hero {
+            margin: 0 0 8px 0;
+            border: 1px solid #2a3a63;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(12, 20, 40, 0.95);
+        }
+
+        .landing-brief-hero img {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: 250px;
+            object-fit: cover;
+        }
+
+        .landing-brief-attribution {
+            margin: 0 0 14px 0;
+            font-size: 11px;
+            color: #9eb1db;
+            line-height: 1.35;
+        }
+
+        .landing-brief-section-title {
+            margin: 0 0 6px 0;
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8ea6d6;
+        }
+
+        .landing-brief-summary {
+            margin: 0 0 14px 0;
+            font-size: 14px;
+            line-height: 1.45;
+            color: #dbe5ff;
+        }
+
+        .landing-brief-highlights {
+            margin: 0 0 14px 0;
+            padding-left: 18px;
+            color: #cfdbf8;
+            font-size: 13px;
+            line-height: 1.38;
+        }
+
+        .landing-brief-source {
+            margin: 0 0 14px 0;
+            font-size: 12px;
+            color: #9eb0d8;
+            word-break: break-all;
+        }
+
+        .landing-brief-orbit-anim {
+            margin: 0 0 10px 0;
+            border: 1px solid #2c3d63;
+            border-radius: 10px;
+            background: rgba(9, 15, 31, 0.98);
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            color: #9bb0da;
+            font-size: 12px;
+            text-align: center;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+
+        .landing-brief-orbit-anim svg {
+            width: 100%;
+            max-width: 308px;
+            height: auto;
+            display: block;
+        }
+
+        .landing-brief-orbit-time {
+            display: block;
+            width: 100%;
+            margin-top: 6px;
+            color: #aec2e8;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-align: center;
+        }
+
+        .landing-brief-orbit-timeline {
+            width: 100%;
+            max-width: 308px;
+            padding: 2px 4px 0 4px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        .landing-brief-orbit-track {
+            position: relative;
+            width: 100%;
+            height: 2px;
+            border-radius: 999px;
+            background: rgba(124, 151, 198, 0.35);
+            overflow: visible;
+        }
+
+        .landing-brief-orbit-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0%;
+            border-radius: 999px;
+            background: rgba(248, 184, 75, 0.55);
+        }
+
+        .landing-brief-orbit-thumb {
+            position: absolute;
+            top: 50%;
+            left: 0%;
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            transform: translate(-50%, -50%);
+            background: #ffd67a;
+            border: 1px solid #fff2c8;
+            box-shadow: 0 0 8px rgba(255, 214, 122, 0.35);
+        }
+
+        .landing-brief-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            position: sticky;
+            bottom: 0;
+            padding-top: 10px;
+            background: linear-gradient(180deg, rgba(8, 15, 32, 0), rgba(8, 15, 32, 0.96) 36%);
+        }
+
+        .landing-brief-actions .landing-card__btn {
+            padding: 8px 12px;
+            font-size: 12px;
         }
 
         .landing-footer {
@@ -319,6 +598,7 @@
             .landing-shell { margin-top: 20px; padding: 14px; }
             .landing-title { font-size: 27px; }
             .landing-subtitle { font-size: 14px; }
+            .landing-brief-panel { width: 100vw; }
         }
     </style>
 </head>
@@ -365,6 +645,8 @@
         <div id="landing-view-root"></div>
 
     </div>
+    <div id="landing-brief-overlay" class="landing-brief-overlay" aria-hidden="true"></div>
+    <aside id="landing-brief-panel" class="landing-brief-panel" aria-hidden="true"></aside>
 
     <script src="src/platform/js/index-landing.js"></script>
 </body>
