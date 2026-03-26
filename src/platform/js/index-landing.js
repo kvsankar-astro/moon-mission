@@ -859,23 +859,65 @@
         var defaultSortFieldValue = sortField ? sortField.value : "title";
         var defaultSortOrderValue = sortOrder ? sortOrder.value : "asc";
         var activeBriefRow = null;
+        var activeBriefIndex = -1;
+        var activeBriefSequence = [];
         var activeBriefRequestId = 0;
         var stopBriefOrbitAnimation = null;
 
-        function buildBriefPanelContent(row, brief) {
+        function rowIdentity(row) {
+            return normalizeKey(
+                (row && row.folder) ||
+                (row && row.entry && row.entry.folder) ||
+                (row && row.entry && row.entry.key) ||
+                (row && row.title) ||
+                ""
+            );
+        }
+
+        function getBriefSequence() {
+            return (missionRows || []).slice().sort(function(a, b) {
+                return (a.index || 0) - (b.index || 0);
+            });
+        }
+
+        function findBriefIndex(sequence, row) {
+            if (!Array.isArray(sequence) || !sequence.length || !row) return -1;
+            var id = rowIdentity(row);
+            if (!id) return -1;
+            for (var i = 0; i < sequence.length; i += 1) {
+                if (rowIdentity(sequence[i]) === id) return i;
+            }
+            return -1;
+        }
+
+        function buildBriefPanelContent(row, brief, currentIndex, totalCount) {
             var image = brief && brief.image ? brief.image : null;
             var summary = asTrimmedString(brief && brief.summary);
             var highlights = Array.isArray(brief && brief.highlights) ? brief.highlights : [];
             var safeTitle = escapeHtml(row.title);
             var safeCountry = escapeHtml(row.country);
             var safeRange = escapeHtml(row.rangeLabel);
+            var safeCounter = (Number.isFinite(currentIndex) ? (currentIndex + 1) : 1) + " / " + (totalCount || 1);
+            var hasPilotPreview = normalizeKey(row.folder) === "chandrayaan3";
 
             var html = "";
             html += "<div class=\"landing-brief-header\">";
+            html += "<div class=\"landing-brief-header-left\">";
             html += "<h2 class=\"landing-brief-title\">" + safeTitle + "</h2>";
+            html += "<p class=\"landing-brief-meta\">" + (flagForCountry(row.country) ? (flagForCountry(row.country) + " ") : "") + safeCountry + " • " + safeRange + "</p>";
+            html += "</div>";
+            html += "<div class=\"landing-brief-header-right\">";
+            html += "<span class=\"landing-brief-counter\">" + escapeHtml(safeCounter) + "</span>";
+            html += "<div class=\"landing-brief-nav\">";
+            html += "<button type=\"button\" class=\"landing-brief-nav-btn\" data-brief-nav=\"-1\" aria-label=\"Previous mission\">← Prev</button>";
+            html += "<button type=\"button\" class=\"landing-brief-nav-btn\" data-brief-nav=\"1\" aria-label=\"Next mission\">Next →</button>";
+            html += "</div>";
             html += "<button type=\"button\" class=\"landing-brief-close\" id=\"landing-brief-close\" aria-label=\"Close brief\">×</button>";
             html += "</div>";
-            html += "<p class=\"landing-brief-meta\">" + (flagForCountry(row.country) ? (flagForCountry(row.country) + " ") : "") + safeCountry + " • " + safeRange + "</p>";
+            html += "</div>";
+
+            html += "<div class=\"landing-brief-body\">";
+            html += "<section class=\"landing-brief-col landing-brief-col--text\">";
 
             if (image && asTrimmedString(image.url)) {
                 html += "<figure class=\"landing-brief-hero\">";
@@ -909,28 +951,39 @@
                 html += " • <a href=\"" + escapeHtml(brief.sourceUrl) + "\" target=\"_blank\" rel=\"noopener noreferrer\">" + escapeHtml(brief.sourceUrl) + "</a>";
             }
             html += "</p>";
+            html += "</section>";
 
-            if (normalizeKey(row.folder) === "chandrayaan3") {
-                html += "<p class=\"landing-brief-section-title\">Orbit Preview (Pilot)</p>";
+            html += "<section class=\"landing-brief-col landing-brief-col--viz\">";
+            html += "<p class=\"landing-brief-section-title\">Orbit Preview (Pilot)</p>";
+            if (hasPilotPreview) {
                 html += "<div id=\"landing-brief-orbit-anim\" class=\"landing-brief-orbit-anim\">Loading 2D XY transfer preview...</div>";
                 html += "<p class=\"landing-brief-attribution\">Scale: square view with side = 2.6 × Earth-Moon radius (Earth-centered).</p>";
+            } else {
+                html += "<div class=\"landing-brief-orbit-empty\">Orbit animation preview is currently available for Chandrayaan 3 in this pilot version.</div>";
             }
+            html += "</section>";
+            html += "</div>";
 
             html += "<div class=\"landing-brief-actions\">";
+            html += "<div class=\"landing-brief-actions-left\">";
+            html += "<button type=\"button\" class=\"landing-card__btn landing-brief-nav-btn\" data-brief-nav=\"-1\">← Prev</button>";
+            html += "<button type=\"button\" class=\"landing-card__btn landing-brief-nav-btn\" data-brief-nav=\"1\">Next →</button>";
+            html += "</div>";
+            html += "<div class=\"landing-brief-actions-right\">";
             html += "<button type=\"button\" class=\"landing-card__btn\" id=\"landing-brief-close-footer\">Close</button>";
             html += "<a class=\"landing-card__btn landing-card__btn--launch\" href=\"" + escapeHtml(row.href) + "\">Launch Animation</a>";
+            html += "</div>";
             html += "</div>";
             return html;
         }
 
         function mountBriefOrbitAnimation(row) {
-            var host = document.getElementById("landing-brief-orbit-anim");
-            if (!host) return;
-
             if (typeof stopBriefOrbitAnimation === "function") {
                 stopBriefOrbitAnimation();
                 stopBriefOrbitAnimation = null;
             }
+            var host = document.getElementById("landing-brief-orbit-anim");
+            if (!host) return;
 
             fetchOrbitPreviewData(row).then(function(preview) {
                 if (!preview || !host.isConnected) {
@@ -1169,6 +1222,8 @@
         function closeMissionBrief(options) {
             var opts = options || {};
             activeBriefRow = null;
+            activeBriefIndex = -1;
+            activeBriefSequence = [];
             if (typeof stopBriefOrbitAnimation === "function") {
                 stopBriefOrbitAnimation();
                 stopBriefOrbitAnimation = null;
@@ -1187,9 +1242,44 @@
             }
         }
 
-        function openMissionBrief(row) {
+        function navigateBrief(delta) {
+            if (!Array.isArray(activeBriefSequence) || !activeBriefSequence.length || !Number.isFinite(activeBriefIndex)) return;
+            var total = activeBriefSequence.length;
+            var nextIndex = (activeBriefIndex + delta + total) % total;
+            var nextRow = activeBriefSequence[nextIndex];
+            if (!nextRow) return;
+            openMissionBrief(nextRow, { sequence: activeBriefSequence, index: nextIndex });
+        }
+
+        function bindBriefControls() {
+            var closeBtn = document.getElementById("landing-brief-close");
+            if (closeBtn) {
+                closeBtn.addEventListener("click", function() { closeMissionBrief(); });
+            }
+            var closeFooterBtn = document.getElementById("landing-brief-close-footer");
+            if (closeFooterBtn) {
+                closeFooterBtn.addEventListener("click", function() { closeMissionBrief(); });
+            }
+            var navButtons = briefPanel ? Array.from(briefPanel.querySelectorAll("[data-brief-nav]")) : [];
+            navButtons.forEach(function(button) {
+                button.addEventListener("click", function() {
+                    var delta = parseInt(button.getAttribute("data-brief-nav"), 10);
+                    if (delta === -1 || delta === 1) navigateBrief(delta);
+                });
+            });
+        }
+
+        function openMissionBrief(row, options) {
+            var opts = options || {};
             if (!row || !briefPanel || !briefOverlay) return;
-            activeBriefRow = row;
+            var sequence = Array.isArray(opts.sequence) && opts.sequence.length ? opts.sequence : getBriefSequence();
+            var nextIndex = Number.isFinite(opts.index) ? opts.index : findBriefIndex(sequence, row);
+            if (nextIndex < 0 && sequence.length) nextIndex = 0;
+            var resolvedRow = sequence[nextIndex] || row;
+
+            activeBriefSequence = sequence;
+            activeBriefIndex = nextIndex;
+            activeBriefRow = resolvedRow;
             var requestId = activeBriefRequestId + 1;
             activeBriefRequestId = requestId;
 
@@ -1198,21 +1288,14 @@
             briefOverlay.setAttribute("aria-hidden", "false");
             briefPanel.setAttribute("aria-hidden", "false");
             document.body.style.overflow = "hidden";
-            updateBriefQuery(row);
+            updateBriefQuery(resolvedRow);
 
             briefPanel.innerHTML = "<p class=\"landing-brief-summary\">Loading mission brief...</p>";
-            fetchMissionBrief(row).then(function(brief) {
+            fetchMissionBrief(resolvedRow).then(function(brief) {
                 if (requestId !== activeBriefRequestId) return;
-                briefPanel.innerHTML = buildBriefPanelContent(row, brief);
-                mountBriefOrbitAnimation(row);
-                var closeBtn = document.getElementById("landing-brief-close");
-                if (closeBtn) {
-                    closeBtn.addEventListener("click", function() { closeMissionBrief(); });
-                }
-                var closeFooterBtn = document.getElementById("landing-brief-close-footer");
-                if (closeFooterBtn) {
-                    closeFooterBtn.addEventListener("click", function() { closeMissionBrief(); });
-                }
+                briefPanel.innerHTML = buildBriefPanelContent(resolvedRow, brief, activeBriefIndex, activeBriefSequence.length || 1);
+                mountBriefOrbitAnimation(resolvedRow);
+                bindBriefControls();
             });
         }
 
@@ -1224,6 +1307,17 @@
         document.addEventListener("keydown", function(event) {
             if (event.key === "Escape") {
                 closeMissionBrief();
+                return;
+            }
+            if (!briefPanel || !briefPanel.classList.contains("is-open")) return;
+            if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                navigateBrief(-1);
+                return;
+            }
+            if (event.key === "ArrowRight") {
+                event.preventDefault();
+                navigateBrief(1);
             }
         });
 
