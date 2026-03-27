@@ -12,6 +12,13 @@
 - Tooling: `scripts/` (Python data/build/deploy utilities).
 - Tests: `test/` (Vitest + Playwright UI tests, screenshot baselines).
 
+## Data Repo Boundary
+
+- Runtime app code, mission config, and UI assets are worked on in this repo.
+- Generated ephemeris artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, and `*-meta.json` are tracked in the sibling repo `../moon-mission-data`, not here.
+- If you regenerate orbit/ephemeris files locally while working in `moon-mission`, sync and commit those generated files in `moon-mission-data`.
+- Do not assume a regenerated file under `assets/<mission>/data/` in this repo is tracked here; verify with `git ls-files` before committing.
+
 ## Build, Test, and Development Commands
 
 - `npm install` — install JS dependencies.
