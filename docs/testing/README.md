@@ -11,12 +11,12 @@ This repository uses Vitest + Playwright with three complementary suites.
 ## Test Suites
 
 - **UI + visual regression** (`test/ui.test.js`)
-  - Primary CY3 end-to-end coverage (Earth/Moon, 2D/3D, camera/view interactions, full-run snapshots).
+  - Primary CH3 end-to-end coverage (Earth/Moon, 2D/3D, camera/view interactions, full-run snapshots).
   - Uses SSIM-based image comparisons against tracked baselines.
   - Writes latest SSIM scores and reports SSIM drift against committed history.
 
 - **Cross-mission smoke** (`test/mission-smoke.test.js`)
-  - Functional smoke checks for non-CY3 missions (`a10`, `a11`, `cy2`) across origin/dimension combinations.
+  - Functional smoke checks for non-CH3 missions (`a10`, `a11`, `cy2`) across origin/dimension combinations.
   - Verifies load/runtime health and absence of console/page errors.
   - No screenshot baselines.
 

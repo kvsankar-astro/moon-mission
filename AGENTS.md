@@ -6,7 +6,7 @@
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.
 - Mission content: `assets/<mission>/`
-  - `data/` (`config.json`, `*-cheb.json`, `*-meta.json`)
+  - `data/` (`config.json`, `ephemeris-manifest.json`; staged runtime data may also include `*-cheb.json`, `*-meta.json`, `*-style.json`)
   - `models/`, `images/`, optional `js/`, `html/`
 - Shared media: `images/` (Earth/Moon/sky textures), `third-party/` (vendored libs).
 - Tooling: `scripts/` (Python data/build/deploy utilities).
@@ -15,7 +15,7 @@
 ## Data Repo Boundary
 
 - Runtime app code, mission config, and UI assets are worked on in this repo.
-- Generated ephemeris artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, and `*-meta.json` are tracked in the sibling repo `../moon-mission-data`, not here.
+- Generated ephemeris artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and authored orbit-style sidecars like `geo-style.json` / `lunar-style.json` are tracked in the sibling repo `../moon-mission-data`, not here.
 - If you regenerate orbit/ephemeris files locally while working in `moon-mission`, sync and commit those generated files in `moon-mission-data`.
 - Do not assume a regenerated file under `assets/<mission>/data/` in this repo is tracked here; verify with `git ls-files` before committing.
 

@@ -70,11 +70,13 @@ Relative mode stays on `geo` as the base origin but swaps orbit data source:
 
 - In `init-config-scene-setup.js`, geo orbit URLs are replaced with:
   - `relative-<SPACECRAFT>-cheb.json`
+- Additional craft series can be merged from craft-specific relative support files when needed.
 
 Additional runtime adjustments:
 
 - Moon state is represented in relative coordinates as `(distance, 0, 0)` with radial velocity `(dr/dt, 0, 0)` in `scene-state.js`.
-- Sun direction is rotated into the same relative frame for consistent lighting in `scene-state.js`.
+- Sun direction is rotated into the same relative frame for consistent lighting in `scene-state.js` when the loaded Sun series is inertial.
+- If the primary relative file already carries relative-frame Sun vectors, runtime detects that and avoids rotating them a second time.
 
 ## Data Generation
 
@@ -82,11 +84,17 @@ Relative files are produced by `scripts/generate-relative-orbits.py`.
 
 Inputs:
 - Geocentric NPZ from `data-generated/<mission>/<geo-orbits-file>.npz`
-- `SC_vectors` and `MOON_vectors` from that NPZ
+- multi-body `*_vectors` from that NPZ (or from a body-keyed Chebyshev source)
 
 Outputs:
 - `assets/<mission>/data/relative-<SPACECRAFT>-cheb.json`
 - Intermediate debug NPZ: `data-generated/<mission>/relative-<SPACECRAFT>.npz`
+
+Current generator behavior:
+- emits a multi-body relative file when source data is available
+- includes the primary craft plus any additional craft bodies present in the source
+- includes `MOON`, `SUN`, and `FRAME_ROT` when available
+- still writes `SC` as a compatibility alias for the primary craft
 
 Velocity note:
 - Relative Chebyshev is fit on rotated positions.
@@ -117,4 +125,4 @@ mission.html?mission=<id>&mode=relative
 - `assets/apollo11-sivb/data/relative-SIVB-cheb.json`
 - `assets/artemis1/data/relative-ORION-cheb.json`
 - `assets/chandrayaan2/data/relative-CY2-cheb.json`
-- `assets/chandrayaan3/data/relative-CY3-cheb.json`
+- `assets/chandrayaan3/data/relative-CH3L-cheb.json`

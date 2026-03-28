@@ -21,6 +21,7 @@ I created this animation for educational purposes. It has the following features
 * Real-world orbit data and predictions based on information available from JPL/NASA HORIZONS interface
 * Rendering of the orbit in 2D and 3D
 * Rendering with Earth-centered, Moon-centered, and Earth-Moon relative-frame origins
+* Multi-craft missions with per-craft styling, visibility pills, and per-craft timeline spans
 * Camera from/to controls for mounted viewpoints (spacecraft, Earth, Moon)
 * Views aligned with J2000 reference axes
 * Information on all earth bound and moon bound maneuvers (engine burns)
@@ -29,6 +30,7 @@ I created this animation for educational purposes. It has the following features
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
 * A Joy Ride feature which lets you fly along with the spacecraft
 * Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
+* Selectable orbit styles (`Trail` and `Classic`) with background-loaded style sidecars for authored missions such as CH3
 * Mission brief panels with authored Mission and HORIZONS Data text, programmatic timeline bars, a pilot orbit preview, and curated CC BY-SA image carousels
 
 ## Run locally
@@ -111,7 +113,7 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
-CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, and optional `.npz` / `*-meta.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
+CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, optional `.npz` / `*-meta.json`, and orbit-style sidecars such as `geo-style.json` / `lunar-style.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
 
 By default workflows use:
 

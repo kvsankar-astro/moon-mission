@@ -46,7 +46,30 @@ Key fields used by runtime:
 
 ```json
 {
-  "spacecraft_mnemonic": "CY3",
+  "spacecraft_mnemonic": "CH3L",
+  "primaryCraftId": "CH3L",
+  "crafts": [
+    {
+      "id": "CH3O",
+      "mnemonic": "CH3O",
+      "spacecraft_id": -169,
+      "viewLabel": "Orbiter",
+      "primary": false,
+      "geo": { "orbits_file": "geo-CH3O" },
+      "lunar": { "orbits_file": "lunar-CH3O" },
+      "relative": { "orbits_file": "relative-CH3O" }
+    },
+    {
+      "id": "CH3L",
+      "mnemonic": "CH3L",
+      "spacecraft_id": -158,
+      "viewLabel": "Lander",
+      "primary": true,
+      "geo": { "orbits_file": "geo-CH3L" },
+      "lunar": { "orbits_file": "lunar-CH3L" },
+      "relative": { "orbits_file": "relative-CH3L" }
+    }
+  ],
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",
@@ -57,20 +80,25 @@ Key fields used by runtime:
   "origins": ["geo", "lunar"],
   "geo": {
     "center": "earth_center",
-    "orbits_file": "geo-CY3",
-    "planets": ["MOON", "SC"],
-    "step_size_in_seconds": 60
+    "orbits_file": "geo-CH3L",
+    "planets": ["MOON", "CH3O", "CH3L"],
+    "step_size_in_seconds": 60,
+    "orbit_style_file": "geo-style.json"
   },
   "lunar": {
     "center": "moon_center",
-    "orbits_file": "lunar-CY3",
-    "planets": ["SC", "EARTH"],
-    "step_size_in_seconds": 60
+    "orbits_file": "lunar-CH3L",
+    "planets": ["CH3O", "CH3L", "EARTH"],
+    "step_size_in_seconds": 60,
+    "orbit_style_file": "lunar-style.json"
+  },
+  "relative": {
+    "orbits_file": "relative-CH3L"
   },
   "landing": {
     "enabled": true,
-    "orbits_file": "landing-CY3",
-    "planets": ["SC"],
+    "orbits_file": "landing-CH3L",
+    "planets": ["CH3L"],
     "step_size_in_seconds": 1
   },
   "eventConfigs": {
@@ -81,8 +109,10 @@ Key fields used by runtime:
 ```
 
 Notes:
+- `crafts[]` is the current multi-craft shape. `primaryCraftId` drives default camera/telemetry/visibility, but runtime state is body-keyed.
 - `landing.center` controls landing rendering center.
 - Landing data may be staged for both origin frames (`landing-<ID>-geo-*`, `landing-<ID>-lunar-*`) even when only one origin is currently active.
+- `orbit_style_file` is optional and points to a compact authored sidecar loaded only for `Trail` orbit style.
 - Some UI fields (for example `ui.lockOnLabel`) remain as metadata/label config.
 
 ## Adding a Mission
@@ -137,13 +167,14 @@ Output patterns (per mission):
 - `geo-<ID>-sun-cheb.json` / `lunar-<ID>-sun-cheb.json` (when split)
 - `landing-<ID>-geo-cheb.json` / `landing-<ID>-lunar-cheb.json` (landing variants)
 - `relative-<ID>-cheb.json`
+- optional authored orbit-style sidecars such as `geo-style.json` / `lunar-style.json`
 
 Generated intermediate/reference products are typically under `data-generated/<mission>/` (`.npz`, `*-meta.json`, raw fetch artifacts).
 
 ## Relative Mode
 
 - URL driven: `mission.html?mission=<id>&mode=relative`
-- Runtime keeps Earth at origin, fixes Earth->Moon axis to +X, and samples a precomputed `relative-<ID>-cheb.json`.
+- Runtime keeps Earth at origin, fixes Earth->Moon axis to +X, and samples a precomputed multi-body `relative-<ID>-cheb.json`.
 - Primary docs: [relative-mode.md](relative-mode.md)
 
 ## Time Conventions
@@ -187,6 +218,7 @@ python scripts/stage-ephemeris-data.py \
 
 Stages:
 - required orbit artifacts from mission manifests
+- authored orbit-style sidecars referenced from mission config (`orbit_style_file`)
 - shared `images/`
 - mission screenshots `assets/*/images/`
 - optional `third-party/`

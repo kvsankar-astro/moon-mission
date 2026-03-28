@@ -20,3 +20,4 @@ This repository uses AI tooling for implementation, refactoring, debugging, and 
 - `AGENTS.md` - primary contributor/agent workflow and coding rules.
 - `CLAUDE.md` - Claude-oriented workflow notes.
 - `GEMINI.md` - Gemini-oriented workflow notes.
+- `moon-mission-data` - tracked source of truth for generated ephemeris and orbit-style sidecar data.

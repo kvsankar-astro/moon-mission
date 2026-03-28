@@ -46,6 +46,7 @@ python scripts/generate-relative-orbits.py --mission <mission>
 ```
 
 Runtime defaults currently use Chebyshev for all key bodies (`SC`, `MOON`, `EARTH`, `SUN`), with provider support still present for `npz` and `astronomy`.
+Multi-craft missions are supported through `crafts[]` in mission config, with CH3/CH2 as current proving cases.
 
 ## Landing brief notes
 
@@ -57,3 +58,4 @@ Runtime defaults currently use Chebyshev for all key bodies (`SC`, `MOON`, `EART
 
 - `.github/workflows/ci.yml` runs on push, pull request, and manual dispatch.
 - `.github/workflows/deploy.yml` and `.github/workflows/deploy-hostgator.yml` are manual-only deploy workflows.
+- Deploy/test staging pulls runtime data, including orbit-style sidecars, from `moon-mission-data`.

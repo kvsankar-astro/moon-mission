@@ -184,7 +184,7 @@ As a low-risk first step, we can keep the existing JSON data model and enable de
 Command:
 - `node scripts/bench-chebyshev-transport.js --rounds 60 --warmup 12`
 
-Representative results (`geo-CY3-cheb.json`):
+Representative results (`geo-CH3L-cheb.json`):
 - Size:
   - JSON: `997305 B`
   - JSON+gzip: `262018 B` (`-73.7%`)
@@ -197,7 +197,7 @@ Representative results (`geo-CY3-cheb.json`):
   - Flat F64 decode: `0.033 ms`
   - gzip -> Flat F64 decode: `0.631 ms`
 
-Representative results (`lunar-CY3-cheb.json`):
+Representative results (`lunar-CH3L-cheb.json`):
 - Size:
   - JSON: `1004189 B`
   - JSON+gzip: `260504 B` (`-74.1%`)

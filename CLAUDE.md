@@ -30,6 +30,7 @@ Do not use legacy paths like `assets/platform/js/*` in new changes.
 - Runtime supports `chebyshev`, `npz`, `astronomy` body sources.
 - Current mission configs are set to Chebyshev for `SC`, `MOON`, `EARTH`, and `SUN`.
 - Relative mode uses precomputed `relative-<ID>-cheb.json` and is enabled by URL `mode=relative`.
+- Multi-craft missions are supported via `crafts[]`, with CH3/CH2 as current examples.
 
 ## Testing quick reference
 
@@ -60,4 +61,4 @@ Deploy/test workflows stage runtime data from `kvsankar/moon-mission-data` (or r
 
 - `scripts/stage-ephemeris-data.py`
 
-Staged categories: orbit artifacts, shared images, mission screenshots, optional `third-party/`.
+Staged categories: orbit artifacts, orbit-style sidecars, shared images, mission screenshots, optional `third-party/`.
