@@ -15,6 +15,13 @@ import requests
 import json
 import re
 from datetime import datetime
+from pathlib import Path
+
+from horizons_text_cache import (
+    get_default_cache_dir,
+    read_cached_text,
+    write_cached_text,
+)
 
 # Test spacecraft IDs
 TEST_SPACECRAFT = {
@@ -24,6 +31,9 @@ TEST_SPACECRAFT = {
     'Artemis 1': -1023,
     'CAPSTONE': -1176,
 }
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+HORIZONS_TEXT_CACHE_DIR = get_default_cache_dir(PROJECT_ROOT)
 
 
 def fetch_blurb(spacecraft_id: int, name: str = None) -> dict:
@@ -52,10 +62,28 @@ def fetch_blurb(spacecraft_id: int, name: str = None) -> dict:
     print(f"{'='*60}")
 
     try:
-        response = requests.get(base_url, params=params, timeout=30)
-        response.raise_for_status()
-
-        content = response.text
+        cached_text = read_cached_text(
+            base_url=base_url,
+            params=params,
+            cache_dir=HORIZONS_TEXT_CACHE_DIR,
+        )
+        if cached_text is not None:
+            content = cached_text
+        else:
+            response = requests.get(base_url, params=params, timeout=30)
+            response.raise_for_status()
+            content = response.text
+            write_cached_text(
+                base_url=base_url,
+                params=params,
+                text=content,
+                cache_dir=HORIZONS_TEXT_CACHE_DIR,
+                extra_metadata={
+                    'spacecraft_id': spacecraft_id,
+                    'name': name or str(spacecraft_id),
+                    'kind': 'explore_blurb',
+                },
+            )
 
         return {
             'spacecraft_id': spacecraft_id,

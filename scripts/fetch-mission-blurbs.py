@@ -34,6 +34,11 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any
 
 import requests
+from horizons_text_cache import (
+    get_default_cache_dir,
+    read_cached_text,
+    write_cached_text,
+)
 
 
 # Known lunar missions with HORIZONS data
@@ -82,6 +87,9 @@ KNOWN_LUNAR_MISSIONS = [
     # KARI - South Korea
     ("KPLO Danuri", -155, "Orbiter", "KARI", 2022),
 ]
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+HORIZONS_TEXT_CACHE_DIR = get_default_cache_dir(PROJECT_ROOT)
 
 
 @dataclass
@@ -133,6 +141,15 @@ def fetch_blurb(spacecraft_id: int, name: str = None) -> Optional[str]:
     display_name = name or str(spacecraft_id)
     print(f"  Fetching: {display_name} (ID: {spacecraft_id})...", end=" ", flush=True)
 
+    cached_text = read_cached_text(
+        base_url=base_url,
+        params=params,
+        cache_dir=HORIZONS_TEXT_CACHE_DIR,
+    )
+    if cached_text is not None:
+        print(f"CACHED ({len(cached_text)} chars)")
+        return cached_text
+
     try:
         response = requests.get(base_url, params=params, timeout=30)
         response.raise_for_status()
@@ -141,6 +158,17 @@ def fetch_blurb(spacecraft_id: int, name: str = None) -> Optional[str]:
             print(f"NOT FOUND (ID {spacecraft_id} not in HORIZONS)")
             return None
 
+        write_cached_text(
+            base_url=base_url,
+            params=params,
+            text=response.text,
+            cache_dir=HORIZONS_TEXT_CACHE_DIR,
+            extra_metadata={
+                "spacecraft_id": spacecraft_id,
+                "name": display_name,
+                "kind": "obj_data_blurb",
+            },
+        )
         print(f"OK ({len(response.text)} chars)")
         return response.text
 

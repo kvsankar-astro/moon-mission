@@ -5,24 +5,13 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 INDEX_PATH = PROJECT_ROOT / "docs" / "horizons-blurbs" / "mission-index.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 SOURCING_DIR = PROJECT_ROOT / "docs" / "mission-sourcing"
-MAX_MISSION_DURATION_DAYS = 92
-TERMINAL_EVENT_KEYWORDS = (
-    "impact",
-    "landing",
-    "arrival",
-    "insertion",
-    "end",
-    "deorbit",
-    "touchdown",
-    "loi",
-)
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -63,71 +52,8 @@ def duration_days(start: datetime, end: datetime) -> float:
 
 
 def choose_step_seconds(days: float) -> int:
-    if days <= 120:
-        return 60
-    if days <= 730:
-        return 300
-    if days <= 3650:
-        return 1800
-    return 3600
-
-
-def clamp_end_datetime(start: datetime, end: datetime, max_days: int = MAX_MISSION_DURATION_DAYS) -> tuple[datetime, bool]:
-    max_end = start + timedelta(days=max_days)
-    if end > max_end:
-        return max_end, True
-    return end, False
-
-
-def is_terminal_event_token(text: str) -> bool:
-    token = (text or "").lower()
-    return any(keyword in token for keyword in TERMINAL_EVENT_KEYWORDS)
-
-
-def pick_interesting_window(
-    start_dt: datetime,
-    end_dt: datetime,
-    events: list[dict] | None,
-    max_days: int = MAX_MISSION_DURATION_DAYS,
-) -> tuple[datetime, datetime, bool, str]:
-    if end_dt <= start_dt:
-        return start_dt, end_dt, False, "degenerate"
-    if duration_days(start_dt, end_dt) <= max_days:
-        return start_dt, end_dt, False, "unchanged"
-
-    fixed_times: list[tuple[str, datetime]] = []
-    terminal_times: list[tuple[str, datetime]] = []
-    for event in events or []:
-        event_dt = parse_dt(event.get("time"))
-        if event_dt is None:
-            continue
-        event_key = event.get("key", "")
-        event_label = event.get("label", "")
-        fixed_times.append((event_key, event_dt))
-        if is_terminal_event_token(event_key) or is_terminal_event_token(event_label):
-            terminal_times.append((event_key, event_dt))
-
-    if terminal_times:
-        _, anchor = max(terminal_times, key=lambda item: item[1])
-        window_end = min(end_dt, anchor)
-        window_start = max(start_dt, window_end - timedelta(days=max_days))
-        if window_end <= window_start:
-            window_start = start_dt
-            window_end = min(end_dt, start_dt + timedelta(days=max_days))
-        return window_start, window_end, True, "terminal"
-
-    if fixed_times:
-        _, anchor = min(fixed_times, key=lambda item: item[1])
-        window_start = max(start_dt, anchor)
-        window_end = min(end_dt, window_start + timedelta(days=max_days))
-        if window_end <= window_start:
-            window_start = start_dt
-            window_end = min(end_dt, start_dt + timedelta(days=max_days))
-        return window_start, window_end, True, "earliest"
-
-    window_end = min(end_dt, start_dt + timedelta(days=max_days))
-    return start_dt, window_end, True, "fallback"
-
+    _ = days
+    return 60
 
 MISSIONS: list[dict] = [
     {
@@ -266,36 +192,6 @@ MISSIONS: list[dict] = [
         "sources": [
             "docs/horizons-blurbs/raw/lcross-centaur.txt: '18_lx091009c_centaur_impact 2009-Oct-09 01:50 2009-Oct-09 11:32'",
             "docs/horizons-blurbs/raw/lcross-centaur.txt: '* Centaur impact : 2009-Oct-09 11:31:19.506 UTC'",
-        ],
-    },
-    {
-        "slug": "grail-a-ebb",
-        "folder": "grail-a-ebb",
-        "mnemonic": "GRAA",
-        "start": "2011-Sep-10 00:00",
-        "end": "2012-Dec-17 00:00",
-        "launch": "2011-Sep-10 00:00",
-        "events": [
-            {"key": "impact", "time": "2012-Dec-17 22:29", "label": "Impact", "info": "End-of-mission impact window"},
-        ],
-        "sources": [
-            "docs/horizons-blurbs/raw/grail-a-ebb.txt: trajectory rows span 2011-Sep-10 through 2012-Dec-17",
-            "docs/horizons-blurbs/raw/grail-a-ebb.txt: impact noted for 2012 Dec 17",
-        ],
-    },
-    {
-        "slug": "grail-b-flow",
-        "folder": "grail-b-flow",
-        "mnemonic": "GRAB",
-        "start": "2011-Sep-10 00:00",
-        "end": "2012-Dec-17 00:00",
-        "launch": "2011-Sep-10 00:00",
-        "events": [
-            {"key": "impact", "time": "2012-Dec-17 22:30", "label": "Impact", "info": "End-of-mission impact window"},
-        ],
-        "sources": [
-            "docs/horizons-blurbs/raw/grail-b-flow.txt: trajectory rows span 2011-Sep-10 through 2012-Dec-17",
-            "docs/horizons-blurbs/raw/grail-b-flow.txt: impact noted for 2012 Dec 17",
         ],
     },
     {
@@ -533,21 +429,6 @@ def main() -> None:
         if launch_dt is None:
             launch_dt = start_dt
 
-        original_start_dt = start_dt
-        original_end_dt = end_dt
-        start_dt, end_dt, was_capped, cap_strategy = pick_interesting_window(
-            start_dt,
-            end_dt,
-            defn.get("events", []),
-            max_days=MAX_MISSION_DURATION_DAYS,
-        )
-        if was_capped:
-            print(
-                f"[{folder}] adjusted mission window ({cap_strategy}) to <= {MAX_MISSION_DURATION_DAYS} days: "
-                f"{start_dt.strftime('%Y-%m-%d %H:%M')} -> {end_dt.strftime('%Y-%m-%d %H:%M')} "
-                f"(original stop {original_end_dt.strftime('%Y-%m-%d %H:%M')})",
-            )
-
         step_seconds = choose_step_seconds(duration_days(start_dt, end_dt))
 
         start_parts = dt_parts(start_dt)
@@ -647,13 +528,7 @@ def main() -> None:
         (config_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
 
         source_lines = "\n".join(f"- {s}" for s in defn.get("sources", []))
-        cap_note = (
-            f"- Original trajectory window from source: `{original_start_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC` to `{original_end_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n"
-            f"- Selected interesting window strategy: `{cap_strategy}`; capped to `{MAX_MISSION_DURATION_DAYS}` days for pipeline/runtime constraints.\n"
-            if was_capped
-            else ""
-        )
-        sourcing_doc = f"""# {mission_name} ({folder}) sourcing\n\n## Mission Identity\n- Slug: `{slug}`\n- Folder: `assets/{folder}`\n- HORIZONS ID: `{spacecraft_id}`\n- Name source: `docs/horizons-blurbs/mission-index.json`\n\n## Time Window Used\n- Launch/reference start: `{launch_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data start: `{start_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data end: `{end_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Sampling step: `{step_seconds}` seconds\n{cap_note}\n## Primary Source References\n{source_lines}\n\n## Generated Files\n- `assets/{folder}/data/config.json`\n\n## Notes\n- Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.\n- Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.\n"""
+        sourcing_doc = f"""# {mission_name} ({folder}) sourcing\n\n## Mission Identity\n- Slug: `{slug}`\n- Folder: `assets/{folder}`\n- HORIZONS ID: `{spacecraft_id}`\n- Name source: `docs/horizons-blurbs/mission-index.json`\n\n## Time Window Used\n- Launch/reference start: `{launch_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data start: `{start_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data end: `{end_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Sampling step: `{step_seconds}` seconds\n\n## Primary Source References\n{source_lines}\n\n## Generated Files\n- `assets/{folder}/data/config.json`\n\n## Notes\n- Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.\n- Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.\n"""
         (SOURCING_DIR / f"{folder}.md").write_text(sourcing_doc, encoding="utf-8")
 
         generated.append(folder)

@@ -16,6 +16,11 @@ import numpy as np
 import shutil
 from pathlib import Path
 from ephemeris_manifest import ensure_manifest_file
+from horizons_text_cache import (
+    get_default_cache_dir,
+    read_cached_text,
+    write_cached_text,
+)
 
 # constants - ephemerides related
 
@@ -41,6 +46,9 @@ date = datetime.now().strftime('%Y%m%d%H%M%S')
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 data_dir = None  # Will be set based on mission
 debugging = True
+primary_spacecraft_body_token = None
+phase_spacecraft_body_token = None
+HORIZONS_TEXT_CACHE_DIR = get_default_cache_dir(project_root)
 
 def load_config(mission_name):
     """Load configuration from JSON file for specified mission."""
@@ -402,6 +410,19 @@ def fetch_horizons_data(planet, options):
     print_debug(f"url = {base_url}")
     print_debug(f"params = {params}")
 
+    cached_text = read_cached_text(
+        base_url=base_url,
+        params=params,
+        cache_dir=HORIZONS_TEXT_CACHE_DIR,
+    )
+    if cached_text is not None:
+        print_debug(
+            f"Using cached HORIZONS {content_key} for {planet} "
+            f"({len(cached_text)} characters)"
+        )
+        orbits_raw.setdefault(planet, {})[content_key] = cached_text
+        return True
+
     # Retry logic with exponential backoff
     max_retries = 3
     timeout_seconds = 300  # 5 minutes timeout for large data fetches
@@ -433,6 +454,19 @@ def fetch_horizons_data(planet, options):
                     return False
 
             orbits_raw.setdefault(planet, {})[content_key] = content_text
+            write_cached_text(
+                base_url=base_url,
+                params=params,
+                text=content_text,
+                cache_dir=HORIZONS_TEXT_CACHE_DIR,
+                extra_metadata={
+                    "planet": str(planet),
+                    "table_type": table_type,
+                    "content_key": content_key,
+                    "mission": mission or "",
+                    "phase": phase or "",
+                },
+            )
             return True
         except requests.Timeout:
             print_error(f"Request timed out (attempt {attempt + 1}/{max_retries})")
@@ -467,10 +501,6 @@ def fetch_vectors(planet):
     status = fetch_horizons_data(planet, options)
     print_debug(f"Fetching vectors for planet {planet} completed.")
     return status    
-
-import os
-
-# Cache functionality removed - data is always fetched fresh
 
 def parse_horizons_elements(code, planet):
     print_debug(f"Entering parse_horizons_elements: code = {code}, planet = {planet}")
