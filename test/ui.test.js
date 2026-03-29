@@ -719,10 +719,14 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
     await page.click('#dimension-3D');
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
+  await closeSettingsPanel(page);
+  await waitForScene(page);
+
+  await openSettingsPanel(page);
   await setCameraPair(page, cameraPair);
   await ensureFovOneDegree(page, true);
   await closeSettingsPanel(page);
-  await waitForScene(page);
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
 
 describe('Chandrayaan-3 UI Tests - Simplified', () => {
