@@ -39,13 +39,15 @@ function createTimelineDockController({
     const startLabel = document.getElementById("timeline-start-label");
     const endLabel = document.getElementById("timeline-end-label");
     const currentLabel = document.getElementById("timeline-current-label");
+    const craftStrip = document.getElementById("timeline-craft-strip");
 
-    if (!slider || !markers || !startLabel || !endLabel || !currentLabel) {
+    if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
         return {
             bind: () => {},
             setRange: () => {},
             setCurrentTime: () => {},
             setEvents: () => {},
+            setCrafts: () => {},
         };
     }
 
@@ -132,6 +134,29 @@ function createTimelineDockController({
         }
     }
 
+    function setCrafts(craftInfos) {
+        const normalizedCraftInfos = Array.isArray(craftInfos)
+            ? craftInfos.filter((craftInfo) => craftInfo && craftInfo.id && craftInfo.label)
+            : [];
+        if (normalizedCraftInfos.length <= 1) {
+            craftStrip.innerHTML = "";
+            craftStrip.classList.add("timeline-dock__craft-strip--hidden");
+            return;
+        }
+
+        craftStrip.classList.remove("timeline-dock__craft-strip--hidden");
+        craftStrip.innerHTML = "";
+        for (const craftInfo of normalizedCraftInfos) {
+            const chip = document.createElement("span");
+            chip.className = craftInfo.active
+                ? "timeline-dock__craft-chip timeline-dock__craft-chip--active"
+                : "timeline-dock__craft-chip";
+            chip.textContent = craftInfo.label;
+            chip.title = craftInfo.label;
+            craftStrip.appendChild(chip);
+        }
+    }
+
     function bind() {
         if (isBound) return;
         isBound = true;
@@ -155,6 +180,7 @@ function createTimelineDockController({
         setRange,
         setCurrentTime,
         setEvents,
+        setCrafts,
     };
 }
 

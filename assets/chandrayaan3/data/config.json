@@ -21,6 +21,8 @@
       "id": "CH3L",
       "mnemonic": "CH3",
       "spacecraft_id": -158,
+      "name": "Vikram",
+      "viewLabel": "Vikram",
       "primary": true,
       "aliases": ["SC"],
       "geo": {
@@ -40,6 +42,8 @@
       "id": "CH3O",
       "mnemonic": "CH3O",
       "spacecraft_id": -169,
+      "name": "Propulsion Module",
+      "viewLabel": "Propulsion Module",
       "primary": false,
       "geo": {
         "orbits_file": "geo-CH3O"

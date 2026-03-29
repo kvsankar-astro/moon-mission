@@ -29,6 +29,7 @@ import {
     getBodyEphemerisState,
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
+import { resolveMissionCraft } from "./core/domain/mission-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 import {
     DEFAULT_VIEW_STATE,
@@ -51,6 +52,10 @@ import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
 import { createTimelineDockController } from "./app/timeline-dock-controller.js";
+import {
+    getSceneActiveCraftId,
+    getSceneVisibleCraftIds,
+} from "./app/scene-craft-helpers.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -317,9 +322,10 @@ function syncTimelineDock() {
     if (!timelineDockController) return;
 
     const cfg = runtimeViewState.getConfig();
+    const scene = animationScenes[cfg];
     const stepDurationMs = Math.max(
         1,
-        Math.round(animationScenes[cfg]?.stepDurationInMilliSeconds || TC.ONE_MINUTE_MS),
+        Math.round(scene?.stepDurationInMilliSeconds || TC.ONE_MINUTE_MS),
     );
     const dockStartTime = Number.isFinite(startTime) ? startTime : 0;
     const rawDockEndTime = Number.isFinite(latestEndTime)
@@ -338,6 +344,24 @@ function syncTimelineDock() {
         timelineDockController.setEvents(eventInfos || []);
         lastTimelineEventsRef = eventInfos;
     }
+
+    const visibleCraftIds = getSceneVisibleCraftIds(scene, globalConfig);
+    const activeCraftId = getSceneActiveCraftId(scene, globalConfig);
+    timelineDockController.setCrafts(
+        visibleCraftIds.map((bodyId) => {
+            const craft = resolveMissionCraft(globalConfig, bodyId);
+            return {
+                id: bodyId,
+                label:
+                    craft?.viewLabel ||
+                    craft?.name ||
+                    craft?.mnemonic ||
+                    craft?.id ||
+                    bodyId,
+                active: bodyId === activeCraftId,
+            };
+        }),
+    );
 }
 
 function formatSpeedLabel(multiplier, isRealtime) {
@@ -674,7 +698,10 @@ const {
 
 toggleMode = missionRuntimeWireup.toggleMode;
 setDimensionTop = missionRuntimeWireup.setDimensionTop;
-setView = missionRuntimeWireup.setView;
+setView = function (...args) {
+    missionRuntimeWireup.setView(...args);
+    syncTimelineDock();
+};
 export { main };
 
 // Expose variables globally for testing

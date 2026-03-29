@@ -28,6 +28,7 @@
       "mnemonic": "CH2O",
       "spacecraft_id": -152,
       "name": "Chandrayaan 2 Orbiter",
+      "viewLabel": "Orbiter",
       "primary": false,
       "geo": {
         "orbits_file": "geo-SC"
@@ -44,6 +45,7 @@
       "mnemonic": "CH2L",
       "spacecraft_id": -153,
       "name": "Vikram",
+      "viewLabel": "Vikram",
       "primary": true,
       "aliases": ["SC"],
       "geo": {
