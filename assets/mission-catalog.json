@@ -112,50 +112,6 @@
       }
     },
     {
-      "key": "ch2-vikram",
-      "folder": "chandrayaan2-vikram",
-      "queryValue": "chandrayaan2-vikram",
-      "aliases": [
-        "chandrayaan2-vikram",
-        "c2v"
-      ],
-      "title": "Chandrayaan 2 Vikram",
-      "subtitle": "India - 2019",
-      "description": "Focused timeline for Vikram lander descent dynamics.",
-      "accent": "#f0a84d",
-      "country": "India",
-      "startYear": 2019,
-      "endYear": 2019,
-      "order": 40,
-      "dimensions": {
-        "missionType": "Lander",
-        "craftClass": "Lander",
-        "crewProfile": "Robotic"
-      }
-    },
-    {
-      "key": "ch3-vikram",
-      "folder": "chandrayaan3-vikram",
-      "queryValue": "chandrayaan3-vikram",
-      "aliases": [
-        "chandrayaan3-vikram",
-        "c3v"
-      ],
-      "title": "Chandrayaan 3 Vikram",
-      "subtitle": "India - 2023",
-      "description": "High-resolution timeline for Vikram landing sequence.",
-      "accent": "#f0a84d",
-      "country": "India",
-      "startYear": 2023,
-      "endYear": 2023,
-      "order": 50,
-      "dimensions": {
-        "missionType": "Lander",
-        "craftClass": "Lander",
-        "crewProfile": "Robotic"
-      }
-    },
-    {
       "key": "artemis1",
       "folder": "artemis1",
       "queryValue": "artemis1",

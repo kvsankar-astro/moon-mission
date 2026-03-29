@@ -10,9 +10,9 @@
   "ui": {
     "pageTitle": "ISRO's Chandrayaan 2 Mission 2019 - An Orbit Animation",
     "headerTitle": "Chandrayaan 2",
-    "lockOnLabel": "Chandrayaan 2",
-    "orbitLabel": "CH2 Orbit",
-    "descentOrbitLabel": "CH2 Descent Orbit"
+    "lockOnLabel": "Vikram",
+    "orbitLabel": "Vikram Orbit",
+    "descentOrbitLabel": "Vikram Descent Orbit"
   },
   "ephemeris_sources": {
     "SC": "chebyshev",
