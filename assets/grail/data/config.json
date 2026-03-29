@@ -1,0 +1,220 @@
+{
+  "spacecraft_mnemonic": "GRAA",
+  "spacecraft_id": -177,
+  "mission_name": "GRAIL",
+  "mission_name_short": "GRAIL",
+  "mission_url": "http://moon.mit.edu/",
+  "mission_description": "GRAIL Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, ebb, flow, grail, mission, moon, orbit, twin",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "primaryCraftId": "GRAA",
+  "crafts": [
+    {
+      "id": "GRAA",
+      "mnemonic": "GRAA",
+      "spacecraft_id": -177,
+      "name": "Ebb",
+      "viewLabel": "Ebb",
+      "primary": true,
+      "color": "#f59e0b",
+      "orbitcolor": "#38bdf8",
+      "geo": {
+        "orbits_file": "geo-GRAA"
+      },
+      "lunar": {
+        "orbits_file": "lunar-GRAA"
+      },
+      "relative": {
+        "orbits_file": "relative-GRAA"
+      }
+    },
+    {
+      "id": "GRAB",
+      "mnemonic": "GRAB",
+      "spacecraft_id": -181,
+      "name": "Flow",
+      "viewLabel": "Flow",
+      "primary": false,
+      "color": "#e11d48",
+      "orbitcolor": "#f472b6",
+      "geo": {
+        "orbits_file": "geo-GRAA"
+      },
+      "lunar": {
+        "orbits_file": "lunar-GRAA"
+      },
+      "relative": {
+        "orbits_file": "relative-GRAA"
+      }
+    }
+  ],
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "GRAIL Twin Spacecraft - Orbit Animation",
+    "headerTitle": "GRAIL",
+    "lockOnLabel": "Ebb",
+    "orbitLabel": "Ebb Orbit",
+    "descentOrbitLabel": "Ebb Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "relative": {
+    "orbits_file": "relative-GRAA"
+  },
+  "geo": {
+    "start_year": "2011",
+    "start_month": "09",
+    "start_day": "10",
+    "start_hour": "13",
+    "start_minute": "10",
+    "stop_year": "2012",
+    "stop_month": "01",
+    "stop_day": "02",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "GRAA",
+      "GRAB"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-GRAA"
+  },
+  "lunar": {
+    "start_year": "2011",
+    "start_month": "12",
+    "start_day": "31",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2012",
+    "stop_month": "03",
+    "stop_day": "01",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "GRAA",
+      "GRAB",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-GRAA"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2012",
+    "start_month": "09",
+    "start_day": "16",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2012",
+    "stop_month": "09",
+    "stop_day": "16",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "GRAA"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-GRAA"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for GRAIL."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2011-09-10T13:10:00Z",
+      "durationSeconds": 0,
+      "label": "Trajectory Start",
+      "burnFlag": false,
+      "infoText": "Start of post-launch trajectory coverage in HORIZONS",
+      "body": "GRAA"
+    },
+    "lunarPhaseStart": {
+      "startTime": "2011-12-31T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Moon Approach",
+      "burnFlag": false,
+      "infoText": "Start of the lunar-centered GRAIL timeline",
+      "body": "GRAA"
+    },
+    "ebbImpact": {
+      "startTime": "2012-12-17T22:29:00Z",
+      "durationSeconds": 0,
+      "label": "Ebb Impact",
+      "burnFlag": false,
+      "infoText": "End-of-mission impact window for Ebb",
+      "body": "GRAA"
+    },
+    "flowImpact": {
+      "startTime": "2012-12-17T22:30:00Z",
+      "durationSeconds": 0,
+      "label": "Flow Impact",
+      "burnFlag": false,
+      "infoText": "End-of-mission impact window for Flow",
+      "body": "GRAB"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "⏰ Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "graaDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "GRAA"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "🏁Ebb Data End",
+      "burnFlag": false,
+      "infoText": "Ebb Data End",
+      "body": ""
+    },
+    "grabDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "GRAB"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "🏁Flow Data End",
+      "burnFlag": false,
+      "infoText": "Flow Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "lunarPhaseStart",
+      "now"
+    ],
+    "lunar": [
+      "lunarPhaseStart",
+      "now"
+    ]
+  }
+}

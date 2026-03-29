@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "grail",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-GRAA",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-GRAA.npz",
+          "generated": "data-generated/grail/geo-GRAA.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-GRAA-cheb.json",
+          "generated": "assets/grail/data/geo-GRAA-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-GRAA-meta.json",
+          "generated": "data-generated/grail/geo-GRAA-meta.json"
+        },
+        "json": {
+          "runtime": "geo-GRAA.json",
+          "generated": "data-generated/grail/geo-GRAA.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-GRAA",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-GRAA.npz",
+          "generated": "data-generated/grail/lunar-GRAA.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-GRAA-cheb.json",
+          "generated": "assets/grail/data/lunar-GRAA-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-GRAA-meta.json",
+          "generated": "data-generated/grail/lunar-GRAA-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-GRAA.json",
+          "generated": "data-generated/grail/lunar-GRAA.json"
+        }
+      }
+    }
+  }
+}

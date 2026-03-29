@@ -353,7 +353,7 @@
     }
   ],
   "grail-ss-stage": [],
-  "grail-a-ebb": [
+  "grail": [
     {
       "url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/Animation_of_GRAIL-A_trajectory_around_Moon.gif",
       "sourceUrl": "https://commons.wikimedia.org/wiki/File:Animation_of_GRAIL-A_trajectory_around_Moon.gif",
@@ -371,7 +371,6 @@
       "kind": "trajectory diagram"
     }
   ],
-  "grail-b-flow": [],
   "ladee": [
     {
       "url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/Animation_of_LADEE_trajectory.gif",

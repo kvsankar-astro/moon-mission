@@ -441,46 +441,23 @@
       }
     },
     {
-      "key": "grail-a-ebb",
-      "folder": "grail-a-ebb",
-      "queryValue": "grail-a-ebb",
+      "key": "grail",
+      "folder": "grail",
+      "queryValue": "grail",
       "aliases": [
-        "grail-a-ebb",
-        "graa"
+        "grail"
       ],
-      "title": "GRAIL A Ebb",
+      "title": "GRAIL",
       "subtitle": "United States - 2012",
-      "description": "Twin-spacecraft gravity mission trajectory (Ebb).",
+      "description": "Twin-spacecraft gravity mission with Ebb and Flow.",
       "accent": "#4a90d9",
       "country": "United States",
       "startYear": 2012,
       "endYear": 2012,
       "order": 190,
       "dimensions": {
-        "missionType": "Orbiter",
-        "craftClass": "Orbiter",
-        "crewProfile": "Robotic"
-      }
-    },
-    {
-      "key": "grail-b-flow",
-      "folder": "grail-b-flow",
-      "queryValue": "grail-b-flow",
-      "aliases": [
-        "grail-b-flow",
-        "grab"
-      ],
-      "title": "GRAIL B Flow",
-      "subtitle": "United States - 2012",
-      "description": "Twin-spacecraft gravity mission trajectory (Flow).",
-      "accent": "#4a90d9",
-      "country": "United States",
-      "startYear": 2012,
-      "endYear": 2012,
-      "order": 200,
-      "dimensions": {
-        "missionType": "Orbiter",
-        "craftClass": "Orbiter",
+        "missionType": "Twin Orbiters",
+        "craftClass": "Multi-Craft",
         "crewProfile": "Robotic"
       }
     },
