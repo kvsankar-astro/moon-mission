@@ -1,5 +1,6 @@
 import {
     applySceneOrbitVisibility,
+    getSceneMissionCraftIds,
     setSceneVisibleCraftIds,
     shouldShowSceneCraft,
     syncSceneActiveCraft,
@@ -60,7 +61,11 @@ export function createSettingsActions({
             const scene = animationScenes[cfg];
             const nextVisibleCraftIds = Array.isArray(requestedView.visibleCraftIds)
                 ? requestedView.visibleCraftIds
-                : scene?.visibleCraftIds;
+                : requestedView.viewAdditionalCrafts === true
+                    ? getSceneMissionCraftIds(scene, globalConfig)
+                    : requestedView.viewAdditionalCrafts === false
+                        ? [requestedView.activeCraftId ?? scene?.activeCraftId ?? scene?.primaryCraftId].filter(Boolean)
+                        : scene?.visibleCraftIds;
             const view = {
                 ...requestedView,
                 activeCraftId: requestedView.activeCraftId ?? scene?.activeCraftId ?? scene?.primaryCraftId ?? null,

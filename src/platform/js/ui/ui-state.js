@@ -45,6 +45,7 @@ export function readOriginMode() {
 }
 
 const VIEW_SETTING_CHECKBOXES = {
+    viewAdditionalCrafts: "view-additional-crafts",
     viewOrbit: "view-orbit",
     viewOrbitDescent: "view-orbit-descent",
     viewCraters: "view-craters",
