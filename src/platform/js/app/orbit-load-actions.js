@@ -25,9 +25,20 @@ export function createOrbitLoadActions({
     onEphemerisStatus,
     loadProgress,
 }) {
-    function getChebyshevBodySeries(chebData, bodyId) {
+    function getChebyshevBodySeries(chebData, bodyId, primaryCraftId = null) {
         if (!chebData || !bodyId) return null;
         if (chebData[bodyId]) return chebData[bodyId];
+        if ((bodyId === "SC" || bodyId === primaryCraftId) && chebData.segments) return chebData;
+        if (bodyId === primaryCraftId && chebData.SC) return chebData.SC;
+        return null;
+    }
+
+    function getSupportChebyshevBodySeries(chebData, bodyId) {
+        if (!chebData || !bodyId) return null;
+        if (chebData[bodyId]) return chebData[bodyId];
+        if (bodyId !== "MOON" && bodyId !== "EARTH" && bodyId !== "SUN" && chebData.SC) {
+            return chebData.SC;
+        }
         if (bodyId === "SC" && chebData.segments) return chebData;
         return null;
     }
@@ -42,26 +53,33 @@ export function createOrbitLoadActions({
         return Math.max(...seriesList.map((series) => series.segments.length));
     }
 
-    function mergeMissingChebyshevBodySeries(targetChebData, supportChebData) {
+    function mergeMissingChebyshevBodySeries(
+        targetChebData,
+        supportChebData,
+        bodyId,
+        primaryCraftId = null,
+    ) {
         if (
             !targetChebData ||
             typeof targetChebData !== "object" ||
             !supportChebData ||
-            typeof supportChebData !== "object"
+            typeof supportChebData !== "object" ||
+            !bodyId
         ) {
-            return [];
+            return false;
         }
 
-        const mergedBodies = [];
-        for (const [key, value] of Object.entries(supportChebData)) {
-            if (targetChebData[key]) continue;
-            if (key === "format" || key === "version" || key === "metadata" || key === "time_range") continue;
-            if (!value || !Array.isArray(value.segments)) continue;
-            targetChebData[key] = value;
-            mergedBodies.push(key);
+        if (getChebyshevBodySeries(targetChebData, bodyId, primaryCraftId)) {
+            return false;
         }
 
-        return mergedBodies;
+        const supportSeries = getSupportChebyshevBodySeries(supportChebData, bodyId);
+        if (!supportSeries || !Array.isArray(supportSeries.segments)) {
+            return false;
+        }
+
+        targetChebData[bodyId] = supportSeries;
+        return true;
     }
 
     const recordEphemeris =
@@ -81,6 +99,30 @@ export function createOrbitLoadActions({
         typeof loadProgress.isActive === "function"
             ? loadProgress
             : null;
+
+    function ensure3DCurvesReady(config) {
+        const scene = animationScenes?.[config];
+        if (!scene?.initialized3D) {
+            return;
+        }
+
+        const primaryCraftId = scene.primaryCraftId || "SC";
+        const primaryCurveCount = Array.isArray(scene.curvesById?.[primaryCraftId])
+            ? scene.curvesById[primaryCraftId].length
+            : 0;
+        const orbitLineCount = Array.isArray(scene.orbitLines)
+            ? scene.orbitLines.length
+            : 0;
+
+        if (primaryCurveCount > 0 && orbitLineCount > 0) {
+            return;
+        }
+
+        scene.disposeSpacecraftCurve?.();
+        scene.processOrbitVectorsData3D?.();
+        scene.processLandingVectors?.();
+        scene.addSpacecraftCurve?.();
+    }
 
     async function loadOrbitDataIfNeededAndProcess(callback) {
         const config = getConfig();
@@ -161,6 +203,7 @@ export function createOrbitLoadActions({
                 if (requiredSources.has("chebyshev")) {
                     setStatus(config, "chebyshev", "loading");
                     const chebUrl = animationScenes[config].orbitsCheb;
+                    const primaryCraftId = animationScenes[config].primaryCraftId || "SC";
                     if (!chebUrl) {
                         throw new Error(`Chebyshev ephemeris path not configured for ${config}`);
                     }
@@ -182,6 +225,7 @@ export function createOrbitLoadActions({
                         const hasSunInPrimaryFile = !!getChebyshevBodySeries(
                             chebyshevData[config],
                             "SUN",
+                            primaryCraftId,
                         );
                         if (!hasSunInPrimaryFile) {
                             const sunChebUrl = animationScenes[config].orbitsSunCheb;
@@ -194,25 +238,48 @@ export function createOrbitLoadActions({
                         }
                     }
 
-                    const needsMoonSeries = requiredBodies.has("MOON");
-                    const hasMoonSeries = !!getChebyshevBodySeries(
-                        chebyshevData[config],
-                        "MOON",
-                    );
-                    if (needsMoonSeries && !hasMoonSeries) {
-                        const supportChebUrl = animationScenes[config].relativeSupportOrbitsCheb;
-                        if (supportChebUrl && supportChebUrl !== chebUrl) {
+                    const supportChebByBodyId = {
+                        ...(animationScenes[config].supportOrbitsChebByBodyId || {}),
+                    };
+                    if (
+                        animationScenes[config].relativeSupportOrbitsCheb &&
+                        !supportChebByBodyId.MOON
+                    ) {
+                        supportChebByBodyId.MOON = animationScenes[config].relativeSupportOrbitsCheb;
+                    }
+                    const supportChebDataCache = new Map();
+
+                    for (const bodyId of requiredBodies) {
+                        const hasBodySeries = !!getChebyshevBodySeries(
+                            chebyshevData[config],
+                            bodyId,
+                            primaryCraftId,
+                        );
+                        if (hasBodySeries) continue;
+
+                        const supportChebUrl = supportChebByBodyId[bodyId];
+                        if (!supportChebUrl || supportChebUrl === chebUrl) {
+                            continue;
+                        }
+
+                        if (!supportChebDataCache.has(supportChebUrl)) {
                             console.log(`Loading support Chebyshev data from ${supportChebUrl}`);
-                            const supportChebData = await loadChebyshev(supportChebUrl);
-                            const mergedBodies = mergeMissingChebyshevBodySeries(
-                                chebyshevData[config],
-                                supportChebData,
+                            supportChebDataCache.set(
+                                supportChebUrl,
+                                await loadChebyshev(supportChebUrl),
                             );
-                            if (mergedBodies.length > 0) {
-                                console.log(
-                                    `Merged support Chebyshev series for ${config}: ${mergedBodies.join(",")}`,
-                                );
-                            }
+                        }
+
+                        const merged = mergeMissingChebyshevBodySeries(
+                            chebyshevData[config],
+                            supportChebDataCache.get(supportChebUrl),
+                            bodyId,
+                            primaryCraftId,
+                        );
+                        if (merged) {
+                            console.log(
+                                `Merged support Chebyshev series for ${config}: ${bodyId}`,
+                            );
                         }
                     }
 
@@ -242,6 +309,7 @@ export function createOrbitLoadActions({
                 if (progress) {
                     progress.completeStage("process", "Processing orbit data ...");
                 }
+                ensure3DCurvesReady(config);
                 await sleep();
                 callback();
             } catch (error) {
@@ -266,6 +334,7 @@ export function createOrbitLoadActions({
         if (progress && progress.isActive()) {
             progress.completeStage("process", "Processing orbit data ...");
         }
+        ensure3DCurvesReady(config);
         await sleep();
         callback();
     }

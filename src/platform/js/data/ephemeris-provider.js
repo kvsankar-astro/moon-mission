@@ -9,6 +9,21 @@ const DEFAULT_SOURCE_BY_BODY = {
     SUN: "chebyshev",
 };
 
+function isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic) {
+    if (!normalizedBodyId) return false;
+    if (
+        normalizedBodyId === "MOON" ||
+        normalizedBodyId === "EARTH" ||
+        normalizedBodyId === "SUN"
+    ) {
+        return false;
+    }
+    return (
+        normalizedBodyId === "SC" ||
+        normalizedBodyId === normalizedSpacecraftMnemonic
+    );
+}
+
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
 const HAS_DATE_GET_JD_UTC =
@@ -123,9 +138,14 @@ export function selectSeriesFromNpz(
         return bucket[normalizedBodyId];
     }
 
+    if (isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic)) {
+        return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
+    }
+
     if (
-        normalizedBodyId === "SC" ||
-        normalizedBodyId === normalizedSpacecraftMnemonic
+        normalizedBodyId !== "MOON" &&
+        normalizedBodyId !== "EARTH" &&
+        normalizedBodyId !== "SUN"
     ) {
         return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
     }
@@ -150,15 +170,26 @@ export function selectSeriesFromChebyshev(
     }
 
     if (bucket.segments) {
-        return normalizedBodyId === "SC" ||
-            normalizedBodyId === normalizedSpacecraftMnemonic
+        return (
+            isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic) ||
+            (
+                normalizedBodyId !== "MOON" &&
+                normalizedBodyId !== "EARTH" &&
+                normalizedBodyId !== "SUN"
+            )
+        )
             ? bucket
             : null;
     }
 
+    if (isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic)) {
+        return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
+    }
+
     if (
-        normalizedBodyId === "SC" ||
-        normalizedBodyId === normalizedSpacecraftMnemonic
+        normalizedBodyId !== "MOON" &&
+        normalizedBodyId !== "EARTH" &&
+        normalizedBodyId !== "SUN"
     ) {
         return bucket[normalizedSpacecraftMnemonic] || bucket.SC || null;
     }

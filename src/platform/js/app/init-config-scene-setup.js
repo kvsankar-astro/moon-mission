@@ -2,6 +2,53 @@ import {
     applyModeSwitchForOrigin,
     resolveOriginDescriptor,
 } from "../core/domain/origin-compat.js";
+import { resolveDataPathUrl } from "../core/domain/mission-asset-resolver.js";
+import { resolvePrimaryMissionCraft } from "../core/domain/mission-config.js";
+
+function getCraftPhaseConfig(craft, phaseKey) {
+    const directPhaseConfig = craft?.[phaseKey];
+    if (directPhaseConfig && typeof directPhaseConfig === "object") {
+        return directPhaseConfig;
+    }
+
+    const originPhaseConfig = craft?.origins?.[phaseKey];
+    if (originPhaseConfig && typeof originPhaseConfig === "object") {
+        return originPhaseConfig;
+    }
+
+    return null;
+}
+
+function resolveCraftSupportChebyshevUrls({
+    configData,
+    phaseKey,
+    dataPath,
+    primaryCraftId,
+}) {
+    if (!Array.isArray(configData?.crafts) || !dataPath) {
+        return {};
+    }
+
+    const supportUrls = {};
+    for (const craft of configData.crafts) {
+        const craftId = craft?.id;
+        if (!craftId || craftId === primaryCraftId) continue;
+
+        const phaseConfig = getCraftPhaseConfig(craft, phaseKey);
+        const orbitsFile =
+            typeof phaseConfig?.orbits_file === "string"
+                ? phaseConfig.orbits_file.trim()
+                : "";
+        if (!orbitsFile) continue;
+
+        const chebUrl = resolveDataPathUrl(dataPath, `${orbitsFile}-cheb.json`);
+        if (chebUrl) {
+            supportUrls[craftId] = chebUrl;
+        }
+    }
+
+    return supportUrls;
+}
 
 function createInitConfigSceneSetupActions(deps) {
     const {
@@ -68,6 +115,23 @@ function createInitConfigSceneSetupActions(deps) {
 
     function applyOrbitConfig({ configData, sceneConfig, scene }) {
         const spacecraftMnemonic = configData?.spacecraft_mnemonic || "SC";
+        const primaryCraft = resolvePrimaryMissionCraft(configData);
+        const primaryCraftId = primaryCraft?.id || "SC";
+        const dataPath = windowRef?.missionConfig?.dataPath;
+        scene.primaryCraftId = primaryCraftId;
+        if (!scene.activeCraftId || scene.activeCraftId === "SC") {
+            scene.activeCraftId = primaryCraftId;
+        }
+        if (!Array.isArray(scene.visibleCraftIds) || scene.visibleCraftIds.length === 0) {
+            scene.visibleCraftIds = [primaryCraftId];
+        }
+        scene.supportOrbitsChebByBodyId = resolveCraftSupportChebyshevUrls({
+            configData,
+            phaseKey: sceneConfig,
+            dataPath,
+            primaryCraftId,
+        });
+
         if (configData && configData[sceneConfig]) {
             const cfg = configData[sceneConfig];
             scene.planetsForOrbits = cfg.planets;
@@ -141,10 +205,21 @@ function createInitConfigSceneSetupActions(deps) {
             const relativeBase = (typeof configuredRelativeBase === "string" && configuredRelativeBase.length > 0)
                 ? configuredRelativeBase
                 : `relative-${spacecraftMnemonic}`;
+            const primaryCraftId = scene.primaryCraftId || resolvePrimaryMissionCraft(configData)?.id || "SC";
             if (typeof dataPath === "string" && dataPath.length > 0) {
                 // Keep a pointer to the full geo ephemeris file so relative mode can
                 // pull non-spacecraft series (for example MOON) when needed.
                 scene.relativeSupportOrbitsCheb = scene.orbitsCheb || null;
+                scene.supportOrbitsChebByBodyId = {
+                    ...scene.supportOrbitsChebByBodyId,
+                    MOON: scene.orbitsCheb || null,
+                    ...resolveCraftSupportChebyshevUrls({
+                        configData,
+                        phaseKey: "relative",
+                        dataPath,
+                        primaryCraftId,
+                    }),
+                };
                 setRelativeOrbitUrls({
                     scene,
                     orbitsJson: `${dataPath}${relativeBase}.json`,

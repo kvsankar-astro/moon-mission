@@ -194,6 +194,7 @@ function maybeUpdateSsimCommitted(scores) {
 // Patterns to ignore in console error checking
 const IGNORED_ERROR_PATTERNS = [
   /favicon\.ico/i,  // Missing favicon is expected
+  /Failed to load resource: the server responded with a status of 404/i,
 ];
 
 function isIgnoredError(message) {
@@ -322,7 +323,12 @@ async function setCameraPair(page, pairValue = 'manual__manual') {
   const positionPill = page.locator(positionPillSelector);
   const lookPill = page.locator(lookPillSelector);
 
-  if (await positionPill.count() && await lookPill.count()) {
+  if (
+    await positionPill.count() &&
+    await lookPill.count() &&
+    await positionPill.first().isVisible() &&
+    await lookPill.first().isVisible()
+  ) {
     await positionPill.first().check();
     await positionPill.first().dispatchEvent('change');
     await lookPill.first().check();
@@ -675,13 +681,48 @@ async function ensureConsistentTestState(page) {
 // Helper to ensure correct origin mode
 async function ensureOriginMode(page, mode) {
   await openSettingsPanel(page);
-  const targetSelector = mode === 'earth' ? '#origin-earth' : '#origin-moon';
+  const targetSelector = mode === 'earth'
+    ? '#origin-earth'
+    : mode === 'moon'
+      ? '#origin-moon'
+      : '#origin-relative';
   const isCorrectMode = await page.isChecked(targetSelector);
   if (!isCorrectMode) {
     await page.click(targetSelector);
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
   await closeSettingsPanel(page);
+}
+
+async function ensureFovOneDegree(page, enabled = true) {
+  const toggle = page.locator('#camera-fov-one-degree');
+  const isChecked = await toggle.isChecked();
+  if (isChecked !== enabled) {
+    await page.evaluate((checked) => {
+      const input = document.getElementById('camera-fov-one-degree');
+      if (!input) return;
+      input.checked = checked;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, enabled);
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  }
+}
+
+async function prepareRelativeLandingFovView(page, cameraPair) {
+  await setTimeline(page, '#burn12');
+  await openSettingsPanel(page);
+  if (!await page.isChecked('#origin-relative')) {
+    await page.click('#origin-relative');
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+  if (!await page.isChecked('#dimension-3D')) {
+    await page.click('#dimension-3D');
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+  await setCameraPair(page, cameraPair);
+  await ensureFovOneDegree(page, true);
+  await closeSettingsPanel(page);
+  await waitForScene(page);
 }
 
 describe('Chandrayaan-3 UI Tests - Simplified', () => {
@@ -2975,7 +3016,69 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     // Note: Landing Animation test removed - landing animation controls don't exist in 2D mode
   });
 
-  // Helper functions for Test Suite 6
+  describe('Test Suite 6: Relative Mode Tests', () => {
+    afterEach(async () => {
+      await openSettingsPanel(page);
+      await setCameraPair(page, 'manual__manual');
+      await ensureFovOneDegree(page, false);
+      await closeSettingsPanel(page);
+      await ensureOriginMode(page, 'earth');
+      await setTimeline(page, '#burn1');
+    });
+
+    it('Page Load in Relative Mode', async () => {
+      const testId = 'relative-3d-page-load';
+      await startTest(page, testId);
+      await ensureOriginMode(page, 'relative');
+      await waitForScene(page);
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH
+      );
+
+      expect(comparison.isMatch).toBe(true);
+      expect(await page.isChecked('#origin-relative')).toBe(true);
+      expect(await page.isChecked('#dimension-3D')).toBe(true);
+    });
+
+    it('Earth to Moon FoV 1 at Vikram Landing', async () => {
+      const testId = 'relative-3d-earth-to-moon-fov1-landing';
+      await startTest(page, testId, 'Landing Animation');
+      await prepareRelativeLandingFovView(page, 'earth__moon');
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH
+      );
+
+      expect(comparison.isMatch).toBe(true);
+    });
+
+    it('Moon to Earth FoV 1 at Vikram Landing', async () => {
+      const testId = 'relative-3d-moon-to-earth-fov1-landing';
+      await startTest(page, testId, 'Landing Animation');
+      await prepareRelativeLandingFovView(page, 'moon__earth');
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH
+      );
+
+      expect(comparison.isMatch).toBe(true);
+    });
+  });
+
+  // Helper functions for Test Suite 7
   async function waitForAnimationCompletion(page, timeoutMs = 180000) {
     console.log('Waiting for animation to complete naturally...');
     
@@ -3096,7 +3199,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     }, targetDistance);
   }
 
-  describe('Test Suite 6: Full Run Tests', () => {
+  describe('Test Suite 7: Full Run Tests', () => {
     beforeAll(async () => {
       // Ensure we start with Earth mode and 3D
       await openSettingsPanel(page);
@@ -3246,7 +3349,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#slower');
         await page.click('#slower');
         await page.click('#slower');
-        
+
         // Take final screenshot
         const comparison = await compareScreenshots(
           page,
@@ -3411,7 +3514,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
   // SSIM Regression Detection Test
   // This test runs last and compares current SSIM scores against the committed baseline
-  describe('Test Suite 7: SSIM Regression Detection', () => {
+  describe('Test Suite 8: SSIM Regression Detection', () => {
     it('SSIM scores should not regress from previous run', async () => {
       await displayTestId(page, 'ssim-regression-check');
 

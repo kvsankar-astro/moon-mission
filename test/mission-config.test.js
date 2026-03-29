@@ -39,9 +39,56 @@ describe("mission-config pipeline", () => {
         expect(normalized.mission_name_short).toBe("TEST");
         expect(normalized.ephemeris_source).toBe("chebyshev");
         expect(normalized.origins).toEqual(["geo"]);
+        expect(normalized.primaryCraftId).toBe("SC");
+        expect(normalized.crafts).toHaveLength(1);
+        expect(normalized.crafts[0].mnemonic).toBe("TEST");
         expect(normalized.phases).toBeUndefined();
         expect(normalized.geo.orbits_file).toBe("geo-TEST");
         expect(Array.isArray(normalized.eventConfigs.geo)).toBe(true);
+    });
+
+    it("normalizes explicit crafts and preserves a primary craft alias", () => {
+        const parsed = parseMissionConfig({
+            primaryCraftId: "ORB",
+            crafts: [
+                {
+                    id: "orb",
+                    mnemonic: "CH2O",
+                    spacecraft_id: -153,
+                    spans: {
+                        lunar: {
+                            startTime: "2019-08-20T00:00:00Z",
+                            endTime: "2019-09-01T00:00:00Z",
+                        },
+                    },
+                },
+                {
+                    id: "vik",
+                    mnemonic: "C2V",
+                    spacecraft_id: -153,
+                    spans: {
+                        lunar: {
+                            startTime: "2019-09-02T07:45:00Z",
+                            endTime: "2019-09-07T00:00:00Z",
+                        },
+                    },
+                },
+            ],
+            origins: ["geo", "lunar"],
+            geo: { center: "earth_center" },
+            lunar: { center: "moon_center" },
+        });
+
+        const normalized = normalizeMissionConfig(parsed);
+        expect(normalized.primaryCraftId).toBe("ORB");
+        expect(normalized.spacecraft_mnemonic).toBe("CH2O");
+        expect(normalized.spacecraft_id).toBe(-153);
+        expect(normalized.crafts).toHaveLength(2);
+        expect(normalized.crafts[0].id).toBe("ORB");
+        expect(normalized.crafts[0].primary).toBe(true);
+        expect(normalized.crafts[0].aliases).toContain("SC");
+        expect(normalized.crafts[1].id).toBe("VIK");
+        expect(normalized.crafts[1].spans.lunar.startTime).toBe("2019-09-02T07:45:00Z");
     });
 
     it("validates and normalizes all repository mission configs", () => {

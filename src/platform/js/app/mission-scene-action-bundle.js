@@ -177,8 +177,21 @@ function createMissionSceneActionBundle(deps) {
     const sceneCreationActions = createSceneCreationActions();
 
     const orbitVectorProcessingActions = createOrbitVectorProcessingActions({
+        THREE,
         orbitCurveActions,
+        generateBodyCurve,
         getConfig,
+        getGlobalConfig,
+        npzData,
+        npzDataLoaded,
+        chebyshevData,
+        chebyshevDataLoaded,
+        getStartTime,
+        getLatestEndTime,
+        getStepMs,
+        getPixelsPerAU,
+        getEphemerisSource,
+        resolveBodySource,
         setOrbitPointsCount,
         setLandingPointsCount,
     });
@@ -199,6 +212,7 @@ function createMissionSceneActionBundle(deps) {
         SpacecraftRenderer,
         planetProperties,
         getCraftSize,
+        getGlobalConfig,
     });
 
     const sceneCameraControllerActions = createSceneCameraControllerActions({

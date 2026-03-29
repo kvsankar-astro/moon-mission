@@ -1,3 +1,8 @@
+import {
+    isMissionCraftBody,
+    resolveMissionCraft,
+} from "../core/domain/mission-config.js";
+
 export function createBodyLocationActions({
     THREE,
     getConfig,
@@ -27,7 +32,7 @@ export function createBodyLocationActions({
 
         return (
             planet == "MARS" ||
-            planet == "SC" ||
+            isMissionCraftBody(getGlobalConfig(), planet) ||
             planet == "MOON" ||
             planet == "EARTH" ||
             (((config == "lunar") || (config == "helio")) && planet == "CSS")
@@ -43,7 +48,8 @@ export function createBodyLocationActions({
         const config = getConfig();
         let flag = false;
 
-        if (planet === "SC") {
+        if (isMissionCraftBody(getGlobalConfig(), planet)) {
+            const missionCraft = resolveMissionCraft(getGlobalConfig(), planet);
             const range =
                 typeof getBodyEphemerisRange === "function"
                     ? getBodyEphemerisRange({
@@ -53,6 +59,10 @@ export function createBodyLocationActions({
                           npzDataLoaded,
                           chebyshevData,
                           chebyshevDataLoaded,
+                          spacecraftMnemonic:
+                              missionCraft?.mnemonic ||
+                              getGlobalConfig()?.spacecraft_mnemonic ||
+                              "SC",
                           resolvedSource:
                               typeof resolveBodySource === "function"
                                   ? resolveBodySource(planet)
@@ -80,6 +90,7 @@ export function createBodyLocationActions({
         const config = getConfig();
 
         const globalConfig = getGlobalConfig();
+        const missionCraft = resolveMissionCraft(globalConfig, craftid);
         const cfgKey = getConfig();
         const resolvedSource =
             typeof resolveBodySource === "function"
@@ -105,6 +116,10 @@ export function createBodyLocationActions({
                       startLandingTime: getStartLandingTime(),
                       endLandingTime: getEndLandingTime(),
                       resolvedSource,
+                      spacecraftMnemonic:
+                          missionCraft?.mnemonic ||
+                          globalConfig?.spacecraft_mnemonic ||
+                          "SC",
                       defaultSpacecraftSource:
                           typeof getEphemerisSource === "function"
                               ? getEphemerisSource()

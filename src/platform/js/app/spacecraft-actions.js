@@ -1,32 +1,68 @@
+import {
+    getSceneMissionCraftIds,
+    getScenePrimaryCraftId,
+    setSceneVisibleCraftIds,
+    syncSceneActiveCraft,
+} from "./scene-craft-helpers.js";
+
 export function createSpacecraftActions({
     SpacecraftRenderer,
     planetProperties,
     getCraftSize,
+    getGlobalConfig,
 }) {
     function addSpacecraft(scene) {
-        const craftColor = planetProperties["SC"]["color"];
+        const globalConfig = getGlobalConfig();
+        const craftIds = getSceneMissionCraftIds(scene, globalConfig);
+        scene.primaryCraftId = getScenePrimaryCraftId(scene, globalConfig);
+        scene.activeCraftId = scene.primaryCraftId;
+        setSceneVisibleCraftIds(scene, globalConfig, [scene.primaryCraftId]);
+        scene.spacecraftRenderersById = {};
+        scene.craftsById = {};
+        scene.craftInnersById = {};
+        scene.craftEdgesById = {};
+        scene.craftAxesHelpersById = {};
+        scene.dronesById = {};
 
-        scene.spacecraftRenderer = new SpacecraftRenderer(
-            scene.motherContainer,
-            getCraftSize(),
-            craftColor,
-        );
-        scene.spacecraftRenderer.createSimple();
+        for (const craftId of craftIds) {
+            const props = planetProperties[craftId] || planetProperties.SC;
+            const renderer = new SpacecraftRenderer(
+                scene.motherContainer,
+                getCraftSize(),
+                props.color,
+                {
+                    edgeColor: props.orbitcolor || props.color,
+                    droneColor: props.color,
+                },
+            );
+            renderer.createSimple();
 
-        scene.craft = scene.spacecraftRenderer.craft;
-        scene.craftInner = scene.spacecraftRenderer.craftInner;
-        scene.craftEdges = scene.spacecraftRenderer.craftEdges;
-        scene.craftAxesHelper = scene.spacecraftRenderer.axesHelper;
-        scene.craftVisible = scene.spacecraftRenderer.visible;
-        scene.drone = scene.spacecraftRenderer.drone;
+            scene.spacecraftRenderersById[craftId] = renderer;
+            scene.craftsById[craftId] = renderer.craft;
+            scene.craftInnersById[craftId] = renderer.craftInner;
+            scene.craftEdgesById[craftId] = renderer.craftEdges;
+            scene.craftAxesHelpersById[craftId] = renderer.axesHelper;
+            scene.dronesById[craftId] = renderer.drone;
+        }
+
+        syncSceneActiveCraft(scene, globalConfig, scene.primaryCraftId);
     }
 
     function disposeSpacecraft(scene) {
-        if (scene.spacecraftRenderer) {
-            scene.spacecraftRenderer.dispose();
-            scene.spacecraftRenderer = null;
+        for (const renderer of Object.values(scene.spacecraftRenderersById || {})) {
+            renderer?.dispose?.();
         }
 
+        scene.spacecraftRenderersById = {};
+        scene.craftsById = {};
+        scene.craftInnersById = {};
+        scene.craftEdgesById = {};
+        scene.craftAxesHelpersById = {};
+        scene.dronesById = {};
+        scene.primaryCraftId = "SC";
+        scene.activeCraftId = "SC";
+        scene.visibleCraftIds = null;
+        scene.spacecraftRenderer = null;
         scene.craft = null;
         scene.craftInner = null;
         scene.craftEdges = null;
@@ -37,4 +73,3 @@ export function createSpacecraftActions({
 
     return { addSpacecraft, disposeSpacecraft };
 }
-

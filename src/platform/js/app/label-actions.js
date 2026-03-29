@@ -1,3 +1,5 @@
+import { resolveMissionCraft } from "../core/domain/mission-config.js";
+
 export function createLabelActions({
     d3,
     Astronomy,
@@ -18,9 +20,47 @@ export function createLabelActions({
     getXVariable,
     getYVariable,
     getCraftData,
+    getGlobalConfig,
 }) {
+    const readGlobalConfig =
+        typeof getGlobalConfig === "function"
+            ? getGlobalConfig
+            : () => null;
+
+    function getPlanetProps(bodyId) {
+        const missionCraft = resolveMissionCraft(readGlobalConfig(), bodyId);
+        if (!missionCraft) {
+            return planetProperties[bodyId];
+        }
+
+        const explicitProps =
+            planetProperties[missionCraft.id] ||
+            planetProperties[missionCraft.mnemonic] ||
+            planetProperties[bodyId];
+
+        if (explicitProps) {
+            return explicitProps;
+        }
+
+        const fallbackProps = planetProperties.SC;
+        if (!fallbackProps) {
+            return null;
+        }
+
+        return {
+            ...fallbackProps,
+            id: missionCraft.id || bodyId,
+            name: missionCraft.viewLabel || missionCraft.name || missionCraft.mnemonic || bodyId,
+            color: missionCraft.color || fallbackProps.color,
+            orbitcolor: missionCraft.orbitcolor || missionCraft.color || fallbackProps.orbitcolor,
+        };
+    }
+
     function setLabelLocation(planetKey, bodyState = null) {
-        const planetProps = planetProperties[planetKey];
+        const planetProps = getPlanetProps(planetKey);
+        if (!planetProps) {
+            return;
+        }
         const animTime = getAnimTime();
 
         const isAvailable = bodyState
@@ -91,7 +131,7 @@ export function createLabelActions({
         for (var i = 0; i < animationScenes[config].planetsForOrbits.length; ++i) {
             var planetKey = animationScenes[config].planetsForLocations[i];
             d3.selectAll("#orbit-" + planetKey).attr("r", 0.5 / zoomFactor);
-            var strokeWidth = planetProperties[planetKey]["stroke-width"];
+            var strokeWidth = (getPlanetProps(planetKey)?.["stroke-width"]) ?? 1.0;
             d3.selectAll("#ellipse-orbit-" + planetKey).attr(
                 "stroke-width",
                 strokeWidth / zoomFactor,
@@ -104,7 +144,10 @@ export function createLabelActions({
             var planetKey = animationScenes[config].planetsForLocations[i];
             setLabelLocation(planetKey);
 
-            var planetProps = planetProperties[planetKey];
+            var planetProps = getPlanetProps(planetKey);
+            if (!planetProps) {
+                continue;
+            }
 
             if (planetKey == "MOON") {
                 var moonRadius = (PC.MOON_RADIUS_KM / PC.KM_PER_AU) * pixelsPerAU;
@@ -172,4 +215,3 @@ export function createLabelActions({
         showGreenwichLongitude,
     };
 }
-

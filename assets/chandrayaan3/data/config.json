@@ -15,6 +15,43 @@
     "EARTH": "chebyshev",
     "SUN": "chebyshev"
   },
+  "primaryCraftId": "CH3L",
+  "crafts": [
+    {
+      "id": "CH3L",
+      "mnemonic": "CH3",
+      "spacecraft_id": -158,
+      "primary": true,
+      "aliases": ["SC"],
+      "geo": {
+        "orbits_file": "geo-CY3"
+      },
+      "lunar": {
+        "orbits_file": "lunar-CY3"
+      },
+      "landing": {
+        "orbits_file": "landing-CY3"
+      },
+      "relative": {
+        "orbits_file": "relative-CH3L"
+      }
+    },
+    {
+      "id": "CH3O",
+      "mnemonic": "CH3O",
+      "spacecraft_id": -169,
+      "primary": false,
+      "geo": {
+        "orbits_file": "geo-CH3O"
+      },
+      "lunar": {
+        "orbits_file": "lunar-CH3O"
+      },
+      "relative": {
+        "orbits_file": "relative-CH3O"
+      }
+    }
+  ],
   "ui": {
     "pageTitle": "ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation",
     "headerTitle": "Chandrayaan 3",
@@ -25,7 +62,7 @@
   "is_lunar": true,
   "origins": ["geo", "lunar"],
   "relative": {
-    "orbits_file": "relative-CY3"
+    "orbits_file": "relative-CH3L"
   },
   "geo": {
     "start_year": "2023",
@@ -39,7 +76,7 @@
     "stop_hour": "12",
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": ["MOON", "CH3L", "CH3O"],
     "center": "earth_center",
     "orbits_file": "geo-CY3"
   },
@@ -55,12 +92,13 @@
     "stop_hour": "12", 
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": ["CH3L", "CH3O", "EARTH"],
     "center": "moon_center",
     "orbits_file": "lunar-CY3"
   },
   "landing": {
     "enabled": true,
+    "craftId": "CH3L",
     "start_year": "2023",
     "start_month": "08",
     "start_day": "23",
@@ -72,7 +110,7 @@
     "stop_hour": "12",
     "stop_minute": "40",
     "step_size_in_seconds": 1,
-    "planets": ["SC"],
+    "planets": ["CH3L"],
     "center": "moon_center",
     "orbits_file": "landing-CY3"
   },

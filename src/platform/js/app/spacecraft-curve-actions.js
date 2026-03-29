@@ -1,17 +1,23 @@
+import {
+    applySceneOrbitVisibility,
+    getSceneMissionCraftIds,
+    getScenePrimaryCraftId,
+} from "./scene-craft-helpers.js";
+
 export function createSpacecraftCurveActions({
     THREE,
     getGlobalConfig,
-    getConfig,
-    getCraftId,
     planetProperties,
-    getOrbitPointsCount,
-    getLandingPointsCount,
     getViewOrbitDescent,
     getViewOrbit,
     render,
     wait10,
     createLineMaterial,
 }) {
+    function applyCraftOrbitVisibility(scene, globalConfig) {
+        applySceneOrbitVisibility(scene, globalConfig, getViewOrbit());
+    }
+
     function isValidVector3(point) {
         return !!point &&
             Number.isFinite(point.x) &&
@@ -19,66 +25,103 @@ export function createSpacecraftCurveActions({
             Number.isFinite(point.z);
     }
 
-    async function addCurve(scene) {
-        scene.startingIndex = scene.leftOrbitPoints;
+    function createLineGeometryFromPoints(points) {
+        const vertices = new Float32Array(points.length * 3);
+        let offset = 0;
+        for (const point of points) {
+            vertices[offset++] = point.x;
+            vertices[offset++] = point.y;
+            vertices[offset++] = point.z;
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute(vertices, 3),
+        );
+        return geometry;
+    }
+
+    async function addCurve(scene, { bodyId, curve, orbitMaterial, globalConfig }) {
+        const validCurve = curve.filter(isValidVector3);
+        let startingIndex = validCurve.length;
+        let leftOrbitPoints = startingIndex;
+        const orbitLines = [];
+        scene.orbitLinesByBodyId[bodyId] = orbitLines;
 
         do {
-            const points = Math.min(scene.leftOrbitPoints, scene.pointsPerSlice);
+            const points = Math.min(leftOrbitPoints, scene.pointsPerSlice);
             if (points <= 0) {
                 break;
             }
 
-            scene.startingIndex -= points;
-            scene.leftOrbitPoints -= points;
+            startingIndex -= points;
+            leftOrbitPoints -= points;
 
-            const arr = scene.curve
-                .slice(scene.startingIndex, scene.startingIndex + points + 1)
-                .filter(isValidVector3);
+            const arr = validCurve.slice(startingIndex, startingIndex + points + 1);
             if (arr.length < 2) {
                 continue;
             }
 
-            const curves = new THREE.CatmullRomCurve3(arr);
-
-            const orbitGeometry = new THREE.BufferGeometry();
-            const vertexVectors = curves.getSpacedPoints(points * 40);
-            const vertices = [];
-            vertexVectors.forEach(function (elem) {
-                vertices.push(elem.x, elem.y, elem.z);
-            });
-            orbitGeometry.setAttribute(
-                "position",
-                new THREE.Float32BufferAttribute(vertices, 3),
-            );
-            const orbitLine = new THREE.Line(orbitGeometry, scene.orbitMaterial);
-            orbitLine.visible = getViewOrbit();
+            const orbitGeometry = createLineGeometryFromPoints(arr);
+            const orbitLine = new THREE.Line(orbitGeometry, orbitMaterial);
+            orbitLine.userData = {
+                ...(orbitLine.userData || {}),
+                bodyId,
+            };
+            orbitLine.visible = false;
+            orbitLines.push(orbitLine);
             scene.orbitLines.push(orbitLine);
             scene.motherContainer.add(orbitLine);
+            applyCraftOrbitVisibility(scene, globalConfig);
             render();
             await wait10();
             if (scene.stopCreationFlag) {
                 break;
             }
         } while (true);
-
-        scene.state = scene.constructor.SCENE_STATE_ADD_CURVE_DONE;
     }
 
     function addSpacecraftCurve(scene) {
         scene.orbitLines = [];
-        scene.pointsPerSlice = 100;
+        scene.orbitLinesByBodyId = {};
+        scene.orbitMaterialsByBodyId = {};
+        scene.pointsPerSlice = 400;
         scene.startingIndex = 0;
-        scene.leftOrbitPoints = scene.curve.filter(isValidVector3).length;
+        scene.leftOrbitPoints = 0;
 
-        const craftOrbitColor = planetProperties[getCraftId()]["orbitcolor"];
-        scene.orbitMaterial = createLineMaterial(craftOrbitColor);
-
-        addCurve(scene);
-
-        const config = getConfig();
         const globalConfig = getGlobalConfig();
+        const craftIds = getSceneMissionCraftIds(scene, globalConfig);
+        const primaryCraftId = getScenePrimaryCraftId(scene, globalConfig);
+        scene.primaryCraftId = primaryCraftId;
+
+        const addAllCurves = async () => {
+            for (const craftId of craftIds) {
+                const curve = scene.curvesById?.[craftId] || [];
+                if (curve.filter(isValidVector3).length < 2) {
+                    scene.orbitLinesByBodyId[craftId] = [];
+                    continue;
+                }
+                const craftOrbitColor = (planetProperties[craftId] || planetProperties.SC)?.orbitcolor;
+                const orbitMaterial = createLineMaterial(craftOrbitColor);
+                scene.orbitMaterialsByBodyId[craftId] = orbitMaterial;
+                await addCurve(scene, {
+                    bodyId: craftId,
+                    curve,
+                    orbitMaterial,
+                    globalConfig,
+                });
+                if (scene.stopCreationFlag) {
+                    break;
+                }
+            }
+            applyCraftOrbitVisibility(scene, globalConfig);
+            scene.state = scene.constructor.SCENE_STATE_ADD_CURVE_DONE;
+        };
+
+        addAllCurves();
+
         if (
-            config == "lunar" &&
+            scene.name == "lunar" &&
             globalConfig &&
             globalConfig.landing &&
             globalConfig.landing.enabled &&
@@ -89,17 +132,7 @@ export function createSpacecraftCurveActions({
                 return;
             }
 
-            const landingCurves = new THREE.CatmullRomCurve3(validLandingCurve);
-            const landingOrbitGeometry = new THREE.BufferGeometry();
-            const vertexVectors = landingCurves.getSpacedPoints(getLandingPointsCount() * 40);
-            const vertices = [];
-            vertexVectors.forEach(function (elem) {
-                vertices.push(elem.x, elem.y, elem.z);
-            });
-            landingOrbitGeometry.setAttribute(
-                "position",
-                new THREE.Float32BufferAttribute(vertices, 3),
-            );
+            const landingOrbitGeometry = createLineGeometryFromPoints(validLandingCurve);
             const landingOrbitColor = "#FFFFE0"; // Light yellow for landing orbit
             const landingOrbitMaterial = createLineMaterial(landingOrbitColor);
             scene.landingOrbitLine = new THREE.Line(
@@ -126,10 +159,11 @@ export function createSpacecraftCurveActions({
             scene.orbitLines = [];
         }
 
-        if (scene.orbitMaterial) {
-            scene.orbitMaterial.dispose();
-            scene.orbitMaterial = null;
+        for (const material of Object.values(scene.orbitMaterialsByBodyId || {})) {
+            material?.dispose?.();
         }
+        scene.orbitMaterialsByBodyId = {};
+        scene.orbitLinesByBodyId = {};
 
         if (scene.landingOrbitLine) {
             if (scene.landingOrbitLine.geometry) {
@@ -142,7 +176,8 @@ export function createSpacecraftCurveActions({
             scene.landingOrbitLine = null;
         }
 
-        scene.chandrayaanCurve = [];
+        scene.curvesById = {};
+        scene.curveVelocitiesById = {};
         scene.landingCurve = [];
 
         scene.pointsPerSlice = 0;

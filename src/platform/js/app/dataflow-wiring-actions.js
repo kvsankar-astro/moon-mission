@@ -246,6 +246,7 @@ function createDataflowWiringActions(deps) {
         getDefaultCameraDistance,
         getAnimTime,
         isLocationAvaialable: isLocationAvaialableOverride || isLocationAvaialable,
+        getGlobalConfig,
     });
 
     const { processOrbitVectorsData } = createOrbitVectorsActions({
@@ -268,6 +269,7 @@ function createDataflowWiringActions(deps) {
         getLatestEndTime,
         getZoomFactor,
         getPlaneVariables,
+        getGlobalConfig,
         planetStartTime: planetStartTimeOverride || planetStartTime,
         PC,
         UC,
@@ -297,6 +299,7 @@ function createDataflowWiringActions(deps) {
         getXVariable,
         getYVariable,
         getCraftData,
+        getGlobalConfig,
     });
 
     const { handleZoom, handleZoomNew, zoomEnd, zoomChangeTransform, zoomChange } = createZoomActions({

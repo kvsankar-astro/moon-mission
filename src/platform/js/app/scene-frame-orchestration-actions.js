@@ -65,6 +65,11 @@ function createSceneFrameOrchestrationActions(deps) {
                 spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
             });
 
+        const activeSceneCraftId =
+            scene?.activeCraftId ||
+            scene?.primaryCraftId ||
+            getCraftId();
+
         const framePlan = planFrameStep({
             config,
             animTime,
@@ -87,7 +92,7 @@ function createSceneFrameOrchestrationActions(deps) {
             frameMode: getFrameMode(),
             bodySources,
             ephemerisSource: activeEphemerisSource,
-            craftId: getCraftId(),
+            craftId: activeSceneCraftId,
             pixelsPerAU: getPixelsPerAU(),
             updateCraftScale,
             currentDimension: getCurrentDimension(),

@@ -1,3 +1,10 @@
+import {
+    applySceneOrbitVisibility,
+    setSceneVisibleCraftIds,
+    shouldShowSceneCraft,
+    syncSceneActiveCraft,
+} from "./scene-craft-helpers.js";
+
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
 
@@ -43,42 +50,81 @@ export function createSettingsActions({
     }
 
     function setView() {
-        const view = readViewSettings();
-        setViewFlags(view);
+        const requestedView = readViewSettings();
+        setViewFlags(requestedView);
 
-        setFPSCounterVisibility(view.viewFPS);
+        setFPSCounterVisibility(requestedView.viewFPS);
+        const globalConfig = getGlobalConfig();
 
         ["geo", "lunar"].forEach(function(cfg) {
-            if (animationScenes[cfg] && animationScenes[cfg].initialized3D) {
-                animationScenes[cfg].orbitLines.forEach((orbitLine) => { orbitLine.visible = view.viewOrbit; });
+            const scene = animationScenes[cfg];
+            const nextVisibleCraftIds = Array.isArray(requestedView.visibleCraftIds)
+                ? requestedView.visibleCraftIds
+                : scene?.visibleCraftIds;
+            const view = {
+                ...requestedView,
+                activeCraftId: requestedView.activeCraftId ?? scene?.activeCraftId ?? scene?.primaryCraftId ?? null,
+                viewAdditionalCrafts:
+                    requestedView.viewAdditionalCrafts ?? scene?.viewAdditionalCrafts ?? false,
+                visibleCraftIds: nextVisibleCraftIds,
+            };
+            if (scene) {
+                const visibleCraftIds = setSceneVisibleCraftIds(
+                    scene,
+                    globalConfig,
+                    view.visibleCraftIds,
+                );
+                const nextActiveCraftId = visibleCraftIds.length === 1
+                    ? visibleCraftIds[0]
+                    : view.activeCraftId;
+                scene.viewAdditionalCrafts = visibleCraftIds.length > 1;
+                syncSceneActiveCraft(scene, globalConfig, nextActiveCraftId);
+            }
+            if (scene?.planetsForLocations) {
+                for (const bodyId of scene.planetsForLocations) {
+                    const orbitElement =
+                        typeof document !== "undefined"
+                            ? document.getElementById(`orbit-${bodyId}`)
+                            : null;
+                    if (!orbitElement) continue;
+                    const visible = view.viewOrbit && shouldShowSceneCraft({
+                        scene,
+                        globalConfig,
+                        bodyId,
+                    });
+                    orbitElement.setAttribute("visibility", visible ? "visible" : "hidden");
+                }
+            }
+            if (scene && scene.initialized3D) {
+                applySceneOrbitVisibility(scene, globalConfig, view.viewOrbit);
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
-                    animationScenes[cfg].landingOrbitLine.visible = view.viewOrbitDescent;
+                    scene.landingOrbitLine.visible = view.viewOrbitDescent;
                 }
 
-                animationScenes[cfg].locations.forEach((x) => { x.visible = view.viewCraters; });
+                scene.locations.forEach((x) => { x.visible = view.viewCraters; });
 
-                animationScenes[cfg].axesHelper.visible = view.viewXYZAxes;
+                scene.axesHelper.visible = view.viewXYZAxes;
 
-                animationScenes[cfg].earthNorthPoleSphere.visible = view.viewPoles;
-                animationScenes[cfg].earthSouthPoleSphere.visible = view.viewPoles;
+                scene.earthNorthPoleSphere.visible = view.viewPoles;
+                scene.earthSouthPoleSphere.visible = view.viewPoles;
 
-                if (getGlobalConfig()?.is_lunar) {
-                    animationScenes[cfg].moonNorthPoleSphere.visible = view.viewPoles;
-                    animationScenes[cfg].moonSouthPoleSphere.visible = view.viewPoles;
-                    animationScenes[cfg].moonAxis.visible = view.viewPolarAxes;
-                    animationScenes[cfg].moonSOISphere.visible = view.viewMoonSOI;
+                if (globalConfig?.is_lunar) {
+                    scene.moonNorthPoleSphere.visible = view.viewPoles;
+                    scene.moonSouthPoleSphere.visible = view.viewPoles;
+                    scene.moonAxis.visible = view.viewPolarAxes;
+                    scene.moonSOISphere.visible = view.viewMoonSOI;
                 }
 
-                animationScenes[cfg].earthAxis.visible = view.viewPolarAxes;
+                scene.earthAxis.visible = view.viewPolarAxes;
 
-                applySkyLayerVisibility(animationScenes[cfg], {
+                applySkyLayerVisibility(scene, {
                     viewSky: view.viewSky,
                     viewConstellationLines: view.viewConstellationLines,
                 });
-                animationScenes[cfg].eclipticPlaneHelper.visible = view.viewEclipticPlane;
-                animationScenes[cfg].eclipticPolarGridHelper.visible = view.viewEclipticPlane;
-                animationScenes[cfg].equatorialPlaneHelper.visible = view.viewEquatorialPlane;
-                animationScenes[cfg].equatorialPolarGridHelper.visible = view.viewEquatorialPlane;
+                scene.eclipticPlaneHelper.visible = view.viewEclipticPlane;
+                scene.eclipticPolarGridHelper.visible = view.viewEclipticPlane;
+                scene.equatorialPlaneHelper.visible = view.viewEquatorialPlane;
+                scene.equatorialPolarGridHelper.visible = view.viewEquatorialPlane;
             }
         });
 

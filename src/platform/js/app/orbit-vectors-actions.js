@@ -1,3 +1,12 @@
+import { resolveMissionCraft } from "../core/domain/mission-config.js";
+import { generateCurveFromChebyshev } from "../chebyshev.js";
+import { generateCurveFromNpz } from "../data/npz-ephemeris.js";
+import { shouldShowSceneCraft } from "./scene-craft-helpers.js";
+import {
+    selectSeriesFromChebyshev,
+    selectSeriesFromNpz,
+} from "../data/ephemeris-provider.js";
+
 export function createOrbitVectorsActions({
     d3,
     sleep,
@@ -18,6 +27,7 @@ export function createOrbitVectorsActions({
     getLatestEndTime,
     getZoomFactor,
     getPlaneVariables,
+    getGlobalConfig,
     planetStartTime,
     PC,
     UC,
@@ -27,6 +37,39 @@ export function createOrbitVectorsActions({
     setEpochDisplay,
 }) {
     const curveCacheByConfig = new Map();
+    const readGlobalConfig =
+        typeof getGlobalConfig === "function"
+            ? getGlobalConfig
+            : () => null;
+
+    function getPlanetProps(bodyId) {
+        const missionCraft = resolveMissionCraft(readGlobalConfig(), bodyId);
+        if (!missionCraft) {
+            return planetProperties[bodyId];
+        }
+
+        const explicitProps =
+            planetProperties[missionCraft.id] ||
+            planetProperties[missionCraft.mnemonic] ||
+            planetProperties[bodyId];
+
+        if (explicitProps) {
+            return explicitProps;
+        }
+
+        const fallbackProps = planetProperties.SC;
+        if (!fallbackProps) {
+            return null;
+        }
+
+        return {
+            ...fallbackProps,
+            id: missionCraft.id || bodyId,
+            name: missionCraft.viewLabel || missionCraft.name || missionCraft.mnemonic || bodyId,
+            color: missionCraft.color || fallbackProps.color,
+            orbitcolor: missionCraft.orbitcolor || missionCraft.color || fallbackProps.orbitcolor,
+        };
+    }
 
     function resolveBodyOrbitVectors({
         bodyId,
@@ -35,6 +78,8 @@ export function createOrbitVectorsActions({
         resolvedSource,
         defaultSpacecraftSource,
     }) {
+        const globalConfig = readGlobalConfig();
+        const missionCraft = resolveMissionCraft(globalConfig, bodyId);
         const startTimeMs = getStartTime();
         const endTimeMs = getLatestEndTime();
         const cacheKey = `${resolvedSource}|${startTimeMs}|${endTimeMs}|${stepMs}`;
@@ -50,22 +95,58 @@ export function createOrbitVectorsActions({
             return cached.vectors;
         }
 
-        const vectors =
-            typeof generateBodyCurve === "function"
-                ? generateBodyCurve({
-                      bodyId,
-                      config,
-                      startTimeMs,
-                      endTimeMs,
-                      stepMs,
-                      npzData,
-                      npzDataLoaded,
-                      chebyshevData,
-                      chebyshevDataLoaded,
-                      resolvedSource,
-                      defaultSpacecraftSource,
-                  })
-                : [];
+        const spacecraftMnemonic =
+            missionCraft?.mnemonic ||
+            globalConfig?.spacecraft_mnemonic ||
+            "SC";
+        let vectors = [];
+
+        if (resolvedSource === "npz" && npzDataLoaded?.[config]) {
+            const series = selectSeriesFromNpz(
+                npzData,
+                config,
+                bodyId,
+                spacecraftMnemonic,
+            );
+            if (series) {
+                vectors = generateCurveFromNpz(
+                    series,
+                    startTimeMs,
+                    endTimeMs,
+                    stepMs,
+                );
+            }
+        } else if (resolvedSource === "chebyshev" && chebyshevDataLoaded?.[config]) {
+            const series = selectSeriesFromChebyshev(
+                chebyshevData,
+                config,
+                bodyId,
+                spacecraftMnemonic,
+            );
+            if (series) {
+                vectors = generateCurveFromChebyshev(
+                    series,
+                    startTimeMs,
+                    endTimeMs,
+                    stepMs,
+                );
+            }
+        } else if (typeof generateBodyCurve === "function") {
+            vectors = generateBodyCurve({
+                bodyId,
+                config,
+                startTimeMs,
+                endTimeMs,
+                stepMs,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                resolvedSource,
+                spacecraftMnemonic,
+                defaultSpacecraftSource,
+            });
+        }
 
         configCache.set(bodyId, { cacheKey, vectors });
         return vectors;
@@ -83,10 +164,15 @@ export function createOrbitVectorsActions({
         }
 
         const config = getConfig();
+        const scene = animationScenes[config];
 
-        for (let i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-            const planetKey = animationScenes[config].planetsForLocations[i];
-            const planetProps = planetProperties[planetKey];
+        for (let i = 0; i < scene.planetsForLocations.length; ++i) {
+            const planetKey = scene.planetsForLocations[i];
+            const planetProps = getPlanetProps(planetKey);
+
+            if (!planetProps) {
+                continue;
+            }
 
             if (shouldDrawOrbit(planetKey)) {
                 if (!getSvgContainer() || getCurrentDimension() !== "2D") {
@@ -125,7 +211,11 @@ export function createOrbitVectorsActions({
                 svgContainer
                     .append("g")
                     .attr("id", "orbit-" + planetKey)
-                    .attr("visibility", "visible");
+                    .attr("visibility", shouldShowSceneCraft({
+                        scene,
+                        globalConfig: readGlobalConfig(),
+                        bodyId: planetKey,
+                    }) ? "visible" : "hidden");
 
                 const { xFactor, yFactor, xVariable, yVariable } = getPlaneVariables();
                 const zoomFactor = getZoomFactor();
@@ -169,7 +259,7 @@ export function createOrbitVectorsActions({
 
             svgContainer
                 .append("circle")
-                .attr("id", animationScenes[config].primaryBody)
+                .attr("id", scene.primaryBody)
                 .attr("cx", 0)
                 .attr("cy", 0)
                 .attr("r", animationScenes[config].primaryBodyRadius)
@@ -178,7 +268,7 @@ export function createOrbitVectorsActions({
                 .attr("stroke-width", 0)
                 .attr(
                     "fill",
-                    planetProperties[animationScenes[config].primaryBody].color,
+                    planetProperties[scene.primaryBody].color,
                 );
         }
 
@@ -195,15 +285,15 @@ export function createOrbitVectorsActions({
                 .append("g")
                 .attr("class", "label")
                 .append("text")
-                .attr("id", "label-" + animationScenes[config].primaryBody)
+                .attr("id", "label-" + scene.primaryBody)
                 .attr("x", UC.CENTER_LABEL_OFFSET_X)
                 .attr("y", UC.CENTER_LABEL_OFFSET_Y)
                 .attr("font-size", 10 / getZoomFactor())
                 .attr(
                     "fill",
-                    planetProperties[animationScenes[config].primaryBody].color,
+                    planetProperties[scene.primaryBody].color,
                 )
-                .text(planetProperties[animationScenes[config].primaryBody].name);
+                .text(planetProperties[scene.primaryBody].name);
         }
 
         await sleep();
@@ -232,9 +322,13 @@ export function createOrbitVectorsActions({
         }
 
         // Add planetary positions
-        for (let i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-            const planetKey = animationScenes[config].planetsForLocations[i];
-            const planetProps = planetProperties[planetKey];
+        for (let i = 0; i < scene.planetsForLocations.length; ++i) {
+            const planetKey = scene.planetsForLocations[i];
+            const planetProps = getPlanetProps(planetKey);
+
+            if (!planetProps) {
+                continue;
+            }
 
             // If a planet location is avialable only after an interval of time from the epoch (startTime)
             // For example, Maven and the Mars Orbiter Mission were launched at different times.
@@ -243,7 +337,9 @@ export function createOrbitVectorsActions({
             const planetIndexOffset =
                 (planetStartTime(planetKey) - getStartTime()) /
                 animationScenes[config].stepDurationInMilliSeconds;
-            planetProperties[planetKey].offset = planetIndexOffset;
+            if (planetProperties[planetKey]) {
+                planetProperties[planetKey].offset = planetIndexOffset;
+            }
 
             const svgContainer = getSvgContainer();
             if (!svgContainer) return;
@@ -256,7 +352,12 @@ export function createOrbitVectorsActions({
                 .attr("r", planetProps.r / getZoomFactor())
                 .attr("stroke", "none")
                 .attr("stroke-width", 0)
-                .attr("fill", planetProps.color);
+                .attr("fill", planetProps.color)
+                .attr("visibility", shouldShowSceneCraft({
+                    scene,
+                    globalConfig: readGlobalConfig(),
+                    bodyId: planetKey,
+                }) ? "visible" : "hidden");
         }
 
         await sleep();
@@ -292,9 +393,13 @@ export function createOrbitVectorsActions({
             svgContainer.append("g").attr("id", "labels").attr("class", "label");
         }
 
-        for (let i = 0; i < animationScenes[config].planetsForLocations.length; ++i) {
-            const planetKey = animationScenes[config].planetsForLocations[i];
-            const planetProps = planetProperties[planetKey];
+        for (let i = 0; i < scene.planetsForLocations.length; ++i) {
+            const planetKey = scene.planetsForLocations[i];
+            const planetProps = getPlanetProps(planetKey);
+
+            if (!planetProps) {
+                continue;
+            }
 
             d3.select("#labels")
                 .append("text")
@@ -302,7 +407,12 @@ export function createOrbitVectorsActions({
                 .attr("x", 0)
                 .attr("y", 0)
                 .attr("font-size", 10 / getZoomFactor())
-                .attr("fill", planetProps.color);
+                .attr("fill", planetProps.color)
+                .attr("visibility", shouldShowSceneCraft({
+                    scene,
+                    globalConfig: readGlobalConfig(),
+                    bodyId: planetKey,
+                }) ? "visible" : "hidden");
 
             d3.select("#label-" + planetKey).text(planetProps.name);
         }

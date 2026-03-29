@@ -1,3 +1,5 @@
+import { shouldShowSceneCraft } from "./scene-craft-helpers.js";
+
 export function createCraftScaleActions({
     THREE,
     animationScenes,
@@ -8,6 +10,7 @@ export function createCraftScaleActions({
     getAnimTime,
     isLocationAvaialable,
     getViewportWidth,
+    getGlobalConfig,
 }) {
     function readViewportWidth() {
         if (typeof getViewportWidth === "function") {
@@ -25,9 +28,6 @@ export function createCraftScaleActions({
         const scene = animationScenes[config];
         if (!scene || !scene.initialized3D) return;
 
-        const craftLocation = new THREE.Vector3();
-        scene.craft.getWorldPosition(craftLocation);
-
         const cameraLocation = new THREE.Vector3();
         if (getJoyRideFlag()) {
             scene.camera.getWorldPosition(cameraLocation); // not craftCamera
@@ -37,24 +37,53 @@ export function createCraftScaleActions({
             scene.camera.getWorldPosition(cameraLocation);
         }
 
-        const distance = cameraLocation.distanceTo(craftLocation);
-        let scale = distance / getDefaultCameraDistance();
-        const fov = scene?.camera?.fov;
-        if (Number.isFinite(fov) && fov > 0) {
-            scale = scale * (fov / 50);
+        const craftEntries = Object.entries(scene.craftsById || {});
+        if (craftEntries.length === 0 && scene.craft) {
+            craftEntries.push([scene.primaryCraftId || "SC", scene.craft]);
         }
-        if (getLandingFlag()) scale = scale * 5;
-        if (readViewportWidth() <= 600) scale = scale * 0.5;
 
-        scene.craft.scale.set(scale, scale, scale);
-        scene.drone.scale.set(scale, scale, scale);
+        const primaryCraftId = scene.primaryCraftId || "SC";
+        const fov = scene?.camera?.fov;
+        const isMobileViewport = readViewportWidth() <= 600;
 
-        if (isLocationAvaialable("SC", getAnimTime())) {
-            scene.craft.visible = scene.craftVisible && !scene.hideCraftForMountedCamera;
-            scene.drone.visible = false;
-        } else {
-            scene.craft.visible = false;
-            scene.drone.visible = false;
+        for (const [craftId, craftObject] of craftEntries) {
+            if (!craftObject) continue;
+
+            const craftLocation = new THREE.Vector3();
+            craftObject.getWorldPosition(craftLocation);
+
+            const distance = cameraLocation.distanceTo(craftLocation);
+            let scale = distance / getDefaultCameraDistance();
+            if (Number.isFinite(fov) && fov > 0) {
+                scale = scale * (fov / 50);
+            }
+            if (getLandingFlag()) scale = scale * 5;
+            if (isMobileViewport) scale = scale * 0.5;
+
+            craftObject.scale.set(scale, scale, scale);
+
+            const droneObject = scene.dronesById?.[craftId] || (craftId === primaryCraftId ? scene.drone : null);
+            if (droneObject) {
+                droneObject.scale.set(scale, scale, scale);
+            }
+
+            if (isLocationAvaialable(craftId, getAnimTime())) {
+                const hideForMountedCamera = craftId === primaryCraftId && scene.hideCraftForMountedCamera;
+                const allowedByView = shouldShowSceneCraft({
+                    scene,
+                    globalConfig: getGlobalConfig?.(),
+                    bodyId: craftId,
+                });
+                craftObject.visible = scene.craftVisible && !hideForMountedCamera && allowedByView;
+                if (droneObject) {
+                    droneObject.visible = false;
+                }
+            } else {
+                craftObject.visible = false;
+                if (droneObject) {
+                    droneObject.visible = false;
+                }
+            }
         }
     }
 

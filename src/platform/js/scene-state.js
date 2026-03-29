@@ -12,6 +12,10 @@ import {
     getBodyEphemerisState,
 } from "./data/ephemeris-provider.js";
 import { PHYSICS_CONSTANTS as PC, TIME_CONSTANTS as TC } from "./core/constants.js";
+import {
+    isMissionCraftBody,
+    resolveMissionCraft,
+} from "./core/domain/mission-config.js";
 
 // ============================================================================
 // Body State Computation
@@ -52,11 +56,16 @@ export function computeBodyState(bodyId, time, config, data) {
         precomputedBodyEphemeris,
     } = data;
 
-    const spacecraftMnemonic = (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase();
+    const defaultSpacecraftMnemonic = (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase();
+    const missionCraft = resolveMissionCraft(globalConfig, bodyId);
+    const spacecraftMnemonic = (
+        missionCraft?.mnemonic ||
+        defaultSpacecraftMnemonic
+    ).toUpperCase();
     // Check if landing is enabled
     const isLandingEnabled = globalConfig && globalConfig.landing && globalConfig.landing.enabled;
 
-    if (bodyId === "SC") {
+    if (bodyId === "SC" || isMissionCraftBody(globalConfig, bodyId)) {
         const computeScStateAtTime = (t) => {
             return getBodyEphemerisState({
                 bodyId,

@@ -1,3 +1,5 @@
+import { getSceneCraftObject } from "./scene-craft-helpers.js";
+
 function createSceneHandlerClass(deps) {
     const {
         THREE,
@@ -59,6 +61,10 @@ function createSceneHandlerClass(deps) {
             } = getRuntimeState();
 
             updateCraftScale();
+            const activeCraft = getSceneCraftObject(animationScene, globalConfig);
+            if (!activeCraft) {
+                return;
+            }
 
             if (animationScene.lockOnEarth || (globalConfig && globalConfig.is_lunar && animationScene.lockOnMoon)) {
                 const x = animationScene.secondaryBody3D.position.x;
@@ -66,9 +72,9 @@ function createSceneHandlerClass(deps) {
                 const z = animationScene.secondaryBody3D.position.z;
                 animationScene.motherContainer.position.set(-x, -y, -z);
             } else if (animationScene.lockOnSC) {
-                const x = animationScene.craft.position.x;
-                const y = animationScene.craft.position.y;
-                const z = animationScene.craft.position.z;
+                const x = activeCraft.position.x;
+                const y = activeCraft.position.y;
+                const z = activeCraft.position.z;
                 animationScene.motherContainer.position.set(-x, -y, -z);
             } else {
                 animationScene.motherContainer.position.set(0, 0, 0);
@@ -78,14 +84,14 @@ function createSceneHandlerClass(deps) {
                 animationScene.cameraController.updateFromTo({
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
-                    spacecraft: animationScene.craft,
+                    spacecraft: activeCraft,
                 });
             }
 
             if (joyRideFlag || landingFlag) {
-                const craftEarthDistance = animationScene.craft.position.distanceTo(animationScene.earthContainer.position);
+                const craftEarthDistance = activeCraft.position.distanceTo(animationScene.earthContainer.position);
                 const craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer)
-                    ? animationScene.craft.position.distanceTo(animationScene.moonContainer.position)
+                    ? activeCraft.position.distanceTo(animationScene.moonContainer.position)
                     : Infinity;
                 const earthAngleRads = Math.asin(earthRadius / craftEarthDistance);
                 const moonAngleRads = Math.asin(moonRadius / craftMoonDistance);
@@ -109,7 +115,7 @@ function createSceneHandlerClass(deps) {
                 let upDir;
                 if (closerBody === animationScene.moonContainer) {
                     upDir = new THREE.Vector3()
-                        .subVectors(animationScene.craft.position, animationScene.moonContainer.position)
+                        .subVectors(activeCraft.position, animationScene.moonContainer.position)
                         .normalize();
                     if (upDir.lengthSq() === 0) {
                         upDir.set(0, 0, 1);
@@ -124,7 +130,7 @@ function createSceneHandlerClass(deps) {
                 animationScene.droneCamera.up.copy(upDir);
 
                 animationScene.craftCamera.lookAt(closerBody.position);
-                animationScene.droneCamera.lookAt(animationScene.craft.position);
+                animationScene.droneCamera.lookAt(activeCraft.position);
 
                 const specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
                 this.renderer.autoClear = true;
