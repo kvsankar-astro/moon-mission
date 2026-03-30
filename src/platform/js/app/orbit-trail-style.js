@@ -2,6 +2,9 @@ function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
+const JD_UNIX_EPOCH = 2440587.5;
+const MS_PER_DAY = 86400000;
+
 function normalizeHexColor(value, fallback = "#f8b84b") {
     const text = typeof value === "string" ? value.trim() : "";
     const match = text.match(/^#?([0-9a-f]{6})$/i);
@@ -82,6 +85,154 @@ function findLowerBoundIndex(times, targetTimeMs) {
     return clamp(low, 0, times.length - 1);
 }
 
+function normalizeMetadataArray(values) {
+    if (!Array.isArray(values)) return [];
+    return values.map((value) => {
+        if (value === null || value === undefined || value === "") {
+            return NaN;
+        }
+        const numberValue = Number(value);
+        return Number.isFinite(numberValue) ? numberValue : NaN;
+    });
+}
+
+function getOrbitStyleDensitySeries(metadata) {
+    if (!metadata || typeof metadata !== "object") {
+        return null;
+    }
+
+    const times = normalizeMetadataArray(
+        metadata.sample_times_jd ||
+        metadata.sampleTimesJd ||
+        metadata.times_jd ||
+        metadata.timesJd,
+    );
+    if (times.length === 0) {
+        return null;
+    }
+
+    return {
+        times,
+        densityHints: normalizeMetadataArray(
+            metadata.density_hint ||
+            metadata.densityHint,
+        ),
+    };
+}
+
+function parseMetadataTime(value, jdValue) {
+    if (typeof value === "string" && value.trim()) {
+        const ms = Date.parse(value);
+        if (Number.isFinite(ms)) {
+            return ms;
+        }
+    }
+
+    const jd = Number(jdValue);
+    if (Number.isFinite(jd)) {
+        return (jd - JD_UNIX_EPOCH) * MS_PER_DAY;
+    }
+
+    return NaN;
+}
+
+function getOrbitStyleIntervals(metadata) {
+    const intervals = Array.isArray(metadata?.regime_intervals)
+        ? metadata.regime_intervals
+        : Array.isArray(metadata?.regimeIntervals)
+          ? metadata.regimeIntervals
+          : [];
+    return intervals
+        .map((interval) => {
+            const periodSeconds = Number(interval?.period_s_local ?? interval?.periodSecondsLocal);
+            return {
+                startMs: parseMetadataTime(
+                    interval?.startTime ?? interval?.start_time,
+                    interval?.start_jd ?? interval?.startJd,
+                ),
+                endMs: parseMetadataTime(
+                    interval?.endTime ?? interval?.end_time,
+                    interval?.end_jd ?? interval?.endJd,
+                ),
+                regime: typeof interval?.regime === "string" ? interval.regime : "",
+                centerCode: typeof interval?.center_code === "string"
+                    ? interval.center_code
+                    : typeof interval?.centerCode === "string"
+                      ? interval.centerCode
+                      : "",
+                periodMs: Number.isFinite(periodSeconds) && periodSeconds > 0
+                    ? periodSeconds * 1000
+                    : NaN,
+                periodStatus: typeof interval?.period_status === "string"
+                    ? interval.period_status
+                    : typeof interval?.periodStatus === "string"
+                      ? interval.periodStatus
+                      : "",
+            };
+        })
+        .filter((interval) =>
+            Number.isFinite(interval.startMs) &&
+            Number.isFinite(interval.endMs) &&
+            interval.endMs >= interval.startMs,
+        );
+}
+
+function findOrbitStyleInterval(metadata, timeMs) {
+    if (!Number.isFinite(timeMs)) {
+        return { interval: null, index: -1, intervals: [] };
+    }
+    const intervals = getOrbitStyleIntervals(metadata);
+    for (let index = 0; index < intervals.length; index += 1) {
+        const interval = intervals[index];
+        if (timeMs >= interval.startMs && timeMs <= interval.endMs) {
+            return { interval, index, intervals };
+        }
+    }
+    return { interval: null, index: -1, intervals };
+}
+
+function isMeaningfulIntervalPeriod(interval) {
+    return !!interval &&
+        Number.isFinite(interval.periodMs) &&
+        interval.periodMs > 0 &&
+        (!interval.periodStatus || interval.periodStatus === "meaningful");
+}
+
+function resolveIntervalPeriodMs(metadata, timeMs) {
+    const { interval } = findOrbitStyleInterval(metadata, timeMs);
+    return isMeaningfulIntervalPeriod(interval) ? interval.periodMs : NaN;
+}
+
+function resolveOrbitDensityHint(metadata, timeMs) {
+    const series = getOrbitStyleDensitySeries(metadata);
+    if (!series || !Number.isFinite(timeMs)) {
+        return NaN;
+    }
+
+    const index = findNearestTimeIndex(
+        series.times,
+        JD_UNIX_EPOCH + (timeMs / MS_PER_DAY),
+    );
+    const hint = index >= 0 ? series.densityHints[index] : NaN;
+    return Number.isFinite(hint) ? clamp(hint, 0, 1) : NaN;
+}
+
+function hasOrbitStyleDensityHints(metadata) {
+    const series = getOrbitStyleDensitySeries(metadata);
+    if (!series || !Array.isArray(series.densityHints)) {
+        return false;
+    }
+    return series.densityHints.some((value) => Number.isFinite(value));
+}
+
+function resolveChunkDensityHint(metadata, startTimeMs, endTimeMs) {
+    if (!Number.isFinite(startTimeMs) || !Number.isFinite(endTimeMs)) {
+        return NaN;
+    }
+    const midpointTimeMs = startTimeMs + ((endTimeMs - startTimeMs) * 0.5);
+    return resolveOrbitDensityHint(metadata, midpointTimeMs);
+}
+
 function resolveTrailWindow(times, timeMs, options = {}) {
     if (!Array.isArray(times) || times.length === 0) {
         return {
@@ -155,6 +306,37 @@ const ORBIT_TRAIL_STYLE = Object.freeze({
     headOpacity3D: 0.94,
 });
 
+function resolveBackgroundOpacity(options = {}) {
+    const {
+        metadata,
+        startTimeMs,
+        endTimeMs,
+        dimension = "3D",
+        opacityOverride,
+    } = options;
+    const defaultOpacity = dimension === "2D"
+        ? ORBIT_TRAIL_STYLE.backgroundOpacity2D
+        : ORBIT_TRAIL_STYLE.backgroundOpacity3D;
+    const baseOpacity = Number.isFinite(Number(opacityOverride))
+        ? Number(opacityOverride)
+        : defaultOpacity;
+    const hint = resolveChunkDensityHint(metadata, startTimeMs, endTimeMs);
+    if (!Number.isFinite(hint)) {
+        return baseOpacity;
+    }
+    return clamp(
+        baseOpacity * (1 - (0.55 * hint)),
+        baseOpacity * 0.28,
+        baseOpacity,
+    );
+}
+
+function resolveOverlapAdjustedOpacity(baseOpacity, overlapFactor = 1) {
+    const safeBaseOpacity = clamp(Number(baseOpacity) || 0, 0, 1);
+    const safeOverlapFactor = clamp(Number(overlapFactor) || 1, 0, 1);
+    return clamp(safeBaseOpacity * safeOverlapFactor, 0, 1);
+}
+
 function resolveTrackOpacity2D(brightness = 1) {
     return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity2D * (Number(brightness) || 1), 0, 1);
 }
@@ -182,10 +364,19 @@ function resolveHeadOpacity3D(brightness = 1) {
 export {
     ORBIT_TRAIL_STYLE,
     buildCurveTimes,
+    findOrbitStyleInterval,
+    getOrbitStyleIntervals,
+    hasOrbitStyleDensityHints,
+    isMeaningfulIntervalPeriod,
     mixColors,
     normalizeHexColor,
+    resolveBackgroundOpacity,
+    resolveChunkDensityHint,
     resolveHeadOpacity2D,
     resolveHeadOpacity3D,
+    resolveIntervalPeriodMs,
+    resolveOrbitDensityHint,
+    resolveOverlapAdjustedOpacity,
     resolveTailOpacity2D,
     resolveTailOpacity3D,
     resolveTrackOpacity2D,
