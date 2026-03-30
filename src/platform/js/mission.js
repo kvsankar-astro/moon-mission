@@ -358,6 +358,10 @@ function syncTimelineDock() {
                     craft?.mnemonic ||
                     craft?.id ||
                     bodyId,
+                color:
+                    craft?.orbitcolor ||
+                    craft?.color ||
+                    null,
                 active: bodyId === activeCraftId,
             };
         }),

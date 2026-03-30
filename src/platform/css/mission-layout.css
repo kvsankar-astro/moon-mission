@@ -267,6 +267,21 @@ canvas {
     text-overflow: ellipsis;
 }
 
+.timeline-dock__craft-swatch {
+    width: 7px;
+    height: 7px;
+    margin-right: 5px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(234, 243, 255, 0.28);
+}
+
+.timeline-dock__craft-chip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .timeline-dock__craft-chip--active {
     border-color: rgba(135, 188, 255, 0.72);
     background: rgba(52, 93, 154, 0.42);

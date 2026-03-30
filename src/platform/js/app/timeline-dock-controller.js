@@ -151,7 +151,16 @@ function createTimelineDockController({
             chip.className = craftInfo.active
                 ? "timeline-dock__craft-chip timeline-dock__craft-chip--active"
                 : "timeline-dock__craft-chip";
-            chip.textContent = craftInfo.label;
+            if (craftInfo.color) {
+                const swatch = document.createElement("span");
+                swatch.className = "timeline-dock__craft-swatch";
+                swatch.style.backgroundColor = craftInfo.color;
+                chip.appendChild(swatch);
+            }
+            const label = document.createElement("span");
+            label.className = "timeline-dock__craft-chip-label";
+            label.textContent = craftInfo.label;
+            chip.appendChild(label);
             chip.title = craftInfo.label;
             craftStrip.appendChild(chip);
         }
