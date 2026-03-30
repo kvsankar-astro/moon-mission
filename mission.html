@@ -874,13 +874,26 @@
                                         <option value="">Primary craft</option>
                                     </select>
                                 </div>
-                                <label class="settings-option">
-                                    <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
-                                    <span id="label-orbit"><!-- injected by JS --></span>
-                                </label>
-                                <label class="settings-option">
-                                    <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
-                                    <span id="label-orbit-descent"><!-- injected by JS --></span>
+                                  <label class="settings-option">
+                                      <input type="checkbox" name="view" value="orbit" id="view-orbit" checked="checked">
+                                      <span id="label-orbit"><!-- injected by JS --></span>
+                                  </label>
+                                  <div class="settings-option settings-option--orbit-style">
+                                      <span>Orbit Style</span>
+                                      <div class="camera-pill-group" role="radiogroup" aria-label="Orbit style">
+                                          <label class="camera-pill">
+                                              <input type="radio" name="orbit-style" value="classic" id="orbit-style-classic" checked="checked">
+                                              <span>Classic</span>
+                                          </label>
+                                          <label class="camera-pill">
+                                              <input type="radio" name="orbit-style" value="trail" id="orbit-style-trail">
+                                              <span>Trail</span>
+                                          </label>
+                                      </div>
+                                  </div>
+                                  <label class="settings-option">
+                                      <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
+                                      <span id="label-orbit-descent"><!-- injected by JS --></span>
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">

@@ -27,6 +27,7 @@ function buildDefaultViewFlags() {
         viewEclipticPlane: false,
         viewEquatorialPlane: false,
         viewFPS: true,
+        orbitStyle: "classic",
     };
 }
 
@@ -36,6 +37,9 @@ function applyViewFlagPatch(target, patch) {
         if (Object.prototype.hasOwnProperty.call(patch, key)) {
             target[key] = Boolean(patch[key]);
         }
+    }
+    if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
+        target.orbitStyle = patch.orbitStyle;
     }
 }
 
@@ -121,6 +125,10 @@ function createRuntimeViewState({
         getViewFPS: () => viewFlags.viewFPS,
         setViewFPS: (value) => {
             viewFlags.viewFPS = Boolean(value);
+        },
+        getOrbitStyle: () => viewFlags.orbitStyle || "classic",
+        setOrbitStyle: (value) => {
+            viewFlags.orbitStyle = value === "trail" ? "trail" : "classic";
         },
     };
 }

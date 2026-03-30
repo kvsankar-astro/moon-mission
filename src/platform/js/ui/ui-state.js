@@ -37,6 +37,11 @@ function setSelectValue(idOrSelector, value) {
     element.value = value;
 }
 
+function readOrbitStyle() {
+    const selected = document.querySelector('input[name="orbit-style"]:checked');
+    return selected?.value === "trail" ? "trail" : "classic";
+}
+
 export function readOriginMode() {
     if (getChecked("origin-relative")) return "geo";
     if (getChecked("origin-earth")) return "geo";
@@ -73,6 +78,8 @@ export function readViewSettings() {
         settings.activeCraftId = activeCraftId;
     }
 
+    settings.orbitStyle = readOrbitStyle();
+
     return settings;
 }
 
@@ -87,6 +94,11 @@ export function applyViewSettings(patch) {
         const id = VIEW_SETTING_CHECKBOXES[key];
         if (!id) continue;
         setChecked(id, value);
+    }
+
+    if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
+        setChecked("orbit-style-classic", patch.orbitStyle === "classic");
+        setChecked("orbit-style-trail", patch.orbitStyle === "trail");
     }
 }
 

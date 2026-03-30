@@ -10,6 +10,7 @@ import {
     buildCurveTimes,
     mixColors,
     normalizeHexColor,
+    ORBIT_TRAIL_STYLE,
 } from "./orbit-trail-style.js";
 
 export function createOrbitVectorsActions({
@@ -271,6 +272,20 @@ export function createOrbitVectorsActions({
                             "; fill: none",
                     )
                     .attr("visibility", "inherit");
+
+                svgContainer
+                    .select("#" + "orbit-" + planetKey)
+                    .append("polyline")
+                    .attr("class", "orbit-trail-background")
+                    .attr("id", `orbit-bg-${planetKey}`)
+                    .attr("points", pointsToAttr(orbitPoints))
+                    .attr("fill", "none")
+                    .attr("stroke", orbitColor)
+                    .attr("stroke-width", 1.0 / zoomFactor)
+                    .attr("stroke-opacity", ORBIT_TRAIL_STYLE.backgroundOpacity2D)
+                    .attr("stroke-linecap", "round")
+                    .attr("stroke-linejoin", "round")
+                    .attr("visibility", "hidden");
 
                 svgContainer
                     .select("#" + "orbit-" + planetKey)

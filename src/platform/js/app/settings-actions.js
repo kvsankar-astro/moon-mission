@@ -24,6 +24,22 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
+    function applyOrbitSvgStyle(orbitElement, orbitStyle) {
+        if (!orbitElement) return;
+        const style = orbitStyle === "trail" ? "trail" : "classic";
+        orbitElement.setAttribute("data-orbit-style", style);
+        orbitElement
+            .querySelectorAll(".orbit-classic-path")
+            .forEach((element) =>
+                element.setAttribute("visibility", style === "classic" ? "inherit" : "hidden"),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
+            .forEach((element) =>
+                element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
+            );
+    }
+
     function toggleMode() {
         const previousConfig = getConfig();
         const previousScene = animationScenes[previousConfig];
@@ -97,11 +113,17 @@ export function createSettingsActions({
                         globalConfig,
                         bodyId,
                     });
+                    applyOrbitSvgStyle(orbitElement, view.orbitStyle);
                     orbitElement.setAttribute("visibility", visible ? "visible" : "hidden");
                 }
             }
             if (scene && scene.initialized3D) {
-                applySceneOrbitVisibility(scene, globalConfig, view.viewOrbit);
+                applySceneOrbitVisibility(
+                    scene,
+                    globalConfig,
+                    view.viewOrbit,
+                    view.orbitStyle || "classic",
+                );
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
                     scene.landingOrbitLine.visible = view.viewOrbitDescent;
                 }
