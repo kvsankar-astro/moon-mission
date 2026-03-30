@@ -300,6 +300,8 @@ runtimeViewState.setViewFlags({
     orbitStyle: runtimeViewState.getOrbitStyle(),
     trailTrackBrightness2D: runtimeViewState.getTrailTrackBrightness2D(),
     trailTrackBrightness3D: runtimeViewState.getTrailTrackBrightness3D(),
+    trailTailBrightness2D: runtimeViewState.getTrailTailBrightness2D(),
+    trailTailBrightness3D: runtimeViewState.getTrailTailBrightness3D(),
 });
 
 const eventBus = createEventBus();
@@ -536,6 +538,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewOrbit: () => runtimeViewState.getViewOrbit(),
     getOrbitStyle: () => runtimeViewState.getOrbitStyle(),
     getTrailTrackBrightness3D: () => runtimeViewState.getTrailTrackBrightness3D(),
+    getTrailTailBrightness3D: () => runtimeViewState.getTrailTailBrightness3D(),
     render,
     bridgeActions,
     clearEventInfo,
@@ -671,6 +674,14 @@ const missionStateCells = {
     trailTrackBrightness3D: bindStateCell(
         () => runtimeViewState.getTrailTrackBrightness3D(),
         (value) => { runtimeViewState.setTrailTrackBrightness3D(value); },
+    ),
+    trailTailBrightness2D: bindStateCell(
+        () => runtimeViewState.getTrailTailBrightness2D(),
+        (value) => { runtimeViewState.setTrailTailBrightness2D(value); },
+    ),
+    trailTailBrightness3D: bindStateCell(
+        () => runtimeViewState.getTrailTailBrightness3D(),
+        (value) => { runtimeViewState.setTrailTailBrightness3D(value); },
     ),
     animDate: bindStateCell(() => animDate, (value) => { animDate = value; }),
     mousedownTimeout: bindStateCell(

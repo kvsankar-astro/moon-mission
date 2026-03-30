@@ -282,6 +282,12 @@ function createMissionStateStore(ctx) {
             if (Number.isFinite(view.trailTrackBrightness3D)) {
                 setState("trailTrackBrightness3D", view.trailTrackBrightness3D);
             }
+            if (Number.isFinite(view.trailTailBrightness2D)) {
+                setState("trailTailBrightness2D", view.trailTailBrightness2D);
+            }
+            if (Number.isFinite(view.trailTailBrightness3D)) {
+                setState("trailTailBrightness3D", view.trailTailBrightness3D);
+            }
         },
         onConfigChanged: (newConfig) => {
             syncPlaneStateForConfig(newConfig);
@@ -330,6 +336,8 @@ function createMissionStateStore(ctx) {
         getOrbitStyle: () => getState("orbitStyle"),
         getTrailTrackBrightness2D: () => getState("trailTrackBrightness2D"),
         getTrailTrackBrightness3D: () => getState("trailTrackBrightness3D"),
+        getTrailTailBrightness2D: () => getState("trailTailBrightness2D"),
+        getTrailTailBrightness3D: () => getState("trailTailBrightness3D"),
         setMissionStartCalled: (val) => {
             setState("missionStartCalled", val);
         },

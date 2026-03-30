@@ -65,6 +65,7 @@ function createMissionSceneActionBundle(deps) {
         getViewOrbit,
         getOrbitStyle,
         getTrailTrackBrightness3D,
+        getTrailTailBrightness3D,
         render,
         wait10,
         wait20,
@@ -142,6 +143,7 @@ function createMissionSceneActionBundle(deps) {
         getViewOrbit,
         getOrbitStyle,
         getTrailTrackBrightness3D,
+        getTrailTailBrightness3D,
         render,
         wait10,
         createLineMaterial: (color, options = {}) => new THREE.LineBasicMaterial({

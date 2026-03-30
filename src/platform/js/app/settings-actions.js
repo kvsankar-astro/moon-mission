@@ -8,7 +8,7 @@ import {
 
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
-import { resolveTrackOpacity2D } from "./orbit-trail-style.js";
+import { resolveHeadOpacity2D, resolveTailOpacity2D, resolveTrackOpacity2D } from "./orbit-trail-style.js";
 
 export function createSettingsActions({
     getConfig,
@@ -25,7 +25,12 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
-    function applyOrbitSvgStyle(orbitElement, orbitStyle, trailTrackBrightness2D = 1) {
+    function applyOrbitSvgStyle(
+        orbitElement,
+        orbitStyle,
+        trailTrackBrightness2D = 1,
+        trailTailBrightness2D = 1,
+    ) {
         if (!orbitElement) return;
         const style = orbitStyle === "trail" ? "trail" : "classic";
         orbitElement.setAttribute("data-orbit-style", style);
@@ -45,6 +50,22 @@ export function createSettingsActions({
                 element.setAttribute(
                     "stroke-opacity",
                     String(resolveTrackOpacity2D(trailTrackBrightness2D)),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-tail")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveTailOpacity2D(trailTailBrightness2D)),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-head")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveHeadOpacity2D(trailTailBrightness2D)),
                 ),
             );
     }
@@ -126,6 +147,7 @@ export function createSettingsActions({
                         orbitElement,
                         view.orbitStyle,
                         view.trailTrackBrightness2D,
+                        view.trailTailBrightness2D,
                     );
                     orbitElement.setAttribute("visibility", visible ? "visible" : "hidden");
                 }
@@ -137,6 +159,7 @@ export function createSettingsActions({
                     view.viewOrbit,
                     view.orbitStyle || "classic",
                     view.trailTrackBrightness3D,
+                    view.trailTailBrightness3D,
                 );
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
                     scene.landingOrbitLine.visible = view.viewOrbitDescent;

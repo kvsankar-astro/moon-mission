@@ -99,6 +99,8 @@ export function readViewSettings() {
     settings.orbitStyle = readOrbitStyle();
     settings.trailTrackBrightness2D = getRangeValue("trail-track-brightness-2d", 1);
     settings.trailTrackBrightness3D = getRangeValue("trail-track-brightness-3d", 1);
+    settings.trailTailBrightness2D = getRangeValue("trail-tail-brightness-2d", 1);
+    settings.trailTailBrightness3D = getRangeValue("trail-tail-brightness-3d", 1);
 
     return settings;
 }
@@ -129,6 +131,16 @@ export function applyViewSettings(patch) {
     if (Number.isFinite(patch.trailTrackBrightness3D)) {
         setRangeValue("trail-track-brightness-3d", patch.trailTrackBrightness3D);
         setText("trail-track-brightness-3d-value", Number(patch.trailTrackBrightness3D).toFixed(2));
+    }
+
+    if (Number.isFinite(patch.trailTailBrightness2D)) {
+        setRangeValue("trail-tail-brightness-2d", patch.trailTailBrightness2D);
+        setText("trail-tail-brightness-2d-value", Number(patch.trailTailBrightness2D).toFixed(2));
+    }
+
+    if (Number.isFinite(patch.trailTailBrightness3D)) {
+        setRangeValue("trail-tail-brightness-3d", patch.trailTailBrightness3D);
+        setText("trail-tail-brightness-3d-value", Number(patch.trailTailBrightness3D).toFixed(2));
     }
 }
 

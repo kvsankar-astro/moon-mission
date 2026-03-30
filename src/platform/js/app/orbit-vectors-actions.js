@@ -11,6 +11,8 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
+    resolveHeadOpacity2D,
+    resolveTailOpacity2D,
     resolveTrackOpacity2D,
 } from "./orbit-trail-style.js";
 
@@ -37,6 +39,7 @@ export function createOrbitVectorsActions({
     getGlobalConfig,
     getOrbitStyle = () => "classic",
     getTrailTrackBrightness2D = () => 1,
+    getTrailTailBrightness2D = () => 1,
     planetStartTime,
     PC,
     UC,
@@ -58,8 +61,17 @@ export function createOrbitVectorsActions({
         typeof getTrailTrackBrightness2D === "function"
             ? getTrailTrackBrightness2D
             : () => 1;
+    const readTrailTailBrightness2D =
+        typeof getTrailTailBrightness2D === "function"
+            ? getTrailTailBrightness2D
+            : () => 1;
 
-    function applyOrbitSvgStyle(orbitElement, orbitStyle, trailTrackBrightness2D = 1) {
+    function applyOrbitSvgStyle(
+        orbitElement,
+        orbitStyle,
+        trailTrackBrightness2D = 1,
+        trailTailBrightness2D = 1,
+    ) {
         if (!orbitElement) return;
         const style = orbitStyle === "trail" ? "trail" : "classic";
         orbitElement.setAttribute("data-orbit-style", style);
@@ -79,6 +91,22 @@ export function createOrbitVectorsActions({
                 element.setAttribute(
                     "stroke-opacity",
                     String(resolveTrackOpacity2D(trailTrackBrightness2D)),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-tail")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveTailOpacity2D(trailTailBrightness2D)),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-head")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveHeadOpacity2D(trailTailBrightness2D)),
                 ),
             );
     }
@@ -331,6 +359,7 @@ export function createOrbitVectorsActions({
                     .attr("fill", "none")
                     .attr("stroke", orbitColor)
                     .attr("stroke-width", 1.9 / zoomFactor)
+                    .attr("stroke-opacity", resolveTailOpacity2D(readTrailTailBrightness2D()))
                     .attr("stroke-linecap", "round")
                     .attr("stroke-linejoin", "round")
                     .attr("visibility", "hidden");
@@ -344,6 +373,7 @@ export function createOrbitVectorsActions({
                     .attr("fill", "none")
                     .attr("stroke", headColor)
                     .attr("stroke-width", 2.5 / zoomFactor)
+                    .attr("stroke-opacity", resolveHeadOpacity2D(readTrailTailBrightness2D()))
                     .attr("stroke-linecap", "round")
                     .attr("stroke-linejoin", "round")
                     .attr("visibility", "hidden");
@@ -362,6 +392,7 @@ export function createOrbitVectorsActions({
                     orbitElement,
                     readOrbitStyle(),
                     readTrailTrackBrightness2D(),
+                    readTrailTailBrightness2D(),
                 );
             }
         }

@@ -424,6 +424,8 @@ export function bindMainControls(handlers) {
     onChange("orbit-style-trail", setView);
     onInput("trail-track-brightness-2d", setView);
     onInput("trail-track-brightness-3d", setView);
+    onInput("trail-tail-brightness-2d", setView);
+    onInput("trail-tail-brightness-3d", setView);
 
     onClick("dimension-2D", setDimensionTop);
     onClick("dimension-3D", setDimensionTop);

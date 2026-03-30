@@ -163,11 +163,31 @@ function resolveTrackOpacity3D(brightness = 1) {
     return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity3D * (Number(brightness) || 1), 0, 1);
 }
 
+function resolveTailOpacity2D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.tailOpacity2D * (Number(brightness) || 1), 0, 1);
+}
+
+function resolveHeadOpacity2D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.headOpacity2D * (Number(brightness) || 1), 0, 1);
+}
+
+function resolveTailOpacity3D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.tailOpacity3D * (Number(brightness) || 1), 0, 1);
+}
+
+function resolveHeadOpacity3D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.headOpacity3D * (Number(brightness) || 1), 0, 1);
+}
+
 export {
     ORBIT_TRAIL_STYLE,
     buildCurveTimes,
     mixColors,
     normalizeHexColor,
+    resolveHeadOpacity2D,
+    resolveHeadOpacity3D,
+    resolveTailOpacity2D,
+    resolveTailOpacity3D,
     resolveTrackOpacity2D,
     resolveTrackOpacity3D,
     resolveTrailWindow,

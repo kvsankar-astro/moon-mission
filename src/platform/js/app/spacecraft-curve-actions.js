@@ -7,6 +7,8 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
+    resolveHeadOpacity3D,
+    resolveTailOpacity3D,
 } from "./orbit-trail-style.js";
 
 export function createSpacecraftCurveActions({
@@ -17,6 +19,7 @@ export function createSpacecraftCurveActions({
     getViewOrbit,
     getOrbitStyle = () => "classic",
     getTrailTrackBrightness3D = () => 1,
+    getTrailTailBrightness3D = () => 1,
     render,
     wait10,
     createLineMaterial,
@@ -28,6 +31,7 @@ export function createSpacecraftCurveActions({
             getViewOrbit(),
             getOrbitStyle(),
             getTrailTrackBrightness3D(),
+            getTrailTailBrightness3D(),
         );
     }
 
@@ -75,7 +79,7 @@ export function createSpacecraftCurveActions({
             tailGeometry,
             createLineMaterial(normalizedBaseColor, {
                 transparent: true,
-                opacity: ORBIT_TRAIL_STYLE.tailOpacity3D,
+                opacity: resolveTailOpacity3D(getTrailTailBrightness3D()),
                 depthWrite: false,
             }),
         );
@@ -83,7 +87,7 @@ export function createSpacecraftCurveActions({
             headGeometry,
             createLineMaterial(mixColors(normalizedBaseColor, "#ffffff", 0.42), {
                 transparent: true,
-                opacity: ORBIT_TRAIL_STYLE.headOpacity3D,
+                opacity: resolveHeadOpacity3D(getTrailTailBrightness3D()),
                 depthWrite: false,
             }),
         );
