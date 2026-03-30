@@ -14,6 +14,10 @@ export function computeDynamicLabels({ globalConfig }) {
         secondaryCraft?.mnemonic ||
         secondaryCraft?.id ||
         "Additional Craft";
+    const additionalCraftToggleLabel = ui.additionalCraftToggleLabel ||
+        (additionalCraftLabel === "Additional Craft"
+            ? additionalCraftLabel
+            : `Show ${additionalCraftLabel}`);
 
     return {
         pageTitle: ui.pageTitle || `${spacecraftName} - Orbit Animation`,
@@ -29,7 +33,7 @@ export function computeDynamicLabels({ globalConfig }) {
             },
             {
                 id: "label-additional-crafts",
-                text: additionalCraftLabel,
+                text: additionalCraftToggleLabel,
             },
         ],
     };
