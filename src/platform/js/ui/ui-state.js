@@ -68,6 +68,11 @@ export function readViewSettings() {
         settings[key] = getChecked(id);
     }
 
+    const activeCraftId = getSelectValue("active-craft-select", "");
+    if (activeCraftId) {
+        settings.activeCraftId = activeCraftId;
+    }
+
     return settings;
 }
 

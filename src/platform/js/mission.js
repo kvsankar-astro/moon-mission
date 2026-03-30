@@ -369,6 +369,50 @@ function syncTimelineDock() {
     );
 }
 
+function syncActiveCraftControl() {
+    const row = document.getElementById("active-craft-row");
+    const select = document.getElementById("active-craft-select");
+    if (!row || !select) return;
+
+    const cfg = runtimeViewState.getConfig();
+    const scene = animationScenes[cfg];
+    const visibleCraftIds = getSceneVisibleCraftIds(scene, globalConfig);
+    const activeCraftId = getSceneActiveCraftId(scene, globalConfig);
+
+    if (!Array.isArray(visibleCraftIds) || visibleCraftIds.length <= 1) {
+        row.classList.add("settings-row--hidden");
+        select.innerHTML = "";
+        return;
+    }
+
+    row.classList.remove("settings-row--hidden");
+    const optionSignature = visibleCraftIds
+        .map((bodyId) => {
+            const craft = resolveMissionCraft(globalConfig, bodyId);
+            return `${bodyId}:${craft?.viewLabel || craft?.name || craft?.mnemonic || craft?.id || bodyId}`;
+        })
+        .join("|");
+    if (select.dataset.optionSignature !== optionSignature) {
+        select.innerHTML = "";
+        for (const bodyId of visibleCraftIds) {
+            const craft = resolveMissionCraft(globalConfig, bodyId);
+            const option = document.createElement("option");
+            option.value = bodyId;
+            option.textContent =
+                craft?.viewLabel ||
+                craft?.name ||
+                craft?.mnemonic ||
+                craft?.id ||
+                bodyId;
+            select.appendChild(option);
+        }
+        select.dataset.optionSignature = optionSignature;
+    }
+    if (activeCraftId) {
+        select.value = activeCraftId;
+    }
+}
+
 function formatSpeedLabel(multiplier, isRealtime) {
     if (isRealtime) return "RT";
     if (!Number.isFinite(multiplier) || multiplier <= 0) return "1x";
@@ -408,6 +452,7 @@ var animationController = new AnimationController({
         runtimeSessionState.setAnimTime(time);
         bridgeActions.setLocation();    // Update scene positions
         syncTimelineDock();
+        syncActiveCraftControl();
         eventBus.emit("animation:timeChanged", { time });
     },
     onPlayStateChange: (isPlaying) => {
@@ -428,6 +473,7 @@ window.addEventListener("load", function () {
     );
     ensureTimelineDockController();
     syncTimelineDock();
+    syncActiveCraftControl();
 });
 
 var globalConfig = null; // Store loaded config from config.json
@@ -701,11 +747,20 @@ const {
     isTestMode,
 }));
 
-toggleMode = missionRuntimeWireup.toggleMode;
-setDimensionTop = missionRuntimeWireup.setDimensionTop;
+toggleMode = function (...args) {
+    missionRuntimeWireup.toggleMode(...args);
+    syncTimelineDock();
+    syncActiveCraftControl();
+};
+setDimensionTop = function (...args) {
+    missionRuntimeWireup.setDimensionTop(...args);
+    syncTimelineDock();
+    syncActiveCraftControl();
+};
 setView = function (...args) {
     missionRuntimeWireup.setView(...args);
     syncTimelineDock();
+    syncActiveCraftControl();
 };
 export { main };
 

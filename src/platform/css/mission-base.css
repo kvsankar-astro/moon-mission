@@ -196,6 +196,10 @@ body {
     gap: 6px;
 }
 
+.settings-row--hidden {
+    display: none;
+}
+
 .settings-options {
     display: flex;
     flex-direction: column;
