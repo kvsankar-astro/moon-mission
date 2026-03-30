@@ -63,6 +63,7 @@ function createMissionSceneActionBundle(deps) {
         getLandingPointsCount,
         getViewOrbitDescent,
         getViewOrbit,
+        getOrbitStyle,
         render,
         wait10,
         wait20,
@@ -138,6 +139,7 @@ function createMissionSceneActionBundle(deps) {
         getLandingPointsCount,
         getViewOrbitDescent,
         getViewOrbit,
+        getOrbitStyle,
         render,
         wait10,
         createLineMaterial: (color, options = {}) => new THREE.LineBasicMaterial({

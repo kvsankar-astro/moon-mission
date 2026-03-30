@@ -15,12 +15,18 @@ export function createSpacecraftCurveActions({
     planetProperties,
     getViewOrbitDescent,
     getViewOrbit,
+    getOrbitStyle = () => "classic",
     render,
     wait10,
     createLineMaterial,
 }) {
     function applyCraftOrbitVisibility(scene, globalConfig) {
-        applySceneOrbitVisibility(scene, globalConfig, getViewOrbit(), "classic");
+        applySceneOrbitVisibility(
+            scene,
+            globalConfig,
+            getViewOrbit(),
+            getOrbitStyle(),
+        );
     }
 
     function isValidVector3(point) {
