@@ -113,6 +113,7 @@ function createDataflowWiringActions(deps) {
         loadOrbitDataIfNeededAndProcessOverride,
         handleDimensionSwitch,
         setLocation,
+        getOrbitStyle,
         loadProgress,
     } = deps;
 
@@ -270,6 +271,7 @@ function createDataflowWiringActions(deps) {
         getZoomFactor,
         getPlaneVariables,
         getGlobalConfig,
+        getOrbitStyle,
         planetStartTime: planetStartTimeOverride || planetStartTime,
         PC,
         UC,

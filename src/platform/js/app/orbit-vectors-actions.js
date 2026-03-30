@@ -34,6 +34,7 @@ export function createOrbitVectorsActions({
     getZoomFactor,
     getPlaneVariables,
     getGlobalConfig,
+    getOrbitStyle = () => "classic",
     planetStartTime,
     PC,
     UC,
@@ -47,6 +48,26 @@ export function createOrbitVectorsActions({
         typeof getGlobalConfig === "function"
             ? getGlobalConfig
             : () => null;
+    const readOrbitStyle =
+        typeof getOrbitStyle === "function"
+            ? getOrbitStyle
+            : () => "classic";
+
+    function applyOrbitSvgStyle(orbitElement, orbitStyle) {
+        if (!orbitElement) return;
+        const style = orbitStyle === "trail" ? "trail" : "classic";
+        orbitElement.setAttribute("data-orbit-style", style);
+        orbitElement
+            .querySelectorAll(".orbit-classic-path")
+            .forEach((element) =>
+                element.setAttribute("visibility", style === "classic" ? "inherit" : "hidden"),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
+            .forEach((element) =>
+                element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
+            );
+    }
 
     function getPlanetProps(bodyId) {
         const missionCraft = resolveMissionCraft(readGlobalConfig(), bodyId);
@@ -319,6 +340,11 @@ export function createOrbitVectorsActions({
                 svgContainer
                     .select(`#orbit-head-${planetKey}`)
                     .attr("points", pointsToAttr([]));
+
+                const orbitElement = typeof document !== "undefined"
+                    ? document.getElementById(`orbit-${planetKey}`)
+                    : null;
+                applyOrbitSvgStyle(orbitElement, readOrbitStyle());
             }
         }
 
