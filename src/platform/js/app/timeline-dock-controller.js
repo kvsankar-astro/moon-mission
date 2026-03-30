@@ -161,6 +161,12 @@ function createTimelineDockController({
             label.className = "timeline-dock__craft-chip-label";
             label.textContent = craftInfo.label;
             chip.appendChild(label);
+            if (craftInfo.roleLabel) {
+                const role = document.createElement("span");
+                role.className = "timeline-dock__craft-chip-role";
+                role.textContent = craftInfo.roleLabel;
+                chip.appendChild(role);
+            }
             chip.title = craftInfo.label;
             craftStrip.appendChild(chip);
         }

@@ -358,6 +358,7 @@ function syncTimelineDock() {
                     craft?.mnemonic ||
                     craft?.id ||
                     bodyId,
+                roleLabel: craft?.primary ? "Primary" : "Additional",
                 color:
                     craft?.orbitcolor ||
                     craft?.color ||

@@ -282,10 +282,30 @@ canvas {
     text-overflow: ellipsis;
 }
 
+.timeline-dock__craft-chip-role {
+    margin-left: 5px;
+    padding: 0 4px;
+    border-radius: 999px;
+    border: 1px solid rgba(176, 196, 228, 0.24);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(183, 204, 236, 0.78);
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    flex: 0 0 auto;
+}
+
 .timeline-dock__craft-chip--active {
     border-color: rgba(135, 188, 255, 0.72);
     background: rgba(52, 93, 154, 0.42);
     color: rgba(238, 244, 255, 0.98);
+}
+
+.timeline-dock__craft-chip--active .timeline-dock__craft-chip-role {
+    border-color: rgba(199, 221, 255, 0.4);
+    color: rgba(232, 240, 255, 0.9);
 }
 
 .footer-inner-wrapper, .content-inner-wrapper {
