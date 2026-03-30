@@ -68,8 +68,12 @@ function readOrbitStyle() {
     return selected?.value === "trail" ? "trail" : "classic";
 }
 
-function syncTrailStyleControlVisibility(orbitStyle) {
-    setElementsHidden(".trail-style-control", orbitStyle !== "trail");
+function syncTrailStyleControlVisibility(orbitStyle, viewOrbit = getChecked("view-orbit")) {
+    setElementsHidden(".trail-style-control", orbitStyle !== "trail" || !viewOrbit);
+}
+
+function syncOrbitStyleControlVisibility(viewOrbit = getChecked("view-orbit")) {
+    setElementsHidden(".orbit-style-control", !viewOrbit);
 }
 
 export function readOriginMode() {
@@ -130,10 +134,17 @@ export function applyViewSettings(patch) {
         setChecked(id, value);
     }
 
+    const effectiveViewOrbit = Object.prototype.hasOwnProperty.call(patch, "viewOrbit")
+        ? Boolean(patch.viewOrbit)
+        : getChecked("view-orbit");
+    syncOrbitStyleControlVisibility(effectiveViewOrbit);
+
     if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
         setChecked("orbit-style-classic", patch.orbitStyle === "classic");
         setChecked("orbit-style-trail", patch.orbitStyle === "trail");
-        syncTrailStyleControlVisibility(patch.orbitStyle);
+        syncTrailStyleControlVisibility(patch.orbitStyle, effectiveViewOrbit);
+    } else if (Object.prototype.hasOwnProperty.call(patch, "viewOrbit")) {
+        syncTrailStyleControlVisibility(readOrbitStyle(), effectiveViewOrbit);
     }
 
     if (Number.isFinite(patch.trailTrackBrightness2D)) {
