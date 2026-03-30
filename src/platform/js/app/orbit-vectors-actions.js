@@ -15,6 +15,7 @@ import {
     resolveTailOpacity2D,
     resolveTrackOpacity2D,
 } from "./orbit-trail-style.js";
+import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
 
 export function createOrbitVectorsActions({
     d3,
@@ -234,6 +235,7 @@ export function createOrbitVectorsActions({
 
         const config = getConfig();
         const scene = animationScenes[config];
+        invalidateSceneOrbitOverlap(scene);
         scene.orbitSvgPointsByBodyId = {};
         scene.orbitTimesByBodyId = {};
 

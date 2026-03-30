@@ -10,6 +10,7 @@ import {
     resolveHeadOpacity3D,
     resolveTailOpacity3D,
 } from "./orbit-trail-style.js";
+import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
 
 export function createSpacecraftCurveActions({
     THREE,
@@ -146,6 +147,7 @@ export function createSpacecraftCurveActions({
     }
 
     function addSpacecraftCurve(scene) {
+        invalidateSceneOrbitOverlap(scene);
         scene.orbitLines = [];
         scene.orbitLinesByBodyId = {};
         scene.orbitMaterialsByBodyId = {};
@@ -227,6 +229,7 @@ export function createSpacecraftCurveActions({
     }
 
     function disposeSpacecraftCurve(scene) {
+        invalidateSceneOrbitOverlap(scene);
         if (scene.orbitLines) {
             scene.orbitLines.forEach((line) => {
                 if (line.geometry) {
