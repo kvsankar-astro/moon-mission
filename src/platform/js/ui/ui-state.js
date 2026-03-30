@@ -55,9 +55,21 @@ function setText(idOrSelector, value) {
     element.textContent = value;
 }
 
+function setElementsHidden(selector, hidden) {
+    const elements = document.querySelectorAll(selector);
+    if (!elements.length) return;
+    elements.forEach((element) => {
+        element.classList.toggle("settings-row--hidden", !!hidden);
+    });
+}
+
 function readOrbitStyle() {
     const selected = document.querySelector('input[name="orbit-style"]:checked');
     return selected?.value === "trail" ? "trail" : "classic";
+}
+
+function syncTrailStyleControlVisibility(orbitStyle) {
+    setElementsHidden(".trail-style-control", orbitStyle !== "trail");
 }
 
 export function readOriginMode() {
@@ -121,6 +133,7 @@ export function applyViewSettings(patch) {
     if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
         setChecked("orbit-style-classic", patch.orbitStyle === "classic");
         setChecked("orbit-style-trail", patch.orbitStyle === "trail");
+        syncTrailStyleControlVisibility(patch.orbitStyle);
     }
 
     if (Number.isFinite(patch.trailTrackBrightness2D)) {
