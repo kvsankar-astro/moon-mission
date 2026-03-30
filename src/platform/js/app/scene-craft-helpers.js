@@ -6,6 +6,7 @@ import {
 import {
     ORBIT_TRAIL_STYLE,
     resolveHeadOpacity3D,
+    resolveOverlapAdjustedOpacity,
     resolveTailOpacity3D,
     resolveTrackOpacity3D,
 } from "./orbit-trail-style.js";
@@ -192,12 +193,20 @@ function applySceneOrbitVisibility(
 
     for (const [bodyId, orbitLines] of Object.entries(scene.orbitLinesByBodyId || {})) {
         const visible = isLineVisibleForBody(bodyId);
-        orbitLines.forEach((orbitLine) => {
+        const overlapOpacities = scene.orbitOverlapOpacitiesByBodyId?.[bodyId] || [];
+        const baseOpacities = scene.orbitBackgroundBaseOpacitiesByBodyId?.[bodyId] || [];
+        orbitLines.forEach((orbitLine, index) => {
             orbitLine.visible = visible;
             if (orbitLine.material) {
                 orbitLine.material.transparent = isTrailStyle;
                 orbitLine.material.opacity = isTrailStyle
-                    ? resolveTrackOpacity3D(trailTrackBrightness3D)
+                    ? resolveOverlapAdjustedOpacity(
+                        baseOpacities[index] ||
+                            orbitLine?.userData?.baseOpacity ||
+                            resolveTrackOpacity3D(trailTrackBrightness3D) ||
+                            ORBIT_TRAIL_STYLE.backgroundOpacity3D,
+                        overlapOpacities[index],
+                    )
                     : 1;
                 orbitLine.material.depthWrite = !isTrailStyle;
                 orbitLine.material.needsUpdate = true;
