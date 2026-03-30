@@ -377,6 +377,17 @@ async function resetCameraToManual(page) {
   });
 }
 
+async function forceClassicOrbitStyle(page) {
+  await page.evaluate(() => {
+    const classic = document.getElementById('orbit-style-classic');
+    if (!(classic instanceof HTMLInputElement)) return;
+    if (classic.checked) return;
+    classic.checked = true;
+    classic.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
 // Wait for scene to be ready
 async function waitForScene(page) {
   try {
@@ -436,6 +447,8 @@ async function waitForScene(page) {
         requestAnimationFrame(checkFrame);
       });
     });
+
+    await forceClassicOrbitStyle(page);
 
   } catch (error) {
     console.log('Wait for scene ready failed:', error.message);
