@@ -6,6 +6,11 @@ import {
     selectSeriesFromChebyshev,
     selectSeriesFromNpz,
 } from "../data/ephemeris-provider.js";
+import {
+    buildCurveTimes,
+    mixColors,
+    normalizeHexColor,
+} from "./orbit-trail-style.js";
 
 export function createOrbitVectorsActions({
     d3,
@@ -165,6 +170,8 @@ export function createOrbitVectorsActions({
 
         const config = getConfig();
         const scene = animationScenes[config];
+        scene.orbitSvgPointsByBodyId = {};
+        scene.orbitTimesByBodyId = {};
 
         for (let i = 0; i < scene.planetsForLocations.length; ++i) {
             const planetKey = scene.planetsForLocations[i];
@@ -220,21 +227,41 @@ export function createOrbitVectorsActions({
                 const { xFactor, yFactor, xVariable, yVariable } = getPlaneVariables();
                 const zoomFactor = getZoomFactor();
                 const pixelsPerAU = getPixelsPerAU();
+                const orbitColor = normalizeHexColor(
+                    planetProps.orbitcolor,
+                    "#6ccfff",
+                );
+                const headColor = mixColors(orbitColor, "#ffffff", 0.42);
+                const orbitPoints = vectors.map((d) => ({
+                    x: (+1 * xFactor * d[xVariable]) / PC.KM_PER_AU * pixelsPerAU,
+                    y: (-1 * yFactor * d[yVariable]) / PC.KM_PER_AU * pixelsPerAU,
+                }));
+                scene.orbitSvgPointsByBodyId[planetKey] = orbitPoints;
+                scene.orbitTimesByBodyId[planetKey] = buildCurveTimes(
+                    vectors,
+                    getStartTime(),
+                    stepMs,
+                );
+                const pointsToAttr = (points) =>
+                    points
+                        .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
+                        .join(" ");
 
                 var line = d3.svg
                     .line()
                     .x(function (d) {
-                        return (+1 * xFactor * d[xVariable]) / PC.KM_PER_AU * pixelsPerAU;
+                        return d.x;
                     })
                     .y(function (d) {
-                        return (-1 * yFactor * d[yVariable]) / PC.KM_PER_AU * pixelsPerAU;
+                        return d.y;
                     })
                     .interpolate("cardinal-open");
 
                 svgContainer
                     .select("#" + "orbit-" + planetKey)
                     .append("path")
-                    .attr("d", line(vectors))
+                    .attr("class", "orbit-classic-path")
+                    .attr("d", line(orbitPoints))
                     .attr(
                         "style",
                         "stroke: " +
@@ -244,6 +271,39 @@ export function createOrbitVectorsActions({
                             "; fill: none",
                     )
                     .attr("visibility", "inherit");
+
+                svgContainer
+                    .select("#" + "orbit-" + planetKey)
+                    .append("polyline")
+                    .attr("class", "orbit-trail-tail")
+                    .attr("id", `orbit-trail-${planetKey}`)
+                    .attr("points", "")
+                    .attr("fill", "none")
+                    .attr("stroke", orbitColor)
+                    .attr("stroke-width", 1.9 / zoomFactor)
+                    .attr("stroke-linecap", "round")
+                    .attr("stroke-linejoin", "round")
+                    .attr("visibility", "hidden");
+
+                svgContainer
+                    .select("#" + "orbit-" + planetKey)
+                    .append("polyline")
+                    .attr("class", "orbit-trail-head")
+                    .attr("id", `orbit-head-${planetKey}`)
+                    .attr("points", "")
+                    .attr("fill", "none")
+                    .attr("stroke", headColor)
+                    .attr("stroke-width", 2.5 / zoomFactor)
+                    .attr("stroke-linecap", "round")
+                    .attr("stroke-linejoin", "round")
+                    .attr("visibility", "hidden");
+
+                svgContainer
+                    .select(`#orbit-trail-${planetKey}`)
+                    .attr("points", pointsToAttr([]));
+                svgContainer
+                    .select(`#orbit-head-${planetKey}`)
+                    .attr("points", pointsToAttr([]));
             }
         }
 

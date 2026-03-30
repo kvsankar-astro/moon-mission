@@ -37,10 +37,16 @@ function createActionsHarness() {
         endTimeMs: 60000,
         source: "chebyshev",
     };
+    const scene = {
+        planetsForLocations: ["SC"],
+        stepDurationInMilliSeconds: 60000,
+        primaryBody: "EARTH",
+        primaryBodyRadius: 1,
+    };
 
     const generateBodyCurve = vi.fn(() => [
-        { x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0 },
-        { x: 2, y: 3, z: 4, vx: 0, vy: 0, vz: 0 },
+        { x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0, timeMs: 0 },
+        { x: 2, y: 3, z: 4, vx: 0, vy: 0, vz: 0, timeMs: 60000 },
     ]);
 
     const actions = createOrbitVectorsActions({
@@ -55,12 +61,7 @@ function createActionsHarness() {
         getCurrentDimension: () => "2D",
         getConfig: () => "geo",
         animationScenes: {
-            geo: {
-                planetsForLocations: ["SC"],
-                stepDurationInMilliSeconds: 60000,
-                primaryBody: "EARTH",
-                primaryBodyRadius: 1,
-            },
+            geo: scene,
         },
         planetProperties: {
             SC: { orbitcolor: "#fff", r: 1, color: "#fff", name: "SC" },
@@ -95,7 +96,7 @@ function createActionsHarness() {
         setEpochDisplay: () => {},
     });
 
-    return { actions, state, generateBodyCurve };
+    return { actions, state, scene, generateBodyCurve };
 }
 
 describe("createOrbitVectorsActions", () => {
@@ -116,5 +117,17 @@ describe("createOrbitVectorsActions", () => {
         await actions.processOrbitVectorsData();
 
         expect(generateBodyCurve).toHaveBeenCalledTimes(2);
+    });
+
+    it("stores orbit svg points and times for dormant trail rendering", async () => {
+        const { actions, scene } = createActionsHarness();
+
+        await actions.processOrbitVectorsData();
+
+        expect(scene.orbitSvgPointsByBodyId.SC).toEqual([
+            { x: 1, y: -2 },
+            { x: 2, y: -3 },
+        ]);
+        expect(scene.orbitTimesByBodyId.SC).toEqual([0, 60000]);
     });
 });
