@@ -27,7 +27,7 @@ function buildDefaultViewFlags() {
         viewEclipticPlane: false,
         viewEquatorialPlane: false,
         viewFPS: true,
-        orbitStyle: "classic",
+        orbitStyle: "trail",
     };
 }
 
