@@ -40,6 +40,55 @@ describe("orbit trail style helpers", () => {
         expect(window.headStartIndex).toBe(3);
     });
 
+    it("uses metadata interval period when available", () => {
+        const times = [
+            0,
+            30 * 60 * 1000,
+            60 * 60 * 1000,
+            90 * 60 * 1000,
+            120 * 60 * 1000,
+        ];
+
+        const metadata = {
+            regime_intervals: [{
+                start_jd: 2440587.5,
+                end_jd: 2440587.5 + (3 / 24),
+                period_s_local: 2 * 60 * 60,
+                regime: "moon_orbit",
+                period_status: "meaningful",
+            }],
+        };
+
+        const window = resolveTrailWindow(times, 90 * 60 * 1000, {
+            orbitStyleMetadata: metadata,
+        });
+
+        expect(window.currentIndex).toBe(3);
+        expect(window.tailStartIndex).toBe(1);
+        expect(window.headStartIndex).toBe(3);
+    });
+
+    it("falls back to fixed phase durations when metadata period is unavailable", () => {
+        const times = [
+            0,
+            60 * 60 * 1000,
+            2 * 60 * 60 * 1000,
+            3 * 60 * 60 * 1000,
+            4 * 60 * 60 * 1000,
+            5 * 60 * 60 * 1000,
+            6 * 60 * 60 * 1000,
+            7 * 60 * 60 * 1000,
+        ];
+
+        const window = resolveTrailWindow(times, 7 * 60 * 60 * 1000, {
+            phaseKey: "lunar",
+        });
+
+        expect(window.currentIndex).toBe(7);
+        expect(window.tailStartIndex).toBe(1);
+        expect(window.headStartIndex).toBe(6);
+    });
+
     it("lightens orbit head colors toward white", () => {
         expect(mixColors("#204080", "#ffffff", 0.5)).toBe("#90a0c0");
     });

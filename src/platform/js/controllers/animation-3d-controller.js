@@ -121,6 +121,7 @@ export class Animation3DController {
         for (const [bodyId, bundle] of Object.entries(trailBundles)) {
             const curve = this.scene?.curvesById?.[bodyId] || [];
             const curveTimes = this.scene?.curveTimesById?.[bodyId] || [];
+            const orbitStyleMetadata = this.scene?.orbitStyleMetadataByBodyId?.[bodyId] || null;
             const bodyState = bodies?.[bodyId];
             const isAvailable = !!bodyState?.available;
 
@@ -130,7 +131,12 @@ export class Animation3DController {
                 continue;
             }
 
-            const window = resolveTrailWindow(curveTimes, stateTime);
+            const window = resolveTrailWindow(curveTimes, stateTime, {
+                orbitStyleMetadata,
+                phaseKey: this.scene?.name,
+                tailOrbitFraction: this.scene?.orbitTrailTailFraction,
+                headOrbitFraction: this.scene?.orbitTrailHeadFraction,
+            });
             this.updateTrailLineGeometry(
                 bundle.tailLine,
                 curve,

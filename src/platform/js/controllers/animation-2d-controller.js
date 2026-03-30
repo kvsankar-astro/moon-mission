@@ -207,7 +207,13 @@ export class Animation2DController {
 
         for (const [bodyId, points] of Object.entries(scene.orbitSvgPointsByBodyId)) {
             const times = scene.orbitTimesByBodyId?.[bodyId] || [];
-            const window = resolveTrailWindow(times, timeMs);
+            const orbitStyleMetadata = scene.orbitStyleMetadataByBodyId?.[bodyId] || null;
+            const window = resolveTrailWindow(times, timeMs, {
+                orbitStyleMetadata,
+                phaseKey: scene?.name,
+                tailOrbitFraction: scene?.orbitTrailTailFraction,
+                headOrbitFraction: scene?.orbitTrailHeadFraction,
+            });
             const tailPoints =
                 window.tailStartIndex >= 0 && window.currentIndex >= window.tailStartIndex
                     ? points.slice(window.tailStartIndex, window.currentIndex + 1)

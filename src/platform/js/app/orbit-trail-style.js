@@ -233,6 +233,41 @@ function resolveChunkDensityHint(metadata, startTimeMs, endTimeMs) {
     return resolveOrbitDensityHint(metadata, midpointTimeMs);
 }
 
+function resolveFixedTrailDurations(phaseKey, regime) {
+    if (regime === "descent") {
+        return {
+            tailDurationMs: ORBIT_TRAIL_STYLE.descentTailDurationMs,
+            headDurationMs: ORBIT_TRAIL_STYLE.descentHeadDurationMs,
+        };
+    }
+    if (regime === "transfer") {
+        return {
+            tailDurationMs: ORBIT_TRAIL_STYLE.transferTailDurationMs,
+            headDurationMs: ORBIT_TRAIL_STYLE.transferHeadDurationMs,
+        };
+    }
+
+    switch ((phaseKey || "").toLowerCase()) {
+        case "geo":
+            return {
+                tailDurationMs: ORBIT_TRAIL_STYLE.fixedGeoTailDurationMs,
+                headDurationMs: ORBIT_TRAIL_STYLE.fixedGeoHeadDurationMs,
+            };
+        case "landing":
+            return {
+                tailDurationMs: ORBIT_TRAIL_STYLE.fixedLandingTailDurationMs,
+                headDurationMs: ORBIT_TRAIL_STYLE.fixedLandingHeadDurationMs,
+            };
+        case "lunar":
+        case "relative":
+        default:
+            return {
+                tailDurationMs: ORBIT_TRAIL_STYLE.fixedLunarTailDurationMs,
+                headDurationMs: ORBIT_TRAIL_STYLE.fixedLunarHeadDurationMs,
+            };
+    }
+}
+
 function resolveTrailWindow(times, timeMs, options = {}) {
     if (!Array.isArray(times) || times.length === 0) {
         return {
@@ -255,22 +290,31 @@ function resolveTrailWindow(times, timeMs, options = {}) {
         };
     }
 
-    const totalDurationMs = Math.max(0, times[times.length - 1] - times[0]);
-    const defaultTailDurationMs = clamp(
-        totalDurationMs * 0.0125,
-        20 * 60 * 1000,
-        7 * 24 * 60 * 60 * 1000,
-    );
+    const defaultTailFraction = Number.isFinite(Number(options.orbitStyleMetadata?.default_tail_fraction))
+        ? clamp(Number(options.orbitStyleMetadata.default_tail_fraction), 0.05, 1)
+        : ORBIT_TRAIL_STYLE.tailOrbitFraction;
+    const defaultHeadFraction = Number.isFinite(Number(options.orbitStyleMetadata?.default_head_fraction))
+        ? clamp(Number(options.orbitStyleMetadata.default_head_fraction), 0.02, defaultTailFraction)
+        : ORBIT_TRAIL_STYLE.headOrbitFraction;
+    const tailOrbitFraction = Number.isFinite(Number(options.tailOrbitFraction))
+        ? clamp(Number(options.tailOrbitFraction), 0.05, 1)
+        : defaultTailFraction;
+    const headOrbitFraction = Number.isFinite(Number(options.headOrbitFraction))
+        ? clamp(Number(options.headOrbitFraction), 0.02, tailOrbitFraction)
+        : Math.min(tailOrbitFraction, defaultHeadFraction);
+    const activeInterval = findOrbitStyleInterval(options.orbitStyleMetadata, timeMs).interval;
+    const metadataPeriodMs = resolveIntervalPeriodMs(options.orbitStyleMetadata, timeMs);
+    const fixedDurations = resolveFixedTrailDurations(options.phaseKey, activeInterval?.regime);
     const tailDurationMs = Number.isFinite(options.tailDurationMs)
         ? Math.max(1, options.tailDurationMs)
-        : defaultTailDurationMs;
+        : Number.isFinite(metadataPeriodMs)
+            ? Math.max(1, metadataPeriodMs * tailOrbitFraction)
+            : fixedDurations.tailDurationMs;
     const headDurationMs = Number.isFinite(options.headDurationMs)
         ? Math.max(1, options.headDurationMs)
-        : clamp(
-              tailDurationMs * 0.24,
-              5 * 60 * 1000,
-              24 * 60 * 60 * 1000,
-          );
+        : Number.isFinite(metadataPeriodMs)
+            ? Math.max(1, metadataPeriodMs * headOrbitFraction)
+            : fixedDurations.headDurationMs;
 
     const tailStartIndex = findLowerBoundIndex(times, times[currentIndex] - tailDurationMs);
     const headStartIndex = findLowerBoundIndex(times, times[currentIndex] - headDurationMs);
@@ -304,6 +348,18 @@ const ORBIT_TRAIL_STYLE = Object.freeze({
     backgroundOpacity3D: 0.15,
     tailOpacity3D: 0.52,
     headOpacity3D: 0.94,
+    tailOrbitFraction: 0.5,
+    headOrbitFraction: 0.125,
+    fixedGeoTailDurationMs: 12 * 60 * 60 * 1000,
+    fixedGeoHeadDurationMs: 2 * 60 * 60 * 1000,
+    fixedLunarTailDurationMs: 6 * 60 * 60 * 1000,
+    fixedLunarHeadDurationMs: 60 * 60 * 1000,
+    fixedLandingTailDurationMs: 10 * 60 * 1000,
+    fixedLandingHeadDurationMs: 2 * 60 * 1000,
+    transferTailDurationMs: 4 * 60 * 60 * 1000,
+    transferHeadDurationMs: 60 * 60 * 1000,
+    descentTailDurationMs: 90 * 60 * 1000,
+    descentHeadDurationMs: 20 * 60 * 1000,
 });
 
 function resolveBackgroundOpacity(options = {}) {
