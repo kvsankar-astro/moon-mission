@@ -1,3 +1,4 @@
+import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
 import {
     resolveBackgroundOpacity,
     resolveOverlapAdjustedOpacity,
@@ -149,6 +150,7 @@ function applyOrbitStyleMetadataToScene(options = {}) {
         update2DSceneOrbitOpacities(scene, bodyId, metadata);
     }
 
+    invalidateSceneOrbitOverlap(scene);
     if (typeof viewOrbit === "boolean") {
         applySceneOrbitVisibility(
             scene,
