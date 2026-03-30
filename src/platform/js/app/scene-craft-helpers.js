@@ -3,6 +3,7 @@ import {
     resolveMissionCraft,
     resolvePrimaryMissionCraft,
 } from "../core/domain/mission-config.js";
+import { ORBIT_TRAIL_STYLE } from "./orbit-trail-style.js";
 
 function getSceneMissionCraftIds(scene, globalConfig) {
     const bodyIds = Array.isArray(scene?.planetsForLocations)
@@ -165,8 +166,9 @@ function shouldShowSceneCraft({ scene, globalConfig = null, bodyId }) {
     return getSceneVisibleCraftIds(scene, globalConfig).includes(bodyId);
 }
 
-function applySceneOrbitVisibility(scene, globalConfig = null, viewOrbit = true) {
+function applySceneOrbitVisibility(scene, globalConfig = null, viewOrbit = true, orbitStyle = "classic") {
     if (!scene) return;
+    const isTrailStyle = orbitStyle === "trail";
 
     const isLineVisibleForBody = (bodyId) =>
         !!viewOrbit &&
@@ -180,7 +182,23 @@ function applySceneOrbitVisibility(scene, globalConfig = null, viewOrbit = true)
         const visible = isLineVisibleForBody(bodyId);
         orbitLines.forEach((orbitLine) => {
             orbitLine.visible = visible;
+            if (orbitLine.material) {
+                orbitLine.material.transparent = isTrailStyle;
+                orbitLine.material.opacity = isTrailStyle
+                    ? ORBIT_TRAIL_STYLE.backgroundOpacity3D
+                    : 1;
+                orbitLine.material.depthWrite = !isTrailStyle;
+                orbitLine.material.needsUpdate = true;
+            }
         });
+    }
+
+    for (const [bodyId, bundle] of Object.entries(scene.orbitTrailLinesByBodyId || {})) {
+        const visible = isLineVisibleForBody(bodyId) && isTrailStyle;
+        for (const orbitLine of [bundle?.tailLine, bundle?.headLine]) {
+            if (!orbitLine) continue;
+            orbitLine.visible = visible;
+        }
     }
 
     // During async orbit construction, lines may exist before a craft's full slice

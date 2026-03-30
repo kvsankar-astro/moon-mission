@@ -11,6 +11,7 @@
 
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { toScreenCoordinates } from "../scene-state.js";
+import { resolveTrailWindow } from "../app/orbit-trail-style.js";
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
@@ -57,6 +58,9 @@ export class Animation3DController {
 
         // 3. Update body positions
         this.updateBodyPositions(state.bodies, craftId, state.time, landingFreezeTime);
+
+        // 3b. Update time-windowed orbit trails
+        this.updateOrbitTrails(state.time, state.bodies);
 
         // 4. Update spacecraft scale (depends on camera distance)
         if (updateCraftScale) {
@@ -110,6 +114,83 @@ export class Animation3DController {
                 this.updateSpacecraftPosition(bodyState, screenPos, bodies, stateTime, landingFreezeTime);
             }
         }
+    }
+
+    updateOrbitTrails(stateTime, bodies) {
+        const trailBundles = this.scene?.orbitTrailLinesByBodyId || {};
+        for (const [bodyId, bundle] of Object.entries(trailBundles)) {
+            const curve = this.scene?.curvesById?.[bodyId] || [];
+            const curveTimes = this.scene?.curveTimesById?.[bodyId] || [];
+            const bodyState = bodies?.[bodyId];
+            const isAvailable = !!bodyState?.available;
+
+            if (!bundle || curve.length < 2 || curveTimes.length < 2 || !isAvailable) {
+                this.setTrailDrawRange(bundle?.tailLine, 0);
+                this.setTrailDrawRange(bundle?.headLine, 0);
+                continue;
+            }
+
+            const window = resolveTrailWindow(curveTimes, stateTime);
+            this.updateTrailLineGeometry(
+                bundle.tailLine,
+                curve,
+                window.tailStartIndex,
+                window.currentIndex,
+            );
+            this.updateTrailLineGeometry(
+                bundle.headLine,
+                curve,
+                window.headStartIndex,
+                window.currentIndex,
+            );
+        }
+    }
+
+    updateTrailLineGeometry(line, curve, startIndex, endIndex) {
+        if (!line?.geometry) {
+            return;
+        }
+
+        const geometry = line.geometry;
+        const positionAttr = geometry.getAttribute?.("position");
+        if (!positionAttr?.array) {
+            return;
+        }
+
+        if (
+            !Number.isFinite(startIndex) ||
+            !Number.isFinite(endIndex) ||
+            startIndex < 0 ||
+            endIndex < startIndex
+        ) {
+            this.setTrailDrawRange(line, 0);
+            return;
+        }
+
+        const count = Math.max(0, endIndex - startIndex + 1);
+        if (count < 2) {
+            this.setTrailDrawRange(line, 0);
+            return;
+        }
+
+        const positions = positionAttr.array;
+        let offset = 0;
+        for (let i = startIndex; i <= endIndex; i++) {
+            const point = curve[i];
+            positions[offset++] = point.x;
+            positions[offset++] = point.y;
+            positions[offset++] = point.z;
+        }
+        positionAttr.needsUpdate = true;
+        geometry.setDrawRange(0, count);
+        geometry.computeBoundingSphere?.();
+    }
+
+    setTrailDrawRange(line, count) {
+        if (!line?.geometry) {
+            return;
+        }
+        line.geometry.setDrawRange(0, count);
     }
 
     /**

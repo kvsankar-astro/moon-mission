@@ -3,6 +3,11 @@ import {
     getSceneMissionCraftIds,
     getScenePrimaryCraftId,
 } from "./scene-craft-helpers.js";
+import {
+    mixColors,
+    normalizeHexColor,
+    ORBIT_TRAIL_STYLE,
+} from "./orbit-trail-style.js";
 
 export function createSpacecraftCurveActions({
     THREE,
@@ -15,7 +20,7 @@ export function createSpacecraftCurveActions({
     createLineMaterial,
 }) {
     function applyCraftOrbitVisibility(scene, globalConfig) {
-        applySceneOrbitVisibility(scene, globalConfig, getViewOrbit());
+        applySceneOrbitVisibility(scene, globalConfig, getViewOrbit(), "classic");
     }
 
     function isValidVector3(point) {
@@ -39,6 +44,53 @@ export function createSpacecraftCurveActions({
             new THREE.Float32BufferAttribute(vertices, 3),
         );
         return geometry;
+    }
+
+    function createDynamicLineGeometry(maxPoints) {
+        const capacity = Math.max(2, maxPoints);
+        const geometry = new THREE.BufferGeometry();
+        const attribute = new THREE.Float32BufferAttribute(
+            new Float32Array(capacity * 3),
+            3,
+        );
+        attribute.setUsage?.(THREE.DynamicDrawUsage);
+        geometry.setAttribute("position", attribute);
+        geometry.setDrawRange(0, 0);
+        return geometry;
+    }
+
+    function createOrbitTrailBundle({ bodyId, curve, baseColor }) {
+        const normalizedBaseColor = normalizeHexColor(baseColor);
+        const tailGeometry = createDynamicLineGeometry(curve.length);
+        const headGeometry = createDynamicLineGeometry(curve.length);
+        const tailLine = new THREE.Line(
+            tailGeometry,
+            createLineMaterial(normalizedBaseColor, {
+                transparent: true,
+                opacity: ORBIT_TRAIL_STYLE.tailOpacity3D,
+                depthWrite: false,
+            }),
+        );
+        const headLine = new THREE.Line(
+            headGeometry,
+            createLineMaterial(mixColors(normalizedBaseColor, "#ffffff", 0.42), {
+                transparent: true,
+                opacity: ORBIT_TRAIL_STYLE.headOpacity3D,
+                depthWrite: false,
+            }),
+        );
+
+        tailLine.userData = { ...(tailLine.userData || {}), bodyId };
+        headLine.userData = { ...(headLine.userData || {}), bodyId };
+        tailLine.renderOrder = 12;
+        headLine.renderOrder = 13;
+        tailLine.visible = false;
+        headLine.visible = false;
+
+        return {
+            tailLine,
+            headLine,
+        };
     }
 
     async function addCurve(scene, { bodyId, curve, orbitMaterial, globalConfig }) {
@@ -85,6 +137,7 @@ export function createSpacecraftCurveActions({
         scene.orbitLines = [];
         scene.orbitLinesByBodyId = {};
         scene.orbitMaterialsByBodyId = {};
+        scene.orbitTrailLinesByBodyId = {};
         scene.pointsPerSlice = 400;
         scene.startingIndex = 0;
         scene.leftOrbitPoints = 0;
@@ -102,7 +155,11 @@ export function createSpacecraftCurveActions({
                     continue;
                 }
                 const craftOrbitColor = (planetProperties[craftId] || planetProperties.SC)?.orbitcolor;
-                const orbitMaterial = createLineMaterial(craftOrbitColor);
+                const orbitMaterial = createLineMaterial(craftOrbitColor, {
+                    transparent: true,
+                    opacity: ORBIT_TRAIL_STYLE.backgroundOpacity3D,
+                    depthWrite: false,
+                });
                 scene.orbitMaterialsByBodyId[craftId] = orbitMaterial;
                 await addCurve(scene, {
                     bodyId: craftId,
@@ -110,6 +167,18 @@ export function createSpacecraftCurveActions({
                     orbitMaterial,
                     globalConfig,
                 });
+                if (scene.stopCreationFlag) {
+                    break;
+                }
+                const trailBundle = createOrbitTrailBundle({
+                    bodyId: craftId,
+                    curve,
+                    baseColor: craftOrbitColor,
+                });
+                scene.orbitTrailLinesByBodyId[craftId] = trailBundle;
+                scene.motherContainer.add(trailBundle.tailLine);
+                scene.motherContainer.add(trailBundle.headLine);
+                applyCraftOrbitVisibility(scene, globalConfig);
                 if (scene.stopCreationFlag) {
                     break;
                 }
@@ -165,6 +234,16 @@ export function createSpacecraftCurveActions({
         scene.orbitMaterialsByBodyId = {};
         scene.orbitLinesByBodyId = {};
 
+        for (const bundle of Object.values(scene.orbitTrailLinesByBodyId || {})) {
+            for (const line of [bundle?.tailLine, bundle?.headLine]) {
+                if (!line) continue;
+                line.geometry?.dispose?.();
+                line.material?.dispose?.();
+                scene.motherContainer.remove(line);
+            }
+        }
+        scene.orbitTrailLinesByBodyId = {};
+
         if (scene.landingOrbitLine) {
             if (scene.landingOrbitLine.geometry) {
                 scene.landingOrbitLine.geometry.dispose();
@@ -178,6 +257,7 @@ export function createSpacecraftCurveActions({
 
         scene.curvesById = {};
         scene.curveVelocitiesById = {};
+        scene.curveTimesById = {};
         scene.landingCurve = [];
 
         scene.pointsPerSlice = 0;

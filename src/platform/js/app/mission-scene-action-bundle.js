@@ -140,7 +140,14 @@ function createMissionSceneActionBundle(deps) {
         getViewOrbit,
         render,
         wait10,
-        createLineMaterial: (color) => new THREE.LineBasicMaterial({ color, linewidth: 0.2 }),
+        createLineMaterial: (color, options = {}) => new THREE.LineBasicMaterial({
+            color,
+            linewidth: 0.2,
+            transparent: !!options.transparent,
+            opacity: Number.isFinite(options.opacity) ? options.opacity : 1,
+            depthWrite: options.depthWrite ?? true,
+            depthTest: options.depthTest ?? true,
+        }),
     });
 
     const primarySecondaryBodiesActions = createPrimarySecondaryBodiesActions({
