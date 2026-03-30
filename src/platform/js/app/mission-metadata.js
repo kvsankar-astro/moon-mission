@@ -5,6 +5,15 @@ export function computeDynamicLabels({ globalConfig }) {
     const spacecraftShort =
         globalConfig.mission_name_short || globalConfig.spacecraft_mnemonic || "SC";
     const ui = globalConfig.ui || {};
+    const crafts = Array.isArray(globalConfig.crafts) ? globalConfig.crafts : [];
+    const secondaryCraft = crafts.find((craft) => craft && craft.primary !== true);
+    const additionalCraftLabel =
+        ui.additionalCraftLabel ||
+        secondaryCraft?.viewLabel ||
+        secondaryCraft?.name ||
+        secondaryCraft?.mnemonic ||
+        secondaryCraft?.id ||
+        "Additional Craft";
 
     return {
         pageTitle: ui.pageTitle || `${spacecraftName} - Orbit Animation`,
@@ -17,6 +26,10 @@ export function computeDynamicLabels({ globalConfig }) {
             {
                 id: "label-orbit-descent",
                 text: ui.descentOrbitLabel || `${spacecraftShort} Descent Orbit`,
+            },
+            {
+                id: "label-additional-crafts",
+                text: additionalCraftLabel,
             },
         ],
     };
@@ -61,4 +74,3 @@ export function applyMissionMetadata({
         planetProperties["SC"]["name"] = globalConfig.spacecraft_mnemonic;
     }
 }
-

@@ -688,7 +688,21 @@ async function ensureOriginMode(page, mode) {
       : '#origin-relative';
   const isCorrectMode = await page.isChecked(targetSelector);
   if (!isCorrectMode) {
-    await page.click(targetSelector);
+    const targetIsRelative = mode === 'relative';
+    const currentIsRelative = new URL(page.url()).searchParams.get('mode') === 'relative';
+    if (targetIsRelative !== currentIsRelative) {
+      const waitForNavigation = page.waitForURL((urlString) => {
+        const url = new URL(urlString);
+        return targetIsRelative
+          ? url.searchParams.get('mode') === 'relative'
+          : url.searchParams.get('mode') !== 'relative';
+      }, { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+      await page.click(targetSelector);
+      await waitForNavigation;
+      await page.waitForLoadState('domcontentloaded');
+    } else {
+      await page.click(targetSelector);
+    }
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
   await closeSettingsPanel(page);
@@ -708,17 +722,32 @@ async function ensureFovOneDegree(page, enabled = true) {
   }
 }
 
-async function prepareRelativeLandingFovView(page, cameraPair) {
-  await setTimeline(page, '#burn12');
-  await openSettingsPanel(page);
-  if (!await page.isChecked('#origin-relative')) {
-    await page.click('#origin-relative');
-    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+async function ensureCheckboxState(page, selector, enabled = true) {
+  const toggle = page.locator(selector);
+  const isChecked = await toggle.isChecked();
+  if (isChecked === enabled) {
+    return;
   }
+  await page.evaluate(({ selector: targetSelector, checked }) => {
+    const input = document.querySelector(targetSelector);
+    if (!input) return;
+    input.checked = checked;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    input.dispatchEvent(new Event('click', { bubbles: true }));
+  }, { selector, checked: enabled });
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
+async function prepareRelativeLandingFovView(page, cameraPair) {
+  await setTimeline(page, '#burn13');
+  await ensureOriginMode(page, 'relative');
+  await openSettingsPanel(page);
   if (!await page.isChecked('#dimension-3D')) {
     await page.click('#dimension-3D');
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
+  await ensureCheckboxState(page, '#view-orbit', false);
+  await ensureCheckboxState(page, '#view-orbit-descent', false);
   await closeSettingsPanel(page);
   await waitForScene(page);
 
@@ -726,6 +755,7 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
   await setCameraPair(page, cameraPair);
   await ensureFovOneDegree(page, true);
   await closeSettingsPanel(page);
+  await waitForScene(page);
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
 
@@ -3025,6 +3055,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await openSettingsPanel(page);
       await setCameraPair(page, 'manual__manual');
       await ensureFovOneDegree(page, false);
+      await ensureCheckboxState(page, '#view-orbit', true);
+      await ensureCheckboxState(page, '#view-orbit-descent', true);
       await closeSettingsPanel(page);
       await ensureOriginMode(page, 'earth');
       await setTimeline(page, '#burn1');

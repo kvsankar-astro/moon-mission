@@ -408,10 +408,67 @@ function createAnimationSceneClass(deps) {
         }
 
         rotateEarth(timeMs = getRuntimeState().animTime) {
+            const runtimeState = getRuntimeState();
             bodyRotationActions.rotateEarth({
                 timeMs,
                 earthContainer: this.earthContainer,
             });
+
+            if (runtimeState.frameMode === "relative" && runtimeState.config === "geo" && this.earthContainer) {
+                const applyRelativeFrame = (frameQuat) => {
+                    if (!frameQuat) return false;
+                    const qFrame = new THREE.Quaternion(
+                        frameQuat.x,
+                        frameQuat.y,
+                        frameQuat.z,
+                        frameQuat.w,
+                    );
+                    this.earthContainer.quaternion.premultiply(qFrame);
+                    return true;
+                };
+
+                if (applyRelativeFrame(getRelativeFrameQuaternion({
+                    chebyshevData: runtimeState.chebyshevData,
+                    config: runtimeState.config,
+                    timeMs,
+                }))) {
+                    return;
+                }
+
+                const moonState = getBodyEphemerisState({
+                    bodyId: "MOON",
+                    timeMs,
+                    config: runtimeState.config,
+                    npzData: runtimeState.npzData,
+                    npzDataLoaded: runtimeState.npzDataLoaded,
+                    chebyshevData: runtimeState.chebyshevData,
+                    chebyshevDataLoaded: runtimeState.chebyshevDataLoaded,
+                    resolvedSource: resolveBodySource({
+                        bodyId: "MOON",
+                        bodySources: runtimeState.bodyEphemerisSources,
+                        defaultSpacecraftSource: runtimeState.ephemerisSource,
+                    }),
+                    defaultSpacecraftSource: runtimeState.ephemerisSource,
+                });
+                if (!moonState.available) return;
+
+                const r = new THREE.Vector3(moonState.position.x, moonState.position.y, moonState.position.z);
+                const v = new THREE.Vector3(moonState.velocity.vx, moonState.velocity.vy, moonState.velocity.vz);
+                if (r.lengthSq() === 0) return;
+
+                const xHat = r.clone().normalize();
+                const zHat = new THREE.Vector3().crossVectors(r, v);
+                if (zHat.lengthSq() === 0) return;
+                zHat.normalize();
+                const yHat = new THREE.Vector3().crossVectors(zHat, xHat);
+                if (yHat.lengthSq() === 0) return;
+                yHat.normalize();
+
+                const relativeToInertial = new THREE.Matrix4().makeBasis(xHat, yHat, zHat);
+                const inertialToRelative = relativeToInertial.clone().transpose();
+                const qFrame = new THREE.Quaternion().setFromRotationMatrix(inertialToRelative);
+                this.earthContainer.quaternion.premultiply(qFrame);
+            }
         }
 
         dispose() {
