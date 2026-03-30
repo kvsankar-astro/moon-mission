@@ -1,4 +1,5 @@
 import { shouldShowSceneCraft } from "./scene-craft-helpers.js";
+import { requestSceneOrbitOverlapRefinement } from "./orbit-overlap-manager.js";
 
 export function createCraftScaleActions({
     THREE,
@@ -11,6 +12,7 @@ export function createCraftScaleActions({
     isLocationAvaialable,
     getViewportWidth,
     getGlobalConfig,
+    getOrbitStyle,
 }) {
     function readViewportWidth() {
         if (typeof getViewportWidth === "function") {
@@ -92,6 +94,13 @@ export function createCraftScaleActions({
         const scene = animationScenes[config];
         if (!scene || !scene.craft || !scene.initialized3D) return;
         updateCraftScale();
+        requestSceneOrbitOverlapRefinement({
+            scene,
+            dimension: "3D",
+            orbitStyle: getOrbitStyle?.() || "trail",
+            viewportWidth: typeof window !== "undefined" ? window.innerWidth : undefined,
+            viewportHeight: typeof window !== "undefined" ? window.innerHeight : undefined,
+        });
     }
 
     return { updateCraftScale, cameraControlsCallback };

@@ -1,3 +1,5 @@
+import { requestSceneOrbitOverlapRefinement } from "./orbit-overlap-manager.js";
+
 export function createZoomActions({
     d3,
     getSvgContainer,
@@ -14,6 +16,7 @@ export function createZoomActions({
     getOffsetY,
     adjustLabelLocations,
     showGreenwichLongitude,
+    getOrbitStyle,
 }) {
     function zoomChangeTransform(t) {
         // Only process in 2D mode when svgContainer exists
@@ -33,7 +36,8 @@ export function createZoomActions({
         var cy3y = 0;
 
         if (animationScenes[config].lockOnSC) {
-            var scElement = d3.select("#SC");
+            const activeCraftId = animationScenes[config].activeCraftId || "SC";
+            var scElement = d3.select("#" + activeCraftId);
             if (!scElement.empty()) {
                 cy3x = parseFloat(scElement.attr("cx"));
                 cy3y = parseFloat(scElement.attr("cy"));
@@ -83,6 +87,12 @@ export function createZoomActions({
                     cy3y) +
                 ")",
         );
+        animationScenes[config].orbitSvgTransformMatrix = container.attr("transform") || "";
+        requestSceneOrbitOverlapRefinement({
+            scene: animationScenes[config],
+            dimension: "2D",
+            orbitStyle: getOrbitStyle?.() || "trail",
+        });
 
         // var zoom = d3.zoom().on("zoom", handleZoom).on("end", adjustLabelLocations);
 
@@ -130,4 +140,3 @@ export function createZoomActions({
         zoomChange,
     };
 }
-

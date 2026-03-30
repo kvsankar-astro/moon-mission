@@ -250,6 +250,7 @@ function createDataflowWiringActions(deps) {
         getAnimTime,
         isLocationAvaialable: isLocationAvaialableOverride || isLocationAvaialable,
         getGlobalConfig,
+        getOrbitStyle,
     });
 
     const { processOrbitVectorsData } = createOrbitVectorsActions({
@@ -330,6 +331,7 @@ function createDataflowWiringActions(deps) {
         getOffsetY,
         adjustLabelLocations: adjustLabelLocationsOverride || adjustLabelLocations,
         showGreenwichLongitude: showGreenwichLongitudeOverride || showGreenwichLongitude,
+        getOrbitStyle,
     });
 
     const planeActions = createPlaneActions({
