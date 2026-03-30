@@ -273,6 +273,15 @@ function createMissionStateStore(ctx) {
             setBooleanStateIfDefined("viewEclipticPlane", view.viewEclipticPlane);
             setBooleanStateIfDefined("viewEquatorialPlane", view.viewEquatorialPlane);
             setBooleanStateIfDefined("viewFPS", view.viewFPS);
+            if (view.orbitStyle === "classic" || view.orbitStyle === "trail") {
+                setState("orbitStyle", view.orbitStyle);
+            }
+            if (Number.isFinite(view.trailTrackBrightness2D)) {
+                setState("trailTrackBrightness2D", view.trailTrackBrightness2D);
+            }
+            if (Number.isFinite(view.trailTrackBrightness3D)) {
+                setState("trailTrackBrightness3D", view.trailTrackBrightness3D);
+            }
         },
         onConfigChanged: (newConfig) => {
             syncPlaneStateForConfig(newConfig);
@@ -318,6 +327,9 @@ function createMissionStateStore(ctx) {
         },
         getViewSky: () => getState("viewSky"),
         getViewConstellationLines: () => getState("viewConstellationLines"),
+        getOrbitStyle: () => getState("orbitStyle"),
+        getTrailTrackBrightness2D: () => getState("trailTrackBrightness2D"),
+        getTrailTrackBrightness3D: () => getState("trailTrackBrightness3D"),
         setMissionStartCalled: (val) => {
             setState("missionStartCalled", val);
         },

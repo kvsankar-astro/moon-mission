@@ -297,6 +297,9 @@ runtimeViewState.setViewFlags({
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
     viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
     viewFPS: initialMissionViewState.viewFPS,
+    orbitStyle: runtimeViewState.getOrbitStyle(),
+    trailTrackBrightness2D: runtimeViewState.getTrailTrackBrightness2D(),
+    trailTrackBrightness3D: runtimeViewState.getTrailTrackBrightness3D(),
 });
 
 const eventBus = createEventBus();
@@ -531,6 +534,8 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getLandingPointsCount: () => nLandingPoints,
     getViewOrbitDescent: () => runtimeViewState.getViewOrbitDescent(),
     getViewOrbit: () => runtimeViewState.getViewOrbit(),
+    getOrbitStyle: () => runtimeViewState.getOrbitStyle(),
+    getTrailTrackBrightness3D: () => runtimeViewState.getTrailTrackBrightness3D(),
     render,
     bridgeActions,
     clearEventInfo,
@@ -655,6 +660,18 @@ const missionStateCells = {
         (value) => { runtimeViewState.setViewEquatorialPlane(value); },
     ),
     viewFPS: bindStateCell(() => runtimeViewState.getViewFPS(), (value) => { runtimeViewState.setViewFPS(value); }),
+    orbitStyle: bindStateCell(
+        () => runtimeViewState.getOrbitStyle(),
+        (value) => { runtimeViewState.setOrbitStyle(value); },
+    ),
+    trailTrackBrightness2D: bindStateCell(
+        () => runtimeViewState.getTrailTrackBrightness2D(),
+        (value) => { runtimeViewState.setTrailTrackBrightness2D(value); },
+    ),
+    trailTrackBrightness3D: bindStateCell(
+        () => runtimeViewState.getTrailTrackBrightness3D(),
+        (value) => { runtimeViewState.setTrailTrackBrightness3D(value); },
+    ),
     animDate: bindStateCell(() => animDate, (value) => { animDate = value; }),
     mousedownTimeout: bindStateCell(
         () => runtimeInteractionState.getMouseDownTimeout(),

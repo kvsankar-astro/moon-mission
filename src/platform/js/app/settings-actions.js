@@ -8,6 +8,7 @@ import {
 
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
+import { resolveTrackOpacity2D } from "./orbit-trail-style.js";
 
 export function createSettingsActions({
     getConfig,
@@ -24,7 +25,7 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
-    function applyOrbitSvgStyle(orbitElement, orbitStyle) {
+    function applyOrbitSvgStyle(orbitElement, orbitStyle, trailTrackBrightness2D = 1) {
         if (!orbitElement) return;
         const style = orbitStyle === "trail" ? "trail" : "classic";
         orbitElement.setAttribute("data-orbit-style", style);
@@ -37,6 +38,14 @@ export function createSettingsActions({
             .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
             .forEach((element) =>
                 element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-background")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveTrackOpacity2D(trailTrackBrightness2D)),
+                ),
             );
     }
 
@@ -113,7 +122,11 @@ export function createSettingsActions({
                         globalConfig,
                         bodyId,
                     });
-                    applyOrbitSvgStyle(orbitElement, view.orbitStyle);
+                    applyOrbitSvgStyle(
+                        orbitElement,
+                        view.orbitStyle,
+                        view.trailTrackBrightness2D,
+                    );
                     orbitElement.setAttribute("visibility", visible ? "visible" : "hidden");
                 }
             }
@@ -123,6 +136,7 @@ export function createSettingsActions({
                     globalConfig,
                     view.viewOrbit,
                     view.orbitStyle || "classic",
+                    view.trailTrackBrightness3D,
                 );
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
                     scene.landingOrbitLine.visible = view.viewOrbitDescent;

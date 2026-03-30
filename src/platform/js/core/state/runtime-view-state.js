@@ -28,6 +28,8 @@ function buildDefaultViewFlags() {
         viewEquatorialPlane: false,
         viewFPS: true,
         orbitStyle: "trail",
+        trailTrackBrightness2D: 1,
+        trailTrackBrightness3D: 1,
     };
 }
 
@@ -40,6 +42,12 @@ function applyViewFlagPatch(target, patch) {
     }
     if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
         target.orbitStyle = patch.orbitStyle;
+    }
+    if (Number.isFinite(patch.trailTrackBrightness2D)) {
+        target.trailTrackBrightness2D = patch.trailTrackBrightness2D;
+    }
+    if (Number.isFinite(patch.trailTrackBrightness3D)) {
+        target.trailTrackBrightness3D = patch.trailTrackBrightness3D;
     }
 }
 
@@ -129,6 +137,14 @@ function createRuntimeViewState({
         getOrbitStyle: () => viewFlags.orbitStyle || "classic",
         setOrbitStyle: (value) => {
             viewFlags.orbitStyle = value === "trail" ? "trail" : "classic";
+        },
+        getTrailTrackBrightness2D: () => viewFlags.trailTrackBrightness2D ?? 1,
+        setTrailTrackBrightness2D: (value) => {
+            viewFlags.trailTrackBrightness2D = Number.isFinite(value) ? value : 1;
+        },
+        getTrailTrackBrightness3D: () => viewFlags.trailTrackBrightness3D ?? 1,
+        setTrailTrackBrightness3D: (value) => {
+            viewFlags.trailTrackBrightness3D = Number.isFinite(value) ? value : 1;
         },
     };
 }

@@ -16,6 +16,7 @@ export function createSpacecraftCurveActions({
     getViewOrbitDescent,
     getViewOrbit,
     getOrbitStyle = () => "classic",
+    getTrailTrackBrightness3D = () => 1,
     render,
     wait10,
     createLineMaterial,
@@ -26,6 +27,7 @@ export function createSpacecraftCurveActions({
             globalConfig,
             getViewOrbit(),
             getOrbitStyle(),
+            getTrailTrackBrightness3D(),
         );
     }
 

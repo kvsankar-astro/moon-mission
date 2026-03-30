@@ -388,6 +388,65 @@ async function forceClassicOrbitStyle(page) {
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
 }
 
+async function waitForOrbitGeometryReady(page, { dimensionIs2D }) {
+  if (dimensionIs2D) {
+    return;
+  }
+
+  await page.waitForFunction(() => {
+    const isLunarMode = !!document.querySelector('#origin-moon')?.checked;
+    const activeConfig = isLunarMode ? 'lunar' : 'geo';
+    const scene = window.animationScenes?.[activeConfig];
+    if (!scene?.initialized3D) {
+      return false;
+    }
+
+    const primaryCraftId = scene.primaryCraftId || 'SC';
+    const primaryCurveCount = Array.isArray(scene.curvesById?.[primaryCraftId])
+      ? scene.curvesById[primaryCraftId].length
+      : 0;
+
+    const primaryOrbitLines = scene.orbitLinesByBodyId?.[primaryCraftId];
+    const primaryOrbitLineCount = Array.isArray(primaryOrbitLines)
+      ? primaryOrbitLines.length
+      : 0;
+
+    return primaryCurveCount > 1 && primaryOrbitLineCount > 0;
+  }, null, { timeout: TIMEOUTS.ORBIT_RENDER_TIMEOUT });
+}
+
+async function waitForRelativePageLoadOrbitStabilized(page) {
+  await page.waitForFunction(() => {
+    const isRelativeMode = !!document.querySelector('#origin-relative')?.checked;
+    if (!isRelativeMode) {
+      return false;
+    }
+
+    const classic = document.getElementById('orbit-style-classic');
+    if (!(classic instanceof HTMLInputElement) || !classic.checked) {
+      return false;
+    }
+
+    const scene = window.animationScenes?.geo;
+    if (!scene?.initialized3D) {
+      return false;
+    }
+
+    const primaryCraftId = scene.primaryCraftId || 'SC';
+    const orbitLines = scene.orbitLinesByBodyId?.[primaryCraftId];
+    if (!Array.isArray(orbitLines) || orbitLines.length === 0) {
+      return false;
+    }
+
+    return orbitLines.some((orbitLine) => {
+      const opacity = orbitLine?.material?.opacity;
+      return orbitLine?.visible === true && Number.isFinite(opacity) && opacity >= 0.95;
+    });
+  }, null, { timeout: TIMEOUTS.ORBIT_RENDER_TIMEOUT });
+
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+}
+
 // Wait for scene to be ready
 async function waitForScene(page) {
   try {
@@ -449,7 +508,7 @@ async function waitForScene(page) {
     });
 
     await forceClassicOrbitStyle(page);
-
+    await waitForOrbitGeometryReady(page, { dimensionIs2D });
   } catch (error) {
     console.log('Wait for scene ready failed:', error.message);
     // Re-throw the error so tests fail properly instead of continuing with bad state
@@ -3080,6 +3139,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await startTest(page, testId);
       await ensureOriginMode(page, 'relative');
       await waitForScene(page);
+      await waitForRelativePageLoadOrbitStabilized(page);
 
       const comparison = await compareScreenshots(
         page,

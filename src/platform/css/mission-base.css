@@ -359,3 +359,27 @@ body {
     width: 14px;
     height: 14px;
 }
+
+.settings-row--trail-controls {
+    gap: 4px;
+    margin-top: -2px;
+}
+
+.settings-range-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ui-text-2);
+}
+
+.settings-range-value {
+    font-variant-numeric: tabular-nums;
+    color: var(--ui-text-1);
+}
+
+.settings-row--trail-controls input[type="range"] {
+    width: 100%;
+    margin: 0 0 4px;
+    accent-color: var(--ui-accent-1);
+}

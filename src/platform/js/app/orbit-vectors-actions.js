@@ -11,6 +11,7 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
+    resolveTrackOpacity2D,
 } from "./orbit-trail-style.js";
 
 export function createOrbitVectorsActions({
@@ -35,6 +36,7 @@ export function createOrbitVectorsActions({
     getPlaneVariables,
     getGlobalConfig,
     getOrbitStyle = () => "classic",
+    getTrailTrackBrightness2D = () => 1,
     planetStartTime,
     PC,
     UC,
@@ -52,8 +54,12 @@ export function createOrbitVectorsActions({
         typeof getOrbitStyle === "function"
             ? getOrbitStyle
             : () => "classic";
+    const readTrailTrackBrightness2D =
+        typeof getTrailTrackBrightness2D === "function"
+            ? getTrailTrackBrightness2D
+            : () => 1;
 
-    function applyOrbitSvgStyle(orbitElement, orbitStyle) {
+    function applyOrbitSvgStyle(orbitElement, orbitStyle, trailTrackBrightness2D = 1) {
         if (!orbitElement) return;
         const style = orbitStyle === "trail" ? "trail" : "classic";
         orbitElement.setAttribute("data-orbit-style", style);
@@ -66,6 +72,14 @@ export function createOrbitVectorsActions({
             .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
             .forEach((element) =>
                 element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-background")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(resolveTrackOpacity2D(trailTrackBrightness2D)),
+                ),
             );
     }
 
@@ -303,7 +317,7 @@ export function createOrbitVectorsActions({
                     .attr("fill", "none")
                     .attr("stroke", orbitColor)
                     .attr("stroke-width", 1.0 / zoomFactor)
-                    .attr("stroke-opacity", ORBIT_TRAIL_STYLE.backgroundOpacity2D)
+                    .attr("stroke-opacity", resolveTrackOpacity2D(readTrailTrackBrightness2D()))
                     .attr("stroke-linecap", "round")
                     .attr("stroke-linejoin", "round")
                     .attr("visibility", "hidden");
@@ -344,7 +358,11 @@ export function createOrbitVectorsActions({
                 const orbitElement = typeof document !== "undefined"
                     ? document.getElementById(`orbit-${planetKey}`)
                     : null;
-                applyOrbitSvgStyle(orbitElement, readOrbitStyle());
+                applyOrbitSvgStyle(
+                    orbitElement,
+                    readOrbitStyle(),
+                    readTrailTrackBrightness2D(),
+                );
             }
         }
 

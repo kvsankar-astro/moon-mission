@@ -114,6 +114,7 @@ function createDataflowWiringActions(deps) {
         handleDimensionSwitch,
         setLocation,
         getOrbitStyle,
+        getTrailTrackBrightness2D,
         loadProgress,
     } = deps;
 
@@ -272,6 +273,7 @@ function createDataflowWiringActions(deps) {
         getPlaneVariables,
         getGlobalConfig,
         getOrbitStyle,
+        getTrailTrackBrightness2D,
         planetStartTime: planetStartTimeOverride || planetStartTime,
         PC,
         UC,

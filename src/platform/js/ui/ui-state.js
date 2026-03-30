@@ -37,6 +37,24 @@ function setSelectValue(idOrSelector, value) {
     element.value = value;
 }
 
+function getRangeValue(idOrSelector, fallback = 1) {
+    const element = getElement(idOrSelector);
+    const value = Number(element?.value);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function setRangeValue(idOrSelector, value) {
+    const element = getElement(idOrSelector);
+    if (!element) return;
+    element.value = String(value);
+}
+
+function setText(idOrSelector, value) {
+    const element = getElement(idOrSelector);
+    if (!element) return;
+    element.textContent = value;
+}
+
 function readOrbitStyle() {
     const selected = document.querySelector('input[name="orbit-style"]:checked');
     return selected?.value === "trail" ? "trail" : "classic";
@@ -79,6 +97,8 @@ export function readViewSettings() {
     }
 
     settings.orbitStyle = readOrbitStyle();
+    settings.trailTrackBrightness2D = getRangeValue("trail-track-brightness-2d", 1);
+    settings.trailTrackBrightness3D = getRangeValue("trail-track-brightness-3d", 1);
 
     return settings;
 }
@@ -99,6 +119,16 @@ export function applyViewSettings(patch) {
     if (patch.orbitStyle === "classic" || patch.orbitStyle === "trail") {
         setChecked("orbit-style-classic", patch.orbitStyle === "classic");
         setChecked("orbit-style-trail", patch.orbitStyle === "trail");
+    }
+
+    if (Number.isFinite(patch.trailTrackBrightness2D)) {
+        setRangeValue("trail-track-brightness-2d", patch.trailTrackBrightness2D);
+        setText("trail-track-brightness-2d-value", Number(patch.trailTrackBrightness2D).toFixed(2));
+    }
+
+    if (Number.isFinite(patch.trailTrackBrightness3D)) {
+        setRangeValue("trail-track-brightness-3d", patch.trailTrackBrightness3D);
+        setText("trail-track-brightness-3d-value", Number(patch.trailTrackBrightness3D).toFixed(2));
     }
 }
 

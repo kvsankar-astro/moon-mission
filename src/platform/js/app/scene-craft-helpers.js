@@ -3,7 +3,7 @@ import {
     resolveMissionCraft,
     resolvePrimaryMissionCraft,
 } from "../core/domain/mission-config.js";
-import { ORBIT_TRAIL_STYLE } from "./orbit-trail-style.js";
+import { ORBIT_TRAIL_STYLE, resolveTrackOpacity3D } from "./orbit-trail-style.js";
 
 function getSceneMissionCraftIds(scene, globalConfig) {
     const bodyIds = Array.isArray(scene?.planetsForLocations)
@@ -166,7 +166,13 @@ function shouldShowSceneCraft({ scene, globalConfig = null, bodyId }) {
     return getSceneVisibleCraftIds(scene, globalConfig).includes(bodyId);
 }
 
-function applySceneOrbitVisibility(scene, globalConfig = null, viewOrbit = true, orbitStyle = "classic") {
+function applySceneOrbitVisibility(
+    scene,
+    globalConfig = null,
+    viewOrbit = true,
+    orbitStyle = "classic",
+    trailTrackBrightness3D = 1,
+) {
     if (!scene) return;
     const isTrailStyle = orbitStyle === "trail";
 
@@ -185,7 +191,7 @@ function applySceneOrbitVisibility(scene, globalConfig = null, viewOrbit = true,
             if (orbitLine.material) {
                 orbitLine.material.transparent = isTrailStyle;
                 orbitLine.material.opacity = isTrailStyle
-                    ? ORBIT_TRAIL_STYLE.backgroundOpacity3D
+                    ? resolveTrackOpacity3D(trailTrackBrightness3D)
                     : 1;
                 orbitLine.material.depthWrite = !isTrailStyle;
                 orbitLine.material.needsUpdate = true;

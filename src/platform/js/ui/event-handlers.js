@@ -23,6 +23,12 @@ function onChangeAll(selector, handler) {
     elements.forEach((element) => element.addEventListener("change", handler));
 }
 
+function onInput(id, handler) {
+    const element = document.getElementById(id);
+    if (!element) return;
+    element.addEventListener("input", handler);
+}
+
 function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
@@ -414,6 +420,10 @@ export function bindMainControls(handlers) {
     onClick("view-eclipticplane", setView);
     onClick("view-equatorialplane", setView);
     onClick("view-fps", setView);
+    onChange("orbit-style-classic", setView);
+    onChange("orbit-style-trail", setView);
+    onInput("trail-track-brightness-2d", setView);
+    onInput("trail-track-brightness-3d", setView);
 
     onClick("dimension-2D", setDimensionTop);
     onClick("dimension-3D", setDimensionTop);

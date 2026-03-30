@@ -115,6 +115,7 @@ function createMissionWiringComposition(ports) {
         getLatestEndTime: ctx.getLatestEndTime,
         getPlaneVariables: ctx.getPlaneVariables,
         getOrbitStyle: ctx.getOrbitStyle,
+        getTrailTrackBrightness2D: ctx.getTrailTrackBrightness2D,
         UC: ctx.UC,
         getPixelsPerAU: ctx.getPixelsPerAU,
         getEpochJD: ctx.getEpochJD,

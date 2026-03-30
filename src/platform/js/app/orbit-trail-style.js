@@ -155,10 +155,20 @@ const ORBIT_TRAIL_STYLE = Object.freeze({
     headOpacity3D: 0.94,
 });
 
+function resolveTrackOpacity2D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity2D * (Number(brightness) || 1), 0, 1);
+}
+
+function resolveTrackOpacity3D(brightness = 1) {
+    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity3D * (Number(brightness) || 1), 0, 1);
+}
+
 export {
     ORBIT_TRAIL_STYLE,
     buildCurveTimes,
     mixColors,
     normalizeHexColor,
+    resolveTrackOpacity2D,
+    resolveTrackOpacity3D,
     resolveTrailWindow,
 };
