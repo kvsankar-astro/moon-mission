@@ -267,6 +267,7 @@ export function generateCurveFromNpz(series, startTimeMs, endTimeMs, stepMs) {
         const state = getStateFromNpzSeries(series, jd);
         if (state) {
             out.push({
+                timeMs: t,
                 x: state.pos.x,
                 y: state.pos.y,
                 z: state.pos.z,

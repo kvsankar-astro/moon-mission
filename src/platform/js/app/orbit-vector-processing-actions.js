@@ -1,6 +1,7 @@
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
 import { getSceneMissionCraftIds, getScenePrimaryCraftId } from "./scene-craft-helpers.js";
+import { buildCurveTimes } from "./orbit-trail-style.js";
 
 export function createOrbitVectorProcessingActions({
     THREE,
@@ -31,6 +32,7 @@ export function createOrbitVectorProcessingActions({
 
         scene.primaryCraftId = primaryCraftId;
         scene.curvesById = {};
+        scene.curveTimesById = {};
         scene.curveVelocitiesById = {};
 
         let primaryCount = 0;
@@ -65,6 +67,11 @@ export function createOrbitVectorProcessingActions({
                         : "chebyshev",
             });
             const pixelsPerAU = getPixelsPerAU();
+            const curveTimes = buildCurveTimes(
+                vectors,
+                startTimeMs,
+                getStepMs(config),
+            );
             for (const vec of vectors) {
                 curve.push(
                     new THREE.Vector3(
@@ -83,16 +90,19 @@ export function createOrbitVectorProcessingActions({
             }
             const count = curve.length;
             scene.curvesById[craftId] = curve;
+            scene.curveTimesById[craftId] = curveTimes;
             scene.curveVelocitiesById[craftId] = curveVelocities;
             if (craftId === primaryCraftId) {
                 primaryCount = count;
                 scene.curve = curve;
+                scene.curveTimes = curveTimes;
                 scene.curveVelocities = curveVelocities;
             }
         }
 
         if (!scene.curvesById[primaryCraftId]) {
             scene.curve = [];
+            scene.curveTimes = [];
             scene.curveVelocities = [];
         }
 

@@ -79,8 +79,12 @@ function createAnimationSceneClass(deps) {
             this.curveVelocities = [];
             this.landingCurveVelocities = [];
             this.curvesById = {};
+            this.curveTimesById = {};
             this.curveVelocitiesById = {};
             this.orbitLinesByBodyId = {};
+            this.orbitTrailLinesByBodyId = {};
+            this.orbitSvgPointsByBodyId = {};
+            this.orbitTimesByBodyId = {};
             this.supportOrbitsChebByBodyId = {};
             this.locations = [];
             this.sceneHelpers = null;

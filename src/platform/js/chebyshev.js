@@ -201,6 +201,7 @@ export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, ste
 
             if (state) {
                 vectors.push({
+                    timeMs: t,
                     x: state.pos.x,
                     y: state.pos.y,
                     z: state.pos.z,
