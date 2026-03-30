@@ -33,6 +33,7 @@ function buildEventSignature(eventInfos) {
 function createTimelineDockController({
     onSeekTime,
     onMarkerSelect,
+    onCraftSelect,
 }) {
     const slider = document.getElementById("timeline-slider");
     const markers = document.getElementById("timeline-markers");
@@ -147,7 +148,8 @@ function createTimelineDockController({
         craftStrip.classList.remove("timeline-dock__craft-strip--hidden");
         craftStrip.innerHTML = "";
         for (const craftInfo of normalizedCraftInfos) {
-            const chip = document.createElement("span");
+            const chip = document.createElement("button");
+            chip.type = "button";
             chip.className = craftInfo.active
                 ? "timeline-dock__craft-chip timeline-dock__craft-chip--active"
                 : "timeline-dock__craft-chip";
@@ -168,6 +170,10 @@ function createTimelineDockController({
                 chip.appendChild(role);
             }
             chip.title = craftInfo.label;
+            chip.setAttribute("aria-label", `Track ${craftInfo.label}`);
+            chip.addEventListener("click", () => {
+                onCraftSelect?.(craftInfo.id);
+            });
             craftStrip.appendChild(chip);
         }
     }

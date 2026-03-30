@@ -313,6 +313,17 @@ function ensureTimelineDockController() {
             if (!(eventInfo?.startTime instanceof Date)) return;
             animationController.goToEvent(eventInfo.startTime.getTime());
         },
+        onCraftSelect: (craftId) => {
+            const viewToggle = document.getElementById("view-additional-crafts");
+            const craftSelect = document.getElementById("active-craft-select");
+            if (viewToggle) {
+                viewToggle.checked = true;
+            }
+            if (craftSelect) {
+                craftSelect.value = craftId;
+            }
+            setView?.();
+        },
     });
     timelineDockController.bind();
     return timelineDockController;
