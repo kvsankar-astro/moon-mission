@@ -1,0 +1,37 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "smart1",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-SM1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "geo-SM1-cheb.json",
+          "generated": "assets/smart1/data/geo-SM1-cheb.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-SM1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "lunar-SM1-cheb.json",
+          "generated": "assets/smart1/data/lunar-SM1-cheb.json"
+        }
+      }
+    },
+    "relative": {
+      "orbits_file": "relative-SM1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "relative-SM1-cheb.json",
+          "generated": "assets/smart1/data/relative-SM1-cheb.json"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "lunarorbiter1",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-LO1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "geo-LO1-cheb.json",
+          "generated": "assets/lunarorbiter1/data/geo-LO1-cheb.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-LO1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "lunar-LO1-cheb.json",
+          "generated": "assets/lunarorbiter1/data/lunar-LO1-cheb.json"
+        }
+      }
+    },
+    "relative": {
+      "orbits_file": "relative-LO1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "relative-LO1-cheb.json",
+          "generated": "assets/lunarorbiter1/data/relative-LO1-cheb.json"
+        }
+      }
+    }
+  }
+}

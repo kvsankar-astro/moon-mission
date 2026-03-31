@@ -289,6 +289,29 @@
       }
     },
     {
+      "key": "lunarorbiter1",
+      "folder": "lunarorbiter1",
+      "queryValue": "lunarorbiter1",
+      "aliases": [
+        "lunarorbiter1",
+        "lo1",
+        "lunar-orbiter-1"
+      ],
+      "title": "Lunar Orbiter 1",
+      "subtitle": "United States - 1966",
+      "description": "NASA reconnaissance orbiter used to scout Apollo landing sites.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1966,
+      "endYear": 1966,
+      "order": 125,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "clementine",
       "folder": "clementine",
       "queryValue": "clementine",
@@ -441,6 +464,28 @@
       }
     },
     {
+      "key": "smart1",
+      "folder": "smart1",
+      "queryValue": "smart1",
+      "aliases": [
+        "smart1",
+        "smart-1"
+      ],
+      "title": "SMART-1",
+      "subtitle": "ESA - 2003",
+      "description": "Solar-electric lunar orbiter with a long spiral transfer and low-altitude science orbit.",
+      "accent": "#88c0ff",
+      "country": "ESA",
+      "startYear": 2003,
+      "endYear": 2006,
+      "order": 146,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "stereo",
       "folder": "stereo",
       "queryValue": "stereo",
@@ -458,6 +503,28 @@
       "dimensions": {
         "missionType": "Twin Observatories",
         "craftClass": "Multi-Craft",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "selene",
+      "folder": "selene",
+      "queryValue": "selene",
+      "aliases": [
+        "selene",
+        "kaguya"
+      ],
+      "title": "SELENE / Kaguya",
+      "subtitle": "Japan - 2007",
+      "description": "JAXA lunar mapping orbiter with long-duration polar science operations.",
+      "accent": "#74a5ff",
+      "country": "Japan",
+      "startYear": 2007,
+      "endYear": 2009,
+      "order": 149,
+      "dimensions": {
+        "missionType": "Orbiter",
+        "craftClass": "Orbiter",
         "crewProfile": "Robotic"
       }
     },

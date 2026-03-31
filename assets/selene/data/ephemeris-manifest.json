@@ -1,0 +1,37 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "selene",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-SEL",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "geo-SEL-cheb.json",
+          "generated": "assets/selene/data/geo-SEL-cheb.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-SEL",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "lunar-SEL-cheb.json",
+          "generated": "assets/selene/data/lunar-SEL-cheb.json"
+        }
+      }
+    },
+    "relative": {
+      "orbits_file": "relative-SEL",
+      "tolerance_km": 5,
+      "artifacts": {
+        "chebyshev": {
+          "runtime": "relative-SEL-cheb.json",
+          "generated": "assets/selene/data/relative-SEL-cheb.json"
+        }
+      }
+    }
+  }
+}

@@ -379,11 +379,14 @@
                         "lcross-centaur",
                         "lcross-shepherd",
                         "lro",
+                        "lunarorbiter1",
                         "lunar-flashlight",
                         "lunar-prospector",
                         "lunar-trailblazer",
                         "nozomi",
+                        "selene",
                         "slim",
+                        "smart1",
                         "stereo",
                         "tess",
                         "wind",
@@ -726,7 +729,7 @@
                 <div class="landing-topbar">
                     <div>
                         <h1 class="landing-title">Lunar Mission Animations</h1>
-                        <h2 class="landing-subtitle">Based on NASA JPL HORIZONS ephemeris data, with ESA SPICE kernels for Chandrayaan 1</h2>
+                        <h2 class="landing-subtitle">Based on NASA JPL HORIZONS and public SPICE ephemeris data</h2>
                     </div>
                     <div class="landing-top-actions">
                         <div class="landing-view-picker" role="group" aria-label="Landing page view picker">
@@ -1389,9 +1392,10 @@
                 if (key.indexOf('chandrayaan') >= 0) return 'India';
                 if (key.indexOf('apollo') >= 0 || key.indexOf('artemis') >= 0) return 'United States';
                 if (key.indexOf('lro') >= 0 || key.indexOf('lcross') >= 0 || key.indexOf('grail') >= 0) return 'United States';
-                if (key.indexOf('capstone') >= 0 || key.indexOf('lunar-') >= 0 || key.indexOf('clementine') >= 0 || key.indexOf('wind') >= 0 || key.indexOf('wmap') >= 0) return 'United States';
+                if (key.indexOf('capstone') >= 0 || key.indexOf('lunar-') >= 0 || key.indexOf('lunarorbiter') >= 0 || key.indexOf('clementine') >= 0 || key.indexOf('wind') >= 0 || key.indexOf('wmap') >= 0) return 'United States';
                 if (key.indexOf('isee3') >= 0 || key.indexOf('hgs1') >= 0 || key.indexOf('stereo') >= 0 || key.indexOf('tess') >= 0) return 'United States';
-                if (key.indexOf('nozomi') >= 0 || key.indexOf('slim') >= 0) return 'Japan';
+                if (key.indexOf('nozomi') >= 0 || key.indexOf('slim') >= 0 || key.indexOf('selene') >= 0 || key.indexOf('kaguya') >= 0) return 'Japan';
+                if (key.indexOf('smart1') >= 0 || key.indexOf('smart-1') >= 0) return 'ESA';
                 if (key.indexOf('juice') >= 0) return 'ESA';
                 if (key.indexOf('kplo') >= 0 || key.indexOf('danuri') >= 0) return 'South Korea';
                 return 'Unknown';
