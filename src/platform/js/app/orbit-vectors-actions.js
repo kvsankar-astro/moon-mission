@@ -11,8 +11,7 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
-    resolveHeadOpacity2D,
-    resolveTailOpacity2D,
+    resolveTailVisualStyle,
     resolveTrackOpacity2D,
 } from "./orbit-trail-style.js";
 import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
@@ -75,6 +74,10 @@ export function createOrbitVectorsActions({
     ) {
         if (!orbitElement) return;
         const style = orbitStyle === "trail" ? "trail" : "classic";
+        const tailStyle = resolveTailVisualStyle({
+            dimension: "2D",
+            prominence: trailTailBrightness2D,
+        });
         orbitElement.setAttribute("data-orbit-style", style);
         orbitElement
             .querySelectorAll(".orbit-classic-path")
@@ -99,7 +102,7 @@ export function createOrbitVectorsActions({
             .forEach((element) =>
                 element.setAttribute(
                     "stroke-opacity",
-                    String(resolveTailOpacity2D(trailTailBrightness2D)),
+                    String(tailStyle.tailOpacity),
                 ),
             );
         orbitElement
@@ -107,7 +110,7 @@ export function createOrbitVectorsActions({
             .forEach((element) =>
                 element.setAttribute(
                     "stroke-opacity",
-                    String(resolveHeadOpacity2D(trailTailBrightness2D)),
+                    String(tailStyle.headOpacity),
                 ),
             );
     }
@@ -298,6 +301,10 @@ export function createOrbitVectorsActions({
                     "#6ccfff",
                 );
                 const headColor = mixColors(orbitColor, "#ffffff", 0.42);
+                const tailStyle = resolveTailVisualStyle({
+                    dimension: "2D",
+                    prominence: scene?.trailTailProminence2D,
+                });
                 const orbitPoints = vectors.map((d) => ({
                     x: (+1 * xFactor * d[xVariable]) / PC.KM_PER_AU * pixelsPerAU,
                     y: (-1 * yFactor * d[yVariable]) / PC.KM_PER_AU * pixelsPerAU,
@@ -360,8 +367,8 @@ export function createOrbitVectorsActions({
                     .attr("points", "")
                     .attr("fill", "none")
                     .attr("stroke", orbitColor)
-                    .attr("stroke-width", 1.9 / zoomFactor)
-                    .attr("stroke-opacity", resolveTailOpacity2D(readTrailTailBrightness2D()))
+                    .attr("stroke-width", tailStyle.tailWidth / zoomFactor)
+                    .attr("stroke-opacity", tailStyle.tailOpacity)
                     .attr("stroke-linecap", "round")
                     .attr("stroke-linejoin", "round")
                     .attr("visibility", "hidden");
@@ -374,8 +381,8 @@ export function createOrbitVectorsActions({
                     .attr("points", "")
                     .attr("fill", "none")
                     .attr("stroke", headColor)
-                    .attr("stroke-width", 2.5 / zoomFactor)
-                    .attr("stroke-opacity", resolveHeadOpacity2D(readTrailTailBrightness2D()))
+                    .attr("stroke-width", tailStyle.headWidth / zoomFactor)
+                    .attr("stroke-opacity", tailStyle.headOpacity)
                     .attr("stroke-linecap", "round")
                     .attr("stroke-linejoin", "round")
                     .attr("visibility", "hidden");
