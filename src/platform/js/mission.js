@@ -284,6 +284,13 @@ const {
 });
 
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
+if (isTestMode) {
+    initialMissionViewState.viewMoonHighlightRing = false;
+    const moonHighlightToggle = document.getElementById("view-moon-highlight");
+    if (moonHighlightToggle) {
+        moonHighlightToggle.checked = false;
+    }
+}
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
     viewOrbit: initialMissionViewState.viewOrbit,

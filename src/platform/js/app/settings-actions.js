@@ -237,6 +237,14 @@ export function createSettingsActions({
                     scene.moonSouthPoleSphere.visible = view.viewPoles;
                     scene.moonAxis.visible = view.viewPolarAxes;
                     scene.moonSOISphere.visible = view.viewMoonSOI;
+                    const shouldShowMoonHighlight =
+                        (cfg === "geo" || cfg === "lunar") && view.viewMoonHighlightRing;
+                    if (scene.bodyHighlightSprite) {
+                        scene.bodyHighlightSprite.visible = false;
+                    }
+                    if (scene.sceneHelpers?.setBodyHighlightVisible) {
+                        scene.sceneHelpers.setBodyHighlightVisible(shouldShowMoonHighlight);
+                    }
                 }
 
                 scene.earthAxis.visible = view.viewPolarAxes;
