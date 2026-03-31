@@ -7,6 +7,7 @@ import {
     resolveMissionConfigUrl,
     resolveMissionManifestUrl,
     resolveOrbitAssetUrls,
+    resolveOrbitMetaAssetUrl,
     resolveOrbitNpzAssetUrl,
     resolveOrbitSunChebyshevAssetUrl,
 } from "../src/platform/js/core/domain/mission-asset-resolver.js";
@@ -138,6 +139,34 @@ describe("mission-asset-resolver", () => {
         ).toBe("assets/ch3/data/legacy-geo-sun-cheb.json");
     });
 
+    it("resolves orbit style metadata only from explicit sidecar config", () => {
+        expect(
+            resolveOrbitMetaAssetUrl({
+                dataPath: "assets/ch3/data/",
+                manifest: {
+                    phases: {
+                        geo: {
+                            artifacts: {
+                                meta: { runtime: "manifest/geo-meta.json" },
+                            },
+                        },
+                    },
+                },
+                phaseKey: "geo",
+                phaseConfig: { orbits_file: "legacy-geo" },
+            }),
+        ).toBeNull();
+
+        expect(
+            resolveOrbitMetaAssetUrl({
+                dataPath: "assets/ch3/data/",
+                manifest: null,
+                phaseKey: "geo",
+                phaseConfig: { orbit_style_file: "geo-style.json" },
+            }),
+        ).toBe("assets/ch3/data/geo-style.json");
+    });
+
     it("resolves landing URLs with specific phase manifest precedence", () => {
         const manifest = {
             phases: {
@@ -194,5 +223,25 @@ describe("mission-asset-resolver", () => {
                 cfgKey: "hr",
             }),
         ).toBe("assets/ch3/data/landing-CH3-hr.npz");
+    });
+
+    it("prefers the primary craft mnemonic for synthesized landing file names", () => {
+        const configData = {
+            spacecraft_mnemonic: "SC",
+            primaryCraftId: "CH3L",
+            crafts: [
+                { id: "CH3L", mnemonic: "CH3", primary: true },
+                { id: "CH3O", mnemonic: "CH3O", primary: false },
+            ],
+        };
+
+        expect(
+            resolveLandingChebyshevAssetUrl({
+                dataPath: "assets/ch3/data",
+                manifest: null,
+                configData,
+                cfgKey: "geo",
+            }),
+        ).toBe("assets/ch3/data/landing-CH3-geo-cheb.json");
     });
 });
