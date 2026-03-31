@@ -342,10 +342,10 @@ function buildCurveTimes(vectors, startTimeMs, stepMs) {
 }
 
 const ORBIT_TRAIL_STYLE = Object.freeze({
-    backgroundOpacity2D: 0.16,
+    backgroundOpacity2D: 0.24,
     tailOpacity2D: 0.62,
     headOpacity2D: 0.92,
-    backgroundOpacity3D: 0.15,
+    backgroundOpacity3D: 0.14,
     tailOpacity3D: 0.52,
     headOpacity3D: 0.94,
     tailOrbitFraction: 0.5,
