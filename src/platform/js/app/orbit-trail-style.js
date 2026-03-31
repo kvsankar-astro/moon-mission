@@ -36,6 +36,11 @@ function mixColors(baseColor, mixColor = "#ffffff", amount = 0.35) {
     );
 }
 
+function normalizeTrailProminence(value, fallback = 1) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? clamp(numeric, 0.5, 2) : fallback;
+}
+
 function findNearestTimeIndex(times, timeMs) {
     if (!Array.isArray(times) || times.length === 0 || !Number.isFinite(timeMs)) {
         return -1;
@@ -345,9 +350,13 @@ const ORBIT_TRAIL_STYLE = Object.freeze({
     backgroundOpacity2D: 0.24,
     tailOpacity2D: 0.62,
     headOpacity2D: 0.92,
+    tailWidth2D: 1.9,
+    headWidth2D: 2.5,
     backgroundOpacity3D: 0.14,
-    tailOpacity3D: 0.52,
-    headOpacity3D: 0.94,
+    tailOpacity3D: 0.96,
+    headOpacity3D: 0.9,
+    tailWidth3D: 3.5,
+    headWidth3D: 4.5,
     tailOrbitFraction: 0.5,
     headOrbitFraction: 0.125,
     fixedGeoTailDurationMs: 12 * 60 * 60 * 1000,
@@ -393,6 +402,31 @@ function resolveOverlapAdjustedOpacity(baseOpacity, overlapFactor = 1) {
     return clamp(safeBaseOpacity * safeOverlapFactor, 0, 1);
 }
 
+function resolveTailVisualStyle(options = {}) {
+    const dimension = options.dimension === "3D" ? "3D" : "2D";
+    const prominence = normalizeTrailProminence(options.prominence, 1);
+    const tailOpacityBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.tailOpacity3D
+        : ORBIT_TRAIL_STYLE.tailOpacity2D;
+    const headOpacityBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.headOpacity3D
+        : ORBIT_TRAIL_STYLE.headOpacity2D;
+    const tailWidthBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.tailWidth3D
+        : ORBIT_TRAIL_STYLE.tailWidth2D;
+    const headWidthBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.headWidth3D
+        : ORBIT_TRAIL_STYLE.headWidth2D;
+
+    return {
+        prominence,
+        tailOpacity: clamp(tailOpacityBase * prominence, 0.12, 1),
+        headOpacity: clamp(headOpacityBase * (0.85 + (0.15 * prominence)), 0.25, 1),
+        tailWidth: dimension === "2D" ? tailWidthBase * prominence : tailWidthBase,
+        headWidth: dimension === "2D" ? headWidthBase * prominence : headWidthBase,
+    };
+}
+
 function resolveTrackOpacity2D(brightness = 1) {
     return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity2D * (Number(brightness) || 1), 0, 1);
 }
@@ -425,6 +459,7 @@ export {
     hasOrbitStyleDensityHints,
     isMeaningfulIntervalPeriod,
     mixColors,
+    normalizeTrailProminence,
     normalizeHexColor,
     resolveBackgroundOpacity,
     resolveChunkDensityHint,
@@ -435,6 +470,7 @@ export {
     resolveOverlapAdjustedOpacity,
     resolveTailOpacity2D,
     resolveTailOpacity3D,
+    resolveTailVisualStyle,
     resolveTrackOpacity2D,
     resolveTrackOpacity3D,
     resolveTrailWindow,

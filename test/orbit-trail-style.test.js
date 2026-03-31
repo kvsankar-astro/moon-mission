@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
     buildCurveTimes,
     mixColors,
+    resolveTailVisualStyle,
     resolveTrailWindow,
 } from "../src/platform/js/app/orbit-trail-style.js";
 
@@ -91,5 +92,15 @@ describe("orbit trail style helpers", () => {
 
     it("lightens orbit head colors toward white", () => {
         expect(mixColors("#204080", "#ffffff", 0.5)).toBe("#90a0c0");
+    });
+
+    it("derives stronger 3D tail visuals from prominence", () => {
+        const soft = resolveTailVisualStyle({ dimension: "3D", prominence: 0.5 });
+        const strong = resolveTailVisualStyle({ dimension: "3D", prominence: 2 });
+
+        expect(soft.tailOpacity).toBeLessThan(strong.tailOpacity);
+        expect(soft.headOpacity).toBeLessThanOrEqual(strong.headOpacity);
+        expect(soft.tailWidth).toBe(strong.tailWidth);
+        expect(soft.headWidth).toBe(strong.headWidth);
     });
 });

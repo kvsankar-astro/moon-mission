@@ -5,10 +5,9 @@ import {
 } from "../core/domain/mission-config.js";
 import {
     ORBIT_TRAIL_STYLE,
-    resolveHeadOpacity3D,
     resolveOverlapAdjustedOpacity,
-    resolveTailOpacity3D,
     resolveTrackOpacity3D,
+    resolveTailVisualStyle,
 } from "./orbit-trail-style.js";
 
 function getSceneMissionCraftIds(scene, globalConfig) {
@@ -216,17 +215,21 @@ function applySceneOrbitVisibility(
 
     for (const [bodyId, bundle] of Object.entries(scene.orbitTrailLinesByBodyId || {})) {
         const visible = isLineVisibleForBody(bodyId) && isTrailStyle;
+        const tailStyle = resolveTailVisualStyle({
+            dimension: "3D",
+            prominence: trailTailBrightness3D,
+        });
         if (bundle?.tailLine) {
             bundle.tailLine.visible = visible;
             if (bundle.tailLine.material) {
-                bundle.tailLine.material.opacity = resolveTailOpacity3D(trailTailBrightness3D);
+                bundle.tailLine.material.opacity = tailStyle.tailOpacity;
                 bundle.tailLine.material.needsUpdate = true;
             }
         }
         if (bundle?.headLine) {
             bundle.headLine.visible = visible;
             if (bundle.headLine.material) {
-                bundle.headLine.material.opacity = resolveHeadOpacity3D(trailTailBrightness3D);
+                bundle.headLine.material.opacity = tailStyle.headOpacity;
                 bundle.headLine.material.needsUpdate = true;
             }
         }

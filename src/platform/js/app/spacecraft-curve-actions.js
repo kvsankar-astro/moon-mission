@@ -7,8 +7,7 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
-    resolveHeadOpacity3D,
-    resolveTailOpacity3D,
+    resolveTailVisualStyle,
 } from "./orbit-trail-style.js";
 import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
 
@@ -74,13 +73,17 @@ export function createSpacecraftCurveActions({
 
     function createOrbitTrailBundle({ bodyId, curve, baseColor }) {
         const normalizedBaseColor = normalizeHexColor(baseColor);
+        const tailStyle = resolveTailVisualStyle({
+            dimension: "3D",
+            prominence: getTrailTailBrightness3D(),
+        });
         const tailGeometry = createDynamicLineGeometry(curve.length);
         const headGeometry = createDynamicLineGeometry(curve.length);
         const tailLine = new THREE.Line(
             tailGeometry,
             createLineMaterial(normalizedBaseColor, {
                 transparent: true,
-                opacity: resolveTailOpacity3D(getTrailTailBrightness3D()),
+                opacity: tailStyle.tailOpacity,
                 depthWrite: false,
             }),
         );
@@ -88,7 +91,7 @@ export function createSpacecraftCurveActions({
             headGeometry,
             createLineMaterial(mixColors(normalizedBaseColor, "#ffffff", 0.42), {
                 transparent: true,
-                opacity: resolveHeadOpacity3D(getTrailTailBrightness3D()),
+                opacity: tailStyle.headOpacity,
                 depthWrite: false,
             }),
         );
