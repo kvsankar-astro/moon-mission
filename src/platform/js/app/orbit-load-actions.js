@@ -183,7 +183,7 @@ export function createOrbitLoadActions({
     function loadOrbitStyleMetaInBackground(config) {
         const scene = animationScenes?.[config];
         const metaUrl = scene?.orbitsMeta;
-        if ((typeof getOrbitStyle === "function" && getOrbitStyle() !== "trail") || !metaUrl || typeof loadJson !== "function") {
+        if (!metaUrl || typeof loadJson !== "function") {
             setOrbitStyleMetaIndicator(null);
             return;
         }
@@ -209,7 +209,7 @@ export function createOrbitLoadActions({
             .catch((error) => {
                 orbitStyleMetaPromiseByConfig.delete(config);
                 console.debug(`Orbit style metadata unavailable for ${config} at ${metaUrl}`, error);
-                setOrbitStyleMetaIndicator(null);
+                setOrbitStyleMetaIndicator("error", "Style data failed", { sticky: true });
                 return null;
             });
 
