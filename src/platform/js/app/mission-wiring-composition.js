@@ -172,6 +172,7 @@ function createMissionWiringComposition(ports) {
         getStartAndEndTimes,
         animationController: ctx.animationController,
         resolveOrbitUrls: ctx.resolveOrbitUrls,
+        resolveOrbitMetaUrl: ctx.resolveOrbitMetaUrl,
         resolveOrbitNpzUrl: ctx.resolveOrbitNpzUrl,
         resolveOrbitSunChebyshevUrl: ctx.resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo: ctx.handleModeSwitchToGeo,

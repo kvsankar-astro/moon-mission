@@ -12,6 +12,7 @@ import {
     resolveLandingNpzAssetUrl,
     resolveMissionConfigUrl,
     resolveMissionManifestUrl,
+    resolveOrbitMetaAssetUrl,
     resolveOrbitAssetUrls,
     resolveOrbitNpzAssetUrl,
     resolveOrbitSunChebyshevAssetUrl,
@@ -127,6 +128,18 @@ export function resolveOrbitSunChebyshevUrl(configData, mode) {
     if (!dataPath) return null;
 
     return resolveOrbitSunChebyshevAssetUrl({
+        dataPath,
+        manifest: extractEphemerisManifest(configData),
+        phaseKey: mode,
+        phaseConfig: configData?.[mode],
+    });
+}
+
+export function resolveOrbitMetaUrl(configData, mode) {
+    const dataPath = getMissionDataPath();
+    if (!dataPath) return null;
+
+    return resolveOrbitMetaAssetUrl({
         dataPath,
         manifest: extractEphemerisManifest(configData),
         phaseKey: mode,

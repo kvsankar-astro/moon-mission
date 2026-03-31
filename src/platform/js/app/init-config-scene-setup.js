@@ -83,6 +83,7 @@ function createInitConfigSceneSetupActions(deps) {
         getStartAndEndTimes,
         animationController,
         resolveOrbitUrls,
+        resolveOrbitMetaUrl,
         resolveOrbitNpzUrl,
         resolveOrbitSunChebyshevUrl,
         handleModeSwitchToGeo,
@@ -142,6 +143,10 @@ function createInitConfigSceneSetupActions(deps) {
             if (orbitUrls) {
                 scene.orbitsJson = orbitUrls.orbitsJson;
                 scene.orbitsCheb = orbitUrls.orbitsCheb;
+            }
+            const orbitMeta = resolveOrbitMetaUrl(configData, sceneConfig);
+            if (orbitMeta) {
+                scene.orbitsMeta = orbitMeta;
             }
             const orbitNpz = resolveOrbitNpzUrl(configData, sceneConfig);
             if (orbitNpz) {
