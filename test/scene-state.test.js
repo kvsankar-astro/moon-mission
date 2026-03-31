@@ -4,7 +4,12 @@ vi.mock("../src/platform/js/data/ephemeris-provider.js", () => ({
     getBodyEphemerisState: vi.fn(),
 }));
 
+vi.mock("../src/platform/js/data/relative-frame-provider.js", () => ({
+    getRelativeFrameQuaternion: vi.fn(),
+}));
+
 import { getBodyEphemerisState } from "../src/platform/js/data/ephemeris-provider.js";
+import { getRelativeFrameQuaternion } from "../src/platform/js/data/relative-frame-provider.js";
 import { computeBodyState, computeSceneState } from "../src/platform/js/scene-state.js";
 
 function createData(overrides = {}) {
@@ -57,6 +62,7 @@ function createSceneOptions(overrides = {}) {
 describe("computeBodyState", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        getRelativeFrameQuaternion.mockReturnValue(null);
     });
 
     it("skips next-state ephemeris lookup when includeNextState is false", () => {
@@ -126,6 +132,7 @@ describe("computeBodyState", () => {
 describe("computeSceneState", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        getRelativeFrameQuaternion.mockReturnValue(null);
     });
 
     it("forwards includeNextState to spacecraft state computation", () => {
@@ -173,6 +180,12 @@ describe("computeSceneState", () => {
             velocity: { vx: 0, vy: 1, vz: 0 },
             available: true,
         });
+        getRelativeFrameQuaternion.mockReturnValue({
+            w: 1,
+            x: 0,
+            y: 0,
+            z: 0,
+        });
 
         computeSceneState(
             Date.parse("2023-07-14T10:00:00Z"),
@@ -193,5 +206,6 @@ describe("computeSceneState", () => {
         expect(
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(0);
+        expect(getRelativeFrameQuaternion).toHaveBeenCalledTimes(1);
     });
 });

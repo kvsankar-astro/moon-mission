@@ -53,6 +53,16 @@ export function createOrbitLoadActions({
         return Math.max(...seriesList.map((series) => series.segments.length));
     }
 
+    function setSunFrame(chebData, sunFrame) {
+        if (!chebData || typeof chebData !== "object" || !sunFrame) {
+            return;
+        }
+        if (!chebData.metadata || typeof chebData.metadata !== "object") {
+            chebData.metadata = {};
+        }
+        chebData.metadata.sun_frame = sunFrame;
+    }
+
     function mergeMissingChebyshevBodySeries(
         targetChebData,
         supportChebData,
@@ -213,6 +223,13 @@ export function createOrbitLoadActions({
                     chebyshevDataLoaded[config] = true;
                     console.log(
                         `Chebyshev data loaded for ${config}: ${getChebyshevSegmentCount(chebyshevData[config])} segments`,
+                    );
+                    const primaryHasRelativeSun =
+                        chebyshevData[config]?.metadata?.mode === "relative" &&
+                        !!getChebyshevBodySeries(chebyshevData[config], "SUN", primaryCraftId);
+                    setSunFrame(
+                        chebyshevData[config],
+                        primaryHasRelativeSun ? "relative" : "inertial",
                     );
 
                     const sunSource =

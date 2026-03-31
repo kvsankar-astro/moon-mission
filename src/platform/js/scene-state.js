@@ -11,6 +11,7 @@
 import {
     getBodyEphemerisState,
 } from "./data/ephemeris-provider.js";
+import { getRelativeFrameQuaternion } from "./data/relative-frame-provider.js";
 import { PHYSICS_CONSTANTS as PC, TIME_CONSTANTS as TC } from "./core/constants.js";
 import {
     isMissionCraftBody,
@@ -442,10 +443,23 @@ export function computeSceneState(time, config, options) {
     };
 
     let relativeFrameMoonState = null;
-    const hasPrecomputedRelativeFrameData =
+    const frameQuat =
+        frameMode === "relative" && config === "geo"
+            ? getRelativeFrameQuaternion({
+                chebyshevData,
+                config,
+                timeMs: time,
+            })
+            : null;
+    const hasPrecomputedRelativeFrameData = !!frameQuat;
+    const sunAlreadyRelative =
         frameMode === "relative" &&
         config === "geo" &&
-        chebyshevData?.[config]?.metadata?.mode === "relative";
+        chebyshevData?.[config]?.metadata?.sun_frame === "relative";
+
+    if (frameQuat && !sunAlreadyRelative) {
+        sunDirection = normalize(rotateVectorByQuaternion(sunDirection, frameQuat));
+    }
 
     // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo" && !hasPrecomputedRelativeFrameData) {
@@ -552,5 +566,25 @@ function cross(a, b) {
         x: (a.y ?? 0) * (b.z ?? 0) - (a.z ?? 0) * (b.y ?? 0),
         y: (a.z ?? 0) * (b.x ?? 0) - (a.x ?? 0) * (b.z ?? 0),
         z: (a.x ?? 0) * (b.y ?? 0) - (a.y ?? 0) * (b.x ?? 0),
+    };
+}
+
+function rotateVectorByQuaternion(vec, quat) {
+    const qx = quat.x ?? 0;
+    const qy = quat.y ?? 0;
+    const qz = quat.z ?? 0;
+    const qw = quat.w ?? 1;
+    const vx = vec.x ?? 0;
+    const vy = vec.y ?? 0;
+    const vz = vec.z ?? 0;
+
+    const tx = 2 * (qy * vz - qz * vy);
+    const ty = 2 * (qz * vx - qx * vz);
+    const tz = 2 * (qx * vy - qy * vx);
+
+    return {
+        x: vx + qw * tx + (qy * tz - qz * ty),
+        y: vy + qw * ty + (qz * tx - qx * tz),
+        z: vz + qw * tz + (qx * ty - qy * tx),
     };
 }
