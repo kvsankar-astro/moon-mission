@@ -789,23 +789,41 @@ async function cleanupViewControlTest(page, mode = TEST_MODES.EARTH, restoreZoom
   await zoomIn(page, zoomSteps, modeType);
 }
 
+async function resolveTimelineTarget(page, target = '#burn1') {
+  if (typeof target !== 'string' || target.length === 0) {
+    return '#burn1';
+  }
+
+  if (target.startsWith('#')) {
+    return target;
+  }
+
+  const selector = await page.evaluate((eventKey) => {
+    const button = document.querySelector(`#burnbuttons button[data-event-key="${eventKey}"]`);
+    return button?.id ? `#${button.id}` : null;
+  }, target);
+
+  return selector || '#burn1';
+}
+
 // Timeline management for consistent test states
-async function setTimeline(page, burnButton = '#burn1') {
+async function setTimeline(page, target = '#burn1') {
   try {
+    const burnButton = await resolveTimelineTarget(page, target);
     await page.click(burnButton);
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   } catch (e) {
-    console.warn(`Could not set timeline to ${burnButton}:`, e.message);
+    console.warn(`Could not set timeline to ${target}:`, e.message);
   }
 }
 
 // Suite and test timeline management
-const SUITE_TIMELINE = '#burn1'; // Default: Launch timeline for all suites
+const SUITE_TIMELINE = 'missionStart'; // Default: Launch timeline for all suites
 const TEST_TIMELINES = {
   // Test-specific timeline overrides (only for tests that need non-default timelines)
-  'Joy Ride Control': '#burn3',           // EBN#3 for proper geometry
-  'Landing Animation': '#burn12',         // Later in mission for landing phase
-  'CY3 Descent Orbit Display': '#burn1'  // Explicitly use Launch (same as suite default)
+  'Joy Ride Control': 'ebn2',             // Stable early Earth orbit geometry
+  'Landing Animation': 'vikramLanding',   // Real landing event
+  'CY3 Descent Orbit Display': 'missionStart'
 };
 
 // Helper to start test with appropriate timeline
@@ -915,7 +933,7 @@ async function ensureCheckboxState(page, selector, enabled = true) {
 }
 
 async function prepareRelativeLandingFovView(page, cameraPair) {
-  await setTimeline(page, '#burn13');
+  await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
   await openSettingsPanel(page);
   if (!await page.isChecked('#dimension-3D')) {
@@ -2311,8 +2329,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await closeSettingsPanel(page);
       await waitForScene(page);
       
-      // Use a more appropriate timeline point for lunar poles
-      await page.click('#burn14');
+      // Match the historical baseline's late-mission lunar framing.
+      await setTimeline(page, 'cy3DataEnd');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
       // Store initial state and zoom in for optimal pole visibility
@@ -2405,6 +2423,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
       await closeSettingsPanel(page);
       await waitForScene(page);
+      await setTimeline(page, 'cy3DataEnd');
       
       // Store initial state and zoom in for clear meridian line visibility
       const initialState = await storeInitialState(page);
@@ -2489,6 +2508,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
       await closeSettingsPanel(page);
       await waitForScene(page);
+      await setTimeline(page, 'cy3DataEnd');
       
       const initialState = await storeInitialState(page);
 
@@ -2552,6 +2572,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     describe('Additional View Controls', () => {
       const setupTest = async () => {
+        await setTimeline(page, 'cy3DataEnd');
         await openSettingsPanel(page);
         if (await page.isChecked('#view-orbit')) {
           await page.click('#view-orbit');
@@ -2725,7 +2746,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#view-orbit');
         }
         await closeSettingsPanel(page);
-        await setTimeline(page, '#burn1');
+        await setTimeline(page, 'cy3DataEnd');
         await waitForScene(page);
 
         let comparison = await compareScreenshots(

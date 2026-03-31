@@ -244,6 +244,14 @@
       "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
       "body": "SC"
     },
+    "landerSeparation": {
+      "startTime": "2023-08-17T07:45:00Z",
+      "durationSeconds": 0,
+      "label": "Lander Sep",
+      "burnFlag": false,
+      "infoText": "Orbiter-Lander separation - 17th August, 13:15 IST",
+      "body": "CH3L"
+    },
     "vikramLanding": {
       "startTime": "2023-08-23T12:34:00Z",
       "durationSeconds": 0,
@@ -268,18 +276,18 @@
       "kind": "data_end",
       "timeSource": {
         "type": "data_end",
-        "spacecraftMnemonic": "CH3"
+        "spacecraftMnemonic": "CH3O"
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "🏁CH3 Data End",
+      "label": "🏁Orbiter Data End",
       "burnFlag": false,
-      "infoText": "Chandrayaan 3 Data End",
+      "infoText": "Chandrayaan 3 Orbiter Data End",
       "body": ""
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "vikramLanding", "now", "cy3DataEnd"]
+    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"],
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"]
   }
 }

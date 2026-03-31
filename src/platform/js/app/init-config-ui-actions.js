@@ -17,6 +17,7 @@ function createInitConfigUiActions(deps) {
                 .attr("class", "swiper-slide")
                 .append("button")
                 .attr("id", "burn" + (i + 1))
+                .attr("data-event-key", eventInfos[i]["key"] || "")
                 .attr("type", "button")
                 .attr("class", "button burnbutton")
                 .attr("title", eventInfos[i]["label"])
