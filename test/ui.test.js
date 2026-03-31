@@ -886,19 +886,14 @@ async function ensureOriginMode(page, mode) {
     const targetIsRelative = mode === 'relative';
     const currentIsRelative = new URL(page.url()).searchParams.get('mode') === 'relative';
     if (targetIsRelative !== currentIsRelative) {
-      const nextUrl = new URL(page.url());
-      if (targetIsRelative) {
-        nextUrl.searchParams.set('mode', 'relative');
-      } else {
-        nextUrl.searchParams.delete('mode');
-      }
-      await page.goto(nextUrl.toString(), {
-        waitUntil: 'domcontentloaded',
-        timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
-      });
-      await page.waitForSelector('#settings-panel-button', {
-        timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
-      });
+      const waitForNavigation = page.waitForURL((urlString) => {
+        const url = new URL(urlString);
+        return targetIsRelative
+          ? url.searchParams.get('mode') === 'relative'
+          : url.searchParams.get('mode') !== 'relative';
+      }, { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+      await page.click(targetSelector);
+      await waitForNavigation;
       await page.waitForLoadState('domcontentloaded');
     } else {
       await page.click(targetSelector);
@@ -939,10 +934,8 @@ async function ensureCheckboxState(page, selector, enabled = true) {
 }
 
 async function prepareRelativeLandingFovView(page, cameraPair) {
-  await ensureOriginMode(page, 'relative');
-  await waitForScene(page);
   await setTimeline(page, 'vikramLanding');
-  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  await ensureOriginMode(page, 'relative');
   await openSettingsPanel(page);
   if (!await page.isChecked('#dimension-3D')) {
     await page.click('#dimension-3D');
@@ -1547,11 +1540,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-poles-toggle';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
-      const initialOrbitChecked = await page.isChecked('#view-orbit');
-      const initialOrbitDescentChecked = await page.isChecked('#view-orbit-descent');
-      const initialXyzAxesChecked = await page.isChecked('#view-xyz-axes');
-      const initialPolarAxesChecked = await page.isChecked('#view-polar-axes');
-      const initialPolesChecked = await page.isChecked('#view-poles');
       if (!(await page.isChecked('#checkbox-lock-xy'))) {
         await page.click('#checkbox-lock-xy');
       }
@@ -1580,14 +1568,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Store initial state and zoom in for optimal pole visibility
       const initialState = await storeInitialState(page);
       await zoomIn(page, TEST_MODES.EARTH.polesZoom, 'EARTH');
-
-      await openSettingsPanel(page);
-      if (!(await page.isChecked('#view-poles'))) {
-        await page.click('#view-poles');
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      }
-      await closeSettingsPanel(page);
-      await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
       // Enabled Screenshot
       let comparison = await compareScreenshots(
@@ -1640,20 +1620,17 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Restore orbit displays and axes if they were initially checked
       await openSettingsPanel(page);
-      if (initialOrbitChecked && !await page.isChecked('#view-orbit')) {
+      if (!await page.isChecked('#view-orbit')) {
         await page.click('#view-orbit');
       }
-      if (initialOrbitDescentChecked && !await page.isChecked('#view-orbit-descent')) {
+      if (!await page.isChecked('#view-orbit-descent')) {
         await page.click('#view-orbit-descent');
       }
-      if (initialXyzAxesChecked && !await page.isChecked('#view-xyz-axes')) {
+      if (!await page.isChecked('#view-xyz-axes')) {
         await page.click('#view-xyz-axes');
       }
-      if (initialPolarAxesChecked && !await page.isChecked('#view-polar-axes')) {
+      if (!await page.isChecked('#view-polar-axes')) {
         await page.click('#view-polar-axes');
-      }
-      if (initialPolesChecked !== await page.isChecked('#view-poles')) {
-        await page.click('#view-poles');
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -1662,9 +1639,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-polar-axes-toggle';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
-      const initialOrbitChecked = await page.isChecked('#view-orbit');
-      const initialOrbitDescentChecked = await page.isChecked('#view-orbit-descent');
-      const initialPolarAxesChecked = await page.isChecked('#view-polar-axes');
       if (!(await page.isChecked('#checkbox-lock-xy'))) {
         await page.click('#checkbox-lock-xy');
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
@@ -1684,14 +1658,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Store initial state and zoom in for clear meridian line visibility
       const initialState = await storeInitialState(page);
       await zoomIn(page, TEST_MODES.EARTH.polarAxesZoom, 'EARTH');
-
-      await openSettingsPanel(page);
-      if (!(await page.isChecked('#view-polar-axes'))) {
-        await page.click('#view-polar-axes');
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      }
-      await closeSettingsPanel(page);
-      await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
       // Enabled Screenshot
       let comparison = await compareScreenshots(
@@ -1744,14 +1710,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Restore orbits if they were initially checked
       await openSettingsPanel(page);
-      if (initialOrbitChecked && !await page.isChecked('#view-orbit')) {
+      if (!await page.isChecked('#view-orbit')) {
         await page.click('#view-orbit');
       }
-      if (initialOrbitDescentChecked && !await page.isChecked('#view-orbit-descent')) {
+      if (!await page.isChecked('#view-orbit-descent')) {
         await page.click('#view-orbit-descent');
-      }
-      if (initialPolarAxesChecked !== await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -1788,7 +1751,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Disable XYZ axes
       await openSettingsPanel(page);
-      expect(await page.isChecked('#view-xyz-axes')).toBe(false);
+      expect(await page.isChecked('#view-xyz-axes')).toBe(true);
       await page.click('#view-xyz-axes');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
@@ -2340,11 +2303,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'moon-3d-poles-toggle';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
-      const initialOrbitChecked = await page.isChecked('#view-orbit');
-      const initialOrbitDescentChecked = await page.isChecked('#view-orbit-descent');
-      const initialXyzAxesChecked = await page.isChecked('#view-xyz-axes');
-      const initialPolarAxesChecked = await page.isChecked('#view-polar-axes');
-      const initialPolesChecked = await page.isChecked('#view-poles');
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await page.click('#dimension-3D');
@@ -2379,14 +2337,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Store initial state and zoom in for optimal pole visibility
       const initialState = await storeInitialState(page);
       await zoomIn(page, TEST_MODES.MOON.polesZoom, 'MOON');
-
-      await openSettingsPanel(page);
-      if (!(await page.isChecked('#view-poles'))) {
-        await page.click('#view-poles');
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      }
-      await closeSettingsPanel(page);
-      await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
       // Enabled Screenshot
       let comparison = await compareScreenshots(
@@ -2439,20 +2389,17 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Restore orbit displays and axes if they were initially checked
       await openSettingsPanel(page);
-      if (initialOrbitChecked && !await page.isChecked('#view-orbit')) {
+      if (!await page.isChecked('#view-orbit')) {
         await page.click('#view-orbit');
       }
-      if (initialOrbitDescentChecked && !await page.isChecked('#view-orbit-descent')) {
+      if (!await page.isChecked('#view-orbit-descent')) {
         await page.click('#view-orbit-descent');
       }
-      if (initialXyzAxesChecked && !await page.isChecked('#view-xyz-axes')) {
+      if (!await page.isChecked('#view-xyz-axes')) {
         await page.click('#view-xyz-axes');
       }
-      if (initialPolarAxesChecked && !await page.isChecked('#view-polar-axes')) {
+      if (!await page.isChecked('#view-polar-axes')) {
         await page.click('#view-polar-axes');
-      }
-      if (initialPolesChecked !== await page.isChecked('#view-poles')) {
-        await page.click('#view-poles');
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -2461,9 +2408,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'moon-3d-polar-axes-toggle';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
-      const initialOrbitChecked = await page.isChecked('#view-orbit');
-      const initialOrbitDescentChecked = await page.isChecked('#view-orbit-descent');
-      const initialPolarAxesChecked = await page.isChecked('#view-polar-axes');
       const yzMinusPlane = await page.locator('input[name="plane"][value="YZ-"]:checked').count();
       if (yzMinusPlane === 0) {
         await page.click('input[name="plane"][value="YZ-"]');
@@ -2485,14 +2429,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Store initial state and zoom in for clear meridian line visibility
       const initialState = await storeInitialState(page);
       await zoomIn(page, TEST_MODES.MOON.polarAxesZoom, 'MOON');
-
-      await openSettingsPanel(page);
-      if (!(await page.isChecked('#view-polar-axes'))) {
-        await page.click('#view-polar-axes');
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-      }
-      await closeSettingsPanel(page);
-      await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
       // Enabled Screenshot
       let comparison = await compareScreenshots(
@@ -2545,14 +2481,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Restore orbits if they were initially checked
       await openSettingsPanel(page);
-      if (initialOrbitChecked && !await page.isChecked('#view-orbit')) {
+      if (!await page.isChecked('#view-orbit')) {
         await page.click('#view-orbit');
       }
-      if (initialOrbitDescentChecked && !await page.isChecked('#view-orbit-descent')) {
+      if (!await page.isChecked('#view-orbit-descent')) {
         await page.click('#view-orbit-descent');
-      }
-      if (initialPolarAxesChecked !== await page.isChecked('#view-polar-axes')) {
-        await page.click('#view-polar-axes');
       }
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -2592,7 +2525,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Disable XYZ axes
       await openSettingsPanel(page);
-      expect(await page.isChecked('#view-xyz-axes')).toBe(false);
+      expect(await page.isChecked('#view-xyz-axes')).toBe(true);
       await page.click('#view-xyz-axes');
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);

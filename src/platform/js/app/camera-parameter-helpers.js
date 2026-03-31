@@ -1,9 +1,9 @@
 export function computePreferredCameraDistance({ missionConfig, defaultCameraDistance }) {
     if (missionConfig === "geo") {
         const position = {
-            x: (-11 * defaultCameraDistance) / 10,
-            y: (3 * defaultCameraDistance) / 20,
-            z: (3 * defaultCameraDistance) / 20,
+            x: (-1 * defaultCameraDistance) / 6,
+            y: (-1 * defaultCameraDistance) / 30,
+            z: defaultCameraDistance / 24,
         };
         return { position, magnitude: Math.hypot(position.x, position.y, position.z) };
     }
@@ -15,3 +15,4 @@ export function computePreferredCameraDistance({ missionConfig, defaultCameraDis
     };
     return { position, magnitude: Math.hypot(position.x, position.y, position.z) };
 }
+

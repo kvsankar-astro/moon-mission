@@ -78,8 +78,6 @@ function createInitConfigWiringActions(deps) {
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
-        updateEventInfo,
-        clearEventInfo,
         loadProgress,
     } = deps;
 
@@ -169,8 +167,6 @@ function createInitConfigWiringActions(deps) {
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
-        updateEventInfo,
-        clearEventInfo,
     });
 
     return {

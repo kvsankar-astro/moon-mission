@@ -48,26 +48,4 @@ describe("createBurnActions", () => {
         expect(setAnimTime).toHaveBeenCalledWith(eventTime.getTime());
         expect(missionSetTime).toHaveBeenCalledTimes(1);
     });
-
-    it("ignores non-clickable events", () => {
-        const setAnimTime = vi.fn();
-        const missionSetTime = vi.fn();
-        const burnActions = createBurnActions({
-            getEventInfos: () => [
-                {
-                    kind: "fixed",
-                    label: "Launch",
-                    startTime: new Date("2023-01-01T12:00:00Z"),
-                    clickable: false,
-                },
-            ],
-            setAnimTime,
-            missionSetTime,
-        });
-
-        burnActions.burnButtonHandler(0);
-
-        expect(setAnimTime).not.toHaveBeenCalled();
-        expect(missionSetTime).not.toHaveBeenCalled();
-    });
 });

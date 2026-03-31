@@ -29,8 +29,6 @@ export const PHYSICS_CONSTANTS = {
     EARTH_RADIUS_KM: 6371,
     EARTH_RADIUS_MAX_KM: 6378.1,
     EARTH_RADIUS_MIN_KM: 6356.8,
-    EARTH_GM_KM3_S2: 398600.4418,
-    MOON_GM_KM3_S2: 4902.800118,
     MOON_RADIUS_KM: 1737.4 + 0.52, // 0.52 is to keep the lander on the surface
     MOON_SOI_RADIUS_KM: 66000,
     EARTH_MOON_DISTANCE_MEAN_AU: 0.00257,
@@ -94,8 +92,6 @@ export const COLORS = {
     EARTH_AXIS: 0xFFFF00,        // yellow
     MOON_AXIS: 0xFFFF00,         // yellow
     MOON_SOI: 0x414141,          // charcoal
-    MOON_FOCUS_RING: 0xd7e5ff,   // pale blue-white
-    MOON_OSCULATING_ORBIT: 0x7d90b2, // muted slate blue
     NORTH_POLE: 0xff6347,        // tomato
     SOUTH_POLE: 0x6a5acd,        // slate blue
     ECLIPTIC_PLANE: 0xFFFFE0,    // light yellow

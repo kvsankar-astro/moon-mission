@@ -9,7 +9,6 @@ export function createBurnActions({
         const eventInfos = getEventInfos();
         const eventInfo = eventInfos[index];
         if (!eventInfo) return;
-        if (eventInfo.clickable === false) return;
 
         if (eventInfo.kind === EVENT_KIND.NOW) {
             setAnimTime(new Date().getTime());

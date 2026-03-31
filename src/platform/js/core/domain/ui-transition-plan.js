@@ -2,13 +2,12 @@ const DEFAULT_VIEW_SETTINGS = Object.freeze({
     viewOrbit: true,
     viewOrbitDescent: true,
     viewCraters: true,
-    viewXYZAxes: false,
-    viewPoles: false,
-    viewPolarAxes: false,
+    viewXYZAxes: true,
+    viewPoles: true,
+    viewPolarAxes: true,
     viewSky: true,
     viewConstellationLines: false,
     viewMoonSOI: false,
-    viewMoonHighlightRing: true,
     viewEclipticPlane: false,
     viewEquatorialPlane: false,
 });
@@ -23,7 +22,6 @@ const JOYRIDE_VIEW_SETTINGS = Object.freeze({
     viewSky: true,
     viewConstellationLines: false,
     viewMoonSOI: false,
-    viewMoonHighlightRing: true,
     viewEclipticPlane: false,
     viewEquatorialPlane: false,
 });
@@ -38,7 +36,6 @@ const LANDING_VIEW_SETTINGS = Object.freeze({
     viewSky: true,
     viewConstellationLines: false,
     viewMoonSOI: false,
-    viewMoonHighlightRing: true,
     viewEclipticPlane: false,
     viewEquatorialPlane: false,
 });

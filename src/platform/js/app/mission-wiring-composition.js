@@ -215,8 +215,6 @@ function createMissionWiringComposition(ports) {
         bindBurnButtons: ctx.bindBurnButtons,
         getBurnButtonHandler: ctx.getBurnButtonHandler,
         SwiperClass: ctx.SwiperClass,
-        updateEventInfo: ctx.updateEventInfo,
-        clearEventInfo: ctx.clearEventInfo,
         loadProgress,
     });
 

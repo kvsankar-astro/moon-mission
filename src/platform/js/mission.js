@@ -13,7 +13,6 @@ import {
 import {
     clearEventInfo,
     d3SelectAll,
-    updateEventInfo,
     updateD3ElementText,
     updateFPSCounter,
 } from "./core/dom.js";
@@ -295,7 +294,6 @@ runtimeViewState.setViewFlags({
     viewSky: initialMissionViewState.viewSky,
     viewConstellationLines: initialMissionViewState.viewConstellationLines,
     viewMoonSOI: initialMissionViewState.viewMoonSOI,
-    viewMoonHighlightRing: initialMissionViewState.viewMoonHighlightRing,
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
     viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
     viewFPS: initialMissionViewState.viewFPS,
@@ -317,18 +315,8 @@ function ensureTimelineDockController() {
             animationController.setTime(timeMs);
         },
         onMarkerSelect: (eventInfo) => {
-            if (eventInfo?.clickable === false) return;
             if (!(eventInfo?.startTime instanceof Date)) return;
             animationController.goToEvent(eventInfo.startTime.getTime());
-        },
-        onMarkerHover: (eventInfo) => {
-            const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
-            if (hoverText) {
-                updateEventInfo(hoverText);
-            }
-        },
-        onMarkerLeave: () => {
-            clearEventInfo();
         },
         onCraftSelect: (craftId) => {
             const viewToggle = document.getElementById("view-additional-crafts");
@@ -580,7 +568,6 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewSky: () => runtimeViewState.getViewSky(),
     getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
     getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
-    getViewMoonHighlightRing: () => runtimeViewState.getViewMoonHighlightRing(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
@@ -667,10 +654,6 @@ const missionStateCells = {
         (value) => { runtimeViewState.setViewConstellationLines(value); },
     ),
     viewMoonSOI: bindStateCell(() => runtimeViewState.getViewMoonSOI(), (value) => { runtimeViewState.setViewMoonSOI(value); }),
-    viewMoonHighlightRing: bindStateCell(
-        () => runtimeViewState.getViewMoonHighlightRing(),
-        (value) => { runtimeViewState.setViewMoonHighlightRing(value); },
-    ),
     viewEclipticPlane: bindStateCell(
         () => runtimeViewState.getViewEclipticPlane(),
         (value) => { runtimeViewState.setViewEclipticPlane(value); },
