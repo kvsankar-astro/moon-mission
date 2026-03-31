@@ -86,4 +86,63 @@ describe("computeEventsUpdate", () => {
         expect(update.warnings).toEqual([]);
         expect(update.eventInfos.map((event) => event.kind)).toEqual(["now", "data_end"]);
     });
+
+    it("marks pre-ephemeris craft events non-clickable until the craft span begins", () => {
+        const update = computeEventsUpdate({
+            globalConfig: {
+                spacecraft_mnemonic: "ORION",
+                primaryCraftId: "SC",
+                crafts: [
+                    {
+                        id: "SC",
+                        mnemonic: "ORION",
+                        primary: true,
+                        spans: {
+                            geo: {
+                                startTime: "2026-04-02T01:49:00Z",
+                                endTime: "2026-04-10T23:52:00Z",
+                            },
+                        },
+                    },
+                ],
+                geo: {
+                    start_year: "2026",
+                    start_month: "04",
+                    start_day: "02",
+                    start_hour: "01",
+                    start_minute: "49",
+                },
+                events: {
+                    separation: {
+                        startTime: "2026-04-02T01:48:18Z",
+                        durationSeconds: 0,
+                        label: "ICPS Sep",
+                        burnFlag: false,
+                        body: "SC",
+                        requiresEphemeris: true,
+                    },
+                    dataStart: {
+                        startTime: "2026-04-02T01:49:00Z",
+                        durationSeconds: 0,
+                        label: "Data Start",
+                        burnFlag: false,
+                        body: "SC",
+                        requiresEphemeris: true,
+                    },
+                },
+                eventConfigs: {
+                    geo: ["separation", "dataStart"],
+                },
+            },
+            config: "geo",
+            nowDate: new Date("2026-04-02T00:00:00Z"),
+            getDataEndTimeMs: () => new Date("2026-04-10T23:52:00Z").getTime(),
+        });
+
+        expect(update.shouldUpdate).toBe(true);
+        expect(update.warnings).toEqual([]);
+        expect(update.eventInfos.map((event) => event.key)).toEqual(["separation", "dataStart"]);
+        expect(update.eventInfos.map((event) => event.clickable)).toEqual([false, true]);
+        expect(update.eventInfos.map((event) => event.preEphemeris)).toEqual([true, false]);
+    });
 });

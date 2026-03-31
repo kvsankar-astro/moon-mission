@@ -204,6 +204,20 @@ canvas {
     outline-offset: 1px;
 }
 
+.timeline-dock__marker--inactive {
+    cursor: default;
+}
+
+.timeline-dock__marker--inactive::before {
+    background: rgba(137, 151, 176, 0.48);
+}
+
+.timeline-dock__marker--inactive:hover::before,
+.timeline-dock__marker--inactive:focus-visible::before {
+    height: 10px;
+    background: rgba(137, 151, 176, 0.62);
+}
+
 .timeline-dock__edge {
     font-size: 10px;
     font-weight: 600;
@@ -543,6 +557,21 @@ a:hover { color: white; }
     white-space: nowrap;
     font-size: 9px;
     padding: 0 7px;
+}
+
+.burnbutton--inactive {
+    color: rgba(194, 206, 225, 0.52);
+    background: rgba(255, 255, 255, 0.02);
+    border-color: rgba(148, 159, 182, 0.18);
+    cursor: default;
+    box-shadow: none;
+}
+
+.burnbutton--inactive:hover,
+.burnbutton--inactive:focus-visible {
+    color: rgba(210, 220, 237, 0.62);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(148, 159, 182, 0.22);
 }
 
 #burnbuttons .swiper-slide {

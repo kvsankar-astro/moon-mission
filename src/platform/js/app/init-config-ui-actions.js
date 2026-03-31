@@ -5,23 +5,52 @@ function createInitConfigUiActions(deps) {
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
+        updateEventInfo,
+        clearEventInfo,
     } = deps;
+
+    function getEventHoverText(eventInfo) {
+        return eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+    }
 
     function renderBurnButtons() {
         const eventInfos = getEventInfos() || [];
         d3.select("#burnbuttons").html("");
 
         for (let i = 0; i < eventInfos.length; ++i) {
-            d3.select("#burnbuttons")
+            const eventInfo = eventInfos[i];
+            const button = d3.select("#burnbuttons")
                 .append("div")
                 .attr("class", "swiper-slide")
                 .append("button")
                 .attr("id", "burn" + (i + 1))
-                .attr("data-event-key", eventInfos[i]["key"] || "")
+                .attr("data-event-key", eventInfo["key"] || "")
                 .attr("type", "button")
-                .attr("class", "button burnbutton")
-                .attr("title", eventInfos[i]["label"])
-                .html(eventInfos[i]["label"]);
+                .attr(
+                    "class",
+                    eventInfo.clickable === false
+                        ? "button burnbutton burnbutton--inactive"
+                        : "button burnbutton",
+                )
+                .attr("aria-disabled", eventInfo.clickable === false ? "true" : "false")
+                .attr("title", getEventHoverText(eventInfo))
+                .html(eventInfo["label"]);
+
+            const node = button.node();
+            if (!node) continue;
+            const showHoverText = () => {
+                const hoverText = getEventHoverText(eventInfo);
+                if (hoverText) {
+                    updateEventInfo?.(hoverText);
+                }
+            };
+            const clearHoverText = () => {
+                clearEventInfo?.();
+            };
+            node.addEventListener("mouseenter", showHoverText);
+            node.addEventListener("focus", showHoverText);
+            node.addEventListener("mouseleave", clearHoverText);
+            node.addEventListener("blur", clearHoverText);
         }
     }
 

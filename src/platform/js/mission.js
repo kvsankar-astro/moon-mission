@@ -13,6 +13,7 @@ import {
 import {
     clearEventInfo,
     d3SelectAll,
+    updateEventInfo,
     updateD3ElementText,
     updateFPSCounter,
 } from "./core/dom.js";
@@ -315,8 +316,18 @@ function ensureTimelineDockController() {
             animationController.setTime(timeMs);
         },
         onMarkerSelect: (eventInfo) => {
+            if (eventInfo?.clickable === false) return;
             if (!(eventInfo?.startTime instanceof Date)) return;
             animationController.goToEvent(eventInfo.startTime.getTime());
+        },
+        onMarkerHover: (eventInfo) => {
+            const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+            if (hoverText) {
+                updateEventInfo(hoverText);
+            }
+        },
+        onMarkerLeave: () => {
+            clearEventInfo();
         },
         onCraftSelect: (craftId) => {
             const viewToggle = document.getElementById("view-additional-crafts");
