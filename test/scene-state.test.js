@@ -208,4 +208,72 @@ describe("computeSceneState", () => {
         ).toHaveLength(0);
         expect(getRelativeFrameQuaternion).toHaveBeenCalledTimes(1);
     });
+
+    it("rotates sun direction with precomputed relative frame data", () => {
+        getBodyEphemerisState.mockReturnValue({
+            position: { x: 1, y: 0, z: 0 },
+            velocity: { vx: 0, vy: 1, vz: 0 },
+            available: true,
+        });
+        getRelativeFrameQuaternion.mockReturnValue({
+            w: Math.SQRT1_2,
+            x: 0,
+            y: 0,
+            z: Math.SQRT1_2,
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC"],
+                sunLongitude: 0,
+                chebyshevData: {
+                    geo: {
+                        metadata: { mode: "relative" },
+                    },
+                },
+            }),
+        );
+
+        expect(sceneState.sunDirection.x).toBeCloseTo(0, 12);
+        expect(sceneState.sunDirection.y).toBeCloseTo(1, 12);
+        expect(sceneState.sunDirection.z).toBeCloseTo(0, 12);
+    });
+
+    it("does not rotate sun direction again when relative sun data is already in frame", () => {
+        getBodyEphemerisState.mockReturnValue({
+            position: { x: 1, y: 0, z: 0 },
+            velocity: { vx: 0, vy: 1, vz: 0 },
+            available: true,
+        });
+        getRelativeFrameQuaternion.mockReturnValue({
+            w: Math.SQRT1_2,
+            x: 0,
+            y: 0,
+            z: Math.SQRT1_2,
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC"],
+                sunLongitude: 0,
+                chebyshevData: {
+                    geo: {
+                        metadata: { mode: "relative", sun_frame: "relative" },
+                    },
+                },
+            }),
+        );
+
+        expect(sceneState.sunDirection.x).toBeCloseTo(1, 12);
+        expect(sceneState.sunDirection.y).toBeCloseTo(0, 12);
+        expect(sceneState.sunDirection.z).toBeCloseTo(0, 12);
+    });
 });
