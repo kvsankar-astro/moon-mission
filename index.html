@@ -55,6 +55,14 @@
             background: rgba(12, 19, 38, 0.85);
         }
 
+        .landing-top-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .landing-view-button {
             border: 1px solid #2f3b66;
             background: rgba(20, 31, 58, 0.9);
@@ -71,6 +79,25 @@
             color: #0b1530;
             border-color: #6da5ff;
             background: linear-gradient(135deg, #8fb8ff, #66d2ff);
+        }
+
+        .landing-toplink {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #30406f;
+            background: rgba(18, 29, 55, 0.95);
+            color: #dce7ff;
+            border-radius: 999px;
+            padding: 9px 13px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            letter-spacing: 0.02em;
+        }
+
+        .landing-toplink:hover {
+            border-color: #6da5ff;
+            color: #ffffff;
         }
 
         .landing-sort-controls {
@@ -855,11 +882,14 @@
                 <h1 class="landing-title">Lunar Mission Animations</h1>
                 <h2 class="landing-subtitle">Based on NASA JPL HORIZONS ephemeris data, with ESA SPICE kernels for Chandrayaan 1</h2>
             </div>
-            <div class="landing-view-picker" role="group" aria-label="Landing page view picker">
-                <button class="landing-view-button landing-view-button--active" data-view="default" type="button">Default</button>
-                <button class="landing-view-button" data-view="tiles" type="button">Tiles</button>
-                <button class="landing-view-button" data-view="table" type="button">Table</button>
-                <button class="landing-view-button" data-view="timeline" type="button">Timeline</button>
+            <div class="landing-top-actions">
+                <div class="landing-view-picker" role="group" aria-label="Landing page view picker">
+                    <button class="landing-view-button landing-view-button--active" data-view="default" type="button">Default</button>
+                    <button class="landing-view-button" data-view="tiles" type="button">Tiles</button>
+                    <button class="landing-view-button" data-view="table" type="button">Table</button>
+                    <button class="landing-view-button" data-view="timeline" type="button">Timeline</button>
+                </div>
+                <a class="landing-toplink" href="orbit-data.html">Orbit Data Status</a>
             </div>
         </div>
 

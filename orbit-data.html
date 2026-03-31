@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Moon mission orbit data availability across JPL HORIZONS, NAIF/SPICE, and other public archives">
+    <title>Moon Mission Orbit Data Status</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            --bg: #08111f;
+            --panel: rgba(13, 21, 40, 0.92);
+            --panel-2: rgba(19, 31, 57, 0.9);
+            --line: #2a3b66;
+            --text: #e3ecff;
+            --muted: #9fb1d7;
+            --accent: #ffa000;
+            --link: #8ec1ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top right, rgba(63, 110, 196, 0.18), transparent 32%),
+                radial-gradient(circle at top left, rgba(255, 160, 0, 0.1), transparent 22%),
+                linear-gradient(180deg, #09101d 0%, #08111f 100%);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+        }
+
+        .audit-shell {
+            width: min(1800px, calc(100vw - 28px));
+            margin: 28px auto 44px auto;
+            padding: 24px;
+        }
+
+        .audit-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .audit-backlink,
+        .audit-toplink {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #314878;
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #d4e4ff;
+            background: rgba(18, 31, 57, 0.9);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .audit-backlink:hover,
+        .audit-toplink:hover {
+            border-color: #6fa7ff;
+            color: #ffffff;
+        }
+
+        .audit-title {
+            margin: 12px 0 8px 0;
+            font-size: 38px;
+            line-height: 1.08;
+            color: var(--accent);
+        }
+
+        .audit-subtitle {
+            margin: 0;
+            max-width: 920px;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .audit-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .audit-panel {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--panel);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+        }
+
+        .audit-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .audit-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .audit-control label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .audit-control input,
+        .audit-control select {
+            width: 100%;
+            border: 1px solid #355083;
+            border-radius: 10px;
+            background: rgba(13, 23, 44, 0.96);
+            color: var(--text);
+            padding: 10px 12px;
+            font: inherit;
+        }
+
+        .audit-control input::placeholder {
+            color: #7588b3;
+        }
+
+        .audit-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+        }
+
+        .audit-kpi {
+            border: 1px solid #2f4474;
+            border-radius: 14px;
+            background: var(--panel-2);
+            padding: 14px;
+        }
+
+        .audit-kpi__label {
+            margin: 0 0 6px 0;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .audit-kpi__value {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #f4f7ff;
+        }
+
+        .audit-status-strip {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .audit-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 999px;
+            padding: 7px 11px;
+            background: rgba(17, 29, 53, 0.9);
+            border: 1px solid #304675;
+            color: #dce8ff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .audit-pill__count {
+            color: #fff0c2;
+        }
+
+        .audit-table-meta {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .audit-table-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(11, 18, 34, 0.92);
+        }
+
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1400px;
+        }
+
+        .audit-table th,
+        .audit-table td {
+            padding: 12px 12px;
+            border-bottom: 1px solid #24365e;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .audit-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: rgba(18, 30, 56, 0.98);
+            color: #b0c1e5;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .audit-table td {
+            color: #deebff;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+
+        .audit-mission-name {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #f3f7ff;
+        }
+
+        .audit-mission-meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .audit-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+            margin-bottom: 7px;
+        }
+
+        .audit-badge--horizons { background: rgba(86, 148, 255, 0.18); color: #b9d8ff; border-color: rgba(110, 164, 255, 0.42); }
+        .audit-badge--horizons-partial { background: rgba(124, 103, 255, 0.16); color: #d6cbff; border-color: rgba(145, 127, 255, 0.4); }
+        .audit-badge--naif-spice { background: rgba(72, 183, 135, 0.16); color: #c4f4dd; border-color: rgba(99, 203, 157, 0.42); }
+        .audit-badge--naif-spice-partial { background: rgba(93, 198, 148, 0.14); color: #d8ffea; border-color: rgba(120, 220, 172, 0.38); }
+        .audit-badge--other-archive { background: rgba(255, 178, 73, 0.16); color: #ffe2b1; border-color: rgba(255, 188, 98, 0.42); }
+        .audit-badge--none-verified { background: rgba(110, 126, 160, 0.14); color: #d0d8ea; border-color: rgba(131, 149, 186, 0.3); }
+        .audit-badge--pre-launch { background: rgba(255, 160, 0, 0.14); color: #ffd994; border-color: rgba(255, 180, 50, 0.36); }
+
+        .audit-note {
+            color: #c4d2ef;
+            font-size: 12px;
+        }
+
+        .audit-ids {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .audit-id-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 5px 9px;
+            background: rgba(20, 32, 58, 0.95);
+            border: 1px solid #335082;
+            color: #e8f1ff;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .audit-links {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .audit-links a {
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .audit-links a:hover {
+            text-decoration: underline;
+        }
+
+        .audit-empty {
+            padding: 28px 16px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .audit-footer {
+            margin-top: 14px;
+            color: #7f90b6;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 760px) {
+            .audit-shell {
+                width: min(100vw, calc(100vw - 16px));
+                margin-top: 16px;
+                padding: 8px;
+            }
+
+            .audit-title {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="audit-shell">
+        <div class="audit-topbar">
+            <div>
+                <a class="audit-backlink" href="index.html">Back to landing page</a>
+                <h1 class="audit-title">Moon Mission Orbit Data Status</h1>
+                <p class="audit-subtitle">
+                    Mission-by-mission orbit availability across JPL HORIZONS, NAIF/SPICE, and other public archives, based on the Wikipedia
+                    <em>List of missions to the Moon</em>. Blank source cells mean no public machine-readable orbit archive was verified in this audit.
+                </p>
+            </div>
+            <div class="audit-actions">
+                <a class="audit-toplink" href="docs/horizons-lunar-missions.md">Audit notes</a>
+            </div>
+        </div>
+
+        <section class="audit-panel">
+            <div class="audit-controls">
+                <div class="audit-control">
+                    <label for="audit-search">Search</label>
+                    <input id="audit-search" type="search" placeholder="Mission, operator, ID, notes">
+                </div>
+                <div class="audit-control">
+                    <label for="audit-section">Section</label>
+                    <select id="audit-section">
+                        <option value="">All sections</option>
+                    </select>
+                </div>
+                <div class="audit-control">
+                    <label for="audit-status">Availability</label>
+                    <select id="audit-status">
+                        <option value="">All statuses</option>
+                    </select>
+                </div>
+                <div class="audit-control">
+                    <label for="audit-era">Era</label>
+                    <select id="audit-era">
+                        <option value="">All eras</option>
+                        <option value="actual">Actual missions</option>
+                        <option value="future">Future missions</option>
+                        <option value="proposed">Proposed missions</option>
+                    </select>
+                </div>
+                <div class="audit-control">
+                    <label for="audit-sort">Sort</label>
+                    <select id="audit-sort">
+                        <option value="section-launch">Section + launch</option>
+                        <option value="mission">Mission</option>
+                        <option value="launch">Launch / proposed date</option>
+                        <option value="operator">Operator</option>
+                        <option value="status">Availability</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="audit-panel">
+            <div id="audit-summary" class="audit-summary"></div>
+            <div id="audit-status-strip" class="audit-status-strip"></div>
+        </section>
+
+        <section class="audit-panel">
+            <div class="audit-table-meta">
+                <div id="audit-table-count">Loading mission table...</div>
+                <div id="audit-table-updated"></div>
+            </div>
+            <div class="audit-table-wrap">
+                <table class="audit-table">
+                    <thead>
+                        <tr>
+                            <th>Mission</th>
+                            <th>Section</th>
+                            <th>Launch / Proposed</th>
+                            <th>Operator</th>
+                            <th>Type</th>
+                            <th>Outcome</th>
+                            <th>Orbit Availability</th>
+                            <th>JPL Craft IDs</th>
+                            <th>Data Sources</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-table-body">
+                        <tr>
+                            <td colspan="9" class="audit-empty">Loading orbit availability data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="audit-footer">
+                JPL IDs shown here are the HORIZONS spacecraft/object IDs confirmed during the audit. For SPICE-only and other-archive rows,
+                the source links point to the relevant public kernel or archive landing page instead.
+            </p>
+        </section>
+    </div>
+
+    <script src="src/platform/js/orbit-data-page.js"></script>
+</body>
+</html>
