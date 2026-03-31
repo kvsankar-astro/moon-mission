@@ -109,12 +109,16 @@ export function createSpacecraftCurveActions({
         };
     }
 
-    async function addCurve(scene, { bodyId, curve, orbitMaterial, globalConfig }) {
+    async function addCurve(scene, { bodyId, curve, baseColor, baseOpacity, globalConfig }) {
         const validCurve = curve.filter(isValidVector3);
         let startingIndex = validCurve.length;
         let leftOrbitPoints = startingIndex;
         const orbitLines = [];
+        const orbitChunks = [];
+        const orbitBaseOpacities = [];
         scene.orbitLinesByBodyId[bodyId] = orbitLines;
+        scene.orbitBackgroundChunksByBodyId[bodyId] = orbitChunks;
+        scene.orbitBackgroundBaseOpacitiesByBodyId[bodyId] = orbitBaseOpacities;
 
         do {
             const points = Math.min(leftOrbitPoints, scene.pointsPerSlice);
@@ -131,13 +135,27 @@ export function createSpacecraftCurveActions({
             }
 
             const orbitGeometry = createLineGeometryFromPoints(arr);
-            const orbitLine = new THREE.Line(orbitGeometry, orbitMaterial);
+            const orbitLine = new THREE.Line(
+                orbitGeometry,
+                createLineMaterial(baseColor, {
+                    transparent: true,
+                    opacity: baseOpacity,
+                    depthWrite: false,
+                }),
+            );
             orbitLine.userData = {
                 ...(orbitLine.userData || {}),
                 bodyId,
+                baseOpacity,
             };
             orbitLine.visible = false;
             orbitLines.push(orbitLine);
+            orbitChunks.push({
+                points: arr,
+                startIndex: Math.max(0, startingIndex),
+                endIndex: Math.max(0, startingIndex + arr.length - 1),
+            });
+            orbitBaseOpacities.push(baseOpacity);
             scene.orbitLines.push(orbitLine);
             scene.motherContainer.add(orbitLine);
             applyCraftOrbitVisibility(scene, globalConfig);
@@ -153,6 +171,8 @@ export function createSpacecraftCurveActions({
         invalidateSceneOrbitOverlap(scene);
         scene.orbitLines = [];
         scene.orbitLinesByBodyId = {};
+        scene.orbitBackgroundChunksByBodyId = {};
+        scene.orbitBackgroundBaseOpacitiesByBodyId = {};
         scene.orbitMaterialsByBodyId = {};
         scene.orbitTrailLinesByBodyId = {};
         scene.pointsPerSlice = 400;
@@ -169,19 +189,16 @@ export function createSpacecraftCurveActions({
                 const curve = scene.curvesById?.[craftId] || [];
                 if (curve.filter(isValidVector3).length < 2) {
                     scene.orbitLinesByBodyId[craftId] = [];
+                    scene.orbitBackgroundChunksByBodyId[craftId] = [];
+                    scene.orbitBackgroundBaseOpacitiesByBodyId[craftId] = [];
                     continue;
                 }
                 const craftOrbitColor = (planetProperties[craftId] || planetProperties.SC)?.orbitcolor;
-                const orbitMaterial = createLineMaterial(craftOrbitColor, {
-                    transparent: true,
-                    opacity: ORBIT_TRAIL_STYLE.backgroundOpacity3D,
-                    depthWrite: false,
-                });
-                scene.orbitMaterialsByBodyId[craftId] = orbitMaterial;
                 await addCurve(scene, {
                     bodyId: craftId,
                     curve,
-                    orbitMaterial,
+                    baseColor: craftOrbitColor,
+                    baseOpacity: ORBIT_TRAIL_STYLE.backgroundOpacity3D,
                     globalConfig,
                 });
                 if (scene.stopCreationFlag) {
@@ -251,6 +268,8 @@ export function createSpacecraftCurveActions({
         }
         scene.orbitMaterialsByBodyId = {};
         scene.orbitLinesByBodyId = {};
+        scene.orbitBackgroundChunksByBodyId = {};
+        scene.orbitBackgroundBaseOpacitiesByBodyId = {};
 
         for (const bundle of Object.values(scene.orbitTrailLinesByBodyId || {})) {
             for (const line of [bundle?.tailLine, bundle?.headLine]) {
