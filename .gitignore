@@ -135,6 +135,7 @@ data-generated/
 assets/*/data/*-cheb.json
 assets/*/data/*-cheb.json.gz
 assets/*/data/*-meta.json
+assets/*/data/*-style.json
 
 # Runtime media and vendored assets are staged locally from moon-mission-data.
 assets/*/images/
