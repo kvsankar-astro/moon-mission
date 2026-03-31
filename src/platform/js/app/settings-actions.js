@@ -8,7 +8,12 @@ import {
 
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
-import { resolveHeadOpacity2D, resolveTailOpacity2D, resolveTrackOpacity2D } from "./orbit-trail-style.js";
+import {
+    resolveHeadOpacity2D,
+    resolveTailOpacity2D,
+    resolveTailVisualStyle,
+    resolveTrackOpacity2D,
+} from "./orbit-trail-style.js";
 
 export function createSettingsActions({
     getConfig,
@@ -68,6 +73,49 @@ export function createSettingsActions({
                     String(resolveHeadOpacity2D(trailTailBrightness2D)),
                 ),
             );
+    }
+
+    function applySceneTailProminence(
+        scene,
+        trailTailBrightness2D = 1,
+        trailTailBrightness3D = 1,
+    ) {
+        if (!scene) return;
+
+        const style2D = resolveTailVisualStyle({
+            dimension: "2D",
+            prominence: trailTailBrightness2D,
+        });
+        const style3D = resolveTailVisualStyle({
+            dimension: "3D",
+            prominence: trailTailBrightness3D,
+        });
+
+        if (typeof document !== "undefined") {
+            for (const bodyId of Object.keys(scene.orbitSvgPointsByBodyId || {})) {
+                const orbitGroup = document.getElementById(`orbit-${bodyId}`);
+                if (!orbitGroup) continue;
+                orbitGroup.querySelectorAll(".orbit-trail-tail").forEach((element) => {
+                    element.setAttribute("stroke-width", String(style2D.tailWidth));
+                    element.setAttribute("stroke-opacity", String(style2D.tailOpacity));
+                });
+                orbitGroup.querySelectorAll(".orbit-trail-head").forEach((element) => {
+                    element.setAttribute("stroke-width", String(style2D.headWidth));
+                    element.setAttribute("stroke-opacity", String(style2D.headOpacity));
+                });
+            }
+        }
+
+        for (const bundle of Object.values(scene.orbitTrailLinesByBodyId || {})) {
+            if (bundle?.tailLine?.material) {
+                bundle.tailLine.material.opacity = style3D.tailOpacity;
+                bundle.tailLine.material.needsUpdate = true;
+            }
+            if (bundle?.headLine?.material) {
+                bundle.headLine.material.opacity = style3D.headOpacity;
+                bundle.headLine.material.needsUpdate = true;
+            }
+        }
     }
 
     function toggleMode() {
@@ -130,6 +178,11 @@ export function createSettingsActions({
                     : view.activeCraftId;
                 scene.viewAdditionalCrafts = visibleCraftIds.length > 1;
                 syncSceneActiveCraft(scene, globalConfig, nextActiveCraftId);
+                applySceneTailProminence(
+                    scene,
+                    view.trailTailBrightness2D,
+                    view.trailTailBrightness3D,
+                );
             }
             if (scene?.planetsForLocations) {
                 for (const bodyId of scene.planetsForLocations) {
