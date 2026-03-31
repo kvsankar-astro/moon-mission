@@ -18,6 +18,7 @@ import {
 } from "../core/dom.js";
 import {
     loadChebyshev,
+    loadJson,
     loadMissionConfig,
     loadNpz,
     resolveLandingChebyshevUrl,
@@ -132,6 +133,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         showElementById,
         hideElementById,
         loadChebyshev,
+        loadJson,
         loadNpz,
         processOrbitData,
         resolveLandingNpzUrl,

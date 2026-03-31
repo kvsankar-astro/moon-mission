@@ -1,3 +1,7 @@
+import { applyOrbitStyleMetadataToScene } from "./orbit-style-meta-actions.js";
+
+let orbitStyleMetaHideTimer = 0;
+
 export function createOrbitLoadActions({
     d3,
     sleep,
@@ -11,6 +15,7 @@ export function createOrbitLoadActions({
     getDataLoaded,
     setDataLoaded,
     loadChebyshev,
+    loadJson,
     loadNpz,
     processOrbitData,
     ensureIndeterminateProgressBar,
@@ -23,8 +28,15 @@ export function createOrbitLoadActions({
     getBodiesForConfig,
     onEphemerisLoaded,
     onEphemerisStatus,
+    getGlobalConfig,
+    getViewOrbit,
+    getOrbitStyle,
+    render,
     loadProgress,
 }) {
+    const orbitStyleMetaByConfig = new Map();
+    const orbitStyleMetaPromiseByConfig = new Map();
+
     function getChebyshevBodySeries(chebData, bodyId, primaryCraftId = null) {
         if (!chebData || !bodyId) return null;
         if (chebData[bodyId]) return chebData[bodyId];
@@ -109,6 +121,100 @@ export function createOrbitLoadActions({
         typeof loadProgress.isActive === "function"
             ? loadProgress
             : null;
+
+    function setOrbitStyleMetaIndicator(status, text, { sticky = false } = {}) {
+        if (typeof document === "undefined") {
+            return;
+        }
+        const host = document.getElementById("orbit-style-meta-status");
+        const label = document.getElementById("orbit-style-meta-status-text");
+        if (!host || !label) {
+            return;
+        }
+
+        if (orbitStyleMetaHideTimer) {
+            clearTimeout(orbitStyleMetaHideTimer);
+            orbitStyleMetaHideTimer = 0;
+        }
+
+        if (!status) {
+            host.hidden = true;
+            host.classList.add("orbit-style-meta-status--hidden");
+            host.removeAttribute("data-status");
+            label.textContent = "";
+            return;
+        }
+
+        host.hidden = false;
+        host.classList.remove("orbit-style-meta-status--hidden");
+        host.setAttribute("data-status", status);
+        label.textContent = text || "Style data ready";
+
+        if (status === "applied" && !sticky) {
+            orbitStyleMetaHideTimer = setTimeout(() => {
+                const currentHost = document.getElementById("orbit-style-meta-status");
+                if (!currentHost) return;
+                currentHost.hidden = true;
+                currentHost.classList.add("orbit-style-meta-status--hidden");
+                currentHost.removeAttribute("data-status");
+                const currentLabel = document.getElementById("orbit-style-meta-status-text");
+                if (currentLabel) currentLabel.textContent = "";
+                orbitStyleMetaHideTimer = 0;
+            }, 1800);
+        }
+    }
+
+    function applyOrbitStyleMetaForConfig(config, phaseMeta) {
+        const scene = animationScenes?.[config];
+        if (!scene || !phaseMeta) return;
+        const applied = applyOrbitStyleMetadataToScene({
+            scene,
+            phaseMeta,
+            render,
+            globalConfig: typeof getGlobalConfig === "function" ? getGlobalConfig() : null,
+            viewOrbit: typeof getViewOrbit === "function" ? getViewOrbit() : undefined,
+            orbitStyle: typeof getOrbitStyle === "function" ? getOrbitStyle() : "trail",
+        });
+        if (applied) {
+            setOrbitStyleMetaIndicator("applied", "Style data applied");
+        }
+    }
+
+    function loadOrbitStyleMetaInBackground(config) {
+        const scene = animationScenes?.[config];
+        const metaUrl = scene?.orbitsMeta;
+        if ((typeof getOrbitStyle === "function" && getOrbitStyle() !== "trail") || !metaUrl || typeof loadJson !== "function") {
+            setOrbitStyleMetaIndicator(null);
+            return;
+        }
+
+        if (orbitStyleMetaByConfig.has(config)) {
+            applyOrbitStyleMetaForConfig(config, orbitStyleMetaByConfig.get(config));
+            return;
+        }
+
+        if (orbitStyleMetaPromiseByConfig.has(config)) {
+            setOrbitStyleMetaIndicator("queued", "Style data queued", { sticky: true });
+            return;
+        }
+
+        setOrbitStyleMetaIndicator("loading", "Style data loading", { sticky: true });
+        const promise = loadJson(metaUrl)
+            .then((phaseMeta) => {
+                orbitStyleMetaPromiseByConfig.delete(config);
+                orbitStyleMetaByConfig.set(config, phaseMeta);
+                applyOrbitStyleMetaForConfig(config, phaseMeta);
+                return phaseMeta;
+            })
+            .catch((error) => {
+                orbitStyleMetaPromiseByConfig.delete(config);
+                console.debug(`Orbit style metadata unavailable for ${config} at ${metaUrl}`, error);
+                setOrbitStyleMetaIndicator(null);
+                return null;
+            });
+
+        orbitStyleMetaPromiseByConfig.set(config, promise);
+    }
 
     function ensure3DCurvesReady(config) {
         const scene = animationScenes?.[config];
@@ -327,6 +433,7 @@ export function createOrbitLoadActions({
                     progress.completeStage("process", "Processing orbit data ...");
                 }
                 ensure3DCurvesReady(config);
+                loadOrbitStyleMetaInBackground(config);
                 await sleep();
                 callback();
             } catch (error) {

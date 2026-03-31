@@ -22,6 +22,7 @@ function buildMissionRuntimeWireupConfig(ctx) {
         hideElementById,
         sleep,
         loadChebyshev,
+        loadJson,
         loadNpz,
         processOrbitData,
         resolveLandingNpzUrl,
@@ -195,6 +196,7 @@ function buildMissionRuntimeWireupConfig(ctx) {
 
     const dataPort = {
         loadChebyshev,
+        loadJson,
         loadNpz,
         processOrbitData,
         resolveLandingNpzUrl,
