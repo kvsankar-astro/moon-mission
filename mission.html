@@ -378,7 +378,9 @@
                         "lunar-flashlight",
                         "lunar-prospector",
                         "lunar-trailblazer",
-                        "slim"
+                        "slim",
+                        "wind",
+                        "wmap"
                     ],
                     missions: [
                         {
@@ -1380,7 +1382,7 @@
                 if (key.indexOf('chandrayaan') >= 0) return 'India';
                 if (key.indexOf('apollo') >= 0 || key.indexOf('artemis') >= 0) return 'United States';
                 if (key.indexOf('lro') >= 0 || key.indexOf('lcross') >= 0 || key.indexOf('grail') >= 0) return 'United States';
-                if (key.indexOf('capstone') >= 0 || key.indexOf('lunar-') >= 0 || key.indexOf('clementine') >= 0) return 'United States';
+                if (key.indexOf('capstone') >= 0 || key.indexOf('lunar-') >= 0 || key.indexOf('clementine') >= 0 || key.indexOf('wind') >= 0 || key.indexOf('wmap') >= 0) return 'United States';
                 if (key.indexOf('slim') >= 0) return 'Japan';
                 if (key.indexOf('kplo') >= 0 || key.indexOf('danuri') >= 0) return 'South Korea';
                 return 'Unknown';

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "wind",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-WIND",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-WIND.npz",
+          "generated": "data-generated/wind/geo-WIND.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-WIND-cheb.json",
+          "generated": "assets/wind/data/geo-WIND-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-WIND-meta.json",
+          "generated": "data-generated/wind/geo-WIND-meta.json"
+        },
+        "json": {
+          "runtime": "geo-WIND.json",
+          "generated": "data-generated/wind/geo-WIND.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-WIND",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-WIND.npz",
+          "generated": "data-generated/wind/lunar-WIND.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-WIND-cheb.json",
+          "generated": "assets/wind/data/lunar-WIND-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-WIND-meta.json",
+          "generated": "data-generated/wind/lunar-WIND-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-WIND.json",
+          "generated": "data-generated/wind/lunar-WIND.json"
+        }
+      }
+    }
+  }
+}

@@ -311,6 +311,27 @@
       }
     },
     {
+      "key": "wind",
+      "folder": "wind",
+      "queryValue": "wind",
+      "aliases": [
+        "wind"
+      ],
+      "title": "Wind",
+      "subtitle": "United States - 1994",
+      "description": "Double-lunar swingby phase of NASA's Wind observatory.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1994,
+      "endYear": 1995,
+      "order": 135,
+      "dimensions": {
+        "missionType": "Observatory",
+        "craftClass": "Observatory",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "lunar-prospector",
       "folder": "lunar-prospector",
       "queryValue": "lunar-prospector",
@@ -329,6 +350,27 @@
       "dimensions": {
         "missionType": "Orbiter",
         "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "wmap",
+      "folder": "wmap",
+      "queryValue": "wmap",
+      "aliases": [
+        "wmap"
+      ],
+      "title": "WMAP",
+      "subtitle": "United States - 2001",
+      "description": "Lunar swingby and transfer to the Earth-Moon-Sun L2 point.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2001,
+      "endYear": 2001,
+      "order": 145,
+      "dimensions": {
+        "missionType": "L2 Observatory",
+        "craftClass": "Observatory",
         "crewProfile": "Robotic"
       }
     },

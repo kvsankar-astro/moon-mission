@@ -54,7 +54,9 @@ KNOWN_LUNAR_MISSIONS = [
 
     # NASA - Robotic Missions
     ("Clementine", -40, "Orbiter", "NASA/DoD", 1994),
+    ("WIND", -8, "Observatory", "NASA", 1994),
     ("Lunar Prospector", -25, "Orbiter", "NASA", 1998),
+    ("WMAP", -165, "L2 Observatory", "NASA", 2001),
     ("LRO", -85, "Orbiter", "NASA", 2009),
     ("LCROSS Shepherd", -18, "Impactor", "NASA", 2009),
     ("LCROSS Centaur", -18900, "Impactor", "NASA", 2009),

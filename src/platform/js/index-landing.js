@@ -33,7 +33,9 @@
         "lunar-flashlight": "lunar-flashlight",
         "lunar-prospector": "lunar-prospector",
         "lunar-trailblazer": "lunar-trailblazer",
-        "slim": "slim"
+        "slim": "slim",
+        "wind": "wind",
+        "wmap": "wmap"
     };
     var DEFAULT_BRIEF_IMAGES_BY_FOLDER = {
         "artemis1": [

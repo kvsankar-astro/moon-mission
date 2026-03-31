@@ -1,0 +1,28 @@
+{
+  "horizons_id": -165,
+  "name": "WMAP",
+  "revision_date": "May 13, 2009",
+  "target_body": "Earth",
+  "launch_date": "2001-June-30",
+  "launch_site": null,
+  "mass_kg": 830.0,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "L2 Observatory",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "http://map.gsfc.nasa.gov/",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "The Wilkinson Microwave Anisotropy Probe (WMAP) is a NASA Explorer mission \n launched 2001-June-30 on a nominal 27-month mission to make fundamental\n measurements of cosmology. There was a 3 month transit to L2, followed by\n 24 months of observing for primary mission.\n\n It has successfully produced the new standard model of cosmology and \n continues to to collect high quality scientific data in an extended mission.\n\n Each WMAP observation of the full sky requires a six month period. WMAP \n orbits L2 in an oval pattern every six months, requiring occasional station\n keeping maneuvers (usually about every three months) to remain in position.\n\n The WMAP instrument is continuously shaded from the Sun, Earth, and Moon \n by the spacecraft to allow lower thermal disturbances.\n \n WMAP measures temperature differences between parts of the sky, not\n absolute temperatures. It is a follow-on to the successful COBE mission.\n\n Operations are scheduled to end Sep 2010.\n\n MISSION ACCOMPLISHMENTS:\n * Mapped the Cosmic Microwave Background (CMB) radiation (the oldest light \n in the universe) and produced the first fine-resolution (0.2 degree) \n full-sky map of the microwave sky\n * Definitively determined the age of the universe to be 13.73 billion years \n old to within 1% (0.12 billion years)\n * Determined curvature of space-time to within 1% of \"flat\" Euclidean, \n improving on the precision of previous measurements by more than an \n order of magnitude\n * Determined ordinary atoms (baryons) make up only 4.6% of the universe \n (to within 0.1%)\n * Found that dark matter (not made of atoms) composes up to 23.3% of\n universe's mass (to within 1.3%)\n * Determined that dark energy makes up 72.1% of the universe (to within \n 1.5%), causing the expansion rate of the universe to speed up.\n * Mapped the polarization of the microwave radiation over the full sky,\n discovering the universe was reionized earlier than previously believed.\n * Determined statistical properties of the CMB fluctuations appear \"random\";\n however, there is evidence of possible deviations from simple randomness\n that are being assessed. Significant deviations would be an important \n signature of new physics in the early universe.\n * Since 2000, the three most highly cited papers in physics and astronomy \n were WMAP scientific papers. Overview of 5-year results:\n http://map.gsfc.nasa.gov/news/\n * First mission to use Earth-Moon-Sun L2 point as permanent observing site.\n\n SPACECRAFT PHYSICAL CHARACTERISTICS:\n Total payload mass: 830 kg\n Launch vehicle : Med-Lite Delta II 7425-10\n Instrument : Set of passively cooled microwave radiometers\n (connected to radiator panels with metal straps)\n 1.4 x 1.6 meter primary reflectors for angular res.\n Differential measurements to one-millionth of degree.\n\n SPACECRAFT TRAJECTORY: \n Provided by navigation (GSFC) 2009-May-13. Maneuvers are not modeled; \n trajectory is composed of series of free-flight trajectories. For more\n information, contact: Dale Fink (wmap@mac.com) \n\n Trajectory name Start Stop\n ---------------------------- ----------- -----------\n MAP_Mission_20090417 2001-Jun-30 2009-Apr-07\n*******************************************************************************",
+    "SPACECRAFT PHYSICAL CHARACTERISTICS": "Total payload mass: 830 kg\n Launch vehicle : Med-Lite Delta II 7425-10\n Instrument : Set of passively cooled microwave radiometers\n (connected to radiator panels with metal straps)\n 1.4 x 1.6 meter primary reflectors for angular res.\n Differential measurements to one-millionth of degree.\n\n SPACECRAFT TRAJECTORY: \n Provided by navigation (GSFC) 2009-May-13. Maneuvers are not modeled; \n trajectory is composed of series of free-flight trajectories. For more\n information, contact: Dale Fink (wmap@mac.com) \n\n Trajectory name Start Stop\n ---------------------------- ----------- -----------\n MAP_Mission_20090417 2001-Jun-30 2009-Apr-07\n*******************************************************************************",
+    "SPACECRAFT TRAJECTORY": "Provided by navigation (GSFC) 2009-May-13. Maneuvers are not modeled; \n trajectory is composed of series of free-flight trajectories. For more\n information, contact: Dale Fink (wmap@mac.com) \n\n Trajectory name Start Stop\n ---------------------------- ----------- -----------\n MAP_Mission_20090417 2001-Jun-30 2009-Apr-07\n*******************************************************************************",
+    "TRAJECTORY": "Provided by navigation (GSFC) 2009-May-13. Maneuvers are not modeled; \n trajectory is composed of series of free-flight trajectories. For more\n information, contact: Dale Fink (wmap@mac.com) \n\n Trajectory name Start Stop\n ---------------------------- ----------- -----------\n MAP_Mission_20090417 2001-Jun-30 2009-Apr-07\n*******************************************************************************"
+  }
+}

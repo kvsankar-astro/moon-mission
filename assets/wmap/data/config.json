@@ -1,0 +1,158 @@
+{
+  "spacecraft_mnemonic": "WMAP",
+  "spacecraft_id": -165,
+  "mission_name": "WMAP",
+  "mission_name_short": "WMAP",
+  "mission_url": "http://map.gsfc.nasa.gov/",
+  "mission_description": "WMAP Lunar Swingby and L2 Transfer Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, wmap, nasa, mission, moon, orbit, l2, swingby",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "WMAP - Lunar Swingby and L2 Transfer Orbit Animation",
+    "headerTitle": "WMAP",
+    "lockOnLabel": "WMAP",
+    "orbitLabel": "WMAP Orbit",
+    "descentOrbitLabel": "WMAP Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "21",
+    "start_minute": "16",
+    "stop_year": "2001",
+    "stop_month": "09",
+    "stop_day": "30",
+    "stop_hour": "21",
+    "stop_minute": "16",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-WMAP"
+  },
+  "lunar": {
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "21",
+    "start_minute": "16",
+    "stop_year": "2001",
+    "stop_month": "09",
+    "stop_day": "30",
+    "stop_hour": "21",
+    "stop_minute": "16",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-WMAP"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "19",
+    "start_minute": "46",
+    "stop_year": "2001",
+    "stop_month": "06",
+    "stop_day": "30",
+    "stop_hour": "19",
+    "stop_minute": "46",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-WMAP"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for WMAP."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2001-06-30T19:46:46Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Cape Canaveral Space Launch Complex 17B aboard a Delta II 7425-10 rocket.",
+      "body": "SC"
+    },
+    "observingModeStart": {
+      "startTime": "2001-07-02T19:18:00Z",
+      "durationSeconds": 0,
+      "label": "Observing Mode Start",
+      "burnFlag": false,
+      "infoText": "After deployment, WMAP first entered observing mode during its Earth phasing-loop transfer.",
+      "body": "SC"
+    },
+    "lunarSwingby": {
+      "startTime": "2001-07-30T16:37:00Z",
+      "durationSeconds": 0,
+      "label": "Lunar Swingby",
+      "burnFlag": false,
+      "infoText": "Lunar gravity-assist swingby at about 5,279 km above the Moon's surface during transfer toward Earth-Moon-Sun L2.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "wmapDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "WMAP"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "WMAP Data End",
+      "burnFlag": false,
+      "infoText": "WMAP Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "observingModeStart",
+      "lunarSwingby",
+      "now",
+      "wmapDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "observingModeStart",
+      "lunarSwingby",
+      "now",
+      "wmapDataEnd"
+    ]
+  }
+}

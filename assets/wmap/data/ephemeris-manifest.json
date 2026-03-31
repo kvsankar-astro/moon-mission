@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "wmap",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-WMAP",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-WMAP.npz",
+          "generated": "data-generated/wmap/geo-WMAP.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-WMAP-cheb.json",
+          "generated": "assets/wmap/data/geo-WMAP-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-WMAP-meta.json",
+          "generated": "data-generated/wmap/geo-WMAP-meta.json"
+        },
+        "json": {
+          "runtime": "geo-WMAP.json",
+          "generated": "data-generated/wmap/geo-WMAP.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-WMAP",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-WMAP.npz",
+          "generated": "data-generated/wmap/lunar-WMAP.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-WMAP-cheb.json",
+          "generated": "assets/wmap/data/lunar-WMAP-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-WMAP-meta.json",
+          "generated": "data-generated/wmap/lunar-WMAP-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-WMAP.json",
+          "generated": "data-generated/wmap/lunar-WMAP.json"
+        }
+      }
+    }
+  }
+}

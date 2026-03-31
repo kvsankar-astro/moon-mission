@@ -1,0 +1,71 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: May 13, 2009           WMAP Spacecraft  / (Earth)                -165
+                                 http://map.gsfc.nasa.gov/
+
+ BACKGROUND:
+ The Wilkinson Microwave Anisotropy Probe (WMAP) is a NASA Explorer mission 
+ launched 2001-June-30 on a nominal 27-month mission to make fundamental
+ measurements of cosmology. There was a 3 month transit to L2, followed by
+ 24 months of observing for primary mission.
+
+ It has successfully produced the new standard model of cosmology and 
+ continues to to collect high quality scientific data in an extended mission.
+
+ Each WMAP observation of the full sky requires a six month period. WMAP 
+ orbits L2 in an oval pattern every six months, requiring occasional station
+ keeping maneuvers (usually about every three months) to remain in position.
+
+ The WMAP instrument is continuously shaded from the Sun, Earth, and Moon 
+ by the spacecraft to allow lower thermal disturbances.
+  
+ WMAP measures temperature differences between parts of the sky, not
+ absolute temperatures. It is a follow-on to the successful COBE mission.
+
+ Operations are scheduled to end Sep 2010.
+
+ MISSION ACCOMPLISHMENTS:
+  * Mapped the Cosmic Microwave Background (CMB) radiation (the oldest light 
+     in the universe) and produced the first fine-resolution (0.2 degree) 
+     full-sky map of the microwave sky
+  * Definitively determined the age of the universe to be 13.73 billion years 
+     old to within 1% (0.12 billion years)
+  * Determined curvature of space-time to within 1% of "flat" Euclidean, 
+     improving on the precision of previous measurements by more than an 
+     order of magnitude
+  * Determined ordinary atoms (baryons) make up only 4.6% of the universe 
+     (to within 0.1%)
+  * Found that dark matter (not made of atoms) composes up to 23.3% of
+     universe's mass (to within 1.3%)
+  * Determined that dark energy makes up 72.1% of the universe (to within 
+     1.5%), causing the expansion rate of the universe to speed up.
+  * Mapped the polarization of the microwave radiation over the full sky,
+     discovering the universe was reionized earlier than previously believed.
+  * Determined statistical properties of the CMB fluctuations appear "random";
+     however, there is evidence of possible deviations from simple randomness
+     that are being assessed. Significant deviations would be an important 
+     signature of new physics in the early universe.
+  * Since 2000, the three most highly cited papers in physics and astronomy 
+     were WMAP scientific papers. Overview of 5-year results:
+         http://map.gsfc.nasa.gov/news/
+  * First mission to use Earth-Moon-Sun L2 point as permanent observing site.
+
+ SPACECRAFT PHYSICAL CHARACTERISTICS:
+  Total payload mass: 830 kg
+  Launch vehicle    : Med-Lite Delta II 7425-10
+  Instrument        : Set of passively cooled microwave radiometers
+                      (connected to radiator panels with metal straps)
+                      1.4 x 1.6 meter primary reflectors for angular res.
+                      Differential measurements to one-millionth of degree.
+
+ SPACECRAFT TRAJECTORY: 
+  Provided by navigation (GSFC) 2009-May-13.  Maneuvers are not modeled; 
+  trajectory is composed of series of free-flight trajectories. For more
+  information, contact: Dale Fink (wmap@mac.com) 
+
+  Trajectory name               Start        Stop
+  ----------------------------  -----------  -----------
+  MAP_Mission_20090417          2001-Jun-30  2009-Apr-07
+*******************************************************************************

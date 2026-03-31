@@ -37,7 +37,7 @@
     "stop_day": "03",
     "stop_hour": "12",
     "stop_minute": "59",
-    "step_size_in_seconds": 60,
+    "step_size_in_seconds": 120,
     "planets": [
       "MOON",
       "SC"
@@ -56,7 +56,7 @@
     "stop_day": "03",
     "stop_hour": "12",
     "stop_minute": "59",
-    "step_size_in_seconds": 60,
+    "step_size_in_seconds": 120,
     "planets": [
       "SC",
       "EARTH"
