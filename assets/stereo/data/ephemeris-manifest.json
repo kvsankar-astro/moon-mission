@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "stereo",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-STRA",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-STRA.npz",
+          "generated": "data-generated/stereo/geo-STRA.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-STRA-cheb.json",
+          "generated": "assets/stereo/data/geo-STRA-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-STRA-meta.json",
+          "generated": "data-generated/stereo/geo-STRA-meta.json"
+        },
+        "json": {
+          "runtime": "geo-STRA.json",
+          "generated": "data-generated/stereo/geo-STRA.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-STRA",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-STRA.npz",
+          "generated": "data-generated/stereo/lunar-STRA.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-STRA-cheb.json",
+          "generated": "assets/stereo/data/lunar-STRA-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-STRA-meta.json",
+          "generated": "data-generated/stereo/lunar-STRA-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-STRA.json",
+          "generated": "data-generated/stereo/lunar-STRA.json"
+        }
+      }
+    }
+  }
+}

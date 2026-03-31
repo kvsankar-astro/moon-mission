@@ -1,0 +1,23 @@
+{
+  "horizons_id": -125126,
+  "name": "HGS-1",
+  "revision_date": "Mar 31, 2026",
+  "target_body": "Earth",
+  "launch_date": "1997-Dec-24",
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "Hughes",
+  "mission_type": "Flyby",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": null,
+  "payloads": [],
+  "raw_sections": {}
+}

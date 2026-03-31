@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "juice",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-JUI",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-JUI.npz",
+          "generated": "data-generated/juice/geo-JUI.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-JUI-cheb.json",
+          "generated": "assets/juice/data/geo-JUI-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-JUI-meta.json",
+          "generated": "data-generated/juice/geo-JUI-meta.json"
+        },
+        "json": {
+          "runtime": "geo-JUI.json",
+          "generated": "data-generated/juice/geo-JUI.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-JUI",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-JUI.npz",
+          "generated": "data-generated/juice/lunar-JUI.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-JUI-cheb.json",
+          "generated": "assets/juice/data/lunar-JUI-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-JUI-meta.json",
+          "generated": "data-generated/juice/lunar-JUI-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-JUI.json",
+          "generated": "data-generated/juice/lunar-JUI.json"
+        }
+      }
+    }
+  }
+}

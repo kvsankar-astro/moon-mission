@@ -1,0 +1,91 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised:  Feb 08, 2023             STEREO-B Spacecraft                    -235
+                                http://stereo.gsfc.nasa.gov/
+ NOTE: 
+  Contact with STEREO-B was lost 2014-Oct-01. 
+
+  After 22 months, contact was regained at 22:27 UTC on August 21, 2016, when 
+  the Deep Space Network established a lock on STEREO-B for 2.4 hours. The
+  trajectory here is updated to use that tracking data. 
+
+  It has been determined the spacecraft is in an uncontrolled spin of 
+  3 deg/second. 
+
+  2023-Feb-08:
+   There has been no contact or new tracking data since 2016, but an updated
+   prediction was added to support a search effort.
+
+  2017-Sep-20: 
+   Fix did NOT occur. Last contact with the spacecraft was September 23, 2016.
+
+  2016-Oct-14: 
+   Another opportunity to potentially fix the spacecraft will not occur until 
+   mid-2017. Once its computer is powered on there will be about two minutes 
+   to upload the fix before STEREO-B enters failure mode again. 
+
+  http://stereo-ssc.nascom.nasa.gov/behind_status.shtml
+
+ BACKGROUND:
+  STEREO (Solar TErrestrial RElations Observatory) is the third mission in 
+  NASA's Solar Terrestrial Probes program (STP). This two-year mission will use
+  two nearly identical space-based observatories - one ahead of Earth in its 
+  orbit, the other trailing behind - to provide stereoscopic measurements to 
+  study the Sun and the nature of coronal mass ejections (CMEs).
+
+ OBJECTIVES:
+  * Understand the causes and mechanisms of coronal mass ejection (CME) 
+     initiation.
+  * Characterize the propagation of CMEs through the heliosphere.
+  * Discover the mechanisms and sites of energetic particle acceleration in 
+     the low corona and the interplanetary medium.
+  * Improve the determination of the structure of the ambient solar wind. 
+
+ SPACECRAFT:
+  Launch (Delta II 7925-10L) = October 26, 2006 @ 1:53
+  Mission end                = 2 year nominal mission after launch
+  Dimensions                 = 1.14m x 1.22m (launch), 6.47m x 2.03m (deployed)
+  Launch Mass                = 620 kg  (includes propellant)
+  Power consumption          = 475 watts
+  Data downlink              = 720 kilobits/sec
+  Memory                     = 1 GB
+  Attitude                   = control within 7", knowledge within 0.1"
+
+ INSTRUMENTS (4 packages on each spacecraft):
+  * Sun Earth Connection Coronal and Heliospheric Investigation (SECCHI)
+  * STEREO/WAVES (SWAVES) radio burst tracker
+  * In-situ Measurements of Particles and CME Transients (IMPACT)
+  * PLAsma and SupraThermal Ion Composition (PLASTIC) 
+
+ ORBIT:
+  STEREO-A and STEREO-B will be launched together, then separate. The Moon's 
+  gravity will be used to redirect the observatories to their appropriate 
+  orbits, something the launch vehicle alone is not able to do.
+
+  For the first three months after launch, the two observatories will fly in 
+  highly elliptical orbits extending from very close to Earth to just beyond 
+  the Moon's orbit. STEREO Mission Operations personnel at APL will 
+  synchronize spacecraft orbits so that about two months after launch they 
+  encounter the Moon, at which time one of them is close enough to use the 
+  Moon's gravity to redirect it to a position "ahead"/leading the Earth.
+  Approximately one month later, the second observatory will encounter the 
+  Moon again and be redirected to its orbit "behind"/trailing the Earth.
+
+ POST-LAUNCH SPACECRAFT TRAJECTORY
+   Merged segments, includes 2016-Aug-21 recovery tracking data update, 
+   with long-term predictions after 2016-Sep-12:
+
+  Trajectory name                             Start        Stop
+  -------------------------------------    -----------  -----------
+  concatenated DEPM trajectory segments    2006-Oct-26  2014-Sep-28
+  235_120day_20140928_01.V0.2              2014-Sep-28  2014-Nov-25
+  235_120day_20141125_01.V0.2              2014-Nov-25  2015-Jan-01
+  235_1461day_20150101_01.V0.2             2015-Jan-01  2015-Jul-16
+  235_1460day_20150716_01.V0.2             2015-Jul-16  2016-Jan-29
+  235_5295day_20160129_01.V0.5             2016-Jan-29  2016-Aug-21
+  behind_2016_256_01.depm                  2016-Aug-21  2016-Sep-12
+  235_5295day_20160129_01.V0.5             2016-Sep-12  2020-Oct-27
+  235_baseline_1460day_20201027_01         2020-Oct-27  2024-Oct-26
+******************************************************************************

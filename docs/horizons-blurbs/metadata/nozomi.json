@@ -1,0 +1,26 @@
+{
+  "horizons_id": -178,
+  "name": "Nozomi",
+  "revision_date": "Aug 7, 2019",
+  "target_body": null,
+  "launch_date": null,
+  "launch_site": "Kagoshima Space Center.",
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "ISAS",
+  "mission_type": "Flyby",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "http://www.isas.ac.jp/e/enterp/missions/nozomi/cont.html",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "The NOZOMI (PLANET-B) was to be the first Japanese Mars orbiter. It was \n launched on 1998-Jul-03 18:12 UTC, on the second flight of the M-V launch \n vehicle from Kagoshima Space Center. \n\n The primary scientific objective of the PLANET-B program was to study the \n Martian upper atmosphere with emphasis on its interaction with the solar \n wind. \n\n SPACECRAFT\n NOZOMI weighed 541 kg, including the fuel for attitude and orbit control, \n and was to orbit Mars with 150 km periapsis and 15 Mars radii apoapsis on \n its arrival at Mars.\n\n However, electrical problems caused the spacecraft to fail prior to arrival\n and the \n\n TRAJECTORY\n After launch, Nozomi was placed in a geocentric 3400 x 400,000 km parking \n orbit.\n\n Lunar flybys on 1998-Sep-24 and 1998-Dec-18 increased apogee, leading to\n Earth flyby on 1998-Dec-20 at a 1000 km perigee. \n\n This gravity-assist, combined with a thruster firing was intended to insert\n on a Mars-bound trajectory. However, a malfunctioning fuel valve during the \n flyby lost fuel and required two further correction burns.\n\n The mission was replanned for a four-year heliocentric trajectory with two \n Earth flybys in Dec 2002 and June 2003, with arrival at Mars in December \n 2003.\n\n Attempts to orient the spacecraft as it approached Mars on 2003-Dec-9 \n (in preparation for the 2003-Dec-14 orbit insertion thruster firing) failed,\n and the mission was abandoned after small thruster firings redirected \n it away from potential Mars impact.\n \n The spacecraft instead flew past Mars on December 14 of 2003 and continued \n in a heliocentric orbit.\n\n The trajectory here is a planning trajectory (NOT fit to tracking data) \n from the JPL Multi-mission Navigation Team. The prediction was created on\n 1999-Jan-23 and begins seven months after launch, after the partly failed \n first Earth-flyby required mission replan and extension: \n\n Trajectory name Start (TDB) Stop (TDB)\n ------------------------------------- ----------------- -----------------\n planetb_pb98 1999-Feb-08 12:01 2003-Dec-14:00:00\n*******************************************************************************",
+    "TRAJECTORY": "After launch, Nozomi was placed in a geocentric 3400 x 400,000 km parking \n orbit.\n\n Lunar flybys on 1998-Sep-24 and 1998-Dec-18 increased apogee, leading to\n Earth flyby on 1998-Dec-20 at a 1000 km perigee. \n\n This gravity-assist, combined with a thruster firing was intended to insert\n on a Mars-bound trajectory. However, a malfunctioning fuel valve during the \n flyby lost fuel and required two further correction burns.\n\n The mission was replanned for a four-year heliocentric trajectory with two \n Earth flybys in Dec 2002 and June 2003, with arrival at Mars in December \n 2003.\n\n Attempts to orient the spacecraft as it approached Mars on 2003-Dec-9 \n (in preparation for the 2003-Dec-14 orbit insertion thruster firing) failed,\n and the mission was abandoned after small thruster firings redirected \n it away from potential Mars impact.\n \n The spacecraft instead flew past Mars on December 14 of 2003 and continued \n in a heliocentric orbit.\n\n The trajectory here is a planning trajectory (NOT fit to tracking data) \n from the JPL Multi-mission Navigation Team. The prediction was created on\n 1999-Jan-23 and begins seven months after launch, after the partly failed \n first Earth-flyby required mission replan and extension: \n\n Trajectory name Start (TDB) Stop (TDB)\n ------------------------------------- ----------------- -----------------\n planetb_pb98 1999-Feb-08 12:01 2003-Dec-14:00:00\n*******************************************************************************"
+  }
+}

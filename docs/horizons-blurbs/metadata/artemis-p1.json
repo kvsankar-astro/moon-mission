@@ -1,0 +1,25 @@
+{
+  "horizons_id": -192,
+  "name": "ARTEMIS-P1",
+  "revision_date": "Mar 16, 2026",
+  "target_body": "Moon",
+  "launch_date": "2007-Feb-17",
+  "launch_site": null,
+  "mass_kg": 630.0,
+  "dimensions": null,
+  "agency": "NASA",
+  "mission_type": "Lunar Orbiter",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "http://nssdc.gsfc.nasa.gov/nmc/spacecraftDisplay.do?id=2007-004B",
+  "payloads": [],
+  "raw_sections": {
+    "TRAJECTORY": "The ARTEMIS-P1 spacecraft was the first to orbit an Earth-Moon Lagrange \n point (L2) and the first to orbit BOTH Earth-Moon L1 and L2 points.\n\n Trajectory prior to 2025-Jan-02 is a final reconstruction. Data after \n 2025-Jan-02 is a concatenated set of periodically updated (tag-up) solution\n predictions based on tracking data through 2026-Mar-12, with prediction \n thereafter.\n\n Trajectory name Start Stop\n ----------------------------------------------- ----------- -----------\n THEMIS_B_definitive_trajectory_20[07-24] 2007-Feb-18 2024-Jan-02 \n 192.THEMIS_B.SHORT_TERM.*.oem.V0.1 2024-Jan-02 2026-Apr-12\n******************************************************************************"
+  }
+}

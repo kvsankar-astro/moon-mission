@@ -311,6 +311,28 @@
       }
     },
     {
+      "key": "isee3",
+      "folder": "isee3",
+      "queryValue": "isee3",
+      "aliases": [
+        "isee3",
+        "ice"
+      ],
+      "title": "ISEE-3 / ICE",
+      "subtitle": "United States - 1978",
+      "description": "Earth-return lunar encounter during the ICE recovery campaign.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1978,
+      "endYear": 2014,
+      "order": 132,
+      "dimensions": {
+        "missionType": "Flyby",
+        "craftClass": "Observatory",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "wind",
       "folder": "wind",
       "queryValue": "wind",
@@ -328,6 +350,28 @@
       "dimensions": {
         "missionType": "Observatory",
         "craftClass": "Observatory",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "hgs1",
+      "folder": "hgs1",
+      "queryValue": "hgs1",
+      "aliases": [
+        "hgs1",
+        "asiasat3"
+      ],
+      "title": "HGS-1",
+      "subtitle": "United States - 1997",
+      "description": "Commercial-satellite rescue trajectory with twin lunar flybys.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 1997,
+      "endYear": 1998,
+      "order": 138,
+      "dimensions": {
+        "missionType": "Flyby",
+        "craftClass": "Satellite",
         "crewProfile": "Robotic"
       }
     },
@@ -354,6 +398,28 @@
       }
     },
     {
+      "key": "nozomi",
+      "folder": "nozomi",
+      "queryValue": "nozomi",
+      "aliases": [
+        "nozomi",
+        "planet-b"
+      ],
+      "title": "Nozomi",
+      "subtitle": "Japan - 1998",
+      "description": "Replanned Earth-departure arc after two lunar swingbys.",
+      "accent": "#74a5ff",
+      "country": "Japan",
+      "startYear": 1998,
+      "endYear": 1999,
+      "order": 142,
+      "dimensions": {
+        "missionType": "Flyby",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "wmap",
       "folder": "wmap",
       "queryValue": "wmap",
@@ -371,6 +437,50 @@
       "dimensions": {
         "missionType": "L2 Observatory",
         "craftClass": "Observatory",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "stereo",
+      "folder": "stereo",
+      "queryValue": "stereo",
+      "aliases": [
+        "stereo"
+      ],
+      "title": "STEREO",
+      "subtitle": "United States - 2006",
+      "description": "Twin heliophysics spacecraft during their lunar redirect flybys.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2006,
+      "endYear": 2007,
+      "order": 147,
+      "dimensions": {
+        "missionType": "Twin Observatories",
+        "craftClass": "Multi-Craft",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis-probes",
+      "folder": "artemis",
+      "queryValue": "artemis",
+      "aliases": [
+        "artemis",
+        "artemis-p1",
+        "artemis-p2"
+      ],
+      "title": "ARTEMIS",
+      "subtitle": "United States - 2011",
+      "description": "Twin repurposed THEMIS probes retargeted into lunar orbit.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2007,
+      "endYear": 2011,
+      "order": 148,
+      "dimensions": {
+        "missionType": "Twin Orbiters",
+        "craftClass": "Multi-Craft",
         "crewProfile": "Robotic"
       }
     },
@@ -505,6 +615,27 @@
       }
     },
     {
+      "key": "tess",
+      "folder": "tess",
+      "queryValue": "tess",
+      "aliases": [
+        "tess"
+      ],
+      "title": "TESS",
+      "subtitle": "United States - 2018",
+      "description": "Lunar flyby and transfer into the stable 2:1 resonance science orbit.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2018,
+      "endYear": 2018,
+      "order": 215,
+      "dimensions": {
+        "missionType": "Observatory",
+        "craftClass": "Observatory",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "capstone",
       "folder": "capstone",
       "queryValue": "capstone",
@@ -572,6 +703,27 @@
       }
     },
     {
+      "key": "juice",
+      "folder": "juice",
+      "queryValue": "juice",
+      "aliases": [
+        "juice"
+      ],
+      "title": "JUICE",
+      "subtitle": "ESA - 2023",
+      "description": "Earth-Moon gravity assist on the way to Jupiter and the Galilean moons.",
+      "accent": "#88c0ff",
+      "country": "ESA",
+      "startYear": 2023,
+      "endYear": 2024,
+      "order": 245,
+      "dimensions": {
+        "missionType": "Flyby",
+        "craftClass": "Orbiter",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
       "key": "slim",
       "folder": "slim",
       "queryValue": "slim",
@@ -612,6 +764,28 @@
         "missionType": "Orbiter",
         "craftClass": "Orbiter",
         "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis2",
+      "folder": "artemis2",
+      "queryValue": "artemis2",
+      "aliases": [
+        "artemis2",
+        "art2"
+      ],
+      "title": "Artemis II",
+      "subtitle": "United States - 2026",
+      "description": "Crewed Orion lunar flyby mission with pre-data launch events preserved.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2026,
+      "endYear": 2026,
+      "order": 262,
+      "dimensions": {
+        "missionType": "Crewed Capsule",
+        "craftClass": "Capsule",
+        "crewProfile": "Human Program"
       }
     }
   ]

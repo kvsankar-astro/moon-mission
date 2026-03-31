@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "hgs1",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-HGS1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-HGS1.npz",
+          "generated": "data-generated/hgs1/geo-HGS1.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-HGS1-cheb.json",
+          "generated": "assets/hgs1/data/geo-HGS1-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-HGS1-meta.json",
+          "generated": "data-generated/hgs1/geo-HGS1-meta.json"
+        },
+        "json": {
+          "runtime": "geo-HGS1.json",
+          "generated": "data-generated/hgs1/geo-HGS1.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-HGS1",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-HGS1.npz",
+          "generated": "data-generated/hgs1/lunar-HGS1.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-HGS1-cheb.json",
+          "generated": "assets/hgs1/data/lunar-HGS1-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-HGS1-meta.json",
+          "generated": "data-generated/hgs1/lunar-HGS1-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-HGS1.json",
+          "generated": "data-generated/hgs1/lunar-HGS1.json"
+        }
+      }
+    }
+  }
+}

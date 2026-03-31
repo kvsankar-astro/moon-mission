@@ -56,7 +56,14 @@ KNOWN_LUNAR_MISSIONS = [
     ("Clementine", -40, "Orbiter", "NASA/DoD", 1994),
     ("WIND", -8, "Observatory", "NASA", 1994),
     ("Lunar Prospector", -25, "Orbiter", "NASA", 1998),
+    ("HGS-1", -125126, "Flyby", "Hughes", 1997),
+    ("ISEE-3 ICE", -111, "Flyby", "NASA", 1978),
+    ("Nozomi", -178, "Flyby", "ISAS", 1998),
     ("WMAP", -165, "L2 Observatory", "NASA", 2001),
+    ("STEREO-A", -234, "Solar Observatory", "NASA", 2006),
+    ("STEREO-B", -235, "Solar Observatory", "NASA", 2006),
+    ("ARTEMIS-P1", -192, "Lunar Orbiter", "NASA", 2007),
+    ("ARTEMIS-P2", -193, "Lunar Orbiter", "NASA", 2007),
     ("LRO", -85, "Orbiter", "NASA", 2009),
     ("LCROSS Shepherd", -18, "Impactor", "NASA", 2009),
     ("LCROSS Centaur", -18900, "Impactor", "NASA", 2009),
@@ -66,10 +73,12 @@ KNOWN_LUNAR_MISSIONS = [
     ("LADEE", -12, "Orbiter", "NASA", 2013),
     ("CAPSTONE", -1176, "NRHO Pathfinder", "NASA", 2022),
     ("Artemis 1 Orion", -1023, "Crewed Capsule", "NASA", 2022),
-    ("Artemis II Orion", -1024, "Crewed Capsule", "NASA", 2026),
+    ("Artemis 2 Orion", -1024, "Crewed Capsule", "NASA", 2026),
     # ("Lunar IceCube", -57, "CubeSat", "NASA", 2022),  # NOT IN HORIZONS - NAIF/SPICE only
     ("Lunar Flashlight", -164, "CubeSat", "NASA", 2022),
     ("Lunar Trailblazer", -242, "Orbiter", "NASA", 2024),
+    ("TESS", -95, "Flyby", "NASA", 2018),
+    ("JUICE", -28, "Flyby", "ESA", 2023),
 
     # ISRO - India
     ("Chandrayaan-1", -86, "Orbiter", "ISRO", 2008),

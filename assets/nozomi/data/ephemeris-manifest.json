@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "nozomi",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-NOZ",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-NOZ.npz",
+          "generated": "data-generated/nozomi/geo-NOZ.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-NOZ-cheb.json",
+          "generated": "assets/nozomi/data/geo-NOZ-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-NOZ-meta.json",
+          "generated": "data-generated/nozomi/geo-NOZ-meta.json"
+        },
+        "json": {
+          "runtime": "geo-NOZ.json",
+          "generated": "data-generated/nozomi/geo-NOZ.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-NOZ",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-NOZ.npz",
+          "generated": "data-generated/nozomi/lunar-NOZ.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-NOZ-cheb.json",
+          "generated": "assets/nozomi/data/lunar-NOZ-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-NOZ-meta.json",
+          "generated": "data-generated/nozomi/lunar-NOZ-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-NOZ.json",
+          "generated": "data-generated/nozomi/lunar-NOZ.json"
+        }
+      }
+    }
+  }
+}

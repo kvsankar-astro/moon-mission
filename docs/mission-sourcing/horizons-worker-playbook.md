@@ -1,0 +1,286 @@
+# HORIZONS Mission Worker Playbook
+
+This playbook is the reusable prompt template for sub-agents working on Moon missions that have confirmed `HORIZONS` coverage.
+
+Use it in two modes:
+
+- `Existing mission mode`: re-verify an already-present mission and enrich its sourcing/config/events/data.
+- `New mission mode`: onboard a mission that does not yet exist in the repo.
+
+## Assignment Header
+
+Copy this header into each worker prompt and fill it in:
+
+```text
+Mission(s): <list of mission names>
+Mode: <existing|new>
+Owned app-repo paths:
+  - <assets/<mission>>
+  - <docs/mission-sourcing/<mission>.md>
+  - <other mission-local files only>
+Owned data-repo paths:
+  - ../moon-mission-data/assets/<mission>/data/*
+Shared files reserved for main agent:
+  - assets/mission-catalog.json
+  - assets/mission-briefs.json
+  - assets/mission-images.json
+  - mission.html
+  - index.html
+  - docs/horizons-lunar-missions.md
+Branch policy:
+  - Do not commit or push unless explicitly told you own finalization for this batch.
+```
+
+## Core Mission
+
+Your job is to bring assigned HORIZONS-backed missions to a production-ready state for this repo.
+
+Work should include, when applicable:
+
+1. Search and fetch preliminary mission information from authoritative sources.
+2. Fetch or verify the HORIZONS blurb / metadata source.
+3. Determine timeline windows and event metadata.
+4. Form or refine mission configuration files.
+5. Fetch orbit data from HORIZONS.
+6. Post-process orbit data into repo-compatible products.
+7. Self-review and verify.
+8. If explicitly assigned finalization ownership, commit and push.
+
+## Repo Boundary Rules
+
+- App repo: `C:\sankar\projects\moon-mission-orbit-data`
+- Data repo: `C:\sankar\projects\moon-mission-data`
+- Generated orbit artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and orbit style sidecars belong in the sibling data repo unless this repo already tracks an exception.
+- Before assuming a generated file belongs in this repo, verify with `git ls-files`.
+- Do not revert unrelated user or other-agent changes.
+- You are not alone in the codebase. Adjust to others' edits and do not overwrite their work.
+
+## Existing Mission Mode
+
+Use this when the mission already has an `assets/<mission>/` folder.
+
+### Goals
+
+- Re-verify HORIZONS IDs, time windows, and mission-source references.
+- Improve mission-local sourcing doc quality under `docs/mission-sourcing/`.
+- Verify that `assets/<mission>/data/config.json` still matches the best currently available HORIZONS timeline and craft structure.
+- Verify events, labels, and `eventConfigs`.
+- Preserve mission events even when they occur outside the sampled ephemeris window.
+- Re-run pipeline steps when needed and place generated outputs in `../moon-mission-data`.
+- Leave the mission in a cleaner, more trustworthy state than you found it.
+
+### Required Checks
+
+1. Inspect the existing mission-local files:
+   - `assets/<mission>/data/config.json`
+   - `assets/<mission>/data/ephemeris-manifest.json`
+   - `docs/mission-sourcing/<mission>.md`
+   - related `docs/horizons-blurbs/markdown/*.md` or metadata if present
+2. Confirm spacecraft IDs and HORIZONS object names.
+3. Confirm start/stop windows and whether the selected interesting window is still justified.
+4. Confirm event times and whether each event should be a burn, marker, or dynamic boundary.
+   - If launch or another mission event occurs before `geo`/`lunar` data availability begins, keep the event in `config.json` anyway.
+   - If a mission-significant event falls just after the last sampled orbit-data timestamp, keep it as well.
+   - Document both the mission event time and the first/last usable HORIZONS orbit-data times in the sourcing doc.
+   - Do not delete out-of-window events just because they cannot be shown immediately; runtime gating infra will handle visibility.
+5. Re-run only the pipeline steps needed:
+   - `python scripts/orbits.py --mission <mission>`
+   - `python scripts/compress-orbits.py --mission <mission>`
+   - `python scripts/generate-relative-orbits.py --mission <mission> --force`
+   - `python scripts/compress-chebyshev-gzip.py --mission <mission> --force`
+6. Verify generated outputs land in the correct repo.
+7. Write down what changed and what still needs shared-file integration.
+
+### Preferred Outputs
+
+- Updated `docs/mission-sourcing/<mission>.md`
+- Updated mission-local `config.json` / manifest as needed
+- Generated data staged in `../moon-mission-data`
+- A concise verification report with:
+  - HORIZONS IDs confirmed
+  - timeline window used
+  - events confirmed or changed
+  - files changed
+  - residual risks
+
+## New Mission Mode
+
+Use this when the mission is missing from `assets/`.
+
+### Goals
+
+- Create a new mission folder and mission-local sourcing/config files.
+- Fetch enough metadata to make the mission pipeline runnable.
+- Generate orbit products and stage them in `../moon-mission-data`.
+- Leave clear integration notes for shared catalog/landing-page updates.
+
+### Required Workflow
+
+1. Research and identify:
+   - canonical mission name
+   - folder slug
+   - spacecraft mnemonic(s)
+   - HORIZONS ID(s)
+   - launch time
+   - trajectory coverage start/end
+   - major timeline events worth exposing
+   - whether any important events occur outside the usable HORIZONS sample window
+2. Create mission-local files:
+   - `assets/<mission>/data/config.json`
+   - `assets/<mission>/data/ephemeris-manifest.json`
+   - `docs/mission-sourcing/<mission>.md`
+3. Model the config on the closest existing mission:
+   - single-craft orbiter: use `clementine`, `lunar-prospector`, `ladee`, `lro`, `slim`, or `capstone`
+   - multi-craft mission: use `chandrayaan2`, `chandrayaan3`, or split missions like `lcross-*`
+4. Keep mission-local UI text minimal but coherent:
+   - page title
+   - header title
+   - lock-on/orbit labels
+5. Add a reasonable event set:
+   - `missionStart`
+   - one or more mission-specific events
+   - `now`
+   - `<mnemonic>DataEnd`
+   - Keep out-of-window events if they are mission-significant, even when orbit samples start later or stop earlier.
+6. Run the pipeline:
+   - `python scripts/orbits.py --mission <mission>`
+   - `python scripts/compress-orbits.py --mission <mission>`
+   - `python scripts/generate-relative-orbits.py --mission <mission> --force`
+   - `python scripts/compress-chebyshev-gzip.py --mission <mission> --force`
+7. Stage generated artifacts in `../moon-mission-data`.
+8. Leave integration notes for main-agent-owned shared files:
+   - `assets/mission-catalog.json`
+   - `assets/mission-briefs.json`
+   - `assets/mission-images.json`
+   - `mission.html`
+
+### Preferred Outputs
+
+- New `assets/<mission>/data/config.json`
+- New `assets/<mission>/data/ephemeris-manifest.json`
+- New `docs/mission-sourcing/<mission>.md`
+- Generated artifacts in `../moon-mission-data`
+- Integration note covering:
+  - title/subtitle/description proposal
+  - aliases/queryValue proposal
+  - mission type / craft class / crew profile
+  - any special caveats
+
+## Research Standards
+
+- Prefer primary sources:
+  - JPL HORIZONS
+  - official mission sites
+  - NASA/JAXA/ESA/KARI/etc. mission pages
+  - existing repo HORIZONS blurbs and metadata
+- Be conservative with inferred dates and event labels.
+- Treat mission chronology and orbit-data chronology as related but distinct. A mission event can be valid even if the orbit animation starts later or ends earlier.
+- If HORIZONS aliases are messy, record both the user-facing mission name and the precise object names/IDs used.
+
+## Verification Checklist
+
+Before declaring the mission batch done:
+
+- Confirm HORIZONS object IDs used by the config actually resolve.
+- Confirm `config.json` has the correct body IDs and `planets` arrays.
+- Confirm `eventConfigs` reference only events that exist.
+- Confirm important out-of-window events were preserved rather than dropped.
+- Confirm mission-local docs explain the chosen time-window strategy.
+- Confirm generated files are in the right repo.
+- Confirm no shared files were edited if they were reserved for the main agent.
+- Review your own diff for accidental unrelated changes.
+
+## Reporting Format
+
+End with:
+
+```text
+Completed:
+- <bullet list>
+
+Changed files:
+- <absolute or repo-relative paths>
+
+Generated/staged files:
+- <paths, especially in ../moon-mission-data>
+
+Verification:
+- <commands run>
+
+Open issues / main-agent follow-up:
+- <shared-file integration, blockers, or caveats>
+```
+
+## Current 23 HORIZONS Missions
+
+### Existing in app repo
+
+- `clementine`
+- `lunar-prospector`
+- `chandrayaan1`
+- `lro`
+- `lcross-shepherd`
+- `lcross-centaur`
+- `grail`
+- `ladee`
+- `chandrayaan2`
+- `artemis1`
+- `capstone`
+- `kplo-danuri`
+- `chandrayaan3`
+- `slim`
+- `lunar-trailblazer`
+- `wind`
+- `wmap`
+
+### Missing from app repo
+
+- `ISEE-3 (ICE/Explorer 59)`
+- `HGS-1`
+- `Nozomi (PLANET-B)`
+- `STEREO`
+- `ARTEMIS`
+- `TESS`
+- `Jupiter Icy Moons Explorer`
+- `Artemis II`
+
+Note: `LRO & LCROSS` and `GRAIL` are mission entries in the audit, but in the app they may map to multiple mission folders or related folders.
+
+## Recommended Worker Batches For The 23 Full-HORIZONS Missions
+
+### Batch A: Existing NASA/JAXA/KARI single-craft or lighter missions
+
+- `clementine`
+- `lunar-prospector`
+- `ladee`
+- `capstone`
+- `kplo-danuri`
+- `slim`
+- `lunar-trailblazer`
+
+### Batch B: Existing multi-craft or higher-complexity missions
+
+- `chandrayaan1`
+- `chandrayaan2`
+- `chandrayaan3`
+- `lro`
+- `lcross-shepherd`
+- `lcross-centaur`
+- `grail`
+- `artemis1`
+
+### Batch C: New legacy / heliophysics / flyby missions
+
+- `ISEE-3 (ICE/Explorer 59)`
+- `HGS-1`
+- `Nozomi (PLANET-B)`
+- `TESS`
+
+### Batch D: New modern multi-spacecraft or naming-sensitive missions
+
+- `STEREO`
+- `ARTEMIS`
+- `Jupiter Icy Moons Explorer`
+- `Artemis II`
+
+For Batch D, workers should document naming and slug choices carefully before creating mission folders, especially for `ARTEMIS` P1/P2 and `STEREO` if per-craft handling is required.

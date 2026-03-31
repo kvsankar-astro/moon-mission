@@ -1,0 +1,168 @@
+{
+  "spacecraft_mnemonic": "NOZ",
+  "spacecraft_id": -178,
+  "mission_name": "Nozomi",
+  "mission_name_short": "Nozomi",
+  "mission_url": "http://www.isas.ac.jp/e/enterp/missions/nozomi/cont.html",
+  "mission_description": "Nozomi Replanned Earth Departure Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, nozomi, planet-b, moon, flyby, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Nozomi - Replanned Earth Departure Orbit Animation",
+    "headerTitle": "Nozomi",
+    "lockOnLabel": "Nozomi",
+    "orbitLabel": "Nozomi Orbit",
+    "descentOrbitLabel": "Nozomi Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1999",
+    "start_month": "02",
+    "start_day": "08",
+    "start_hour": "12",
+    "start_minute": "02",
+    "stop_year": "1999",
+    "stop_month": "05",
+    "stop_day": "11",
+    "stop_hour": "12",
+    "stop_minute": "02",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-NOZ"
+  },
+  "lunar": {
+    "start_year": "1999",
+    "start_month": "02",
+    "start_day": "08",
+    "start_hour": "12",
+    "start_minute": "02",
+    "stop_year": "1999",
+    "stop_month": "05",
+    "stop_day": "11",
+    "stop_hour": "12",
+    "stop_minute": "02",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-NOZ"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1998",
+    "start_month": "07",
+    "start_day": "03",
+    "start_hour": "18",
+    "start_minute": "12",
+    "stop_year": "1998",
+    "stop_month": "07",
+    "stop_day": "03",
+    "stop_hour": "18",
+    "stop_minute": "12",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-NOZ"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for Nozomi."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1998-07-03T18:12:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Kagoshima Space Center on the second M-V flight.",
+      "body": "SC"
+    },
+    "firstLunarFlybyDateOnly": {
+      "startTime": "1998-09-24T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "First Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "First lunar flyby date listed in the HORIZONS background; exact time was not provided in the source text.",
+      "body": "SC"
+    },
+    "secondLunarFlybyDateOnly": {
+      "startTime": "1998-12-18T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Second Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "Second lunar flyby date listed in the HORIZONS background; exact time was not provided in the source text.",
+      "body": "SC"
+    },
+    "replannedTrajectoryStart": {
+      "startTime": "1999-02-08T12:02:00Z",
+      "durationSeconds": 0,
+      "label": "Replanned Trajectory Start",
+      "burnFlag": false,
+      "infoText": "First usable HORIZONS planning trajectory sample after the failed 1998 Earth-flyby sequence forced mission replanning.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "nozDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "NOZ"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Nozomi Data End",
+      "burnFlag": false,
+      "infoText": "Nozomi Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "firstLunarFlybyDateOnly",
+      "secondLunarFlybyDateOnly",
+      "replannedTrajectoryStart",
+      "now",
+      "nozDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "firstLunarFlybyDateOnly",
+      "secondLunarFlybyDateOnly",
+      "replannedTrajectoryStart",
+      "now",
+      "nozDataEnd"
+    ]
+  }
+}

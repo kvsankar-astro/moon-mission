@@ -1,0 +1,27 @@
+{
+  "horizons_id": -235,
+  "name": "STEREO-B",
+  "revision_date": "Feb 08, 2023",
+  "target_body": null,
+  "launch_date": null,
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": "= 1.14m x 1.22m (launch), 6.47m x 2.03m (deployed)",
+  "agency": "NASA",
+  "mission_type": "Solar Observatory",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "http://stereo.gsfc.nasa.gov/",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "STEREO (Solar TErrestrial RElations Observatory) is the third mission in \n NASA's Solar Terrestrial Probes program (STP). This two-year mission will use\n two nearly identical space-based observatories - one ahead of Earth in its \n orbit, the other trailing behind - to provide stereoscopic measurements to \n study the Sun and the nature of coronal mass ejections (CMEs).\n\n OBJECTIVES:\n * Understand the causes and mechanisms of coronal mass ejection (CME) \n initiation.\n * Characterize the propagation of CMEs through the heliosphere.\n * Discover the mechanisms and sites of energetic particle acceleration in \n the low corona and the interplanetary medium.\n * Improve the determination of the structure of the ambient solar wind. \n\n SPACECRAFT:\n Launch (Delta II 7925-10L) = October 26, 2006 @ 1:53\n Mission end = 2 year nominal mission after launch\n Dimensions = 1.14m x 1.22m (launch), 6.47m x 2.03m (deployed)\n Launch Mass = 620 kg (includes propellant)\n Power consumption = 475 watts\n Data downlink = 720 kilobits/sec\n Memory = 1 GB\n Attitude = control within 7\", knowledge within 0.1\"\n\n INSTRUMENTS (4 packages on each spacecraft):\n * Sun Earth Connection Coronal and Heliospheric Investigation (SECCHI)\n * STEREO/WAVES (SWAVES) radio burst tracker\n * In-situ Measurements of Particles and CME Transients (IMPACT)\n * PLAsma and SupraThermal Ion Composition (PLASTIC) \n\n ORBIT:\n STEREO-A and STEREO-B will be launched together, then separate. The Moon's \n gravity will be used to redirect the observatories to their appropriate \n orbits, something the launch vehicle alone is not able to do.\n\n For the first three months after launch, the two observatories will fly in \n highly elliptical orbits extending from very close to Earth to just beyond \n the Moon's orbit. STEREO Mission Operations personnel at APL will \n synchronize spacecraft orbits so that about two months after launch they \n encounter the Moon, at which time one of them is close enough to use the \n Moon's gravity to redirect it to a position \"ahead\"/leading the Earth.\n Approximately one month later, the second observatory will encounter the \n Moon again and be redirected to its orbit \"behind\"/trailing the Earth.\n\n POST-LAUNCH SPACECRAFT TRAJECTORY\n Merged segments, includes 2016-Aug-21 recovery tracking data update, \n with long-term predictions after 2016-Sep-12:\n\n Trajectory name Start Stop\n ------------------------------------- ----------- -----------\n concatenated DEPM trajectory segments 2006-Oct-26 2014-Sep-28\n 235_120day_20140928_01.V0.2 2014-Sep-28 2014-Nov-25\n 235_120day_20141125_01.V0.2 2014-Nov-25 2015-Jan-01\n 235_1461day_20150101_01.V0.2 2015-Jan-01 2015-Jul-16\n 235_1460day_20150716_01.V0.2 2015-Jul-16 2016-Jan-29\n 235_5295day_20160129_01.V0.5 2016-Jan-29 2016-Aug-21\n behind_2016_256_01.depm 2016-Aug-21 2016-Sep-12\n 235_5295day_20160129_01.V0.5 2016-Sep-12 2020-Oct-27\n 235_baseline_1460day_20201027_01 2020-Oct-27 2024-Oct-26\n******************************************************************************",
+    "SPACECRAFT TRAJECTORY": "Merged segments, includes 2016-Aug-21 recovery tracking data update, \n with long-term predictions after 2016-Sep-12:\n\n Trajectory name Start Stop\n ------------------------------------- ----------- -----------\n concatenated DEPM trajectory segments 2006-Oct-26 2014-Sep-28\n 235_120day_20140928_01.V0.2 2014-Sep-28 2014-Nov-25\n 235_120day_20141125_01.V0.2 2014-Nov-25 2015-Jan-01\n 235_1461day_20150101_01.V0.2 2015-Jan-01 2015-Jul-16\n 235_1460day_20150716_01.V0.2 2015-Jul-16 2016-Jan-29\n 235_5295day_20160129_01.V0.5 2016-Jan-29 2016-Aug-21\n behind_2016_256_01.depm 2016-Aug-21 2016-Sep-12\n 235_5295day_20160129_01.V0.5 2016-Sep-12 2020-Oct-27\n 235_baseline_1460day_20201027_01 2020-Oct-27 2024-Oct-26\n******************************************************************************",
+    "TRAJECTORY": "Merged segments, includes 2016-Aug-21 recovery tracking data update, \n with long-term predictions after 2016-Sep-12:\n\n Trajectory name Start Stop\n ------------------------------------- ----------- -----------\n concatenated DEPM trajectory segments 2006-Oct-26 2014-Sep-28\n 235_120day_20140928_01.V0.2 2014-Sep-28 2014-Nov-25\n 235_120day_20141125_01.V0.2 2014-Nov-25 2015-Jan-01\n 235_1461day_20150101_01.V0.2 2015-Jan-01 2015-Jul-16\n 235_1460day_20150716_01.V0.2 2015-Jul-16 2016-Jan-29\n 235_5295day_20160129_01.V0.5 2016-Jan-29 2016-Aug-21\n behind_2016_256_01.depm 2016-Aug-21 2016-Sep-12\n 235_5295day_20160129_01.V0.5 2016-Sep-12 2020-Oct-27\n 235_baseline_1460day_20201027_01 2020-Oct-27 2024-Oct-26\n******************************************************************************"
+  }
+}

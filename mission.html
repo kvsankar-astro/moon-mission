@@ -362,6 +362,7 @@
                         "apollo9-sivb",
                         "apollo10-sivb",
                         "apollo12-sivb",
+                        "artemis",
                         "artemis1",
                         "artemis2",
                         "capstone",
@@ -371,6 +372,9 @@
                         "chandrayaan3",
                         "grail",
                         "grail-ss-stage",
+                        "hgs1",
+                        "isee3",
+                        "juice",
                         "ladee",
                         "lcross-centaur",
                         "lcross-shepherd",
@@ -378,7 +382,10 @@
                         "lunar-flashlight",
                         "lunar-prospector",
                         "lunar-trailblazer",
+                        "nozomi",
                         "slim",
+                        "stereo",
+                        "tess",
                         "wind",
                         "wmap"
                     ],
@@ -1383,7 +1390,9 @@
                 if (key.indexOf('apollo') >= 0 || key.indexOf('artemis') >= 0) return 'United States';
                 if (key.indexOf('lro') >= 0 || key.indexOf('lcross') >= 0 || key.indexOf('grail') >= 0) return 'United States';
                 if (key.indexOf('capstone') >= 0 || key.indexOf('lunar-') >= 0 || key.indexOf('clementine') >= 0 || key.indexOf('wind') >= 0 || key.indexOf('wmap') >= 0) return 'United States';
-                if (key.indexOf('slim') >= 0) return 'Japan';
+                if (key.indexOf('isee3') >= 0 || key.indexOf('hgs1') >= 0 || key.indexOf('stereo') >= 0 || key.indexOf('tess') >= 0) return 'United States';
+                if (key.indexOf('nozomi') >= 0 || key.indexOf('slim') >= 0) return 'Japan';
+                if (key.indexOf('juice') >= 0) return 'ESA';
                 if (key.indexOf('kplo') >= 0 || key.indexOf('danuri') >= 0) return 'South Korea';
                 return 'Unknown';
             }

@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "isee3",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-ICE",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-ICE.npz",
+          "generated": "data-generated/isee3/geo-ICE.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-ICE-cheb.json",
+          "generated": "assets/isee3/data/geo-ICE-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-ICE-meta.json",
+          "generated": "data-generated/isee3/geo-ICE-meta.json"
+        },
+        "json": {
+          "runtime": "geo-ICE.json",
+          "generated": "data-generated/isee3/geo-ICE.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-ICE",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-ICE.npz",
+          "generated": "data-generated/isee3/lunar-ICE.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-ICE-cheb.json",
+          "generated": "assets/isee3/data/lunar-ICE-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-ICE-meta.json",
+          "generated": "data-generated/isee3/lunar-ICE-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-ICE.json",
+          "generated": "data-generated/isee3/lunar-ICE.json"
+        }
+      }
+    }
+  }
+}

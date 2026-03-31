@@ -1,0 +1,25 @@
+{
+  "horizons_id": -95,
+  "name": "TESS",
+  "revision_date": "Mar 16, 2026",
+  "target_body": "Earth",
+  "launch_date": "2018-Apr-18",
+  "launch_site": null,
+  "mass_kg": 362.0,
+  "dimensions": "when fully deployed",
+  "agency": "NASA",
+  "mission_type": "Flyby",
+  "cospar_id": null,
+  "trajectory_start": "2018-Apr-18 23:37",
+  "trajectory_end": "2027-Sep-15 13:00",
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://tess.gsfc.nasa.gov/index.html",
+  "payloads": [],
+  "raw_sections": {
+    "BACKGROUND": "The NASA Transiting Exoplanet Survey Satellite (TESS) mission is to \n detect exoplanets transiting nearby bright stars, targets for followup \n characterization with large ground telescopes such as the Hubble Space \n Telescope and the future James Webb Space Telescope.\n\n Launched : 2018-Apr-18 22:51 UTC\n Launch vehicle : Falcon 9 Block 4\n Launch site : SLC-40, Cape Canaveral\n Payload mass : 362 kg\n Ascent duration : 49 minutes, then TESS deployment\n\n A SpaceX Falcon 9 launched the 362-kilogram TESS spacecraft into a \n Suprasynchronous Transfer Orbit of 200 by 270,000 kilometers at an \n inclination of 28.5 degrees. \n\n The operational orbit chosen for TESS is a highly eccentric, 2:1 lunar \n resonance orbit of 108,400 by 376,300 kilometers at an inclination of \n 37 degrees, timed so that the spacecraft reaches apogee with the moon at \n a phasing of 90 degrees. \n\n 11 maneuvering engine burns, 3.5 phasing loops, and a lunar flyby will\n be used during the first 60 days to go from the inital transfer orbit to\n the operational orbit.\n\n TESS is designed to:\n - Monitor 200,000 nearby stars for planets\n - Detect and characterize Earth and Super-Earth size planets\n - Cover 400X larger sky area than Kepler\n - Span stellar spectral types of F5 to M5\n\n Transiting exoplanets allow determination of the following: \n - Fundamental properties: \n mass, radius, orbit\n - Dynamics: \n planet-planet interactions, mutual inclinations, moons, tides\n - Atmospheric composition & structure: \n transmission spectrum, emission spectrum, \n\n MISSION OVERVIEW:\n All-sky, two year photometric exoplanet discovery mission.\n TESS will tile the sky with 26 observation sectors:\n\n - At least 27 days staring at each 24 deg. x 96 deg. sector\n - Brightest 100,000 stars at 1-minute cadence\n - Full frame images with 30-minute cadence\n - Map Northern hemisphere in first year\n - Map Southern hemisphere in second year\n - Sectors overlap at ecliptic poles for sensitivity to smaller \n and longer period planets in JWST Continuous Viewing Zone (CVZ)\n\n TESS observes from unique High Earth Orbit (HEO):\n - Unobstructed view for continuous observation\n - Two 13.7 day orbits per observation sector\n - Stable 2:1 resonance with Moon's orbit (P/2)\n - Thermally stable, low-radiation\n\n SPACECRAFT: \n Designed for photometric stability. Heritage Orbital LEOStar-2 spacecraft bus:\n - 3-axis stabilized pointing, with <= 3 arcsecong performance\n - Two-headed star tracker; 4 wheel zero-momentum system\n - 400W single-axis articulating solar array\n - Passive thermal control\n - Mono-propellant propulsion system\n - Ka-band 100 Mbps science downlink \n - Hexagonal 3.9 x 1.2 x 1.5 meter dimensions when fully deployed\n - Two 1.1 x 0.89 m solar panels\n\n SCIENCE INSTRUMENT: \n Four wide field-of-view CCD cameras. Each of the four cameras has:\n - 24 deg. x 24 deg. Field-of-View\n - 100 mm effective pupil diameter\n - Lens assembly with 7 optical elements\n - Athermal design\n - 600nm - 1000nm bandpass\n - 16.8 Megapixel, low-noise, low-power, MIT Lincoln Lab CCID-80 detector\n\n Trajectory:\n Post-launch trajectory (starts after launch ascent, L+00:49 min.).\n Concatenated short-term tag-up predictions, each covering ~3-4 days:\n\n Last tracking data used is 2026-Mar-15, predicts thereafter.\n\n Trajectory name Start (TDB) Stop (TDB)\n ------------------------------------ ----------------- -----------------\n Concatenated trajectory files (748) 2018-Apr-18 23:37 2027-Sep-15 13:00\n*******************************************************************************"
+  }
+}

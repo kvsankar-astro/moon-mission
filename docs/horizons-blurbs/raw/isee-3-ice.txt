@@ -1,0 +1,178 @@
+API VERSION: 1.2
+API SOURCE: NASA/JPL Horizons API
+
+*******************************************************************************
+ Revised: Aug 19, 2014             ISEE-3/ICE Spacecraft                   -111
+                                      (Heliocentric)
+              http://heasarc.gsfc.nasa.gov/docs/heasarc/missions/isee3.html
+                               http://spacecollege.org/isee3
+                           https://www.facebook.com/ISEE3Reboot
+
+ UPDATE (2014-Aug-19):
+ ---------------------
+ New post-encounter measurements have been used to produce trajectory solution
+ s45. The reconstructed/actual encounter:
+
+    Date (CT)      Body  CA Dist  MinDist  MaxDist  Vrel  TCA3Sg  Nsigs  P_i/p
+ ----------------- ----- -------  -------  ------- ------ ------ ------ -------
+ 2014 Aug 09.12355 Earth .001238  .001237  .001239  2.637   5.53 11759. .000000
+ 2014 Aug 10.80526 Moon  .000123  .000123  .000124  2.014   4.05 805.49 .000000
+
+ The ICE lunar close-approach was nominally ~18401 +/- 27 km from the Moon's 
+ center (so 16663 +/- 27 km above the lunar surface) on 2014-Aug-10 at 19:18:27 
+ UTC +/- 1.4 minutes.  The July 15 prediction was thus off about 6.52 +/- 1.4 
+ minutes, or 0.08-sigma. Closest approach was over far-side selenographic 
+ coordinates (107.2 deg. E, 22.3 deg. S). 
+
+ 3-sigma plane-of-sky ballistic uncertainties:
+
+                            arcsec    arcsec       km        km/s
+      Date__(UT)__HR:MN   RA_3sigma DEC_3sigma RNG_3sigma RNGRT_3sig
+      2014-Aug-20 00:00      17.501     17.546  1249.5841  0.0016795
+      2014-Aug-30 00:00      23.306     24.047  2723.8292  0.0018272
+      2014-Sep-09 00:00      26.175     26.805  4379.0938  0.0020391
+      2014-Sep-19 00:00      26.514     26.867  6274.4781  0.0023488
+      2014-Sep-29 00:00      25.186     25.040  8482.7591  0.0027475
+      2014-Oct-09 00:00      23.560     22.326 11050.4431  0.0032061
+      2014-Oct-19 00:00      21.952     19.372 14003.6902  0.0036933
+      2014-Oct-29 00:00      20.719     16.538 17343.3711  0.0041830
+      2014-Nov-08 00:00      20.186     14.128 21050.3178  0.0046584
+      2014-Nov-18 00:00      20.179     12.155 25097.6215  0.0051088
+      2014-Nov-28 00:00      20.724     10.602 29445.6620  0.0055302
+      2014-Dec-08 00:00      21.810      9.444 34048.4264  0.0059227
+      2014-Dec-18 00:00      23.253      8.579 38860.1013  0.0062857
+      2014-Dec-28 00:00      25.053      7.934 43827.9240  0.0066225
+      2015-Jan-27 00:00      32.029      6.361 59154.2673  0.0075006
+      2015-Feb-26 00:00      40.436      3.347 74076.8814  0.0082249
+      2015-Mar-28 00:00      49.027      2.672 87416.7908  0.0088268
+      2015-Apr-27 00:00      56.534     11.294 98239.2813  0.0092978
+      2015-May-27 00:00      62.489     20.459 105853.206  0.0095905
+      2015-Jun-26 00:00      67.559     27.495 109792.553  0.0096483
+      2015-Jul-26 00:00      72.865     29.952 109889.820  0.0094931
+      2015-Aug-25 00:00      78.954     25.516 106559.267  0.0093559
+      2015-Sep-24 00:00      84.405     12.541 101211.387  0.0096626
+      2015-Oct-24 00:00      85.462      6.375 96264.0243  0.0107030
+      2015-Nov-23 00:00      81.372     22.582 94242.7151  0.0123396
+      2015-Dec-23 00:00      77.182     30.657 96477.0574  0.0142057
+
+ NOTE (2014-Aug-07):
+  No new measurements since July 15 despite some potential unmodeled 
+  thruster pulses just prior to that. However, Arecibo signal strength on 
+  August 5th suggests s41 was within ~100 arcsec of actual. ICE may be 
+  observable visually at mag. 19-20 over the Aug 9-20 interval. 
+
+  Nominal encounters for s41:
+
+     Date (CT)      Body  CA Dist MinDist  MaxDist  Vrel  TCA3Sg  Nsigs  P_i/p
+  ----------------- ----- ------- -------  ------- ------ ------ ------ -------
+  2014 Aug 09.13047 Earth .001235 .001149  .001318  2.638 186.04 40.915 .000000
+  2014 Aug 10.80979 Moon  .000118 .000001  .000282  2.018 243.66 2.1921 .004321
+
+ UPDATE (2014-Jul-15):
+  Trajectory updated to JPL solution #41 (s41), based on 48 coarse 
+  Arecibo plane-of-sky angular measurements spanning May 22 - Jul 15. 
+
+ UPDATE (2014-Jul-10):
+  Trajectory updated to JPL solution #36 (s36), based on 45 coarse 
+  Arecibo plane-of-sky angular measurements spanning May 22 - Jul 09. 
+
+ UPDATE (2014-Jul-03):
+  Trajectory update from ISEE-3 Reboot based on Arecibo angular data and DSN 
+  two-way Doppler.
+
+ UPDATE (2014-Jun-23):
+  Trajectory updated to JPL solution #32 (s32), based on 42 coarse 
+  Arecibo plane-of-sky angular measurements spanning May 22 - Jun 23 ... 
+  (not delay/Doppler).
+
+ UPDATE (2014-Jun-13):
+  Trajectory updated to JPL solution #27 (s27), based on coarse Arecibo
+  plane-of-sky angular measurements (not delay/Doppler).
+
+ UPDATE (2014-Jun-09):
+  Trajectory updated to JPL solution #24 (s24), based on coarse Arecibo 
+  plane-of-sky angular measurements (not delay/Doppler).
+
+ UPDATE (2014-Jun-05):
+  Trajectory updated to JPL solution #21 (s21), based on coarse Arecibo 
+  plane-of-sky angular measurements (not delay/Doppler).
+
+ UPDATE (2014-Jun-03):
+  Trajectory updated to JPL solution #17 (s17), based on coarse Arecibo 
+  plane-of-sky angular measurements (not delay/Doppler).
+
+ UPDATE (2014-Jun-01): 
+  The trajectory has been updated to JPL solution #6 (s6), based on coarse 
+  Arecibo plane-of-sky angular measurements (not delay/Doppler).
+
+ UPDATE (2014-May-23): 
+  While too distant/small for radar echos, Arecibo obtained one plane-of-sky
+  measurement about 0.39 deg (RSS) from this trajectory. A full, three
+  dimensional orbit solution update is not yet possible, but will be made
+  available here if/when it is.
+
+ UPDATE (2014-Mar-10):
+  Reacquired carrier signal by AMSAT-DL/Bochum: 
+  http://www.amsat-dl.org/index.php/news-mainmenu-97/199-ice-satellite-received-in-bochum
+
+ SPACECRAFT TRAJECTORY 
+  Trajectory name                                         Start        Stop    
+  --------------------------------------------------   -----------  -----------
+  ice_s41                                              2014-Jan-01  2014-Dec-31
+
+ BACKGROUND:
+  Launched 1978-Aug-12 15:12 UTC on a Delta 2914, the International Sun-Earth  
+  Explorer 3 was the third of a trio of spacecraft launched to study 
+  interplanetary space; Earth's magnetosphere and its interaction with the 
+  solar wind. ISEE-1 and 2 were Earth-orbiters. ISEE-3 was the first spacecraft 
+  to orbit a libration point (Earth-Sun L1, about 1.5 million km from Earth) 
+  beginning 1978-Nov-20. The mission was managed by NASA/GSFC.
+ 
+  After completion of its primary mission, it was renamed International 
+  Cometary Explorer (ICE) and sent to study comet Giacobini-Zinner and comet 
+  Halley. Fifteen maneuvers and five lunar passes (the last on 1983-Dec-22, 
+  at an altitude of 119.4 km, not far from the Apollo 11 landing site on the
+  surface) were used to maneuver it to the heliocentric escape orbit achieved 
+  1983-Dec-22.
+ 
+  It was the first spacecraft to fly past a comet, being initially maneuvered 
+  to a point 26550 km behind comet Giacobini-Zinner on 1985-Jun-05 so as to 
+  sample the tail, then approached the nucleus to within 7862 km on 1985-Sep-11
+  with a relative velocity of 20.7 km/s, confirming for the first time theories
+  that comets are 'dirty snowballs' of ice and rock. The spacecraft later flew 
+  between the Sun and comet Halley on 1986-Mar-28, 31 million km from the comet.
+ 
+  NASA headquarters approved an update to the ICE mission in 1991: a 
+  heliospheric mission consisting of investigations of coronal mass ejections 
+  in coordination with ground-based observations, continued cosmic ray studies,
+  and special-period observations such as when ICE and Ulysses were on the 
+  same solar radial line. By May 1995, ICE was being operated with only a low 
+  duty cycle, with some support being provided by the Ulysses project for data
+  analysis. Two years later, on May 5, 1997, NASA authorized termination of 
+  operations. 
+
+  Twelve of its thirteen instruments were working and the spacecraft retained 
+  a 150 m/s delta-V fuel capacity.
+ 
+  At 20:49 UTC on September 18, 2008, the 70-meter Goldstone antenna DSS-14 
+  locked onto the carrier signal of the ISEE-3/ICE spacecraft, still 
+  transmitting and relatively close to the position based on predictions from 
+  several years earlier. The remainder of the 3-hour track was then used to 
+  gather Doppler tracking data for future use. 
+
+  When last contacted, the spacecraft was on a trajectory that will bring it 
+  close to Earth in August 2014. 
+
+  Current transmitter hardware of the Deep Space Network no longer includes 
+  the equipment needed to transmit commands to ISEE-3 without some modification,
+  but the spacecraft's transmitter signal could still be detected and 
+  down-linked data understood.
+
+ PHYSICAL DATA:
+  Cylindrical: 1.7-m diameter x 1.6-m height
+  Mass       : 390 kg (478 kg at launch)
+  Spin rate  :  20 rpm
+  Solar power: 160 watts (cells cover body surface)
+  Two 3-meter booms carrier magnetometer and plasma wave sensors.
+  Four antennas span 91-meters for radio and plasma wave studies.
+*******************************************************************************

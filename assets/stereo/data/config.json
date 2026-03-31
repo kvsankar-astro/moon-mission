@@ -1,0 +1,219 @@
+{
+  "spacecraft_mnemonic": "STRA",
+  "spacecraft_id": -234,
+  "mission_name": "STEREO",
+  "mission_name_short": "STEREO",
+  "mission_url": "http://stereo.gsfc.nasa.gov/",
+  "mission_description": "STEREO Twin Spacecraft Lunar Redirect Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, stereo, moon, flyby, twin spacecraft, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "primaryCraftId": "STRA",
+  "crafts": [
+    {
+      "id": "STRA",
+      "mnemonic": "STRA",
+      "spacecraft_id": -234,
+      "name": "STEREO-A",
+      "viewLabel": "STEREO-A",
+      "primary": true,
+      "color": "#f59e0b",
+      "orbitcolor": "#38bdf8",
+      "geo": {
+        "orbits_file": "geo-STRA"
+      },
+      "lunar": {
+        "orbits_file": "lunar-STRA"
+      },
+      "relative": {
+        "orbits_file": "relative-STRA"
+      }
+    },
+    {
+      "id": "STRB",
+      "mnemonic": "STRB",
+      "spacecraft_id": -235,
+      "name": "STEREO-B",
+      "viewLabel": "STEREO-B",
+      "primary": false,
+      "color": "#ef4444",
+      "orbitcolor": "#f472b6",
+      "geo": {
+        "orbits_file": "geo-STRA"
+      },
+      "lunar": {
+        "orbits_file": "lunar-STRA"
+      },
+      "relative": {
+        "orbits_file": "relative-STRA"
+      }
+    }
+  ],
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "STEREO Twin Spacecraft - Lunar Redirect Orbit Animation",
+    "headerTitle": "STEREO",
+    "lockOnLabel": "STEREO-A",
+    "orbitLabel": "STEREO-A Orbit",
+    "descentOrbitLabel": "STEREO-A Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "relative": {
+    "orbits_file": "relative-STRA"
+  },
+  "geo": {
+    "start_year": "2006",
+    "start_month": "10",
+    "start_day": "26",
+    "start_hour": "01",
+    "start_minute": "53",
+    "stop_year": "2007",
+    "stop_month": "01",
+    "stop_day": "26",
+    "stop_hour": "01",
+    "stop_minute": "53",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "MOON",
+      "STRA",
+      "STRB"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-STRA"
+  },
+  "lunar": {
+    "start_year": "2006",
+    "start_month": "10",
+    "start_day": "26",
+    "start_hour": "01",
+    "start_minute": "53",
+    "stop_year": "2007",
+    "stop_month": "01",
+    "stop_day": "26",
+    "stop_hour": "01",
+    "stop_minute": "53",
+    "step_size_in_seconds": 120,
+    "planets": [
+      "STRA",
+      "STRB",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-STRA"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2006",
+    "start_month": "10",
+    "start_day": "26",
+    "start_hour": "01",
+    "start_minute": "53",
+    "stop_year": "2006",
+    "stop_month": "10",
+    "stop_day": "26",
+    "stop_hour": "01",
+    "stop_minute": "53",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "STRA"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-STRA"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for STEREO."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2006-10-26T01:53:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Joint launch of STEREO-A and STEREO-B on Delta II before their lunar redirects into heliocentric orbits.",
+      "body": "STRA"
+    },
+    "stereoALunarRedirect": {
+      "startTime": "2006-12-15T21:29:00Z",
+      "durationSeconds": 0,
+      "label": "STEREO-A Lunar Redirect",
+      "burnFlag": false,
+      "infoText": "Closest lunar approach from the generated trajectory for the flyby that redirected STEREO-A ahead of Earth.",
+      "body": "STRA"
+    },
+    "stereoBLunarRedirect": {
+      "startTime": "2007-01-21T09:05:00Z",
+      "durationSeconds": 0,
+      "label": "STEREO-B Lunar Redirect",
+      "burnFlag": false,
+      "infoText": "Closest lunar approach from the generated trajectory for the flyby that redirected STEREO-B behind Earth.",
+      "body": "STRB"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "straDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "STRA"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "STEREO-A Data End",
+      "burnFlag": false,
+      "infoText": "STEREO-A Data End",
+      "body": ""
+    },
+    "strbDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "STRB"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "STEREO-B Data End",
+      "burnFlag": false,
+      "infoText": "STEREO-B Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "stereoALunarRedirect",
+      "stereoBLunarRedirect",
+      "now",
+      "straDataEnd",
+      "strbDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "stereoALunarRedirect",
+      "stereoBLunarRedirect",
+      "now",
+      "straDataEnd",
+      "strbDataEnd"
+    ]
+  }
+}

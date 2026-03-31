@@ -16,8 +16,9 @@
         "apollo10-sivb": "apollo-10-s-ivb",
         "apollo11-sivb": "apollo-11-s-ivb",
         "apollo12-sivb": "apollo-12-s-ivb",
+        "artemis": "artemis-p1",
         "artemis1": "artemis-1-orion",
-        "artemis2": "artemis-ii-orion",
+        "artemis2": "artemis-2-orion",
         "capstone": "capstone",
         "chandrayaan1": "chandrayaan-1",
         "chandrayaan2": "chandrayaan-2-orbiter",
@@ -25,6 +26,9 @@
         "clementine": "clementine",
         "grail": "grail-a-ebb",
         "grail-ss-stage": "grail-ss-stage",
+        "hgs1": "hgs-1",
+        "isee3": "isee-3-ice",
+        "juice": "juice",
         "kplo-danuri": "kplo-danuri",
         "ladee": "ladee",
         "lcross-centaur": "lcross-centaur",
@@ -33,7 +37,10 @@
         "lunar-flashlight": "lunar-flashlight",
         "lunar-prospector": "lunar-prospector",
         "lunar-trailblazer": "lunar-trailblazer",
+        "nozomi": "nozomi",
         "slim": "slim",
+        "stereo": "stereo-a",
+        "tess": "tess",
         "wind": "wind",
         "wmap": "wmap"
     };
@@ -45,15 +52,6 @@
                 license: "CC BY-SA 4.0",
                 sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
                 caption: "Orion Multi-Purpose Crew Vehicle at Kennedy Space Center."
-            }
-        ],
-        "artemis2": [
-            {
-                url: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
-                attribution: "Wikimedia Commons contributors",
-                license: "CC BY-SA 4.0",
-                sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
-                caption: "Orion Multi-Purpose Crew Vehicle, the spacecraft family used for Artemis II."
             }
         ]
     };

@@ -1,0 +1,25 @@
+{
+  "horizons_id": -28,
+  "name": "JUICE",
+  "revision_date": "Mar 16, 2026",
+  "target_body": null,
+  "launch_date": "April 14,\n 2023",
+  "launch_site": null,
+  "mass_kg": null,
+  "dimensions": null,
+  "agency": "ESA",
+  "mission_type": "Flyby",
+  "cospar_id": null,
+  "trajectory_start": null,
+  "trajectory_end": null,
+  "landing_date": null,
+  "landing_site": null,
+  "landing_coordinates": null,
+  "mission_duration": null,
+  "status": null,
+  "url": "https://sci.esa.int/web/juice",
+  "payloads": [],
+  "raw_sections": {
+    "PURPOSE": "The JUICE orbiter will investigate Ganymede and evaluate its potential to \n support life. Investigations of Europa and Callisto will compare these \n Galilean moons. The three moons are thought to have internal liquid water\n oceans, and are thought key to understanding the habitability of icy worlds.\n\n Main science objectives for Ganymede (and Callisto to lesser extent):\n\n * Characterize ocean layers & detect detect any subsurface water reservoirs\n * Topographical, geological and compositional mapping of surface\n * Study the physical properties of the icy crusts \n * Characterisation of internal mass distribution and dynamics\n * Investigate Ganymede's tenuous atmosphere\n * Study Ganymede's magnetic field and interactions with Jovian magnetosphere\n\n For Europa, the focus is on the chemistry essential to life. JUICE will also \n provide the first subsurface sounding of the moon, and determination of icy \n crust thickness over the most recently active regions.\n\n TRAJECTORY OVERVIEW:\n JUICE will have four gravity assist flybys of Venus and Earth and pass \n through the asteroid Main-Belt twice before arriving at Jupiter in July, 2031.\n There will be a Ganymede flyby 7.5 hours prior to Jupiter orbit insertion.\n\n The first Europa flyby will be in July 2032. The spacecraft will be placed\n in a high inclination orbit to allow exploration of Jupiter's polar regions \n and to study Jupiter's magnetosphere.\n\n In December 2034, the spacecraft will enter orbit around Ganymede, becoming \n the first spacecraft to orbit a moon other than Earth's.\n\n FLYBYS:\n 2024 Aug: Earth-Moon system (gravity-assist)\n 2025 Aug: Venus (gravity assist)\n 2026 Sep: Earth #2 (gravity assist)\n 2029 Jan: Earth #3 (gravity assist)\n 2029 Oct: Asteroid 223 Rosa [PROPOSED]\n 2031+ : more then 25 gravity assists, two Europa flybys\n\n PHYSICAL CHARACTERISTICS:\n * 3-axis stabilized\n * Power: solar panels, 85 m^2, 820W (EOM)\n * High-gain antenna: 2.5 m, body fixed\n * X- and Ka bands, downlink > 1.4 Gbit/day\n * Propulsion: bi-propellant main engine plus 10 thrusters\n Delta-V capability (2700 m/s, ~3000 kg of chemical propellant)\n * Radiation level: 240 krad /10 mm Al solid sphere\n * Dry mass at launch: ~1800 kg\n * Deployable appendages: \n 10.6 meter boom for JMAG and RPWI\n 16-meter antenna for radar\n Steerable medium gain antenna for comm and radio science\n\n SCIENCE INSTRUMENTS (11):\n * Jovis, Amorum ac Natorum Undique Scrutator (JANUS, camera system)\n * Moons and Jupiter Imaging Spectrometer (MAJIS, VIS/IR imaging spectrograph)\n * UV Imaging Spectrograph (UVS, UV imaging spectrograph)\n * Sub-millimeter Wave Instrument (SWI, spectrometer)\n * Ganymede Laser Altimeter (GALA)\n * Radar for Icy Moons Exploration (RIME, ice-penetrating 9 GHz, w/16m antenna)\n * JUICE-Magnetometer (J-MAG)\n * Particle Environment Package (PEP, suite of six sensors)\n * Radio and Plasma Wave Investigation (RPWI)\n * Gravity and Geophysics of Jupiter and Galilean Moons (3GM, Ka transponder)\n * Planetary Radio Interferometer and Doppler Experiment (PRIDE)\n\n TRAJECTORY: Post-launch trajectory from ESA based on tracking data through\n February 25, predicts after that.\n\n Name Start (TDB) Stop (TDB)\n -------------------------------------------------- ----------- -----------\n juice_orbc_000102_230414_310721_v01 2023-Apr-14 2031-Jul-21\n*******************************************************************************"
+  }
+}
