@@ -42,7 +42,16 @@
     "pageTitle": "NASA's Artemis 2 Mission 2026 - An Orbit Animation",
     "headerTitle": "Artemis 2",
     "lockOnLabel": "Orion",
-    "orbitLabel": "Orion Orbit"
+    "orbitLabel": "Orion Orbit",
+    "cameraDefaults": {
+      "geo": {
+        "positionScale": {
+          "x": -1.1,
+          "y": 0.15,
+          "z": 0.15
+        }
+      }
+    }
   },
   "is_lunar": true,
   "geo": {

@@ -341,6 +341,7 @@ function createAnimationSceneClass(deps) {
             const params = computeSceneCameraParameters({
                 planeSelection: sceneViewState?.planeSelection || DEFAULT_VIEW_STATE.planeSelection,
                 missionConfig: this.name,
+                globalConfig: getRuntimeState().globalConfig,
                 isInitialization,
                 controllerDistance,
                 defaultCameraDistance: getDefaultCameraDistance(),

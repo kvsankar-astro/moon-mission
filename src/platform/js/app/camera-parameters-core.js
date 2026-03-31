@@ -4,6 +4,7 @@ import { getPlaneCameraPose } from "./plane-camera-config.js";
 export function computeSceneCameraParameters({
     planeSelection,
     missionConfig,
+    globalConfig,
     isInitialization,
     controllerDistance,
     defaultCameraDistance,
@@ -11,6 +12,7 @@ export function computeSceneCameraParameters({
     const preferredDistance = computePreferredCameraDistance({
         missionConfig,
         defaultCameraDistance,
+        globalConfig,
     });
 
     if (planeSelection === "DEFAULT") {
