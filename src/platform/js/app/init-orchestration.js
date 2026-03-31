@@ -73,6 +73,9 @@ function createInitOrchestrationActions(deps) {
                     }
 
                     updateCraftScale();
+
+                    // Re-run the frame once startup view/camera state has settled.
+                    setLocation();
                 },
             });
         } catch (error) {
