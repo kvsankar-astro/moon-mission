@@ -794,6 +794,104 @@ fieldset {
     -ms-user-select: none;
 }
 
+.orbit-status-stack {
+    position: fixed;
+    right: var(--timeline-dock-offset);
+    bottom: calc(
+        var(--timeline-dock-height) +
+        var(--timeline-dock-offset) +
+        var(--control-panel-visual-height) +
+        6px
+    );
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.orbit-overlap-status,
+.orbit-style-meta-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+    padding: 4px 8px;
+    border-radius: var(--ui-radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(9, 15, 25, 0.5);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+    color: rgba(221, 232, 248, 0.7);
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
+    backdrop-filter: blur(1.5px);
+}
+
+.orbit-overlap-status--hidden,
+.orbit-style-meta-status--hidden {
+    opacity: 0;
+}
+
+.orbit-overlap-status__dot,
+.orbit-style-meta-status__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(150, 173, 205, 0.48);
+    box-shadow: 0 0 0 1px rgba(208, 222, 244, 0.18);
+    flex: 0 0 auto;
+}
+
+.orbit-overlap-status__text,
+.orbit-style-meta-status__text {
+    display: inline-block;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.orbit-overlap-status[data-status="queued"] .orbit-overlap-status__dot,
+.orbit-overlap-status[data-status="running"] .orbit-overlap-status__dot,
+.orbit-style-meta-status[data-status="queued"] .orbit-style-meta-status__dot,
+.orbit-style-meta-status[data-status="loading"] .orbit-style-meta-status__dot {
+    background: rgba(106, 169, 255, 0.95);
+    box-shadow:
+        0 0 0 1px rgba(190, 221, 255, 0.3),
+        0 0 10px rgba(77, 141, 255, 0.32);
+    animation: orbit-overlap-status-pulse 1s ease-in-out infinite;
+}
+
+.orbit-overlap-status[data-status="done"] .orbit-overlap-status__dot,
+.orbit-style-meta-status[data-status="applied"] .orbit-style-meta-status__dot {
+    background: rgba(110, 217, 165, 0.95);
+    box-shadow:
+        0 0 0 1px rgba(198, 248, 223, 0.28),
+        0 0 9px rgba(76, 196, 138, 0.24);
+    animation: none;
+}
+
+.orbit-overlap-status[data-status="error"] .orbit-overlap-status__dot,
+.orbit-style-meta-status[data-status="error"] .orbit-style-meta-status__dot {
+    background: rgba(255, 143, 143, 0.94);
+    box-shadow:
+        0 0 0 1px rgba(255, 216, 216, 0.24),
+        0 0 9px rgba(255, 102, 102, 0.24);
+    animation: none;
+}
+
+@keyframes orbit-overlap-status-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.78;
+    }
+    50% {
+        transform: scale(1.16);
+        opacity: 1;
+    }
+}
+
 #info-button {
     pointer-events: all;
 }

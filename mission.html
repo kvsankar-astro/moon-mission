@@ -1175,6 +1175,25 @@
 
         </div> <!-- content-wrapper -->
 
+        <div id="orbit-status-stack" class="orbit-status-stack" aria-live="polite" aria-atomic="true">
+            <div
+                id="orbit-overlap-status"
+                class="orbit-overlap-status orbit-overlap-status--hidden"
+                hidden
+            >
+                <span class="orbit-overlap-status__dot" aria-hidden="true"></span>
+                <span id="orbit-overlap-status-text" class="orbit-overlap-status__text">Orbit ready</span>
+            </div>
+            <div
+                id="orbit-style-meta-status"
+                class="orbit-style-meta-status orbit-style-meta-status--hidden"
+                hidden
+            >
+                <span class="orbit-style-meta-status__dot" aria-hidden="true"></span>
+                <span id="orbit-style-meta-status-text" class="orbit-style-meta-status__text">Style data ready</span>
+            </div>
+        </div>
+
         <div id="timeline-dock" class="timeline-dock" role="group" aria-label="Mission timeline">
             <div class="timeline-dock__row">
                 <span id="timeline-start-label" class="timeline-dock__edge">--:--:--</span>
