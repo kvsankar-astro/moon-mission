@@ -4,7 +4,7 @@
  * Works on Windows, macOS, and Linux
  *
  * Features:
- *   - Preferred port (8111) with deterministic ownership by default
+ *   - Preferred port (default 8111) with deterministic ownership by default
  *   - In CI mode: fails if port is in use (clean state required)
  *   - Optional local reuse mode via TEST_SERVER_REUSE=true
  *
@@ -18,10 +18,11 @@ import { spawn, execSync } from 'child_process';
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { createConnection } from 'net';
+import { getEffectiveTestPort, getServerStatePaths } from './local-test-config.js';
 
-const TEST_PORT = 8111;
-const PID_FILE = join(process.cwd(), '.test-server.pid');
-const STATE_FILE = join(process.cwd(), '.test-server.json');
+const ROOT_DIR = process.cwd();
+const TEST_PORT = getEffectiveTestPort(ROOT_DIR);
+const { pidFile: PID_FILE, stateFile: STATE_FILE } = getServerStatePaths(ROOT_DIR);
 const POWERSHELL_EXE = process.env.SystemRoot
   ? `${process.env.SystemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`
   : 'powershell';
@@ -161,7 +162,7 @@ async function startServer() {
   let serverProcess;
   // Use node directly to spawn vite - avoids shell/cmd window issues on Windows
   const viteScript = join(process.cwd(), 'node_modules', 'vite', 'bin', 'vite.js');
-  serverProcess = spawn(process.execPath, [viteScript, '--port', String(TEST_PORT)], {
+  serverProcess = spawn(process.execPath, [viteScript, '--port', String(TEST_PORT), '--strictPort'], {
     cwd: process.cwd(),
     stdio: 'ignore',
     detached: true,

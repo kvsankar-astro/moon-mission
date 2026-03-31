@@ -3,11 +3,13 @@
 import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { getEffectiveTestBaseUrl, getEffectiveTestPort } from './local-test-config.js';
 
 const MODE = process.argv[2] || 'test';
-const TEST_URL = process.env.VITE_TEST_BASE_URL || 'http://localhost:8111';
 const WORKSPACE_ROOT = process.cwd();
 const DEFAULT_DATA_ROOT = path.resolve(WORKSPACE_ROOT, '..', 'moon-mission-data');
+const TEST_PORT = getEffectiveTestPort(WORKSPACE_ROOT);
+const TEST_URL = getEffectiveTestBaseUrl(WORKSPACE_ROOT);
 
 const REQUIRED_RUNTIME_TEXTURES = [
   'images/earth/2_no_clouds_8k.jpg',
@@ -134,6 +136,8 @@ async function main() {
   const serverEnv = {
     ...process.env,
     TEST_SERVER_REUSE: 'false',
+    TEST_SERVER_PORT: String(TEST_PORT),
+    VITE_TEST_BASE_URL: TEST_URL,
   };
 
   const cleanupCode = await runNode(['test/server-manager.js', 'cleanup-port'], serverEnv);

@@ -10,6 +10,7 @@
 
 import { chromium } from 'playwright';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { getEffectiveTestBaseUrl } from './local-test-config.js';
 
 // CI environments need longer timeouts due to software WebGL rendering
 const isCI = process.env.CI === 'true';
@@ -25,7 +26,7 @@ const TIMEOUTS = {
 
 // Test configuration
 const TEST_CONFIG = {
-  baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8111',
+  baseUrl: getEffectiveTestBaseUrl(process.cwd()),
   headless: process.env.HEADLESS !== 'false',
   slowMo: parseInt(process.env.SLOWMO || '0'),
 };

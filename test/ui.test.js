@@ -4,6 +4,7 @@ import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
 import { ssim } from 'ssim.js';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getEffectiveTestBaseUrl } from './local-test-config.js';
 
 async function displayStartupMessage(page, testId) {
   console.log(`Displaying startup message for: ${testId}`);
@@ -215,7 +216,7 @@ const TOLERANCE = {
 
 // Test configuration using environment variables (no hardcoded URLs/ports)
 const TEST_CONFIG = {
-  baseUrl: process.env.VITE_TEST_BASE_URL || 'http://localhost:8111',
+  baseUrl: getEffectiveTestBaseUrl(process.cwd()),
   headless: process.env.HEADLESS !== 'false',  // Default to headless, use HEADLESS=false to see browser
   slowMo: parseInt(process.env.SLOWMO || '0'),
   get testUrl() {

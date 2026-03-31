@@ -11,8 +11,32 @@
 import * as THREE from 'three';
 import { PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 
-const SKY_STARMAP_OPACITY = 0.4;
-const SKY_CONSTELLATION_OPACITY = 0.06;
+const SKY_STARMAP_OPACITY = 0.28;
+const SKY_CONSTELLATION_OPACITY = 0.04;
+const SKY_LOWER_SHADE_COLOR = new THREE.Color(0x02050c);
+const SKY_LOWER_SHADE_ALPHA = 0.48;
+
+const SKY_SHADE_VERTEX_SHADER = `
+    varying vec3 vViewDir;
+
+    void main() {
+        vec4 viewPos = modelViewMatrix * vec4(position, 1.0);
+        vViewDir = normalize(viewPos.xyz);
+        gl_Position = projectionMatrix * viewPos;
+    }
+`;
+
+const SKY_SHADE_FRAGMENT_SHADER = `
+    uniform vec3 uShadeColor;
+    uniform float uMaxAlpha;
+    varying vec3 vViewDir;
+
+    void main() {
+        float lower = smoothstep(-0.06, 0.98, -vViewDir.y);
+        float alpha = uMaxAlpha * pow(lower, 1.38);
+        gl_FragColor = vec4(uShadeColor, alpha);
+    }
+`;
 
 export class SkyRenderer {
     /**
@@ -27,6 +51,8 @@ export class SkyRenderer {
         this.container = null;
         this.skyMesh = null;
         this.constellationMesh = null;
+        this.lowerShadeMesh = null;
+        this.geometry = null;
 
         // Textures (set externally before create())
         this.skyTexture = null;
@@ -59,35 +85,63 @@ export class SkyRenderer {
             Math.cos(PC.EARTH_AXIS_INCLINATION_RADS)
         );
 
-        const geometry = new THREE.SphereGeometry(this.radius);
+        this.geometry = new THREE.SphereGeometry(this.radius);
 
         // Starmap sphere
         const skyMaterial = new THREE.MeshBasicMaterial({
             blending: THREE.AdditiveBlending,
             map: this.skyTexture,
-            opacity: SKY_STARMAP_OPACITY
+            opacity: SKY_STARMAP_OPACITY,
+            transparent: true,
+            depthWrite: false,
+            toneMapped: false,
         });
         skyMaterial.side = THREE.BackSide;
 
-        this.skyMesh = new THREE.Mesh(geometry, skyMaterial);
+        this.skyMesh = new THREE.Mesh(this.geometry, skyMaterial);
         this.skyMesh.receiveShadow = false;
         this.skyMesh.castShadow = false;
         this.skyMesh.rotateX(Math.PI / 2);  // Orient texture correctly
+        this.skyMesh.renderOrder = -30;
         this.container.add(this.skyMesh);
 
         // Constellation overlay sphere
         const constellationMaterial = new THREE.MeshBasicMaterial({
             blending: THREE.AdditiveBlending,
             map: this.constellationTexture,
-            opacity: SKY_CONSTELLATION_OPACITY
+            opacity: SKY_CONSTELLATION_OPACITY,
+            transparent: true,
+            depthWrite: false,
+            toneMapped: false,
         });
         constellationMaterial.side = THREE.BackSide;
 
-        this.constellationMesh = new THREE.Mesh(geometry, constellationMaterial);
+        this.constellationMesh = new THREE.Mesh(this.geometry, constellationMaterial);
         this.constellationMesh.receiveShadow = false;
         this.constellationMesh.castShadow = false;
         this.constellationMesh.rotateX(Math.PI / 2);  // Orient texture correctly
+        this.constellationMesh.renderOrder = -29;
         this.container.add(this.constellationMesh);
+
+        const lowerShadeMaterial = new THREE.ShaderMaterial({
+            vertexShader: SKY_SHADE_VERTEX_SHADER,
+            fragmentShader: SKY_SHADE_FRAGMENT_SHADER,
+            uniforms: {
+                uShadeColor: { value: SKY_LOWER_SHADE_COLOR.clone() },
+                uMaxAlpha: { value: SKY_LOWER_SHADE_ALPHA },
+            },
+            side: THREE.BackSide,
+            transparent: true,
+            depthWrite: false,
+            depthTest: true,
+            toneMapped: false,
+        });
+
+        this.lowerShadeMesh = new THREE.Mesh(this.geometry, lowerShadeMaterial);
+        this.lowerShadeMesh.receiveShadow = false;
+        this.lowerShadeMesh.castShadow = false;
+        this.lowerShadeMesh.renderOrder = -28;
+        this.container.add(this.lowerShadeMesh);
 
         // Mirror and rotate for correct orientation
         this.container.scale.set(-1, 1, 1);
@@ -132,9 +186,6 @@ export class SkyRenderer {
         if (this.container) {
             // Dispose sky mesh
             if (this.skyMesh) {
-                if (this.skyMesh.geometry) {
-                    this.skyMesh.geometry.dispose();
-                }
                 if (this.skyMesh.material) {
                     this.skyMesh.material.dispose();
                 }
@@ -144,14 +195,24 @@ export class SkyRenderer {
 
             // Dispose constellation mesh
             if (this.constellationMesh) {
-                if (this.constellationMesh.geometry) {
-                    this.constellationMesh.geometry.dispose();
-                }
                 if (this.constellationMesh.material) {
                     this.constellationMesh.material.dispose();
                 }
                 this.container.remove(this.constellationMesh);
                 this.constellationMesh = null;
+            }
+
+            if (this.lowerShadeMesh) {
+                if (this.lowerShadeMesh.material) {
+                    this.lowerShadeMesh.material.dispose();
+                }
+                this.container.remove(this.lowerShadeMesh);
+                this.lowerShadeMesh = null;
+            }
+
+            if (this.geometry) {
+                this.geometry.dispose();
+                this.geometry = null;
             }
 
             // Remove container
