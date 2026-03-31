@@ -39,6 +39,7 @@ import {
 } from "../ui/dom-helpers.js";
 import {
     applyCameraFromTo,
+    applyViewSettings,
     readCameraLookMode,
     readCameraPositionMode,
     readOriginMode,
@@ -197,6 +198,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         createBurnActions,
         readCameraPositionMode,
         readCameraLookMode,
+        applyViewSettings,
         applyCameraFromTo,
         requestAnimationFrame,
         clearTimeoutFn: clearTimeout,

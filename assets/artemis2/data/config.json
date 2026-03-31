@@ -43,6 +43,11 @@
     "headerTitle": "Artemis 2",
     "lockOnLabel": "Orion",
     "orbitLabel": "Orion Orbit",
+    "viewDefaults": {
+      "viewXYZAxes": false,
+      "viewPoles": false,
+      "viewPolarAxes": false
+    },
     "cameraDefaults": {
       "geo": {
         "positionScale": {

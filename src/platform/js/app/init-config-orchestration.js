@@ -3,6 +3,8 @@ function createInitConfigOrchestrationActions(deps) {
         loadMissionConfig,
         getGlobalConfig,
         setGlobalConfig,
+        setViewFlags,
+        applyViewSettings,
         setEventInfos,
         getEphemerisSource,
         setEphemerisSource,
@@ -43,6 +45,15 @@ function createInitConfigOrchestrationActions(deps) {
             ? loadProgress
             : null;
 
+    function applyMissionViewDefaults(globalConfig) {
+        const viewDefaults = globalConfig?.ui?.viewDefaults;
+        if (!viewDefaults || typeof viewDefaults !== "object") {
+            return;
+        }
+        setViewFlags?.(viewDefaults);
+        applyViewSettings?.(viewDefaults);
+    }
+
     async function ensureGlobalConfigLoaded() {
         const hasGlobalConfig = getGlobalConfig() !== null;
 
@@ -66,6 +77,7 @@ function createInitConfigOrchestrationActions(deps) {
 
         const loadedGlobalConfig = await loadMissionConfig();
         setGlobalConfig(loadedGlobalConfig);
+        applyMissionViewDefaults(loadedGlobalConfig);
         setEventInfos(loadedGlobalConfig?.eventInfos || []);
         setEphemerisSource(getEphemerisSource(loadedGlobalConfig));
         setBodyEphemerisSources(loadedGlobalConfig?.ephemeris_sources || {});

@@ -43,6 +43,7 @@ function createInitConfigWiringActions(deps) {
         loadMissionConfig,
         getGlobalConfig,
         setGlobalConfig,
+        setViewFlags,
         setEventInfos,
         getEphemerisSource,
         setEphemerisSource,
@@ -80,6 +81,7 @@ function createInitConfigWiringActions(deps) {
         SwiperClass,
         updateEventInfo,
         clearEventInfo,
+        applyViewSettings,
         loadProgress,
     } = deps;
 
@@ -130,6 +132,8 @@ function createInitConfigWiringActions(deps) {
         loadMissionConfig,
         getGlobalConfig,
         setGlobalConfig,
+        setViewFlags,
+        applyViewSettings,
         setEventInfos,
         getEphemerisSource,
         setEphemerisSource,
