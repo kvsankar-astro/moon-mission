@@ -42,6 +42,9 @@ def _is_orbit_runtime_name(name: str) -> bool:
         or name.endswith("-cheb.json")
         or name.endswith("-cheb.json.gz")
         or name.endswith("-meta.json")
+        or name.endswith("-style.json")
+        or name == "geo-style.json"
+        or name == "lunar-style.json"
         or name == "ephemeris-manifest.json"
     )
 
@@ -139,6 +142,21 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
                     mission=mission,
                     phase="relative",
                     rel_path=relative_gz,
+                    optional=False,
+                )
+
+            for origin_key in ("geo", "lunar", "relative"):
+                phase_cfg = config.get(origin_key)
+                if not isinstance(phase_cfg, dict):
+                    continue
+                style_runtime = phase_cfg.get("orbit_style_file") or phase_cfg.get("orbitStyleFile")
+                if not isinstance(style_runtime, str) or not style_runtime.strip():
+                    continue
+                style_rel_path = Path("assets") / mission / "data" / style_runtime.strip()
+                required[_norm(style_rel_path)] = RequiredArtifact(
+                    mission=mission,
+                    phase=f"{origin_key}-style",
+                    rel_path=style_rel_path,
                     optional=False,
                 )
 
