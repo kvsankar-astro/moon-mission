@@ -77,10 +77,12 @@ export function startMissionApp({ eventBus, handlers }) {
     handlers.initAnimation({ reset: true }); // no need to await - kickstarts setup
 
     const applyFromTo = () => eventBus.emit("camera:fromToChanged", { event: null });
+    const applyViewSettings = () => eventBus.emit("settings:viewChanged", { event: null });
 
     const enforceDefaultsAndApply = () => {
         resetFromToDefaults();
         applyFromTo();
+        applyViewSettings();
     };
 
     // Enforce defaults immediately and also after a short delay to override any late restore.

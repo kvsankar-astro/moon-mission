@@ -152,6 +152,9 @@ export function createSettingsActions({
 
         setFPSCounterVisibility(requestedView.viewFPS);
         const globalConfig = getGlobalConfig();
+        const isRelativeMode =
+            typeof document !== "undefined" &&
+            Boolean(document.getElementById("origin-relative")?.checked);
 
         ["geo", "lunar"].forEach(function(cfg) {
             const scene = animationScenes[cfg];
@@ -237,6 +240,18 @@ export function createSettingsActions({
                     scene.moonSouthPoleSphere.visible = view.viewPoles;
                     scene.moonAxis.visible = view.viewPolarAxes;
                     scene.moonSOISphere.visible = view.viewMoonSOI;
+                    const shouldShowMoonHighlight =
+                        cfg === "geo" && !isRelativeMode && view.viewMoonHighlightRing;
+                    if (scene.moonHighlightSprite) {
+                        scene.moonHighlightSprite.visible = false;
+                    }
+                    if (scene.sceneHelpers?.setMoonHighlightVisible) {
+                        scene.sceneHelpers.setMoonHighlightVisible(shouldShowMoonHighlight);
+                    }
+                    if (scene.moonOsculatingOrbitLine) {
+                        scene.moonOsculatingOrbitLine.visible =
+                            cfg === "geo" && !isRelativeMode && view.viewOrbit;
+                    }
                 }
 
                 scene.earthAxis.visible = view.viewPolarAxes;

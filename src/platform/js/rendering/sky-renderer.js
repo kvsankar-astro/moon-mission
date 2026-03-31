@@ -89,7 +89,7 @@ export class SkyRenderer {
 
         // Starmap sphere
         const skyMaterial = new THREE.MeshBasicMaterial({
-            blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending,
             map: this.skyTexture,
             opacity: SKY_STARMAP_OPACITY,
             transparent: true,

@@ -27,6 +27,8 @@ export function createMoonActions({
         scene.moonSouthPoleSphere = scene.moonRenderer.southPoleSphere;
 
         scene.addMoonSOI();
+        scene.addMoonHighlight();
+        scene.addMoonOsculatingOrbit();
         scene.rotateMoon(getAnimTime());
 
         render();
@@ -40,6 +42,8 @@ export function createMoonActions({
         }
 
         scene.disposeMoonSOI();
+        scene.disposeMoonHighlight();
+        scene.disposeMoonOsculatingOrbit();
 
         if (scene.moonRenderer) {
             scene.moonRenderer.dispose();
@@ -52,6 +56,8 @@ export function createMoonActions({
         scene.moonNorthPoleSphere = null;
         scene.moonSouthPoleSphere = null;
         scene.moonContainer = null;
+        scene.moonHighlightSprite = null;
+        scene.moonOsculatingOrbitLine = null;
         scene.moonMap = null;
         scene.moonDisplacementMap = null;
     }

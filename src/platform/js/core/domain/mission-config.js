@@ -413,7 +413,10 @@ function normalizeEvents(rawEvents) {
             label: asTrimmedString(eventValue.label, eventKey),
             burnFlag: Boolean(eventValue.burnFlag),
             infoText: asTrimmedString(eventValue.infoText, ""),
+            hoverText: asTrimmedString(eventValue.hoverText, ""),
             body: asTrimmedString(eventValue.body, ""),
+            requiresEphemeris: Boolean(eventValue.requiresEphemeris),
+            availabilityStartTime: asTrimmedString(eventValue.availabilityStartTime, ""),
         };
     }
     return normalized;

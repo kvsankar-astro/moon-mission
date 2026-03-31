@@ -25,6 +25,8 @@ function buildEventSignature(eventInfos) {
                 Number.isFinite(timeMs) ? String(timeMs) : "NaN",
                 eventInfo?.label || "",
                 eventInfo?.burnFlag ? "1" : "0",
+                eventInfo?.clickable === false ? "0" : "1",
+                eventInfo?.hoverText || "",
             ].join("|");
         })
         .join(";");
@@ -33,6 +35,8 @@ function buildEventSignature(eventInfos) {
 function createTimelineDockController({
     onSeekTime,
     onMarkerSelect,
+    onMarkerHover,
+    onMarkerLeave,
     onCraftSelect,
 }) {
     const slider = document.getElementById("timeline-slider");
@@ -107,15 +111,36 @@ function createTimelineDockController({
         const clampedTime = clamp(eventTimeMs, rangeMin, rangeMax);
         const marker = document.createElement("button");
         marker.type = "button";
-        marker.className = eventInfo?.burnFlag
-            ? "timeline-dock__marker timeline-dock__marker--burn"
-            : "timeline-dock__marker";
+        const markerClasses = ["timeline-dock__marker"];
+        if (eventInfo?.burnFlag) {
+            markerClasses.push("timeline-dock__marker--burn");
+        }
+        if (eventInfo?.clickable === false) {
+            markerClasses.push("timeline-dock__marker--inactive");
+            marker.setAttribute("aria-disabled", "true");
+        }
+        marker.className = markerClasses.join(" ");
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
-        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeIST(clampedTime)}`;
+        const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "Event";
+        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeIST(clampedTime)}\n${hoverText}`;
         marker.setAttribute("aria-label", marker.title);
-        marker.addEventListener("click", () => {
-            onMarkerSelect?.(eventInfo, index);
+        marker.addEventListener("mouseenter", () => {
+            onMarkerHover?.(eventInfo, index);
         });
+        marker.addEventListener("focus", () => {
+            onMarkerHover?.(eventInfo, index);
+        });
+        marker.addEventListener("mouseleave", () => {
+            onMarkerLeave?.(eventInfo, index);
+        });
+        marker.addEventListener("blur", () => {
+            onMarkerLeave?.(eventInfo, index);
+        });
+        if (eventInfo?.clickable !== false) {
+            marker.addEventListener("click", () => {
+                onMarkerSelect?.(eventInfo, index);
+            });
+        }
         return marker;
     }
 

@@ -417,6 +417,7 @@ export function bindMainControls(handlers) {
     onClick("view-sky", setView);
     onClick("view-constellation-lines", setView);
     onClick("view-moonsoi", setView);
+    onClick("view-moon-highlight", setView);
     onClick("view-eclipticplane", setView);
     onClick("view-equatorialplane", setView);
     onClick("view-fps", setView);

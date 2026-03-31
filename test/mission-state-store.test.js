@@ -68,6 +68,7 @@ function createStateCells() {
         viewSky: createCell(true),
         viewConstellationLines: createCell(false),
         viewMoonSOI: createCell(false),
+        viewMoonHighlightRing: createCell(true),
         viewEclipticPlane: createCell(false),
         viewEquatorialPlane: createCell(false),
         viewFPS: createCell(false),
@@ -227,6 +228,7 @@ describe("createMissionStateStore", () => {
             viewSky: false,
             viewConstellationLines: false,
             viewMoonSOI: true,
+            viewMoonHighlightRing: false,
             viewEclipticPlane: true,
             viewEquatorialPlane: true,
             viewFPS: true,
@@ -243,6 +245,7 @@ describe("createMissionStateStore", () => {
         expect(state.viewSky.get()).toBe(false);
         expect(state.viewConstellationLines.get()).toBe(false);
         expect(state.viewMoonSOI.get()).toBe(true);
+        expect(state.viewMoonHighlightRing.get()).toBe(false);
         expect(state.viewEclipticPlane.get()).toBe(true);
         expect(state.viewEquatorialPlane.get()).toBe(true);
         expect(state.viewFPS.get()).toBe(true);
