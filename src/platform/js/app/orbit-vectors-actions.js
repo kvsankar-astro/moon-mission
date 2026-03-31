@@ -65,6 +65,27 @@ export function createOrbitVectorsActions({
         typeof getTrailTailBrightness2D === "function"
             ? getTrailTailBrightness2D
             : () => 1;
+    const ORBIT_BACKGROUND_CHUNK_SIZE = 80;
+
+    function chunkOrbitPoints(points, chunkSize = ORBIT_BACKGROUND_CHUNK_SIZE) {
+        const chunks = [];
+        if (!Array.isArray(points) || points.length < 2) {
+            return chunks;
+        }
+        const size = Math.max(8, chunkSize);
+        for (let start = 0; start < points.length - 1; start += size - 1) {
+            const end = Math.min(points.length - 1, start + size - 1);
+            const chunk = points.slice(start, end + 1);
+            if (chunk.length >= 2) {
+                chunks.push({
+                    points: chunk,
+                    startIndex: start,
+                    endIndex: end,
+                });
+            }
+        }
+        return chunks;
+    }
 
     function applyOrbitSvgStyle(
         orbitElement,
@@ -240,6 +261,8 @@ export function createOrbitVectorsActions({
         const scene = animationScenes[config];
         invalidateSceneOrbitOverlap(scene);
         scene.orbitSvgPointsByBodyId = {};
+        scene.orbitSvgBackgroundChunksByBodyId = {};
+        scene.orbitSvgBackgroundBaseOpacitiesByBodyId = {};
         scene.orbitTimesByBodyId = {};
 
         for (let i = 0; i < scene.planetsForLocations.length; ++i) {
@@ -315,6 +338,11 @@ export function createOrbitVectorsActions({
                     getStartTime(),
                     stepMs,
                 );
+                scene.orbitSvgBackgroundChunksByBodyId[planetKey] = chunkOrbitPoints(orbitPoints);
+                scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey] =
+                    scene.orbitSvgBackgroundChunksByBodyId[planetKey].map(() =>
+                        resolveTrackOpacity2D(readTrailTrackBrightness2D()),
+                    );
                 const pointsToAttr = (points) =>
                     points
                         .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
@@ -345,19 +373,24 @@ export function createOrbitVectorsActions({
                     )
                     .attr("visibility", "inherit");
 
-                svgContainer
-                    .select("#" + "orbit-" + planetKey)
-                    .append("polyline")
-                    .attr("class", "orbit-trail-background")
-                    .attr("id", `orbit-bg-${planetKey}`)
-                    .attr("points", pointsToAttr(orbitPoints))
-                    .attr("fill", "none")
-                    .attr("stroke", orbitColor)
-                    .attr("stroke-width", 1.0 / zoomFactor)
-                    .attr("stroke-opacity", resolveTrackOpacity2D(readTrailTrackBrightness2D()))
-                    .attr("stroke-linecap", "round")
-                    .attr("stroke-linejoin", "round")
-                    .attr("visibility", "hidden");
+                scene.orbitSvgBackgroundChunksByBodyId[planetKey].forEach((chunk, index) => {
+                    svgContainer
+                        .select("#" + "orbit-" + planetKey)
+                        .append("polyline")
+                        .attr("class", "orbit-trail-background")
+                        .attr("data-chunk-index", String(index))
+                        .attr("points", pointsToAttr(chunk.points))
+                        .attr("fill", "none")
+                        .attr("stroke", orbitColor)
+                        .attr("stroke-width", 1.0 / zoomFactor)
+                        .attr(
+                            "stroke-opacity",
+                            scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey][index],
+                        )
+                        .attr("stroke-linecap", "round")
+                        .attr("stroke-linejoin", "round")
+                        .attr("visibility", "hidden");
+                });
 
                 svgContainer
                     .select("#" + "orbit-" + planetKey)

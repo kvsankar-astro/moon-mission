@@ -5,6 +5,7 @@ import {
     shouldShowSceneCraft,
     syncSceneActiveCraft,
 } from "./scene-craft-helpers.js";
+import { refreshSceneOrbitStyleOpacities } from "./orbit-style-meta-actions.js";
 
 import { planOriginModeTransition } from "../core/domain/ui-transition-plan.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
@@ -13,6 +14,7 @@ import {
     resolveTailOpacity2D,
     resolveTailVisualStyle,
     resolveTrackOpacity2D,
+    resolveTrackOpacity3D,
 } from "./orbit-trail-style.js";
 
 export function createSettingsActions({
@@ -168,6 +170,10 @@ export function createSettingsActions({
                 visibleCraftIds: nextVisibleCraftIds,
             };
             if (scene) {
+                scene.trailContextOpacity2D = resolveTrackOpacity2D(view.trailTrackBrightness2D);
+                scene.trailContextOpacity3D = resolveTrackOpacity3D(view.trailTrackBrightness3D);
+                scene.trailTailProminence2D = view.trailTailBrightness2D;
+                scene.trailTailProminence3D = view.trailTailBrightness3D;
                 const visibleCraftIds = setSceneVisibleCraftIds(
                     scene,
                     globalConfig,
@@ -178,6 +184,7 @@ export function createSettingsActions({
                     : view.activeCraftId;
                 scene.viewAdditionalCrafts = visibleCraftIds.length > 1;
                 syncSceneActiveCraft(scene, globalConfig, nextActiveCraftId);
+                refreshSceneOrbitStyleOpacities(scene);
                 applySceneTailProminence(
                     scene,
                     view.trailTailBrightness2D,
