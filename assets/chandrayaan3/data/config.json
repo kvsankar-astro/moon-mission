@@ -82,7 +82,8 @@
     "step_size_in_seconds": 60,
     "planets": ["MOON", "CH3L", "CH3O"],
     "center": "earth_center",
-    "orbits_file": "geo-CY3"
+    "orbits_file": "geo-CY3",
+    "orbit_style_file": "geo-style.json"
   },
   "lunar": {
     "start_year": "2023",
@@ -98,7 +99,8 @@
     "step_size_in_seconds": 60,
     "planets": ["CH3L", "CH3O", "EARTH"],
     "center": "moon_center",
-    "orbits_file": "lunar-CY3"
+    "orbits_file": "lunar-CY3",
+    "orbit_style_file": "lunar-style.json"
   },
   "landing": {
     "enabled": true,

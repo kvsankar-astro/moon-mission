@@ -2,6 +2,7 @@ import {
     resolveManifestRuntimeArtifact,
     toLandingPhaseKey,
 } from "./ephemeris-manifest.js";
+import { resolvePrimaryMissionCraft } from "./mission-config.js";
 
 function asTrimmedString(value) {
     if (typeof value !== "string") return "";
@@ -121,24 +122,24 @@ function resolveOrbitMetaAssetUrl({
     phaseKey,
     phaseConfig,
 }) {
-    const manifestMetaUrl = resolveManifestPhaseArtifactUrl({
-        dataPath,
-        manifest,
-        phaseKey,
-        artifactKey: "meta",
-    });
-    if (manifestMetaUrl) return manifestMetaUrl;
+    const explicitStyleFile =
+        asTrimmedString(phaseConfig?.orbit_style_file) ||
+        asTrimmedString(phaseConfig?.orbitStyleFile);
+    if (explicitStyleFile) {
+        return resolveDataPathUrl(dataPath, explicitStyleFile);
+    }
 
-    const legacyBase = asTrimmedString(phaseConfig?.orbits_file);
-    if (!legacyBase) return null;
-    return resolveDataPathUrl(dataPath, `${legacyBase}-meta.json`);
+    return null;
 }
 
 function resolveLandingLegacyBase(configData) {
     const overrideBase = asTrimmedString(configData?.landing?.orbits_file);
     if (overrideBase) return overrideBase;
 
-    const spacecraftMnemonic = asTrimmedString(configData?.spacecraft_mnemonic) || "SC";
+    const spacecraftMnemonic =
+        asTrimmedString(resolvePrimaryMissionCraft(configData)?.mnemonic) ||
+        asTrimmedString(configData?.spacecraft_mnemonic) ||
+        "SC";
     return `landing-${spacecraftMnemonic}`;
 }
 
