@@ -9,6 +9,7 @@ const VIEW_FLAG_KEYS = [
     "viewConstellationLines",
     "viewMoonSOI",
     "viewMoonHighlightRing",
+    "viewMoonOsculatingOrbit",
     "viewEclipticPlane",
     "viewEquatorialPlane",
     "viewFPS",
@@ -26,6 +27,7 @@ function buildDefaultViewFlags() {
         viewConstellationLines: false,
         viewMoonSOI: false,
         viewMoonHighlightRing: true,
+        viewMoonOsculatingOrbit: false,
         viewEclipticPlane: false,
         viewEquatorialPlane: false,
         viewFPS: true,
@@ -135,6 +137,10 @@ function createRuntimeViewState({
         getViewMoonHighlightRing: () => viewFlags.viewMoonHighlightRing,
         setViewMoonHighlightRing: (value) => {
             viewFlags.viewMoonHighlightRing = Boolean(value);
+        },
+        getViewMoonOsculatingOrbit: () => viewFlags.viewMoonOsculatingOrbit,
+        setViewMoonOsculatingOrbit: (value) => {
+            viewFlags.viewMoonOsculatingOrbit = Boolean(value);
         },
         getViewEclipticPlane: () => viewFlags.viewEclipticPlane,
         setViewEclipticPlane: (value) => {

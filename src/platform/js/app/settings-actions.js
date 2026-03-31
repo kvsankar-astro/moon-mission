@@ -245,6 +245,10 @@ export function createSettingsActions({
                     if (scene.sceneHelpers?.setBodyHighlightVisible) {
                         scene.sceneHelpers.setBodyHighlightVisible(shouldShowMoonHighlight);
                     }
+                    if (scene.moonOsculatingOrbitLine) {
+                        scene.moonOsculatingOrbitLine.visible =
+                            cfg === "geo" && view.viewOrbit && view.viewMoonOsculatingOrbit;
+                    }
                 }
 
                 scene.earthAxis.visible = view.viewPolarAxes;

@@ -46,7 +46,8 @@
     "viewDefaults": {
       "viewXYZAxes": false,
       "viewPoles": false,
-      "viewPolarAxes": false
+      "viewPolarAxes": false,
+      "viewMoonOsculatingOrbit": true
     },
     "cameraDefaults": {
       "geo": {

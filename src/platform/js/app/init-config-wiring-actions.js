@@ -41,6 +41,7 @@ function createInitConfigWiringActions(deps) {
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         loadMissionConfig,
+        isTestMode,
         getGlobalConfig,
         setGlobalConfig,
         setViewFlags,
@@ -130,6 +131,7 @@ function createInitConfigWiringActions(deps) {
 
     const initConfigOrchestrationActions = createInitConfigOrchestrationActions({
         loadMissionConfig,
+        isTestMode,
         getGlobalConfig,
         setGlobalConfig,
         setViewFlags,

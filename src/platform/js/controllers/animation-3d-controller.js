@@ -109,6 +109,12 @@ export class Animation3DController {
             if (bodyId === this.scene.secondaryBody) {
                 // Secondary body (Moon in geo, Earth in lunar)
                 this.updateSecondaryBodyPosition(screenPos);
+                this.scene.updateSecondaryBodyVisualAids?.(
+                    bodyId,
+                    bodyState,
+                    this.pixelsPerAU,
+                    stateTime,
+                );
             } else if (bodyId === craftId) {
                 // Spacecraft
                 this.updateSpacecraftPosition(bodyState, screenPos, bodies, stateTime, landingFreezeTime);

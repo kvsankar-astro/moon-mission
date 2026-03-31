@@ -286,9 +286,14 @@ const {
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
 if (isTestMode) {
     initialMissionViewState.viewMoonHighlightRing = false;
+    initialMissionViewState.viewMoonOsculatingOrbit = false;
     const moonHighlightToggle = document.getElementById("view-moon-highlight");
     if (moonHighlightToggle) {
         moonHighlightToggle.checked = false;
+    }
+    const moonOsculatingOrbitToggle = document.getElementById("view-moon-osculating-orbit");
+    if (moonOsculatingOrbitToggle) {
+        moonOsculatingOrbitToggle.checked = false;
     }
 }
 runtimeViewState.setConfig(initialMissionViewState.config);
@@ -303,6 +308,7 @@ runtimeViewState.setViewFlags({
     viewConstellationLines: initialMissionViewState.viewConstellationLines,
     viewMoonSOI: initialMissionViewState.viewMoonSOI,
     viewMoonHighlightRing: initialMissionViewState.viewMoonHighlightRing,
+    viewMoonOsculatingOrbit: initialMissionViewState.viewMoonOsculatingOrbit,
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
     viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
     viewFPS: initialMissionViewState.viewFPS,
@@ -588,6 +594,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
     getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
     getViewMoonHighlightRing: () => runtimeViewState.getViewMoonHighlightRing(),
+    getViewMoonOsculatingOrbit: () => runtimeViewState.getViewMoonOsculatingOrbit(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
@@ -677,6 +684,10 @@ const missionStateCells = {
     viewMoonHighlightRing: bindStateCell(
         () => runtimeViewState.getViewMoonHighlightRing(),
         (value) => { runtimeViewState.setViewMoonHighlightRing(value); },
+    ),
+    viewMoonOsculatingOrbit: bindStateCell(
+        () => runtimeViewState.getViewMoonOsculatingOrbit(),
+        (value) => { runtimeViewState.setViewMoonOsculatingOrbit(value); },
     ),
     viewEclipticPlane: bindStateCell(
         () => runtimeViewState.getViewEclipticPlane(),

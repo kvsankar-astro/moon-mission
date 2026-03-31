@@ -82,4 +82,30 @@ describe("createInitConfigOrchestrationActions", () => {
         expect(deps.setViewFlags).not.toHaveBeenCalled();
         expect(deps.applyViewSettings).not.toHaveBeenCalled();
     });
+
+    it("forces moon visual aids off in test mode", async () => {
+        const deps = buildDeps({
+            isTestMode: true,
+            loadMissionConfig: vi.fn(async () => ({
+                ui: {
+                    viewDefaults: {
+                        viewMoonHighlightRing: true,
+                        viewMoonOsculatingOrbit: true,
+                    },
+                },
+            })),
+        });
+        const actions = createInitConfigOrchestrationActions(deps);
+
+        await actions.ensureGlobalConfigLoaded();
+
+        expect(deps.setViewFlags).toHaveBeenCalledWith({
+            viewMoonHighlightRing: false,
+            viewMoonOsculatingOrbit: false,
+        });
+        expect(deps.applyViewSettings).toHaveBeenCalledWith({
+            viewMoonHighlightRing: false,
+            viewMoonOsculatingOrbit: false,
+        });
+    });
 });

@@ -37,12 +37,14 @@ describe("runtime-view-state", () => {
         expect(state.getViewOrbit()).toBe(true);
         expect(state.getViewMoonSOI()).toBe(false);
         expect(state.getViewMoonHighlightRing()).toBe(true);
+        expect(state.getViewMoonOsculatingOrbit()).toBe(false);
         expect(state.getViewConstellationLines()).toBe(false);
 
         state.setViewFlags({
             viewOrbit: false,
             viewMoonSOI: true,
             viewMoonHighlightRing: false,
+            viewMoonOsculatingOrbit: true,
             viewXYZAxes: false,
             viewConstellationLines: false,
         });
@@ -50,6 +52,7 @@ describe("runtime-view-state", () => {
         expect(state.getViewOrbit()).toBe(false);
         expect(state.getViewMoonSOI()).toBe(true);
         expect(state.getViewMoonHighlightRing()).toBe(false);
+        expect(state.getViewMoonOsculatingOrbit()).toBe(true);
         expect(state.getViewXYZAxes()).toBe(false);
         expect(state.getViewConstellationLines()).toBe(false);
 

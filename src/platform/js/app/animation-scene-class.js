@@ -54,6 +54,7 @@ function createAnimationSceneClass(deps) {
             this.moonAxisRotationAngle = 0;
             this.bodyHighlightSprite = null;
             this.moonHighlightSprite = null;
+            this.moonOsculatingOrbitLine = null;
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
             this.primaryCraftId = "SC";
@@ -191,7 +192,21 @@ function createAnimationSceneClass(deps) {
                 (this.name === "geo" || this.name === "lunar") && viewMoonHighlightRing,
             );
             this.bodyHighlightSprite = this.sceneHelpers.bodyHighlightSprite;
-            this.moonHighlightSprite = this.bodyHighlightSprite;
+            this.moonHighlightSprite = this.sceneHelpers.moonHighlightSprite;
+        }
+
+        addMoonOsculatingOrbit() {
+            const { globalConfig, viewMoonOsculatingOrbit, frameMode } = getRuntimeState();
+            if (!globalConfig || !globalConfig.is_lunar || this.name !== "geo") {
+                return;
+            }
+
+            if (!this.sceneHelpers) {
+                this.sceneHelpers = new SceneHelpers(this.motherContainer);
+            }
+
+            this.sceneHelpers.createMoonOsculatingOrbit(viewMoonOsculatingOrbit && frameMode !== "relative");
+            this.moonOsculatingOrbitLine = this.sceneHelpers.moonOsculatingOrbitLine;
         }
 
         disposeMoonSOI() {
@@ -215,6 +230,44 @@ function createAnimationSceneClass(deps) {
             }
             this.bodyHighlightSprite = null;
             this.moonHighlightSprite = null;
+        }
+
+        disposeMoonOsculatingOrbit() {
+            const { globalConfig } = getRuntimeState();
+            if (!globalConfig || !globalConfig.is_lunar) {
+                return;
+            }
+            if (this.sceneHelpers) {
+                this.sceneHelpers.disposeMoonOsculatingOrbit();
+            }
+            this.moonOsculatingOrbitLine = null;
+        }
+
+        updateSecondaryBodyVisualAids(bodyId, bodyState, pixelsPerAU, timeMs) {
+            const runtimeState = getRuntimeState();
+            if (
+                !runtimeState.globalConfig?.is_lunar ||
+                !bodyState?.available ||
+                !this.sceneHelpers
+            ) {
+                return;
+            }
+
+            const showMoonOrbit =
+                this.name === "geo" &&
+                bodyId === "MOON" &&
+                runtimeState.viewOrbit &&
+                runtimeState.viewMoonOsculatingOrbit &&
+                runtimeState.frameMode !== "relative";
+            if (bodyId === "MOON" && this.moonOsculatingOrbitLine) {
+                this.sceneHelpers.updateMoonOsculatingOrbit({
+                    position: bodyState.position,
+                    velocity: bodyState.velocity,
+                    pixelsPerAU,
+                    timeMs,
+                    visible: showMoonOrbit,
+                });
+            }
         }
 
         refreshSecondaryBodyHighlight() {

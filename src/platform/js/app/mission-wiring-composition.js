@@ -178,6 +178,7 @@ function createMissionWiringComposition(ports) {
         handleModeSwitchToGeo: ctx.handleModeSwitchToGeo,
         handleModeSwitchToLunar: ctx.handleModeSwitchToLunar,
         loadMissionConfig: ctx.loadMissionConfig,
+        isTestMode: ctx.isTestMode,
         getGlobalConfig: ctx.getGlobalConfig,
         setGlobalConfig: ctx.setGlobalConfig,
         setEventInfos: ctx.setEventInfos,

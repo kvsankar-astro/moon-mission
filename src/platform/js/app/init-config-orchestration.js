@@ -5,6 +5,7 @@ function createInitConfigOrchestrationActions(deps) {
         setGlobalConfig,
         setViewFlags,
         applyViewSettings,
+        isTestMode,
         setEventInfos,
         getEphemerisSource,
         setEphemerisSource,
@@ -50,8 +51,15 @@ function createInitConfigOrchestrationActions(deps) {
         if (!viewDefaults || typeof viewDefaults !== "object") {
             return;
         }
-        setViewFlags?.(viewDefaults);
-        applyViewSettings?.(viewDefaults);
+        const effectiveViewDefaults = {
+            ...viewDefaults,
+        };
+        if (isTestMode) {
+            effectiveViewDefaults.viewMoonHighlightRing = false;
+            effectiveViewDefaults.viewMoonOsculatingOrbit = false;
+        }
+        setViewFlags?.(effectiveViewDefaults);
+        applyViewSettings?.(effectiveViewDefaults);
     }
 
     async function ensureGlobalConfigLoaded() {

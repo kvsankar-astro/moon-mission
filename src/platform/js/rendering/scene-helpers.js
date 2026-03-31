@@ -10,7 +10,10 @@
 
 import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
+import { sampleOsculatingOrbitPoints } from '../core/domain/orbital-elements.js';
 
+const MOON_ORBIT_SAMPLE_COUNT = 192;
+const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
 const MOON_HIGHLIGHT_SHOW_THRESHOLD_PX = 260;
 const MOON_HIGHLIGHT_MIN_DIAMETER_PX = 72;
 const MOON_HIGHLIGHT_MAX_DIAMETER_PX = 164;
@@ -45,6 +48,13 @@ export class SceneHelpers {
         this.bodyHighlightOverlay = null;
         this.bodyHighlightBodyRadius = 0;
         this.bodyHighlightEnabled = false;
+        this.moonHighlightSprite = null;
+        this.moonHighlightTexture = null;
+        this.moonHighlightMaterial = null;
+        this.moonHighlightOverlay = null;
+        this.moonHighlightMoonRadius = 0;
+        this.moonOsculatingOrbitLine = null;
+        this.moonOsculatingOrbitLastUpdateTimeMs = null;
         this._bodyHighlightWorldPosition = new THREE.Vector3();
         this._cameraWorldPosition = new THREE.Vector3();
         this._projectedBodyHighlightPosition = new THREE.Vector3();
@@ -217,6 +227,16 @@ export class SceneHelpers {
             overlayHost.appendChild(overlay);
             this.bodyHighlightOverlay = overlay;
         }
+
+        this.moonHighlightSprite = this.bodyHighlightSprite;
+        this.moonHighlightTexture = this.bodyHighlightTexture;
+        this.moonHighlightMaterial = this.bodyHighlightMaterial;
+        this.moonHighlightOverlay = this.bodyHighlightOverlay;
+        this.moonHighlightMoonRadius = this.bodyHighlightBodyRadius;
+    }
+
+    createMoonHighlight(moonContainer, moonRadius, visible = false) {
+        this.createBodyHighlight(moonContainer, moonRadius, visible);
     }
 
     updateBodyHighlight({
@@ -311,6 +331,82 @@ export class SceneHelpers {
         }
     }
 
+    updateMoonHighlight(options) {
+        this.updateBodyHighlight(options);
+    }
+
+    createMoonOsculatingOrbit(visible = false) {
+        const geometry = new THREE.BufferGeometry();
+        const attribute = new THREE.Float32BufferAttribute(
+            new Float32Array(MOON_ORBIT_SAMPLE_COUNT * 3),
+            3,
+        );
+        geometry.setAttribute("position", attribute);
+        geometry.setDrawRange(0, MOON_ORBIT_SAMPLE_COUNT);
+
+        const material = new THREE.LineBasicMaterial({
+            color: COL.MOON_OSCULATING_ORBIT,
+            transparent: true,
+            opacity: 0.42,
+            depthWrite: false,
+        });
+        this.moonOsculatingOrbitLine = new THREE.LineLoop(geometry, material);
+        this.moonOsculatingOrbitLine.visible = visible;
+        this.parentContainer.add(this.moonOsculatingOrbitLine);
+    }
+
+    updateMoonOsculatingOrbit({
+        position,
+        velocity,
+        pixelsPerAU,
+        timeMs,
+        visible = false,
+    }) {
+        if (!this.moonOsculatingOrbitLine) {
+            return;
+        }
+
+        const shouldRefreshOrbit =
+            !Number.isFinite(this.moonOsculatingOrbitLastUpdateTimeMs) ||
+            !Number.isFinite(timeMs) ||
+            Math.abs(timeMs - this.moonOsculatingOrbitLastUpdateTimeMs) >= MOON_ORBIT_REFRESH_MS;
+
+        if (!shouldRefreshOrbit) {
+            this.moonOsculatingOrbitLine.visible = Boolean(visible);
+            return;
+        }
+
+        const sampledOrbit = sampleOsculatingOrbitPoints({
+            position,
+            velocity: {
+                x: velocity.vx,
+                y: velocity.vy,
+                z: velocity.vz,
+            },
+            gravitationalParameter: PC.EARTH_GM_KM3_S2,
+            sampleCount: MOON_ORBIT_SAMPLE_COUNT,
+        });
+        if (!sampledOrbit?.points?.length) {
+            this.moonOsculatingOrbitLine.visible = false;
+            return;
+        }
+
+        const scale = pixelsPerAU / PC.KM_PER_AU;
+        const positions = this.moonOsculatingOrbitLine.geometry.getAttribute("position");
+        let offset = 0;
+        for (const point of sampledOrbit.points) {
+            positions.array[offset++] = point.x * scale;
+            positions.array[offset++] = point.y * scale;
+            positions.array[offset++] = point.z * scale;
+        }
+        positions.needsUpdate = true;
+        this.moonOsculatingOrbitLine.geometry.computeBoundingSphere?.();
+        this.moonOsculatingOrbitLine.visible = Boolean(visible);
+        this.moonOsculatingOrbitLastUpdateTimeMs = Number.isFinite(timeMs)
+            ? timeMs
+            : this.moonOsculatingOrbitLastUpdateTimeMs;
+    }
+
     // ===== Visibility Controls =====
 
     setAxesVisible(visible) {
@@ -337,6 +433,14 @@ export class SceneHelpers {
         if (!visible && this.bodyHighlightOverlay) {
             this.bodyHighlightOverlay.style.display = "none";
         }
+    }
+
+    setMoonHighlightVisible(visible) {
+        this.setBodyHighlightVisible(visible);
+    }
+
+    setMoonOsculatingOrbitVisible(visible) {
+        if (this.moonOsculatingOrbitLine) this.moonOsculatingOrbitLine.visible = visible;
     }
 
     // ===== Disposal =====
@@ -403,6 +507,25 @@ export class SceneHelpers {
         this.bodyHighlightTarget = null;
         this.bodyHighlightBodyRadius = 0;
         this.bodyHighlightEnabled = false;
+        this.moonHighlightSprite = null;
+        this.moonHighlightMaterial = null;
+        this.moonHighlightTexture = null;
+        this.moonHighlightOverlay = null;
+        this.moonHighlightMoonRadius = 0;
+    }
+
+    disposeMoonHighlight() {
+        this.disposeBodyHighlight();
+    }
+
+    disposeMoonOsculatingOrbit() {
+        if (this.moonOsculatingOrbitLine) {
+            this.parentContainer.remove(this.moonOsculatingOrbitLine);
+            this.moonOsculatingOrbitLine.geometry?.dispose?.();
+            this.moonOsculatingOrbitLine.material?.dispose?.();
+            this.moonOsculatingOrbitLine = null;
+            this.moonOsculatingOrbitLastUpdateTimeMs = null;
+        }
     }
 
     /**
@@ -413,6 +536,7 @@ export class SceneHelpers {
         this.disposeEclipticPlane();
         this.disposeEquatorialPlane();
         this.disposeMoonSOI();
-        this.disposeBodyHighlight();
+        this.disposeMoonHighlight();
+        this.disposeMoonOsculatingOrbit();
     }
 }
