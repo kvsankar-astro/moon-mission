@@ -21,7 +21,8 @@
           "chandrayaan3"
         ],
         "artemis": [
-          "artemis1"
+          "artemis1",
+          "artemis2"
         ],
         "apollo": [
           "apollo8-sivb",
@@ -127,6 +128,28 @@
       "startYear": 2022,
       "endYear": 2022,
       "order": 60,
+      "dimensions": {
+        "missionType": "Crewed Capsule",
+        "craftClass": "Capsule",
+        "crewProfile": "Human Program"
+      }
+    },
+    {
+      "key": "artemis2",
+      "folder": "artemis2",
+      "queryValue": "artemis2",
+      "aliases": [
+        "artemis2",
+        "art2"
+      ],
+      "title": "Artemis 2",
+      "subtitle": "United States - 2026",
+      "description": "First crewed Artemis Orion lunar flyby mission.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2026,
+      "endYear": 2026,
+      "order": 65,
       "dimensions": {
         "missionType": "Crewed Capsule",
         "craftClass": "Capsule",

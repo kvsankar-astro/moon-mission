@@ -17,6 +17,7 @@
         "apollo11-sivb": "apollo-11-s-ivb",
         "apollo12-sivb": "apollo-12-s-ivb",
         "artemis1": "artemis-1-orion",
+        "artemis2": "artemis-ii-orion",
         "capstone": "capstone",
         "chandrayaan1": "chandrayaan-1",
         "chandrayaan2": "chandrayaan-2-orbiter",
@@ -42,6 +43,15 @@
                 license: "CC BY-SA 4.0",
                 sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
                 caption: "Orion Multi-Purpose Crew Vehicle at Kennedy Space Center."
+            }
+        ],
+        "artemis2": [
+            {
+                url: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+                attribution: "Wikimedia Commons contributors",
+                license: "CC BY-SA 4.0",
+                sourceUrl: "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+                caption: "Orion Multi-Purpose Crew Vehicle, the spacecraft family used for Artemis II."
             }
         ]
     };

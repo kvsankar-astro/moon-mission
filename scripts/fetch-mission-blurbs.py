@@ -64,6 +64,7 @@ KNOWN_LUNAR_MISSIONS = [
     ("LADEE", -12, "Orbiter", "NASA", 2013),
     ("CAPSTONE", -1176, "NRHO Pathfinder", "NASA", 2022),
     ("Artemis 1 Orion", -1023, "Crewed Capsule", "NASA", 2022),
+    ("Artemis II Orion", -1024, "Crewed Capsule", "NASA", 2026),
     # ("Lunar IceCube", -57, "CubeSat", "NASA", 2022),  # NOT IN HORIZONS - NAIF/SPICE only
     ("Lunar Flashlight", -164, "CubeSat", "NASA", 2022),
     ("Lunar Trailblazer", -242, "Orbiter", "NASA", 2024),

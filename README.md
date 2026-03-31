@@ -1,7 +1,7 @@
 
 ## Moon Mission Orbit Animations
 
-A multi-mission platform for 3D and 2D orbital animations of lunar missions. The current selector covers 26 missions and mission objects, including:
+A multi-mission platform for 3D and 2D orbital animations of lunar missions. The current selector covers 27 missions and mission objects, including:
 
 - **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
 - **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
@@ -9,6 +9,7 @@ A multi-mission platform for 3D and 2D orbital animations of lunar missions. The
 - **[Apollo 10 LM](http://sankara.net/mission.html?mission=apollo10-lm)** (1969) - Snoopy lunar module
 - **[Apollo 11 S-IVB](http://sankara.net/mission.html?mission=apollo11-sivb)** (1969) - Saturn V third stage
 - **[Artemis 1](http://sankara.net/mission.html?mission=artemis1)** (2022) - Orion lunar mission
+- **[Artemis 2](http://sankara.net/mission.html?mission=artemis2)** (2026) - Orion crewed lunar flyby
 - **[SLIM](http://sankara.net/mission.html?mission=slim)** (2024) - JAXA soft-landing mission
 - **[Danuri](http://sankara.net/mission.html?mission=kplo-danuri)** (2022) - Korea Pathfinder Lunar Orbiter
 
@@ -56,6 +57,7 @@ URL parameters:
 - `mission.html?mission=apollo10-lm` - Apollo 10 LM (Snoopy)
 - `mission.html?mission=apollo11-sivb` - Apollo 11 S-IVB
 - `mission.html?mission=artemis1` - Artemis 1
+- `mission.html?mission=artemis2` - Artemis 2
 
 ### Debugging with NPZ ephemeris
 

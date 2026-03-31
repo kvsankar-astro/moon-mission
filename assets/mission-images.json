@@ -203,6 +203,16 @@
       "kind": "orbit schematic"
     }
   ],
+  "artemis2": [
+    {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kennedy_Space_Center%2C_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Kennedy_Space_Center,_Orion_Multi-Purpose_Crew_Vehicle.JPG",
+      "attribution": "Wikimedia Commons contributors",
+      "license": "CC BY-SA 4.0",
+      "caption": "Orion Multi-Purpose Crew Vehicle, the spacecraft family used for Artemis II.",
+      "kind": "spacecraft"
+    }
+  ],
   "apollo8-sivb": [
     {
       "url": "https://commons.wikimedia.org/wiki/Special:FilePath/Apollo_8_on_board_of_USS_Yorktown_(51170834504).jpg",
