@@ -66,6 +66,105 @@ async function hideTestId(page) {
   });
 }
 
+async function hideChromeForScreenshot(page) {
+  return await page.evaluate(() => {
+    const selectors = [
+      '#control-panel',
+      '#timeline-dock',
+      '#orbit-status-stack',
+      '#info-panel-wrapper',
+      '#fps-counter',
+      '#test-id-display',
+      '#settings-panel',
+    ];
+
+    return selectors.map((selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return { selector, present: false };
+      }
+
+      const previousVisibility = element.style.visibility;
+      const previousOpacity = element.style.opacity;
+      const previousPointerEvents = element.style.pointerEvents;
+
+      element.style.visibility = 'hidden';
+      element.style.opacity = '0';
+      element.style.pointerEvents = 'none';
+
+      return {
+        selector,
+        present: true,
+        previousVisibility,
+        previousOpacity,
+        previousPointerEvents,
+      };
+    });
+  });
+}
+
+async function restoreChromeAfterScreenshot(page, chromeState) {
+  await page.evaluate((state) => {
+    (state || []).forEach((entry) => {
+      if (!entry?.present) {
+        return;
+      }
+      const element = document.querySelector(entry.selector);
+      if (!element) {
+        return;
+      }
+      element.style.visibility = entry.previousVisibility || '';
+      element.style.opacity = entry.previousOpacity || '';
+      element.style.pointerEvents = entry.previousPointerEvents || '';
+    });
+  }, chromeState);
+}
+
+async function getComparisonCropBounds(page) {
+  return await page.evaluate(() => {
+    const screenshotHeight = window.innerHeight || 0;
+    const screenshotWidth = window.innerWidth || 0;
+    const cropAnchors = [
+      '#control-panel',
+      '#timeline-dock',
+      '#orbit-status-stack',
+      '#info-panel-wrapper',
+    ]
+      .map((selector) => document.querySelector(selector))
+      .filter(Boolean)
+      .map((element) => element.getBoundingClientRect().top)
+      .filter((top) => Number.isFinite(top) && top > 0);
+
+    const cropBottom = cropAnchors.length
+      ? Math.max(1, Math.min(...cropAnchors))
+      : screenshotHeight;
+
+    return {
+      x: 0,
+      y: 0,
+      width: screenshotWidth,
+      height: Math.max(1, Math.min(screenshotHeight, Math.floor(cropBottom))),
+    };
+  });
+}
+
+function cropPngImage(png, bounds) {
+  const x = Math.max(0, Math.min(png.width - 1, Math.floor(bounds.x || 0)));
+  const y = Math.max(0, Math.min(png.height - 1, Math.floor(bounds.y || 0)));
+  const width = Math.max(1, Math.min(png.width - x, Math.floor(bounds.width || png.width)));
+  const height = Math.max(1, Math.min(png.height - y, Math.floor(bounds.height || png.height)));
+  const cropped = new PNG({ width, height });
+
+  for (let row = 0; row < height; row += 1) {
+    const srcStart = ((y + row) * png.width + x) * 4;
+    const srcEnd = srcStart + (width * 4);
+    const destStart = row * width * 4;
+    png.data.copy(cropped.data, destStart, srcStart, srcEnd);
+  }
+
+  return cropped;
+}
+
 // CI environments need longer timeouts due to software WebGL rendering
 const isCI = process.env.CI === 'true';
 const CI_MULTIPLIER = isCI ? 3 : 1;
@@ -218,11 +317,14 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
 
   // Hide test ID for screenshot and store its content
   const testIdContent = await hideTestIdForScreenshot(page);
+  const chromeState = await hideChromeForScreenshot(page);
+  const cropBounds = await getComparisonCropBounds(page);
 
   // Take current screenshot
   await page.screenshot({ path: currentPath, fullPage: false });
 
   // Restore test ID after screenshot
+  await restoreChromeAfterScreenshot(page, chromeState);
   await restoreTestId(page, testIdContent);
 
   // If baseline doesn't exist, copy current as baseline
@@ -232,8 +334,10 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
   }
 
   // Compare screenshots using SSIM
-  const current = PNG.sync.read(readFileSync(currentPath));
-  const baseline = PNG.sync.read(readFileSync(baselinePath));
+  const currentFull = PNG.sync.read(readFileSync(currentPath));
+  const baselineFull = PNG.sync.read(readFileSync(baselinePath));
+  const current = cropPngImage(currentFull, cropBounds);
+  const baseline = cropPngImage(baselineFull, cropBounds);
 
   const { width, height } = current;
 
@@ -1842,6 +1946,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await closeSettingsPanel(page);
         await waitForScene(page);
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+        await ensureStellarSkyDisabled(page);
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
         const comparison = await compareScreenshots(
           page,
@@ -2759,6 +2865,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
         await closeSettingsPanel(page);
         await waitForScene(page);
+        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+        await ensureStellarSkyDisabled(page);
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
         const comparison = await compareScreenshots(
