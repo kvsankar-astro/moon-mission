@@ -261,29 +261,23 @@ def fit_quaternion_segments_from_reference(
 
 def load_vectors_from_npz(npz_path: Path) -> tuple[np.ndarray, dict[str, np.ndarray], dict[str, np.ndarray]]:
     """
-    Load SC/MOON/SUN vectors from NPZ.
+    Load all *_vectors series from NPZ.
 
     Returns:
       jd
-      pos_by_body: {SC|MOON|SUN -> (N,3)}
-      vel_by_body: {SC|MOON|SUN -> (N,3)}
+      pos_by_body: {BODY_ID -> (N,3)}
+      vel_by_body: {BODY_ID -> (N,3)}
     """
     data = np.load(npz_path)
 
-    for key in ("SC_vectors", "MOON_vectors", "SUN_vectors"):
-        if key not in data:
-            raise ValueError(
-                f"NPZ missing {key}. Relative precompute requires SC/MOON/SUN in {npz_path}",
-            )
+    vector_keys = sorted(key for key in data.files if key.endswith("_vectors"))
+    if not vector_keys:
+        raise ValueError(f"NPZ missing *_vectors series: {npz_path}")
+    if "MOON_vectors" not in vector_keys:
+        raise ValueError(f"NPZ missing MOON_vectors. Relative precompute requires Moon state in {npz_path}")
 
-    sc = data["SC_vectors"]
-    moon = data["MOON_vectors"]
-    sun = data["SUN_vectors"]
-
-    if len(sc) != len(moon) or len(sc) != len(sun):
-        raise ValueError("Vector length mismatch among SC/MOON/SUN")
-
-    jd = sc["jdct"].astype(float)
+    base = data[vector_keys[0]]
+    jd = base["jdct"].astype(float)
 
     def pos(arr: np.ndarray) -> np.ndarray:
         return np.stack([arr["x"], arr["y"], arr["z"]], axis=1).astype(float)
@@ -291,16 +285,16 @@ def load_vectors_from_npz(npz_path: Path) -> tuple[np.ndarray, dict[str, np.ndar
     def vel(arr: np.ndarray) -> np.ndarray:
         return np.stack([arr["vx"], arr["vy"], arr["vz"]], axis=1).astype(float)
 
-    pos_by_body = {
-        "SC": pos(sc),
-        "MOON": pos(moon),
-        "SUN": pos(sun),
-    }
-    vel_by_body = {
-        "SC": vel(sc),
-        "MOON": vel(moon),
-        "SUN": vel(sun),
-    }
+    pos_by_body = {}
+    vel_by_body = {}
+    for key in vector_keys:
+        arr = data[key]
+        if len(arr) != len(base):
+            raise ValueError(f"Vector length mismatch for {key} in {npz_path}")
+        body_id = key[: -len("_vectors")].upper()
+        pos_by_body[body_id] = pos(arr)
+        vel_by_body[body_id] = vel(arr)
+
     return jd, pos_by_body, vel_by_body
 
 
@@ -351,30 +345,44 @@ def _sample_series_positions(series: dict, jd: np.ndarray) -> np.ndarray:
 
 def load_vectors_from_cheb(cheb_path: Path, step_seconds: float) -> tuple[np.ndarray, dict[str, np.ndarray], dict[str, np.ndarray]]:
     """
-    Load SC/MOON/SUN vectors by sampling a body-keyed Chebyshev file.
+    Load all body vectors by sampling a body-keyed Chebyshev file.
 
     Returns:
       jd
-      pos_by_body: {SC|MOON|SUN -> (N,3)}
-      vel_by_body: {SC|MOON|SUN -> (N,3)}
+      pos_by_body: {BODY_ID -> (N,3)}
+      vel_by_body: {BODY_ID -> (N,3)}
     """
     if step_seconds <= 0:
         raise ValueError(f"step_seconds must be > 0, got {step_seconds}")
 
     payload = json.loads(cheb_path.read_text(encoding="utf-8"))
-    for body_id in ("SC", "MOON", "SUN"):
-        if body_id not in payload:
-            raise ValueError(f"Chebyshev file missing '{body_id}' series: {cheb_path}")
+    body_ids = [
+        body_id
+        for body_id in payload.get("metadata", {}).get("bodies", [])
+        if body_id != "FRAME_ROT" and isinstance(payload.get(body_id), dict)
+    ]
+    if not body_ids:
+        body_ids = [
+            key for key, value in payload.items()
+            if isinstance(value, dict) and isinstance(value.get("segments"), list)
+        ]
+    if "MOON" not in body_ids:
+        raise ValueError(f"Chebyshev file missing 'MOON' series: {cheb_path}")
+    if "SC" not in body_ids and not any(body_id not in {"MOON", "SUN"} for body_id in body_ids):
+        raise ValueError(f"Chebyshev file missing a spacecraft series: {cheb_path}")
 
     step_jd = float(step_seconds) / SECONDS_PER_DAY
     eps = 1e-12
 
-    sc_segments = payload["SC"].get("segments", [])
-    if not isinstance(sc_segments, list) or len(sc_segments) == 0:
-        raise ValueError("Chebyshev source SC series has no segments")
+    reference_body_id = "SC" if "SC" in body_ids else next(
+        body_id for body_id in body_ids if body_id not in {"MOON", "SUN"}
+    )
+    reference_segments = payload[reference_body_id].get("segments", [])
+    if not isinstance(reference_segments, list) or len(reference_segments) == 0:
+        raise ValueError(f"Chebyshev source {reference_body_id} series has no segments")
 
     jd_parts: list[np.ndarray] = []
-    for seg in sc_segments:
+    for seg in reference_segments:
         t_start = float(seg["t_start"])
         t_end = float(seg["t_end"])
         count = int(np.floor((t_end - t_start) / step_jd)) + 1
@@ -388,14 +396,14 @@ def load_vectors_from_cheb(cheb_path: Path, step_seconds: float) -> tuple[np.nda
             jd_parts.append(part)
 
     if len(jd_parts) == 0:
-        t_start = float(sc_segments[0]["t_start"])
+        t_start = float(reference_segments[0]["t_start"])
         jd = np.array([t_start], dtype=float)
     else:
         jd = np.concatenate(jd_parts)
 
     pos_by_body = {}
     vel_by_body = {}
-    for body_id in ("SC", "MOON", "SUN"):
+    for body_id in body_ids:
         pos = _sample_series_positions(payload[body_id], jd)
         pos_by_body[body_id] = pos
         vel_by_body[body_id] = compute_velocity_from_positions(jd, pos)
@@ -496,7 +504,12 @@ def generate_relative_for_mission(
     out_dir = ASSETS_DIR / mission / "data"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    out_base = f"relative-{mnemonic}"
+    configured_relative_base = (
+        cfg.get("relative", {}).get("orbits_file")
+        if isinstance(cfg.get("relative"), dict)
+        else None
+    )
+    out_base = str(configured_relative_base or f"relative-{mnemonic}")
     cheb_path = out_dir / f"{out_base}-cheb.json"
     if cheb_path.exists() and not force:
         print(f"Skipping {mission}: {cheb_path.name} already exists (use --force to overwrite)")
@@ -527,23 +540,34 @@ def generate_relative_for_mission(
         for body_id, pos in pos_by_body.items()
     }
 
+    body_ids = list(pos_by_body.keys())
+    relative_body_ids = [body_id for body_id in body_ids if body_id != "EARTH"]
+    if "MOON" not in relative_body_ids:
+        raise ValueError(f"Relative mode source for {mission} is missing MOON vectors")
+
+    primary_body_id = "SC"
+    if primary_body_id not in relative_body_ids:
+        craft_body_ids = [body_id for body_id in relative_body_ids if body_id not in {"MOON", "SUN"}]
+        primary_body_id = craft_body_ids[0] if craft_body_ids else relative_body_ids[0]
+
     # Write intermediate NPZ to data-generated for inspection/debugging.
     generated_out = GENERATED_DIR_BASE / mission / f"{out_base}.npz"
     generated_out.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(
-        generated_out,
-        SC_vectors=to_structured_vectors(jd, rel_pos_by_body["SC"]),
-        MOON_vectors=to_structured_vectors(jd, rel_pos_by_body["MOON"]),
-        SUN_vectors=to_structured_vectors(jd, rel_pos_by_body["SUN"]),
-        FRAME_ROT=q_frame,
-    )
+    npz_payload = {
+        f"{body_id}_vectors": to_structured_vectors(jd, rel_pos_by_body[body_id])
+        for body_id in relative_body_ids
+    }
+    npz_payload["FRAME_ROT"] = q_frame
+    if "SC" not in npz_payload and primary_body_id in relative_body_ids:
+        npz_payload["SC_vectors"] = to_structured_vectors(jd, rel_pos_by_body[primary_body_id])
+    np.savez_compressed(generated_out, **npz_payload)
     print(f"Wrote {generated_out}")
 
     compressor = load_compressor_module()
 
     body_cheb = {}
     total_segments = 0
-    for body_id in ("SC", "MOON", "SUN"):
+    for body_id in relative_body_ids:
         body_series = build_series(jd, rel_pos_by_body[body_id])
         body_segments = compressor.compress_orbit_data_tolerance(
             body_series,
@@ -558,12 +582,27 @@ def generate_relative_for_mission(
         }
         total_segments += len(body_segments)
 
+    if "SC" not in body_cheb and primary_body_id in body_cheb:
+        body_cheb["SC"] = {
+            "time_range": body_cheb[primary_body_id]["time_range"],
+            "segments": body_cheb[primary_body_id]["segments"],
+        }
+        total_segments += len(body_cheb["SC"]["segments"])
+
     frame_segments = fit_quaternion_segments_from_reference(
         jd=jd,
         q_frame=q_frame,
         reference_segments=body_cheb["SC"]["segments"],
     )
     total_segments += len(frame_segments)
+
+    metadata_body_ids = []
+    for body_id in relative_body_ids:
+        if body_id not in metadata_body_ids:
+            metadata_body_ids.append(body_id)
+    if "SC" not in metadata_body_ids:
+        metadata_body_ids.insert(0, "SC")
+    metadata_body_ids.append("FRAME_ROT")
 
     output = {
         "format": "chebyshev-ephemeris",
@@ -573,7 +612,7 @@ def generate_relative_for_mission(
             "created": datetime.now(timezone.utc).isoformat(),
             "tolerance_km": float(tolerance_km),
             "segments_count": int(total_segments),
-            "bodies": ["SC", "MOON", "SUN", "FRAME_ROT"],
+            "bodies": metadata_body_ids,
             "coordinate_frame": "relative-earth-moon",
             "units": {"time": "julian_date", "position": "km"},
             "derived_from": source_label,
@@ -581,14 +620,16 @@ def generate_relative_for_mission(
             "frame_definition": "x=Earth->Moon, z=angular-momentum, y=z×x",
         },
         "time_range": {"start": float(jd[0]), "end": float(jd[-1])},
-        "SC": body_cheb["SC"],
-        "MOON": body_cheb["MOON"],
-        "SUN": body_cheb["SUN"],
         "FRAME_ROT": {
             "time_range": {"start": float(jd[0]), "end": float(jd[-1])},
             "segments": frame_segments,
         },
     }
+    for body_id in metadata_body_ids:
+        if body_id == "FRAME_ROT":
+            continue
+        if body_id in body_cheb:
+            output[body_id] = body_cheb[body_id]
 
     cheb_path.write_text(json.dumps(output, indent=2), encoding="utf-8")
     print(f"Wrote {cheb_path}")
