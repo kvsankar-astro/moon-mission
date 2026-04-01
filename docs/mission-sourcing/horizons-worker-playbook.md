@@ -54,6 +54,11 @@ Work should include, when applicable:
 - Before assuming a generated file belongs in this repo, verify with `git ls-files`.
 - Do not revert unrelated user or other-agent changes.
 - You are not alone in the codebase. Adjust to others' edits and do not overwrite their work.
+- Orbit sampling policy:
+  - Default `geo` and `lunar` sampling is `60` seconds.
+  - Dedicated landing slices may use `1` second sampling, but only for short terminal segments.
+  - Do not coarsen orbit sampling above `60` seconds to work around HORIZONS output limits.
+  - If `60` second sampling is too large for one fetch, preserve fidelity and split the window into smaller mission-appropriate slices instead.
 
 ## Existing Mission Mode
 
@@ -78,6 +83,8 @@ Use this when the mission already has an `assets/<mission>/` folder.
    - related `docs/horizons-blurbs/markdown/*.md` or metadata if present
 2. Confirm spacecraft IDs and HORIZONS object names.
 3. Confirm start/stop windows and whether the selected interesting window is still justified.
+   - Keep `geo`/`lunar` cadence at `60` seconds unless there is an explicitly documented exception approved by the main agent.
+   - Keep dedicated landing slices at `1` second resolution.
 4. Confirm event times and whether each event should be a burn, marker, or dynamic boundary.
    - If launch or another mission event occurs before `geo`/`lunar` data availability begins, keep the event in `config.json` anyway.
    - If a mission-significant event falls just after the last sampled orbit-data timestamp, keep it as well.
@@ -132,6 +139,7 @@ Use this when the mission is missing from `assets/`.
 3. Model the config on the closest existing mission:
    - single-craft orbiter: use `clementine`, `lunar-prospector`, `ladee`, `lro`, `slim`, or `capstone`
    - multi-craft mission: use `chandrayaan2`, `chandrayaan3`, or split missions like `lcross-*`
+   - keep `geo`/`lunar` `step_size_in_seconds` at `60`, and use `1` only for short landing slices
 4. Keep mission-local UI text minimal but coherent:
    - page title
    - header title

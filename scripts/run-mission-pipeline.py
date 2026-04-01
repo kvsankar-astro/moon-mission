@@ -144,39 +144,15 @@ def output_limit_hit(output: str) -> bool:
     return OUTPUT_LIMIT_RE.search(output) is not None
 
 
-def double_step_size(mission: str) -> bool:
-    config = load_config(mission)
-    changed = False
-    for origin in ("geo", "lunar"):
-        section = config.get(origin)
-        if not isinstance(section, dict):
-            continue
-        current = section.get("step_size_in_seconds")
-        if isinstance(current, int) and current > 0:
-            section["step_size_in_seconds"] = current * 2
-            changed = True
-    if changed:
-        save_config(mission, config)
-        cfg = load_config(mission)
-        print(
-            f"[{mission}] doubled step_size_in_seconds to geo={cfg['geo']['step_size_in_seconds']}, "
-            f"lunar={cfg['lunar']['step_size_in_seconds']}",
-        )
-    return changed
-
-
 def run_orbits_with_retry(mission: str, max_retries: int) -> None:
     for attempt in range(1, max_retries + 1):
         code, out = run_cmd([sys.executable, "scripts/orbits.py", "--mission", mission])
         if code == 0:
-            # HORIZONS can return a tiny payload that results in zero vectors while still
-            # exiting successfully. Treat explicit output-limit warnings as retryable.
-            if output_limit_hit(out) and double_step_size(mission):
-                print(
-                    f"[{mission}] retrying orbits after output-limit warning in successful run "
-                    f"(attempt {attempt}/{max_retries})",
+            if output_limit_hit(out):
+                raise RuntimeError(
+                    f"[{mission}] HORIZONS reported output-length limits at 60 s sampling. "
+                    "Keep 60 s fidelity and resolve by narrowing the time window or splitting phases.",
                 )
-                continue
             return
 
         earliest = parse_no_ephemeris_start(out)
@@ -184,9 +160,11 @@ def run_orbits_with_retry(mission: str, max_retries: int) -> None:
             print(f"[{mission}] retrying orbits after start-time adjustment (attempt {attempt}/{max_retries})")
             continue
 
-        if output_limit_hit(out) and double_step_size(mission):
-            print(f"[{mission}] retrying orbits after step-size adjustment (attempt {attempt}/{max_retries})")
-            continue
+        if output_limit_hit(out):
+            raise RuntimeError(
+                f"[{mission}] HORIZONS output exceeds limits at 60 s sampling. "
+                "Do not coarsen cadence automatically; narrow the requested window or split the data run.",
+            )
 
         # HORIZONS intermittently returns HTTP 503/timeout errors; treat as retryable.
         if "503 Server Error" in out or "HTTP request failed" in out or "Request timed out" in out:
@@ -213,13 +191,6 @@ def run_full_pipeline(mission: str, max_retries: int) -> None:
         )
         if code == 0:
             break
-        if "no *_vectors data found" in compress_out and double_step_size(mission):
-            print(
-                f"[{mission}] compress reported missing vectors; rerunning orbits with larger step "
-                f"(attempt {attempt}/{max_retries})",
-            )
-            run_orbits_with_retry(mission, max_retries=max_retries)
-            continue
         raise RuntimeError(f"[{mission}] compress-orbits.py failed")
     else:
         raise RuntimeError(f"[{mission}] compress-orbits.py exceeded retry limit")

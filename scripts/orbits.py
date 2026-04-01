@@ -6,17 +6,19 @@ import argparse
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 import requests
 import json
-from datetime import datetime, timezone
+from datetime import timezone
 import re
 import numpy as np
 import shutil
 from pathlib import Path
 from ephemeris_manifest import ensure_manifest_file
 from horizons_text_cache import (
+    cache_stem,
+    find_covering_cached_text,
     get_default_cache_dir,
     read_cached_text,
     write_cached_text,
@@ -49,6 +51,10 @@ debugging = True
 primary_spacecraft_body_token = None
 phase_spacecraft_body_token = None
 HORIZONS_TEXT_CACHE_DIR = get_default_cache_dir(project_root)
+HORIZONS_OUTPUT_LIMIT_RE = re.compile(
+    r"Projected output length \(~(\d+)\) exceeds (\d+) line max -- change step-size"
+)
+MAX_VECTOR_SAMPLES_PER_REQUEST = 50000
 
 def load_config(mission_name):
     """Load configuration from JSON file for specified mission."""
@@ -368,6 +374,337 @@ def save_orbit_data():
         except IOError as e:
             print_error(f"Can't write to {ho_file_name}: {e}")
 
+
+def build_horizons_params(planet, table_type, options):
+    params = {
+        'format': 'text',
+        'COMMAND': str(planet_codes[planet]),
+        'OBJ_DATA': 'NO',
+        'MAKE_EPHEM': 'YES',
+        'EPHEM_TYPE': table_type,
+        'CENTER': center,
+        'CSV_FORMAT': 'YES'
+    }
+
+    if options.get('range'):
+        params.update({
+            'START_TIME': options['start_time'],
+            'STOP_TIME': options['stop_time'],
+            'STEP_SIZE': options['step_size']
+        })
+    else:
+        params['TLIST'] = str(jd)
+    return params
+
+
+def parse_horizons_request_datetime(value):
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().strip("'").strip('"')
+    if not normalized:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(normalized, fmt)
+        except ValueError:
+            continue
+    return None
+
+
+def format_horizons_request_datetime(value):
+    return f"'{value.strftime('%Y-%m-%d %H:%M')}'"
+
+
+def parse_horizons_step_seconds(value):
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().strip("'").strip('"').lower()
+    minute_match = re.fullmatch(r"(\d+)\s*m", normalized)
+    if minute_match:
+        return int(minute_match.group(1)) * 60
+    second_match = re.fullmatch(r"(\d+)\s*s", normalized)
+    if second_match:
+        return int(second_match.group(1))
+    return None
+
+
+def horizons_output_limit_hit(text):
+    return bool(HORIZONS_OUTPUT_LIMIT_RE.search(text or ""))
+
+
+def format_horizons_header_datetime(value):
+    months = [
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ]
+    month = months[value.month - 1]
+    return f"A.D. {value.year:04d}-{month}-{value.day:02d} {value.hour:02d}:{value.minute:02d}:{value.second:02d}.0000 TDB"
+
+
+def update_horizons_header_time(text, label, value):
+    return re.sub(
+        rf"^{re.escape(label)}:.*$",
+        f"{label}: {format_horizons_header_datetime(value)}",
+        text,
+        count=1,
+        flags=re.MULTILINE,
+    )
+
+
+def extract_horizons_block(text):
+    lines = text.splitlines()
+    start_index = None
+    end_index = None
+    for index, line in enumerate(lines):
+        if line.startswith("$$SOE"):
+            start_index = index
+        elif line.startswith("$$EOE"):
+            end_index = index
+            break
+    if start_index is None or end_index is None or end_index <= start_index:
+        return None
+    return {
+        "prefix": lines[:start_index + 1],
+        "rows": [line for line in lines[start_index + 1:end_index] if line.strip()],
+        "suffix": lines[end_index:],
+        "trailing_newline": text.endswith("\n"),
+    }
+
+
+def combine_horizons_vector_texts(texts, start_dt, stop_dt):
+    if not texts:
+        return None
+    parsed_blocks = []
+    for text in texts:
+        block = extract_horizons_block(text)
+        if block is None:
+            return None
+        parsed_blocks.append(block)
+
+    combined_lines = []
+    combined_lines.extend(parsed_blocks[0]["prefix"])
+    for block in parsed_blocks:
+        combined_lines.extend(block["rows"])
+    combined_lines.extend(parsed_blocks[-1]["suffix"])
+
+    combined_text = "\n".join(combined_lines)
+    combined_text = update_horizons_header_time(combined_text, "Start time      ", start_dt)
+    combined_text = update_horizons_header_time(combined_text, "Stop  time      ", stop_dt)
+    if any(block["trailing_newline"] for block in parsed_blocks):
+        combined_text += "\n"
+    return combined_text
+
+
+def download_horizons_text(base_url, params):
+    max_retries = 3
+    timeout_seconds = 300
+
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                wait_time = 5 * (2 ** (attempt - 1))
+                print_debug(f"Retry attempt {attempt + 1}/{max_retries} after {wait_time}s...")
+                time.sleep(wait_time)
+
+            response = requests.get(base_url, params=params, timeout=timeout_seconds, stream=True)
+            response.raise_for_status()
+
+            content_bytes = b''
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                content_bytes += chunk
+
+            content_text = content_bytes.decode('utf-8')
+            print_debug(f"Downloaded {len(content_text)} characters")
+            return content_text
+        except requests.Timeout:
+            print_error(f"Request timed out (attempt {attempt + 1}/{max_retries})")
+            if attempt == max_retries - 1:
+                return None
+        except requests.RequestException as e:
+            print_error(f"HTTP request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
+            if attempt == max_retries - 1:
+                return None
+
+    return None
+
+
+def should_preemptively_split(options, table_type):
+    if table_type != 'VECTORS' or not options.get('range'):
+        return False
+    start_dt = parse_horizons_request_datetime(options.get('start_time'))
+    stop_dt = parse_horizons_request_datetime(options.get('stop_time'))
+    step_seconds = parse_horizons_step_seconds(options.get('step_size'))
+    if start_dt is None or stop_dt is None or step_seconds is None or step_seconds <= 0:
+        return False
+    total_samples = int(((stop_dt - start_dt).total_seconds()) // step_seconds) + 1
+    return total_samples > MAX_VECTOR_SAMPLES_PER_REQUEST
+
+
+def fetch_split_horizons_vectors(planet, base_url, table_type, content_key, options):
+    start_dt = parse_horizons_request_datetime(options.get('start_time'))
+    stop_dt = parse_horizons_request_datetime(options.get('stop_time'))
+    step_seconds = parse_horizons_step_seconds(options.get('step_size'))
+    if start_dt is None or stop_dt is None or step_seconds is None or step_seconds <= 0:
+        print_error(f"Unable to split HORIZONS request for {planet}: unsupported time or step format")
+        return None
+
+    total_samples = int(((stop_dt - start_dt).total_seconds()) // step_seconds) + 1
+    if total_samples <= 2:
+        print_error(f"Unable to split HORIZONS request for {planet}: range too small")
+        return None
+
+    if total_samples > MAX_VECTOR_SAMPLES_PER_REQUEST:
+        first_chunk_samples = MAX_VECTOR_SAMPLES_PER_REQUEST
+    else:
+        first_chunk_samples = max(total_samples // 2, 2)
+    first_end_dt = start_dt + timedelta(seconds=step_seconds * (first_chunk_samples - 1))
+    second_start_dt = first_end_dt + timedelta(seconds=step_seconds)
+    if second_start_dt > stop_dt:
+        split_samples = max(total_samples // 2, 2)
+        first_end_dt = start_dt + timedelta(seconds=step_seconds * (split_samples - 1))
+        second_start_dt = first_end_dt + timedelta(seconds=step_seconds)
+    if second_start_dt > stop_dt:
+        print_error(f"Unable to split HORIZONS request for {planet}: no valid second chunk")
+        return None
+
+    print_debug(
+        f"Splitting oversized HORIZONS vectors request for {planet}: "
+        f"{start_dt.strftime('%Y-%m-%d %H:%M')} -> {first_end_dt.strftime('%Y-%m-%d %H:%M')}, "
+        f"{second_start_dt.strftime('%Y-%m-%d %H:%M')} -> {stop_dt.strftime('%Y-%m-%d %H:%M')}"
+    )
+
+    chunk_texts = []
+    for chunk_start, chunk_stop in (
+        (start_dt, first_end_dt),
+        (second_start_dt, stop_dt),
+    ):
+        chunk_options = dict(options)
+        chunk_options['start_time'] = format_horizons_request_datetime(chunk_start)
+        chunk_options['stop_time'] = format_horizons_request_datetime(chunk_stop)
+        chunk_params = build_horizons_params(planet, table_type, chunk_options)
+        chunk_text = fetch_horizons_text_payload(
+            planet,
+            base_url,
+            table_type,
+            content_key,
+            chunk_options,
+            chunk_params,
+        )
+        if chunk_text is None:
+            return None
+        chunk_texts.append(chunk_text)
+
+    combined_text = combine_horizons_vector_texts(chunk_texts, start_dt, stop_dt)
+    if combined_text is None:
+        print_error(f"Failed to combine chunked HORIZONS vectors for {planet}")
+        return None
+
+    original_params = build_horizons_params(planet, table_type, options)
+    write_cached_text(
+        base_url=base_url,
+        params=original_params,
+        text=combined_text,
+        cache_dir=HORIZONS_TEXT_CACHE_DIR,
+        extra_metadata={
+            "planet": str(planet),
+            "table_type": table_type,
+            "content_key": content_key,
+            "mission": mission or "",
+            "phase": phase or "",
+            "cache_hit_type": "chunked-range",
+        },
+    )
+    return combined_text
+
+
+def fetch_horizons_text_payload(planet, base_url, table_type, content_key, options, params):
+    cached_text = read_cached_text(
+        base_url=base_url,
+        params=params,
+        cache_dir=HORIZONS_TEXT_CACHE_DIR,
+    )
+    if cached_text is not None and not horizons_output_limit_hit(cached_text):
+        print_debug(
+            f"Using cached HORIZONS {content_key} for {planet} "
+            f"({len(cached_text)} characters)"
+        )
+        return cached_text
+
+    if should_preemptively_split(options, table_type):
+        return fetch_split_horizons_vectors(planet, base_url, table_type, content_key, options)
+
+    if cached_text is None:
+        covering_cache_hit = find_covering_cached_text(
+            base_url=base_url,
+            params=params,
+            cache_dir=HORIZONS_TEXT_CACHE_DIR,
+        )
+        if covering_cache_hit is not None:
+            covered_text, covering_metadata = covering_cache_hit
+            print_debug(
+                f"Using covering-range cached HORIZONS {content_key} for {planet} "
+                f"({len(covered_text)} characters)"
+            )
+            write_cached_text(
+                base_url=base_url,
+                params=params,
+                text=covered_text,
+                cache_dir=HORIZONS_TEXT_CACHE_DIR,
+                extra_metadata={
+                    "planet": str(planet),
+                    "table_type": table_type,
+                    "content_key": content_key,
+                    "mission": mission or "",
+                    "phase": phase or "",
+                    "cache_hit_type": "covering-range",
+                    "derived_from_stem": covering_metadata.get("derived_from_stem", ""),
+                    "derived_from_request": cache_stem(
+                        base_url=base_url,
+                        params=covering_metadata.get("params"),
+                    ),
+                },
+            )
+            return covered_text
+
+        cached_text = download_horizons_text(base_url, params)
+        if cached_text is None:
+            return None
+        write_cached_text(
+            base_url=base_url,
+            params=params,
+            text=cached_text,
+            cache_dir=HORIZONS_TEXT_CACHE_DIR,
+            extra_metadata={
+                "planet": str(planet),
+                "table_type": table_type,
+                "content_key": content_key,
+                "mission": mission or "",
+                "phase": phase or "",
+            },
+        )
+
+    if '$$SOE' not in cached_text:
+        if horizons_output_limit_hit(cached_text) and table_type == 'VECTORS' and options.get('range'):
+            return fetch_split_horizons_vectors(planet, base_url, table_type, content_key, options)
+        if 'No ephemeris' in cached_text or 'Cannot find' in cached_text:
+            print_error(f"HORIZONS error: Object not found or no ephemeris available")
+            print_debug(f"Response preview: {cached_text[:500]}")
+            return None
+        if table_type == 'VECTORS' and options.get('range'):
+            start_dt = parse_horizons_request_datetime(options.get('start_time'))
+            stop_dt = parse_horizons_request_datetime(options.get('stop_time'))
+            if start_dt is not None and stop_dt is not None and (stop_dt - start_dt) > timedelta(days=2):
+                print_debug(
+                    f"Unexpected non-ephemeris HORIZONS response for {planet}; "
+                    "retrying by splitting the range more finely"
+                )
+                return fetch_split_horizons_vectors(planet, base_url, table_type, content_key, options)
+        print_error("Unexpected HORIZONS response without ephemeris data")
+        print_debug(f"Response preview: {cached_text[:500]}")
+        return None
+
+    return cached_text
+
 def fetch_horizons_data(planet, options):
     """Fetch data from JPL HORIZONS using the modern API endpoint.
 
@@ -387,97 +724,24 @@ def fetch_horizons_data(planet, options):
     # Modern API endpoint (recommended since September 2021)
     base_url = "https://ssd.jpl.nasa.gov/api/horizons.api"
 
-    # Build parameters - note: modern API doesn't need quotes around values
-    params = {
-        'format': 'text',  # Get text output (same as batch interface)
-        'COMMAND': str(planet_codes[planet]),
-        'OBJ_DATA': 'NO',  # Skip object data header
-        'MAKE_EPHEM': 'YES',
-        'EPHEM_TYPE': table_type,
-        'CENTER': center,
-        'CSV_FORMAT': 'YES'
-    }
-
-    if options.get('range'):
-        params.update({
-            'START_TIME': options['start_time'],
-            'STOP_TIME': options['stop_time'],
-            'STEP_SIZE': options['step_size']
-        })
-    else:
-        params['TLIST'] = str(jd)
+    params = build_horizons_params(planet, table_type, options)
 
     print_debug(f"url = {base_url}")
     print_debug(f"params = {params}")
 
-    cached_text = read_cached_text(
-        base_url=base_url,
-        params=params,
-        cache_dir=HORIZONS_TEXT_CACHE_DIR,
+    content_text = fetch_horizons_text_payload(
+        planet,
+        base_url,
+        table_type,
+        content_key,
+        options,
+        params,
     )
-    if cached_text is not None:
-        print_debug(
-            f"Using cached HORIZONS {content_key} for {planet} "
-            f"({len(cached_text)} characters)"
-        )
-        orbits_raw.setdefault(planet, {})[content_key] = cached_text
-        return True
+    if content_text is None:
+        return False
 
-    # Retry logic with exponential backoff
-    max_retries = 3
-    timeout_seconds = 300  # 5 minutes timeout for large data fetches
-
-    for attempt in range(max_retries):
-        try:
-            if attempt > 0:
-                wait_time = 5 * (2 ** (attempt - 1))  # Exponential backoff: 5s, 10s, 20s
-                print_debug(f"Retry attempt {attempt + 1}/{max_retries} after {wait_time}s...")
-                time.sleep(wait_time)
-
-            # Use streaming to handle large responses reliably
-            response = requests.get(base_url, params=params, timeout=timeout_seconds, stream=True)
-            response.raise_for_status()  # Raises an HTTPError for bad responses
-
-            # Read response in chunks to avoid connection issues with large data
-            content_bytes = b''
-            for chunk in response.iter_content(chunk_size=1024*1024):  # 1MB chunks
-                content_bytes += chunk
-
-            content_text = content_bytes.decode('utf-8')
-            print_debug(f"Downloaded {len(content_text)} characters")
-
-            # Check for HORIZONS error messages in response
-            if '$$SOE' not in content_text:
-                if 'No ephemeris' in content_text or 'Cannot find' in content_text:
-                    print_error(f"HORIZONS error: Object not found or no ephemeris available")
-                    print_debug(f"Response preview: {content_text[:500]}")
-                    return False
-
-            orbits_raw.setdefault(planet, {})[content_key] = content_text
-            write_cached_text(
-                base_url=base_url,
-                params=params,
-                text=content_text,
-                cache_dir=HORIZONS_TEXT_CACHE_DIR,
-                extra_metadata={
-                    "planet": str(planet),
-                    "table_type": table_type,
-                    "content_key": content_key,
-                    "mission": mission or "",
-                    "phase": phase or "",
-                },
-            )
-            return True
-        except requests.Timeout:
-            print_error(f"Request timed out (attempt {attempt + 1}/{max_retries})")
-            if attempt == max_retries - 1:
-                return False
-        except requests.RequestException as e:
-            print_error(f"HTTP request failed (attempt {attempt + 1}/{max_retries}): {str(e)}")
-            if attempt == max_retries - 1:
-                return False
-
-    return False
+    orbits_raw.setdefault(planet, {})[content_key] = content_text
+    return True
 
 def fetch_elements(planet):
     print_debug(f"Fetching elements for planet {planet} ...")
