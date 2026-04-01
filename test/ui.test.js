@@ -970,6 +970,7 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
   }
   await ensureCheckboxState(page, '#view-orbit', false);
   await ensureCheckboxState(page, '#view-orbit-descent', false);
+  await ensureCheckboxState(page, '#view-sky', false);
   await closeSettingsPanel(page);
   await waitForScene(page);
 

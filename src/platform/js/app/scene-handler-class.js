@@ -88,9 +88,12 @@ function createSceneHandlerClass(deps) {
                 });
             }
 
-            animationScene.refreshSecondaryBodyHighlight?.();
+            const usingSpecialCamera = joyRideFlag || landingFlag;
+            animationScene.refreshSecondaryBodyHighlight?.({
+                suppress: usingSpecialCamera,
+            });
 
-            if (joyRideFlag || landingFlag) {
+            if (usingSpecialCamera) {
                 const craftEarthDistance = activeCraft.position.distanceTo(animationScene.earthContainer.position);
                 const craftMoonDistance = (globalConfig && globalConfig.is_lunar && animationScene.moonContainer)
                     ? activeCraft.position.distanceTo(animationScene.moonContainer.position)

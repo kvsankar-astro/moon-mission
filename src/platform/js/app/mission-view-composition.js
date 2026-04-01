@@ -70,6 +70,7 @@ function createMissionViewComposition(ctx) {
     const sceneViewStateActions = createSceneViewStateActions({
         defaultViewState,
         getConfig,
+        getGlobalConfig,
         getSceneForConfig,
         normalizePlaneSelection,
         getPlaneVariablesForSelection,
@@ -85,6 +86,7 @@ function createMissionViewComposition(ctx) {
         setLegacyPanX,
         getLegacyPanY,
         setLegacyPanY,
+        isRelativeMode,
     });
 
     const modeSwitchActions = createModeSwitchActions({

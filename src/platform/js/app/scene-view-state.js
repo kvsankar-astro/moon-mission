@@ -2,11 +2,13 @@ function createSceneViewStateActions(deps) {
     const {
         defaultViewState,
         getConfig,
+        getGlobalConfig,
         getSceneForConfig,
         normalizePlaneSelection,
         getPlaneVariablesForSelection,
         syncPlaneSelectionControls,
         setChecked,
+        isRelativeMode = false,
         getLegacyPlaneSelection,
         setLegacyPlaneSelection,
         getLegacyPlaneVariables,
@@ -158,8 +160,14 @@ function createSceneViewStateActions(deps) {
     function syncPlaneStateForConfig(cfg = getConfig()) {
         const selection = getPlaneSelectionState(cfg);
         const normalizedSelection = syncPlaneSelectionControls(selection, setChecked);
+        const effectiveSelection =
+            isRelativeMode && normalizedSelection === "DEFAULT"
+                ? normalizePlaneSelection(
+                    getGlobalConfig()?.ui?.viewDefaults?.relativeDefaultPlaneSelection || "DEFAULT",
+                )
+                : normalizedSelection;
         setPlaneSelectionState(normalizedSelection, cfg);
-        setPlaneVariablesState(getPlaneVariablesForSelection(normalizedSelection), cfg);
+        setPlaneVariablesState(getPlaneVariablesForSelection(effectiveSelection), cfg);
     }
 
     return {

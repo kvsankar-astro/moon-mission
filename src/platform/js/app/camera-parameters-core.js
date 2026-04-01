@@ -1,10 +1,13 @@
 import { computePreferredCameraDistance } from "./camera-parameter-helpers.js";
 import { getPlaneCameraPose } from "./plane-camera-config.js";
+import { resolveEffectivePlaneSelection } from "./plane-view-state.js";
 
 export function computeSceneCameraParameters({
     planeSelection,
     missionConfig,
     globalConfig,
+    isRelativeMode = false,
+    relativeDefaultPlaneSelection = "DEFAULT",
     isInitialization,
     controllerDistance,
     defaultCameraDistance,
@@ -14,8 +17,12 @@ export function computeSceneCameraParameters({
         defaultCameraDistance,
         globalConfig,
     });
+    const effectivePlaneSelection = resolveEffectivePlaneSelection(planeSelection, {
+        isRelativeMode,
+        relativeDefaultPlaneSelection,
+    });
 
-    if (planeSelection === "DEFAULT") {
+    if (effectivePlaneSelection === "DEFAULT") {
         return {
             fov: 50.0,
             craftVisible: true,
@@ -31,7 +38,7 @@ export function computeSceneCameraParameters({
             : defaultCameraDistance;
 
     const pose = getPlaneCameraPose({
-        planeSelection,
+        planeSelection: effectivePlaneSelection,
         missionConfig,
         cameraDistance,
     });

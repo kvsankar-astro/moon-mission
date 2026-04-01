@@ -273,7 +273,7 @@ function createAnimationSceneClass(deps) {
             }
         }
 
-        refreshSecondaryBodyHighlight() {
+        refreshSecondaryBodyHighlight({ suppress = false } = {}) {
             const runtimeState = getRuntimeState();
             if (
                 !runtimeState.globalConfig?.is_lunar ||
@@ -284,6 +284,7 @@ function createAnimationSceneClass(deps) {
             }
 
             const shouldShowBodyHighlight =
+                !suppress &&
                 runtimeState.viewMoonHighlightRing &&
                 (
                     (this.name === "geo" && this.secondaryBody === "MOON") ||
@@ -398,6 +399,9 @@ function createAnimationSceneClass(deps) {
                 planeSelection: sceneViewState?.planeSelection || DEFAULT_VIEW_STATE.planeSelection,
                 missionConfig: this.name,
                 globalConfig: getRuntimeState().globalConfig,
+                isRelativeMode: getRuntimeState().frameMode === "relative",
+                relativeDefaultPlaneSelection:
+                    getRuntimeState().globalConfig?.ui?.viewDefaults?.relativeDefaultPlaneSelection || "DEFAULT",
                 isInitialization,
                 controllerDistance,
                 defaultCameraDistance: getDefaultCameraDistance(),
@@ -526,12 +530,16 @@ function createAnimationSceneClass(deps) {
 
         rotateEarth(timeMs = getRuntimeState().animTime) {
             const runtimeState = getRuntimeState();
-            bodyRotationActions.rotateEarth({
-                timeMs,
-                earthContainer: this.earthContainer,
-            });
-
             if (runtimeState.frameMode === "relative" && runtimeState.config === "geo" && this.earthContainer) {
+                const inertialQuatData = bodyRotationActions.getEarthInertialQuaternion?.(timeMs);
+                const qInertial = inertialQuatData
+                    ? new THREE.Quaternion(
+                        inertialQuatData.x,
+                        inertialQuatData.y,
+                        inertialQuatData.z,
+                        inertialQuatData.w,
+                    )
+                    : null;
                 const applyRelativeFrame = (frameQuat) => {
                     if (!frameQuat) return false;
                     const qFrame = new THREE.Quaternion(
@@ -540,7 +548,11 @@ function createAnimationSceneClass(deps) {
                         frameQuat.z,
                         frameQuat.w,
                     );
-                    this.earthContainer.quaternion.premultiply(qFrame);
+                    if (qInertial) {
+                        this.earthContainer.quaternion.copy(qFrame).multiply(qInertial);
+                    } else {
+                        this.earthContainer.quaternion.copy(qFrame);
+                    }
                     return true;
                 };
 
@@ -584,8 +596,18 @@ function createAnimationSceneClass(deps) {
                 const relativeToInertial = new THREE.Matrix4().makeBasis(xHat, yHat, zHat);
                 const inertialToRelative = relativeToInertial.clone().transpose();
                 const qFrame = new THREE.Quaternion().setFromRotationMatrix(inertialToRelative);
-                this.earthContainer.quaternion.premultiply(qFrame);
+                if (qInertial) {
+                    this.earthContainer.quaternion.copy(qFrame).multiply(qInertial);
+                } else {
+                    this.earthContainer.quaternion.copy(qFrame);
+                }
+                return;
             }
+
+            bodyRotationActions.rotateEarth({
+                timeMs,
+                earthContainer: this.earthContainer,
+            });
         }
 
         dispose() {

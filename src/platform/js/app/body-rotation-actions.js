@@ -24,5 +24,15 @@ export function createBodyRotationActions({ lunar_pole, Astronomy, degreesToRadi
         earthContainer.rotation.z = mst;
     }
 
-    return { rotateMoon, rotateEarth };
+    function getEarthInertialQuaternion(timeMs) {
+        const mst = degreesToRadians(Astronomy.SiderealTime(new Date(timeMs)) * 15);
+        return {
+            x: 0,
+            y: 0,
+            z: Math.sin(mst / 2),
+            w: Math.cos(mst / 2),
+        };
+    }
+
+    return { rotateMoon, rotateEarth, getEarthInertialQuaternion };
 }

@@ -91,6 +91,8 @@ export function createPlaneActions({
     getCurrentDimension,
     animationScenes,
     getConfig,
+    getGlobalConfig = () => null,
+    getFrameMode = () => "inertial",
     initSVG,
     loadOrbitDataIfNeededAndProcess,
     handleDimensionSwitch,
@@ -110,6 +112,10 @@ export function createPlaneActions({
 
     function handlePlaneChange(dimension_changed = false, init_flag = false) {
         const selection = getPlaneSelection();
+        const effectiveSelection =
+            getFrameMode() === "relative" && selection === "DEFAULT"
+                ? ((getGlobalConfig()?.ui?.viewDefaults?.relativeDefaultPlaneSelection) || "DEFAULT")
+                : selection;
         const config = getConfig();
         const planeChangeState = getPlaneChangeState(config);
 
@@ -122,7 +128,7 @@ export function createPlaneActions({
             planeChanged = false;
         }
 
-        if (init_flag && selection === "DEFAULT") {
+        if (init_flag && effectiveSelection === "DEFAULT") {
             planeChangeState.planeChangesPending = false;
             return;
         }
@@ -130,7 +136,7 @@ export function createPlaneActions({
             return;
         }
 
-        const planeConfig = planeVariableConfig[selection];
+        const planeConfig = planeVariableConfig[effectiveSelection];
         if (planeConfig) {
             setPlaneVariables(planeConfig);
         }

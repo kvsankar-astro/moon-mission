@@ -340,6 +340,8 @@ function createDataflowWiringActions(deps) {
         getCurrentDimension,
         animationScenes,
         getConfig,
+        getGlobalConfig,
+        getFrameMode,
         initSVG: svgActions.initSVG,
         loadOrbitDataIfNeededAndProcess: loadOrbitDataIfNeededAndProcessOverride || loadOrbitDataIfNeededAndProcess,
         handleDimensionSwitch,

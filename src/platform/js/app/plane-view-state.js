@@ -119,6 +119,17 @@ function normalizePlaneSelection(selection) {
     return DEFAULT_VIEW_STATE.planeSelection;
 }
 
+function resolveEffectivePlaneSelection(
+    selection,
+    { isRelativeMode = false, relativeDefaultPlaneSelection = "DEFAULT" } = {},
+) {
+    const normalized = normalizePlaneSelection(selection);
+    if (isRelativeMode && normalized === "DEFAULT") {
+        return normalizePlaneSelection(relativeDefaultPlaneSelection);
+    }
+    return normalized;
+}
+
 function getPlaneVariablesForSelection(selection) {
     const normalized = normalizePlaneSelection(selection);
     return PLANE_SELECTION_VARIABLES[normalized] || PLANE_SELECTION_VARIABLES.DEFAULT;
@@ -137,6 +148,7 @@ export {
     PLANE_SELECTION_RADIO_IDS,
     PLANE_SELECTION_VARIABLES,
     normalizePlaneSelection,
+    resolveEffectivePlaneSelection,
     getPlaneVariablesForSelection,
     syncPlaneSelectionControls,
 };
