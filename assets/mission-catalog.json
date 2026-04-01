@@ -6,13 +6,23 @@
         "chandrayaan",
         "artemis",
         "apollo",
+        "lunar-orbiters",
+        "cislunar-pathfinders",
+        "international",
+        "deep-space",
+        "impacts-and-companions",
         "other"
       ],
       "laneLabels": {
         "chandrayaan": "Chandrayaan",
-        "artemis": "Artemis",
-        "apollo": "Apollo",
-        "other": "Other Missions"
+        "artemis": "Artemis & Orion",
+        "apollo": "Apollo Trailblazers",
+        "lunar-orbiters": "Moon Mapping & Science",
+        "cislunar-pathfinders": "New Cislunar Paths",
+        "international": "Global Lunar Ambitions",
+        "deep-space": "Swingbys & Observatories",
+        "impacts-and-companions": "Impact Paths & Companion Craft",
+        "other": "More Missions"
       },
       "laneMembership": {
         "chandrayaan": [
@@ -22,7 +32,8 @@
         ],
         "artemis": [
           "artemis1",
-          "artemis2"
+          "artemis2",
+          "artemis"
         ],
         "apollo": [
           "apollo8-sivb",
@@ -31,6 +42,39 @@
           "apollo10-sivb",
           "apollo11-sivb",
           "apollo12-sivb"
+        ],
+        "lunar-orbiters": [
+          "lunarorbiter1",
+          "clementine",
+          "lunar-prospector",
+          "lro",
+          "ladee",
+          "lunar-trailblazer"
+        ],
+        "cislunar-pathfinders": [
+          "capstone",
+          "lunar-flashlight",
+          "slim"
+        ],
+        "international": [
+          "smart1",
+          "selene",
+          "kplo-danuri",
+          "nozomi",
+          "juice"
+        ],
+        "deep-space": [
+          "isee3",
+          "wind",
+          "wmap",
+          "stereo",
+          "tess"
+        ],
+        "impacts-and-companions": [
+          "grail",
+          "grail-ss-stage",
+          "lcross-shepherd",
+          "lcross-centaur"
         ]
       }
     },
