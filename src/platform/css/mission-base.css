@@ -90,8 +90,8 @@ body {
     border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-md);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-    width: 282px;
-    min-width: 236px;
+    width: 320px;
+    min-width: 276px;
     max-width: min(92vw, 332px);
 }
 
@@ -127,7 +127,7 @@ body {
 #settings-panel-fieldset {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 #settings-panel-button:hover {
@@ -149,19 +149,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
+    padding: 7px 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .settings-panel__title {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 .settings-panel__body {
-    padding: 8px 10px 10px;
+    padding: 6px 8px 8px;
     max-height: 70vh;
     overflow-y: auto;
 }
@@ -169,21 +169,21 @@ body {
 .settings-panel__sections {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .settings-section {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--ui-radius-md);
-    padding: 6px 8px 8px;
+    padding: 5px 7px 6px;
     background: rgba(255, 255, 255, 0.02);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .settings-section__title {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -193,7 +193,7 @@ body {
 .settings-row {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .settings-row--hidden {
@@ -203,19 +203,19 @@ body {
 .settings-options {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .settings-options--pairs {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 4px;
+    gap: 3px;
 }
 
 .camera-pill-group {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
+    gap: 3px;
 }
 
 .camera-pill-group--plane {
@@ -231,13 +231,13 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 24px;
-    padding: 3px 6px;
+    min-height: 22px;
+    padding: 2px 6px;
     border-radius: var(--ui-radius-sm);
     border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.05);
     color: var(--ui-text-2);
-    font-size: 10px;
+    font-size: 9px;
     line-height: 1.1;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -258,8 +258,8 @@ body {
 }
 
 .camera-pill-group--plane .camera-pill {
-    min-height: 22px;
-    padding: 3px 5px;
+    min-height: 20px;
+    padding: 2px 4px;
     font-size: 9px;
 }
 
@@ -277,6 +277,26 @@ body {
 .camera-pill.is-disabled {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+@media (min-width: 601px) {
+    .settings-panel {
+        max-width: min(94vw, 380px);
+    }
+
+    .settings-section--view .settings-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 8px;
+        row-gap: 3px;
+        align-items: start;
+    }
+
+    .settings-section--view .settings-option--orbit-style,
+    .settings-section--view #active-craft-row,
+    .settings-section--view .settings-row--trail-controls {
+        grid-column: 1 / -1;
+    }
 }
 
 @media (max-width: 420px) {
@@ -298,10 +318,14 @@ body {
 .settings-option {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 5px;
+    font-size: 10px;
     color: var(--ui-text-2);
     cursor: pointer;
+}
+
+.settings-option--hidden {
+    display: none !important;
 }
 
 .settings-option label {
@@ -319,7 +343,7 @@ body {
 }
 
 .settings-subtitle {
-    font-size: 10px;
+    font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ui-text-2);
@@ -327,7 +351,7 @@ body {
 
 .settings-note {
     margin-top: 4px;
-    font-size: 10px;
+    font-size: 9px;
     color: var(--ui-text-2);
 }
 
@@ -356,30 +380,53 @@ body {
 
 .settings-panel input[type="checkbox"],
 .settings-panel input[type="radio"] {
-    width: 12px;
-    height: 12px;
+    width: 11px;
+    height: 11px;
 }
 
 .settings-row--trail-controls {
-    gap: 2px;
-    margin-top: -1px;
+    gap: 1px;
+    margin-top: -2px;
 }
 
 .settings-range-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 10px;
+    font-size: 9px;
     color: var(--ui-text-2);
+    line-height: 1.05;
 }
 
 .settings-range-value {
     font-variant-numeric: tabular-nums;
     color: var(--ui-text-1);
+    min-width: 30px;
+    text-align: right;
 }
 
 .settings-row--trail-controls input[type="range"] {
     width: 100%;
-    margin: 0 0 2px;
+    height: 14px;
+    margin: 0;
     accent-color: var(--ui-accent-1);
+}
+
+.settings-row--trail-controls input[type="range"]::-webkit-slider-runnable-track {
+    height: 3px;
+}
+
+.settings-row--trail-controls input[type="range"]::-webkit-slider-thumb {
+    width: 11px;
+    height: 11px;
+    margin-top: -4px;
+}
+
+.settings-row--trail-controls input[type="range"]::-moz-range-track {
+    height: 3px;
+}
+
+.settings-row--trail-controls input[type="range"]::-moz-range-thumb {
+    width: 11px;
+    height: 11px;
 }

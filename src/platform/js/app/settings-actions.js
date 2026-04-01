@@ -33,6 +33,11 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
+    function isRelativeOriginSelected() {
+        if (typeof document === "undefined") return false;
+        return !!document.getElementById("origin-relative")?.checked;
+    }
+
     function resolveEffectiveOrbitStyle(orbitStyle) {
         const selectedStyle = orbitStyle === "trail" ? "trail" : "classic";
         if (selectedStyle !== "trail") return selectedStyle;
@@ -248,11 +253,17 @@ export function createSettingsActions({
                             ? document.getElementById(`orbit-${bodyId}`)
                             : null;
                     if (!orbitElement) continue;
-                    const visible = view.viewOrbit && shouldShowSceneCraft({
-                        scene,
-                        globalConfig,
-                        bodyId,
-                    });
+                    const isGeoSecondaryBodyOrbit =
+                        globalConfig?.is_lunar &&
+                        cfg === "geo" &&
+                        bodyId === "MOON";
+                    const visible = isGeoSecondaryBodyOrbit
+                        ? view.viewMoonOsculatingOrbit && !isRelativeOriginSelected()
+                        : view.viewOrbit && shouldShowSceneCraft({
+                            scene,
+                            globalConfig,
+                            bodyId,
+                        });
                     applyOrbitSvgStyle(
                         orbitElement,
                         effectiveOrbitStyle,
@@ -297,7 +308,9 @@ export function createSettingsActions({
                     }
                     if (scene.moonOsculatingOrbitLine) {
                         scene.moonOsculatingOrbitLine.visible =
-                            cfg === "geo" && view.viewOrbit && view.viewMoonOsculatingOrbit;
+                            cfg === "geo" &&
+                            view.viewMoonOsculatingOrbit &&
+                            !isRelativeOriginSelected();
                     }
                 }
 

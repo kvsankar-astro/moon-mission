@@ -407,9 +407,33 @@ function syncTimelineDock() {
 }
 
 function syncActiveCraftControl() {
+    const additionalCraftOption = document.getElementById("additional-crafts-option");
+    const additionalCraftToggle = document.getElementById("view-additional-crafts");
+    const descentOrbitOption = document.getElementById("orbit-descent-option");
     const row = document.getElementById("active-craft-row");
     const select = document.getElementById("active-craft-select");
+
+    const missionCraftCount = Array.isArray(globalConfig?.crafts) ? globalConfig.crafts.length : 1;
+    const hasAdditionalCrafts = missionCraftCount > 1;
+    if (additionalCraftOption) {
+        additionalCraftOption.classList.toggle("settings-option--hidden", !hasAdditionalCrafts);
+    }
+    if (!hasAdditionalCrafts && additionalCraftToggle) {
+        additionalCraftToggle.checked = false;
+    }
+
+    const hasDescentOrbit = !!(globalConfig?.landing?.enabled);
+    if (descentOrbitOption) {
+        descentOrbitOption.classList.toggle("settings-option--hidden", !hasDescentOrbit);
+    }
+
     if (!row || !select) return;
+
+    if (!hasAdditionalCrafts) {
+        row.classList.add("settings-row--hidden");
+        select.innerHTML = "";
+        return;
+    }
 
     const cfg = runtimeViewState.getConfig();
     const scene = animationScenes[cfg];

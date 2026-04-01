@@ -918,7 +918,11 @@
                                     <input id="joyride" type="checkbox">
                                     <span>Joy Ride!</span>
                                 </label>
-                                <label class="settings-option">
+                                <label
+                                    id="additional-crafts-option"
+                                    class="settings-option"
+                                    title="Show non-primary spacecraft tracks and markers when a mission has multiple craft."
+                                >
                                     <input type="checkbox" name="view" value="additional-crafts" id="view-additional-crafts">
                                     <span id="label-additional-crafts">Additional Craft</span>
                                 </label>
@@ -999,7 +1003,11 @@
                                           value="1.00"
                                       >
                                   </div>
-                                  <label class="settings-option">
+                                  <label
+                                      id="orbit-descent-option"
+                                      class="settings-option"
+                                      title="Shows the dedicated descent-phase orbit slice when the mission provides one."
+                                  >
                                       <input type="checkbox" name="view" value="orbit-descent" id="view-orbit-descent" checked="checked">
                                       <span id="label-orbit-descent"><!-- injected by JS --></span>
                                 </label>
