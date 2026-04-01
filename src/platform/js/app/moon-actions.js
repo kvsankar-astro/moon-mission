@@ -2,6 +2,9 @@ export function createMoonActions({
     MoonRenderer,
     getMoonRadius,
     getGlobalConfig,
+    getViewOrbit,
+    getViewMoonOsculatingOrbit,
+    getFrameMode,
     getViewPolarAxes,
     getViewPoles,
     getAnimTime,
@@ -28,6 +31,17 @@ export function createMoonActions({
 
         scene.addMoonSOI();
         scene.addMoonOsculatingOrbit();
+        if (scene.sceneHelpers?.setMoonOsculatingOrbitVisible) {
+            const viewOrbitToggle = document.getElementById("view-orbit");
+            const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
+            const relativeOriginToggle = document.getElementById("origin-relative");
+            scene.sceneHelpers.setMoonOsculatingOrbitVisible(
+                scene.name === "geo" &&
+                    (viewOrbitToggle?.checked ?? getViewOrbit()) &&
+                    (moonOrbitToggle?.checked ?? getViewMoonOsculatingOrbit()) &&
+                    !(relativeOriginToggle?.checked ?? (getFrameMode() === "relative")),
+            );
+        }
         scene.rotateMoon(getAnimTime());
 
         render();

@@ -253,12 +253,15 @@ function createAnimationSceneClass(deps) {
                 return;
             }
 
+            const viewOrbitToggle = document.getElementById("view-orbit");
+            const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
+            const relativeOriginToggle = document.getElementById("origin-relative");
             const showMoonOrbit =
                 this.name === "geo" &&
                 bodyId === "MOON" &&
-                runtimeState.viewOrbit &&
-                runtimeState.viewMoonOsculatingOrbit &&
-                runtimeState.frameMode !== "relative";
+                (viewOrbitToggle?.checked ?? runtimeState.viewOrbit) &&
+                (moonOrbitToggle?.checked ?? runtimeState.viewMoonOsculatingOrbit) &&
+                !(relativeOriginToggle?.checked ?? (runtimeState.frameMode === "relative"));
             if (bodyId === "MOON" && this.moonOsculatingOrbitLine) {
                 this.sceneHelpers.updateMoonOsculatingOrbit({
                     position: bodyState.position,
