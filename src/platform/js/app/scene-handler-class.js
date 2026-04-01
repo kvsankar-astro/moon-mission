@@ -1,4 +1,5 @@
 import { getSceneCraftObject } from "./scene-craft-helpers.js";
+import { AuxiliaryCameraViewsManager } from "./auxiliary-camera-views.js";
 
 function createSceneHandlerClass(deps) {
     const {
@@ -20,6 +21,7 @@ function createSceneHandlerClass(deps) {
             this.scene = null;
             this.renderer = null;
             this.canvasNode = null;
+            this.auxiliaryCameraViews = null;
             this.initialized = false;
             this.lookAtWorldTarget = new THREE.Vector3();
 
@@ -44,6 +46,16 @@ function createSceneHandlerClass(deps) {
             this.renderer = renderer;
             this.canvasNode = canvasNode;
 
+            if (!isTestMode && window.innerWidth > 600) {
+                const overlayHost = document.getElementById("content-wrapper") ||
+                    document.getElementById("wrapper") ||
+                    document.body;
+                this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
+                    THREE,
+                    overlayHost,
+                });
+            }
+
             this.initialized = true;
         }
 
@@ -63,6 +75,13 @@ function createSceneHandlerClass(deps) {
             updateCraftScale();
             const activeCraft = getSceneCraftObject(animationScene, globalConfig);
             if (!activeCraft) {
+                this.auxiliaryCameraViews?.render({
+                    scene: animationScene.scene,
+                    activeCraft: null,
+                    earth: animationScene.earthContainer,
+                    moon: animationScene.moonContainer,
+                    referenceCamera: animationScene.camera,
+                });
                 return;
             }
 
@@ -154,6 +173,14 @@ function createSceneHandlerClass(deps) {
                 animationScene.camera.layers.set(1);
                 this.renderer.render(animationScene.scene, animationScene.camera);
             }
+
+            this.auxiliaryCameraViews?.render({
+                scene: animationScene.scene,
+                activeCraft,
+                earth: animationScene.earthContainer,
+                moon: animationScene.moonContainer,
+                referenceCamera: animationScene.camera,
+            });
         }
     };
 }

@@ -67,6 +67,89 @@ canvas {
     user-select: none;
 }
 
+.aux-camera-views {
+    position: fixed;
+    top: calc(var(--timeline-dock-offset) + 38px);
+    right: var(--timeline-dock-offset);
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.aux-camera-view {
+    pointer-events: auto;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    width: 280px;
+    height: 192px;
+    min-width: 200px;
+    min-height: 150px;
+    border: 1px solid rgba(121, 171, 255, 0.32);
+    border-radius: var(--ui-radius-sm);
+    background: rgba(10, 17, 29, 0.74);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+    resize: both;
+    overflow: hidden;
+}
+
+.aux-camera-view__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 7px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.2);
+    background: rgba(12, 20, 35, 0.74);
+}
+
+.aux-camera-view__title {
+    color: rgba(230, 239, 255, 0.92);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.aux-camera-view__fov-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.aux-camera-view__fov-label,
+.aux-camera-view__fov-value {
+    color: rgba(208, 223, 246, 0.88);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.aux-camera-view__fov-value {
+    width: 34px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.aux-camera-view__fov-slider {
+    width: 84px;
+    accent-color: rgba(106, 169, 255, 1);
+}
+
+.aux-camera-view__viewport {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+}
+
+.aux-camera-view__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
 .footer-wrapper {
     position: fixed;
     bottom: 0;
@@ -657,6 +740,10 @@ fieldset {
 /* .notitledialog { z-index: 0;} */
 
 @media screen and (max-width: 600px) {
+    .aux-camera-views {
+        display: none !important;
+    }
+
     .header {
         position: fixed;
         top: var(--timeline-dock-offset);
