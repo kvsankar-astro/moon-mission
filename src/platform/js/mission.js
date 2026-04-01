@@ -294,6 +294,7 @@ const {
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
+    viewAuxiliaryPanels: initialMissionViewState.viewAuxiliaryPanels,
     viewOrbit: initialMissionViewState.viewOrbit,
     viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
     viewCraters: initialMissionViewState.viewCraters,
@@ -617,6 +618,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewMoonHighlightRing: () => runtimeViewState.getViewMoonHighlightRing(),
     getViewMoonOsculatingOrbit: () => runtimeViewState.getViewMoonOsculatingOrbit(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
+    getViewAuxiliaryPanels: () => runtimeViewState.getViewAuxiliaryPanels(),
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
 });
@@ -683,6 +685,10 @@ const missionStateCells = {
     startLandingFlag: bindStateCell(
         () => runtimeInteractionState.getStartLandingFlag(),
         (value) => { runtimeInteractionState.setStartLandingFlag(value); },
+    ),
+    viewAuxiliaryPanels: bindStateCell(
+        () => runtimeViewState.getViewAuxiliaryPanels(),
+        (value) => { runtimeViewState.setViewAuxiliaryPanels(value); },
     ),
     viewOrbit: bindStateCell(() => runtimeViewState.getViewOrbit(), (value) => { runtimeViewState.setViewOrbit(value); }),
     viewOrbitDescent: bindStateCell(

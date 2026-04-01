@@ -74,6 +74,7 @@ function createMissionSceneEntry(ctx) {
         getViewMoonSOI,
         getViewMoonHighlightRing,
         getViewXYZAxes,
+        getViewAuxiliaryPanels,
         getViewEclipticPlane,
         getViewEquatorialPlane,
     } = ctx;
@@ -165,6 +166,7 @@ function createMissionSceneEntry(ctx) {
                     globalConfig: getGlobalConfig(),
                     joyRideFlag: runtimeFlags.joyRide,
                     landingFlag: runtimeFlags.landing,
+                    viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
                 };

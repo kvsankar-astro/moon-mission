@@ -69,17 +69,13 @@ canvas {
 
 .aux-camera-views {
     position: fixed;
-    top: calc(var(--timeline-dock-offset) + 38px);
-    right: var(--timeline-dock-offset);
+    inset: 0;
     z-index: 9;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
     pointer-events: none;
 }
 
 .aux-camera-view {
+    position: absolute;
     pointer-events: auto;
     display: grid;
     grid-template-rows: auto 1fr;
@@ -87,6 +83,8 @@ canvas {
     height: 192px;
     min-width: 200px;
     min-height: 150px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
     border: 1px solid rgba(121, 171, 255, 0.32);
     border-radius: var(--ui-radius-sm);
     background: rgba(10, 17, 29, 0.74);
@@ -103,6 +101,12 @@ canvas {
     padding: 4px 7px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.2);
     background: rgba(12, 20, 35, 0.74);
+    cursor: grab;
+    touch-action: none;
+}
+
+.aux-camera-view__header:active {
+    cursor: grabbing;
 }
 
 .aux-camera-view__title {

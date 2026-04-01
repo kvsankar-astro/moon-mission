@@ -68,6 +68,7 @@ function createSceneHandlerClass(deps) {
                 globalConfig,
                 joyRideFlag,
                 landingFlag,
+                viewAuxiliaryPanels,
                 earthRadius,
                 moonRadius,
             } = getRuntimeState();
@@ -81,6 +82,7 @@ function createSceneHandlerClass(deps) {
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
                     referenceCamera: animationScene.camera,
+                    panelsVisible: viewAuxiliaryPanels,
                 });
                 return;
             }
@@ -180,6 +182,7 @@ function createSceneHandlerClass(deps) {
                 earth: animationScene.earthContainer,
                 moon: animationScene.moonContainer,
                 referenceCamera: animationScene.camera,
+                panelsVisible: viewAuxiliaryPanels,
             });
         }
     };

@@ -13,6 +13,10 @@ const PANEL_SPECS = Object.freeze([
     },
 ]);
 
+const PANEL_GAP_PX = 8;
+const PANEL_MARGIN_PX = 8;
+const PANEL_TOP_OFFSET_PX = 38;
+
 function isDesktopViewport() {
     return window.innerWidth > 600;
 }
@@ -23,6 +27,9 @@ class AuxiliaryCameraViewsManager {
         this.overlayHost = overlayHost || document.body;
         this.root = null;
         this.panels = [];
+        this.panelsEnabled = true;
+        this.zIndexCounter = 1;
+        this.dragState = null;
         this.handleResizeBound = this.handleResize.bind(this);
 
         this.craftWorld = new THREE.Vector3();
@@ -48,12 +55,117 @@ class AuxiliaryCameraViewsManager {
         this.root.className = "aux-camera-views";
         this.overlayHost.appendChild(this.root);
 
-        for (const spec of PANEL_SPECS) {
-            this.createPanel(spec);
-        }
+        PANEL_SPECS.forEach((spec, index) => {
+            this.createPanel(spec, index);
+        });
     }
 
-    createPanel(spec) {
+    readTimelineDockOffset() {
+        const cssValue = getComputedStyle(document.documentElement)
+            .getPropertyValue("--timeline-dock-offset")
+            .trim();
+        const parsed = Number.parseFloat(cssValue);
+        return Number.isFinite(parsed) ? parsed : PANEL_MARGIN_PX;
+    }
+
+    clampPanelRect({ x, y, width, height }) {
+        const viewportWidth = Math.max(window.innerWidth, 1);
+        const viewportHeight = Math.max(window.innerHeight, 1);
+        const maxX = Math.max(PANEL_MARGIN_PX, viewportWidth - width - PANEL_MARGIN_PX);
+        const maxY = Math.max(PANEL_MARGIN_PX, viewportHeight - height - PANEL_MARGIN_PX);
+        return {
+            x: Math.min(Math.max(Math.round(x), PANEL_MARGIN_PX), maxX),
+            y: Math.min(Math.max(Math.round(y), PANEL_MARGIN_PX), maxY),
+        };
+    }
+
+    getDefaultPanelPosition(panel, index) {
+        const width = Math.max(120, Math.round(panel.offsetWidth || 280));
+        const height = Math.max(80, Math.round(panel.offsetHeight || 192));
+        const dockOffset = this.readTimelineDockOffset();
+        const x = window.innerWidth - width - dockOffset;
+        const y = dockOffset + PANEL_TOP_OFFSET_PX + index * (height + PANEL_GAP_PX);
+        return this.clampPanelRect({
+            x,
+            y,
+            width,
+            height,
+        });
+    }
+
+    applyPanelPosition(panelState, x, y) {
+        const width = Math.max(120, Math.round(panelState.panel.offsetWidth || panelState.width || 280));
+        const height = Math.max(80, Math.round(panelState.panel.offsetHeight || panelState.height || 192));
+        const clamped = this.clampPanelRect({ x, y, width, height });
+        panelState.x = clamped.x;
+        panelState.y = clamped.y;
+        panelState.panel.style.left = `${panelState.x}px`;
+        panelState.panel.style.top = `${panelState.y}px`;
+    }
+
+    clampPanelPosition(panelState) {
+        const currentX = Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft;
+        const currentY = Number.isFinite(panelState.y) ? panelState.y : panelState.panel.offsetTop;
+        this.applyPanelPosition(panelState, currentX, currentY);
+    }
+
+    bringPanelToFront(panelState) {
+        this.zIndexCounter += 1;
+        panelState.panel.style.zIndex = String(this.zIndexCounter);
+    }
+
+    shouldStartDrag(event) {
+        if (event.button !== 0) return false;
+        if (!(event.target instanceof Element)) return false;
+        return !event.target.closest("input, button, select, option, label, output");
+    }
+
+    bindPanelDragging(panelState, header) {
+        const onPointerDown = (event) => {
+            if (!this.shouldStartDrag(event)) return;
+            this.bringPanelToFront(panelState);
+            this.dragState = {
+                panelState,
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                panelX: Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft,
+                panelY: Number.isFinite(panelState.y) ? panelState.y : panelState.panel.offsetTop,
+            };
+            header.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        };
+
+        const onPointerMove = (event) => {
+            if (!this.dragState || this.dragState.pointerId !== event.pointerId) return;
+            const dx = event.clientX - this.dragState.startX;
+            const dy = event.clientY - this.dragState.startY;
+            this.applyPanelPosition(
+                this.dragState.panelState,
+                this.dragState.panelX + dx,
+                this.dragState.panelY + dy,
+            );
+        };
+
+        const releaseDrag = (event) => {
+            if (!this.dragState || this.dragState.pointerId !== event.pointerId) return;
+            if (header.hasPointerCapture(event.pointerId)) {
+                header.releasePointerCapture(event.pointerId);
+            }
+            this.dragState = null;
+        };
+
+        header.addEventListener("pointerdown", onPointerDown);
+        header.addEventListener("pointermove", onPointerMove);
+        header.addEventListener("pointerup", releaseDrag);
+        header.addEventListener("pointercancel", releaseDrag);
+        panelState.onPointerDown = onPointerDown;
+        panelState.onPointerMove = onPointerMove;
+        panelState.onPointerUp = releaseDrag;
+        panelState.onPointerCancel = releaseDrag;
+    }
+
+    createPanel(spec, index) {
         const panel = document.createElement("section");
         panel.className = "aux-camera-view";
         panel.dataset.target = spec.targetKey;
@@ -123,7 +235,7 @@ class AuxiliaryCameraViewsManager {
         onFovInput();
 
         this.root.appendChild(panel);
-        this.panels.push({
+        const panelState = {
             targetKey: spec.targetKey,
             panel,
             viewport,
@@ -133,14 +245,35 @@ class AuxiliaryCameraViewsManager {
             height: 0,
             onFovInput,
             fovSlider,
-        });
+            onPointerDown: null,
+            onPointerMove: null,
+            onPointerUp: null,
+            onPointerCancel: null,
+            x: 0,
+            y: 0,
+            onPanelPointerDown: null,
+        };
+        this.panels.push(panelState);
+        this.bindPanelDragging(panelState, header);
+        panelState.onPanelPointerDown = () => {
+            this.bringPanelToFront(panelState);
+        };
+        panel.addEventListener("pointerdown", panelState.onPanelPointerDown);
+        const defaultPosition = this.getDefaultPanelPosition(panel, index);
+        this.applyPanelPosition(panelState, defaultPosition.x, defaultPosition.y);
+        this.bringPanelToFront(panelState);
     }
 
     handleResize() {
         if (!this.root) {
             return;
         }
-        this.root.hidden = !isDesktopViewport();
+        const visible = this.panelsEnabled && isDesktopViewport();
+        this.root.hidden = !visible;
+        if (!visible) return;
+        for (const panelState of this.panels) {
+            this.clampPanelPosition(panelState);
+        }
     }
 
     setPanelVisible(panelState, visible) {
@@ -150,14 +283,15 @@ class AuxiliaryCameraViewsManager {
     syncPanelSize(panelState) {
         const width = Math.max(120, Math.floor(panelState.viewport.clientWidth));
         const height = Math.max(80, Math.floor(panelState.viewport.clientHeight));
-        if (width === panelState.width && height === panelState.height) {
-            return;
+        const changed = width !== panelState.width || height !== panelState.height;
+        if (changed) {
+            panelState.width = width;
+            panelState.height = height;
+            panelState.renderer.setSize(width, height, true);
+            panelState.camera.aspect = width / height;
+            panelState.camera.updateProjectionMatrix();
         }
-        panelState.width = width;
-        panelState.height = height;
-        panelState.renderer.setSize(width, height, true);
-        panelState.camera.aspect = width / height;
-        panelState.camera.updateProjectionMatrix();
+        this.clampPanelPosition(panelState);
     }
 
     renderLayers(renderer, scene, camera) {
@@ -208,12 +342,13 @@ class AuxiliaryCameraViewsManager {
         return Number.isFinite(radius) && radius > 0 ? radius : 1;
     }
 
-    render({ scene, activeCraft, earth, moon, referenceCamera }) {
+    render({ scene, activeCraft, earth, moon, referenceCamera, panelsVisible = true }) {
         if (!this.root) {
             return;
         }
 
-        if (!isDesktopViewport()) {
+        this.panelsEnabled = panelsVisible !== false;
+        if (!this.panelsEnabled || !isDesktopViewport()) {
             this.root.hidden = true;
             return;
         }
@@ -288,8 +423,27 @@ class AuxiliaryCameraViewsManager {
         }
 
         window.removeEventListener("resize", this.handleResizeBound);
+        this.dragState = null;
         for (const panelState of this.panels) {
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
+            const header = panelState.panel.querySelector(".aux-camera-view__header");
+            if (header) {
+                if (panelState.onPointerDown) {
+                    header.removeEventListener("pointerdown", panelState.onPointerDown);
+                }
+                if (panelState.onPointerMove) {
+                    header.removeEventListener("pointermove", panelState.onPointerMove);
+                }
+                if (panelState.onPointerUp) {
+                    header.removeEventListener("pointerup", panelState.onPointerUp);
+                }
+                if (panelState.onPointerCancel) {
+                    header.removeEventListener("pointercancel", panelState.onPointerCancel);
+                }
+            }
+            if (panelState.onPanelPointerDown) {
+                panelState.panel.removeEventListener("pointerdown", panelState.onPanelPointerDown);
+            }
             panelState.renderer.dispose();
         }
         this.panels.length = 0;

@@ -421,6 +421,7 @@ export function bindMainControls(handlers) {
     onClick("view-orbit", setView);
     onClick("view-orbit-descent", setView);
     onClick("view-additional-crafts", setView);
+    onClick("view-aux-camera-panels", setView);
     onChange("active-craft-select", setView);
     onClick("view-craters", setView);
     onClick("view-xyz-axes", setView);

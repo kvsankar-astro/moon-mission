@@ -1,4 +1,5 @@
 const VIEW_FLAG_KEYS = [
+    "viewAuxiliaryPanels",
     "viewOrbit",
     "viewOrbitDescent",
     "viewCraters",
@@ -17,6 +18,7 @@ const VIEW_FLAG_KEYS = [
 
 function buildDefaultViewFlags() {
     return {
+        viewAuxiliaryPanels: true,
         viewOrbit: true,
         viewOrbitDescent: true,
         viewCraters: true,
@@ -101,6 +103,10 @@ function createRuntimeViewState({
         getViewOrbit: () => viewFlags.viewOrbit,
         setViewOrbit: (value) => {
             viewFlags.viewOrbit = Boolean(value);
+        },
+        getViewAuxiliaryPanels: () => viewFlags.viewAuxiliaryPanels,
+        setViewAuxiliaryPanels: (value) => {
+            viewFlags.viewAuxiliaryPanels = Boolean(value);
         },
         getViewOrbitDescent: () => viewFlags.viewOrbitDescent,
         setViewOrbitDescent: (value) => {

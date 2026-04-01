@@ -261,6 +261,7 @@ function createMissionStateStore(ctx) {
         },
         toggleLanding: () => getRuntimeBootstrapActions().toggleLanding(),
         setViewFlags: (view = {}) => {
+            setBooleanStateIfDefined("viewAuxiliaryPanels", view.viewAuxiliaryPanels);
             setBooleanStateIfDefined("viewOrbit", view.viewOrbit);
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
             setBooleanStateIfDefined("viewCraters", view.viewCraters);
