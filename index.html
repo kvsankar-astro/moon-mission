@@ -672,6 +672,13 @@
             min-width: 0;
         }
 
+        .landing-brief-title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+
         .landing-brief-header-right {
             display: flex;
             align-items: center;
@@ -690,9 +697,17 @@
             font-size: 24px;
             color: #ecf2ff;
             line-height: 1.2;
+            flex: 1 1 auto;
+            min-width: 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .landing-brief-header-launch {
+            flex-shrink: 0;
+            font-size: 12px;
+            padding: 6px 10px;
         }
 
         .landing-brief-nav {
@@ -1119,6 +1134,13 @@
             .landing-brief-title { font-size: 20px; }
             .landing-brief-header-right { gap: 5px; }
             .landing-brief-nav-btn {
+                font-size: 11px;
+                padding: 5px 8px;
+            }
+            .landing-brief-title-row {
+                gap: 6px;
+            }
+            .landing-brief-header-launch {
                 font-size: 11px;
                 padding: 5px 8px;
             }

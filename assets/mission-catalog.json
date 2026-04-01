@@ -32,8 +32,7 @@
         ],
         "artemis": [
           "artemis1",
-          "artemis2",
-          "artemis"
+          "artemis2"
         ],
         "apollo": [
           "apollo8-sivb",
@@ -53,6 +52,7 @@
         ],
         "cislunar-pathfinders": [
           "capstone",
+          "artemis",
           "lunar-flashlight",
           "slim"
         ],

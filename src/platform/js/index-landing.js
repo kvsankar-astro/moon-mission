@@ -1839,7 +1839,10 @@
             var html = "";
             html += "<div class=\"landing-brief-header\">";
             html += "<div class=\"landing-brief-header-left\">";
+            html += "<div class=\"landing-brief-title-row\">";
             html += "<h2 class=\"landing-brief-title\">" + safeTitle + "</h2>";
+            html += "<a class=\"landing-card__btn landing-card__btn--launch landing-brief-header-launch\" id=\"landing-brief-launch\" href=\"" + escapeHtml(row.href) + "\">Launch Animation</a>";
+            html += "</div>";
             html += "<p class=\"landing-brief-meta\">" + (flagForCountry(row.country) ? (flagForCountry(row.country) + " ") : "") + safeCountry + " • " + safeRange + "</p>";
             html += "</div>";
             html += "<div class=\"landing-brief-header-right\">";
@@ -1891,7 +1894,6 @@
             html += "</div>";
             html += "<div class=\"landing-brief-actions-right\">";
             html += "<button type=\"button\" class=\"landing-card__btn\" id=\"landing-brief-close-footer\">Close</button>";
-            html += "<a class=\"landing-card__btn landing-card__btn--launch\" id=\"landing-brief-launch\" href=\"" + escapeHtml(row.href) + "\">Launch Animation</a>";
             html += "</div>";
             html += "</div>";
             return html;
