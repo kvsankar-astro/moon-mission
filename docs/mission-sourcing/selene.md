@@ -10,7 +10,7 @@
 - Launch/reference start: `2007-09-14 01:31:01 UTC`
 - Orbit data start: `2007-10-20 02:30:00 UTC`
 - Orbit data end: `2009-06-10 18:25:00 UTC`
-- Sampling step: `600` seconds
+- Sampling step: `60` seconds
 - Coverage strategy: public DARTS main-orbit SPK, clipped to the documented lunar-impact end time.
 
 ## Primary Source References

@@ -11,7 +11,7 @@ Primary source kernels:
 Coverage used here:
 - Start UTC: `2004-11-11T02:04:13.797Z`
 - End UTC: `2006-09-03T05:42:22Z`
-- Sampling cadence: `600` seconds
+- Sampling cadence: `60` seconds
 
 Command run:
 
@@ -24,7 +24,7 @@ Command run:
   --lsk /home/sankar/sankar/projects/skyfield-ts/data/mirrors/naif/generic_kernels/lsk/latest_leapseconds.tls \
   --target -238 \
   --label SM1 \
-  --step-seconds 600 \
+  --step-seconds 60 \
   --tolerance-km 5 \
   --end-utc 2006-09-03T05:42:22
 ```
@@ -37,7 +37,7 @@ python scripts/generate-relative-orbits.py \
   --phase geo \
   --force \
   --source-cheb ../moon-mission-data/assets/smart1/data/geo-SM1-cheb.json \
-  --sample-step-seconds 600
+  --sample-step-seconds 60
 ```
 
 Notes:

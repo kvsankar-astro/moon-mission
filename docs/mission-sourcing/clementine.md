@@ -10,7 +10,7 @@
 - Launch/reference start: `1994-01-25 16:34:00 UTC`
 - Orbit data start: `1994-02-19 12:59:00 UTC`
 - Orbit data end: `1994-05-03 12:59:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 
 ## Primary Source References
 - docs/horizons-blurbs/raw/clementine.txt: 'clem_nrl 1994-Feb-19 12:59 1994-May-03 12:59'

@@ -10,7 +10,7 @@
 - Launch/reference start: `2018-04-18 22:51:00 UTC`
 - Orbit data start: `2018-04-18 23:37:00 UTC`
 - Orbit data end: `2018-07-19 23:37:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `2018-Apr-18 23:37` to `2027-Sep-15 13:00`
 - Selected interesting window strategy: earliest `92` days, chosen to capture deployment, phasing loops, the lunar flyby, and the opening transition into the stable science orbit.
 

@@ -11,7 +11,7 @@
 - Launch/reference start: `2007-02-17 23:01:00 UTC`
 - Orbit data start: `2011-06-01 00:00:00 UTC`
 - Orbit data end: `2011-09-01 00:00:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory coverage from source begins `2007-Feb-18` and continues through current definitive plus short-term solution ranges.
 - Selected interesting window strategy: a custom `92`-day lunar-operations slice centered on the 2011 lunar-orbit phase, because the mission's most relevant Moon story is the paired lunar-orbit era rather than the earlier THEMIS launch phase.
 

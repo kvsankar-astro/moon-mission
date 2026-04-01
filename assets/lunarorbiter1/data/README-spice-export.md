@@ -11,7 +11,7 @@ Coverage used here:
 - Start UTC: `1966-08-14T15:39:55.898Z`
 - End UTC: `1966-10-26T23:39:56.088Z`
 - Coverage intervals: `35`
-- Sampling cadence: `600` seconds
+- Sampling cadence: `60` seconds
 
 Command run:
 
@@ -23,7 +23,7 @@ Command run:
   --lsk /home/sankar/sankar/projects/skyfield-ts/data/mirrors/naif/generic_kernels/lsk/latest_leapseconds.tls \
   --target -531 \
   --label LO1 \
-  --step-seconds 600 \
+  --step-seconds 60 \
   --tolerance-km 5
 ```
 
@@ -35,7 +35,7 @@ python scripts/generate-relative-orbits.py \
   --phase geo \
   --force \
   --source-cheb ../moon-mission-data/assets/lunarorbiter1/data/geo-LO1-cheb.json \
-  --sample-step-seconds 600
+  --sample-step-seconds 60
 ```
 
 Notes:

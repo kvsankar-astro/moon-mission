@@ -81,7 +81,7 @@
     "stop_day": "01",
     "stop_hour": "00",
     "stop_minute": "00",
-    "step_size_in_seconds": 120,
+    "step_size_in_seconds": 60,
     "planets": [
       "MOON",
       "ARTP1",
@@ -101,7 +101,7 @@
     "stop_day": "01",
     "stop_hour": "00",
     "stop_minute": "00",
-    "step_size_in_seconds": 120,
+    "step_size_in_seconds": 60,
     "planets": [
       "ARTP1",
       "ARTP2",

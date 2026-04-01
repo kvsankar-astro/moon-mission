@@ -10,7 +10,7 @@
 - Launch/reference start: `2003-09-27 23:14:39 UTC`
 - Orbit data start: `2004-11-11 02:04:13 UTC`
 - Orbit data end: `2006-09-03 05:42:22 UTC`
-- Sampling step: `600` seconds
+- Sampling step: `60` seconds
 - Coverage strategy: union of the two public SMART-1 moon-phase kernels, clipped to the public mission-end impact time.
 
 ## Primary Source References

@@ -11,7 +11,7 @@
 - Launch/reference start: `2006-10-26 01:53:00 UTC`
 - Orbit data start: `2006-10-26 01:53:00 UTC`
 - Orbit data end: `2007-01-26 01:53:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory coverage from source extends far beyond the lunar phase for both spacecraft.
 - Selected interesting window strategy: earliest `92` days, chosen to capture both lunar redirect flybys and the split into leading and trailing heliocentric orbits.
 

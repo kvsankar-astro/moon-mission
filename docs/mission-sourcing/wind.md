@@ -10,7 +10,7 @@
 - Launch/reference start: `1994-11-01 09:31:00 UTC`
 - Orbit data start: `1994-11-01 10:49:00 UTC`
 - Orbit data end: `1995-02-01 10:49:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `1994-Nov-01` to `2026-Jun-02`
 - Selected interesting window strategy: earliest `92` days, chosen to capture the opening double-lunar swingby phase described in the HORIZONS background.
 

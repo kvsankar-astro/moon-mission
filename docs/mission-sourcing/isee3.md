@@ -10,7 +10,7 @@
 - Launch/reference start: `1978-08-12 15:12:00 UTC`
 - Orbit data start: `2014-06-25 19:19:00 UTC`
 - Orbit data end: `2014-09-25 19:19:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `2014-Jan-01` to `2014-Dec-31`
 - Selected interesting window strategy: encounter-centered `92` days around the 2014 Earth/Moon return, because the raw HORIZONS trajectory is a 2014 reconstruction rather than the full 1978-1980s mission history.
 

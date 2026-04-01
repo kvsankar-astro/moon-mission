@@ -10,7 +10,7 @@
 - Launch/reference start: `1998-07-03 18:12:00 UTC`
 - Orbit data start: `1999-02-08 12:02:00 UTC`
 - Orbit data end: `1999-05-11 12:02:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `1999-Feb-08 12:01` to `2003-Dec-14 00:00`
 - Selected interesting window strategy: earliest `92` days of the replanned post-flyby mission extension, because HORIZONS does not provide ephemeris for the 1998 launch and lunar-flyby phase.
 

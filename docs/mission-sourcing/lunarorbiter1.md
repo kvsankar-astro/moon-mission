@@ -10,7 +10,7 @@
 - Launch/reference start: `1966-08-10 19:31:00 UTC`
 - Orbit data start: `1966-08-14 15:39:55 UTC`
 - Orbit data end: `1966-10-26 23:39:56 UTC`
-- Sampling step: `600` seconds
+- Sampling step: `60` seconds
 - Coverage strategy: full public NAIF Lunar Orbiter 1 SPK with all public coverage intervals preserved.
 
 ## Primary Source References

@@ -10,7 +10,7 @@
 - Launch/reference start: `2001-06-30 19:46:46 UTC`
 - Orbit data start: `2001-06-30 21:16:00 UTC`
 - Orbit data end: `2001-09-30 21:16:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `2001-Jun-30` to `2009-Apr-07`
 - Selected interesting window strategy: earliest `92` days, chosen to capture launch recovery, phasing loops, the lunar gravity assist, and the opening transfer toward Earth-Moon-Sun L2.
 

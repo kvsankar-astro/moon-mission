@@ -11,7 +11,7 @@ Coverage used here:
 - Start UTC: `2007-10-20T02:30:00.000Z`
 - End UTC: `2009-06-10T18:25:00Z`
 - Coverage intervals: `13`
-- Sampling cadence: `600` seconds
+- Sampling cadence: `60` seconds
 
 Command run:
 
@@ -23,7 +23,7 @@ Command run:
   --lsk /home/sankar/sankar/projects/skyfield-ts/data/mirrors/naif/generic_kernels/lsk/latest_leapseconds.tls \
   --target -131 \
   --label SEL \
-  --step-seconds 600 \
+  --step-seconds 60 \
   --tolerance-km 5 \
   --end-utc 2009-06-10T18:25:00
 ```
@@ -36,7 +36,7 @@ python scripts/generate-relative-orbits.py \
   --phase geo \
   --force \
   --source-cheb ../moon-mission-data/assets/selene/data/geo-SEL-cheb.json \
-  --sample-step-seconds 600
+  --sample-step-seconds 60
 ```
 
 Notes:

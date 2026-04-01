@@ -10,7 +10,7 @@
 - Launch/reference start: `2023-04-14 12:14:00 UTC`
 - Orbit data start: `2024-07-15 00:00:00 UTC`
 - Orbit data end: `2024-10-15 00:00:00 UTC`
-- Sampling step: `120` seconds
+- Sampling step: `60` seconds
 - Original trajectory window from source: `2023-Apr-14` to `2031-Jul-21`
 - Selected interesting window strategy: custom Earth-Moon-assist-centered `92` days, because the mission's lunar relevance is the August 2024 gravity-assist passage rather than the launch or Jupiter-arrival phases.
 
