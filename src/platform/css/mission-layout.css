@@ -377,7 +377,7 @@ a:hover { color: white; }
     z-index: 7;
     width: auto;
     margin: 0;
-    padding: 4px 6px 3px 26px;
+    padding: 3px 5px 2px 23px;
     border-radius: var(--ui-radius-sm) var(--ui-radius-sm) 0 0;
     border: 1px solid rgba(121, 171, 255, 0.1);
     border-bottom: none;
@@ -394,14 +394,14 @@ a:hover { color: white; }
     top: 50%;
     transform: translateY(-50%);
     z-index: 11;
-    width: 18px;
-    min-width: 18px;
-    height: 44px;
+    width: 16px;
+    min-width: 16px;
+    height: 38px;
     border-radius: 8px;
     border: 1px solid rgba(130, 175, 255, 0.75);
     background: rgba(55, 95, 165, 0.55);
     color: #eaf3ff;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
     line-height: 1;
     padding: 0;
@@ -419,9 +419,9 @@ a:hover { color: white; }
 
 #control-panel.control-panel--collapsed {
     right: auto;
-    width: 26px;
-    min-width: 26px;
-    height: 46px;
+    width: 22px;
+    min-width: 22px;
+    height: 40px;
     padding: 0;
     border: 1px solid rgba(121, 171, 255, 0.18);
     border-radius: 8px;
@@ -437,15 +437,15 @@ a:hover { color: white; }
     left: 3px;
     top: 50%;
     transform: translateY(-50%);
-    width: 18px;
-    min-width: 18px;
-    height: 40px;
+    width: 14px;
+    min-width: 14px;
+    height: 34px;
 }
 
 #animation-control-panel {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     position: relative;
 }
 
@@ -458,7 +458,7 @@ a:hover { color: white; }
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 #animationbuttons .swiper-wrapper,
@@ -471,8 +471,8 @@ a:hover { color: white; }
 .controls-cluster {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 3px;
+    gap: 3px;
+    padding: 2px;
     border-radius: var(--ui-radius-sm);
     background: rgba(15, 23, 36, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -496,14 +496,14 @@ a:hover { color: white; }
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 28px;
-    padding: 0 8px;
+    min-height: 24px;
+    padding: 0 7px;
     border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-sm);
     background: rgba(255, 255, 255, 0.03);
     color: var(--ui-text-1);
     font-family: var(--ui-font-sans);
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.02em;
     cursor: pointer;
@@ -511,22 +511,22 @@ a:hover { color: white; }
 }
 
 .button--icon {
-    width: 28px;
-    min-width: 28px;
+    width: 24px;
+    min-width: 24px;
     padding: 0;
 }
 
 .button--primary {
-    min-width: 60px;
+    min-width: 54px;
 }
 
 .button--speed {
-    min-width: 38px;
+    min-width: 34px;
     font-variant-numeric: tabular-nums;
 }
 
 .button--realtime {
-    min-width: 68px;
+    min-width: 60px;
 }
 
 .button:hover,

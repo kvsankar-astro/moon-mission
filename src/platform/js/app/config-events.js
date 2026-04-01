@@ -66,6 +66,62 @@ function resolveEventAvailabilityStartMs({
     return Number.isFinite(parsedAvailability) ? parsedAvailability : Number.NaN;
 }
 
+function resolvePrimaryCraftMnemonic(globalConfig) {
+    const primaryCraft = resolveMissionCraft(
+        globalConfig,
+        globalConfig?.primaryCraftId || globalConfig?.spacecraft_mnemonic || "SC",
+    );
+    return primaryCraft?.mnemonic || globalConfig?.spacecraft_mnemonic || "SC";
+}
+
+function maybeBuildNowEventInfo({
+    globalConfig,
+    config,
+    nowDate,
+    getDataEndTimeMs,
+    eventInfos,
+}) {
+    const existingNow = (eventInfos || []).find((eventInfo) => eventInfo?.kind === "now" || eventInfo?.key === "now");
+    const nowMs = new Date(nowDate).getTime();
+    if (!Number.isFinite(nowMs)) return existingNow || null;
+
+    const originStartMs = parseUtcPartsStart(globalConfig?.[config]);
+    const sourceMnemonic = resolvePrimaryCraftMnemonic(globalConfig);
+    const dataEndMs = getDataEndTimeMs?.(sourceMnemonic);
+    if (!Number.isFinite(originStartMs) || !Number.isFinite(dataEndMs)) {
+        return existingNow || null;
+    }
+
+    if (nowMs < originStartMs || nowMs > dataEndMs) {
+        return null;
+    }
+    if (existingNow) {
+        return {
+            ...existingNow,
+            startTime: new Date(nowMs),
+            clickable: true,
+            preEphemeris: false,
+            availabilityStartTime: new Date(originStartMs),
+        };
+    }
+
+    return {
+        key: "now",
+        kind: "now",
+        startTime: new Date(nowMs),
+        durationSeconds: 0,
+        label: "Now",
+        burnFlag: false,
+        infoText: "Now",
+        hoverText: "Now",
+        body: "",
+        timeSource: null,
+        clickable: true,
+        preEphemeris: false,
+        availabilityStartTime: new Date(originStartMs),
+    };
+}
+
 export function computeEventsUpdate({
     globalConfig,
     config,
@@ -144,11 +200,24 @@ export function computeEventsUpdate({
         eventInfo.clickable = !eventInfo.preEphemeris;
     }
 
-    eventInfos.sort((a, b) => a.startTime - b.startTime);
+    const nowEventInfo = maybeBuildNowEventInfo({
+        globalConfig,
+        config,
+        nowDate,
+        getDataEndTimeMs,
+        eventInfos,
+    });
+
+    const filteredEventInfos = eventInfos.filter((eventInfo) => eventInfo.kind !== "now" && eventInfo.key !== "now");
+    if (nowEventInfo) {
+        filteredEventInfos.push(nowEventInfo);
+    }
+
+    filteredEventInfos.sort((a, b) => a.startTime - b.startTime);
 
     return {
         shouldUpdate: true,
-        eventInfos,
+        eventInfos: filteredEventInfos,
         warnings,
     };
 }

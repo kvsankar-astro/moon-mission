@@ -3547,6 +3547,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         expect(comparison.isMatch).toBe(true);
       } finally {
         // Reset timeline to Launch for next test
+        await closeSettingsPanel(page);
         await page.click('#burn1');
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       }
@@ -3629,7 +3630,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         expect(comparison.isMatch).toBe(true);
       } finally {
         // Reset timeline to Launch for next test
-        await page.click('#burn1');
+        await closeSettingsPanel(page);
+        await page.evaluate(() => {
+          document.getElementById('burn1')?.click();
+        });
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       }
       

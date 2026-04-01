@@ -358,6 +358,18 @@ export function bindSettingsPanel() {
  * @param {(index: number) => void} onBurn
  */
 export function bindBurnButtons(eventCount, onBurn) {
+    const burnButtons = document.querySelectorAll("#burnbuttons button[data-event-index]");
+    if (burnButtons.length > 0) {
+        burnButtons.forEach((button) => {
+            const eventIndex = Number.parseInt(button.getAttribute("data-event-index") || "", 10);
+            if (!Number.isFinite(eventIndex)) return;
+            button.onclick = function () {
+                onBurn(eventIndex);
+            };
+        });
+        return;
+    }
+
     for (let i = 0; i < eventCount; ++i) {
         onClick("burn" + (i + 1), function () {
             onBurn(i);

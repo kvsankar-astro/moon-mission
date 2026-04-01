@@ -16,14 +16,18 @@ function createInitConfigUiActions(deps) {
     function renderBurnButtons() {
         const eventInfos = getEventInfos() || [];
         d3.select("#burnbuttons").html("");
+        let numberedButtonIndex = 0;
 
         for (let i = 0; i < eventInfos.length; ++i) {
             const eventInfo = eventInfos[i];
+            const isNowButton = eventInfo?.kind === "now" || eventInfo?.key === "now";
+            const buttonId = isNowButton ? "burn-now" : "burn" + (++numberedButtonIndex);
             const button = d3.select("#burnbuttons")
                 .append("div")
                 .attr("class", "swiper-slide")
                 .append("button")
-                .attr("id", "burn" + (i + 1))
+                .attr("id", buttonId)
+                .attr("data-event-index", String(i))
                 .attr("data-event-key", eventInfo["key"] || "")
                 .attr("type", "button")
                 .attr(
@@ -55,8 +59,7 @@ function createInitConfigUiActions(deps) {
     }
 
     function bindBurnEventButtons() {
-        const eventInfos = getEventInfos() || [];
-        bindBurnButtons(eventInfos.length, getBurnButtonHandler());
+        bindBurnButtons((getEventInfos() || []).length, getBurnButtonHandler());
     }
 
     function initializeSwipers() {

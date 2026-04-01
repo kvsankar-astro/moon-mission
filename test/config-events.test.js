@@ -51,6 +51,104 @@ describe("computeEventsUpdate", () => {
         expect(update.eventInfos.map((event) => event.key)).toEqual(["launch", "dataEnd", "now"]);
     });
 
+    it("injects a Now event when current time falls within the mission data span", () => {
+        const update = computeEventsUpdate({
+            globalConfig: {
+                spacecraft_mnemonic: "CY3",
+                geo: {
+                    start_year: "2023",
+                    start_month: "01",
+                    start_day: "01",
+                    start_hour: "00",
+                    start_minute: "00",
+                },
+                events: {
+                    launch: {
+                        kind: "fixed",
+                        startTime: "2023-01-01T00:00:00Z",
+                        durationSeconds: 0,
+                        label: "Launch",
+                        burnFlag: false,
+                        infoText: "Launch",
+                        body: "SC",
+                    },
+                    dataEnd: {
+                        kind: "data_end",
+                        startTime: "dynamic",
+                        timeSource: { spacecraftMnemonic: "CY3" },
+                        durationSeconds: 0,
+                        label: "Data End",
+                        burnFlag: false,
+                        infoText: "End",
+                        body: "",
+                    },
+                },
+                eventConfigs: {
+                    geo: ["launch", "dataEnd"],
+                },
+            },
+            config: "geo",
+            nowDate: new Date("2023-01-02T12:00:00Z"),
+            getDataEndTimeMs: () => new Date("2023-01-03T00:00:00Z").getTime(),
+        });
+
+        expect(update.eventInfos.map((event) => event.key)).toEqual(["launch", "now", "dataEnd"]);
+        expect(update.eventInfos.map((event) => event.kind)).toEqual(["fixed", "now", "data_end"]);
+    });
+
+    it("hides a Now event when current time is outside the mission data span", () => {
+        const update = computeEventsUpdate({
+            globalConfig: {
+                spacecraft_mnemonic: "CY3",
+                geo: {
+                    start_year: "2023",
+                    start_month: "01",
+                    start_day: "10",
+                    start_hour: "00",
+                    start_minute: "00",
+                },
+                events: {
+                    launch: {
+                        kind: "fixed",
+                        startTime: "2023-01-10T00:00:00Z",
+                        durationSeconds: 0,
+                        label: "Launch",
+                        burnFlag: false,
+                        infoText: "Launch",
+                        body: "SC",
+                    },
+                    now: {
+                        kind: "now",
+                        startTime: "dynamic",
+                        durationSeconds: 0,
+                        label: "Now",
+                        burnFlag: false,
+                        infoText: "Now",
+                        body: "",
+                    },
+                    dataEnd: {
+                        kind: "data_end",
+                        startTime: "dynamic",
+                        timeSource: { spacecraftMnemonic: "CY3" },
+                        durationSeconds: 0,
+                        label: "Data End",
+                        burnFlag: false,
+                        infoText: "End",
+                        body: "",
+                    },
+                },
+                eventConfigs: {
+                    geo: ["launch", "now", "dataEnd"],
+                },
+            },
+            config: "geo",
+            nowDate: new Date("2023-01-05T00:00:00Z"),
+            getDataEndTimeMs: () => new Date("2023-01-20T00:00:00Z").getTime(),
+        });
+
+        expect(update.eventInfos.map((event) => event.key)).toEqual(["launch", "dataEnd"]);
+    });
+
     it("supports legacy dynamic fallback when kind is missing", () => {
         const update = computeEventsUpdate({
             globalConfig: {
