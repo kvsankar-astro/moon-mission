@@ -92,6 +92,31 @@ export function formatDateTimeIST(dateOrTimestamp) {
 }
 
 /**
+ * Format a date for display in UTC.
+ * @param {Date|number} dateOrTimestamp - Date object or UTC timestamp in ms
+ * @returns {string} Formatted date string (e.g., "Fri, 03 Apr, 2026, 21:56:00 UTC")
+ */
+export function formatDateTimeUTC(dateOrTimestamp) {
+    const date = typeof dateOrTimestamp === 'number'
+        ? new Date(dateOrTimestamp)
+        : dateOrTimestamp;
+
+    const options = {
+        timeZone: 'UTC',
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    };
+
+    return date.toLocaleString('en-GB', options) + ' UTC';
+}
+
+/**
  * Format just the date portion for display in IST.
  * @param {Date|number} dateOrTimestamp - Date object or UTC timestamp in ms
  * @returns {string} Formatted date string (e.g., "14 Jul 2023")

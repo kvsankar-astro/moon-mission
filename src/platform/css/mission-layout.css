@@ -249,10 +249,10 @@ canvas {
 
 .timeline-dock__marker {
     position: absolute;
-    top: 3px;
+    top: 0;
     transform: translateX(-50%);
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 9px;
     border: none;
     border-radius: 999px;
     background: transparent;
@@ -264,10 +264,10 @@ canvas {
     content: "";
     position: absolute;
     left: 50%;
-    top: 2px;
+    top: 0;
     transform: translateX(-50%);
     width: 2px;
-    height: 10px;
+    height: 9px;
     border-radius: 999px;
     background: rgba(207, 221, 244, 0.8);
 }
@@ -278,7 +278,7 @@ canvas {
 
 .timeline-dock__marker:hover::before,
 .timeline-dock__marker:focus-visible::before {
-    height: 12px;
+    height: 10px;
     background: rgba(152, 193, 255, 0.98);
 }
 
@@ -297,7 +297,7 @@ canvas {
 
 .timeline-dock__marker--inactive:hover::before,
 .timeline-dock__marker--inactive:focus-visible::before {
-    height: 10px;
+    height: 9px;
     background: rgba(137, 151, 176, 0.62);
 }
 
@@ -655,6 +655,15 @@ a:hover { color: white; }
     color: rgba(210, 220, 237, 0.62);
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(148, 159, 182, 0.22);
+}
+
+.burnbutton--active-event {
+    color: #f8fcff;
+    background: rgba(104, 164, 255, 0.28);
+    border-color: rgba(172, 207, 255, 0.96);
+    box-shadow:
+        0 0 0 1px rgba(213, 232, 255, 0.32),
+        0 0 14px rgba(106, 170, 255, 0.34);
 }
 
 #burnbuttons .swiper-slide {

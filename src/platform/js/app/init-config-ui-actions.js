@@ -1,3 +1,5 @@
+import { formatDateTimeUTC } from "../utils/time-utils.js";
+
 function createInitConfigUiActions(deps) {
     const {
         d3,
@@ -9,8 +11,27 @@ function createInitConfigUiActions(deps) {
         clearEventInfo,
     } = deps;
 
+    function resolveEventTimeMs(eventInfo) {
+        if (!eventInfo) return Number.NaN;
+        if (eventInfo.startTime instanceof Date) {
+            return eventInfo.startTime.getTime();
+        }
+        if (Number.isFinite(eventInfo.startTime)) {
+            return eventInfo.startTime;
+        }
+        const parsed = new Date(eventInfo.startTime).getTime();
+        return Number.isFinite(parsed) ? parsed : Number.NaN;
+    }
+
     function getEventHoverText(eventInfo) {
-        return eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+        const baseText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+        const eventTimeMs = resolveEventTimeMs(eventInfo);
+        if (!Number.isFinite(eventTimeMs)) {
+            return baseText;
+        }
+
+        const when = formatDateTimeUTC(eventTimeMs);
+        return baseText ? `${baseText} • ${when}` : when;
     }
 
     function renderBurnButtons() {

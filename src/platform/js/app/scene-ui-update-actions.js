@@ -5,9 +5,72 @@ function createSceneUiUpdateActions(deps) {
         updateEventInfo,
         clearEventInfo,
     } = deps;
+    const ACTIVE_EVENT_BUTTON_CLASS = "burnbutton--active-event";
+    let highlightedEventButton = null;
+    let activeEventVisible = false;
 
     function setMetricText(selector, value) {
         d3.select(selector).text(Number.isFinite(value) ? formatMetric(value) : "");
+    }
+
+    function clearActiveEventButtonHighlight() {
+        if (highlightedEventButton) {
+            highlightedEventButton.classList.remove(ACTIVE_EVENT_BUTTON_CLASS);
+            highlightedEventButton = null;
+        }
+    }
+
+    function normalizeText(value) {
+        return typeof value === "string" ? value.trim().toLowerCase() : "";
+    }
+
+    function resolveButtonForActiveEvent(activeEvent) {
+        const eventKey = typeof activeEvent?.key === "string" ? activeEvent.key : "";
+        const buttons = document.querySelectorAll("#burnbuttons button[data-event-key]");
+        if (!buttons.length) return null;
+
+        if (eventKey) {
+            for (const button of buttons) {
+                if (button?.dataset?.eventKey === eventKey) {
+                    return button;
+                }
+            }
+        }
+
+        const eventLabel = normalizeText(activeEvent?.label);
+        const eventHoverText = normalizeText(activeEvent?.hoverText || activeEvent?.infoText);
+        for (const button of buttons) {
+            const buttonLabel = normalizeText(button?.textContent);
+            const buttonTitle = normalizeText(button?.getAttribute("title"));
+            if (eventLabel && buttonLabel === eventLabel) {
+                return button;
+            }
+            if (eventHoverText && buttonTitle && buttonTitle === eventHoverText) {
+                return button;
+            }
+        }
+        return null;
+    }
+
+    function updateActiveEventButtonHighlight(activeEvent) {
+        if (!activeEvent) {
+            clearActiveEventButtonHighlight();
+            return;
+        }
+
+        const button = resolveButtonForActiveEvent(activeEvent);
+        if (!button) {
+            clearActiveEventButtonHighlight();
+            return;
+        }
+
+        if (button === highlightedEventButton) {
+            return;
+        }
+
+        clearActiveEventButtonHighlight();
+        button.classList.add(ACTIVE_EVENT_BUTTON_CLASS);
+        highlightedEventButton = button;
     }
 
     function updateTelemetry(sceneState, primaryBody) {
@@ -78,13 +141,21 @@ function createSceneUiUpdateActions(deps) {
 
     function updateActiveEvent(sceneState) {
         if (sceneState.activeEvent) {
-            d3.select("#burng").style("visibility", "visible");
-            updateEventInfo(sceneState.activeEvent.infoText);
+            if (!activeEventVisible) {
+                d3.select("#burng").style("visibility", "visible");
+                activeEventVisible = true;
+            }
+            updateEventInfo(sceneState.activeEvent.infoText || sceneState.activeEvent.label || "");
+            updateActiveEventButtonHighlight(sceneState.activeEvent);
             return;
         }
 
-        d3.select("#burng").style("visibility", "hidden");
+        if (activeEventVisible) {
+            d3.select("#burng").style("visibility", "hidden");
+            activeEventVisible = false;
+        }
         clearEventInfo();
+        clearActiveEventButtonHighlight();
     }
 
     return {

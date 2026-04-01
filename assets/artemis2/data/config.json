@@ -205,11 +205,11 @@
       "requiresEphemeris": true
     },
     "tli": {
-      "startTime": "2026-04-03T21:56:00Z",
+      "startTime": "2026-04-02T23:34:00Z",
       "durationSeconds": 480,
       "label": "TLI",
       "burnFlag": true,
-      "infoText": "3rd Apr 2026, 21:56 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
+      "infoText": "2nd Apr 2026, 23:34 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
       "hoverText": "The major translunar burn sends Orion onto a lunar free-return trajectory.",
       "body": "SC",
       "requiresEphemeris": true
