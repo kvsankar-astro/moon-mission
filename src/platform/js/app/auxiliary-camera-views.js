@@ -30,6 +30,9 @@ class AuxiliaryCameraViewsManager {
         this.viewDir = new THREE.Vector3();
         this.targetUp = new THREE.Vector3();
         this.targetQuat = new THREE.Quaternion();
+        this.cameraOffset = new THREE.Vector3();
+        this.boundingBox = new THREE.Box3();
+        this.boundingSphere = new THREE.Sphere();
 
         if (!isDesktopViewport()) {
             return;
@@ -74,7 +77,7 @@ class AuxiliaryCameraViewsManager {
         const fovSlider = document.createElement("input");
         fovSlider.className = "aux-camera-view__fov-slider";
         fovSlider.type = "range";
-        fovSlider.min = "20";
+        fovSlider.min = "1";
         fovSlider.max = "120";
         fovSlider.step = "1";
         fovSlider.value = String(spec.defaultFov);
@@ -152,7 +155,7 @@ class AuxiliaryCameraViewsManager {
         }
         panelState.width = width;
         panelState.height = height;
-        panelState.renderer.setSize(width, height, false);
+        panelState.renderer.setSize(width, height, true);
         panelState.camera.aspect = width / height;
         panelState.camera.updateProjectionMatrix();
     }
@@ -164,6 +167,45 @@ class AuxiliaryCameraViewsManager {
         renderer.autoClear = false;
         camera.layers.set(1);
         renderer.render(scene, camera);
+    }
+
+    suppressLinePrimitives(scene) {
+        const hiddenEntries = [];
+        scene?.traverse?.((object) => {
+            if (!object?.visible) {
+                return;
+            }
+            if (!object.isLine && !object.isLineLoop && !object.isLineSegments) {
+                return;
+            }
+            hiddenEntries.push({
+                object,
+                visible: object.visible,
+            });
+            object.visible = false;
+        });
+        return hiddenEntries;
+    }
+
+    restoreVisibility(entries) {
+        for (const entry of entries || []) {
+            entry.object.visible = entry.visible;
+        }
+    }
+
+    estimateCraftRadius(activeCraft) {
+        if (!activeCraft) {
+            return 1;
+        }
+
+        this.boundingBox.setFromObject(activeCraft);
+        if (this.boundingBox.isEmpty()) {
+            return 1;
+        }
+
+        this.boundingBox.getBoundingSphere(this.boundingSphere);
+        const radius = this.boundingSphere.radius;
+        return Number.isFinite(radius) && radius > 0 ? radius : 1;
     }
 
     render({ scene, activeCraft, earth, moon, referenceCamera }) {
@@ -183,46 +225,58 @@ class AuxiliaryCameraViewsManager {
 
         this.root.hidden = false;
         activeCraft.getWorldPosition(this.craftWorld);
+        const craftWasVisible = activeCraft.visible;
+        const craftRadius = this.estimateCraftRadius(activeCraft);
+        const standoffDistance = Math.max(craftRadius * 2.5, 0.02);
 
         let visiblePanels = 0;
-        for (const panelState of this.panels) {
-            const targetObject = panelState.targetKey === "earth" ? earth : moon;
-            if (!targetObject) {
-                this.setPanelVisible(panelState, false);
-                continue;
+        activeCraft.visible = false;
+        const suppressedLines = this.suppressLinePrimitives(scene);
+
+        try {
+            for (const panelState of this.panels) {
+                const targetObject = panelState.targetKey === "earth" ? earth : moon;
+                if (!targetObject) {
+                    this.setPanelVisible(panelState, false);
+                    continue;
+                }
+
+                targetObject.getWorldPosition(this.targetWorld);
+                const distanceSq = this.craftWorld.distanceToSquared(this.targetWorld);
+                if (!Number.isFinite(distanceSq) || distanceSq <= 1e-14) {
+                    this.setPanelVisible(panelState, false);
+                    continue;
+                }
+
+                this.setPanelVisible(panelState, true);
+                visiblePanels += 1;
+                this.syncPanelSize(panelState);
+
+                if (referenceCamera) {
+                    panelState.camera.near = referenceCamera.near;
+                    panelState.camera.far = referenceCamera.far;
+                    panelState.camera.updateProjectionMatrix();
+                }
+
+                this.viewDir.subVectors(this.targetWorld, this.craftWorld).normalize();
+                this.cameraOffset.copy(this.viewDir).multiplyScalar(-standoffDistance);
+                panelState.camera.position.copy(this.craftWorld).add(this.cameraOffset);
+
+                this.targetUp.set(0, 0, 1);
+                targetObject.getWorldQuaternion(this.targetQuat);
+                this.targetUp.applyQuaternion(this.targetQuat).normalize();
+                if (Math.abs(this.targetUp.dot(this.viewDir)) > 0.98) {
+                    panelState.camera.up.set(0, 0, 1);
+                } else {
+                    panelState.camera.up.copy(this.targetUp);
+                }
+
+                panelState.camera.lookAt(this.targetWorld);
+                this.renderLayers(panelState.renderer, scene, panelState.camera);
             }
-
-            targetObject.getWorldPosition(this.targetWorld);
-            const distanceSq = this.craftWorld.distanceToSquared(this.targetWorld);
-            if (!Number.isFinite(distanceSq) || distanceSq <= 1e-14) {
-                this.setPanelVisible(panelState, false);
-                continue;
-            }
-
-            this.setPanelVisible(panelState, true);
-            visiblePanels += 1;
-            this.syncPanelSize(panelState);
-
-            if (referenceCamera) {
-                panelState.camera.near = referenceCamera.near;
-                panelState.camera.far = referenceCamera.far;
-                panelState.camera.updateProjectionMatrix();
-            }
-
-            panelState.camera.position.copy(this.craftWorld);
-            this.viewDir.subVectors(this.targetWorld, this.craftWorld).normalize();
-
-            this.targetUp.set(0, 0, 1);
-            targetObject.getWorldQuaternion(this.targetQuat);
-            this.targetUp.applyQuaternion(this.targetQuat).normalize();
-            if (Math.abs(this.targetUp.dot(this.viewDir)) > 0.98) {
-                panelState.camera.up.set(0, 0, 1);
-            } else {
-                panelState.camera.up.copy(this.targetUp);
-            }
-
-            panelState.camera.lookAt(this.targetWorld);
-            this.renderLayers(panelState.renderer, scene, panelState.camera);
+        } finally {
+            this.restoreVisibility(suppressedLines);
+            activeCraft.visible = craftWasVisible;
         }
 
         this.root.hidden = visiblePanels === 0;

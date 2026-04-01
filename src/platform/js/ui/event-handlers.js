@@ -164,7 +164,7 @@ function isMobileViewport() {
 }
 
 function resolveDefaultMobileSectionCollapsed(sectionKey) {
-    return sectionKey === "camera" || sectionKey === "view";
+    return sectionKey === "camera" || sectionKey === "plane" || sectionKey === "view";
 }
 
 function setSettingsSectionCollapsed(section, collapsed) {

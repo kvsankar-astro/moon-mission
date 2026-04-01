@@ -90,9 +90,9 @@ body {
     border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-md);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
-    width: 304px;
-    min-width: 260px;
-    max-width: min(92vw, 360px);
+    width: 282px;
+    min-width: 236px;
+    max-width: min(92vw, 332px);
 }
 
 .settings-dialog .ui-dialog-content {
@@ -106,15 +106,15 @@ body {
 #settings-panel-button {
     position: relative;
     z-index: 20;
-    height: 32px;
-    min-width: 38px;
+    height: 30px;
+    min-width: 36px;
     margin: 0;
     padding: 0 10px;
     border: 1px solid var(--ui-border-1);
     border-radius: var(--ui-radius-sm);
     background: var(--ui-surface-1);
     color: var(--ui-text-1);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: none;
@@ -127,7 +127,7 @@ body {
 #settings-panel-fieldset {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 #settings-panel-button:hover {
@@ -149,19 +149,19 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .settings-panel__title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
 .settings-panel__body {
-    padding: 10px 12px 14px;
+    padding: 8px 10px 10px;
     max-height: 70vh;
     overflow-y: auto;
 }
@@ -169,21 +169,21 @@ body {
 .settings-panel__sections {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .settings-section {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--ui-radius-md);
-    padding: 8px 10px 10px;
+    padding: 6px 8px 8px;
     background: rgba(255, 255, 255, 0.02);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .settings-section__title {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -193,7 +193,7 @@ body {
 .settings-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .settings-row--hidden {
@@ -203,19 +203,19 @@ body {
 .settings-options {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
 }
 
 .settings-options--pairs {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 6px;
+    gap: 4px;
 }
 
 .camera-pill-group {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 4px;
 }
 
 .camera-pill-group--plane {
@@ -231,13 +231,13 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 30px;
-    padding: 5px 8px;
+    min-height: 24px;
+    padding: 3px 6px;
     border-radius: var(--ui-radius-sm);
     border: 1px solid var(--ui-border-1);
     background: rgba(255, 255, 255, 0.05);
     color: var(--ui-text-2);
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.1;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
@@ -258,9 +258,9 @@ body {
 }
 
 .camera-pill-group--plane .camera-pill {
-    min-height: 26px;
-    padding: 4px 6px;
-    font-size: 10px;
+    min-height: 22px;
+    padding: 3px 5px;
+    font-size: 9px;
 }
 
 .camera-pill:has(input:checked) {
@@ -298,8 +298,8 @@ body {
 .settings-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 12px;
+    gap: 6px;
+    font-size: 11px;
     color: var(--ui-text-2);
     cursor: pointer;
 }
@@ -319,15 +319,15 @@ body {
 }
 
 .settings-subtitle {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--ui-text-2);
 }
 
 .settings-note {
-    margin-top: 6px;
-    font-size: 11px;
+    margin-top: 4px;
+    font-size: 10px;
     color: var(--ui-text-2);
 }
 
@@ -346,30 +346,30 @@ body {
 
 .settings-panel select {
     width: 100%;
-    padding: 5px 7px;
+    padding: 4px 6px;
     border-radius: var(--ui-radius-sm);
     border: 1px solid var(--ui-border-1);
     background: rgba(0, 0, 0, 0.36);
     color: var(--ui-text-1);
-    font-size: 11px;
+    font-size: 10px;
 }
 
 .settings-panel input[type="checkbox"],
 .settings-panel input[type="radio"] {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
 }
 
 .settings-row--trail-controls {
-    gap: 4px;
-    margin-top: -2px;
+    gap: 2px;
+    margin-top: -1px;
 }
 
 .settings-range-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--ui-text-2);
 }
 
@@ -380,6 +380,6 @@ body {
 
 .settings-row--trail-controls input[type="range"] {
     width: 100%;
-    margin: 0 0 4px;
+    margin: 0 0 2px;
     accent-color: var(--ui-accent-1);
 }

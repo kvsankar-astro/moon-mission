@@ -778,10 +778,10 @@ fieldset {
         display: none;
     }
     #settings-panel-button {
-        height: 28px;
-        min-width: 36px;
-        padding: 0 9px;
-        font-size: 11px;
+        height: 26px;
+        min-width: 34px;
+        padding: 0 8px;
+        font-size: 10px;
     }
     .settings-dialog {
         border-radius: 10px;
@@ -791,10 +791,10 @@ fieldset {
         overflow: hidden;
     }
     .settings-dialog .settings-panel__header {
-        padding: 7px 9px;
+        padding: 6px 8px;
     }
     .settings-dialog .settings-panel__title {
-        font-size: 10px;
+        font-size: 9px;
         letter-spacing: 0.06em;
     }
     .settings-dialog .settings-panel {
@@ -808,16 +808,16 @@ fieldset {
         box-shadow: none;
     }
     .settings-dialog .settings-panel__body {
-        padding: 7px 8px 9px;
+        padding: 6px 7px 8px;
         max-height: calc(100vh - var(--timeline-dock-height) - 124px);
         overflow-y: auto;
     }
     .settings-dialog .settings-panel__sections {
-        gap: 8px;
+        gap: 6px;
     }
     .settings-dialog .settings-section {
-        padding: 6px 7px 7px;
-        gap: 6px;
+        padding: 5px 6px 6px;
+        gap: 4px;
     }
     .settings-dialog .settings-section__title {
         display: flex;
@@ -825,7 +825,7 @@ fieldset {
         justify-content: space-between;
         width: 100%;
         padding: 0 2px;
-        font-size: 10px;
+        font-size: 9px;
         letter-spacing: 0.06em;
     }
     .settings-dialog .settings-section--mobile-collapsible .settings-section__title {
@@ -843,23 +843,23 @@ fieldset {
         display: none;
     }
     .settings-dialog .settings-option {
-        font-size: 11px;
-        gap: 6px;
+        font-size: 10px;
+        gap: 5px;
     }
     .settings-dialog .settings-option input {
-        width: 13px;
-        height: 13px;
+        width: 12px;
+        height: 12px;
     }
     .settings-dialog .settings-subtitle {
-        font-size: 10px;
+        font-size: 9px;
     }
     .settings-dialog .camera-pill {
-        min-height: 24px;
-        font-size: 9px;
-        padding: 3px 5px;
+        min-height: 21px;
+        font-size: 8px;
+        padding: 2px 4px;
     }
     .settings-dialog .camera-pill-group {
-        gap: 4px;
+        gap: 3px;
     }
     .settings-dialog .camera-pill-group--plane {
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -868,8 +868,8 @@ fieldset {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     .settings-dialog .settings-note {
-        margin-top: 3px;
-        font-size: 10px;
+        margin-top: 2px;
+        font-size: 9px;
     }
     .date { font-size: 1.0em; }
     .stats { font-size: 0.86em; }
