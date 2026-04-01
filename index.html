@@ -213,6 +213,77 @@
             gap: 8px;
         }
 
+        .landing-grid--orbits {
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 18px;
+        }
+
+        .landing-card--orbit {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            padding: 16px;
+            cursor: default;
+        }
+
+        .landing-card--orbit:hover {
+            transform: translateY(-2px);
+        }
+
+        .landing-card__preview {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1 1 auto;
+            min-height: 0;
+        }
+
+        .landing-card__preview-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .landing-card__preview-host {
+            margin: 0;
+            border: 1px solid #2c3d63;
+            border-radius: 10px;
+            background: rgba(9, 15, 31, 0.98);
+            min-height: 340px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 6px;
+            color: #9bb0da;
+            font-size: 12px;
+            text-align: center;
+            padding: 6px;
+            box-sizing: border-box;
+        }
+
+        .landing-card__preview-host .landing-brief-orbit-time {
+            margin-top: 4px;
+        }
+
+        .landing-card__preview-host .landing-brief-orbit-timeline {
+            max-width: 308px;
+        }
+
+        .landing-card__preview-meta {
+            margin: 0 0 10px 0;
+            color: #91a3cc;
+            font-size: 12px;
+        }
+
+        .landing-card--orbit .landing-card__actions {
+            margin-top: 12px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .landing-card__btn {
             border: 1px solid #334673;
             color: #d3ddf5;
@@ -613,6 +684,56 @@
             color: #8ea6d6;
         }
 
+        .landing-brief-orbit-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .landing-brief-orbit-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .landing-brief-segmented {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px;
+            border-radius: 999px;
+            border: 1px solid #30406c;
+            background: rgba(16, 26, 48, 0.94);
+        }
+
+        .landing-brief-segmented__btn {
+            border: 1px solid transparent;
+            background: transparent;
+            color: #c6d4f0;
+            border-radius: 999px;
+            padding: 3px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            min-width: 34px;
+        }
+
+        .landing-brief-segmented__btn.is-active {
+            color: #091325;
+            border-color: #6da5ff;
+            background: linear-gradient(135deg, #8fb8ff, #66d2ff);
+        }
+
+        .landing-brief-segmented__btn:disabled {
+            opacity: 0.44;
+            cursor: default;
+        }
+
         .landing-brief-summary {
             margin: 0 0 14px 0;
             font-size: 14px;
@@ -885,6 +1006,7 @@
             <div class="landing-top-actions">
                 <div class="landing-view-picker" role="group" aria-label="Landing page view picker">
                     <button class="landing-view-button landing-view-button--active" data-view="default" type="button">Default</button>
+                    <button class="landing-view-button" data-view="orbits" type="button">Orbits</button>
                     <button class="landing-view-button" data-view="tiles" type="button">Tiles</button>
                     <button class="landing-view-button" data-view="table" type="button">Table</button>
                     <button class="landing-view-button" data-view="timeline" type="button">Timeline</button>

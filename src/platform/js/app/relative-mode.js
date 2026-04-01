@@ -44,7 +44,10 @@ function createRelativeModeActions(deps) {
 
     function consumeOriginOverrideFromSession() {
         try {
+            const url = new URL(window.location.href);
+            const urlOrigin = (url.searchParams.get("origin") || "").toLowerCase();
             const override =
+                (urlOrigin === "lunar" || urlOrigin === "geo" ? urlOrigin : null) ??
                 sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY) ??
                 sessionStorage.getItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
             if (override === "lunar") {
