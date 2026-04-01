@@ -260,9 +260,10 @@ export class CameraController {
                 }
 
                 if (this.controls) {
-                    // Mounted + manual aim uses a dedicated free-fly interaction model.
+                    // Mounted camera should be zoom-only (no pan/drag rotate).
                     this.controls.enabled = !wantsFreeFly;
-                    this.controls.noPan = hasForcedLook || wantsFreeFly;
+                    this.controls.noPan = true;
+                    this.controls.noRotate = true;
                 }
 
                 // Follow the mount.
@@ -289,8 +290,7 @@ export class CameraController {
             const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
             if (lookPos) {
                 const allowOrbitAroundTarget =
-                    (this.positionMode === CAMERA_POSITION_MODE.MANUAL) ||
-                    (this.positionMode !== this.lookMode);
+                    (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
 
                 // Keep horizon stable when we allow orbiting; otherwise align to target's up.
                 if (allowOrbitAroundTarget) {
@@ -309,9 +309,16 @@ export class CameraController {
                 }
             }
         } else if (this.controls) {
-            this.controls.noRotate = wantsFreeFly ? true : false;
-            // Returning to manual aim: reset up to global to avoid unexpected roll.
-            this.camera.up.set(0, 0, 1);
+            if (hasPositionMount) {
+                // Mounted + manual aim remains zoom-only.
+                this.controls.noRotate = true;
+                this.controls.noPan = true;
+            } else {
+                this.controls.noRotate = wantsFreeFly ? true : false;
+                this.controls.noPan = false;
+                // Returning to manual aim: reset up to global to avoid unexpected roll.
+                this.camera.up.set(0, 0, 1);
+            }
         }
     }
 

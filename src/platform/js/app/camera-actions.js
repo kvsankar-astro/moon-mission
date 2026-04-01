@@ -24,6 +24,8 @@ export function createCameraActions({
     const CAMERA_MODE_VALUES = ["manual", "earth", "moon", "spacecraft"];
     let pendingApplyHandle = null;
     let lastAppliedPositionMode = "manual";
+    let lastAppliedLookMode = "manual";
+    let lastAppliedConfig = null;
     let savedFov = null;
 
     const mountedBodyOverride = {
@@ -363,12 +365,11 @@ export function createCameraActions({
         const mountPos = controller._resolveTargetWorld?.(positionMode, controller._mountWorld);
         if (!mountPos) return;
 
-        // Snap to a deterministic offset (do not preserve previous offset).
-        // We intentionally use a small standoff to feel like a "from the center" viewpoint.
-        const baseRadius = estimateRadius(scene, positionMode);
-        const defaultDistance = Number.isFinite(baseRadius) ? Math.max(baseRadius * 0.02, 0.01) : 1;
+        // Snap to the exact mount origin by default (no standoff).
+        // Preserve distance only for explicit "keep distance" paths.
+        const defaultDistance = 0;
         const distance = preserveDistance
-            ? Math.max(controller.mountOffset?.length?.() ?? defaultDistance, 0.01)
+            ? Math.max(controller.mountOffset?.length?.() ?? defaultDistance, 0)
             : defaultDistance;
 
         // Default view direction when using manual aim:
@@ -454,7 +455,12 @@ export function createCameraActions({
         applyFixedFov(scene, positionMode, lookMode);
         updateFovIndicator(positionMode, lookMode);
 
-        const shouldSnap = positionMode !== lastAppliedPositionMode;
+        const configChanged = config !== lastAppliedConfig;
+        const positionChanged = positionMode !== lastAppliedPositionMode;
+        const lookChanged = lookMode !== lastAppliedLookMode;
+        const shouldSnap =
+            positionMode !== "manual" &&
+            (positionChanged || lookChanged || configChanged);
         if (!scene || !scene.initialized3D) {
             // Browser reloads can restore <select> values after scripts start.
             // Re-try shortly so UI selections always match camera behavior.
@@ -511,6 +517,8 @@ export function createCameraActions({
         }
 
         lastAppliedPositionMode = positionMode;
+        lastAppliedLookMode = lookMode;
+        lastAppliedConfig = config;
         render();
     }
 
