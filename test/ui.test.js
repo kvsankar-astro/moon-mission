@@ -870,6 +870,12 @@ async function ensureConsistentTestState(page) {
     await page.click('#view-sky');
   }
 
+  // Keep secondary-body SOI circle disabled by default for deterministic screenshots
+  const moonSoiToggle = page.locator('#view-moonsoi');
+  if (await moonSoiToggle.count() > 0 && await moonSoiToggle.isChecked()) {
+    await page.click('#view-moonsoi');
+  }
+
   await closeSettingsPanel(page);
 }
 
@@ -940,6 +946,7 @@ async function pinSsimDefaultViewToggles(page) {
     ['#view-xyz-axes', !isRelativeMode],
     ['#view-poles', !isRelativeMode],
     ['#view-polar-axes', !isRelativeMode],
+    ['#view-moonsoi', false],
   ];
 
   for (const [selector, enabled] of desiredStates) {
@@ -977,6 +984,23 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
   await openSettingsPanel(page);
   await setCameraPair(page, cameraPair);
   await ensureFovOneDegree(page, true);
+  await closeSettingsPanel(page);
+  await waitForScene(page);
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+}
+
+async function prepareRelativePageLoadView(page) {
+  await ensureOriginMode(page, 'relative');
+  await openSettingsPanel(page);
+  if (!await page.isChecked('#dimension-3D')) {
+    await page.click('#dimension-3D');
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+  await ensureCheckboxState(page, '#view-sky', false);
+  const moonSoiToggle = page.locator('#view-moonsoi');
+  if (await moonSoiToggle.count() > 0) {
+    await ensureCheckboxState(page, '#view-moonsoi', false);
+  }
   await closeSettingsPanel(page);
   await waitForScene(page);
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
@@ -3296,8 +3320,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     it('Page Load in Relative Mode', async () => {
       const testId = 'relative-3d-page-load';
       await startTest(page, testId);
-      await ensureOriginMode(page, 'relative');
-      await waitForScene(page);
+      await prepareRelativePageLoadView(page);
       await waitForRelativePageLoadOrbitStabilized(page);
 
       const comparison = await compareScreenshots(
