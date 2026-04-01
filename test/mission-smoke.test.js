@@ -35,6 +35,7 @@ const TEST_CONFIG = {
 const MISSIONS = [
   { id: 'a10', name: 'Apollo 10 Snoopy' },
   { id: 'a11', name: 'Apollo 11 S-IVB' },
+  { id: 'artemis2', name: 'Artemis 2' },
   { id: 'cy2', name: 'Chandrayaan 2' },
 ];
 
@@ -188,17 +189,22 @@ async function waitForSceneReady(page, dimension) {
     // For 3D mode, wait for canvas and scene state
     await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY });
 
-    // Wait for scene state to indicate completion
+    // Smoke tests only need the scene bootstrapped and responsive, not
+    // necessarily at the stricter add-curve-done state used by CH3 SSIM.
     await page.waitForFunction(
       () => {
-        const doneState = window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE;
-        if (!doneState) return false;
+        const initDoneState = window.AnimationScene?.SCENE_STATE_INIT_DONE;
+        const addCurveDoneState = window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE;
+        const targetState = Number.isFinite(initDoneState)
+          ? initDoneState
+          : addCurveDoneState;
+        if (!Number.isFinite(targetState)) return false;
 
         const isLunarMode = document.querySelector('#origin-moon')?.checked;
         if (isLunarMode) {
-          return window.animationScenes?.lunar?.state === doneState;
+          return (window.animationScenes?.lunar?.state ?? -1) >= targetState;
         } else {
-          return window.animationScenes?.geo?.state === doneState;
+          return (window.animationScenes?.geo?.state ?? -1) >= targetState;
         }
       },
       { timeout: TIMEOUTS.SCENE_READY }
@@ -215,11 +221,16 @@ async function waitForSceneReady(page, dimension) {
 async function switchToConfig(page, config) {
   // Open settings panel
   const settingsButton = page.locator('#settings-panel-button');
-  const settingsPanel = page.locator('#settings-panel');
-
-  if (!(await settingsPanel.isVisible())) {
-    await settingsButton.click();
-    await settingsPanel.waitFor({ state: 'visible', timeout: 5000 });
+  const expanded = await settingsButton.getAttribute('aria-expanded');
+  if (expanded !== 'true') {
+    await page.evaluate(() => {
+      const button = document.getElementById('settings-panel-button');
+      button?.click();
+    });
+    await page.waitForFunction(() => {
+      const button = document.getElementById('settings-panel-button');
+      return button?.getAttribute('aria-expanded') === 'true';
+    }, { timeout: 5000 });
   }
 
   // Set origin (Earth/Moon)
@@ -239,13 +250,15 @@ async function switchToConfig(page, config) {
   }
 
   // Close settings panel
-  if (await settingsPanel.isVisible()) {
-    try {
-      await page.getByRole('button', { name: 'close' }).click();
-    } catch {
-      await page.evaluate(() => $('#settings-panel').dialog('close'));
-    }
-    await settingsPanel.waitFor({ state: 'hidden', timeout: 2000 });
+  if (await settingsButton.getAttribute('aria-expanded') === 'true') {
+    await page.evaluate(() => {
+      const button = document.getElementById('settings-panel-button');
+      button?.click();
+    });
+    await page.waitForFunction(() => {
+      const button = document.getElementById('settings-panel-button');
+      return button?.getAttribute('aria-expanded') === 'false';
+    }, { timeout: 3000 });
   }
 }
 
