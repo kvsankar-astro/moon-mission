@@ -1,3 +1,4 @@
+import { shouldShowSecondaryBodyHighlight } from "../core/domain/secondary-body-highlight-policy.js";
 import { getRelativeFrameQuaternion } from "../data/relative-frame-provider.js";
 
 function createAnimationSceneClass(deps) {
@@ -283,13 +284,18 @@ function createAnimationSceneClass(deps) {
                 return;
             }
 
-            const shouldShowBodyHighlight =
-                !suppress &&
-                runtimeState.viewMoonHighlightRing &&
-                (
-                    (this.name === "geo" && this.secondaryBody === "MOON") ||
-                    (this.name === "lunar" && this.secondaryBody === "EARTH")
-                );
+            const cameraPositionMode = this.cameraController?.positionMode || "manual";
+            const cameraLookMode = this.cameraController?.lookMode || "manual";
+            const shouldShowBodyHighlight = shouldShowSecondaryBodyHighlight({
+                isLunarMission: runtimeState.globalConfig?.is_lunar,
+                configName: this.name,
+                secondaryBody: this.secondaryBody,
+                frameMode: runtimeState.frameMode,
+                viewMoonHighlightRing: runtimeState.viewMoonHighlightRing,
+                suppress,
+                cameraPositionMode,
+                cameraLookMode,
+            });
             this.sceneHelpers.updateBodyHighlight({
                 camera: this.camera,
                 rendererDomElement: this.cameraController?._rendererDomElement || this.renderer?.domElement || null,
