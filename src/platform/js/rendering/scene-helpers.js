@@ -15,9 +15,9 @@ import { sampleOsculatingOrbitPoints } from '../core/domain/orbital-elements.js'
 const MOON_ORBIT_SAMPLE_COUNT = 192;
 const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
 const MOON_HIGHLIGHT_SHOW_THRESHOLD_PX = 260;
-const MOON_HIGHLIGHT_MIN_DIAMETER_PX = 72;
-const MOON_HIGHLIGHT_MAX_DIAMETER_PX = 164;
-const MOON_HIGHLIGHT_MIN_WORLD_SCALE = 4.4;
+const MOON_HIGHLIGHT_MIN_DIAMETER_PX = 64;
+const MOON_HIGHLIGHT_MAX_DIAMETER_PX = 148;
+const MOON_HIGHLIGHT_MIN_WORLD_SCALE = 3.8;
 
 export class SceneHelpers {
     /**
@@ -180,15 +180,15 @@ export class SceneHelpers {
 
         context.clearRect(0, 0, canvas.width, canvas.height);
         context.beginPath();
-        context.arc(128, 128, 98, 0, 2 * Math.PI);
-        context.strokeStyle = "rgba(228, 238, 255, 0.96)";
-        context.lineWidth = 10;
+        context.arc(128, 128, 99, 0, 2 * Math.PI);
+        context.strokeStyle = "rgba(228, 238, 255, 0.62)";
+        context.lineWidth = 7;
         context.stroke();
 
         context.beginPath();
         context.arc(128, 128, 108, 0, 2 * Math.PI);
-        context.strokeStyle = "rgba(228, 238, 255, 0.36)";
-        context.lineWidth = 4;
+        context.strokeStyle = "rgba(228, 238, 255, 0.18)";
+        context.lineWidth = 3;
         context.stroke();
 
         this.bodyHighlightTexture = new THREE.CanvasTexture(canvas);
@@ -220,8 +220,8 @@ export class SceneHelpers {
             overlay.style.borderRadius = "999px";
             overlay.style.pointerEvents = "none";
             overlay.style.transform = "translate(-50%, -50%)";
-            overlay.style.border = "1.5px solid rgba(214, 224, 244, 0.78)";
-            overlay.style.boxShadow = "0 0 0 2px rgba(214, 224, 244, 0.08)";
+            overlay.style.border = "1px solid rgba(214, 224, 244, 0.52)";
+            overlay.style.boxShadow = "0 0 0 1px rgba(214, 224, 244, 0.05)";
             overlay.style.display = "none";
             overlay.style.zIndex = "4";
             overlayHost.appendChild(overlay);
@@ -308,7 +308,7 @@ export class SceneHelpers {
         }
 
         const targetHighlightDiameterPx = THREE.MathUtils.clamp(
-            Math.max(apparentBodyDiameterPx * 1.75, MOON_HIGHLIGHT_MIN_DIAMETER_PX),
+            Math.max(apparentBodyDiameterPx * 1.5, MOON_HIGHLIGHT_MIN_DIAMETER_PX),
             MOON_HIGHLIGHT_MIN_DIAMETER_PX,
             MOON_HIGHLIGHT_MAX_DIAMETER_PX,
         );
@@ -321,7 +321,7 @@ export class SceneHelpers {
         if (this.bodyHighlightOverlay) {
             const screenX = (this._projectedBodyHighlightPosition.x * 0.5 + 0.5) * viewportWidth;
             const screenY = (-this._projectedBodyHighlightPosition.y * 0.5 + 0.5) * viewportHeight;
-            const borderWidthPx = targetHighlightDiameterPx >= 100 ? 2 : 1.5;
+            const borderWidthPx = targetHighlightDiameterPx >= 96 ? 1.5 : 1;
             this.bodyHighlightOverlay.style.display = "block";
             this.bodyHighlightOverlay.style.left = `${screenX}px`;
             this.bodyHighlightOverlay.style.top = `${screenY}px`;
