@@ -111,6 +111,10 @@
             font-size: 12px;
         }
 
+        .landing-sort-controls label {
+            color: #9eb0d8;
+        }
+
         .landing-sort-controls select {
             background: rgba(16, 27, 53, 0.95);
             border: 1px solid #30406f;
@@ -134,6 +138,77 @@
         .landing-sort-controls button:hover {
             border-color: #5f7dc9;
             color: #eef4ff;
+        }
+
+        .landing-column-selector {
+            position: relative;
+            display: none;
+        }
+
+        .landing-column-selector__summary {
+            list-style: none;
+            background: rgba(16, 27, 53, 0.95);
+            border: 1px solid #30406f;
+            color: #d7e2ff;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .landing-column-selector__summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .landing-column-selector[open] .landing-column-selector__summary,
+        .landing-column-selector__summary:hover {
+            border-color: #5f7dc9;
+            color: #eef4ff;
+        }
+
+        .landing-column-selector__panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 220px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #30406f;
+            background: rgba(10, 17, 34, 0.98);
+            box-shadow: 0 10px 28px rgba(5, 9, 19, 0.4);
+            z-index: 30;
+        }
+
+        .landing-column-selector[open] .landing-column-selector__panel {
+            display: grid;
+            gap: 8px;
+        }
+
+        .landing-column-selector__hint {
+            color: #90a3cf;
+            font-size: 11px;
+        }
+
+        .landing-column-selector__options {
+            display: grid;
+            gap: 6px;
+        }
+
+        .landing-column-selector__option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #d7e2ff;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .landing-column-selector__option input {
+            margin: 0;
+            accent-color: #6da5ff;
         }
 
         .landing-grid {
@@ -336,67 +411,144 @@
         }
 
         .landing-table-wrap {
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
             border: 1px solid #2b3a63;
             border-radius: 12px;
             background: rgba(13, 21, 40, 0.88);
+            scrollbar-gutter: stable both-edges;
         }
 
         .landing-table {
-            width: 100%;
+            width: max-content;
+            min-width: 100%;
             border-collapse: collapse;
-            min-width: 0;
-            table-layout: fixed;
+            table-layout: auto;
         }
 
-        .landing-table th:nth-child(1),
-        .landing-table td:nth-child(1) { width: 13%; }
-        .landing-table th:nth-child(2),
-        .landing-table td:nth-child(2) { width: 8%; }
-        .landing-table th:nth-child(3),
-        .landing-table td:nth-child(3) { width: 7%; }
-        .landing-table th:nth-child(4),
-        .landing-table td:nth-child(4) { width: 6%; }
-        .landing-table th:nth-child(5),
-        .landing-table td:nth-child(5),
-        .landing-table th:nth-child(6),
-        .landing-table td:nth-child(6),
-        .landing-table th:nth-child(7),
-        .landing-table td:nth-child(7),
-        .landing-table th:nth-child(8),
-        .landing-table td:nth-child(8),
-        .landing-table th:nth-child(9),
-        .landing-table td:nth-child(9),
-        .landing-table th:nth-child(10),
-        .landing-table td:nth-child(10) { width: 8%; }
-        .landing-table th:nth-child(11),
-        .landing-table td:nth-child(11) { width: 4%; }
-        .landing-table th:nth-child(12),
-        .landing-table td:nth-child(12) { width: 3%; }
-        .landing-table th:nth-child(13),
-        .landing-table td:nth-child(13) { width: 11%; }
+        .landing-table th[data-col-key="mission"],
+        .landing-table td[data-col-key="mission"] {
+            min-width: 150px;
+        }
+
+        .landing-table th[data-col-key="country"],
+        .landing-table td[data-col-key="country"],
+        .landing-table th[data-col-key="craft"],
+        .landing-table td[data-col-key="craft"] {
+            min-width: 88px;
+            width: 1%;
+        }
+
+        .landing-table th[data-col-key="launch"],
+        .landing-table td[data-col-key="launch"],
+        .landing-table th[data-col-key="tli"],
+        .landing-table td[data-col-key="tli"],
+        .landing-table th[data-col-key="loi"],
+        .landing-table td[data-col-key="loi"],
+        .landing-table th[data-col-key="landing"],
+        .landing-table td[data-col-key="landing"],
+        .landing-table th[data-col-key="dataStart"],
+        .landing-table td[data-col-key="dataStart"],
+        .landing-table th[data-col-key="dataEnd"],
+        .landing-table td[data-col-key="dataEnd"] {
+            min-width: 92px;
+            width: 1%;
+        }
+
+        .landing-table th[data-col-key="crew"],
+        .landing-table td[data-col-key="crew"],
+        .landing-table th[data-col-key="dataDuration"],
+        .landing-table td[data-col-key="dataDuration"],
+        .landing-table th[data-col-key="duration"],
+        .landing-table td[data-col-key="duration"] {
+            min-width: 56px;
+            width: 1%;
+        }
+
+        .landing-table th[data-col-key="timeline"],
+        .landing-table td[data-col-key="timeline"] {
+            min-width: 44px;
+            width: 1%;
+        }
 
         .landing-table th,
         .landing-table td {
-            padding: 8px 10px;
+            padding: 4px 5px;
             border-bottom: 1px solid #263457;
             text-align: left;
-            font-size: 12px;
+            font-size: 9px;
+            line-height: 1.15;
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .landing-table th {
             color: #a9b9df;
-            font-size: 11px;
+            font-size: 8px;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.05em;
             background: rgba(20, 31, 58, 0.85);
+        }
+
+        .landing-table th.is-active-sort {
+            background: rgba(29, 46, 84, 0.96);
+            box-shadow: inset 0 -1px 0 #6ea6ff;
+        }
+
+        .landing-table-sort {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-transform: inherit;
+            letter-spacing: inherit;
+            cursor: pointer;
+        }
+
+        .landing-table-sort:hover {
+            color: #dfe8ff;
+        }
+
+        .landing-table-sort.is-active {
+            color: #f3f7ff;
+        }
+
+        .landing-table-sort__indicator {
+            display: inline-block;
+            min-width: 9px;
+            color: #7f93c0;
+        }
+
+        .landing-table-sort.is-active .landing-table-sort__indicator {
+            color: #9bc0ff;
         }
 
         .landing-table td {
             color: #dce6ff;
+        }
+
+        .landing-table-mission-cell {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .landing-table-mission-title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .landing-table-mission-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            flex: 0 0 auto;
         }
 
         .landing-table a {
@@ -405,20 +557,13 @@
             font-weight: 600;
         }
 
-        .landing-table-actions-cell {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-            overflow: visible;
-        }
-
         .landing-table-action {
             border: 1px solid #31456e;
             color: #d3ddf5;
             background: rgba(17, 27, 52, 0.95);
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 11px;
+            border-radius: 6px;
+            padding: 2px 5px;
+            font-size: 9px;
             font-weight: 600;
             text-decoration: none;
             cursor: pointer;
@@ -1016,20 +1161,6 @@
         </div>
 
         <div id="landing-sort-controls" class="landing-sort-controls">
-            <label for="landing-sort-field">Sort</label>
-            <select id="landing-sort-field">
-                <option value="title">Mission</option>
-                <option value="country">Country</option>
-                <option value="craftClass">Craft Class</option>
-                <option value="crewProfile">Crew Profile</option>
-                <option value="startYear">Timeline Start</option>
-                <option value="endYear">Timeline End</option>
-                <option value="spanYears">Duration</option>
-            </select>
-            <select id="landing-sort-order">
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-            </select>
             <label for="landing-filter-craft">Filter</label>
             <select id="landing-filter-craft">
                 <option value="">All Craft Classes</option>
@@ -1038,6 +1169,13 @@
                 <option value="">All Crew Profiles</option>
             </select>
             <button id="landing-controls-reset" type="button">Reset</button>
+            <details id="landing-column-selector" class="landing-column-selector">
+                <summary id="landing-column-summary" class="landing-column-selector__summary">Columns</summary>
+                <div class="landing-column-selector__panel">
+                    <div class="landing-column-selector__hint">Mission and Actions stay pinned on.</div>
+                    <div id="landing-column-options" class="landing-column-selector__options"></div>
+                </div>
+            </details>
         </div>
 
         <div id="landing-view-root"></div>

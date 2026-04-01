@@ -165,4 +165,6 @@ export {
     getVelocityFromChebyshev,
     normalizeSegmentTime,
 };
-const SEGMENT_BOUNDARY_EPSILON_JD = 1e-8;
+// Allow a few milliseconds of boundary slack to absorb JS Date millisecond
+// quantization when matching JD-based segment endpoints from generated data.
+const SEGMENT_BOUNDARY_EPSILON_JD = 1e-7;

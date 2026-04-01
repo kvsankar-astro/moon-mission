@@ -178,6 +178,7 @@ def copy_to_data_dir(source_path, filename, mission_name):
 # Initialize variables
 start_year, start_month, start_day, start_hour, start_minute = None, None, None, None, None
 stop_year, stop_month, stop_day, stop_hour, stop_minute = None, None, None, None, None
+start_second, stop_second = 0, 0
 step_size_in_seconds = None
 
 planets = []
@@ -206,22 +207,58 @@ def filename_for_planet(fn):
     print_debug(f"planet={fn}, filename={retfn}")
     return retfn
 
+def parse_exact_phase_datetime(value):
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
 def init_config(option, config):
     global start_year, start_month, start_day, start_hour, start_minute
     global stop_year, stop_month, stop_day, stop_hour, stop_minute
-    global step_size_in_seconds, planets, center, orbits_file
+    global start_second, stop_second
+    global step_size_in_seconds, planets, center, orbits_file, phase_spacecraft_body_token
 
-    start_year = config[option]['start_year']
-    start_month = config[option]['start_month']
-    start_day = config[option]['start_day']
-    start_hour = config[option]['start_hour']
-    start_minute = config[option]['start_minute']
+    start_dt = parse_exact_phase_datetime(config[option].get('startTime'))
+    stop_dt = parse_exact_phase_datetime(config[option].get('endTime'))
 
-    stop_year = config[option]['stop_year']
-    stop_month = config[option]['stop_month']
-    stop_day = config[option]['stop_day']
-    stop_hour = config[option]['stop_hour']
-    stop_minute = config[option]['stop_minute']
+    if start_dt is not None:
+        start_year = f"{start_dt.year:04d}"
+        start_month = f"{start_dt.month:02d}"
+        start_day = f"{start_dt.day:02d}"
+        start_hour = f"{start_dt.hour:02d}"
+        start_minute = f"{start_dt.minute:02d}"
+        start_second = int(start_dt.second)
+    else:
+        start_year = config[option]['start_year']
+        start_month = config[option]['start_month']
+        start_day = config[option]['start_day']
+        start_hour = config[option]['start_hour']
+        start_minute = config[option]['start_minute']
+        start_second = 0
+
+    if stop_dt is not None:
+        stop_year = f"{stop_dt.year:04d}"
+        stop_month = f"{stop_dt.month:02d}"
+        stop_day = f"{stop_dt.day:02d}"
+        stop_hour = f"{stop_dt.hour:02d}"
+        stop_minute = f"{stop_dt.minute:02d}"
+        stop_second = int(stop_dt.second)
+    else:
+        stop_year = config[option]['stop_year']
+        stop_month = config[option]['stop_month']
+        stop_day = config[option]['stop_day']
+        stop_hour = config[option]['stop_hour']
+        stop_minute = config[option]['stop_minute']
+        stop_second = 0
 
     step_size_in_seconds = config[option]['step_size_in_seconds']
 
@@ -236,19 +273,19 @@ def init_config(option, config):
     orbits_file = config[option]['orbits_file']
 
 def print_config():
-    print(f"(start_year, start_month, start_day, start_hour, start_minute) = ({start_year}, {start_month}, {start_day}, {start_hour}, {start_minute})")
-    print(f"(stop_year, stop_month, stop_day, stop_hour, stop_minute) = ({stop_year}, {stop_month}, {stop_day}, {stop_hour}, {stop_minute})")
+    print(f"(start_year, start_month, start_day, start_hour, start_minute, start_second) = ({start_year}, {start_month}, {start_day}, {start_hour}, {start_minute}, {start_second})")
+    print(f"(stop_year, stop_month, stop_day, stop_hour, stop_minute, stop_second) = ({stop_year}, {stop_month}, {stop_day}, {stop_hour}, {stop_minute}, {stop_second})")
     print(f"step_size_in_seconds = {step_size_in_seconds}")
     print(f"planets = {', '.join(planets)}")
     print(f"orbits_file = {orbits_file}")
 
 def get_horizons_start_time(planet):
     # HORIZONS API requires single quotes around datetime values with spaces
-    return f"'{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}'"
+    return f"'{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}:{int(start_second):02d}'"
 
 def get_horizons_stop_time(planet):
     # HORIZONS API requires single quotes around datetime values with spaces
-    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}'"    
+    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}:{int(stop_second):02d}'"    
     
 
 def set_start_and_stop_times():
@@ -256,11 +293,11 @@ def set_start_and_stop_times():
 
     start_time = f"{start_year}-{start_month}-{start_day}"
     start_time_gm = calendar.timegm((int(start_year), int(start_month), int(start_day), 
-                                     int(start_hour), int(start_minute), 0))
+                                     int(start_hour), int(start_minute), int(start_second)))
 
     stop_time = f"{stop_year}-{stop_month}-{stop_day}"
     stop_time_gm = calendar.timegm((int(stop_year), int(stop_month), int(stop_day), 
-                                    int(stop_hour), int(stop_minute), 0))
+                                    int(stop_hour), int(stop_minute), int(stop_second)))
 
     # If step size is >= 60 seconds and divisible by 60, use minutes
     # Otherwise, calculate number of steps to use 1-second default
@@ -970,7 +1007,7 @@ def process_phase(current_phase, base_data_dir, config):
 
     set_start_and_stop_times()
 
-    print_debug(f"Using a JD of {jd} for start time: {start_year}-{start_month}-{start_day} {start_hour}:{start_minute}")
+    print_debug(f"Using a JD of {jd} for start time: {start_year}-{start_month}-{start_day} {start_hour}:{start_minute}:{int(start_second):02d}")
 
     # Fetch data for all planets
     for planet in planets:

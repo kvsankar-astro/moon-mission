@@ -10,7 +10,7 @@ import re
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 
@@ -71,6 +71,19 @@ def save_config(mission: str, config: dict) -> None:
 
 
 def parse_section_datetime(section: dict, prefix: str) -> datetime | None:
+    exact_key = "startTime" if prefix == "start" else "endTime"
+    exact_value = section.get(exact_key)
+    if isinstance(exact_value, str) and exact_value.strip():
+        text = exact_value.strip()
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        try:
+            parsed = datetime.fromisoformat(text)
+            if parsed.tzinfo is not None:
+                parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed
+        except ValueError:
+            pass
     try:
         return datetime(
             int(section[f"{prefix}_year"]),
@@ -109,8 +122,7 @@ def parse_no_ephemeris_start(output: str) -> datetime | None:
         int(minute),
         sec_int,
     )
-    # Config only supports minute precision, so bump to next minute.
-    dt = dt.replace(second=0, microsecond=0) + timedelta(minutes=1)
+    dt = dt.replace(microsecond=0) + timedelta(seconds=1)
     return dt
 
 
@@ -132,10 +144,14 @@ def bump_start_to_dt(mission: str, dt: datetime) -> bool:
             if section.get(key) != value:
                 section[key] = value
                 changed = True
+        exact_iso = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if section.get("startTime") != exact_iso:
+            section["startTime"] = exact_iso
+            changed = True
     if changed:
         save_config(mission, config)
         print(
-            f"[{mission}] adjusted start to {dt.strftime('%Y-%m-%d %H:%M')} in geo/lunar",
+            f"[{mission}] adjusted start to {dt.strftime('%Y-%m-%d %H:%M:%S')} in geo/lunar",
         )
     return changed
 

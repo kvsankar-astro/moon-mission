@@ -31,7 +31,7 @@
     "start_month": "01",
     "start_day": "07",
     "start_hour": "03",
-    "start_minute": "00",
+    "start_minute": "45",
     "stop_year": "1998",
     "stop_month": "01",
     "stop_day": "20",
@@ -43,14 +43,16 @@
       "SC"
     ],
     "center": "earth_center",
-    "orbits_file": "geo-LPRO"
+    "orbits_file": "geo-LPRO",
+    "startTime": "1998-01-07T03:45:01Z",
+    "endTime": "1998-01-20T00:04:01Z"
   },
   "lunar": {
     "start_year": "1998",
     "start_month": "01",
     "start_day": "07",
     "start_hour": "03",
-    "start_minute": "00",
+    "start_minute": "45",
     "stop_year": "1998",
     "stop_month": "01",
     "stop_day": "20",
@@ -62,7 +64,9 @@
       "EARTH"
     ],
     "center": "moon_center",
-    "orbits_file": "lunar-LPRO"
+    "orbits_file": "lunar-LPRO",
+    "startTime": "1998-01-07T03:45:01Z",
+    "endTime": "1998-01-20T00:04:01Z"
   },
   "landing": {
     "enabled": false,

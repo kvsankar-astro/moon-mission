@@ -50,13 +50,13 @@ function buildRangeFromParts(windowConfig, createUTCTimestamp, oneMinuteMs) {
 function buildRangeFromSpan(spanConfig, createUTCTimestamp, oneMinuteMs) {
     if (!spanConfig) return [null, null];
 
-    const startIso = typeof spanConfig.startTime === "string" ? Date.parse(spanConfig.startTime) : Number.NaN;
-    const endIso = typeof spanConfig.endTime === "string" ? Date.parse(spanConfig.endTime) : Number.NaN;
-    if (Number.isFinite(startIso) && Number.isFinite(endIso)) {
-        return [startIso, endIso];
-    }
-
-    return buildRangeFromParts(spanConfig, createUTCTimestamp, oneMinuteMs);
+    const startIso = typeof spanConfig.startTime === "string" ? Date.parse(spanConfig.startTime) : NaN;
+    const endIso = typeof spanConfig.endTime === "string" ? Date.parse(spanConfig.endTime) : NaN;
+    const [partsStart, partsEnd] = buildRangeFromParts(spanConfig, createUTCTimestamp, oneMinuteMs);
+    return [
+        Number.isFinite(startIso) ? startIso : partsStart,
+        Number.isFinite(endIso) ? endIso : partsEnd,
+    ];
 }
 
 export function resolveMissionBodyTimeRange({
@@ -81,7 +81,8 @@ export function resolveMissionBodyTimeRange({
         return craftRange;
     }
 
-    return buildRangeFromParts(globalConfig[config], createUTCTimestamp, oneMinuteMs);
+    const phaseConfig = globalConfig[config];
+    return buildRangeFromSpan(phaseConfig, createUTCTimestamp, oneMinuteMs);
 }
 
 export function createStartEndTimesResolver({

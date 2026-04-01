@@ -27,6 +27,8 @@
     "lunar"
   ],
   "geo": {
+    "startTime": "2004-11-11T02:05:17.979Z",
+    "endTime": "2006-09-03T05:42:22.000Z",
     "start_year": "2004",
     "start_month": "11",
     "start_day": "11",
@@ -46,6 +48,8 @@
     "orbits_file": "geo-SM1"
   },
   "lunar": {
+    "startTime": "2004-11-11T02:05:17.979Z",
+    "endTime": "2006-09-03T05:42:22.000Z",
     "start_year": "2004",
     "start_month": "11",
     "start_day": "11",

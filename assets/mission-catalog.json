@@ -379,6 +379,7 @@
     {
       "key": "hgs1",
       "folder": "hgs1",
+      "disabled": true,
       "queryValue": "hgs1",
       "aliases": [
         "hgs1",

@@ -27,6 +27,8 @@
     "lunar"
   ],
   "geo": {
+    "startTime": "1966-08-14T15:40:37.082Z",
+    "endTime": "1966-10-26T23:40:37.271Z",
     "start_year": "1966",
     "start_month": "08",
     "start_day": "14",
@@ -46,6 +48,8 @@
     "orbits_file": "geo-LO1"
   },
   "lunar": {
+    "startTime": "1966-08-14T15:40:37.082Z",
+    "endTime": "1966-10-26T23:40:37.271Z",
     "start_year": "1966",
     "start_month": "08",
     "start_day": "14",

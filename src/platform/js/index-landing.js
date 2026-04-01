@@ -386,6 +386,82 @@
         };
     }
 
+    function daysInUtcMonth(year, monthIndex) {
+        return new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+    }
+
+    function formatDurationYmd(startDate, endDate) {
+        if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return "N/A";
+        if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) return "N/A";
+
+        var start = new Date(Date.UTC(
+            startDate.getUTCFullYear(),
+            startDate.getUTCMonth(),
+            startDate.getUTCDate()
+        ));
+        var end = new Date(Date.UTC(
+            endDate.getUTCFullYear(),
+            endDate.getUTCMonth(),
+            endDate.getUTCDate()
+        ));
+
+        if (end.getTime() < start.getTime()) return "N/A";
+
+        var years = end.getUTCFullYear() - start.getUTCFullYear();
+        var months = end.getUTCMonth() - start.getUTCMonth();
+        var days = end.getUTCDate() - start.getUTCDate();
+
+        if (days < 0) {
+            var borrowMonth = end.getUTCMonth() - 1;
+            var borrowYear = end.getUTCFullYear();
+            if (borrowMonth < 0) {
+                borrowMonth = 11;
+                borrowYear -= 1;
+            }
+            days += daysInUtcMonth(borrowYear, borrowMonth);
+            months -= 1;
+        }
+
+        if (months < 0) {
+            months += 12;
+            years -= 1;
+        }
+
+        if (years < 0) return "N/A";
+        return years + "y " + months + "m " + days + "d";
+    }
+
+    function computeRowDurationLabel(row) {
+        var missionWindow = inferMissionWindow(row, null);
+        return formatDurationYmd(missionWindow.startDate, missionWindow.endDate);
+    }
+
+    function computeRowDataDurationLabel(row) {
+        return formatDurationYmd(
+            parseCatalogUtc(row && row.dataStartTime),
+            parseCatalogUtc(row && row.dataEndTime)
+        );
+    }
+
+    function computeDurationSortKey(startDate, endDate) {
+        if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) return null;
+        if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) return null;
+        var delta = endDate.getTime() - startDate.getTime();
+        return delta >= 0 ? delta : null;
+    }
+
+    function computeRowDurationSortKey(row) {
+        var missionWindow = inferMissionWindow(row, null);
+        return computeDurationSortKey(missionWindow.startDate, missionWindow.endDate);
+    }
+
+    function computeRowDataDurationSortKey(row) {
+        return computeDurationSortKey(
+            parseCatalogUtc(row && row.dataStartTime),
+            parseCatalogUtc(row && row.dataEndTime)
+        );
+    }
+
     function buildTimelineSegments(row, meta) {
         var missionWindow = inferMissionWindow(row, meta);
         var horizonsStart = parseHorizonsDateTime(meta && meta.trajectory_start);
@@ -526,6 +602,12 @@
 
     function parseConfigDateTime(section, prefix) {
         if (!section || typeof section !== "object") return null;
+        var exactKey = prefix === "start" ? "startTime" : (prefix === "stop" ? "endTime" : "");
+        var exactValue = exactKey ? asTrimmedString(section[exactKey]) : "";
+        if (exactValue) {
+            var exactDate = parseEventDate(exactValue);
+            if (exactDate) return exactDate;
+        }
         var year = parseInt(section[prefix + "_year"], 10);
         var month = parseInt(section[prefix + "_month"], 10);
         var day = parseInt(section[prefix + "_day"], 10);
@@ -572,10 +654,12 @@
         var missionType = asTrimmedString(dimensions.missionType || raw && raw.missionType) || "Unknown";
         var craftClass = asTrimmedString(dimensions.craftClass || missionType) || "Unknown";
         var crewProfile = asTrimmedString(dimensions.crewProfile || raw && raw.crewProfile) || "Robotic";
+        var isDisabled = !!(raw && (raw.disabled === true || raw.enabled === false));
         return {
             order: Number.isFinite(raw && raw.order) ? raw.order : index,
             key: key || folder,
             folder: folder,
+            disabled: isDisabled,
             queryValue: asTrimmedString(raw && raw.queryValue) || folder,
             aliases: uniqStrings([key, folder].concat(raw && raw.aliases ? raw.aliases : [])),
             card: {
@@ -609,7 +693,10 @@
                 catalogModel = {
                     defaultMissionFolder: normalizeKey(raw && raw.defaultMissionFolder),
                     views: raw && raw.views ? raw.views : {},
-                    missions: missions.map(toCatalogEntry).sort(function(a, b) { return a.order - b.order; })
+                    missions: missions
+                        .map(toCatalogEntry)
+                        .filter(function(entry) { return !entry.disabled; })
+                        .sort(function(a, b) { return a.order - b.order; })
                 };
                 return catalogModel.missions;
             });
@@ -707,7 +794,7 @@
             })
             .then(function(config) {
                 var timing = getTimingFromConfig(config);
-                return Object.assign({}, row, {
+                var nextRow = Object.assign({}, row, {
                     launchTime: formatUtcDateTime(timing.launchDate),
                     tliTime: formatUtcDateTime(timing.tliDate),
                     loiTime: formatUtcDateTime(timing.loiDate),
@@ -723,6 +810,11 @@
                     dataStartSortKey: timing.dataStart ? timing.dataStart.getTime() : -Infinity,
                     dataEndSortKey: timing.dataEnd ? timing.dataEnd.getTime() : -Infinity
                 });
+                nextRow.durationLabel = computeRowDurationLabel(nextRow);
+                nextRow.dataDurationLabel = computeRowDataDurationLabel(nextRow);
+                nextRow.durationSortKey = computeRowDurationSortKey(nextRow);
+                nextRow.dataDurationSortKey = computeRowDataDurationSortKey(nextRow);
+                return nextRow;
             })
             .catch(function() {
                 return row;
@@ -754,6 +846,10 @@
             endYear: endYear,
             rangeLabel: range,
             spanYears: startYear && endYear ? Math.max(0, endYear - startYear) : 0,
+            durationLabel: "N/A",
+            dataDurationLabel: "N/A",
+            durationSortKey: null,
+            dataDurationSortKey: null,
             launchTime: "N/A",
             tliTime: "N/A",
             loiTime: "N/A",
@@ -1358,19 +1454,20 @@
     document.addEventListener("DOMContentLoaded", function() {
         var viewRoot = document.getElementById("landing-view-root");
         var sortControls = document.getElementById("landing-sort-controls");
-        var sortField = document.getElementById("landing-sort-field");
-        var sortOrder = document.getElementById("landing-sort-order");
         var filterCraft = document.getElementById("landing-filter-craft");
         var filterCrew = document.getElementById("landing-filter-crew");
         var resetControls = document.getElementById("landing-controls-reset");
+        var columnSelector = document.getElementById("landing-column-selector");
+        var columnSummary = document.getElementById("landing-column-summary");
+        var columnOptions = document.getElementById("landing-column-options");
         var viewButtons = Array.from(document.querySelectorAll(".landing-view-button"));
         var briefOverlay = document.getElementById("landing-brief-overlay");
         var briefPanel = document.getElementById("landing-brief-panel");
 
         var currentView = "default";
         var missionRows = [];
-        var defaultSortFieldValue = sortField ? sortField.value : "title";
-        var defaultSortOrderValue = sortOrder ? sortOrder.value : "asc";
+        var defaultSortFieldValue = "title";
+        var defaultSortOrderValue = "asc";
         var activeBriefRow = null;
         var activeBriefIndex = -1;
         var activeBriefSequence = [];
@@ -1379,6 +1476,28 @@
         var activeBriefOrbitMode = "geo";
         var activeBriefOrbitPlane = "XY";
         var orbitCardPreviewStops = [];
+        var currentTableSortField = "title";
+        var currentTableSortOrder = "asc";
+        var tableColumns = [
+            { key: "mission", label: "Mission", alwaysVisible: true, minWidth: "220px", sortField: "title", sortType: "alpha" },
+            { key: "country", label: "Country", minWidth: "132px", sortField: "country", sortType: "alpha" },
+            { key: "craft", label: "Craft", minWidth: "132px", sortField: "craftClass", sortType: "alpha" },
+            { key: "crew", label: "Crew", minWidth: "90px", sortField: "crewProfile", sortType: "alpha" },
+            { key: "launch", label: "Launch (UTC)", minWidth: "132px", sortField: "launchSortKey", sortType: "numeric" },
+            { key: "tli", label: "TLI (UTC)", minWidth: "132px", sortField: "tliSortKey", sortType: "numeric" },
+            { key: "loi", label: "LOI (UTC)", minWidth: "132px", sortField: "loiSortKey", sortType: "numeric" },
+            { key: "landing", label: "Landing (UTC)", minWidth: "132px", sortField: "landingSortKey", sortType: "numeric" },
+            { key: "dataStart", label: "Data Start (UTC)", minWidth: "132px", sortField: "dataStartSortKey", sortType: "numeric" },
+            { key: "dataEnd", label: "Data End (UTC)", minWidth: "132px", sortField: "dataEndSortKey", sortType: "numeric" },
+            { key: "dataDuration", label: "Data Duration", minWidth: "90px", sortField: "dataDurationSortKey", sortType: "numeric" },
+            { key: "timeline", label: "Timeline", minWidth: "132px", sortField: "startYear", sortType: "numeric" },
+            { key: "duration", label: "Mission Duration", minWidth: "90px", sortField: "durationSortKey", sortType: "numeric" }
+        ];
+        var tableColumnState = {};
+
+        tableColumns.forEach(function(column) {
+            tableColumnState[column.key] = column.alwaysVisible ? true : column.defaultVisible !== false;
+        });
 
         function rowIdentity(row) {
             return normalizeKey(
@@ -1413,6 +1532,114 @@
                 }
             });
             orbitCardPreviewStops = [];
+        }
+
+        function isTableColumnVisible(columnKey) {
+            var column = tableColumns.find(function(item) { return item.key === columnKey; });
+            if (!column) return false;
+            if (column.alwaysVisible) return true;
+            return tableColumnState[columnKey] !== false;
+        }
+
+        function visibleTableColumns() {
+            return tableColumns.filter(function(column) {
+                return isTableColumnVisible(column.key);
+            });
+        }
+
+        function resetTableColumnState() {
+            tableColumns.forEach(function(column) {
+                tableColumnState[column.key] = column.alwaysVisible ? true : column.defaultVisible !== false;
+            });
+        }
+
+        function syncColumnSelectorUi() {
+            if (!columnOptions) return;
+            Array.from(columnOptions.querySelectorAll("input[data-column-key]")).forEach(function(input) {
+                input.checked = isTableColumnVisible(input.getAttribute("data-column-key"));
+            });
+            if (columnSummary) {
+                var optionalColumns = tableColumns.filter(function(column) { return !column.alwaysVisible; });
+                var visibleCount = optionalColumns.filter(function(column) {
+                    return isTableColumnVisible(column.key);
+                }).length;
+                columnSummary.textContent = "Columns " + visibleCount + "/" + optionalColumns.length;
+            }
+        }
+
+        function populateColumnSelector() {
+            if (!columnOptions) return;
+            columnOptions.innerHTML = "";
+            tableColumns.forEach(function(column) {
+                if (column.alwaysVisible) return;
+                var label = document.createElement("label");
+                label.className = "landing-column-selector__option";
+                var input = document.createElement("input");
+                input.type = "checkbox";
+                input.setAttribute("data-column-key", column.key);
+                input.checked = isTableColumnVisible(column.key);
+                input.addEventListener("change", function() {
+                    tableColumnState[column.key] = input.checked;
+                    syncColumnSelectorUi();
+                    render();
+                });
+                var text = document.createElement("span");
+                text.textContent = column.label;
+                label.appendChild(input);
+                label.appendChild(text);
+                columnOptions.appendChild(label);
+            });
+            syncColumnSelectorUi();
+        }
+
+        function tableCellValue(columnKey, row) {
+            if (columnKey === "mission") return row.title;
+            if (columnKey === "country") {
+                var countryFlag = flagForCountry(row.country);
+                return countryFlag ? (countryFlag + " " + row.country) : row.country;
+            }
+            if (columnKey === "craft") {
+                var craftIcon = iconForCraftClass(row.craftClass);
+                return craftIcon ? (craftIcon + " " + row.craftClass) : row.craftClass;
+            }
+            if (columnKey === "crew") return row.crewProfile;
+            if (columnKey === "launch") return row.launchTime;
+            if (columnKey === "tli") return row.tliTime;
+            if (columnKey === "loi") return row.loiTime;
+            if (columnKey === "landing") return row.landingTime;
+            if (columnKey === "dataStart") return row.dataStartTime;
+            if (columnKey === "dataEnd") return row.dataEndTime;
+            if (columnKey === "dataDuration") return row.dataDurationLabel || "N/A";
+            if (columnKey === "timeline") return row.rangeLabel;
+            if (columnKey === "duration") return row.durationLabel || "N/A";
+            return "";
+        }
+
+        function findTableColumn(columnKey) {
+            return tableColumns.find(function(column) { return column.key === columnKey; }) || null;
+        }
+
+        function compareRowsByTableColumn(a, b, column, direction) {
+            if (!column || !column.sortField) return (a.index - b.index) * direction;
+            var av = a[column.sortField];
+            var bv = b[column.sortField];
+            var aMissing = av === null || av === undefined || av === "" || av === -Infinity || Number.isNaN(av);
+            var bMissing = bv === null || bv === undefined || bv === "" || bv === -Infinity || Number.isNaN(bv);
+            if (aMissing && bMissing) return (a.index - b.index) * direction;
+            if (aMissing) return 1;
+            if (bMissing) return -1;
+
+            if (column.sortType === "numeric") {
+                if (av < bv) return -1 * direction;
+                if (av > bv) return 1 * direction;
+                return (a.index - b.index) * direction;
+            }
+
+            av = String(av).toLowerCase();
+            bv = String(bv).toLowerCase();
+            if (av < bv) return -1 * direction;
+            if (av > bv) return 1 * direction;
+            return (a.index - b.index) * direction;
         }
 
         function createOrbitCard(row, onOpenBrief, orbitStops) {
@@ -2982,25 +3209,48 @@
             wrap.className = "landing-table-wrap";
             var table = document.createElement("table");
             table.className = "landing-table";
+            var columns = visibleTableColumns();
             var head = document.createElement("thead");
             var hr = document.createElement("tr");
-            [
-                "Mission",
-                "Country",
-                "Craft",
-                "Crew",
-                "Launch (UTC)",
-                "TLI (UTC)",
-                "LOI (UTC)",
-                "Landing (UTC)",
-                "Data Start (UTC)",
-                "Data End (UTC)",
-                "Timeline",
-                "Duration",
-                "Actions"
-            ].forEach(function(label) {
+            columns.forEach(function(column) {
                 var th = document.createElement("th");
-                th.textContent = label;
+                th.setAttribute("data-col-key", column.key);
+                if (column.minWidth) th.style.minWidth = column.minWidth;
+                if (column.sortField) {
+                    var isActiveSort = currentTableSortField === column.sortField;
+                    th.classList.toggle("is-active-sort", isActiveSort);
+                    th.setAttribute("aria-sort", isActiveSort ? (currentTableSortOrder === "asc" ? "ascending" : "descending") : "none");
+                    var sortButton = document.createElement("button");
+                    sortButton.type = "button";
+                    sortButton.className = "landing-table-sort";
+                    if (isActiveSort) {
+                        sortButton.classList.add("is-active");
+                    }
+                    sortButton.setAttribute("aria-label", "Sort by " + column.label);
+                    sortButton.addEventListener("click", function() {
+                        if (currentTableSortField === column.sortField) {
+                            currentTableSortOrder = currentTableSortOrder === "asc" ? "desc" : "asc";
+                        } else {
+                            currentTableSortField = column.sortField;
+                            currentTableSortOrder = "asc";
+                        }
+                        render();
+                    });
+                    var label = document.createElement("span");
+                    label.textContent = column.label;
+                    var indicator = document.createElement("span");
+                    indicator.className = "landing-table-sort__indicator";
+                    if (isActiveSort) {
+                        indicator.textContent = currentTableSortOrder === "asc" ? "↑" : "↓";
+                    } else {
+                        indicator.textContent = "↕";
+                    }
+                    sortButton.appendChild(label);
+                    sortButton.appendChild(indicator);
+                    th.appendChild(sortButton);
+                } else {
+                    th.textContent = column.label;
+                }
                 hr.appendChild(th);
             });
             head.appendChild(hr);
@@ -3009,56 +3259,35 @@
             var body = document.createElement("tbody");
             rows.forEach(function(row) {
                 var tr = document.createElement("tr");
-                var tdMission = document.createElement("td");
-                setCellText(tdMission, row.title);
-                var tdCountry = document.createElement("td");
-                var countryFlag = flagForCountry(row.country);
-                setCellText(tdCountry, countryFlag ? (countryFlag + " " + row.country) : row.country);
-                var tdCraft = document.createElement("td");
-                var tableCraftIcon = iconForCraftClass(row.craftClass);
-                setCellText(tdCraft, tableCraftIcon ? (tableCraftIcon + " " + row.craftClass) : row.craftClass);
-                var tdCrew = document.createElement("td");
-                setCellText(tdCrew, row.crewProfile);
-                var tdLaunch = document.createElement("td");
-                setCellText(tdLaunch, row.launchTime);
-                var tdTli = document.createElement("td");
-                setCellText(tdTli, row.tliTime);
-                var tdLoi = document.createElement("td");
-                setCellText(tdLoi, row.loiTime);
-                var tdLanding = document.createElement("td");
-                setCellText(tdLanding, row.landingTime);
-                var tdDataStart = document.createElement("td");
-                setCellText(tdDataStart, row.dataStartTime);
-                var tdDataEnd = document.createElement("td");
-                setCellText(tdDataEnd, row.dataEndTime);
-                var tdRange = document.createElement("td");
-                setCellText(tdRange, row.rangeLabel);
-                var tdSpan = document.createElement("td");
-                setCellText(tdSpan, row.startYear ? String(row.spanYears) + "y" : "N/A");
-                var tdLink = document.createElement("td");
-                tdLink.className = "landing-table-actions-cell";
-                var briefBtn = createTableActionButton("Brief", function() {
-                    openMissionBrief(row);
+                columns.forEach(function(column) {
+                    var td = document.createElement("td");
+                    td.setAttribute("data-col-key", column.key);
+                    if (column.minWidth) td.style.minWidth = column.minWidth;
+                    if (column.key === "mission") {
+                        td.title = row.title;
+                        var missionCell = document.createElement("div");
+                        missionCell.className = "landing-table-mission-cell";
+                        var missionTitle = document.createElement("span");
+                        missionTitle.className = "landing-table-mission-title";
+                        missionTitle.textContent = row.title;
+                        missionTitle.title = row.title;
+                        var missionActions = document.createElement("div");
+                        missionActions.className = "landing-table-mission-actions";
+                        var briefBtn = createTableActionButton("Brief", function() {
+                            openMissionBrief(row);
+                        });
+                        var openBtn = createTableActionButton("Launch", null, row.href);
+                        openBtn.title = "Open animation for " + row.title;
+                        missionActions.appendChild(briefBtn);
+                        missionActions.appendChild(openBtn);
+                        missionCell.appendChild(missionTitle);
+                        missionCell.appendChild(missionActions);
+                        td.appendChild(missionCell);
+                    } else {
+                        setCellText(td, tableCellValue(column.key, row));
+                    }
+                    tr.appendChild(td);
                 });
-                var openBtn = createTableActionButton("Launch", null, row.href);
-                openBtn.title = "Open animation for " + row.title;
-                tdLink.appendChild(briefBtn);
-                tdLink.appendChild(openBtn);
-                [
-                    tdMission,
-                    tdCountry,
-                    tdCraft,
-                    tdCrew,
-                    tdLaunch,
-                    tdTli,
-                    tdLoi,
-                    tdLanding,
-                    tdDataStart,
-                    tdDataEnd,
-                    tdRange,
-                    tdSpan,
-                    tdLink
-                ].forEach(function(td) { tr.appendChild(td); });
                 body.appendChild(tr);
             });
             table.appendChild(body);
@@ -3171,8 +3400,18 @@
                 return true;
             });
 
-            var field = sortField.value;
-            var dir = sortOrder.value === "desc" ? -1 : 1;
+            if (currentView === "table") {
+                var tableColumn = tableColumns.find(function(column) {
+                    return column.sortField === currentTableSortField;
+                }) || tableColumns[0];
+                var tableDirection = currentTableSortOrder === "desc" ? -1 : 1;
+                return rows.sort(function(a, b) {
+                    return compareRowsByTableColumn(a, b, tableColumn, tableDirection);
+                });
+            }
+
+            var field = defaultSortFieldValue;
+            var dir = defaultSortOrderValue === "desc" ? -1 : 1;
             return rows.sort(function(a, b) {
                 var av = a[field];
                 var bv = b[field];
@@ -3200,6 +3439,13 @@
                 btn.classList.toggle("landing-view-button--active", btn.dataset.view === currentView);
             });
             sortControls.style.display = (currentView === "default" || currentView === "orbits") ? "none" : "flex";
+            if (columnSelector) {
+                columnSelector.style.display = currentView === "table" ? "block" : "none";
+                if (currentView !== "table") {
+                    columnSelector.open = false;
+                }
+            }
+            syncColumnSelectorUi();
             clearOrbitCardPreviews();
             viewRoot.innerHTML = "";
             var rows = rowsForActiveView();
@@ -3236,19 +3482,21 @@
                 render();
             });
         });
-        sortField.addEventListener("change", render);
-        sortOrder.addEventListener("change", render);
         if (filterCraft) filterCraft.addEventListener("change", render);
         if (filterCrew) filterCrew.addEventListener("change", render);
         if (resetControls) {
             resetControls.addEventListener("click", function() {
-                if (sortField) sortField.value = defaultSortFieldValue;
-                if (sortOrder) sortOrder.value = defaultSortOrderValue;
                 if (filterCraft) filterCraft.value = "";
                 if (filterCrew) filterCrew.value = "";
+                currentTableSortField = defaultSortFieldValue;
+                currentTableSortOrder = defaultSortOrderValue;
+                resetTableColumnState();
+                if (columnSelector) columnSelector.open = false;
                 render();
             });
         }
+
+        populateColumnSelector();
 
         loadCatalog()
             .then(function(entries) {
@@ -3257,10 +3505,10 @@
                 var tableCfg = (catalogModel.views && catalogModel.views.table) || {};
                 var defaultSortField = asTrimmedString(tableCfg.defaultSortField);
                 var defaultSortOrder = asTrimmedString(tableCfg.defaultSortOrder);
-                if (defaultSortField) sortField.value = defaultSortField;
-                if (defaultSortOrder) sortOrder.value = defaultSortOrder;
-                defaultSortFieldValue = sortField.value;
-                defaultSortOrderValue = sortOrder.value;
+                if (defaultSortField) defaultSortFieldValue = defaultSortField;
+                if (defaultSortOrder) defaultSortOrderValue = defaultSortOrder;
+                currentTableSortField = defaultSortFieldValue;
+                currentTableSortOrder = defaultSortOrderValue;
                 render();
                 openBriefFromQueryIfPresent();
 
