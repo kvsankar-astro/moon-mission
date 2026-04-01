@@ -776,13 +776,8 @@ async function cleanupViewControlTest(page, mode = TEST_MODES.EARTH, restoreZoom
   if (await page.isChecked('#view-equatorialplane')) {
     await page.click('#view-equatorialplane');
   }
-  // Restore orbit visibility
-  if (!await page.isChecked('#view-orbit')) {
-    await page.click('#view-orbit');
-  }
-  if (!await page.isChecked('#view-orbit-descent')) {
-    await page.click('#view-orbit-descent');
-  }
+  // Restore orbit visibility family
+  await ensureOrbitFamilyState(page, true);
   await closeSettingsPanel(page);
   const modeType = mode === TEST_MODES.MOON ? 'MOON' : 'EARTH';
   // If restoreZoomSteps is specified, use that to restore zoom, otherwise use default zoomInSteps
@@ -937,6 +932,15 @@ async function ensureCheckboxState(page, selector, enabled = true) {
     input.dispatchEvent(new Event('click', { bubbles: true }));
   }, { selector, checked: enabled });
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
+async function ensureOrbitFamilyState(page, enabled = true) {
+  await ensureCheckboxState(page, '#view-orbit', enabled);
+  await ensureCheckboxState(page, '#view-orbit-descent', enabled);
+  const moonOsculatingToggle = page.locator('#view-moon-osculating-orbit');
+  if (await moonOsculatingToggle.count() > 0) {
+    await ensureCheckboxState(page, '#view-moon-osculating-orbit', enabled);
+  }
 }
 
 async function pinSsimDefaultViewToggles(page) {
@@ -1471,15 +1475,14 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await openSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
-      // Store and clear orbit displays for unobstructed view
+      // Store and clear orbit family displays for unobstructed view
       const orbitChecked = await page.isChecked('#view-orbit');
       const descentOrbitChecked = await page.isChecked('#view-orbit-descent');
-      if (orbitChecked) {
-        await page.click('#view-orbit');
-      }
-      if (descentOrbitChecked) {
-        await page.click('#view-orbit-descent');
-      }
+      const moonOsculatingToggle = page.locator('#view-moon-osculating-orbit');
+      const moonOsculatingChecked = await moonOsculatingToggle.count() > 0
+        ? await page.isChecked('#view-moon-osculating-orbit')
+        : null;
+      await ensureOrbitFamilyState(page, false);
       
       const planes = [
         { name: 'default', selector: '#checkbox-lock-default' },
@@ -1519,6 +1522,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       if (descentOrbitChecked && !(await page.isChecked('#view-orbit-descent'))) {
         await page.click('#view-orbit-descent');
       }
+      if (moonOsculatingChecked !== null) {
+        await ensureCheckboxState(page, '#view-moon-osculating-orbit', moonOsculatingChecked);
+      }
 
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
@@ -1530,6 +1536,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       if (!(await page.isChecked('#dimension-3D'))) {
         await page.click('#dimension-3D');
       }
+      await ensureOrbitFamilyState(page, true);
       await page.click('#checkbox-lock-xy');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
@@ -1782,13 +1789,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
       await page.click('#dimension-3D');
       
-      // Uncheck orbits for better XYZ axes visibility
-      if (await page.isChecked('#view-orbit')) {
-        await page.click('#view-orbit');
-      }
-      if (await page.isChecked('#view-orbit-descent')) {
-        await page.click('#view-orbit-descent');
-      }
+      // Uncheck orbit family for better XYZ axes visibility
+      await ensureOrbitFamilyState(page, false);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       
@@ -1837,26 +1839,16 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       );
       expect(comparison.isMatch).toBe(true);
       
-      // Restore orbits if they were initially checked
+      // Restore orbit family for downstream test consistency
       await openSettingsPanel(page);
-      if (!await page.isChecked('#view-orbit')) {
-        await page.click('#view-orbit');
-      }
-      if (!await page.isChecked('#view-orbit-descent')) {
-        await page.click('#view-orbit-descent');
-      }
+      await ensureOrbitFamilyState(page, true);
       await closeSettingsPanel(page);
     }, TIMEOUTS.EXTENDED_TEST_TIMEOUT);
 
     describe('Additional View Controls', () => {
       const setupTest = async () => {
         await openSettingsPanel(page);
-        if (await page.isChecked('#view-orbit')) {
-          await page.click('#view-orbit');
-        }
-        if (await page.isChecked('#view-orbit-descent')) {
-          await page.click('#view-orbit-descent');
-        }
+        await ensureOrbitFamilyState(page, false);
         await closeSettingsPanel(page);
         await zoomOut(page, TEST_MODES.EARTH.soiZoomOut, 'EARTH');
       };
