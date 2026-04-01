@@ -28,6 +28,8 @@ function createTrailLine() {
 describe("Animation3DController", () => {
     it("updates trailing orbit draw ranges for each visible craft", () => {
         const tailLine = createTrailLine();
+        const midLine = createTrailLine();
+        const headGlowLine = createTrailLine();
         const headLine = createTrailLine();
         const scene = {
             initialized3D: true,
@@ -48,6 +50,8 @@ describe("Animation3DController", () => {
             orbitTrailLinesByBodyId: {
                 ORB: {
                     tailLine,
+                    midLine,
+                    headGlowLine,
                     headLine,
                 },
             },
@@ -79,8 +83,12 @@ describe("Animation3DController", () => {
         });
 
         expect(tailLine.geometry.setDrawRange).toHaveBeenCalledWith(0, expect.any(Number));
+        expect(midLine.geometry.setDrawRange).toHaveBeenCalledWith(0, expect.any(Number));
+        expect(headGlowLine.geometry.setDrawRange).toHaveBeenCalledWith(0, expect.any(Number));
         expect(headLine.geometry.setDrawRange).toHaveBeenCalledWith(0, expect.any(Number));
         expect(tailLine.geometry.computeBoundingSphere).toHaveBeenCalled();
+        expect(midLine.geometry.computeBoundingSphere).toHaveBeenCalled();
+        expect(headGlowLine.geometry.computeBoundingSphere).toHaveBeenCalled();
         expect(headLine.geometry.computeBoundingSphere).toHaveBeenCalled();
     });
 });

@@ -212,6 +212,14 @@ const runtimeInteractionState = createRuntimeInteractionState({
     initialLegacyTimeoutHandle,
 });
 
+function getEffectiveOrbitStyle() {
+    const selectedStyle = runtimeViewState.getOrbitStyle();
+    if (selectedStyle !== "trail") {
+        return "classic";
+    }
+    return runtimeSessionState.getAnimationRunning() ? "trail" : "classic";
+}
+
 const {
     bridgeActions,
     sceneViewStateActions,
@@ -284,18 +292,6 @@ const {
 });
 
 const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
-if (isTestMode) {
-    initialMissionViewState.viewMoonHighlightRing = false;
-    initialMissionViewState.viewMoonOsculatingOrbit = false;
-    const moonHighlightToggle = document.getElementById("view-moon-highlight");
-    if (moonHighlightToggle) {
-        moonHighlightToggle.checked = false;
-    }
-    const moonOsculatingOrbitToggle = document.getElementById("view-moon-osculating-orbit");
-    if (moonOsculatingOrbitToggle) {
-        moonOsculatingOrbitToggle.checked = false;
-    }
-}
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
     viewOrbit: initialMissionViewState.viewOrbit,
@@ -499,6 +495,7 @@ var animationController = new AnimationController({
     onPlayStateChange: (isPlaying) => {
         runtimeSessionState.setAnimationRunning(isPlaying);
         updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
+        setView?.();
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
     onSpeedChange: (multiplier, isRealtime) => {
@@ -561,7 +558,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getLandingPointsCount: () => nLandingPoints,
     getViewOrbitDescent: () => runtimeViewState.getViewOrbitDescent(),
     getViewOrbit: () => runtimeViewState.getViewOrbit(),
-    getOrbitStyle: () => runtimeViewState.getOrbitStyle(),
+    getOrbitStyle: () => getEffectiveOrbitStyle(),
     getTrailTrackBrightness3D: () => runtimeViewState.getTrailTrackBrightness3D(),
     getTrailTailBrightness3D: () => runtimeViewState.getTrailTailBrightness3D(),
     render,
@@ -702,6 +699,7 @@ const missionStateCells = {
         () => runtimeViewState.getOrbitStyle(),
         (value) => { runtimeViewState.setOrbitStyle(value); },
     ),
+    effectiveOrbitStyle: bindReadonlyStateCell(() => getEffectiveOrbitStyle()),
     trailTrackBrightness2D: bindStateCell(
         () => runtimeViewState.getTrailTrackBrightness2D(),
         (value) => { runtimeViewState.setTrailTrackBrightness2D(value); },

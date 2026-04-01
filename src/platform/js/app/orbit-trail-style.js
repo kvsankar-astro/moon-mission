@@ -348,14 +348,22 @@ function buildCurveTimes(vectors, startTimeMs, stepMs) {
 
 const ORBIT_TRAIL_STYLE = Object.freeze({
     backgroundOpacity2D: 0.24,
-    tailOpacity2D: 0.62,
+    tailOpacity2D: 0.42,
+    midOpacity2D: 0.68,
+    headGlowOpacity2D: 0.34,
     headOpacity2D: 0.92,
     tailWidth2D: 1.9,
+    midWidth2D: 2.5,
+    headGlowWidth2D: 5.4,
     headWidth2D: 2.5,
     backgroundOpacity3D: 0.14,
-    tailOpacity3D: 0.96,
+    tailOpacity3D: 0.42,
+    midOpacity3D: 0.68,
+    headGlowOpacity3D: 0.28,
     headOpacity3D: 0.9,
     tailWidth3D: 3.5,
+    midWidth3D: 4.5,
+    headGlowWidth3D: 7.5,
     headWidth3D: 4.5,
     tailOrbitFraction: 0.5,
     headOrbitFraction: 0.125,
@@ -411,9 +419,21 @@ function resolveTailVisualStyle(options = {}) {
     const headOpacityBase = dimension === "3D"
         ? ORBIT_TRAIL_STYLE.headOpacity3D
         : ORBIT_TRAIL_STYLE.headOpacity2D;
+    const midOpacityBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.midOpacity3D
+        : ORBIT_TRAIL_STYLE.midOpacity2D;
+    const headGlowOpacityBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.headGlowOpacity3D
+        : ORBIT_TRAIL_STYLE.headGlowOpacity2D;
     const tailWidthBase = dimension === "3D"
         ? ORBIT_TRAIL_STYLE.tailWidth3D
         : ORBIT_TRAIL_STYLE.tailWidth2D;
+    const midWidthBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.midWidth3D
+        : ORBIT_TRAIL_STYLE.midWidth2D;
+    const headGlowWidthBase = dimension === "3D"
+        ? ORBIT_TRAIL_STYLE.headGlowWidth3D
+        : ORBIT_TRAIL_STYLE.headGlowWidth2D;
     const headWidthBase = dimension === "3D"
         ? ORBIT_TRAIL_STYLE.headWidth3D
         : ORBIT_TRAIL_STYLE.headWidth2D;
@@ -421,9 +441,43 @@ function resolveTailVisualStyle(options = {}) {
     return {
         prominence,
         tailOpacity: clamp(tailOpacityBase * prominence, 0.12, 1),
+        midOpacity: clamp(midOpacityBase * (0.9 + (0.18 * prominence)), 0.18, 1),
+        headGlowOpacity: clamp(headGlowOpacityBase * (0.85 + (0.2 * prominence)), 0.08, 0.9),
         headOpacity: clamp(headOpacityBase * (0.85 + (0.15 * prominence)), 0.25, 1),
         tailWidth: dimension === "2D" ? tailWidthBase * prominence : tailWidthBase,
+        midWidth: dimension === "2D" ? midWidthBase * prominence : midWidthBase,
+        headGlowWidth: dimension === "2D" ? headGlowWidthBase * prominence : headGlowWidthBase,
         headWidth: dimension === "2D" ? headWidthBase * prominence : headWidthBase,
+    };
+}
+
+function resolveTrailLayerWindow(window) {
+    if (!window || !Number.isFinite(window.currentIndex) || window.currentIndex < 0) {
+        return {
+            tailStartIndex: -1,
+            midStartIndex: -1,
+            headGlowStartIndex: -1,
+            headStartIndex: -1,
+            currentIndex: -1,
+        };
+    }
+
+    const currentIndex = window.currentIndex;
+    const tailStartIndex = Number.isFinite(window.tailStartIndex) ? window.tailStartIndex : currentIndex;
+    const headStartIndex = Number.isFinite(window.headStartIndex) ? window.headStartIndex : currentIndex;
+    const tailLength = Math.max(1, currentIndex - tailStartIndex + 1);
+    const headLength = Math.max(1, currentIndex - headStartIndex + 1);
+    const midLength = Math.max(headLength + 3, Math.floor(tailLength * 0.46));
+    const glowLength = Math.max(headLength + 2, Math.floor(headLength * 1.7));
+    const midStartIndex = Math.max(tailStartIndex, currentIndex - midLength + 1);
+    const headGlowStartIndex = Math.max(midStartIndex, currentIndex - glowLength + 1);
+
+    return {
+        tailStartIndex,
+        midStartIndex,
+        headGlowStartIndex,
+        headStartIndex,
+        currentIndex,
     };
 }
 
@@ -473,5 +527,6 @@ export {
     resolveTailVisualStyle,
     resolveTrackOpacity2D,
     resolveTrackOpacity3D,
+    resolveTrailLayerWindow,
     resolveTrailWindow,
 };

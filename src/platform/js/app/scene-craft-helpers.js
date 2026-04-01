@@ -226,6 +226,20 @@ function applySceneOrbitVisibility(
                 bundle.tailLine.material.needsUpdate = true;
             }
         }
+        if (bundle?.midLine) {
+            bundle.midLine.visible = visible;
+            if (bundle.midLine.material) {
+                bundle.midLine.material.opacity = tailStyle.midOpacity;
+                bundle.midLine.material.needsUpdate = true;
+            }
+        }
+        if (bundle?.headGlowLine) {
+            bundle.headGlowLine.visible = visible;
+            if (bundle.headGlowLine.material) {
+                bundle.headGlowLine.material.opacity = tailStyle.headGlowOpacity;
+                bundle.headGlowLine.material.needsUpdate = true;
+            }
+        }
         if (bundle?.headLine) {
             bundle.headLine.visible = visible;
             if (bundle.headLine.material) {

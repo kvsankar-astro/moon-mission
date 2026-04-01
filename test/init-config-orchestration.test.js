@@ -83,7 +83,7 @@ describe("createInitConfigOrchestrationActions", () => {
         expect(deps.applyViewSettings).not.toHaveBeenCalled();
     });
 
-    it("forces moon visual aids off in test mode", async () => {
+    it("applies mission-config moon visual aids even in test mode", async () => {
         const deps = buildDeps({
             isTestMode: true,
             loadMissionConfig: vi.fn(async () => ({
@@ -100,12 +100,12 @@ describe("createInitConfigOrchestrationActions", () => {
         await actions.ensureGlobalConfigLoaded();
 
         expect(deps.setViewFlags).toHaveBeenCalledWith({
-            viewMoonHighlightRing: false,
-            viewMoonOsculatingOrbit: false,
+            viewMoonHighlightRing: true,
+            viewMoonOsculatingOrbit: true,
         });
         expect(deps.applyViewSettings).toHaveBeenCalledWith({
-            viewMoonHighlightRing: false,
-            viewMoonOsculatingOrbit: false,
+            viewMoonHighlightRing: true,
+            viewMoonOsculatingOrbit: true,
         });
     });
 });

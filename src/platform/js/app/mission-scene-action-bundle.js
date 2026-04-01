@@ -150,11 +150,12 @@ function createMissionSceneActionBundle(deps) {
         wait10,
         createLineMaterial: (color, options = {}) => new THREE.LineBasicMaterial({
             color,
-            linewidth: 0.2,
+            linewidth: Number.isFinite(options.linewidth) ? options.linewidth : 0.2,
             transparent: !!options.transparent,
             opacity: Number.isFinite(options.opacity) ? options.opacity : 1,
             depthWrite: options.depthWrite ?? true,
             depthTest: options.depthTest ?? true,
+            blending: options.blending ?? THREE.NormalBlending,
         }),
     });
 

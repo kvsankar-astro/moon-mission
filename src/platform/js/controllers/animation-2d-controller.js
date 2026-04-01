@@ -12,7 +12,7 @@
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { velocityToAngle } from "../utils/math-utils.js";
 import { projectToPlane, toScreenCoordinates } from "../scene-state.js";
-import { resolveTrailWindow } from "../app/orbit-trail-style.js";
+import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
@@ -214,18 +214,35 @@ export class Animation2DController {
                 tailOrbitFraction: scene?.orbitTrailTailFraction,
                 headOrbitFraction: scene?.orbitTrailHeadFraction,
             });
+            const layers = resolveTrailLayerWindow(window);
             const tailPoints =
-                window.tailStartIndex >= 0 && window.currentIndex >= window.tailStartIndex
-                    ? points.slice(window.tailStartIndex, window.currentIndex + 1)
+                layers.tailStartIndex >= 0 && layers.currentIndex >= layers.tailStartIndex
+                    ? points.slice(layers.tailStartIndex, layers.currentIndex + 1)
+                    : [];
+            const midPoints =
+                layers.midStartIndex >= 0 && layers.currentIndex >= layers.midStartIndex
+                    ? points.slice(layers.midStartIndex, layers.currentIndex + 1)
+                    : [];
+            const headGlowPoints =
+                layers.headGlowStartIndex >= 0 && layers.currentIndex >= layers.headGlowStartIndex
+                    ? points.slice(layers.headGlowStartIndex, layers.currentIndex + 1)
                     : [];
             const headPoints =
-                window.headStartIndex >= 0 && window.currentIndex >= window.headStartIndex
-                    ? points.slice(window.headStartIndex, window.currentIndex + 1)
+                layers.headStartIndex >= 0 && layers.currentIndex >= layers.headStartIndex
+                    ? points.slice(layers.headStartIndex, layers.currentIndex + 1)
                     : [];
 
             d3.select(`#orbit-trail-${bodyId}`).attr(
                 "points",
                 tailPoints.length >= 2 ? pointsToAttr(tailPoints) : "",
+            );
+            d3.select(`#orbit-mid-${bodyId}`).attr(
+                "points",
+                midPoints.length >= 2 ? pointsToAttr(midPoints) : "",
+            );
+            d3.select(`#orbit-head-glow-${bodyId}`).attr(
+                "points",
+                headGlowPoints.length >= 2 ? pointsToAttr(headGlowPoints) : "",
             );
             d3.select(`#orbit-head-${bodyId}`).attr(
                 "points",

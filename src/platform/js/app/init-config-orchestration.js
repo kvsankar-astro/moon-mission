@@ -54,10 +54,6 @@ function createInitConfigOrchestrationActions(deps) {
         const effectiveViewDefaults = {
             ...viewDefaults,
         };
-        if (isTestMode) {
-            effectiveViewDefaults.viewMoonHighlightRing = false;
-            effectiveViewDefaults.viewMoonOsculatingOrbit = false;
-        }
         setViewFlags?.(effectiveViewDefaults);
         applyViewSettings?.(effectiveViewDefaults);
     }

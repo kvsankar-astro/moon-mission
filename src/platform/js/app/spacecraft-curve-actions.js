@@ -78,6 +78,8 @@ export function createSpacecraftCurveActions({
             prominence: getTrailTailBrightness3D(),
         });
         const tailGeometry = createDynamicLineGeometry(curve.length);
+        const midGeometry = createDynamicLineGeometry(curve.length);
+        const headGlowGeometry = createDynamicLineGeometry(curve.length);
         const headGeometry = createDynamicLineGeometry(curve.length);
         const tailLine = new THREE.Line(
             tailGeometry,
@@ -85,6 +87,23 @@ export function createSpacecraftCurveActions({
                 transparent: true,
                 opacity: tailStyle.tailOpacity,
                 depthWrite: false,
+            }),
+        );
+        const midLine = new THREE.Line(
+            midGeometry,
+            createLineMaterial(mixColors(normalizedBaseColor, "#ffffff", 0.22), {
+                transparent: true,
+                opacity: tailStyle.midOpacity,
+                depthWrite: false,
+            }),
+        );
+        const headGlowLine = new THREE.Line(
+            headGlowGeometry,
+            createLineMaterial(mixColors(normalizedBaseColor, "#ffffff", 0.58), {
+                transparent: true,
+                opacity: tailStyle.headGlowOpacity,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending,
             }),
         );
         const headLine = new THREE.Line(
@@ -97,14 +116,22 @@ export function createSpacecraftCurveActions({
         );
 
         tailLine.userData = { ...(tailLine.userData || {}), bodyId };
+        midLine.userData = { ...(midLine.userData || {}), bodyId };
+        headGlowLine.userData = { ...(headGlowLine.userData || {}), bodyId };
         headLine.userData = { ...(headLine.userData || {}), bodyId };
         tailLine.renderOrder = 12;
-        headLine.renderOrder = 13;
+        midLine.renderOrder = 13;
+        headGlowLine.renderOrder = 14;
+        headLine.renderOrder = 15;
         tailLine.visible = false;
+        midLine.visible = false;
+        headGlowLine.visible = false;
         headLine.visible = false;
 
         return {
             tailLine,
+            midLine,
+            headGlowLine,
             headLine,
         };
     }
@@ -211,6 +238,8 @@ export function createSpacecraftCurveActions({
                 });
                 scene.orbitTrailLinesByBodyId[craftId] = trailBundle;
                 scene.motherContainer.add(trailBundle.tailLine);
+                scene.motherContainer.add(trailBundle.midLine);
+                scene.motherContainer.add(trailBundle.headGlowLine);
                 scene.motherContainer.add(trailBundle.headLine);
                 applyCraftOrbitVisibility(scene, globalConfig);
                 if (scene.stopCreationFlag) {
@@ -272,7 +301,7 @@ export function createSpacecraftCurveActions({
         scene.orbitBackgroundBaseOpacitiesByBodyId = {};
 
         for (const bundle of Object.values(scene.orbitTrailLinesByBodyId || {})) {
-            for (const line of [bundle?.tailLine, bundle?.headLine]) {
+            for (const line of [bundle?.tailLine, bundle?.midLine, bundle?.headGlowLine, bundle?.headLine]) {
                 if (!line) continue;
                 line.geometry?.dispose?.();
                 line.material?.dispose?.();

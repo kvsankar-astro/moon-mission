@@ -114,7 +114,7 @@ function createMissionWiringComposition(ports) {
         generateBodyCurve: ctx.generateBodyCurve,
         getLatestEndTime: ctx.getLatestEndTime,
         getPlaneVariables: ctx.getPlaneVariables,
-        getOrbitStyle: ctx.getOrbitStyle,
+        getOrbitStyle: ctx.getEffectiveOrbitStyle || ctx.getOrbitStyle,
         getTrailTrackBrightness2D: ctx.getTrailTrackBrightness2D,
         getTrailTailBrightness2D: ctx.getTrailTailBrightness2D,
         UC: ctx.UC,
@@ -272,6 +272,7 @@ function createMissionWiringComposition(ports) {
         setFPSCounterVisibility: ctx.setFPSCounterVisibility,
         render: ctx.render,
         getGlobalConfig: ctx.getGlobalConfig,
+        getAnimationRunning: ctx.getAnimationRunning,
         setViewFlags: ctx.setViewFlags,
         onConfigChanged: ctx.onConfigChanged,
     });

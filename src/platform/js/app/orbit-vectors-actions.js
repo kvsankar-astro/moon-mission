@@ -106,7 +106,7 @@ export function createOrbitVectorsActions({
                 element.setAttribute("visibility", style === "classic" ? "inherit" : "hidden"),
             );
         orbitElement
-            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
+            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-mid, .orbit-trail-head-glow, .orbit-trail-head")
             .forEach((element) =>
                 element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
             );
@@ -124,6 +124,22 @@ export function createOrbitVectorsActions({
                 element.setAttribute(
                     "stroke-opacity",
                     String(tailStyle.tailOpacity),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-mid")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(tailStyle.midOpacity),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-head-glow")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(tailStyle.headGlowOpacity),
                 ),
             );
         orbitElement
@@ -409,6 +425,34 @@ export function createOrbitVectorsActions({
                 svgContainer
                     .select("#" + "orbit-" + planetKey)
                     .append("polyline")
+                    .attr("class", "orbit-trail-mid")
+                    .attr("id", `orbit-mid-${planetKey}`)
+                    .attr("points", "")
+                    .attr("fill", "none")
+                    .attr("stroke", mixColors(orbitColor, "#ffffff", 0.22))
+                    .attr("stroke-width", tailStyle.midWidth / zoomFactor)
+                    .attr("stroke-opacity", tailStyle.midOpacity)
+                    .attr("stroke-linecap", "round")
+                    .attr("stroke-linejoin", "round")
+                    .attr("visibility", "hidden");
+
+                svgContainer
+                    .select("#" + "orbit-" + planetKey)
+                    .append("polyline")
+                    .attr("class", "orbit-trail-head-glow")
+                    .attr("id", `orbit-head-glow-${planetKey}`)
+                    .attr("points", "")
+                    .attr("fill", "none")
+                    .attr("stroke", mixColors(orbitColor, "#ffffff", 0.58))
+                    .attr("stroke-width", tailStyle.headGlowWidth / zoomFactor)
+                    .attr("stroke-opacity", tailStyle.headGlowOpacity)
+                    .attr("stroke-linecap", "round")
+                    .attr("stroke-linejoin", "round")
+                    .attr("visibility", "hidden");
+
+                svgContainer
+                    .select("#" + "orbit-" + planetKey)
+                    .append("polyline")
                     .attr("class", "orbit-trail-head")
                     .attr("id", `orbit-head-${planetKey}`)
                     .attr("points", "")
@@ -422,6 +466,12 @@ export function createOrbitVectorsActions({
 
                 svgContainer
                     .select(`#orbit-trail-${planetKey}`)
+                    .attr("points", pointsToAttr([]));
+                svgContainer
+                    .select(`#orbit-mid-${planetKey}`)
+                    .attr("points", pointsToAttr([]));
+                svgContainer
+                    .select(`#orbit-head-glow-${planetKey}`)
                     .attr("points", pointsToAttr([]));
                 svgContainer
                     .select(`#orbit-head-${planetKey}`)

@@ -32,6 +32,7 @@ function createViewSettingsWiringActions(deps) {
         setFPSCounterVisibility,
         render,
         getGlobalConfig,
+        getAnimationRunning,
         setViewFlags,
         onConfigChanged,
     } = deps;
@@ -71,6 +72,7 @@ function createViewSettingsWiringActions(deps) {
         setFPSCounterVisibility,
         render,
         getGlobalConfig,
+        getAnimationRunning,
         setViewFlags,
         setDimension: dimensionActions.setDimension,
         onConfigChanged,

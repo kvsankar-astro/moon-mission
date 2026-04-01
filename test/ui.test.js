@@ -933,6 +933,33 @@ async function ensureCheckboxState(page, selector, enabled = true) {
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
 }
 
+async function pinSsimDefaultViewToggles(page) {
+  let changed = false;
+  const isRelativeMode = await page.isChecked('#origin-relative');
+  const desiredStates = [
+    ['#view-xyz-axes', !isRelativeMode],
+    ['#view-poles', !isRelativeMode],
+    ['#view-polar-axes', !isRelativeMode],
+  ];
+
+  for (const [selector, enabled] of desiredStates) {
+    const toggle = page.locator(selector);
+    if (await toggle.count() === 0) {
+      continue;
+    }
+    const isChecked = await toggle.isChecked();
+    if (isChecked !== enabled) {
+      changed = true;
+    }
+    await ensureCheckboxState(page, selector, enabled);
+  }
+
+  if (changed) {
+    await waitForScene(page);
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+}
+
 async function prepareRelativeLandingFovView(page, cameraPair) {
   await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
@@ -1039,6 +1066,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     // More invasive state changes (landing, orbit) should be done by specific tests that need them
     // because they can interfere with orbit rendering timing
     await ensureStellarSkyDisabled(page);
+    await pinSsimDefaultViewToggles(page);
   });
 
   afterEach(() => {

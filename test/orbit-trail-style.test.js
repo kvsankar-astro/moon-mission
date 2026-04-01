@@ -4,6 +4,7 @@ import {
     buildCurveTimes,
     mixColors,
     resolveTailVisualStyle,
+    resolveTrailLayerWindow,
     resolveTrailWindow,
 } from "../src/platform/js/app/orbit-trail-style.js";
 
@@ -99,8 +100,26 @@ describe("orbit trail style helpers", () => {
         const strong = resolveTailVisualStyle({ dimension: "3D", prominence: 2 });
 
         expect(soft.tailOpacity).toBeLessThan(strong.tailOpacity);
+        expect(soft.midOpacity).toBeLessThan(strong.midOpacity);
+        expect(soft.headGlowOpacity).toBeLessThanOrEqual(strong.headGlowOpacity);
         expect(soft.headOpacity).toBeLessThanOrEqual(strong.headOpacity);
         expect(soft.tailWidth).toBe(strong.tailWidth);
+        expect(soft.midWidth).toBe(strong.midWidth);
+        expect(soft.headGlowWidth).toBe(strong.headGlowWidth);
         expect(soft.headWidth).toBe(strong.headWidth);
+    });
+
+    it("derives layered trail ranges in order from tail to head", () => {
+        const layers = resolveTrailLayerWindow({
+            tailStartIndex: 10,
+            headStartIndex: 24,
+            currentIndex: 30,
+        });
+
+        expect(layers.tailStartIndex).toBe(10);
+        expect(layers.midStartIndex).toBeGreaterThanOrEqual(10);
+        expect(layers.headGlowStartIndex).toBeGreaterThanOrEqual(layers.midStartIndex);
+        expect(layers.headStartIndex).toBeGreaterThanOrEqual(layers.headGlowStartIndex);
+        expect(layers.currentIndex).toBe(30);
     });
 });

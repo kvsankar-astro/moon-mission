@@ -28,10 +28,17 @@ export function createSettingsActions({
     setFPSCounterVisibility,
     render,
     getGlobalConfig,
+    getAnimationRunning,
     setViewFlags,
     setDimension,
     onConfigChanged,
 }) {
+    function resolveEffectiveOrbitStyle(orbitStyle) {
+        const selectedStyle = orbitStyle === "trail" ? "trail" : "classic";
+        if (selectedStyle !== "trail") return selectedStyle;
+        return getAnimationRunning?.() ? "trail" : "classic";
+    }
+
     function applyOrbitSvgStyle(
         orbitElement,
         orbitStyle,
@@ -39,7 +46,7 @@ export function createSettingsActions({
         trailTailBrightness2D = 1,
     ) {
         if (!orbitElement) return;
-        const style = orbitStyle === "trail" ? "trail" : "classic";
+        const style = resolveEffectiveOrbitStyle(orbitStyle);
         orbitElement.setAttribute("data-orbit-style", style);
         orbitElement
             .querySelectorAll(".orbit-classic-path")
@@ -47,7 +54,7 @@ export function createSettingsActions({
                 element.setAttribute("visibility", style === "classic" ? "inherit" : "hidden"),
             );
         orbitElement
-            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-head")
+            .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-mid, .orbit-trail-head-glow, .orbit-trail-head")
             .forEach((element) =>
                 element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
             );
@@ -65,6 +72,32 @@ export function createSettingsActions({
                 element.setAttribute(
                     "stroke-opacity",
                     String(resolveTailOpacity2D(trailTailBrightness2D)),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-mid")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(style === "trail"
+                        ? resolveTailVisualStyle({
+                            dimension: "2D",
+                            prominence: trailTailBrightness2D,
+                        }).midOpacity
+                        : 0),
+                ),
+            );
+        orbitElement
+            .querySelectorAll(".orbit-trail-head-glow")
+            .forEach((element) =>
+                element.setAttribute(
+                    "stroke-opacity",
+                    String(style === "trail"
+                        ? resolveTailVisualStyle({
+                            dimension: "2D",
+                            prominence: trailTailBrightness2D,
+                        }).headGlowOpacity
+                        : 0),
                 ),
             );
         orbitElement
@@ -101,6 +134,14 @@ export function createSettingsActions({
                     element.setAttribute("stroke-width", String(style2D.tailWidth));
                     element.setAttribute("stroke-opacity", String(style2D.tailOpacity));
                 });
+                orbitGroup.querySelectorAll(".orbit-trail-mid").forEach((element) => {
+                    element.setAttribute("stroke-width", String(style2D.midWidth));
+                    element.setAttribute("stroke-opacity", String(style2D.midOpacity));
+                });
+                orbitGroup.querySelectorAll(".orbit-trail-head-glow").forEach((element) => {
+                    element.setAttribute("stroke-width", String(style2D.headGlowWidth));
+                    element.setAttribute("stroke-opacity", String(style2D.headGlowOpacity));
+                });
                 orbitGroup.querySelectorAll(".orbit-trail-head").forEach((element) => {
                     element.setAttribute("stroke-width", String(style2D.headWidth));
                     element.setAttribute("stroke-opacity", String(style2D.headOpacity));
@@ -112,6 +153,14 @@ export function createSettingsActions({
             if (bundle?.tailLine?.material) {
                 bundle.tailLine.material.opacity = style3D.tailOpacity;
                 bundle.tailLine.material.needsUpdate = true;
+            }
+            if (bundle?.midLine?.material) {
+                bundle.midLine.material.opacity = style3D.midOpacity;
+                bundle.midLine.material.needsUpdate = true;
+            }
+            if (bundle?.headGlowLine?.material) {
+                bundle.headGlowLine.material.opacity = style3D.headGlowOpacity;
+                bundle.headGlowLine.material.needsUpdate = true;
             }
             if (bundle?.headLine?.material) {
                 bundle.headLine.material.opacity = style3D.headOpacity;
@@ -169,6 +218,7 @@ export function createSettingsActions({
                     requestedView.viewAdditionalCrafts ?? scene?.viewAdditionalCrafts ?? false,
                 visibleCraftIds: nextVisibleCraftIds,
             };
+            const effectiveOrbitStyle = resolveEffectiveOrbitStyle(view.orbitStyle);
             if (scene) {
                 scene.trailContextOpacity2D = resolveTrackOpacity2D(view.trailTrackBrightness2D);
                 scene.trailContextOpacity3D = resolveTrackOpacity3D(view.trailTrackBrightness3D);
@@ -205,7 +255,7 @@ export function createSettingsActions({
                     });
                     applyOrbitSvgStyle(
                         orbitElement,
-                        view.orbitStyle,
+                        effectiveOrbitStyle,
                         view.trailTrackBrightness2D,
                         view.trailTailBrightness2D,
                     );
@@ -217,7 +267,7 @@ export function createSettingsActions({
                     scene,
                     globalConfig,
                     view.viewOrbit,
-                    view.orbitStyle || "classic",
+                    effectiveOrbitStyle,
                     view.trailTrackBrightness3D,
                     view.trailTailBrightness3D,
                 );

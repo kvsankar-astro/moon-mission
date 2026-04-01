@@ -336,6 +336,10 @@ function createMissionStateStore(ctx) {
         getViewSky: () => getState("viewSky"),
         getViewConstellationLines: () => getState("viewConstellationLines"),
         getOrbitStyle: () => getState("orbitStyle"),
+        getEffectiveOrbitStyle: () =>
+            typeof state.effectiveOrbitStyle?.get === "function"
+                ? state.effectiveOrbitStyle.get()
+                : getState("orbitStyle"),
         getTrailTrackBrightness2D: () => getState("trailTrackBrightness2D"),
         getTrailTrackBrightness3D: () => getState("trailTrackBrightness3D"),
         getTrailTailBrightness2D: () => getState("trailTailBrightness2D"),

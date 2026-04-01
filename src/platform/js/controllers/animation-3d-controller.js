@@ -11,7 +11,7 @@
 
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { toScreenCoordinates } from "../scene-state.js";
-import { resolveTrailWindow } from "../app/orbit-trail-style.js";
+import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
@@ -143,17 +143,30 @@ export class Animation3DController {
                 tailOrbitFraction: this.scene?.orbitTrailTailFraction,
                 headOrbitFraction: this.scene?.orbitTrailHeadFraction,
             });
+            const layers = resolveTrailLayerWindow(window);
             this.updateTrailLineGeometry(
                 bundle.tailLine,
                 curve,
-                window.tailStartIndex,
-                window.currentIndex,
+                layers.tailStartIndex,
+                layers.currentIndex,
+            );
+            this.updateTrailLineGeometry(
+                bundle.midLine,
+                curve,
+                layers.midStartIndex,
+                layers.currentIndex,
+            );
+            this.updateTrailLineGeometry(
+                bundle.headGlowLine,
+                curve,
+                layers.headGlowStartIndex,
+                layers.currentIndex,
             );
             this.updateTrailLineGeometry(
                 bundle.headLine,
                 curve,
-                window.headStartIndex,
-                window.currentIndex,
+                layers.headStartIndex,
+                layers.currentIndex,
             );
         }
     }
