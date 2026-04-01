@@ -291,17 +291,28 @@ export class CameraController {
             if (lookPos) {
                 const allowOrbitAroundTarget =
                     (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
+                const isMountedCrossBodyView =
+                    hasPositionMount &&
+                    this.lookMode !== CAMERA_LOOK_MODE.MANUAL &&
+                    this.positionMode !== this.lookMode;
+                const shouldUseGlobalUp = allowOrbitAroundTarget || isMountedCrossBodyView;
 
-                // Keep horizon stable when we allow orbiting; otherwise align to target's up.
-                if (allowOrbitAroundTarget) {
+                // Keep a stable horizon for manual orbiting and mounted cross-body views.
+                // For mounted same-body views, align with target up to avoid ambiguous roll.
+                if (shouldUseGlobalUp) {
                     this.camera.up.set(0, 0, 1);
                 } else {
                     this._updateCameraUpForLookTarget(this.lookMode, lookPos);
                 }
                 if (this.controls) {
                     this.controls.target.copy(lookPos);
-                    this.controls.noRotate = !allowOrbitAroundTarget;
-                    this.controls.noPan = !allowOrbitAroundTarget;
+                    if (hasPositionMount) {
+                        this.controls.noRotate = true;
+                        this.controls.noPan = true;
+                    } else {
+                        this.controls.noRotate = !allowOrbitAroundTarget;
+                        this.controls.noPan = !allowOrbitAroundTarget;
+                    }
                     // Force immediate alignment without relying on TrackballControls.update().
                     this.camera.lookAt(lookPos);
                 } else {
