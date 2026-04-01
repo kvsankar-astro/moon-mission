@@ -9,6 +9,7 @@ export function createSkyActions({ SkyRenderer, render }) {
         scene.skyContainer = scene.skyRenderer.container;
         scene.sky = scene.skyRenderer.skyMesh;
         scene.skyConstellation = scene.skyRenderer.constellationMesh;
+        scene.skyBaseQuaternion = scene.skyContainer?.quaternion?.clone?.() || null;
         applySkyLayerVisibility(scene, { viewSky, viewConstellationLines });
 
         render();
@@ -23,6 +24,7 @@ export function createSkyActions({ SkyRenderer, render }) {
         scene.sky = null;
         scene.skyConstellation = null;
         scene.skyContainer = null;
+        scene.skyBaseQuaternion = null;
         scene.skyTexture = null;
         scene.skyConstellationTexture = null;
     }

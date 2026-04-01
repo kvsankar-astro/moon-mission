@@ -93,6 +93,7 @@ function createAnimationSceneClass(deps) {
             this.locations = [];
             this.sceneHelpers = null;
             this.skyRenderer = null;
+            this.skyBaseQuaternion = null;
             this.lightManager = null;
             this.earthRenderer = null;
             this.moonRenderer = null;
@@ -536,6 +537,17 @@ function createAnimationSceneClass(deps) {
 
         rotateEarth(timeMs = getRuntimeState().animTime) {
             const runtimeState = getRuntimeState();
+            const applySkyRelativeFrame = (frameQuat) => {
+                if (!frameQuat || !this.skyContainer || !this.skyBaseQuaternion) return;
+                const qFrame = new THREE.Quaternion(
+                    frameQuat.x,
+                    frameQuat.y,
+                    frameQuat.z,
+                    frameQuat.w,
+                );
+                this.skyContainer.quaternion.copy(qFrame).multiply(this.skyBaseQuaternion);
+            };
+
             if (runtimeState.frameMode === "relative" && runtimeState.config === "geo" && this.earthContainer) {
                 const inertialQuatData = bodyRotationActions.getEarthInertialQuaternion?.(timeMs);
                 const qInertial = inertialQuatData
@@ -562,11 +574,14 @@ function createAnimationSceneClass(deps) {
                     return true;
                 };
 
-                if (applyRelativeFrame(getRelativeFrameQuaternion({
+                const relativeFrameQuat = getRelativeFrameQuaternion({
                     chebyshevData: runtimeState.chebyshevData,
                     config: runtimeState.config,
                     timeMs,
-                }))) {
+                });
+
+                if (applyRelativeFrame(relativeFrameQuat)) {
+                    applySkyRelativeFrame(relativeFrameQuat);
                     return;
                 }
 
@@ -607,6 +622,13 @@ function createAnimationSceneClass(deps) {
                 } else {
                     this.earthContainer.quaternion.copy(qFrame);
                 }
+
+                applySkyRelativeFrame({
+                    x: qFrame.x,
+                    y: qFrame.y,
+                    z: qFrame.z,
+                    w: qFrame.w,
+                });
                 return;
             }
 
@@ -614,6 +636,11 @@ function createAnimationSceneClass(deps) {
                 timeMs,
                 earthContainer: this.earthContainer,
             });
+
+            // Keep inertial sky orientation when not in relative frame mode.
+            if (this.skyContainer && this.skyBaseQuaternion) {
+                this.skyContainer.quaternion.copy(this.skyBaseQuaternion);
+            }
         }
 
         dispose() {
