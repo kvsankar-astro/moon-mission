@@ -9,7 +9,7 @@ const DEFAULT_VIEW_SETTINGS = Object.freeze({
     viewConstellationLines: false,
     viewMoonSOI: false,
     viewMoonHighlightRing: true,
-    viewMoonOsculatingOrbit: false,
+    viewMoonOsculatingOrbit: true,
     viewEclipticPlane: false,
     viewEquatorialPlane: false,
 });

@@ -27,7 +27,7 @@ function buildDefaultViewFlags() {
         viewConstellationLines: false,
         viewMoonSOI: false,
         viewMoonHighlightRing: true,
-        viewMoonOsculatingOrbit: false,
+        viewMoonOsculatingOrbit: true,
         viewEclipticPlane: false,
         viewEquatorialPlane: false,
         viewFPS: true,
