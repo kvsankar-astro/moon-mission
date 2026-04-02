@@ -139,7 +139,11 @@ assets/*/data/*-style.json
 
 # Runtime media and vendored assets are staged locally from moon-mission-data.
 assets/*/images/
-images/
+images/*
+!images/social/
+images/social/*
+!images/social/mission-social.png
+!images/social/index-social.png
 third-party/
 
 # Legacy temporary directories

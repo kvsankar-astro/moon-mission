@@ -13,7 +13,7 @@ A multi-mission platform for 3D and 2D orbital animations of lunar missions. The
 - **[SLIM](http://sankara.net/mission.html?mission=slim)** (2024) - JAXA soft-landing mission
 - **[Danuri](http://sankara.net/mission.html?mission=kplo-danuri)** (2022) - Korea Pathfinder Lunar Orbiter
 
-![Screenshot](/assets/chandrayaan3/images/chandrayaan3-screenshot.png?raw=true)
+![Mission Preview](images/social/mission-social.png)
 
 ## Features
 
