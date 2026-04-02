@@ -189,6 +189,11 @@ export function createSettingsActions({
             previousScene.stopCreation();
             previousScene.dispose();
             delete animationScenes[previousConfig];
+        } else if (previousScene?.sceneHelpers?.updateBodyHighlight) {
+            // Scene instances are reused across origin switches in steady state.
+            // Ensure the previous scene's screen-space highlight overlay is hidden
+            // so we never leave ghost secondary-body circles on screen.
+            previousScene.sceneHelpers.updateBodyHighlight({ visible: false });
         }
 
         setConfig(transitionPlan.nextConfig);
