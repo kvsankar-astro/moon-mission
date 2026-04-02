@@ -54,15 +54,13 @@ jobs:
             cp -r third-party dist-pages/
           fi
 
-      - name: Reuse currently published runtime manifest
+      - name: Download currently published runtime manifest (bootstrap list)
         run: |
-          mkdir -p dist-pages/deployment dist-pages/provenance
+          mkdir -p dist-pages/deployment
           curl -fsSL "${SITE_URL}deployment/runtime-asset-manifest.json" \
-            -o dist-pages/deployment/runtime-asset-manifest.json
-          cp dist-pages/deployment/runtime-asset-manifest.json \
-            dist-pages/provenance/runtime-asset-manifest.json
+            -o dist-pages/deployment/runtime-asset-manifest.bootstrap.json
 
-      - name: Restore required runtime assets from currently published site
+      - name: Restore runtime assets from currently published site
         run: |
           python - <<'PY'
           import json
@@ -72,7 +70,7 @@ jobs:
 
           site_url = os.environ["SITE_URL"].rstrip("/") + "/"
           target_root = pathlib.Path("dist-pages").resolve()
-          manifest_path = target_root / "deployment" / "runtime-asset-manifest.json"
+          manifest_path = target_root / "deployment" / "runtime-asset-manifest.bootstrap.json"
           manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
           required = manifest.get("required_assets", [])
 
@@ -94,6 +92,13 @@ jobs:
           print(f"Downloaded runtime assets: {downloaded}")
           print(f"Already present assets: {skipped}")
           PY
+
+      - name: Generate runtime manifest for staged app-only bundle
+        run: |
+          python scripts/generate-runtime-asset-manifest.py \
+            --app-root . \
+            --data-root ./dist-pages \
+            --output ./dist-pages/deployment/runtime-asset-manifest.json
 
       - name: Verify staged runtime assets against manifest (existence + SHA)
         run: |
