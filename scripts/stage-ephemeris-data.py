@@ -21,7 +21,7 @@ import shutil
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Set, Tuple
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,28 @@ def _is_orbit_runtime_name(name: str) -> bool:
     )
 
 
+def load_active_mission_folders(app_root: Path) -> Set[str]:
+    catalog_path = app_root / "assets" / "mission-catalog.json"
+    if not catalog_path.exists():
+        raise FileNotFoundError(f"Mission catalog not found: {catalog_path}")
+
+    with catalog_path.open("r", encoding="utf-8") as handle:
+        catalog = json.load(handle)
+
+    missions = catalog.get("missions", [])
+    if not isinstance(missions, list):
+        raise ValueError(f"Mission catalog has invalid missions list: {catalog_path}")
+
+    folders: Set[str] = set()
+    for mission in missions:
+        if not isinstance(mission, dict):
+            continue
+        folder = mission.get("folder")
+        if isinstance(folder, str) and folder.strip():
+            folders.add(folder.strip())
+    return folders
+
+
 def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
     assets_root = app_root / "assets"
     required: Dict[str, RequiredArtifact] = {}
@@ -57,8 +79,12 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
     if not assets_root.exists():
         raise FileNotFoundError(f"Assets directory not found: {assets_root}")
 
+    active_missions = load_active_mission_folders(app_root)
+
     for manifest_path in sorted(assets_root.glob("*/data/ephemeris-manifest.json")):
         mission = manifest_path.parent.parent.name
+        if mission not in active_missions:
+            continue
         data_dir = manifest_path.parent
         rel_manifest = Path("assets") / mission / "data" / "ephemeris-manifest.json"
         required[_norm(rel_manifest)] = RequiredArtifact(
@@ -127,9 +153,23 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
         if config_path.exists():
             with config_path.open("r", encoding="utf-8") as handle:
                 config = json.load(handle)
-            mnemonic = config.get("spacecraft_mnemonic")
-            if isinstance(mnemonic, str) and mnemonic:
-                relative_runtime = f"relative-{mnemonic}-cheb.json"
+
+            relative_cfg = config.get("relative")
+            relative_orbits_file = None
+            if isinstance(relative_cfg, dict):
+                relative_orbits_file = relative_cfg.get("orbits_file") or relative_cfg.get(
+                    "orbitsFile",
+                )
+
+            if isinstance(relative_orbits_file, str) and relative_orbits_file.strip():
+                relative_runtime = f"{relative_orbits_file.strip()}-cheb.json"
+            else:
+                mnemonic = config.get("spacecraft_mnemonic")
+                relative_runtime = None
+                if isinstance(mnemonic, str) and mnemonic:
+                    relative_runtime = f"relative-{mnemonic}-cheb.json"
+
+            if relative_runtime:
                 relative_rel_path = Path("assets") / mission / "data" / relative_runtime
                 required[_norm(relative_rel_path)] = RequiredArtifact(
                     mission=mission,
