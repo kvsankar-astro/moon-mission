@@ -246,13 +246,17 @@ export class CameraController {
             return;
         }
 
-        const minDistance = Math.min(...candidateDistances);
         const maxDistance = Math.max(...candidateDistances);
 
-        // Keep enough precision to stabilize occlusion, while ensuring distant
-        // bodies (e.g. Earth in Craft->Moon view) remain inside the clip range.
-        const near = THREE.MathUtils.clamp(minDistance * 0.0015, 0.005, 2);
-        const far = THREE.MathUtils.clamp(Math.max(maxDistance * 3.5, near + 128), 128, this.defaultFar);
+        // Keep near clipping fixed at the global default. In mounted/body-origin
+        // views, increasing near dynamically can clip the sky sphere and produce
+        // a large black polygon while zooming/FoV-changing.
+        const near = this.defaultNear;
+        const far = THREE.MathUtils.clamp(
+            Math.max(maxDistance * 3.5, near + 128),
+            128,
+            this.defaultFar,
+        );
         if (Math.abs(this.camera.near - near) > 1e-6 || Math.abs(this.camera.far - far) > 1e-6) {
             this.camera.near = near;
             this.camera.far = far;
