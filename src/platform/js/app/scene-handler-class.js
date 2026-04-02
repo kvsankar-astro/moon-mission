@@ -70,6 +70,15 @@ function createSceneHandlerClass(deps) {
                 return;
             }
 
+            const previousRenderedScene = this.lastAnimationScene;
+            if (
+                previousRenderedScene &&
+                previousRenderedScene !== animationScene &&
+                previousRenderedScene.sceneHelpers?.updateBodyHighlight
+            ) {
+                previousRenderedScene.sceneHelpers.updateBodyHighlight({ visible: false });
+            }
+
             this.lastAnimationScene = animationScene;
 
             const {

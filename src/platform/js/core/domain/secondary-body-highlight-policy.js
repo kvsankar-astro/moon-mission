@@ -16,9 +16,11 @@ function shouldShowSecondaryBodyHighlight({
         return false;
     }
 
+    // Keep the secondary highlight ring only for GEO origin where the Moon is
+    // the secondary body. Showing an Earth ring in LUNAR origin reads as a
+    // stray artifact in practice and causes confusing duplicate-circle visuals.
     const isSupportedOrigin =
-        (configName === "geo" && secondaryBody === "MOON") ||
-        (configName === "lunar" && secondaryBody === "EARTH");
+        (configName === "geo" && secondaryBody === "MOON");
     if (!isSupportedOrigin) {
         return false;
     }
