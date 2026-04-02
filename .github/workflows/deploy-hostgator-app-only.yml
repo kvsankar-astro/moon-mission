@@ -105,6 +105,17 @@ jobs:
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
             ./dist-pages/ \
             ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }}
+
+      - name: Deploy app-managed social images
+        run: |
+          if [ -d ./dist-pages/images/social ]; then
+            rsync -avz --delete \
+              -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+              ./dist-pages/images/social/ \
+              ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }}/images/social/
+          else
+            echo "No app-managed social images present in dist-pages/images/social; skipping."
+          fi
         timeout-minutes: 10
 
       - name: Cleanup SSH key
