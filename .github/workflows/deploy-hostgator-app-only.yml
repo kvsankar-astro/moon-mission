@@ -92,6 +92,12 @@ jobs:
           rsync -avz --delete \
             --filter='P assets/*/data/' \
             --filter='P assets/*/data/***' \
+            --filter='P assets/*/images/' \
+            --filter='P assets/*/images/***' \
+            --filter='P images/' \
+            --filter='P images/***' \
+            --filter='P third-party/' \
+            --filter='P third-party/***' \
             --filter='P deployment/runtime-asset-manifest.json' \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
             ./dist-pages/ \
