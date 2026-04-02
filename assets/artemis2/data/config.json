@@ -12,12 +12,12 @@
       "primary": true,
       "spans": {
         "geo": {
-          "startTime": "2026-04-02T01:49:00Z",
-          "endTime": "2026-04-10T23:52:00Z"
+          "startTime": "2026-04-02T01:58:33Z",
+          "endTime": "2026-04-10T23:54:35Z"
         },
         "lunar": {
-          "startTime": "2026-04-02T01:49:00Z",
-          "endTime": "2026-04-10T23:52:00Z"
+          "startTime": "2026-04-02T01:58:33Z",
+          "endTime": "2026-04-10T23:54:35Z"
         }
       }
     }
@@ -62,32 +62,36 @@
   },
   "is_lunar": true,
   "geo": {
+    "startTime": "2026-04-02T01:58:33Z",
+    "endTime": "2026-04-10T23:54:35Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
     "start_hour": "01",
-    "start_minute": "49",
+    "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
     "stop_day": "10",
     "stop_hour": "23",
-    "stop_minute": "52",
+    "stop_minute": "54",
     "step_size_in_seconds": 60,
     "planets": ["MOON", "SC"],
     "center": "earth_center",
     "orbits_file": "geo-ORION"
   },
   "lunar": {
+    "startTime": "2026-04-02T01:58:33Z",
+    "endTime": "2026-04-10T23:54:35Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
     "start_hour": "01",
-    "start_minute": "49",
+    "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
     "stop_day": "10",
     "stop_hour": "23",
-    "stop_minute": "52",
+    "stop_minute": "54",
     "step_size_in_seconds": 60,
     "planets": ["SC", "EARTH"],
     "center": "moon_center",
@@ -95,11 +99,11 @@
   },
   "events": {
     "missionStart": {
-      "startTime": "2026-04-01T22:24:00Z",
+      "startTime": "2026-04-01T22:35:12Z",
       "durationSeconds": 0,
       "label": "Launch",
       "burnFlag": false,
-      "infoText": "Launch: 1st Apr 2026, 22:24 UTC - SLS launches Artemis II from Kennedy Space Center LC-39B",
+      "infoText": "Launch: 1st Apr 2026, 22:35:12 UTC - SLS launches Artemis II from Kennedy Space Center LC-39B",
       "hoverText": "Launch from LC-39B. Orion's public trajectory is not yet published at this point.",
       "body": "SC",
       "requiresEphemeris": true
@@ -145,11 +149,11 @@
       "requiresEphemeris": true
     },
     "dataStart": {
-      "startTime": "2026-04-02T01:49:00Z",
+      "startTime": "2026-04-02T01:58:33Z",
       "durationSeconds": 0,
       "label": "Data Start",
       "burnFlag": false,
-      "infoText": "2nd Apr 2026, 01:49 UTC - First published Orion trajectory sample after nominal ICPS separation",
+      "infoText": "2nd Apr 2026, 01:58:33 UTC - First published Orion trajectory sample after nominal ICPS separation",
       "hoverText": "First published Orion ephemeris sample. 3D tracking becomes available from this point onward.",
       "body": "SC",
       "requiresEphemeris": true
@@ -205,11 +209,11 @@
       "requiresEphemeris": true
     },
     "tli": {
-      "startTime": "2026-04-02T23:34:00Z",
+      "startTime": "2026-04-02T23:43:12Z",
       "durationSeconds": 480,
       "label": "TLI",
       "burnFlag": true,
-      "infoText": "2nd Apr 2026, 23:34 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
+      "infoText": "2nd Apr 2026, 23:43:12 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
       "hoverText": "The major translunar burn sends Orion onto a lunar free-return trajectory.",
       "body": "SC",
       "requiresEphemeris": true
@@ -245,21 +249,21 @@
       "requiresEphemeris": true
     },
     "lunarSoiEntry": {
-      "startTime": "2026-04-06T05:23:00Z",
+      "startTime": "2026-04-06T04:43:12Z",
       "durationSeconds": 0,
       "label": "Lunar SOI In",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 05:23 UTC - Orion enters the Moon's sphere of influence",
+      "infoText": "6th Apr 2026, 04:43:12 UTC - Orion enters the Moon's sphere of influence",
       "hoverText": "The Moon's gravity becomes Orion's dominant local influence.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "closestApproach": {
-      "startTime": "2026-04-06T23:47:00Z",
+      "startTime": "2026-04-06T23:06:12Z",
       "durationSeconds": 0,
       "label": "Lunar Flyby",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:47 UTC - Closest approach to the Moon during Artemis II's crewed lunar flyby",
+      "infoText": "6th Apr 2026, 23:06:12 UTC - Closest approach to the Moon during Artemis II's crewed lunar flyby",
       "hoverText": "Orion passes closest to the Moon during the crewed free-return flyby.",
       "body": "SC",
       "requiresEphemeris": true
@@ -275,11 +279,11 @@
       "requiresEphemeris": true
     },
     "lunarSoiExit": {
-      "startTime": "2026-04-07T18:11:00Z",
+      "startTime": "2026-04-07T17:27:12Z",
       "durationSeconds": 0,
       "label": "Lunar SOI Out",
       "burnFlag": false,
-      "infoText": "7th Apr 2026, 18:11 UTC - Orion exits the Moon's sphere of influence",
+      "infoText": "7th Apr 2026, 17:27:12 UTC - Orion exits the Moon's sphere of influence",
       "hoverText": "Orion departs the Moon's sphere of influence and begins the homeward leg.",
       "body": "SC",
       "requiresEphemeris": true
@@ -355,11 +359,11 @@
       "requiresEphemeris": true
     },
     "splashdown": {
-      "startTime": "2026-04-11T00:10:00Z",
+      "startTime": "2026-04-11T00:17:12Z",
       "durationSeconds": 0,
       "label": "Splashdown",
       "burnFlag": false,
-      "infoText": "11th Apr 2026, 00:10 UTC - Pacific splashdown near Baja California after the nominal 10-day Artemis II mission",
+      "infoText": "11th Apr 2026, 00:17:12 UTC - Pacific splashdown near Baja California after the nominal 10-day Artemis II mission",
       "hoverText": "The crew module splashes down in the Pacific near Baja California.",
       "body": "SC",
       "requiresEphemeris": true

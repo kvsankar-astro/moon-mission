@@ -8,10 +8,10 @@
 | **Agency** | NASA |
 | **Type** | Crewed Capsule |
 | **Launch Site** | pad LC-39B at the Kennedy Space |
-| **Trajectory Start** | 2026-Apr-02 01:49 |
+| **Trajectory Start** | 2026-Apr-02 01:59 |
 | **Trajectory End** | 2026-Apr-10 23:52 |
 | **URL** | https://www.nasa.gov/mission/artemis-ii/ |
-| **Last Updated** | Mar 27, 2026 |
+| **Last Updated** | Apr 01, 2026 |
 
 ## JPL HORIZONS Data
 
@@ -20,9 +20,9 @@ API VERSION: 1.2
 API SOURCE: NASA/JPL Horizons API
 
 *******************************************************************************
- Revised: Mar 27, 2026        Artemis II / Spacecraft (Earth)             -1024
- Events : Mar 31, 2026  https://www.nasa.gov/mission/artemis-ii/
-                       https://www.nasa.gov/artemis-ii-press-kit/
+ Revised: Apr 01, 2026        Artemis II / Spacecraft (Earth)             -1024
+          01:05 UTC       https://www.nasa.gov/mission/artemis-ii/
+                         https://www.nasa.gov/artemis-ii-press-kit/
 
  BACKGROUND:
   Four astronauts will fly aboard NASA's Orion spacecraft to confirm the 
@@ -39,53 +39,57 @@ API SOURCE: NASA/JPL Horizons API
   "SLS" refers to the Space Launch System, or rocket launching Orion into space
 
  MAJOR EVENTS:
-  To be launched April 1 @ 22:24 UTC from pad LC-39B at the Kennedy Space 
+  Launched April 1 @ 22:35:12 UTC from pad LC-39B at the Kennedy Space 
   Center, USA.  Mission length is 10 days.
 
-  Timings of major dynamical events relative to launch may or may not be be 
-  shifted slightly if there is a launch delay:
+  Timings of major dynamical events are given RELATIVE TO LAUNCH time for
+  the nominal open-window launch, and will shift accordingly if there is 
+  a launch delay (format is "days/HH:MM:SS" since launch):
 
   Day 1
+     launch   0/00:00    - Launch April 1, 22:35:12 UTC
      launch + 0/00:20    - Orion deploys solar arrays in Earth orbit
-              0/00:49    - Perigee raise maneuver (2223 x 185 km)
+              0/00:49:50 - Perigee raise maneuver (2223 x 185 km)
               0/01:47:57 - Apogee raise maneuver  (70377 km)
               0/03:24:18 - Orion/ICPS separation
-              0/04:52    - Orion upper stage separation burn
+              0/04:50    - Orion upper stage separation burn
               0/05:00    - ICPS disposal burn for Pacific splashdown 
               0/05:02    - ICPS disposal burn for alternate Atlantic splashdown
               0/05:04    - Cubesats deploy at one minute intervals
-              0/13:44    - Perigee raise burn
+              0/13:29    - Perigee raise burn
   Day 2
-     launch + 1/23:32    - Start Translunar injection burn (~8 min. duration)
+     launch + 1/01:08    - Start Translunar Injection burn (~8 min. duration)
+              1/01:29:49 - Earth shadow entrance 
+              1/02:36:03 - Earth shadow exit
   Day 3
-     launch + 2/00:07    - Orbit trajectory correction burn #1
+     launch + 2/00:08    - Orbit trajectory correction burn #1
   Day 4
-     launch + 3/00:12    - Orbit trajectory correction burn #2
+     launch + 3/01:08    - Orbit trajectory correction burn #2
   Day 5
-     launch + 4/05:23    - Orbit trajectory correction burn #3
-              4/06:59    - Orion enters lunar sphere of influence
+     launch + 4/04:29    - Orbit trajectory correction burn #3
+              4/06:08    - Orion enters lunar sphere of influence
   Day 6
-     launch + 5/01:23    - Closest approach to the Moon	
-              5/01:26    - Maximum distance from Earth
+     launch + 5/00:31    - Closest approach to the Moon	
+              5/00:34    - Maximum distance from Earth
   Day 7
-     launch + 5/19:47    - Orion exits lunar sphere of influence
-              6/04:23    - Return trajectory correction burn #1
+     launch + 5/18:52    - Orion exits lunar sphere of influence
+              6/01:29    - Return trajectory correction burn #1
   Day 8
      launch + 7/04:20    - Manual piloting demonstration
   Day 9
-     launch + 8/04:33    - Return trajectory correction burn #2
+     launch + 8/04:29    - Return trajectory correction burn #2
   Day 10
-     launch + 8/20:33    - Return trajectory correction burn #3
-              9/01:13    - Orion crew and service module separation
-              9/01:16    - Crew module raise burn
-              9/01:33    - Entry interface (122 km above Earth)
+     launch + 8/20:29    - Return trajectory correction burn #3
+              9/01:09    - Orion crew and service module separation
+              9/01:12    - Crew module raise burn
+              9/01:29    - Entry interface (122 km above Earth)
                            Events by altitude:
                             11 km : Forward bay cover deploys
                             7.6 km: Droque parachute deploys
                             2.9 km: Pilot parachutes deploy at 2.9 km, 
                                     pulling out 3 main parachutes
-              9/01:46    - Splashdown in Pacific Ocean near Baja California
-              9/02:01    - Orion final power down
+              9/01:42    - Splashdown in Pacific Ocean near Baja California
+              9/01:57    - Orion final power down
 
  SPACECRAFT DETAILS
   SLS                
@@ -128,9 +132,9 @@ API SOURCE: NASA/JPL Horizons API
 
   Trajectory name                              Start (TDB)    Stop (TDB)
   ----------------------------------------- ----------------- -----------------
-  Orion_OEM_20260401_LP19_p000_Open_V0.1    2026-Apr-02 01:49 2026-Apr-10 23:52
+  Orion_OEM_20260401_0029_V0.1              2026-Apr-02 01:59 2026-Apr-10 23:52
 *******************************************************************************
 ```
 
 ---
-*Fetched from JPL HORIZONS on 2026-03-31 19:13 UTC*
+*Fetched from JPL HORIZONS on 2026-04-02 09:09 UTC*
