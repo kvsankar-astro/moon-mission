@@ -34,7 +34,7 @@ jobs:
       - name: Prepare deployment directory (app repo only)
         run: |
           mkdir -p dist-pages
-          cp index.html mission.html dist-pages/
+          cp index.html mission.html orbit-data.html dist-pages/
           if [ -f .htaccess ]; then
             cp .htaccess dist-pages/
           fi
@@ -47,11 +47,16 @@ jobs:
           from pathlib import Path
 
           app_rev = os.environ["GITHUB_SHA"][:12]
-          mission_html = Path("dist-pages/mission.html")
-          text = mission_html.read_text(encoding="utf-8")
-          text = text.replace("src/platform/", f"src-{app_rev}/platform/")
-          mission_html.write_text(text, encoding="utf-8")
-          print(f"Rewrote mission.html src path to src-{app_rev}/platform/")
+          html_files = [
+              Path("dist-pages/index.html"),
+              Path("dist-pages/mission.html"),
+              Path("dist-pages/orbit-data.html"),
+          ]
+          for html_path in html_files:
+              text = html_path.read_text(encoding="utf-8")
+              updated = text.replace("src/platform/", f"src-{app_rev}/platform/")
+              html_path.write_text(updated, encoding="utf-8")
+              print(f"Rewrote {html_path.name} src path to src-{app_rev}/platform/")
           PY
           if [ -d images ]; then
             cp -r images dist-pages/
@@ -72,6 +77,7 @@ jobs:
         run: |
           test -f dist-pages/index.html
           test -f dist-pages/mission.html
+          test -f dist-pages/orbit-data.html
           test -d dist-pages/assets
           APP_ASSET_REV="${GITHUB_SHA::12}"
           test -d "dist-pages/src-${APP_ASSET_REV}/platform"
