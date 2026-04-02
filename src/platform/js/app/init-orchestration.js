@@ -21,9 +21,59 @@ function createInitOrchestrationActions(deps) {
         animateLoop,
         getStartTime,
         getLatestEndTime,
+        animationScenes,
     } = deps;
     let animationLoopStarted = false;
     let latestInitRunId = 0;
+
+    function shouldWaitFor3DSceneReady() {
+        if (typeof document === "undefined") return false;
+        return !!document.getElementById("dimension-3D")?.checked;
+    }
+
+    function isSceneOrbitRenderable(scene) {
+        if (!scene) return false;
+        const addCurveDoneState = scene?.constructor?.SCENE_STATE_ADD_CURVE_DONE;
+        if (Number.isFinite(addCurveDoneState) && scene.state === addCurveDoneState) {
+            return true;
+        }
+        const bodyMap = scene.orbitLinesByBodyId || {};
+        return Object.values(bodyMap).some((lines) => Array.isArray(lines) && lines.length > 0);
+    }
+
+    function reapplyStartupViewWhenReady(runId, maxAttempts = 40, pollIntervalMs = 50) {
+        if (runId !== latestInitRunId) {
+            return;
+        }
+
+        const setView = getSetView();
+        if (typeof setView !== "function") {
+            return;
+        }
+
+        const cfg = getConfig();
+        const scene = animationScenes?.[cfg];
+        const needs3DReady = shouldWaitFor3DSceneReady();
+        const sceneReady = !needs3DReady || (
+            !!scene?.initialized3D &&
+            isSceneOrbitRenderable(scene)
+        );
+
+        if (sceneReady) {
+            setView();
+            return;
+        }
+
+        if (maxAttempts <= 0) {
+            // Best effort fallback: apply once even if readiness signal was late.
+            setView();
+            return;
+        }
+
+        setTimeout(() => {
+            reapplyStartupViewWhenReady(runId, maxAttempts - 1, pollIntervalMs);
+        }, pollIntervalMs);
+    }
 
     async function waitUntilOrbitDataProcessed({
         onReady,
@@ -106,6 +156,9 @@ function createInitOrchestrationActions(deps) {
                     if (typeof setView === "function") {
                         setView();
                     }
+                    // Dimension switch can finalize asynchronously (3D init), so apply
+                    // startup view settings again once the scene is actually ready.
+                    reapplyStartupViewWhenReady(runId);
 
                     // Also resets camera parameters in manual/manual mode for consistent startup.
                     const changeCameraFromTo = getChangeCameraFromTo();

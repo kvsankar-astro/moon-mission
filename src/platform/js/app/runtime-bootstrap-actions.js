@@ -295,6 +295,7 @@ function createRuntimeBootstrapActions(ports) {
         animateLoop,
         getStartTime,
         getLatestEndTime,
+        animationScenes: getAnimationScenes(),
     });
 
     return {

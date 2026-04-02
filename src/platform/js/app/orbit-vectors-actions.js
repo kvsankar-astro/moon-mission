@@ -398,7 +398,7 @@ export function createOrbitVectorsActions({
                         .attr("points", pointsToAttr(chunk.points))
                         .attr("fill", "none")
                         .attr("stroke", orbitColor)
-                        .attr("stroke-width", 1.0 / zoomFactor)
+                        .attr("stroke-width", ORBIT_TRAIL_STYLE.backgroundWidth2D / zoomFactor)
                         .attr(
                             "stroke-opacity",
                             scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey][index],

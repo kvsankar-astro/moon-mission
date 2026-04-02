@@ -7,6 +7,7 @@ import {
     mixColors,
     normalizeHexColor,
     ORBIT_TRAIL_STYLE,
+    resolveTrackOpacity3D,
     resolveTailVisualStyle,
 } from "./orbit-trail-style.js";
 import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
@@ -174,6 +175,7 @@ export function createSpacecraftCurveActions({
                 ...(orbitLine.userData || {}),
                 bodyId,
                 baseOpacity,
+                lineWidthClassic: orbitLine?.material?.linewidth,
             };
             orbitLine.visible = false;
             orbitLines.push(orbitLine);
@@ -225,7 +227,9 @@ export function createSpacecraftCurveActions({
                     bodyId: craftId,
                     curve,
                     baseColor: craftOrbitColor,
-                    baseOpacity: ORBIT_TRAIL_STYLE.backgroundOpacity3D,
+                    baseOpacity: Number.isFinite(scene?.trailContextOpacity3D)
+                        ? scene.trailContextOpacity3D
+                        : resolveTrackOpacity3D(getTrailTrackBrightness3D()),
                     globalConfig,
                 });
                 if (scene.stopCreationFlag) {

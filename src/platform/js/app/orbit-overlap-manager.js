@@ -15,6 +15,8 @@ const DEFAULT_OPTIONS = Object.freeze({
     normalizationPercentile: 0.94,
     densityExponent: 1.35,
 });
+// Temporary global kill-switch: keep refinement code available, but bypass runtime usage.
+const ORBIT_OVERLAP_REFINEMENT_ENABLED = false;
 
 const sceneStateByScene = new WeakMap();
 const sceneByJobId = new Map();
@@ -279,6 +281,40 @@ function apply3DOpacities(scene, opacitiesByBodyId) {
     }
 }
 
+function resetSceneOverlapOpacities(scene) {
+    if (!scene) return;
+    scene.orbitOverlapOpacitiesByBodyId = {};
+
+    for (const [bodyId, lines] of Object.entries(scene.orbitLinesByBodyId || {})) {
+        const baseOpacities = scene.orbitBackgroundBaseOpacitiesByBodyId?.[bodyId] || [];
+        lines.forEach((line, index) => {
+            if (!line?.material) return;
+            const fallbackOpacity = line?.userData?.baseOpacity || ORBIT_TRAIL_STYLE.backgroundOpacity3D;
+            const baseOpacity = baseOpacities[index] || fallbackOpacity;
+            line.material.opacity = resolveOverlapAdjustedOpacity(baseOpacity, 1);
+            line.material.transparent = true;
+            line.material.depthWrite = false;
+            line.material.needsUpdate = true;
+        });
+    }
+
+    if (typeof document === "undefined") {
+        return;
+    }
+    for (const [bodyId] of Object.entries(scene.orbitSvgBackgroundChunksByBodyId || {})) {
+        const orbitGroup = document.getElementById(`orbit-${bodyId}`);
+        if (!orbitGroup) continue;
+        const baseOpacities = scene.orbitSvgBackgroundBaseOpacitiesByBodyId?.[bodyId] || [];
+        orbitGroup.querySelectorAll(".orbit-trail-background").forEach((element, index) => {
+            const baseOpacity = baseOpacities[index] || ORBIT_TRAIL_STYLE.backgroundOpacity2D;
+            element.setAttribute(
+                "stroke-opacity",
+                resolveOverlapAdjustedOpacity(baseOpacity, 1).toFixed(3),
+            );
+        });
+    }
+}
+
 function getWorker() {
     if (workerInstance || typeof Worker !== "function") {
         return workerInstance;
@@ -394,17 +430,29 @@ function requestSceneOrbitOverlapRefinement(params = {}) {
         setOverlapIndicator(null);
         return;
     }
+    const sceneState = getSceneOverlapState(scene);
+    if (!ORBIT_OVERLAP_REFINEMENT_ENABLED) {
+        clearScenePendingState(sceneState);
+        sceneState.appliedSignature = "";
+        sceneState.pendingSignature = "";
+        if (!scene.orbitOverlapDisabledApplied) {
+            resetSceneOverlapOpacities(scene);
+            scene.orbitOverlapDisabledApplied = true;
+        }
+        setOverlapIndicator(null);
+        return;
+    }
+    scene.orbitOverlapDisabledApplied = false;
     if (hasAuthoredOrbitStyleMetadata(scene)) {
-        clearScenePendingState(getSceneOverlapState(scene));
+        clearScenePendingState(sceneState);
         setOverlapIndicator(null);
         return;
     }
     if (hasPrecomputedDensityHints(scene)) {
-        clearScenePendingState(getSceneOverlapState(scene));
+        clearScenePendingState(sceneState);
         setOverlapIndicator(null);
         return;
     }
-    const sceneState = getSceneOverlapState(scene);
     if (!isSceneOrbitReady(scene, dimension)) {
         clearScenePendingState(sceneState);
         setOverlapIndicator(null);
@@ -480,6 +528,7 @@ function invalidateSceneOrbitOverlap(scene) {
     const state = getSceneOverlapState(scene);
     clearScenePendingState(state);
     state.appliedSignature = "";
+    scene.orbitOverlapDisabledApplied = false;
     setOverlapIndicator(null);
 }
 

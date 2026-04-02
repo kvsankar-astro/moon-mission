@@ -348,6 +348,7 @@ function buildCurveTimes(vectors, startTimeMs, stepMs) {
 
 const ORBIT_TRAIL_STYLE = Object.freeze({
     backgroundOpacity2D: 0.24,
+    backgroundWidth2D: 1.2,
     tailOpacity2D: 0.42,
     midOpacity2D: 0.68,
     headGlowOpacity2D: 0.34,
@@ -357,6 +358,7 @@ const ORBIT_TRAIL_STYLE = Object.freeze({
     headGlowWidth2D: 5.4,
     headWidth2D: 2.5,
     backgroundOpacity3D: 0.14,
+    backgroundLineWidth3DTrail: 0.28,
     tailOpacity3D: 0.42,
     midOpacity3D: 0.68,
     headGlowOpacity3D: 0.28,
@@ -486,7 +488,10 @@ function resolveTrackOpacity2D(brightness = 1) {
 }
 
 function resolveTrackOpacity3D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity3D * (Number(brightness) || 1), 0, 1);
+    // Keep slider semantics simple: default 1.0 should be visibly stronger,
+    // while preserving headroom above it.
+    const scaledBrightness = (Number(brightness) || 1) * 2;
+    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity3D * scaledBrightness, 0, 1);
 }
 
 function resolveTailOpacity2D(brightness = 1) {

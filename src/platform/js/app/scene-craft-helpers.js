@@ -207,6 +207,9 @@ function applySceneOrbitVisibility(
                         overlapOpacities[index],
                     )
                     : 1;
+                orbitLine.material.linewidth = isTrailStyle
+                    ? ORBIT_TRAIL_STYLE.backgroundLineWidth3DTrail
+                    : (orbitLine?.userData?.lineWidthClassic ?? orbitLine.material.linewidth);
                 orbitLine.material.depthWrite = !isTrailStyle;
                 orbitLine.material.needsUpdate = true;
             }
