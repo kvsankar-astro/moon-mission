@@ -60,7 +60,7 @@ jobs:
 
       - name: Regenerate data runtime asset manifest for current revisions
         run: |
-          python mission-data/scripts/generate_runtime_asset_manifest.py \
+          python scripts/generate-runtime-asset-manifest.py \
             --app-root . \
             --data-root ./mission-data \
             --output provenance/runtime-asset-manifest.json
