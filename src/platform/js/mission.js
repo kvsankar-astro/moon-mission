@@ -244,6 +244,10 @@ const {
     render,
     adjustSceneCameraProjectionAndSky,
     getAnimationScenes: () => animationScenes,
+    computeSVGDimensions: () => missionRuntimeWireup?.svgActions?.computeSVGDimensions?.(),
+    getSvgWidth: () => svgWidth,
+    getSvgHeight: () => svgHeight,
+    getSceneHandler: () => theSceneHandler,
     getSceneForConfig,
     getLegacyPlaneSelection: () => planeSelection,
     setLegacyPlaneSelection: (value) => {

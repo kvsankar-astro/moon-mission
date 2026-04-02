@@ -24,6 +24,10 @@ function createMissionViewComposition(ctx) {
         render,
         adjustSceneCameraProjectionAndSky,
         getAnimationScenes,
+        computeSVGDimensions,
+        getSvgWidth,
+        getSvgHeight,
+        getSceneHandler,
         defaultViewState,
         getSceneForConfig,
         normalizePlaneSelection,
@@ -65,6 +69,10 @@ function createMissionViewComposition(ctx) {
         render,
         adjustSceneCameraProjectionAndSky,
         getAnimationScenes,
+        computeSVGDimensions,
+        getSvgWidth,
+        getSvgHeight,
+        getSceneHandler,
     });
 
     const sceneViewStateActions = createSceneViewStateActions({
