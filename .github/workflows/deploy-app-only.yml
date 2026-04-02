@@ -47,7 +47,9 @@ jobs:
           cp index.html mission.html dist-pages/
           cp -r assets dist-pages/
           cp -r src dist-pages/
-          cp -r images dist-pages/
+          if [ -d images ]; then
+            cp -r images dist-pages/
+          fi
           if [ -d third-party ]; then
             cp -r third-party dist-pages/
           fi
@@ -125,4 +127,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-

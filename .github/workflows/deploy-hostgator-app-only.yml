@@ -37,7 +37,9 @@ jobs:
           cp index.html mission.html dist-pages/
           cp -r assets dist-pages/
           cp -r src dist-pages/
-          cp -r images dist-pages/
+          if [ -d images ]; then
+            cp -r images dist-pages/
+          fi
           if [ -d third-party ]; then
             cp -r third-party dist-pages/
           fi
@@ -56,7 +58,9 @@ jobs:
           test -f dist-pages/mission.html
           test -d dist-pages/assets
           test -d dist-pages/src/platform
-          test -d dist-pages/images
+          if [ -d images ]; then
+            test -d dist-pages/images
+          fi
           test -f dist-pages/deployment/version.json
           test -f dist-pages/deployment/file-manifest.json
 
@@ -89,4 +93,3 @@ jobs:
           echo "✅ App-only deployment completed"
           echo "🌐 Site URL: https://sankara.net/astro/lunar-missions/"
           echo "📦 Runtime mission data under assets/*/data preserved on remote"
-
