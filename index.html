@@ -687,9 +687,10 @@
 
         .landing-brief-title-row {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 8px;
             min-width: 0;
+            flex-wrap: wrap;
         }
 
         .landing-brief-header-right {
@@ -710,17 +711,17 @@
             font-size: 24px;
             color: #ecf2ff;
             line-height: 1.2;
-            flex: 1 1 auto;
+            flex: 1 1 300px;
             min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .landing-brief-header-launch {
             flex-shrink: 0;
             font-size: 12px;
             padding: 6px 10px;
+            align-self: baseline;
         }
 
         .landing-brief-nav {
@@ -1152,10 +1153,13 @@
             }
             .landing-brief-title-row {
                 gap: 6px;
+                align-items: flex-start;
+                flex-wrap: wrap;
             }
             .landing-brief-header-launch {
                 font-size: 11px;
                 padding: 5px 8px;
+                align-self: flex-start;
             }
         }
 
