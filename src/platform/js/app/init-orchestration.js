@@ -22,52 +22,59 @@ function createInitOrchestrationActions(deps) {
         getStartTime,
         getLatestEndTime,
     } = deps;
+    let animationLoopStarted = false;
+    let latestInitRunId = 0;
 
     async function waitUntilOrbitDataProcessed({
         onReady,
         pollIntervalMs = 50,
+        runId = 0,
     } = {}) {
+        if (runId !== latestInitRunId) {
+            return;
+        }
         const cfg = getConfig();
         if (!isOrbitDataProcessed(cfg)) {
             setTimeout(() => {
-                waitUntilOrbitDataProcessed({ onReady, pollIntervalMs });
+                waitUntilOrbitDataProcessed({
+                    onReady,
+                    pollIntervalMs,
+                    runId,
+                });
             }, pollIntervalMs);
             return;
         }
 
-        if (typeof onReady === "function") {
+        if (runId === latestInitRunId && typeof onReady === "function") {
             onReady();
         }
     }
 
     async function initAnimation(flags) {
+        const runId = ++latestInitRunId;
         try {
             await initConfig();
             await init(() => {});
 
             await waitUntilOrbitDataProcessed({
+                runId,
                 onReady: () => {
+                    if (runId !== latestInitRunId) {
+                        return;
+                    }
                     const startupAnimTimeOverride = Number(flags?.startupAnimTimeOverride);
                     const hasStartupAnimTimeOverride = Number.isFinite(startupAnimTimeOverride);
                     const nowTimeMs = Date.now();
                     const startTime = Number(getStartTime?.());
                     const latestEndTime = Number(getLatestEndTime?.());
-                    const shouldStartAtNow = !hasStartupAnimTimeOverride &&
-                        !!flags.reset &&
+                    const shouldStartAtNow = !!flags.reset &&
                         Number.isFinite(nowTimeMs) &&
                         Number.isFinite(startTime) &&
                         Number.isFinite(latestEndTime) &&
                         nowTimeMs >= startTime &&
                         nowTimeMs <= latestEndTime;
 
-                    if (hasStartupAnimTimeOverride) {
-                        setAnimTime?.(startupAnimTimeOverride);
-                        if (typeof missionSetTime === "function") {
-                            missionSetTime();
-                        } else {
-                            setLocation();
-                        }
-                    } else if (shouldStartAtNow) {
+                    if (shouldStartAtNow) {
                         setAnimTime?.(nowTimeMs);
                         if (typeof missionSetTime === "function") {
                             missionSetTime();
@@ -79,6 +86,13 @@ function createInitOrchestrationActions(deps) {
                         }
                         if (typeof playAnimation === "function") {
                             playAnimation();
+                        }
+                    } else if (hasStartupAnimTimeOverride) {
+                        setAnimTime?.(startupAnimTimeOverride);
+                        if (typeof missionSetTime === "function") {
+                            missionSetTime();
+                        } else {
+                            setLocation();
                         }
                     } else if (flags.reset) {
                         missionStart();
@@ -113,7 +127,10 @@ function createInitOrchestrationActions(deps) {
         }
 
         render();
-        requestAnimationFrame(animateLoop);
+        if (!animationLoopStarted) {
+            requestAnimationFrame(animateLoop);
+            animationLoopStarted = true;
+        }
     }
 
     return {

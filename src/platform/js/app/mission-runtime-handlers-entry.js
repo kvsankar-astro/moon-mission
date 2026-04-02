@@ -37,7 +37,6 @@ function createMissionRuntimeHandlersEntry(ctx) {
             const startupAnimTimeOverride = Number(getStartupAnimTimeOverride?.());
             if (Number.isFinite(startupAnimTimeOverride)) {
                 mergedFlags.startupAnimTimeOverride = startupAnimTimeOverride;
-                mergedFlags.reset = false;
             }
             startupInitFlagsMerged = true;
         }
