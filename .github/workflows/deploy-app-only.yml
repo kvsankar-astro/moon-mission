@@ -1,0 +1,128 @@
+name: Deploy to GitHub Pages (App-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages-app-only"
+  cancel-in-progress: true
+
+env:
+  SITE_URL: "https://kvsankar.github.io/moon-mission/"
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  build:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment directory (app repo only)
+        run: |
+          mkdir -p dist-pages
+          cp index.html mission.html dist-pages/
+          cp -r assets dist-pages/
+          cp -r src dist-pages/
+          cp -r images dist-pages/
+          if [ -d third-party ]; then
+            cp -r third-party dist-pages/
+          fi
+
+      - name: Reuse currently published runtime manifest
+        run: |
+          mkdir -p dist-pages/deployment dist-pages/provenance
+          curl -fsSL "${SITE_URL}deployment/runtime-asset-manifest.json" \
+            -o dist-pages/deployment/runtime-asset-manifest.json
+          cp dist-pages/deployment/runtime-asset-manifest.json \
+            dist-pages/provenance/runtime-asset-manifest.json
+
+      - name: Restore required runtime assets from currently published site
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import pathlib
+          import urllib.request
+
+          site_url = os.environ["SITE_URL"].rstrip("/") + "/"
+          target_root = pathlib.Path("dist-pages").resolve()
+          manifest_path = target_root / "deployment" / "runtime-asset-manifest.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          required = manifest.get("required_assets", [])
+
+          downloaded = 0
+          skipped = 0
+          for entry in required:
+              rel = entry.get("path")
+              if not isinstance(rel, str) or not rel:
+                  continue
+              destination = (target_root / rel).resolve()
+              if destination.exists():
+                  skipped += 1
+                  continue
+              destination.parent.mkdir(parents=True, exist_ok=True)
+              source_url = site_url + rel
+              urllib.request.urlretrieve(source_url, destination)
+              downloaded += 1
+
+          print(f"Downloaded runtime assets: {downloaded}")
+          print(f"Already present assets: {skipped}")
+          PY
+
+      - name: Verify staged runtime assets against manifest (existence + SHA)
+        run: |
+          python scripts/verify-staged-runtime-assets.py \
+            --staged-root ./dist-pages \
+            --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
+
+      - name: Write deployment version and manifest metadata
+        run: |
+          python scripts/write-deployment-metadata.py \
+            --output-root ./dist-pages \
+            --app-root . \
+            --data-root ./dist-pages \
+            --site-url "${SITE_URL}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist-pages'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
