@@ -35,6 +35,9 @@ jobs:
         run: |
           mkdir -p dist-pages
           cp index.html mission.html dist-pages/
+          if [ -f .htaccess ]; then
+            cp .htaccess dist-pages/
+          fi
           cp -r assets dist-pages/
           cp -r src dist-pages/
           APP_ASSET_REV="${GITHUB_SHA::12}"

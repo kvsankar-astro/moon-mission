@@ -1,0 +1,16 @@
+<IfModule mod_headers.c>
+  # Always revalidate HTML so normal refresh picks up the latest app shell.
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # Keep deployment metadata fresh for tooling/debug visibility.
+  <FilesMatch "^(version|file-manifest|runtime-asset-manifest)\.json$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+

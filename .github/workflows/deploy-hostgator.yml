@@ -70,6 +70,9 @@ jobs:
           mkdir -p dist-pages
           # Copy HTML files
           cp index.html mission.html dist-pages/
+          if [ -f .htaccess ]; then
+            cp .htaccess dist-pages/
+          fi
           # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
           cp -r src dist-pages/
