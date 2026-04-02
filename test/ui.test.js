@@ -382,17 +382,36 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
 
 // Simplified helper functions
 async function openSettingsPanel(page) {
-  const toggle = page.locator('#settings-panel-button');
-  const expanded = await toggle.getAttribute('aria-expanded');
-  if (expanded !== 'true') {
+  await page.waitForSelector('#settings-panel-button', { timeout: 15000 });
+
+  let opened = false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const toggle = page.locator('#settings-panel-button');
+    const expanded = await toggle.getAttribute('aria-expanded');
+    if (expanded === 'true') {
+      opened = true;
+      break;
+    }
+
     await page.evaluate(() => {
       const button = document.getElementById('settings-panel-button');
       button?.click();
     });
-    await page.waitForFunction(() => {
-      const button = document.getElementById('settings-panel-button');
-      return button?.getAttribute('aria-expanded') === 'true';
-    }, { timeout: 5000 });
+
+    try {
+      await page.waitForFunction(() => {
+        const button = document.getElementById('settings-panel-button');
+        return button?.getAttribute('aria-expanded') === 'true';
+      }, { timeout: 3000 });
+      opened = true;
+      break;
+    } catch {
+      await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+    }
+  }
+
+  if (!opened) {
+    throw new Error('Failed to open settings panel after retries');
   }
 
   // Ensure panel body is expanded; controls are not interactable when collapsed.
@@ -407,17 +426,36 @@ async function openSettingsPanel(page) {
 }
 
 async function closeSettingsPanel(page) {
-  const toggle = page.locator('#settings-panel-button');
-  const expanded = await toggle.getAttribute('aria-expanded');
-  if (expanded === 'true') {
+  await page.waitForSelector('#settings-panel-button', { timeout: 15000 });
+
+  let closed = false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const toggle = page.locator('#settings-panel-button');
+    const expanded = await toggle.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      closed = true;
+      break;
+    }
+
     await page.evaluate(() => {
       const button = document.getElementById('settings-panel-button');
       button?.click();
     });
-    await page.waitForFunction(() => {
-      const button = document.getElementById('settings-panel-button');
-      return button?.getAttribute('aria-expanded') === 'false';
-    }, { timeout: 3000 });
+
+    try {
+      await page.waitForFunction(() => {
+        const button = document.getElementById('settings-panel-button');
+        return button?.getAttribute('aria-expanded') === 'false';
+      }, { timeout: 3000 });
+      closed = true;
+      break;
+    } catch {
+      await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+    }
+  }
+
+  if (!closed) {
+    throw new Error('Failed to close settings panel after retries');
   }
 }
 
