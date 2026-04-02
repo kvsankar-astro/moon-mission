@@ -4,120 +4,120 @@
   "mission": "chandrayaan3",
   "phases": {
     "geo": {
-      "orbits_file": "geo-CY3",
+      "orbits_file": "geo-CH3L",
       "tolerance_km": 5,
       "artifacts": {
         "npz": {
-          "runtime": "geo-CY3.npz",
-          "generated": "data-generated/chandrayaan3/geo-CY3.npz"
+          "runtime": "geo-CH3L.npz",
+          "generated": "data-generated/chandrayaan3/geo-CH3L.npz"
         },
         "chebyshev": {
-          "runtime": "geo-CY3-cheb.json",
-          "generated": "assets/chandrayaan3/data/geo-CY3-cheb.json"
+          "runtime": "geo-CH3L-cheb.json",
+          "generated": "assets/chandrayaan3/data/geo-CH3L-cheb.json"
         },
         "meta": {
-          "runtime": "geo-CY3-meta.json",
-          "generated": "data-generated/chandrayaan3/geo-CY3-meta.json"
+          "runtime": "geo-CH3L-meta.json",
+          "generated": "data-generated/chandrayaan3/geo-CH3L-meta.json"
         },
         "json": {
-          "runtime": "geo-CY3.json",
-          "generated": "data-generated/chandrayaan3/geo-CY3.json"
+          "runtime": "geo-CH3L.json",
+          "generated": "data-generated/chandrayaan3/geo-CH3L.json"
         },
         "sun_chebyshev": {
-          "runtime": "geo-CY3-sun-cheb.json",
-          "generated": "assets/chandrayaan3/data/geo-CY3-sun-cheb.json"
+          "runtime": "geo-CH3L-sun-cheb.json",
+          "generated": "assets/chandrayaan3/data/geo-CH3L-sun-cheb.json"
         }
       }
     },
     "lunar": {
-      "orbits_file": "lunar-CY3",
+      "orbits_file": "lunar-CH3L",
       "tolerance_km": 5,
       "artifacts": {
         "npz": {
-          "runtime": "lunar-CY3.npz",
-          "generated": "data-generated/chandrayaan3/lunar-CY3.npz"
+          "runtime": "lunar-CH3L.npz",
+          "generated": "data-generated/chandrayaan3/lunar-CH3L.npz"
         },
         "chebyshev": {
-          "runtime": "lunar-CY3-cheb.json",
-          "generated": "assets/chandrayaan3/data/lunar-CY3-cheb.json"
+          "runtime": "lunar-CH3L-cheb.json",
+          "generated": "assets/chandrayaan3/data/lunar-CH3L-cheb.json"
         },
         "meta": {
-          "runtime": "lunar-CY3-meta.json",
-          "generated": "data-generated/chandrayaan3/lunar-CY3-meta.json"
+          "runtime": "lunar-CH3L-meta.json",
+          "generated": "data-generated/chandrayaan3/lunar-CH3L-meta.json"
         },
         "json": {
-          "runtime": "lunar-CY3.json",
-          "generated": "data-generated/chandrayaan3/lunar-CY3.json"
+          "runtime": "lunar-CH3L.json",
+          "generated": "data-generated/chandrayaan3/lunar-CH3L.json"
         },
         "sun_chebyshev": {
-          "runtime": "lunar-CY3-sun-cheb.json",
-          "generated": "assets/chandrayaan3/data/lunar-CY3-sun-cheb.json"
+          "runtime": "lunar-CH3L-sun-cheb.json",
+          "generated": "assets/chandrayaan3/data/lunar-CH3L-sun-cheb.json"
         }
       }
     },
     "landing": {
-      "orbits_file": "landing-CY3",
+      "orbits_file": "landing-CH3L",
       "tolerance_km": 2,
       "artifacts": {
         "npz": {
-          "runtime": "landing-CY3.npz",
-          "generated": "data-generated/chandrayaan3/landing-CY3.npz"
+          "runtime": "landing-CH3L.npz",
+          "generated": "data-generated/chandrayaan3/landing-CH3L.npz"
         },
         "chebyshev": {
-          "runtime": "landing-CY3-cheb.json",
-          "generated": "assets/chandrayaan3/data/landing-CY3-cheb.json"
+          "runtime": "landing-CH3L-cheb.json",
+          "generated": "assets/chandrayaan3/data/landing-CH3L-cheb.json"
         },
         "meta": {
-          "runtime": "landing-CY3-meta.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3-meta.json"
+          "runtime": "landing-CH3L-meta.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-meta.json"
         },
         "json": {
-          "runtime": "landing-CY3.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3.json"
+          "runtime": "landing-CH3L.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L.json"
         }
       }
     },
     "landing-geo": {
-      "orbits_file": "landing-CY3-geo",
+      "orbits_file": "landing-CH3L-geo",
       "tolerance_km": 2,
       "artifacts": {
         "npz": {
-          "runtime": "landing-CY3-geo.npz",
-          "generated": "data-generated/chandrayaan3/landing-CY3-geo.npz"
+          "runtime": "landing-CH3L-geo.npz",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-geo.npz"
         },
         "chebyshev": {
-          "runtime": "landing-CY3-geo-cheb.json",
-          "generated": "assets/chandrayaan3/data/landing-CY3-geo-cheb.json"
+          "runtime": "landing-CH3L-geo-cheb.json",
+          "generated": "assets/chandrayaan3/data/landing-CH3L-geo-cheb.json"
         },
         "meta": {
-          "runtime": "landing-CY3-geo-meta.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3-geo-meta.json"
+          "runtime": "landing-CH3L-geo-meta.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-geo-meta.json"
         },
         "json": {
-          "runtime": "landing-CY3-geo.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3-geo.json"
+          "runtime": "landing-CH3L-geo.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-geo.json"
         }
       }
     },
     "landing-lunar": {
-      "orbits_file": "landing-CY3-lunar",
+      "orbits_file": "landing-CH3L-lunar",
       "tolerance_km": 2,
       "artifacts": {
         "npz": {
-          "runtime": "landing-CY3-lunar.npz",
-          "generated": "data-generated/chandrayaan3/landing-CY3-lunar.npz"
+          "runtime": "landing-CH3L-lunar.npz",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-lunar.npz"
         },
         "chebyshev": {
-          "runtime": "landing-CY3-lunar-cheb.json",
-          "generated": "assets/chandrayaan3/data/landing-CY3-lunar-cheb.json"
+          "runtime": "landing-CH3L-lunar-cheb.json",
+          "generated": "assets/chandrayaan3/data/landing-CH3L-lunar-cheb.json"
         },
         "meta": {
-          "runtime": "landing-CY3-lunar-meta.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3-lunar-meta.json"
+          "runtime": "landing-CH3L-lunar-meta.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-lunar-meta.json"
         },
         "json": {
-          "runtime": "landing-CY3-lunar.json",
-          "generated": "data-generated/chandrayaan3/landing-CY3-lunar.json"
+          "runtime": "landing-CH3L-lunar.json",
+          "generated": "data-generated/chandrayaan3/landing-CH3L-lunar.json"
         }
       }
     }

@@ -408,6 +408,7 @@ function normalizeEvents(rawEvents) {
         const durationSeconds = Number.isFinite(durationRaw) && durationRaw >= 0 ? durationRaw : 0;
         normalized[eventKey] = {
             ...eventValue,
+            enabled: eventValue.enabled !== false,
             startTime: asTrimmedString(eventValue.startTime, "dynamic"),
             durationSeconds,
             label: asTrimmedString(eventValue.label, eventKey),

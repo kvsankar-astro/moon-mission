@@ -135,12 +135,21 @@
     "comment": "3D model not configured for GRAIL."
   },
   "events": {
-    "missionStart": {
+    "launch": {
+      "startTime": "2011-09-10T13:08:52Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "GRAIL launched from Cape Canaveral Air Force Station at 13:08:52 UTC.",
+      "body": "GRAA",
+      "enabled": false
+    },
+    "dataStart": {
       "startTime": "2011-09-10T13:10:00Z",
       "durationSeconds": 0,
-      "label": "Trajectory Start",
+      "label": "Data Start",
       "burnFlag": false,
-      "infoText": "Start of post-launch trajectory coverage in HORIZONS",
+      "infoText": "Start of post-launch trajectory coverage in HORIZONS.",
       "body": "GRAA"
     },
     "lunarPhaseStart": {
@@ -154,17 +163,17 @@
     "ebbImpact": {
       "startTime": "2012-12-17T22:29:00Z",
       "durationSeconds": 0,
-      "label": "Ebb Impact",
+      "label": "Ebb Impact (After Data End)",
       "burnFlag": false,
-      "infoText": "End-of-mission impact window for Ebb",
+      "infoText": "End-of-mission impact window for Ebb. This contextual event occurs after the current animation data window and will clamp to Data End in playback.",
       "body": "GRAA"
     },
     "flowImpact": {
       "startTime": "2012-12-17T22:30:00Z",
       "durationSeconds": 0,
-      "label": "Flow Impact",
+      "label": "Flow Impact (After Data End)",
       "burnFlag": false,
-      "infoText": "End-of-mission impact window for Flow",
+      "infoText": "End-of-mission impact window for Flow. This contextual event occurs after the current animation data window and will clamp to Data End in playback.",
       "body": "GRAB"
     },
     "now": {
@@ -208,12 +217,16 @@
   },
   "eventConfigs": {
     "geo": [
-      "missionStart",
+      "dataStart",
       "lunarPhaseStart",
+      "ebbImpact",
+      "flowImpact",
       "now"
     ],
     "lunar": [
       "lunarPhaseStart",
+      "ebbImpact",
+      "flowImpact",
       "now"
     ]
   }

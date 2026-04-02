@@ -151,6 +151,9 @@ export function computeEventsUpdate({
             warnings.push(`Event ${eventKey} not found in configuration`);
             continue;
         }
+        if (eventData.enabled === false) {
+            continue;
+        }
 
         const resolvedTime = resolveEventInstant(eventData, {
             eventKey,

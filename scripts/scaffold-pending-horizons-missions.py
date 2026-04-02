@@ -272,39 +272,6 @@ MISSIONS: list[dict] = [
         ],
     },
     {
-        "slug": "chandrayaan-2-lander-vikram",
-        "folder": "chandrayaan2-vikram",
-        "mnemonic": "C2V",
-        "start": "2019-Jul-22 09:31",
-        "end": "2019-Sep-06 20:26",
-        "launch": "2019-Jul-22 09:13",
-        "events": [
-            {"key": "separation", "time": "2019-Sep-02 07:45", "label": "Lander Separation", "info": "Vikram separated from orbiter"},
-            {"key": "touchdownPlanned", "time": "2019-Sep-07 00:00", "label": "Planned Touchdown", "info": "Planned soft landing date"},
-        ],
-        "sources": [
-            "docs/horizons-blurbs/raw/chandrayaan-2-lander-vikram.txt: first lander trajectory segment starts 2019-Jul-22 09:31",
-            "docs/horizons-blurbs/raw/chandrayaan-2-lander-vikram.txt: lander segment ends 2019-Sep-06 20:26",
-            "docs/horizons-blurbs/raw/chandrayaan-2-lander-vikram.txt: launch and separation timeline in background",
-        ],
-    },
-    {
-        "slug": "chandrayaan-3-lander-vikram",
-        "folder": "chandrayaan3-vikram",
-        "mnemonic": "C3V",
-        "start": "2023-Jul-14 09:25",
-        "end": "2023-Sep-06 12:31",
-        "launch": "2023-Jul-14 09:05",
-        "events": [
-            {"key": "softLanding", "time": "2023-Aug-23 12:32", "label": "Soft Landing", "info": "Soft landing at Shiv Shakti Point"},
-        ],
-        "sources": [
-            "docs/horizons-blurbs/raw/chandrayaan-3-lander-vikram.txt: first trajectory segment starts 2023-Jul-14 09:25",
-            "docs/horizons-blurbs/raw/chandrayaan-3-lander-vikram.txt: concatenated segment end 2023-Sep-06 12:31",
-            "docs/horizons-blurbs/raw/chandrayaan-3-lander-vikram.txt: 'Lunar soft-landing 2023-Aug-23 @ 12:32 UTC'",
-        ],
-    },
-    {
         "slug": "slim",
         "folder": "slim",
         "mnemonic": "SLIM",

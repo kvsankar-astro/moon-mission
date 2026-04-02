@@ -1,5 +1,5 @@
 {
-  "spacecraft_mnemonic": "CH3",
+  "spacecraft_mnemonic": "CH3L",
   "spacecraft_id": -158,
   "mission_name": "Chandrayaan 3",
   "mission_name_short": "CH3",
@@ -18,33 +18,14 @@
   "primaryCraftId": "CH3L",
   "crafts": [
     {
-      "id": "CH3L",
-      "mnemonic": "CH3",
-      "spacecraft_id": -158,
-      "name": "Vikram",
-      "viewLabel": "Vikram",
-      "primary": true,
-      "aliases": ["SC"],
-      "geo": {
-        "orbits_file": "geo-CY3"
-      },
-      "lunar": {
-        "orbits_file": "lunar-CY3"
-      },
-      "landing": {
-        "orbits_file": "landing-CY3"
-      },
-      "relative": {
-        "orbits_file": "relative-CH3L"
-      }
-    },
-    {
       "id": "CH3O",
       "mnemonic": "CH3O",
       "spacecraft_id": -169,
-      "name": "Propulsion Module",
-      "viewLabel": "Propulsion Module",
+      "name": "Chandrayaan 3",
+      "viewLabel": "Orbiter",
       "primary": false,
+      "color": "#f59e0b",
+      "orbitcolor": "#38bdf8",
       "geo": {
         "orbits_file": "geo-CH3O"
       },
@@ -53,6 +34,51 @@
       },
       "relative": {
         "orbits_file": "relative-CH3O"
+      }
+    },
+    {
+      "id": "CH3L",
+      "mnemonic": "CH3L",
+      "spacecraft_id": -158,
+      "name": "Vikram",
+      "viewLabel": "Lander",
+      "primary": true,
+      "color": "#e11d48",
+      "orbitcolor": "#f472b6",
+      "spans": {
+        "geo": {
+          "start_year": "2023",
+          "start_month": "07",
+          "start_day": "14",
+          "start_hour": "09",
+          "start_minute": "25",
+          "stop_year": "2023",
+          "stop_month": "09",
+          "stop_day": "06",
+          "stop_hour": "12",
+          "stop_minute": "31"
+        },
+        "lunar": {
+          "start_year": "2023",
+          "start_month": "07",
+          "start_day": "14",
+          "start_hour": "09",
+          "start_minute": "25",
+          "stop_year": "2023",
+          "stop_month": "09",
+          "stop_day": "06",
+          "stop_hour": "12",
+          "stop_minute": "31"
+        }
+      },
+      "geo": {
+        "orbits_file": "geo-CH3L"
+      },
+      "lunar": {
+        "orbits_file": "lunar-CH3L"
+      },
+      "relative": {
+        "orbits_file": "relative-CH3L"
       }
     }
   ],
@@ -80,9 +106,9 @@
     "stop_hour": "12",
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "CH3L", "CH3O"],
+    "planets": ["MOON", "CH3O", "CH3L"],
     "center": "earth_center",
-    "orbits_file": "geo-CY3",
+    "orbits_file": "geo-CH3L",
     "orbit_style_file": "geo-style.json"
   },
   "lunar": {
@@ -97,9 +123,9 @@
     "stop_hour": "12", 
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["CH3L", "CH3O", "EARTH"],
+    "planets": ["CH3O", "CH3L", "EARTH"],
     "center": "moon_center",
-    "orbits_file": "lunar-CY3",
+    "orbits_file": "lunar-CH3L",
     "orbit_style_file": "lunar-style.json"
   },
   "landing": {
@@ -118,7 +144,7 @@
     "step_size_in_seconds": 1,
     "planets": ["CH3L"],
     "center": "moon_center",
-    "orbits_file": "landing-CY3"
+    "orbits_file": "landing-CH3L"
   },
   "landingSites": [
     {
