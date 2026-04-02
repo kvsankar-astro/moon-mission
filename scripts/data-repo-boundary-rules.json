@@ -1,0 +1,21 @@
+{
+  "mission_data_root_glob": "assets/*/data/*",
+  "app_only_names": [
+    "config.json"
+  ],
+  "app_only_globs": [
+    "README*.md"
+  ],
+  "mirrored_names": [
+    "ephemeris-manifest.json"
+  ],
+  "data_only_globs": [
+    "*.npz",
+    "*-cheb.json",
+    "*-cheb.json.gz",
+    "*-meta.json",
+    "*-style.json",
+    "geo-style.json",
+    "lunar-style.json"
+  ]
+}

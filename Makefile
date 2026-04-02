@@ -18,7 +18,7 @@ else
 NODE ?= node
 endif
 
-.PHONY: test test-fast test-headed baseline server-start server-stop server-status clean help
+.PHONY: test test-fast test-headed baseline server-start server-stop server-status clean help data-audit
 
 # Default target
 help:
@@ -32,6 +32,7 @@ help:
 	@echo "  make server-start  - Start the test server"
 	@echo "  make server-stop   - Stop the test server"
 	@echo "  make server-status - Check if server is running"
+	@echo "  make data-audit    - Audit app/data repo mission-data boundary"
 	@echo "  make clean         - Clean up test artifacts"
 
 # Start the test server
@@ -73,3 +74,6 @@ clean: server-stop
 	-rm -f test/screenshots/current/*.png
 	-rm -f test/screenshots/diff/*.png
 	@echo "Clean complete"
+
+data-audit:
+	python scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data
