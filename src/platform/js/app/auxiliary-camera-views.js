@@ -460,8 +460,10 @@ class AuxiliaryCameraViewsManager {
         this.root.hidden = false;
         activeCraft.getWorldPosition(this.craftWorld);
         const craftWasVisible = activeCraft.visible;
-        const craftRadius = this.estimateCraftRadius(activeCraft);
-        const standoffDistance = Math.max(craftRadius * 2.5, 0.02);
+        // Keep auxiliary craft views physically faithful: camera sits at the
+        // craft origin (no artificial standoff), so body occultations such as
+        // Earth-rise behind the Moon remain geometrically correct.
+        const standoffDistance = 0;
 
         let visiblePanels = 0;
         activeCraft.visible = false;
@@ -493,8 +495,11 @@ class AuxiliaryCameraViewsManager {
                 }
 
                 this.viewDir.subVectors(this.targetWorld, this.craftWorld).normalize();
-                this.cameraOffset.copy(this.viewDir).multiplyScalar(-standoffDistance);
-                panelState.camera.position.copy(this.craftWorld).add(this.cameraOffset);
+                panelState.camera.position.copy(this.craftWorld);
+                if (standoffDistance > 0) {
+                    this.cameraOffset.copy(this.viewDir).multiplyScalar(-standoffDistance);
+                    panelState.camera.position.add(this.cameraOffset);
+                }
 
                 this.targetUp.set(0, 0, 1);
                 targetObject.getWorldQuaternion(this.targetQuat);

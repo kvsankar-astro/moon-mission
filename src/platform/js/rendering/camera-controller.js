@@ -36,6 +36,8 @@ export class CameraController {
         this.width = width;
         this.height = height;
         this.defaultDistance = defaultDistance;
+        this.defaultNear = 0.0001;
+        this.defaultFar = 100000;
 
         // Cameras
         this.camera = null;
@@ -60,10 +62,13 @@ export class CameraController {
         this._tmpQuat = new THREE.Quaternion();
         this._tmpUp = new THREE.Vector3();
         this._tmpViewDir = new THREE.Vector3();
+        this._tmpTargetWorld = new THREE.Vector3();
 
         this._rendererDomElement = null;
         this.freeFlyControls = null;
         this._freeFlyActive = false;
+        this._mountedWheelFovEnabled = true;
+        this._mountedWheelHandler = null;
     }
 
     /**
@@ -74,8 +79,8 @@ export class CameraController {
         this.camera = new THREE.PerspectiveCamera(
             fov,
             this.width / this.height,
-            0.0001,
-            100000
+            this.defaultNear,
+            this.defaultFar,
         );
         this.camera.up.set(0, 0, 1);
         return this.camera;
@@ -90,8 +95,8 @@ export class CameraController {
         this.craftCamera = new THREE.PerspectiveCamera(
             fov,
             this.width / this.height,
-            0.0001,
-            100000
+            this.defaultNear,
+            this.defaultFar,
         );
         this.craftCamera.up.set(0, 0, 1);
         craft.add(this.craftCamera);
@@ -107,8 +112,8 @@ export class CameraController {
         this.droneCamera = new THREE.PerspectiveCamera(
             fov,
             this.width / this.height,
-            0.0001,
-            100000
+            this.defaultNear,
+            this.defaultFar,
         );
         drone.add(this.droneCamera);
         return this.droneCamera;
@@ -171,7 +176,88 @@ export class CameraController {
             });
         }
 
+        if (!this._mountedWheelHandler) {
+            this._mountedWheelHandler = (event) => {
+                this._handleMountedWheelAsFov(event);
+            };
+            domElement.addEventListener("wheel", this._mountedWheelHandler, { passive: false });
+        }
+
         return this.controls;
+    }
+
+    setMountedWheelFovEnabled(enabled) {
+        this._mountedWheelFovEnabled = !!enabled;
+    }
+
+    _isMountedModeActive() {
+        return this.positionMode !== CAMERA_POSITION_MODE.MANUAL;
+    }
+
+    _handleMountedWheelAsFov(event) {
+        if (!this._mountedWheelFovEnabled) return;
+        if (!this._isMountedModeActive()) return;
+        if (!this.camera || !this.controls) return;
+        if (this._freeFlyActive) return;
+
+        // In mounted-origin mode, wheel should act as lens zoom (FoV change), not dolly.
+        event.preventDefault();
+
+        const direction = Math.sign(event.deltaY);
+        if (direction === 0) return;
+
+        const normalizedStep = Math.max(0.25, Math.min(Math.abs(event.deltaY) / 120, 3));
+        const currentFov = this.camera.fov;
+        const nextFov = THREE.MathUtils.clamp(currentFov + direction * normalizedStep, 1, 179);
+        if (!Number.isFinite(nextFov) || Math.abs(nextFov - currentFov) < 1e-6) return;
+
+        this.camera.fov = nextFov;
+        this.camera.updateProjectionMatrix();
+        this.controls.dispatchEvent?.({ type: "change" });
+    }
+
+    _setMainCameraClippingForMountedView(focusDistance) {
+        if (!this.camera) return;
+
+        const candidateDistances = [];
+        if (Number.isFinite(focusDistance) && focusDistance > 0) {
+            candidateDistances.push(focusDistance);
+        }
+
+        for (const mode of [
+            CAMERA_POSITION_MODE.EARTH,
+            CAMERA_POSITION_MODE.MOON,
+            CAMERA_POSITION_MODE.SPACECRAFT,
+        ]) {
+            const targetPos = this._resolveTargetWorld(mode, this._tmpTargetWorld);
+            if (!targetPos) continue;
+            const distance = this.camera.position.distanceTo(targetPos);
+            if (Number.isFinite(distance) && distance > 0) {
+                candidateDistances.push(distance);
+            }
+        }
+
+        if (candidateDistances.length === 0) {
+            if (this.camera.near !== this.defaultNear || this.camera.far !== this.defaultFar) {
+                this.camera.near = this.defaultNear;
+                this.camera.far = this.defaultFar;
+                this.camera.updateProjectionMatrix();
+            }
+            return;
+        }
+
+        const minDistance = Math.min(...candidateDistances);
+        const maxDistance = Math.max(...candidateDistances);
+
+        // Keep enough precision to stabilize occlusion, while ensuring distant
+        // bodies (e.g. Earth in Craft->Moon view) remain inside the clip range.
+        const near = THREE.MathUtils.clamp(minDistance * 0.0015, 0.005, 2);
+        const far = THREE.MathUtils.clamp(Math.max(maxDistance * 3.5, near + 128), 128, this.defaultFar);
+        if (Math.abs(this.camera.near - near) > 1e-6 || Math.abs(this.camera.far - far) > 1e-6) {
+            this.camera.near = near;
+            this.camera.far = far;
+            this.camera.updateProjectionMatrix();
+        }
     }
 
     /**
@@ -241,11 +327,13 @@ export class CameraController {
         this._targets = { earth: earth ?? null, moon: moon ?? null, spacecraft: spacecraft ?? null };
 
         if (!hasPositionMount && !hasForcedLook) {
+            this._setMainCameraClippingForMountedView(null);
             this._setFreeFlyEnabled(false);
             if (this.controls) {
                 this.controls.enabled = true;
                 this.controls.noRotate = false;
                 this.controls.noPan = false;
+                this.controls.noZoom = false;
             }
             return;
         }
@@ -260,10 +348,11 @@ export class CameraController {
                 }
 
                 if (this.controls) {
-                    // Mounted camera should be zoom-only (no pan/drag rotate).
+                    // Mounted camera is lens-zoom-only: wheel maps to FoV, not dolly.
                     this.controls.enabled = !wantsFreeFly;
                     this.controls.noPan = true;
                     this.controls.noRotate = true;
+                    this.controls.noZoom = true;
                 }
 
                 // Follow the mount.
@@ -281,6 +370,7 @@ export class CameraController {
             // When not mounted, allow normal controls (we may still disable rotation if forcing look).
             this.controls.enabled = true;
             this.controls.noPan = false;
+            this.controls.noZoom = false;
             this._setFreeFlyEnabled(false);
         }
 
@@ -318,17 +408,26 @@ export class CameraController {
                 } else {
                     this.camera.lookAt(lookPos);
                 }
+                this._setMainCameraClippingForMountedView(
+                    hasPositionMount
+                        ? this.camera.position.distanceTo(lookPos)
+                        : null,
+                );
             }
         } else if (this.controls) {
             if (hasPositionMount) {
                 // Mounted + manual aim remains zoom-only.
                 this.controls.noRotate = true;
                 this.controls.noPan = true;
+                this._setMainCameraClippingForMountedView(
+                    this.camera.position.distanceTo(this.controls.target),
+                );
             } else {
                 this.controls.noRotate = wantsFreeFly ? true : false;
                 this.controls.noPan = false;
                 // Returning to manual aim: reset up to global to avoid unexpected roll.
                 this.camera.up.set(0, 0, 1);
+                this._setMainCameraClippingForMountedView(null);
             }
         }
     }
@@ -493,6 +592,11 @@ export class CameraController {
             }
             this.controls.dispose();
             this.controls = null;
+        }
+
+        if (this._rendererDomElement && this._mountedWheelHandler) {
+            this._rendererDomElement.removeEventListener("wheel", this._mountedWheelHandler);
+            this._mountedWheelHandler = null;
         }
 
         if (this.freeFlyControls) {

@@ -173,6 +173,7 @@ export function createCameraActions({
         if (!controller) return;
 
         const shouldFix = wantsFixed && isEligible;
+        controller.setMountedWheelFovEnabled?.(!shouldFix);
         if (shouldFix) {
             if (savedFov === null) {
                 const current = scene?.camera?.fov ?? controller.camera?.fov;
