@@ -91,6 +91,39 @@ export function formatDateTimeIST(dateOrTimestamp) {
     return date.toLocaleString('en-IN', options) + ' IST';
 }
 
+function getLocalOffsetParts(date) {
+    const offsetMinutesEast = -date.getTimezoneOffset();
+    const sign = offsetMinutesEast >= 0 ? '+' : '-';
+    const absoluteMinutes = Math.abs(offsetMinutesEast);
+    const hours = Math.floor(absoluteMinutes / 60);
+    const minutes = absoluteMinutes % 60;
+    return {
+        sign,
+        hours,
+        minutes,
+        text: `${sign}${padZero(hours)}:${padZero(minutes)}`,
+    };
+}
+
+export function formatDateTimeLocal(dateOrTimestamp) {
+    const date = typeof dateOrTimestamp === 'number'
+        ? new Date(dateOrTimestamp)
+        : dateOrTimestamp;
+
+    const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    };
+
+    return `${date.toLocaleString(undefined, options)} UTC${getLocalOffsetParts(date).text}`;
+}
+
 /**
  * Format a date for display in UTC.
  * @param {Date|number} dateOrTimestamp - Date object or UTC timestamp in ms
@@ -136,6 +169,20 @@ export function formatDateOnly(dateOrTimestamp) {
     return date.toLocaleDateString('en-IN', options);
 }
 
+export function formatDateOnlyLocal(dateOrTimestamp) {
+    const date = typeof dateOrTimestamp === 'number'
+        ? new Date(dateOrTimestamp)
+        : dateOrTimestamp;
+
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+    };
+
+    return date.toLocaleDateString(undefined, options);
+}
+
 /**
  * Format just the time portion for display in IST.
  * @param {Date|number} dateOrTimestamp - Date object or UTC timestamp in ms
@@ -155,6 +202,25 @@ export function formatTimeOnly(dateOrTimestamp) {
     };
 
     return date.toLocaleTimeString('en-IN', options);
+}
+
+export function formatTimeOnlyLocal(dateOrTimestamp, { includeOffset = false } = {}) {
+    const date = typeof dateOrTimestamp === 'number'
+        ? new Date(dateOrTimestamp)
+        : dateOrTimestamp;
+
+    const options = {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+    };
+
+    const localTime = date.toLocaleTimeString(undefined, options);
+    if (!includeOffset) {
+        return localTime;
+    }
+    return `${localTime} UTC${getLocalOffsetParts(date).text}`;
 }
 
 /**

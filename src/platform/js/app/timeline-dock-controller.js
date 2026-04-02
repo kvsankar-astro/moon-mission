@@ -1,4 +1,8 @@
-import { formatDateOnly, formatDateTimeIST, formatTimeOnly } from "../utils/time-utils.js";
+import {
+    formatDateOnlyLocal,
+    formatDateTimeLocal,
+    formatTimeOnlyLocal,
+} from "../utils/time-utils.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -63,12 +67,12 @@ function createTimelineDockController({
     let isBound = false;
 
     function updateCurrentLabel(timeMs) {
-        currentLabel.textContent = formatDateTimeIST(timeMs);
-        slider.setAttribute("aria-valuetext", formatDateTimeIST(timeMs));
+        currentLabel.textContent = formatDateTimeLocal(timeMs);
+        slider.setAttribute("aria-valuetext", formatDateTimeLocal(timeMs));
     }
 
     function formatEdgeLabel(timeMs) {
-        return `<span class="timeline-dock__edge-date">${formatDateOnly(timeMs)}</span><span class="timeline-dock__edge-time">${formatTimeOnly(timeMs)}</span>`;
+        return `<span class="timeline-dock__edge-date">${formatDateOnlyLocal(timeMs)}</span><span class="timeline-dock__edge-time">${formatTimeOnlyLocal(timeMs, { includeOffset: true })}</span>`;
     }
 
     function setRange({ startTimeMs, endTimeMs, stepMs }) {
@@ -122,7 +126,7 @@ function createTimelineDockController({
         marker.className = markerClasses.join(" ");
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
         const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "Event";
-        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeIST(clampedTime)}\n${hoverText}`;
+        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}`;
         marker.setAttribute("aria-label", marker.title);
         marker.addEventListener("mouseenter", () => {
             onMarkerHover?.(eventInfo, index);

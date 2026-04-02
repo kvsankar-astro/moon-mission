@@ -7,9 +7,11 @@ export function createAnimationActions({
     clearLegacyTimeout,
 }) {
     const toggleAnimation = () => animationController.toggle();
+    const playAnimation = () => animationController.play();
 
     return {
         toggleAnimation,
+        playAnimation,
         // Backward compatibility while shared handlers migrate off CY3 naming.
         cy3Animate: toggleAnimation,
         fastBackward: () => animationController.fastBackward(),

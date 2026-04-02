@@ -22,9 +22,10 @@ function isDesktopViewport() {
 }
 
 class AuxiliaryCameraViewsManager {
-    constructor({ THREE, overlayHost }) {
+    constructor({ THREE, overlayHost, requestRender }) {
         this.THREE = THREE;
         this.overlayHost = overlayHost || document.body;
+        this.requestRender = typeof requestRender === "function" ? requestRender : null;
         this.root = null;
         this.panels = [];
         this.panelsEnabled = true;
@@ -230,6 +231,7 @@ class AuxiliaryCameraViewsManager {
             camera.updateProjectionMatrix();
             fovValue.value = `${Math.round(fov)}°`;
             fovValue.textContent = fovValue.value;
+            this.requestRender?.();
         };
         fovSlider.addEventListener("input", onFovInput, { passive: true });
         onFovInput();

@@ -133,4 +133,41 @@ describe("createTimelineDockController", () => {
         expect(craftStrip.classList.contains("timeline-dock__craft-strip--hidden")).toBe(true);
         expect(craftStrip.children).toHaveLength(0);
     });
+
+    it("shows current time in inferred local timezone with explicit UTC offset", () => {
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        const timestamp = Date.UTC(2026, 3, 2, 12, 34, 56);
+        controller.setRange({
+            startTimeMs: timestamp - 1000,
+            endTimeMs: timestamp + 1000,
+            stepMs: 1000,
+        });
+        controller.setCurrentTime(timestamp);
+
+        expect(currentLabel.textContent).toMatch(/UTC[+-]\d{2}:\d{2}$/);
+        expect(slider.attributes["aria-valuetext"]).toBe(currentLabel.textContent);
+        expect(startLabel.innerHTML).toMatch(/UTC[+-]\d{2}:\d{2}</);
+    });
 });

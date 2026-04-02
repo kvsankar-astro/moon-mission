@@ -278,6 +278,8 @@ function createRuntimeBootstrapActions(ports) {
         isOrbitDataProcessed: (cfg) => !!orbitDataProcessed[cfg],
         missionStart: animationActions.missionStart,
         missionSetTime: animationActions.missionSetTime,
+        setRealtimeSpeed: animationActions.realtime,
+        playAnimation: animationActions.playAnimation,
         setAnimTime,
         setLocation,
         setDimension: (value) => {
@@ -291,6 +293,8 @@ function createRuntimeBootstrapActions(ports) {
         render,
         requestAnimationFrame,
         animateLoop,
+        getStartTime,
+        getLatestEndTime,
     });
 
     return {

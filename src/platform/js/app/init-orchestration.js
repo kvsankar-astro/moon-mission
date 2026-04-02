@@ -6,6 +6,8 @@ function createInitOrchestrationActions(deps) {
         isOrbitDataProcessed,
         missionStart,
         missionSetTime,
+        setRealtimeSpeed,
+        playAnimation,
         setAnimTime,
         setLocation,
         setDimension,
@@ -17,6 +19,8 @@ function createInitOrchestrationActions(deps) {
         render,
         requestAnimationFrame,
         animateLoop,
+        getStartTime,
+        getLatestEndTime,
     } = deps;
 
     async function waitUntilOrbitDataProcessed({
@@ -45,6 +49,16 @@ function createInitOrchestrationActions(deps) {
                 onReady: () => {
                     const startupAnimTimeOverride = Number(flags?.startupAnimTimeOverride);
                     const hasStartupAnimTimeOverride = Number.isFinite(startupAnimTimeOverride);
+                    const nowTimeMs = Date.now();
+                    const startTime = Number(getStartTime?.());
+                    const latestEndTime = Number(getLatestEndTime?.());
+                    const shouldStartAtNow = !hasStartupAnimTimeOverride &&
+                        !!flags.reset &&
+                        Number.isFinite(nowTimeMs) &&
+                        Number.isFinite(startTime) &&
+                        Number.isFinite(latestEndTime) &&
+                        nowTimeMs >= startTime &&
+                        nowTimeMs <= latestEndTime;
 
                     if (hasStartupAnimTimeOverride) {
                         setAnimTime?.(startupAnimTimeOverride);
@@ -52,6 +66,19 @@ function createInitOrchestrationActions(deps) {
                             missionSetTime();
                         } else {
                             setLocation();
+                        }
+                    } else if (shouldStartAtNow) {
+                        setAnimTime?.(nowTimeMs);
+                        if (typeof missionSetTime === "function") {
+                            missionSetTime();
+                        } else {
+                            setLocation();
+                        }
+                        if (typeof setRealtimeSpeed === "function") {
+                            setRealtimeSpeed();
+                        }
+                        if (typeof playAnimation === "function") {
+                            playAnimation();
                         }
                     } else if (flags.reset) {
                         missionStart();

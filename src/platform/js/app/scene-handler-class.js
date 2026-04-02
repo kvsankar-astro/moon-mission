@@ -23,6 +23,7 @@ function createSceneHandlerClass(deps) {
             this.canvasNode = null;
             this.auxiliaryCameraViews = null;
             this.initialized = false;
+            this.lastAnimationScene = null;
             this.lookAtWorldTarget = new THREE.Vector3();
 
             this.init();
@@ -53,6 +54,11 @@ function createSceneHandlerClass(deps) {
                 this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
                     THREE,
                     overlayHost,
+                    requestRender: () => {
+                        if (this.lastAnimationScene) {
+                            this.render(this.lastAnimationScene);
+                        }
+                    },
                 });
             }
 
@@ -63,6 +69,8 @@ function createSceneHandlerClass(deps) {
             if (!animationScene?.initialized3D) {
                 return;
             }
+
+            this.lastAnimationScene = animationScene;
 
             const {
                 globalConfig,
