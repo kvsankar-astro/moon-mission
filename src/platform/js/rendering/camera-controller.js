@@ -62,7 +62,6 @@ export class CameraController {
         this._tmpQuat = new THREE.Quaternion();
         this._tmpUp = new THREE.Vector3();
         this._tmpViewDir = new THREE.Vector3();
-        this._tmpTargetWorld = new THREE.Vector3();
 
         this._rendererDomElement = null;
         this.freeFlyControls = null;
@@ -218,48 +217,12 @@ export class CameraController {
 
     _setMainCameraClippingForMountedView(focusDistance) {
         if (!this.camera) return;
-
-        const candidateDistances = [];
-        if (Number.isFinite(focusDistance) && focusDistance > 0) {
-            candidateDistances.push(focusDistance);
-        }
-
-        for (const mode of [
-            CAMERA_POSITION_MODE.EARTH,
-            CAMERA_POSITION_MODE.MOON,
-            CAMERA_POSITION_MODE.SPACECRAFT,
-        ]) {
-            const targetPos = this._resolveTargetWorld(mode, this._tmpTargetWorld);
-            if (!targetPos) continue;
-            const distance = this.camera.position.distanceTo(targetPos);
-            if (Number.isFinite(distance) && distance > 0) {
-                candidateDistances.push(distance);
-            }
-        }
-
-        if (candidateDistances.length === 0) {
-            if (this.camera.near !== this.defaultNear || this.camera.far !== this.defaultFar) {
-                this.camera.near = this.defaultNear;
-                this.camera.far = this.defaultFar;
-                this.camera.updateProjectionMatrix();
-            }
-            return;
-        }
-
-        const maxDistance = Math.max(...candidateDistances);
-
-        // Keep near clipping fixed at the global default. In mounted/body-origin
-        // views, increasing near dynamically can clip the sky sphere and produce
-        // a large black polygon while zooming/FoV-changing.
-        const near = this.defaultNear;
-        const far = THREE.MathUtils.clamp(
-            Math.max(maxDistance * 3.5, near + 128),
-            128,
-            this.defaultFar,
-        );
-        if (Math.abs(this.camera.near - near) > 1e-6 || Math.abs(this.camera.far - far) > 1e-6) {
-            this.camera.near = near;
-            this.camera.far = far;
+        // Mounted camera paths span very different mission scales. Dynamic clip
+        // tuning caused sky-sphere clipping artifacts ("black monsters"/"wafers")
+        // at some scales, so keep clipping stable and deterministic.
+        if (this.camera.near !== this.defaultNear || this.camera.far !== this.defaultFar) {
+            this.camera.near = this.defaultNear;
+            this.camera.far = this.defaultFar;
             this.camera.updateProjectionMatrix();
         }
     }
