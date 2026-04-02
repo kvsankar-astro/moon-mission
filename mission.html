@@ -1302,6 +1302,29 @@
         <div id="footer-wrapper" class="footer-wrapper">
 
             <div id="stats" class="stats prevent-select">
+                <div class="stats__unit-row">
+                    <span class="stats__unit-caption">Units</span>
+                    <div class="stats__unit-pill" role="group" aria-label="Telemetry units">
+                        <button
+                            id="stats-unit-km"
+                            type="button"
+                            class="stats__unit-btn is-active"
+                            aria-pressed="true"
+                            title="Show distance in kilometers and velocity in kilometers per second"
+                        >
+                            km
+                        </button>
+                        <button
+                            id="stats-unit-miles"
+                            type="button"
+                            class="stats__unit-btn"
+                            aria-pressed="false"
+                            title="Show distance in miles and velocity in miles per hour"
+                        >
+                            miles
+                        </button>
+                    </div>
+                </div>
 
                 <div> <!-- extended statistics / Relative to Earth -->
                     <table>
@@ -1313,15 +1336,15 @@
                         <td><label class="sc">Chandrayaan 3</label></td>
                     </tr> -->
                     <tr>
-                        <td>Distance (km): </td>
+                        <td>Distance (<span class="stats-unit-distance">km</span>): </td>
                         <td><label id="distance-SC-EARTH" class="sc"></label></td>
                     </tr>
                     <tr>
-                        <td>Altitude (km): </td>
+                        <td>Altitude (<span class="stats-unit-distance">km</span>): </td>
                         <td><label id="altitude-SC-EARTH" class="sc"></label></td>
                     </tr>
                     <tr>
-                        <td>Velocity (km/s): </td>
+                        <td>Velocity (<span class="stats-unit-speed">km/s</span>): </td>
                         <td><label id="velocity-SC-EARTH" class="sc"></label></td>
                     </tr>
                     </table>
@@ -1339,15 +1362,15 @@
                         <td><label class="sc">Chandrayaan 3</label></td>
                     </tr> -->
                     <tr>
-                        <td>Distance (km): </td>
+                        <td>Distance (<span class="stats-unit-distance">km</span>): </td>
                         <td><label id="distance-SC-MOON" class="sc"></label></td>
                     </tr>
                     <tr>
-                        <td>Altitude (km): </td>
+                        <td>Altitude (<span class="stats-unit-distance">km</span>): </td>
                         <td><label id="altitude-SC-MOON" class="sc"></label></td>
                     </tr>
                     <tr>
-                        <td>Velocity (km/s): </td>
+                        <td>Velocity (<span class="stats-unit-speed">km/s</span>): </td>
                         <td><label id="velocity-SC-MOON" class="sc"></label></td>
                     </tr>
                     </table>

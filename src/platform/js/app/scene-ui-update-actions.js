@@ -5,12 +5,159 @@ function createSceneUiUpdateActions(deps) {
         updateEventInfo,
         clearEventInfo,
     } = deps;
+    const KM_TO_MILES = 0.621371192237334;
+    const KMPS_TO_MPH = 2236.9362920544;
+    const UNIT_MODE_KM = "km";
+    const UNIT_MODE_MILES = "miles";
     const ACTIVE_EVENT_BUTTON_CLASS = "burnbutton--active-event";
     let highlightedEventButton = null;
     let activeEventVisible = false;
+    let metricUnitMode = UNIT_MODE_KM;
+    let unitControlsBound = false;
+    let telemetrySnapshot = null;
+    let telemetryPrimaryBody = "EARTH";
 
-    function setMetricText(selector, value) {
-        d3.select(selector).text(Number.isFinite(value) ? formatMetric(value) : "");
+    function convertDistanceValue(valueKm) {
+        if (!Number.isFinite(valueKm)) return null;
+        if (metricUnitMode === UNIT_MODE_MILES) {
+            return valueKm * KM_TO_MILES;
+        }
+        return valueKm;
+    }
+
+    function convertVelocityValue(valueKmPerSec) {
+        if (!Number.isFinite(valueKmPerSec)) return null;
+        if (metricUnitMode === UNIT_MODE_MILES) {
+            return valueKmPerSec * KMPS_TO_MPH;
+        }
+        return valueKmPerSec;
+    }
+
+    function setMetricText(selector, value, metricType) {
+        if (!Number.isFinite(value)) {
+            d3.select(selector).text("");
+            return;
+        }
+        const converted =
+            metricType === "speed"
+                ? convertVelocityValue(value)
+                : convertDistanceValue(value);
+        d3.select(selector).text(Number.isFinite(converted) ? formatMetric(converted) : "");
+    }
+
+    function updateUnitLabels() {
+        const distanceUnitText =
+            metricUnitMode === UNIT_MODE_MILES
+                ? "miles"
+                : "km";
+        const speedUnitText =
+            metricUnitMode === UNIT_MODE_MILES
+                ? "miles/h"
+                : "km/s";
+        const distanceNodes = document.querySelectorAll(".stats-unit-distance");
+        for (const node of distanceNodes) {
+            node.textContent = distanceUnitText;
+        }
+        const speedNodes = document.querySelectorAll(".stats-unit-speed");
+        for (const node of speedNodes) {
+            node.textContent = speedUnitText;
+        }
+
+        const kmButton = document.getElementById("stats-unit-km");
+        const milesButton = document.getElementById("stats-unit-miles");
+        if (kmButton) {
+            const active = metricUnitMode === UNIT_MODE_KM;
+            kmButton.classList.toggle("is-active", active);
+            kmButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+        if (milesButton) {
+            const active = metricUnitMode === UNIT_MODE_MILES;
+            milesButton.classList.toggle("is-active", active);
+            milesButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+    }
+
+    function renderTelemetry() {
+        const tel = telemetrySnapshot;
+        const primaryBody = telemetryPrimaryBody;
+        if (!tel) {
+            setMetricText("#distance-SC-EARTH", null, "distance");
+            setMetricText("#altitude-SC-EARTH", null, "distance");
+            setMetricText("#velocity-SC-EARTH", null, "speed");
+            setMetricText("#distance-SC-MOON", null, "distance");
+            setMetricText("#altitude-SC-MOON", null, "distance");
+            setMetricText("#velocity-SC-MOON", null, "speed");
+            return;
+        }
+
+        setMetricText(`#distance-SC-${primaryBody}`, tel.distancePrimary, "distance");
+        setMetricText(`#altitude-SC-${primaryBody}`, tel.altitudePrimary, "distance");
+        setMetricText(`#velocity-SC-${primaryBody}`, tel.velocityPrimary, "speed");
+
+        const hasMoonSecondary = tel.distanceMoon !== undefined && tel.distanceMoon !== null;
+        const hasEarthSecondary = tel.distanceEarth !== undefined && tel.distanceEarth !== null;
+
+        // Always write both panels each frame so stale values never linger.
+        if (hasMoonSecondary) {
+            setMetricText("#distance-SC-MOON", tel.distanceMoon, "distance");
+            setMetricText("#altitude-SC-MOON", tel.altitudeMoon, "distance");
+            setMetricText("#velocity-SC-MOON", tel.velocityMoon, "speed");
+        } else if (primaryBody === "MOON") {
+            setMetricText("#distance-SC-MOON", tel.distancePrimary, "distance");
+            setMetricText("#altitude-SC-MOON", tel.altitudePrimary, "distance");
+            setMetricText("#velocity-SC-MOON", tel.velocityPrimary, "speed");
+        } else {
+            setMetricText("#distance-SC-MOON", null, "distance");
+            setMetricText("#altitude-SC-MOON", null, "distance");
+            setMetricText("#velocity-SC-MOON", null, "speed");
+        }
+
+        if (hasEarthSecondary) {
+            setMetricText("#distance-SC-EARTH", tel.distanceEarth, "distance");
+            setMetricText("#altitude-SC-EARTH", tel.altitudeEarth, "distance");
+            setMetricText("#velocity-SC-EARTH", tel.velocityEarth, "speed");
+        } else if (primaryBody === "EARTH") {
+            setMetricText("#distance-SC-EARTH", tel.distancePrimary, "distance");
+            setMetricText("#altitude-SC-EARTH", tel.altitudePrimary, "distance");
+            setMetricText("#velocity-SC-EARTH", tel.velocityPrimary, "speed");
+        } else {
+            setMetricText("#distance-SC-EARTH", null, "distance");
+            setMetricText("#altitude-SC-EARTH", null, "distance");
+            setMetricText("#velocity-SC-EARTH", null, "speed");
+        }
+    }
+
+    function setMetricUnitMode(nextMode) {
+        if (nextMode !== UNIT_MODE_KM && nextMode !== UNIT_MODE_MILES) {
+            return;
+        }
+        if (metricUnitMode === nextMode) {
+            return;
+        }
+        metricUnitMode = nextMode;
+        updateUnitLabels();
+        renderTelemetry();
+    }
+
+    function ensureUnitControlsBound() {
+        if (unitControlsBound) {
+            return;
+        }
+        const kmButton = document.getElementById("stats-unit-km");
+        const milesButton = document.getElementById("stats-unit-miles");
+        if (!kmButton || !milesButton) {
+            return;
+        }
+
+        kmButton.addEventListener("click", () => {
+            setMetricUnitMode(UNIT_MODE_KM);
+        });
+        milesButton.addEventListener("click", () => {
+            setMetricUnitMode(UNIT_MODE_MILES);
+        });
+
+        unitControlsBound = true;
+        updateUnitLabels();
     }
 
     function clearActiveEventButtonHighlight() {
@@ -74,53 +221,10 @@ function createSceneUiUpdateActions(deps) {
     }
 
     function updateTelemetry(sceneState, primaryBody) {
-        if (sceneState.telemetry) {
-            const tel = sceneState.telemetry;
-
-            setMetricText(`#distance-SC-${primaryBody}`, tel.distancePrimary);
-            setMetricText(`#altitude-SC-${primaryBody}`, tel.altitudePrimary);
-            setMetricText(`#velocity-SC-${primaryBody}`, tel.velocityPrimary);
-
-            const hasMoonSecondary = tel.distanceMoon !== undefined && tel.distanceMoon !== null;
-            const hasEarthSecondary = tel.distanceEarth !== undefined && tel.distanceEarth !== null;
-
-            // Always write both panels each frame so stale values never linger.
-            if (hasMoonSecondary) {
-                setMetricText("#distance-SC-MOON", tel.distanceMoon);
-                setMetricText("#altitude-SC-MOON", tel.altitudeMoon);
-                setMetricText("#velocity-SC-MOON", tel.velocityMoon);
-            } else if (primaryBody === "MOON") {
-                setMetricText("#distance-SC-MOON", tel.distancePrimary);
-                setMetricText("#altitude-SC-MOON", tel.altitudePrimary);
-                setMetricText("#velocity-SC-MOON", tel.velocityPrimary);
-            } else {
-                setMetricText("#distance-SC-MOON", null);
-                setMetricText("#altitude-SC-MOON", null);
-                setMetricText("#velocity-SC-MOON", null);
-            }
-
-            if (hasEarthSecondary) {
-                setMetricText("#distance-SC-EARTH", tel.distanceEarth);
-                setMetricText("#altitude-SC-EARTH", tel.altitudeEarth);
-                setMetricText("#velocity-SC-EARTH", tel.velocityEarth);
-            } else if (primaryBody === "EARTH") {
-                setMetricText("#distance-SC-EARTH", tel.distancePrimary);
-                setMetricText("#altitude-SC-EARTH", tel.altitudePrimary);
-                setMetricText("#velocity-SC-EARTH", tel.velocityPrimary);
-            } else {
-                setMetricText("#distance-SC-EARTH", null);
-                setMetricText("#altitude-SC-EARTH", null);
-                setMetricText("#velocity-SC-EARTH", null);
-            }
-            return;
-        }
-
-        setMetricText("#distance-SC-EARTH", null);
-        setMetricText("#altitude-SC-EARTH", null);
-        setMetricText("#velocity-SC-EARTH", null);
-        setMetricText("#distance-SC-MOON", null);
-        setMetricText("#altitude-SC-MOON", null);
-        setMetricText("#velocity-SC-MOON", null);
+        ensureUnitControlsBound();
+        telemetryPrimaryBody = primaryBody;
+        telemetrySnapshot = sceneState?.telemetry || null;
+        renderTelemetry();
     }
 
     function updatePhaseIndicator(sceneState, globalConfig) {

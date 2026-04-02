@@ -1063,6 +1063,61 @@ fieldset {
     opacity: 0.96;
 }
 
+.stats__unit-row {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    pointer-events: all;
+}
+
+.stats__unit-caption {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(188, 204, 232, 0.86);
+}
+
+.stats__unit-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    border: 1px solid rgba(121, 171, 255, 0.3);
+    border-radius: 999px;
+    background: rgba(9, 15, 26, 0.65);
+    overflow: hidden;
+    pointer-events: all;
+}
+
+.stats__unit-btn {
+    min-width: 44px;
+    height: 18px;
+    border: 0;
+    background: transparent;
+    color: rgba(201, 215, 240, 0.88);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0 8px;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.stats__unit-btn + .stats__unit-btn {
+    border-left: 1px solid rgba(121, 171, 255, 0.24);
+}
+
+.stats__unit-btn.is-active {
+    background: rgba(80, 137, 248, 0.27);
+    color: rgba(235, 244, 255, 0.96);
+}
+
+.stats__unit-btn:focus-visible {
+    outline: 1px solid rgba(153, 196, 255, 0.88);
+    outline-offset: -1px;
+}
+
 .date {
   color: grey;
   font-family: "Lucida Console", monospace;
