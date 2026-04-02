@@ -85,6 +85,19 @@ jobs:
           # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
           cp -r src dist-pages/
+          APP_ASSET_REV="${GITHUB_SHA::12}"
+          mv dist-pages/src "dist-pages/src-${APP_ASSET_REV}"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          app_rev = os.environ["GITHUB_SHA"][:12]
+          mission_html = Path("dist-pages/mission.html")
+          text = mission_html.read_text(encoding="utf-8")
+          text = text.replace("src/platform/", f"src-{app_rev}/platform/")
+          mission_html.write_text(text, encoding="utf-8")
+          print(f"Rewrote mission.html src path to src-{app_rev}/platform/")
+          PY
 
       - name: Stage mission runtime data assets
         run: |

@@ -37,6 +37,19 @@ jobs:
           cp index.html mission.html dist-pages/
           cp -r assets dist-pages/
           cp -r src dist-pages/
+          APP_ASSET_REV="${GITHUB_SHA::12}"
+          mv dist-pages/src "dist-pages/src-${APP_ASSET_REV}"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          app_rev = os.environ["GITHUB_SHA"][:12]
+          mission_html = Path("dist-pages/mission.html")
+          text = mission_html.read_text(encoding="utf-8")
+          text = text.replace("src/platform/", f"src-{app_rev}/platform/")
+          mission_html.write_text(text, encoding="utf-8")
+          print(f"Rewrote mission.html src path to src-{app_rev}/platform/")
+          PY
           if [ -d images ]; then
             cp -r images dist-pages/
           fi
@@ -57,7 +70,8 @@ jobs:
           test -f dist-pages/index.html
           test -f dist-pages/mission.html
           test -d dist-pages/assets
-          test -d dist-pages/src/platform
+          APP_ASSET_REV="${GITHUB_SHA::12}"
+          test -d "dist-pages/src-${APP_ASSET_REV}/platform"
           if [ -d images ]; then
             test -d dist-pages/images
           fi
