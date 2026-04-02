@@ -111,7 +111,7 @@ jobs:
           python scripts/generate-runtime-asset-manifest.py \
             --app-root . \
             --data-root ./dist-pages \
-            --output ./dist-pages/deployment/runtime-asset-manifest.json
+            --output deployment/runtime-asset-manifest.json
 
       - name: Verify staged runtime assets against manifest (existence + SHA)
         run: |
