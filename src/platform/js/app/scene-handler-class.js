@@ -89,6 +89,8 @@ function createSceneHandlerClass(deps) {
                     activeCraft: null,
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
+                    earthRadius,
+                    moonRadius,
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
                 });
@@ -189,6 +191,8 @@ function createSceneHandlerClass(deps) {
                 activeCraft,
                 earth: animationScene.earthContainer,
                 moon: animationScene.moonContainer,
+                earthRadius,
+                moonRadius,
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
             });

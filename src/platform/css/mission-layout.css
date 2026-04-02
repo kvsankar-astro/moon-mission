@@ -123,6 +123,25 @@ canvas {
     min-width: 0;
 }
 
+.aux-camera-view__auto-toggle {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(211, 226, 248, 0.92);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.aux-camera-view__auto-toggle.is-active {
+    background: rgba(68, 130, 223, 0.42);
+    border-color: rgba(132, 183, 255, 0.72);
+    color: rgba(240, 247, 255, 0.97);
+}
+
 .aux-camera-view__fov-label,
 .aux-camera-view__fov-value {
     color: rgba(208, 223, 246, 0.88);
@@ -140,6 +159,11 @@ canvas {
 .aux-camera-view__fov-slider {
     width: 84px;
     accent-color: rgba(106, 169, 255, 1);
+}
+
+.aux-camera-view__fov-slider:disabled {
+    opacity: 0.62;
+    cursor: default;
 }
 
 .aux-camera-view__viewport {

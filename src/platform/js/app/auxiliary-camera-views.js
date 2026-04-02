@@ -16,6 +16,9 @@ const PANEL_SPECS = Object.freeze([
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
+const AUTO_FOV_MARGIN_SCALE = 1.03;
+const AUTO_FOV_MIN_DEGREES = 1;
+const AUTO_FOV_MAX_DEGREES = 179;
 
 function isDesktopViewport() {
     return window.innerWidth > 600;
@@ -187,11 +190,18 @@ class AuxiliaryCameraViewsManager {
         fovLabel.textContent = "FoV";
         fovControls.appendChild(fovLabel);
 
+        const autoToggle = document.createElement("button");
+        autoToggle.className = "aux-camera-view__auto-toggle";
+        autoToggle.type = "button";
+        autoToggle.textContent = "Auto";
+        autoToggle.setAttribute("aria-label", `${spec.title} automatic field of view`);
+        fovControls.appendChild(autoToggle);
+
         const fovSlider = document.createElement("input");
         fovSlider.className = "aux-camera-view__fov-slider";
         fovSlider.type = "range";
-        fovSlider.min = "1";
-        fovSlider.max = "120";
+        fovSlider.min = String(AUTO_FOV_MIN_DEGREES);
+        fovSlider.max = String(AUTO_FOV_MAX_DEGREES);
         fovSlider.step = "1";
         fovSlider.value = String(spec.defaultFov);
         fovSlider.setAttribute("aria-label", `${spec.title} field of view`);
@@ -225,18 +235,6 @@ class AuxiliaryCameraViewsManager {
         const camera = new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
 
-        const onFovInput = () => {
-            const fov = Number(fovSlider.value);
-            camera.fov = fov;
-            camera.updateProjectionMatrix();
-            fovValue.value = `${Math.round(fov)}°`;
-            fovValue.textContent = fovValue.value;
-            this.requestRender?.();
-        };
-        fovSlider.addEventListener("input", onFovInput, { passive: true });
-        onFovInput();
-
-        this.root.appendChild(panel);
         const panelState = {
             targetKey: spec.targetKey,
             panel,
@@ -245,8 +243,12 @@ class AuxiliaryCameraViewsManager {
             camera,
             width: 0,
             height: 0,
-            onFovInput,
+            onFovInput: null,
             fovSlider,
+            fovValue,
+            autoToggle,
+            autoFovEnabled: true,
+            onAutoToggleClick: null,
             onPointerDown: null,
             onPointerMove: null,
             onPointerUp: null,
@@ -255,6 +257,40 @@ class AuxiliaryCameraViewsManager {
             y: 0,
             onPanelPointerDown: null,
         };
+
+        const syncAutoToggleUi = () => {
+            const enabled = panelState.autoFovEnabled === true;
+            fovSlider.disabled = enabled;
+            autoToggle.classList.toggle("is-active", enabled);
+            autoToggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+            autoToggle.title = enabled ? "Auto FoV enabled" : "Auto FoV disabled";
+        };
+
+        const onFovInput = () => {
+            const fov = Number(fovSlider.value);
+            camera.fov = fov;
+            camera.updateProjectionMatrix();
+            fovValue.value = `${Math.round(fov)}°`;
+            fovValue.textContent = fovValue.value;
+            this.requestRender?.();
+        };
+        const onAutoToggleClick = () => {
+            panelState.autoFovEnabled = !panelState.autoFovEnabled;
+            syncAutoToggleUi();
+            if (panelState.autoFovEnabled) {
+                this.requestRender?.();
+            } else {
+                onFovInput();
+            }
+        };
+        fovSlider.addEventListener("input", onFovInput, { passive: true });
+        autoToggle.addEventListener("click", onAutoToggleClick);
+        panelState.onAutoToggleClick = onAutoToggleClick;
+        panelState.onFovInput = onFovInput;
+        syncAutoToggleUi();
+        onFovInput();
+
+        this.root.appendChild(panel);
         this.panels.push(panelState);
         this.bindPanelDragging(panelState, header);
         panelState.onPanelPointerDown = () => {
@@ -344,7 +380,68 @@ class AuxiliaryCameraViewsManager {
         return Number.isFinite(radius) && radius > 0 ? radius : 1;
     }
 
-    render({ scene, activeCraft, earth, moon, referenceCamera, panelsVisible = true }) {
+    estimateObjectRadius(object, fallbackRadius = 1) {
+        if (!object) {
+            return fallbackRadius;
+        }
+        this.boundingBox.setFromObject(object);
+        if (this.boundingBox.isEmpty()) {
+            return fallbackRadius;
+        }
+        this.boundingBox.getBoundingSphere(this.boundingSphere);
+        const radius = this.boundingSphere.radius;
+        return Number.isFinite(radius) && radius > 0 ? radius : fallbackRadius;
+    }
+
+    computeAutoFovDegrees({ distanceToTarget, targetRadius, aspect }) {
+        if (!Number.isFinite(distanceToTarget) || distanceToTarget <= 0) {
+            return null;
+        }
+
+        const radius = Number.isFinite(targetRadius) && targetRadius > 0 ? targetRadius : 1;
+        const fitRadius = radius * AUTO_FOV_MARGIN_SCALE;
+        const safeDistance = Math.max(distanceToTarget, fitRadius + 1e-9);
+        const ratio = Math.min(fitRadius / safeDistance, 0.999999);
+        const angularRadius = Math.asin(ratio);
+        const safeAspect = Math.max(aspect || 1, 1e-3);
+        const verticalFromHeight = 2 * angularRadius;
+        const verticalFromWidth = 2 * Math.atan(Math.tan(angularRadius) / safeAspect);
+        const requiredVerticalRadians = Math.max(verticalFromHeight, verticalFromWidth);
+        return this.THREE.MathUtils.radToDeg(requiredVerticalRadians);
+    }
+
+    setPanelFov(panelState, requestedDegrees) {
+        if (!Number.isFinite(requestedDegrees)) {
+            return;
+        }
+
+        const sliderMin = Number(panelState.fovSlider.min);
+        const sliderMax = Number(panelState.fovSlider.max);
+        const minDegrees = Number.isFinite(sliderMin) ? sliderMin : AUTO_FOV_MIN_DEGREES;
+        const maxDegrees = Number.isFinite(sliderMax) ? sliderMax : AUTO_FOV_MAX_DEGREES;
+        const fovDegrees = this.THREE.MathUtils.clamp(requestedDegrees, minDegrees, maxDegrees);
+
+        if (Math.abs(panelState.camera.fov - fovDegrees) > 1e-4) {
+            panelState.camera.fov = fovDegrees;
+            panelState.camera.updateProjectionMatrix();
+        }
+
+        const rounded = Math.round(fovDegrees);
+        panelState.fovSlider.value = String(rounded);
+        panelState.fovValue.value = `${rounded}°`;
+        panelState.fovValue.textContent = panelState.fovValue.value;
+    }
+
+    render({
+        scene,
+        activeCraft,
+        earth,
+        moon,
+        earthRadius = null,
+        moonRadius = null,
+        referenceCamera,
+        panelsVisible = true,
+    }) {
         if (!this.root) {
             return;
         }
@@ -408,6 +505,19 @@ class AuxiliaryCameraViewsManager {
                     panelState.camera.up.copy(this.targetUp);
                 }
 
+                if (panelState.autoFovEnabled) {
+                    const radiusHint = panelState.targetKey === "earth" ? earthRadius : moonRadius;
+                    const targetRadius = Number.isFinite(radiusHint) && radiusHint > 0
+                        ? radiusHint
+                        : this.estimateObjectRadius(targetObject, 1);
+                    const distanceToTarget = panelState.camera.position.distanceTo(this.targetWorld);
+                    const autoFovDegrees = this.computeAutoFovDegrees({
+                        distanceToTarget,
+                        targetRadius,
+                        aspect: panelState.camera.aspect,
+                    });
+                    this.setPanelFov(panelState, autoFovDegrees);
+                }
                 panelState.camera.lookAt(this.targetWorld);
                 this.renderLayers(panelState.renderer, scene, panelState.camera);
             }
@@ -428,6 +538,7 @@ class AuxiliaryCameraViewsManager {
         this.dragState = null;
         for (const panelState of this.panels) {
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
+            panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
             const header = panelState.panel.querySelector(".aux-camera-view__header");
             if (header) {
                 if (panelState.onPointerDown) {
