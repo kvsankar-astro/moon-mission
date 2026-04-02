@@ -1,17 +1,21 @@
 
 ## Moon Mission Orbit Animations
 
-A multi-mission platform for 3D and 2D orbital animations of lunar missions. The current selector covers 27 missions and mission objects, including:
+Interactive 2D/3D lunar mission visualizations powered by NASA JPL HORIZONS data and curated runtime ephemeris artifacts.
 
-- **[Chandrayaan 3](http://sankara.net/mission.html?mission=cy3)** (2023) - India's successful Moon landing
-- **[Chandrayaan 2](http://sankara.net/mission.html?mission=cy2)** (2019) - Vikram lander descent trajectory
-- **[Chandrayaan 1](http://sankara.net/mission.html?mission=chandrayaan1)** (2008) - India's first lunar mission
-- **[Apollo 10 LM](http://sankara.net/mission.html?mission=apollo10-lm)** (1969) - Snoopy lunar module
-- **[Apollo 11 S-IVB](http://sankara.net/mission.html?mission=apollo11-sivb)** (1969) - Saturn V third stage
-- **[Artemis 1](http://sankara.net/mission.html?mission=artemis1)** (2022) - Orion lunar mission
-- **[Artemis 2](http://sankara.net/mission.html?mission=artemis2)** (2026) - Orion crewed lunar flyby
-- **[SLIM](http://sankara.net/mission.html?mission=slim)** (2024) - JAXA soft-landing mission
-- **[Danuri](http://sankara.net/mission.html?mission=kplo-danuri)** (2022) - Korea Pathfinder Lunar Orbiter
+Live pages:
+
+- Landing/index: <https://sankara.net/astro/lunar-missions/>
+- Mission app: <https://sankara.net/astro/lunar-missions/mission.html>
+
+Sample direct mission links:
+
+- **[Chandrayaan 3](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan3)** (2023)
+- **[Chandrayaan 2](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan2)** (2019)
+- **[Artemis 2](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis2)** (2026)
+- **[GRAIL](https://sankara.net/astro/lunar-missions/mission.html?mission=grail)** (2011-2012)
+- **[LRO](https://sankara.net/astro/lunar-missions/mission.html?mission=lro)** (2009-)
+- **[SLIM](https://sankara.net/astro/lunar-missions/mission.html?mission=slim)** (2024)
 
 ![Mission Preview](images/social/mission-social.png)
 
@@ -24,6 +28,7 @@ I created this animation for educational purposes. It has the following features
 * Rendering with Earth-centered, Moon-centered, and Earth-Moon relative-frame origins
 * Multi-craft missions with per-craft styling, visibility pills, and per-craft timeline spans
 * Camera from/to controls for mounted viewpoints (spacecraft, Earth, Moon)
+* Optional auxiliary camera panels (desktop) for simultaneous craft->Earth and craft->Moon views
 * Views aligned with J2000 reference axes
 * Information on all earth bound and moon bound maneuvers (engine burns)
 * Realistic textures for Earth and Moon in 3D mode
@@ -32,6 +37,7 @@ I created this animation for educational purposes. It has the following features
 * A Joy Ride feature which lets you fly along with the spacecraft
 * Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
 * Selectable orbit styles (`Trail` and `Classic`) with background-loaded style sidecars for authored missions such as CH3
+* On startup, if current wall-clock time is within mission data span, runtime can auto-seek to `Now`, switch to realtime speed, and start playback
 * Mission brief panels with authored Mission and HORIZONS Data text, programmatic timeline bars, a pilot orbit preview, and curated CC BY-SA image carousels
 
 ## Run locally
@@ -45,19 +51,18 @@ npm run dev
 
 Open:
 
-`http://localhost:7274/mission.html?mission=cy3`
+- `http://localhost:7274/`
+- `http://localhost:7274/mission.html?mission=chandrayaan3`
+- `http://localhost:7274/mission.html?mission=artemis2&mode=relative`
 
 ## Multi-Mission Support
 
 URL parameters:
 
-- `mission.html` - Mission selector page
-- `mission.html?mission=cy3` - Chandrayaan 3
-- `mission.html?mission=cy2` - Chandrayaan 2
-- `mission.html?mission=apollo10-lm` - Apollo 10 LM (Snoopy)
-- `mission.html?mission=apollo11-sivb` - Apollo 11 S-IVB
-- `mission.html?mission=artemis1` - Artemis 1
-- `mission.html?mission=artemis2` - Artemis 2
+- `mission.html` - Mission selector + app shell (landing view shown when `mission` is omitted)
+- `mission.html?mission=<id>` - Open a mission directly (IDs come from `assets/mission-catalog.json`)
+- `mission.html?mission=<id>&mode=relative` - Relative-frame mode
+- `mission.html?mission=<id>&testMode=true` - Test harness mode for deterministic test behavior
 
 ### Debugging with NPZ ephemeris
 
@@ -73,6 +78,20 @@ Shared authored mission panel content lives in:
 
 - `assets/mission-briefs.json`
 - `assets/mission-images.json`
+
+## Data Repository Boundary
+
+This repository contains runtime app code, mission config, and UI assets.
+
+Generated orbit/ephemeris artifacts are maintained in the sibling data repository (`moon-mission-data`), including:
+
+- `*-cheb.json`
+- `*-cheb.json.gz`
+- `*.npz`
+- `*-meta.json`
+- authored style sidecars such as `geo-style.json` / `lunar-style.json`
+
+CI/deploy workflows stage those artifacts into this app during build/deploy.
 
 ## Design
 
@@ -127,6 +146,8 @@ You can override these via GitHub repository variables with the same names. No e
 Current workflow behavior:
 
 - `.github/workflows/ci.yml` runs on push, pull request, and manual trigger.
+- `.github/workflows/deploy-app-only.yml` is manual-only (`workflow_dispatch`) for GitHub Pages app-only deploys.
+- `.github/workflows/deploy-hostgator-app-only.yml` is manual-only (`workflow_dispatch`) for sankara.net app-only deploys.
 - `.github/workflows/deploy.yml` is manual-only (`workflow_dispatch`) for GitHub Pages deploys.
 - `.github/workflows/deploy-hostgator.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
 
