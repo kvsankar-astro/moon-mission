@@ -17,7 +17,7 @@ describe("secondary-body-highlight-policy", () => {
         ).toBe(true);
     });
 
-    it("shows the ring for manual lunar views around the Earth", () => {
+    it("suppresses the ring for lunar-origin Earth highlight", () => {
         expect(
             shouldShowSecondaryBodyHighlight({
                 isLunarMission: true,
@@ -28,7 +28,7 @@ describe("secondary-body-highlight-policy", () => {
                 cameraPositionMode: "manual",
                 cameraLookMode: "manual",
             }),
-        ).toBe(true);
+        ).toBe(false);
     });
 
     it("suppresses the ring in relative mode", () => {
