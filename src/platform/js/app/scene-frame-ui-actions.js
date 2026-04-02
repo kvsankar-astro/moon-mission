@@ -1,3 +1,5 @@
+import { formatDateTimeLocal } from "../utils/time-utils.js";
+
 function createSceneFrameUiActions(deps) {
     const { getAnimDate, sceneUiUpdateActions } = deps;
 
@@ -6,7 +8,12 @@ function createSceneFrameUiActions(deps) {
         if (!animDate || typeof animDate.html !== "function") {
             return;
         }
-        animDate.html(new Date(animTime));
+        const text = formatDateTimeLocal(animTime);
+        if (typeof animDate.text === "function") {
+            animDate.text(text);
+            return;
+        }
+        animDate.html(text);
     }
 
     function updateSharedUi({ sceneState, primaryBody, globalConfig }) {
