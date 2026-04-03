@@ -80,9 +80,10 @@ canvas {
     display: grid;
     grid-template-rows: auto auto 1fr;
     width: 280px;
-    height: 192px;
+    height: 280px;
+    aspect-ratio: 1 / 1;
     min-width: 200px;
-    min-height: 150px;
+    min-height: 200px;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     border: 1px solid rgba(121, 171, 255, 0.32);
@@ -91,6 +92,10 @@ canvas {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
     resize: both;
     overflow: hidden;
+}
+
+.aux-camera-view[hidden] {
+    display: none !important;
 }
 
 .aux-camera-view__header {
@@ -109,6 +114,13 @@ canvas {
     cursor: grabbing;
 }
 
+.aux-camera-view__header-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
 .aux-camera-view__title {
     color: rgba(230, 239, 255, 0.92);
     font-size: 10px;
@@ -121,6 +133,24 @@ canvas {
     align-items: center;
     gap: 6px;
     min-width: 0;
+}
+
+.aux-camera-view__minimize-button {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(219, 233, 252, 0.95);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 7px 3px;
+    text-transform: lowercase;
+    cursor: pointer;
+}
+
+.aux-camera-view__minimize-button:hover {
+    background: rgba(66, 126, 218, 0.35);
+    border-color: rgba(132, 183, 255, 0.7);
 }
 
 .aux-camera-view__auto-toggle {
@@ -256,6 +286,42 @@ canvas {
     height: 100%;
     pointer-events: none;
     z-index: 2;
+}
+
+.aux-camera-chip-dock {
+    position: fixed;
+    top: 76px;
+    right: 8px;
+    display: grid;
+    gap: 6px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.aux-camera-chip {
+    pointer-events: auto;
+    border: 1px solid rgba(121, 171, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(12, 22, 39, 0.85);
+    color: rgba(221, 233, 252, 0.96);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    padding: 7px 11px;
+    min-width: 46px;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+    cursor: pointer;
+}
+
+.aux-camera-chip[hidden] {
+    display: none !important;
+}
+
+.aux-camera-chip:hover {
+    border-color: rgba(153, 196, 255, 0.78);
+    background: rgba(40, 84, 151, 0.72);
 }
 
 .footer-wrapper {

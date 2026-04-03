@@ -2,6 +2,7 @@ const PANEL_SPECS = Object.freeze([
     {
         id: "earth",
         title: "Craft -> Earth",
+        chipLabel: "Craft -> Earth",
         anchorKey: "craft",
         targetKey: "earth",
         infoMode: "none",
@@ -10,6 +11,7 @@ const PANEL_SPECS = Object.freeze([
     {
         id: "moon",
         title: "Craft -> Moon",
+        chipLabel: "Craft -> Moon",
         anchorKey: "craft",
         targetKey: "moon",
         infoMode: "moon-visibility",
@@ -18,6 +20,7 @@ const PANEL_SPECS = Object.freeze([
     {
         id: "earth-to-moon",
         title: "Earth -> Moon",
+        chipLabel: "Earth -> Moon",
         anchorKey: "earth",
         targetKey: "moon",
         infoMode: "moon-phase",
@@ -31,6 +34,15 @@ const PANEL_TOP_OFFSET_PX = 38;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
 const AUTO_FOV_MAX_DEGREES = 179;
+const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
+
+function safeParseJson(text, fallbackValue) {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return fallbackValue;
+    }
+}
 
 function isDesktopViewport() {
     return window.innerWidth > 600;
@@ -42,6 +54,7 @@ class AuxiliaryCameraViewsManager {
         this.overlayHost = overlayHost || document.body;
         this.requestRender = typeof requestRender === "function" ? requestRender : null;
         this.root = null;
+        this.chipDock = null;
         this.panels = [];
         this.panelsEnabled = true;
         this.zIndexCounter = 1;
@@ -51,6 +64,8 @@ class AuxiliaryCameraViewsManager {
         this.pendingResizePanelStates = new Set();
         this.pendingResizeRaf = null;
         this.handlePanelResizeEntriesBound = this.handlePanelResizeEntries.bind(this);
+        this.persistedPanelState = this.readPersistedPanelState();
+        this.persistStateTimeout = null;
 
         this.craftWorld = new THREE.Vector3();
         this.anchorWorld = new THREE.Vector3();
@@ -109,9 +124,63 @@ class AuxiliaryCameraViewsManager {
         this.root.className = "aux-camera-views";
         this.overlayHost.appendChild(this.root);
 
+        this.chipDock = document.createElement("div");
+        this.chipDock.className = "aux-camera-chip-dock";
+        this.root.appendChild(this.chipDock);
+
         PANEL_SPECS.forEach((spec, index) => {
             this.createPanel(spec, index);
         });
+
+        this.applyDefaultPanelLayout();
+    }
+
+    readPersistedPanelState() {
+        const storage = globalThis?.localStorage;
+        if (!storage) {
+            return {};
+        }
+        let raw = null;
+        try {
+            raw = storage.getItem(PANEL_STATE_STORAGE_KEY);
+        } catch {
+            return {};
+        }
+        if (!raw) {
+            return {};
+        }
+        const parsed = safeParseJson(raw, {});
+        return parsed && typeof parsed === "object" ? parsed : {};
+    }
+
+    queuePersistPanelState() {
+        if (this.persistStateTimeout != null) {
+            clearTimeout(this.persistStateTimeout);
+        }
+        this.persistStateTimeout = setTimeout(() => {
+            this.persistStateTimeout = null;
+            this.persistPanelState();
+        }, 120);
+    }
+
+    persistPanelState() {
+        const storage = globalThis?.localStorage;
+        if (!storage) {
+            return;
+        }
+        const payload = {};
+        for (const panelState of this.panels) {
+            payload[panelState.id] = {
+                fov: Number.isFinite(panelState.camera?.fov) ? Number(panelState.camera.fov) : null,
+                autoFovEnabled: panelState.autoFovEnabled === true,
+                farSideTintEnabled: panelState.farSideTintEnabled === true,
+            };
+        }
+        try {
+            storage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify(payload));
+        } catch {
+            // Ignore persistence failures (privacy mode/quota).
+        }
     }
 
     readTimelineDockOffset() {
@@ -147,6 +216,41 @@ class AuxiliaryCameraViewsManager {
         });
     }
 
+    applyDefaultPanelLayout() {
+        if (!this.panels.length) {
+            return;
+        }
+        const headerEl = document.querySelector(".header");
+        const timelineEl = document.querySelector(".timeline-dock");
+        const headerRect = headerEl?.getBoundingClientRect?.() || null;
+        const timelineRect = timelineEl?.getBoundingClientRect?.() || null;
+        const headerSpace = Number.isFinite(headerRect?.height) ? headerRect.height : 0;
+        const controlSpace = Number.isFinite(timelineRect?.height) ? timelineRect.height : 0;
+        const h = Math.max(0, window.innerHeight - headerSpace - controlSpace);
+        const sideFromFormula = 0.27 * h;
+
+        const dockOffset = this.readTimelineDockOffset();
+        const topY = Number.isFinite(headerRect?.bottom)
+            ? (headerRect.bottom + PANEL_GAP_PX)
+            : (dockOffset + PANEL_TOP_OFFSET_PX);
+        const maxSideFromWidth = Math.max(160, window.innerWidth - dockOffset - PANEL_MARGIN_PX * 2);
+        const side = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, 160, maxSideFromWidth));
+        const panelRects = this.panels.map((panelState) => {
+            panelState.panel.style.width = `${side}px`;
+            panelState.panel.style.height = `${side}px`;
+            const width = side;
+            const height = side;
+            return { panelState, width, height };
+        });
+
+        let y = topY;
+        for (const item of panelRects) {
+            const x = window.innerWidth - item.width - dockOffset;
+            this.applyPanelPosition(item.panelState, x, y);
+            y += item.height + PANEL_GAP_PX;
+        }
+    }
+
     applyPanelPosition(panelState, x, y) {
         const width = Math.max(120, Math.round(panelState.panel.offsetWidth || panelState.width || 280));
         const height = Math.max(80, Math.round(panelState.panel.offsetHeight || panelState.height || 192));
@@ -166,6 +270,29 @@ class AuxiliaryCameraViewsManager {
     bringPanelToFront(panelState) {
         this.zIndexCounter += 1;
         panelState.panel.style.zIndex = String(this.zIndexCounter);
+    }
+
+    setPanelMinimized(panelState, minimized, { persist = true, requestRender = true } = {}) {
+        const nextMinimized = minimized === true;
+        panelState.minimized = nextMinimized;
+        panelState.panel.classList.toggle("is-minimized", nextMinimized);
+        panelState.panel.hidden = nextMinimized;
+        if (panelState.chipButton) {
+            panelState.chipButton.hidden = !nextMinimized;
+            panelState.chipButton.setAttribute("aria-pressed", nextMinimized ? "true" : "false");
+            panelState.chipButton.title = nextMinimized
+                ? `Restore ${panelState.title}`
+                : `Minimize ${panelState.title}`;
+        }
+        if (nextMinimized) {
+            this.clearPanelOverlay(panelState);
+        }
+        if (persist) {
+            this.queuePersistPanelState();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
     }
 
     shouldStartDrag(event) {
@@ -207,6 +334,7 @@ class AuxiliaryCameraViewsManager {
                 header.releasePointerCapture(event.pointerId);
             }
             this.dragState = null;
+            this.queuePersistPanelState();
         };
 
         header.addEventListener("pointerdown", onPointerDown);
@@ -231,6 +359,9 @@ class AuxiliaryCameraViewsManager {
         title.className = "aux-camera-view__title";
         title.textContent = spec.title;
         header.appendChild(title);
+
+        const headerControls = document.createElement("div");
+        headerControls.className = "aux-camera-view__header-controls";
 
         const fovControls = document.createElement("div");
         fovControls.className = "aux-camera-view__fov-controls";
@@ -261,7 +392,15 @@ class AuxiliaryCameraViewsManager {
         fovValue.className = "aux-camera-view__fov-value";
         fovControls.appendChild(fovValue);
 
-        header.appendChild(fovControls);
+        const minimizeButton = document.createElement("button");
+        minimizeButton.className = "aux-camera-view__minimize-button";
+        minimizeButton.type = "button";
+        minimizeButton.textContent = "x";
+        minimizeButton.setAttribute("aria-label", `Collapse ${spec.title}`);
+
+        headerControls.appendChild(fovControls);
+        headerControls.appendChild(minimizeButton);
+        header.appendChild(headerControls);
         panel.appendChild(header);
 
         const info = document.createElement("div");
@@ -319,11 +458,20 @@ class AuxiliaryCameraViewsManager {
         viewport.appendChild(overlayCanvas);
         const overlayCtx = overlayCanvas.getContext("2d");
 
+        const chipButton = document.createElement("button");
+        chipButton.className = "aux-camera-chip";
+        chipButton.type = "button";
+        chipButton.textContent = spec.chipLabel || spec.title;
+        chipButton.setAttribute("aria-label", `Restore ${spec.title}`);
+        chipButton.hidden = true;
+        this.chipDock?.appendChild(chipButton);
+
         const camera = new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
 
         const panelState = {
             id: spec.id,
+            title: spec.title,
             anchorKey: spec.anchorKey || "craft",
             targetKey: spec.targetKey,
             infoMode: spec.infoMode || "none",
@@ -347,8 +495,12 @@ class AuxiliaryCameraViewsManager {
             fovSlider,
             fovValue,
             autoToggle,
+            minimizeButton,
+            chipButton,
             autoFovEnabled: true,
             onAutoToggleClick: null,
+            onMinimizeClick: null,
+            onChipClick: null,
             onInfoPillClick: null,
             onPointerDown: null,
             onPointerMove: null,
@@ -357,6 +509,7 @@ class AuxiliaryCameraViewsManager {
             x: 0,
             y: 0,
             onPanelPointerDown: null,
+            minimized: false,
         };
 
         const syncAutoToggleUi = () => {
@@ -375,6 +528,7 @@ class AuxiliaryCameraViewsManager {
             fovValue.textContent = fovValue.value;
             panelState.overlayDirty = true;
             this.requestRender?.();
+            this.queuePersistPanelState();
         };
         const onAutoToggleClick = () => {
             panelState.autoFovEnabled = !panelState.autoFovEnabled;
@@ -384,11 +538,43 @@ class AuxiliaryCameraViewsManager {
             } else {
                 onFovInput();
             }
+            this.queuePersistPanelState();
+        };
+        const onMinimizeClick = () => {
+            this.setPanelMinimized(panelState, true);
+        };
+        const onChipClick = () => {
+            this.setPanelMinimized(panelState, false);
         };
         fovSlider.addEventListener("input", onFovInput, { passive: true });
         autoToggle.addEventListener("click", onAutoToggleClick);
+        minimizeButton.addEventListener("click", onMinimizeClick);
+        chipButton.addEventListener("click", onChipClick);
         panelState.onAutoToggleClick = onAutoToggleClick;
         panelState.onFovInput = onFovInput;
+        panelState.onMinimizeClick = onMinimizeClick;
+        panelState.onChipClick = onChipClick;
+
+        const persisted = this.persistedPanelState?.[spec.id];
+        if (persisted && typeof persisted === "object") {
+            if (typeof persisted.autoFovEnabled === "boolean") {
+                panelState.autoFovEnabled = persisted.autoFovEnabled;
+            }
+            const persistedFov = Number(persisted.fov);
+            if (Number.isFinite(persistedFov)) {
+                const boundedFov = this.THREE.MathUtils.clamp(
+                    persistedFov,
+                    AUTO_FOV_MIN_DEGREES,
+                    AUTO_FOV_MAX_DEGREES,
+                );
+                fovSlider.value = String(Math.round(boundedFov));
+                camera.fov = boundedFov;
+                camera.updateProjectionMatrix();
+            }
+            if (typeof persisted.farSideTintEnabled === "boolean") {
+                panelState.farSideTintEnabled = persisted.farSideTintEnabled;
+            }
+        }
         syncAutoToggleUi();
         onFovInput();
 
@@ -418,6 +604,12 @@ class AuxiliaryCameraViewsManager {
         this.panelStateByElement.set(panel, panelState);
         const resizeObserver = this.getPanelResizeObserver();
         resizeObserver?.observe(panel);
+        this.syncPanelSize(panelState);
+        // Default startup behavior: panels open by default on every reload.
+        this.setPanelMinimized(panelState, false, {
+            persist: false,
+            requestRender: false,
+        });
     }
 
     handlePanelResizeEntries(entries) {
@@ -437,6 +629,7 @@ class AuxiliaryCameraViewsManager {
                 this.syncPanelSize(panelState);
             }
             this.pendingResizePanelStates.clear();
+            this.queuePersistPanelState();
             this.requestRender?.();
         });
     }
@@ -448,14 +641,20 @@ class AuxiliaryCameraViewsManager {
         const visible = this.panelsEnabled && isDesktopViewport();
         this.root.hidden = !visible;
         if (!visible) return;
+        this.applyDefaultPanelLayout();
         for (const panelState of this.panels) {
-            this.clampPanelPosition(panelState);
+            this.syncPanelSize(panelState);
         }
+        this.queuePersistPanelState();
     }
 
     setPanelVisible(panelState, visible) {
-        panelState.panel.hidden = !visible;
-        if (!visible) {
+        const shouldShowPanel = visible && panelState.minimized !== true;
+        panelState.panel.hidden = !shouldShowPanel;
+        if (panelState.chipButton) {
+            panelState.chipButton.hidden = panelState.minimized !== true;
+        }
+        if (!shouldShowPanel) {
             this.clearPanelOverlay(panelState);
         }
     }
@@ -497,6 +696,14 @@ class AuxiliaryCameraViewsManager {
     }
 
     syncPanelSize(panelState) {
+        // Keep the whole panel roughly square (1:1) using panel box size,
+        // while always updating the internal viewport renderer dimensions.
+        const panelWidth = Math.max(120, Math.floor(panelState.panel.clientWidth || 0));
+        const panelHeight = Math.max(120, Math.floor(panelState.panel.clientHeight || 0));
+        if (panelWidth > 0 && Math.abs(panelWidth - panelHeight) > 1) {
+            panelState.panel.style.height = `${panelWidth}px`;
+        }
+
         const width = Math.max(120, Math.floor(panelState.viewport.clientWidth));
         const height = Math.max(80, Math.floor(panelState.viewport.clientHeight));
         const changed = width !== panelState.width || height !== panelState.height;
@@ -1051,6 +1258,11 @@ class AuxiliaryCameraViewsManager {
                     this.setPanelVisible(panelState, false);
                     continue;
                 }
+                if (panelState.minimized === true) {
+                    this.setPanelVisible(panelState, false);
+                    visiblePanels += 1; // keep root visible while minimized chips are shown
+                    continue;
+                }
 
                 const distanceSq = this.anchorWorld.distanceToSquared(this.targetWorld);
                 if (!Number.isFinite(distanceSq) || distanceSq <= 1e-14) {
@@ -1179,7 +1391,8 @@ class AuxiliaryCameraViewsManager {
             activeCraft.visible = craftWasVisible;
         }
 
-        this.root.hidden = visiblePanels === 0;
+        const hasMinimizedPanels = this.panels.some((panelState) => panelState.minimized === true);
+        this.root.hidden = visiblePanels === 0 && !hasMinimizedPanels;
     }
 
     dispose() {
@@ -1196,11 +1409,17 @@ class AuxiliaryCameraViewsManager {
             cancelAnimationFrame(this.pendingResizeRaf);
             this.pendingResizeRaf = null;
         }
+        if (this.persistStateTimeout != null) {
+            clearTimeout(this.persistStateTimeout);
+            this.persistStateTimeout = null;
+        }
         this.pendingResizePanelStates.clear();
         this.dragState = null;
         for (const panelState of this.panels) {
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
             panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
+            panelState.minimizeButton.removeEventListener("click", panelState.onMinimizeClick);
+            panelState.chipButton.removeEventListener("click", panelState.onChipClick);
             if (panelState.onInfoPillClick) {
                 panelState.infoPill.removeEventListener("click", panelState.onInfoPillClick);
             }
@@ -1223,10 +1442,12 @@ class AuxiliaryCameraViewsManager {
                 panelState.panel.removeEventListener("pointerdown", panelState.onPanelPointerDown);
             }
             panelState.renderer.dispose();
+            panelState.chipButton.remove();
         }
         this.panels.length = 0;
         this.root.remove();
         this.root = null;
+        this.chipDock = null;
     }
 }
 
