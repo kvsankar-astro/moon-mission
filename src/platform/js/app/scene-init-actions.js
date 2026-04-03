@@ -15,6 +15,10 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
         render();
         wait20().then();
 
+        scene.addSun();
+        render();
+        wait20().then();
+
         scene.addMoon();
         render();
         wait20().then();

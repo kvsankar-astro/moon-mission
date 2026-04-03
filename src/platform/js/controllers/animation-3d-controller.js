@@ -48,6 +48,7 @@ export class Animation3DController {
         this.pixelsPerAU = pixelsPerAU;
         // Carry sun direction for lighting (supports relative frame)
         this.scene.stateSunDirection = state.sunDirection;
+        this.scene.stateTime = state.time;
 
         // 1. Update lighting from sun position
         this.updateLighting(state.sunLongitude, state.bodies);
@@ -106,6 +107,8 @@ export class Animation3DController {
 
         // Keep spacecraft key light directional-only.
         this.scene.light2.position.set(sunDirX, sunDirY, sunDirZ);
+        this.scene.sunRenderer?.setDirection?.(sunDirX, sunDirY, sunDirZ);
+        this.scene.sunRenderer?.updateAppearance?.(this.scene?.stateTime ?? 0);
 
         // Anchor the shadow-casting primary light to the illuminated body so
         // the shadow frustum stays tight and terrain relief can self-shadow.
@@ -240,7 +243,14 @@ export class Animation3DController {
                 );
             } else if (bodyId === craftId) {
                 // Spacecraft
-                this.updateSpacecraftPosition(bodyState, screenPos, bodies, stateTime, landingFreezeTime);
+                this.updateSpacecraftPosition(
+                    bodyState,
+                    screenPos,
+                    bodies,
+                    stateTime,
+                    landingFreezeTime,
+                    craftId,
+                );
             }
         }
     }
@@ -361,7 +371,7 @@ export class Animation3DController {
      * @param {Object} screenPos - Current screen position
      * @param {Object} allBodies - All body states (for next position calculation)
      */
-    updateSpacecraftPosition(bodyState, screenPos, allBodies, stateTime, landingFreezeTime) {
+    updateSpacecraftPosition(bodyState, screenPos, allBodies, stateTime, landingFreezeTime, craftId = "SC") {
         if (!this.scene.craft) {
             return;
         }
@@ -410,6 +420,10 @@ export class Animation3DController {
         if (this.scene.drone) {
             this.scene.drone.lookAt(screenPos.x, screenPos.y, screenPos.z);
         }
+
+        // Keep solar wings tracking the live sun direction for plugin craft models.
+        const renderer = this.scene.spacecraftRenderersById?.[craftId] || this.scene.spacecraftRenderer;
+        renderer?.updateSolarArrayTracking?.(this.scene.stateSunDirection);
     }
 
     /**

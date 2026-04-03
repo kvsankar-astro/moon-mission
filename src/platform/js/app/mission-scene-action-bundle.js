@@ -1,5 +1,6 @@
 import { degreesToRadians, distance3D, sphericalToCartesian } from "../utils/math-utils.js";
 import { SkyRenderer } from "../rendering/sky-renderer.js";
+import { SunRenderer } from "../rendering/sun-renderer.js";
 import { LightManager } from "../rendering/light-manager.js";
 import { EarthRenderer } from "../rendering/earth-renderer.js";
 import { MoonRenderer } from "../rendering/moon-renderer.js";
@@ -26,6 +27,7 @@ import { createSpacecraftActions } from "./spacecraft-actions.js";
 import { createSceneCameraControllerActions } from "./scene-camera-controller-actions.js";
 import { createSpacecraftModelActions } from "./spacecraft-model-actions.js";
 import { createSkyActions } from "./sky-actions.js";
+import { createSunActions } from "./sun-actions.js";
 import { createEarthActions } from "./earth-actions.js";
 import { createMoonActions } from "./moon-actions.js";
 
@@ -254,6 +256,11 @@ function createMissionSceneActionBundle(deps) {
         render,
     });
 
+    const sunActions = createSunActions({
+        SunRenderer,
+        render,
+    });
+
     const earthActions = createEarthActions({
         EarthRenderer,
         render,
@@ -292,6 +299,7 @@ function createMissionSceneActionBundle(deps) {
         sceneCameraControllerActions,
         spacecraftModelActions,
         skyActions,
+        sunActions,
         earthActions,
         moonActions,
     };
