@@ -1,5 +1,6 @@
 (function() {
-    var DATA_URL = "assets/assets-status.json";
+    var LOCAL_DATA_URL = "assets/assets-status.json";
+    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar/moon-mission/master/assets/assets-status.json";
     var collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
     var state = {
@@ -21,8 +22,22 @@
         search: document.getElementById("assets-search"),
         availability: document.getElementById("assets-availability"),
         dataRepoLink: document.getElementById("assets-data-repo-link"),
+        jsonLink: document.getElementById("assets-json-link"),
         sortButtons: Array.prototype.slice.call(document.querySelectorAll(".assets-table-sort")),
     };
+
+    function isProductionHost() {
+        var host = String(window.location.hostname || "").toLowerCase();
+        return host === "sankara.net" || host === "www.sankara.net" || host === "kvsankar.github.io";
+    }
+
+    function preferredDataUrl() {
+        return isProductionHost() ? RAW_DATA_URL : LOCAL_DATA_URL;
+    }
+
+    function fallbackDataUrl(primary) {
+        return primary === RAW_DATA_URL ? LOCAL_DATA_URL : RAW_DATA_URL;
+    }
 
     function escapeHtml(value) {
         return String(value === null || value === undefined ? "" : value)
@@ -277,20 +292,40 @@
         if (dataRepoUrl && refs.dataRepoLink) {
             refs.dataRepoLink.href = dataRepoUrl;
         }
+        if (refs.jsonLink) {
+            refs.jsonLink.href = preferredDataUrl();
+        }
 
         bindControls();
         renderMissions();
         renderSharedAssets();
     }
 
-    fetch(DATA_URL)
-        .then(function(response) {
-            if (!response.ok) throw new Error("HTTP " + response.status);
-            return response.json();
-        })
-        .then(init)
-        .catch(function(error) {
-            refs.tableBody.innerHTML = '<tr><td colspan="8" class="assets-empty">Failed to load ' + escapeHtml(DATA_URL) + ". " + escapeHtml(error.message) + "</td></tr>";
-            refs.sharedRoot.innerHTML = '<div class="assets-empty">Shared assets unavailable because dataset failed to load.</div>';
-        });
+    (function loadWithFallback() {
+        var primary = preferredDataUrl();
+        var secondary = fallbackDataUrl(primary);
+        fetch(primary)
+            .then(function(response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.json();
+            })
+            .then(init)
+            .catch(function(primaryError) {
+                fetch(secondary)
+                    .then(function(response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status);
+                        return response.json();
+                    })
+                    .then(init)
+                    .catch(function(secondaryError) {
+                        refs.tableBody.innerHTML =
+                            '<tr><td colspan="8" class="assets-empty">Failed to load assets dataset from both primary and fallback URLs. Primary: ' +
+                            escapeHtml(primaryError && primaryError.message ? primaryError.message : "unknown error") +
+                            "; Fallback: " +
+                            escapeHtml(secondaryError && secondaryError.message ? secondaryError.message : "unknown error") +
+                            "</td></tr>";
+                        refs.sharedRoot.innerHTML = '<div class="assets-empty">Shared assets unavailable because dataset failed to load.</div>';
+                    });
+            });
+    })();
 })();

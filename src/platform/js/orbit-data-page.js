@@ -1,5 +1,6 @@
 (function() {
-    var DATA_URL = "assets/orbit-availability.json";
+    var LOCAL_DATA_URL = "assets/orbit-availability.json";
+    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar/moon-mission/master/assets/orbit-availability.json";
     var sectionOrder = {
         "20th century": 0,
         "21st century": 1,
@@ -43,6 +44,19 @@
         updated: document.getElementById("audit-table-updated"),
         body: document.getElementById("audit-table-body")
     };
+
+    function isProductionHost() {
+        var host = String(window.location.hostname || "").toLowerCase();
+        return host === "sankara.net" || host === "www.sankara.net" || host === "kvsankar.github.io";
+    }
+
+    function preferredDataUrl() {
+        return isProductionHost() ? RAW_DATA_URL : LOCAL_DATA_URL;
+    }
+
+    function fallbackDataUrl(primary) {
+        return primary === RAW_DATA_URL ? LOCAL_DATA_URL : RAW_DATA_URL;
+    }
 
     function escapeHtml(value) {
         return String(value === null || value === undefined ? "" : value)
@@ -318,6 +332,9 @@
             if (refs.sourcePageLink) refs.sourcePageLink.href = state.sourcePage;
             if (refs.sourcePageInlineLink) refs.sourcePageInlineLink.href = state.sourcePage;
         }
+        if (refs.jsonLink) {
+            refs.jsonLink.href = preferredDataUrl();
+        }
 
         populateSelect(refs.section, Object.keys(sectionOrder).filter(function(section) {
             return state.missions.some(function(entry) { return entry.section === section; });
@@ -330,14 +347,31 @@
         render();
     }
 
-    fetch(DATA_URL)
-        .then(function(response) {
-            if (!response.ok) throw new Error("HTTP " + response.status);
-            return response.json();
-        })
-        .then(init)
-        .catch(function(error) {
-            refs.count.textContent = "Unable to load orbit availability data";
-            refs.body.innerHTML = '<tr><td colspan="9" class="audit-empty">Failed to load ' + escapeHtml(DATA_URL) + '. ' + escapeHtml(error.message) + '</td></tr>';
-        });
+    (function loadWithFallback() {
+        var primary = preferredDataUrl();
+        var secondary = fallbackDataUrl(primary);
+        fetch(primary)
+            .then(function(response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.json();
+            })
+            .then(init)
+            .catch(function(primaryError) {
+                fetch(secondary)
+                    .then(function(response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status);
+                        return response.json();
+                    })
+                    .then(init)
+                    .catch(function(secondaryError) {
+                        refs.count.textContent = "Unable to load orbit availability data";
+                        refs.body.innerHTML =
+                            '<tr><td colspan="9" class="audit-empty">Failed to load orbit dataset from both primary and fallback URLs. Primary: ' +
+                            escapeHtml(primaryError && primaryError.message ? primaryError.message : "unknown error") +
+                            "; Fallback: " +
+                            escapeHtml(secondaryError && secondaryError.message ? secondaryError.message : "unknown error") +
+                            "</td></tr>";
+                    });
+            });
+    })();
 })();
