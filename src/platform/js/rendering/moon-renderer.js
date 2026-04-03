@@ -18,6 +18,8 @@ const MOON_NORMAL_MAP_MAX_WIDTH = 4096;
 const MOON_NORMAL_MAP_STRENGTH = 0.72;
 const MOON_LOMMEL_SEELIGER_BLEND = 0.1;
 const MOON_OPPOSITION_STRENGTH = 0.004;
+const MOON_SHADOW_LIFT = 0.06;
+const MOON_HIGHLIGHT_BOOST = 1.12;
 
 function buildNormalMapFromHeightTexture(heightTexture) {
     const image = heightTexture?.image;
@@ -99,13 +101,17 @@ function applyMoonPhotometricShader(material) {
     material.onBeforeCompile = (shader) => {
         shader.uniforms.uMoonLsBlend = { value: MOON_LOMMEL_SEELIGER_BLEND };
         shader.uniforms.uMoonOppositionStrength = { value: MOON_OPPOSITION_STRENGTH };
+        shader.uniforms.uMoonShadowLift = { value: MOON_SHADOW_LIFT };
+        shader.uniforms.uMoonHighlightBoost = { value: MOON_HIGHLIGHT_BOOST };
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
                 "#include <common>",
                 `#include <common>
 uniform float uMoonLsBlend;
-uniform float uMoonOppositionStrength;`,
+uniform float uMoonOppositionStrength;
+uniform float uMoonShadowLift;
+uniform float uMoonHighlightBoost;`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
@@ -131,12 +137,18 @@ uniform float uMoonOppositionStrength;`,
     float moonPhaseAlignment = clamp( dot( moonLightDir, moonViewDir ), 0.0, 1.0 );
     float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
     diffuseColor.rgb *= ( 1.0 + moonOpposition );
+
+    // Gentle tonal shaping: slightly lift shadows and open highlights.
+    float moonShadowWeight = pow( 1.0 - moonNdotL, 0.95 );
+    float moonHighlightWeight = pow( moonNdotL, 0.8 );
+    vec3 moonToneMultiplier = vec3( mix( 1.0 + uMoonShadowLift, uMoonHighlightBoost, moonHighlightWeight ) );
+    reflectedLight.directDiffuse *= moonToneMultiplier;
 #endif`,
             );
     };
 
     material.customProgramCacheKey = () =>
-        `moon-photometric-v2-${MOON_LOMMEL_SEELIGER_BLEND}-${MOON_OPPOSITION_STRENGTH}`;
+        `moon-photometric-v3-${MOON_LOMMEL_SEELIGER_BLEND}-${MOON_OPPOSITION_STRENGTH}-${MOON_SHADOW_LIFT}-${MOON_HIGHLIGHT_BOOST}`;
 }
 
 export class MoonRenderer {
