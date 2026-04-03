@@ -221,7 +221,13 @@ class AuxiliaryCameraViewsManager {
         let renderer = null;
         try {
             renderer = new this.THREE.WebGLRenderer({ antialias: true });
-            renderer.outputEncoding = this.THREE.sRGBEncoding;
+            if ("outputColorSpace" in renderer && this.THREE.SRGBColorSpace) {
+                renderer.outputColorSpace = this.THREE.SRGBColorSpace;
+            } else {
+                renderer.outputEncoding = this.THREE.sRGBEncoding;
+            }
+            renderer.toneMapping = this.THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.25;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.setSize(1, 1);
             renderer.domElement.className = "aux-camera-view__canvas";

@@ -109,9 +109,9 @@ export const COLORS = {
 export const LIGHT_SETTINGS = {
     // Scene lighting
     PRIMARY_COLOR: 0xFFFFFF,     // white
-    PRIMARY_INTENSITY: 2.5,
+    PRIMARY_INTENSITY: 2.8,
     AMBIENT_COLOR: 0x222222,     // soft white
-    AMBIENT_INTENSITY: 1.5,
+    AMBIENT_INTENSITY: 0.06,
 
     // Spacecraft lighting
     CRAFT_PRIMARY_COLOR: 0xFFFFFF,

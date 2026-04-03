@@ -14,7 +14,13 @@ export function initSceneHandlerDom({
     const height = getSvgHeight();
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) {
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+    } else {
+        renderer.outputEncoding = THREE.sRGBEncoding;
+    }
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.18;
     renderer.setPixelRatio(isTestMode ? 1.0 : window.devicePixelRatio);
     renderer.setSize(width, height);
 
@@ -35,4 +41,3 @@ export function initSceneHandlerDom({
 
     return { renderer, canvasNode };
 }
-

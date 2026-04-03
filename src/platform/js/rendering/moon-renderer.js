@@ -56,9 +56,9 @@ export class MoonRenderer {
         const material = new THREE.MeshStandardMaterial({
             map: this.texture,
             bumpMap: this.displacementMap,
-            bumpScale: 0.003,
+            bumpScale: 0.0045,
             displacementMap: this.displacementMap,
-            displacementScale: 0.008,
+            displacementScale: 0.0055,
             displacementBias: -0.004,
             roughness: 0.9,
             metalness: 0.0,

@@ -35,11 +35,27 @@ export function loadSceneTextures({
             });
         }
 
+        const setColorTextureSpace = (texture) => {
+            if (!texture) return;
+            if ("colorSpace" in texture && THREE.SRGBColorSpace) {
+                texture.colorSpace = THREE.SRGBColorSpace;
+            } else if ("encoding" in texture && THREE.sRGBEncoding) {
+                texture.encoding = THREE.sRGBEncoding;
+            }
+        };
+
         const byKey = {};
         for (let i = 0; i < entries.length; i += 1) {
             const [key] = entries[i];
             byKey[key] = textures[i];
         }
+
+        // Color textures should be sampled in sRGB space.
+        setColorTextureSpace(byKey.earthTexture);
+        setColorTextureSpace(byKey.moonMap);
+        setColorTextureSpace(byKey.skyTexture);
+        setColorTextureSpace(byKey.skyConstellationTexture);
+
         return byKey;
     });
 }
