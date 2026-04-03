@@ -4,6 +4,7 @@ export function createLightActions({ LightManager }) {
         scene.lightManager.create();
 
         scene.light = scene.lightManager.primaryLight;
+        scene.lightFill = scene.lightManager.earthshineLight;
         scene.light2 = scene.lightManager.craftLight;
 
         scene.scene.add(scene.motherContainer);
@@ -20,6 +21,7 @@ export function createLightActions({ LightManager }) {
         }
 
         scene.light = null;
+        scene.lightFill = null;
         scene.light2 = null;
 
         if (scene.scene) {
@@ -29,4 +31,3 @@ export function createLightActions({ LightManager }) {
 
     return { addLight, disposeLight };
 }
-

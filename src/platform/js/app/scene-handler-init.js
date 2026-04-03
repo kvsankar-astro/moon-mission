@@ -20,7 +20,13 @@ export function initSceneHandlerDom({
         renderer.outputEncoding = THREE.sRGBEncoding;
     }
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
+    renderer.toneMappingExposure = 1.14;
+    renderer.shadowMap.enabled = true;
+    if (THREE.PCFShadowMap) {
+        renderer.shadowMap.type = THREE.PCFShadowMap;
+    } else if (THREE.PCFSoftShadowMap) {
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    }
     renderer.setPixelRatio(isTestMode ? 1.0 : window.devicePixelRatio);
     renderer.setSize(width, height);
 

@@ -12,10 +12,12 @@ import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 import { lunar_pole } from '../astro.js';
 
-const MOON_GEOMETRY_WIDTH_SEGMENTS = 192;
-const MOON_GEOMETRY_HEIGHT_SEGMENTS = 192;
-const MOON_NORMAL_MAP_MAX_WIDTH = 2048;
-const MOON_NORMAL_MAP_STRENGTH = 0.9;
+const MOON_GEOMETRY_WIDTH_SEGMENTS = 256;
+const MOON_GEOMETRY_HEIGHT_SEGMENTS = 256;
+const MOON_NORMAL_MAP_MAX_WIDTH = 4096;
+const MOON_NORMAL_MAP_STRENGTH = 0.72;
+const MOON_LOMMEL_SEELIGER_BLEND = 0.1;
+const MOON_OPPOSITION_STRENGTH = 0.004;
 
 function buildNormalMapFromHeightTexture(heightTexture) {
     const image = heightTexture?.image;
@@ -93,6 +95,50 @@ function buildNormalMapFromHeightTexture(heightTexture) {
     return normalTexture;
 }
 
+function applyMoonPhotometricShader(material) {
+    material.onBeforeCompile = (shader) => {
+        shader.uniforms.uMoonLsBlend = { value: MOON_LOMMEL_SEELIGER_BLEND };
+        shader.uniforms.uMoonOppositionStrength = { value: MOON_OPPOSITION_STRENGTH };
+
+        shader.fragmentShader = shader.fragmentShader
+            .replace(
+                "#include <common>",
+                `#include <common>
+uniform float uMoonLsBlend;
+uniform float uMoonOppositionStrength;`,
+            )
+            .replace(
+                "#include <lights_fragment_begin>",
+                `#include <lights_fragment_begin>
+#if NUM_DIR_LIGHTS > 0
+    vec3 moonNormal = normalize( geometryNormal );
+    vec3 moonViewDir = normalize( geometryViewDir );
+    vec3 moonLightDir = normalize( directionalLights[0].direction );
+    float moonNdotL = clamp( dot( moonNormal, moonLightDir ), 0.0, 1.0 );
+    float moonNdotV = clamp( dot( moonNormal, moonViewDir ), 0.0, 1.0 );
+
+    float moonLsScale = 1.0;
+    if ( moonNdotL > 1e-4 ) {
+        float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
+        moonLsScale = moonLs / moonNdotL;
+    } else {
+        moonLsScale = 0.0;
+    }
+
+    moonLsScale = clamp( moonLsScale, 0.93, 1.05 );
+    reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
+
+    float moonPhaseAlignment = clamp( dot( moonLightDir, moonViewDir ), 0.0, 1.0 );
+    float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
+    diffuseColor.rgb *= ( 1.0 + moonOpposition );
+#endif`,
+            );
+    };
+
+    material.customProgramCacheKey = () =>
+        `moon-photometric-v2-${MOON_LOMMEL_SEELIGER_BLEND}-${MOON_OPPOSITION_STRENGTH}`;
+}
+
 export class MoonRenderer {
     /**
      * @param {number} radius - Moon radius in scene units
@@ -149,18 +195,19 @@ export class MoonRenderer {
         );
         const material = new THREE.MeshStandardMaterial({
             map: this.texture,
-            bumpMap: this.displacementMap,
-            bumpScale: resolvedNormalMap ? 0.0015 : 0.0045,
+            bumpMap: resolvedNormalMap ? null : this.displacementMap,
+            bumpScale: resolvedNormalMap ? 0.0 : 0.0045,
             displacementMap: this.displacementMap,
-            displacementScale: 0.0055,
-            displacementBias: -0.004,
+            displacementScale: 0.0068,
+            displacementBias: -0.0038,
             normalMap: resolvedNormalMap,
-            normalScale: new THREE.Vector2(0.75, 0.75),
-            roughness: 0.9,
+            normalScale: new THREE.Vector2(0.58, 0.58),
+            roughness: 0.96,
             metalness: 0.0,
             emissive: 0x000000,
             emissiveIntensity: 0.0
         });
+        applyMoonPhotometricShader(material);
 
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.receiveShadow = true;

@@ -9,7 +9,7 @@
  * One instance per config (geo, lunar).
  */
 
-import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
+import { PHYSICS_CONSTANTS as PC, LIGHT_SETTINGS as LT } from "../core/constants.js";
 import { toScreenCoordinates } from "../scene-state.js";
 import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
 
@@ -50,7 +50,7 @@ export class Animation3DController {
         this.scene.stateSunDirection = state.sunDirection;
 
         // 1. Update lighting from sun position
-        this.updateLighting(state.sunLongitude);
+        this.updateLighting(state.sunLongitude, state.bodies);
 
         // 2. Rotate Earth and Moon based on time
         this.scene.rotateEarth(state.time);
@@ -75,22 +75,145 @@ export class Animation3DController {
      * Update light positions based on sun longitude.
      * @param {number} sunLongitude - Sun longitude in radians
      */
-    updateLighting(sunLongitude) {
+    updateLighting(sunLongitude, bodies = null) {
         if (!this.scene.light || !this.scene.light2) {
             return;
         }
 
+        const earthState = bodies?.EARTH;
+        const moonState = bodies?.MOON;
+
         // Prefer precomputed sun direction (supports relative frame); fall back to longitude.
         const dir = this.scene.stateSunDirection;
+        let sunDirX = Math.cos(sunLongitude);
+        let sunDirY = Math.sin(sunLongitude);
+        let sunDirZ = 0;
         if (dir && Number.isFinite(dir.x) && Number.isFinite(dir.y) && Number.isFinite(dir.z)) {
-            this.scene.light.position.set(dir.x, dir.y, dir.z).normalize();
-            this.scene.light2.position.set(dir.x, dir.y, dir.z).normalize();
-        } else {
-            const x = Math.cos(sunLongitude);
-            const y = Math.sin(sunLongitude);
-            this.scene.light.position.set(x, y, 0).normalize();
-            this.scene.light2.position.set(x, y, 0).normalize();
+            sunDirX = dir.x;
+            sunDirY = dir.y;
+            sunDirZ = dir.z;
         }
+        const sunNorm = Math.hypot(sunDirX, sunDirY, sunDirZ);
+        if (Number.isFinite(sunNorm) && sunNorm > 1e-12) {
+            sunDirX /= sunNorm;
+            sunDirY /= sunNorm;
+            sunDirZ /= sunNorm;
+        } else {
+            sunDirX = 1;
+            sunDirY = 0;
+            sunDirZ = 0;
+        }
+
+        // Keep spacecraft key light directional-only.
+        this.scene.light2.position.set(sunDirX, sunDirY, sunDirZ);
+
+        // Anchor the shadow-casting primary light to the illuminated body so
+        // the shadow frustum stays tight and terrain relief can self-shadow.
+        const shadowAnchorState = moonState?.available
+            ? moonState
+            : (earthState?.available ? earthState : null);
+        const shadowDistance = Number.isFinite(LT.SHADOW_LIGHT_DISTANCE)
+            ? LT.SHADOW_LIGHT_DISTANCE
+            : 8.0;
+        const shadowFrustumHalfFromRadius = Number.isFinite(this.scene.secondaryBodyRadius)
+            ? this.scene.secondaryBodyRadius * (Number.isFinite(LT.SHADOW_FRUSTUM_RADIUS_MULTIPLIER) ? LT.SHADOW_FRUSTUM_RADIUS_MULTIPLIER : 1.35)
+            : (Number.isFinite(LT.SHADOW_FRUSTUM_HALF_SIZE) ? LT.SHADOW_FRUSTUM_HALF_SIZE : 2.4);
+        const shadowFrustumHalf = Math.max(
+            Number.isFinite(LT.SHADOW_FRUSTUM_MIN_HALF_SIZE) ? LT.SHADOW_FRUSTUM_MIN_HALF_SIZE : 1.6,
+            shadowFrustumHalfFromRadius,
+        );
+
+        if (shadowAnchorState && Number.isFinite(this.pixelsPerAU)) {
+            const anchorX = shadowAnchorState.position.x * this.pixelsPerAU;
+            const anchorY = shadowAnchorState.position.y * this.pixelsPerAU;
+            const anchorZ = shadowAnchorState.position.z * this.pixelsPerAU;
+            this.scene.light.position.set(
+                anchorX + sunDirX * shadowDistance,
+                anchorY + sunDirY * shadowDistance,
+                anchorZ + sunDirZ * shadowDistance,
+            );
+            if (this.scene.light.target) {
+                this.scene.light.target.position.set(anchorX, anchorY, anchorZ);
+                this.scene.light.target.updateMatrixWorld();
+            }
+            const shadowCamera = this.scene.light.shadow?.camera;
+            if (shadowCamera) {
+                shadowCamera.left = -shadowFrustumHalf;
+                shadowCamera.right = shadowFrustumHalf;
+                shadowCamera.top = shadowFrustumHalf;
+                shadowCamera.bottom = -shadowFrustumHalf;
+                shadowCamera.near = Number.isFinite(LT.SHADOW_NEAR) ? LT.SHADOW_NEAR : 0.1;
+                shadowCamera.far = Math.max(
+                    Number.isFinite(LT.SHADOW_FAR) ? LT.SHADOW_FAR : 32.0,
+                    shadowDistance + shadowFrustumHalf * 2.5,
+                );
+                shadowCamera.updateProjectionMatrix?.();
+            }
+        } else {
+            this.scene.light.position.set(sunDirX, sunDirY, sunDirZ);
+            if (this.scene.light.target) {
+                this.scene.light.target.position.set(0, 0, 0);
+                this.scene.light.target.updateMatrixWorld();
+            }
+        }
+
+        if (!this.scene.lightFill) {
+            return;
+        }
+
+        const clamp01 = (value) => Math.max(0, Math.min(1, value));
+        const minEarthshine = Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
+            ? LT.EARTHSHINE_MIN_INTENSITY
+            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02);
+        const maxEarthshine = Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
+            ? LT.EARTHSHINE_MAX_INTENSITY
+            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.08);
+        const earthshinePhaseExponent = Number.isFinite(LT.EARTHSHINE_PHASE_EXPONENT)
+            ? LT.EARTHSHINE_PHASE_EXPONENT
+            : 1.35;
+
+        const applyEarthshineDirection = (dx, dy, dz) => {
+            const norm = Math.hypot(dx, dy, dz);
+            if (!Number.isFinite(norm) || norm <= 1e-12) {
+                return false;
+            }
+            const nx = dx / norm;
+            const ny = dy / norm;
+            const nz = dz / norm;
+            this.scene.lightFill.position.set(nx, ny, nz);
+
+            // Earthshine phase: full Earth at the Moon when Sun and Earth are
+            // in similar directions from the Moon's viewpoint.
+            const sunEarthAlignment = clamp01((1 + (sunDirX * nx + sunDirY * ny + sunDirZ * nz)) * 0.5);
+            const phasedEarthshine = Math.pow(sunEarthAlignment, earthshinePhaseExponent);
+            this.scene.lightFill.intensity =
+                minEarthshine + (maxEarthshine - minEarthshine) * phasedEarthshine;
+            return true;
+        };
+
+        // Earthshine direction should come from Earth->Moon geometry, not from
+        // simply inverting Sun direction.
+        if (earthState?.available && moonState?.available) {
+            const dx = earthState.position.x - moonState.position.x;
+            const dy = earthState.position.y - moonState.position.y;
+            const dz = earthState.position.z - moonState.position.z;
+            if (applyEarthshineDirection(dx, dy, dz)) {
+                return;
+            }
+        }
+
+        if (moonState?.available) {
+            const dx = -moonState.position.x;
+            const dy = -moonState.position.y;
+            const dz = -moonState.position.z;
+            if (applyEarthshineDirection(dx, dy, dz)) {
+                return;
+            }
+        }
+
+        // Final fallback: opposite sun direction.
+        this.scene.lightFill.position.set(-sunDirX, -sunDirY, -sunDirZ);
+        this.scene.lightFill.intensity = minEarthshine;
     }
 
     /**
