@@ -44,6 +44,9 @@ class AuxiliaryCameraViewsManager {
         this.cameraOffset = new THREE.Vector3();
         this.boundingBox = new THREE.Box3();
         this.boundingSphere = new THREE.Sphere();
+        this.originalSkyPosition = new THREE.Vector3();
+        this.panelCameraWorldPosition = new THREE.Vector3();
+        this.panelSkyLocalPosition = new THREE.Vector3();
 
         if (!isDesktopViewport()) {
             return;
@@ -449,6 +452,7 @@ class AuxiliaryCameraViewsManager {
         activeCraft,
         earth,
         moon,
+        skyContainer = null,
         earthRadius = null,
         moonRadius = null,
         referenceCamera,
@@ -480,6 +484,10 @@ class AuxiliaryCameraViewsManager {
         let visiblePanels = 0;
         activeCraft.visible = false;
         const suppressedLines = this.suppressLinePrimitives(scene);
+        const hasSkyContainer = !!skyContainer?.position;
+        if (hasSkyContainer) {
+            this.originalSkyPosition.copy(skyContainer.position);
+        }
 
         try {
             for (const panelState of this.panels) {
@@ -536,9 +544,24 @@ class AuxiliaryCameraViewsManager {
                     this.setPanelFov(panelState, autoFovDegrees);
                 }
                 panelState.camera.lookAt(this.targetWorld);
+
+                if (hasSkyContainer) {
+                    panelState.camera.getWorldPosition(this.panelCameraWorldPosition);
+                    if (skyContainer.parent?.worldToLocal) {
+                        this.panelSkyLocalPosition.copy(this.panelCameraWorldPosition);
+                        skyContainer.parent.worldToLocal(this.panelSkyLocalPosition);
+                        skyContainer.position.copy(this.panelSkyLocalPosition);
+                    } else {
+                        skyContainer.position.copy(this.panelCameraWorldPosition);
+                    }
+                }
+
                 this.renderLayers(panelState.renderer, scene, panelState.camera);
             }
         } finally {
+            if (hasSkyContainer) {
+                skyContainer.position.copy(this.originalSkyPosition);
+            }
             this.restoreVisibility(suppressedLines);
             activeCraft.visible = craftWasVisible;
         }
