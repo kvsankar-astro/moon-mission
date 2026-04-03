@@ -11,6 +11,37 @@
 import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 
+const EARTH_NIGHTSIDE_LIFT = 0.12;
+const EARTH_NIGHTSIDE_EXPONENT = 1.45;
+
+function applyEarthNightsideLiftShader(material) {
+    material.onBeforeCompile = (shader) => {
+        shader.uniforms.uEarthNightsideLift = { value: EARTH_NIGHTSIDE_LIFT };
+        shader.uniforms.uEarthNightsideExponent = { value: EARTH_NIGHTSIDE_EXPONENT };
+
+        shader.fragmentShader = shader.fragmentShader
+            .replace(
+                "#include <common>",
+                `#include <common>
+uniform float uEarthNightsideLift;
+uniform float uEarthNightsideExponent;`,
+            )
+            .replace(
+                "#include <lights_fragment_begin>",
+                `#include <lights_fragment_begin>
+#if NUM_DIR_LIGHTS > 0
+    vec3 earthNormal = normalize( geometryNormal );
+    vec3 earthLightDir = normalize( directionalLights[0].direction );
+    float earthNdotL = clamp( dot( earthNormal, earthLightDir ), 0.0, 1.0 );
+    float earthNightWeight = pow( 1.0 - earthNdotL, max(0.2, uEarthNightsideExponent) );
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * (uEarthNightsideLift * earthNightWeight);
+#endif`,
+            );
+    };
+    material.customProgramCacheKey = () =>
+        `earth-nightside-lift-v1-${EARTH_NIGHTSIDE_LIFT}-${EARTH_NIGHTSIDE_EXPONENT}`;
+}
+
 export class EarthRenderer {
     /**
      * @param {number} radius - Earth radius in scene units
@@ -94,6 +125,7 @@ export class EarthRenderer {
             specularMap: this.specularTexture,
             specular: 0x101010
         });
+        applyEarthNightsideLiftShader(material);
 
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.receiveShadow = false;
