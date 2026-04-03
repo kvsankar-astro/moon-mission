@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Moon rendering tuning tool for lunar mission visuals">
+    <title>Moon Render Tuner</title>
+    <style>
+        :root {
+            --bg: #070d18;
+            --panel: rgba(13, 21, 38, 0.96);
+            --line: #2a3c64;
+            --text: #e6eeff;
+            --muted: #a7b7d8;
+            --accent: #78a8ff;
+            --accent-2: #f7b65c;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .tuner-shell {
+            display: grid;
+            grid-template-columns: 360px minmax(0, 1fr);
+            width: 100%;
+            height: 100%;
+        }
+
+        .tuner-sidebar {
+            border-right: 1px solid var(--line);
+            background: var(--panel);
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .tuner-main {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .tuner-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .tuner-title {
+            margin: 0;
+            color: var(--accent-2);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .tuner-subtitle {
+            margin: 0 0 12px 0;
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        .tuner-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tuner-link:hover {
+            text-decoration: underline;
+        }
+
+        .tuner-group {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(16, 26, 48, 0.82);
+        }
+
+        .tuner-group-title {
+            margin: 0 0 8px 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: #b9caf0;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .tuner-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 78px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 7px;
+        }
+
+        .tuner-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .tuner-label {
+            display: block;
+            margin: 0 0 3px 0;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .tuner-slider {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .tuner-number {
+            width: 100%;
+            border: 1px solid #3b5688;
+            border-radius: 7px;
+            background: rgba(11, 19, 35, 0.95);
+            color: var(--text);
+            padding: 5px 6px;
+            font-size: 12px;
+        }
+
+        .tuner-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .tuner-button {
+            border: 1px solid #3b5688;
+            border-radius: 8px;
+            background: rgba(20, 32, 58, 0.9);
+            color: var(--text);
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tuner-button:hover {
+            border-color: #78a8ff;
+        }
+
+        .tuner-json {
+            width: 100%;
+            min-height: 160px;
+            resize: vertical;
+            border: 1px solid #3b5688;
+            border-radius: 8px;
+            background: rgba(8, 14, 26, 0.96);
+            color: #dce7ff;
+            font-family: "Cascadia Code", "Consolas", monospace;
+            font-size: 11px;
+            line-height: 1.45;
+            padding: 8px;
+            margin-top: 8px;
+        }
+
+        #tuner-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .tuner-overlay {
+            position: absolute;
+            left: 12px;
+            top: 10px;
+            background: rgba(9, 17, 32, 0.7);
+            border: 1px solid rgba(120, 168, 255, 0.24);
+            border-radius: 8px;
+            padding: 7px 10px;
+            color: #cddcff;
+            font-size: 11px;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+
+        @media (max-width: 900px) {
+            .tuner-shell {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .tuner-sidebar {
+                max-height: 48vh;
+                border-right: 0;
+                border-bottom: 1px solid var(--line);
+            }
+        }
+    </style>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.179.1/build/three.module.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div class="tuner-shell">
+        <aside class="tuner-sidebar">
+            <div class="tuner-toolbar">
+                <h1 class="tuner-title">Moon Render Tuner</h1>
+                <a class="tuner-link" href="mission.html?mission=chandrayaan3">Open Mission</a>
+            </div>
+            <p class="tuner-subtitle">
+                Tune moon shading interactively. Use <strong>Copy JSON</strong> and send the JSON back.
+            </p>
+
+            <div id="tuner-controls-root"></div>
+
+            <div class="tuner-group">
+                <h2 class="tuner-group-title">Export / Import</h2>
+                <div class="tuner-actions">
+                    <button id="tuner-preset-main" class="tuner-button" type="button">Main App Preset</button>
+                    <button id="tuner-reset" class="tuner-button" type="button">Reset Defaults</button>
+                    <button id="tuner-copy" class="tuner-button" type="button">Copy JSON</button>
+                    <button id="tuner-apply" class="tuner-button" type="button">Apply JSON</button>
+                </div>
+                <textarea id="tuner-json" class="tuner-json"></textarea>
+            </div>
+        </aside>
+
+        <main class="tuner-main">
+            <canvas id="tuner-canvas"></canvas>
+            <div class="tuner-overlay">
+                Drag: orbit camera<br>
+                Wheel: zoom<br>
+                Double-click: reset camera
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="src/platform/js/moon-render-tuner.js"></script>
+</body>
+</html>
