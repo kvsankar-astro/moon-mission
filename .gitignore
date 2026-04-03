@@ -148,6 +148,7 @@ third-party/
 
 # Legacy temporary directories
 data-fetched/
+sandbox/reference/
 
 # Deployment configuration (contains credentials)
 deploy-config.json

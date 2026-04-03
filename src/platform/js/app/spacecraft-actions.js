@@ -4,6 +4,51 @@ import {
     setSceneVisibleCraftIds,
     syncSceneActiveCraft,
 } from "./scene-craft-helpers.js";
+import { resolveMissionCraft } from "../core/domain/mission-config.js";
+
+function asTrimmedString(value, fallback = "") {
+    if (typeof value !== "string") return fallback;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function resolveCraftModelConfig(globalConfig, craftId) {
+    const craft = resolveMissionCraft(globalConfig, craftId);
+    const craftModel = craft?.spacecraftModel && typeof craft.spacecraftModel === "object"
+        ? craft.spacecraftModel
+        : null;
+    const missionModel = globalConfig?.spacecraftModel && typeof globalConfig.spacecraftModel === "object"
+        ? globalConfig.spacecraftModel
+        : null;
+
+    const isPrimaryCraft = craft?.primary === true;
+    const hasCraftOverride = !!craftModel;
+    const enabled = hasCraftOverride
+        ? craftModel.enabled !== false
+        : (isPrimaryCraft && !!missionModel && missionModel.enabled !== false);
+    if (!enabled) return null;
+
+    const pluginName = asTrimmedString(
+        craftModel?.plugin,
+        asTrimmedString(craftModel?.name, asTrimmedString(missionModel?.plugin, asTrimmedString(missionModel?.name))),
+    );
+    if (!pluginName) return null;
+
+    const missionOptions = missionModel?.options && typeof missionModel.options === "object"
+        ? missionModel.options
+        : {};
+    const craftOptions = craftModel?.options && typeof craftModel.options === "object"
+        ? craftModel.options
+        : {};
+
+    return {
+        pluginName,
+        options: {
+            ...missionOptions,
+            ...craftOptions,
+        },
+    };
+}
 
 export function createSpacecraftActions({
     SpacecraftRenderer,
@@ -35,7 +80,15 @@ export function createSpacecraftActions({
                     droneColor: props.color,
                 },
             );
-            renderer.createSimple();
+            const modelConfig = resolveCraftModelConfig(globalConfig, craftId);
+            if (modelConfig) {
+                renderer.createFromPlugin(modelConfig.pluginName, {
+                    ...modelConfig.options,
+                    craftId,
+                });
+            } else {
+                renderer.createSimple();
+            }
 
             scene.spacecraftRenderersById[craftId] = renderer;
             scene.craftsById[craftId] = renderer.craft;

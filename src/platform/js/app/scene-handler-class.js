@@ -88,6 +88,7 @@ function createSceneHandlerClass(deps) {
                 viewAuxiliaryPanels,
                 earthRadius,
                 moonRadius,
+                timelineEventInfos,
             } = getRuntimeState();
 
             updateCraftScale();
@@ -98,9 +99,12 @@ function createSceneHandlerClass(deps) {
                     activeCraft: null,
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
+                    sun: animationScene.sun,
+                    sunDirection: animationScene.stateSunDirection,
                     skyContainer: animationScene.skyContainer,
                     earthRadius,
                     moonRadius,
+                    timelineEventInfos,
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
                 });
@@ -188,9 +192,12 @@ function createSceneHandlerClass(deps) {
                 activeCraft,
                 earth: animationScene.earthContainer,
                 moon: animationScene.moonContainer,
+                sun: animationScene.sun,
+                sunDirection: animationScene.stateSunDirection,
                 skyContainer: animationScene.skyContainer,
                 earthRadius,
                 moonRadius,
+                timelineEventInfos,
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
             });

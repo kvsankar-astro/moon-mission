@@ -77,6 +77,7 @@ function createMissionSceneEntry(ctx) {
         getViewAuxiliaryPanels,
         getViewEclipticPlane,
         getViewEquatorialPlane,
+        getEventInfos,
     } = ctx;
 
     return createMissionSceneRuntime({
@@ -169,6 +170,7 @@ function createMissionSceneEntry(ctx) {
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
+                    timelineEventInfos: typeof getEventInfos === "function" ? getEventInfos() : null,
                 };
             },
             ensureSceneViewState,
