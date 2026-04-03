@@ -693,9 +693,20 @@
 
                 const params = new URLSearchParams(window.location.search);
                 const missionParam = params.get('mission');
-                const mission = missionParam
-                    ? (resolveMission(missionParam) || getDefaultMission())
-                    : getDefaultMission();
+                const mission = missionParam ? resolveMission(missionParam) : null;
+                if (!mission) {
+                    window.showMissionSelector = true;
+                    document.documentElement.setAttribute("data-app-view", "selector");
+
+                    const currentUrl = new URL(window.location.href);
+                    const redirectUrl = new URL("index.html", currentUrl);
+                    currentUrl.searchParams.delete("mission");
+                    const nextSearch = currentUrl.searchParams.toString();
+                    redirectUrl.search = nextSearch ? `?${nextSearch}` : "";
+                    redirectUrl.hash = currentUrl.hash;
+                    window.location.replace(redirectUrl.toString());
+                    return;
+                }
                 window.missionConfig = {
                     missionName: mission.missionName,
                     dataPath: `assets/${mission.folder}/data/`,
