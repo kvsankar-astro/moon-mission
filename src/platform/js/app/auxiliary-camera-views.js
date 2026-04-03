@@ -227,7 +227,7 @@ class AuxiliaryCameraViewsManager {
                 renderer.outputEncoding = this.THREE.sRGBEncoding;
             }
             renderer.toneMapping = this.THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.25;
+            renderer.toneMappingExposure = 1.18;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
             renderer.setSize(1, 1);
             renderer.domElement.className = "aux-camera-view__canvas";

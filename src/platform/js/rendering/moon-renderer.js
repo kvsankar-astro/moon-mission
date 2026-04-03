@@ -12,6 +12,87 @@ import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 import { lunar_pole } from '../astro.js';
 
+const MOON_GEOMETRY_WIDTH_SEGMENTS = 192;
+const MOON_GEOMETRY_HEIGHT_SEGMENTS = 192;
+const MOON_NORMAL_MAP_MAX_WIDTH = 2048;
+const MOON_NORMAL_MAP_STRENGTH = 0.9;
+
+function buildNormalMapFromHeightTexture(heightTexture) {
+    const image = heightTexture?.image;
+    if (!image || typeof document === "undefined") {
+        return null;
+    }
+
+    const sourceWidth = Number(image.width) || 0;
+    const sourceHeight = Number(image.height) || 0;
+    if (sourceWidth < 2 || sourceHeight < 2) {
+        return null;
+    }
+
+    let width = sourceWidth;
+    let height = sourceHeight;
+    if (width > MOON_NORMAL_MAP_MAX_WIDTH) {
+        const scale = MOON_NORMAL_MAP_MAX_WIDTH / width;
+        width = MOON_NORMAL_MAP_MAX_WIDTH;
+        height = Math.max(2, Math.round(height * scale));
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+        return null;
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    const sourceData = context.getImageData(0, 0, width, height).data;
+    const normalData = new Uint8Array(width * height * 4);
+
+    const sampleHeight = (x, y) => {
+        const clampedX = Math.max(0, Math.min(width - 1, x));
+        const clampedY = Math.max(0, Math.min(height - 1, y));
+        const index = (clampedY * width + clampedX) * 4;
+        const r = sourceData[index] / 255;
+        const g = sourceData[index + 1] / 255;
+        const b = sourceData[index + 2] / 255;
+        return 0.299 * r + 0.587 * g + 0.114 * b;
+    };
+
+    for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+            const hL = sampleHeight(x - 1, y);
+            const hR = sampleHeight(x + 1, y);
+            const hU = sampleHeight(x, y - 1);
+            const hD = sampleHeight(x, y + 1);
+
+            let nx = -1 * (hR - hL) * MOON_NORMAL_MAP_STRENGTH;
+            let ny = -1 * (hD - hU) * MOON_NORMAL_MAP_STRENGTH;
+            let nz = 1.0;
+            const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
+            nx *= invLen;
+            ny *= invLen;
+            nz *= invLen;
+
+            const outIndex = (y * width + x) * 4;
+            normalData[outIndex] = Math.round((nx * 0.5 + 0.5) * 255);
+            normalData[outIndex + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+            normalData[outIndex + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+            normalData[outIndex + 3] = 255;
+        }
+    }
+
+    const normalTexture = new THREE.DataTexture(normalData, width, height, THREE.RGBAFormat);
+    normalTexture.wrapS = heightTexture.wrapS;
+    normalTexture.wrapT = heightTexture.wrapT;
+    normalTexture.magFilter = THREE.LinearFilter;
+    normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    normalTexture.generateMipmaps = true;
+    normalTexture.flipY = heightTexture.flipY;
+    normalTexture.needsUpdate = true;
+    return normalTexture;
+}
+
 export class MoonRenderer {
     /**
      * @param {number} radius - Moon radius in scene units
@@ -30,16 +111,20 @@ export class MoonRenderer {
         // Textures (set externally before create())
         this.texture = null;
         this.displacementMap = null;
+        this.normalMap = null;
+        this.generatedNormalMap = null;
     }
 
     /**
      * Set textures before creating Moon
      * @param {THREE.Texture} texture - Moon surface texture
      * @param {THREE.Texture} displacementMap - Displacement/bump map
+     * @param {THREE.Texture|null} normalMap - Optional normal map
      */
-    setTextures(texture, displacementMap) {
+    setTextures(texture, displacementMap, normalMap = null) {
         this.texture = texture;
         this.displacementMap = displacementMap;
+        this.normalMap = normalMap;
     }
 
     /**
@@ -52,14 +137,25 @@ export class MoonRenderer {
         this.container = new THREE.Group();
 
         // Moon sphere with displacement mapping
-        const geometry = new THREE.SphereGeometry(this.radius, 100, 100);
+        if (!this.normalMap && this.displacementMap && !this.generatedNormalMap) {
+            this.generatedNormalMap = buildNormalMapFromHeightTexture(this.displacementMap);
+        }
+        const resolvedNormalMap = this.normalMap || this.generatedNormalMap || null;
+
+        const geometry = new THREE.SphereGeometry(
+            this.radius,
+            MOON_GEOMETRY_WIDTH_SEGMENTS,
+            MOON_GEOMETRY_HEIGHT_SEGMENTS,
+        );
         const material = new THREE.MeshStandardMaterial({
             map: this.texture,
             bumpMap: this.displacementMap,
-            bumpScale: 0.0045,
+            bumpScale: resolvedNormalMap ? 0.0015 : 0.0045,
             displacementMap: this.displacementMap,
             displacementScale: 0.0055,
             displacementBias: -0.004,
+            normalMap: resolvedNormalMap,
+            normalScale: new THREE.Vector2(0.75, 0.75),
             roughness: 0.9,
             metalness: 0.0,
             emissive: 0x000000,
@@ -245,13 +341,22 @@ export class MoonRenderer {
         }
 
         // Dispose textures
-        if (this.texture) {
-            this.texture.dispose();
-            this.texture = null;
+        const texture = this.texture;
+        const displacementMap = this.displacementMap;
+        const normalMap = this.normalMap;
+        const generatedNormalMap = this.generatedNormalMap;
+        this.texture = null;
+        this.displacementMap = null;
+        this.normalMap = null;
+        this.generatedNormalMap = null;
+
+        texture?.dispose?.();
+        displacementMap?.dispose?.();
+        if (normalMap && normalMap !== displacementMap && normalMap !== generatedNormalMap) {
+            normalMap.dispose();
         }
-        if (this.displacementMap) {
-            this.displacementMap.dispose();
-            this.displacementMap = null;
+        if (generatedNormalMap && generatedNormalMap !== normalMap) {
+            generatedNormalMap.dispose();
         }
     }
 }
