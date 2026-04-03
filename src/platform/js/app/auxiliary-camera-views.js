@@ -26,6 +26,17 @@ const PANEL_SPECS = Object.freeze([
         infoMode: "moon-phase",
         defaultFov: 45,
     },
+    {
+        id: "earth-rise-composer",
+        title: "Earth Rise Composer",
+        chipLabel: "Earth Rise Composer",
+        anchorKey: "craft",
+        targetKey: "moon",
+        infoMode: "none",
+        mode: "composer",
+        side: "left",
+        defaultFov: 50,
+    },
 ]);
 
 const PANEL_GAP_PX = 8;
@@ -35,6 +46,14 @@ const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
 const AUTO_FOV_MAX_DEGREES = 179;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
+const COMPOSER_DRAG_SENSITIVITY = 0.004;
+const COMPOSER_MAX_PITCH_RAD = (Math.PI * 0.5) - 0.02;
+const COMPOSER_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
+const COMPOSER_TIMELINE_RESOLUTION = 1000;
+const COMPOSER_DEFAULT_AMBIENT = 0.25;
+const COMPOSER_MIN_AMBIENT = 0;
+const COMPOSER_MAX_AMBIENT = 2.4;
+const COMPOSER_DEFAULT_ROLL_RAD = Math.PI * 1.5;
 
 function safeParseJson(text, fallbackValue) {
     try {
@@ -55,6 +74,8 @@ class AuxiliaryCameraViewsManager {
         this.requestRender = typeof requestRender === "function" ? requestRender : null;
         this.root = null;
         this.chipDock = null;
+        this.chipDockLeft = null;
+        this.chipDockRight = null;
         this.panels = [];
         this.panelsEnabled = true;
         this.zIndexCounter = 1;
@@ -66,6 +87,7 @@ class AuxiliaryCameraViewsManager {
         this.handlePanelResizeEntriesBound = this.handlePanelResizeEntries.bind(this);
         this.persistedPanelState = this.readPersistedPanelState();
         this.persistStateTimeout = null;
+        this.composerAmbientLightByScene = new WeakMap();
 
         this.craftWorld = new THREE.Vector3();
         this.anchorWorld = new THREE.Vector3();
@@ -81,13 +103,23 @@ class AuxiliaryCameraViewsManager {
         this.tmpVectorA = new THREE.Vector3();
         this.tmpVectorB = new THREE.Vector3();
         this.tmpVectorC = new THREE.Vector3();
+        this.tmpVectorD = new THREE.Vector3();
+        this.tmpVectorE = new THREE.Vector3();
+        this.tmpVectorF = new THREE.Vector3();
         this.viewDir = new THREE.Vector3();
         this.targetUp = new THREE.Vector3();
+        this.composerWorldUp = new THREE.Vector3(0, 0, 1);
+        this.composerBaseUp = new THREE.Vector3();
+        this.composerRotatedUp = new THREE.Vector3();
         this.targetQuat = new THREE.Quaternion();
+        this.tmpQuatA = new THREE.Quaternion();
+        this.tmpQuatB = new THREE.Quaternion();
         this.panelCameraWorldQuat = new THREE.Quaternion();
         this.panelCameraWorldQuatInv = new THREE.Quaternion();
         this.earthDirInCamera = new THREE.Vector3();
         this.cameraOffset = new THREE.Vector3();
+        this.composerLookWorld = new THREE.Vector3();
+        this.composerLookAtWorld = new THREE.Vector3();
         this.boundingBox = new THREE.Box3();
         this.boundingSphere = new THREE.Sphere();
         this.originalSkyPosition = new THREE.Vector3();
@@ -99,6 +131,7 @@ class AuxiliaryCameraViewsManager {
         this.analyticsLastUpdateMs = -Infinity;
         this.cachedMoonPhaseInfo = null;
         this.cachedMoonVisibilityInfo = null;
+        this.composerFlybyTimeMs = Number.NaN;
 
         if (!isDesktopViewport()) {
             return;
@@ -124,9 +157,14 @@ class AuxiliaryCameraViewsManager {
         this.root.className = "aux-camera-views";
         this.overlayHost.appendChild(this.root);
 
-        this.chipDock = document.createElement("div");
-        this.chipDock.className = "aux-camera-chip-dock";
-        this.root.appendChild(this.chipDock);
+        this.chipDockLeft = document.createElement("div");
+        this.chipDockLeft.className = "aux-camera-chip-dock aux-camera-chip-dock--left";
+        this.root.appendChild(this.chipDockLeft);
+
+        this.chipDockRight = document.createElement("div");
+        this.chipDockRight.className = "aux-camera-chip-dock aux-camera-chip-dock--right";
+        this.root.appendChild(this.chipDockRight);
+        this.chipDock = this.chipDockRight;
 
         PANEL_SPECS.forEach((spec, index) => {
             this.createPanel(spec, index);
@@ -243,11 +281,20 @@ class AuxiliaryCameraViewsManager {
             return { panelState, width, height };
         });
 
-        let y = topY;
+        let rightY = topY;
+        let leftY = topY;
         for (const item of panelRects) {
-            const x = window.innerWidth - item.width - dockOffset;
+            const onLeft = item.panelState.side === "left";
+            const x = onLeft
+                ? dockOffset
+                : (window.innerWidth - item.width - dockOffset);
+            const y = onLeft ? leftY : rightY;
             this.applyPanelPosition(item.panelState, x, y);
-            y += item.height + PANEL_GAP_PX;
+            if (onLeft) {
+                leftY += item.height + PANEL_GAP_PX;
+            } else {
+                rightY += item.height + PANEL_GAP_PX;
+            }
         }
     }
 
@@ -403,28 +450,157 @@ class AuxiliaryCameraViewsManager {
         header.appendChild(headerControls);
         panel.appendChild(header);
 
-        const info = document.createElement("div");
-        info.className = "aux-camera-view__info";
-        info.hidden = spec.infoMode === "none";
-        const infoPrimary = document.createElement("div");
-        infoPrimary.className = "aux-camera-view__info-line aux-camera-view__info-line--primary";
-        const infoPrimaryText = document.createElement("span");
-        infoPrimaryText.className = "aux-camera-view__info-primary-text";
-        const infoPill = document.createElement("button");
-        infoPill.type = "button";
-        infoPill.className = "aux-camera-view__pill";
-        infoPill.hidden = true;
-        infoPrimary.appendChild(infoPrimaryText);
-        infoPrimary.appendChild(infoPill);
-        const infoSecondary = document.createElement("div");
-        infoSecondary.className = "aux-camera-view__info-line aux-camera-view__info-line--secondary";
-        info.appendChild(infoPrimary);
-        info.appendChild(infoSecondary);
-        panel.appendChild(info);
+        const panelMode = spec.mode || "target";
+        const panelSide = spec.side === "left" ? "left" : "right";
+        panel.dataset.mode = panelMode;
+        panel.dataset.side = panelSide;
+        if (panelMode === "composer") {
+            panel.classList.add("aux-camera-view--composer");
+        }
+
+        let info = null;
+        let infoPrimary = null;
+        let infoPrimaryText = null;
+        let infoPill = null;
+        let infoSecondary = null;
+        let composerPresetWrap = null;
+        let composerLookFreeButton = null;
+        let composerLookEarthButton = null;
+        let composerLookMoonButton = null;
+        let composerTimelineWrap = null;
+        let composerTimelineSlider = null;
+        let composerTimelineLabel = null;
+        let composerControlsWrap = null;
+        let composerAmbientSlider = null;
+        let composerAmbientValue = null;
+        let composerDial = null;
+        let composerDialNeedle = null;
+        let composerDisabledOverlay = null;
+        if (panelMode === "composer") {
+            composerPresetWrap = document.createElement("div");
+            composerPresetWrap.className = "aux-camera-view__composer-presets";
+            const presetLabel = document.createElement("span");
+            presetLabel.className = "aux-camera-view__composer-label";
+            presetLabel.textContent = "Lock";
+            composerPresetWrap.appendChild(presetLabel);
+
+            composerLookFreeButton = document.createElement("button");
+            composerLookFreeButton.type = "button";
+            composerLookFreeButton.className = "aux-camera-view__composer-button";
+            composerLookFreeButton.textContent = "Free";
+            composerLookFreeButton.setAttribute("aria-label", "Earth Rise Composer unlock camera");
+            composerPresetWrap.appendChild(composerLookFreeButton);
+
+            composerLookEarthButton = document.createElement("button");
+            composerLookEarthButton.type = "button";
+            composerLookEarthButton.className = "aux-camera-view__composer-button";
+            composerLookEarthButton.textContent = "Earth";
+            composerLookEarthButton.setAttribute("aria-label", "Earth Rise Composer lock to Earth");
+            composerPresetWrap.appendChild(composerLookEarthButton);
+
+            composerLookMoonButton = document.createElement("button");
+            composerLookMoonButton.type = "button";
+            composerLookMoonButton.className = "aux-camera-view__composer-button";
+            composerLookMoonButton.textContent = "Moon";
+            composerLookMoonButton.setAttribute("aria-label", "Earth Rise Composer lock to Moon");
+            composerPresetWrap.appendChild(composerLookMoonButton);
+
+            const dragHint = document.createElement("span");
+            dragHint.className = "aux-camera-view__composer-hint";
+            dragHint.textContent = "Drag view";
+            composerPresetWrap.appendChild(dragHint);
+            panel.appendChild(composerPresetWrap);
+
+            composerTimelineWrap = document.createElement("div");
+            composerTimelineWrap.className = "aux-camera-view__composer-timeline";
+            composerTimelineLabel = document.createElement("span");
+            composerTimelineLabel.className = "aux-camera-view__composer-label";
+            composerTimelineLabel.textContent = "Occultation window +/-3h";
+            composerTimelineWrap.appendChild(composerTimelineLabel);
+            composerTimelineSlider = document.createElement("input");
+            composerTimelineSlider.type = "range";
+            composerTimelineSlider.className = "aux-camera-view__composer-timeline-slider";
+            composerTimelineSlider.min = "0";
+            composerTimelineSlider.max = String(COMPOSER_TIMELINE_RESOLUTION);
+            composerTimelineSlider.step = "1";
+            composerTimelineSlider.value = String(Math.round(COMPOSER_TIMELINE_RESOLUTION * 0.5));
+            composerTimelineSlider.setAttribute("aria-label", "Earth Rise Composer short timeline scrub");
+            composerTimelineWrap.appendChild(composerTimelineSlider);
+            panel.appendChild(composerTimelineWrap);
+
+            composerControlsWrap = document.createElement("div");
+            composerControlsWrap.className = "aux-camera-view__composer-controls";
+
+            const composerAmbientLabel = document.createElement("span");
+            composerAmbientLabel.className = "aux-camera-view__composer-label";
+            composerAmbientLabel.textContent = "Ambient";
+            composerControlsWrap.appendChild(composerAmbientLabel);
+
+            composerAmbientSlider = document.createElement("input");
+            composerAmbientSlider.type = "range";
+            composerAmbientSlider.className = "aux-camera-view__composer-ambient-slider";
+            composerAmbientSlider.min = String(COMPOSER_MIN_AMBIENT);
+            composerAmbientSlider.max = String(COMPOSER_MAX_AMBIENT);
+            composerAmbientSlider.step = "0.01";
+            composerAmbientSlider.value = String(COMPOSER_DEFAULT_AMBIENT);
+            composerAmbientSlider.setAttribute("aria-label", "Earth Rise Composer ambient fill");
+            composerControlsWrap.appendChild(composerAmbientSlider);
+
+            composerAmbientValue = document.createElement("output");
+            composerAmbientValue.className = "aux-camera-view__composer-ambient-value";
+            composerAmbientValue.value = `${COMPOSER_DEFAULT_AMBIENT.toFixed(2)}`;
+            composerAmbientValue.textContent = composerAmbientValue.value;
+            composerControlsWrap.appendChild(composerAmbientValue);
+
+            const composerDialWrap = document.createElement("div");
+            composerDialWrap.className = "aux-camera-view__composer-dial-wrap";
+            const composerDialLabel = document.createElement("span");
+            composerDialLabel.className = "aux-camera-view__composer-label";
+            composerDialLabel.textContent = "UP";
+            composerDialWrap.appendChild(composerDialLabel);
+            composerDial = document.createElement("div");
+            composerDial.className = "aux-camera-view__composer-dial";
+            composerDial.setAttribute("role", "slider");
+            composerDial.setAttribute("aria-label", "Earth Rise Composer up-direction dial");
+            composerDial.setAttribute("aria-valuemin", "0");
+            composerDial.setAttribute("aria-valuemax", "359");
+            composerDialNeedle = document.createElement("div");
+            composerDialNeedle.className = "aux-camera-view__composer-dial-needle";
+            composerDial.appendChild(composerDialNeedle);
+            composerDialWrap.appendChild(composerDial);
+            composerControlsWrap.appendChild(composerDialWrap);
+            panel.appendChild(composerControlsWrap);
+        } else {
+            info = document.createElement("div");
+            info.className = "aux-camera-view__info";
+            info.hidden = spec.infoMode === "none";
+            infoPrimary = document.createElement("div");
+            infoPrimary.className = "aux-camera-view__info-line aux-camera-view__info-line--primary";
+            infoPrimaryText = document.createElement("span");
+            infoPrimaryText.className = "aux-camera-view__info-primary-text";
+            infoPill = document.createElement("button");
+            infoPill.type = "button";
+            infoPill.className = "aux-camera-view__pill";
+            infoPill.hidden = true;
+            infoPrimary.appendChild(infoPrimaryText);
+            infoPrimary.appendChild(infoPill);
+            infoSecondary = document.createElement("div");
+            infoSecondary.className = "aux-camera-view__info-line aux-camera-view__info-line--secondary";
+            info.appendChild(infoPrimary);
+            info.appendChild(infoSecondary);
+            panel.appendChild(info);
+        }
 
         const viewport = document.createElement("div");
         viewport.className = "aux-camera-view__viewport";
         panel.appendChild(viewport);
+        if (panelMode === "composer") {
+            composerDisabledOverlay = document.createElement("div");
+            composerDisabledOverlay.className = "aux-camera-view__composer-disabled-overlay";
+            composerDisabledOverlay.textContent = "Outsie Flyby Window";
+            composerDisabledOverlay.hidden = true;
+            viewport.appendChild(composerDisabledOverlay);
+        }
 
         let renderer = null;
         try {
@@ -464,7 +640,8 @@ class AuxiliaryCameraViewsManager {
         chipButton.textContent = spec.chipLabel || spec.title;
         chipButton.setAttribute("aria-label", `Restore ${spec.title}`);
         chipButton.hidden = true;
-        this.chipDock?.appendChild(chipButton);
+        const chipDock = panelSide === "left" ? this.chipDockLeft : this.chipDockRight;
+        chipDock?.appendChild(chipButton);
 
         const camera = new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
@@ -475,6 +652,8 @@ class AuxiliaryCameraViewsManager {
             anchorKey: spec.anchorKey || "craft",
             targetKey: spec.targetKey,
             infoMode: spec.infoMode || "none",
+            mode: panelMode,
+            side: panelSide,
             panel,
             viewport,
             renderer,
@@ -484,6 +663,19 @@ class AuxiliaryCameraViewsManager {
             infoPrimaryText,
             infoSecondary,
             infoPill,
+            composerPresetWrap,
+            composerLookFreeButton,
+            composerLookEarthButton,
+            composerLookMoonButton,
+            composerTimelineWrap,
+            composerTimelineSlider,
+            composerTimelineLabel,
+            composerControlsWrap,
+            composerAmbientSlider,
+            composerAmbientValue,
+            composerDial,
+            composerDialNeedle,
+            composerDisabledOverlay,
             overlayCanvas,
             overlayCtx,
             farSideTintEnabled: spec.infoMode === "moon-visibility",
@@ -502,6 +694,21 @@ class AuxiliaryCameraViewsManager {
             onMinimizeClick: null,
             onChipClick: null,
             onInfoPillClick: null,
+            onComposerLookFreeClick: null,
+            onComposerLookEarthClick: null,
+            onComposerLookMoonClick: null,
+            onComposerAmbientInput: null,
+            onComposerTimelineInput: null,
+            onComposerTimelinePointerDown: null,
+            onComposerTimelinePointerUp: null,
+            onComposerDialPointerDown: null,
+            onComposerDialPointerMove: null,
+            onComposerDialPointerUp: null,
+            onComposerViewportWheel: null,
+            onComposerViewportPointerDown: null,
+            onComposerViewportPointerMove: null,
+            onComposerViewportPointerUp: null,
+            onComposerPanelGatePointerDown: null,
             onPointerDown: null,
             onPointerMove: null,
             onPointerUp: null,
@@ -510,6 +717,18 @@ class AuxiliaryCameraViewsManager {
             y: 0,
             onPanelPointerDown: null,
             minimized: false,
+            composerLockTarget: "earth",
+            composerYawRad: 0,
+            composerPitchRad: 0,
+            composerRollRad: COMPOSER_DEFAULT_ROLL_RAD,
+            composerAmbient: panelMode === "composer" ? COMPOSER_DEFAULT_AMBIENT : 0,
+            composerTimelineDragging: false,
+            composerTimelineWindowMs: COMPOSER_TIMELINE_WINDOW_MS,
+            composerTimelineStartMs: Number.NaN,
+            composerTimelineEndMs: Number.NaN,
+            composerInteractionEnabled: true,
+            composerDialPointerId: null,
+            composerViewportPointer: null,
         };
 
         const syncAutoToggleUi = () => {
@@ -555,30 +774,342 @@ class AuxiliaryCameraViewsManager {
         panelState.onMinimizeClick = onMinimizeClick;
         panelState.onChipClick = onChipClick;
 
-        const persisted = this.persistedPanelState?.[spec.id];
-        if (persisted && typeof persisted === "object") {
-            if (typeof persisted.autoFovEnabled === "boolean") {
-                panelState.autoFovEnabled = persisted.autoFovEnabled;
-            }
-            const persistedFov = Number(persisted.fov);
-            if (Number.isFinite(persistedFov)) {
-                const boundedFov = this.THREE.MathUtils.clamp(
-                    persistedFov,
+        if (panelState.mode === "composer") {
+            const syncComposerLockUi = () => {
+                const lockTarget = panelState.composerLockTarget || "none";
+                panelState.composerLookFreeButton?.classList.toggle("is-active", lockTarget === "none");
+                panelState.composerLookEarthButton?.classList.toggle("is-active", lockTarget === "earth");
+                panelState.composerLookMoonButton?.classList.toggle("is-active", lockTarget === "moon");
+            };
+            const syncComposerAmbientUi = () => {
+                if (!panelState.composerAmbientSlider || !panelState.composerAmbientValue) {
+                    return;
+                }
+                panelState.composerAmbientSlider.value = String(panelState.composerAmbient);
+                const ambientText = panelState.composerAmbient.toFixed(2);
+                panelState.composerAmbientValue.value = ambientText;
+                panelState.composerAmbientValue.textContent = ambientText;
+            };
+            const setComposerAmbient = (nextAmbient, { persist = false } = {}) => {
+                const bounded = this.THREE.MathUtils.clamp(
+                    Number(nextAmbient),
+                    COMPOSER_MIN_AMBIENT,
+                    COMPOSER_MAX_AMBIENT,
+                );
+                if (!Number.isFinite(bounded)) {
+                    return;
+                }
+                panelState.composerAmbient = bounded;
+                syncComposerAmbientUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
+                this.requestRender?.();
+            };
+            const updateDialFromPoint = (clientX, clientY) => {
+                const dial = panelState.composerDial;
+                if (!dial) {
+                    return;
+                }
+                const rect = dial.getBoundingClientRect();
+                const centerX = rect.left + (rect.width * 0.5);
+                const centerY = rect.top + (rect.height * 0.5);
+                const angle = Math.atan2(clientY - centerY, clientX - centerX);
+                panelState.composerRollRad = angle + (Math.PI * 0.5);
+                this.updateComposerDialThumb(panelState);
+                this.requestRender?.();
+            };
+            const onComposerLookFreeClick = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerLockTarget = "none";
+                syncComposerLockUi();
+                this.requestRender?.();
+            };
+            const onComposerLookEarthClick = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerLockTarget = "earth";
+                syncComposerLockUi();
+                this.requestRender?.();
+            };
+            const onComposerLookMoonClick = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerLockTarget = "moon";
+                syncComposerLockUi();
+                this.requestRender?.();
+            };
+            const onComposerAmbientInput = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                setComposerAmbient(panelState.composerAmbientSlider?.value, { persist: true });
+            };
+            const onComposerTimelineInput = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                if (!panelState.composerTimelineSlider) {
+                    return;
+                }
+                const localMin = panelState.composerTimelineStartMs;
+                const localMax = panelState.composerTimelineEndMs;
+                if (!Number.isFinite(localMin) || !Number.isFinite(localMax) || localMax <= localMin) {
+                    return;
+                }
+                const sliderValue = Number(panelState.composerTimelineSlider.value);
+                const ratio = this.THREE.MathUtils.clamp(
+                    sliderValue / COMPOSER_TIMELINE_RESOLUTION,
+                    0,
+                    1,
+                );
+                const targetMs = localMin + ((localMax - localMin) * ratio);
+                this.seekMainTimelineTime(targetMs, false);
+            };
+            const onComposerTimelinePointerDown = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerTimelineDragging = true;
+            };
+            const onComposerTimelinePointerUp = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerTimelineDragging = false;
+                if (!panelState.composerTimelineSlider) {
+                    return;
+                }
+                const localMin = panelState.composerTimelineStartMs;
+                const localMax = panelState.composerTimelineEndMs;
+                if (!Number.isFinite(localMin) || !Number.isFinite(localMax) || localMax <= localMin) {
+                    return;
+                }
+                const sliderValue = Number(panelState.composerTimelineSlider.value);
+                const ratio = this.THREE.MathUtils.clamp(
+                    sliderValue / COMPOSER_TIMELINE_RESOLUTION,
+                    0,
+                    1,
+                );
+                const targetMs = localMin + ((localMax - localMin) * ratio);
+                this.seekMainTimelineTime(targetMs, true);
+            };
+            const onComposerViewportWheel = (event) => {
+                if (!(event instanceof WheelEvent)) {
+                    return;
+                }
+                event.preventDefault();
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                if (panelState.autoFovEnabled) {
+                    panelState.autoFovEnabled = false;
+                    syncAutoToggleUi();
+                }
+                const zoomScale = Math.exp(event.deltaY * 0.0015);
+                const nextFov = this.THREE.MathUtils.clamp(
+                    panelState.camera.fov * zoomScale,
                     AUTO_FOV_MIN_DEGREES,
                     AUTO_FOV_MAX_DEGREES,
                 );
-                fovSlider.value = String(Math.round(boundedFov));
-                camera.fov = boundedFov;
-                camera.updateProjectionMatrix();
+                panelState.fovSlider.value = String(Math.round(nextFov));
+                onFovInput();
+            };
+            const onComposerViewportPointerDown = (event) => {
+                if (event.button !== 0) {
+                    return;
+                }
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    event.preventDefault();
+                    return;
+                }
+                panelState.composerViewportPointer = {
+                    pointerId: event.pointerId,
+                    clientX: event.clientX,
+                    clientY: event.clientY,
+                };
+                panelState.composerLockTarget = "none";
+                syncComposerLockUi();
+                panelState.viewport.setPointerCapture(event.pointerId);
+                event.preventDefault();
+            };
+            const onComposerViewportPointerMove = (event) => {
+                const drag = panelState.composerViewportPointer;
+                if (!drag || drag.pointerId !== event.pointerId) {
+                    return;
+                }
+                const dx = event.clientX - drag.clientX;
+                const dy = event.clientY - drag.clientY;
+                drag.clientX = event.clientX;
+                drag.clientY = event.clientY;
+                const look = this.tmpVectorE.copy(this.getComposerLookDirection(panelState));
+                const up = this.tmpVectorF.copy(this.getComposerCameraUp(panelState, look));
+                const yawAngle = dx * COMPOSER_DRAG_SENSITIVITY;
+                this.tmpQuatA.setFromAxisAngle(up, yawAngle);
+                look.applyQuaternion(this.tmpQuatA);
+                up.applyQuaternion(this.tmpQuatA);
+
+                const right = this.tmpVectorD.copy(look).cross(up);
+                if (right.lengthSq() > 1e-12) {
+                    right.normalize();
+                    const pitchAngle = dy * COMPOSER_DRAG_SENSITIVITY;
+                    this.tmpQuatB.setFromAxisAngle(right, pitchAngle);
+                    look.applyQuaternion(this.tmpQuatB);
+                    up.applyQuaternion(this.tmpQuatB);
+                }
+                this.setComposerOrientationFromLookUp(panelState, look, up);
+                this.updateComposerDialThumb(panelState);
+                this.requestRender?.();
+                event.preventDefault();
+            };
+            const releaseComposerViewport = (event) => {
+                const drag = panelState.composerViewportPointer;
+                if (!drag || drag.pointerId !== event.pointerId) {
+                    return;
+                }
+                if (panelState.viewport.hasPointerCapture(event.pointerId)) {
+                    panelState.viewport.releasePointerCapture(event.pointerId);
+                }
+                panelState.composerViewportPointer = null;
+            };
+            const onComposerDialPointerDown = (event) => {
+                if (event.button !== 0 || !panelState.composerDial) {
+                    return;
+                }
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    event.preventDefault();
+                    return;
+                }
+                panelState.composerDialPointerId = event.pointerId;
+                panelState.composerDial.setPointerCapture(event.pointerId);
+                updateDialFromPoint(event.clientX, event.clientY);
+                event.preventDefault();
+            };
+            const onComposerDialPointerMove = (event) => {
+                if (panelState.composerDialPointerId !== event.pointerId) {
+                    return;
+                }
+                updateDialFromPoint(event.clientX, event.clientY);
+                event.preventDefault();
+            };
+            const onComposerDialPointerUp = (event) => {
+                if (panelState.composerDialPointerId !== event.pointerId || !panelState.composerDial) {
+                    return;
+                }
+                if (panelState.composerDial.hasPointerCapture(event.pointerId)) {
+                    panelState.composerDial.releasePointerCapture(event.pointerId);
+                }
+                panelState.composerDialPointerId = null;
+            };
+            const onComposerPanelGatePointerDown = (event) => {
+                if (panelState.composerInteractionEnabled) {
+                    return;
+                }
+                if (!(event.target instanceof Element)) {
+                    return;
+                }
+                if (event.target.closest(".aux-camera-view__header")) {
+                    return;
+                }
+                const jumped = this.activateComposerWindow(panelState, { finalize: true });
+                if (jumped) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            };
+
+            panelState.composerLookFreeButton?.addEventListener("click", onComposerLookFreeClick);
+            panelState.composerLookEarthButton?.addEventListener("click", onComposerLookEarthClick);
+            panelState.composerLookMoonButton?.addEventListener("click", onComposerLookMoonClick);
+            panelState.composerAmbientSlider?.addEventListener("input", onComposerAmbientInput, { passive: true });
+            panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
+            panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
+            panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
+            panelState.composerTimelineSlider?.addEventListener("change", onComposerTimelinePointerUp);
+            panelState.composerDial?.addEventListener("pointerdown", onComposerDialPointerDown);
+            panelState.composerDial?.addEventListener("pointermove", onComposerDialPointerMove);
+            panelState.composerDial?.addEventListener("pointerup", onComposerDialPointerUp);
+            panelState.composerDial?.addEventListener("pointercancel", onComposerDialPointerUp);
+            panelState.viewport.addEventListener("wheel", onComposerViewportWheel, { passive: false });
+            panelState.viewport.addEventListener("pointerdown", onComposerViewportPointerDown);
+            panelState.viewport.addEventListener("pointermove", onComposerViewportPointerMove);
+            panelState.viewport.addEventListener("pointerup", releaseComposerViewport);
+            panelState.viewport.addEventListener("pointercancel", releaseComposerViewport);
+            panelState.panel.addEventListener("pointerdown", onComposerPanelGatePointerDown, true);
+
+            panelState.onComposerLookFreeClick = onComposerLookFreeClick;
+            panelState.onComposerLookEarthClick = onComposerLookEarthClick;
+            panelState.onComposerLookMoonClick = onComposerLookMoonClick;
+            panelState.onComposerAmbientInput = onComposerAmbientInput;
+            panelState.onComposerTimelineInput = onComposerTimelineInput;
+            panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
+            panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
+            panelState.onComposerDialPointerDown = onComposerDialPointerDown;
+            panelState.onComposerDialPointerMove = onComposerDialPointerMove;
+            panelState.onComposerDialPointerUp = onComposerDialPointerUp;
+            panelState.onComposerViewportWheel = onComposerViewportWheel;
+            panelState.onComposerViewportPointerDown = onComposerViewportPointerDown;
+            panelState.onComposerViewportPointerMove = onComposerViewportPointerMove;
+            panelState.onComposerViewportPointerUp = releaseComposerViewport;
+            panelState.onComposerPanelGatePointerDown = onComposerPanelGatePointerDown;
+            setComposerAmbient(panelState.composerAmbient, { persist: false });
+            syncComposerLockUi();
+            this.updateComposerDialThumb(panelState);
+        }
+
+        const persisted = this.persistedPanelState?.[spec.id];
+        if (persisted && typeof persisted === "object") {
+            if (panelState.mode !== "composer") {
+                if (typeof persisted.autoFovEnabled === "boolean") {
+                    panelState.autoFovEnabled = persisted.autoFovEnabled;
+                }
+                const persistedFov = Number(persisted.fov);
+                if (Number.isFinite(persistedFov)) {
+                    const boundedFov = this.THREE.MathUtils.clamp(
+                        persistedFov,
+                        AUTO_FOV_MIN_DEGREES,
+                        AUTO_FOV_MAX_DEGREES,
+                    );
+                    fovSlider.value = String(Math.round(boundedFov));
+                    camera.fov = boundedFov;
+                    camera.updateProjectionMatrix();
+                }
             }
             if (typeof persisted.farSideTintEnabled === "boolean") {
                 panelState.farSideTintEnabled = persisted.farSideTintEnabled;
             }
         }
+        if (panelState.mode === "composer") {
+            panelState.autoFovEnabled = false;
+            fovSlider.value = String(Math.round(spec.defaultFov));
+            camera.fov = spec.defaultFov;
+            camera.updateProjectionMatrix();
+            panelState.composerAmbient = COMPOSER_DEFAULT_AMBIENT;
+            if (panelState.composerAmbientSlider && panelState.composerAmbientValue) {
+                panelState.composerAmbientSlider.value = String(panelState.composerAmbient);
+                const ambientText = panelState.composerAmbient.toFixed(2);
+                panelState.composerAmbientValue.value = ambientText;
+                panelState.composerAmbientValue.textContent = ambientText;
+            }
+        }
         syncAutoToggleUi();
         onFovInput();
 
-        if (panelState.infoMode === "moon-visibility") {
+        if (panelState.infoMode === "moon-visibility" && infoPill) {
             const onInfoPillClick = () => {
                 panelState.farSideTintEnabled = !panelState.farSideTintEnabled;
                 panelState.overlayDirty = true;
@@ -586,7 +1117,7 @@ class AuxiliaryCameraViewsManager {
             };
             infoPill.addEventListener("click", onInfoPillClick);
             panelState.onInfoPillClick = onInfoPillClick;
-        } else {
+        } else if (infoPill) {
             infoPill.disabled = true;
         }
 
@@ -660,6 +1191,9 @@ class AuxiliaryCameraViewsManager {
     }
 
     setPanelInfo(panelState, primary = "", secondary = "", options = {}) {
+        if (!panelState?.info || !panelState?.infoPrimaryText || !panelState?.infoSecondary || !panelState?.infoPill) {
+            return;
+        }
         const hasInfoMode = panelState.infoMode && panelState.infoMode !== "none";
         if (!hasInfoMode) {
             panelState.info.hidden = true;
@@ -693,6 +1227,404 @@ class AuxiliaryCameraViewsManager {
             panelState.infoPill.classList.remove("aux-camera-view__pill--button", "is-on", "is-off");
             panelState.infoPill.title = "";
         }
+    }
+
+    setComposerInteractionEnabled(panelState, enabled) {
+        if (!panelState || panelState.mode !== "composer") {
+            return;
+        }
+        const isEnabled = enabled === true;
+        panelState.composerInteractionEnabled = isEnabled;
+        panelState.panel.classList.toggle("aux-camera-view--composer-disabled", !isEnabled);
+
+        const disableControls = !isEnabled;
+        if (panelState.autoToggle) {
+            panelState.autoToggle.disabled = disableControls;
+        }
+        if (panelState.fovSlider) {
+            panelState.fovSlider.disabled = disableControls || panelState.autoFovEnabled;
+        }
+        panelState.composerLookFreeButton && (panelState.composerLookFreeButton.disabled = disableControls);
+        panelState.composerLookEarthButton && (panelState.composerLookEarthButton.disabled = disableControls);
+        panelState.composerLookMoonButton && (panelState.composerLookMoonButton.disabled = disableControls);
+        panelState.composerAmbientSlider && (panelState.composerAmbientSlider.disabled = disableControls);
+        if (panelState.composerTimelineSlider) {
+            panelState.composerTimelineSlider.disabled = disableControls;
+        }
+        if (panelState.composerDial) {
+            panelState.composerDial.setAttribute("aria-disabled", disableControls ? "true" : "false");
+        }
+        if (panelState.composerDisabledOverlay) {
+            panelState.composerDisabledOverlay.hidden = isEnabled;
+        }
+    }
+
+    activateComposerWindow(panelState, { finalize = true } = {}) {
+        if (!panelState || panelState.mode !== "composer") {
+            return false;
+        }
+        const startMs = panelState.composerTimelineStartMs;
+        const endMs = panelState.composerTimelineEndMs;
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+            return false;
+        }
+        const targetMs = startMs + ((endMs - startMs) * 0.5);
+        this.seekMainTimelineTime(targetMs, finalize);
+        return true;
+    }
+
+    readMainTimelineState() {
+        const slider = document.getElementById("timeline-slider");
+        if (!(slider instanceof HTMLInputElement)) {
+            return null;
+        }
+        const min = Number(slider.min);
+        const max = Number(slider.max);
+        const value = Number(slider.value);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) {
+            return null;
+        }
+        return {
+            slider,
+            min: Math.min(min, max),
+            max: Math.max(min, max),
+            value: this.THREE.MathUtils.clamp(value, Math.min(min, max), Math.max(min, max)),
+        };
+    }
+
+    seekMainTimelineTime(timeMs, finalize = false) {
+        const timelineState = this.readMainTimelineState();
+        if (!timelineState) {
+            return;
+        }
+        const clamped = this.THREE.MathUtils.clamp(timeMs, timelineState.min, timelineState.max);
+        timelineState.slider.value = String(clamped);
+        timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
+        if (finalize) {
+            timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    formatComposerWindowLabel(windowMs) {
+        const safeMs = Math.max(0, windowMs);
+        const totalMinutes = Math.round(safeMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours <= 0) {
+            return `+/-${Math.max(1, minutes)}m`;
+        }
+        if (minutes <= 0) {
+            return `+/-${hours}h`;
+        }
+        return `+/-${hours}h ${minutes}m`;
+    }
+
+    resolveLunarFlybyTimeMs(eventInfos) {
+        if (!Array.isArray(eventInfos) || eventInfos.length === 0) {
+            return Number.NaN;
+        }
+        let best = null;
+        for (const eventInfo of eventInfos) {
+            const startTime = eventInfo?.startTime;
+            const timeMs = startTime instanceof Date ? startTime.getTime() : Number(startTime);
+            if (!Number.isFinite(timeMs)) {
+                continue;
+            }
+            const key = eventInfo?.key || "";
+            const label = eventInfo?.label || "";
+            const hoverText = eventInfo?.hoverText || "";
+            const infoText = eventInfo?.infoText || "";
+            const burnFlag = eventInfo?.burnFlag === true;
+            const keyLabelCorpus = `${key} ${label}`.toLowerCase();
+            const narrativeCorpus = `${hoverText} ${infoText}`.toLowerCase();
+
+            const hasMoonKeyLabel = /\b(moon|lunar)\b/.test(keyLabelCorpus);
+            const hasFlybyKeyLabel = /\bflyby\b/.test(keyLabelCorpus);
+            const hasClosestKeyLabel = /\b(closest approach|closestapproach|perilune|periselene|pericynthion)\b/.test(keyLabelCorpus);
+            const explicitLunarFlybyKeyLabel = /\b(lunar flyby|moon flyby)\b/.test(keyLabelCorpus);
+            const keySuggestsClosest = /\bclosest\b/.test(key.toLowerCase()) && /\b(approach|peri)\b/.test(key.toLowerCase());
+            const hasMoonNarrative = /\b(moon|lunar)\b/.test(narrativeCorpus);
+            const hasFlybyNarrative = /\bflyby\b/.test(narrativeCorpus);
+            const hasClosestNarrative = /\b(closest approach|perilune|periselene|pericynthion)\b/.test(narrativeCorpus);
+            let score = 0;
+            if (keySuggestsClosest || hasClosestKeyLabel) {
+                score = 220;
+            } else if (explicitLunarFlybyKeyLabel) {
+                score = 210;
+            } else if (hasMoonKeyLabel && hasFlybyKeyLabel) {
+                score = 200;
+            } else if (!burnFlag && hasMoonNarrative && hasClosestNarrative) {
+                score = 120;
+            } else if (!burnFlag && hasMoonNarrative && hasFlybyNarrative) {
+                score = 110;
+            }
+            if (score <= 0) {
+                continue;
+            }
+            if (
+                !best ||
+                score > best.score ||
+                (score === best.score && burnFlag === false && best.burnFlag === true) ||
+                (score === best.score && burnFlag === best.burnFlag && timeMs < best.timeMs)
+            ) {
+                best = {
+                    score,
+                    timeMs,
+                    burnFlag,
+                };
+            }
+        }
+        return best ? best.timeMs : Number.NaN;
+    }
+
+    setComposerLookFromDirection(panelState, directionVector) {
+        const len = directionVector?.length?.() || 0;
+        if (!Number.isFinite(len) || len <= 1e-9) {
+            return false;
+        }
+        this.composerLookWorld.copy(directionVector).multiplyScalar(1 / len);
+        const planar = Math.hypot(this.composerLookWorld.x, this.composerLookWorld.y);
+        panelState.composerYawRad = Math.atan2(this.composerLookWorld.y, this.composerLookWorld.x);
+        panelState.composerPitchRad = Math.atan2(this.composerLookWorld.z, Math.max(planar, 1e-9));
+        panelState.composerPitchRad = this.THREE.MathUtils.clamp(
+            panelState.composerPitchRad,
+            -COMPOSER_MAX_PITCH_RAD,
+            COMPOSER_MAX_PITCH_RAD,
+        );
+        return true;
+    }
+
+    applyComposerPreset(panelState, presetKey, { craftWorld, earthWorld, moonWorld }) {
+        const preset = presetKey === "moon" ? "moon" : "earth";
+        const source = preset === "moon" ? moonWorld : earthWorld;
+        if (!source || !craftWorld) {
+            return false;
+        }
+        this.tmpVectorA.subVectors(source, craftWorld);
+        return this.setComposerLookFromDirection(panelState, this.tmpVectorA);
+    }
+
+    syncComposerTimelineUi(panelState) {
+        const slider = panelState.composerTimelineSlider;
+        if (!slider) {
+            return;
+        }
+        const timelineState = this.readMainTimelineState();
+        if (!timelineState) {
+            panelState.composerTimelineLabel.textContent = "Timeline unavailable";
+            this.setComposerInteractionEnabled(panelState, false);
+            return;
+        }
+        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
+        const hasFlybyAnchor = Number.isFinite(this.composerFlybyTimeMs);
+        const anchorMs = hasFlybyAnchor ? this.composerFlybyTimeMs : timelineState.value;
+        const windowSpan = Math.min(fullSpan, panelState.composerTimelineWindowMs);
+        const halfSpan = windowSpan * 0.5;
+        let startMs = anchorMs - halfSpan;
+        let endMs = anchorMs + halfSpan;
+        if (startMs < timelineState.min) {
+            endMs += timelineState.min - startMs;
+            startMs = timelineState.min;
+        }
+        if (endMs > timelineState.max) {
+            startMs -= endMs - timelineState.max;
+            endMs = timelineState.max;
+        }
+        startMs = Math.max(timelineState.min, startMs);
+        endMs = Math.min(timelineState.max, endMs);
+        if (endMs <= startMs) {
+            endMs = Math.min(timelineState.max, startMs + 1);
+        }
+
+        panelState.composerTimelineStartMs = startMs;
+        panelState.composerTimelineEndMs = endMs;
+        const halfWindowMs = Math.max(0, (endMs - startMs) * 0.5);
+        const inFlybyWindow = !hasFlybyAnchor || (timelineState.value >= startMs && timelineState.value <= endMs);
+        this.setComposerInteractionEnabled(panelState, inFlybyWindow);
+        panelState.composerTimelineLabel.textContent = hasFlybyAnchor
+            ? "Lunar flyby window +/-1h"
+            : `Occultation window ${this.formatComposerWindowLabel(halfWindowMs)}`;
+
+        if (!panelState.composerTimelineDragging) {
+            const ratio = this.THREE.MathUtils.clamp((timelineState.value - startMs) / Math.max(endMs - startMs, 1), 0, 1);
+            slider.value = String(Math.round(ratio * COMPOSER_TIMELINE_RESOLUTION));
+        }
+    }
+
+    getComposerLookDirection(panelState) {
+        const cosPitch = Math.cos(panelState.composerPitchRad);
+        this.composerLookWorld.set(
+            Math.cos(panelState.composerYawRad) * cosPitch,
+            Math.sin(panelState.composerYawRad) * cosPitch,
+            Math.sin(panelState.composerPitchRad),
+        );
+        const len = this.composerLookWorld.length();
+        if (len <= 1e-9) {
+            this.composerLookWorld.set(1, 0, 0);
+        } else {
+            this.composerLookWorld.multiplyScalar(1 / len);
+        }
+        return this.composerLookWorld;
+    }
+
+    updateComposerDialThumb(panelState) {
+        const dial = panelState?.composerDial;
+        const needle = panelState?.composerDialNeedle;
+        if (!dial || !needle) {
+            return;
+        }
+        const rawRoll = Number.isFinite(panelState.composerRollRad) ? panelState.composerRollRad : 0;
+        const roll = ((rawRoll % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+        panelState.composerRollRad = roll;
+        const degrees = this.THREE.MathUtils.radToDeg(roll);
+        needle.style.transform = `translate(-50%, -100%) rotate(${degrees}deg)`;
+        dial.setAttribute("aria-valuenow", String(Math.round(degrees)));
+    }
+
+    getComposerCameraUp(panelState, lookDirWorld) {
+        this.composerBaseUp.copy(this.composerWorldUp);
+        this.tmpVectorD.copy(lookDirWorld).multiplyScalar(this.composerBaseUp.dot(lookDirWorld));
+        this.composerBaseUp.sub(this.tmpVectorD);
+        if (this.composerBaseUp.lengthSq() <= 1e-10) {
+            this.composerBaseUp.set(0, 1, 0);
+            this.tmpVectorD.copy(lookDirWorld).multiplyScalar(this.composerBaseUp.dot(lookDirWorld));
+            this.composerBaseUp.sub(this.tmpVectorD);
+        }
+        if (this.composerBaseUp.lengthSq() <= 1e-10) {
+            this.composerBaseUp.set(1, 0, 0);
+        } else {
+            this.composerBaseUp.normalize();
+        }
+        const roll = Number.isFinite(panelState.composerRollRad) ? panelState.composerRollRad : 0;
+        this.composerRotatedUp.copy(this.composerBaseUp).applyAxisAngle(lookDirWorld, roll).normalize();
+        return this.composerRotatedUp;
+    }
+
+    setComposerOrientationFromLookUp(panelState, lookDirWorld, upDirWorld) {
+        const look = this.tmpVectorE.copy(lookDirWorld);
+        if (!Number.isFinite(look.x) || !Number.isFinite(look.y) || !Number.isFinite(look.z) || look.lengthSq() <= 1e-12) {
+            return false;
+        }
+        look.normalize();
+        const planar = Math.hypot(look.x, look.y);
+        panelState.composerYawRad = Math.atan2(look.y, look.x);
+        panelState.composerPitchRad = Math.atan2(look.z, Math.max(planar, 1e-9));
+        panelState.composerPitchRad = this.THREE.MathUtils.clamp(
+            panelState.composerPitchRad,
+            -COMPOSER_MAX_PITCH_RAD,
+            COMPOSER_MAX_PITCH_RAD,
+        );
+        // If pitch was clamped, keep orientation stable by rebuilding look from yaw/pitch.
+        const cosPitch = Math.cos(panelState.composerPitchRad);
+        look.set(
+            Math.cos(panelState.composerYawRad) * cosPitch,
+            Math.sin(panelState.composerYawRad) * cosPitch,
+            Math.sin(panelState.composerPitchRad),
+        ).normalize();
+
+        const targetUp = this.tmpVectorF.copy(upDirWorld);
+        if (!Number.isFinite(targetUp.x) || !Number.isFinite(targetUp.y) || !Number.isFinite(targetUp.z) || targetUp.lengthSq() <= 1e-12) {
+            targetUp.copy(this.composerWorldUp);
+        }
+        // Orthonormalize up against look.
+        targetUp.sub(this.tmpVectorD.copy(look).multiplyScalar(targetUp.dot(look)));
+        if (targetUp.lengthSq() <= 1e-12) {
+            targetUp.copy(this.getComposerCameraUp(panelState, look));
+        } else {
+            targetUp.normalize();
+        }
+
+        this.composerBaseUp.copy(this.composerWorldUp);
+        this.tmpVectorD.copy(look).multiplyScalar(this.composerBaseUp.dot(look));
+        this.composerBaseUp.sub(this.tmpVectorD);
+        if (this.composerBaseUp.lengthSq() <= 1e-12) {
+            this.composerBaseUp.set(0, 1, 0);
+            this.tmpVectorD.copy(look).multiplyScalar(this.composerBaseUp.dot(look));
+            this.composerBaseUp.sub(this.tmpVectorD);
+        }
+        if (this.composerBaseUp.lengthSq() <= 1e-12) {
+            this.composerBaseUp.set(1, 0, 0);
+        } else {
+            this.composerBaseUp.normalize();
+        }
+
+        const sin = look.dot(this.tmpVectorD.copy(this.composerBaseUp).cross(targetUp));
+        const cos = this.composerBaseUp.dot(targetUp);
+        panelState.composerRollRad = Math.atan2(sin, cos);
+        if (!Number.isFinite(panelState.composerRollRad)) {
+            panelState.composerRollRad = 0;
+        }
+        return true;
+    }
+
+    getComposerAmbientLight(scene) {
+        if (!scene) {
+            return null;
+        }
+        let light = this.composerAmbientLightByScene.get(scene);
+        if (!light) {
+            light = new this.THREE.AmbientLight(0xffffff, COMPOSER_DEFAULT_AMBIENT);
+            light.visible = false;
+            scene.add(light);
+            this.composerAmbientLightByScene.set(scene, light);
+        }
+        return light;
+    }
+
+    computeComposerAutoFovDegrees({
+        panelState,
+        craftWorld,
+        earthWorld,
+        moonWorld,
+        earthRadius,
+        moonRadius,
+        lockTarget = "none",
+    }) {
+        const allBodies = {
+            earth: {
+                world: earthWorld,
+                radius: Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : null,
+            },
+            moon: {
+                world: moonWorld,
+                radius: Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : null,
+            },
+        };
+        const bodies = lockTarget === "earth"
+            ? [allBodies.earth]
+            : (lockTarget === "moon" ? [allBodies.moon] : [allBodies.earth, allBodies.moon]);
+        let maxHalfVertical = this.THREE.MathUtils.degToRad(4);
+        let consideredBodies = 0;
+        panelState.camera.updateMatrixWorld(true);
+        panelState.camera.getWorldQuaternion(this.panelCameraWorldQuat);
+        this.panelCameraWorldQuatInv.copy(this.panelCameraWorldQuat).invert();
+        for (const body of bodies) {
+            if (!body.world) {
+                continue;
+            }
+            this.tmpVectorA.subVectors(body.world, craftWorld);
+            const distance = this.tmpVectorA.length();
+            if (!Number.isFinite(distance) || distance <= 1e-6) {
+                continue;
+            }
+            this.tmpVectorA.multiplyScalar(1 / distance);
+            const resolvedRadius = body.radius != null ? body.radius : 1;
+            const sphereRatio = this.THREE.MathUtils.clamp(resolvedRadius / Math.max(distance, resolvedRadius + 1e-9), 0, 0.999999);
+            const angularRadius = Math.asin(sphereRatio);
+            const dirCam = this.tmpVectorA.applyQuaternion(this.panelCameraWorldQuatInv);
+            if (dirCam.z <= 0.001) {
+                continue;
+            }
+            consideredBodies += 1;
+            const halfX = Math.atan2(Math.abs(dirCam.x), dirCam.z) + angularRadius;
+            const halfY = Math.atan2(Math.abs(dirCam.y), dirCam.z) + angularRadius;
+            const fromX = Math.atan(Math.tan(halfX) / Math.max(panelState.camera.aspect, 1e-3));
+            maxHalfVertical = Math.max(maxHalfVertical, halfY, fromX);
+        }
+        if (consideredBodies <= 0) {
+            return panelState.camera.fov;
+        }
+        return this.THREE.MathUtils.radToDeg(maxHalfVertical * 2 * AUTO_FOV_MARGIN_SCALE);
     }
 
     syncPanelSize(panelState) {
@@ -1185,6 +2117,143 @@ class AuxiliaryCameraViewsManager {
         panelState.fovValue.textContent = panelState.fovValue.value;
     }
 
+    renderComposerPanel(panelState, {
+        scene,
+        activeCraft,
+        earth,
+        moon,
+        earthRadius,
+        moonRadius,
+        referenceCamera,
+        hasSkyContainer,
+        skyContainer,
+    }) {
+        if (!activeCraft || !earth || !moon) {
+            this.setPanelVisible(panelState, false);
+            return false;
+        }
+        if (!this.getObjectWorldPosition(activeCraft, this.craftWorld)) {
+            this.setPanelVisible(panelState, false);
+            return false;
+        }
+        if (!this.getObjectWorldPosition(earth, this.earthWorld) || !this.getObjectWorldPosition(moon, this.moonWorld)) {
+            this.setPanelVisible(panelState, false);
+            return false;
+        }
+
+        this.setPanelVisible(panelState, true);
+        this.syncPanelSize(panelState);
+        this.syncComposerTimelineUi(panelState);
+
+        if (referenceCamera) {
+            if (
+                Math.abs(panelState.camera.near - referenceCamera.near) > 1e-9 ||
+                Math.abs(panelState.camera.far - referenceCamera.far) > 1e-9
+            ) {
+                panelState.camera.near = referenceCamera.near;
+                panelState.camera.far = referenceCamera.far;
+                panelState.camera.updateProjectionMatrix();
+            }
+        }
+
+        const lockTarget = panelState.composerLockTarget || "none";
+        if (lockTarget === "earth" || lockTarget === "moon") {
+            this.applyComposerPreset(panelState, lockTarget, {
+                craftWorld: this.craftWorld,
+                earthWorld: this.earthWorld,
+                moonWorld: this.moonWorld,
+            });
+        } else if (!Number.isFinite(panelState.composerYawRad) || !Number.isFinite(panelState.composerPitchRad)) {
+            this.applyComposerPreset(panelState, "earth", {
+                craftWorld: this.craftWorld,
+                earthWorld: this.earthWorld,
+                moonWorld: this.moonWorld,
+            });
+        }
+        this.updateComposerDialThumb(panelState);
+
+        panelState.camera.position.copy(this.craftWorld);
+        let distanceForFov = Number.NaN;
+        let radiusForFov = Number.NaN;
+        const disabledAsCraftToEarth = panelState.composerInteractionEnabled !== true;
+        if (disabledAsCraftToEarth) {
+            this.composerLookAtWorld.copy(this.earthWorld);
+            this.viewDir.subVectors(this.earthWorld, this.craftWorld).normalize();
+            this.targetUp.set(0, 0, 1);
+            earth.getWorldQuaternion(this.targetQuat);
+            this.targetUp.applyQuaternion(this.targetQuat).normalize();
+            if (Math.abs(this.targetUp.dot(this.viewDir)) > 0.98) {
+                panelState.camera.up.set(0, 0, 1);
+            } else {
+                panelState.camera.up.copy(this.targetUp);
+            }
+            panelState.camera.lookAt(this.composerLookAtWorld);
+            distanceForFov = panelState.camera.position.distanceTo(this.earthWorld);
+            radiusForFov = (Number.isFinite(earthRadius) && earthRadius > 0)
+                ? earthRadius
+                : this.estimateObjectRadius(earth, 1);
+        } else {
+            const lookDir = this.getComposerLookDirection(panelState);
+            panelState.camera.up.copy(this.getComposerCameraUp(panelState, lookDir));
+            this.composerLookAtWorld.copy(this.craftWorld).add(lookDir);
+            panelState.camera.lookAt(this.composerLookAtWorld);
+            // Keep previous auto-FoV behavior when enabled.
+            if (lockTarget === "earth") {
+                distanceForFov = panelState.camera.position.distanceTo(this.earthWorld);
+                radiusForFov = (Number.isFinite(earthRadius) && earthRadius > 0)
+                    ? earthRadius
+                    : this.estimateObjectRadius(earth, 1);
+            } else if (lockTarget === "moon") {
+                distanceForFov = panelState.camera.position.distanceTo(this.moonWorld);
+                radiusForFov = (Number.isFinite(moonRadius) && moonRadius > 0)
+                    ? moonRadius
+                    : this.estimateObjectRadius(moon, 1);
+            }
+        }
+
+        if (!disabledAsCraftToEarth && panelState.autoFovEnabled) {
+            const autoFov = this.computeComposerAutoFovDegrees({
+                panelState,
+                craftWorld: this.craftWorld,
+                earthWorld: this.earthWorld,
+                moonWorld: this.moonWorld,
+                earthRadius,
+                moonRadius,
+                lockTarget,
+            });
+            this.setPanelFov(panelState, autoFov);
+        }
+
+        if (hasSkyContainer) {
+            panelState.camera.getWorldPosition(this.panelCameraWorldPosition);
+            if (skyContainer.parent?.worldToLocal) {
+                this.panelSkyLocalPosition.copy(this.panelCameraWorldPosition);
+                skyContainer.parent.worldToLocal(this.panelSkyLocalPosition);
+                skyContainer.position.copy(this.panelSkyLocalPosition);
+            } else {
+                skyContainer.position.copy(this.panelCameraWorldPosition);
+            }
+        }
+        const ambientLight = this.getComposerAmbientLight(scene);
+        if (ambientLight) {
+            ambientLight.intensity = this.THREE.MathUtils.clamp(
+                panelState.composerAmbient,
+                COMPOSER_MIN_AMBIENT,
+                COMPOSER_MAX_AMBIENT,
+            );
+            ambientLight.visible = ambientLight.intensity > 1e-6;
+        }
+        try {
+            this.renderLayers(panelState.renderer, scene, panelState.camera);
+        } finally {
+            if (ambientLight) {
+                ambientLight.visible = false;
+            }
+        }
+        this.clearPanelOverlay(panelState);
+        return true;
+    }
+
     render({
         scene,
         activeCraft,
@@ -1195,6 +2264,7 @@ class AuxiliaryCameraViewsManager {
         skyContainer = null,
         earthRadius = null,
         moonRadius = null,
+        timelineEventInfos = null,
         referenceCamera,
         panelsVisible = true,
     }) {
@@ -1214,6 +2284,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         this.root.hidden = false;
+        this.composerFlybyTimeMs = this.resolveLunarFlybyTimeMs(timelineEventInfos);
         activeCraft.getWorldPosition(this.craftWorld);
         if (
             sunDirection &&
@@ -1249,6 +2320,28 @@ class AuxiliaryCameraViewsManager {
         try {
             for (const panelState of this.panels) {
                 const context = { activeCraft, earth, moon, sun };
+                if (panelState.mode === "composer") {
+                    if (panelState.minimized === true) {
+                        this.setPanelVisible(panelState, false);
+                        visiblePanels += 1;
+                        continue;
+                    }
+                    const rendered = this.renderComposerPanel(panelState, {
+                        scene,
+                        activeCraft,
+                        earth,
+                        moon,
+                        earthRadius,
+                        moonRadius,
+                        referenceCamera,
+                        hasSkyContainer,
+                        skyContainer,
+                    });
+                    if (rendered) {
+                        visiblePanels += 1;
+                    }
+                    continue;
+                }
                 const hasAnchor = this.resolvePositionForKey(panelState.anchorKey, context, this.anchorWorld);
                 const targetObject = panelState.targetKey === "earth"
                     ? earth
@@ -1423,6 +2516,54 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onInfoPillClick) {
                 panelState.infoPill.removeEventListener("click", panelState.onInfoPillClick);
             }
+            if (panelState.onComposerLookFreeClick) {
+                panelState.composerLookFreeButton?.removeEventListener("click", panelState.onComposerLookFreeClick);
+            }
+            if (panelState.onComposerLookEarthClick) {
+                panelState.composerLookEarthButton?.removeEventListener("click", panelState.onComposerLookEarthClick);
+            }
+            if (panelState.onComposerLookMoonClick) {
+                panelState.composerLookMoonButton?.removeEventListener("click", panelState.onComposerLookMoonClick);
+            }
+            if (panelState.onComposerTimelineInput) {
+                panelState.composerTimelineSlider?.removeEventListener("input", panelState.onComposerTimelineInput);
+            }
+            if (panelState.onComposerAmbientInput) {
+                panelState.composerAmbientSlider?.removeEventListener("input", panelState.onComposerAmbientInput);
+            }
+            if (panelState.onComposerTimelinePointerDown) {
+                panelState.composerTimelineSlider?.removeEventListener("pointerdown", panelState.onComposerTimelinePointerDown);
+            }
+            if (panelState.onComposerTimelinePointerUp) {
+                panelState.composerTimelineSlider?.removeEventListener("pointerup", panelState.onComposerTimelinePointerUp);
+                panelState.composerTimelineSlider?.removeEventListener("change", panelState.onComposerTimelinePointerUp);
+            }
+            if (panelState.onComposerDialPointerDown) {
+                panelState.composerDial?.removeEventListener("pointerdown", panelState.onComposerDialPointerDown);
+            }
+            if (panelState.onComposerDialPointerMove) {
+                panelState.composerDial?.removeEventListener("pointermove", panelState.onComposerDialPointerMove);
+            }
+            if (panelState.onComposerDialPointerUp) {
+                panelState.composerDial?.removeEventListener("pointerup", panelState.onComposerDialPointerUp);
+                panelState.composerDial?.removeEventListener("pointercancel", panelState.onComposerDialPointerUp);
+            }
+            if (panelState.onComposerViewportPointerDown) {
+                panelState.viewport.removeEventListener("pointerdown", panelState.onComposerViewportPointerDown);
+            }
+            if (panelState.onComposerViewportPointerMove) {
+                panelState.viewport.removeEventListener("pointermove", panelState.onComposerViewportPointerMove);
+            }
+            if (panelState.onComposerViewportPointerUp) {
+                panelState.viewport.removeEventListener("pointerup", panelState.onComposerViewportPointerUp);
+                panelState.viewport.removeEventListener("pointercancel", panelState.onComposerViewportPointerUp);
+            }
+            if (panelState.onComposerViewportWheel) {
+                panelState.viewport.removeEventListener("wheel", panelState.onComposerViewportWheel);
+            }
+            if (panelState.onComposerPanelGatePointerDown) {
+                panelState.panel.removeEventListener("pointerdown", panelState.onComposerPanelGatePointerDown, true);
+            }
             const header = panelState.panel.querySelector(".aux-camera-view__header");
             if (header) {
                 if (panelState.onPointerDown) {
@@ -1448,6 +2589,8 @@ class AuxiliaryCameraViewsManager {
         this.root.remove();
         this.root = null;
         this.chipDock = null;
+        this.chipDockLeft = null;
+        this.chipDockRight = null;
     }
 }
 

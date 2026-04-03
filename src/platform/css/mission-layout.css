@@ -196,6 +196,174 @@ canvas {
     cursor: default;
 }
 
+.aux-camera-view--composer {
+    grid-template-rows: auto auto auto auto 1fr;
+}
+
+.aux-camera-view__composer-presets,
+.aux-camera-view__composer-timeline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 7px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+    min-width: 0;
+}
+
+.aux-camera-view__composer-label {
+    color: rgba(224, 237, 255, 0.95);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.015em;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-hint {
+    margin-left: auto;
+    color: rgba(197, 216, 245, 0.86);
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-button {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(211, 226, 248, 0.92);
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 7px;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-button:hover {
+    background: rgba(66, 126, 218, 0.35);
+    border-color: rgba(132, 183, 255, 0.7);
+}
+
+.aux-camera-view__composer-button.is-active {
+    background: rgba(68, 130, 223, 0.42);
+    border-color: rgba(132, 183, 255, 0.72);
+    color: rgba(240, 247, 255, 0.97);
+}
+
+.aux-camera-view__composer-timeline-slider {
+    flex: 1;
+    min-width: 0;
+    accent-color: rgba(106, 169, 255, 1);
+}
+
+.aux-camera-view__composer-controls {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    column-gap: 6px;
+    padding: 5px 7px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+    min-width: 0;
+    overflow: visible;
+}
+
+.aux-camera-view__composer-ambient-slider {
+    min-width: 0;
+    width: 100%;
+    accent-color: rgba(120, 178, 255, 1);
+}
+
+.aux-camera-view__composer-ambient-value {
+    color: rgba(208, 223, 246, 0.92);
+    font-size: 9px;
+    font-weight: 600;
+    width: 30px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.aux-camera-view__composer-dial-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 58px;
+}
+
+.aux-camera-view__composer-dial {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    border: 1px solid rgba(150, 196, 255, 0.6);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(45, 72, 114, 0.52) 0%, rgba(15, 25, 40, 0.85) 62%),
+        repeating-conic-gradient(from -90deg, rgba(193, 220, 255, 0.34) 0deg 1.8deg, transparent 1.8deg 10deg),
+        radial-gradient(circle at 50% 50%, transparent 0 69%, rgba(170, 206, 255, 0.24) 69.5% 71%, transparent 71.5%);
+    box-shadow: inset 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(22, 35, 56, 0.7);
+    cursor: grab;
+    touch-action: none;
+}
+
+.aux-camera-view__composer-dial:active {
+    cursor: grabbing;
+}
+
+.aux-camera-view__composer-dial-needle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 22px;
+    border-radius: 999px;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(0deg);
+    background: linear-gradient(180deg, rgba(232, 243, 255, 0.98), rgba(133, 188, 255, 0.96));
+    box-shadow: 0 0 0 1px rgba(26, 43, 67, 0.75), 0 0 10px rgba(147, 199, 255, 0.42);
+}
+
+.aux-camera-view__composer-dial-needle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: rgba(228, 240, 255, 0.98);
+    border: 1px solid rgba(121, 171, 255, 0.85);
+}
+
+.aux-camera-view__composer-disabled-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 3;
+    color: rgba(178, 204, 240, 0.34);
+    font-size: clamp(10px, 1.1vw, 17px);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    text-align: center;
+    text-shadow: 0 1px 10px rgba(8, 14, 24, 0.55);
+}
+
+.aux-camera-view__composer-disabled-overlay[hidden] {
+    display: none;
+}
+
+.aux-camera-view--composer-disabled .aux-camera-view__composer-presets,
+.aux-camera-view--composer-disabled .aux-camera-view__composer-timeline,
+.aux-camera-view--composer-disabled .aux-camera-view__composer-controls,
+.aux-camera-view--composer-disabled .aux-camera-view__viewport {
+    opacity: 0.56;
+}
+
 .aux-camera-view__viewport {
     position: relative;
     min-width: 0;
@@ -291,11 +459,19 @@ canvas {
 .aux-camera-chip-dock {
     position: fixed;
     top: 76px;
-    right: 8px;
     display: grid;
     gap: 6px;
     pointer-events: none;
     z-index: 10;
+}
+
+.aux-camera-chip-dock--right {
+    right: 8px;
+}
+
+.aux-camera-chip-dock--left {
+    left: 8px;
+    justify-items: start;
 }
 
 .aux-camera-chip {

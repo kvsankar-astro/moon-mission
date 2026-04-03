@@ -88,6 +88,7 @@ function createSceneHandlerClass(deps) {
                 viewAuxiliaryPanels,
                 earthRadius,
                 moonRadius,
+                timelineEventInfos,
             } = getRuntimeState();
 
             updateCraftScale();
@@ -103,6 +104,7 @@ function createSceneHandlerClass(deps) {
                     skyContainer: animationScene.skyContainer,
                     earthRadius,
                     moonRadius,
+                    timelineEventInfos,
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
                 });
@@ -208,6 +210,7 @@ function createSceneHandlerClass(deps) {
                 skyContainer: animationScene.skyContainer,
                 earthRadius,
                 moonRadius,
+                timelineEventInfos,
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
             });

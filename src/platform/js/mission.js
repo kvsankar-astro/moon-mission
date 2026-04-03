@@ -625,6 +625,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewAuxiliaryPanels: () => runtimeViewState.getViewAuxiliaryPanels(),
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
+    getEventInfos: () => eventInfos,
 });
 
 function render() {
