@@ -20,6 +20,7 @@
     var state = {
         missions: [],
         generatedAt: "",
+        sourcePage: "",
         search: "",
         section: "",
         status: "",
@@ -33,6 +34,9 @@
         status: document.getElementById("audit-status"),
         era: document.getElementById("audit-era"),
         sort: document.getElementById("audit-sort"),
+        sourcePageLink: document.getElementById("audit-source-page"),
+        sourcePageInlineLink: document.getElementById("audit-source-page-inline"),
+        jsonLink: document.getElementById("audit-json-link"),
         summary: document.getElementById("audit-summary"),
         statusStrip: document.getElementById("audit-status-strip"),
         count: document.getElementById("audit-table-count"),
@@ -105,6 +109,28 @@
             "Pre-launch": 6
         };
         return Object.prototype.hasOwnProperty.call(order, status) ? order[status] : 99;
+    }
+
+    function resolveMissionWikipediaUrl(entry) {
+        if (!entry) return "";
+
+        if (typeof entry.wikipediaUrl === "string" && entry.wikipediaUrl.trim()) {
+            return entry.wikipediaUrl.trim();
+        }
+
+        if (Array.isArray(entry.sourceLinks)) {
+            for (var i = 0; i < entry.sourceLinks.length; i += 1) {
+                var url = (entry.sourceLinks[i] && entry.sourceLinks[i].url) ? String(entry.sourceLinks[i].url) : "";
+                if (/^https?:\/\/([a-z]+\.)?wikipedia\.org\/wiki\//i.test(url)) {
+                    return url;
+                }
+            }
+        }
+
+        // Fallback to Wikipedia search when no direct page URL is available.
+        var query = String(entry.mission || entry.spacecraft || "").trim();
+        if (!query) return "";
+        return "https://en.wikipedia.org/wiki/Special:Search?search=" + encodeURIComponent(query);
     }
 
     function missionMatches(entry) {
@@ -203,6 +229,11 @@
 
         refs.body.innerHTML = missions.map(function(entry) {
             var badgeClass = statusClassMap[entry.availabilityStatus] || "audit-badge--none-verified";
+            var wikiUrl = resolveMissionWikipediaUrl(entry);
+            var missionTitle = escapeHtml(entry.mission);
+            var missionTitleHtml = wikiUrl
+                ? '<a class="audit-mission-link" href="' + escapeHtml(wikiUrl) + '" target="_blank" rel="noreferrer">' + missionTitle + "</a>"
+                : missionTitle;
             var idsHtml = (entry.jplIds && entry.jplIds.length)
                 ? '<div class="audit-ids">' + entry.jplIds.map(function(id) {
                     return '<span class="audit-id-chip">' + escapeHtml(id) + '</span>';
@@ -221,7 +252,7 @@
             return (
                 "<tr>" +
                     "<td>" +
-                        '<div class="audit-mission-name">' + escapeHtml(entry.mission) + "</div>" +
+                        '<div class="audit-mission-name">' + missionTitleHtml + "</div>" +
                         '<div class="audit-mission-meta">' + escapeHtml(missionMetaParts.join(" | ")) + "</div>" +
                     "</td>" +
                     "<td>" + escapeHtml(entry.section) + "</td>" +
@@ -281,6 +312,12 @@
     function init(payload) {
         state.missions = Array.isArray(payload && payload.missions) ? payload.missions : [];
         state.generatedAt = payload && payload.generatedAt ? payload.generatedAt : "";
+        state.sourcePage = payload && payload.sourcePage ? String(payload.sourcePage) : "";
+
+        if (state.sourcePage) {
+            if (refs.sourcePageLink) refs.sourcePageLink.href = state.sourcePage;
+            if (refs.sourcePageInlineLink) refs.sourcePageInlineLink.href = state.sourcePage;
+        }
 
         populateSelect(refs.section, Object.keys(sectionOrder).filter(function(section) {
             return state.missions.some(function(entry) { return entry.section === section; });

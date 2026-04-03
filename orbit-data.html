@@ -66,6 +66,18 @@
             color: #ffffff;
         }
 
+        .audit-source-inline {
+            color: #b8ccf2;
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(165, 193, 242, 0.65);
+        }
+
+        .audit-source-inline:hover {
+            color: #ffffff;
+            border-bottom-color: rgba(255, 255, 255, 0.85);
+        }
+
         .audit-title {
             margin: 12px 0 8px 0;
             font-size: 38px;
@@ -202,17 +214,19 @@
             border: 1px solid var(--line);
             border-radius: 16px;
             background: rgba(11, 18, 34, 0.92);
+            box-shadow: inset 0 0 0 1px rgba(40, 62, 103, 0.18);
         }
 
         .audit-table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1400px;
+            table-layout: fixed;
+            min-width: 1520px;
         }
 
         .audit-table th,
         .audit-table td {
-            padding: 12px 12px;
+            padding: 12px 14px;
             border-bottom: 1px solid #24365e;
             vertical-align: top;
             text-align: left;
@@ -226,14 +240,26 @@
             color: #b0c1e5;
             font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.07em;
             text-transform: uppercase;
         }
 
         .audit-table td {
             color: #deebff;
             font-size: 13px;
-            line-height: 1.45;
+            line-height: 1.5;
+        }
+
+        .audit-table tbody tr:nth-child(odd) td {
+            background: rgba(10, 18, 37, 0.68);
+        }
+
+        .audit-table tbody tr:nth-child(even) td {
+            background: rgba(8, 15, 31, 0.55);
+        }
+
+        .audit-table tbody tr:hover td {
+            background: rgba(20, 33, 61, 0.72);
         }
 
         .audit-mission-name {
@@ -243,9 +269,102 @@
             color: #f3f7ff;
         }
 
+        .audit-mission-link {
+            color: #f3f7ff;
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(168, 193, 238, 0.35);
+        }
+
+        .audit-mission-link:hover {
+            color: #ffffff;
+            border-bottom-color: rgba(214, 228, 255, 0.9);
+        }
+
         .audit-mission-meta {
             color: var(--muted);
             font-size: 12px;
+        }
+
+        .audit-table th:nth-child(1),
+        .audit-table td:nth-child(1) {
+            width: 300px;
+            min-width: 300px;
+        }
+
+        .audit-table th:nth-child(2),
+        .audit-table td:nth-child(2) {
+            width: 86px;
+            min-width: 86px;
+        }
+
+        .audit-table th:nth-child(3),
+        .audit-table td:nth-child(3) {
+            width: 98px;
+            min-width: 98px;
+        }
+
+        .audit-table th:nth-child(4),
+        .audit-table td:nth-child(4) {
+            width: 90px;
+            min-width: 90px;
+        }
+
+        .audit-table th:nth-child(5),
+        .audit-table td:nth-child(5) {
+            width: 95px;
+            min-width: 95px;
+        }
+
+        .audit-table th:nth-child(6),
+        .audit-table td:nth-child(6) {
+            width: 100px;
+            min-width: 100px;
+        }
+
+        .audit-table th:nth-child(7),
+        .audit-table td:nth-child(7) {
+            width: 190px;
+            min-width: 190px;
+        }
+
+        .audit-table th:nth-child(8),
+        .audit-table td:nth-child(8) {
+            width: 104px;
+            min-width: 104px;
+        }
+
+        .audit-table th:nth-child(9),
+        .audit-table td:nth-child(9) {
+            width: 140px;
+            min-width: 140px;
+        }
+
+        .audit-table th:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 4;
+            box-shadow: 1px 0 0 #22335a;
+        }
+
+        .audit-table td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 2;
+            box-shadow: 1px 0 0 #22335a;
+            background: rgba(11, 20, 39, 0.98);
+        }
+
+        .audit-table tbody tr:hover td:nth-child(1) {
+            background: rgba(18, 31, 58, 0.98);
+        }
+
+        .audit-table td:nth-child(2),
+        .audit-table td:nth-child(3),
+        .audit-table td:nth-child(4),
+        .audit-table td:nth-child(5),
+        .audit-table td:nth-child(6) {
+            white-space: normal;
+            color: #d7e4fc;
         }
 
         .audit-badge {
@@ -303,6 +422,7 @@
             text-decoration: none;
             font-weight: 600;
             word-break: break-word;
+            line-height: 1.3;
         }
 
         .audit-links a:hover {
@@ -332,6 +452,16 @@
             .audit-title {
                 font-size: 30px;
             }
+
+            .audit-table {
+                min-width: 1320px;
+            }
+
+            .audit-table th:nth-child(1),
+            .audit-table td:nth-child(1) {
+                position: static;
+                box-shadow: none;
+            }
         }
     </style>
 </head>
@@ -343,10 +473,13 @@
                 <h1 class="audit-title">Moon Mission Orbit Data Status</h1>
                 <p class="audit-subtitle">
                     Mission-by-mission orbit availability across JPL HORIZONS, NAIF/SPICE, and other public archives, based on the Wikipedia
-                    <em>List of missions to the Moon</em>. Blank source cells mean no public machine-readable orbit archive was verified in this audit.
+                    <a id="audit-source-page-inline" class="audit-source-inline" href="https://en.wikipedia.org/wiki/List_of_missions_to_the_Moon" target="_blank" rel="noreferrer"><em>List of missions to the Moon</em></a>.
+                    Blank source cells mean no public machine-readable orbit archive was verified in this audit.
                 </p>
             </div>
             <div class="audit-actions">
+                <a id="audit-source-page" class="audit-toplink" href="https://en.wikipedia.org/wiki/List_of_missions_to_the_Moon" target="_blank" rel="noreferrer">Wikipedia source list</a>
+                <a id="audit-json-link" class="audit-toplink" href="assets/orbit-availability.json" target="_blank" rel="noreferrer">Orbit dataset JSON</a>
                 <a class="audit-toplink" href="docs/horizons-lunar-missions.md">Audit notes</a>
             </div>
         </div>
