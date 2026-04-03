@@ -39,6 +39,45 @@ export function getMissionConfigUrl() {
     return resolveMissionConfigUrl(getMissionDataPath());
 }
 
+function getMissionConfigProfileName() {
+    try {
+        const value = new URLSearchParams(window?.location?.search || "").get("testProfile");
+        if (typeof value !== "string") return null;
+        const profile = value.trim().toLowerCase();
+        if (!profile) return null;
+        return /^[a-z0-9_-]+$/.test(profile) ? profile : null;
+    } catch (_error) {
+        return null;
+    }
+}
+
+function getMissionConfigProfileUrl(profileName) {
+    const dataPath = getMissionDataPath();
+    if (!dataPath || !profileName) return null;
+    const basePath = dataPath.endsWith("/") ? dataPath.slice(0, -1) : dataPath;
+    return `${basePath}/config.${profileName}.json`;
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function deepMergeObjects(baseValue, patchValue) {
+    if (!isPlainObject(baseValue)) return patchValue;
+    if (!isPlainObject(patchValue)) return patchValue;
+
+    const merged = { ...baseValue };
+    for (const [key, patchChild] of Object.entries(patchValue)) {
+        const baseChild = merged[key];
+        if (isPlainObject(baseChild) && isPlainObject(patchChild)) {
+            merged[key] = deepMergeObjects(baseChild, patchChild);
+        } else {
+            merged[key] = patchChild;
+        }
+    }
+    return merged;
+}
+
 export function getMissionManifestUrl() {
     return resolveMissionManifestUrl(getMissionDataPath());
 }
@@ -61,7 +100,28 @@ export async function loadMissionConfig() {
                 return null;
             }
 
-            const rawConfig = await response.json();
+            let rawConfig = await response.json();
+            const configProfile = getMissionConfigProfileName();
+            if (configProfile) {
+                const profileUrl = getMissionConfigProfileUrl(configProfile);
+                if (profileUrl) {
+                    try {
+                        const profileResponse = await fetch(profileUrl);
+                        if (profileResponse.ok) {
+                            const profilePatch = await profileResponse.json();
+                            rawConfig = deepMergeObjects(rawConfig, profilePatch);
+                            console.debug(`Applied mission config test profile '${configProfile}'`);
+                        } else {
+                            console.debug(
+                                `Mission config test profile '${configProfile}' not found (${profileResponse.status}), using base config`,
+                            );
+                        }
+                    } catch (profileError) {
+                        console.debug(`Could not load mission config test profile '${configProfile}':`, profileError);
+                    }
+                }
+            }
+
             const manifestUrl = getMissionManifestUrl();
             if (manifestUrl) {
                 try {

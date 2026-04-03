@@ -1,0 +1,11 @@
+{
+  "ui": {
+    "viewDefaults": {
+      "orbitStyle": "classic",
+      "viewAuxiliaryPanels": false,
+      "viewMoonSOI": false,
+      "viewMoonHighlightRing": false,
+      "relativeDefaultPlaneSelection": "DEFAULT"
+    }
+  }
+}
