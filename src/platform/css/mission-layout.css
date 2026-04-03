@@ -806,9 +806,9 @@ fieldset {
         line-height: 1.2;
         margin: 0px;
         padding: 0px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
     .blurb h2,
     .blurb p {
@@ -918,6 +918,25 @@ fieldset {
     .blurb h2 { font-size: 1.0em; margin: 0px; padding: 0px; }
     .blurb p { font-size: 1.0em; }
     .date { font-size: 1.2em; }
+}
+
+.mission-breadcrumb {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.mission-breadcrumb a {
+    text-decoration: none;
+}
+
+.mission-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.mission-breadcrumb__sep {
+    opacity: 0.75;
 }
 
 .cy3 { font-family: "Lucida Console", monospace; text-align: right; }
