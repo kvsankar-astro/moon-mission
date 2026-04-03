@@ -34,7 +34,7 @@ jobs:
       - name: Prepare deployment directory (app repo only)
         run: |
           mkdir -p dist-pages
-          cp index.html mission.html orbit-data.html dist-pages/
+          cp index.html mission.html orbit-data.html assets-status.html dist-pages/
           if [ -f .htaccess ]; then
             cp .htaccess dist-pages/
           fi
@@ -51,6 +51,7 @@ jobs:
               Path("dist-pages/index.html"),
               Path("dist-pages/mission.html"),
               Path("dist-pages/orbit-data.html"),
+              Path("dist-pages/assets-status.html"),
           ]
           for html_path in html_files:
               text = html_path.read_text(encoding="utf-8")
@@ -78,6 +79,7 @@ jobs:
           test -f dist-pages/index.html
           test -f dist-pages/mission.html
           test -f dist-pages/orbit-data.html
+          test -f dist-pages/assets-status.html
           test -d dist-pages/assets
           APP_ASSET_REV="${GITHUB_SHA::12}"
           test -d "dist-pages/src-${APP_ASSET_REV}/platform"

@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Moon mission runtime asset size status across configured missions and shared textures/images">
+    <title>Moon Mission Assets Status</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+    <style>
+        :root {
+            --bg: #08111f;
+            --panel: rgba(13, 21, 40, 0.92);
+            --panel-2: rgba(19, 31, 57, 0.9);
+            --line: #2a3b66;
+            --text: #e3ecff;
+            --muted: #9fb1d7;
+            --accent: #ffa000;
+            --link: #8ec1ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top right, rgba(63, 110, 196, 0.18), transparent 32%),
+                radial-gradient(circle at top left, rgba(255, 160, 0, 0.1), transparent 22%),
+                linear-gradient(180deg, #09101d 0%, #08111f 100%);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+        }
+
+        .assets-shell {
+            width: min(2200px, calc(100vw - 24px));
+            margin: 28px auto 44px auto;
+            padding: 24px;
+        }
+
+        .assets-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .assets-title {
+            margin: 12px 0 8px 0;
+            font-size: 38px;
+            line-height: 1.08;
+            color: var(--accent);
+        }
+
+        .assets-subtitle {
+            margin: 0;
+            max-width: 940px;
+            color: var(--muted);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .assets-toplink {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid #314878;
+            border-radius: 999px;
+            padding: 8px 12px;
+            color: #d4e4ff;
+            background: rgba(18, 31, 57, 0.9);
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .assets-toplink:hover {
+            border-color: #6fa7ff;
+            color: #ffffff;
+        }
+
+        .assets-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .assets-panel {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--panel);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+        }
+
+        .assets-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            align-items: end;
+        }
+
+        .assets-control {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .assets-control label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .assets-control input,
+        .assets-control select {
+            width: 100%;
+            border: 1px solid #355083;
+            border-radius: 10px;
+            background: rgba(13, 23, 44, 0.96);
+            color: var(--text);
+            padding: 10px 12px;
+            font: inherit;
+        }
+
+        .assets-control input::placeholder {
+            color: #7588b3;
+        }
+
+        .assets-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 10px;
+        }
+
+        .assets-kpi {
+            border: 1px solid #2f4474;
+            border-radius: 14px;
+            background: var(--panel-2);
+            padding: 14px;
+        }
+
+        .assets-kpi__label {
+            margin: 0 0 6px 0;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .assets-kpi__value {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #f4f7ff;
+        }
+
+        .assets-table-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: rgba(11, 18, 34, 0.92);
+            box-shadow: inset 0 0 0 1px rgba(40, 62, 103, 0.18);
+        }
+
+        .assets-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+            min-width: 0;
+        }
+
+        .assets-table th,
+        .assets-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #24365e;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        .assets-table th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: rgba(18, 30, 56, 0.98);
+            color: #b0c1e5;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+        }
+
+        .assets-table-sort {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-transform: inherit;
+            letter-spacing: inherit;
+            cursor: pointer;
+        }
+
+        .assets-table-sort:hover {
+            color: #dfe8ff;
+        }
+
+        .assets-table-sort__indicator {
+            display: inline-block;
+            min-width: 10px;
+            color: #7f93c0;
+        }
+
+        .assets-table-sort.is-active {
+            color: #f3f7ff;
+        }
+
+        .assets-table-sort.is-active .assets-table-sort__indicator {
+            color: #9bc0ff;
+        }
+
+        .assets-table td {
+            color: #deebff;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .assets-table tbody tr:nth-child(odd) td {
+            background: rgba(10, 18, 37, 0.68);
+        }
+
+        .assets-table tbody tr:nth-child(even) td {
+            background: rgba(8, 15, 31, 0.55);
+        }
+
+        .assets-table tbody tr:hover td {
+            background: rgba(20, 33, 61, 0.72);
+        }
+
+        .assets-table th:nth-child(1),
+        .assets-table td:nth-child(1) { min-width: 220px; }
+        .assets-table th:nth-child(5),
+        .assets-table td:nth-child(5) { min-width: 130px; }
+        .assets-table th:nth-child(6),
+        .assets-table td:nth-child(6) { min-width: 110px; }
+        .assets-table th:nth-child(7),
+        .assets-table td:nth-child(7) { min-width: 110px; }
+        .assets-table th:nth-child(8),
+        .assets-table td:nth-child(8) { min-width: 130px; }
+
+        .assets-mission-name {
+            margin: 0 0 4px 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #f3f7ff;
+        }
+
+        .assets-mission-meta {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .assets-origin-total {
+            font-size: 12px;
+            color: #dce8ff;
+            margin-bottom: 6px;
+        }
+
+        .assets-file-links {
+            display: grid;
+            gap: 4px;
+        }
+
+        .assets-file-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .assets-file-name {
+            color: #dfe9ff;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .assets-link {
+            color: var(--link);
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .assets-link:hover {
+            text-decoration: underline;
+        }
+
+        .assets-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid rgba(131, 149, 186, 0.3);
+            color: #d0d8ea;
+            background: rgba(110, 126, 160, 0.14);
+        }
+
+        .assets-badge--ok {
+            background: rgba(72, 183, 135, 0.16);
+            color: #c4f4dd;
+            border-color: rgba(99, 203, 157, 0.42);
+        }
+
+        .assets-section-title {
+            margin: 0 0 10px 0;
+            color: #d9e6ff;
+            font-size: 17px;
+        }
+
+        .assets-shared-group {
+            border: 1px solid #2e4372;
+            border-radius: 12px;
+            padding: 12px;
+            background: rgba(14, 24, 45, 0.9);
+            margin-bottom: 12px;
+        }
+
+        .assets-shared-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .assets-shared-label {
+            margin: 0;
+            color: #eef4ff;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .assets-shared-meta {
+            color: #aac0ea;
+            font-size: 12px;
+        }
+
+        .assets-empty {
+            padding: 22px 14px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .assets-footer {
+            margin-top: 14px;
+            color: #7f90b6;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 760px) {
+            .assets-shell {
+                width: min(100vw, calc(100vw - 16px));
+                margin-top: 16px;
+                padding: 8px;
+            }
+
+            .assets-title { font-size: 30px; }
+            .assets-table { min-width: 1320px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="assets-shell">
+        <div class="assets-topbar">
+            <div>
+                <a class="assets-toplink" href="index.html">Return to Mission Catalog</a>
+                <h1 class="assets-title">Moon Mission Assets Status</h1>
+                <p class="assets-subtitle">
+                    Configured mission asset sizes from <code>moon-mission-data</code>, currently grouped by
+                    <strong>Geo / Moon / Relative × primary compressed Chebyshev</strong> plus shared textures/images and runtime third-party files.
+                </p>
+            </div>
+            <div class="assets-actions">
+                <a id="assets-data-repo-link" class="assets-toplink" href="https://github.com/kvsankar/moon-mission-data" target="_blank" rel="noreferrer">Data Repository</a>
+                <a id="assets-json-link" class="assets-toplink" href="assets/assets-status.json" target="_blank" rel="noreferrer">Assets Dataset (JSON)</a>
+                <a class="assets-toplink" href="orbit-data.html">Orbit Data Status</a>
+            </div>
+        </div>
+
+        <section class="assets-panel">
+            <div class="assets-controls">
+                <div class="assets-control">
+                    <label for="assets-search">Search mission</label>
+                    <input id="assets-search" type="search" placeholder="Mission name or folder">
+                </div>
+                <div class="assets-control">
+                    <label for="assets-availability">Data folder</label>
+                    <select id="assets-availability">
+                        <option value="">All</option>
+                        <option value="with">With data folder</option>
+                        <option value="without">Missing data folder</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <section class="assets-panel">
+            <div id="assets-summary" class="assets-summary"></div>
+        </section>
+
+        <section class="assets-panel">
+            <div class="assets-table-wrap">
+                <table class="assets-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="missionName" data-sort-type="text">
+                                    Mission
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="geoBytes" data-sort-type="number">
+                                    Geo × Chebyshev
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="moonBytes" data-sort-type="number">
+                                    Moon × Chebyshev
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="relativeBytes" data-sort-type="number">
+                                    Relative × Chebyshev
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="totalChebyshevBytes" data-sort-type="number">
+                                    Total (compressed)
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="hasDataDir" data-sort-type="boolean">
+                                    Data folder
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="durationDays" data-sort-type="number">
+                                    Data Span (days)
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                            <th>
+                                <button class="assets-table-sort" type="button" data-sort-key="bytesPerDay" data-sort-type="number">
+                                    Compressed / day
+                                    <span class="assets-table-sort__indicator" aria-hidden="true"></span>
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="assets-table-body">
+                        <tr>
+                            <td colspan="8" class="assets-empty">Loading assets status data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="assets-footer">
+                Each file row links to both GitHub blob and raw content URLs in <code>moon-mission-data</code>.
+            </p>
+        </section>
+
+        <section class="assets-panel">
+            <h2 class="assets-section-title">Shared Assets</h2>
+            <div id="assets-shared-root">
+                <div class="assets-empty">Loading shared asset groups...</div>
+            </div>
+        </section>
+    </div>
+
+    <script src="src/platform/js/assets-status-page.js"></script>
+</body>
+</html>

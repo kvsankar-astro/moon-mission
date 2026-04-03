@@ -1,0 +1,2491 @@
+{
+  "schema": "moon-mission-assets-status",
+  "version": 1,
+  "generatedAtUtc": "2026-04-03T05:30:49.651250+00:00",
+  "sources": {
+    "appRepo": {
+      "path": "C:/sankar/projects/moon-mission",
+      "gitCommit": "386518fa86073fc8aae84546010c40d6f1b405ca",
+      "gitBranch": "master"
+    },
+    "dataRepo": {
+      "path": "C:/sankar/projects/moon-mission-data",
+      "gitCommit": "b10ab6d8a1d32a6f1394eeb6a1ec82725662a736",
+      "gitBranch": "main",
+      "githubRepo": "kvsankar/moon-mission-data",
+      "githubBranch": "main",
+      "githubUrl": "https://github.com/kvsankar/moon-mission-data"
+    }
+  },
+  "totals": {
+    "missionCount": 40,
+    "chebyshevFileCount": 111,
+    "chebyshevBytes": 198506899,
+    "sharedFileCount": 6,
+    "sharedBytes": 32078598
+  },
+  "missions": [
+    {
+      "missionFolder": "apollo10-lm",
+      "missionName": "Apollo 10 LM Snoopy",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1969-05-23T05:38:00Z",
+        "endUtc": "1969-05-28T00:06:00Z",
+        "durationDays": 4.769444444444445
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 172522,
+        "chebyshevBytesPerDay": 36172.347117064644
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 55791,
+          "files": [
+            {
+              "path": "assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz",
+              "name": "geo-SNOOPY-cheb.json.gz",
+              "sizeBytes": 55791,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 56110,
+          "files": [
+            {
+              "path": "assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz",
+              "name": "lunar-SNOOPY-cheb.json.gz",
+              "sizeBytes": 56110,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 60621,
+          "files": [
+            {
+              "path": "assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz",
+              "name": "relative-SNOOPY-cheb.json.gz",
+              "sizeBytes": 60621,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "apollo10-sivb",
+      "missionName": "Apollo 10 S-IVB",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1969-05-18T19:45:00Z",
+        "endUtc": "1969-05-29T00:06:00Z",
+        "durationDays": 10.18125
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 341479,
+        "chebyshevBytesPerDay": 33539.98772252916
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 110490,
+          "files": [
+            {
+              "path": "assets/apollo10-sivb/data/geo-A10S-cheb.json.gz",
+              "name": "geo-A10S-cheb.json.gz",
+              "sizeBytes": 110490,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 111374,
+          "files": [
+            {
+              "path": "assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz",
+              "name": "lunar-A10S-cheb.json.gz",
+              "sizeBytes": 111374,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 119615,
+          "files": [
+            {
+              "path": "assets/apollo10-sivb/data/relative-A10S-cheb.json.gz",
+              "name": "relative-A10S-cheb.json.gz",
+              "sizeBytes": 119615,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "apollo11-sivb",
+      "missionName": "Apollo 11 S-IVB",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1969-07-17T16:40:00Z",
+        "endUtc": "1969-07-28T00:06:00Z",
+        "durationDays": 10.309722222222222
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 338406,
+        "chebyshevBytesPerDay": 32823.96874579012
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 109314,
+          "files": [
+            {
+              "path": "assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz",
+              "name": "geo-SIVB-cheb.json.gz",
+              "sizeBytes": 109314,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 110476,
+          "files": [
+            {
+              "path": "assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz",
+              "name": "lunar-SIVB-cheb.json.gz",
+              "sizeBytes": 110476,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 118616,
+          "files": [
+            {
+              "path": "assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz",
+              "name": "relative-SIVB-cheb.json.gz",
+              "sizeBytes": 118616,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "apollo12-sivb",
+      "missionName": "Apollo 12 S-IVB",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1969-11-14T19:33:00Z",
+        "endUtc": "1969-12-06T00:06:00Z",
+        "durationDays": 21.189583333333335
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 1060926,
+        "chebyshevBytesPerDay": 50068.280405073245
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 342764,
+          "files": [
+            {
+              "path": "assets/apollo12-sivb/data/geo-A12S-cheb.json.gz",
+              "name": "geo-A12S-cheb.json.gz",
+              "sizeBytes": 342764,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 346586,
+          "files": [
+            {
+              "path": "assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz",
+              "name": "lunar-A12S-cheb.json.gz",
+              "sizeBytes": 346586,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 371576,
+          "files": [
+            {
+              "path": "assets/apollo12-sivb/data/relative-A12S-cheb.json.gz",
+              "name": "relative-A12S-cheb.json.gz",
+              "sizeBytes": 371576,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "apollo8-sivb",
+      "missionName": "Apollo 8 S-IVB",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1968-12-21T16:05:00Z",
+        "endUtc": "1968-12-31T00:05:00Z",
+        "durationDays": 9.333333333333334
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 342214,
+        "chebyshevBytesPerDay": 36665.78571428571
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 110724,
+          "files": [
+            {
+              "path": "assets/apollo8-sivb/data/geo-A8S-cheb.json.gz",
+              "name": "geo-A8S-cheb.json.gz",
+              "sizeBytes": 110724,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 111458,
+          "files": [
+            {
+              "path": "assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz",
+              "name": "lunar-A8S-cheb.json.gz",
+              "sizeBytes": 111458,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 120032,
+          "files": [
+            {
+              "path": "assets/apollo8-sivb/data/relative-A8S-cheb.json.gz",
+              "name": "relative-A8S-cheb.json.gz",
+              "sizeBytes": 120032,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "apollo9-sivb",
+      "missionName": "Apollo 9 S-IVB",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1969-03-03T23:39:00Z",
+        "endUtc": "1969-03-11T00:05:00Z",
+        "durationDays": 7.018055555555556
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 337443,
+        "chebyshevBytesPerDay": 48082.121511973084
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 109627,
+          "files": [
+            {
+              "path": "assets/apollo9-sivb/data/geo-A9S-cheb.json.gz",
+              "name": "geo-A9S-cheb.json.gz",
+              "sizeBytes": 109627,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 109734,
+          "files": [
+            {
+              "path": "assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz",
+              "name": "lunar-A9S-cheb.json.gz",
+              "sizeBytes": 109734,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 118082,
+          "files": [
+            {
+              "path": "assets/apollo9-sivb/data/relative-A9S-cheb.json.gz",
+              "name": "relative-A9S-cheb.json.gz",
+              "sizeBytes": 118082,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis",
+      "missionName": "ARTEMIS",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2011-06-01T00:00:00Z",
+        "endUtc": "2011-09-01T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 8087062,
+        "chebyshevBytesPerDay": 87902.84782608696
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 2643985,
+          "files": [
+            {
+              "path": "assets/artemis/data/geo-ARTP1-cheb.json.gz",
+              "name": "geo-ARTP1-cheb.json.gz",
+              "sizeBytes": 2643985,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/geo-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/geo-ARTP1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 2660671,
+          "files": [
+            {
+              "path": "assets/artemis/data/lunar-ARTP1-cheb.json.gz",
+              "name": "lunar-ARTP1-cheb.json.gz",
+              "sizeBytes": 2660671,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2782406,
+          "files": [
+            {
+              "path": "assets/artemis/data/relative-ARTP1-cheb.json.gz",
+              "name": "relative-ARTP1-cheb.json.gz",
+              "sizeBytes": 2782406,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/relative-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/relative-ARTP1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis1",
+      "missionName": "Artemis 1",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2022-11-16T09:04:00Z",
+        "endUtc": "2022-12-11T17:19:00Z",
+        "durationDays": 25.34375
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 1409911,
+        "chebyshevBytesPerDay": 55631.506781750926
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 457763,
+          "files": [
+            {
+              "path": "assets/artemis1/data/geo-ORION-cheb.json.gz",
+              "name": "geo-ORION-cheb.json.gz",
+              "sizeBytes": 457763,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/geo-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/geo-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 460324,
+          "files": [
+            {
+              "path": "assets/artemis1/data/lunar-ORION-cheb.json.gz",
+              "name": "lunar-ORION-cheb.json.gz",
+              "sizeBytes": 460324,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/lunar-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/lunar-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 491824,
+          "files": [
+            {
+              "path": "assets/artemis1/data/relative-ORION-cheb.json.gz",
+              "name": "relative-ORION-cheb.json.gz",
+              "sizeBytes": 491824,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/relative-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/relative-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis2",
+      "missionName": "Artemis 2",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2026-04-02T01:58:33Z",
+        "endUtc": "2026-04-10T23:54:35Z",
+        "durationDays": 8.913912037037036
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 357532,
+        "chebyshevBytesPerDay": 40109.43775465422
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 116190,
+          "files": [
+            {
+              "path": "assets/artemis2/data/geo-ORION-cheb.json.gz",
+              "name": "geo-ORION-cheb.json.gz",
+              "sizeBytes": 116190,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/geo-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/geo-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 116965,
+          "files": [
+            {
+              "path": "assets/artemis2/data/lunar-ORION-cheb.json.gz",
+              "name": "lunar-ORION-cheb.json.gz",
+              "sizeBytes": 116965,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/lunar-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/lunar-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 124377,
+          "files": [
+            {
+              "path": "assets/artemis2/data/relative-ORION-cheb.json.gz",
+              "name": "relative-ORION-cheb.json.gz",
+              "sizeBytes": 124377,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/relative-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/relative-ORION-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "capstone",
+      "missionName": "CAPSTONE",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2022-07-04T17:15:00Z",
+        "endUtc": "2022-10-04T17:15:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5254472,
+        "chebyshevBytesPerDay": 57113.82608695652
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1690929,
+          "files": [
+            {
+              "path": "assets/capstone/data/geo-CAPS-cheb.json.gz",
+              "name": "geo-CAPS-cheb.json.gz",
+              "sizeBytes": 1690929,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/geo-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/geo-CAPS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1717491,
+          "files": [
+            {
+              "path": "assets/capstone/data/lunar-CAPS-cheb.json.gz",
+              "name": "lunar-CAPS-cheb.json.gz",
+              "sizeBytes": 1717491,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/lunar-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/lunar-CAPS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1846052,
+          "files": [
+            {
+              "path": "assets/capstone/data/relative-CAPS-cheb.json.gz",
+              "name": "relative-CAPS-cheb.json.gz",
+              "sizeBytes": 1846052,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/relative-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/relative-CAPS-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "chandrayaan1",
+      "missionName": "Chandrayaan 1",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2008-10-22T01:12:00Z",
+        "endUtc": "2008-11-14T19:00:00Z",
+        "durationDays": 23.741666666666667
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 662859,
+        "chebyshevBytesPerDay": 27919.648999648998
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 63781,
+          "files": [
+            {
+              "path": "assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
+              "name": "geo-CH1-bodies-cheb.json.gz",
+              "sizeBytes": 63781,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 62679,
+          "files": [
+            {
+              "path": "assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
+              "name": "lunar-CH1-bodies-cheb.json.gz",
+              "sizeBytes": 62679,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 536399,
+          "files": [
+            {
+              "path": "assets/chandrayaan1/data/relative-CH1-cheb.json.gz",
+              "name": "relative-CH1-cheb.json.gz",
+              "sizeBytes": 536399,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "chandrayaan2",
+      "missionName": "Chandrayaan 2",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2019-07-22T09:31:00Z",
+        "endUtc": "2019-09-06T20:26:00Z",
+        "durationDays": 46.454861111111114
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 4581359,
+        "chebyshevBytesPerDay": 98619.58233051797
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1498335,
+          "files": [
+            {
+              "path": "assets/chandrayaan2/data/geo-SC-cheb.json.gz",
+              "name": "geo-SC-cheb.json.gz",
+              "sizeBytes": 1498335,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1502181,
+          "files": [
+            {
+              "path": "assets/chandrayaan2/data/lunar-SC-cheb.json.gz",
+              "name": "lunar-SC-cheb.json.gz",
+              "sizeBytes": 1502181,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1580843,
+          "files": [
+            {
+              "path": "assets/chandrayaan2/data/relative-CY2-cheb.json.gz",
+              "name": "relative-CY2-cheb.json.gz",
+              "sizeBytes": 1580843,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "chandrayaan2-vikram",
+      "missionName": "Chandrayaan-2 Lander Vikram",
+      "hasDataDir": false,
+      "dataSpan": {
+        "startUtc": "2019-07-22T09:31:00Z",
+        "endUtc": "2019-09-06T20:26:00Z",
+        "durationDays": 46.454861111111114
+      },
+      "totals": {
+        "chebyshevFiles": 0,
+        "chebyshevBytes": 0,
+        "chebyshevBytesPerDay": 0.0
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "moon": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "relative": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        }
+      }
+    },
+    {
+      "missionFolder": "chandrayaan3",
+      "missionName": "Chandrayaan 3",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2023-07-14T09:23:00Z",
+        "endUtc": "2023-09-06T12:33:00Z",
+        "durationDays": 54.13194444444444
+      },
+      "totals": {
+        "chebyshevFiles": 6,
+        "chebyshevBytes": 5597745,
+        "chebyshevBytesPerDay": 103409.27261064785
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 2,
+          "totalBytes": 1852735,
+          "files": [
+            {
+              "path": "assets/chandrayaan3/data/geo-CH3L-cheb.json.gz",
+              "name": "geo-CH3L-cheb.json.gz",
+              "sizeBytes": 1544416,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz"
+              }
+            },
+            {
+              "path": "assets/chandrayaan3/data/geo-CH3O-cheb.json.gz",
+              "name": "geo-CH3O-cheb.json.gz",
+              "sizeBytes": 308319,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 2,
+          "totalBytes": 1851927,
+          "files": [
+            {
+              "path": "assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz",
+              "name": "lunar-CH3L-cheb.json.gz",
+              "sizeBytes": 1543145,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz"
+              }
+            },
+            {
+              "path": "assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz",
+              "name": "lunar-CH3O-cheb.json.gz",
+              "sizeBytes": 308782,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 2,
+          "totalBytes": 1893083,
+          "files": [
+            {
+              "path": "assets/chandrayaan3/data/relative-CH3L-cheb.json.gz",
+              "name": "relative-CH3L-cheb.json.gz",
+              "sizeBytes": 1623077,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz"
+              }
+            },
+            {
+              "path": "assets/chandrayaan3/data/relative-CH3O-cheb.json.gz",
+              "name": "relative-CH3O-cheb.json.gz",
+              "sizeBytes": 270006,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "chandrayaan3-vikram",
+      "missionName": "Chandrayaan-3 Lander Vikram",
+      "hasDataDir": false,
+      "dataSpan": {
+        "startUtc": "2023-07-14T09:25:00Z",
+        "endUtc": "2023-09-06T12:31:00Z",
+        "durationDays": 54.12916666666667
+      },
+      "totals": {
+        "chebyshevFiles": 0,
+        "chebyshevBytes": 0,
+        "chebyshevBytesPerDay": 0.0
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "moon": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "relative": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        }
+      }
+    },
+    {
+      "missionFolder": "clementine",
+      "missionName": "Clementine",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1994-02-19T12:59:00Z",
+        "endUtc": "1994-05-03T12:59:00Z",
+        "durationDays": 73.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 3422179,
+        "chebyshevBytesPerDay": 46879.16438356164
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1103201,
+          "files": [
+            {
+              "path": "assets/clementine/data/geo-CLM-cheb.json.gz",
+              "name": "geo-CLM-cheb.json.gz",
+              "sizeBytes": 1103201,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/geo-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/geo-CLM-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1107906,
+          "files": [
+            {
+              "path": "assets/clementine/data/lunar-CLM-cheb.json.gz",
+              "name": "lunar-CLM-cheb.json.gz",
+              "sizeBytes": 1107906,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/lunar-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/lunar-CLM-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1211072,
+          "files": [
+            {
+              "path": "assets/clementine/data/relative-CLM-cheb.json.gz",
+              "name": "relative-CLM-cheb.json.gz",
+              "sizeBytes": 1211072,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/relative-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/relative-CLM-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "grail",
+      "missionName": "GRAIL",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2011-09-10T13:10:00Z",
+        "endUtc": "2012-03-01T00:00:00Z",
+        "durationDays": 172.45138888888889
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 7182114,
+        "chebyshevBytesPerDay": 41647.17980107116
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 2557436,
+          "files": [
+            {
+              "path": "assets/grail/data/geo-GRAA-cheb.json.gz",
+              "name": "geo-GRAA-cheb.json.gz",
+              "sizeBytes": 2557436,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/geo-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/geo-GRAA-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1891243,
+          "files": [
+            {
+              "path": "assets/grail/data/lunar-GRAA-cheb.json.gz",
+              "name": "lunar-GRAA-cheb.json.gz",
+              "sizeBytes": 1891243,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/lunar-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/lunar-GRAA-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2733435,
+          "files": [
+            {
+              "path": "assets/grail/data/relative-GRAA-cheb.json.gz",
+              "name": "relative-GRAA-cheb.json.gz",
+              "sizeBytes": 2733435,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/relative-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/relative-GRAA-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "grail-a-ebb",
+      "missionName": "GRAIL-A Ebb",
+      "hasDataDir": false,
+      "dataSpan": {
+        "startUtc": "2012-09-16T00:00:00Z",
+        "endUtc": "2012-12-17T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 0,
+        "chebyshevBytes": 0,
+        "chebyshevBytesPerDay": 0.0
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "moon": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "relative": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        }
+      }
+    },
+    {
+      "missionFolder": "grail-b-flow",
+      "missionName": "GRAIL-B Flow",
+      "hasDataDir": false,
+      "dataSpan": {
+        "startUtc": "2012-09-16T00:00:00Z",
+        "endUtc": "2012-12-17T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 0,
+        "chebyshevBytes": 0,
+        "chebyshevBytesPerDay": 0.0
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "moon": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        },
+        "relative": {
+          "fileCount": 0,
+          "totalBytes": 0,
+          "files": []
+        }
+      }
+    },
+    {
+      "missionFolder": "grail-ss-stage",
+      "missionName": "GRAIL-SS Stage",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2011-09-12T15:08:00Z",
+        "endUtc": "2011-12-13T15:08:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5258942,
+        "chebyshevBytesPerDay": 57162.413043478264
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1694222,
+          "files": [
+            {
+              "path": "assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz",
+              "name": "geo-GRSS-cheb.json.gz",
+              "sizeBytes": 1694222,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1716763,
+          "files": [
+            {
+              "path": "assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz",
+              "name": "lunar-GRSS-cheb.json.gz",
+              "sizeBytes": 1716763,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1847957,
+          "files": [
+            {
+              "path": "assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz",
+              "name": "relative-GRSS-cheb.json.gz",
+              "sizeBytes": 1847957,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "hgs1",
+      "missionName": "HGS-1",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1998-04-01T00:00:00Z",
+        "endUtc": "1998-07-02T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 1796289,
+        "chebyshevBytesPerDay": 19524.880434782608
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 432083,
+          "files": [
+            {
+              "path": "assets/hgs1/data/geo-HGS1-cheb.json.gz",
+              "name": "geo-HGS1-cheb.json.gz",
+              "sizeBytes": 432083,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/geo-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/geo-HGS1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 434004,
+          "files": [
+            {
+              "path": "assets/hgs1/data/lunar-HGS1-cheb.json.gz",
+              "name": "lunar-HGS1-cheb.json.gz",
+              "sizeBytes": 434004,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 930202,
+          "files": [
+            {
+              "path": "assets/hgs1/data/relative-HGS1-cheb.json.gz",
+              "name": "relative-HGS1-cheb.json.gz",
+              "sizeBytes": 930202,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/relative-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/relative-HGS1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "isee3",
+      "missionName": "ISEE-3 / ICE",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2014-06-25T19:19:00Z",
+        "endUtc": "2014-09-25T19:19:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5246632,
+        "chebyshevBytesPerDay": 57028.608695652176
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1690835,
+          "files": [
+            {
+              "path": "assets/isee3/data/geo-ICE-cheb.json.gz",
+              "name": "geo-ICE-cheb.json.gz",
+              "sizeBytes": 1690835,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/geo-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/geo-ICE-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1711739,
+          "files": [
+            {
+              "path": "assets/isee3/data/lunar-ICE-cheb.json.gz",
+              "name": "lunar-ICE-cheb.json.gz",
+              "sizeBytes": 1711739,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/lunar-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/lunar-ICE-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1844058,
+          "files": [
+            {
+              "path": "assets/isee3/data/relative-ICE-cheb.json.gz",
+              "name": "relative-ICE-cheb.json.gz",
+              "sizeBytes": 1844058,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/relative-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/relative-ICE-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "juice",
+      "missionName": "JUICE",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2024-07-15T00:00:00Z",
+        "endUtc": "2024-10-15T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5247963,
+        "chebyshevBytesPerDay": 57043.07608695652
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1690404,
+          "files": [
+            {
+              "path": "assets/juice/data/geo-JUI-cheb.json.gz",
+              "name": "geo-JUI-cheb.json.gz",
+              "sizeBytes": 1690404,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/geo-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/geo-JUI-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1712149,
+          "files": [
+            {
+              "path": "assets/juice/data/lunar-JUI-cheb.json.gz",
+              "name": "lunar-JUI-cheb.json.gz",
+              "sizeBytes": 1712149,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/lunar-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/lunar-JUI-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1845410,
+          "files": [
+            {
+              "path": "assets/juice/data/relative-JUI-cheb.json.gz",
+              "name": "relative-JUI-cheb.json.gz",
+              "sizeBytes": 1845410,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/relative-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/relative-JUI-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "kplo-danuri",
+      "missionName": "KPLO Danuri",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2022-09-15T00:00:00Z",
+        "endUtc": "2022-12-16T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 11748869,
+        "chebyshevBytesPerDay": 127705.09782608696
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 3786486,
+          "files": [
+            {
+              "path": "assets/kplo-danuri/data/geo-KPLO-cheb.json.gz",
+              "name": "geo-KPLO-cheb.json.gz",
+              "sizeBytes": 3786486,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 3823809,
+          "files": [
+            {
+              "path": "assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz",
+              "name": "lunar-KPLO-cheb.json.gz",
+              "sizeBytes": 3823809,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 4138574,
+          "files": [
+            {
+              "path": "assets/kplo-danuri/data/relative-KPLO-cheb.json.gz",
+              "name": "relative-KPLO-cheb.json.gz",
+              "sizeBytes": 4138574,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "ladee",
+      "missionName": "LADEE",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2014-01-16T00:00:00Z",
+        "endUtc": "2014-04-18T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 6958534,
+        "chebyshevBytesPerDay": 75636.23913043478
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 2241148,
+          "files": [
+            {
+              "path": "assets/ladee/data/geo-LAD-cheb.json.gz",
+              "name": "geo-LAD-cheb.json.gz",
+              "sizeBytes": 2241148,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/geo-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/geo-LAD-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 2255012,
+          "files": [
+            {
+              "path": "assets/ladee/data/lunar-LAD-cheb.json.gz",
+              "name": "lunar-LAD-cheb.json.gz",
+              "sizeBytes": 2255012,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/lunar-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/lunar-LAD-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2462374,
+          "files": [
+            {
+              "path": "assets/ladee/data/relative-LAD-cheb.json.gz",
+              "name": "relative-LAD-cheb.json.gz",
+              "sizeBytes": 2462374,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/relative-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/relative-LAD-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lcross-centaur",
+      "missionName": "LCROSS Centaur",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2009-10-09T01:50:00Z",
+        "endUtc": "2009-10-09T11:32:00Z",
+        "durationDays": 0.4041666666666667
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 20875,
+        "chebyshevBytesPerDay": 51649.48453608248
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 6335,
+          "files": [
+            {
+              "path": "assets/lcross-centaur/data/geo-LCCN-cheb.json.gz",
+              "name": "geo-LCCN-cheb.json.gz",
+              "sizeBytes": 6335,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 6331,
+          "files": [
+            {
+              "path": "assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz",
+              "name": "lunar-LCCN-cheb.json.gz",
+              "sizeBytes": 6331,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 8209,
+          "files": [
+            {
+              "path": "assets/lcross-centaur/data/relative-LCCN-cheb.json.gz",
+              "name": "relative-LCCN-cheb.json.gz",
+              "sizeBytes": 8209,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lcross-shepherd",
+      "missionName": "LCROSS Shepherd",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2009-07-09T11:35:00Z",
+        "endUtc": "2009-10-09T11:35:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5300148,
+        "chebyshevBytesPerDay": 57610.30434782609
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1720482,
+          "files": [
+            {
+              "path": "assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz",
+              "name": "geo-LCSH-cheb.json.gz",
+              "sizeBytes": 1720482,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1726676,
+          "files": [
+            {
+              "path": "assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz",
+              "name": "lunar-LCSH-cheb.json.gz",
+              "sizeBytes": 1726676,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1852990,
+          "files": [
+            {
+              "path": "assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz",
+              "name": "relative-LCSH-cheb.json.gz",
+              "sizeBytes": 1852990,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lro",
+      "missionName": "LRO",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2009-06-18T22:18:00Z",
+        "endUtc": "2009-09-18T22:16:00Z",
+        "durationDays": 91.99861111111112
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 6880478,
+        "chebyshevBytesPerDay": 74788.9334078111
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 2216405,
+          "files": [
+            {
+              "path": "assets/lro/data/geo-LRO-cheb.json.gz",
+              "name": "geo-LRO-cheb.json.gz",
+              "sizeBytes": 2216405,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/geo-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/geo-LRO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 2229739,
+          "files": [
+            {
+              "path": "assets/lro/data/lunar-LRO-cheb.json.gz",
+              "name": "lunar-LRO-cheb.json.gz",
+              "sizeBytes": 2229739,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/lunar-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/lunar-LRO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2434334,
+          "files": [
+            {
+              "path": "assets/lro/data/relative-LRO-cheb.json.gz",
+              "name": "relative-LRO-cheb.json.gz",
+              "sizeBytes": 2434334,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/relative-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/relative-LRO-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lunar-flashlight",
+      "missionName": "Lunar Flashlight",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2022-12-11T08:34:00Z",
+        "endUtc": "2023-03-13T08:34:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 10590812,
+        "chebyshevBytesPerDay": 115117.52173913043
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 3411586,
+          "files": [
+            {
+              "path": "assets/lunar-flashlight/data/geo-LFL-cheb.json.gz",
+              "name": "geo-LFL-cheb.json.gz",
+              "sizeBytes": 3411586,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 3461972,
+          "files": [
+            {
+              "path": "assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz",
+              "name": "lunar-LFL-cheb.json.gz",
+              "sizeBytes": 3461972,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 3717254,
+          "files": [
+            {
+              "path": "assets/lunar-flashlight/data/relative-LFL-cheb.json.gz",
+              "name": "relative-LFL-cheb.json.gz",
+              "sizeBytes": 3717254,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lunar-prospector",
+      "missionName": "Lunar Prospector",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1998-01-07T03:45:01Z",
+        "endUtc": "1998-01-20T00:04:01Z",
+        "durationDays": 12.846527777777778
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 811962,
+        "chebyshevBytesPerDay": 63204.782961241144
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 262585,
+          "files": [
+            {
+              "path": "assets/lunar-prospector/data/geo-LPRO-cheb.json.gz",
+              "name": "geo-LPRO-cheb.json.gz",
+              "sizeBytes": 262585,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 264289,
+          "files": [
+            {
+              "path": "assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz",
+              "name": "lunar-LPRO-cheb.json.gz",
+              "sizeBytes": 264289,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 285088,
+          "files": [
+            {
+              "path": "assets/lunar-prospector/data/relative-LPRO-cheb.json.gz",
+              "name": "relative-LPRO-cheb.json.gz",
+              "sizeBytes": 285088,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lunar-trailblazer",
+      "missionName": "Lunar Trailblazer",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2025-04-30T00:00:00Z",
+        "endUtc": "2025-07-31T00:00:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5228799,
+        "chebyshevBytesPerDay": 56834.77173913043
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1680654,
+          "files": [
+            {
+              "path": "assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz",
+              "name": "geo-LTB-cheb.json.gz",
+              "sizeBytes": 1680654,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1703593,
+          "files": [
+            {
+              "path": "assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz",
+              "name": "lunar-LTB-cheb.json.gz",
+              "sizeBytes": 1703593,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1844552,
+          "files": [
+            {
+              "path": "assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz",
+              "name": "relative-LTB-cheb.json.gz",
+              "sizeBytes": 1844552,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "lunarorbiter1",
+      "missionName": "Lunar Orbiter 1",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1966-08-14T15:40:37.082000Z",
+        "endUtc": "1966-10-26T23:40:37.271000Z",
+        "durationDays": 73.33333552083333
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 1715300,
+        "chebyshevBytesPerDay": 23390.45384772794
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 425586,
+          "files": [
+            {
+              "path": "assets/lunarorbiter1/data/geo-LO1-cheb.json.gz",
+              "name": "geo-LO1-cheb.json.gz",
+              "sizeBytes": 425586,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 427639,
+          "files": [
+            {
+              "path": "assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz",
+              "name": "lunar-LO1-cheb.json.gz",
+              "sizeBytes": 427639,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 862075,
+          "files": [
+            {
+              "path": "assets/lunarorbiter1/data/relative-LO1-cheb.json.gz",
+              "name": "relative-LO1-cheb.json.gz",
+              "sizeBytes": 862075,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "nozomi",
+      "missionName": "Nozomi",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1999-02-08T12:02:00Z",
+        "endUtc": "1999-05-11T12:02:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5231868,
+        "chebyshevBytesPerDay": 56868.13043478261
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1686139,
+          "files": [
+            {
+              "path": "assets/nozomi/data/geo-NOZ-cheb.json.gz",
+              "name": "geo-NOZ-cheb.json.gz",
+              "sizeBytes": 1686139,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/geo-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/geo-NOZ-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1699659,
+          "files": [
+            {
+              "path": "assets/nozomi/data/lunar-NOZ-cheb.json.gz",
+              "name": "lunar-NOZ-cheb.json.gz",
+              "sizeBytes": 1699659,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1846070,
+          "files": [
+            {
+              "path": "assets/nozomi/data/relative-NOZ-cheb.json.gz",
+              "name": "relative-NOZ-cheb.json.gz",
+              "sizeBytes": 1846070,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/relative-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/relative-NOZ-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "selene",
+      "missionName": "SELENE",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2007-10-20T02:31:05.182000Z",
+        "endUtc": "2009-06-10T18:26:06.184000Z",
+        "durationDays": 599.6632060416666
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 32564131,
+        "chebyshevBytesPerDay": 54304.03378415272
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 8601567,
+          "files": [
+            {
+              "path": "assets/selene/data/geo-SEL-cheb.json.gz",
+              "name": "geo-SEL-cheb.json.gz",
+              "sizeBytes": 8601567,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/geo-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/geo-SEL-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 8641944,
+          "files": [
+            {
+              "path": "assets/selene/data/lunar-SEL-cheb.json.gz",
+              "name": "lunar-SEL-cheb.json.gz",
+              "sizeBytes": 8641944,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/lunar-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/lunar-SEL-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 15320620,
+          "files": [
+            {
+              "path": "assets/selene/data/relative-SEL-cheb.json.gz",
+              "name": "relative-SEL-cheb.json.gz",
+              "sizeBytes": 15320620,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/relative-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/relative-SEL-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "slim",
+      "missionName": "SLIM",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2023-10-19T15:19:00Z",
+        "endUtc": "2024-01-19T15:19:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5770857,
+        "chebyshevBytesPerDay": 62726.70652173913
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1866952,
+          "files": [
+            {
+              "path": "assets/slim/data/geo-SLIM-cheb.json.gz",
+              "name": "geo-SLIM-cheb.json.gz",
+              "sizeBytes": 1866952,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/geo-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/geo-SLIM-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1881244,
+          "files": [
+            {
+              "path": "assets/slim/data/lunar-SLIM-cheb.json.gz",
+              "name": "lunar-SLIM-cheb.json.gz",
+              "sizeBytes": 1881244,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/lunar-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/lunar-SLIM-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2022661,
+          "files": [
+            {
+              "path": "assets/slim/data/relative-SLIM-cheb.json.gz",
+              "name": "relative-SLIM-cheb.json.gz",
+              "sizeBytes": 2022661,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/relative-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/relative-SLIM-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "smart1",
+      "missionName": "SMART-1",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2004-11-11T02:05:17.979000Z",
+        "endUtc": "2006-09-03T05:42:22Z",
+        "durationDays": 661.1507409837963
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 24965610,
+        "chebyshevBytesPerDay": 37760.84401395516
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 6159033,
+          "files": [
+            {
+              "path": "assets/smart1/data/geo-SM1-cheb.json.gz",
+              "name": "geo-SM1-cheb.json.gz",
+              "sizeBytes": 6159033,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/geo-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/geo-SM1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 6187605,
+          "files": [
+            {
+              "path": "assets/smart1/data/lunar-SM1-cheb.json.gz",
+              "name": "lunar-SM1-cheb.json.gz",
+              "sizeBytes": 6187605,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/lunar-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/lunar-SM1-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 12618972,
+          "files": [
+            {
+              "path": "assets/smart1/data/relative-SM1-cheb.json.gz",
+              "name": "relative-SM1-cheb.json.gz",
+              "sizeBytes": 12618972,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/relative-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/relative-SM1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "stereo",
+      "missionName": "STEREO",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2006-10-26T01:53:00Z",
+        "endUtc": "2007-01-26T01:53:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 7894394,
+        "chebyshevBytesPerDay": 85808.63043478261
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 2574566,
+          "files": [
+            {
+              "path": "assets/stereo/data/geo-STRA-cheb.json.gz",
+              "name": "geo-STRA-cheb.json.gz",
+              "sizeBytes": 2574566,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/geo-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/geo-STRA-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 2595295,
+          "files": [
+            {
+              "path": "assets/stereo/data/lunar-STRA-cheb.json.gz",
+              "name": "lunar-STRA-cheb.json.gz",
+              "sizeBytes": 2595295,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/lunar-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/lunar-STRA-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 2724533,
+          "files": [
+            {
+              "path": "assets/stereo/data/relative-STRA-cheb.json.gz",
+              "name": "relative-STRA-cheb.json.gz",
+              "sizeBytes": 2724533,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/relative-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/relative-STRA-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "tess",
+      "missionName": "TESS",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2018-04-18T23:37:00Z",
+        "endUtc": "2018-07-19T23:37:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5356163,
+        "chebyshevBytesPerDay": 58219.163043478264
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1740034,
+          "files": [
+            {
+              "path": "assets/tess/data/geo-TESS-cheb.json.gz",
+              "name": "geo-TESS-cheb.json.gz",
+              "sizeBytes": 1740034,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/geo-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/geo-TESS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1747029,
+          "files": [
+            {
+              "path": "assets/tess/data/lunar-TESS-cheb.json.gz",
+              "name": "lunar-TESS-cheb.json.gz",
+              "sizeBytes": 1747029,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/lunar-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/lunar-TESS-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1869100,
+          "files": [
+            {
+              "path": "assets/tess/data/relative-TESS-cheb.json.gz",
+              "name": "relative-TESS-cheb.json.gz",
+              "sizeBytes": 1869100,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/relative-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/relative-TESS-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "wind",
+      "missionName": "Wind",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "1994-11-01T10:49:00Z",
+        "endUtc": "1995-02-01T10:49:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5486025,
+        "chebyshevBytesPerDay": 59630.70652173913
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1779844,
+          "files": [
+            {
+              "path": "assets/wind/data/geo-WIND-cheb.json.gz",
+              "name": "geo-WIND-cheb.json.gz",
+              "sizeBytes": 1779844,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/geo-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/geo-WIND-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1790741,
+          "files": [
+            {
+              "path": "assets/wind/data/lunar-WIND-cheb.json.gz",
+              "name": "lunar-WIND-cheb.json.gz",
+              "sizeBytes": 1790741,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/lunar-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/lunar-WIND-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1915440,
+          "files": [
+            {
+              "path": "assets/wind/data/relative-WIND-cheb.json.gz",
+              "name": "relative-WIND-cheb.json.gz",
+              "sizeBytes": 1915440,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/relative-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/relative-WIND-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "wmap",
+      "missionName": "WMAP",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2001-06-30T21:16:00Z",
+        "endUtc": "2001-09-30T21:16:00Z",
+        "durationDays": 92.0
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 5284025,
+        "chebyshevBytesPerDay": 57435.05434782609
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1707164,
+          "files": [
+            {
+              "path": "assets/wmap/data/geo-WMAP-cheb.json.gz",
+              "name": "geo-WMAP-cheb.json.gz",
+              "sizeBytes": 1707164,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/geo-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/geo-WMAP-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1724574,
+          "files": [
+            {
+              "path": "assets/wmap/data/lunar-WMAP-cheb.json.gz",
+              "name": "lunar-WMAP-cheb.json.gz",
+              "sizeBytes": 1724574,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/lunar-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/lunar-WMAP-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1852287,
+          "files": [
+            {
+              "path": "assets/wmap/data/relative-WMAP-cheb.json.gz",
+              "name": "relative-WMAP-cheb.json.gz",
+              "sizeBytes": 1852287,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/relative-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/relative-WMAP-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "sharedAssets": {
+    "fileCount": 6,
+    "totalBytes": 32078598,
+    "groups": [
+      {
+        "key": "images",
+        "label": "Shared Images / Textures",
+        "fileCount": 6,
+        "totalBytes": 32078598,
+        "files": [
+          {
+            "path": "images/earth/2_no_clouds_8k.jpg",
+            "name": "2_no_clouds_8k.jpg",
+            "sizeBytes": 9517350,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/earth/2_no_clouds_8k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/earth/2_no_clouds_8k.jpg"
+            }
+          },
+          {
+            "path": "images/earth/earthspec1k.jpg",
+            "name": "earthspec1k.jpg",
+            "sizeBytes": 116543,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/earth/earthspec1k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/earth/earthspec1k.jpg"
+            }
+          },
+          {
+            "path": "images/moon/ldem_16_gsfc.png",
+            "name": "ldem_16_gsfc.png",
+            "sizeBytes": 5023158,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/moon/ldem_16_gsfc.png",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/moon/ldem_16_gsfc.png"
+            }
+          },
+          {
+            "path": "images/moon/Solarsystemscope_texture_8k_moon.jpg",
+            "name": "Solarsystemscope_texture_8k_moon.jpg",
+            "sizeBytes": 15030356,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/moon/Solarsystemscope_texture_8k_moon.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/moon/Solarsystemscope_texture_8k_moon.jpg"
+            }
+          },
+          {
+            "path": "images/sky/constellation_figures_2020_4k.jpg",
+            "name": "constellation_figures_2020_4k.jpg",
+            "sizeBytes": 516113,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/constellation_figures_2020_4k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/constellation_figures_2020_4k.jpg"
+            }
+          },
+          {
+            "path": "images/sky/starmap_2020_4k_stars.jpg",
+            "name": "starmap_2020_4k_stars.jpg",
+            "sizeBytes": 1875078,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/starmap_2020_4k_stars.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/starmap_2020_4k_stars.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "key": "third-party",
+        "label": "Third-party Runtime Assets",
+        "fileCount": 0,
+        "totalBytes": 0,
+        "files": []
+      }
+    ]
+  }
+}
