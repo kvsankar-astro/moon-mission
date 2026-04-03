@@ -186,6 +186,71 @@ export class MoonRenderer {
     }
 
     /**
+     * Update Moon textures after creation.
+     * @param {THREE.Texture} texture
+     * @param {THREE.Texture} displacementMap
+     * @param {THREE.Texture|null} normalMap
+     * @param {{ disposePrevious?: boolean }} options
+     */
+    updateTextures(texture, displacementMap, normalMap = null, { disposePrevious = true } = {}) {
+        const previousTexture = this.texture;
+        const previousDisplacementMap = this.displacementMap;
+        const previousNormalMap = this.normalMap;
+        const previousGeneratedNormalMap = this.generatedNormalMap;
+
+        this.texture = texture;
+        this.displacementMap = displacementMap;
+        this.normalMap = normalMap;
+
+        const generatedNormalMap = (!this.normalMap && this.displacementMap)
+            ? buildNormalMapFromHeightTexture(this.displacementMap)
+            : null;
+        this.generatedNormalMap = generatedNormalMap;
+        const resolvedNormalMap = this.normalMap || this.generatedNormalMap || null;
+
+        const material = this.mesh?.material;
+        if (material) {
+            material.map = this.texture || null;
+            material.displacementMap = this.displacementMap || null;
+            material.normalMap = resolvedNormalMap;
+            material.bumpMap = resolvedNormalMap ? null : (this.displacementMap || null);
+            material.bumpScale = resolvedNormalMap ? 0.0 : 0.0045;
+            material.needsUpdate = true;
+        }
+
+        if (disposePrevious) {
+            if (previousTexture && previousTexture !== this.texture) {
+                previousTexture.dispose?.();
+            }
+            if (
+                previousDisplacementMap &&
+                previousDisplacementMap !== this.displacementMap &&
+                previousDisplacementMap !== this.texture
+            ) {
+                previousDisplacementMap.dispose?.();
+            }
+            if (
+                previousNormalMap &&
+                previousNormalMap !== this.normalMap &&
+                previousNormalMap !== this.displacementMap &&
+                previousNormalMap !== this.texture &&
+                previousNormalMap !== this.generatedNormalMap
+            ) {
+                previousNormalMap.dispose?.();
+            }
+            if (
+                previousGeneratedNormalMap &&
+                previousGeneratedNormalMap !== this.generatedNormalMap &&
+                previousGeneratedNormalMap !== this.normalMap &&
+                previousGeneratedNormalMap !== this.displacementMap &&
+                previousGeneratedNormalMap !== this.texture
+            ) {
+                previousGeneratedNormalMap.dispose?.();
+            }
+        }
+    }
+
+    /**
      * Create Moon with axis and poles
      * @param {boolean} axisVisible - Initial visibility of polar axis
      * @param {boolean} polesVisible - Initial visibility of pole markers

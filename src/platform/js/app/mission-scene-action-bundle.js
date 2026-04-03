@@ -10,11 +10,11 @@ import { createBodyRotationActions } from "./body-rotation-actions.js";
 import { createLocationActions } from "./location-actions.js";
 import { createSpacecraftCurveActions } from "./spacecraft-curve-actions.js";
 import { createPrimarySecondaryBodiesActions } from "./primary-secondary-bodies-actions.js";
-import { loadSceneTextures } from "./texture-loader.js";
+import { createPlaceholderSceneTextures, loadSceneTextures } from "./texture-loader.js";
 import { createSceneInitActions } from "./scene-init-actions.js";
 import { createSceneDisposeActions } from "./scene-dispose-actions.js";
 import { createDimensionsActions } from "./dimensions-actions.js";
-import { applySceneTextures } from "./scene-texture-actions.js";
+import { applyAndRefreshSceneTextures } from "./scene-texture-actions.js";
 import { createScene3dInitActions } from "./scene-3d-init-actions.js";
 import { createSceneCameraPositionActions } from "./scene-camera-position-actions.js";
 import { createSceneCreationActions } from "./scene-creation-actions.js";
@@ -181,8 +181,10 @@ function createMissionSceneActionBundle(deps) {
 
     const scene3dInitActions = createScene3dInitActions({
         THREE,
+        createPlaceholderSceneTextures,
         loadSceneTextures,
-        applySceneTextures,
+        applyAndRefreshSceneTextures,
+        render,
     });
 
     const sceneCameraPositionActions = createSceneCameraPositionActions({

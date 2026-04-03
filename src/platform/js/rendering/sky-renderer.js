@@ -73,6 +73,42 @@ export class SkyRenderer {
     }
 
     /**
+     * Update sky textures after creation.
+     * @param {THREE.Texture} skyTexture
+     * @param {THREE.Texture} constellationTexture
+     * @param {{ disposePrevious?: boolean }} options
+     */
+    updateTextures(skyTexture, constellationTexture, { disposePrevious = true } = {}) {
+        const previousSkyTexture = this.skyTexture;
+        const previousConstellationTexture = this.constellationTexture;
+        this.skyTexture = skyTexture;
+        this.constellationTexture = constellationTexture;
+
+        if (this.skyMesh?.material) {
+            this.skyMesh.material.map = this.skyTexture || null;
+            this.skyMesh.material.needsUpdate = true;
+        }
+
+        if (this.constellationMesh?.material) {
+            this.constellationMesh.material.map = this.constellationTexture || null;
+            this.constellationMesh.material.needsUpdate = true;
+        }
+
+        if (disposePrevious) {
+            if (previousSkyTexture && previousSkyTexture !== this.skyTexture) {
+                previousSkyTexture.dispose?.();
+            }
+            if (
+                previousConstellationTexture &&
+                previousConstellationTexture !== this.constellationTexture &&
+                previousConstellationTexture !== this.skyTexture
+            ) {
+                previousConstellationTexture.dispose?.();
+            }
+        }
+    }
+
+    /**
      * Create the sky sphere with starmap and constellation overlay
      * @param {boolean} visible - Initial visibility
      */

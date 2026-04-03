@@ -41,6 +41,39 @@ export class EarthRenderer {
     }
 
     /**
+     * Update Earth textures after creation.
+     * @param {THREE.Texture} texture
+     * @param {THREE.Texture} specularTexture
+     * @param {{ disposePrevious?: boolean }} options
+     */
+    updateTextures(texture, specularTexture, { disposePrevious = true } = {}) {
+        const previousTexture = this.texture;
+        const previousSpecularTexture = this.specularTexture;
+        this.texture = texture;
+        this.specularTexture = specularTexture;
+
+        const material = this.mesh?.material;
+        if (material) {
+            material.map = this.texture || null;
+            material.specularMap = this.specularTexture || null;
+            material.needsUpdate = true;
+        }
+
+        if (disposePrevious) {
+            if (previousTexture && previousTexture !== this.texture) {
+                previousTexture.dispose?.();
+            }
+            if (
+                previousSpecularTexture &&
+                previousSpecularTexture !== this.specularTexture &&
+                previousSpecularTexture !== this.texture
+            ) {
+                previousSpecularTexture.dispose?.();
+            }
+        }
+    }
+
+    /**
      * Create Earth with axis and poles
      * @param {boolean} axisVisible - Initial visibility of polar axis
      * @param {boolean} polesVisible - Initial visibility of pole markers
