@@ -78,7 +78,7 @@ canvas {
     position: absolute;
     pointer-events: auto;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     width: 280px;
     height: 192px;
     min-width: 200px;
@@ -172,10 +172,90 @@ canvas {
     min-height: 0;
 }
 
+.aux-camera-view__info {
+    display: grid;
+    gap: 1px;
+    padding: 4px 7px 4px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+}
+
+.aux-camera-view__info-line {
+    color: rgba(208, 223, 246, 0.88);
+    font-size: 9px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aux-camera-view__info-line--primary {
+    color: rgba(224, 237, 255, 0.95);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.aux-camera-view__info-primary-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aux-camera-view__pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(179, 199, 228, 0.4);
+    color: rgba(221, 233, 250, 0.95);
+    background: rgba(90, 117, 157, 0.22);
+    white-space: nowrap;
+}
+
+.aux-camera-view__pill--button {
+    cursor: pointer;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.aux-camera-view__pill--button.is-on {
+    border-color: rgba(196, 168, 255, 0.65);
+    color: rgba(245, 236, 255, 0.98);
+    background: rgba(150, 105, 255, 0.34);
+}
+
+.aux-camera-view__pill--button.is-off {
+    border-color: rgba(171, 184, 210, 0.5);
+    color: rgba(221, 229, 243, 0.9);
+    background: rgba(90, 102, 129, 0.22);
+}
+
+.aux-camera-view__pill--far {
+    border-color: rgba(190, 164, 255, 0.5);
+    color: rgba(236, 224, 255, 0.96);
+    background: rgba(142, 104, 255, 0.2);
+}
+
 .aux-camera-view__canvas {
     width: 100%;
     height: 100%;
     display: block;
+}
+
+.aux-camera-view__overlay-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
 }
 
 .footer-wrapper {
