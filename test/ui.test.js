@@ -224,6 +224,24 @@ const TEST_CONFIG = {
   }
 };
 
+const SSIM_PROFILE_FILE = join(process.cwd(), 'assets', 'chandrayaan3', 'data', 'config.ssim.json');
+
+function loadSsimProfileConfig() {
+  try {
+    const parsed = JSON.parse(readFileSync(SSIM_PROFILE_FILE, 'utf8'));
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn(`Could not load SSIM profile config from ${SSIM_PROFILE_FILE}: ${error.message}`);
+  }
+  return {};
+}
+
+const SSIM_PROFILE_CONFIG = loadSsimProfileConfig();
+const SSIM_PROFILE_VIEW_DEFAULTS = SSIM_PROFILE_CONFIG?.ui?.viewDefaults || {};
+const SSIM_PROFILE_ORIGIN_DEFAULTS = SSIM_PROFILE_CONFIG?.ui?.testDefaultsByOrigin || {};
+
 let browser, page;
 let consoleErrors = [];
 let pageErrors = [];
@@ -869,49 +887,6 @@ async function startTest(page, testId, testName = '') {
 }
 
 
-// Helper to ensure stellar sky is disabled
-async function ensureStellarSkyDisabled(page) {
-  await openSettingsPanel(page);
-  const stellarSkyChecked = await page.isChecked('#view-sky');
-  if (stellarSkyChecked) {
-    await page.click('#view-sky');
-  }
-  await closeSettingsPanel(page);
-}
-
-// Helper to ensure consistent test state (single open/close cycle)
-// Call this after scene is fully ready to avoid interfering with orbit rendering
-async function ensureConsistentTestState(page) {
-  await openSettingsPanel(page);
-
-  // Disable landing if enabled
-  if (await page.isChecked('#landing')) {
-    await page.click('#landing');
-    await page.waitForTimeout(100); // Small delay for state to settle
-  }
-
-  // Enable orbit display if disabled
-  if (!(await page.isChecked('#view-orbit'))) {
-    await page.click('#view-orbit');
-  }
-  if (!(await page.isChecked('#view-orbit-descent'))) {
-    await page.click('#view-orbit-descent');
-  }
-
-  // Disable stellar sky if enabled
-  if (await page.isChecked('#view-sky')) {
-    await page.click('#view-sky');
-  }
-
-  // Keep secondary-body SOI circle disabled by default for deterministic screenshots
-  const moonSoiToggle = page.locator('#view-moonsoi');
-  if (await moonSoiToggle.count() > 0 && await moonSoiToggle.isChecked()) {
-    await page.click('#view-moonsoi');
-  }
-
-  await closeSettingsPanel(page);
-}
-
 // Helper to ensure correct origin mode
 async function ensureOriginMode(page, mode) {
   await openSettingsPanel(page);
@@ -980,6 +955,58 @@ async function ensureCheckboxState(page, selector, enabled = true) {
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
 }
 
+async function enforceSsimProfileViewDefaults(page) {
+  const viewDefaults = SSIM_PROFILE_VIEW_DEFAULTS || {};
+  const booleanToggleBindings = [
+    ['viewOrbit', '#view-orbit'],
+    ['viewOrbitDescent', '#view-orbit-descent'],
+    ['viewSky', '#view-sky'],
+    ['viewMoonSOI', '#view-moonsoi'],
+    ['viewMoonHighlightRing', '#view-moon-highlight'],
+    ['viewAuxiliaryPanels', '#view-aux-camera-panels'],
+  ];
+
+  let changed = false;
+  await openSettingsPanel(page);
+
+  for (const [key, selector] of booleanToggleBindings) {
+    const value = viewDefaults[key];
+    if (typeof value !== 'boolean') {
+      continue;
+    }
+    const toggle = page.locator(selector);
+    if (await toggle.count() === 0) {
+      continue;
+    }
+    const isChecked = await toggle.isChecked();
+    if (isChecked !== value) {
+      changed = true;
+      await ensureCheckboxState(page, selector, value);
+    }
+  }
+
+  if (viewDefaults.orbitStyle === 'classic' || viewDefaults.orbitStyle === 'trail') {
+    const targetSelector = viewDefaults.orbitStyle === 'classic'
+      ? '#orbit-style-classic'
+      : '#orbit-style-trail';
+    const targetToggle = page.locator(targetSelector);
+    if (await targetToggle.count() > 0) {
+      const isChecked = await targetToggle.isChecked();
+      if (!isChecked) {
+        changed = true;
+        await ensureCheckboxState(page, targetSelector, true);
+      }
+    }
+  }
+
+  await closeSettingsPanel(page);
+
+  if (changed) {
+    await waitForScene(page);
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+}
+
 async function ensureOrbitFamilyState(page, enabled = true) {
   await ensureCheckboxState(page, '#view-orbit', enabled);
   await ensureCheckboxState(page, '#view-orbit-descent', enabled);
@@ -991,12 +1018,22 @@ async function ensureOrbitFamilyState(page, enabled = true) {
 
 async function pinSsimDefaultViewToggles(page) {
   let changed = false;
-  const isRelativeMode = await page.isChecked('#origin-relative');
+  const origin = await page.evaluate(() => {
+    if (document.querySelector('#origin-relative:checked')) {
+      return 'relative';
+    }
+    if (document.querySelector('#origin-moon:checked')) {
+      return 'moon';
+    }
+    return 'earth';
+  });
+
+  const originDefaults = SSIM_PROFILE_ORIGIN_DEFAULTS?.[origin] || {};
+  const fallback = origin !== 'relative';
   const desiredStates = [
-    ['#view-xyz-axes', !isRelativeMode],
-    ['#view-poles', !isRelativeMode],
-    ['#view-polar-axes', !isRelativeMode],
-    ['#view-moonsoi', false],
+    ['#view-xyz-axes', typeof originDefaults.viewXYZAxes === 'boolean' ? originDefaults.viewXYZAxes : fallback],
+    ['#view-poles', typeof originDefaults.viewPoles === 'boolean' ? originDefaults.viewPoles : fallback],
+    ['#view-polar-axes', typeof originDefaults.viewPolarAxes === 'boolean' ? originDefaults.viewPolarAxes : fallback],
   ];
 
   for (const [selector, enabled] of desiredStates) {
@@ -1137,10 +1174,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     consoleErrors = [];
     pageErrors = [];
 
-    // Only disable stellar sky globally - it's a view option that doesn't affect scene state
-    // More invasive state changes (landing, orbit) should be done by specific tests that need them
-    // because they can interfere with orbit rendering timing
-    await ensureStellarSkyDisabled(page);
+    await enforceSsimProfileViewDefaults(page);
     await pinSsimDefaultViewToggles(page);
   });
 
@@ -2055,8 +2089,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.click('#joyride');
         await closeSettingsPanel(page);
         await waitForScene(page);
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-        await ensureStellarSkyDisabled(page);
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
         const comparison = await compareScreenshots(
@@ -2983,8 +3015,6 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
         await closeSettingsPanel(page);
         await waitForScene(page);
-        await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
-        await ensureStellarSkyDisabled(page);
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
         const comparison = await compareScreenshots(

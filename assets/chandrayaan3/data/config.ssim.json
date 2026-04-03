@@ -2,10 +2,30 @@
   "ui": {
     "viewDefaults": {
       "orbitStyle": "classic",
+      "viewOrbit": true,
+      "viewOrbitDescent": true,
+      "viewSky": false,
       "viewAuxiliaryPanels": false,
       "viewMoonSOI": false,
       "viewMoonHighlightRing": false,
       "relativeDefaultPlaneSelection": "DEFAULT"
+    },
+    "testDefaultsByOrigin": {
+      "earth": {
+        "viewXYZAxes": true,
+        "viewPoles": true,
+        "viewPolarAxes": true
+      },
+      "moon": {
+        "viewXYZAxes": true,
+        "viewPoles": true,
+        "viewPolarAxes": true
+      },
+      "relative": {
+        "viewXYZAxes": false,
+        "viewPoles": false,
+        "viewPolarAxes": false
+      }
     }
   }
 }
