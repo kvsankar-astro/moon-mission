@@ -56,6 +56,11 @@ export class SpacecraftRenderer {
         this._solarTrackSunBase = new THREE.Vector3();
         this._solarTrackCraftWorldQuat = new THREE.Quaternion();
         this._solarTrackCraftInvWorldQuat = new THREE.Quaternion();
+
+        // Optional body-attitude correction applied after lookAt.
+        // Needed when model forward axis != Three.js default forward (-Z).
+        this.attitudeOffsetQuaternion = new THREE.Quaternion();
+        this.hasAttitudeOffset = false;
     }
 
     /**
@@ -64,6 +69,8 @@ export class SpacecraftRenderer {
     createSimple() {
         this.solarArrayTrackers = [];
         this.solarArrayAutoTrack = false;
+        this.attitudeOffsetQuaternion.identity();
+        this.hasAttitudeOffset = false;
 
         // Truncated pyramid geometry
         const geometry = new THREE.CylinderGeometry(
@@ -159,6 +166,8 @@ export class SpacecraftRenderer {
         const size = this.size * scale;
         this.solarArrayTrackers = [];
         this.solarArrayAutoTrack = pluginOptions?.autoTrackSun !== false;
+        this.attitudeOffsetQuaternion.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI * 0.5);
+        this.hasAttitudeOffset = true;
 
         const capsuleColor = Number.isFinite(pluginOptions?.capsuleColor)
             ? pluginOptions.capsuleColor
@@ -507,7 +516,8 @@ export class SpacecraftRenderer {
             if (yzNorm > 1e-8) {
                 tracker.currentTilt = Math.atan2(-localSun.y, localSun.z);
             }
-            tiltGroup.rotation.x = tracker.currentTilt || 0;
+            // Enforce a strict 1-DOF hinge rotation for solar tracking.
+            tiltGroup.rotation.set(tracker.currentTilt || 0, 0, 0);
         }
     }
 
@@ -519,6 +529,8 @@ export class SpacecraftRenderer {
     async loadModel(modelPath) {
         this.solarArrayTrackers = [];
         this.solarArrayAutoTrack = false;
+        this.attitudeOffsetQuaternion.identity();
+        this.hasAttitudeOffset = false;
         return new Promise((resolve, reject) => {
             const loader = new GLTFLoader();
 
@@ -686,6 +698,10 @@ export class SpacecraftRenderer {
         this.visible = false;
         this.solarArrayTrackers = [];
         this.solarArrayAutoTrack = false;
+    }
+
+    getAttitudeOffsetQuaternion() {
+        return this.hasAttitudeOffset ? this.attitudeOffsetQuaternion : null;
     }
 
     /**

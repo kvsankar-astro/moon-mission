@@ -412,17 +412,42 @@ export class Animation3DController {
             );
         }
 
-        // Orient spacecraft to face direction of travel
-        this.scene.craft.lookAt(nextScreenPos.x, nextScreenPos.y, nextScreenPos.z);
+        // Orient spacecraft to face instantaneous velocity direction.
+        // Fallback to next-position heading if velocity is unavailable.
+        const vel = bodyState?.velocity;
+        const velX = Number(vel?.vx);
+        const velY = Number(vel?.vy);
+        const velZ = Number(vel?.vz);
+        let lookX = nextScreenPos.x;
+        let lookY = nextScreenPos.y;
+        let lookZ = nextScreenPos.z;
+        if (Number.isFinite(velX) && Number.isFinite(velY) && Number.isFinite(velZ)) {
+            const speed = Math.hypot(velX, velY, velZ);
+            if (speed > 1e-12) {
+                const velocityLookDistance = 1.0;
+                lookX = screenPos.x + (velX / speed) * velocityLookDistance;
+                lookY = screenPos.y + (velY / speed) * velocityLookDistance;
+                lookZ = screenPos.z + (velZ / speed) * velocityLookDistance;
+            }
+        }
         this.scene.craft.up.set(0, 0, 1);
+        this.scene.craft.lookAt(lookX, lookY, lookZ);
+
+        // Apply model-specific forward-axis correction after lookAt so the
+        // physical body long axis aligns with velocity tangent.
+        const renderer = this.scene.spacecraftRenderersById?.[craftId] || this.scene.spacecraftRenderer;
+        const attitudeOffset = renderer?.getAttitudeOffsetQuaternion?.();
+        if (attitudeOffset) {
+            this.scene.craft.quaternion.multiply(attitudeOffset);
+        }
 
         // Orient drone to look back at spacecraft
         if (this.scene.drone) {
             this.scene.drone.lookAt(screenPos.x, screenPos.y, screenPos.z);
         }
 
-        // Keep solar wings tracking the live sun direction for plugin craft models.
-        const renderer = this.scene.spacecraftRenderersById?.[craftId] || this.scene.spacecraftRenderer;
+        // Keep only solar wings tracking the live sun direction (1-DOF tilt per wing).
+        // Craft body attitude remains velocity-aligned above.
         renderer?.updateSolarArrayTracking?.(this.scene.stateSunDirection);
     }
 
