@@ -956,6 +956,14 @@ async function ensureFovOneDegree(page, enabled = true) {
   }
 }
 
+async function ensureAnimationPaused(page) {
+  const isPlaying = await page.locator('#animate:has-text("Pause")').count();
+  if (isPlaying > 0) {
+    await page.click('#animate');
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  }
+}
+
 async function ensureCheckboxState(page, selector, enabled = true) {
   const toggle = page.locator(selector);
   const isChecked = await toggle.isChecked();
@@ -2231,6 +2239,11 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await setTimeline(page, '#burn1');
     }, TIMEOUTS.CLEANUP_TIMEOUT);
 
+    beforeEach(async () => {
+      await ensureAnimationPaused(page);
+      await ensureFovOneDegree(page, false);
+    });
+
     it('Page Load in Moon Mode', async () => {
       const testId = 'moon-3d-page-load';
       await displayTestId(page, testId);
@@ -2491,9 +2504,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'moon-3d-polar-axes-toggle';
       await displayTestId(page, testId);
       await openSettingsPanel(page);
-      const yzMinusPlane = await page.locator('input[name="plane"][value="YZ-"]:checked').count();
-      if (yzMinusPlane === 0) {
-        await page.click('input[name="plane"][value="YZ-"]');
+      await resetCameraToManual(page);
+      if (!(await page.isChecked('#checkbox-lock-yz-minus'))) {
+        await page.click('#checkbox-lock-yz-minus');
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       }
       await page.click('#dimension-3D');
