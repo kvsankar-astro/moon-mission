@@ -158,22 +158,9 @@ function createSceneHandlerClass(deps) {
                     radius = moonRadius;
                 }
 
-                let upDir;
-                if (closerBody === animationScene.moonContainer) {
-                    upDir = new THREE.Vector3()
-                        .subVectors(activeCraft.position, animationScene.moonContainer.position)
-                        .normalize();
-                    if (upDir.lengthSq() === 0) {
-                        upDir.set(0, 0, 1);
-                    }
-                } else {
-                    upDir = new THREE.Vector3(0, 0, 1)
-                        .applyQuaternion(closerBody.quaternion)
-                        .normalize();
-                }
-
-                animationScene.craftCamera.up.copy(upDir);
-                animationScene.droneCamera.up.copy(upDir);
+                // Keep mounted/special cameras north-up in J2000 ecliptic frame.
+                animationScene.craftCamera.up.set(0, 0, 1);
+                animationScene.droneCamera.up.set(0, 0, 1);
 
                 animationScene.craftCamera.lookAt(closerBody.position);
                 animationScene.droneCamera.lookAt(activeCraft.position);

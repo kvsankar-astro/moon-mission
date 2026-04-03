@@ -39,8 +39,7 @@ class AuxiliaryCameraViewsManager {
         this.craftWorld = new THREE.Vector3();
         this.targetWorld = new THREE.Vector3();
         this.viewDir = new THREE.Vector3();
-        this.targetUp = new THREE.Vector3();
-        this.targetQuat = new THREE.Quaternion();
+        this.projectedUp = new THREE.Vector3();
         this.cameraOffset = new THREE.Vector3();
         this.boundingBox = new THREE.Box3();
         this.boundingSphere = new THREE.Sphere();
@@ -425,6 +424,25 @@ class AuxiliaryCameraViewsManager {
         return this.THREE.MathUtils.radToDeg(requiredVerticalRadians);
     }
 
+    applyEclipticNorthUp(camera, lookTarget) {
+        if (!camera || !lookTarget) return;
+        const worldNorth = this.viewDir.set(0, 0, 1);
+        const cameraToTarget = this.cameraOffset.copy(lookTarget).sub(camera.position);
+        if (cameraToTarget.lengthSq() < 1e-18) {
+            camera.up.set(0, 0, 1);
+            return;
+        }
+        cameraToTarget.normalize();
+        this.projectedUp
+            .copy(worldNorth)
+            .addScaledVector(cameraToTarget, -worldNorth.dot(cameraToTarget));
+        if (this.projectedUp.lengthSq() < 1e-8) {
+            camera.up.set(1, 0, 0);
+            return;
+        }
+        camera.up.copy(this.projectedUp.normalize());
+    }
+
     setPanelFov(panelState, requestedDegrees) {
         if (!Number.isFinite(requestedDegrees)) {
             return;
@@ -521,14 +539,7 @@ class AuxiliaryCameraViewsManager {
                     panelState.camera.position.add(this.cameraOffset);
                 }
 
-                this.targetUp.set(0, 0, 1);
-                targetObject.getWorldQuaternion(this.targetQuat);
-                this.targetUp.applyQuaternion(this.targetQuat).normalize();
-                if (Math.abs(this.targetUp.dot(this.viewDir)) > 0.98) {
-                    panelState.camera.up.set(0, 0, 1);
-                } else {
-                    panelState.camera.up.copy(this.targetUp);
-                }
+                this.applyEclipticNorthUp(panelState.camera, this.targetWorld);
 
                 if (panelState.autoFovEnabled) {
                     const radiusHint = panelState.targetKey === "earth" ? earthRadius : moonRadius;

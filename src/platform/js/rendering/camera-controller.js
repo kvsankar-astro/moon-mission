@@ -62,6 +62,7 @@ export class CameraController {
         this._tmpQuat = new THREE.Quaternion();
         this._tmpUp = new THREE.Vector3();
         this._tmpViewDir = new THREE.Vector3();
+        this._tmpProjectedUp = new THREE.Vector3();
 
         this._rendererDomElement = null;
         this.freeFlyControls = null;
@@ -227,6 +228,29 @@ export class CameraController {
         }
     }
 
+    _applyEclipticNorthUp(lookPos) {
+        if (!this.camera || !lookPos) return;
+
+        // Keep all mounted camera orientations "north-up" in J2000 ecliptic frame.
+        // THREE's lookAt requires up not be collinear with view direction.
+        const worldNorth = this._tmpUp.set(0, 0, 1);
+        this._tmpViewDir.copy(lookPos).sub(this.camera.position);
+        if (this._tmpViewDir.lengthSq() < 1e-18) {
+            this.camera.up.set(0, 0, 1);
+            return;
+        }
+        this._tmpViewDir.normalize();
+        this._tmpProjectedUp
+            .copy(worldNorth)
+            .addScaledVector(this._tmpViewDir, -worldNorth.dot(this._tmpViewDir));
+        if (this._tmpProjectedUp.lengthSq() < 1e-8) {
+            // Degenerate pole-on view: use a stable fallback.
+            this.camera.up.set(1, 0, 0);
+            return;
+        }
+        this.camera.up.copy(this._tmpProjectedUp.normalize());
+    }
+
     /**
      * Set the from-to modes without changing camera unless updateFromTo() is called.
      * @param {string} positionMode
@@ -341,6 +365,16 @@ export class CameraController {
             this._setFreeFlyEnabled(false);
         }
 
+        // Mounted + manual look still needs deterministic north-up orientation.
+        if (hasPositionMount && !hasForcedLook && this.controls?.target) {
+            const mountPos = this._resolveTargetWorld(this.positionMode, this._mountWorld);
+            if (mountPos) {
+                this.controls.target.copy(mountPos).add(this.mountTargetOffset);
+                this._applyEclipticNorthUp(this.controls.target);
+                this.camera.lookAt(this.controls.target);
+            }
+        }
+
         // If forced lookAt is enabled, keep TrackballControls target in sync.
         // For manual-position cameras we still allow orbiting around the fixed target so users can inspect it.
         if (hasForcedLook) {
@@ -352,14 +386,12 @@ export class CameraController {
                     hasPositionMount &&
                     this.lookMode !== CAMERA_LOOK_MODE.MANUAL &&
                     this.positionMode !== this.lookMode;
-                const shouldUseGlobalUp = allowOrbitAroundTarget || isMountedCrossBodyView;
+                const shouldUseGlobalUp = allowOrbitAroundTarget || isMountedCrossBodyView || hasPositionMount;
 
-                // Keep a stable horizon for manual orbiting and mounted cross-body views.
-                // For mounted same-body views, align with target up to avoid ambiguous roll.
                 if (shouldUseGlobalUp) {
-                    this.camera.up.set(0, 0, 1);
+                    this._applyEclipticNorthUp(lookPos);
                 } else {
-                    this._updateCameraUpForLookTarget(this.lookMode, lookPos);
+                    this.camera.up.set(0, 0, 1);
                 }
                 if (this.controls) {
                     this.controls.target.copy(lookPos);
