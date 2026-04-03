@@ -42,6 +42,10 @@ const PANEL_SPECS = Object.freeze([
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
+const PANEL_SIDE_RATIO_DEFAULT = 0.27;
+const PANEL_SIDE_RATIO_COMPOSER = 0.4;
+const PANEL_MIN_SIDE_DEFAULT = 160;
+const PANEL_MIN_SIDE_COMPOSER = 240;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
 const AUTO_FOV_MAX_DEGREES = 179;
@@ -265,20 +269,24 @@ class AuxiliaryCameraViewsManager {
         const headerSpace = Number.isFinite(headerRect?.height) ? headerRect.height : 0;
         const controlSpace = Number.isFinite(timelineRect?.height) ? timelineRect.height : 0;
         const h = Math.max(0, window.innerHeight - headerSpace - controlSpace);
-        const sideFromFormula = 0.27 * h;
-
         const dockOffset = this.readTimelineDockOffset();
         const topY = Number.isFinite(headerRect?.bottom)
             ? (headerRect.bottom + PANEL_GAP_PX)
             : (dockOffset + PANEL_TOP_OFFSET_PX);
-        const maxSideFromWidth = Math.max(160, window.innerWidth - dockOffset - PANEL_MARGIN_PX * 2);
-        const side = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, 160, maxSideFromWidth));
+        const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, window.innerWidth - dockOffset - PANEL_MARGIN_PX * 2);
         const panelRects = this.panels.map((panelState) => {
+            const ratio = panelState.mode === "composer"
+                ? PANEL_SIDE_RATIO_COMPOSER
+                : PANEL_SIDE_RATIO_DEFAULT;
+            const sideFromFormula = ratio * h;
+            const minSideTarget = panelState.mode === "composer"
+                ? PANEL_MIN_SIDE_COMPOSER
+                : PANEL_MIN_SIDE_DEFAULT;
+            const minSide = Math.min(minSideTarget, maxSideFromWidth);
+            const side = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
             panelState.panel.style.width = `${side}px`;
             panelState.panel.style.height = `${side}px`;
-            const width = side;
-            const height = side;
-            return { panelState, width, height };
+            return { panelState, width: side, height: side };
         });
 
         let rightY = topY;
@@ -515,7 +523,7 @@ class AuxiliaryCameraViewsManager {
             composerTimelineWrap.className = "aux-camera-view__composer-timeline";
             composerTimelineLabel = document.createElement("span");
             composerTimelineLabel.className = "aux-camera-view__composer-label";
-            composerTimelineLabel.textContent = "Occultation window +/-3h";
+            composerTimelineLabel.textContent = "Lunar flyby window +/-1h";
             composerTimelineWrap.appendChild(composerTimelineLabel);
             composerTimelineSlider = document.createElement("input");
             composerTimelineSlider.type = "range";

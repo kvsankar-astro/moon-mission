@@ -198,14 +198,34 @@ canvas {
 
 .aux-camera-view--composer {
     grid-template-rows: auto auto auto auto 1fr;
+    min-width: 240px;
+    min-height: 240px;
+}
+
+.aux-camera-view--composer .aux-camera-view__header {
+    gap: 6px;
+    padding: 3px 6px;
+}
+
+.aux-camera-view--composer .aux-camera-view__header-controls,
+.aux-camera-view--composer .aux-camera-view__fov-controls {
+    gap: 4px;
+}
+
+.aux-camera-view--composer .aux-camera-view__fov-slider {
+    width: 72px;
+}
+
+.aux-camera-view--composer .aux-camera-view__title {
+    font-size: 9px;
 }
 
 .aux-camera-view__composer-presets,
 .aux-camera-view__composer-timeline {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 7px;
+    gap: 4px;
+    padding: 2px 6px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(10, 18, 31, 0.64);
     min-width: 0;
@@ -213,7 +233,7 @@ canvas {
 
 .aux-camera-view__composer-label {
     color: rgba(224, 237, 255, 0.95);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     letter-spacing: 0.015em;
     white-space: nowrap;
@@ -222,7 +242,7 @@ canvas {
 .aux-camera-view__composer-hint {
     margin-left: auto;
     color: rgba(197, 216, 245, 0.86);
-    font-size: 9px;
+    font-size: 8px;
     white-space: nowrap;
 }
 
@@ -231,10 +251,10 @@ canvas {
     border-radius: 4px;
     background: rgba(14, 24, 41, 0.72);
     color: rgba(211, 226, 248, 0.92);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
     line-height: 1;
-    padding: 2px 7px;
+    padding: 2px 6px;
     cursor: pointer;
 }
 
@@ -259,8 +279,8 @@ canvas {
     display: grid;
     grid-template-columns: auto 1fr auto auto;
     align-items: center;
-    column-gap: 6px;
-    padding: 5px 7px;
+    column-gap: 4px;
+    padding: 2px 6px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(10, 18, 31, 0.64);
     min-width: 0;
@@ -275,9 +295,9 @@ canvas {
 
 .aux-camera-view__composer-ambient-value {
     color: rgba(208, 223, 246, 0.92);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 600;
-    width: 30px;
+    width: 28px;
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
@@ -287,14 +307,14 @@ canvas {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
-    min-width: 58px;
+    gap: 1px;
+    min-width: 50px;
 }
 
 .aux-camera-view__composer-dial {
     position: relative;
-    width: 56px;
-    height: 56px;
+    width: 48px;
+    height: 48px;
     border-radius: 999px;
     border: 1px solid rgba(150, 196, 255, 0.6);
     background:
@@ -315,7 +335,7 @@ canvas {
     left: 50%;
     top: 50%;
     width: 2px;
-    height: 22px;
+    height: 19px;
     border-radius: 999px;
     transform-origin: 50% 100%;
     transform: translate(-50%, -100%) rotate(0deg);
@@ -328,8 +348,8 @@ canvas {
     position: absolute;
     left: 50%;
     bottom: -3px;
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     border-radius: 999px;
     transform: translateX(-50%);
     background: rgba(228, 240, 255, 0.98);
