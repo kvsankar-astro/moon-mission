@@ -5,15 +5,24 @@ function createSceneFrameUiActions(deps) {
 
     function updateAnimationDate(animTime) {
         const animDate = getAnimDate();
+        const text = formatDateTimeLocal(animTime);
         if (!animDate || typeof animDate.html !== "function") {
+            const mobileDate = document.getElementById("mobile-mission-time");
+            if (mobileDate) {
+                mobileDate.textContent = text;
+            }
             return;
         }
-        const text = formatDateTimeLocal(animTime);
         if (typeof animDate.text === "function") {
             animDate.text(text);
-            return;
+        } else {
+            animDate.html(text);
         }
-        animDate.html(text);
+
+        const mobileDate = document.getElementById("mobile-mission-time");
+        if (mobileDate) {
+            mobileDate.textContent = text;
+        }
     }
 
     function updateSharedUi({ sceneState, primaryBody, globalConfig }) {

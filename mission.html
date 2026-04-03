@@ -1270,6 +1270,47 @@
 
         </div> <!-- content-wrapper -->
 
+        <div id="mobile-shell" class="mobile-shell" aria-label="Mobile mission shell">
+            <section id="mobile-card-mission" class="mobile-shell__card mobile-shell__card--mission" aria-label="Mission card">
+                <div class="mobile-shell__card-head">
+                    <span class="mobile-shell__card-title">Mission</span>
+                    <span id="mobile-mission-phase" class="mobile-shell__phase">--</span>
+                </div>
+                <div class="mobile-shell__metrics">
+                    <div class="mobile-shell__metric">
+                        <span class="mobile-shell__metric-label">Time</span>
+                        <span id="mobile-mission-time" class="mobile-shell__metric-value">--</span>
+                    </div>
+                    <div class="mobile-shell__metric">
+                        <span class="mobile-shell__metric-label">From Earth</span>
+                        <span id="mobile-metric-earth" class="mobile-shell__metric-value">--</span>
+                    </div>
+                    <div class="mobile-shell__metric">
+                        <span class="mobile-shell__metric-label">To Moon</span>
+                        <span id="mobile-metric-moon" class="mobile-shell__metric-value">--</span>
+                    </div>
+                    <div class="mobile-shell__metric">
+                        <span class="mobile-shell__metric-label">Velocity</span>
+                        <span id="mobile-metric-speed" class="mobile-shell__metric-value">--</span>
+                    </div>
+                </div>
+                <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite">No active event</div>
+                <div class="mobile-shell__controls" role="group" aria-label="Mission transport">
+                    <button id="mobile-control-play" type="button" class="mobile-shell__control-btn">Play</button>
+                    <button id="mobile-control-slower" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Slower">−</button>
+                    <button id="mobile-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
+                    <button id="mobile-control-realtime" type="button" class="mobile-shell__control-btn">Realtime</button>
+                    <button id="mobile-control-info" type="button" class="mobile-shell__control-btn">Info</button>
+                </div>
+            </section>
+            <nav class="mobile-shell__nav" aria-label="Mobile cards">
+                <button type="button" class="mobile-shell__nav-btn is-active" data-mobile-tab="mission" aria-current="page">Mission</button>
+                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="orbit" disabled title="Orbit card coming next">Orbit</button>
+                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="views" disabled title="Views card coming next">Views</button>
+                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="compose" disabled title="Compose card coming next">Compose</button>
+            </nav>
+        </div>
+
         <div id="orbit-status-stack" class="orbit-status-stack" aria-live="polite" aria-atomic="true">
             <div
                 id="orbit-overlap-status"

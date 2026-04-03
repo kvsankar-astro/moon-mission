@@ -588,3 +588,104 @@ export function bindControlPanelToggle() {
         });
     }
 }
+
+export function bindMobileMissionCard() {
+    const shell = document.getElementById("mobile-shell");
+    if (!shell) return;
+    if (shell.dataset.bound === "true") return;
+    shell.dataset.bound = "true";
+
+    const mobilePlay = document.getElementById("mobile-control-play");
+    const mobileSlower = document.getElementById("mobile-control-slower");
+    const mobileFaster = document.getElementById("mobile-control-faster");
+    const mobileRealtime = document.getElementById("mobile-control-realtime");
+    const mobileInfo = document.getElementById("mobile-control-info");
+    const missionEvent = document.getElementById("mobile-mission-event");
+    const navButtons = document.querySelectorAll(".mobile-shell__nav-btn");
+    const desktopPlay = document.getElementById("animate");
+    const desktopRealtime = document.getElementById("realtime");
+
+    const toggleMobileMode = () => {
+        const mobile = isMobileViewport();
+        document.body.classList.toggle("mobile-shell-enabled", mobile);
+    };
+    toggleMobileMode();
+    window.addEventListener("resize", toggleMobileMode);
+
+    const proxyClick = (desktopId) => {
+        const target = document.getElementById(desktopId);
+        if (!target || target.disabled) return;
+        target.click();
+    };
+
+    if (mobilePlay) {
+        mobilePlay.addEventListener("click", function () {
+            proxyClick("animate");
+        });
+    }
+    if (mobileSlower) {
+        mobileSlower.addEventListener("click", function () {
+            proxyClick("slower");
+        });
+    }
+    if (mobileFaster) {
+        mobileFaster.addEventListener("click", function () {
+            proxyClick("faster");
+        });
+    }
+    if (mobileRealtime) {
+        mobileRealtime.addEventListener("click", function () {
+            proxyClick("realtime");
+        });
+    }
+    if (mobileInfo) {
+        mobileInfo.addEventListener("click", function () {
+            proxyClick("info-button");
+        });
+    }
+
+    const syncTransportState = () => {
+        if (mobilePlay && desktopPlay) {
+            const isPlaying = (desktopPlay.textContent || "").trim().toLowerCase() === "pause";
+            mobilePlay.textContent = isPlaying ? "Pause" : "Play";
+            mobilePlay.classList.toggle("is-active", isPlaying);
+        }
+        if (mobileRealtime && desktopRealtime) {
+            const isRealtime = desktopRealtime.classList.contains("down");
+            mobileRealtime.classList.toggle("is-active", isRealtime);
+        }
+    };
+
+    syncTransportState();
+
+    if (desktopPlay) {
+        const playObserver = new MutationObserver(syncTransportState);
+        playObserver.observe(desktopPlay, {
+            childList: true,
+            characterData: true,
+            subtree: true,
+            attributes: true,
+        });
+    }
+
+    if (desktopRealtime) {
+        const realtimeObserver = new MutationObserver(syncTransportState);
+        realtimeObserver.observe(desktopRealtime, {
+            attributes: true,
+            attributeFilter: ["class", "aria-pressed"],
+        });
+    }
+
+    navButtons.forEach((button) => {
+        button.addEventListener("click", function () {
+            if (button.disabled) {
+                if (missionEvent) {
+                    missionEvent.textContent = `${button.textContent.trim()} card coming next`;
+                }
+                return;
+            }
+            navButtons.forEach((node) => node.classList.remove("is-active"));
+            button.classList.add("is-active");
+        });
+    });
+}
