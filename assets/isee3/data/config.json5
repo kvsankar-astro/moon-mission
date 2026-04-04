@@ -1,0 +1,183 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/isee3.md
+// Mission Identity:
+//   Slug: `isee3`
+//   Folder: `assets/isee3`
+//   HORIZONS ID: `-111`
+//   Canonical mission name used here: `ISEE-3 / ICE`
+// Time Window Used:
+//   Launch/reference start: `1978-08-12 15:12:00 UTC`
+//   Orbit data start: `2014-06-25 19:19:00 UTC`
+//   Orbit data end: `2014-09-25 19:19:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2014-Jan-01` to `2014-Dec-31`
+//   Selected interesting window strategy: encounter-centered `92` days around the 2014 Earth/Moon return, because the raw HORIZONS trajectory is a 2014 reconstruction rather than the full 1978-1980s mission history.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/isee-3-ice.txt`: launch details, 2008 carrier reacquisition note, and 2014 reconstructed Earth/Moon encounter update.
+//   - `docs/horizons-blurbs/raw/isee-3-ice.txt`: exact lunar close approach reported as `2014-Aug-10 19:18:27 UTC`, about `16,663 km` above the lunar surface.
+// Notes:
+//   - Mission chronology and orbit-data chronology are far apart here: launch is in `1978`, while the HORIZONS reconstruction used for animation is the `2014` return encounter.
+//   - Pre-data mission events such as launch and 2008 reacquisition are preserved in the config even though the sampled orbit window starts in 2014.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/isee3/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "ICE",
+  "spacecraft_id": -111,
+  "mission_name": "ISEE-3 / ICE",
+  "mission_name_short": "ISEE-3",
+  "mission_url": "http://heasarc.gsfc.nasa.gov/docs/heasarc/missions/isee3.html",
+  "mission_description": "ISEE-3 / ICE Lunar Encounter Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, isee3, ice, moon, flyby, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "ISEE-3 / ICE - Lunar Encounter Orbit Animation",
+    "headerTitle": "ISEE-3 / ICE",
+    "lockOnLabel": "ISEE-3 / ICE",
+    "orbitLabel": "ICE Orbit",
+    "descentOrbitLabel": "ICE Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2014",
+    "start_month": "06",
+    "start_day": "25",
+    "start_hour": "19",
+    "start_minute": "19",
+    "stop_year": "2014",
+    "stop_month": "09",
+    "stop_day": "25",
+    "stop_hour": "19",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-ICE"
+  },
+  "lunar": {
+    "start_year": "2014",
+    "start_month": "06",
+    "start_day": "25",
+    "start_hour": "19",
+    "start_minute": "19",
+    "stop_year": "2014",
+    "stop_month": "09",
+    "stop_day": "25",
+    "stop_hour": "19",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-ICE"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1978",
+    "start_month": "08",
+    "start_day": "12",
+    "start_hour": "15",
+    "start_minute": "12",
+    "stop_year": "1978",
+    "stop_month": "08",
+    "stop_day": "12",
+    "stop_hour": "15",
+    "stop_minute": "12",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-ICE"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for ISEE-3 / ICE."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1978-08-12T15:12:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch of ISEE-3 on a Delta 2914 before later comet-mission and 2014 return phases.",
+      "body": "SC"
+    },
+    "carrierReacquired": {
+      "startTime": "2008-09-18T20:49:00Z",
+      "durationSeconds": 0,
+      "label": "Carrier Reacquired",
+      "burnFlag": false,
+      "infoText": "Goldstone reacquired the spacecraft carrier signal during the long return toward Earth.",
+      "body": "SC"
+    },
+    "lunarCloseApproach": {
+      "startTime": "2014-08-10T19:18:27Z",
+      "durationSeconds": 0,
+      "label": "Lunar Close Approach",
+      "burnFlag": false,
+      "infoText": "2014 lunar close approach at about 16,663 km above the Moon's surface during the Earth return encounter.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "iceDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "ICE"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "ICE Data End",
+      "burnFlag": false,
+      "infoText": "ICE Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "carrierReacquired",
+      "lunarCloseApproach",
+      "now",
+      "iceDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "carrierReacquired",
+      "lunarCloseApproach",
+      "now",
+      "iceDataEnd"
+    ]
+  }
+}

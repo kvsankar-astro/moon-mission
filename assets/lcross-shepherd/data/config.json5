@@ -1,0 +1,168 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/lcross-shepherd.md
+// Mission Identity:
+//   Slug: `lcross-shepherd`
+//   Folder: `assets/lcross-shepherd`
+//   HORIZONS ID: `-18`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2009-06-18 21:32:01 UTC`
+//   Orbit data start: `2009-07-09 11:35:00 UTC`
+//   Orbit data end: `2009-10-09 11:35:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2009-06-18 00:00:00 UTC` to `2009-10-09 11:35:00 UTC`
+//   Selected interesting window strategy: `terminal`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/lcross-shepherd.txt: trajectory table begins at 2009-Jun-18 and ends 2009-Oct-09
+//   - docs/horizons-blurbs/raw/lcross-shepherd.txt: '* Shepherd impact : 2009-Oct-09 11:35:36.116 UTC'
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "LCSH",
+  "spacecraft_id": -18,
+  "mission_name": "LCROSS Shepherd",
+  "mission_name_short": "LCSH",
+  "mission_url": "https://www.nasa.gov/mission_pages/LCROSS/overview/index.html",
+  "mission_description": "LCROSS Shepherd Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, lcross, mission, moon, orbit, shepherd",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "LCROSS Shepherd - Orbit Animation",
+    "headerTitle": "LCROSS Shepherd",
+    "lockOnLabel": "LCROSS Shepherd",
+    "orbitLabel": "LCSH Orbit",
+    "descentOrbitLabel": "LCSH Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2009",
+    "start_month": "07",
+    "start_day": "09",
+    "start_hour": "11",
+    "start_minute": "35",
+    "stop_year": "2009",
+    "stop_month": "10",
+    "stop_day": "09",
+    "stop_hour": "11",
+    "stop_minute": "35",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LCSH"
+  },
+  "lunar": {
+    "start_year": "2009",
+    "start_month": "07",
+    "start_day": "09",
+    "start_hour": "11",
+    "start_minute": "35",
+    "stop_year": "2009",
+    "stop_month": "10",
+    "stop_day": "09",
+    "stop_hour": "11",
+    "stop_minute": "35",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LCSH"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2009",
+    "start_month": "07",
+    "start_day": "09",
+    "start_hour": "11",
+    "start_minute": "35",
+    "stop_year": "2009",
+    "stop_month": "07",
+    "stop_day": "09",
+    "stop_hour": "11",
+    "stop_minute": "35",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LCSH"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for LCSH."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2009-06-18T21:32:01Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "impact": {
+      "startTime": "2009-10-09T11:35:36Z",
+      "durationSeconds": 0,
+      "label": "Impact",
+      "burnFlag": false,
+      "infoText": "Shepherd stage impact",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "lcshDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LCSH"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1LCSH Data End",
+      "burnFlag": false,
+      "infoText": "LCSH Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "now",
+      "lcshDataEnd"
+    ],
+    "lunar": [
+      "now",
+      "lcshDataEnd"
+    ]
+  }
+}

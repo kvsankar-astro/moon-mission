@@ -1,0 +1,198 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/lunarorbiter1.md
+// Mission Identity:
+//   Slug: `lunarorbiter1`
+//   Folder: `assets/lunarorbiter1`
+//   SPICE target code: `-531`
+//   Canonical mission name used here: `Lunar Orbiter 1`
+// Time Window Used:
+//   Launch/reference start: `1966-08-10 19:31:00 UTC`
+//   Orbit data start: `1966-08-14 15:39:55 UTC`
+//   Orbit data end: `1966-10-26 23:39:56 UTC`
+//   Sampling step: `60` seconds
+//   Coverage strategy: full public NAIF Lunar Orbiter 1 SPK with all public coverage intervals preserved.
+// Primary Source References:
+//   - NAIF Lunar Orbiter kernels: `https://naif.jpl.nasa.gov/pub/naif/LUNARORBITER/kernels/spk/`
+//   - NASA mission summary: `https://www.nasa.gov/mission/lunar-orbiter-1/`
+//   - NASA history article: `https://www.nasa.gov/history/55-years-ago-lunar-orbiter-1-launches-to-survey-the-moon/`
+//   - Source kernel used here: `lo1_ssd_lp150q.bsp`
+// Notes:
+//   - Public orbit coverage begins shortly after lunar-orbit insertion and ends before the final intentional impact, so both of those mission events remain explicit config metadata.
+//   - The exported geocentric and selenocentric Chebyshev files preserve all `35` public SPICE coverage intervals.
+//   - Runtime artifacts are staged under `../moon-mission-data/assets/lunarorbiter1/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "LO1",
+  "spacecraft_id": -531,
+  "mission_name": "Lunar Orbiter 1",
+  "mission_name_short": "LO1",
+  "mission_url": "https://www.nasa.gov/mission/lunar-orbiter-1/",
+  "mission_description": "Lunar Orbiter 1 Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "lunar orbiter 1, lo1, nasa, moon, lunar, orbiter, animation, spice",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Lunar Orbiter 1 - Lunar Orbiter Animation",
+    "headerTitle": "Lunar Orbiter 1",
+    "lockOnLabel": "Lunar Orbiter 1",
+    "orbitLabel": "LO1 Orbit",
+    "descentOrbitLabel": "LO1 Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "startTime": "1966-08-14T15:40:37.082Z",
+    "endTime": "1966-10-26T23:40:37.271Z",
+    "start_year": "1966",
+    "start_month": "08",
+    "start_day": "14",
+    "start_hour": "15",
+    "start_minute": "40",
+    "stop_year": "1966",
+    "stop_month": "10",
+    "stop_day": "26",
+    "stop_hour": "23",
+    "stop_minute": "39",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LO1"
+  },
+  "lunar": {
+    "startTime": "1966-08-14T15:40:37.082Z",
+    "endTime": "1966-10-26T23:40:37.271Z",
+    "start_year": "1966",
+    "start_month": "08",
+    "start_day": "14",
+    "start_hour": "15",
+    "start_minute": "40",
+    "stop_year": "1966",
+    "stop_month": "10",
+    "stop_day": "26",
+    "stop_hour": "23",
+    "stop_minute": "39",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LO1"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated landing slice configured for Lunar Orbiter 1.",
+    "start_year": "1966",
+    "start_month": "10",
+    "start_day": "29",
+    "start_hour": "13",
+    "start_minute": "30",
+    "stop_year": "1966",
+    "stop_month": "10",
+    "stop_day": "29",
+    "stop_hour": "13",
+    "stop_minute": "30",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LO1"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for Lunar Orbiter 1."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1966-08-10T19:31:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Cape Kennedy aboard an Atlas-Agena D. Public SPICE orbit coverage in this project starts after lunar arrival.",
+      "body": "SC"
+    },
+    "lunarOrbitInsertion": {
+      "startTime": "1966-08-14T15:26:00Z",
+      "durationSeconds": 0,
+      "label": "Lunar Orbit Insertion",
+      "burnFlag": true,
+      "infoText": "Approximate lunar-orbit-insertion time inferred from NASA's stated 92-hour cruise after launch.",
+      "body": "SC"
+    },
+    "photoMissionStart": {
+      "startTime": "1966-08-18T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Photography Mission Start",
+      "burnFlag": false,
+      "infoText": "Start of the main imaging campaign used to scout Apollo landing sites and map the lunar surface.",
+      "body": "SC"
+    },
+    "missionEnd": {
+      "startTime": "1966-10-29T13:30:00Z",
+      "durationSeconds": 0,
+      "label": "Impact",
+      "burnFlag": false,
+      "infoText": "Intentional lunar impact ending the mission after the imaging campaign and engineering experiments.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "lo1DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LO1"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "LO1 Data End",
+      "burnFlag": false,
+      "infoText": "Lunar Orbiter 1 Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "photoMissionStart",
+      "missionEnd",
+      "now",
+      "lo1DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "photoMissionStart",
+      "missionEnd",
+      "now",
+      "lo1DataEnd"
+    ]
+  }
+}

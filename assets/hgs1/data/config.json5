@@ -1,0 +1,182 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/hgs1.md
+// Mission Identity:
+//   Slug: `hgs1`
+//   Folder: `assets/hgs1`
+//   HORIZONS ID: `-125126`
+//   Canonical mission name used here: `HGS-1`
+// Time Window Used:
+//   Launch/reference start: `1997-12-24 23:19:00 UTC`
+//   Orbit data start: `1998-04-01 00:00:00 UTC`
+//   Orbit data end: `1998-07-02 00:00:00 UTC`
+//   Sampling step: `120` seconds
+//   Selected interesting window strategy: custom flyby-centered `92` days so the two lunar gravity assists are both visible in one animation window.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/hgs-1.txt`: launch details and the note that two successive lunar flybys were used to rescue the satellite into geosynchronous orbit.
+//   - Moon-centered HORIZONS vector queries for `-125126` show local closest-approach minima at `1998-05-13 08:33 UTC` (~`8,219 km` altitude) and `1998-06-06 19:34 UTC` (~`38,782 km` altitude).
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Launch remains an event even though the chosen animation window starts later, because the key story is a flyby-centered rescue arc rather than the initial parking period.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/hgs1/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "HGS1",
+  "spacecraft_id": -125126,
+  "mission_name": "HGS-1",
+  "mission_name_short": "HGS-1",
+  "mission_url": "",
+  "mission_description": "HGS-1 Lunar Flyby Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, hgs1, moon, flyby, gravity assist, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "HGS-1 - Lunar Flyby Orbit Animation",
+    "headerTitle": "HGS-1",
+    "lockOnLabel": "HGS-1",
+    "orbitLabel": "HGS-1 Orbit",
+    "descentOrbitLabel": "HGS-1 Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1998",
+    "start_month": "04",
+    "start_day": "01",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "1998",
+    "stop_month": "07",
+    "stop_day": "02",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-HGS1"
+  },
+  "lunar": {
+    "start_year": "1998",
+    "start_month": "04",
+    "start_day": "01",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "1998",
+    "stop_month": "07",
+    "stop_day": "02",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-HGS1"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1997",
+    "start_month": "12",
+    "start_day": "24",
+    "start_hour": "23",
+    "start_minute": "19",
+    "stop_year": "1997",
+    "stop_month": "12",
+    "stop_day": "24",
+    "stop_hour": "23",
+    "stop_minute": "19",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-HGS1"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for HGS-1."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1997-12-24T23:19:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Baikonur Cosmodrome as Asiasat 3 before the recovery mission was renamed HGS-1.",
+      "body": "SC"
+    },
+    "firstLunarFlyby": {
+      "startTime": "1998-05-13T08:33:00Z",
+      "durationSeconds": 0,
+      "label": "First Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "First lunar gravity assist of the HGS-1 rescue trajectory, with closest approach about 8,219 km above the Moon's surface.",
+      "body": "SC"
+    },
+    "secondLunarFlyby": {
+      "startTime": "1998-06-06T19:34:00Z",
+      "durationSeconds": 0,
+      "label": "Second Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "Second lunar gravity assist used to raise the commercial satellite toward geosynchronous orbit.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "hgs1DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "HGS1"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "HGS-1 Data End",
+      "burnFlag": false,
+      "infoText": "HGS-1 Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "firstLunarFlyby",
+      "secondLunarFlyby",
+      "now",
+      "hgs1DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "firstLunarFlyby",
+      "secondLunarFlyby",
+      "now",
+      "hgs1DataEnd"
+    ]
+  }
+}

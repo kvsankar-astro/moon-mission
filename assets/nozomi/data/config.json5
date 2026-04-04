@@ -1,0 +1,193 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/nozomi.md
+// Mission Identity:
+//   Slug: `nozomi`
+//   Folder: `assets/nozomi`
+//   HORIZONS ID: `-178`
+//   Canonical mission name used here: `Nozomi`
+// Time Window Used:
+//   Launch/reference start: `1998-07-03 18:12:00 UTC`
+//   Orbit data start: `1999-02-08 12:02:00 UTC`
+//   Orbit data end: `1999-05-11 12:02:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `1999-Feb-08 12:01` to `2003-Dec-14 00:00`
+//   Selected interesting window strategy: earliest `92` days of the replanned post-flyby mission extension, because HORIZONS does not provide ephemeris for the 1998 launch and lunar-flyby phase.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/nozomi.txt`: launch time, the two `1998` lunar flyby dates, and the note that the published HORIZONS planning trajectory begins only after the failed Earth-flyby sequence and mission replan.
+//   - HORIZONS vector query for `-178` reports no ephemeris before `1999-Feb-08 12:01:04.1850 TDB`, so the orbit window begins at `12:02 UTC`.
+// Notes:
+//   - The two `1998` lunar flyby events are preserved from the HORIZONS background, but the source text does not provide exact times; config labels make that limitation explicit.
+//   - This mission is an example of the pre-data-event rule: the lunar flybys matter historically even though the available HORIZONS orbit stream starts later.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/nozomi/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "NOZ",
+  "spacecraft_id": -178,
+  "mission_name": "Nozomi",
+  "mission_name_short": "Nozomi",
+  "mission_url": "http://www.isas.ac.jp/e/enterp/missions/nozomi/cont.html",
+  "mission_description": "Nozomi Replanned Earth Departure Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, nozomi, planet-b, moon, flyby, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Nozomi - Replanned Earth Departure Orbit Animation",
+    "headerTitle": "Nozomi",
+    "lockOnLabel": "Nozomi",
+    "orbitLabel": "Nozomi Orbit",
+    "descentOrbitLabel": "Nozomi Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1999",
+    "start_month": "02",
+    "start_day": "08",
+    "start_hour": "12",
+    "start_minute": "02",
+    "stop_year": "1999",
+    "stop_month": "05",
+    "stop_day": "11",
+    "stop_hour": "12",
+    "stop_minute": "02",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-NOZ"
+  },
+  "lunar": {
+    "start_year": "1999",
+    "start_month": "02",
+    "start_day": "08",
+    "start_hour": "12",
+    "start_minute": "02",
+    "stop_year": "1999",
+    "stop_month": "05",
+    "stop_day": "11",
+    "stop_hour": "12",
+    "stop_minute": "02",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-NOZ"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1998",
+    "start_month": "07",
+    "start_day": "03",
+    "start_hour": "18",
+    "start_minute": "12",
+    "stop_year": "1998",
+    "stop_month": "07",
+    "stop_day": "03",
+    "stop_hour": "18",
+    "stop_minute": "12",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-NOZ"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for Nozomi."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1998-07-03T18:12:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Kagoshima Space Center on the second M-V flight.",
+      "body": "SC"
+    },
+    "firstLunarFlybyDateOnly": {
+      "startTime": "1998-09-24T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "First Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "First lunar flyby date listed in the HORIZONS background; exact time was not provided in the source text.",
+      "body": "SC"
+    },
+    "secondLunarFlybyDateOnly": {
+      "startTime": "1998-12-18T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Second Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "Second lunar flyby date listed in the HORIZONS background; exact time was not provided in the source text.",
+      "body": "SC"
+    },
+    "replannedTrajectoryStart": {
+      "startTime": "1999-02-08T12:02:00Z",
+      "durationSeconds": 0,
+      "label": "Replanned Trajectory Start",
+      "burnFlag": false,
+      "infoText": "First usable HORIZONS planning trajectory sample after the failed 1998 Earth-flyby sequence forced mission replanning.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "nozDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "NOZ"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Nozomi Data End",
+      "burnFlag": false,
+      "infoText": "Nozomi Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "firstLunarFlybyDateOnly",
+      "secondLunarFlybyDateOnly",
+      "replannedTrajectoryStart",
+      "now",
+      "nozDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "firstLunarFlybyDateOnly",
+      "secondLunarFlybyDateOnly",
+      "replannedTrajectoryStart",
+      "now",
+      "nozDataEnd"
+    ]
+  }
+}

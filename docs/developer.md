@@ -12,7 +12,7 @@ For system/architecture details, use [docs/design/design.md](design/design.md).
 Key paths in this repo:
 - `mission.html`, `index.html`, `orbit-data.html`, `assets-status.html`
 - `src/platform/js/*`, `src/platform/css/*`
-- `assets/*/data/config.json`, `assets/*/data/ephemeris-manifest.json`
+- `assets/*/data/config.json5` (maintainer source) + `assets/*/data/config.json` (runtime compiled), `assets/*/data/ephemeris-manifest.json`
 - `test/*`
 - `scripts/*`
 
@@ -40,6 +40,18 @@ Useful pages:
 - `make test` - primary Playwright+SSIM UI suite (managed server on `8111`)
 - `make baseline` - regenerate screenshot baselines (intentional visual changes only)
 
+### Mission config JSON5 workflow
+
+- `npm run configs:bootstrap` - one-time/backfill helper to create `config.json5` from existing `config.json`
+- `npm run configs:sync-sourcing-comments` - copy mission-sourcing markdown summary into `config.json5` comments
+- `npm run configs:compile` - compile all `config.json5` files into runtime `config.json`
+- `npm run configs:check` - CI check that compiled `config.json` is in sync with `config.json5`
+- `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
+
+Pre-commit behavior (when hooks are installed):
+- runs `configs:compile`
+- stages updated `assets/*/data/config.json`
+
 ### Build / Packaging
 
 - `python scripts/build.py` - build deployable static output
@@ -51,6 +63,7 @@ Useful pages:
 - `python scripts/verify-staged-runtime-assets.py ...`
 - `python scripts/generate-assets-status.py`
 - `python scripts/show-deployed-version.py`
+- `npm run docs:staleness:check` - flag mission-sourcing docs that drift from config windows/sampling
 
 ## 4) Data Boundary Rules (Important)
 
@@ -94,6 +107,7 @@ When mission/data loading logic changes:
 
 CI:
 - `.github/workflows/ci.yml` runs on push/PR/manual and executes unit tests.
+- CI also enforces `config.json` ↔ `config.json5` sync (`npm run configs:check`).
 
 Manual deploy workflows:
 - `.github/workflows/deploy.yml` - GitHub Pages (app + staged mission data)
@@ -120,3 +134,6 @@ Use this before committing:
 - Design hub: [docs/design/design.md](design/design.md)
 - Test strategy: [docs/testing/README.md](testing/README.md)
 - Agent conventions: [AGENTS.md](../AGENTS.md)
+Mission config note:
+- Maintainers edit `config.json5`; runtime consumes `config.json`.
+- Keep `config.json` generated from `config.json5` via compile step.

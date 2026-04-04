@@ -1,0 +1,170 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/lcross-centaur.md
+// Mission Identity:
+//   Slug: `lcross-centaur`
+//   Folder: `assets/lcross-centaur`
+//   HORIZONS ID: `-18900`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2009-06-18 21:32:01 UTC`
+//   Orbit data start: `2009-10-09 01:50:00 UTC`
+//   Orbit data end: `2009-10-09 11:32:00 UTC`
+//   Sampling step: `60` seconds
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/lcross-centaur.txt: '18_lx091009c_centaur_impact 2009-Oct-09 01:50 2009-Oct-09 11:32'
+//   - docs/horizons-blurbs/raw/lcross-centaur.txt: '* Centaur impact : 2009-Oct-09 11:31:19.506 UTC'
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "LCCN",
+  "spacecraft_id": -18900,
+  "mission_name": "LCROSS Centaur",
+  "mission_name_short": "LCCN",
+  "mission_url": "https://www.nasa.gov/mission_pages/LCROSS/overview/index.html",
+  "mission_description": "LCROSS Centaur Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, centaur, lcross, mission, moon, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "LCROSS Centaur - Orbit Animation",
+    "headerTitle": "LCROSS Centaur",
+    "lockOnLabel": "LCROSS Centaur",
+    "orbitLabel": "LCCN Orbit",
+    "descentOrbitLabel": "LCCN Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2009",
+    "start_month": "10",
+    "start_day": "09",
+    "start_hour": "01",
+    "start_minute": "50",
+    "stop_year": "2009",
+    "stop_month": "10",
+    "stop_day": "09",
+    "stop_hour": "11",
+    "stop_minute": "32",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LCCN"
+  },
+  "lunar": {
+    "start_year": "2009",
+    "start_month": "10",
+    "start_day": "09",
+    "start_hour": "01",
+    "start_minute": "50",
+    "stop_year": "2009",
+    "stop_month": "10",
+    "stop_day": "09",
+    "stop_hour": "11",
+    "stop_minute": "32",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LCCN"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2009",
+    "start_month": "10",
+    "start_day": "09",
+    "start_hour": "01",
+    "start_minute": "50",
+    "stop_year": "2009",
+    "stop_month": "10",
+    "stop_day": "09",
+    "stop_hour": "01",
+    "stop_minute": "50",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LCCN"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for LCCN."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2009-06-18T21:32:01Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "impact": {
+      "startTime": "2009-10-09T11:31:19Z",
+      "durationSeconds": 0,
+      "label": "Centaur Impact",
+      "burnFlag": false,
+      "infoText": "Centaur impact on lunar surface",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "lccnDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LCCN"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1LCCN Data End",
+      "burnFlag": false,
+      "infoText": "LCCN Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "impact",
+      "now",
+      "lccnDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "impact",
+      "now",
+      "lccnDataEnd"
+    ]
+  }
+}

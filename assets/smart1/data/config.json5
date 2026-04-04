@@ -1,0 +1,197 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/smart1.md
+// Mission Identity:
+//   Slug: `smart1`
+//   Folder: `assets/smart1`
+//   SPICE target code: `-238`
+//   Canonical mission name used here: `SMART-1`
+// Time Window Used:
+//   Launch/reference start: `2003-09-27 23:14:39 UTC`
+//   Orbit data start: `2004-11-11 02:04:13 UTC`
+//   Orbit data end: `2006-09-03 05:42:22 UTC`
+//   Sampling step: `60` seconds
+//   Coverage strategy: union of the two public SMART-1 moon-phase kernels, clipped to the public mission-end impact time.
+// Primary Source References:
+//   - ESA SMART-1 SPICE archive: `https://spiftp.esac.esa.int/data/SPICE/SMART-1/kernels/spk/`
+//   - ESA mission event pages: `https://sci.esa.int/web/smart-1/-/39723-lunar-orbit` and `https://sci.esa.int/web/smart-1/-/40364-smart-1-status-report`
+//   - Source kernels used here: `ORMS__041111020517_00206.BSP` and `ORMS_______________00233.BSP`
+// Notes:
+//   - Launch is preserved as a mission event even though public orbit coverage begins much later, during the reconstructed lunar phase.
+//   - Runtime artifacts are staged under `../moon-mission-data/assets/smart1/data/`.
+//   - The current `skyfield-ts` checkout does not read the SMART-1 public SPK type, so this mission is sampled with CSPICE and then compressed into the same Chebyshev runtime format used elsewhere in the repo.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "SM1",
+  "spacecraft_id": -238,
+  "mission_name": "SMART-1",
+  "mission_name_short": "SMART-1",
+  "mission_url": "https://sci.esa.int/web/smart-1",
+  "mission_description": "SMART-1 Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "smart-1, smart1, esa, moon, lunar, orbiter, animation, spice",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "SMART-1 - Lunar Orbiter Animation",
+    "headerTitle": "SMART-1",
+    "lockOnLabel": "SMART-1",
+    "orbitLabel": "SMART-1 Orbit",
+    "descentOrbitLabel": "SMART-1 Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "startTime": "2004-11-11T02:05:17.979Z",
+    "endTime": "2006-09-03T05:42:22.000Z",
+    "start_year": "2004",
+    "start_month": "11",
+    "start_day": "11",
+    "start_hour": "02",
+    "start_minute": "05",
+    "stop_year": "2006",
+    "stop_month": "09",
+    "stop_day": "03",
+    "stop_hour": "05",
+    "stop_minute": "42",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-SM1"
+  },
+  "lunar": {
+    "startTime": "2004-11-11T02:05:17.979Z",
+    "endTime": "2006-09-03T05:42:22.000Z",
+    "start_year": "2004",
+    "start_month": "11",
+    "start_day": "11",
+    "start_hour": "02",
+    "start_minute": "05",
+    "stop_year": "2006",
+    "stop_month": "09",
+    "stop_day": "03",
+    "stop_hour": "05",
+    "stop_minute": "42",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-SM1"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated landing slice configured for SMART-1.",
+    "start_year": "2006",
+    "start_month": "09",
+    "start_day": "03",
+    "start_hour": "05",
+    "start_minute": "42",
+    "stop_year": "2006",
+    "stop_month": "09",
+    "stop_day": "03",
+    "stop_hour": "05",
+    "stop_minute": "42",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-SM1"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for SMART-1."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2003-09-27T23:14:39Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch aboard Ariane 5 G V162 from Kourou. Public SPICE orbit coverage in this project begins later, during the reconstructed lunar phase.",
+      "body": "SC"
+    },
+    "lunarOrbitInsertion": {
+      "startTime": "2004-11-15T17:47:39Z",
+      "durationSeconds": 0,
+      "label": "Lunar Orbit Insertion",
+      "burnFlag": true,
+      "infoText": "SMART-1 entered lunar orbit after its long solar-electric spiral from Earth.",
+      "body": "SC"
+    },
+    "scienceOrbitStart": {
+      "startTime": "2005-02-28T05:18:40Z",
+      "durationSeconds": 0,
+      "label": "Science Orbit Start",
+      "burnFlag": false,
+      "infoText": "Arrival in the low lunar science orbit used for imaging, spectroscopy, and technology-demonstration observations.",
+      "body": "SC"
+    },
+    "missionEnd": {
+      "startTime": "2006-09-03T05:42:22Z",
+      "durationSeconds": 0,
+      "label": "Impact",
+      "burnFlag": false,
+      "infoText": "End of mission at controlled impact near the lunar south pole region.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "sm1DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "SM1"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "SMART-1 Data End",
+      "burnFlag": false,
+      "infoText": "SMART-1 Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "scienceOrbitStart",
+      "missionEnd",
+      "now",
+      "sm1DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "scienceOrbitStart",
+      "missionEnd",
+      "now",
+      "sm1DataEnd"
+    ]
+  }
+}

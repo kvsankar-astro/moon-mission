@@ -1,0 +1,307 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+{
+  "spacecraft_mnemonic": "CH2",
+  "spacecraft_id": -153,
+  "mission_name": "Chandrayaan 2",
+  "mission_name_short": "CH2",
+  "mission_url": "https://www.isro.gov.in/launcher/gslv-mk-iii-m1-chandrayaan-2-mission",
+  "mission_description": "Chandrayaan 2 Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "chandrayaan, chandrayaan2, moon, isro, india, space, astronomy, animation, vikram, pragyan",
+  "mission_github": "https://github.com/kvsankar/chandrayaan2",
+  "ui": {
+    "pageTitle": "ISRO's Chandrayaan 2 Mission 2019 - An Orbit Animation",
+    "headerTitle": "Chandrayaan 2",
+    "lockOnLabel": "Vikram",
+    "orbitLabel": "Vikram Orbit",
+    "descentOrbitLabel": "Vikram Descent Orbit"
+  },
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ephemeris_source": "chebyshev",
+  "primaryCraftId": "CH2L",
+  "crafts": [
+    {
+      "id": "CH2O",
+      "mnemonic": "CH2O",
+      "spacecraft_id": -152,
+      "name": "Chandrayaan 2 Orbiter",
+      "viewLabel": "Orbiter",
+      "primary": false,
+      "geo": {
+        "orbits_file": "geo-SC"
+      },
+      "lunar": {
+        "orbits_file": "lunar-SC"
+      },
+      "relative": {
+        "orbits_file": "relative-CY2"
+      }
+    },
+    {
+      "id": "CH2L",
+      "mnemonic": "CH2L",
+      "spacecraft_id": -153,
+      "name": "Vikram",
+      "viewLabel": "Vikram",
+      "primary": true,
+      "aliases": ["SC"],
+      "geo": {
+        "orbits_file": "geo-SC"
+      },
+      "lunar": {
+        "orbits_file": "lunar-SC"
+      },
+      "relative": {
+        "orbits_file": "relative-CY2"
+      }
+    }
+  ],
+  "is_lunar": true,
+  "origins": ["geo", "lunar"],
+  "relative": {
+    "orbits_file": "relative-CY2"
+  },
+  "geo": {
+    "start_year": "2019",
+    "start_month": "07",
+    "start_day": "22",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "2019",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "CH2O", "CH2L"],
+    "center": "earth_center",
+    "orbits_file": "geo-SC"
+  },
+  "lunar": {
+    "start_year": "2019",
+    "start_month": "07",
+    "start_day": "22",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "2019",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "26",
+    "step_size_in_seconds": 60,
+    "planets": ["CH2O", "CH2L", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-SC"
+  },
+  "landing": {
+    "enabled": false,
+    "craftId": "CH2L",
+    "comment": "Landing data not available - Vikram lander contact lost during descent",
+    "start_year": "2019",
+    "start_month": "09",
+    "start_day": "06",
+    "start_hour": "20",
+    "start_minute": "00",
+    "stop_year": "2019",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "20",
+    "stop_minute": "30",
+    "step_size_in_seconds": 1,
+    "planets": ["CH2L"],
+    "center": "moon_center",
+    "orbits_file": "landing-CY2"
+  },
+  "landingSites": [
+    {
+      "name": "Vikram Target Site (JPL)",
+      "longitude": 22.77050,
+      "latitude": -70.89754,
+      "color": "#FF00FF",
+      "description": "Landing location according to JPL orbit data"
+    },
+    {
+      "name": "Vikram Primary Site",
+      "longitude": 22.78110,
+      "latitude": -70.902670,
+      "color": "#0000FF",
+      "description": "Primary landing site between Manzinus C and Simpelius N craters"
+    },
+    {
+      "name": "Vikram Secondary Site",
+      "longitude": 18.46947,
+      "latitude": -68.749153,
+      "color": "#FFFF00",
+      "description": "Secondary landing site"
+    }
+  ],
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not available for CH2"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2019-07-22T09:31:00Z",
+      "durationSeconds": 0,
+      "label": "🚀 Launch",
+      "burnFlag": false,
+      "infoText": "Launch:    22nd Jul, 15:01 IST - Chandrayaan 2 placed in orbit",
+      "body": "CH2L"
+    },
+    "ebn1": {
+      "startTime": "2019-07-24T09:22:00Z",
+      "durationSeconds": 48,
+      "label": "🔥EBN#1",
+      "burnFlag": true,
+      "infoText": "EBN#1:     24th Jul, 14:52 IST - Target orbit: 230 x 45162, Achieved 230 x 45163",
+      "body": "CH2L"
+    },
+    "ebn2": {
+      "startTime": "2019-07-25T19:38:00Z",
+      "durationSeconds": 883,
+      "label": "🔥EBN#2",
+      "burnFlag": true,
+      "infoText": "EBN#2:     26th Jul, 01:08 IST - Target orbit: 250 x 54689, Achieved 251 x 54829",
+      "body": "CH2L"
+    },
+    "ebn3": {
+      "startTime": "2019-07-29T09:42:00Z",
+      "durationSeconds": 989,
+      "label": "🔥EBN#3",
+      "burnFlag": true,
+      "infoText": "EBN#3:     29th Jul, 15:12 IST - Target orbit: 268 x 71558, Achieved 276 x 71792",
+      "body": "CH2L"
+    },
+    "ebn4": {
+      "startTime": "2019-08-02T09:57:00Z",
+      "durationSeconds": 646,
+      "label": "🔥EBN#4",
+      "burnFlag": true,
+      "infoText": "EBN#4:      2nd Aug, 15:27 IST - Target orbit: 248 x 90229, Achieved 277 x 89472",
+      "body": "CH2L"
+    },
+    "ebn5": {
+      "startTime": "2019-08-06T09:34:00Z",
+      "durationSeconds": 1041,
+      "label": "🔥EBN#5",
+      "burnFlag": true,
+      "infoText": "EBN#5:      6th Aug, 15:04 IST - Target orbit: 221 x 143585, Achieved 276 x 142975",
+      "body": "CH2L"
+    },
+    "tli": {
+      "startTime": "2019-08-13T20:51:00Z",
+      "durationSeconds": 1203,
+      "label": "🔥EBN#6/TLI",
+      "burnFlag": true,
+      "infoText": "EBN#6/TLI: 14th Aug, 02:21 IST - Target orbit: 266 x 413623, Completed",
+      "body": "CH2L"
+    },
+    "loi": {
+      "startTime": "2019-08-20T03:32:00Z",
+      "durationSeconds": 1738,
+      "label": "🔥LBN#1/LOI",
+      "burnFlag": true,
+      "infoText": "LBN#1/LOI: 20th Aug, 09:02 IST - Target orbit: 118 x 18078, Achieved 114 x 18072",
+      "body": "CH2L"
+    },
+    "lbn2": {
+      "startTime": "2019-08-21T07:20:00Z",
+      "durationSeconds": 1228,
+      "label": "🔥LBN#2",
+      "burnFlag": true,
+      "infoText": "LBN#2:     21st Aug, 12:50 IST - Target orbit: 121 x 4303, Achieved 118 x 4412",
+      "body": "CH2L"
+    },
+    "lbn3": {
+      "startTime": "2019-08-28T03:34:00Z",
+      "durationSeconds": 1190,
+      "label": "🔥LBN#3",
+      "burnFlag": true,
+      "infoText": "LBN#3:     28th Aug, 09:04 IST - Target orbit: 178 x 1411, Achieved 179 x 1412",
+      "body": "CH2L"
+    },
+    "lbn4": {
+      "startTime": "2019-08-30T12:48:00Z",
+      "durationSeconds": 1155,
+      "label": "🔥LBN#4",
+      "burnFlag": true,
+      "infoText": "LBN#4:     30th Aug, 18:18 IST - Target orbit: 126 x 164, Achieved 124 x 164",
+      "body": "CH2L"
+    },
+    "lbn5": {
+      "startTime": "2019-09-01T12:51:00Z",
+      "durationSeconds": 52,
+      "label": "🔥LBN#5",
+      "burnFlag": true,
+      "infoText": "LBN#5:      1st Sep, 18:21 IST - Target orbit: 114 x 128, Achieved 119 x 127",
+      "body": "CH2L"
+    },
+    "vikramSeparation": {
+      "startTime": "2019-09-02T07:45:00Z",
+      "durationSeconds": 0,
+      "label": "🔥VS",
+      "burnFlag": true,
+      "infoText": "Vikram Separation: Vikram goes into a 119 km x 127 km orbit",
+      "body": "CH2L"
+    },
+    "vikramDeboost1": {
+      "startTime": "2019-09-03T03:20:00Z",
+      "durationSeconds": 4,
+      "label": "🔥VD#1",
+      "burnFlag": true,
+      "infoText": "Vikram Deorbit #1 for 4 seconds on 3rd September, at 08:50 IST",
+      "body": "CH2L"
+    },
+    "vikramDeboost2": {
+      "startTime": "2019-09-04T22:12:00Z",
+      "durationSeconds": 9,
+      "label": "🔥VD#2",
+      "burnFlag": true,
+      "infoText": "Vikram Deorbit #2 for 9 seconds on 4th September, at 03:42 IST",
+      "body": "CH2L"
+    },
+    "vikramLanding": {
+      "startTime": "2019-09-06T20:26:00Z",
+      "durationSeconds": 0,
+      "label": "Vikram Landing",
+      "burnFlag": true,
+      "infoText": "Vikram Landing planned for 6th September, 20:00-21:00 UTC",
+      "body": "CH2L"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "cy2DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "CH2L"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Vikram Data End",
+      "burnFlag": false,
+      "infoText": "Vikram Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"],
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"]
+  }
+}

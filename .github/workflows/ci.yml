@@ -29,5 +29,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify config.json is in sync with config.json5
+        run: npm run configs:check
+
       - name: Run unit tests
         run: npm run test:unit

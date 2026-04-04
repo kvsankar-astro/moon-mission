@@ -86,6 +86,11 @@ Shared authored mission panel content lives in:
 - `assets/mission-briefs.json`
 - `assets/mission-images.json`
 
+Mission config authoring workflow:
+- edit `assets/*/data/config.json5` (maintainer source with comments)
+- compile runtime JSON with `npm run configs:compile` (writes `assets/*/data/config.json`)
+- verify sync with `npm run configs:check`
+
 ## Data Repository Boundary
 
 This repository contains runtime app code, mission config, and UI assets.

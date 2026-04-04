@@ -1,0 +1,170 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/ladee.md
+// Mission Identity:
+//   Slug: `ladee`
+//   Folder: `assets/ladee`
+//   HORIZONS ID: `-12`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2013-09-07 03:27:00 UTC`
+//   Orbit data start: `2014-01-16 00:00:00 UTC`
+//   Orbit data end: `2014-04-18 00:00:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2013-09-07 00:00:00 UTC` to `2014-04-18 00:00:00 UTC`
+//   Selected interesting window strategy: `terminal`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/ladee.txt: trajectory rows span 2013-Sep-07 to 2014-Apr-18
+//   - docs/horizons-blurbs/raw/ladee.txt: 'Launch : 2013-Sep-07 03:27 UTC'
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "LAD",
+  "spacecraft_id": -12,
+  "mission_name": "LADEE",
+  "mission_name_short": "LAD",
+  "mission_url": "http://www.nasa.gov/LADEE/",
+  "mission_description": "LADEE Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, ladee, mission, moon, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "LADEE - Orbit Animation",
+    "headerTitle": "LADEE",
+    "lockOnLabel": "LADEE",
+    "orbitLabel": "LAD Orbit",
+    "descentOrbitLabel": "LAD Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2014",
+    "start_month": "01",
+    "start_day": "16",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2014",
+    "stop_month": "04",
+    "stop_day": "18",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LAD"
+  },
+  "lunar": {
+    "start_year": "2014",
+    "start_month": "01",
+    "start_day": "16",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2014",
+    "stop_month": "04",
+    "stop_day": "18",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LAD"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2014",
+    "start_month": "01",
+    "start_day": "16",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2014",
+    "stop_month": "01",
+    "stop_day": "16",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LAD"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for LAD."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2013-09-07T03:27:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "plannedImpact": {
+      "startTime": "2014-04-18T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Planned Impact",
+      "burnFlag": false,
+      "infoText": "End of listed trajectory interval",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "ladDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LAD"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1LAD Data End",
+      "burnFlag": false,
+      "infoText": "LAD Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "plannedImpact",
+      "now",
+      "ladDataEnd"
+    ],
+    "lunar": [
+      "plannedImpact",
+      "now",
+      "ladDataEnd"
+    ]
+  }
+}

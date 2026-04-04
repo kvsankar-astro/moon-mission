@@ -1,0 +1,171 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/capstone.md
+// Mission Identity:
+//   Slug: `capstone`
+//   Folder: `assets/capstone`
+//   HORIZONS ID: `-1176`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2022-06-28 09:55:52 UTC`
+//   Orbit data start: `2022-07-04 17:15:00 UTC`
+//   Orbit data end: `2022-10-04 17:15:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2022-06-28 10:07:00 UTC` to `2026-02-03 15:29:00 UTC`
+//   Selected interesting window strategy: `earliest`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/capstone.txt: 'photon_capstone_full_mission 2022-Jun-28 10:07 2022-Jul-04 17:15'
+//   - docs/horizons-blurbs/mission-index.json: trajectory_end=2026-Feb-03 15:29
+//   - docs/horizons-blurbs/raw/capstone.txt: launch section with 2022-Jun-28 09:55:52 UTC
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "CAPS",
+  "spacecraft_id": -1176,
+  "mission_name": "CAPSTONE",
+  "mission_name_short": "CAPS",
+  "mission_url": "https://www.nasa.gov/directorates/spacetech/small_spacecraft/capstone",
+  "mission_description": "CAPSTONE Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, capstone, mission, moon, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "CAPSTONE - Orbit Animation",
+    "headerTitle": "CAPSTONE",
+    "lockOnLabel": "CAPSTONE",
+    "orbitLabel": "CAPS Orbit",
+    "descentOrbitLabel": "CAPS Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2022",
+    "start_month": "07",
+    "start_day": "04",
+    "start_hour": "17",
+    "start_minute": "15",
+    "stop_year": "2022",
+    "stop_month": "10",
+    "stop_day": "04",
+    "stop_hour": "17",
+    "stop_minute": "15",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-CAPS"
+  },
+  "lunar": {
+    "start_year": "2022",
+    "start_month": "07",
+    "start_day": "04",
+    "start_hour": "17",
+    "start_minute": "15",
+    "stop_year": "2022",
+    "stop_month": "10",
+    "stop_day": "04",
+    "stop_hour": "17",
+    "stop_minute": "15",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-CAPS"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2022",
+    "start_month": "07",
+    "start_day": "04",
+    "start_hour": "17",
+    "start_minute": "15",
+    "stop_year": "2022",
+    "stop_month": "07",
+    "stop_day": "04",
+    "stop_hour": "17",
+    "stop_minute": "15",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-CAPS"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for CAPS."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2022-06-28T09:55:52Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "separation": {
+      "startTime": "2022-07-04T17:15:00Z",
+      "durationSeconds": 0,
+      "label": "Separation",
+      "burnFlag": false,
+      "infoText": "Photon-CAPSTONE trajectory segment boundary",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "capsDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "CAPS"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1CAPS Data End",
+      "burnFlag": false,
+      "infoText": "CAPS Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "separation",
+      "now",
+      "capsDataEnd"
+    ],
+    "lunar": [
+      "separation",
+      "now",
+      "capsDataEnd"
+    ]
+  }
+}

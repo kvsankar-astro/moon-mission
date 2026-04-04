@@ -1,0 +1,198 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/selene.md
+// Mission Identity:
+//   Slug: `selene`
+//   Folder: `assets/selene`
+//   SPICE target code: `-131`
+//   Canonical mission name used here: `SELENE / Kaguya`
+// Time Window Used:
+//   Launch/reference start: `2007-09-14 01:31:01 UTC`
+//   Orbit data start: `2007-10-20 02:30:00 UTC`
+//   Orbit data end: `2009-06-10 18:25:00 UTC`
+//   Sampling step: `60` seconds
+//   Coverage strategy: public DARTS main-orbit SPK, clipped to the documented lunar-impact end time.
+// Primary Source References:
+//   - NAIF SELENE pointer: `https://naif.jpl.nasa.gov/pub/naif/SELENE/kernels/aareadme.txt`
+//   - JAXA DARTS SELENE SPICE archive: `https://darts.isas.jaxa.jp/pub/spice/SELENE/kernels_ORG/spk/`
+//   - JAXA mission event pages: `https://www.kaguya.jaxa.jp/en/event/timeline_e.htm` and `https://www.kaguya.jaxa.jp/en/communication/KAGUYA_Lunar_Impact_e.htm`
+//   - Source kernel used here: `SEL_M_071020_090610_SGMH_02.BSP`
+// Notes:
+//   - Launch and the first lunar-orbit-insertion burn are preserved as mission events even though public orbit coverage begins on `2007-10-20`.
+//   - The exported geocentric and selenocentric Chebyshev files preserve the `13` public SPICE coverage intervals instead of smoothing across those kernel gaps.
+//   - Runtime artifacts are staged under `../moon-mission-data/assets/selene/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "SEL",
+  "spacecraft_id": -131,
+  "mission_name": "SELENE",
+  "mission_name_short": "Kaguya",
+  "mission_url": "https://www.kaguya.jaxa.jp/en/",
+  "mission_description": "SELENE / Kaguya Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "selene, kaguya, jaxa, japan, moon, lunar, orbiter, animation, spice",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "SELENE / Kaguya - Lunar Orbiter Animation",
+    "headerTitle": "SELENE / Kaguya",
+    "lockOnLabel": "Kaguya",
+    "orbitLabel": "Kaguya Orbit",
+    "descentOrbitLabel": "Kaguya Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "startTime": "2007-10-20T02:31:05.182Z",
+    "endTime": "2009-06-10T18:26:06.184Z",
+    "start_year": "2007",
+    "start_month": "10",
+    "start_day": "20",
+    "start_hour": "02",
+    "start_minute": "30",
+    "stop_year": "2009",
+    "stop_month": "06",
+    "stop_day": "10",
+    "stop_hour": "18",
+    "stop_minute": "25",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-SEL"
+  },
+  "lunar": {
+    "startTime": "2007-10-20T02:31:05.182Z",
+    "endTime": "2009-06-10T18:26:06.184Z",
+    "start_year": "2007",
+    "start_month": "10",
+    "start_day": "20",
+    "start_hour": "02",
+    "start_minute": "30",
+    "stop_year": "2009",
+    "stop_month": "06",
+    "stop_day": "10",
+    "stop_hour": "18",
+    "stop_minute": "25",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-SEL"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated landing slice configured for SELENE.",
+    "start_year": "2009",
+    "start_month": "06",
+    "start_day": "10",
+    "start_hour": "18",
+    "start_minute": "25",
+    "stop_year": "2009",
+    "stop_month": "06",
+    "stop_day": "10",
+    "stop_hour": "18",
+    "stop_minute": "25",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-SEL"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for SELENE."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2007-09-14T01:31:01Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch of the Kaguya main orbiter and its subsatellites from Tanegashima.",
+      "body": "SC"
+    },
+    "lunarOrbitInsertion": {
+      "startTime": "2007-10-03T21:20:00Z",
+      "durationSeconds": 0,
+      "label": "LOI-1",
+      "burnFlag": true,
+      "infoText": "First lunar orbit insertion burn. Public orbit coverage in this project begins later, on 2007-10-20.",
+      "body": "SC"
+    },
+    "scienceOpsStart": {
+      "startTime": "2007-12-21T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Science Operations Start",
+      "burnFlag": false,
+      "infoText": "Beginning of regular global mapping and science operations in lunar orbit.",
+      "body": "SC"
+    },
+    "missionEnd": {
+      "startTime": "2009-06-10T18:25:00Z",
+      "durationSeconds": 0,
+      "label": "Impact",
+      "burnFlag": false,
+      "infoText": "Intentional lunar impact concluding the Kaguya mission.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "selDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "SEL"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "SELENE Data End",
+      "burnFlag": false,
+      "infoText": "SELENE Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "scienceOpsStart",
+      "missionEnd",
+      "now",
+      "selDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "lunarOrbitInsertion",
+      "scienceOpsStart",
+      "missionEnd",
+      "now",
+      "selDataEnd"
+    ]
+  }
+}

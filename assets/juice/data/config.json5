@@ -1,0 +1,184 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: docs/mission-sourcing/juice.md
+// Mission Identity:
+//   Slug: `juice`
+//   Folder: `assets/juice`
+//   HORIZONS ID: `-28`
+//   Canonical mission name used here: `JUICE`
+// Time Window Used:
+//   Launch/reference start: `2023-04-14 12:14:00 UTC`
+//   Orbit data start: `2024-07-15 00:00:00 UTC`
+//   Orbit data end: `2024-10-15 00:00:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2023-Apr-14` to `2031-Jul-21`
+//   Selected interesting window strategy: custom Earth-Moon-assist-centered `92` days, because the mission's lunar relevance is the August 2024 gravity-assist passage rather than the launch or Jupiter-arrival phases.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/juice.txt`: mission purpose and flyby list, including `2024 Aug: Earth-Moon system (gravity-assist)`.
+//   - `docs/horizons-blurbs/raw/juice.txt`: trajectory table with `2023-Apr-14` to `2031-Jul-21`.
+//   - Generated lunar trajectory from `data-generated/juice/lunar-JUI.npz`: closest lunar approach at `2024-08-19 21:16 UTC`, about `752 km` above the lunar surface.
+// Notes:
+//   - The mission is included here as a cislunar gravity-assist case, not as a lunar science orbiter.
+//   - Launch remains an event even though the selected animation window is centered much later on the Earth-Moon assist.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/juice/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "JUI",
+  "spacecraft_id": -28,
+  "mission_name": "JUICE",
+  "mission_name_short": "JUICE",
+  "mission_url": "https://sci.esa.int/web/juice",
+  "mission_description": "JUICE Earth-Moon Gravity Assist Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, juice, earth moon gravity assist, flyby, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "JUICE - Earth-Moon Gravity Assist Orbit Animation",
+    "headerTitle": "JUICE",
+    "lockOnLabel": "JUICE",
+    "orbitLabel": "JUICE Orbit",
+    "descentOrbitLabel": "JUICE Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2024",
+    "start_month": "07",
+    "start_day": "15",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2024",
+    "stop_month": "10",
+    "stop_day": "15",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-JUI"
+  },
+  "lunar": {
+    "start_year": "2024",
+    "start_month": "07",
+    "start_day": "15",
+    "start_hour": "00",
+    "start_minute": "00",
+    "stop_year": "2024",
+    "stop_month": "10",
+    "stop_day": "15",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-JUI"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2023",
+    "start_month": "04",
+    "start_day": "14",
+    "start_hour": "12",
+    "start_minute": "14",
+    "stop_year": "2023",
+    "stop_month": "04",
+    "stop_day": "14",
+    "stop_hour": "12",
+    "stop_minute": "14",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-JUI"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for JUICE."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2023-04-14T12:14:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch of ESA's Jupiter Icy Moons Explorer on Ariane 5 from Kourou.",
+      "body": "SC"
+    },
+    "earthMoonAssistWindow": {
+      "startTime": "2024-08-01T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Earth-Moon Assist Window",
+      "burnFlag": false,
+      "infoText": "Start of the month highlighted in the HORIZONS background for the Earth-Moon gravity-assist passage.",
+      "body": "SC"
+    },
+    "earthMoonGravityAssist": {
+      "startTime": "2024-08-19T21:16:00Z",
+      "durationSeconds": 0,
+      "label": "Earth-Moon Gravity Assist",
+      "burnFlag": false,
+      "infoText": "Closest lunar approach from the generated HORIZONS trajectory during JUICE's Earth-Moon gravity-assist passage.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "juiDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "JUI"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "JUICE Data End",
+      "burnFlag": false,
+      "infoText": "JUICE Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "earthMoonAssistWindow",
+      "earthMoonGravityAssist",
+      "now",
+      "juiDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "earthMoonAssistWindow",
+      "earthMoonGravityAssist",
+      "now",
+      "juiDataEnd"
+    ]
+  }
+}

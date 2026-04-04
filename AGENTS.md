@@ -9,7 +9,7 @@
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.
 - Mission content: `assets/<mission>/`
-  - `data/` (`config.json`, `ephemeris-manifest.json`; staged runtime data may also include `*-cheb.json`, `*-meta.json`, `*-style.json`)
+  - `data/` (`config.json5` source + compiled `config.json`, `ephemeris-manifest.json`; staged runtime data may also include `*-cheb.json`, `*-meta.json`, `*-style.json`)
   - `models/`, `images/`, optional `js/`, `html/`
 - Shared media: `images/` (Earth/Moon/sky textures), `third-party/` (vendored libs).
 - Tooling: `scripts/` (Python data/build/deploy utilities).
@@ -26,6 +26,10 @@
 
 - `npm install` — install JS dependencies.
 - `npm run dev` — run Vite dev server (default `http://localhost:7274/`).
+- `npm run configs:bootstrap` — create `assets/*/data/config.json5` from existing `config.json` (one-time/backfill utility).
+- `npm run configs:compile` — compile all `config.json5` files into runtime `config.json`.
+- `npm run configs:check` — verify `config.json` files are in sync with `config.json5` (CI-safe).
+- `npm run hooks:install` — set `core.hooksPath` to `.githooks` to enable local pre-commit checks.
 - `make test` — recommended UI test run (starts server on `8111`, runs Vitest, stops server).
 - `make baseline` — regenerate visual baselines (use only when changes are intentional).
 - `python scripts/build.py` — create a deployable static folder in `dist/`.
