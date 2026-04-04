@@ -163,11 +163,6 @@ function isMobileViewport() {
     return window.innerWidth <= 600;
 }
 
-function isArtemis2MissionContext() {
-    const dataPath = String(window?.missionConfig?.dataPath || "").toLowerCase();
-    return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
-}
-
 function resolveDefaultMobileSectionCollapsed(sectionKey) {
     return sectionKey === "camera" || sectionKey === "plane" || sectionKey === "view";
 }
@@ -612,43 +607,11 @@ export function bindMobileMissionCard() {
     const desktopSlower = document.getElementById("slower");
     const desktopFaster = document.getElementById("faster");
     const desktopSpeed = document.getElementById("realtime");
-    let artemis2XyLockTimer = null;
-
-    const clearArtemis2XyLockTimer = () => {
-        if (artemis2XyLockTimer !== null) {
-            clearTimeout(artemis2XyLockTimer);
-            artemis2XyLockTimer = null;
-        }
-    };
-
-    const requestArtemis2MobileXyLock = (attempt = 0) => {
-        clearArtemis2XyLockTimer();
-        if (!isMobileViewport() || !isArtemis2MissionContext()) return;
-
-        const xyRadio = document.getElementById("checkbox-lock-xy");
-        if (!xyRadio || xyRadio.checked) return;
-
-        const sceneReady = !!(
-            document.getElementById("EARTH") ||
-            document.querySelector("#svg-wrapper svg") ||
-            document.querySelector("#canvas-wrapper canvas")
-        );
-        if (!sceneReady) {
-            if (attempt >= 80) return;
-            artemis2XyLockTimer = setTimeout(() => {
-                requestArtemis2MobileXyLock(attempt + 1);
-            }, 150);
-            return;
-        }
-
-        xyRadio.click();
-    };
 
     const toggleMobileMode = () => {
         const mobile = isMobileViewport();
         document.body.classList.toggle("mobile-shell-enabled", mobile);
         if (mobile) {
-            requestArtemis2MobileXyLock();
             const dialogApi = getMissionDialogApi();
             dialogApi?.close?.("#settings-panel");
             const settingsPanel = document.getElementById("settings-panel");
@@ -660,8 +623,6 @@ export function bindMobileMissionCard() {
                 settingsButton.setAttribute("aria-expanded", "false");
                 settingsButton.classList.remove("is-open");
             }
-        } else {
-            clearArtemis2XyLockTimer();
         }
     };
     toggleMobileMode();

@@ -27,7 +27,7 @@ export function computeSceneCameraParameters({
             fov: 50.0,
             craftVisible: true,
             position: preferredDistance.position,
-            up: { x: 0, y: 0, z: 1 },
+            up: preferredDistance.up || { x: 0, y: 0, z: 1 },
         };
     }
 
