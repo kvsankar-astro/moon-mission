@@ -71,18 +71,38 @@ function createSceneHandlerClass(deps) {
             }
 
             const skyWorldPosition = new THREE.Vector3();
+            const sunWorldPosition = new THREE.Vector3();
 
             const renderWithCamera = (camera) => {
                 if (!camera) return;
+                camera.updateMatrixWorld?.();
                 if (animationScene.skyContainer?.position) {
-                    camera.updateMatrixWorld?.();
                     skyWorldPosition.setFromMatrixPosition(camera.matrixWorld);
                     if (animationScene.skyContainer.parent?.worldToLocal) {
                         animationScene.skyContainer.parent.worldToLocal(skyWorldPosition);
                     }
                     animationScene.skyContainer.position.copy(skyWorldPosition);
                 }
+                if (animationScene.sunRenderer?.setReferencePosition) {
+                    sunWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+                    const sunParent = animationScene.sunRenderer.group?.parent;
+                    if (sunParent?.worldToLocal) {
+                        sunParent.worldToLocal(sunWorldPosition);
+                    }
+                    animationScene.sunRenderer.setReferencePosition(
+                        sunWorldPosition.x,
+                        sunWorldPosition.y,
+                        sunWorldPosition.z,
+                    );
+                }
+                // Render sky first on its dedicated layer, then clear depth so
+                // foreground bodies fully occlude background stars.
                 this.renderer.autoClear = true;
+                camera.layers.set(2);
+                this.renderer.render(animationScene.scene, camera);
+
+                this.renderer.autoClear = false;
+                this.renderer.clearDepth();
                 camera.layers.set(0);
                 this.renderer.render(animationScene.scene, camera);
 
@@ -124,9 +144,12 @@ function createSceneHandlerClass(deps) {
                 this.auxiliaryCameraViews?.render({
                     scene: animationScene.scene,
                     activeCraft: null,
+                    craftsById: animationScene.craftsById,
+                    dronesById: animationScene.dronesById,
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
                     sun: animationScene.sun,
+                    sunRenderer: animationScene.sunRenderer,
                     sunDirection: animationScene.stateSunDirection,
                     skyContainer: animationScene.skyContainer,
                     earthRadius,
@@ -134,6 +157,7 @@ function createSceneHandlerClass(deps) {
                     timelineEventInfos,
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
+                    missionConfig: globalConfig,
                 });
                 return;
             }
@@ -209,9 +233,12 @@ function createSceneHandlerClass(deps) {
             this.auxiliaryCameraViews?.render({
                 scene: animationScene.scene,
                 activeCraft,
+                craftsById: animationScene.craftsById,
+                dronesById: animationScene.dronesById,
                 earth: animationScene.earthContainer,
                 moon: animationScene.moonContainer,
                 sun: animationScene.sun,
+                sunRenderer: animationScene.sunRenderer,
                 sunDirection: animationScene.stateSunDirection,
                 skyContainer: animationScene.skyContainer,
                 earthRadius,
@@ -219,6 +246,7 @@ function createSceneHandlerClass(deps) {
                 timelineEventInfos,
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
+                missionConfig: globalConfig,
             });
         }
     };

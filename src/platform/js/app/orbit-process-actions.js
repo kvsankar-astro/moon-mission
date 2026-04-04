@@ -114,8 +114,10 @@ export function createOrbitProcessActions({
         }
         const slowerButton = document.getElementById("slower");
         const fasterButton = document.getElementById("faster");
-        const slowerWasDisabled = !!slowerButton?.disabled;
-        const fasterWasDisabled = !!fasterButton?.disabled;
+        // Preserve only intentional speed-limit disables (set by speed UI),
+        // not transient startup disable-all state.
+        const slowerWasDisabled = slowerButton?.getAttribute("aria-disabled") === "true";
+        const fasterWasDisabled = fasterButton?.getAttribute("aria-disabled") === "true";
         d3SelectAll("button").attr("disabled", null);
         if (slowerButton) {
             slowerButton.disabled = slowerWasDisabled;

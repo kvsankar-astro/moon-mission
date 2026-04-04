@@ -50,6 +50,8 @@
     "headerTitle": "Artemis 2",
     "lockOnLabel": "Orion",
     "orbitLabel": "Orion Orbit",
+    "auxiliaryPanelsEnabled": true,
+    "earthriseComposerEnabled": true,
     "viewDefaults": {
       "viewXYZAxes": false,
       "viewPoles": false,
