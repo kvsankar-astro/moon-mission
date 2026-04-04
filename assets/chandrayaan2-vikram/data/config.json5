@@ -2,7 +2,7 @@
 // Generated from config.json; runtime consumes config.json.
 // Edit this file, then run: npm run configs:compile
 // --- sourcing-snapshot:start ---
-// Source: docs/mission-sourcing/chandrayaan2-vikram.md
+// Source: inline mission sourcing snapshot (this config.json5)
 // Mission Identity:
 //   Slug: `chandrayaan-2-lander-vikram`
 //   Folder: `assets/chandrayaan2-vikram`

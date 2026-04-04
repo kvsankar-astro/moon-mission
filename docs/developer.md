@@ -43,7 +43,6 @@ Useful pages:
 ### Mission config JSON5 workflow
 
 - `npm run configs:bootstrap` - one-time/backfill helper to create `config.json5` from existing `config.json`
-- `npm run configs:sync-sourcing-comments` - copy mission-sourcing markdown summary into `config.json5` comments
 - `npm run configs:compile` - compile all `config.json5` files into runtime `config.json`
 - `npm run configs:check` - CI check that compiled `config.json` is in sync with `config.json5`
 - `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
@@ -63,7 +62,6 @@ Pre-commit behavior (when hooks are installed):
 - `python scripts/verify-staged-runtime-assets.py ...`
 - `python scripts/generate-assets-status.py`
 - `python scripts/show-deployed-version.py`
-- `npm run docs:staleness:check` - flag mission-sourcing docs that drift from config windows/sampling
 
 ## 4) Data Boundary Rules (Important)
 

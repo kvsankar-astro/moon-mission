@@ -2,7 +2,7 @@
 // Generated from config.json; runtime consumes config.json.
 // Edit this file, then run: npm run configs:compile
 // --- sourcing-snapshot:start ---
-// Source: docs/mission-sourcing/selene.md
+// Source: inline mission sourcing snapshot (this config.json5)
 // Mission Identity:
 //   Slug: `selene`
 //   Folder: `assets/selene`

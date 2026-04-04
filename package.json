@@ -19,8 +19,6 @@
     "configs:bootstrap": "node scripts/bootstrap-mission-config-json5.mjs",
     "configs:compile": "node scripts/compile-mission-configs.mjs",
     "configs:check": "node scripts/compile-mission-configs.mjs --check",
-    "configs:sync-sourcing-comments": "python scripts/sync-mission-sourcing-comments.py",
-    "docs:staleness:check": "python scripts/check-mission-sourcing-staleness.py",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:quick": "node test/quick-check.js",
     "test:baseline": "vitest test/ui.test.js",

@@ -2,7 +2,7 @@
 // Generated from config.json; runtime consumes config.json.
 // Edit this file, then run: npm run configs:compile
 // --- sourcing-snapshot:start ---
-// Source: docs/mission-sourcing/smart1.md
+// Source: inline mission sourcing snapshot (this config.json5)
 // Mission Identity:
 //   Slug: `smart1`
 //   Folder: `assets/smart1`
