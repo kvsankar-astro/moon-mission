@@ -598,6 +598,8 @@ export function bindMobileMissionCard() {
     shell.dataset.bound = "true";
 
     const missionCard = document.getElementById("mobile-card-mission");
+    const missionCardBody = document.getElementById("mobile-mission-body");
+    const missionCollapseButton = document.getElementById("mobile-mission-collapse");
     const viewsCard = document.getElementById("mobile-card-views");
     const missionControls = {
         play: document.getElementById("mobile-control-play"),
@@ -635,6 +637,7 @@ export function bindMobileMissionCard() {
         mission: missionCard,
         views: viewsCard,
     };
+    const MISSION_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-mission-panel-collapsed:v1";
     let activeMobileTab = "mission";
     let activeMobileViewPresetId = "moon";
     let mobileViewsAutoFovEnabled = true;
@@ -698,6 +701,23 @@ export function bindMobileMissionCard() {
                 }
             }
             restoreMobileAlwaysSuppressedViews();
+        }
+    };
+
+    const setMissionCardCollapsed = (collapsed) => {
+        if (!missionCard || !missionCardBody || !missionCollapseButton) return;
+        missionCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
+        missionCollapseButton.textContent = collapsed ? "▾" : "▴";
+        missionCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        missionCollapseButton.setAttribute(
+            "aria-label",
+            collapsed ? "Expand mission panel" : "Collapse mission panel",
+        );
+        missionCollapseButton.title = collapsed ? "Expand mission panel" : "Collapse mission panel";
+        try {
+            window.localStorage?.setItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
+        } catch {
+            // Ignore localStorage failures.
         }
     };
 
@@ -1082,6 +1102,21 @@ export function bindMobileMissionCard() {
         mobileViewsFovSlider.addEventListener("input", onManualFovChange);
         mobileViewsFovSlider.addEventListener("change", onManualFovChange);
     }
+
+    if (missionCollapseButton) {
+        missionCollapseButton.addEventListener("click", function () {
+            const collapsed = missionCard?.classList.contains("mobile-shell__card--collapsed");
+            setMissionCardCollapsed(!collapsed);
+        });
+    }
+
+    let initialMissionCollapsed = false;
+    try {
+        initialMissionCollapsed = window.localStorage?.getItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY) === "true";
+    } catch {
+        initialMissionCollapsed = false;
+    }
+    setMissionCardCollapsed(initialMissionCollapsed);
 
     setMobileViewsAutoFov(true);
     setActiveMobileTab("mission");

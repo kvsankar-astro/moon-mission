@@ -1996,12 +1996,39 @@ table {
         gap: 6px;
     }
 
+    body.mobile-shell-enabled .mobile-shell__card-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
     body.mobile-shell-enabled .mobile-shell__card-title {
         font-size: 10px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: rgba(196, 221, 255, 0.86);
         font-weight: 600;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__collapse-btn {
+        min-height: 20px;
+        min-width: 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(121, 171, 255, 0.28);
+        background: rgba(24, 42, 71, 0.66);
+        color: rgba(221, 236, 255, 0.94);
+        font-size: 10px;
+        line-height: 1;
+        font-weight: 700;
+        padding: 0 6px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__card--collapsed .mobile-shell__card-body {
+        display: none;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__card--collapsed .mobile-shell__card-head {
+        margin-bottom: 0;
     }
 
     body.mobile-shell-enabled .mobile-shell__unit-pill {
