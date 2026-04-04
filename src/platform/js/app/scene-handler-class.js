@@ -134,6 +134,7 @@ function createSceneHandlerClass(deps) {
                     timelineEventInfos,
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
+                    missionConfig: globalConfig,
                 });
                 return;
             }
@@ -219,6 +220,7 @@ function createSceneHandlerClass(deps) {
                 timelineEventInfos,
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
+                missionConfig: globalConfig,
             });
         }
     };

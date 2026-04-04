@@ -73,6 +73,30 @@ function isDesktopViewport() {
     return window.innerWidth > 600;
 }
 
+function shouldEnableEarthriseComposer(missionConfig) {
+    const ui = missionConfig?.ui;
+    if (!ui || typeof ui !== "object") {
+        return false;
+    }
+    if (ui.earthriseComposerEnabled === true) {
+        return true;
+    }
+    const features = ui.features;
+    return !!(features && typeof features === "object" && features.earthriseComposer === true);
+}
+
+function shouldEnableAuxiliaryPanels(missionConfig) {
+    const ui = missionConfig?.ui;
+    if (!ui || typeof ui !== "object") {
+        return false;
+    }
+    if (ui.auxiliaryPanelsEnabled === true) {
+        return true;
+    }
+    const features = ui.features;
+    return !!(features && typeof features === "object" && features.auxiliaryPanels === true);
+}
+
 class AuxiliaryCameraViewsManager {
     constructor({ THREE, overlayHost, requestRender }) {
         this.THREE = THREE;
@@ -94,6 +118,8 @@ class AuxiliaryCameraViewsManager {
         this.persistedPanelState = this.readPersistedPanelState();
         this.persistStateTimeout = null;
         this.composerAmbientLightByScene = new WeakMap();
+        this.missionPanelsEnabled = false;
+        this.composerEnabled = false;
 
         this.craftWorld = new THREE.Vector3();
         this.anchorWorld = new THREE.Vector3();
@@ -794,6 +820,9 @@ class AuxiliaryCameraViewsManager {
             composerInteractionEnabled: true,
             composerDialPointerId: null,
             composerViewportPointer: null,
+            missionEnabled: panelMode === "composer"
+                ? this.composerEnabled
+                : this.missionPanelsEnabled,
         };
 
         const syncAutoToggleUi = () => {
@@ -1233,6 +1262,7 @@ class AuxiliaryCameraViewsManager {
             persist: false,
             requestRender: false,
         });
+        this.setPanelMissionEnabled(panelState, panelState.missionEnabled);
     }
 
     handlePanelResizeEntries(entries) {
@@ -1272,6 +1302,14 @@ class AuxiliaryCameraViewsManager {
     }
 
     setPanelVisible(panelState, visible) {
+        if (panelState?.missionEnabled === false) {
+            panelState.panel.hidden = true;
+            if (panelState.chipButton) {
+                panelState.chipButton.hidden = true;
+            }
+            this.clearPanelOverlay(panelState);
+            return;
+        }
         const shouldShowPanel = visible && panelState.minimized !== true;
         panelState.panel.hidden = !shouldShowPanel;
         if (panelState.chipButton) {
@@ -1348,6 +1386,44 @@ class AuxiliaryCameraViewsManager {
         }
         if (panelState.composerDisabledOverlay) {
             panelState.composerDisabledOverlay.hidden = isEnabled;
+        }
+    }
+
+    setPanelMissionEnabled(panelState, enabled) {
+        panelState.missionEnabled = enabled === true;
+        if (panelState.missionEnabled) {
+            if (panelState.minimized === true) {
+                panelState.panel.hidden = true;
+                if (panelState.chipButton) panelState.chipButton.hidden = false;
+            } else {
+                panelState.panel.hidden = false;
+                if (panelState.chipButton) panelState.chipButton.hidden = true;
+            }
+            return;
+        }
+        panelState.panel.hidden = true;
+        if (panelState.chipButton) {
+            panelState.chipButton.hidden = true;
+        }
+        this.clearPanelOverlay(panelState);
+    }
+
+    syncMissionPanelPolicy(missionConfig) {
+        const nextPanelsEnabled = shouldEnableAuxiliaryPanels(missionConfig);
+        const nextComposerEnabled = nextPanelsEnabled && shouldEnableEarthriseComposer(missionConfig);
+        if (
+            this.missionPanelsEnabled === nextPanelsEnabled &&
+            this.composerEnabled === nextComposerEnabled
+        ) {
+            return;
+        }
+        this.missionPanelsEnabled = nextPanelsEnabled;
+        this.composerEnabled = nextComposerEnabled;
+        for (const panelState of this.panels) {
+            const enabled = panelState.mode === "composer"
+                ? this.composerEnabled
+                : this.missionPanelsEnabled;
+            this.setPanelMissionEnabled(panelState, enabled);
         }
     }
 
@@ -2407,11 +2483,13 @@ class AuxiliaryCameraViewsManager {
         timelineEventInfos = null,
         referenceCamera,
         panelsVisible = true,
+        missionConfig = null,
     }) {
         if (!this.root) {
             return;
         }
 
+        this.syncMissionPanelPolicy(missionConfig);
         this.panelsEnabled = panelsVisible !== false;
         if (!this.panelsEnabled || !isDesktopViewport()) {
             this.root.hidden = true;
@@ -2459,6 +2537,10 @@ class AuxiliaryCameraViewsManager {
 
         try {
             for (const panelState of this.panels) {
+                if (panelState.missionEnabled !== true) {
+                    this.setPanelMissionEnabled(panelState, false);
+                    continue;
+                }
                 const context = { activeCraft, earth, moon, sun };
                 if (panelState.mode === "composer") {
                     if (panelState.minimized === true) {
@@ -2617,7 +2699,9 @@ class AuxiliaryCameraViewsManager {
             activeCraft.visible = craftWasVisible;
         }
 
-        const hasMinimizedPanels = this.panels.some((panelState) => panelState.minimized === true);
+        const hasMinimizedPanels = this.panels.some(
+            (panelState) => panelState.missionEnabled !== false && panelState.minimized === true,
+        );
         this.root.hidden = visiblePanels === 0 && !hasMinimizedPanels;
     }
 
