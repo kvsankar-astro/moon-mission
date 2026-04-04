@@ -28,6 +28,7 @@ export function computeSceneCameraParameters({
             craftVisible: true,
             position: preferredDistance.position,
             up: preferredDistance.up || { x: 0, y: 0, z: 1 },
+            lookTarget: preferredDistance.lookTarget || null,
         };
     }
 
@@ -48,5 +49,6 @@ export function computeSceneCameraParameters({
         craftVisible: true,
         position: pose?.position ?? null,
         up: pose?.up ?? null,
+        lookTarget: preferredDistance.lookTarget || null,
     };
 }

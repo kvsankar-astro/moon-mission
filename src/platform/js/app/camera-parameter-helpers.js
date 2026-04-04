@@ -57,6 +57,7 @@ export function computePreferredCameraDistance({ missionConfig, defaultCameraDis
             position: { x: 0, y: 0, z: magnitude },
             magnitude,
             up: { x: 0, y: 1, z: 0 },
+            lookTarget: { x: 0, y: -80, z: 0 },
         };
     }
 

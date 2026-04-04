@@ -435,6 +435,18 @@ function createAnimationSceneClass(deps) {
                 this.setCameraPosition(params.position.x, params.position.y, params.position.z);
             }
 
+            this.defaultLookTarget = params.lookTarget || null;
+
+            if (params.lookTarget && this.cameraController?.controls?.target && this.camera) {
+                this.cameraController.controls.target.set(
+                    params.lookTarget.x,
+                    params.lookTarget.y,
+                    params.lookTarget.z,
+                );
+                this.camera.lookAt(this.cameraController.controls.target);
+                this.cameraController.controls.update?.();
+            }
+
             this.craftVisible = params.craftVisible;
             adjustCameraProjectionMatrixAndSkyAngle();
         }
