@@ -13,6 +13,43 @@ export function createModeActions({
     setJoyRideFlag,
     setView,
 }) {
+    function setCraftCollectionVisibility(collection, visible) {
+        if (!collection || typeof collection !== "object") return;
+        Object.values(collection).forEach((item) => {
+            if (item && "visible" in item) {
+                item.visible = visible;
+            }
+        });
+    }
+
+    function applyCraftVisibility(scene, { craftVisible, craftEdgesVisible }) {
+        if (!scene) return;
+
+        // Keep legacy active-craft references in sync.
+        if (scene.craft && "visible" in scene.craft) {
+            scene.craft.visible = craftVisible;
+        }
+        if (scene.craftInner && "visible" in scene.craftInner) {
+            scene.craftInner.visible = craftVisible;
+        }
+        if (scene.craftEdges && "visible" in scene.craftEdges) {
+            scene.craftEdges.visible = craftEdgesVisible;
+        }
+        if (scene.craftAxesHelper && "visible" in scene.craftAxesHelper) {
+            scene.craftAxesHelper.visible = craftVisible;
+        }
+
+        // Ensure all per-craft collections follow the mode toggle, even when
+        // scene.craft references lag behind active-craft sync.
+        setCraftCollectionVisibility(scene.craftsById, craftVisible);
+        setCraftCollectionVisibility(scene.craftInnersById, craftVisible);
+        setCraftCollectionVisibility(scene.craftEdgesById, craftEdgesVisible);
+        setCraftCollectionVisibility(scene.craftAxesHelpersById, craftVisible);
+        setCraftCollectionVisibility(scene.dronesById, craftVisible);
+
+        scene.craftVisible = craftVisible;
+    }
+
     function toggleButtonDownState(id, isDown) {
         const button = document.getElementById(id);
         if (!button) return;
@@ -27,11 +64,10 @@ export function createModeActions({
         setLandingFlag(transitionPlan.nextFlags.landing);
 
         const scene = animationScenes[getConfig()];
-        scene.craft.visible = transitionPlan.craftVisibility.craftVisible;
-        scene.craftEdges.visible = transitionPlan.craftVisibility.craftEdgesVisible;
+        applyCraftVisibility(scene, transitionPlan.craftVisibility);
 
         if (transitionPlan.shouldResetMotherContainer) {
-            scene.motherContainer.position.set(0, 0, 0);
+            scene?.motherContainer?.position?.set?.(0, 0, 0);
         }
 
         toggleButtonDownState("joyridebutton", transitionPlan.controlStates.joyRide);

@@ -70,6 +70,27 @@ function createSceneHandlerClass(deps) {
                 return;
             }
 
+            const skyWorldPosition = new THREE.Vector3();
+
+            const renderWithCamera = (camera) => {
+                if (!camera) return;
+                if (animationScene.skyContainer?.position) {
+                    camera.updateMatrixWorld?.();
+                    skyWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+                    if (animationScene.skyContainer.parent?.worldToLocal) {
+                        animationScene.skyContainer.parent.worldToLocal(skyWorldPosition);
+                    }
+                    animationScene.skyContainer.position.copy(skyWorldPosition);
+                }
+                this.renderer.autoClear = true;
+                camera.layers.set(0);
+                this.renderer.render(animationScene.scene, camera);
+
+                this.renderer.autoClear = false;
+                camera.layers.set(1);
+                this.renderer.render(animationScene.scene, camera);
+            };
+
             const previousRenderedScene = this.lastAnimationScene;
             if (
                 previousRenderedScene &&
@@ -92,8 +113,14 @@ function createSceneHandlerClass(deps) {
             } = getRuntimeState();
 
             updateCraftScale();
-            const activeCraft = getSceneCraftObject(animationScene, globalConfig);
+            const activeCraft =
+                getSceneCraftObject(animationScene, globalConfig) ||
+                animationScene.craft ||
+                Object.values(animationScene.craftsById || {})[0] ||
+                null;
             if (!activeCraft) {
+                animationScene.refreshSecondaryBodyHighlight?.({ suppress: true });
+                renderWithCamera(animationScene.camera);
                 this.auxiliaryCameraViews?.render({
                     scene: animationScene.scene,
                     activeCraft: null,
@@ -170,21 +197,13 @@ function createSceneHandlerClass(deps) {
                 animationScene.droneCamera.lookAt(activeCraft.position);
 
                 const specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
-                this.renderer.autoClear = true;
-                specialCamera.layers.set(0);
-                this.renderer.render(animationScene.scene, specialCamera);
-
-                this.renderer.autoClear = false;
-                specialCamera.layers.set(1);
-                this.renderer.render(animationScene.scene, specialCamera);
+                if (specialCamera) {
+                    renderWithCamera(specialCamera);
+                } else {
+                    renderWithCamera(animationScene.camera);
+                }
             } else {
-                this.renderer.autoClear = true;
-                animationScene.camera.layers.set(0);
-                this.renderer.render(animationScene.scene, animationScene.camera);
-
-                this.renderer.autoClear = false;
-                animationScene.camera.layers.set(1);
-                this.renderer.render(animationScene.scene, animationScene.camera);
+                renderWithCamera(animationScene.camera);
             }
 
             this.auxiliaryCameraViews?.render({

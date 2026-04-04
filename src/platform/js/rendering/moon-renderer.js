@@ -92,7 +92,8 @@ function buildNormalMapFromHeightTexture(heightTexture) {
     normalTexture.magFilter = THREE.LinearFilter;
     normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
     normalTexture.generateMipmaps = true;
-    normalTexture.flipY = heightTexture.flipY;
+    // DataTexture uploads should not rely on legacy pixel-store flip flags.
+    normalTexture.flipY = false;
     normalTexture.needsUpdate = true;
     return normalTexture;
 }
