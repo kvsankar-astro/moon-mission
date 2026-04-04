@@ -114,7 +114,7 @@ Note:
 
 - Main workspace branch: `master`
 - Parallel bugfix worktree created:
-  - path: `C:\sankar\projects\moon-mission-bugfix`
+  - path: sibling worktree `../moon-mission-bugfix`
   - branch: `bugfix/parallel-bugfix`
   - base commit at creation: `452d188`
 
@@ -204,4 +204,3 @@ Risk: repository boundary confusion for generated assets.
 2. Add/verify conversion pipeline script for SVS TIFF inputs to runtime textures.
 3. Run first controlled asset A/B with fixed camera and lighting.
 4. Decide final merge path based on quality vs size/performance.
-

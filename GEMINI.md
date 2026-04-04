@@ -35,7 +35,7 @@ npm run dev
 
 Open:
 
-`http://localhost:7274/mission.html?mission=cy3`
+`http://localhost:7274/mission.html?mission=chandrayaan3`
 
 ## Orbit data workflow
 

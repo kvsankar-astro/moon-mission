@@ -7,6 +7,8 @@ Live pages:
 
 - Landing/index: <https://sankara.net/astro/lunar-missions/>
 - Mission app: <https://sankara.net/astro/lunar-missions/mission.html>
+- Orbit data status: <https://sankara.net/astro/lunar-missions/orbit-data.html>
+- Assets status: <https://sankara.net/astro/lunar-missions/assets-status.html>
 
 Sample direct mission links:
 
@@ -52,13 +54,17 @@ npm run dev
 Open:
 
 - `http://localhost:7274/`
+- `http://localhost:7274/index.html`
 - `http://localhost:7274/mission.html?mission=chandrayaan3`
 - `http://localhost:7274/mission.html?mission=artemis2&mode=relative`
+- `http://localhost:7274/orbit-data.html`
+- `http://localhost:7274/assets-status.html`
 
 ## Multi-Mission Support
 
 URL parameters:
 
+- `index.html` - Landing page
 - `mission.html` - Mission selector + app shell (landing view shown when `mission` is omitted)
 - `mission.html?mission=<id>` - Open a mission directly (IDs come from `assets/mission-catalog.json`)
 - `mission.html?mission=<id>&mode=relative` - Relative-frame mode

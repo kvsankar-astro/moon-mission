@@ -31,16 +31,16 @@ Current selection remains visible but disabled. The other two remain enabled.
 
 ### Mission Selector
 
-The selector page (`mission.html` without `mission=`) has a checkbox that appends/removes `mode=relative` from mission links.
+The landing/selector views (`mission.html` without `mission=` and `index.html`) append/remove `mode=relative` from mission links.
 
 ## Mode Switching and Time Preservation
 
 Relative-mode switching logic is in `src/platform/js/app/relative-mode.js`.
 
 - Animation time is preserved across reload using session storage key:
-  - `cy3.animTimeOverride`
+  - `mission.animTimeOverride` (with legacy `cy3.animTimeOverride` fallback)
 - Leaving relative mode records an origin override (`geo` or `lunar`) using:
-  - `cy3.originOverride`
+  - `mission.originOverride` (with legacy `cy3.originOverride` fallback)
 - Startup restore path:
   - `mission-view-bootstrap.js` consumes session overrides
   - `mission-runtime-handlers-entry.js` forwards startup override into init flags
@@ -119,10 +119,12 @@ Open:
 mission.html?mission=<id>&mode=relative
 ```
 
-## Relative Files Currently Committed
+## Relative Files
 
-- `assets/apollo10-lm/data/relative-SNOOPY-cheb.json`
-- `assets/apollo11-sivb/data/relative-SIVB-cheb.json`
-- `assets/artemis1/data/relative-ORION-cheb.json`
-- `assets/chandrayaan2/data/relative-CY2-cheb.json`
-- `assets/chandrayaan3/data/relative-CH3L-cheb.json`
+Relative artifacts are mission-local and tracked in the data repository boundary described in this repo.
+
+To inspect current coverage in this workspace:
+
+```bash
+rg --files assets -g "*/data/relative-*-cheb.json"
+```

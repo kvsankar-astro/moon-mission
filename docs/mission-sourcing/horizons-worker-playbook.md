@@ -48,8 +48,8 @@ Work should include, when applicable:
 
 ## Repo Boundary Rules
 
-- App repo: `C:\sankar\projects\moon-mission-orbit-data`
-- Data repo: `C:\sankar\projects\moon-mission-data`
+- App repo: current workspace (`moon-mission`)
+- Data repo: sibling workspace (`../moon-mission-data`)
 - Generated orbit artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and orbit style sidecars belong in the sibling data repo unless this repo already tracks an exception.
 - Before assuming a generated file belongs in this repo, verify with `git ls-files`.
 - Do not revert unrelated user or other-agent changes.
@@ -219,76 +219,25 @@ Open issues / main-agent follow-up:
 - <shared-file integration, blockers, or caveats>
 ```
 
-## Current 23 HORIZONS Missions
+## Mission Inventory (live, not hardcoded)
 
-### Existing in app repo
+Mission lists evolve quickly; avoid hardcoded “N missions” tables in worker prompts.
 
-- `clementine`
-- `lunar-prospector`
-- `chandrayaan1`
-- `lro`
-- `lcross-shepherd`
-- `lcross-centaur`
-- `grail`
-- `ladee`
-- `chandrayaan2`
-- `artemis1`
-- `capstone`
-- `kplo-danuri`
-- `chandrayaan3`
-- `slim`
-- `lunar-trailblazer`
-- `wind`
-- `wmap`
+Use live inventory from:
+- `assets/mission-catalog.json`
+- `docs/horizons-lunar-missions.md`
 
-### Missing from app repo
+Helpful checks:
 
-- `ISEE-3 (ICE/Explorer 59)`
-- `HGS-1`
-- `Nozomi (PLANET-B)`
-- `STEREO`
-- `ARTEMIS`
-- `TESS`
-- `Jupiter Icy Moons Explorer`
-- `Artemis II`
+```bash
+# Missions currently onboarded in app repo
+rg --files assets -g "*/data/config.json"
 
-Note: `LRO & LCROSS` and `GRAIL` are mission entries in the audit, but in the app they may map to multiple mission folders or related folders.
-
-## Recommended Worker Batches For The 23 Full-HORIZONS Missions
-
-### Batch A: Existing NASA/JAXA/KARI single-craft or lighter missions
-
-- `clementine`
-- `lunar-prospector`
-- `ladee`
-- `capstone`
-- `kplo-danuri`
-- `slim`
-- `lunar-trailblazer`
-
-### Batch B: Existing multi-craft or higher-complexity missions
-
-- `chandrayaan1`
-- `chandrayaan2`
-- `chandrayaan3`
-- `lro`
-- `lcross-shepherd`
-- `lcross-centaur`
-- `grail`
-- `artemis1`
-
-### Batch C: New legacy / heliophysics / flyby missions
-
-- `ISEE-3 (ICE/Explorer 59)`
-- `HGS-1`
-- `Nozomi (PLANET-B)`
-- `TESS`
-
-### Batch D: New modern multi-spacecraft or naming-sensitive missions
-
-- `STEREO`
-- `ARTEMIS`
-- `Jupiter Icy Moons Explorer`
-- `Artemis II`
-
-For Batch D, workers should document naming and slug choices carefully before creating mission folders, especially for `ARTEMIS` P1/P2 and `STEREO` if per-craft handling is required.
+# Missions currently covered in the HORIZONS audit index
+python - <<'PY'
+import json
+from pathlib import Path
+idx = json.loads(Path("docs/horizons-blurbs/mission-index.json").read_text(encoding="utf-8"))
+print(f"Audit rows: {len(idx.get('missions', []))}")
+PY
+```

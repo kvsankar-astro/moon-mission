@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-- Entry points: `mission.html` (mission selector + app), `index.html` (redirect).
+- Entry points: `mission.html` (mission selector + app; shows landing view when `mission` is omitted), `index.html` (landing page).
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.
 - Mission content: `assets/<mission>/`

@@ -5,8 +5,8 @@ This guide is the code-aligned reference for architecture, mission onboarding, d
 ## Current Architecture
 
 - Entry points:
-  - `mission.html` (mission selector + app shell)
-  - `index.html` (redirect)
+  - `mission.html` (mission selector + app shell; landing view when `mission` is omitted)
+  - `index.html` (landing page)
 - Shared platform code:
   - `src/platform/css/*`
   - `src/platform/js/*`
