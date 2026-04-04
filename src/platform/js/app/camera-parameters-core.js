@@ -29,6 +29,7 @@ export function computeSceneCameraParameters({
             position: preferredDistance.position,
             up: preferredDistance.up || { x: 0, y: 0, z: 1 },
             lookTarget: preferredDistance.lookTarget || null,
+            pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
         };
     }
 
@@ -50,5 +51,6 @@ export function computeSceneCameraParameters({
         position: pose?.position ?? null,
         up: pose?.up ?? null,
         lookTarget: preferredDistance.lookTarget || null,
+        pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
     };
 }
