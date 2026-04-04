@@ -46,6 +46,37 @@ export function createZoomActions({
         );
     }
 
+    function isXyPlaneSelected() {
+        if (typeof document === "undefined") return false;
+        return !!document.getElementById("checkbox-lock-xy")?.checked;
+    }
+
+    function getPrimaryOrbitPathElement() {
+        const preferred = document.querySelector("#orbit-SC .orbit-classic-path");
+        if (preferred) return preferred;
+
+        const candidates = Array.from(
+            document.querySelectorAll('[id^="orbit-"] .orbit-classic-path'),
+        );
+        if (!candidates.length) return null;
+
+        let best = null;
+        let bestSpan = -Infinity;
+        for (const path of candidates) {
+            try {
+                const bbox = path.getBBox();
+                const span = Number(bbox?.height) || 0;
+                if (span > bestSpan) {
+                    best = path;
+                    bestSpan = span;
+                }
+            } catch (_error) {
+                // Skip candidates that cannot provide bounds yet.
+            }
+        }
+        return best;
+    }
+
     function maybeApplyArtemis2MobileFrame(config) {
         if (typeof window === "undefined" || typeof document === "undefined") {
             return;
@@ -61,15 +92,15 @@ export function createZoomActions({
         }
 
         const scene = animationScenes[config];
-        if (!isDefaultXYScene(scene)) {
+        if (!isDefaultXYScene(scene) && !isXyPlaneSelected()) {
             return;
         }
 
         const timelineDock = document.getElementById("timeline-dock");
         const timelineTop = timelineDock?.getBoundingClientRect?.().top;
-        const earthNode = document.getElementById("EARTH");
-        const moonClassicOrbit = document.querySelector("#orbit-MOON .orbit-classic-path");
-        if (!earthNode || !moonClassicOrbit || typeof moonClassicOrbit.getBBox !== "function") {
+        const earthNode = document.querySelector("#svg-wrapper #EARTH");
+        const primaryClassicOrbit = getPrimaryOrbitPathElement();
+        if (!earthNode || !primaryClassicOrbit || typeof primaryClassicOrbit.getBBox !== "function") {
             return;
         }
 
@@ -79,18 +110,18 @@ export function createZoomActions({
             return;
         }
 
-        let moonBBox = null;
+        let primaryBBox = null;
         try {
-            moonBBox = moonClassicOrbit.getBBox();
+            primaryBBox = primaryClassicOrbit.getBBox();
         } catch (_error) {
             return;
         }
-        if (!moonBBox || !Number.isFinite(moonBBox.y) || !Number.isFinite(moonBBox.height)) {
+        if (!primaryBBox || !Number.isFinite(primaryBBox.y) || !Number.isFinite(primaryBBox.height)) {
             return;
         }
 
-        const moonOrbitBottomY = moonBBox.y + moonBBox.height;
-        const lunarSpanFromEarth = moonOrbitBottomY - earthCy;
+        const primaryOrbitBottomY = primaryBBox.y + primaryBBox.height;
+        const lunarSpanFromEarth = primaryOrbitBottomY - earthCy;
         if (!Number.isFinite(lunarSpanFromEarth) || lunarSpanFromEarth <= 0) {
             return;
         }
@@ -99,7 +130,7 @@ export function createZoomActions({
         // place Earth slightly higher and keep a small safety margin near bottom controls.
         const targetEarthScreenY = window.innerHeight * 0.1;
         const targetOrbitBottomY = Math.min(
-            Number.isFinite(timelineTop) ? timelineTop - 12 : window.innerHeight * 0.81,
+            Number.isFinite(timelineTop) ? timelineTop - 16 : window.innerHeight * 0.8,
             window.innerHeight * 0.9,
         );
         const usableHeight = targetOrbitBottomY - targetEarthScreenY;
@@ -117,7 +148,7 @@ export function createZoomActions({
             return;
         }
 
-        const nextZoom = Math.min(8, Math.max(0.2, usableHeight / lunarSpanFromEarth));
+        const nextZoom = Math.min(8, Math.max(0.2, (usableHeight / lunarSpanFromEarth) * 0.96));
         const nextPanX = (window.innerWidth * 0.5) - getOffsetX() - (nextZoom * earthCx);
         const nextPanY = targetEarthScreenY - getOffsetY() - (nextZoom * earthCy);
 
