@@ -1140,20 +1140,24 @@
                         <div class="swiper-wrapper">
                             <div class="swiper-slide">
                                 <div class="controls-cluster controls-cluster--transport" aria-label="Transport controls">
-                                    <button id="fastbackward" type="button" class="button button--icon" title="Large backward step" aria-label="Large backward step">&laquo;</button>
-                                    <button id="backward" type="button" class="button button--icon" title="Small backward step" aria-label="Small backward step">&lsaquo;</button>
-                                    <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
-                                    <button id="forward" type="button" class="button button--icon" title="Small forward step" aria-label="Small forward step">&rsaquo;</button>
-                                    <button id="fastforward" type="button" class="button button--icon" title="Large forward step" aria-label="Large forward step">&raquo;</button>
+                                    <div class="controls-subgroup controls-subgroup--step" aria-label="Timeline stepping">
+                                        <button id="fastbackward" type="button" class="button button--icon" title="Large backward timeline step" aria-label="Large backward timeline step">&laquo;</button>
+                                        <button id="backward" type="button" class="button button--icon" title="Small backward timeline step" aria-label="Small backward timeline step">&lsaquo;</button>
+                                        <button id="forward" type="button" class="button button--icon" title="Small forward timeline step" aria-label="Small forward timeline step">&rsaquo;</button>
+                                        <button id="fastforward" type="button" class="button button--icon" title="Large forward timeline step" aria-label="Large forward timeline step">&raquo;</button>
+                                    </div>
+                                    <div class="controls-subgroup controls-subgroup--playback" aria-label="Playback">
+                                        <button id="animate" type="button" class="button button--primary" title="Play or pause">Play</button>
+                                        <button id="missionnow" type="button" class="button button--now" title="Jump to current time" aria-label="Jump to current time">Now</button>
+                                    </div>
                                 </div>
                             </div>
 
                             <div class="swiper-slide">
                                 <div class="controls-cluster controls-cluster--speed" aria-label="Speed controls">
                                     <button id="slower" type="button" class="button button--icon" title="Slower" aria-label="Slower">−</button>
-                                    <button id="resetspeed" type="button" class="button button--speed" title="Reset speed to 1x">1x</button>
+                                    <button id="realtime" type="button" class="button button--realtime" title="Set speed to realtime (1 sec/sec)" aria-label="Current speed. Click to set realtime">1 sec/sec</button>
                                     <button id="faster" type="button" class="button button--icon" title="Faster" aria-label="Faster">+</button>
-                                    <button id="realtime" type="button" class="button button--realtime" title="Realtime">Realtime</button>
                                 </div>
                             </div>
 
@@ -1196,8 +1200,8 @@
                             <div><kbd>←</kbd> / <kbd>→</kbd> Small Step</div>
                             <div><kbd>Shift</kbd>+<kbd>←</kbd> / <kbd>→</kbd> Large Step</div>
                             <div><kbd>-</kbd> / <kbd>+</kbd> Slower/Faster</div>
-                            <div><kbd>0</kbd> Reset Speed</div>
                             <div><kbd>R</kbd> Realtime</div>
+                            <div><kbd>N</kbd> Jump to Now</div>
                             <div><kbd>?</kbd> Toggle Help</div>
                         </div>
                     </div>

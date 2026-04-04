@@ -555,15 +555,15 @@ export function bindKeyboardShortcuts() {
             return;
         }
 
-        if (key === "0" || event.code === "Digit0" || event.code === "Numpad0") {
-            event.preventDefault();
-            clickControlButton("resetspeed");
-            return;
-        }
-
         if (lowerKey === "r") {
             event.preventDefault();
             clickControlButton("realtime");
+            return;
+        }
+
+        if (lowerKey === "n") {
+            event.preventDefault();
+            clickControlButton("missionnow");
         }
     });
 }

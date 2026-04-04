@@ -112,7 +112,19 @@ export function createOrbitProcessActions({
         if (!getMissionStartCalled()) {
             missionStart();
         }
+        const slowerButton = document.getElementById("slower");
+        const fasterButton = document.getElementById("faster");
+        const slowerWasDisabled = !!slowerButton?.disabled;
+        const fasterWasDisabled = !!fasterButton?.disabled;
         d3SelectAll("button").attr("disabled", null);
+        if (slowerButton) {
+            slowerButton.disabled = slowerWasDisabled;
+            slowerButton.setAttribute("aria-disabled", slowerWasDisabled ? "true" : "false");
+        }
+        if (fasterButton) {
+            fasterButton.disabled = fasterWasDisabled;
+            fasterButton.setAttribute("aria-disabled", fasterWasDisabled ? "true" : "false");
+        }
 
         if (!getAnimationRunning()) {
             updateAnimateButtonText();
