@@ -95,9 +95,11 @@ export function createZoomActions({
             return;
         }
 
-        const targetEarthScreenY = window.innerHeight * 0.2;
+        // Fine-tuned mobile framing for Artemis 2:
+        // place Earth slightly higher and keep a small safety margin near bottom controls.
+        const targetEarthScreenY = window.innerHeight * 0.19;
         const targetOrbitBottomY = Math.min(
-            Number.isFinite(timelineTop) ? timelineTop - 8 : window.innerHeight * 0.82,
+            Number.isFinite(timelineTop) ? timelineTop - 12 : window.innerHeight * 0.81,
             window.innerHeight * 0.9,
         );
         const usableHeight = targetOrbitBottomY - targetEarthScreenY;
