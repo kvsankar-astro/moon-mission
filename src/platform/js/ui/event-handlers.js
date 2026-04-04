@@ -42,6 +42,22 @@ let shortcutPanelGlobalBound = false;
 let controlPanelResizeBound = false;
 let settingsAutoCollapsedControls = false;
 const mobileSettingsSectionState = new Map();
+const REPEAT_PRESS_BUTTON_IDS = new Set([
+    "zoomin",
+    "zoomout",
+    "panleft",
+    "panright",
+    "panup",
+    "pandown",
+    "forward",
+    "fastforward",
+    "backward",
+    "fastbackward",
+    "slower",
+    "resetspeed",
+    "faster",
+    "realtime",
+]);
 
 function isInteractiveInputTarget(target) {
     if (!target) return false;
@@ -50,9 +66,38 @@ function isInteractiveInputTarget(target) {
     return target.isContentEditable === true;
 }
 
+function dispatchSyntheticPress(target, pointerType = "mouse") {
+    if (!target || target.disabled) return false;
+    if (typeof window.PointerEvent === "function") {
+        target.dispatchEvent(new PointerEvent("pointerdown", {
+            bubbles: true,
+            cancelable: true,
+            pointerId: 1,
+            pointerType,
+            isPrimary: true,
+            button: 0,
+        }));
+        target.dispatchEvent(new PointerEvent("pointerup", {
+            bubbles: true,
+            cancelable: true,
+            pointerId: 1,
+            pointerType,
+            isPrimary: true,
+            button: 0,
+        }));
+        return true;
+    }
+    target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+    return true;
+}
+
 function clickControlButton(id) {
     const button = document.getElementById(id);
     if (!button || button.disabled) return false;
+    if (REPEAT_PRESS_BUTTON_IDS.has(id)) {
+        return dispatchSyntheticPress(button, "mouse");
+    }
     button.click();
     return true;
 }
@@ -918,6 +963,12 @@ export function bindMobileMissionCard() {
         const input = document.getElementById(id);
         if (!input || input.disabled) return;
         if (input.checked === checked) return;
+        const activeScene = resolveActiveScene();
+        const sceneReady = !!activeScene?.initialized3D;
+        if (!sceneReady) {
+            input.checked = checked;
+            return;
+        }
         input.click();
     };
 
@@ -1137,10 +1188,7 @@ export function bindMobileMissionCard() {
     const proxyPress = (desktopId) => {
         const target = document.getElementById(desktopId);
         if (!target || target.disabled) return;
-
-        // Desktop transport speed buttons are wired to mousedown repeat handlers.
-        target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-        target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+        dispatchSyntheticPress(target, "touch");
     };
 
     mobileTransportSets.forEach((set) => {
