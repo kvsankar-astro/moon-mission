@@ -39,6 +39,17 @@ const PANEL_SPECS = Object.freeze([
     },
 ]);
 
+const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
+    PANEL_SPECS
+        .filter((spec) => spec.mode !== "composer")
+        .map((spec) => ({
+            id: spec.id,
+            label: spec.title,
+            positionMode: spec.anchorKey === "craft" ? "spacecraft" : spec.anchorKey,
+            lookMode: spec.targetKey,
+        })),
+);
+
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
@@ -2727,4 +2738,4 @@ class AuxiliaryCameraViewsManager {
     }
 }
 
-export { AuxiliaryCameraViewsManager };
+export { AuxiliaryCameraViewsManager, AUXILIARY_VIEW_CAMERA_PRESETS };

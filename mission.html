@@ -1329,11 +1329,77 @@
                     <button id="mobile-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
                 </div>
             </section>
+            <section
+                id="mobile-card-views"
+                class="mobile-shell__card mobile-shell__card--views"
+                aria-label="Views card"
+                hidden
+            >
+                <div class="mobile-shell__card-head">
+                    <span class="mobile-shell__card-title">Views</span>
+                </div>
+                <div class="mobile-shell__views-subtabs" role="tablist" aria-label="Mobile view presets">
+                    <button
+                        type="button"
+                        class="mobile-shell__view-btn"
+                        role="tab"
+                        data-mobile-view-preset="moon"
+                        aria-selected="false"
+                    >
+                        Craft to Moon
+                    </button>
+                    <button
+                        type="button"
+                        class="mobile-shell__view-btn"
+                        role="tab"
+                        data-mobile-view-preset="earth"
+                        aria-selected="false"
+                    >
+                        Craft to Earth
+                    </button>
+                    <button
+                        type="button"
+                        class="mobile-shell__view-btn"
+                        role="tab"
+                        data-mobile-view-preset="earth-to-moon"
+                        aria-selected="false"
+                    >
+                        Earth to Moon
+                    </button>
+                </div>
+                <div class="mobile-shell__views-fov" role="group" aria-label="Views field of view">
+                    <span class="mobile-shell__views-fov-label">FoV</span>
+                    <button
+                        id="mobile-views-fov-auto"
+                        type="button"
+                        class="mobile-shell__views-fov-auto is-active"
+                        aria-pressed="true"
+                    >
+                        Auto FoV
+                    </button>
+                    <input
+                        id="mobile-views-fov-slider"
+                        class="mobile-shell__views-fov-slider"
+                        type="range"
+                        min="1"
+                        max="179"
+                        step="1"
+                        value="50"
+                        aria-label="Views field of view slider"
+                    >
+                    <output id="mobile-views-fov-value" class="mobile-shell__views-fov-value">50°</output>
+                </div>
+                <div class="mobile-shell__controls" role="group" aria-label="Views transport">
+                    <button id="mobile-views-control-play" type="button" class="mobile-shell__control-btn">Play</button>
+                    <button id="mobile-views-control-realtime" type="button" class="mobile-shell__control-btn">Now</button>
+                    <button id="mobile-views-control-slower" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Slower">−</button>
+                    <button id="mobile-views-control-speed" type="button" class="mobile-shell__control-btn">1x</button>
+                    <button id="mobile-views-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
+                </div>
+            </section>
             <nav class="mobile-shell__nav" aria-label="Mobile cards">
                 <button type="button" class="mobile-shell__nav-btn is-active" data-mobile-tab="mission" aria-current="page">Mission</button>
-                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="orbit" disabled title="Orbit card coming next">Orbit</button>
-                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="views" disabled title="Views card coming next">Views</button>
-                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="compose" disabled title="Compose card coming next">Compose</button>
+                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="views">Views</button>
             </nav>
         </div>
 
