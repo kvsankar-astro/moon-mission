@@ -34,6 +34,13 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
+  "spacecraftModel": {
+    "enabled": true,
+    "plugin": "orion-procedural",
+    "options": {
+      "scale": 0.7
+    }
+  },
   "origins": ["geo", "lunar"],
   "relative": {
     "orbits_file": "relative-ORION"

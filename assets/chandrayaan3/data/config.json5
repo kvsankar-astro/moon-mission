@@ -1,0 +1,322 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+{
+  "spacecraft_mnemonic": "CH3L",
+  "spacecraft_id": -158,
+  "mission_name": "Chandrayaan 3",
+  "mission_name_short": "CH3",
+  "mission_url": "https://www.isro.gov.in/Chandrayaan3_New.html",
+  "mission_description": "Chandrayaan 3 Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "chandrayaan, chandrayaan3, moon, isro, india, space, astronomy, animation",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_image": "assets/chandrayaan3/images/chandrayaan3-screenshot.png",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "primaryCraftId": "CH3L",
+  "crafts": [
+    {
+      "id": "CH3O",
+      "mnemonic": "CH3O",
+      "spacecraft_id": -169,
+      "name": "Chandrayaan 3",
+      "viewLabel": "Orbiter",
+      "primary": false,
+      "color": "#f59e0b",
+      "orbitcolor": "#38bdf8",
+      "geo": {
+        "orbits_file": "geo-CH3O"
+      },
+      "lunar": {
+        "orbits_file": "lunar-CH3O"
+      },
+      "relative": {
+        "orbits_file": "relative-CH3O"
+      }
+    },
+    {
+      "id": "CH3L",
+      "mnemonic": "CH3L",
+      "spacecraft_id": -158,
+      "name": "Vikram",
+      "viewLabel": "Lander",
+      "primary": true,
+      "color": "#e11d48",
+      "orbitcolor": "#f472b6",
+      "spans": {
+        "geo": {
+          "start_year": "2023",
+          "start_month": "07",
+          "start_day": "14",
+          "start_hour": "09",
+          "start_minute": "25",
+          "stop_year": "2023",
+          "stop_month": "09",
+          "stop_day": "06",
+          "stop_hour": "12",
+          "stop_minute": "31"
+        },
+        "lunar": {
+          "start_year": "2023",
+          "start_month": "07",
+          "start_day": "14",
+          "start_hour": "09",
+          "start_minute": "25",
+          "stop_year": "2023",
+          "stop_month": "09",
+          "stop_day": "06",
+          "stop_hour": "12",
+          "stop_minute": "31"
+        }
+      },
+      "geo": {
+        "orbits_file": "geo-CH3L"
+      },
+      "lunar": {
+        "orbits_file": "lunar-CH3L"
+      },
+      "relative": {
+        "orbits_file": "relative-CH3L"
+      }
+    }
+  ],
+  "ui": {
+    "pageTitle": "ISRO's Chandrayaan 3 Mission 2023 - An Orbit Animation",
+    "headerTitle": "Chandrayaan 3",
+    "lockOnLabel": "Vikram",
+    "orbitLabel": "Vikram Orbit",
+    "descentOrbitLabel": "Vikram Descent Orbit"
+  },
+  "is_lunar": true,
+  "origins": ["geo", "lunar"],
+  "relative": {
+    "orbits_file": "relative-CH3L"
+  },
+  "geo": {
+    "start_year": "2023",
+    "start_month": "07", 
+    "start_day": "14",
+    "start_hour": "09",
+    "start_minute": "23",
+    "stop_year": "2023",
+    "stop_month": "09", 
+    "stop_day": "06",
+    "stop_hour": "12",
+    "stop_minute": "33",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "CH3O", "CH3L"],
+    "center": "earth_center",
+    "orbits_file": "geo-CH3L",
+    "orbit_style_file": "geo-style.json"
+  },
+  "lunar": {
+    "start_year": "2023",
+    "start_month": "07",
+    "start_day": "14", 
+    "start_hour": "09",
+    "start_minute": "23",
+    "stop_year": "2023",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "12", 
+    "stop_minute": "33",
+    "step_size_in_seconds": 60,
+    "planets": ["CH3O", "CH3L", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-CH3L",
+    "orbit_style_file": "lunar-style.json"
+  },
+  "landing": {
+    "enabled": true,
+    "craftId": "CH3L",
+    "start_year": "2023",
+    "start_month": "08",
+    "start_day": "23",
+    "start_hour": "12",
+    "start_minute": "15",
+    "stop_year": "2023", 
+    "stop_month": "08",
+    "stop_day": "23",
+    "stop_hour": "12",
+    "stop_minute": "40",
+    "step_size_in_seconds": 1,
+    "planets": ["CH3L"],
+    "center": "moon_center",
+    "orbits_file": "landing-CH3L"
+  },
+  "landingSites": [
+    {
+      "name": "SC Primary Site 1",
+      "longitude": 32.348126,
+      "latitude": -69.367621,
+      "color": "#FFFF00",
+      "description": "SC primary landing site"
+    },
+    {
+      "name": "SC Primary Site 2", 
+      "longitude": 32.318695,
+      "latitude": -69.374454,
+      "color": "#00FFFF",
+      "description": "SC primary landing site variant"
+    },
+    {
+      "name": "SC Secondary Site",
+      "longitude": -17.33040,
+      "latitude": -69.497764,
+      "color": "#FFD700", 
+      "description": "SC secondary landing site"
+    }
+  ],
+  "spacecraftModel": {
+    "enabled": true,
+    "file": "cy3-small.glb"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2023-07-14T09:23:00Z",
+      "durationSeconds": 0,
+      "label": "🚀 Launch",
+      "burnFlag": false,
+      "infoText": "Launch:    14th Jul, 14:53 IST - Chandrayaan 3 placed in orbit",
+      "body": "SC"
+    },
+    "ebn1": {
+      "startTime": "2023-07-15T06:41:00Z",
+      "durationSeconds": 300,
+      "label": "🔥EBN#1",
+      "burnFlag": true,
+      "infoText": "EBN#1:     15th Jul, 12:11 IST - 173km x 41762km orbit",
+      "body": "SC"
+    },
+    "ebn2": {
+      "startTime": "2023-07-17T02:15:00Z",
+      "durationSeconds": 900,
+      "label": "🔥EBN#2",
+      "burnFlag": true,
+      "infoText": "EBN#2:     17th Jul, 7:45 IST - 226km x 41603km orbit",
+      "body": "SC"
+    },
+    "ebn3": {
+      "startTime": "2023-07-18T09:24:00Z",
+      "durationSeconds": 900,
+      "label": "🔥EBN#3",
+      "burnFlag": true,
+      "infoText": "EBN#3:     18th Jul, 14:54 IST - 228km x 51400km orbit",
+      "body": "SC"
+    },
+    "ebn4": {
+      "startTime": "2023-07-20T09:16:00Z",
+      "durationSeconds": 1200,
+      "label": "🔥EBN#4",
+      "burnFlag": true,
+      "infoText": "EBN#4:     20th Jul, 14:46 IST - 233km x 71351km orbit",
+      "body": "SC"
+    },
+    "ebn5": {
+      "startTime": "2023-07-25T09:00:00Z",
+      "durationSeconds": 300,
+      "label": "🔥EBN#5",
+      "burnFlag": true,
+      "infoText": "EBN#5:      25th Jul, 14:30 IST - 236km x 127603km orbit",
+      "body": "SC"
+    },
+    "tli": {
+      "startTime": "2023-07-31T18:43:00Z",
+      "durationSeconds": 1500,
+      "label": "🔥TLI",
+      "burnFlag": true,
+      "infoText": "TLI:         1st Aug, 00:13 IST - 288km x 369328km orbit",
+      "body": "SC"
+    },
+    "loi": {
+      "startTime": "2023-08-05T14:00:00Z",
+      "durationSeconds": 0,
+      "label": "🔥LBN#1/LOI",
+      "burnFlag": true,
+      "infoText": "LOI: 5th Aug, 19:30 IST - 164km x 18074km orbit",
+      "body": "SC"
+    },
+    "lbn1": {
+      "startTime": "2023-08-06T17:49:00Z",
+      "durationSeconds": 1228,
+      "label": "🔥LBN#1",
+      "burnFlag": true,
+      "infoText": "LBN#1:     6th Aug, 23:19 IST - 170km x 4313km orbit",
+      "body": "SC"
+    },
+    "lbn2": {
+      "startTime": "2023-08-09T08:21:00Z",
+      "durationSeconds": 1190,
+      "label": "🔥LBN#2",
+      "burnFlag": true,
+      "infoText": "LBN#2:     9th Aug, 13:51 IST - 174km x 1437km orbit",
+      "body": "SC"
+    },
+    "lbn3": {
+      "startTime": "2023-08-14T06:38:00Z",
+      "durationSeconds": 1155,
+      "label": "🔥LBN#3",
+      "burnFlag": true,
+      "infoText": "LBN#3:    14th Aug, 12:08 IST - 150km x 177km orbit",
+      "body": "SC"
+    },
+    "lbn4": {
+      "startTime": "2023-08-16T03:00:00Z",
+      "durationSeconds": 52,
+      "label": "🔥LBN#4",
+      "burnFlag": true,
+      "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
+      "body": "SC"
+    },
+    "landerSeparation": {
+      "startTime": "2023-08-17T07:45:00Z",
+      "durationSeconds": 0,
+      "label": "Lander Sep",
+      "burnFlag": false,
+      "infoText": "Orbiter-Lander separation - 17th August, 13:15 IST",
+      "body": "CH3L"
+    },
+    "vikramLanding": {
+      "startTime": "2023-08-23T12:34:00Z",
+      "durationSeconds": 0,
+      "label": "Vikram Landing",
+      "burnFlag": true,
+      "infoText": "Vikram Landing - 23rd August, 18:04 IST",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "⏰ Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "cy3DataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "CH3O"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "🏁Orbiter Data End",
+      "burnFlag": false,
+      "infoText": "Chandrayaan 3 Orbiter Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"],
+    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"]
+  }
+}

@@ -13,6 +13,7 @@ function createAnimationSceneClass(deps) {
         scene3dInitActions,
         dimensionsActions,
         skyActions,
+        sunActions,
         earthActions,
         moonActions,
         locationActions,
@@ -94,6 +95,8 @@ function createAnimationSceneClass(deps) {
             this.sceneHelpers = null;
             this.skyRenderer = null;
             this.skyBaseQuaternion = null;
+            this.sunRenderer = null;
+            this.sun = null;
             this.lightManager = null;
             this.earthRenderer = null;
             this.moonRenderer = null;
@@ -141,6 +144,15 @@ function createAnimationSceneClass(deps) {
 
         disposeSky() {
             skyActions.disposeSky(this);
+        }
+
+        addSun() {
+            const { earthRadius } = getRuntimeState();
+            sunActions.addSun(this, { earthRadius });
+        }
+
+        disposeSun() {
+            sunActions.disposeSun(this);
         }
 
         addEarth() {

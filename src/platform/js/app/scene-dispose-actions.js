@@ -6,6 +6,7 @@ export function createSceneDisposeActions() {
         scene.disposeSecondaryBodyHighlight?.();
         scene.disposeEarth();
         scene.disposeSky();
+        scene.disposeSun();
         scene.disposeMoonLocations();
         scene.disposeMoon();
         scene.disposeSpacecraftModel();

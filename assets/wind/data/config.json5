@@ -1,0 +1,184 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `wind`
+//   Folder: `assets/wind`
+//   HORIZONS ID: `-8`
+//   Canonical mission name used here: `Wind`
+// Time Window Used:
+//   Launch/reference start: `1994-11-01 09:31:00 UTC`
+//   Orbit data start: `1994-11-01 10:49:00 UTC`
+//   Orbit data end: `1995-02-01 10:49:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `1994-Nov-01` to `2026-Jun-02`
+//   Selected interesting window strategy: earliest `92` days, chosen to capture the opening double-lunar swingby phase described in the HORIZONS background.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/wind.txt`: launch time, mission URLs, and the note that the first nine months used a double-lunar swingby orbit.
+//   - `docs/horizons-blurbs/raw/wind.txt`: trajectory coverage table with `Wind_merged 1994-Nov-01 2026-Jun-02`.
+//   - Moon-centered HORIZONS vector queries for `-8` around the early mission window show local closest-approach minima at `1994-11-03 06:04 UTC` (~`104,811 km`) and `1994-12-27 14:43 UTC` (~`11,834 km`).
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - HORIZONS does not provide WIND ephemeris before `1994-Nov-01 10:48:19 TDB`, so the orbit window begins at `10:49 UTC` even though launch remains a mission event marker.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/wind/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "WIND",
+  "spacecraft_id": -8,
+  "mission_name": "Wind",
+  "mission_name_short": "WIND",
+  "mission_url": "https://wind.nasa.gov/",
+  "mission_description": "Wind Lunar Swingby Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, wind, heliophysics, mission, moon, orbit, swingby",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Wind - Lunar Swingby Orbit Animation",
+    "headerTitle": "Wind",
+    "lockOnLabel": "Wind",
+    "orbitLabel": "WIND Orbit",
+    "descentOrbitLabel": "WIND Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1994",
+    "start_month": "11",
+    "start_day": "01",
+    "start_hour": "10",
+    "start_minute": "49",
+    "stop_year": "1995",
+    "stop_month": "02",
+    "stop_day": "01",
+    "stop_hour": "10",
+    "stop_minute": "49",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-WIND"
+  },
+  "lunar": {
+    "start_year": "1994",
+    "start_month": "11",
+    "start_day": "01",
+    "start_hour": "10",
+    "start_minute": "49",
+    "stop_year": "1995",
+    "stop_month": "02",
+    "stop_day": "01",
+    "stop_hour": "10",
+    "stop_minute": "49",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-WIND"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1994",
+    "start_month": "11",
+    "start_day": "01",
+    "start_hour": "09",
+    "start_minute": "31",
+    "stop_year": "1994",
+    "stop_month": "11",
+    "stop_day": "01",
+    "stop_hour": "09",
+    "stop_minute": "31",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-WIND"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for WIND."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1994-11-01T09:31:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Cape Canaveral aboard a Delta II 7925-10 rocket.",
+      "body": "SC"
+    },
+    "firstLunarSwingby": {
+      "startTime": "1994-11-03T06:04:00Z",
+      "durationSeconds": 0,
+      "label": "First Lunar Swingby",
+      "burnFlag": false,
+      "infoText": "First close lunar swingby in the sampled double-lunar swingby phase; closest approach about 104,811 km from the Moon's center.",
+      "body": "SC"
+    },
+    "secondLunarSwingby": {
+      "startTime": "1994-12-27T14:43:00Z",
+      "durationSeconds": 0,
+      "label": "Second Lunar Swingby",
+      "burnFlag": false,
+      "infoText": "Deep lunar gravity-assist pass in the sampled window; closest approach about 11,834 km from the Moon's center.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "windDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "WIND"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "WIND Data End",
+      "burnFlag": false,
+      "infoText": "WIND Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "firstLunarSwingby",
+      "secondLunarSwingby",
+      "now",
+      "windDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "firstLunarSwingby",
+      "secondLunarSwingby",
+      "now",
+      "windDataEnd"
+    ]
+  }
+}

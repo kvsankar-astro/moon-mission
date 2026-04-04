@@ -1,0 +1,170 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `apollo-10-s-ivb`
+//   Folder: `assets/apollo10-sivb`
+//   HORIZONS ID: `-399100`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `1969-05-18 16:49:00 UTC`
+//   Orbit data start: `1969-05-18 19:44:00 UTC`
+//   Orbit data end: `1969-05-29 00:06:00 UTC`
+//   Sampling step: `60` seconds
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'trajectory spans ... from 1969-May-18 19:44 to May 29 @ 00:06 GMT/UTC'
+//   - docs/horizons-blurbs/raw/apollo-10-s-ivb.txt: 'Launched: May 18, 1969 @ 16:49 GMT/UTC'
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "A10S",
+  "spacecraft_id": -399100,
+  "mission_name": "Apollo 10 S-IVB",
+  "mission_name_short": "A10S",
+  "mission_url": "",
+  "mission_description": "Apollo 10 S-IVB Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "10, animation, apollo, ivb, mission, moon, orbit, s",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Apollo 10 S-IVB - Orbit Animation",
+    "headerTitle": "Apollo 10 S-IVB",
+    "lockOnLabel": "Apollo 10 S-IVB",
+    "orbitLabel": "A10S Orbit",
+    "descentOrbitLabel": "A10S Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "1969",
+    "start_month": "05",
+    "start_day": "18",
+    "start_hour": "19",
+    "start_minute": "45",
+    "stop_year": "1969",
+    "stop_month": "05",
+    "stop_day": "29",
+    "stop_hour": "00",
+    "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-A10S"
+  },
+  "lunar": {
+    "start_year": "1969",
+    "start_month": "05",
+    "start_day": "18",
+    "start_hour": "19",
+    "start_minute": "45",
+    "stop_year": "1969",
+    "stop_month": "05",
+    "stop_day": "29",
+    "stop_hour": "00",
+    "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-A10S"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "1969",
+    "start_month": "05",
+    "start_day": "18",
+    "start_hour": "19",
+    "start_minute": "44",
+    "stop_year": "1969",
+    "stop_month": "05",
+    "stop_day": "18",
+    "stop_hour": "19",
+    "stop_minute": "44",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-A10S"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for A10S."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "1969-05-18T16:49:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "arcStart": {
+      "startTime": "1969-05-18T19:44:00Z",
+      "durationSeconds": 0,
+      "label": "Departure Arc Start",
+      "burnFlag": false,
+      "infoText": "Start of reconstructed departure arc",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "a10sDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "A10S"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1A10S Data End",
+      "burnFlag": false,
+      "infoText": "A10S Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "arcStart",
+      "now",
+      "a10sDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "arcStart",
+      "now",
+      "a10sDataEnd"
+    ]
+  }
+}

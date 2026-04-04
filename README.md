@@ -7,6 +7,8 @@ Live pages:
 
 - Landing/index: <https://sankara.net/astro/lunar-missions/>
 - Mission app: <https://sankara.net/astro/lunar-missions/mission.html>
+- Orbit data status: <https://sankara.net/astro/lunar-missions/orbit-data.html>
+- Assets status: <https://sankara.net/astro/lunar-missions/assets-status.html>
 
 Sample direct mission links:
 
@@ -52,13 +54,17 @@ npm run dev
 Open:
 
 - `http://localhost:7274/`
+- `http://localhost:7274/index.html`
 - `http://localhost:7274/mission.html?mission=chandrayaan3`
 - `http://localhost:7274/mission.html?mission=artemis2&mode=relative`
+- `http://localhost:7274/orbit-data.html`
+- `http://localhost:7274/assets-status.html`
 
 ## Multi-Mission Support
 
 URL parameters:
 
+- `index.html` - Landing page
 - `mission.html` - Mission selector + app shell (landing view shown when `mission` is omitted)
 - `mission.html?mission=<id>` - Open a mission directly (IDs come from `assets/mission-catalog.json`)
 - `mission.html?mission=<id>&mode=relative` - Relative-frame mode
@@ -72,12 +78,18 @@ Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `E
 
 For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
-Developer documentation (adding missions, orbit pipeline, build/deploy scripts): [docs/developer.md](docs/developer.md)
+Developer workflow/build/CI guide: [docs/developer.md](docs/developer.md)  
+System design index: [docs/design/design.md](docs/design/design.md)
 
 Shared authored mission panel content lives in:
 
 - `assets/mission-briefs.json`
 - `assets/mission-images.json`
+
+Mission config authoring workflow:
+- edit `assets/*/data/config.json5` (maintainer source with comments)
+- compile runtime JSON with `npm run configs:compile` (writes `assets/*/data/config.json`)
+- verify sync with `npm run configs:check`
 
 ## Data Repository Boundary
 
@@ -112,7 +124,7 @@ The runtime supports Chebyshev/NPZ/Astronomy body providers, and current mission
 **Time Systems:** Runtime ephemeris sampling currently uses UTC-based Julian date helpers for
 Chebyshev/NPZ lookups, while TDB-based helpers are used for astronomical orientation math
 (for example lunar pole calculations). UTC is used for user-facing event times and display.
-See [docs/developer.md](docs/developer.md) for detailed technical notes.
+See [docs/design/design.md](docs/design/design.md) for detailed technical/design notes.
 
 ## Testing
 
@@ -125,7 +137,7 @@ make test
 `make test` runs the primary UI + visual regression suite (`test/ui.test.js`) on `http://localhost:8111`.
 
 For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
-- [docs/testing/README.md](docs/testing/README.md)
+- [docs/testing.md](docs/testing.md)
 
 ### Hosting
 

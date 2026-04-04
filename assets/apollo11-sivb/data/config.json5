@@ -1,0 +1,89 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+{
+  "spacecraft_mnemonic": "SIVB",
+  "spacecraft_id": -399110,
+  "mission_name": "Apollo 11 S-IVB",
+  "mission_name_short": "A11",
+  "mission_url": "https://en.wikipedia.org/wiki/Apollo_11",
+  "is_lunar": true,
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ephemeris_source": "chebyshev",
+  "origins": ["geo", "lunar"],
+
+  "ui": {
+    "pageTitle": "Apollo 11 S-IVB Third Stage Trajectory",
+    "headerTitle": "Apollo 11 S-IVB",
+    "lockOnLabel": "S-IVB Stage",
+    "orbitLabel": "S-IVB Trajectory",
+    "descentOrbitLabel": "S-IVB Trajectory"
+  },
+
+  "geo": {
+    "start_year": "1969", "start_month": "07", "start_day": "17",
+    "start_hour": "16", "start_minute": "40",
+    "stop_year": "1969", "stop_month": "07", "stop_day": "28",
+    "stop_hour": "00", "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-SIVB"
+  },
+
+  "lunar": {
+    "start_year": "1969", "start_month": "07", "start_day": "17",
+    "start_hour": "16", "start_minute": "40",
+    "stop_year": "1969", "stop_month": "07", "stop_day": "28",
+    "stop_hour": "00", "stop_minute": "06",
+    "step_size_in_seconds": 60,
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-SIVB"
+  },
+
+  "events": {
+    "trackingStart": {
+      "startTime": "1969-07-17T16:40:00Z",
+      "durationSeconds": 0,
+      "label": "S-IVB Tracking Begins",
+      "burnFlag": false,
+      "infoText": "Start of reconstructed S-IVB trajectory data. The spent third stage separated from Columbia/Eagle on July 16 at 17:49 UTC and is now coasting toward the Moon on a flyby trajectory.",
+      "body": "SC"
+    },
+    "lunarFlyby": {
+      "startTime": "1969-07-19T20:00:00Z",
+      "durationSeconds": 0,
+      "label": "Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "The S-IVB passes behind the Moon's trailing edge, receiving a gravity assist that accelerates it beyond Earth escape velocity. Meanwhile, Columbia entered lunar orbit ~3 hours earlier.",
+      "body": "SC"
+    },
+    "lunarLandingContext": {
+      "startTime": "1969-07-20T20:17:40Z",
+      "durationSeconds": 0,
+      "label": "Eagle Lands (Context)",
+      "burnFlag": false,
+      "infoText": "While the S-IVB continues outward into heliocentric space, Eagle lands in the Sea of Tranquility. The S-IVB is now approximately 200,000 km from the Moon.",
+      "body": "SC"
+    },
+    "dataEnd": {
+      "startTime": "1969-07-28T00:06:00Z",
+      "durationSeconds": 0,
+      "label": "S-IVB Enters Solar Orbit",
+      "burnFlag": false,
+      "infoText": "End of reconstructed trajectory data. The S-IVB continues into permanent heliocentric orbit around the Sun, where it remains to this day - one of humanity's earliest artifacts in interplanetary space.",
+      "body": "SC"
+    }
+  },
+
+  "eventConfigs": {
+    "geo": ["trackingStart", "lunarFlyby", "lunarLandingContext", "dataEnd"],
+    "lunar": ["trackingStart", "lunarFlyby", "lunarLandingContext", "dataEnd"]
+  }
+}

@@ -1,0 +1,172 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `grail-ss-stage`
+//   Folder: `assets/grail-ss-stage`
+//   HORIZONS ID: `-176`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2011-09-12 15:08:00 UTC`
+//   Orbit data start: `2011-09-12 15:08:23 UTC`
+//   Orbit data end: `2011-12-13 15:08:23 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2011-09-12 15:08:00 UTC` to `2061-08-30 00:00:00 UTC`
+//   Selected interesting window strategy: `earliest`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/grail-ss-stage.txt: 'GRSS_0910_99_50yr-stratcom 2011 SEP 12 2061 AUG 30'
+//   - docs/horizons-blurbs/raw/grail-ss-stage.txt: '* Nominal time of depletion burn: 2011-Sep-12 15:08:23 UTC'
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "GRSS",
+  "spacecraft_id": -176,
+  "mission_name": "GRAIL-SS Stage",
+  "mission_name_short": "GRSS",
+  "mission_url": "http://moon.mit.edu/",
+  "mission_description": "GRAIL-SS Stage Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, grail, mission, moon, orbit, ss, stage",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "GRAIL-SS Stage - Orbit Animation",
+    "headerTitle": "GRAIL-SS Stage",
+    "lockOnLabel": "GRAIL-SS Stage",
+    "orbitLabel": "GRSS Orbit",
+    "descentOrbitLabel": "GRSS Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2011",
+    "start_month": "09",
+    "start_day": "12",
+    "start_hour": "15",
+    "start_minute": "08",
+    "stop_year": "2011",
+    "stop_month": "12",
+    "stop_day": "13",
+    "stop_hour": "15",
+    "stop_minute": "08",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-GRSS"
+  },
+  "lunar": {
+    "start_year": "2011",
+    "start_month": "09",
+    "start_day": "12",
+    "start_hour": "15",
+    "start_minute": "08",
+    "stop_year": "2011",
+    "stop_month": "12",
+    "stop_day": "13",
+    "stop_hour": "15",
+    "stop_minute": "08",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-GRSS"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2011",
+    "start_month": "09",
+    "start_day": "12",
+    "start_hour": "15",
+    "start_minute": "08",
+    "stop_year": "2011",
+    "stop_month": "09",
+    "stop_day": "12",
+    "stop_hour": "15",
+    "stop_minute": "08",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-GRSS"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for GRSS."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2011-09-12T15:08:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "depletionBurn": {
+      "startTime": "2011-09-12T15:08:23Z",
+      "durationSeconds": 0,
+      "label": "Depletion Burn",
+      "burnFlag": true,
+      "infoText": "Nominal depletion burn",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "grssDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "GRSS"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1GRSS Data End",
+      "burnFlag": false,
+      "infoText": "GRSS Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "depletionBurn",
+      "now",
+      "grssDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "depletionBurn",
+      "now",
+      "grssDataEnd"
+    ]
+  }
+}

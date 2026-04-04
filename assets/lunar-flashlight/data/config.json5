@@ -1,0 +1,168 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `lunar-flashlight`
+//   Folder: `assets/lunar-flashlight`
+//   HORIZONS ID: `-164`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2022-12-11 07:38:00 UTC`
+//   Orbit data start: `2022-12-11 08:34:00 UTC`
+//   Orbit data end: `2023-03-13 08:34:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2022-12-11 08:34:00 UTC` to `2038-01-01 00:00:00 UTC`
+//   Selected interesting window strategy: `earliest`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/lunar-flashlight.txt: 'trj_lfl_221211-230627_380101_final_v1 2022-Dec-11 08:34 2038-Jan-01'
+//   - docs/horizons-blurbs/raw/lunar-flashlight.txt: launch/deployment times in background section
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "LFL",
+  "spacecraft_id": -164,
+  "mission_name": "Lunar Flashlight",
+  "mission_name_short": "LFL",
+  "mission_url": "https://www.nasa.gov/feature/jpl/nasa-s-lunar-flashlight-ready-to-search-for-the-moon-s-water-ice",
+  "mission_description": "Lunar Flashlight Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, flashlight, lunar, mission, moon, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "Lunar Flashlight - Orbit Animation",
+    "headerTitle": "Lunar Flashlight",
+    "lockOnLabel": "Lunar Flashlight",
+    "orbitLabel": "LFL Orbit",
+    "descentOrbitLabel": "LFL Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2022",
+    "start_month": "12",
+    "start_day": "11",
+    "start_hour": "08",
+    "start_minute": "34",
+    "stop_year": "2023",
+    "stop_month": "03",
+    "stop_day": "13",
+    "stop_hour": "08",
+    "stop_minute": "34",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-LFL"
+  },
+  "lunar": {
+    "start_year": "2022",
+    "start_month": "12",
+    "start_day": "11",
+    "start_hour": "08",
+    "start_minute": "34",
+    "stop_year": "2023",
+    "stop_month": "03",
+    "stop_day": "13",
+    "stop_hour": "08",
+    "stop_minute": "34",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-LFL"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2022",
+    "start_month": "12",
+    "start_day": "11",
+    "start_hour": "08",
+    "start_minute": "34",
+    "stop_year": "2022",
+    "stop_month": "12",
+    "stop_day": "11",
+    "stop_hour": "08",
+    "stop_minute": "34",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-LFL"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for LFL."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2022-12-11T07:38:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "deployment": {
+      "startTime": "2022-12-11T08:31:00Z",
+      "durationSeconds": 0,
+      "label": "Deployment",
+      "burnFlag": false,
+      "infoText": "Lunar Flashlight deployment",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "lflDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "LFL"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1LFL Data End",
+      "burnFlag": false,
+      "infoText": "LFL Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "now",
+      "lflDataEnd"
+    ],
+    "lunar": [
+      "now",
+      "lflDataEnd"
+    ]
+  }
+}

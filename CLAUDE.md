@@ -5,8 +5,9 @@ Assistant-facing notes for this repository.
 ## Source of truth
 
 - Contributor/agent workflow: `AGENTS.md`
-- Developer architecture/pipeline details: `docs/developer.md`
-- Test strategy and commands: `docs/testing/README.md`
+- Repo workflow/build/CI conventions: `docs/developer.md`
+- System design and architecture docs: `docs/design/design.md`
+- Test strategy and commands: `docs/testing.md`
 
 ## Current project shape (important)
 
@@ -17,7 +18,7 @@ Assistant-facing notes for this repository.
   - `src/platform/css/*`
   - `src/platform/js/*`
 - Mission assets/config:
-  - `assets/<mission>/data/config.json`
+  - `assets/<mission>/data/config.json5` (source) + `config.json` (compiled runtime file)
   - `assets/<mission>/data/ephemeris-manifest.json`
 - Shared authored landing content:
   - `assets/mission-briefs.json`
@@ -42,6 +43,11 @@ Do not use legacy paths like `assets/platform/js/*` in new changes.
   - `make baseline`
 
 SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
+
+## Mission config workflow
+
+- Edit `config.json5`, then run `npm run configs:compile`.
+- `config.json` must remain in sync (`npm run configs:check`).
 
 ## CI quick reference
 

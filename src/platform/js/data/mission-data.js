@@ -94,7 +94,7 @@ export async function loadMissionConfig() {
         }
 
         try {
-            const response = await fetch(configUrl);
+            const response = await fetch(configUrl, { cache: "no-store" });
             if (!response.ok) {
                 console.warn("Could not load config.json, using defaults");
                 return null;
@@ -106,7 +106,7 @@ export async function loadMissionConfig() {
                 const profileUrl = getMissionConfigProfileUrl(configProfile);
                 if (profileUrl) {
                     try {
-                        const profileResponse = await fetch(profileUrl);
+                        const profileResponse = await fetch(profileUrl, { cache: "no-store" });
                         if (profileResponse.ok) {
                             const profilePatch = await profileResponse.json();
                             rawConfig = deepMergeObjects(rawConfig, profilePatch);
@@ -125,7 +125,7 @@ export async function loadMissionConfig() {
             const manifestUrl = getMissionManifestUrl();
             if (manifestUrl) {
                 try {
-                    const manifestResponse = await fetch(manifestUrl);
+                    const manifestResponse = await fetch(manifestUrl, { cache: "no-store" });
                     if (manifestResponse.ok) {
                         rawConfig.ephemeris_manifest = await manifestResponse.json();
                     }
@@ -266,7 +266,7 @@ export async function loadJson(url) {
     const cachedPromise = jsonPromiseCache.get(url);
     if (cachedPromise) return cachedPromise;
 
-    const promise = fetch(url)
+    const promise = fetch(url, { cache: "no-store" })
         .then(async (response) => {
             if (!response.ok) {
                 throw new Error(`Failed to load JSON from ${url}: ${response.status}`);

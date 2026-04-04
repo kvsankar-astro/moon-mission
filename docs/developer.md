@@ -1,280 +1,137 @@
-# Developer Documentation
+# Developer Workflow Guide
 
-This guide is the code-aligned reference for architecture, mission onboarding, data generation, testing, and deployment.
+This document is the **how-to-work-in-this-repo** guide for contributors and coding agents.
 
-## Current Architecture
+For system/architecture details, use [docs/design/design.md](design/design.md).
 
-- Entry points:
-  - `mission.html` (mission selector + app shell)
-  - `index.html` (redirect)
-- Shared platform code:
-  - `src/platform/css/*`
-  - `src/platform/js/*`
-- Shared authored landing content:
-  - `assets/mission-briefs.json`
-  - `assets/mission-images.json`
-- Mission-specific runtime assets:
-  - `assets/<mission>/data/config.json`
-  - `assets/<mission>/data/ephemeris-manifest.json`
-  - `assets/<mission>/models/*` (optional)
-  - `assets/<mission>/images/*` (optional)
+## 1) Repo Layout (Operational View)
 
-## Terminology
+- App repo (this repo): runtime code, mission config, UI assets.
+- Data repo (sibling): `../moon-mission-data` for generated ephemeris/runtime assets.
 
-- `origin`: runtime frame selection in the app (`geo`, `lunar`, plus URL mode `relative`).
-- `landing slice`: high-resolution time slice, not a top-level origin.
-- `phase`: still used by some offline scripts/manifests/CLI flags (for example `--phase`) for compatibility with existing pipeline naming.
+Key paths in this repo:
+- `mission.html`, `index.html`, `orbit-data.html`, `assets-status.html`
+- `src/platform/js/*`, `src/platform/css/*`
+- `assets/*/data/config.json5` (maintainer source) + `assets/*/data/config.json` (runtime compiled), `assets/*/data/ephemeris-manifest.json`
+- `test/*`
+- `scripts/*`
 
-## Runtime Ephemeris Sources
+## 2) Local Setup
 
-- Runtime supports per-body providers: `chebyshev`, `npz`, `astronomy`.
-- Source selection is driven by mission config:
-  - `ephemeris_source` (default for spacecraft)
-  - `ephemeris_sources` (per-body overrides)
-- Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `EARTH`, and `SUN`.
-
-Related modules:
-- `src/platform/js/data/ephemeris-provider.js`
-- `src/platform/js/data/mission-data.js`
-- `src/platform/js/app/orbit-load-actions.js`
-
-## Mission Config Shape
-
-Each mission defines runtime behavior in `assets/<mission>/data/config.json`.
-
-Key fields used by runtime:
-
-```json
-{
-  "spacecraft_mnemonic": "CH3L",
-  "primaryCraftId": "CH3L",
-  "crafts": [
-    {
-      "id": "CH3O",
-      "mnemonic": "CH3O",
-      "spacecraft_id": -169,
-      "viewLabel": "Orbiter",
-      "primary": false,
-      "geo": { "orbits_file": "geo-CH3O" },
-      "lunar": { "orbits_file": "lunar-CH3O" },
-      "relative": { "orbits_file": "relative-CH3O" }
-    },
-    {
-      "id": "CH3L",
-      "mnemonic": "CH3L",
-      "spacecraft_id": -158,
-      "viewLabel": "Lander",
-      "primary": true,
-      "geo": { "orbits_file": "geo-CH3L" },
-      "lunar": { "orbits_file": "lunar-CH3L" },
-      "relative": { "orbits_file": "relative-CH3L" }
-    }
-  ],
-  "ephemeris_source": "chebyshev",
-  "ephemeris_sources": {
-    "SC": "chebyshev",
-    "MOON": "chebyshev",
-    "EARTH": "chebyshev",
-    "SUN": "chebyshev"
-  },
-  "origins": ["geo", "lunar"],
-  "geo": {
-    "center": "earth_center",
-    "orbits_file": "geo-CH3L",
-    "planets": ["MOON", "CH3O", "CH3L"],
-    "step_size_in_seconds": 60,
-    "orbit_style_file": "geo-style.json"
-  },
-  "lunar": {
-    "center": "moon_center",
-    "orbits_file": "lunar-CH3L",
-    "planets": ["CH3O", "CH3L", "EARTH"],
-    "step_size_in_seconds": 60,
-    "orbit_style_file": "lunar-style.json"
-  },
-  "relative": {
-    "orbits_file": "relative-CH3L"
-  },
-  "landing": {
-    "enabled": true,
-    "orbits_file": "landing-CH3L",
-    "planets": ["CH3L"],
-    "step_size_in_seconds": 1
-  },
-  "eventConfigs": {
-    "geo": ["missionStart"],
-    "lunar": ["missionStart"]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
+
+Default local URL: `http://localhost:7274/`
+
+Useful pages:
+- `http://localhost:7274/index.html`
+- `http://localhost:7274/mission.html`
+- `http://localhost:7274/orbit-data.html`
+- `http://localhost:7274/assets-status.html`
+
+## 3) Core Commands
+
+### Development
+
+- `npm run dev` - Vite dev server
+- `npm run test:unit` - unit/integration tests excluding UI visual suite
+- `make test` - primary Playwright+SSIM UI suite (managed server on `8111`)
+- `make baseline` - regenerate screenshot baselines (intentional visual changes only)
+
+### Mission config JSON5 workflow
+
+- `npm run configs:bootstrap` - one-time/backfill helper to create `config.json5` from existing `config.json`
+- `npm run configs:compile` - compile all `config.json5` files into runtime `config.json`
+- `npm run configs:check` - CI check that compiled `config.json` is in sync with `config.json5`
+- `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
+
+Pre-commit behavior (when hooks are installed):
+- runs `configs:compile`
+- stages updated `assets/*/data/config.json`
+
+### Build / Packaging
+
+- `python scripts/build.py` - build deployable static output
+- `python scripts/stage-ephemeris-data.py --app-root . --data-root ../moon-mission-data --target-root .` - stage runtime mission data locally
+
+### Data/Status Helpers
+
+- `python scripts/generate-runtime-asset-manifest.py ...`
+- `python scripts/verify-staged-runtime-assets.py ...`
+- `python scripts/generate-assets-status.py`
+- `python scripts/show-deployed-version.py`
+
+## 4) Data Boundary Rules (Important)
+
+Do **not** commit generated runtime ephemeris artifacts in this repo:
+- `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, `*-style.json`
+
+These belong in `../moon-mission-data`.
+
+If you regenerate orbit data:
+1. Update/verify mission config + manifests in this repo.
+2. Sync generated artifacts in `moon-mission-data`.
+3. Commit in the correct repo(s) separately.
+
+## 5) Branching / Commit Conventions
+
+- Primary release branch: `master`.
+- Keep commits focused and reviewable.
+- Use short imperative commit messages (common prefix: `docs:`, `fix:`, `refactor:`).
+- Avoid bundling unrelated generated artifacts with app logic changes.
+
+## 6) Coding Conventions
+
+- Prefer small, single-purpose modules and pure helpers where practical.
+- Keep diffs targeted; avoid formatting-only churn unless needed.
+- Follow existing naming and file placement conventions in `src/platform/js/*`.
+- For multi-craft behavior, prefer craft IDs (`A`, `B`, `C` style modeling by mission config), not role-hardcoded names.
+
+## 7) Testing Policy Before Push
+
+Minimum expected checks for most changes:
+- `npm run test:unit`
+
+When UI/visual behavior changes:
+- `make test`
+- Update baselines only when intentional (`make baseline`) and document why.
+
+When mission/data loading logic changes:
+- run `npm run test:unit` plus targeted smoke/manual checks using mission URLs.
+
+## 8) CI / Deploy Workflows
+
+CI:
+- `.github/workflows/ci.yml` runs on push/PR/manual and executes unit tests.
+- CI also enforces `config.json` ↔ `config.json5` sync (`npm run configs:check`).
+
+Manual deploy workflows:
+- `.github/workflows/deploy.yml` - GitHub Pages (app + staged mission data)
+- `.github/workflows/deploy-hostgator.yml` - sankara.net (app + staged mission data)
+- `.github/workflows/deploy-app-only.yml` - GitHub Pages app-only
+- `.github/workflows/deploy-hostgator-app-only.yml` - sankara.net app-only
 
 Notes:
-- `crafts[]` is the current multi-craft shape. `primaryCraftId` drives default camera/telemetry/visibility, but runtime state is body-keyed.
-- `landing.center` controls landing rendering center.
-- Landing data may be staged for both origin frames (`landing-<ID>-geo-*`, `landing-<ID>-lunar-*`) even when only one origin is currently active.
-- `orbit_style_file` is optional and points to a compact authored sidecar loaded only for `Trail` orbit style.
-- Some UI fields (for example `ui.lockOnLabel`) remain as metadata/label config.
+- Deploy workflows are manual (`workflow_dispatch`).
+- App-only deploys preserve runtime data on remote and publish app-shell changes.
 
-## Adding a Mission
+## 9) Pre-Commit Checklist
 
-1. Create mission folder:
+Use this before committing:
+1. `git status` is clean except intended files.
+2. No credentials/secrets in diff.
+3. `npm run test:unit` passes.
+4. If UI changed, run `make test`; if intentional visual diff, update baselines with rationale.
+5. Confirm repo boundary (app repo vs data repo) for every changed file.
+6. Verify links/docs if paths changed.
 
-```text
-assets/<mission>/
-  data/
-    config.json
-    ephemeris-manifest.json
-  images/      (optional)
-  models/      (optional)
-```
+## 10) Related Docs
 
-2. Add mission routing entry in `mission.html` (`missionMap` and selector card).
-3. Generate orbit products (see data pipeline below).
-4. Verify runtime in:
-   - `mission.html?mission=<id>`
-   - `mission.html?mission=<id>&mode=relative` (if relative artifact exists)
-
-## Orbit Data Pipeline
-
-### 1) Fetch mission vectors
-
-```bash
-python scripts/orbits.py --mission=<mission>
-```
-
-Optional targeted fetch:
-
-```bash
-python scripts/orbits.py --mission=<mission> --phase geo lunar
-python scripts/orbits.py --mission=<mission> --phase landing landing-geo landing-lunar
-```
-
-### 2) Compress to Chebyshev
-
-```bash
-python scripts/compress-orbits.py --mission <mission>
-```
-
-### 3) Generate relative frame artifact
-
-```bash
-python scripts/generate-relative-orbits.py --mission <mission>
-```
-
-Output patterns (per mission):
-- `geo-<ID>-cheb.json`
-- `lunar-<ID>-cheb.json`
-- `geo-<ID>-sun-cheb.json` / `lunar-<ID>-sun-cheb.json` (when split)
-- `landing-<ID>-geo-cheb.json` / `landing-<ID>-lunar-cheb.json` (landing variants)
-- `relative-<ID>-cheb.json`
-- optional authored orbit-style sidecars such as `geo-style.json` / `lunar-style.json`
-
-Generated intermediate/reference products are typically under `data-generated/<mission>/` (`.npz`, `*-meta.json`, raw fetch artifacts).
-
-## Relative Mode
-
-- URL driven: `mission.html?mission=<id>&mode=relative`
-- Runtime keeps Earth at origin, fixes Earth->Moon axis to +X, and samples a precomputed multi-body `relative-<ID>-cheb.json`.
-- Primary docs: [relative-mode.md](relative-mode.md)
-
-## Time Conventions
-
-- Runtime ephemeris lookup uses UTC-based Julian conversion (`getJD_UTC` helper path).
-- Astronomical orientation math still uses TDB-oriented helpers where required.
-- UI event timestamps are configured in UTC ISO format.
-
-## Landing Brief Content
-
-- The landing/selector UI opens a mission brief panel from `src/platform/js/index-landing.js`.
-- The text column is intentionally split into:
-  - `Mission`
-  - `HORIZONS Data`
-  - `Timelines`
-- Mission and HORIZONS prose are authored offline in `assets/mission-briefs.json`; there is no runtime sentence synthesis.
-- The `Timelines` section is still programmatic and renders three coverage bars from mission/config/HORIZONS metadata.
-- The visual column renders:
-  - a pilot orbit preview
-  - an image carousel directly below it
-- The carousel sources curated CC BY-SA entries from `assets/mission-images.json` and preserves full images with letterboxing/pillarboxing instead of cropping.
-
-## Build and Deploy
-
-### Local build output
-
-```bash
-python scripts/build.py
-```
-
-Produces `dist/` and generates deterministic `*.json.gz` companions for `*-cheb.json` unless disabled.
-
-### Runtime asset staging from data repo
-
-```bash
-python scripts/stage-ephemeris-data.py \
-  --app-root . \
-  --data-root <path-to-moon-mission-data> \
-  --target-root .
-```
-
-Stages:
-- required orbit artifacts from mission manifests
-- authored orbit-style sidecars referenced from mission config (`orbit_style_file`)
-- shared `images/`
-- mission screenshots `assets/*/images/`
-- optional `third-party/`
-
-### CI workflows
-
-- `.github/workflows/ci.yml`
-  - runs `npm run test:unit`
-  - triggers on push, pull request, and manual dispatch
-- `.github/workflows/deploy.yml`
-  - manual-only (`workflow_dispatch`)
-  - runs unit tests first
-  - stages data repo assets into `dist-pages/`
-  - writes deployment metadata under `dist-pages/deployment/`
-  - verifies staged runtime assets against the runtime manifest
-- `.github/workflows/deploy-hostgator.yml`
-  - manual-only (`workflow_dispatch`)
-  - runs unit tests first
-  - same staging + metadata
-  - deploys via rsync/SFTP
-  - performs post-deploy parity audit
-
-## Testing
-
-Quick run:
-
-```bash
-make test
-```
-
-Primary suites:
-- UI + SSIM: `test/ui.test.js`
-- Cross-mission smoke: `test/mission-smoke.test.js`
-- Chebyshev accuracy: `test/chebyshev-accuracy.test.js`
-
-Detailed test guide: [testing/README.md](testing/README.md)
-
-## Key Runtime Modules
-
-- `src/platform/js/mission.js` - app entry/wiring
-- `src/platform/js/scene-state.js` - functional core scene state computation
-- `src/platform/js/chebyshev.js` - Chebyshev load/evaluate path (+ gzip transport support)
-- `src/platform/js/app/*` - orchestration actions/UI behavior
-- `src/platform/js/core/*` - pure helpers/domain utilities
-- `src/platform/js/rendering/*` - 2D/3D rendering components
-
-## Deployment Metadata
-
-Published under `/deployment/`:
-
-- `version.json`
-- `runtime-asset-manifest.json`
-- `file-manifest.json`
-
-CLI helper:
-
-```bash
-python scripts/show-deployed-version.py
-```
+- Design hub: [docs/design/design.md](design/design.md)
+- Test strategy: [docs/testing.md](testing.md)
+- Agent conventions: [AGENTS.md](../AGENTS.md)
+Mission config note:
+- Maintainers edit `config.json5`; runtime consumes `config.json`.
+- Keep `config.json` generated from `config.json5` via compile step.

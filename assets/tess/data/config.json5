@@ -1,0 +1,194 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `tess`
+//   Folder: `assets/tess`
+//   HORIZONS ID: `-95`
+//   Canonical mission name used here: `TESS`
+// Time Window Used:
+//   Launch/reference start: `2018-04-18 22:51:00 UTC`
+//   Orbit data start: `2018-04-18 23:37:00 UTC`
+//   Orbit data end: `2018-07-19 23:37:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2018-Apr-18 23:37` to `2027-Sep-15 13:00`
+//   Selected interesting window strategy: earliest `92` days, chosen to capture deployment, phasing loops, the lunar flyby, and the opening transition into the stable science orbit.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/tess.txt`: launch time, mission overview, and the note that the first `60` days use `11` burns, `3.5` phasing loops, and a lunar flyby to reach the operational orbit.
+//   - `docs/horizons-blurbs/raw/tess.txt`: trajectory table with `2018-Apr-18 23:37` to `2027-Sep-15 13:00`.
+//   - Generated lunar trajectory from `data-generated/tess/lunar-TESS.npz`: closest lunar approach at `2018-05-17 06:35 UTC`, about `8,253 km` above the lunar surface.
+// Notes:
+//   - This mission is an example of a science observatory whose lunar relevance is concentrated entirely in the transfer arc rather than the long-duration science orbit.
+//   - Launch is preserved as a pre-data event because public HORIZONS trajectory coverage starts after ascent and early deployment.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/tess/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "TESS",
+  "spacecraft_id": -95,
+  "mission_name": "TESS",
+  "mission_name_short": "TESS",
+  "mission_url": "https://tess.gsfc.nasa.gov/index.html",
+  "mission_description": "TESS Lunar Resonance Transfer Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, tess, moon, flyby, resonance, orbit",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "TESS - Lunar Resonance Transfer Orbit Animation",
+    "headerTitle": "TESS",
+    "lockOnLabel": "TESS",
+    "orbitLabel": "TESS Orbit",
+    "descentOrbitLabel": "TESS Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2018",
+    "start_month": "04",
+    "start_day": "18",
+    "start_hour": "23",
+    "start_minute": "37",
+    "stop_year": "2018",
+    "stop_month": "07",
+    "stop_day": "19",
+    "stop_hour": "23",
+    "stop_minute": "37",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-TESS"
+  },
+  "lunar": {
+    "start_year": "2018",
+    "start_month": "04",
+    "start_day": "18",
+    "start_hour": "23",
+    "start_minute": "37",
+    "stop_year": "2018",
+    "stop_month": "07",
+    "stop_day": "19",
+    "stop_hour": "23",
+    "stop_minute": "37",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-TESS"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2018",
+    "start_month": "04",
+    "start_day": "18",
+    "start_hour": "22",
+    "start_minute": "51",
+    "stop_year": "2018",
+    "stop_month": "04",
+    "stop_day": "18",
+    "stop_hour": "22",
+    "stop_minute": "51",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-TESS"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for TESS."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2018-04-18T22:51:00Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch on Falcon 9 from Cape Canaveral into the phasing orbit sequence that led to the lunar-resonant science orbit.",
+      "body": "SC"
+    },
+    "trajectoryStart": {
+      "startTime": "2018-04-18T23:37:00Z",
+      "durationSeconds": 0,
+      "label": "Trajectory Start",
+      "burnFlag": false,
+      "infoText": "First usable HORIZONS trajectory sample, beginning after ascent and early deployment.",
+      "body": "SC"
+    },
+    "lunarFlyby": {
+      "startTime": "2018-05-17T06:35:00Z",
+      "durationSeconds": 0,
+      "label": "Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "Closest lunar approach from the generated HORIZONS trajectory, used to raise TESS into its stable 2:1 lunar-resonance science orbit.",
+      "body": "SC"
+    },
+    "scienceOrbitSetup": {
+      "startTime": "2018-06-17T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "Science Orbit Setup",
+      "burnFlag": false,
+      "infoText": "Approximate end of the first 60-day transfer and phasing sequence into TESS's high Earth science orbit.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "tessDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "TESS"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "TESS Data End",
+      "burnFlag": false,
+      "infoText": "TESS Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "trajectoryStart",
+      "lunarFlyby",
+      "scienceOrbitSetup",
+      "now",
+      "tessDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "trajectoryStart",
+      "lunarFlyby",
+      "scienceOrbitSetup",
+      "now",
+      "tessDataEnd"
+    ]
+  }
+}

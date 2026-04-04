@@ -44,6 +44,7 @@ function deriveOriginKeys(rawConfig) {
         "mission_keywords",
         "mission_github",
         "mission_image",
+        "spacecraftModel",
         "ephemeris_source",
         "ephemeris_sources",
         "ephemeris",

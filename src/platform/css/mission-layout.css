@@ -78,11 +78,12 @@ canvas {
     position: absolute;
     pointer-events: auto;
     display: grid;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto 1fr;
     width: 280px;
-    height: 192px;
+    height: 280px;
+    aspect-ratio: 1 / 1;
     min-width: 200px;
-    min-height: 150px;
+    min-height: 200px;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     border: 1px solid rgba(121, 171, 255, 0.32);
@@ -91,6 +92,10 @@ canvas {
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
     resize: both;
     overflow: hidden;
+}
+
+.aux-camera-view[hidden] {
+    display: none !important;
 }
 
 .aux-camera-view__header {
@@ -109,6 +114,13 @@ canvas {
     cursor: grabbing;
 }
 
+.aux-camera-view__header-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
 .aux-camera-view__title {
     color: rgba(230, 239, 255, 0.92);
     font-size: 10px;
@@ -121,6 +133,24 @@ canvas {
     align-items: center;
     gap: 6px;
     min-width: 0;
+}
+
+.aux-camera-view__minimize-button {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(219, 233, 252, 0.95);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 7px 3px;
+    text-transform: lowercase;
+    cursor: pointer;
+}
+
+.aux-camera-view__minimize-button:hover {
+    background: rgba(66, 126, 218, 0.35);
+    border-color: rgba(132, 183, 255, 0.7);
 }
 
 .aux-camera-view__auto-toggle {
@@ -166,16 +196,491 @@ canvas {
     cursor: default;
 }
 
+.aux-camera-view--composer {
+    grid-template-rows: auto auto auto 1fr;
+    min-width: 240px;
+    min-height: 240px;
+}
+
+.aux-camera-view--composer .aux-camera-view__header {
+    gap: 6px;
+    padding: 3px 6px;
+}
+
+.aux-camera-view--composer .aux-camera-view__header-controls,
+.aux-camera-view--composer .aux-camera-view__fov-controls {
+    gap: 4px;
+}
+
+.aux-camera-view--composer .aux-camera-view__fov-slider {
+    width: 72px;
+}
+
+.aux-camera-view--composer .aux-camera-view__title {
+    font-size: 9px;
+}
+
+.aux-camera-view__composer-presets {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+    min-width: 0;
+}
+
+.aux-camera-view__composer-label {
+    color: rgba(224, 237, 255, 0.95);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: 0.015em;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-hint {
+    margin-left: auto;
+    color: rgba(197, 216, 245, 0.86);
+    font-size: 8px;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-button {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 4px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(211, 226, 248, 0.92);
+    font-size: 8px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-button:hover {
+    background: rgba(66, 126, 218, 0.35);
+    border-color: rgba(132, 183, 255, 0.7);
+}
+
+.aux-camera-view__composer-button.is-active {
+    background: rgba(68, 130, 223, 0.42);
+    border-color: rgba(132, 183, 255, 0.72);
+    color: rgba(240, 247, 255, 0.97);
+}
+
+.aux-camera-view__composer-control-matrix {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: 6px;
+    row-gap: 1px;
+    padding: 2px 6px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+    min-width: 0;
+}
+
+.aux-camera-view__composer-timeline,
+.aux-camera-view__composer-controls {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) 28px;
+    align-items: center;
+    column-gap: 4px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-row-label {
+    width: 46px;
+}
+
+.aux-camera-view__composer-timeline-slider {
+    width: 100%;
+    height: 12px;
+    min-width: 0;
+    accent-color: rgba(106, 169, 255, 1);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-ambient-slider {
+    min-width: 0;
+    width: 100%;
+    height: 12px;
+    accent-color: rgba(120, 178, 255, 1);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-timeline-slider::-webkit-slider-runnable-track,
+.aux-camera-view__composer-ambient-slider::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
+}
+
+.aux-camera-view__composer-timeline-slider::-webkit-slider-thumb,
+.aux-camera-view__composer-ambient-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 10px;
+    height: 10px;
+    margin-top: -4px;
+    border-radius: 999px;
+    border: 1px solid rgba(211, 232, 255, 0.86);
+    background: #f3f8ff;
+    box-shadow: 0 0 0 2px rgba(77, 141, 255, 0.24);
+}
+
+.aux-camera-view__composer-timeline-slider::-moz-range-track,
+.aux-camera-view__composer-ambient-slider::-moz-range-track {
+    height: 3px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
+}
+
+.aux-camera-view__composer-timeline-slider::-moz-range-thumb,
+.aux-camera-view__composer-ambient-slider::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border: 1px solid rgba(211, 232, 255, 0.86);
+    border-radius: 999px;
+    background: #f3f8ff;
+    box-shadow: 0 0 0 2px rgba(77, 141, 255, 0.24);
+}
+
+.aux-camera-view__composer-timeline-slider:focus-visible,
+.aux-camera-view__composer-ambient-slider:focus-visible {
+    outline: 1px solid rgba(170, 208, 255, 0.8);
+    outline-offset: 1px;
+}
+
+.aux-camera-view__composer-ambient-value {
+    color: rgba(208, 223, 246, 0.92);
+    font-size: 8px;
+    font-weight: 600;
+    width: 28px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.aux-camera-view__composer-value-slot {
+    width: 28px;
+}
+
+.aux-camera-view__composer-timeline-local {
+    grid-column: 2 / span 2;
+    margin-top: 1px;
+    color: rgba(184, 206, 238, 0.76);
+    font-size: 8px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aux-camera-view__composer-dial-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-width: 50px;
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+}
+
+.aux-camera-view__composer-dial {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(150, 196, 255, 0.6);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(45, 72, 114, 0.52) 0%, rgba(15, 25, 40, 0.85) 62%),
+        repeating-conic-gradient(from -90deg, rgba(193, 220, 255, 0.34) 0deg 1.8deg, transparent 1.8deg 10deg),
+        radial-gradient(circle at 50% 50%, transparent 0 69%, rgba(170, 206, 255, 0.24) 69.5% 71%, transparent 71.5%);
+    box-shadow: inset 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(22, 35, 56, 0.7);
+    cursor: grab;
+    touch-action: none;
+}
+
+.aux-camera-view__composer-dial:active {
+    cursor: grabbing;
+}
+
+.aux-camera-view__composer-dial-needle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 19px;
+    border-radius: 999px;
+    transform-origin: 50% 100%;
+    transform: translate(-50%, -100%) rotate(0deg);
+    background: linear-gradient(180deg, rgba(232, 243, 255, 0.98), rgba(133, 188, 255, 0.96));
+    box-shadow: 0 0 0 1px rgba(26, 43, 67, 0.75), 0 0 10px rgba(147, 199, 255, 0.42);
+}
+
+.aux-camera-view__composer-dial-needle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: rgba(228, 240, 255, 0.98);
+    border: 1px solid rgba(121, 171, 255, 0.85);
+}
+
+.aux-camera-view__composer-disabled-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 3;
+    color: rgba(178, 204, 240, 0.34);
+    font-size: clamp(10px, 1.1vw, 17px);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    text-align: center;
+    text-shadow: 0 1px 10px rgba(8, 14, 24, 0.55);
+}
+
+.aux-camera-view__composer-disabled-overlay[hidden] {
+    display: none;
+}
+
+.aux-camera-view--composer-disabled .aux-camera-view__composer-presets,
+.aux-camera-view--composer-disabled .aux-camera-view__composer-control-matrix,
+.aux-camera-view--composer-disabled .aux-camera-view__viewport {
+    opacity: 0.56;
+}
+
 .aux-camera-view__viewport {
     position: relative;
     min-width: 0;
     min-height: 0;
 }
 
+.aux-camera-view__info {
+    display: grid;
+    gap: 1px;
+    padding: 4px 7px 4px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(10, 18, 31, 0.64);
+}
+
+.aux-camera-view__info-line {
+    color: rgba(208, 223, 246, 0.88);
+    font-size: 9px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aux-camera-view__info-line--primary {
+    color: rgba(224, 237, 255, 0.95);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.aux-camera-view__info-primary-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.aux-camera-view__pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    padding: 1px 7px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(179, 199, 228, 0.4);
+    color: rgba(221, 233, 250, 0.95);
+    background: rgba(90, 117, 157, 0.22);
+    white-space: nowrap;
+}
+
+.aux-camera-view__pill--button {
+    cursor: pointer;
+    transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
+}
+
+.aux-camera-view__pill--button.is-on {
+    border-color: rgba(196, 168, 255, 0.65);
+    color: rgba(245, 236, 255, 0.98);
+    background: rgba(150, 105, 255, 0.34);
+}
+
+.aux-camera-view__pill--button.is-off {
+    border-color: rgba(171, 184, 210, 0.5);
+    color: rgba(221, 229, 243, 0.9);
+    background: rgba(90, 102, 129, 0.22);
+}
+
+.aux-camera-view__pill--far {
+    border-color: rgba(190, 164, 255, 0.5);
+    color: rgba(236, 224, 255, 0.96);
+    background: rgba(142, 104, 255, 0.2);
+}
+
 .aux-camera-view__canvas {
     width: 100%;
     height: 100%;
     display: block;
+}
+
+.aux-camera-view__overlay-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.aux-camera-chip-dock {
+    position: fixed;
+    top: 76px;
+    display: grid;
+    gap: 6px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.aux-camera-chip-dock--right {
+    right: 8px;
+}
+
+.aux-camera-chip-dock--left {
+    left: 8px;
+    justify-items: start;
+}
+
+.aux-camera-chip {
+    pointer-events: auto;
+    border: 1px solid rgba(121, 171, 255, 0.42);
+    border-radius: 999px;
+    background: rgba(12, 22, 39, 0.85);
+    color: rgba(221, 233, 252, 0.96);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    padding: 7px 11px;
+    min-width: 46px;
+    text-align: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.28);
+    cursor: pointer;
+}
+
+.aux-camera-chip[hidden] {
+    display: none !important;
+}
+
+.aux-camera-chip:hover {
+    border-color: rgba(153, 196, 255, 0.78);
+    background: rgba(40, 84, 151, 0.72);
+}
+
+.aux-camera-chip--composer-teaser {
+    display: block;
+    position: relative;
+    border-radius: 10px;
+    width: 220px;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    overflow: hidden;
+    font-size: 11px;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    text-align: left;
+    white-space: normal;
+    background: rgba(10, 17, 29, 0.92);
+}
+
+.aux-camera-chip--composer-teaser:hover {
+    border-color: rgba(153, 196, 255, 0.78);
+    background: rgba(10, 17, 29, 0.95);
+}
+
+.aux-camera-chip__teaser-title {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 2;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 8px 28px 8px 10px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.28);
+    background: rgba(12, 20, 35, 0.78);
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.aux-camera-chip__teaser-media {
+    position: absolute;
+    inset: 0;
+    display: block;
+    background: rgba(2, 6, 12, 0.96);
+    overflow: hidden;
+}
+
+.aux-camera-chip__teaser-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+}
+
+.aux-camera-chip__teaser-close {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    z-index: 3;
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(160, 194, 250, 0.56);
+    background: rgba(15, 28, 47, 0.76);
+    color: rgba(225, 236, 253, 0.95);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.aux-camera-chip__teaser-close:hover {
+    border-color: rgba(187, 212, 253, 0.86);
+    background: rgba(39, 73, 118, 0.92);
 }
 
 .footer-wrapper {

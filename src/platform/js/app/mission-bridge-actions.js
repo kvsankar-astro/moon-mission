@@ -52,7 +52,7 @@ function createMissionBridgeActions(deps) {
         const baseName = baseFileName.replace(/-cheb\.json$/, "").replace(/\.json$/, "");
         const metaFileName = `${baseName}-meta.json`;
         try {
-            const response = await fetch(metaFileName);
+            const response = await fetch(metaFileName, { cache: "no-store" });
             if (response.ok) {
                 return await response.json();
             }

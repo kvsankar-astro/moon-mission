@@ -1,0 +1,169 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `slim`
+//   Folder: `assets/slim`
+//   HORIZONS ID: `-240`
+//   Name source: `docs/horizons-blurbs/mission-index.json`
+// Time Window Used:
+//   Launch/reference start: `2023-09-06 23:42:00 UTC`
+//   Orbit data start: `2023-10-19 15:19:57 UTC`
+//   Orbit data end: `2024-01-19 15:19:57 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2023-09-07 00:32:00 UTC` to `2024-01-31 00:00:00 UTC`
+//   Selected interesting window strategy: `terminal`; capped to `92` days for pipeline/runtime constraints.
+// Primary Source References:
+//   - docs/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32
+//   - docs/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31
+//   - docs/horizons-blurbs/raw/slim.txt: launch and landing times in background
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "SLIM",
+  "spacecraft_id": -240,
+  "mission_name": "SLIM",
+  "mission_name_short": "SLIM",
+  "mission_url": "https://www.isas.jaxa.jp/home/slim/SLIM/index.html",
+  "mission_description": "SLIM Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, mission, moon, orbit, slim",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "SLIM - Orbit Animation",
+    "headerTitle": "SLIM",
+    "lockOnLabel": "SLIM",
+    "orbitLabel": "SLIM Orbit",
+    "descentOrbitLabel": "SLIM Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2023",
+    "start_month": "10",
+    "start_day": "19",
+    "start_hour": "15",
+    "start_minute": "19",
+    "stop_year": "2024",
+    "stop_month": "01",
+    "stop_day": "19",
+    "stop_hour": "15",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-SLIM"
+  },
+  "lunar": {
+    "start_year": "2023",
+    "start_month": "10",
+    "start_day": "19",
+    "start_hour": "15",
+    "start_minute": "19",
+    "stop_year": "2024",
+    "stop_month": "01",
+    "stop_day": "19",
+    "stop_hour": "15",
+    "stop_minute": "19",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-SLIM"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2023",
+    "start_month": "10",
+    "start_day": "19",
+    "start_hour": "15",
+    "start_minute": "19",
+    "stop_year": "2023",
+    "stop_month": "10",
+    "stop_day": "19",
+    "stop_hour": "15",
+    "stop_minute": "19",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-SLIM"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for SLIM."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2023-09-06T23:42:00Z",
+      "durationSeconds": 0,
+      "label": "\ud83d\ude80 Launch",
+      "burnFlag": false,
+      "infoText": "Mission timeline start",
+      "body": "SC"
+    },
+    "softLanding": {
+      "startTime": "2024-01-19T15:19:57Z",
+      "durationSeconds": 0,
+      "label": "Soft Landing",
+      "burnFlag": false,
+      "infoText": "SLIM landed on the Moon",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\u23f0 Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "slimDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "SLIM"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "\ud83c\udfc1SLIM Data End",
+      "burnFlag": false,
+      "infoText": "SLIM Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "now",
+      "slimDataEnd"
+    ],
+    "lunar": [
+      "now",
+      "slimDataEnd"
+    ]
+  }
+}

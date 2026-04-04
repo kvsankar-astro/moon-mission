@@ -5,8 +5,9 @@ This file provides Gemini-oriented project context aligned with the current code
 ## Primary references
 
 - Workflow/conventions: `AGENTS.md`
-- Architecture/data pipeline: `docs/developer.md`
-- Test strategy: `docs/testing/README.md`
+- Repo workflow/build/CI conventions: `docs/developer.md`
+- System design and architecture docs: `docs/design/design.md`
+- Test strategy: `docs/testing.md`
 
 ## Current code layout
 
@@ -17,7 +18,7 @@ This file provides Gemini-oriented project context aligned with the current code
   - `src/platform/js/`
   - `src/platform/css/`
 - Mission-specific assets:
-  - `assets/<mission>/data/`
+  - `assets/<mission>/data/` (`config.json5` source + compiled `config.json`)
   - `assets/<mission>/images/`
   - `assets/<mission>/models/`
 - Shared authored landing content:
@@ -35,7 +36,7 @@ npm run dev
 
 Open:
 
-`http://localhost:7274/mission.html?mission=cy3`
+`http://localhost:7274/mission.html?mission=chandrayaan3`
 
 ## Orbit data workflow
 
@@ -47,6 +48,11 @@ python scripts/generate-relative-orbits.py --mission <mission>
 
 Runtime defaults currently use Chebyshev for all key bodies (`SC`, `MOON`, `EARTH`, `SUN`), with provider support still present for `npz` and `astronomy`.
 Multi-craft missions are supported through `crafts[]` in mission config, with CH3/CH2 as current proving cases.
+
+Mission config workflow:
+- edit `config.json5`
+- run `npm run configs:compile`
+- validate with `npm run configs:check`
 
 ## Landing brief notes
 

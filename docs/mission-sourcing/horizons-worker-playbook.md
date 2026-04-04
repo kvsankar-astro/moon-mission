@@ -16,7 +16,6 @@ Mission(s): <list of mission names>
 Mode: <existing|new>
 Owned app-repo paths:
   - <assets/<mission>>
-  - <docs/mission-sourcing/<mission>.md>
   - <other mission-local files only>
 Owned data-repo paths:
   - ../moon-mission-data/assets/<mission>/data/*
@@ -48,8 +47,8 @@ Work should include, when applicable:
 
 ## Repo Boundary Rules
 
-- App repo: `C:\sankar\projects\moon-mission-orbit-data`
-- Data repo: `C:\sankar\projects\moon-mission-data`
+- App repo: current workspace (`moon-mission`)
+- Data repo: sibling workspace (`../moon-mission-data`)
 - Generated orbit artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and orbit style sidecars belong in the sibling data repo unless this repo already tracks an exception.
 - Before assuming a generated file belongs in this repo, verify with `git ls-files`.
 - Do not revert unrelated user or other-agent changes.
@@ -67,7 +66,7 @@ Use this when the mission already has an `assets/<mission>/` folder.
 ### Goals
 
 - Re-verify HORIZONS IDs, time windows, and mission-source references.
-- Improve mission-local sourcing doc quality under `docs/mission-sourcing/`.
+- Improve mission-local sourcing notes in `assets/<mission>/data/config.json5` under the sourcing snapshot comment block.
 - Verify that `assets/<mission>/data/config.json` still matches the best currently available HORIZONS timeline and craft structure.
 - Verify events, labels, and `eventConfigs`.
 - Preserve mission events even when they occur outside the sampled ephemeris window.
@@ -77,9 +76,9 @@ Use this when the mission already has an `assets/<mission>/` folder.
 ### Required Checks
 
 1. Inspect the existing mission-local files:
+   - `assets/<mission>/data/config.json5`
    - `assets/<mission>/data/config.json`
    - `assets/<mission>/data/ephemeris-manifest.json`
-   - `docs/mission-sourcing/<mission>.md`
    - related `docs/horizons-blurbs/markdown/*.md` or metadata if present
 2. Confirm spacecraft IDs and HORIZONS object names.
 3. Confirm start/stop windows and whether the selected interesting window is still justified.
@@ -88,7 +87,7 @@ Use this when the mission already has an `assets/<mission>/` folder.
 4. Confirm event times and whether each event should be a burn, marker, or dynamic boundary.
    - If launch or another mission event occurs before `geo`/`lunar` data availability begins, keep the event in `config.json` anyway.
    - If a mission-significant event falls just after the last sampled orbit-data timestamp, keep it as well.
-   - Document both the mission event time and the first/last usable HORIZONS orbit-data times in the sourcing doc.
+   - Document both the mission event time and the first/last usable HORIZONS orbit-data times in the `config.json5` sourcing snapshot comment block.
    - Do not delete out-of-window events just because they cannot be shown immediately; runtime gating infra will handle visibility.
 5. Re-run only the pipeline steps needed:
    - `python scripts/orbits.py --mission <mission>`
@@ -100,7 +99,7 @@ Use this when the mission already has an `assets/<mission>/` folder.
 
 ### Preferred Outputs
 
-- Updated `docs/mission-sourcing/<mission>.md`
+- Updated sourcing snapshot comments in `assets/<mission>/data/config.json5`
 - Updated mission-local `config.json` / manifest as needed
 - Generated data staged in `../moon-mission-data`
 - A concise verification report with:
@@ -133,9 +132,9 @@ Use this when the mission is missing from `assets/`.
    - major timeline events worth exposing
    - whether any important events occur outside the usable HORIZONS sample window
 2. Create mission-local files:
+   - `assets/<mission>/data/config.json5`
    - `assets/<mission>/data/config.json`
    - `assets/<mission>/data/ephemeris-manifest.json`
-   - `docs/mission-sourcing/<mission>.md`
 3. Model the config on the closest existing mission:
    - single-craft orbiter: use `clementine`, `lunar-prospector`, `ladee`, `lro`, `slim`, or `capstone`
    - multi-craft mission: use `chandrayaan2`, `chandrayaan3`, or split missions like `lcross-*`
@@ -166,7 +165,7 @@ Use this when the mission is missing from `assets/`.
 
 - New `assets/<mission>/data/config.json`
 - New `assets/<mission>/data/ephemeris-manifest.json`
-- New `docs/mission-sourcing/<mission>.md`
+- New `assets/<mission>/data/config.json5`
 - Generated artifacts in `../moon-mission-data`
 - Integration note covering:
   - title/subtitle/description proposal
@@ -219,76 +218,25 @@ Open issues / main-agent follow-up:
 - <shared-file integration, blockers, or caveats>
 ```
 
-## Current 23 HORIZONS Missions
+## Mission Inventory (live, not hardcoded)
 
-### Existing in app repo
+Mission lists evolve quickly; avoid hardcoded “N missions” tables in worker prompts.
 
-- `clementine`
-- `lunar-prospector`
-- `chandrayaan1`
-- `lro`
-- `lcross-shepherd`
-- `lcross-centaur`
-- `grail`
-- `ladee`
-- `chandrayaan2`
-- `artemis1`
-- `capstone`
-- `kplo-danuri`
-- `chandrayaan3`
-- `slim`
-- `lunar-trailblazer`
-- `wind`
-- `wmap`
+Use live inventory from:
+- `assets/mission-catalog.json`
+- `docs/horizons-lunar-missions.md`
 
-### Missing from app repo
+Helpful checks:
 
-- `ISEE-3 (ICE/Explorer 59)`
-- `HGS-1`
-- `Nozomi (PLANET-B)`
-- `STEREO`
-- `ARTEMIS`
-- `TESS`
-- `Jupiter Icy Moons Explorer`
-- `Artemis II`
+```bash
+# Missions currently onboarded in app repo
+rg --files assets -g "*/data/config.json"
 
-Note: `LRO & LCROSS` and `GRAIL` are mission entries in the audit, but in the app they may map to multiple mission folders or related folders.
-
-## Recommended Worker Batches For The 23 Full-HORIZONS Missions
-
-### Batch A: Existing NASA/JAXA/KARI single-craft or lighter missions
-
-- `clementine`
-- `lunar-prospector`
-- `ladee`
-- `capstone`
-- `kplo-danuri`
-- `slim`
-- `lunar-trailblazer`
-
-### Batch B: Existing multi-craft or higher-complexity missions
-
-- `chandrayaan1`
-- `chandrayaan2`
-- `chandrayaan3`
-- `lro`
-- `lcross-shepherd`
-- `lcross-centaur`
-- `grail`
-- `artemis1`
-
-### Batch C: New legacy / heliophysics / flyby missions
-
-- `ISEE-3 (ICE/Explorer 59)`
-- `HGS-1`
-- `Nozomi (PLANET-B)`
-- `TESS`
-
-### Batch D: New modern multi-spacecraft or naming-sensitive missions
-
-- `STEREO`
-- `ARTEMIS`
-- `Jupiter Icy Moons Explorer`
-- `Artemis II`
-
-For Batch D, workers should document naming and slug choices carefully before creating mission folders, especially for `ARTEMIS` P1/P2 and `STEREO` if per-craft handling is required.
+# Missions currently covered in the HORIZONS audit index
+python - <<'PY'
+import json
+from pathlib import Path
+idx = json.loads(Path("docs/horizons-blurbs/mission-index.json").read_text(encoding="utf-8"))
+print(f"Audit rows: {len(idx.get('missions', []))}")
+PY
+```

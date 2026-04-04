@@ -1,0 +1,420 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `artemis2`
+//   Folder: `assets/artemis2`
+//   HORIZONS ID: `-1024`
+//   Canonical mission name used here: `Artemis II`
+// Time Window Used:
+//   Launch/reference start: `2026-04-01 22:35:12 UTC`
+//   Orbit data start: `2026-04-02 01:58:33 UTC`
+//   Orbit data end: `2026-04-10 23:54:35 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:52` (HORIZONS blurb, TDB, minute-rounded)
+//   Selected interesting window strategy: full currently published HORIZONS trajectory, because the public data set already corresponds to the complete post-separation lunar-flyby mission arc.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC`, the updated post-launch major-event timeline, and the note that trajectory data begins `3h24m18s` after launch following nominal ICPS separation.
+//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: trajectory table with `2026-Apr-02 01:59` to `2026-Apr-10 23:52`.
+//   - The mission config preserves major events like launch, translunar injection, lunar sphere-of-influence entry, closest approach, and splashdown even when they occur outside the public data span.
+// Notes:
+//   - This is the clearest current example of the pre-data-event rule: launch and early mission events matter even though public orbit samples begin later.
+//   - Splashdown is also preserved as a post-data event because the published HORIZONS stop time ends shortly before the mission timeline concludes.
+//   - The HORIZONS `MAJOR EVENTS` table changed on `2026-04-01`: this was not a uniform +10 minute shift. Relative offsets like TLI and lunar SOI entry moved materially and should be treated as authoritative over the older placeholder schedule.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/artemis2/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "ORION",
+  "spacecraft_id": -1024,
+  "primaryCraftId": "SC",
+  "crafts": [
+    {
+      "id": "SC",
+      "mnemonic": "ORION",
+      "name": "Orion",
+      "viewLabel": "Orion",
+      "spacecraft_id": -1024,
+      "primary": true,
+      "spans": {
+        "geo": {
+          "startTime": "2026-04-02T01:58:33Z",
+          "endTime": "2026-04-10T23:54:35Z"
+        },
+        "lunar": {
+          "startTime": "2026-04-02T01:58:33Z",
+          "endTime": "2026-04-10T23:54:35Z"
+        }
+      }
+    }
+  ],
+  "mission_name": "Artemis 2",
+  "mission_name_short": "Artemis 2",
+  "mission_url": "https://www.nasa.gov/mission/artemis-ii/",
+  "mission_description": "Artemis 2 Orbit Animation - NASA's first crewed Artemis lunar mission",
+  "mission_keywords": "artemis, artemis2, artemis ii, orion, integrity, moon, nasa, sls, space, astronomy, animation",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ephemeris_source": "chebyshev",
+  "spacecraftModel": {
+    "enabled": true,
+    "plugin": "orion-procedural",
+    "options": {
+      "scale": 0.7
+    }
+  },
+  "origins": ["geo", "lunar"],
+  "relative": {
+    "orbits_file": "relative-ORION"
+  },
+  "ui": {
+    "pageTitle": "NASA's Artemis 2 Mission 2026 - An Orbit Animation",
+    "headerTitle": "Artemis 2",
+    "lockOnLabel": "Orion",
+    "orbitLabel": "Orion Orbit",
+    "viewDefaults": {
+      "viewXYZAxes": false,
+      "viewPoles": false,
+      "viewPolarAxes": false,
+      "viewMoonOsculatingOrbit": true,
+      "relativeDefaultPlaneSelection": "XY"
+    },
+    "cameraDefaults": {
+      "geo": {
+        "positionScale": {
+          "x": -0.85,
+          "y": -0.525,
+          "z": 0.08
+        }
+      }
+    }
+  },
+  "is_lunar": true,
+  "geo": {
+    "startTime": "2026-04-02T01:58:33Z",
+    "endTime": "2026-04-10T23:54:35Z",
+    "start_year": "2026",
+    "start_month": "04",
+    "start_day": "02",
+    "start_hour": "01",
+    "start_minute": "58",
+    "stop_year": "2026",
+    "stop_month": "04",
+    "stop_day": "10",
+    "stop_hour": "23",
+    "stop_minute": "54",
+    "step_size_in_seconds": 60,
+    "planets": ["MOON", "SC"],
+    "center": "earth_center",
+    "orbits_file": "geo-ORION"
+  },
+  "lunar": {
+    "startTime": "2026-04-02T01:58:33Z",
+    "endTime": "2026-04-10T23:54:35Z",
+    "start_year": "2026",
+    "start_month": "04",
+    "start_day": "02",
+    "start_hour": "01",
+    "start_minute": "58",
+    "stop_year": "2026",
+    "stop_month": "04",
+    "stop_day": "10",
+    "stop_hour": "23",
+    "stop_minute": "54",
+    "step_size_in_seconds": 60,
+    "planets": ["SC", "EARTH"],
+    "center": "moon_center",
+    "orbits_file": "lunar-ORION"
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2026-04-01T22:35:12Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch: 1st Apr 2026, 22:35:12 UTC - SLS launches Artemis II from Kennedy Space Center LC-39B",
+      "hoverText": "Launch from LC-39B. Orion's public trajectory is not yet published at this point.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "solarArrays": {
+      "startTime": "2026-04-01T22:44:00Z",
+      "durationSeconds": 0,
+      "label": "Solar Arrays",
+      "burnFlag": false,
+      "infoText": "1st Apr 2026, 22:44 UTC - Orion deploys solar arrays in Earth orbit",
+      "hoverText": "Service module arrays deploy in Earth orbit before published free-flight ephemeris begins.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "perigeeRaise1": {
+      "startTime": "2026-04-01T23:13:00Z",
+      "durationSeconds": 0,
+      "label": "Perigee Raise",
+      "burnFlag": true,
+      "infoText": "1st Apr 2026, 23:13 UTC - Perigee raise maneuver targeting a 2223 x 185 km Earth orbit",
+      "hoverText": "ICPS raises Orion's perigee during phasing; public Orion ephemeris is not yet available.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "apogeeRaise": {
+      "startTime": "2026-04-02T00:11:57Z",
+      "durationSeconds": 0,
+      "label": "Apogee Raise",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 00:11:57 UTC - Apogee raise maneuver targeting 70,377 km",
+      "hoverText": "ICPS stretches Orion's orbit to high apogee before the published free-flight track begins.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "icpsSeparation": {
+      "startTime": "2026-04-02T01:48:18Z",
+      "durationSeconds": 0,
+      "label": "ICPS Sep",
+      "burnFlag": false,
+      "infoText": "2nd Apr 2026, 01:48:18 UTC - Orion separates from the ICPS; the published HORIZONS trajectory begins here",
+      "hoverText": "Orion separates from ICPS. The published trajectory begins immediately after this event.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "dataStart": {
+      "startTime": "2026-04-02T01:58:33Z",
+      "durationSeconds": 0,
+      "label": "Data Start",
+      "burnFlag": false,
+      "infoText": "2nd Apr 2026, 01:58:33 UTC - First published Orion trajectory sample after nominal ICPS separation",
+      "hoverText": "First published Orion ephemeris sample. 3D tracking becomes available from this point onward.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "upperStageSeparationBurn": {
+      "startTime": "2026-04-02T03:16:00Z",
+      "durationSeconds": 0,
+      "label": "Upper Stage Burn",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 03:16 UTC - Orion upper stage separation burn",
+      "hoverText": "Orion performs a separation burn to open distance from the spent upper stage.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "icpsDisposalPacific": {
+      "startTime": "2026-04-02T03:24:00Z",
+      "durationSeconds": 0,
+      "label": "ICPS Disposal",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 03:24 UTC - ICPS disposal burn for Pacific splashdown",
+      "hoverText": "ICPS commits to its nominal disposal path toward a remote Pacific splashdown corridor.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "icpsDisposalAtlantic": {
+      "startTime": "2026-04-02T03:26:00Z",
+      "durationSeconds": 0,
+      "label": "ICPS Alt Disposal",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 03:26 UTC - Alternate ICPS disposal burn for Atlantic splashdown",
+      "hoverText": "Backup ICPS disposal option targeting an alternate Atlantic recovery corridor.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "cubesatDeploy": {
+      "startTime": "2026-04-02T03:28:00Z",
+      "durationSeconds": 240,
+      "label": "CubeSats Deploy",
+      "burnFlag": false,
+      "infoText": "2nd Apr 2026, 03:28 UTC - International partner CubeSats begin deploying at one-minute intervals",
+      "hoverText": "International CubeSats are released into deep-space trajectories at one-minute intervals.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "perigeeRaise2": {
+      "startTime": "2026-04-02T12:08:00Z",
+      "durationSeconds": 0,
+      "label": "Perigee Raise 2",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 12:08 UTC - Perigee raise burn late on flight day 1",
+      "hoverText": "Orion completes the final Earth-orbit shaping burn ahead of translunar injection.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "tli": {
+      "startTime": "2026-04-02T23:43:12Z",
+      "durationSeconds": 480,
+      "label": "TLI",
+      "burnFlag": true,
+      "infoText": "2nd Apr 2026, 23:43:12 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
+      "hoverText": "The major translunar burn sends Orion onto a lunar free-return trajectory.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "trajectoryCorrection1": {
+      "startTime": "2026-04-03T22:31:00Z",
+      "durationSeconds": 0,
+      "label": "OTC-1",
+      "burnFlag": true,
+      "infoText": "3rd Apr 2026, 22:31 UTC - Orbit trajectory correction burn #1",
+      "hoverText": "Early outbound correction trims navigation errors after translunar injection.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "trajectoryCorrection2": {
+      "startTime": "2026-04-04T22:36:00Z",
+      "durationSeconds": 0,
+      "label": "OTC-2",
+      "burnFlag": true,
+      "infoText": "4th Apr 2026, 22:36 UTC - Orbit trajectory correction burn #2",
+      "hoverText": "Second outbound correction refines the lunar flyby aim point and return geometry.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "trajectoryCorrection3": {
+      "startTime": "2026-04-06T03:47:00Z",
+      "durationSeconds": 0,
+      "label": "OTC-3",
+      "burnFlag": true,
+      "infoText": "6th Apr 2026, 03:47 UTC - Orbit trajectory correction burn #3",
+      "hoverText": "Final outbound correction cleans up the approach before the lunar encounter.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "lunarSoiEntry": {
+      "startTime": "2026-04-06T04:43:12Z",
+      "durationSeconds": 0,
+      "label": "Lunar SOI In",
+      "burnFlag": false,
+      "infoText": "6th Apr 2026, 04:43:12 UTC - Orion enters the Moon's sphere of influence",
+      "hoverText": "The Moon's gravity becomes Orion's dominant local influence.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "closestApproach": {
+      "startTime": "2026-04-06T23:06:12Z",
+      "durationSeconds": 0,
+      "label": "Lunar Flyby",
+      "burnFlag": false,
+      "infoText": "6th Apr 2026, 23:06:12 UTC - Closest approach to the Moon during Artemis II's crewed lunar flyby",
+      "hoverText": "Orion passes closest to the Moon during the crewed free-return flyby.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "maxDistanceEarth": {
+      "startTime": "2026-04-06T23:50:00Z",
+      "durationSeconds": 0,
+      "label": "Max Distance",
+      "burnFlag": false,
+      "infoText": "6th Apr 2026, 23:50 UTC - Orion reaches maximum distance from Earth",
+      "hoverText": "Orion reaches its farthest range from Earth shortly after lunar closest approach.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "lunarSoiExit": {
+      "startTime": "2026-04-07T17:27:12Z",
+      "durationSeconds": 0,
+      "label": "Lunar SOI Out",
+      "burnFlag": false,
+      "infoText": "7th Apr 2026, 17:27:12 UTC - Orion exits the Moon's sphere of influence",
+      "hoverText": "Orion departs the Moon's sphere of influence and begins the homeward leg.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "returnCorrection1": {
+      "startTime": "2026-04-08T02:47:00Z",
+      "durationSeconds": 0,
+      "label": "RTC-1",
+      "burnFlag": true,
+      "infoText": "8th Apr 2026, 02:47 UTC - Return trajectory correction burn #1",
+      "hoverText": "First return correction fine-tunes Orion's Earth re-entry corridor.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "manualPiloting": {
+      "startTime": "2026-04-09T02:44:00Z",
+      "durationSeconds": 0,
+      "label": "Manual Demo",
+      "burnFlag": false,
+      "infoText": "9th Apr 2026, 02:44 UTC - Crew manual piloting demonstration during the return leg",
+      "hoverText": "Crew evaluates manual handling and displays during a piloting demonstration on return.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "returnCorrection2": {
+      "startTime": "2026-04-10T02:57:00Z",
+      "durationSeconds": 0,
+      "label": "RTC-2",
+      "burnFlag": true,
+      "infoText": "10th Apr 2026, 02:57 UTC - Return trajectory correction burn #2",
+      "hoverText": "Second return correction refines targeting before entry preparations.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "returnCorrection3": {
+      "startTime": "2026-04-10T18:57:00Z",
+      "durationSeconds": 0,
+      "label": "RTC-3",
+      "burnFlag": true,
+      "infoText": "10th Apr 2026, 18:57 UTC - Return trajectory correction burn #3",
+      "hoverText": "Final return correction lines Orion up for service module separation and entry.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "serviceModuleSeparation": {
+      "startTime": "2026-04-10T23:37:00Z",
+      "durationSeconds": 0,
+      "label": "CSM Separation",
+      "burnFlag": false,
+      "infoText": "10th Apr 2026, 23:37 UTC - Orion crew and service module separation",
+      "hoverText": "The crew module separates from the service module before atmospheric entry.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "crewModuleRaiseBurn": {
+      "startTime": "2026-04-10T23:40:00Z",
+      "durationSeconds": 0,
+      "label": "CM Raise Burn",
+      "burnFlag": true,
+      "infoText": "10th Apr 2026, 23:40 UTC - Crew module raise burn before atmospheric entry",
+      "hoverText": "A small burn positions the crew module for the proper entry attitude.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "entryInterface": {
+      "startTime": "2026-04-10T23:57:00Z",
+      "durationSeconds": 0,
+      "label": "Entry Interface",
+      "burnFlag": false,
+      "infoText": "10th Apr 2026, 23:57 UTC - Entry interface at 122 km above Earth. Later descent milestones listed in HORIZONS include forward bay cover deployment at 11 km, drogue parachute deployment at 7.6 km, and pilot parachute deployment at 2.9 km, but HORIZONS does not publish absolute timestamps for those sub-events.",
+      "hoverText": "Orion reaches the 122 km entry interface before its parachute sequence milestones.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "splashdown": {
+      "startTime": "2026-04-11T00:17:12Z",
+      "durationSeconds": 0,
+      "label": "Splashdown",
+      "burnFlag": false,
+      "infoText": "11th Apr 2026, 00:17:12 UTC - Pacific splashdown near Baja California after the nominal 10-day Artemis II mission",
+      "hoverText": "The crew module splashes down in the Pacific near Baja California.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "finalPowerDown": {
+      "startTime": "2026-04-11T00:25:00Z",
+      "durationSeconds": 0,
+      "label": "Power Down",
+      "burnFlag": false,
+      "infoText": "11th Apr 2026, 00:25 UTC - Orion final power down",
+      "hoverText": "Orion safes its systems after splashdown and recovery operations begin.",
+      "body": "SC",
+      "requiresEphemeris": true
+    }
+  },
+  "eventConfigs": {
+    "geo": ["missionStart", "solarArrays", "perigeeRaise1", "apogeeRaise", "icpsSeparation", "dataStart", "upperStageSeparationBurn", "icpsDisposalPacific", "icpsDisposalAtlantic", "cubesatDeploy", "perigeeRaise2", "tli", "trajectoryCorrection1", "trajectoryCorrection2", "trajectoryCorrection3", "lunarSoiEntry", "closestApproach", "maxDistanceEarth", "lunarSoiExit", "returnCorrection1", "manualPiloting", "returnCorrection2", "returnCorrection3", "serviceModuleSeparation", "crewModuleRaiseBurn", "entryInterface", "splashdown", "finalPowerDown"],
+    "lunar": ["missionStart", "solarArrays", "perigeeRaise1", "apogeeRaise", "icpsSeparation", "dataStart", "upperStageSeparationBurn", "icpsDisposalPacific", "icpsDisposalAtlantic", "cubesatDeploy", "perigeeRaise2", "tli", "trajectoryCorrection1", "trajectoryCorrection2", "trajectoryCorrection3", "lunarSoiEntry", "closestApproach", "maxDistanceEarth", "lunarSoiExit", "returnCorrection1", "manualPiloting", "returnCorrection2", "returnCorrection3", "serviceModuleSeparation", "crewModuleRaiseBurn", "entryInterface", "splashdown", "finalPowerDown"]
+  }
+}

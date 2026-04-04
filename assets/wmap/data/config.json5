@@ -1,0 +1,184 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from config.json; runtime consumes config.json.
+// Edit this file, then run: npm run configs:compile
+// --- sourcing-snapshot:start ---
+// Source: inline mission sourcing snapshot (this config.json5)
+// Mission Identity:
+//   Slug: `wmap`
+//   Folder: `assets/wmap`
+//   HORIZONS ID: `-165`
+//   Canonical mission name used here: `WMAP`
+// Time Window Used:
+//   Launch/reference start: `2001-06-30 19:46:46 UTC`
+//   Orbit data start: `2001-06-30 21:16:00 UTC`
+//   Orbit data end: `2001-09-30 21:16:00 UTC`
+//   Sampling step: `60` seconds
+//   Original trajectory window from source: `2001-Jun-30` to `2009-Apr-07`
+//   Selected interesting window strategy: earliest `92` days, chosen to capture launch recovery, phasing loops, the lunar gravity assist, and the opening transfer toward Earth-Moon-Sun L2.
+// Primary Source References:
+//   - `docs/horizons-blurbs/raw/wmap.txt`: mission background and trajectory table with `MAP_Mission_20090417 2001-Jun-30 2009-Apr-07`.
+//   - `https://lambda.gsfc.nasa.gov/product/wmap/dr5/pub_papers/nineyear/supplement/WMAP_supplement.pdf`: launch at `2001-06-30 19:46:46 UTC`, first observing-mode entry at `2001-07-02 19:18 UTC`, and lunar swingby at `2001-07-30 16:37 UTC`.
+//   - HORIZONS vector query for `-165` reports no ephemeris before `2001-Jun-30 21:15:04.1840 TDB`, so the sampled orbit window begins at `21:16 UTC`.
+// Notes:
+//   - Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.
+//   - The lunar swingby passed about `5,279 km` above the Moon's surface, or about `7,018 km` from the Moon's center.
+//   - Generated runtime artifacts are staged under `../moon-mission-data/assets/wmap/data/`.
+// --- sourcing-snapshot:end ---
+{
+  "spacecraft_mnemonic": "WMAP",
+  "spacecraft_id": -165,
+  "mission_name": "WMAP",
+  "mission_name_short": "WMAP",
+  "mission_url": "http://map.gsfc.nasa.gov/",
+  "mission_description": "WMAP Lunar Swingby and L2 Transfer Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, wmap, nasa, mission, moon, orbit, l2, swingby",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "ephemeris_source": "chebyshev",
+  "ephemeris_sources": {
+    "SC": "chebyshev",
+    "MOON": "chebyshev",
+    "EARTH": "chebyshev",
+    "SUN": "chebyshev"
+  },
+  "ui": {
+    "pageTitle": "WMAP - Lunar Swingby and L2 Transfer Orbit Animation",
+    "headerTitle": "WMAP",
+    "lockOnLabel": "WMAP",
+    "orbitLabel": "WMAP Orbit",
+    "descentOrbitLabel": "WMAP Orbit"
+  },
+  "is_lunar": true,
+  "origins": [
+    "geo",
+    "lunar"
+  ],
+  "geo": {
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "21",
+    "start_minute": "16",
+    "stop_year": "2001",
+    "stop_month": "09",
+    "stop_day": "30",
+    "stop_hour": "21",
+    "stop_minute": "16",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "MOON",
+      "SC"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-WMAP"
+  },
+  "lunar": {
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "21",
+    "start_minute": "16",
+    "stop_year": "2001",
+    "stop_month": "09",
+    "stop_day": "30",
+    "stop_hour": "21",
+    "stop_minute": "16",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
+    "center": "moon_center",
+    "orbits_file": "lunar-WMAP"
+  },
+  "landing": {
+    "enabled": false,
+    "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "start_year": "2001",
+    "start_month": "06",
+    "start_day": "30",
+    "start_hour": "19",
+    "start_minute": "46",
+    "stop_year": "2001",
+    "stop_month": "06",
+    "stop_day": "30",
+    "stop_hour": "19",
+    "stop_minute": "46",
+    "step_size_in_seconds": 1,
+    "planets": [
+      "SC"
+    ],
+    "center": "moon_center",
+    "orbits_file": "landing-WMAP"
+  },
+  "spacecraftModel": {
+    "enabled": false,
+    "comment": "3D model not configured for WMAP."
+  },
+  "events": {
+    "missionStart": {
+      "startTime": "2001-06-30T19:46:46Z",
+      "durationSeconds": 0,
+      "label": "Launch",
+      "burnFlag": false,
+      "infoText": "Launch from Cape Canaveral Space Launch Complex 17B aboard a Delta II 7425-10 rocket.",
+      "body": "SC"
+    },
+    "observingModeStart": {
+      "startTime": "2001-07-02T19:18:00Z",
+      "durationSeconds": 0,
+      "label": "Observing Mode Start",
+      "burnFlag": false,
+      "infoText": "After deployment, WMAP first entered observing mode during its Earth phasing-loop transfer.",
+      "body": "SC"
+    },
+    "lunarSwingby": {
+      "startTime": "2001-07-30T16:37:00Z",
+      "durationSeconds": 0,
+      "label": "Lunar Swingby",
+      "burnFlag": false,
+      "infoText": "Lunar gravity-assist swingby at about 5,279 km above the Moon's surface during transfer toward Earth-Moon-Sun L2.",
+      "body": "SC"
+    },
+    "now": {
+      "kind": "now",
+      "timeSource": {
+        "type": "now"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "Now",
+      "burnFlag": false,
+      "infoText": "Now",
+      "body": ""
+    },
+    "wmapDataEnd": {
+      "kind": "data_end",
+      "timeSource": {
+        "type": "data_end",
+        "spacecraftMnemonic": "WMAP"
+      },
+      "startTime": "dynamic",
+      "durationSeconds": 0,
+      "label": "WMAP Data End",
+      "burnFlag": false,
+      "infoText": "WMAP Data End",
+      "body": ""
+    }
+  },
+  "eventConfigs": {
+    "geo": [
+      "missionStart",
+      "observingModeStart",
+      "lunarSwingby",
+      "now",
+      "wmapDataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "observingModeStart",
+      "lunarSwingby",
+      "now",
+      "wmapDataEnd"
+    ]
+  }
+}

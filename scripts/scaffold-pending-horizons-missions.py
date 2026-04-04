@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scaffold pending HORIZONS missions with config + sourcing docs."""
+"""Scaffold pending HORIZONS missions with config."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 INDEX_PATH = PROJECT_ROOT / "docs" / "horizons-blurbs" / "mission-index.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
-SOURCING_DIR = PROJECT_ROOT / "docs" / "mission-sourcing"
 
 
 def parse_dt(value: str | None) -> datetime | None:
@@ -370,8 +369,6 @@ def main() -> None:
     data = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
     mission_index = {slugify(item["name"]): item for item in data.get("missions", []) if isinstance(item, dict) and item.get("name")}
 
-    SOURCING_DIR.mkdir(parents=True, exist_ok=True)
-
     generated: list[str] = []
     for defn in MISSIONS:
         slug = defn["slug"]
@@ -493,10 +490,6 @@ def main() -> None:
         config_dir = ASSETS_DIR / folder / "data"
         config_dir.mkdir(parents=True, exist_ok=True)
         (config_dir / "config.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
-
-        source_lines = "\n".join(f"- {s}" for s in defn.get("sources", []))
-        sourcing_doc = f"""# {mission_name} ({folder}) sourcing\n\n## Mission Identity\n- Slug: `{slug}`\n- Folder: `assets/{folder}`\n- HORIZONS ID: `{spacecraft_id}`\n- Name source: `docs/horizons-blurbs/mission-index.json`\n\n## Time Window Used\n- Launch/reference start: `{launch_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data start: `{start_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Orbit data end: `{end_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC`\n- Sampling step: `{step_seconds}` seconds\n\n## Primary Source References\n{source_lines}\n\n## Generated Files\n- `assets/{folder}/data/config.json`\n\n## Notes\n- Config uses two origins (`geo`, `lunar`) plus generated `relative` mode.\n- Ephemeris sources are configured as Chebyshev for SC/MOON/EARTH/SUN.\n"""
-        (SOURCING_DIR / f"{folder}.md").write_text(sourcing_doc, encoding="utf-8")
 
         generated.append(folder)
 
