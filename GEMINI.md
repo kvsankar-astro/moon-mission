@@ -5,7 +5,8 @@ This file provides Gemini-oriented project context aligned with the current code
 ## Primary references
 
 - Workflow/conventions: `AGENTS.md`
-- Architecture/data pipeline: `docs/developer.md`
+- Repo workflow/build/CI conventions: `docs/developer.md`
+- System design and architecture docs: `docs/design/design.md`
 - Test strategy: `docs/testing/README.md`
 
 ## Current code layout

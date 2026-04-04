@@ -78,7 +78,8 @@ Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `E
 
 For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
-Developer documentation (adding missions, orbit pipeline, build/deploy scripts): [docs/developer.md](docs/developer.md)
+Developer workflow/build/CI guide: [docs/developer.md](docs/developer.md)  
+System design index: [docs/design/design.md](docs/design/design.md)
 
 Shared authored mission panel content lives in:
 
@@ -118,7 +119,7 @@ The runtime supports Chebyshev/NPZ/Astronomy body providers, and current mission
 **Time Systems:** Runtime ephemeris sampling currently uses UTC-based Julian date helpers for
 Chebyshev/NPZ lookups, while TDB-based helpers are used for astronomical orientation math
 (for example lunar pole calculations). UTC is used for user-facing event times and display.
-See [docs/developer.md](docs/developer.md) for detailed technical notes.
+See [docs/design/design.md](docs/design/design.md) for detailed technical/design notes.
 
 ## Testing
 

@@ -5,7 +5,8 @@ Assistant-facing notes for this repository.
 ## Source of truth
 
 - Contributor/agent workflow: `AGENTS.md`
-- Developer architecture/pipeline details: `docs/developer.md`
+- Repo workflow/build/CI conventions: `docs/developer.md`
+- System design and architecture docs: `docs/design/design.md`
 - Test strategy and commands: `docs/testing/README.md`
 
 ## Current project shape (important)
