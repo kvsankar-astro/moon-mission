@@ -5,6 +5,11 @@ function clamp(value, min, max) {
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
 
+function resolveMobileOrbitVisualBoost() {
+    if (typeof window === "undefined") return 1;
+    return window.innerWidth <= 600 ? 2 : 1;
+}
+
 function normalizeHexColor(value, fallback = "#f8b84b") {
     const text = typeof value === "string" ? value.trim() : "";
     const match = text.match(/^#?([0-9a-f]{6})$/i);
@@ -415,6 +420,7 @@ function resolveOverlapAdjustedOpacity(baseOpacity, overlapFactor = 1) {
 function resolveTailVisualStyle(options = {}) {
     const dimension = options.dimension === "3D" ? "3D" : "2D";
     const prominence = normalizeTrailProminence(options.prominence, 1);
+    const mobileBoost = resolveMobileOrbitVisualBoost();
     const tailOpacityBase = dimension === "3D"
         ? ORBIT_TRAIL_STYLE.tailOpacity3D
         : ORBIT_TRAIL_STYLE.tailOpacity2D;
@@ -442,14 +448,14 @@ function resolveTailVisualStyle(options = {}) {
 
     return {
         prominence,
-        tailOpacity: clamp(tailOpacityBase * prominence, 0.12, 1),
-        midOpacity: clamp(midOpacityBase * (0.9 + (0.18 * prominence)), 0.18, 1),
-        headGlowOpacity: clamp(headGlowOpacityBase * (0.85 + (0.2 * prominence)), 0.08, 0.9),
-        headOpacity: clamp(headOpacityBase * (0.85 + (0.15 * prominence)), 0.25, 1),
-        tailWidth: dimension === "2D" ? tailWidthBase * prominence : tailWidthBase,
-        midWidth: dimension === "2D" ? midWidthBase * prominence : midWidthBase,
-        headGlowWidth: dimension === "2D" ? headGlowWidthBase * prominence : headGlowWidthBase,
-        headWidth: dimension === "2D" ? headWidthBase * prominence : headWidthBase,
+        tailOpacity: clamp(tailOpacityBase * prominence * mobileBoost, 0.12, 1),
+        midOpacity: clamp(midOpacityBase * (0.9 + (0.18 * prominence)) * mobileBoost, 0.18, 1),
+        headGlowOpacity: clamp(headGlowOpacityBase * (0.85 + (0.2 * prominence)) * mobileBoost, 0.08, 0.9),
+        headOpacity: clamp(headOpacityBase * (0.85 + (0.15 * prominence)) * mobileBoost, 0.25, 1),
+        tailWidth: (dimension === "2D" ? tailWidthBase * prominence : tailWidthBase) * mobileBoost,
+        midWidth: (dimension === "2D" ? midWidthBase * prominence : midWidthBase) * mobileBoost,
+        headGlowWidth: (dimension === "2D" ? headGlowWidthBase * prominence : headGlowWidthBase) * mobileBoost,
+        headWidth: (dimension === "2D" ? headWidthBase * prominence : headWidthBase) * mobileBoost,
     };
 }
 
@@ -484,30 +490,66 @@ function resolveTrailLayerWindow(window) {
 }
 
 function resolveTrackOpacity2D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity2D * (Number(brightness) || 1), 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.backgroundOpacity2D *
+            (Number(brightness) || 1) *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 function resolveTrackOpacity3D(brightness = 1) {
     // Keep slider semantics simple: default 1.0 should be visibly stronger,
     // while preserving headroom above it.
     const scaledBrightness = (Number(brightness) || 1) * 2;
-    return clamp(ORBIT_TRAIL_STYLE.backgroundOpacity3D * scaledBrightness, 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.backgroundOpacity3D *
+            scaledBrightness *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 function resolveTailOpacity2D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.tailOpacity2D * (Number(brightness) || 1), 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.tailOpacity2D *
+            (Number(brightness) || 1) *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 function resolveHeadOpacity2D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.headOpacity2D * (Number(brightness) || 1), 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.headOpacity2D *
+            (Number(brightness) || 1) *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 function resolveTailOpacity3D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.tailOpacity3D * (Number(brightness) || 1), 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.tailOpacity3D *
+            (Number(brightness) || 1) *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 function resolveHeadOpacity3D(brightness = 1) {
-    return clamp(ORBIT_TRAIL_STYLE.headOpacity3D * (Number(brightness) || 1), 0, 1);
+    return clamp(
+        ORBIT_TRAIL_STYLE.headOpacity3D *
+            (Number(brightness) || 1) *
+            resolveMobileOrbitVisualBoost(),
+        0,
+        1,
+    );
 }
 
 export {
@@ -524,6 +566,7 @@ export {
     resolveChunkDensityHint,
     resolveHeadOpacity2D,
     resolveHeadOpacity3D,
+    resolveMobileOrbitVisualBoost,
     resolveIntervalPeriodMs,
     resolveOrbitDensityHint,
     resolveOverlapAdjustedOpacity,

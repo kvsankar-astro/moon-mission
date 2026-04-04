@@ -67,12 +67,14 @@ function createTimelineDockController({
     let isBound = false;
 
     function updateCurrentLabel(timeMs) {
-        currentLabel.textContent = formatDateTimeLocal(timeMs);
-        slider.setAttribute("aria-valuetext", formatDateTimeLocal(timeMs));
+        const label = formatDateTimeLocal(timeMs, { includeOffset: false });
+        currentLabel.textContent = label;
+        slider.setAttribute("aria-valuetext", label);
     }
 
     function formatEdgeLabel(timeMs) {
-        return `<span class="timeline-dock__edge-date">${formatDateOnlyLocal(timeMs)}</span><span class="timeline-dock__edge-time">${formatTimeOnlyLocal(timeMs, { includeOffset: true })}</span>`;
+        const includeOffset = typeof window === "undefined" ? true : window.innerWidth > 600;
+        return `<span class="timeline-dock__edge-date">${formatDateOnlyLocal(timeMs)}</span><span class="timeline-dock__edge-time">${formatTimeOnlyLocal(timeMs, { includeOffset })}</span>`;
     }
 
     function setRange({ startTimeMs, endTimeMs, stepMs }) {

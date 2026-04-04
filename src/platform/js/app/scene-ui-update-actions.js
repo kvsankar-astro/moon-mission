@@ -45,6 +45,26 @@ function createSceneUiUpdateActions(deps) {
         d3.select(selector).text(Number.isFinite(converted) ? formatMetric(converted) : "");
     }
 
+    function formatMetricWithUnit(value, metricType) {
+        if (!Number.isFinite(value)) return "--";
+        const converted =
+            metricType === "speed"
+                ? convertVelocityValue(value)
+                : convertDistanceValue(value);
+        if (!Number.isFinite(converted)) return "--";
+        const unitText =
+            metricType === "speed"
+                ? (metricUnitMode === UNIT_MODE_MILES ? "miles/h" : "km/s")
+                : (metricUnitMode === UNIT_MODE_MILES ? "miles" : "km");
+        return `${formatMetric(converted)} ${unitText}`;
+    }
+
+    function setMobileText(id, text) {
+        const node = document.getElementById(id);
+        if (!node) return;
+        node.textContent = text;
+    }
+
     function updateUnitLabels() {
         const distanceUnitText =
             metricUnitMode === UNIT_MODE_MILES
@@ -75,6 +95,39 @@ function createSceneUiUpdateActions(deps) {
             milesButton.classList.toggle("is-active", active);
             milesButton.setAttribute("aria-pressed", active ? "true" : "false");
         }
+
+        const mobileKmButton = document.getElementById("mobile-unit-km");
+        const mobileMilesButton = document.getElementById("mobile-unit-miles");
+        if (mobileKmButton) {
+            const active = metricUnitMode === UNIT_MODE_KM;
+            mobileKmButton.classList.toggle("is-active", active);
+            mobileKmButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+        if (mobileMilesButton) {
+            const active = metricUnitMode === UNIT_MODE_MILES;
+            mobileMilesButton.classList.toggle("is-active", active);
+            mobileMilesButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+    }
+
+    function updateMobileTelemetry(primaryBody, tel) {
+        if (!tel) {
+            setMobileText("mobile-metric-earth", "--");
+            setMobileText("mobile-metric-moon", "--");
+            setMobileText("mobile-metric-speed", "--");
+            return;
+        }
+
+        const earthDistance = tel.distanceEarth !== undefined && tel.distanceEarth !== null
+            ? tel.distanceEarth
+            : (primaryBody === "EARTH" ? tel.distancePrimary : null);
+        const moonDistance = tel.distanceMoon !== undefined && tel.distanceMoon !== null
+            ? tel.distanceMoon
+            : (primaryBody === "MOON" ? tel.distancePrimary : null);
+
+        setMobileText("mobile-metric-earth", formatMetricWithUnit(earthDistance, "distance"));
+        setMobileText("mobile-metric-moon", formatMetricWithUnit(moonDistance, "distance"));
+        setMobileText("mobile-metric-speed", formatMetricWithUnit(tel.velocityPrimary, "speed"));
     }
 
     function renderTelemetry() {
@@ -87,6 +140,7 @@ function createSceneUiUpdateActions(deps) {
             setMetricText("#distance-SC-MOON", null, "distance");
             setMetricText("#altitude-SC-MOON", null, "distance");
             setMetricText("#velocity-SC-MOON", null, "speed");
+            updateMobileTelemetry(primaryBody, null);
             return;
         }
 
@@ -125,6 +179,8 @@ function createSceneUiUpdateActions(deps) {
             setMetricText("#altitude-SC-EARTH", null, "distance");
             setMetricText("#velocity-SC-EARTH", null, "speed");
         }
+
+        updateMobileTelemetry(primaryBody, tel);
     }
 
     function setMetricUnitMode(nextMode) {
@@ -145,16 +201,34 @@ function createSceneUiUpdateActions(deps) {
         }
         const kmButton = document.getElementById("stats-unit-km");
         const milesButton = document.getElementById("stats-unit-miles");
-        if (!kmButton || !milesButton) {
+        const mobileKmButton = document.getElementById("mobile-unit-km");
+        const mobileMilesButton = document.getElementById("mobile-unit-miles");
+        const hasDesktopButtons = !!(kmButton && milesButton);
+        const hasMobileButtons = !!(mobileKmButton && mobileMilesButton);
+        if (!hasDesktopButtons && !hasMobileButtons) {
             return;
         }
 
-        kmButton.addEventListener("click", () => {
-            setMetricUnitMode(UNIT_MODE_KM);
-        });
-        milesButton.addEventListener("click", () => {
-            setMetricUnitMode(UNIT_MODE_MILES);
-        });
+        if (kmButton) {
+            kmButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_KM);
+            });
+        }
+        if (milesButton) {
+            milesButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_MILES);
+            });
+        }
+        if (mobileKmButton) {
+            mobileKmButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_KM);
+            });
+        }
+        if (mobileMilesButton) {
+            mobileMilesButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_MILES);
+            });
+        }
 
         unitControlsBound = true;
         updateUnitLabels();
@@ -228,18 +302,30 @@ function createSceneUiUpdateActions(deps) {
     }
 
     function updatePhaseIndicator(sceneState, globalConfig) {
-        if (!globalConfig || !globalConfig.is_lunar) return;
-
-        d3.select("#phase-1").html("Earth Bound Phase");
-        d3.select("#phase-2").html("Lunar Bound Phase");
-        d3.select("#phase-3").html("Lunar Orbit Phase");
+        const isLunarMission = !!(globalConfig && globalConfig.is_lunar);
+        if (isLunarMission) {
+            d3.select("#phase-1").html("Earth Bound Phase");
+            d3.select("#phase-2").html("Lunar Bound Phase");
+            d3.select("#phase-3").html("Lunar Orbit Phase");
+        }
 
         if (sceneState.phase === "earth-bound") {
-            d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
+            if (isLunarMission) {
+                d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
+            }
+            setMobileText("mobile-mission-phase", "Earth Bound");
         } else if (sceneState.phase === "lunar-bound") {
-            d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
+            if (isLunarMission) {
+                d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
+            }
+            setMobileText("mobile-mission-phase", "Lunar Bound");
         } else if (sceneState.phase === "lunar-orbit") {
-            d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+            if (isLunarMission) {
+                d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
+            }
+            setMobileText("mobile-mission-phase", "Lunar Orbit");
+        } else {
+            setMobileText("mobile-mission-phase", "--");
         }
     }
 
@@ -249,7 +335,9 @@ function createSceneUiUpdateActions(deps) {
                 d3.select("#burng").style("visibility", "visible");
                 activeEventVisible = true;
             }
-            updateEventInfo(sceneState.activeEvent.infoText || sceneState.activeEvent.label || "");
+            const eventText = sceneState.activeEvent.infoText || sceneState.activeEvent.label || "";
+            updateEventInfo(eventText);
+            setMobileText("mobile-mission-event", eventText || "No active event");
             updateActiveEventButtonHighlight(sceneState.activeEvent);
             return;
         }
@@ -259,6 +347,7 @@ function createSceneUiUpdateActions(deps) {
             activeEventVisible = false;
         }
         clearEventInfo();
+        setMobileText("mobile-mission-event", "No active event");
         clearActiveEventButtonHighlight();
     }
 

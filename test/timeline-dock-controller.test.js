@@ -134,7 +134,7 @@ describe("createTimelineDockController", () => {
         expect(craftStrip.children).toHaveLength(0);
     });
 
-    it("shows current time in inferred local timezone with explicit UTC offset", () => {
+    it("shows current time in inferred local timezone without UTC offset", () => {
         const slider = new FakeElement("input");
         const markers = new FakeElement("div");
         const startLabel = new FakeElement("span");
@@ -166,7 +166,7 @@ describe("createTimelineDockController", () => {
         });
         controller.setCurrentTime(timestamp);
 
-        expect(currentLabel.textContent).toMatch(/UTC[+-]\d{2}:\d{2}$/);
+        expect(currentLabel.textContent).not.toMatch(/UTC[+-]\d{2}:\d{2}$/);
         expect(slider.attributes["aria-valuetext"]).toBe(currentLabel.textContent);
         expect(startLabel.innerHTML).toMatch(/UTC[+-]\d{2}:\d{2}</);
     });

@@ -1,4 +1,5 @@
 import {
+    bindMobileMissionCard,
     bindControlPanelToggle,
     bindKeyboardShortcuts,
     bindMainControls,
@@ -73,6 +74,7 @@ export function startMissionApp({ eventBus, handlers }) {
     });
     bindKeyboardShortcuts();
     bindControlPanelToggle();
+    bindMobileMissionCard();
 
     handlers.initAnimation({ reset: true }); // no need to await - kickstarts setup
 

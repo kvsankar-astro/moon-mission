@@ -34,6 +34,19 @@ export function createCameraActions({
     };
     let autoAdjusting = false;
 
+    function resolveManualLookTarget(scene) {
+        const target = scene?.defaultLookTarget;
+        if (
+            target &&
+            Number.isFinite(target.x) &&
+            Number.isFinite(target.y) &&
+            Number.isFinite(target.z)
+        ) {
+            return target;
+        }
+        return { x: 0, y: 0, z: 0 };
+    }
+
     function resolveFromToTargets(scene) {
         return {
             earth: scene.earthContainer ?? null,
@@ -499,7 +512,12 @@ export function createCameraActions({
                 scene.setCameraParameters(false);
                 // Ensure TrackballControls rotates around the scene origin again.
                 if (scene.cameraController?.controls?.target) {
-                    scene.cameraController.controls.target.set(0, 0, 0);
+                    const manualTarget = resolveManualLookTarget(scene);
+                    scene.cameraController.controls.target.set(
+                        manualTarget.x,
+                        manualTarget.y,
+                        manualTarget.z,
+                    );
                     scene.cameraController.controls.noRotate = false;
                     scene.cameraController.controls.noPan = false;
                     scene.cameraController.controls.update();
@@ -558,7 +576,12 @@ export function createCameraActions({
             const scene = animationScenes[config];
             const controls = scene?.cameraController?.controls;
             if (controls?.target) {
-                controls.target.set(0, 0, 0);
+                const manualTarget = resolveManualLookTarget(scene);
+                controls.target.set(
+                    manualTarget.x,
+                    manualTarget.y,
+                    manualTarget.z,
+                );
                 controls.noRotate = false;
                 controls.noPan = false;
                 scene.cameraController?._setFreeFlyEnabled?.(false);

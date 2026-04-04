@@ -675,7 +675,9 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
 });
 
 function render() {
+    if (!theSceneHandler) return;
     var animationScene = animationScenes[runtimeViewState.getConfig()];
+    if (!animationScene) return;
     theSceneHandler.render(animationScene);
 }
 

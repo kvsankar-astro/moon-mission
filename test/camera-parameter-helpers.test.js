@@ -37,4 +37,35 @@ describe("computePreferredCameraDistance", () => {
             z: 90,
         });
     });
+
+    it("uses mobile Artemis 2 top-down camera placement in geo mode", () => {
+        const previousWindow = global.window;
+        global.window = {
+            innerWidth: 390,
+            missionConfig: {
+                dataPath: "assets/artemis2/data/",
+            },
+        };
+
+        const result = computePreferredCameraDistance({
+            missionConfig: "geo",
+            defaultCameraDistance: 600,
+            globalConfig: {
+                mission_name_short: "Artemis 2",
+            },
+        });
+
+        expect(result.position.x).toBe(0);
+        expect(result.position.y).toBe(0);
+        expect(result.position.z).toBeGreaterThan(0);
+        expect(result.up).toEqual({ x: 0, y: 1, z: 0 });
+        expect(result.lookTarget).toEqual({ x: 0, y: 0, z: 0 });
+        expect(result.pinEarthBelowPanel).toBe(true);
+
+        if (typeof previousWindow === "undefined") {
+            delete global.window;
+        } else {
+            global.window = previousWindow;
+        }
+    });
 });

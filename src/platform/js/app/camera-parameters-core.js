@@ -27,7 +27,9 @@ export function computeSceneCameraParameters({
             fov: 50.0,
             craftVisible: true,
             position: preferredDistance.position,
-            up: { x: 0, y: 0, z: 1 },
+            up: preferredDistance.up || { x: 0, y: 0, z: 1 },
+            lookTarget: preferredDistance.lookTarget || null,
+            pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
         };
     }
 
@@ -48,5 +50,7 @@ export function computeSceneCameraParameters({
         craftVisible: true,
         position: pose?.position ?? null,
         up: pose?.up ?? null,
+        lookTarget: preferredDistance.lookTarget || null,
+        pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
     };
 }
