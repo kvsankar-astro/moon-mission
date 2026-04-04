@@ -8,7 +8,19 @@
  * It uses callbacks to notify when time changes or play state changes.
  */
 
-import { TIME_CONSTANTS as TC, UI_CONSTANTS as UC } from "../core/constants.js";
+import { TIME_CONSTANTS as TC } from "../core/constants.js";
+
+const DISCRETE_SIM_SPEEDS = [
+    { label: "1 min/sec", ratio: 60 },
+    { label: "5 min/sec", ratio: 300 },
+    { label: "15 min/sec", ratio: 900 },
+    { label: "30 min/sec", ratio: 1800 },
+    { label: "1 hr/sec", ratio: 3600 },
+    { label: "3 hr/sec", ratio: 10800 },
+    { label: "6 hr/sec", ratio: 21600 },
+    { label: "12 hr/sec", ratio: 43200 },
+    { label: "1 day/sec", ratio: 86400 },
+];
 
 /**
  * AnimationController manages the animation timeline and playback state.
@@ -39,12 +51,13 @@ export class AnimationController {
         this.stopFlag = false;
 
         // Speed control
-        this.speedMultiplier = 1;
+        this.speedIndex = 0;
+        this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
         this.isRealtimeSpeed = false;
 
         // Frame timing
         this.prevFrameTime = null;
-        this.deltaFrameTime = TC.ONE_MINUTE_MS;
+        this.deltaFrameTime = TC.ONE_SECOND_MS;
 
         // Timeout handle for stopping
         this.timeoutHandle = null;
@@ -220,9 +233,11 @@ export class AnimationController {
     faster() {
         if (this.isRealtimeSpeed) {
             this.isRealtimeSpeed = false;
-            this.speedMultiplier = (this.deltaFrameTime / TC.ONE_MINUTE_MS) * UC.SPEED_CHANGE_FACTOR;
+            this.speedIndex = 0;
+            this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
         } else {
-            this.speedMultiplier *= UC.SPEED_CHANGE_FACTOR;
+            this.speedIndex = Math.min(this.speedIndex + 1, DISCRETE_SIM_SPEEDS.length - 1);
+            this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
         }
         this.onSpeedChange(this.speedMultiplier, this.isRealtimeSpeed);
     }
@@ -232,20 +247,24 @@ export class AnimationController {
      */
     slower() {
         if (this.isRealtimeSpeed) {
-            this.isRealtimeSpeed = false;
-            this.speedMultiplier = (this.deltaFrameTime / TC.ONE_MINUTE_MS) / UC.SPEED_CHANGE_FACTOR;
+            this.onSpeedChange(this.speedMultiplier, this.isRealtimeSpeed);
+            return;
+        } else if (this.speedIndex <= 0) {
+            this.isRealtimeSpeed = true;
         } else {
-            this.speedMultiplier /= UC.SPEED_CHANGE_FACTOR;
+            this.speedIndex -= 1;
+            this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
         }
         this.onSpeedChange(this.speedMultiplier, this.isRealtimeSpeed);
     }
 
     /**
-     * Reset speed to 1x.
+     * Reset speed to 1 min/sec.
      */
     resetSpeed() {
         this.isRealtimeSpeed = false;
-        this.speedMultiplier = 1;
+        this.speedIndex = 0;
+        this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
         this.onSpeedChange(this.speedMultiplier, this.isRealtimeSpeed);
     }
 
@@ -283,6 +302,8 @@ export class AnimationController {
         // Calculate delta time
         if (this.prevFrameTime !== null) {
             this.deltaFrameTime = currentFrameTime - this.prevFrameTime;
+        } else {
+            this.deltaFrameTime = TC.ONE_SECOND_MS;
         }
         this.prevFrameTime = currentFrameTime;
 
@@ -295,7 +316,9 @@ export class AnimationController {
         if (this.isRealtimeSpeed) {
             newTime = this.currentTime + this.deltaFrameTime;
         } else {
-            newTime = this.currentTime + this.speedMultiplier * TC.ONE_MINUTE_MS;
+            // speedMultiplier is "sim-seconds per real-second"
+            // e.g. 60 means 1 min/sec => advance by deltaFrameTime * 60.
+            newTime = this.currentTime + this.deltaFrameTime * this.speedMultiplier;
         }
 
         // Check bounds

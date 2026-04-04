@@ -479,36 +479,73 @@ function syncActiveCraftControl() {
     }
 }
 
-function formatSpeedLabel(multiplier, isRealtime) {
-    if (isRealtime) return "RT";
-    if (!Number.isFinite(multiplier) || multiplier <= 0) return "1x";
+const SPEED_RATE_LABELS = new Map([
+    [60, "1 min/sec"],
+    [300, "5 min/sec"],
+    [900, "15 min/sec"],
+    [1800, "30 min/sec"],
+    [3600, "1 hr/sec"],
+    [10800, "3 hr/sec"],
+    [21600, "6 hr/sec"],
+    [43200, "12 hr/sec"],
+    [86400, "1 day/sec"],
+]);
 
-    let value = multiplier;
-    if (value >= 10) value = Math.round(value);
-    else if (value >= 1) value = Math.round(value * 10) / 10;
-    else value = Math.round(value * 100) / 100;
-
-    const text = String(value);
-    return `${text.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1")}x`;
+function formatSimRateLabel(multiplier, isRealtime) {
+    if (isRealtime) return "1 sec/sec";
+    const value = Number(multiplier);
+    if (!Number.isFinite(value) || value <= 0) return "1 min/sec";
+    const rounded = Math.round(value);
+    if (SPEED_RATE_LABELS.has(rounded)) return SPEED_RATE_LABELS.get(rounded);
+    const minutesPerSecond = value / 60;
+    if (minutesPerSecond >= 60) {
+        const hoursPerSecond = minutesPerSecond / 60;
+        if (hoursPerSecond >= 24) {
+            return `${(hoursPerSecond / 24).toFixed(2).replace(/\.00$/, "")} day/sec`;
+        }
+        return `${hoursPerSecond.toFixed(2).replace(/\.00$/, "")} hr/sec`;
+    }
+    return `${minutesPerSecond.toFixed(2).replace(/\.00$/, "")} min/sec`;
 }
 
 function updateSpeedControlsUI(multiplier, isRealtime) {
-    const speedChip = document.getElementById("resetspeed");
+    const slowerButton = document.getElementById("slower");
     const realtimeButton = document.getElementById("realtime");
-    const label = formatSpeedLabel(multiplier, isRealtime);
-
-    if (speedChip) {
-        speedChip.textContent = label;
-        speedChip.title = isRealtime
-            ? "Realtime mode active (click to reset to 1x)"
-            : `Current speed ${label} (click to reset to 1x)`;
-        speedChip.setAttribute("aria-label", `Current speed ${label}. Click to reset to 1x.`);
-    }
+    const fasterButton = document.getElementById("faster");
+    const label = formatSimRateLabel(multiplier, isRealtime);
+    const numericMultiplier = Number(multiplier || 0);
+    const atMaxSpeed = !isRealtime && Math.abs(numericMultiplier - 86400) < 1e-3;
 
     if (realtimeButton) {
+        realtimeButton.textContent = label;
+        realtimeButton.title = isRealtime
+            ? "Realtime active (1 sec/sec)."
+            : `Current speed ${label}. Click to set realtime (1 sec/sec).`;
+        realtimeButton.setAttribute(
+            "aria-label",
+            isRealtime
+                ? "Realtime active (1 sec/sec)."
+                : `Current speed ${label}. Click to set realtime (1 sec/sec).`,
+        );
         realtimeButton.classList.toggle("down", !!isRealtime);
         realtimeButton.setAttribute("aria-pressed", isRealtime ? "true" : "false");
     }
+
+    if (slowerButton) {
+        slowerButton.disabled = !!isRealtime;
+        slowerButton.setAttribute("aria-disabled", isRealtime ? "true" : "false");
+    }
+
+    if (fasterButton) {
+        fasterButton.disabled = atMaxSpeed;
+        fasterButton.setAttribute("aria-disabled", atMaxSpeed ? "true" : "false");
+    }
+}
+
+function updateTransportControlsUI(isPlaying) {
+    const transportCluster = document.querySelector(".controls-cluster--transport");
+    if (!transportCluster) return;
+    transportCluster.classList.toggle("is-playing", !!isPlaying);
 }
 
 // Animation Controller instance
@@ -524,6 +561,7 @@ var animationController = new AnimationController({
     onPlayStateChange: (isPlaying) => {
         runtimeSessionState.setAnimationRunning(isPlaying);
         updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
+        updateTransportControlsUI(isPlaying);
         setView?.();
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
@@ -534,10 +572,18 @@ var animationController = new AnimationController({
 });
 
 window.addEventListener("load", function () {
+    updateTransportControlsUI(animationController.getIsRunning());
     updateSpeedControlsUI(
         animationController.getSpeedMultiplier(),
         animationController.getIsRealtimeSpeed(),
     );
+    const nowButton = document.getElementById("missionnow");
+    if (nowButton && nowButton.dataset.bound !== "true") {
+        nowButton.dataset.bound = "true";
+        nowButton.addEventListener("click", function () {
+            animationController.goToNow();
+        });
+    }
     ensureTimelineDockController();
     syncTimelineDock();
     syncActiveCraftControl();
