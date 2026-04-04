@@ -1,5 +1,11 @@
 import * as THREE from 'three';
 
+const SKY_RADIUS_MULTIPLIER = 200;
+const SUN_BASE_RADIUS_MIN_MULTIPLIER = 0.7;
+const SUN_RADIUS_DISTANCE_MULTIPLIER = 0.0036;
+const SUN_MAX_FLARE_HALF_EXTENT_MULTIPLIER = 18.2;
+const SUN_EDGE_MARGIN_RADIUS_MULTIPLIER = 0.8;
+
 /**
  * Sun Renderer - Lightweight visual sun disk + glow
  *
@@ -15,8 +21,11 @@ export class SunRenderer {
         this.parentContainer = parentContainer;
         this.baseRadius = Number.isFinite(baseRadius) && baseRadius > 0 ? baseRadius : 1;
 
-        this.distance = 180 * this.baseRadius;
-        this.radius = Math.max(this.baseRadius * 0.7, this.distance * 0.0036);
+        this.distance = this.computeSafeDistance();
+        this.radius = Math.max(
+            this.baseRadius * SUN_BASE_RADIUS_MIN_MULTIPLIER,
+            this.distance * SUN_RADIUS_DISTANCE_MULTIPLIER,
+        );
 
         this.group = null;
         this.coreMesh = null;
@@ -27,9 +36,25 @@ export class SunRenderer {
         this._dynamicTextures = [];
 
         this._direction = new THREE.Vector3(1, 0, 0);
+        this._referencePosition = new THREE.Vector3();
         this._position = new THREE.Vector3();
         this._pulsePhase = Math.random() * Math.PI * 2;
         this._lastAppearanceUpdateMs = -Infinity;
+    }
+
+    computeSafeDistance() {
+        const skyRadius = SKY_RADIUS_MULTIPLIER * this.baseRadius;
+        const nominalDistance = skyRadius * 0.94;
+        const nominalRadius = Math.max(
+            this.baseRadius * SUN_BASE_RADIUS_MIN_MULTIPLIER,
+            nominalDistance * SUN_RADIUS_DISTANCE_MULTIPLIER,
+        );
+        const flareHalfExtent = nominalRadius * SUN_MAX_FLARE_HALF_EXTENT_MULTIPLIER;
+        const edgeMargin = nominalRadius * SUN_EDGE_MARGIN_RADIUS_MULTIPLIER;
+        const safeDistance = skyRadius - flareHalfExtent - edgeMargin;
+        const fallbackDistance = 180 * this.baseRadius;
+
+        return Math.max(fallbackDistance, safeDistance);
     }
 
     /**
@@ -160,8 +185,48 @@ export class SunRenderer {
         }
         this._direction.multiplyScalar(1 / norm);
 
-        this._position.copy(this._direction).multiplyScalar(this.distance);
+        this._position
+            .copy(this._referencePosition)
+            .addScaledVector(this._direction, this.distance);
         this.group.position.copy(this._position);
+    }
+
+    /**
+     * Set a camera-relative anchor position in scene coordinates.
+     * This keeps the Sun visually "at infinity" while preserving physical
+     * lighting direction from ephemeris.
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     */
+    setReferencePosition(x, y, z) {
+        if (!this.group) {
+            return;
+        }
+        const rx = Number(x);
+        const ry = Number(y);
+        const rz = Number(z);
+        if (!Number.isFinite(rx) || !Number.isFinite(ry) || !Number.isFinite(rz)) {
+            return;
+        }
+        this._referencePosition.set(rx, ry, rz);
+        this._position
+            .copy(this._referencePosition)
+            .addScaledVector(this._direction, this.distance);
+        this.group.position.copy(this._position);
+    }
+
+    /**
+     * Copy current reference position into outVector.
+     * @param {THREE.Vector3} outVector
+     * @returns {boolean}
+     */
+    getReferencePosition(outVector) {
+        if (!outVector || !this.group) {
+            return false;
+        }
+        outVector.copy(this._referencePosition);
+        return true;
     }
 
     /**

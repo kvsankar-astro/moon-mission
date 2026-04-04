@@ -15,6 +15,7 @@ const SKY_STARMAP_OPACITY = 0.28;
 const SKY_CONSTELLATION_OPACITY = 0.04;
 const SKY_LOWER_SHADE_COLOR = new THREE.Color(0x02050c);
 const SKY_LOWER_SHADE_ALPHA = 0.48;
+const SKY_LAYER = 2;
 
 const SKY_SHADE_VERTEX_SHADER = `
     varying vec3 vViewDir;
@@ -137,6 +138,7 @@ export class SkyRenderer {
         this.skyMesh = new THREE.Mesh(this.geometry, skyMaterial);
         this.skyMesh.receiveShadow = false;
         this.skyMesh.castShadow = false;
+        this.skyMesh.layers.set(SKY_LAYER);
         this.skyMesh.rotateX(Math.PI / 2);  // Orient texture correctly
         this.skyMesh.renderOrder = -30;
         this.container.add(this.skyMesh);
@@ -155,6 +157,7 @@ export class SkyRenderer {
         this.constellationMesh = new THREE.Mesh(this.geometry, constellationMaterial);
         this.constellationMesh.receiveShadow = false;
         this.constellationMesh.castShadow = false;
+        this.constellationMesh.layers.set(SKY_LAYER);
         this.constellationMesh.rotateX(Math.PI / 2);  // Orient texture correctly
         this.constellationMesh.renderOrder = -29;
         this.container.add(this.constellationMesh);
@@ -176,6 +179,7 @@ export class SkyRenderer {
         this.lowerShadeMesh = new THREE.Mesh(this.geometry, lowerShadeMaterial);
         this.lowerShadeMesh.receiveShadow = false;
         this.lowerShadeMesh.castShadow = false;
+        this.lowerShadeMesh.layers.set(SKY_LAYER);
         this.lowerShadeMesh.renderOrder = -28;
         this.container.add(this.lowerShadeMesh);
 
