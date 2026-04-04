@@ -137,7 +137,7 @@ make test
 `make test` runs the primary UI + visual regression suite (`test/ui.test.js`) on `http://localhost:8111`.
 
 For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
-- [docs/testing/README.md](docs/testing/README.md)
+- [docs/testing.md](docs/testing.md)
 
 ### Hosting
 

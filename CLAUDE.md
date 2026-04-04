@@ -7,7 +7,7 @@ Assistant-facing notes for this repository.
 - Contributor/agent workflow: `AGENTS.md`
 - Repo workflow/build/CI conventions: `docs/developer.md`
 - System design and architecture docs: `docs/design/design.md`
-- Test strategy and commands: `docs/testing/README.md`
+- Test strategy and commands: `docs/testing.md`
 
 ## Current project shape (important)
 

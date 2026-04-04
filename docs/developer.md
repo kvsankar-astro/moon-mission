@@ -130,7 +130,7 @@ Use this before committing:
 ## 10) Related Docs
 
 - Design hub: [docs/design/design.md](design/design.md)
-- Test strategy: [docs/testing/README.md](testing/README.md)
+- Test strategy: [docs/testing.md](testing.md)
 - Agent conventions: [AGENTS.md](../AGENTS.md)
 Mission config note:
 - Maintainers edit `config.json5`; runtime consumes `config.json`.

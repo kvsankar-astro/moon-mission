@@ -102,7 +102,7 @@ Design intent: keep runtime code evolution independent from heavy generated asse
 ## 9) Testing and Release Design Links
 
 - Workflow guide (commands/CI/conventions): [../developer.md](../developer.md)
-- Test strategy: [../testing/README.md](../testing/README.md)
+- Test strategy: [../testing.md](../testing.md)
 
 ---
 
