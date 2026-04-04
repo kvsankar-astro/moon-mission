@@ -1986,12 +1986,44 @@ table {
         margin-bottom: 6px;
     }
 
+    body.mobile-shell-enabled .mobile-shell__card-head-main {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
     body.mobile-shell-enabled .mobile-shell__card-title {
         font-size: 10px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
         color: rgba(196, 221, 255, 0.86);
         font-weight: 600;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__unit-pill {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        border: 1px solid rgba(121, 171, 255, 0.28);
+        background: rgba(10, 20, 34, 0.72);
+        overflow: hidden;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__unit-btn {
+        border: 0;
+        background: transparent;
+        color: rgba(183, 210, 248, 0.84);
+        min-height: 18px;
+        padding: 0 7px;
+        font-size: 8px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__unit-btn.is-active {
+        background: rgba(255, 218, 130, 0.18);
+        color: rgba(255, 232, 174, 0.98);
     }
 
     body.mobile-shell-enabled .mobile-shell__phase {
@@ -2030,6 +2062,20 @@ table {
         font-weight: 600;
     }
 
+    body.mobile-shell-enabled .mobile-shell__time-main {
+        display: block;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__time-zone {
+        display: block;
+        margin-top: 1px;
+        font-size: 8px;
+        line-height: 1.15;
+        font-weight: 500;
+        color: rgba(179, 201, 231, 0.74);
+        letter-spacing: 0.03em;
+    }
+
     body.mobile-shell-enabled .mobile-shell__event {
         min-height: 14px;
         font-size: 9px;
@@ -2043,7 +2089,7 @@ table {
 
     body.mobile-shell-enabled .mobile-shell__controls {
         display: grid;
-        grid-template-columns: 1fr 44px 44px 1fr 1fr;
+        grid-template-columns: 1fr 52px 40px 1fr 40px;
         gap: 4px;
     }
 
@@ -2105,12 +2151,20 @@ table {
         display: none;
     }
 
+    body.mobile-shell-enabled #settings-panel-button {
+        display: none !important;
+        pointer-events: none;
+    }
+
     body.mobile-shell-enabled #timeline-dock {
         bottom: 42px;
     }
 
-    body.mobile-shell-enabled #date,
-    body.mobile-shell-enabled #stats {
+    body.mobile-shell-enabled #date {
         display: none !important;
+    }
+
+    body.mobile-shell-enabled #stats {
+        display: none;
     }
 }

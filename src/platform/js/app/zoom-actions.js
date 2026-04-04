@@ -6,6 +6,7 @@ export function createZoomActions({
     getCurrentDimension,
     animationScenes,
     getConfig,
+    getGlobalConfig = () => null,
     getZoomFactor,
     setZoomFactor,
     getPanX,
@@ -18,6 +19,112 @@ export function createZoomActions({
     showGreenwichLongitude,
     getOrbitStyle,
 }) {
+    const artemis2MobileFrameStateByConfig = new Map();
+
+    function isArtemis2Mission() {
+        const globalConfig = getGlobalConfig?.();
+        const missionName = String(
+            globalConfig?.mission_name_short ||
+            globalConfig?.mission_name ||
+            "",
+        ).toLowerCase();
+        if (missionName.includes("artemis 2") || missionName.includes("artemis ii")) {
+            return true;
+        }
+
+        const dataPath = String(window?.missionConfig?.dataPath || "").toLowerCase();
+        return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
+    }
+
+    function isDefaultXYScene(scene) {
+        if (!scene) return false;
+        return (
+            scene.xVariable === "x" &&
+            scene.yVariable === "y" &&
+            Number(scene.xFactor) === 1 &&
+            Number(scene.yFactor) === 1
+        );
+    }
+
+    function maybeApplyArtemis2MobileFrame(config) {
+        if (typeof window === "undefined" || typeof document === "undefined") {
+            return;
+        }
+        if (window.innerWidth > 600) {
+            return;
+        }
+        if (!isArtemis2Mission()) {
+            return;
+        }
+        if (config !== "geo") {
+            return;
+        }
+
+        const scene = animationScenes[config];
+        if (!isDefaultXYScene(scene)) {
+            return;
+        }
+
+        const timelineDock = document.getElementById("timeline-dock");
+        const timelineTop = timelineDock?.getBoundingClientRect?.().top;
+        const earthNode = document.getElementById("EARTH");
+        const moonClassicOrbit = document.querySelector("#orbit-MOON .orbit-classic-path");
+        if (!earthNode || !moonClassicOrbit || typeof moonClassicOrbit.getBBox !== "function") {
+            return;
+        }
+
+        const earthCx = Number(earthNode.getAttribute("cx"));
+        const earthCy = Number(earthNode.getAttribute("cy"));
+        if (!Number.isFinite(earthCx) || !Number.isFinite(earthCy)) {
+            return;
+        }
+
+        let moonBBox = null;
+        try {
+            moonBBox = moonClassicOrbit.getBBox();
+        } catch (_error) {
+            return;
+        }
+        if (!moonBBox || !Number.isFinite(moonBBox.y) || !Number.isFinite(moonBBox.height)) {
+            return;
+        }
+
+        const moonOrbitBottomY = moonBBox.y + moonBBox.height;
+        const lunarSpanFromEarth = moonOrbitBottomY - earthCy;
+        if (!Number.isFinite(lunarSpanFromEarth) || lunarSpanFromEarth <= 0) {
+            return;
+        }
+
+        const targetEarthScreenY = window.innerHeight * 0.2;
+        const targetOrbitBottomY = Math.min(
+            Number.isFinite(timelineTop) ? timelineTop - 8 : window.innerHeight * 0.82,
+            window.innerHeight * 0.9,
+        );
+        const usableHeight = targetOrbitBottomY - targetEarthScreenY;
+        if (!Number.isFinite(usableHeight) || usableHeight <= 20) {
+            return;
+        }
+
+        const frameSignature = [
+            Math.round(window.innerWidth),
+            Math.round(window.innerHeight),
+            Math.round(targetOrbitBottomY),
+            Math.round(lunarSpanFromEarth * 10) / 10,
+        ].join(":");
+        if (artemis2MobileFrameStateByConfig.get(config) === frameSignature) {
+            return;
+        }
+
+        const nextZoom = Math.min(8, Math.max(0.2, usableHeight / lunarSpanFromEarth));
+        const nextPanX = (window.innerWidth * 0.5) - getOffsetX() - (nextZoom * earthCx);
+        const nextPanY = targetEarthScreenY - getOffsetY() - (nextZoom * earthCy);
+
+        setZoomFactor(nextZoom);
+        setPanX(nextPanX);
+        setPanY(nextPanY);
+        artemis2MobileFrameStateByConfig.set(config, frameSignature);
+    }
+
     function zoomChangeTransform(t) {
         // Only process in 2D mode when svgContainer exists
         const svgContainer = getSvgContainer();
@@ -26,6 +133,7 @@ export function createZoomActions({
         }
 
         const config = getConfig();
+        maybeApplyArtemis2MobileFrame(config);
         const zoomFactor = getZoomFactor();
         const panx = getPanX();
         const pany = getPanY();

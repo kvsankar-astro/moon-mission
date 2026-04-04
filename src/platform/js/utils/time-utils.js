@@ -105,7 +105,7 @@ function getLocalOffsetParts(date) {
     };
 }
 
-export function formatDateTimeLocal(dateOrTimestamp) {
+export function formatDateTimeLocal(dateOrTimestamp, { includeOffset = true } = {}) {
     const date = typeof dateOrTimestamp === 'number'
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
@@ -121,7 +121,11 @@ export function formatDateTimeLocal(dateOrTimestamp) {
         hour12: false,
     };
 
-    return `${date.toLocaleString(undefined, options)} UTC${getLocalOffsetParts(date).text}`;
+    const localText = date.toLocaleString(undefined, options);
+    if (!includeOffset) {
+        return localText;
+    }
+    return `${localText} UTC${getLocalOffsetParts(date).text}`;
 }
 
 /**

@@ -163,6 +163,11 @@ function isMobileViewport() {
     return window.innerWidth <= 600;
 }
 
+function isArtemis2MissionContext() {
+    const dataPath = String(window?.missionConfig?.dataPath || "").toLowerCase();
+    return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
+}
+
 function resolveDefaultMobileSectionCollapsed(sectionKey) {
     return sectionKey === "camera" || sectionKey === "plane" || sectionKey === "view";
 }
@@ -598,16 +603,66 @@ export function bindMobileMissionCard() {
     const mobilePlay = document.getElementById("mobile-control-play");
     const mobileSlower = document.getElementById("mobile-control-slower");
     const mobileFaster = document.getElementById("mobile-control-faster");
-    const mobileRealtime = document.getElementById("mobile-control-realtime");
-    const mobileInfo = document.getElementById("mobile-control-info");
+    const mobileSpeed = document.getElementById("mobile-control-speed");
+    const mobileNow = document.getElementById("mobile-control-realtime");
     const missionEvent = document.getElementById("mobile-mission-event");
     const navButtons = document.querySelectorAll(".mobile-shell__nav-btn");
     const desktopPlay = document.getElementById("animate");
-    const desktopRealtime = document.getElementById("realtime");
+    const desktopNow = document.getElementById("missionnow");
+    const desktopSlower = document.getElementById("slower");
+    const desktopFaster = document.getElementById("faster");
+    const desktopSpeed = document.getElementById("realtime");
+    let artemis2XyLockTimer = null;
+
+    const clearArtemis2XyLockTimer = () => {
+        if (artemis2XyLockTimer !== null) {
+            clearTimeout(artemis2XyLockTimer);
+            artemis2XyLockTimer = null;
+        }
+    };
+
+    const requestArtemis2MobileXyLock = (attempt = 0) => {
+        clearArtemis2XyLockTimer();
+        if (!isMobileViewport() || !isArtemis2MissionContext()) return;
+
+        const xyRadio = document.getElementById("checkbox-lock-xy");
+        if (!xyRadio || xyRadio.checked) return;
+
+        const sceneReady = !!(
+            document.getElementById("EARTH") ||
+            document.querySelector("#svg-wrapper svg") ||
+            document.querySelector("#canvas-wrapper canvas")
+        );
+        if (!sceneReady) {
+            if (attempt >= 80) return;
+            artemis2XyLockTimer = setTimeout(() => {
+                requestArtemis2MobileXyLock(attempt + 1);
+            }, 150);
+            return;
+        }
+
+        xyRadio.click();
+    };
 
     const toggleMobileMode = () => {
         const mobile = isMobileViewport();
         document.body.classList.toggle("mobile-shell-enabled", mobile);
+        if (mobile) {
+            requestArtemis2MobileXyLock();
+            const dialogApi = getMissionDialogApi();
+            dialogApi?.close?.("#settings-panel");
+            const settingsPanel = document.getElementById("settings-panel");
+            if (settingsPanel) {
+                settingsPanel.style.display = "none";
+            }
+            const settingsButton = document.getElementById("settings-panel-button");
+            if (settingsButton) {
+                settingsButton.setAttribute("aria-expanded", "false");
+                settingsButton.classList.remove("is-open");
+            }
+        } else {
+            clearArtemis2XyLockTimer();
+        }
     };
     toggleMobileMode();
     window.addEventListener("resize", toggleMobileMode);
@@ -618,29 +673,38 @@ export function bindMobileMissionCard() {
         target.click();
     };
 
+    const proxyPress = (desktopId) => {
+        const target = document.getElementById(desktopId);
+        if (!target || target.disabled) return;
+
+        // Desktop transport speed buttons are wired to mousedown repeat handlers.
+        target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+        target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+    };
+
     if (mobilePlay) {
         mobilePlay.addEventListener("click", function () {
             proxyClick("animate");
         });
     }
+    if (mobileNow) {
+        mobileNow.addEventListener("click", function () {
+            proxyClick("missionnow");
+        });
+    }
     if (mobileSlower) {
         mobileSlower.addEventListener("click", function () {
-            proxyClick("slower");
+            proxyPress("slower");
         });
     }
     if (mobileFaster) {
         mobileFaster.addEventListener("click", function () {
-            proxyClick("faster");
+            proxyPress("faster");
         });
     }
-    if (mobileRealtime) {
-        mobileRealtime.addEventListener("click", function () {
-            proxyClick("realtime");
-        });
-    }
-    if (mobileInfo) {
-        mobileInfo.addEventListener("click", function () {
-            proxyClick("info-button");
+    if (mobileSpeed) {
+        mobileSpeed.addEventListener("click", function () {
+            proxyPress("realtime");
         });
     }
 
@@ -650,9 +714,35 @@ export function bindMobileMissionCard() {
             mobilePlay.textContent = isPlaying ? "Pause" : "Play";
             mobilePlay.classList.toggle("is-active", isPlaying);
         }
-        if (mobileRealtime && desktopRealtime) {
-            const isRealtime = desktopRealtime.classList.contains("down");
-            mobileRealtime.classList.toggle("is-active", isRealtime);
+        if (mobileNow && desktopNow) {
+            mobileNow.textContent = (desktopNow.textContent || "").trim() || "Now";
+            mobileNow.title = desktopNow.title || "Jump to current time";
+            mobileNow.setAttribute(
+                "aria-label",
+                desktopNow.getAttribute("aria-label") || "Jump to current time",
+            );
+            mobileNow.disabled = !!desktopNow.disabled;
+            mobileNow.setAttribute("aria-disabled", desktopNow.disabled ? "true" : "false");
+        }
+        if (mobileSlower && desktopSlower) {
+            mobileSlower.disabled = !!desktopSlower.disabled;
+            mobileSlower.setAttribute("aria-disabled", desktopSlower.disabled ? "true" : "false");
+        }
+        if (mobileFaster && desktopFaster) {
+            mobileFaster.disabled = !!desktopFaster.disabled;
+            mobileFaster.setAttribute("aria-disabled", desktopFaster.disabled ? "true" : "false");
+        }
+        if (mobileSpeed && desktopSpeed) {
+            mobileSpeed.textContent = (desktopSpeed.textContent || "").trim() || "1x";
+            mobileSpeed.setAttribute(
+                "aria-label",
+                desktopSpeed.getAttribute("aria-label") || "Current speed. Click to set realtime (1 sec/sec).",
+            );
+            mobileSpeed.title = desktopSpeed.title || "Set speed to realtime (1 sec/sec)";
+            const isRealtime = desktopSpeed.classList.contains("down");
+            mobileSpeed.classList.toggle("is-active", isRealtime);
+            mobileSpeed.disabled = !!desktopSpeed.disabled;
+            mobileSpeed.setAttribute("aria-disabled", desktopSpeed.disabled ? "true" : "false");
         }
     };
 
@@ -668,11 +758,38 @@ export function bindMobileMissionCard() {
         });
     }
 
-    if (desktopRealtime) {
-        const realtimeObserver = new MutationObserver(syncTransportState);
-        realtimeObserver.observe(desktopRealtime, {
+    if (desktopNow) {
+        const nowObserver = new MutationObserver(syncTransportState);
+        nowObserver.observe(desktopNow, {
             attributes: true,
-            attributeFilter: ["class", "aria-pressed"],
+            attributeFilter: ["class", "aria-pressed", "aria-label", "title", "disabled"],
+            childList: true,
+            characterData: true,
+            subtree: true,
+        });
+    }
+    if (desktopSlower) {
+        const slowerObserver = new MutationObserver(syncTransportState);
+        slowerObserver.observe(desktopSlower, {
+            attributes: true,
+            attributeFilter: ["class", "aria-pressed", "disabled", "aria-disabled"],
+        });
+    }
+    if (desktopFaster) {
+        const fasterObserver = new MutationObserver(syncTransportState);
+        fasterObserver.observe(desktopFaster, {
+            attributes: true,
+            attributeFilter: ["class", "aria-pressed", "disabled", "aria-disabled"],
+        });
+    }
+    if (desktopSpeed) {
+        const speedObserver = new MutationObserver(syncTransportState);
+        speedObserver.observe(desktopSpeed, {
+            childList: true,
+            characterData: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["title", "aria-label", "class", "aria-pressed", "disabled"],
         });
     }
 

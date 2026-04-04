@@ -315,6 +315,7 @@ function createDataflowWiringActions(deps) {
         getCurrentDimension,
         animationScenes,
         getConfig,
+        getGlobalConfig,
         getZoomFactor,
         setZoomFactor: (val) => {
             setZoomFactorState(val, getConfig());

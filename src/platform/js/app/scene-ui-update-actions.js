@@ -95,6 +95,19 @@ function createSceneUiUpdateActions(deps) {
             milesButton.classList.toggle("is-active", active);
             milesButton.setAttribute("aria-pressed", active ? "true" : "false");
         }
+
+        const mobileKmButton = document.getElementById("mobile-unit-km");
+        const mobileMilesButton = document.getElementById("mobile-unit-miles");
+        if (mobileKmButton) {
+            const active = metricUnitMode === UNIT_MODE_KM;
+            mobileKmButton.classList.toggle("is-active", active);
+            mobileKmButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
+        if (mobileMilesButton) {
+            const active = metricUnitMode === UNIT_MODE_MILES;
+            mobileMilesButton.classList.toggle("is-active", active);
+            mobileMilesButton.setAttribute("aria-pressed", active ? "true" : "false");
+        }
     }
 
     function updateMobileTelemetry(primaryBody, tel) {
@@ -188,16 +201,34 @@ function createSceneUiUpdateActions(deps) {
         }
         const kmButton = document.getElementById("stats-unit-km");
         const milesButton = document.getElementById("stats-unit-miles");
-        if (!kmButton || !milesButton) {
+        const mobileKmButton = document.getElementById("mobile-unit-km");
+        const mobileMilesButton = document.getElementById("mobile-unit-miles");
+        const hasDesktopButtons = !!(kmButton && milesButton);
+        const hasMobileButtons = !!(mobileKmButton && mobileMilesButton);
+        if (!hasDesktopButtons && !hasMobileButtons) {
             return;
         }
 
-        kmButton.addEventListener("click", () => {
-            setMetricUnitMode(UNIT_MODE_KM);
-        });
-        milesButton.addEventListener("click", () => {
-            setMetricUnitMode(UNIT_MODE_MILES);
-        });
+        if (kmButton) {
+            kmButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_KM);
+            });
+        }
+        if (milesButton) {
+            milesButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_MILES);
+            });
+        }
+        if (mobileKmButton) {
+            mobileKmButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_KM);
+            });
+        }
+        if (mobileMilesButton) {
+            mobileMilesButton.addEventListener("click", () => {
+                setMetricUnitMode(UNIT_MODE_MILES);
+            });
+        }
 
         unitControlsBound = true;
         updateUnitLabels();

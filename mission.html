@@ -1277,7 +1277,29 @@
         <div id="mobile-shell" class="mobile-shell" aria-label="Mobile mission shell">
             <section id="mobile-card-mission" class="mobile-shell__card mobile-shell__card--mission" aria-label="Mission card">
                 <div class="mobile-shell__card-head">
-                    <span class="mobile-shell__card-title">Mission</span>
+                    <div class="mobile-shell__card-head-main">
+                        <span class="mobile-shell__card-title">Mission</span>
+                        <div class="mobile-shell__unit-pill" role="group" aria-label="Mobile telemetry units">
+                            <button
+                                id="mobile-unit-km"
+                                type="button"
+                                class="mobile-shell__unit-btn is-active"
+                                aria-pressed="true"
+                                title="Show distance in kilometers and velocity in kilometers per second"
+                            >
+                                kms
+                            </button>
+                            <button
+                                id="mobile-unit-miles"
+                                type="button"
+                                class="mobile-shell__unit-btn"
+                                aria-pressed="false"
+                                title="Show distance in miles and velocity in miles per hour"
+                            >
+                                miles
+                            </button>
+                        </div>
+                    </div>
                     <span id="mobile-mission-phase" class="mobile-shell__phase">--</span>
                 </div>
                 <div class="mobile-shell__metrics">
@@ -1301,10 +1323,10 @@
                 <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite">No active event</div>
                 <div class="mobile-shell__controls" role="group" aria-label="Mission transport">
                     <button id="mobile-control-play" type="button" class="mobile-shell__control-btn">Play</button>
+                    <button id="mobile-control-realtime" type="button" class="mobile-shell__control-btn">Now</button>
                     <button id="mobile-control-slower" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Slower">−</button>
+                    <button id="mobile-control-speed" type="button" class="mobile-shell__control-btn">1x</button>
                     <button id="mobile-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
-                    <button id="mobile-control-realtime" type="button" class="mobile-shell__control-btn">Realtime</button>
-                    <button id="mobile-control-info" type="button" class="mobile-shell__control-btn">Info</button>
                 </div>
             </section>
             <nav class="mobile-shell__nav" aria-label="Mobile cards">
