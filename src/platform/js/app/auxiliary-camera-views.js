@@ -156,8 +156,10 @@ class AuxiliaryCameraViewsManager {
         this.boundingBox = new THREE.Box3();
         this.boundingSphere = new THREE.Sphere();
         this.originalSkyPosition = new THREE.Vector3();
+        this.originalSunReference = new THREE.Vector3();
         this.panelCameraWorldPosition = new THREE.Vector3();
         this.panelSkyLocalPosition = new THREE.Vector3();
+        this.panelSunLocalPosition = new THREE.Vector3();
         this.moonElongationPrevious = null;
         this.moonElongationTrend = 1;
         this.moonVisibilitySamples = this.createFibonacciSphereSamples(720);
@@ -1852,6 +1854,11 @@ class AuxiliaryCameraViewsManager {
 
     renderLayers(renderer, scene, camera) {
         renderer.autoClear = true;
+        camera.layers.set(2);
+        renderer.render(scene, camera);
+
+        renderer.autoClear = false;
+        renderer.clearDepth();
         camera.layers.set(0);
         renderer.render(scene, camera);
         renderer.autoClear = false;
@@ -2007,6 +2014,32 @@ class AuxiliaryCameraViewsManager {
         return hiddenEntries;
     }
 
+    suppressCraftVisuals({ activeCraft, craftsById, dronesById } = {}) {
+        const hiddenEntries = [];
+        const seen = new Set();
+        const hideObject = (object) => {
+            if (!object || seen.has(object)) {
+                return;
+            }
+            seen.add(object);
+            if (!object.visible) {
+                return;
+            }
+            hiddenEntries.push({ object, visible: object.visible });
+            object.visible = false;
+        };
+
+        hideObject(activeCraft);
+        for (const craft of Object.values(craftsById || {})) {
+            hideObject(craft);
+        }
+        for (const drone of Object.values(dronesById || {})) {
+            hideObject(drone);
+        }
+
+        return hiddenEntries;
+    }
+
     restoreVisibility(entries) {
         for (const entry of entries || []) {
             entry.object.visible = entry.visible;
@@ -2148,17 +2181,14 @@ class AuxiliaryCameraViewsManager {
         }
         this.tmpVectorA.multiplyScalar(1 / moonDistance);
 
-        let sunAvailable = false;
-        if (sun && this.getObjectWorldPosition(sun, this.sunWorld)) {
+        let sunAvailable = this.vectorFromSunDirection(this.tmpVectorB);
+        if (!sunAvailable && sun && this.getObjectWorldPosition(sun, this.sunWorld)) {
             this.tmpVectorB.subVectors(this.sunWorld, this.earthWorld);
             const sunDistance = this.tmpVectorB.length();
             if (Number.isFinite(sunDistance) && sunDistance > 1e-12) {
                 this.tmpVectorB.multiplyScalar(1 / sunDistance);
                 sunAvailable = true;
             }
-        }
-        if (!sunAvailable) {
-            sunAvailable = this.vectorFromSunDirection(this.tmpVectorB);
         }
         if (!sunAvailable) {
             return null;
@@ -2243,17 +2273,14 @@ class AuxiliaryCameraViewsManager {
         this.craftFromMoonDir.multiplyScalar(1 / craftLen);
         this.earthFromMoonDir.multiplyScalar(1 / earthLen);
 
-        let sunAvailable = false;
-        if (sun && this.getObjectWorldPosition(sun, this.sunWorld)) {
+        let sunAvailable = this.vectorFromSunDirection(this.sunFromMoonDir);
+        if (!sunAvailable && sun && this.getObjectWorldPosition(sun, this.sunWorld)) {
             this.sunFromMoonDir.subVectors(this.sunWorld, this.moonWorld);
             const sunLen = this.sunFromMoonDir.length();
             if (sunLen > 1e-12) {
                 this.sunFromMoonDir.multiplyScalar(1 / sunLen);
                 sunAvailable = true;
             }
-        }
-        if (!sunAvailable) {
-            sunAvailable = this.vectorFromSunDirection(this.sunFromMoonDir);
         }
         if (!sunAvailable) {
             return null;
@@ -2338,6 +2365,7 @@ class AuxiliaryCameraViewsManager {
         activeCraft,
         earth,
         moon,
+        sunRenderer,
         earthRadius,
         moonRadius,
         referenceCamera,
@@ -2450,6 +2478,25 @@ class AuxiliaryCameraViewsManager {
                 skyContainer.position.copy(this.panelCameraWorldPosition);
             }
         }
+        if (sunRenderer?.setReferencePosition) {
+            panelState.camera.getWorldPosition(this.panelCameraWorldPosition);
+            const sunParent = sunRenderer.group?.parent;
+            if (sunParent?.worldToLocal) {
+                this.panelSunLocalPosition.copy(this.panelCameraWorldPosition);
+                sunParent.worldToLocal(this.panelSunLocalPosition);
+                sunRenderer.setReferencePosition(
+                    this.panelSunLocalPosition.x,
+                    this.panelSunLocalPosition.y,
+                    this.panelSunLocalPosition.z,
+                );
+            } else {
+                sunRenderer.setReferencePosition(
+                    this.panelCameraWorldPosition.x,
+                    this.panelCameraWorldPosition.y,
+                    this.panelCameraWorldPosition.z,
+                );
+            }
+        }
         const ambientLight = this.getComposerAmbientLight(scene);
         if (ambientLight) {
             ambientLight.intensity = this.THREE.MathUtils.clamp(
@@ -2473,9 +2520,12 @@ class AuxiliaryCameraViewsManager {
     render({
         scene,
         activeCraft,
+        craftsById = null,
+        dronesById = null,
         earth,
         moon,
         sun = null,
+        sunRenderer = null,
         sunDirection = null,
         skyContainer = null,
         earthRadius = null,
@@ -2514,7 +2564,6 @@ class AuxiliaryCameraViewsManager {
         } else {
             this.sunDirectionWorld.set(1, 0, 0);
         }
-        const craftWasVisible = activeCraft.visible;
         const nowMs = performance.now();
         const refreshAnalytics = !Number.isFinite(this.analyticsLastUpdateMs) || (nowMs - this.analyticsLastUpdateMs) >= 120;
         if (refreshAnalytics) {
@@ -2528,11 +2577,15 @@ class AuxiliaryCameraViewsManager {
         const standoffDistance = 0;
 
         let visiblePanels = 0;
-        activeCraft.visible = false;
         const suppressedLines = this.suppressLinePrimitives(scene);
+        const suppressedCrafts = this.suppressCraftVisuals({ activeCraft, craftsById, dronesById });
         const hasSkyContainer = !!skyContainer?.position;
         if (hasSkyContainer) {
             this.originalSkyPosition.copy(skyContainer.position);
+        }
+        const hasSunRenderer = !!(sunRenderer?.setReferencePosition);
+        if (hasSunRenderer) {
+            sunRenderer.getReferencePosition?.(this.originalSunReference);
         }
 
         try {
@@ -2553,6 +2606,7 @@ class AuxiliaryCameraViewsManager {
                         activeCraft,
                         earth,
                         moon,
+                        sunRenderer,
                         earthRadius,
                         moonRadius,
                         referenceCamera,
@@ -2635,6 +2689,25 @@ class AuxiliaryCameraViewsManager {
                         skyContainer.position.copy(this.panelCameraWorldPosition);
                     }
                 }
+                if (hasSunRenderer) {
+                    panelState.camera.getWorldPosition(this.panelCameraWorldPosition);
+                    const sunParent = sunRenderer.group?.parent;
+                    if (sunParent?.worldToLocal) {
+                        this.panelSunLocalPosition.copy(this.panelCameraWorldPosition);
+                        sunParent.worldToLocal(this.panelSunLocalPosition);
+                        sunRenderer.setReferencePosition(
+                            this.panelSunLocalPosition.x,
+                            this.panelSunLocalPosition.y,
+                            this.panelSunLocalPosition.z,
+                        );
+                    } else {
+                        sunRenderer.setReferencePosition(
+                            this.panelCameraWorldPosition.x,
+                            this.panelCameraWorldPosition.y,
+                            this.panelCameraWorldPosition.z,
+                        );
+                    }
+                }
 
                 this.renderLayers(panelState.renderer, scene, panelState.camera);
 
@@ -2695,8 +2768,15 @@ class AuxiliaryCameraViewsManager {
             if (hasSkyContainer) {
                 skyContainer.position.copy(this.originalSkyPosition);
             }
+            if (hasSunRenderer) {
+                sunRenderer.setReferencePosition(
+                    this.originalSunReference.x,
+                    this.originalSunReference.y,
+                    this.originalSunReference.z,
+                );
+            }
+            this.restoreVisibility(suppressedCrafts);
             this.restoreVisibility(suppressedLines);
-            activeCraft.visible = craftWasVisible;
         }
 
         const hasMinimizedPanels = this.panels.some(
