@@ -828,11 +828,14 @@
             ? (endYear && endYear !== startYear ? (startYear + " - " + endYear) : String(startYear))
             : "Unknown";
         var folder = normalizeKey(entry.folder);
+        var href = folder === "artemis2"
+            ? "artemis2/"
+            : ("mission.html?mission=" + encodeURIComponent(entry.queryValue || entry.folder));
 
         return {
             index: index,
             entry: entry,
-            href: "mission.html?mission=" + encodeURIComponent(entry.queryValue || entry.folder),
+            href: href,
             folder: folder,
             horizonsMetadataFile: HORIZONS_METADATA_BY_FOLDER[folder] || "",
             title: entry.card.title,

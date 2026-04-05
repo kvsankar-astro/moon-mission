@@ -19,7 +19,7 @@ Sample direct mission links:
 - **[LRO](https://sankara.net/astro/lunar-missions/mission.html?mission=lro)** (2009-)
 - **[SLIM](https://sankara.net/astro/lunar-missions/mission.html?mission=slim)** (2024)
 
-![Mission Preview](images/social/mission-social.png)
+![Mission Preview](images/social/chandrayaan3-landscape.png)
 
 ## Features
 

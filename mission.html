@@ -15,9 +15,9 @@
         <meta property="og:type" content="website">
         <meta property="og:title" content="Moon Mission Orbit Animations">
         <meta property="og:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan">
-        <meta property="og:image" content="https://sankara.net/astro/lunar-missions/images/social/mission-social.png">
-        <meta property="og:image:width" content="1920">
-        <meta property="og:image:height" content="1080">
+        <meta property="og:image" content="https://sankara.net/astro/lunar-missions/images/social/chandrayaan3-landscape.png?v=20260405f" data-social-meta="og-image">
+        <meta property="og:image:width" content="1920" data-social-meta="og-image-width">
+        <meta property="og:image:height" content="1080" data-social-meta="og-image-height">
 
         <!-- Twitter Meta Tags -->
         <meta name="twitter:card" content="summary_large_image">
@@ -25,7 +25,33 @@
         <meta property="twitter:url" content="https://sankara.net/astro/lunar-missions/mission.html">
         <meta name="twitter:title" content="Moon Mission Orbit Animations">
         <meta name="twitter:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan">
-        <meta name="twitter:image" content="https://sankara.net/astro/lunar-missions/images/social/mission-social.png">
+        <meta name="twitter:image" content="https://sankara.net/astro/lunar-missions/images/social/chandrayaan3-landscape.png?v=20260405f" data-social-meta="twitter-image">
+
+        <script>
+            (function applyMissionSocialPreviewByQuery() {
+                try {
+                    const params = new URLSearchParams(window.location.search || "");
+                    const mission = (params.get("mission") || "").trim().toLowerCase();
+                    const rawSearch = (window.location.search || "").toLowerCase();
+                    if (mission !== "artemis2" && !rawSearch.includes("artemis2")) return;
+                    const ogImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-mobile.png?v=20260405f";
+                    const twitterImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f";
+                    const imageWidth = "1236";
+                    const imageHeight = "2745";
+                    const setMeta = (selector, value) => {
+                        const node = document.querySelector(selector);
+                        if (!node) return;
+                        node.setAttribute("content", value);
+                    };
+                    setMeta('meta[data-social-meta="og-image"]', ogImageUrl);
+                    setMeta('meta[data-social-meta="twitter-image"]', twitterImageUrl);
+                    setMeta('meta[data-social-meta="og-image-width"]', imageWidth);
+                    setMeta('meta[data-social-meta="og-image-height"]', imageHeight);
+                } catch {
+                    // Keep default preview if query parsing fails.
+                }
+            })();
+        </script>
 
         <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -1251,6 +1277,11 @@
         </div>
         <div id="canvas-wrapper" class="canvas-wrapper dimension-3D">
         </div>
+        <canvas
+            id="mobile-moon-farside-overlay"
+            class="mobile-moon-farside-overlay"
+            aria-hidden="true"
+        ></canvas>
 
         </div> <!-- content-wrapper -->
 
@@ -1296,20 +1327,20 @@
                 <div id="mobile-mission-body" class="mobile-shell__card-body">
                     <div class="mobile-shell__metrics">
                         <div class="mobile-shell__metric">
-                            <span class="mobile-shell__metric-label">Time</span>
-                            <span id="mobile-mission-time" class="mobile-shell__metric-value">--</span>
-                        </div>
-                        <div class="mobile-shell__metric">
-                            <span class="mobile-shell__metric-label">From Earth</span>
+                            <span class="mobile-shell__metric-label">Earth</span>
                             <span id="mobile-metric-earth" class="mobile-shell__metric-value">--</span>
                         </div>
                         <div class="mobile-shell__metric">
-                            <span class="mobile-shell__metric-label">To Moon</span>
+                            <span class="mobile-shell__metric-label">Moon</span>
                             <span id="mobile-metric-moon" class="mobile-shell__metric-value">--</span>
                         </div>
                         <div class="mobile-shell__metric">
-                            <span class="mobile-shell__metric-label">Velocity</span>
+                            <span class="mobile-shell__metric-label">Speed</span>
                             <span id="mobile-metric-speed" class="mobile-shell__metric-value">--</span>
+                        </div>
+                        <div class="mobile-shell__metric">
+                            <span class="mobile-shell__metric-label">∠</span>
+                            <span id="mobile-metric-angle" class="mobile-shell__metric-value">--</span>
                         </div>
                     </div>
                     <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite">No active event</div>
@@ -1375,12 +1406,41 @@
                         class="mobile-shell__views-fov-slider"
                         type="range"
                         min="1"
-                        max="179"
+                        max="60"
                         step="1"
                         value="50"
                         aria-label="Views field of view slider"
                     >
                     <output id="mobile-views-fov-value" class="mobile-shell__views-fov-value">50°</output>
+                </div>
+                <div
+                    id="mobile-views-moon-visibility"
+                    class="mobile-shell__views-visibility"
+                    aria-live="polite"
+                    hidden
+                >
+                    <button
+                        id="mobile-views-farside-toggle"
+                        type="button"
+                        class="mobile-shell__views-farside-toggle is-active"
+                        aria-pressed="true"
+                    >
+                        Far Side: ON
+                    </button>
+                    <div id="mobile-views-moon-visibility-summary" class="mobile-shell__views-visibility-summary">
+                        <div class="mobile-shell__views-visibility-head">
+                            <span>Near Day</span>
+                            <span>Near Night</span>
+                            <span>Far Day</span>
+                            <span>Far Night</span>
+                        </div>
+                        <div class="mobile-shell__views-visibility-values">
+                            <span>--%</span>
+                            <span>--%</span>
+                            <span>--%</span>
+                            <span>--%</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="mobile-shell__controls" role="group" aria-label="Views transport">
                     <button id="mobile-views-control-play" type="button" class="mobile-shell__control-btn">Play</button>

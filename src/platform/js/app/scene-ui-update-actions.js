@@ -16,6 +16,7 @@ function createSceneUiUpdateActions(deps) {
     let unitControlsBound = false;
     let telemetrySnapshot = null;
     let telemetryPrimaryBody = "EARTH";
+    let sceneStateSnapshot = null;
 
     function convertDistanceValue(valueKm) {
         if (!Number.isFinite(valueKm)) return null;
@@ -65,6 +66,116 @@ function createSceneUiUpdateActions(deps) {
         node.textContent = text;
     }
 
+    function hasFiniteVector3(vector) {
+        return !!vector &&
+            Number.isFinite(vector.x) &&
+            Number.isFinite(vector.y) &&
+            Number.isFinite(vector.z);
+    }
+
+    function computeAngleDegreesBetweenVectors(fromVertexA, fromVertexB) {
+        if (!hasFiniteVector3(fromVertexA) || !hasFiniteVector3(fromVertexB)) return null;
+        const aMag = Math.hypot(fromVertexA.x, fromVertexA.y, fromVertexA.z);
+        const bMag = Math.hypot(fromVertexB.x, fromVertexB.y, fromVertexB.z);
+        if (!Number.isFinite(aMag) || !Number.isFinite(bMag) || aMag <= 1e-9 || bMag <= 1e-9) {
+            return null;
+        }
+        const dot = fromVertexA.x * fromVertexB.x + fromVertexA.y * fromVertexB.y + fromVertexA.z * fromVertexB.z;
+        const cosine = dot / (aMag * bMag);
+        if (!Number.isFinite(cosine)) return null;
+        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosine)));
+        if (!Number.isFinite(angleRadians)) return null;
+        return angleRadians * (180 / Math.PI);
+    }
+
+    function computeEarthCraftMoonAngleFromSceneState(sceneState) {
+        const scPos = sceneState?.bodies?.SC?.position;
+        const earthPos = sceneState?.bodies?.EARTH?.position;
+        const moonPos = sceneState?.bodies?.MOON?.position;
+        if (!hasFiniteVector3(scPos) || !hasFiniteVector3(earthPos) || !hasFiniteVector3(moonPos)) {
+            return null;
+        }
+
+        return computeAngleDegreesBetweenVectors(
+            {
+                x: earthPos.x - moonPos.x,
+                y: earthPos.y - moonPos.y,
+                z: earthPos.z - moonPos.z,
+            },
+            {
+                x: scPos.x - moonPos.x,
+                y: scPos.y - moonPos.y,
+                z: scPos.z - moonPos.z,
+            },
+        );
+    }
+
+    function resolveActiveSceneForAngle() {
+        const selectedMode = document.querySelector('input[name="mode"]:checked');
+        const mode = (selectedMode?.value || "geo").trim();
+        if (mode !== "geo" && mode !== "lunar" && mode !== "relative") return null;
+        return window.animationScenes?.[mode] || null;
+    }
+
+    function resolveActiveCraftObject(scene) {
+        if (!scene) return null;
+        if (scene.activeCraftId && scene.craftsById?.[scene.activeCraftId]) {
+            return scene.craftsById[scene.activeCraftId];
+        }
+        if (scene.primaryCraftId && scene.craftsById?.[scene.primaryCraftId]) {
+            return scene.craftsById[scene.primaryCraftId];
+        }
+        if (scene.craft) return scene.craft;
+        const allCrafts = Object.values(scene.craftsById || {});
+        return allCrafts.find((craft) => !!craft) || null;
+    }
+
+    function resolveWorldPosition(scene, objectRef) {
+        if (!scene || !objectRef?.getWorldPosition || !scene.camera?.position?.clone) return null;
+        const target = scene.camera.position.clone();
+        objectRef.getWorldPosition(target);
+        if (!hasFiniteVector3(target)) return null;
+        return target;
+    }
+
+    function computeEarthCraftMoonAngleFromSceneGraph() {
+        const scene = resolveActiveSceneForAngle();
+        if (!scene) return null;
+        const craftObj = resolveActiveCraftObject(scene);
+        const earthObj = scene.earthContainer || scene.earth || null;
+        const moonObj = scene.moonContainer || scene.moon || null;
+        if (!craftObj || !earthObj || !moonObj) return null;
+
+        const craftPos = resolveWorldPosition(scene, craftObj);
+        const earthPos = resolveWorldPosition(scene, earthObj);
+        const moonPos = resolveWorldPosition(scene, moonObj);
+        if (!craftPos || !earthPos || !moonPos) return null;
+
+        return computeAngleDegreesBetweenVectors(
+            {
+                x: earthPos.x - moonPos.x,
+                y: earthPos.y - moonPos.y,
+                z: earthPos.z - moonPos.z,
+            },
+            {
+                x: craftPos.x - moonPos.x,
+                y: craftPos.y - moonPos.y,
+                z: craftPos.z - moonPos.z,
+            },
+        );
+    }
+
+    function computeEarthCraftMoonAngleDegrees(sceneState) {
+        const fromSceneState = computeEarthCraftMoonAngleFromSceneState(sceneState);
+        if (Number.isFinite(fromSceneState)) return fromSceneState;
+        return computeEarthCraftMoonAngleFromSceneGraph();
+    }
+
+    function formatAngleMetric(angleDegrees) {
+        if (!Number.isFinite(angleDegrees)) return "--";
+        return `${angleDegrees.toFixed(1)}°`;
+    }
+
     function updateUnitLabels() {
         const distanceUnitText =
             metricUnitMode === UNIT_MODE_MILES
@@ -110,11 +221,12 @@ function createSceneUiUpdateActions(deps) {
         }
     }
 
-    function updateMobileTelemetry(primaryBody, tel) {
+    function updateMobileTelemetry(sceneState, primaryBody, tel) {
         if (!tel) {
             setMobileText("mobile-metric-earth", "--");
             setMobileText("mobile-metric-moon", "--");
             setMobileText("mobile-metric-speed", "--");
+            setMobileText("mobile-metric-angle", "--");
             return;
         }
 
@@ -128,6 +240,7 @@ function createSceneUiUpdateActions(deps) {
         setMobileText("mobile-metric-earth", formatMetricWithUnit(earthDistance, "distance"));
         setMobileText("mobile-metric-moon", formatMetricWithUnit(moonDistance, "distance"));
         setMobileText("mobile-metric-speed", formatMetricWithUnit(tel.velocityPrimary, "speed"));
+        setMobileText("mobile-metric-angle", formatAngleMetric(computeEarthCraftMoonAngleDegrees(sceneState)));
     }
 
     function renderTelemetry() {
@@ -140,7 +253,7 @@ function createSceneUiUpdateActions(deps) {
             setMetricText("#distance-SC-MOON", null, "distance");
             setMetricText("#altitude-SC-MOON", null, "distance");
             setMetricText("#velocity-SC-MOON", null, "speed");
-            updateMobileTelemetry(primaryBody, null);
+            updateMobileTelemetry(null, primaryBody, null);
             return;
         }
 
@@ -180,7 +293,7 @@ function createSceneUiUpdateActions(deps) {
             setMetricText("#velocity-SC-EARTH", null, "speed");
         }
 
-        updateMobileTelemetry(primaryBody, tel);
+        updateMobileTelemetry(sceneStateSnapshot, primaryBody, tel);
     }
 
     function setMetricUnitMode(nextMode) {
@@ -305,6 +418,7 @@ function createSceneUiUpdateActions(deps) {
         ensureUnitControlsBound();
         telemetryPrimaryBody = primaryBody;
         telemetrySnapshot = sceneState?.telemetry || null;
+        sceneStateSnapshot = sceneState || null;
         renderTelemetry();
     }
 
