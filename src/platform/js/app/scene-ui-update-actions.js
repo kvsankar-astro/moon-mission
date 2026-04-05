@@ -73,6 +73,30 @@ function createSceneUiUpdateActions(deps) {
             Number.isFinite(vector.z);
     }
 
+    function resolveCraftPositionFromSceneState(sceneState) {
+        const bodies = sceneState?.bodies;
+        if (!bodies || typeof bodies !== "object") return null;
+
+        const telemetryBodyId = String(sceneState?.telemetryBodyId || "").toUpperCase();
+        if (telemetryBodyId && hasFiniteVector3(bodies[telemetryBodyId]?.position)) {
+            return bodies[telemetryBodyId].position;
+        }
+        if (hasFiniteVector3(bodies.SC?.position)) {
+            return bodies.SC.position;
+        }
+
+        for (const [bodyId, bodyState] of Object.entries(bodies)) {
+            const normalizedId = String(bodyId || "").toUpperCase();
+            if (normalizedId === "EARTH" || normalizedId === "MOON" || normalizedId === "SUN") {
+                continue;
+            }
+            if (hasFiniteVector3(bodyState?.position)) {
+                return bodyState.position;
+            }
+        }
+        return null;
+    }
+
     function computeAngleDegreesBetweenVectors(fromVertexA, fromVertexB) {
         if (!hasFiniteVector3(fromVertexA) || !hasFiniteVector3(fromVertexB)) return null;
         const aMag = Math.hypot(fromVertexA.x, fromVertexA.y, fromVertexA.z);
@@ -89,7 +113,7 @@ function createSceneUiUpdateActions(deps) {
     }
 
     function computeEarthCraftMoonAngleFromSceneState(sceneState) {
-        const scPos = sceneState?.bodies?.SC?.position;
+        const scPos = resolveCraftPositionFromSceneState(sceneState);
         const earthPos = sceneState?.bodies?.EARTH?.position;
         const moonPos = sceneState?.bodies?.MOON?.position;
         if (!hasFiniteVector3(scPos) || !hasFiniteVector3(earthPos) || !hasFiniteVector3(moonPos)) {
