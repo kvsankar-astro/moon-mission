@@ -61,6 +61,11 @@ import {
 import Swiper from 'swiper';
 import * as THREE from 'three';
 
+// Expose THREE for runtime modules that are initialized outside DI wiring.
+if (typeof window !== "undefined" && !window.THREE) {
+    window.THREE = THREE;
+}
+
 // Check if running in test mode (for consistent visual regression testing)
 const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
 const urlMode = new URLSearchParams(window.location.search).get('mode');
