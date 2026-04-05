@@ -53,6 +53,14 @@ svg {
     min-height: 0px;
 }
 
+.mobile-moon-farside-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    display: none;
+}
+
 canvas {
     /* position: absolute; */
     z-index: 3;
@@ -2228,6 +2236,73 @@ table {
         font-weight: 600;
         min-width: 30px;
         text-align: right;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-visibility {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 7px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-farside-toggle {
+        min-height: 22px;
+        border-radius: 999px;
+        border: 1px solid rgba(121, 171, 255, 0.25);
+        background: rgba(24, 42, 71, 0.65);
+        color: rgba(225, 238, 255, 0.95);
+        font-size: 8px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-weight: 600;
+        padding: 0 8px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-farside-toggle.is-active {
+        border-color: rgba(255, 218, 130, 0.8);
+        color: rgba(255, 232, 173, 0.98);
+        background: rgba(35, 54, 86, 0.72);
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-visibility-summary {
+        min-height: 22px;
+        display: grid;
+        gap: 2px;
+        align-content: center;
+        font-size: 8px;
+        line-height: 1.25;
+        color: rgba(201, 224, 255, 0.92);
+        letter-spacing: 0.01em;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-visibility-head,
+    body.mobile-shell-enabled .mobile-shell__views-visibility-values {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        column-gap: 8px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-visibility-head > span {
+        color: rgba(185, 209, 245, 0.92);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 7px;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__views-visibility-values > span {
+        color: rgba(231, 242, 255, 0.98);
+        font-size: 9px;
+        font-weight: 700;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    body.mobile-shell-enabled .mobile-moon-farside-overlay.is-active {
+        display: block;
     }
 
     body.mobile-shell-enabled .mobile-shell__nav {
