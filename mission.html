@@ -34,10 +34,10 @@
                     const mission = (params.get("mission") || "").trim().toLowerCase();
                     const rawSearch = (window.location.search || "").toLowerCase();
                     if (mission !== "artemis2" && !rawSearch.includes("artemis2")) return;
-                    const ogImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-mobile.png?v=20260405f";
+                    const ogImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f";
                     const twitterImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f";
-                    const imageWidth = "1236";
-                    const imageHeight = "2745";
+                    const imageWidth = "1920";
+                    const imageHeight = "1080";
                     const setMeta = (selector, value) => {
                         const node = document.querySelector(selector);
                         if (!node) return;
