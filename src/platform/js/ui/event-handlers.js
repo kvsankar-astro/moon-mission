@@ -672,6 +672,7 @@ export function bindMobileMissionCard() {
     const mobileViewsMoonVisibilityValues = mobileViewsMoonVisibilitySummary?.querySelector(".mobile-shell__views-visibility-values");
     const mobileViewsFarSideToggle = document.getElementById("mobile-views-farside-toggle");
     const mobileMoonFarSideOverlay = document.getElementById("mobile-moon-farside-overlay");
+    const contentWrapper = document.getElementById("content-wrapper");
     const missionEvent = document.getElementById("mobile-mission-event");
     const navButtons = document.querySelectorAll(".mobile-shell__nav-btn");
     const desktopPosition = document.getElementById("camera-position");
@@ -704,6 +705,7 @@ export function bindMobileMissionCard() {
     let mobileMoonFarOverlayEnabled = true;
     let mobileMoonOverlayLastUpdateMs = -Infinity;
     let mobileMoonOverlayLoopHandle = null;
+    let mobileViewsPinchState = null;
     const MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS = 120;
     const moonVisibilitySamples = createFibonacciSphereSamples(720);
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
@@ -1348,6 +1350,14 @@ export function bindMobileMissionCard() {
         return true;
     };
 
+    const resolveTouchDistance = (touchA, touchB) => {
+        if (!touchA || !touchB) return null;
+        const dx = Number(touchA.clientX) - Number(touchB.clientX);
+        const dy = Number(touchA.clientY) - Number(touchB.clientY);
+        const distance = Math.hypot(dx, dy);
+        return Number.isFinite(distance) ? distance : null;
+    };
+
     const setMobileViewsAutoFov = (enabled) => {
         mobileViewsAutoFovEnabled = !!enabled;
         if (mobileViewsFovAuto) {
@@ -1604,6 +1614,54 @@ export function bindMobileMissionCard() {
         };
         mobileViewsFovSlider.addEventListener("input", onManualFovChange);
         mobileViewsFovSlider.addEventListener("change", onManualFovChange);
+    }
+
+    if (contentWrapper) {
+        const shouldHandleViewsPinch = () => (
+            isMobileViewport() &&
+            activeMobileTab === "views" &&
+            !!mobileViewPresetById.get(activeMobileViewPresetId)
+        );
+
+        const onViewsPinchStart = (event) => {
+            if (!shouldHandleViewsPinch()) return;
+            if (!event.touches || event.touches.length !== 2) return;
+            const distance = resolveTouchDistance(event.touches[0], event.touches[1]);
+            if (!Number.isFinite(distance) || distance <= 0) return;
+            const scene = resolveActiveScene();
+            const baseFov = clampFov(scene?.camera?.fov ?? Number(mobileViewsFovSlider?.value));
+            mobileViewsPinchState = {
+                baseDistance: distance,
+                baseFov,
+            };
+            setMobileViewsAutoFov(false);
+            event.preventDefault();
+        };
+
+        const onViewsPinchMove = (event) => {
+            if (!shouldHandleViewsPinch()) {
+                mobileViewsPinchState = null;
+                return;
+            }
+            if (!mobileViewsPinchState || !event.touches || event.touches.length !== 2) return;
+            const distance = resolveTouchDistance(event.touches[0], event.touches[1]);
+            if (!Number.isFinite(distance) || distance <= 0 || mobileViewsPinchState.baseDistance <= 0) return;
+            const scale = distance / mobileViewsPinchState.baseDistance;
+            if (!Number.isFinite(scale) || scale <= 0) return;
+            const nextFov = clampFov(mobileViewsPinchState.baseFov / scale);
+            applyMobileViewsFov(nextFov);
+            syncMobileMoonVisibilityInfo();
+            event.preventDefault();
+        };
+
+        const clearViewsPinchState = () => {
+            mobileViewsPinchState = null;
+        };
+
+        contentWrapper.addEventListener("touchstart", onViewsPinchStart, { passive: false });
+        contentWrapper.addEventListener("touchmove", onViewsPinchMove, { passive: false });
+        contentWrapper.addEventListener("touchend", clearViewsPinchState, { passive: true });
+        contentWrapper.addEventListener("touchcancel", clearViewsPinchState, { passive: true });
     }
 
     if (mobileViewsFarSideToggle) {
