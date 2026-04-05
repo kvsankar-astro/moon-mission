@@ -73,7 +73,22 @@ function createSceneUiUpdateActions(deps) {
             Number.isFinite(vector.z);
     }
 
-    function computeEarthCraftMoonAngleDegrees(sceneState) {
+    function computeAngleDegreesBetweenVectors(fromVertexA, fromVertexB) {
+        if (!hasFiniteVector3(fromVertexA) || !hasFiniteVector3(fromVertexB)) return null;
+        const aMag = Math.hypot(fromVertexA.x, fromVertexA.y, fromVertexA.z);
+        const bMag = Math.hypot(fromVertexB.x, fromVertexB.y, fromVertexB.z);
+        if (!Number.isFinite(aMag) || !Number.isFinite(bMag) || aMag <= 1e-9 || bMag <= 1e-9) {
+            return null;
+        }
+        const dot = fromVertexA.x * fromVertexB.x + fromVertexA.y * fromVertexB.y + fromVertexA.z * fromVertexB.z;
+        const cosine = dot / (aMag * bMag);
+        if (!Number.isFinite(cosine)) return null;
+        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosine)));
+        if (!Number.isFinite(angleRadians)) return null;
+        return angleRadians * (180 / Math.PI);
+    }
+
+    function computeEarthCraftMoonAngleFromSceneState(sceneState) {
         const scPos = sceneState?.bodies?.SC?.position;
         const earthPos = sceneState?.bodies?.EARTH?.position;
         const moonPos = sceneState?.bodies?.MOON?.position;
@@ -81,31 +96,79 @@ function createSceneUiUpdateActions(deps) {
             return null;
         }
 
-        const earthVecX = earthPos.x - scPos.x;
-        const earthVecY = earthPos.y - scPos.y;
-        const earthVecZ = earthPos.z - scPos.z;
-        const moonVecX = moonPos.x - scPos.x;
-        const moonVecY = moonPos.y - scPos.y;
-        const moonVecZ = moonPos.z - scPos.z;
+        return computeAngleDegreesBetweenVectors(
+            {
+                x: earthPos.x - moonPos.x,
+                y: earthPos.y - moonPos.y,
+                z: earthPos.z - moonPos.z,
+            },
+            {
+                x: scPos.x - moonPos.x,
+                y: scPos.y - moonPos.y,
+                z: scPos.z - moonPos.z,
+            },
+        );
+    }
 
-        const earthMag = Math.hypot(earthVecX, earthVecY, earthVecZ);
-        const moonMag = Math.hypot(moonVecX, moonVecY, moonVecZ);
-        if (!Number.isFinite(earthMag) || !Number.isFinite(moonMag) || earthMag <= 1e-9 || moonMag <= 1e-9) {
-            return null;
-        }
+    function resolveActiveSceneForAngle() {
+        const selectedMode = document.querySelector('input[name="mode"]:checked');
+        const mode = (selectedMode?.value || "geo").trim();
+        if (mode !== "geo" && mode !== "lunar" && mode !== "relative") return null;
+        return window.animationScenes?.[mode] || null;
+    }
 
-        const dot = earthVecX * moonVecX + earthVecY * moonVecY + earthVecZ * moonVecZ;
-        const cosine = dot / (earthMag * moonMag);
-        if (!Number.isFinite(cosine)) {
-            return null;
+    function resolveActiveCraftObject(scene) {
+        if (!scene) return null;
+        if (scene.activeCraftId && scene.craftsById?.[scene.activeCraftId]) {
+            return scene.craftsById[scene.activeCraftId];
         }
+        if (scene.primaryCraftId && scene.craftsById?.[scene.primaryCraftId]) {
+            return scene.craftsById[scene.primaryCraftId];
+        }
+        if (scene.craft) return scene.craft;
+        const allCrafts = Object.values(scene.craftsById || {});
+        return allCrafts.find((craft) => !!craft) || null;
+    }
 
-        const clampedCosine = Math.max(-1, Math.min(1, cosine));
-        const angleRadians = Math.acos(clampedCosine);
-        if (!Number.isFinite(angleRadians)) {
-            return null;
-        }
-        return angleRadians * (180 / Math.PI);
+    function resolveWorldPosition(scene, objectRef) {
+        if (!scene || !objectRef?.getWorldPosition || !scene.camera?.position?.clone) return null;
+        const target = scene.camera.position.clone();
+        objectRef.getWorldPosition(target);
+        if (!hasFiniteVector3(target)) return null;
+        return target;
+    }
+
+    function computeEarthCraftMoonAngleFromSceneGraph() {
+        const scene = resolveActiveSceneForAngle();
+        if (!scene) return null;
+        const craftObj = resolveActiveCraftObject(scene);
+        const earthObj = scene.earthContainer || scene.earth || null;
+        const moonObj = scene.moonContainer || scene.moon || null;
+        if (!craftObj || !earthObj || !moonObj) return null;
+
+        const craftPos = resolveWorldPosition(scene, craftObj);
+        const earthPos = resolveWorldPosition(scene, earthObj);
+        const moonPos = resolveWorldPosition(scene, moonObj);
+        if (!craftPos || !earthPos || !moonPos) return null;
+
+        return computeAngleDegreesBetweenVectors(
+            {
+                x: earthPos.x - moonPos.x,
+                y: earthPos.y - moonPos.y,
+                z: earthPos.z - moonPos.z,
+            },
+            {
+                x: craftPos.x - moonPos.x,
+                y: craftPos.y - moonPos.y,
+                z: craftPos.z - moonPos.z,
+            },
+        );
+    }
+
+    function computeEarthCraftMoonAngleDegrees(sceneState) {
+        const fromSceneState = computeEarthCraftMoonAngleFromSceneState(sceneState);
+        if (Number.isFinite(fromSceneState)) return fromSceneState;
+        return computeEarthCraftMoonAngleFromSceneGraph();
     }
 
     function formatAngleMetric(angleDegrees) {
