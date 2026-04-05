@@ -54,7 +54,7 @@ export function createDimensionActions({
 
         if (transitionPlan.is3D) {
             // Clean up SVG when switching to 3D mode
-            d3.select("svg").remove();
+            d3.select("#svg-wrapper > svg").remove();
             setSvgContainer(null);
 
             const scene = animationScenes[config];

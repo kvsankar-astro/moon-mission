@@ -292,6 +292,13 @@ function createSceneUiUpdateActions(deps) {
         clearActiveEventButtonHighlight();
         button.classList.add(ACTIVE_EVENT_BUTTON_CLASS);
         highlightedEventButton = button;
+        if (typeof button.scrollIntoView === "function") {
+            button.scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+                inline: "center",
+            });
+        }
     }
 
     function updateTelemetry(sceneState, primaryBody) {

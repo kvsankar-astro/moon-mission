@@ -41,6 +41,7 @@ function createInitConfigUiActions(deps) {
 
         for (let i = 0; i < eventInfos.length; ++i) {
             const eventInfo = eventInfos[i];
+            const eventTimeMs = resolveEventTimeMs(eventInfo);
             const isNowButton = eventInfo?.kind === "now" || eventInfo?.key === "now";
             const buttonId = isNowButton ? "burn-now" : "burn" + (++numberedButtonIndex);
             const button = d3.select("#burnbuttons")
@@ -50,6 +51,7 @@ function createInitConfigUiActions(deps) {
                 .attr("id", buttonId)
                 .attr("data-event-index", String(i))
                 .attr("data-event-key", eventInfo["key"] || "")
+                .attr("data-event-time-ms", Number.isFinite(eventTimeMs) ? String(eventTimeMs) : "")
                 .attr("type", "button")
                 .attr(
                     "class",

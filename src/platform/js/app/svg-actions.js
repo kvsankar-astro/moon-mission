@@ -29,7 +29,7 @@ export function createSvgActions({
     }
 
     function initSVG() {
-        d3.select("svg").remove();
+        d3.select("#svg-wrapper > svg").remove();
 
         computeSVGDimensions();
 

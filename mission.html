@@ -1121,18 +1121,6 @@
             </div> <!-- settings panel -->
     
             <div id="control-panel" class="control-panel">
-                <button
-                    id="control-panel-toggle"
-                    class="control-panel__toggle"
-                    type="button"
-                    aria-expanded="true"
-                    aria-label="Collapse control panel"
-                    title="Collapse control panel"
-                >
-                    &#9664;
-                </button>
-    
-    
                 <div id="animation-control-panel">
                     <div class="vspace"></div>
     
@@ -1182,14 +1170,6 @@
     
                     <!-- <span id="burnbuttons"></span>     -->
 
-                    <div class="swiper swiper2">
-                        <div id="burnbuttons" class="swiper-wrapper">
-                            <!-- burn buttons will get added here dynamically -->
-                        </div>
-                    </div>
-
-                    <div class="vspace"></div>
-    
                     <div id="eventinfo" class="eventinfo"></div>
 
                     <div id="shortcut-panel" class="shortcut-panel shortcut-panel--hidden" aria-live="polite">
@@ -1436,6 +1416,38 @@
         </div>
 
         <div id="timeline-dock" class="timeline-dock" role="group" aria-label="Mission timeline">
+            <div class="timeline-dock__event-carousel swiper swiper2" aria-label="Mission events">
+                <div id="burnbuttons" class="swiper-wrapper">
+                    <!-- burn buttons will get added here dynamically -->
+                </div>
+            </div>
+            <div class="timeline-dock__panel-row">
+                <button
+                    id="control-panel-toggle"
+                    class="timeline-dock__panel-toggle"
+                    type="button"
+                    aria-expanded="true"
+                    aria-label="Pull down events carousel"
+                    title="Pull down events carousel"
+                >
+                    <svg
+                        class="timeline-dock__panel-toggle-glyph"
+                        viewBox="0 0 24 12"
+                        role="presentation"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M2 2 L12 10 L22 2"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            vector-effect="non-scaling-stroke"
+                        ></path>
+                    </svg>
+                </button>
+            </div>
             <div class="timeline-dock__row">
                 <span id="timeline-start-label" class="timeline-dock__edge">--:--:--</span>
                 <div class="timeline-dock__track-wrap">
