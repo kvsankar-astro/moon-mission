@@ -208,7 +208,7 @@ def build(
     missing_files = 0
 
     # Entry points for the multi-mission app
-    for html_file in ["mission.html", "index.html"]:
+    for html_file in ["mission.html", "index.html", "orbit-data.html", "assets-status.html"]:
         source_file = project_root_path / html_file
         if source_file.exists():
             copy_file(source_file, dist_path / html_file)
@@ -216,6 +216,11 @@ def build(
         else:
             print_error(f"File not found: {html_file}")
             missing_files += 1
+
+    # SEO mission landing pages
+    seo_pages_dir = project_root_path / "artemis2"
+    if seo_pages_dir.exists():
+        copied_files += copy_tree(seo_pages_dir, dist_path / "artemis2")
 
     # Optional favicon
     favicon_path = project_root_path / "favicon.ico"

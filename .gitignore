@@ -144,6 +144,7 @@ images/*
 images/social/*
 !images/social/mission-social.png
 !images/social/index-social.png
+!images/social/artemis2-social.png
 third-party/
 
 # Legacy temporary directories

@@ -70,6 +70,9 @@ jobs:
           mkdir -p dist-pages
           # Copy HTML files
           cp index.html mission.html orbit-data.html assets-status.html dist-pages/
+          if [ -d artemis2 ]; then
+            cp -r artemis2 dist-pages/
+          fi
           if [ -f .htaccess ]; then
             cp .htaccess dist-pages/
           fi
@@ -88,8 +91,11 @@ jobs:
               Path("dist-pages/mission.html"),
               Path("dist-pages/orbit-data.html"),
               Path("dist-pages/assets-status.html"),
+              Path("dist-pages/artemis2/index.html"),
           ]
           for html_path in html_files:
+              if not html_path.exists():
+                  continue
               text = html_path.read_text(encoding="utf-8")
               text = text.replace("src/platform/", f"src-{app_rev}/platform/")
               html_path.write_text(text, encoding="utf-8")
@@ -131,6 +137,7 @@ jobs:
           test -f dist-pages/mission.html
           test -f dist-pages/orbit-data.html
           test -f dist-pages/assets-status.html
+          test -f dist-pages/artemis2/index.html
           test -d dist-pages/assets
           APP_ASSET_REV="${GITHUB_SHA::12}"
           test -d "dist-pages/src-${APP_ASSET_REV}/platform"

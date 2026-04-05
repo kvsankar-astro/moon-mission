@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Artemis 2 lunar mission orbit animation with interactive 2D/3D trajectory views, timeline events, and Earth-Moon relative perspectives.">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <meta name="author" content="Sankaranarayanan Viswanathan">
+    <meta name="keywords" content="Artemis 2, Artemis II, Orion, moon mission, lunar mission, orbit animation, NASA, trajectory visualization">
+    <link rel="canonical" href="https://sankara.net/lunar-missions/artemis2">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sankara.net/lunar-missions/artemis2">
+    <meta property="og:title" content="Artemis 2 Lunar Mission Orbit Animation">
+    <meta property="og:description" content="Interactive Artemis 2 Earth-Moon trajectory visualization from mission ephemeris data.">
+    <meta property="og:image" content="https://sankara.net/astro/lunar-missions/images/social/artemis2-social.png">
+    <meta property="og:image:width" content="789">
+    <meta property="og:image:height" content="249">
+    <meta property="og:image:alt" content="Artemis 2 orbit animation screenshot">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Artemis 2 Lunar Mission Orbit Animation">
+    <meta name="twitter:description" content="Interactive Artemis 2 Earth-Moon trajectory visualization from mission ephemeris data.">
+    <meta name="twitter:image" content="https://sankara.net/astro/lunar-missions/images/social/artemis2-social.png">
+
+    <title>Artemis 2 Lunar Mission Orbit Animation</title>
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+        body {
+            margin: 0;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top right, #15203b 0%, #070c17 48%, #03050b 100%);
+            color: #dbe6ff;
+            min-height: 100vh;
+        }
+        .wrap {
+            width: min(980px, calc(100vw - 32px));
+            margin: 0 auto;
+            padding: 32px 0 56px;
+        }
+        .crumbs {
+            display: inline-flex;
+            gap: 8px;
+            font-size: 13px;
+            color: #9db1d9;
+            margin-bottom: 14px;
+        }
+        .crumbs a {
+            color: #9cc8ff;
+            text-decoration: none;
+        }
+        .crumbs a:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(30px, 5vw, 44px);
+            line-height: 1.12;
+            color: #ffbf4a;
+            letter-spacing: 0.01em;
+        }
+        .subtitle {
+            margin: 12px 0 0;
+            font-size: clamp(15px, 2.2vw, 18px);
+            color: #aec2e9;
+            max-width: 76ch;
+        }
+        .cta {
+            margin: 24px 0 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid #345188;
+            background: #0d1933;
+            color: #dce8ff;
+            padding: 10px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .btn:hover {
+            background: #132347;
+        }
+        .btn.primary {
+            border-color: #4f7fff;
+            background: #1a3f95;
+            color: #f4f8ff;
+        }
+        .btn.primary:hover {
+            background: #2149a8;
+        }
+        figure {
+            margin: 0;
+            border-radius: 14px;
+            border: 1px solid rgba(99, 140, 224, 0.35);
+            overflow: hidden;
+            background: rgba(8, 13, 25, 0.78);
+        }
+        figure img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        figcaption {
+            font-size: 13px;
+            color: #9bb0d8;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(99, 140, 224, 0.25);
+        }
+        .details {
+            margin-top: 22px;
+            display: grid;
+            gap: 12px;
+        }
+        .details p {
+            margin: 0;
+            line-height: 1.56;
+            color: #c3d3f0;
+        }
+    </style>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "Artemis 2 Lunar Mission Orbit Animation",
+      "url": "https://sankara.net/lunar-missions/artemis2",
+      "description": "Interactive Artemis 2 Earth-Moon trajectory visualization with mission timeline events and multiple camera perspectives.",
+      "inLanguage": "en",
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "Lunar Mission Animations",
+        "url": "https://sankara.net/astro/lunar-missions/"
+      },
+      "primaryImageOfPage": {
+        "@type": "ImageObject",
+        "url": "https://sankara.net/astro/lunar-missions/images/social/artemis2-social.png"
+      }
+    }
+    </script>
+</head>
+<body>
+    <main class="wrap">
+        <nav class="crumbs" aria-label="Breadcrumb">
+            <a href="../index.html">Lunar Missions</a>
+            <span>&gt;</span>
+            <span>Artemis 2</span>
+        </nav>
+
+        <h1>Artemis 2 Lunar Mission Orbit Animation</h1>
+        <p class="subtitle">
+            Explore Artemis 2 from launch through cislunar flight using an interactive Earth-Moon orbital view,
+            timeline events, and mission-phase camera perspectives.
+        </p>
+
+        <div class="cta">
+            <a class="btn primary" href="../mission.html?mission=artemis2">Launch Artemis 2 Animation</a>
+            <a class="btn" href="../index.html">Browse All Missions</a>
+        </div>
+
+        <figure>
+            <img
+                src="../images/social/artemis2-social.png"
+                alt="Artemis 2 orbit visualization preview"
+                loading="eager"
+                fetchpriority="high"
+            >
+            <figcaption>Artemis 2 interactive trajectory preview</figcaption>
+        </figure>
+
+        <section class="details">
+            <p>
+                This visualization tracks Artemis 2 with curated mission events, deterministic camera controls, and
+                Earth-Moon relative geometry for transparent interpretation of trajectory evolution.
+            </p>
+            <p>
+                For full controls including timeline stepping, mode switching, and auxiliary craft-centric views,
+                open the animation page directly.
+            </p>
+        </section>
+    </main>
+</body>
+</html>
