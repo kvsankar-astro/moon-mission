@@ -2145,6 +2145,13 @@ table {
         color: rgba(255, 232, 173, 0.95);
     }
 
+    body.mobile-shell-enabled .mobile-shell__control-btn:disabled,
+    body.mobile-shell-enabled .mobile-shell__control-btn[aria-disabled="true"] {
+        opacity: 0.48;
+        filter: saturate(0.7);
+        cursor: not-allowed;
+    }
+
     body.mobile-shell-enabled .mobile-shell__views-subtabs {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -1191,30 +1191,43 @@ export function bindMobileMissionCard() {
         dispatchSyntheticPress(target, "touch");
     };
 
+    const queueTransportSync = () => {
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                syncTransportState();
+            });
+        });
+    };
+
     mobileTransportSets.forEach((set) => {
         if (set.play) {
             set.play.addEventListener("click", function () {
                 proxyClick("animate");
+                queueTransportSync();
             });
         }
         if (set.now) {
             set.now.addEventListener("click", function () {
                 proxyClick("missionnow");
+                queueTransportSync();
             });
         }
         if (set.slower) {
             set.slower.addEventListener("click", function () {
                 proxyPress("slower");
+                queueTransportSync();
             });
         }
         if (set.faster) {
             set.faster.addEventListener("click", function () {
                 proxyPress("faster");
+                queueTransportSync();
             });
         }
         if (set.speed) {
             set.speed.addEventListener("click", function () {
                 proxyPress("realtime");
+                queueTransportSync();
             });
         }
     });

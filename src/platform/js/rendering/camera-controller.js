@@ -346,6 +346,13 @@ export class CameraController {
                     this.controls.noZoom = true;
                 }
 
+                // Mounted views are physically anchored to the body's origin.
+                // Prevent residual offsets from leaking across mode/FoV changes
+                // (especially visible in mobile preset workflows).
+                if (!wantsFreeFly) {
+                    this.mountOffset.set(0, 0, 0);
+                }
+
                 // Follow the mount.
                 this.camera.position.copy(mountPos).add(this.mountOffset);
 
