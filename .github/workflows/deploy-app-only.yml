@@ -91,6 +91,8 @@ jobs:
           import json
           import os
           import pathlib
+          import time
+          import urllib.error
           import urllib.request
 
           site_url = os.environ["SITE_URL"].rstrip("/") + "/"
@@ -101,6 +103,31 @@ jobs:
 
           downloaded = 0
           skipped = 0
+          failed = []
+
+          def download_with_retry(source_url, destination, max_attempts=5, initial_backoff=1.0):
+              backoff_seconds = initial_backoff
+              for attempt in range(1, max_attempts + 1):
+                  try:
+                      urllib.request.urlretrieve(source_url, destination)
+                      return True
+                  except urllib.error.HTTPError as error:
+                      retriable = error.code in (429, 500, 502, 503, 504)
+                      print(f"[attempt {attempt}/{max_attempts}] HTTP {error.code} while downloading {source_url}")
+                      if retriable and attempt < max_attempts:
+                          time.sleep(backoff_seconds)
+                          backoff_seconds *= 2
+                          continue
+                      return False
+                  except urllib.error.URLError as error:
+                      print(f"[attempt {attempt}/{max_attempts}] URL error while downloading {source_url}: {error}")
+                      if attempt < max_attempts:
+                          time.sleep(backoff_seconds)
+                          backoff_seconds *= 2
+                          continue
+                      return False
+              return False
+
           for entry in required:
               rel = entry.get("path")
               if not isinstance(rel, str) or not rel:
@@ -111,11 +138,18 @@ jobs:
                   continue
               destination.parent.mkdir(parents=True, exist_ok=True)
               source_url = site_url + rel
-              urllib.request.urlretrieve(source_url, destination)
-              downloaded += 1
+              if download_with_retry(source_url, destination):
+                  downloaded += 1
+              else:
+                  failed.append(source_url)
 
           print(f"Downloaded runtime assets: {downloaded}")
           print(f"Already present assets: {skipped}")
+          if failed:
+              print(f"Failed runtime asset downloads: {len(failed)}")
+              for source_url in failed:
+                  print(f"  - {source_url}")
+              raise RuntimeError("Failed to download one or more runtime assets from currently published site")
           PY
 
       - name: Generate runtime manifest for staged app-only bundle
