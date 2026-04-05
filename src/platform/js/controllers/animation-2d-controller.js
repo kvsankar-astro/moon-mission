@@ -87,6 +87,9 @@ export class Animation2DController {
             scene = null,
         } = options;
         this.pixelsPerAU = pixelsPerAU;
+        if (scene) {
+            scene.latestSceneState = state;
+        }
 
         // Update body positions
         for (const bodyId of planetsForLocations) {
