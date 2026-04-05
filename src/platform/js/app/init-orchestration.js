@@ -76,6 +76,10 @@ function createInitOrchestrationActions(deps) {
     }
 
     function releaseStartupButtonDisable() {
+        if (typeof document === "undefined") {
+            d3SelectAll("button").attr("disabled", null);
+            return;
+        }
         const slowerButton = document.getElementById("slower");
         const fasterButton = document.getElementById("faster");
         const slowerWasDisabled = slowerButton?.getAttribute("aria-disabled") === "true";
