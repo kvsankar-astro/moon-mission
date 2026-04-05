@@ -41,7 +41,10 @@
       "scale": 0.7
     }
   },
-  "origins": ["geo", "lunar"],
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "relative": {
     "orbits_file": "relative-ORION"
   },
@@ -84,7 +87,10 @@
     "stop_hour": "23",
     "stop_minute": "54",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": [
+      "MOON",
+      "SC"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-ORION"
   },
@@ -102,7 +108,10 @@
     "stop_hour": "23",
     "stop_minute": "54",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-ORION"
   },
@@ -118,7 +127,7 @@
       "requiresEphemeris": true
     },
     "solarArrays": {
-      "startTime": "2026-04-01T22:44:00Z",
+      "startTime": "2026-04-01T22:55:12Z",
       "durationSeconds": 0,
       "label": "Solar Arrays",
       "burnFlag": false,
@@ -128,7 +137,7 @@
       "requiresEphemeris": true
     },
     "perigeeRaise1": {
-      "startTime": "2026-04-01T23:13:00Z",
+      "startTime": "2026-04-01T23:25:02Z",
       "durationSeconds": 0,
       "label": "Perigee Raise",
       "burnFlag": true,
@@ -138,7 +147,7 @@
       "requiresEphemeris": true
     },
     "apogeeRaise": {
-      "startTime": "2026-04-02T00:11:57Z",
+      "startTime": "2026-04-02T00:23:09Z",
       "durationSeconds": 0,
       "label": "Apogee Raise",
       "burnFlag": true,
@@ -148,12 +157,12 @@
       "requiresEphemeris": true
     },
     "icpsSeparation": {
-      "startTime": "2026-04-02T01:48:18Z",
+      "startTime": "2026-04-02T01:59:30Z",
       "durationSeconds": 0,
       "label": "ICPS Sep",
       "burnFlag": false,
-      "infoText": "2nd Apr 2026, 01:48:18 UTC - Orion separates from the ICPS; the published HORIZONS trajectory begins here",
-      "hoverText": "Orion separates from ICPS. The published trajectory begins immediately after this event.",
+      "infoText": "2nd Apr 2026, 01:59:30 UTC - Orion separates from the ICPS during the early translunar mission phase",
+      "hoverText": "Nominal Orion/ICPS separation milestone from the Apr 4 HORIZONS major-events table.",
       "body": "SC",
       "requiresEphemeris": true
     },
@@ -162,13 +171,13 @@
       "durationSeconds": 0,
       "label": "Data Start",
       "burnFlag": false,
-      "infoText": "2nd Apr 2026, 01:58:33 UTC - First published Orion trajectory sample after nominal ICPS separation",
-      "hoverText": "First published Orion ephemeris sample. 3D tracking becomes available from this point onward.",
+      "infoText": "2nd Apr 2026, 01:58:33 UTC - First Orion ephemeris sample used by this app's selected data window",
+      "hoverText": "First sampled Orion ephemeris point for this mission view. Event chronology can include milestones before and after the sampled orbit window.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "upperStageSeparationBurn": {
-      "startTime": "2026-04-02T03:16:00Z",
+      "startTime": "2026-04-02T03:25:12Z",
       "durationSeconds": 0,
       "label": "Upper Stage Burn",
       "burnFlag": true,
@@ -178,7 +187,7 @@
       "requiresEphemeris": true
     },
     "icpsDisposalPacific": {
-      "startTime": "2026-04-02T03:24:00Z",
+      "startTime": "2026-04-02T03:35:12Z",
       "durationSeconds": 0,
       "label": "ICPS Disposal",
       "burnFlag": true,
@@ -187,18 +196,8 @@
       "body": "SC",
       "requiresEphemeris": true
     },
-    "icpsDisposalAtlantic": {
-      "startTime": "2026-04-02T03:26:00Z",
-      "durationSeconds": 0,
-      "label": "ICPS Alt Disposal",
-      "burnFlag": true,
-      "infoText": "2nd Apr 2026, 03:26 UTC - Alternate ICPS disposal burn for Atlantic splashdown",
-      "hoverText": "Backup ICPS disposal option targeting an alternate Atlantic recovery corridor.",
-      "body": "SC",
-      "requiresEphemeris": true
-    },
     "cubesatDeploy": {
-      "startTime": "2026-04-02T03:28:00Z",
+      "startTime": "2026-04-02T03:39:12Z",
       "durationSeconds": 240,
       "label": "CubeSats Deploy",
       "burnFlag": false,
@@ -208,47 +207,77 @@
       "requiresEphemeris": true
     },
     "perigeeRaise2": {
-      "startTime": "2026-04-02T12:08:00Z",
+      "startTime": "2026-04-02T11:30:12Z",
       "durationSeconds": 0,
       "label": "Perigee Raise 2",
       "burnFlag": true,
-      "infoText": "2nd Apr 2026, 12:08 UTC - Perigee raise burn late on flight day 1",
+      "infoText": "2nd Apr 2026, 11:30:12 UTC - Perigee raise burn late on flight day 1",
       "hoverText": "Orion completes the final Earth-orbit shaping burn ahead of translunar injection.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "tli": {
-      "startTime": "2026-04-02T23:43:12Z",
+      "startTime": "2026-04-02T23:49:12Z",
       "durationSeconds": 480,
       "label": "TLI",
       "burnFlag": true,
-      "infoText": "2nd Apr 2026, 23:43:12 UTC - Trans-lunar injection burn begins and lasts roughly 8 minutes",
+      "infoText": "2nd Apr 2026, 23:49:12 UTC - Trans-lunar injection burn starts; Apr 4 HORIZONS lists roughly 5m55s duration",
       "hoverText": "The major translunar burn sends Orion onto a lunar free-return trajectory.",
       "body": "SC",
       "requiresEphemeris": true
     },
-    "trajectoryCorrection1": {
-      "startTime": "2026-04-03T22:31:00Z",
+    "tliEnd": {
+      "startTime": "2026-04-02T23:54:12Z",
       "durationSeconds": 0,
-      "label": "OTC-1",
-      "burnFlag": true,
-      "infoText": "3rd Apr 2026, 22:31 UTC - Orbit trajectory correction burn #1",
-      "hoverText": "Early outbound correction trims navigation errors after translunar injection.",
+      "label": "TLI End",
+      "burnFlag": false,
+      "infoText": "2nd Apr 2026, 23:54:12 UTC - End of translunar injection burn (delta-v approximately 388 m/s)",
+      "hoverText": "Marks the end of Orion's translunar injection burn in the Apr 4 HORIZONS major-events table.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "earthShadowEntry": {
+      "startTime": "2026-04-03T00:10:12Z",
+      "durationSeconds": 0,
+      "label": "Earth Shadow In",
+      "burnFlag": false,
+      "infoText": "3rd Apr 2026, 00:10:12 UTC - Orion enters Earth shadow",
+      "hoverText": "Earth shadow entrance during outbound translunar coast.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "earthShadowExit": {
+      "startTime": "2026-04-03T01:16:12Z",
+      "durationSeconds": 0,
+      "label": "Earth Shadow Out",
+      "burnFlag": false,
+      "infoText": "3rd Apr 2026, 01:16:12 UTC - Orion exits Earth shadow",
+      "hoverText": "Earth shadow exit before the longer outbound coast to lunar flyby.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "trajectoryCorrection1": {
+      "startTime": "2026-04-03T22:43:12Z",
+      "durationSeconds": 0,
+      "label": "OTC-1 CXL",
+      "burnFlag": false,
+      "infoText": "3rd Apr 2026, 22:43:12 UTC - [Cancelled] Orbit trajectory correction burn #1 in the Apr 4 HORIZONS update",
+      "hoverText": "HORIZONS major-events table marks this outbound correction as cancelled.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "trajectoryCorrection2": {
-      "startTime": "2026-04-04T22:36:00Z",
+      "startTime": "2026-04-04T23:43:12Z",
       "durationSeconds": 0,
-      "label": "OTC-2",
-      "burnFlag": true,
-      "infoText": "4th Apr 2026, 22:36 UTC - Orbit trajectory correction burn #2",
-      "hoverText": "Second outbound correction refines the lunar flyby aim point and return geometry.",
+      "label": "OTC-2 CXL",
+      "burnFlag": false,
+      "infoText": "4th Apr 2026, 23:43:12 UTC - [Cancelled] Orbit trajectory correction burn #2 in the Apr 4 HORIZONS update",
+      "hoverText": "HORIZONS major-events table marks this outbound correction as cancelled.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "trajectoryCorrection3": {
-      "startTime": "2026-04-06T03:47:00Z",
+      "startTime": "2026-04-06T03:04:12Z",
       "durationSeconds": 0,
       "label": "OTC-3",
       "burnFlag": true,
@@ -278,11 +307,11 @@
       "requiresEphemeris": true
     },
     "maxDistanceEarth": {
-      "startTime": "2026-04-06T23:50:00Z",
+      "startTime": "2026-04-06T23:09:12Z",
       "durationSeconds": 0,
       "label": "Max Distance",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:50 UTC - Orion reaches maximum distance from Earth",
+      "infoText": "6th Apr 2026, 23:09:12 UTC - Orion reaches maximum distance from Earth",
       "hoverText": "Orion reaches its farthest range from Earth shortly after lunar closest approach.",
       "body": "SC",
       "requiresEphemeris": true
@@ -298,71 +327,71 @@
       "requiresEphemeris": true
     },
     "returnCorrection1": {
-      "startTime": "2026-04-08T02:47:00Z",
+      "startTime": "2026-04-08T00:04:12Z",
       "durationSeconds": 0,
       "label": "RTC-1",
       "burnFlag": true,
-      "infoText": "8th Apr 2026, 02:47 UTC - Return trajectory correction burn #1",
+      "infoText": "8th Apr 2026, 00:04:12 UTC - Return trajectory correction burn #1",
       "hoverText": "First return correction fine-tunes Orion's Earth re-entry corridor.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "manualPiloting": {
-      "startTime": "2026-04-09T02:44:00Z",
+      "startTime": "2026-04-09T02:55:12Z",
       "durationSeconds": 0,
       "label": "Manual Demo",
       "burnFlag": false,
-      "infoText": "9th Apr 2026, 02:44 UTC - Crew manual piloting demonstration during the return leg",
+      "infoText": "9th Apr 2026, 02:55:12 UTC - Crew manual piloting demonstration during the return leg",
       "hoverText": "Crew evaluates manual handling and displays during a piloting demonstration on return.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "returnCorrection2": {
-      "startTime": "2026-04-10T02:57:00Z",
+      "startTime": "2026-04-10T03:04:12Z",
       "durationSeconds": 0,
       "label": "RTC-2",
       "burnFlag": true,
-      "infoText": "10th Apr 2026, 02:57 UTC - Return trajectory correction burn #2",
+      "infoText": "10th Apr 2026, 03:04:12 UTC - Return trajectory correction burn #2",
       "hoverText": "Second return correction refines targeting before entry preparations.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "returnCorrection3": {
-      "startTime": "2026-04-10T18:57:00Z",
+      "startTime": "2026-04-10T19:04:12Z",
       "durationSeconds": 0,
       "label": "RTC-3",
       "burnFlag": true,
-      "infoText": "10th Apr 2026, 18:57 UTC - Return trajectory correction burn #3",
+      "infoText": "10th Apr 2026, 19:04:12 UTC - Return trajectory correction burn #3",
       "hoverText": "Final return correction lines Orion up for service module separation and entry.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "serviceModuleSeparation": {
-      "startTime": "2026-04-10T23:37:00Z",
+      "startTime": "2026-04-10T23:44:12Z",
       "durationSeconds": 0,
       "label": "CSM Separation",
       "burnFlag": false,
-      "infoText": "10th Apr 2026, 23:37 UTC - Orion crew and service module separation",
+      "infoText": "10th Apr 2026, 23:44:12 UTC - Orion crew and service module separation",
       "hoverText": "The crew module separates from the service module before atmospheric entry.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "crewModuleRaiseBurn": {
-      "startTime": "2026-04-10T23:40:00Z",
+      "startTime": "2026-04-10T23:47:12Z",
       "durationSeconds": 0,
       "label": "CM Raise Burn",
       "burnFlag": true,
-      "infoText": "10th Apr 2026, 23:40 UTC - Crew module raise burn before atmospheric entry",
+      "infoText": "10th Apr 2026, 23:47:12 UTC - Crew module raise burn before atmospheric entry",
       "hoverText": "A small burn positions the crew module for the proper entry attitude.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "entryInterface": {
-      "startTime": "2026-04-10T23:57:00Z",
+      "startTime": "2026-04-11T00:04:12Z",
       "durationSeconds": 0,
       "label": "Entry Interface",
       "burnFlag": false,
-      "infoText": "10th Apr 2026, 23:57 UTC - Entry interface at 122 km above Earth. Later descent milestones listed in HORIZONS include forward bay cover deployment at 11 km, drogue parachute deployment at 7.6 km, and pilot parachute deployment at 2.9 km, but HORIZONS does not publish absolute timestamps for those sub-events.",
+      "infoText": "11th Apr 2026, 00:04:12 UTC - Entry interface at 122 km above Earth. Later descent milestones listed in HORIZONS include forward bay cover deployment at 11 km, drogue parachute deployment at 7.6 km, and pilot parachute deployment at 2.9 km, but HORIZONS does not publish absolute timestamps for those sub-events.",
       "hoverText": "Orion reaches the 122 km entry interface before its parachute sequence milestones.",
       "body": "SC",
       "requiresEphemeris": true
@@ -378,18 +407,80 @@
       "requiresEphemeris": true
     },
     "finalPowerDown": {
-      "startTime": "2026-04-11T00:25:00Z",
+      "startTime": "2026-04-11T00:32:12Z",
       "durationSeconds": 0,
       "label": "Power Down",
       "burnFlag": false,
-      "infoText": "11th Apr 2026, 00:25 UTC - Orion final power down",
+      "infoText": "11th Apr 2026, 00:32:12 UTC - Orion final power down",
       "hoverText": "Orion safes its systems after splashdown and recovery operations begin.",
       "body": "SC",
       "requiresEphemeris": true
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "solarArrays", "perigeeRaise1", "apogeeRaise", "icpsSeparation", "dataStart", "upperStageSeparationBurn", "icpsDisposalPacific", "icpsDisposalAtlantic", "cubesatDeploy", "perigeeRaise2", "tli", "trajectoryCorrection1", "trajectoryCorrection2", "trajectoryCorrection3", "lunarSoiEntry", "closestApproach", "maxDistanceEarth", "lunarSoiExit", "returnCorrection1", "manualPiloting", "returnCorrection2", "returnCorrection3", "serviceModuleSeparation", "crewModuleRaiseBurn", "entryInterface", "splashdown", "finalPowerDown"],
-    "lunar": ["missionStart", "solarArrays", "perigeeRaise1", "apogeeRaise", "icpsSeparation", "dataStart", "upperStageSeparationBurn", "icpsDisposalPacific", "icpsDisposalAtlantic", "cubesatDeploy", "perigeeRaise2", "tli", "trajectoryCorrection1", "trajectoryCorrection2", "trajectoryCorrection3", "lunarSoiEntry", "closestApproach", "maxDistanceEarth", "lunarSoiExit", "returnCorrection1", "manualPiloting", "returnCorrection2", "returnCorrection3", "serviceModuleSeparation", "crewModuleRaiseBurn", "entryInterface", "splashdown", "finalPowerDown"]
+    "geo": [
+      "missionStart",
+      "solarArrays",
+      "perigeeRaise1",
+      "apogeeRaise",
+      "icpsSeparation",
+      "dataStart",
+      "upperStageSeparationBurn",
+      "icpsDisposalPacific",
+      "cubesatDeploy",
+      "perigeeRaise2",
+      "tli",
+      "tliEnd",
+      "earthShadowEntry",
+      "earthShadowExit",
+      "trajectoryCorrection1",
+      "trajectoryCorrection2",
+      "trajectoryCorrection3",
+      "lunarSoiEntry",
+      "closestApproach",
+      "maxDistanceEarth",
+      "lunarSoiExit",
+      "returnCorrection1",
+      "manualPiloting",
+      "returnCorrection2",
+      "returnCorrection3",
+      "serviceModuleSeparation",
+      "crewModuleRaiseBurn",
+      "entryInterface",
+      "splashdown",
+      "finalPowerDown"
+    ],
+    "lunar": [
+      "missionStart",
+      "solarArrays",
+      "perigeeRaise1",
+      "apogeeRaise",
+      "icpsSeparation",
+      "dataStart",
+      "upperStageSeparationBurn",
+      "icpsDisposalPacific",
+      "cubesatDeploy",
+      "perigeeRaise2",
+      "tli",
+      "tliEnd",
+      "earthShadowEntry",
+      "earthShadowExit",
+      "trajectoryCorrection1",
+      "trajectoryCorrection2",
+      "trajectoryCorrection3",
+      "lunarSoiEntry",
+      "closestApproach",
+      "maxDistanceEarth",
+      "lunarSoiExit",
+      "returnCorrection1",
+      "manualPiloting",
+      "returnCorrection2",
+      "returnCorrection3",
+      "serviceModuleSeparation",
+      "crewModuleRaiseBurn",
+      "entryInterface",
+      "splashdown",
+      "finalPowerDown"
+    ]
   }
 }
