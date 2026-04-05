@@ -414,11 +414,14 @@ function createSceneUiUpdateActions(deps) {
         }
     }
 
-    function updateTelemetry(sceneState, primaryBody) {
+    function updateTelemetry(sceneState, primaryBody, config = null) {
         ensureUnitControlsBound();
         telemetryPrimaryBody = primaryBody;
         telemetrySnapshot = sceneState?.telemetry || null;
         sceneStateSnapshot = sceneState || null;
+        if (config && typeof window !== "undefined" && window.animationScenes?.[config]) {
+            window.animationScenes[config].latestSceneState = sceneState || null;
+        }
         renderTelemetry();
     }
 

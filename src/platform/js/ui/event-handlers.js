@@ -1066,6 +1066,151 @@ export function bindMobileMissionCard() {
         };
     };
 
+    const hasFinitePositionVector = (vector) =>
+        !!vector &&
+        Number.isFinite(vector.x) &&
+        Number.isFinite(vector.y) &&
+        Number.isFinite(vector.z);
+
+    const resolveCraftPositionFromSceneState = (sceneState, preferredCraftId = null) => {
+        const bodies = sceneState?.bodies;
+        if (!bodies || typeof bodies !== "object") return null;
+
+        const toPosition = (body) => {
+            const pos = body?.position;
+            return hasFinitePositionVector(pos)
+                ? { x: pos.x, y: pos.y, z: pos.z }
+                : null;
+        };
+
+        if (preferredCraftId) {
+            const preferred = toPosition(bodies[preferredCraftId]);
+            if (preferred) return preferred;
+        }
+
+        const fallbackSc = toPosition(bodies.SC);
+        if (fallbackSc) return fallbackSc;
+
+        for (const [bodyId, bodyState] of Object.entries(bodies)) {
+            const normalizedId = String(bodyId || "").toUpperCase();
+            if (normalizedId === "EARTH" || normalizedId === "MOON" || normalizedId === "SUN") {
+                continue;
+            }
+            const pos = toPosition(bodyState);
+            if (pos) return pos;
+        }
+
+        return null;
+    };
+
+    const resolveBodyPositionFromSceneState = (sceneState, scene, bodyId) => {
+        const bodies = sceneState?.bodies;
+        const direct = bodies?.[bodyId]?.position;
+        if (hasFinitePositionVector(direct)) {
+            return direct;
+        }
+
+        // Some frame representations omit the origin body entirely because it
+        // is implicitly at the coordinate origin in that frame.
+        const primaryBody = String(scene?.primaryBody || "").toUpperCase();
+        if (primaryBody === bodyId) {
+            return { x: 0, y: 0, z: 0 };
+        }
+
+        return null;
+    };
+
+    const computeMobileMoonVisibilityInfoFromSceneState = (
+        sceneState,
+        scene,
+        preferredCraftId = null,
+    ) => {
+        const bodies = sceneState?.bodies;
+        if (!bodies || typeof bodies !== "object") return null;
+
+        const earthPos = resolveBodyPositionFromSceneState(sceneState, scene, "EARTH");
+        const moonPos = resolveBodyPositionFromSceneState(sceneState, scene, "MOON");
+        const craftPos = resolveCraftPositionFromSceneState(sceneState, preferredCraftId);
+        if (!hasFinitePositionVector(earthPos) || !hasFinitePositionVector(moonPos) || !craftPos) {
+            return null;
+        }
+
+        const craftFromMoonDir = {
+            x: craftPos.x - moonPos.x,
+            y: craftPos.y - moonPos.y,
+            z: craftPos.z - moonPos.z,
+        };
+        const earthFromMoonDir = {
+            x: earthPos.x - moonPos.x,
+            y: earthPos.y - moonPos.y,
+            z: earthPos.z - moonPos.z,
+        };
+        if (!normalizeVectorInPlace(craftFromMoonDir) || !normalizeVectorInPlace(earthFromMoonDir)) {
+            return null;
+        }
+
+        const sunDirection = sceneState?.sunDirection;
+        if (!hasFinitePositionVector(sunDirection)) {
+            return null;
+        }
+        const sunFromMoonDir = {
+            x: sunDirection.x,
+            y: sunDirection.y,
+            z: sunDirection.z,
+        };
+        if (!normalizeVectorInPlace(sunFromMoonDir)) {
+            return null;
+        }
+
+        let visibleCount = 0;
+        let nearDay = 0;
+        let nearNight = 0;
+        let farDay = 0;
+        let farNight = 0;
+
+        for (let i = 0; i < moonVisibilitySamples.length; i += 3) {
+            const nx = moonVisibilitySamples[i];
+            const ny = moonVisibilitySamples[i + 1];
+            const nz = moonVisibilitySamples[i + 2];
+            const visibleDot = nx * craftFromMoonDir.x + ny * craftFromMoonDir.y + nz * craftFromMoonDir.z;
+            if (visibleDot <= 0) continue;
+            visibleCount += 1;
+
+            const near = (nx * earthFromMoonDir.x + ny * earthFromMoonDir.y + nz * earthFromMoonDir.z) >= 0;
+            const day = (nx * sunFromMoonDir.x + ny * sunFromMoonDir.y + nz * sunFromMoonDir.z) >= 0;
+
+            if (near) {
+                if (day) nearDay += 1;
+                else nearNight += 1;
+            } else if (day) {
+                farDay += 1;
+            } else {
+                farNight += 1;
+            }
+        }
+
+        if (visibleCount <= 0) {
+            return null;
+        }
+
+        const rawParts = [
+            (nearDay * 100) / visibleCount,
+            (nearNight * 100) / visibleCount,
+            (farDay * 100) / visibleCount,
+            (farNight * 100) / visibleCount,
+        ];
+        const [nearDayPct, nearNightPct, farDayPct, farNightPct] = roundPercentParts(rawParts);
+
+        return {
+            nearPct: nearDayPct + nearNightPct,
+            farPct: farDayPct + farNightPct,
+            nearDayPct,
+            nearNightPct,
+            farDayPct,
+            farNightPct,
+        };
+    };
+
     const estimateObjectRadius = (object, fallback = 1) => {
         if (!object) return fallback;
         if (radiusByObject.has(object)) {
@@ -1349,10 +1494,9 @@ export function bindMobileMissionCard() {
         const activeCraft = resolveActiveCraft(scene);
         const earthObject = scene?.earthContainer || scene?.earth;
         const moonObject = scene?.moonContainer || scene?.moon;
-        if (!scene?.camera || !activeCraft || !earthObject || !moonObject) {
-            setMobileMoonVisibilityInfoVisible(false);
-            return;
-        }
+        const hasSceneGraphVisibilityInputs = !!(scene?.camera && activeCraft && earthObject && moonObject);
+        const sceneStateSnapshot = scene?.latestSceneState || null;
+        const preferredCraftId = scene?.activeCraftId || scene?.primaryCraftId || null;
 
         const now = performance.now();
         if (!force && (now - mobileMoonOverlayLastUpdateMs) < MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS) {
@@ -1361,8 +1505,12 @@ export function bindMobileMissionCard() {
         mobileMoonOverlayLastUpdateMs = now;
         setMobileMoonVisibilityInfoVisible(true);
 
-        const visibility = computeMobileMoonVisibilityInfo(scene, activeCraft, earthObject, moonObject);
-        if (!visibility) {
+        const panelVisibility = computeMobileMoonVisibilityInfoFromSceneState(
+            sceneStateSnapshot,
+            scene,
+            preferredCraftId,
+        );
+        if (!panelVisibility) {
             if (mobileViewsMoonVisibilitySummary) {
                 if (mobileViewsMoonVisibilityHead && mobileViewsMoonVisibilityValues) {
                     mobileViewsMoonVisibilityHead.hidden = true;
@@ -1384,15 +1532,15 @@ export function bindMobileMissionCard() {
             if (mobileViewsMoonVisibilityHead && mobileViewsMoonVisibilityValues) {
                 mobileViewsMoonVisibilityHead.hidden = false;
                 mobileViewsMoonVisibilityValues.innerHTML = [
-                    `<span>${visibility.nearDayPct}%</span>`,
-                    `<span>${visibility.nearNightPct}%</span>`,
-                    `<span>${visibility.farDayPct}%</span>`,
-                    `<span>${visibility.farNightPct}%</span>`,
+                    `<span>${panelVisibility.nearDayPct}%</span>`,
+                    `<span>${panelVisibility.nearNightPct}%</span>`,
+                    `<span>${panelVisibility.farDayPct}%</span>`,
+                    `<span>${panelVisibility.farNightPct}%</span>`,
                 ].join("");
             } else {
                 mobileViewsMoonVisibilitySummary.textContent =
-                    `${visibility.nearPct}% near (${visibility.nearDayPct}% day; ${visibility.nearNightPct}% night) ` +
-                    `${visibility.farPct}% far (${visibility.farDayPct}% day; ${visibility.farNightPct}% night)`;
+                    `${panelVisibility.nearPct}% near (${panelVisibility.nearDayPct}% day; ${panelVisibility.nearNightPct}% night) ` +
+                    `${panelVisibility.farPct}% far (${panelVisibility.farDayPct}% day; ${panelVisibility.farNightPct}% night)`;
             }
         }
 
@@ -1413,7 +1561,18 @@ export function bindMobileMissionCard() {
             return;
         }
 
-        renderMobileMoonFarSideOverlay(scene, visibility);
+        if (!hasSceneGraphVisibilityInputs) {
+            setMobileMoonOverlayActive(false);
+            return;
+        }
+
+        const overlayVisibility = computeMobileMoonVisibilityInfo(scene, activeCraft, earthObject, moonObject);
+        if (!overlayVisibility) {
+            setMobileMoonOverlayActive(false);
+            return;
+        }
+
+        renderMobileMoonFarSideOverlay(scene, overlayVisibility);
     };
 
     const startMobileMoonVisibilityLoop = () => {

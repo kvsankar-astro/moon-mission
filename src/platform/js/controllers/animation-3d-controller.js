@@ -49,6 +49,7 @@ export class Animation3DController {
         // Carry sun direction for lighting (supports relative frame)
         this.scene.stateSunDirection = state.sunDirection;
         this.scene.stateTime = state.time;
+        this.scene.latestSceneState = state;
 
         // 1. Update lighting from sun position
         this.updateLighting(state.sunLongitude, state.bodies);

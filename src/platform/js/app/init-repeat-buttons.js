@@ -15,8 +15,6 @@ export function initRepeatButtons({
     setChecked("checkbox-lock-moon", false);
     setChecked("checkbox-lock-earth", false);
 
-    d3SelectAll("button").attr("disabled", true);
-
     const buttons = [
         "zoomin",
         "zoomout",
@@ -33,6 +31,13 @@ export function initRepeatButtons({
         "faster",
         "realtime",
     ];
+
+    // Only disable repeat-driven navigation buttons during startup bootstrap.
+    // A blanket disable on all buttons can strand mobile shell controls in a
+    // disabled state on some mission startup paths.
+    buttons.forEach((id) => {
+        d3Select(`#${id}`).attr("disabled", true);
+    });
 
     bindRepeatButtons({
         select: d3Select,

@@ -75,6 +75,22 @@ function createInitOrchestrationActions(deps) {
         }, pollIntervalMs);
     }
 
+    function releaseStartupButtonDisable() {
+        const slowerButton = document.getElementById("slower");
+        const fasterButton = document.getElementById("faster");
+        const slowerWasDisabled = slowerButton?.getAttribute("aria-disabled") === "true";
+        const fasterWasDisabled = fasterButton?.getAttribute("aria-disabled") === "true";
+        d3SelectAll("button").attr("disabled", null);
+        if (slowerButton) {
+            slowerButton.disabled = slowerWasDisabled;
+            slowerButton.setAttribute("aria-disabled", slowerWasDisabled ? "true" : "false");
+        }
+        if (fasterButton) {
+            fasterButton.disabled = fasterWasDisabled;
+            fasterButton.setAttribute("aria-disabled", fasterWasDisabled ? "true" : "false");
+        }
+    }
+
     async function waitUntilOrbitDataProcessed({
         onReady,
         pollIntervalMs = 50,
@@ -170,6 +186,11 @@ function createInitOrchestrationActions(deps) {
 
                     // Re-run the frame once startup view/camera state has settled.
                     setLocation();
+
+                    // Some startup paths (for example missions that begin in 3D and
+                    // don't re-enter the orbit-processing unlock path) can leave
+                    // controls disabled. Always release the startup blanket-disable.
+                    releaseStartupButtonDisable();
                 },
             });
         } catch (error) {

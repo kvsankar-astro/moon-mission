@@ -49,6 +49,7 @@ function buildRenderOptions({
     planetsForLocations,
     updateCraftScale,
     startLandingTime,
+    scene,
 }) {
     return {
         craftId,
@@ -57,6 +58,7 @@ function buildRenderOptions({
         planetsForLocations,
         updateCraftScale,
         landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
+        scene,
     };
 }
 
@@ -127,6 +129,7 @@ function planFrameStep(input) {
         planetsForLocations: scene.planetsForLocations,
         updateCraftScale,
         startLandingTime,
+        scene,
     });
 
     return {
@@ -143,6 +146,7 @@ function planFrameStep(input) {
                 currentDimension === "3D" && !!scene.initialized3D,
         },
         uiIntent: {
+            config,
             animTime,
             sceneState,
             primaryBody,
