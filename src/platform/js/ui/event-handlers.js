@@ -787,6 +787,7 @@ export function bindMobileMissionCard() {
     let mobileAlwaysSuppressedViewState = null;
     let mobileSavedMissionCameraModes = null;
     let mobileAutoFovScheduleToken = 0;
+    let mobileViewPresetEnforceInProgress = false;
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
         "view-aux-camera-panels",
     ];
@@ -1184,6 +1185,39 @@ export function bindMobileMissionCard() {
 
         if (matchedPresetId) {
             activeMobileViewPresetId = matchedPresetId;
+            return;
+        }
+
+        const fallbackPresetId = mobileViewPresetById.has(activeMobileViewPresetId)
+            ? activeMobileViewPresetId
+            : (mobileViewButtons[0]?.dataset.mobileViewPreset || "");
+        if (!fallbackPresetId) return;
+
+        activeMobileViewPresetId = fallbackPresetId;
+
+        // Keep exactly one mobile Views preset selected at all times.
+        mobileViewButtons.forEach((button) => {
+            const isActive = (button.dataset.mobileViewPreset || "") === fallbackPresetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        const fallbackPreset = mobileViewPresetById.get(fallbackPresetId);
+        const shouldApplyFallback = (
+            !mobileViewPresetEnforceInProgress &&
+            isMobileViewport() &&
+            activeMobileTab === "views" &&
+            !!fallbackPreset &&
+            (desktopPosition.value !== fallbackPreset.positionMode || desktopLook.value !== fallbackPreset.lookMode)
+        );
+
+        if (!shouldApplyFallback) return;
+
+        mobileViewPresetEnforceInProgress = true;
+        try {
+            applyMobileViewPreset(fallbackPresetId);
+        } finally {
+            mobileViewPresetEnforceInProgress = false;
         }
     };
 
