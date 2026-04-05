@@ -40,6 +40,10 @@ let settingsPanelResizeBound = false;
 let settingsOutsideClickBound = false;
 let shortcutPanelGlobalBound = false;
 let controlPanelResizeBound = false;
+let timelineDockHeightSyncBound = false;
+let timelineCarouselDragBound = false;
+let timelineDockResizeObserver = null;
+let timelineDockMutationObserver = null;
 let settingsAutoCollapsedControls = false;
 let timelineCarouselWiggleTimeoutId = null;
 const mobileSettingsSectionState = new Map();
@@ -280,6 +284,146 @@ function syncControlPanelInfoOffset(panel = document.getElementById("control-pan
     root.style.setProperty("--control-panel-visual-height", `${height}px`);
 }
 
+function syncTimelineDockHeight(timelineDock = document.getElementById("timeline-dock")) {
+    if (!timelineDock) return;
+    const root = document.documentElement;
+    const height = Math.max(0, Math.round(timelineDock.getBoundingClientRect().height));
+    root.style.setProperty("--timeline-dock-height", `${height}px`);
+}
+
+function bindTimelineDockHeightSync(timelineDock = document.getElementById("timeline-dock")) {
+    if (!timelineDock || timelineDockHeightSyncBound) return;
+    timelineDockHeightSyncBound = true;
+
+    const scheduleSync = () => requestAnimationFrame(() => syncTimelineDockHeight(timelineDock));
+    scheduleSync();
+
+    // Initial content (event chips/fonts/layout) settles asynchronously on load.
+    [80, 180, 320, 520, 900].forEach((delayMs) => {
+        window.setTimeout(scheduleSync, delayMs);
+    });
+
+    if (typeof ResizeObserver === "function") {
+        timelineDockResizeObserver = new ResizeObserver(() => {
+            scheduleSync();
+        });
+        timelineDockResizeObserver.observe(timelineDock);
+    }
+
+    const burnButtons = document.getElementById("burnbuttons");
+    if (burnButtons && typeof MutationObserver === "function") {
+        timelineDockMutationObserver = new MutationObserver(() => {
+            scheduleSync();
+        });
+        timelineDockMutationObserver.observe(burnButtons, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+        });
+    }
+}
+
+function bindTimelineCarouselDragGesture() {
+    if (timelineCarouselDragBound) return;
+    const carousel = document.querySelector("#timeline-dock .timeline-dock__event-carousel");
+    if (!carousel) return;
+    timelineCarouselDragBound = true;
+
+    const dragState = {
+        pointerId: null,
+        startX: 0,
+        startScrollLeft: 0,
+        dragging: false,
+        suppressClickUntilMs: 0,
+    };
+    const DRAG_THRESHOLD_PX = 4;
+    const CLICK_SUPPRESS_MS = 220;
+
+    const onPointerDown = (event) => {
+        if (event.button !== 0) return;
+        if (event.pointerType !== "mouse") return;
+        dragState.pointerId = event.pointerId;
+        dragState.startX = event.clientX;
+        dragState.startScrollLeft = carousel.scrollLeft;
+        dragState.dragging = false;
+        carousel.classList.remove("is-dragging");
+        carousel.setPointerCapture?.(event.pointerId);
+    };
+
+    const onPointerMove = (event) => {
+        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
+        const deltaX = event.clientX - dragState.startX;
+        if (!dragState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
+            dragState.dragging = true;
+            carousel.classList.add("is-dragging");
+        }
+        if (!dragState.dragging) return;
+        carousel.scrollLeft = dragState.startScrollLeft - deltaX;
+        event.preventDefault();
+    };
+
+    const endDrag = (event) => {
+        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
+        if (dragState.dragging) {
+            dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
+        }
+        dragState.pointerId = null;
+        dragState.dragging = false;
+        carousel.classList.remove("is-dragging");
+    };
+
+    // Use capture phase so button targets inside chips cannot swallow drag-start.
+    carousel.addEventListener("pointerdown", onPointerDown, true);
+    carousel.addEventListener("pointermove", onPointerMove, true);
+    carousel.addEventListener("pointerup", endDrag, true);
+    carousel.addEventListener("pointercancel", endDrag, true);
+    carousel.addEventListener("lostpointercapture", () => {
+        dragState.pointerId = null;
+        dragState.dragging = false;
+        carousel.classList.remove("is-dragging");
+    }, true);
+
+    // Mouse fallback for environments where pointer events don't initiate from
+    // focusable button descendants consistently.
+    const mouseState = {
+        active: false,
+        startX: 0,
+        startScrollLeft: 0,
+        dragging: false,
+    };
+    carousel.addEventListener("mousedown", (event) => {
+        if (event.button !== 0) return;
+        mouseState.active = true;
+        mouseState.startX = event.clientX;
+        mouseState.startScrollLeft = carousel.scrollLeft;
+        mouseState.dragging = false;
+    }, true);
+    window.addEventListener("mousemove", (event) => {
+        if (!mouseState.active) return;
+        const deltaX = event.clientX - mouseState.startX;
+        if (!mouseState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
+            mouseState.dragging = true;
+            carousel.classList.add("is-dragging");
+        }
+        if (!mouseState.dragging) return;
+        carousel.scrollLeft = mouseState.startScrollLeft - deltaX;
+        dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
+        event.preventDefault();
+    }, true);
+    window.addEventListener("mouseup", () => {
+        if (!mouseState.active) return;
+        mouseState.active = false;
+        mouseState.dragging = false;
+        carousel.classList.remove("is-dragging");
+    }, true);
+
+    carousel.addEventListener("click", (event) => {
+        if (Date.now() > dragState.suppressClickUntilMs) return;
+        event.preventDefault();
+        event.stopPropagation();
+    }, true);
+}
+
 function setControlPanelCollapsedState(collapsed) {
     const panel = document.getElementById("control-panel");
     if (!panel) return;
@@ -362,6 +506,7 @@ function setTimelineEventCarouselExpandedState(expanded, options = {}) {
     if (!timelineDock || !button) return;
     const wasExpanded = !timelineDock.classList.contains("timeline-dock--events-collapsed");
     timelineDock.classList.toggle("timeline-dock--events-collapsed", !expanded);
+    requestAnimationFrame(() => syncTimelineDockHeight(timelineDock));
     button.setAttribute("aria-expanded", String(expanded));
     button.setAttribute(
         "aria-label",
@@ -712,9 +857,14 @@ export function bindControlPanelToggle() {
     if (!panel || !timelineDock || !button) return;
     if (button.dataset.bound === "true") return;
     button.dataset.bound = "true";
+    bindTimelineCarouselDragGesture();
+    bindTimelineDockHeightSync(timelineDock);
     setControlPanelCollapsedState(false);
-    setTimelineEventCarouselExpandedState(true, { focusUpcoming: false, wiggleCue: false });
-    requestAnimationFrame(() => syncControlPanelInfoOffset(panel));
+    setTimelineEventCarouselExpandedState(true, { focusUpcoming: true, wiggleCue: false });
+    requestAnimationFrame(() => {
+        syncControlPanelInfoOffset(panel);
+        syncTimelineDockHeight(timelineDock);
+    });
     button.addEventListener("click", function () {
         const shouldExpand = timelineDock.classList.contains("timeline-dock--events-collapsed");
         setTimelineEventCarouselExpandedState(shouldExpand);
@@ -724,6 +874,7 @@ export function bindControlPanelToggle() {
         controlPanelResizeBound = true;
         window.addEventListener("resize", function () {
             syncControlPanelInfoOffset();
+            syncTimelineDockHeight();
         });
     }
 }

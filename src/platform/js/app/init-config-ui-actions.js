@@ -102,7 +102,18 @@ function createInitConfigUiActions(deps) {
             slidesPerView: "auto",
             watchOverflow: true,
             freeMode: true,
-            spaceBetween: 6,
+            noSwiping: false,
+            simulateTouch: true,
+            touchStartPreventDefault: false,
+            touchMoveStopPropagation: false,
+            // Allow drag-to-scroll even when pointer starts on an event button.
+            // Swiper treats "button" as focusable by default and skips swiping.
+            focusableElements: "input, select, option, textarea, video, label",
+            grabCursor: true,
+            threshold: 4,
+            // Spacing is handled by CSS gap so connector segments can align
+            // precisely between adjacent event chips.
+            spaceBetween: 0,
         });
     }
 

@@ -242,6 +242,54 @@ function vectorDistance(v1, v2) {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+function normalizeBodyId(value) {
+    return String(value || "").trim().toUpperCase();
+}
+
+function buildPreferredCraftIds({ globalConfig, craftId, planetsForLocations }) {
+    const ids = [];
+    if (craftId) ids.push(craftId);
+    if (globalConfig?.primaryCraftId) ids.push(globalConfig.primaryCraftId);
+    if (globalConfig?.spacecraft_mnemonic) ids.push(globalConfig.spacecraft_mnemonic);
+    if (Array.isArray(globalConfig?.crafts)) {
+        for (const craft of globalConfig.crafts) {
+            if (!craft || typeof craft !== "object") continue;
+            if (craft.primary === true && craft.id) ids.push(craft.id);
+            if (craft.mnemonic) ids.push(craft.mnemonic);
+        }
+    }
+    if (Array.isArray(planetsForLocations)) {
+        for (const bodyId of planetsForLocations) {
+            if (isMissionCraftBody(globalConfig, bodyId)) {
+                ids.push(bodyId);
+            }
+        }
+    }
+    ids.push("SC");
+
+    const unique = [];
+    const seen = new Set();
+    for (const id of ids) {
+        const normalized = normalizeBodyId(id);
+        if (!normalized || seen.has(normalized)) continue;
+        seen.add(normalized);
+        unique.push(normalized);
+    }
+    return unique;
+}
+
+function resolveBodyStateById(bodies, bodyId) {
+    if (!bodies || !bodyId) return null;
+    if (bodies[bodyId]) return bodies[bodyId];
+    const target = normalizeBodyId(bodyId);
+    for (const [candidateId, state] of Object.entries(bodies)) {
+        if (normalizeBodyId(candidateId) === target) {
+            return state;
+        }
+    }
+    return null;
+}
+
 // ============================================================================
 // Telemetry Computation
 // ============================================================================
@@ -330,15 +378,21 @@ export function determinePhase(time, missionTimes) {
  * @param {Array} eventInfos - Array of event objects
  * @returns {Object|null} Active event or null
  */
-export function findActiveEvent(time, eventInfos) {
+export function findActiveEvent(time, eventInfos, preferredCraftIds = ["SC"]) {
     const BURN_WINDOW_MS = 20 * 60 * 1000; // 20 minutes
+    const preferredBodies = new Set(
+        Array.isArray(preferredCraftIds) && preferredCraftIds.length > 0
+            ? preferredCraftIds.map(normalizeBodyId).filter(Boolean)
+            : ["SC"],
+    );
 
     for (const event of eventInfos) {
         if (!event.burnFlag) continue;
 
         const burnTime = event.startTime.getTime();
         if (Math.abs(time - burnTime) < BURN_WINDOW_MS) {
-            if (event.body === "SC") {
+            const bodyId = normalizeBodyId(event.body);
+            if (!bodyId || preferredBodies.has(bodyId)) {
                 return event;
             }
         }
@@ -428,6 +482,7 @@ export function computeSceneState(time, config, options) {
         ephemerisSource,
         bodySources,
         includeNextState,
+        craftId,
     } = options;
 
     if (providedSunLongitude === undefined || providedSunLongitude === null) {
@@ -530,8 +585,23 @@ export function computeSceneState(time, config, options) {
     }
 
     // 3. Telemetry (for spacecraft)
-    const telemetry = bodies.SC?.available
-        ? computeTelemetry(bodies.SC, config, bodies.MOON, bodies.EARTH)
+    const preferredCraftIds = buildPreferredCraftIds({
+        globalConfig,
+        craftId,
+        planetsForLocations,
+    });
+    let telemetryBodyId = null;
+    let telemetryBodyState = null;
+    for (const preferredCraftId of preferredCraftIds) {
+        const state = resolveBodyStateById(bodies, preferredCraftId);
+        if (state?.available) {
+            telemetryBodyId = preferredCraftId;
+            telemetryBodyState = state;
+            break;
+        }
+    }
+    const telemetry = telemetryBodyState
+        ? computeTelemetry(telemetryBodyState, config, bodies.MOON, bodies.EARTH)
         : null;
 
     // 4. Mission phase (only for lunar missions)
@@ -540,7 +610,7 @@ export function computeSceneState(time, config, options) {
         : null;
 
     // 5. Active event (burn indicator)
-    const activeEvent = findActiveEvent(time, eventInfos || []);
+    const activeEvent = findActiveEvent(time, eventInfos || [], preferredCraftIds);
 
     return {
         time,
@@ -548,6 +618,7 @@ export function computeSceneState(time, config, options) {
         sunLongitude,
         sunDirection,
         bodies,
+        telemetryBodyId,
         telemetry,
         phase,
         activeEvent

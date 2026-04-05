@@ -10,7 +10,7 @@ vi.mock("../src/platform/js/data/relative-frame-provider.js", () => ({
 
 import { getBodyEphemerisState } from "../src/platform/js/data/ephemeris-provider.js";
 import { getRelativeFrameQuaternion } from "../src/platform/js/data/relative-frame-provider.js";
-import { computeBodyState, computeSceneState } from "../src/platform/js/scene-state.js";
+import { computeBodyState, computeSceneState, findActiveEvent } from "../src/platform/js/scene-state.js";
 
 function createData(overrides = {}) {
     return {
@@ -275,5 +275,125 @@ describe("computeSceneState", () => {
         expect(sceneState.sunDirection.x).toBeCloseTo(1, 12);
         expect(sceneState.sunDirection.y).toBeCloseTo(0, 12);
         expect(sceneState.sunDirection.z).toBeCloseTo(0, 12);
+    });
+
+    it("computes telemetry for non-SC primary craft IDs", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "CH3L") {
+                return {
+                    position: { x: 1000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 2, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "MOON") {
+                return {
+                    position: { x: 2000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: { x: 0, y: 0, z: 0 },
+                velocity: { vx: 0, vy: 0, vz: 0 },
+                available: false,
+            };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-08-23T12:20:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                globalConfig: {
+                    spacecraft_mnemonic: "CH3L",
+                    primaryCraftId: "CH3L",
+                    landing: { enabled: false },
+                    is_lunar: true,
+                    crafts: [
+                        { id: "CH3L", mnemonic: "CH3L", primary: true },
+                        { id: "CH3O", mnemonic: "CH3O", primary: false },
+                    ],
+                },
+                planetsForLocations: ["MOON", "CH3L"],
+                eventInfos: [],
+            }),
+        );
+
+        expect(sceneState.telemetryBodyId).toBe("CH3L");
+        expect(sceneState.telemetry).toBeTruthy();
+        expect(sceneState.telemetry.distancePrimary).toBeCloseTo(1000, 6);
+        expect(sceneState.telemetry.velocityPrimary).toBeCloseTo(2, 6);
+        expect(sceneState.telemetry.distanceMoon).toBeCloseTo(1000, 6);
+    });
+
+    it("matches active burn events for non-SC craft bodies", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "CH3L") {
+                return {
+                    position: { x: 1000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 2, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "MOON") {
+                return {
+                    position: { x: 2000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: { x: 0, y: 0, z: 0 },
+                velocity: { vx: 0, vy: 0, vz: 0 },
+                available: false,
+            };
+        });
+
+        const burnTime = new Date("2023-08-23T12:20:00Z");
+        const sceneState = computeSceneState(
+            burnTime.getTime(),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                globalConfig: {
+                    spacecraft_mnemonic: "CH3L",
+                    primaryCraftId: "CH3L",
+                    landing: { enabled: false },
+                    is_lunar: true,
+                    crafts: [{ id: "CH3L", mnemonic: "CH3L", primary: true }],
+                },
+                planetsForLocations: ["MOON", "CH3L"],
+                eventInfos: [{
+                    burnFlag: true,
+                    body: "CH3L",
+                    startTime: burnTime,
+                    label: "Lander burn",
+                }],
+            }),
+        );
+
+        expect(sceneState.activeEvent?.label).toBe("Lander burn");
+    });
+});
+
+describe("findActiveEvent", () => {
+    it("keeps legacy SC default matching behavior", () => {
+        const burnTime = new Date("2023-07-14T10:00:00Z");
+        const event = findActiveEvent(
+            burnTime.getTime(),
+            [{ burnFlag: true, body: "CH3L", startTime: burnTime }],
+        );
+        expect(event).toBeNull();
+    });
+
+    it("matches preferred non-SC body IDs", () => {
+        const burnTime = new Date("2023-07-14T10:00:00Z");
+        const event = findActiveEvent(
+            burnTime.getTime(),
+            [{ burnFlag: true, body: "CH3L", startTime: burnTime, label: "CH3 event" }],
+            ["CH3L"],
+        );
+        expect(event?.label).toBe("CH3 event");
     });
 });
