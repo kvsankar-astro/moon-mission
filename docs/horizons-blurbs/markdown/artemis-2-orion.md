@@ -9,9 +9,9 @@
 | **Type** | Crewed Capsule |
 | **Launch Site** | pad LC-39B at the Kennedy Space |
 | **Trajectory Start** | 2026-Apr-02 01:59 |
-| **Trajectory End** | 2026-Apr-10 23:57 |
+| **Trajectory End** | 2026-Apr-10 23:51 |
 | **URL** | https://www.nasa.gov/mission/artemis-ii/ |
-| **Last Updated** | Apr 04, 2026 |
+| **Last Updated** | Apr 06, 2026 |
 
 ## JPL HORIZONS Data
 
@@ -20,8 +20,8 @@ API VERSION: 1.2
 API SOURCE: NASA/JPL Horizons API
 
 *******************************************************************************
- Revised: Apr 04, 2026        Artemis II / Spacecraft (Earth)             -1024
-          22:52 UTC       https://www.nasa.gov/mission/artemis-ii/
+ Revised: Apr 06, 2026        Artemis II / Spacecraft (Earth)             -1024
+          06:42 UTC       https://www.nasa.gov/mission/artemis-ii/
                          https://www.nasa.gov/artemis-ii-press-kit/
 
  BACKGROUND:
@@ -67,11 +67,13 @@ API SOURCE: NASA/JPL Horizons API
   Day 4
     launch + 3/01:08    4 23:43    - [CANCELLED] Trajectory correction burn #2
   Day 5
-    launch + 4/04:29    6 03:04    - Trajectory correction burn #3
-             4/06:08    6 04:43    - Orion enters lunar sphere of influence
+    launch + 4/04:28:05 6 03:03:17 - Begin trajectory correction burn #3 (OTC-3)
+             4/04:28:23 6 03:03:35   End OTC-3 (18 sec, delta-v 3 m/s)
+             4/07:03:32 6 05:38:44 - Orion enters lunar SOI, 62800 km from Moon
+                                      (Hill sphere definition)
   Day 6
-    launch + 5/00:31    6 23:06    - Closest approach to the Moon	
-             5/00:34    6 23:09    - Maximum distance from Earth
+    launch + 5/00:26    6 23:01    - Closest approach to the Moon  (8282.5 km)
+             5/00:30    6 23:05    - Maximum distance from Earth (413146.2 km)
   Day 7
     launch + 5/18:52    7 17:27    - Orion exits lunar sphere of influence
              6/01:29    8 00:04    - Return trajectory correction burn #1
@@ -137,9 +139,14 @@ API SOURCE: NASA/JPL Horizons API
   Orion_OEM_20260402_1414.V0.1              2026-Apr-02 03:27 2026-Apr-02 12:45
   Orion_OEM_20260403_0318.V0.3              2026-Apr-02 12:45 2026-Apr-03 00:03 
   EPH_OEM_20260403_1626.V0.1                2026-Apr-03 00:03 2026-Apr-03 17:36
-  NoBurn_Orion_OEM_20260404_2046.V0.1       2026-Apr-03 17:36 2026-Apr-10 23:57
+  NoBurn_Orion_OEM_20260404_2046.V0.1       2026-Apr-03 17:36 2026-Apr-04 11:58
+  traj_em2_260404-260406_260405_od011v1     2026-Apr-04 11:58 2026-Apr-05 02:45
+  Orion_OEM_20260405_1125.V0.1              2026-Apr-05 02:45 2026-Apr-05 04:35
+  EPH_OEM_20260405_1908.V0.1                2026-Apr-05 04:35 2026-Apr-05 23:59
+  JPL_od014v1_260406_07_dco096_0515         2026-Apr-05 23:59 2026-Apr-06 23:59
+  EPH_OEM_20260405_1908.V0.1                2026-Apr-06 23:59 2026-Apr-10 23:51
 *******************************************************************************
 ```
 
 ---
-*Fetched from JPL HORIZONS on 2026-04-05 09:08 UTC*
+*Fetched from JPL HORIZONS on 2026-04-06 18:13 UTC*

@@ -11,20 +11,21 @@
 // Time Window Used:
 //   Launch/reference start: `2026-04-01 22:35:12 UTC`
 //   Orbit data start: `2026-04-02 01:58:33 UTC`
-//   Orbit data end: `2026-04-10 23:54:35 UTC`
+//   Orbit data end: `2026-04-10 23:54:30 UTC`
 //   Sampling step: `60` seconds
-//   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:57` (HORIZONS blurb, Apr 4 revision)
+//   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:51` (HORIZONS blurb, Apr 6 revision)
 //   Selected interesting window strategy: full currently published HORIZONS trajectory, because the public data set already corresponds to the complete post-separation lunar-flyby mission arc.
 // Primary Source References:
-//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC` and the updated Apr 4 major-event timeline.
-//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: updated trajectory table split into 5 OEM segments ending at `2026-Apr-10 23:57` (TDB minute-rounded).
-//   - `data-generated/artemis2/horizons-live-artemis2-obj.txt`: live HORIZONS capture fetched on 2026-04-05 for verification against in-repo mission events.
+//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC` and the updated Apr 6 major-event timeline.
+//   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: updated trajectory table split into 10 OEM segments ending at `2026-Apr-10 23:51` (TDB minute-rounded).
+//   - `data-generated/artemis2/horizons-live-artemis2-obj.txt`: live HORIZONS capture fetched on 2026-04-06 for verification against in-repo mission events.
 //   - `https://www.nasa.gov/missions/artemis/artemis-2/nasa-sets-coverage-for-artemis-ii-moon-mission/`: public lunar-flyby broadcast milestones (Earthset/Earthrise/eclipse and flyby media timings).
 // Notes:
 //   - Launch and early mission events remain preserved even when they occur before the sampled orbit-data window.
 //   - Splashdown and final power-down remain preserved as post-data mission events.
-//   - Apr 4 HORIZONS major-events table adds `End TLI`, explicitly flags outbound correction burns #1 and #2 as cancelled, and shifts several absolute event times.
+//   - Apr 6 HORIZONS major-events update splits OTC-3 into explicit begin/end rows, shifts lunar SOI/closest-approach timing, and adds distance annotations.
 //   - For rows where HORIZONS omits seconds in the UTC column, this config keeps second-level alignment derived from MET offsets relative to launch.
+//   - Live vectors currently reject stop times later than `2026-04-10 23:54:30` UTC-equivalent bounds; this window keeps the full successful range.
 //   - Generated runtime artifacts are staged under `../moon-mission-data/assets/artemis2/data/`.
 // --- sourcing-snapshot:end ---
 {
@@ -42,11 +43,11 @@
       "spans": {
         "geo": {
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:35Z"
+          "endTime": "2026-04-10T23:54:30Z"
         },
         "lunar": {
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:35Z"
+          "endTime": "2026-04-10T23:54:30Z"
         }
       }
     }
@@ -104,7 +105,7 @@
   "is_lunar": true,
   "geo": {
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:35Z",
+    "endTime": "2026-04-10T23:54:30Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -125,7 +126,7 @@
   },
   "lunar": {
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:35Z",
+    "endTime": "2026-04-10T23:54:30Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -306,22 +307,22 @@
       "requiresEphemeris": true
     },
     "trajectoryCorrection3": {
-      "startTime": "2026-04-06T03:04:12Z",
-      "durationSeconds": 0,
+      "startTime": "2026-04-06T03:03:17Z",
+      "durationSeconds": 18,
       "label": "OTC-3",
       "burnFlag": true,
-      "infoText": "6th Apr 2026, 03:47 UTC - Orbit trajectory correction burn #3",
-      "hoverText": "Final outbound correction cleans up the approach before the lunar encounter.",
+      "infoText": "6th Apr 2026, 03:03:17 UTC - Orbit trajectory correction burn #3 starts (18s burn, delta-v about 3 m/s)",
+      "hoverText": "Apr 6 HORIZONS update provides explicit OTC-3 begin/end timing; this event duration reflects that split row.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "lunarSoiEntry": {
-      "startTime": "2026-04-06T04:43:12Z",
+      "startTime": "2026-04-06T05:38:44Z",
       "durationSeconds": 0,
       "label": "Lunar SOI In",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 04:43:12 UTC - Orion enters the Moon's sphere of influence",
-      "hoverText": "The Moon's gravity becomes Orion's dominant local influence.",
+      "infoText": "6th Apr 2026, 05:38:44 UTC - Orion enters the Moon's sphere of influence (Hill sphere definition, around 62,800 km from the Moon)",
+      "hoverText": "Updated Apr 6 HORIZONS timing for lunar SOI entry using the Hill-sphere definition.",
       "body": "SC",
       "requiresEphemeris": true
     },
@@ -336,22 +337,22 @@
       "requiresEphemeris": true
     },
     "closestApproach": {
-      "startTime": "2026-04-06T23:02:00Z",
+      "startTime": "2026-04-06T23:01:12Z",
       "durationSeconds": 0,
       "label": "Lunar Flyby",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:02 UTC - Orion closest approach to the Moon (~4,070 miles)",
-      "hoverText": "NASA public flyby timeline marks closest approach at 7:02 p.m. Eastern and about 4,070 miles from the Moon.",
+      "infoText": "6th Apr 2026, 23:01:12 UTC - Closest approach to the Moon during Artemis II's crewed lunar flyby (about 8,282.5 km)",
+      "hoverText": "Updated Apr 6 HORIZONS timing and distance for lunar closest approach during the crewed free-return flyby.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "maxDistanceEarth": {
-      "startTime": "2026-04-06T23:07:00Z",
+      "startTime": "2026-04-06T23:05:12Z",
       "durationSeconds": 0,
       "label": "Max Distance",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:07 UTC - Orion reaches maximum distance from Earth (~252,760 miles)",
-      "hoverText": "NASA public flyby timeline marks maximum Earth distance at 7:07 p.m. Eastern and about 252,760 miles.",
+      "infoText": "6th Apr 2026, 23:05:12 UTC - Orion reaches maximum distance from Earth (about 413,146.2 km)",
+      "hoverText": "Updated Apr 6 HORIZONS timing and range for Orion's farthest distance from Earth.",
       "body": "SC",
       "requiresEphemeris": true
     },
