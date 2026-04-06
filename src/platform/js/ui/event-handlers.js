@@ -347,7 +347,6 @@ function bindTimelineCarouselDragGesture() {
         dragState.startScrollLeft = carousel.scrollLeft;
         dragState.dragging = false;
         carousel.classList.remove("is-dragging");
-        carousel.setPointerCapture?.(event.pointerId);
     };
 
     const onPointerMove = (event) => {
@@ -356,6 +355,9 @@ function bindTimelineCarouselDragGesture() {
         if (!dragState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
             dragState.dragging = true;
             carousel.classList.add("is-dragging");
+            // Capture only after drag intent is clear; capturing on pointerdown
+            // can retarget a normal click away from the event button.
+            carousel.setPointerCapture?.(event.pointerId);
         }
         if (!dragState.dragging) return;
         carousel.scrollLeft = dragState.startScrollLeft - deltaX;
