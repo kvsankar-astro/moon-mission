@@ -3,6 +3,10 @@ name: Deploy to Hostgator via SFTP (App-only)
 on:
   workflow_dispatch:
 
+env:
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
+
 jobs:
   unit-tests:
     name: Unit Tests
@@ -30,6 +34,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Checkout mission data repository (fallback shared assets)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
 
       - name: Prepare deployment directory (app repo only)
         run: |
@@ -70,6 +81,10 @@ jobs:
           fi
           if [ -d third-party ]; then
             cp -r third-party dist-pages/
+          fi
+          if [ -f mission-data/images/sky/starmap_4k.jpg ]; then
+            mkdir -p dist-pages/images/sky
+            cp mission-data/images/sky/starmap_4k.jpg dist-pages/images/sky/starmap_4k.jpg
           fi
 
       - name: Write deployment metadata (app-only)
@@ -132,6 +147,17 @@ jobs:
             echo "No app-managed social images present in dist-pages/images/social; skipping."
           fi
         timeout-minutes: 10
+
+      - name: Deploy fallback shared sky texture
+        run: |
+          if [ -f ./dist-pages/images/sky/starmap_4k.jpg ]; then
+            rsync -avz \
+              -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+              ./dist-pages/images/sky/starmap_4k.jpg \
+              ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_REMOTE_PATH }}/images/sky/starmap_4k.jpg
+          else
+            echo "No fallback starmap_4k.jpg present in dist-pages/images/sky; skipping."
+          fi
 
       - name: Cleanup SSH key
         if: always()
