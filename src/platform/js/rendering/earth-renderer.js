@@ -15,9 +15,17 @@ const EARTH_NIGHTSIDE_LIFT = 0.12;
 const EARTH_NIGHTSIDE_EXPONENT = 1.45;
 
 function applyEarthNightsideLiftShader(material) {
+    material.userData = material.userData || {};
+    if (!Number.isFinite(material.userData.earthNightsideLift)) {
+        material.userData.earthNightsideLift = EARTH_NIGHTSIDE_LIFT;
+    }
+    if (!Number.isFinite(material.userData.earthNightsideExponent)) {
+        material.userData.earthNightsideExponent = EARTH_NIGHTSIDE_EXPONENT;
+    }
     material.onBeforeCompile = (shader) => {
-        shader.uniforms.uEarthNightsideLift = { value: EARTH_NIGHTSIDE_LIFT };
-        shader.uniforms.uEarthNightsideExponent = { value: EARTH_NIGHTSIDE_EXPONENT };
+        shader.uniforms.uEarthNightsideLift = { value: material.userData.earthNightsideLift };
+        shader.uniforms.uEarthNightsideExponent = { value: material.userData.earthNightsideExponent };
+        material.userData.earthNightsideShader = shader;
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
@@ -37,6 +45,20 @@ uniform float uEarthNightsideExponent;`,
     reflectedLight.indirectDiffuse += diffuseColor.rgb * (uEarthNightsideLift * earthNightWeight);
 #endif`,
             );
+    };
+    material.onBeforeRender = () => {
+        const shader = material.userData?.earthNightsideShader;
+        if (!shader?.uniforms) {
+            return;
+        }
+        const lift = Number(material.userData.earthNightsideLift);
+        const exponent = Number(material.userData.earthNightsideExponent);
+        if (Number.isFinite(lift) && shader.uniforms.uEarthNightsideLift) {
+            shader.uniforms.uEarthNightsideLift.value = lift;
+        }
+        if (Number.isFinite(exponent) && shader.uniforms.uEarthNightsideExponent) {
+            shader.uniforms.uEarthNightsideExponent.value = exponent;
+        }
     };
     material.customProgramCacheKey = () =>
         `earth-nightside-lift-v1-${EARTH_NIGHTSIDE_LIFT}-${EARTH_NIGHTSIDE_EXPONENT}`;

@@ -99,11 +99,26 @@ function buildNormalMapFromHeightTexture(heightTexture) {
 }
 
 function applyMoonPhotometricShader(material) {
+    material.userData = material.userData || {};
+    if (!Number.isFinite(material.userData.moonLsBlend)) {
+        material.userData.moonLsBlend = MOON_LOMMEL_SEELIGER_BLEND;
+    }
+    if (!Number.isFinite(material.userData.moonOppositionStrength)) {
+        material.userData.moonOppositionStrength = MOON_OPPOSITION_STRENGTH;
+    }
+    if (!Number.isFinite(material.userData.moonShadowLift)) {
+        material.userData.moonShadowLift = MOON_SHADOW_LIFT;
+    }
+    if (!Number.isFinite(material.userData.moonHighlightBoost)) {
+        material.userData.moonHighlightBoost = MOON_HIGHLIGHT_BOOST;
+    }
+
     material.onBeforeCompile = (shader) => {
-        shader.uniforms.uMoonLsBlend = { value: MOON_LOMMEL_SEELIGER_BLEND };
-        shader.uniforms.uMoonOppositionStrength = { value: MOON_OPPOSITION_STRENGTH };
-        shader.uniforms.uMoonShadowLift = { value: MOON_SHADOW_LIFT };
-        shader.uniforms.uMoonHighlightBoost = { value: MOON_HIGHLIGHT_BOOST };
+        shader.uniforms.uMoonLsBlend = { value: material.userData.moonLsBlend };
+        shader.uniforms.uMoonOppositionStrength = { value: material.userData.moonOppositionStrength };
+        shader.uniforms.uMoonShadowLift = { value: material.userData.moonShadowLift };
+        shader.uniforms.uMoonHighlightBoost = { value: material.userData.moonHighlightBoost };
+        material.userData.moonPhotometricShader = shader;
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
@@ -150,6 +165,29 @@ uniform float uMoonHighlightBoost;`,
 
     material.customProgramCacheKey = () =>
         `moon-photometric-v3-${MOON_LOMMEL_SEELIGER_BLEND}-${MOON_OPPOSITION_STRENGTH}-${MOON_SHADOW_LIFT}-${MOON_HIGHLIGHT_BOOST}`;
+
+    material.onBeforeRender = () => {
+        const shader = material.userData?.moonPhotometricShader;
+        if (!shader?.uniforms) {
+            return;
+        }
+        const lsBlend = Number(material.userData.moonLsBlend);
+        const opposition = Number(material.userData.moonOppositionStrength);
+        const shadowLift = Number(material.userData.moonShadowLift);
+        const highlightBoost = Number(material.userData.moonHighlightBoost);
+        if (Number.isFinite(lsBlend) && shader.uniforms.uMoonLsBlend) {
+            shader.uniforms.uMoonLsBlend.value = lsBlend;
+        }
+        if (Number.isFinite(opposition) && shader.uniforms.uMoonOppositionStrength) {
+            shader.uniforms.uMoonOppositionStrength.value = opposition;
+        }
+        if (Number.isFinite(shadowLift) && shader.uniforms.uMoonShadowLift) {
+            shader.uniforms.uMoonShadowLift.value = shadowLift;
+        }
+        if (Number.isFinite(highlightBoost) && shader.uniforms.uMoonHighlightBoost) {
+            shader.uniforms.uMoonHighlightBoost.value = highlightBoost;
+        }
+    };
 }
 
 export class MoonRenderer {

@@ -146,6 +146,7 @@ function createSceneHandlerClass(deps) {
                 }
                 this.auxiliaryCameraViews?.render({
                     scene: animationScene.scene,
+                    latestSceneState: animationScene.latestSceneState || null,
                     activeCraft: null,
                     craftsById: animationScene.craftsById,
                     dronesById: animationScene.dronesById,
@@ -239,6 +240,7 @@ function createSceneHandlerClass(deps) {
             }
             this.auxiliaryCameraViews?.render({
                 scene: animationScene.scene,
+                latestSceneState: animationScene.latestSceneState || null,
                 activeCraft,
                 craftsById: animationScene.craftsById,
                 dronesById: animationScene.dronesById,

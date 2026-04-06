@@ -32,6 +32,7 @@ describe("AUXILIARY_VIEW_CAMERA_PRESETS", () => {
 
 describe("resolveLunarFlybyWindowMs", () => {
     it("returns SOI entry/exit bounds when present in mission events", () => {
+        const paddingMs = 5 * 60 * 1000;
         const startMs = Date.UTC(2026, 3, 6, 4, 43, 12);
         const endMs = Date.UTC(2026, 3, 7, 17, 27, 12);
         const window = resolveLunarFlybyWindowMs([
@@ -52,8 +53,8 @@ describe("resolveLunarFlybyWindowMs", () => {
             },
         ]);
 
-        expect(window.startMs).toBe(startMs);
-        expect(window.endMs).toBe(endMs);
+        expect(window.startMs).toBe(startMs - paddingMs);
+        expect(window.endMs).toBe(endMs + paddingMs);
     });
 
     it("returns NaN bounds when SOI entry/exit events are missing", () => {
