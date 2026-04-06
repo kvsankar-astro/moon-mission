@@ -19,6 +19,7 @@
 //   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: launch at `2026-04-01 22:35:12 UTC` and the updated Apr 4 major-event timeline.
 //   - `docs/horizons-blurbs/raw/artemis-2-orion.txt`: updated trajectory table split into 5 OEM segments ending at `2026-Apr-10 23:57` (TDB minute-rounded).
 //   - `data-generated/artemis2/horizons-live-artemis2-obj.txt`: live HORIZONS capture fetched on 2026-04-05 for verification against in-repo mission events.
+//   - `https://www.nasa.gov/missions/artemis/artemis-2/nasa-sets-coverage-for-artemis-ii-moon-mission/`: public lunar-flyby broadcast milestones (Earthset/Earthrise/eclipse and flyby media timings).
 // Notes:
 //   - Launch and early mission events remain preserved even when they occur before the sampled orbit-data window.
 //   - Splashdown and final power-down remain preserved as post-data mission events.
@@ -324,23 +325,63 @@
       "body": "SC",
       "requiresEphemeris": true
     },
+    "earthSet": {
+      "startTime": "2026-04-06T22:45:00Z",
+      "durationSeconds": 0,
+      "label": "Earthset",
+      "burnFlag": false,
+      "infoText": "6th Apr 2026, 22:45 UTC - Earth sets behind the lunar limb from Orion's flyby perspective",
+      "hoverText": "NASA public flyby timeline marks Earthset at 6:45 p.m. Eastern.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
     "closestApproach": {
-      "startTime": "2026-04-06T23:06:12Z",
+      "startTime": "2026-04-06T23:02:00Z",
       "durationSeconds": 0,
       "label": "Lunar Flyby",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:06:12 UTC - Closest approach to the Moon during Artemis II's crewed lunar flyby",
-      "hoverText": "Orion passes closest to the Moon during the crewed free-return flyby.",
+      "infoText": "6th Apr 2026, 23:02 UTC - Orion closest approach to the Moon (~4,070 miles)",
+      "hoverText": "NASA public flyby timeline marks closest approach at 7:02 p.m. Eastern and about 4,070 miles from the Moon.",
       "body": "SC",
       "requiresEphemeris": true
     },
     "maxDistanceEarth": {
-      "startTime": "2026-04-06T23:09:12Z",
+      "startTime": "2026-04-06T23:07:00Z",
       "durationSeconds": 0,
       "label": "Max Distance",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:09:12 UTC - Orion reaches maximum distance from Earth",
-      "hoverText": "Orion reaches its farthest range from Earth shortly after lunar closest approach.",
+      "infoText": "6th Apr 2026, 23:07 UTC - Orion reaches maximum distance from Earth (~252,760 miles)",
+      "hoverText": "NASA public flyby timeline marks maximum Earth distance at 7:07 p.m. Eastern and about 252,760 miles.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "earthRise": {
+      "startTime": "2026-04-06T23:25:00Z",
+      "durationSeconds": 0,
+      "label": "Earthrise",
+      "burnFlag": false,
+      "infoText": "6th Apr 2026, 23:25 UTC - Earth rises over the lunar horizon from Orion's flyby perspective",
+      "hoverText": "NASA public flyby timeline marks Earthrise at 7:25 p.m. Eastern.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "eclipseStart": {
+      "startTime": "2026-04-07T00:35:00Z",
+      "durationSeconds": 0,
+      "label": "Eclipse In",
+      "burnFlag": false,
+      "infoText": "7th Apr 2026, 00:35 UTC - Orion enters solar eclipse during outbound coast",
+      "hoverText": "NASA public flyby timeline marks solar-eclipse entry at 8:35 p.m. Eastern.",
+      "body": "SC",
+      "requiresEphemeris": true
+    },
+    "eclipseEnd": {
+      "startTime": "2026-04-07T01:32:00Z",
+      "durationSeconds": 0,
+      "label": "Eclipse Out",
+      "burnFlag": false,
+      "infoText": "7th Apr 2026, 01:32 UTC - Orion exits solar eclipse",
+      "hoverText": "NASA public flyby timeline marks solar-eclipse exit at 9:32 p.m. Eastern.",
       "body": "SC",
       "requiresEphemeris": true
     },
@@ -465,8 +506,12 @@
       "trajectoryCorrection2",
       "trajectoryCorrection3",
       "lunarSoiEntry",
+      "earthSet",
       "closestApproach",
       "maxDistanceEarth",
+      "earthRise",
+      "eclipseStart",
+      "eclipseEnd",
       "lunarSoiExit",
       "returnCorrection1",
       "manualPiloting",
@@ -497,8 +542,12 @@
       "trajectoryCorrection2",
       "trajectoryCorrection3",
       "lunarSoiEntry",
+      "earthSet",
       "closestApproach",
       "maxDistanceEarth",
+      "earthRise",
+      "eclipseStart",
+      "eclipseEnd",
       "lunarSoiExit",
       "returnCorrection1",
       "manualPiloting",

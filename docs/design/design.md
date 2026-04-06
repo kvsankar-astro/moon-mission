@@ -81,6 +81,7 @@ Example event-sourcing deep dive:
 
 Rendering/UX design investigations:
 - [moon-rendering-research-and-plan.md](moon-rendering-research-and-plan.md)
+- [sun-rendering-earthrise-research.md](sun-rendering-earthrise-research.md)
 - [orbit-ux-and-refactor-roadmap.md](orbit-ux-and-refactor-roadmap.md)
 - [orion-procedural-model-generation.md](orion-procedural-model-generation.md)
 

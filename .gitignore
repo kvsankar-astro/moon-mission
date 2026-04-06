@@ -165,6 +165,10 @@ tmpclaude-*
 # Local temporary build/deploy scratch outputs
 tmp-dist-*/
 tmp-deploy-meta/
+tmp/
 
 # Private local audit notes
 docs/third-party-audit-*.md
+
+# Local-only Sun reference image packs used for visual tuning
+docs/design/references/sun-fov/

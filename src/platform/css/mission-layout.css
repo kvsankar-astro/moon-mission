@@ -205,9 +205,30 @@ canvas {
 }
 
 .aux-camera-view--composer {
-    grid-template-rows: auto auto auto 1fr;
-    min-width: 240px;
-    min-height: 240px;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
+    min-width: 600px;
+    min-height: 320px;
+    aspect-ratio: auto;
+}
+
+.aux-camera-view--composer > .aux-camera-view__header {
+    grid-row: 1;
+    grid-column: 1 / -1;
+}
+
+.aux-camera-view--composer > .aux-camera-view__composer-control-matrix {
+    grid-row: 2;
+    grid-column: 1;
+    align-self: stretch;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.aux-camera-view--composer > .aux-camera-view__viewport {
+    grid-row: 2;
+    grid-column: 2;
 }
 
 .aux-camera-view--composer .aux-camera-view__header {
@@ -229,28 +250,65 @@ canvas {
 }
 
 .aux-camera-view__composer-presets {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    padding: 0;
+    border-bottom: 0;
+    background: transparent;
+    margin: 0;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-info-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr);
+    align-items: center;
+    column-gap: 8px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-lock-buttons {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
-    background: rgba(10, 18, 31, 0.64);
+    gap: 6px;
+    flex-wrap: wrap;
     min-width: 0;
+}
+
+.aux-camera-view__composer-section-label {
+    color: rgba(176, 203, 241, 0.86);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding-top: 2px;
 }
 
 .aux-camera-view__composer-label {
     color: rgba(224, 237, 255, 0.95);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.015em;
     white-space: nowrap;
 }
 
-.aux-camera-view__composer-hint {
-    margin-left: auto;
-    color: rgba(197, 216, 245, 0.86);
-    font-size: 8px;
+.aux-camera-view__composer-grid-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(211, 226, 248, 0.92);
+    font-size: 10px;
+    font-weight: 600;
     white-space: nowrap;
+}
+
+.aux-camera-view__composer-grid-toggle input {
+    margin: 0;
+    width: 12px;
+    height: 12px;
+    accent-color: rgba(106, 169, 255, 1);
 }
 
 .aux-camera-view__composer-button {
@@ -258,10 +316,10 @@ canvas {
     border-radius: 4px;
     background: rgba(14, 24, 41, 0.72);
     color: rgba(211, 226, 248, 0.92);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
     line-height: 1;
-    padding: 2px 6px;
+    padding: 4px 8px;
     cursor: pointer;
 }
 
@@ -278,27 +336,87 @@ canvas {
 
 .aux-camera-view__composer-control-matrix {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto;
-    column-gap: 6px;
-    row-gap: 1px;
-    padding: 2px 6px;
-    border-bottom: 1px solid rgba(121, 171, 255, 0.16);
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: 10px;
+    padding: 10px 12px;
+    border-right: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(10, 18, 31, 0.64);
     min-width: 0;
+    min-height: 0;
+    align-content: start;
 }
 
 .aux-camera-view__composer-timeline,
 .aux-camera-view__composer-controls {
     display: grid;
-    grid-template-columns: 46px minmax(0, 1fr) 28px;
+    grid-template-columns: 72px minmax(0, 1fr) 42px;
     align-items: center;
-    column-gap: 4px;
+    column-gap: 8px;
     min-width: 0;
 }
 
+.aux-camera-view__composer-fov .aux-camera-view__fov-controls {
+    display: grid;
+    grid-template-columns: 72px auto minmax(0, 1fr) 42px;
+    align-items: center;
+    column-gap: 8px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-fov .aux-camera-view__fov-label {
+    width: 72px;
+}
+
+.aux-camera-view__composer-fov .aux-camera-view__fov-slider {
+    width: 100%;
+}
+
 .aux-camera-view__composer-row-label {
-    width: 46px;
+    width: 72px;
+}
+
+.aux-camera-view__composer-optics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 10px;
+    padding-top: 0;
+}
+
+.aux-camera-view__composer-optics-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.aux-camera-view__composer-optics-body {
+    display: grid;
+    row-gap: 6px;
+}
+
+.aux-camera-view__composer-optics-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-optics-row {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 42px;
+    align-items: center;
+    column-gap: 8px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-optics-advanced {
+    display: grid;
+    gap: 6px;
+    margin-top: 0;
+    padding-top: 4px;
+    border-top: 0;
+    align-self: start;
 }
 
 .aux-camera-view__composer-timeline-slider {
@@ -323,19 +441,33 @@ canvas {
     cursor: pointer;
 }
 
+.aux-camera-view--composer .aux-camera-view__fov-slider {
+    min-width: 0;
+    height: 12px;
+    accent-color: rgba(120, 178, 255, 1);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
 .aux-camera-view__composer-timeline-slider::-webkit-slider-runnable-track,
-.aux-camera-view__composer-ambient-slider::-webkit-slider-runnable-track {
-    height: 3px;
+.aux-camera-view__composer-ambient-slider::-webkit-slider-runnable-track,
+.aux-camera-view--composer .aux-camera-view__fov-slider::-webkit-slider-runnable-track,
+.aux-camera-view__composer-roll-slider::-webkit-slider-runnable-track {
+    height: 4px;
     border-radius: 999px;
     background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
 }
 
 .aux-camera-view__composer-timeline-slider::-webkit-slider-thumb,
-.aux-camera-view__composer-ambient-slider::-webkit-slider-thumb {
+.aux-camera-view__composer-ambient-slider::-webkit-slider-thumb,
+.aux-camera-view--composer .aux-camera-view__fov-slider::-webkit-slider-thumb,
+.aux-camera-view__composer-roll-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     margin-top: -4px;
     border-radius: 999px;
     border: 1px solid rgba(211, 232, 255, 0.86);
@@ -344,17 +476,21 @@ canvas {
 }
 
 .aux-camera-view__composer-timeline-slider::-moz-range-track,
-.aux-camera-view__composer-ambient-slider::-moz-range-track {
-    height: 3px;
+.aux-camera-view__composer-ambient-slider::-moz-range-track,
+.aux-camera-view--composer .aux-camera-view__fov-slider::-moz-range-track,
+.aux-camera-view__composer-roll-slider::-moz-range-track {
+    height: 4px;
     border: none;
     border-radius: 999px;
     background: linear-gradient(90deg, rgba(82, 142, 229, 0.86), rgba(165, 201, 250, 0.62));
 }
 
 .aux-camera-view__composer-timeline-slider::-moz-range-thumb,
-.aux-camera-view__composer-ambient-slider::-moz-range-thumb {
-    width: 10px;
-    height: 10px;
+.aux-camera-view__composer-ambient-slider::-moz-range-thumb,
+.aux-camera-view--composer .aux-camera-view__fov-slider::-moz-range-thumb,
+.aux-camera-view__composer-roll-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
     border: 1px solid rgba(211, 232, 255, 0.86);
     border-radius: 999px;
     background: #f3f8ff;
@@ -362,29 +498,31 @@ canvas {
 }
 
 .aux-camera-view__composer-timeline-slider:focus-visible,
-.aux-camera-view__composer-ambient-slider:focus-visible {
+.aux-camera-view__composer-ambient-slider:focus-visible,
+.aux-camera-view--composer .aux-camera-view__fov-slider:focus-visible,
+.aux-camera-view__composer-roll-slider:focus-visible {
     outline: 1px solid rgba(170, 208, 255, 0.8);
     outline-offset: 1px;
 }
 
 .aux-camera-view__composer-ambient-value {
     color: rgba(208, 223, 246, 0.92);
-    font-size: 8px;
+    font-size: 10px;
     font-weight: 600;
-    width: 28px;
+    width: 42px;
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
 
 .aux-camera-view__composer-value-slot {
-    width: 28px;
+    width: 42px;
 }
 
 .aux-camera-view__composer-timeline-local {
     grid-column: 2 / span 2;
     margin-top: 1px;
     color: rgba(184, 206, 238, 0.76);
-    font-size: 8px;
+    font-size: 10px;
     line-height: 1.2;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -392,61 +530,34 @@ canvas {
     text-overflow: ellipsis;
 }
 
-.aux-camera-view__composer-dial-wrap {
-    display: inline-flex;
-    flex-direction: column;
+.aux-camera-view__composer-roll-wrap {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) 42px;
     align-items: center;
-    justify-content: center;
-    gap: 1px;
-    min-width: 50px;
-    grid-row: 1 / span 2;
+    column-gap: 8px;
+    min-width: 0;
+    align-self: start;
+}
+
+.aux-camera-view__composer-roll-slider {
     grid-column: 2;
-    align-self: center;
+    width: 100%;
+    min-width: 0;
+    height: 12px;
+    accent-color: rgba(120, 178, 255, 1);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-.aux-camera-view__composer-dial {
-    position: relative;
-    width: 48px;
-    height: 48px;
-    border-radius: 999px;
-    border: 1px solid rgba(150, 196, 255, 0.6);
-    background:
-        radial-gradient(circle at 50% 50%, rgba(45, 72, 114, 0.52) 0%, rgba(15, 25, 40, 0.85) 62%),
-        repeating-conic-gradient(from -90deg, rgba(193, 220, 255, 0.34) 0deg 1.8deg, transparent 1.8deg 10deg),
-        radial-gradient(circle at 50% 50%, transparent 0 69%, rgba(170, 206, 255, 0.24) 69.5% 71%, transparent 71.5%);
-    box-shadow: inset 0 1px 10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(22, 35, 56, 0.7);
-    cursor: grab;
-    touch-action: none;
-}
-
-.aux-camera-view__composer-dial:active {
-    cursor: grabbing;
-}
-
-.aux-camera-view__composer-dial-needle {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 2px;
-    height: 19px;
-    border-radius: 999px;
-    transform-origin: 50% 100%;
-    transform: translate(-50%, -100%) rotate(0deg);
-    background: linear-gradient(180deg, rgba(232, 243, 255, 0.98), rgba(133, 188, 255, 0.96));
-    box-shadow: 0 0 0 1px rgba(26, 43, 67, 0.75), 0 0 10px rgba(147, 199, 255, 0.42);
-}
-
-.aux-camera-view__composer-dial-needle::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    bottom: -3px;
-    width: 6px;
-    height: 6px;
-    border-radius: 999px;
-    transform: translateX(-50%);
-    background: rgba(228, 240, 255, 0.98);
-    border: 1px solid rgba(121, 171, 255, 0.85);
+.aux-camera-view__composer-roll-value {
+    grid-column: 3;
+    color: rgba(208, 223, 246, 0.92);
+    font-size: 10px;
+    font-weight: 600;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .aux-camera-view__composer-dial-cardinal {
