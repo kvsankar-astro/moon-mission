@@ -19,11 +19,11 @@ const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
 const BODY_HALO_KEYS = ["earth", "moon", "craft"];
 const BODY_HALO_STYLE = Object.freeze({
     earth: {
-        edgeRgb: [173, 212, 255],
-        glowRgb: [122, 174, 255],
+        edgeRgb: [214, 236, 255],
+        glowRgb: [186, 223, 255],
         edgeAlpha: 0.86,
         innerGlowAlpha: 0.34,
-        outerRadiusScale: 1.5,
+        outerRadiusScale: 2.25,
         innerRadiusScale: 1.0,
     },
     moon: {
@@ -31,7 +31,7 @@ const BODY_HALO_STYLE = Object.freeze({
         glowRgb: [197, 218, 255],
         edgeAlpha: 0.86,
         innerGlowAlpha: 0.30,
-        outerRadiusScale: 1.85,
+        outerRadiusScale: 3.7,
         innerRadiusScale: 1.0,
     },
     craft: {
