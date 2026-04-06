@@ -1040,13 +1040,14 @@ export function bindMobileMissionCard() {
     let mobileViewsAutoFovEnabled = true;
     const radiusByObject = new WeakMap();
     const AUTO_FOV_MARGIN_SCALE = 1.03;
+    const AUTO_FOV_EPSILON_DEGREES = 1e-4;
     const MIN_FOV = 1;
     const MAX_FOV = 179;
     let mobileViewsPresetInitialized = false;
     let mobileViewsSavedViewState = null;
     let mobileAlwaysSuppressedViewState = null;
     let mobileSavedMissionCameraModes = null;
-    let mobileAutoFovScheduleToken = 0;
+    const mobileAutoFovRadiusCacheByScene = new WeakMap();
     let mobileViewPresetEnforceInProgress = false;
     let mobileMoonFarOverlayEnabled = true;
     let mobileMoonOverlayLastUpdateMs = -Infinity;
@@ -1743,21 +1744,53 @@ export function bindMobileMissionCard() {
 
     const resolveBodyRadius = (scene, targetMode, targetObject) => {
         const mode = String(targetMode || "").toUpperCase();
-        const bodyMeshRadius = resolveBodyMeshRadius(scene, mode);
-        if (Number.isFinite(bodyMeshRadius) && bodyMeshRadius > 0) {
-            return bodyMeshRadius;
+        if (!scene || (mode !== "EARTH" && mode !== "MOON")) {
+            return estimateObjectRadius(targetObject, 1);
         }
+
+        let sceneRadiusCache = mobileAutoFovRadiusCacheByScene.get(scene);
+        if (!sceneRadiusCache) {
+            sceneRadiusCache = new Map();
+            mobileAutoFovRadiusCacheByScene.set(scene, sceneRadiusCache);
+        }
+        const cachedRadius = sceneRadiusCache.get(mode);
+        if (Number.isFinite(cachedRadius) && cachedRadius > 0) {
+            return cachedRadius;
+        }
+
         const primary = String(scene?.primaryBody || "").toUpperCase();
         const secondary = String(scene?.secondaryBody || "").toUpperCase();
         if (mode === "EARTH") {
-            if (primary === "EARTH" && Number.isFinite(scene?.primaryBodyRadius)) return scene.primaryBodyRadius;
-            if (secondary === "EARTH" && Number.isFinite(scene?.secondaryBodyRadius)) return scene.secondaryBodyRadius;
+            if (primary === "EARTH" && Number.isFinite(scene?.primaryBodyRadius)) {
+                sceneRadiusCache.set(mode, scene.primaryBodyRadius);
+                return scene.primaryBodyRadius;
+            }
+            if (secondary === "EARTH" && Number.isFinite(scene?.secondaryBodyRadius)) {
+                sceneRadiusCache.set(mode, scene.secondaryBodyRadius);
+                return scene.secondaryBodyRadius;
+            }
         }
         if (mode === "MOON") {
-            if (primary === "MOON" && Number.isFinite(scene?.primaryBodyRadius)) return scene.primaryBodyRadius;
-            if (secondary === "MOON" && Number.isFinite(scene?.secondaryBodyRadius)) return scene.secondaryBodyRadius;
+            if (primary === "MOON" && Number.isFinite(scene?.primaryBodyRadius)) {
+                sceneRadiusCache.set(mode, scene.primaryBodyRadius);
+                return scene.primaryBodyRadius;
+            }
+            if (secondary === "MOON" && Number.isFinite(scene?.secondaryBodyRadius)) {
+                sceneRadiusCache.set(mode, scene.secondaryBodyRadius);
+                return scene.secondaryBodyRadius;
+            }
         }
-        return estimateObjectRadius(targetObject, 1);
+        const bodyMeshRadius = resolveBodyMeshRadius(scene, mode);
+        if (Number.isFinite(bodyMeshRadius) && bodyMeshRadius > 0) {
+            sceneRadiusCache.set(mode, bodyMeshRadius);
+            return bodyMeshRadius;
+        }
+        const estimatedRadius = estimateObjectRadius(targetObject, Number.NaN);
+        if (Number.isFinite(estimatedRadius) && estimatedRadius > 0) {
+            sceneRadiusCache.set(mode, estimatedRadius);
+            return estimatedRadius;
+        }
+        return Number.isFinite(cachedRadius) && cachedRadius > 0 ? cachedRadius : 1;
     };
 
     const computeAutoFovDegrees = ({ distanceToTarget, targetRadius, aspect }) => {
@@ -1979,6 +2012,7 @@ export function bindMobileMissionCard() {
                 return;
             }
             syncMobileComposePresentation();
+            applyAutoFovForActivePreset();
             const scene = resolveActiveScene();
             if (
                 scene?.camera?.fov &&
@@ -2009,6 +2043,29 @@ export function bindMobileMissionCard() {
         return true;
     };
 
+    const applyMobileViewsAutoFov = (fovDegrees) => {
+        const scene = resolveActiveScene();
+        const controller = scene?.cameraController;
+        const nextFov = clampFov(fovDegrees);
+        if (!controller?.setFov) {
+            updateMobileViewsFovDisplay(nextFov);
+            return false;
+        }
+        controller.setFov(nextFov);
+        updateMobileViewsFovDisplay(nextFov);
+        return true;
+    };
+
+    const requestMobileSceneRender = () => {
+        const scene = resolveActiveScene();
+        const controller = scene?.cameraController;
+        if (!controller) return;
+        if (!controller._freeFlyActive) {
+            controller.controls?.update?.();
+            controller.controls?.dispatchEvent?.({ type: "change" });
+        }
+    };
+
     const resolveTouchDistance = (touchA, touchB) => {
         if (!touchA || !touchB) return null;
         const dx = Number(touchA.clientX) - Number(touchB.clientX);
@@ -2034,6 +2091,8 @@ export function bindMobileMissionCard() {
     const applyAutoFovForActivePreset = () => {
         if (!mobileViewsAutoFovEnabled) return false;
         const isComposeTab = activeMobileTab === "compose" && composeFeatureEnabled;
+        const isViewsTab = activeMobileTab === "views";
+        if (!isViewsTab && !isComposeTab) return false;
         const preset = isComposeTab
             ? mobileComposePresetById.get(activeMobileComposeLockPresetId)
             : mobileViewPresetById.get(activeMobileViewPresetId);
@@ -2066,22 +2125,13 @@ export function bindMobileMissionCard() {
             }
             return false;
         }
-        if (Math.abs((scene.camera.fov || 0) - autoFov) < 0.15) {
-            updateMobileViewsFovDisplay(scene.camera.fov);
+        const clampedAutoFov = clampFov(autoFov);
+        const currentFov = Number(scene.camera?.fov);
+        if (Number.isFinite(currentFov) && Math.abs(currentFov - clampedAutoFov) < AUTO_FOV_EPSILON_DEGREES) {
+            updateMobileViewsFovDisplay(currentFov);
             return false;
         }
-        return applyMobileViewsFov(autoFov);
-    };
-
-    const scheduleAutoFovApply = () => {
-        if (!mobileViewsAutoFovEnabled) return;
-        const token = ++mobileAutoFovScheduleToken;
-        window.requestAnimationFrame(() => {
-            window.requestAnimationFrame(() => {
-                if (token !== mobileAutoFovScheduleToken) return;
-                applyAutoFovForActivePreset();
-            });
-        });
+        return applyMobileViewsAutoFov(clampedAutoFov);
     };
 
     const clampEarthshineGain = (value) => {
@@ -2584,12 +2634,11 @@ export function bindMobileMissionCard() {
             }
             syncMobileViewPresetState();
             if (mobileViewsAutoFovEnabled) {
-                scheduleAutoFovApply();
-            } else {
-                const scene = resolveActiveScene();
-                if (scene?.camera?.fov) {
-                    updateMobileViewsFovDisplay(scene.camera.fov);
-                }
+                applyAutoFovForActivePreset();
+            }
+            const scene = resolveActiveScene();
+            if (scene?.camera?.fov) {
+                updateMobileViewsFovDisplay(scene.camera.fov);
             }
             startMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
@@ -2601,12 +2650,11 @@ export function bindMobileMissionCard() {
             }
             syncMobileComposeControls();
             if (mobileViewsAutoFovEnabled) {
-                scheduleAutoFovApply();
-            } else {
-                const scene = resolveActiveScene();
-                if (scene?.camera?.fov) {
-                    updateMobileViewsFovDisplay(scene.camera.fov);
-                }
+                applyAutoFovForActivePreset();
+            }
+            const scene = resolveActiveScene();
+            if (scene?.camera?.fov) {
+                updateMobileViewsFovDisplay(scene.camera.fov);
             }
             stopMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
@@ -2694,9 +2742,7 @@ export function bindMobileMissionCard() {
                 const presetId = button.dataset.mobileViewPreset || "";
                 applyMobileViewPreset(presetId);
                 syncMobileViewPresetState();
-                if (mobileViewsAutoFovEnabled) {
-                    scheduleAutoFovApply();
-                }
+                applyAutoFovForActivePreset();
             });
         });
     }
@@ -2716,9 +2762,7 @@ export function bindMobileMissionCard() {
             syncMobileViewPresetState();
             syncMobileComposeLockPresetState();
             syncMobileComposePresentation();
-            if (mobileViewsAutoFovEnabled && (activeMobileTab === "views" || activeMobileTab === "compose")) {
-                scheduleAutoFovApply();
-            }
+            applyAutoFovForActivePreset();
             if (activeMobileTab === "compose") {
                 syncMobileComposeTimelineWindow();
             }
@@ -2730,9 +2774,7 @@ export function bindMobileMissionCard() {
             syncMobileViewPresetState();
             syncMobileComposeLockPresetState();
             syncMobileComposePresentation();
-            if (mobileViewsAutoFovEnabled && (activeMobileTab === "views" || activeMobileTab === "compose")) {
-                scheduleAutoFovApply();
-            }
+            applyAutoFovForActivePreset();
             if (activeMobileTab === "compose") {
                 syncMobileComposeTimelineWindow();
             }
@@ -2743,18 +2785,14 @@ export function bindMobileMissionCard() {
     if (mobileViewsFovAuto) {
         mobileViewsFovAuto.addEventListener("click", function () {
             setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
-            if (mobileViewsAutoFovEnabled) {
-                scheduleAutoFovApply();
-            }
+            applyAutoFovForActivePreset();
             syncMobileMoonVisibilityInfo({ force: true });
         });
     }
     if (mobileComposeFovAuto) {
         mobileComposeFovAuto.addEventListener("click", function () {
             setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
-            if (mobileViewsAutoFovEnabled) {
-                scheduleAutoFovApply();
-            }
+            applyAutoFovForActivePreset();
             syncMobileMoonVisibilityInfo({ force: true });
         });
     }
@@ -2919,7 +2957,19 @@ export function bindMobileMissionCard() {
     if (mobileViewsFarSideToggle) {
         mobileViewsFarSideToggle.addEventListener("click", function () {
             mobileMoonFarOverlayEnabled = !mobileMoonFarOverlayEnabled;
+            mobileViewsFarSideToggle.textContent = mobileMoonFarOverlayEnabled ? "Far Side: ON" : "Far Side: OFF";
+            mobileViewsFarSideToggle.classList.toggle("is-active", mobileMoonFarOverlayEnabled);
+            mobileViewsFarSideToggle.setAttribute("aria-pressed", mobileMoonFarOverlayEnabled ? "true" : "false");
+            if (!mobileMoonFarOverlayEnabled) {
+                hideAllMobileMoonFarSideOverlays();
+                setMobileMoonOverlayActive(false);
+            }
             syncMobileMoonVisibilityInfo({ force: true });
+            requestMobileSceneRender();
+            window.requestAnimationFrame(() => {
+                syncMobileMoonVisibilityInfo({ force: true });
+                requestMobileSceneRender();
+            });
         });
     }
 
