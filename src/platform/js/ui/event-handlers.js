@@ -1050,6 +1050,7 @@ export function bindMobileMissionCard() {
         "view-orbit-descent",
         "view-additional-crafts",
         "view-aux-camera-panels",
+        "view-body-halos",
         "view-craters",
         "view-xyz-axes",
         "view-poles",
