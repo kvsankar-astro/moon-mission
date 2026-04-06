@@ -440,9 +440,9 @@ export class SkyController {
         if (this.parameters.procedural_stars_enabled) {
             // Keep procedural stars clearly visible without flattening the full
             // magnitude range into uniformly large/bright points.
-            starParameters.star_intensity_scale *= 26.0;
-            starParameters.star_size_scale *= 1.18;
-            starParameters.minPointSize = 1.0;
+            starParameters.star_intensity_scale *= 64.0;
+            starParameters.star_size_scale *= 1.24;
+            starParameters.minPointSize = 1.08;
             starParameters.maxPointSize = 9.5;
             starParameters.bloom_strength = Math.max(starParameters.bloom_strength, 0.95);
         }

@@ -76,7 +76,25 @@ export function bvToLinearRgb(bv) {
   const dsg = luma + ((sg - luma) * sat);
   const dsb = luma + ((sb - luma) * sat);
 
-  return [srgbToLinear(dsr), srgbToLinear(dsg), srgbToLinear(dsb)];
+  const lr = srgbToLinear(dsr);
+  const lg = srgbToLinear(dsg);
+  const lb = srgbToLinear(dsb);
+
+  // Keep photometric brightness driven by magnitude, not by color tint.
+  // Without this, very blue stars can look artificially dim compared to
+  // similar-magnitude neutral/red stars.
+  const linLuma = (0.2126 * lr) + (0.7152 * lg) + (0.0722 * lb);
+  if (linLuma <= 1e-4) {
+    return [1, 1, 1];
+  }
+
+  let scale = 1 / linLuma;
+  const maxChannel = Math.max(lr, lg, lb);
+  if (maxChannel * scale > 2.2) {
+    scale = 2.2 / maxChannel;
+  }
+
+  return [lr * scale, lg * scale, lb * scale];
 }
 
 const STAR_VERTEX_SHADER = `
@@ -158,11 +176,9 @@ void main() {
   float psfSoftening = mix(0.98, 1.08 + (0.24 * horizonTwinkleBoost), atmosphere);
   float spriteSize = baseSize * psfSoftening;
 
-  // Stars are rendered on a large celestial sphere centered near the camera.
-  // Cancel perspective shrink so point sprites do not collapse to sub-pixel dots.
-  float distanceRatio = max(0.75, abs(mvPosition.z) / max(uSkyRadius, 1.0));
+  // Keep point-size driven by photometric sprite size + viewport scaling.
   float viewportScale = max(0.9, uPointScale / 500.0);
-  float pointSizePx = spriteSize * distanceRatio * viewportScale;
+  float pointSizePx = spriteSize * viewportScale;
   gl_PointSize = clamp(pointSizePx, uMinPointSize, uMaxPointSize);
   vPointSize = gl_PointSize;
 
@@ -199,23 +215,34 @@ void main() {
   // Space mode target: preserve photometric separation across magnitudes.
   // Use a steeper transfer than sqrt-style compression, with a small floor so
   // dim stars remain visible instead of disappearing entirely.
-  float contrastGamma = mix(1.10, 0.94, atmosphere);
+  float contrastGamma = mix(1.04, 0.94, atmosphere);
   float contrastIntensity = pow(max(baseIntensity, 1e-6), contrastGamma);
   float visibilityLift = mix(
-    0.0028 * sqrt(baseIntensity),
-    0.0052 * sqrt(baseIntensity),
+    0.0095 * sqrt(baseIntensity),
+    0.0125 * sqrt(baseIntensity),
     atmosphere
   );
   float perceivedIntensity = contrastIntensity + visibilityLift;
   // Bright-star-only monotonic boost: never dims any star.
-  float brightBoost = 1.0 + (0.55 * smoothstep(220.0, 5200.0, baseIntensity));
+  float brightClass = smoothstep(90.0, 4500.0, baseIntensity);
+  float brightBoost = mix(
+    1.0 + (1.45 * brightClass),
+    1.0 + (0.65 * brightClass),
+    atmosphere
+  );
   perceivedIntensity *= brightBoost;
 
   // Pinpoint path for small stars: render as crisp, bright stellar pixels.
   if (vPointSize <= 1.45) {
-    float pixelCore = exp(-r2 * 18.0);
-    float pixelHalo = vHalo * exp(-r2 * 4.6) * 0.08;
-    vec3 pixelColor = vColor * ((pixelCore + pixelHalo) * perceivedIntensity * 1.25);
+    // Adaptively widen tiny-star PSF near 1px to avoid per-pixel dropout while
+    // keeping larger tiny sprites visually crisp.
+    float tinyT = clamp((vPointSize - 0.75) / 0.70, 0.0, 1.0);
+    float tinyCoreSharpness = mix(7.2, 12.8, tinyT);
+    float pixelCore = exp(-r2 * tinyCoreSharpness);
+    float pixelSupport = 1.0 - smoothstep(0.74, 1.0, r);
+    float pixelHalo = vHalo * exp(-r2 * mix(2.8, 4.8, tinyT)) * 0.06;
+    float tinyProfile = max(pixelCore, pixelSupport * 0.68) + pixelHalo;
+    vec3 pixelColor = vColor * (tinyProfile * perceivedIntensity * 1.35);
     gl_FragColor = vec4(pixelColor, 1.0);
     return;
   }
@@ -230,6 +257,7 @@ void main() {
 
   float haloGate = smoothstep(0.03, 0.28, vHalo);
   float halo = haloGate * vHalo * exp(-r2 * 3.8) * mix(0.030, 0.060, atmosphere);
+  halo *= (1.0 + (0.70 * brightClass));
 
   // Mild diffraction spikes for brighter stars to avoid uniformly round blobs.
   float spikeAxis = (
@@ -237,8 +265,9 @@ void main() {
     exp(-abs(p.y) * mix(20.0, 14.0, atmosphere))
   );
   float spikes = haloGate * vHalo * spikeAxis * exp(-r2 * 2.4) * 0.026;
+  spikes *= (1.0 + (0.45 * brightClass));
 
-  float profile = (gaussianCore * 1.36) +
+  float profile = (gaussianCore * (1.36 + (0.18 * brightClass))) +
     (moffatWing * mix(0.18, 0.30, atmosphere)) +
     halo +
     spikes;
