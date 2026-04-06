@@ -4,8 +4,8 @@ export const DEFAULT_SCENE_TEXTURE_FILES = {
     moonMap: "images/moon/Solarsystemscope_texture_8k_moon.jpg",
     moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
     // Primary sky background is treated as Milky Way + diffuse background layer.
-    skyMilkyWayTexture: "images/sky/starmap_2020_4k_stars.jpg",
-    skyTexture: "images/sky/starmap_2020_4k_stars.jpg",
+    skyMilkyWayTexture: "images/sky/starmap_4k.jpg",
+    skyTexture: "images/sky/starmap_4k.jpg",
     skyConstellationTexture: "images/sky/constellation_figures_2020_4k.jpg",
 };
 

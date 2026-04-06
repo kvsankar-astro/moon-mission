@@ -70,7 +70,7 @@ function loadTexture(url) {
 
 async function loadDemoSkyTextures() {
     const [skyTexture, constellationTexture] = await Promise.all([
-        loadTexture("/images/sky/starmap_2020_4k_stars.jpg"),
+        loadTexture("/images/sky/starmap_4k.jpg"),
         loadTexture("/images/sky/constellation_figures_2020_4k.jpg"),
     ]);
     setColorTextureSpace(skyTexture);

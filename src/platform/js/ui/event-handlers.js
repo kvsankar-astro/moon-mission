@@ -741,7 +741,6 @@ export function bindMainControls(handlers) {
     onClick("view-poles", setView);
     onClick("view-polar-axes", setView);
     onClick("view-sky", setView);
-    onClick("view-procedural-stars", setView);
     onClick("view-constellation-lines", setView);
     onClick("view-moonsoi", setView);
     onClick("view-body-halos", setViewAndSyncLocators);
@@ -1057,7 +1056,6 @@ export function bindMobileMissionCard() {
         "view-poles",
         "view-polar-axes",
         "view-sky",
-        "view-procedural-stars",
         "view-constellation-lines",
         "view-moonsoi",
         "view-moon-osculating-orbit",

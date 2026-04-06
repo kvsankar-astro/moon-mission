@@ -41,9 +41,6 @@ export function createSettingsActions({
         if (typeof viewSettings.atmosphere_enabled === "boolean") {
             patch.atmosphere_enabled = viewSettings.atmosphere_enabled;
         }
-        if (typeof viewSettings.procedural_stars_enabled === "boolean") {
-            patch.procedural_stars_enabled = viewSettings.procedural_stars_enabled;
-        }
         if (Number.isFinite(viewSettings.bloom_strength)) {
             patch.bloom_strength = viewSettings.bloom_strength;
         }

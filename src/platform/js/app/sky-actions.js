@@ -18,10 +18,6 @@ export function createSkyActions({ SkyRenderer, render }) {
         const atmosphereEnabled = readOptionalChecked("sky-atmosphere-enabled") ??
             readOptionalChecked("atmosphere-enabled") ??
             readOptionalChecked("atmosphere_enabled");
-        const proceduralStarsEnabled = readOptionalChecked("view-procedural-stars") ??
-            readOptionalChecked("sky-procedural-stars-enabled") ??
-            readOptionalChecked("procedural-stars-enabled") ??
-            readOptionalChecked("procedural_stars_enabled");
         const bloomStrength = readOptionalNumeric("sky-bloom-strength") ??
             readOptionalNumeric("bloom-strength") ??
             readOptionalNumeric("bloom_strength");
@@ -46,7 +42,7 @@ export function createSkyActions({ SkyRenderer, render }) {
 
         return {
             atmosphere_enabled: atmosphereEnabled,
-            procedural_stars_enabled: proceduralStarsEnabled,
+            procedural_stars_enabled: true,
             bloom_strength: bloomStrength,
             star_size_scale: starSizeScale,
             extinction_strength: extinctionStrength,

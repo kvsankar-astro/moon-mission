@@ -108,12 +108,6 @@ const VIEW_SETTING_CHECKBOXES = {
 
 const OPTIONAL_SKY_CHECKBOX_IDS = {
     atmosphere_enabled: ["sky-atmosphere-enabled", "atmosphere-enabled", "atmosphere_enabled"],
-    procedural_stars_enabled: [
-        "view-procedural-stars",
-        "sky-procedural-stars-enabled",
-        "procedural-stars-enabled",
-        "procedural_stars_enabled",
-    ],
 };
 
 const OPTIONAL_SKY_RANGE_IDS = {
@@ -185,10 +179,6 @@ export function readViewSettings() {
     if (typeof atmosphereEnabled === "boolean") {
         settings.atmosphere_enabled = atmosphereEnabled;
     }
-    const proceduralStarsEnabled = readOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.procedural_stars_enabled);
-    if (typeof proceduralStarsEnabled === "boolean") {
-        settings.procedural_stars_enabled = proceduralStarsEnabled;
-    }
 
     for (const [key, ids] of Object.entries(OPTIONAL_SKY_RANGE_IDS)) {
         const value = readOptionalNumber(ids);
@@ -250,7 +240,6 @@ export function applyViewSettings(patch) {
     }
 
     setOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.atmosphere_enabled, patch.atmosphere_enabled);
-    setOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.procedural_stars_enabled, patch.procedural_stars_enabled);
     setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.bloom_strength, Number(patch.bloom_strength));
     setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.star_size_scale, Number(patch.star_size_scale));
     setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.extinction_strength, Number(patch.extinction_strength));

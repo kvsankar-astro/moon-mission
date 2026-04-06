@@ -47,7 +47,7 @@ const ATMOSPHERE_FRAGMENT_SHADER = `
 
 const DEFAULT_SKY_PARAMETERS = Object.freeze({
     atmosphere_enabled: false,
-    procedural_stars_enabled: false,
+    procedural_stars_enabled: true,
     bloom_strength: 0.65,
     star_size_scale: 0.92,
     star_intensity_scale: 120.0,
@@ -89,18 +89,6 @@ function resolveSkyParameters(current, patch) {
 
     if (Object.prototype.hasOwnProperty.call(patch, "atmosphere_enabled")) {
         next.atmosphere_enabled = toBoolean(patch.atmosphere_enabled, next.atmosphere_enabled);
-    }
-    if (Object.prototype.hasOwnProperty.call(patch, "procedural_stars_enabled")) {
-        next.procedural_stars_enabled = toBoolean(
-            patch.procedural_stars_enabled,
-            next.procedural_stars_enabled,
-        );
-    }
-    if (Object.prototype.hasOwnProperty.call(patch, "proceduralStarsEnabled")) {
-        next.procedural_stars_enabled = toBoolean(
-            patch.proceduralStarsEnabled,
-            next.procedural_stars_enabled,
-        );
     }
     if (Object.prototype.hasOwnProperty.call(patch, "bloom_strength")) {
         next.bloom_strength = clamp(
@@ -163,6 +151,9 @@ function resolveSkyParameters(current, patch) {
     if (Object.prototype.hasOwnProperty.call(patch, "timeMs")) {
         next.sky_time_ms = toFiniteNumber(patch.timeMs, next.sky_time_ms);
     }
+
+    // Procedural stars are always enabled; visibility is controlled by view-sky.
+    next.procedural_stars_enabled = true;
 
     return next;
 }
@@ -459,10 +450,6 @@ export class SkyController {
         let skyOpacity = this.parameters.atmosphere_enabled
             ? SKY_STARMAP_OPACITY * 0.58
             : SKY_STARMAP_OPACITY;
-        if (this.parameters.procedural_stars_enabled) {
-            // Comparison mode: keep texture present but dim it so procedural stars are identifiable.
-            skyOpacity *= 0.04;
-        }
         if (this.skyMesh?.material) {
             this.skyMesh.material.opacity = this.skyTexture ? skyOpacity : 0;
             this.skyMesh.material.needsUpdate = true;
@@ -493,7 +480,7 @@ export class SkyController {
             this.atmosphereMesh.visible = showSkyLayer && this.parameters.atmosphere_enabled;
         }
 
-        const showProceduralStars = showSkyLayer && this.parameters.procedural_stars_enabled;
+        const showProceduralStars = showSkyLayer;
         if (this.starRenderer?.setVisible) {
             this.starRenderer.setVisible(showProceduralStars);
         } else if (this.starRenderer?.points) {
