@@ -263,6 +263,15 @@ function applyMobileSettingsPanelLayout(wrapper) {
     wrapper.style.maxHeight = `${maxHeight}px`;
 }
 
+function resolveSettingsPanelAnchorSelector() {
+    const sourceLine = document.querySelector("#blurb .desktoponly");
+    const sourceLineVisible = !!(sourceLine && sourceLine.getClientRects().length);
+    if (sourceLineVisible && window.innerWidth > 600) {
+        return "#blurb .desktoponly";
+    }
+    return "#settings-panel-button";
+}
+
 function isMobileViewport() {
     return window.innerWidth <= 600;
 }
@@ -584,7 +593,7 @@ export function bindSettingsPanel() {
             position: {
                 my: "left top",
                 at: "left bottom",
-                of: "#settings-panel-button",
+                of: resolveSettingsPanelAnchorSelector(),
                 collision: "fit flip"
             },
             title: "Settings",
