@@ -45,6 +45,17 @@ const BODY_HALO_STYLE = Object.freeze({
     },
 });
 
+// Hotfix gate: keep craft locator halo disabled without removing the code path.
+const BODY_HALO_FEATURE_FLAGS = Object.freeze({
+    earth: true,
+    moon: true,
+    craft: false,
+});
+
+function isBodyHaloFeatureEnabled(key) {
+    return BODY_HALO_FEATURE_FLAGS[key] !== false;
+}
+
 function rgba(rgb, alpha) {
     const [r, g, b] = rgb;
     const normalizedAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
@@ -312,25 +323,31 @@ export class SceneHelpers {
         craftTarget = undefined,
         craftRadius = undefined,
     } = {}) {
-        if (earthTarget !== undefined) {
-            this.bodyHaloTargets.earth = earthTarget || null;
-        }
-        if (moonTarget !== undefined) {
-            this.bodyHaloTargets.moon = moonTarget || null;
-        }
-        if (craftTarget !== undefined) {
-            this.bodyHaloTargets.craft = craftTarget || null;
-        }
+        const updateTarget = (key, value) => {
+            if (value === undefined) return;
+            if (!isBodyHaloFeatureEnabled(key)) {
+                this.bodyHaloTargets[key] = null;
+                this.bodyHaloRadii[key] = 0;
+                return;
+            }
+            this.bodyHaloTargets[key] = value || null;
+        };
 
-        if (earthRadius !== undefined) {
-            this.bodyHaloRadii.earth = Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 0;
-        }
-        if (moonRadius !== undefined) {
-            this.bodyHaloRadii.moon = Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 0;
-        }
-        if (craftRadius !== undefined) {
-            this.bodyHaloRadii.craft = Number.isFinite(craftRadius) && craftRadius > 0 ? craftRadius : 0;
-        }
+        const updateRadius = (key, value) => {
+            if (value === undefined) return;
+            if (!isBodyHaloFeatureEnabled(key)) {
+                this.bodyHaloRadii[key] = 0;
+                return;
+            }
+            this.bodyHaloRadii[key] = Number.isFinite(value) && value > 0 ? value : 0;
+        };
+
+        updateTarget("earth", earthTarget);
+        updateTarget("moon", moonTarget);
+        updateTarget("craft", craftTarget);
+        updateRadius("earth", earthRadius);
+        updateRadius("moon", moonRadius);
+        updateRadius("craft", craftRadius);
     }
 
     createBodyHalos({
@@ -357,6 +374,7 @@ export class SceneHelpers {
         }
 
         for (const key of BODY_HALO_KEYS) {
+            if (!isBodyHaloFeatureEnabled(key)) continue;
             const target = this.bodyHaloTargets[key];
             if (!target) continue;
             this._attachBodyHaloSprite(key, target);
@@ -547,6 +565,13 @@ export class SceneHelpers {
 
         camera.getWorldPosition(this._bodyHaloCameraPosition);
         for (const key of BODY_HALO_KEYS) {
+            if (!isBodyHaloFeatureEnabled(key)) {
+                this.resolvedBodyHaloRadii[key] = 0;
+                if (this.bodyHaloSprites[key]) {
+                    this.bodyHaloSprites[key].visible = false;
+                }
+                continue;
+            }
             const target = this.bodyHaloTargets[key];
             this.resolvedBodyHaloRadii[key] = target
                 ? this._resolveHaloBodyRadius(key, target)
@@ -554,6 +579,7 @@ export class SceneHelpers {
         }
 
         for (const key of BODY_HALO_KEYS) {
+            if (!isBodyHaloFeatureEnabled(key)) continue;
             if (!this.bodyHaloSprites[key]) {
                 this._ensureBodyHaloSprite(key);
             }

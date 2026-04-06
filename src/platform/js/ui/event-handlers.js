@@ -706,7 +706,20 @@ export function bindMainControls(handlers) {
         if (!locatorsPill || !bodyHaloToggle) return;
         locatorsPill.setAttribute("aria-pressed", bodyHaloToggle.checked ? "true" : "false");
     };
+    const isMobileViewsOrComposeTab = () => {
+        if (typeof window === "undefined" || window.innerWidth > 600) return false;
+        const activeTab = document.body?.dataset?.mobileActiveTab || "";
+        return activeTab === "views" || activeTab === "compose";
+    };
+    const enforceMobileLocatorTabPolicy = () => {
+        if (!bodyHaloToggle) return;
+        // Mobile Views/Compose never show locators.
+        if (isMobileViewsOrComposeTab()) {
+            bodyHaloToggle.checked = false;
+        }
+    };
     const setViewAndSyncLocators = (event) => {
+        enforceMobileLocatorTabPolicy();
         setView(event);
         syncLocatorsPillState();
     };
@@ -1040,6 +1053,7 @@ export function bindMobileMissionCard() {
     let mobileComposeRollRad = (250 * Math.PI) / 180;
     let mobileComposeFreeStartupAligned = false;
     let mobileComposeDefaultFovApplied = false;
+    let mobileMissionLocatorBaseline = null;
     const MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS = 180;
     const moonVisibilitySamples = createFibonacciSphereSamples(240);
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
@@ -1094,6 +1108,10 @@ export function bindMobileMissionCard() {
         const mobile = isMobileViewport();
         document.body.classList.toggle("mobile-shell-enabled", mobile);
         if (mobile) {
+            const bodyHaloToggle = document.getElementById("view-body-halos");
+            if (mobileMissionLocatorBaseline === null && bodyHaloToggle) {
+                mobileMissionLocatorBaseline = !!bodyHaloToggle.checked;
+            }
             const dialogApi = getMissionDialogApi();
             dialogApi?.close?.("#settings-panel");
             const settingsPanel = document.getElementById("settings-panel");
@@ -1123,6 +1141,10 @@ export function bindMobileMissionCard() {
                 }
             }
             restoreMobileAlwaysSuppressedViews();
+            if (mobileMissionLocatorBaseline !== null) {
+                setCheckboxState("view-body-halos", mobileMissionLocatorBaseline);
+                mobileMissionLocatorBaseline = null;
+            }
             stopMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
             syncMobileComposePresentation();
@@ -2496,6 +2518,9 @@ export function bindMobileMissionCard() {
         const nextTab = mobileTabCards[requestedTab] ? requestedTab : "mission";
         const previousTab = activeMobileTab;
         activeMobileTab = nextTab;
+        if (typeof document !== "undefined" && document.body) {
+            document.body.dataset.mobileActiveTab = nextTab;
+        }
         const mobileViewport = isMobileViewport();
         const previousNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(previousTab);
         const nextNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(nextTab);
@@ -2536,6 +2561,10 @@ export function bindMobileMissionCard() {
                 desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
                 mobileSavedMissionCameraModes = null;
             }
+        }
+
+        if (mobileViewport && nextTab === "mission") {
+            setCheckboxState("view-body-halos", true);
         }
 
         if (nextTab === "views" && mobileViewport) {

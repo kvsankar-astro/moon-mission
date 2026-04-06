@@ -36,6 +36,8 @@ function createAnimationSceneClass(deps) {
         resolveBodySource,
         getRuntimeState,
     } = deps;
+    // Hotfix gate: keep craft locator halos disabled without removing renderer code paths.
+    const CRAFT_LOCATOR_HALOS_ENABLED = false;
 
     function isArtemis2MissionContext(runtimeState) {
         const missionName = String(
@@ -282,7 +284,9 @@ function createAnimationSceneClass(deps) {
             const runtimeState = getRuntimeState();
             const earthTarget = this.earthContainer || this.earth || null;
             const moonTarget = this.moonContainer || this.moon || null;
-            const craftTarget = this.craft || Object.values(this.craftsById || {})[0] || null;
+            const craftTarget = CRAFT_LOCATOR_HALOS_ENABLED
+                ? (this.craft || Object.values(this.craftsById || {})[0] || null)
+                : null;
             if (!this.sceneHelpers) {
                 this.sceneHelpers = new SceneHelpers(this.motherContainer);
             }
@@ -292,6 +296,7 @@ function createAnimationSceneClass(deps) {
                 moonTarget: runtimeState.globalConfig?.is_lunar ? moonTarget : null,
                 moonRadius: runtimeState.moonRadius,
                 craftTarget,
+                craftRadius: 0,
                 visible: runtimeState.viewBodyHalos,
             });
         }
@@ -376,7 +381,9 @@ function createAnimationSceneClass(deps) {
             }
             const earthTarget = this.earthContainer || this.earth || null;
             const moonTarget = this.moonContainer || this.moon || null;
-            const craftTarget = this.craft || Object.values(this.craftsById || {})[0] || null;
+            const craftTarget = CRAFT_LOCATOR_HALOS_ENABLED
+                ? (this.craft || Object.values(this.craftsById || {})[0] || null)
+                : null;
             this.sceneHelpers.updateBodyHalos({
                 camera: this.camera,
                 rendererDomElement: this.cameraController?._rendererDomElement || this.renderer?.domElement || null,
@@ -385,6 +392,7 @@ function createAnimationSceneClass(deps) {
                 moonTarget: runtimeState.globalConfig?.is_lunar ? moonTarget : null,
                 moonRadius: runtimeState.moonRadius,
                 craftTarget,
+                craftRadius: 0,
                 visible: runtimeState.viewBodyHalos && !suppress,
             });
         }

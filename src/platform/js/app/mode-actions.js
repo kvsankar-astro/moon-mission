@@ -1,6 +1,9 @@
 import { applyViewSettings, setChecked } from "../ui/ui-state.js";
 import { planRuntimeModeToggle } from "../core/domain/ui-transition-plan.js";
 
+// Hotfix gate: keep craft locator edge overlay disabled without removing code paths.
+const CRAFT_EDGE_LOCATOR_ENABLED = false;
+
 export function createModeActions({
     animationScenes,
     getConfig,
@@ -24,6 +27,7 @@ export function createModeActions({
 
     function applyCraftVisibility(scene, { craftVisible, craftEdgesVisible }) {
         if (!scene) return;
+        const effectiveCraftEdgesVisible = Boolean(craftEdgesVisible) && CRAFT_EDGE_LOCATOR_ENABLED;
 
         // Keep legacy active-craft references in sync.
         if (scene.craft && "visible" in scene.craft) {
@@ -33,7 +37,7 @@ export function createModeActions({
             scene.craftInner.visible = craftVisible;
         }
         if (scene.craftEdges && "visible" in scene.craftEdges) {
-            scene.craftEdges.visible = craftEdgesVisible;
+            scene.craftEdges.visible = effectiveCraftEdgesVisible;
         }
         if (scene.craftAxesHelper && "visible" in scene.craftAxesHelper) {
             scene.craftAxesHelper.visible = craftVisible;
@@ -43,7 +47,7 @@ export function createModeActions({
         // scene.craft references lag behind active-craft sync.
         setCraftCollectionVisibility(scene.craftsById, craftVisible);
         setCraftCollectionVisibility(scene.craftInnersById, craftVisible);
-        setCraftCollectionVisibility(scene.craftEdgesById, craftEdgesVisible);
+        setCraftCollectionVisibility(scene.craftEdgesById, effectiveCraftEdgesVisible);
         setCraftCollectionVisibility(scene.craftAxesHelpersById, craftVisible);
         setCraftCollectionVisibility(scene.dronesById, craftVisible);
 

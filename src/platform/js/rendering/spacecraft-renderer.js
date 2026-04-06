@@ -18,6 +18,9 @@ const SPACECRAFT_MODEL_PLUGIN_BUILDERS = Object.freeze({
     "orion-procedural": "createProceduralOrion",
 });
 
+// Hotfix gate: keep craft locator edge overlay disabled without removing implementation.
+const SPACECRAFT_EDGE_LOCATOR_ENABLED = false;
+
 export class SpacecraftRenderer {
     /**
      * @param {THREE.Object3D} parentContainer - Container to add spacecraft to
@@ -93,6 +96,7 @@ export class SpacecraftRenderer {
             edgesGeometry,
             new THREE.LineBasicMaterial({ color: this.edgeColor })
         );
+        this.craftEdges.visible = SPACECRAFT_EDGE_LOCATOR_ENABLED;
         this.craftInner.add(this.craftEdges);
 
         // Orient correctly
