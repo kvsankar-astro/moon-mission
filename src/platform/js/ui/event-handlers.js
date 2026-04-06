@@ -1,4 +1,8 @@
-import { AUXILIARY_VIEW_CAMERA_PRESETS, resolveLunarFlybyTimeMs } from "../app/auxiliary-camera-views.js";
+import {
+    AUXILIARY_VIEW_CAMERA_PRESETS,
+    resolveLunarFlybyTimeMs,
+    resolveLunarFlybyWindowMs,
+} from "../app/auxiliary-camera-views.js";
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
 /**
@@ -2108,15 +2112,43 @@ export function bindMobileMissionCard() {
         }
     };
 
-    const resolveComposeTimelineAnchorTimeMs = () => {
-        const timelineState = readMainTimelineState();
-        if (!timelineState) return Number.NaN;
+    const resolveComposeTimelineRangeMs = (timelineState) => {
         const eventInfos = extractTimelineEventMetadataFromButtons();
-        const flybyTimeMs = resolveLunarFlybyTimeMs(eventInfos);
-        if (Number.isFinite(flybyTimeMs)) {
-            return flybyTimeMs;
+        const flybyWindow = resolveLunarFlybyWindowMs(eventInfos);
+        if (
+            Number.isFinite(flybyWindow.startMs) &&
+            Number.isFinite(flybyWindow.endMs) &&
+            flybyWindow.endMs > flybyWindow.startMs
+        ) {
+            let startMs = Math.min(Math.max(flybyWindow.startMs, timelineState.min), timelineState.max);
+            let endMs = Math.min(Math.max(flybyWindow.endMs, timelineState.min), timelineState.max);
+            if (endMs <= startMs) {
+                endMs = Math.min(timelineState.max, startMs + 1);
+            }
+            return { startMs, endMs };
         }
-        return timelineState.value;
+
+        const flybyTimeMs = resolveLunarFlybyTimeMs(eventInfos);
+        const anchorMs = Number.isFinite(flybyTimeMs) ? flybyTimeMs : timelineState.value;
+        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
+        const windowSpan = Math.min(fullSpan, COMPOSE_TIMELINE_WINDOW_MS);
+        const halfSpan = windowSpan * 0.5;
+        let startMs = anchorMs - halfSpan;
+        let endMs = anchorMs + halfSpan;
+        if (startMs < timelineState.min) {
+            endMs += timelineState.min - startMs;
+            startMs = timelineState.min;
+        }
+        if (endMs > timelineState.max) {
+            startMs -= endMs - timelineState.max;
+            endMs = timelineState.max;
+        }
+        startMs = Math.max(timelineState.min, startMs);
+        endMs = Math.min(timelineState.max, endMs);
+        if (endMs <= startMs) {
+            endMs = Math.min(timelineState.max, startMs + 1);
+        }
+        return { startMs, endMs };
     };
 
     const normalizeComposeRoll = (value) => {
@@ -2347,26 +2379,7 @@ export function bindMobileMissionCard() {
             return;
         }
 
-        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
-        const anchorMs = resolveComposeTimelineAnchorTimeMs();
-        const hasAnchor = Number.isFinite(anchorMs);
-        const windowSpan = Math.min(fullSpan, COMPOSE_TIMELINE_WINDOW_MS);
-        const halfSpan = windowSpan * 0.5;
-        let startMs = (hasAnchor ? anchorMs : timelineState.value) - halfSpan;
-        let endMs = (hasAnchor ? anchorMs : timelineState.value) + halfSpan;
-        if (startMs < timelineState.min) {
-            endMs += timelineState.min - startMs;
-            startMs = timelineState.min;
-        }
-        if (endMs > timelineState.max) {
-            startMs -= endMs - timelineState.max;
-            endMs = timelineState.max;
-        }
-        startMs = Math.max(timelineState.min, startMs);
-        endMs = Math.min(timelineState.max, endMs);
-        if (endMs <= startMs) {
-            endMs = Math.min(timelineState.max, startMs + 1);
-        }
+        const { startMs, endMs } = resolveComposeTimelineRangeMs(timelineState);
         composeTimelineWindowStartMs = startMs;
         composeTimelineWindowEndMs = endMs;
 

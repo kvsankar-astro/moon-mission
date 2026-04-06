@@ -108,14 +108,29 @@ function shouldEnableAuxiliaryPanels(missionConfig) {
     return !!(features && typeof features === "object" && features.auxiliaryPanels === true);
 }
 
+function resolveEventStartTimeMs(eventInfo) {
+    const startTime = eventInfo?.startTime;
+    if (startTime instanceof Date) {
+        const timeMs = startTime.getTime();
+        return Number.isFinite(timeMs) ? timeMs : Number.NaN;
+    }
+    if (typeof startTime === "string") {
+        const parsed = Date.parse(startTime);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+    const numeric = Number(startTime);
+    return Number.isFinite(numeric) ? numeric : Number.NaN;
+}
+
 function resolveLunarFlybyTimeMs(eventInfos) {
     if (!Array.isArray(eventInfos) || eventInfos.length === 0) {
         return Number.NaN;
     }
     let best = null;
     for (const eventInfo of eventInfos) {
-        const startTime = eventInfo?.startTime;
-        const timeMs = startTime instanceof Date ? startTime.getTime() : Number(startTime);
+        const timeMs = resolveEventStartTimeMs(eventInfo);
         if (!Number.isFinite(timeMs)) {
             continue;
         }
@@ -164,6 +179,78 @@ function resolveLunarFlybyTimeMs(eventInfos) {
         }
     }
     return best ? best.timeMs : Number.NaN;
+}
+
+function resolveLunarSoiBoundaryTimeMs(eventInfos, boundary) {
+    if (!Array.isArray(eventInfos) || eventInfos.length === 0) {
+        return Number.NaN;
+    }
+    const wantEntry = boundary === "entry";
+    const boundaryWords = wantEntry
+        ? /\b(in|entry|enter|ingress)\b/
+        : /\b(out|exit|leave|egress)\b/;
+    const explicitKeyPattern = wantEntry
+        ? /(?:lunar|moon)soi(?:entry|in)|soi(?:entry|in)(?:lunar|moon)?/
+        : /(?:lunar|moon)soi(?:exit|out)|soi(?:exit|out)(?:lunar|moon)?/;
+    const explicitLabelPattern = wantEntry
+        ? /\b(?:lunar|moon)\s+soi\s+(?:in|entry)\b/
+        : /\b(?:lunar|moon)\s+soi\s+(?:out|exit)\b/;
+    const boundaryNarrativePattern = wantEntry
+        ? /\b(?:enters?|entry|ingress)\b/
+        : /\b(?:exits?|leave|egress)\b/;
+
+    let best = null;
+    for (const eventInfo of eventInfos) {
+        const timeMs = resolveEventStartTimeMs(eventInfo);
+        if (!Number.isFinite(timeMs)) {
+            continue;
+        }
+        const key = String(eventInfo?.key || "");
+        const label = String(eventInfo?.label || "");
+        const hoverText = String(eventInfo?.hoverText || "");
+        const infoText = String(eventInfo?.infoText || "");
+        const keyLabelCorpus = `${key} ${label}`.toLowerCase();
+        const narrativeCorpus = `${hoverText} ${infoText}`.toLowerCase();
+        const compactKeyLabel = keyLabelCorpus.replace(/[^a-z0-9]+/g, "");
+
+        const hasMoonKeyLabel = /\b(moon|lunar)\b/.test(keyLabelCorpus);
+        const hasMoonNarrative = /\b(moon|lunar)\b/.test(narrativeCorpus);
+        const hasSoiKeyLabel = /\bsoi\b/.test(keyLabelCorpus);
+        const hasSoiNarrative = /\b(soi|sphere of influence)\b/.test(narrativeCorpus);
+
+        let score = 0;
+        if (explicitKeyPattern.test(compactKeyLabel)) {
+            score = 320;
+        } else if (explicitLabelPattern.test(keyLabelCorpus)) {
+            score = 300;
+        } else if (hasMoonKeyLabel && hasSoiKeyLabel && boundaryWords.test(keyLabelCorpus)) {
+            score = 260;
+        } else if (hasMoonNarrative && hasSoiNarrative && boundaryNarrativePattern.test(narrativeCorpus)) {
+            score = 220;
+        }
+
+        if (score <= 0) {
+            continue;
+        }
+        if (
+            !best ||
+            score > best.score ||
+            (score === best.score && wantEntry && timeMs < best.timeMs) ||
+            (score === best.score && !wantEntry && timeMs > best.timeMs)
+        ) {
+            best = { score, timeMs };
+        }
+    }
+    return best ? best.timeMs : Number.NaN;
+}
+
+function resolveLunarFlybyWindowMs(eventInfos) {
+    const startMs = resolveLunarSoiBoundaryTimeMs(eventInfos, "entry");
+    const endMs = resolveLunarSoiBoundaryTimeMs(eventInfos, "exit");
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+        return { startMs: Number.NaN, endMs: Number.NaN };
+    }
+    return { startMs, endMs };
 }
 
 class AuxiliaryCameraViewsManager {
@@ -236,6 +323,8 @@ class AuxiliaryCameraViewsManager {
         this.cachedMoonPhaseInfo = null;
         this.cachedMoonVisibilityInfo = null;
         this.composerFlybyTimeMs = Number.NaN;
+        this.composerFlybyWindowStartMs = Number.NaN;
+        this.composerFlybyWindowEndMs = Number.NaN;
 
         if (!isDesktopViewport()) {
             return;
@@ -1636,29 +1725,48 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const fullSpan = Math.max(0, timelineState.max - timelineState.min);
-        const hasFlybyAnchor = Number.isFinite(this.composerFlybyTimeMs);
-        const anchorMs = hasFlybyAnchor ? this.composerFlybyTimeMs : timelineState.value;
-        const windowSpan = Math.min(fullSpan, panelState.composerTimelineWindowMs);
-        const halfSpan = windowSpan * 0.5;
-        let startMs = anchorMs - halfSpan;
-        let endMs = anchorMs + halfSpan;
-        if (startMs < timelineState.min) {
-            endMs += timelineState.min - startMs;
-            startMs = timelineState.min;
+        const hasFlybyWindow =
+            Number.isFinite(this.composerFlybyWindowStartMs) &&
+            Number.isFinite(this.composerFlybyWindowEndMs) &&
+            this.composerFlybyWindowEndMs > this.composerFlybyWindowStartMs;
+        let startMs;
+        let endMs;
+        if (hasFlybyWindow) {
+            startMs = this.THREE.MathUtils.clamp(
+                this.composerFlybyWindowStartMs,
+                timelineState.min,
+                timelineState.max,
+            );
+            endMs = this.THREE.MathUtils.clamp(
+                this.composerFlybyWindowEndMs,
+                timelineState.min,
+                timelineState.max,
+            );
+        } else {
+            const hasFlybyAnchor = Number.isFinite(this.composerFlybyTimeMs);
+            const anchorMs = hasFlybyAnchor ? this.composerFlybyTimeMs : timelineState.value;
+            const windowSpan = Math.min(fullSpan, panelState.composerTimelineWindowMs);
+            const halfSpan = windowSpan * 0.5;
+            startMs = anchorMs - halfSpan;
+            endMs = anchorMs + halfSpan;
+            if (startMs < timelineState.min) {
+                endMs += timelineState.min - startMs;
+                startMs = timelineState.min;
+            }
+            if (endMs > timelineState.max) {
+                startMs -= endMs - timelineState.max;
+                endMs = timelineState.max;
+            }
+            startMs = Math.max(timelineState.min, startMs);
+            endMs = Math.min(timelineState.max, endMs);
         }
-        if (endMs > timelineState.max) {
-            startMs -= endMs - timelineState.max;
-            endMs = timelineState.max;
-        }
-        startMs = Math.max(timelineState.min, startMs);
-        endMs = Math.min(timelineState.max, endMs);
         if (endMs <= startMs) {
             endMs = Math.min(timelineState.max, startMs + 1);
         }
 
         panelState.composerTimelineStartMs = startMs;
         panelState.composerTimelineEndMs = endMs;
-        const inFlybyWindow = !hasFlybyAnchor || (timelineState.value >= startMs && timelineState.value <= endMs);
+        const inFlybyWindow = timelineState.value >= startMs && timelineState.value <= endMs;
         this.setComposerInteractionEnabled(panelState, inFlybyWindow);
         panelState.composerTimelineLabel.textContent = "Time";
         this.setComposerTimelineLocalText(panelState, timelineState.value);
@@ -2573,6 +2681,9 @@ class AuxiliaryCameraViewsManager {
 
         this.root.hidden = false;
         this.composerFlybyTimeMs = this.resolveLunarFlybyTimeMs(timelineEventInfos);
+        const flybyWindow = resolveLunarFlybyWindowMs(timelineEventInfos);
+        this.composerFlybyWindowStartMs = flybyWindow.startMs;
+        this.composerFlybyWindowEndMs = flybyWindow.endMs;
         activeCraft.getWorldPosition(this.craftWorld);
         if (
             sunDirection &&
@@ -2911,4 +3022,9 @@ class AuxiliaryCameraViewsManager {
     }
 }
 
-export { AuxiliaryCameraViewsManager, AUXILIARY_VIEW_CAMERA_PRESETS, resolveLunarFlybyTimeMs };
+export {
+    AuxiliaryCameraViewsManager,
+    AUXILIARY_VIEW_CAMERA_PRESETS,
+    resolveLunarFlybyTimeMs,
+    resolveLunarFlybyWindowMs,
+};
