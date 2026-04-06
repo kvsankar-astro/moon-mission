@@ -14,7 +14,7 @@ export function createSkyActions({ SkyRenderer, render }) {
         return Number.isFinite(value) ? value : undefined;
     }
 
-    function readInitialSkyParameters() {
+    function readInitialSkyParameters(scene) {
         const atmosphereEnabled = readOptionalChecked("sky-atmosphere-enabled") ??
             readOptionalChecked("atmosphere-enabled") ??
             readOptionalChecked("atmosphere_enabled");
@@ -39,10 +39,12 @@ export function createSkyActions({ SkyRenderer, render }) {
         const skyTimeSeconds = readOptionalNumeric("sky-time-seconds");
         const skyTimeMs = readOptionalNumeric("sky-time-ms") ??
             (Number.isFinite(skyTimeSeconds) ? skyTimeSeconds * 1000 : undefined);
+        const planetCenterMode = scene?.name === "lunar" ? "moon" : "earth";
 
         return {
             atmosphere_enabled: atmosphereEnabled,
             procedural_stars_enabled: true,
+            planet_center_mode: planetCenterMode,
             bloom_strength: bloomStrength,
             star_size_scale: starSizeScale,
             extinction_strength: extinctionStrength,
@@ -62,7 +64,7 @@ export function createSkyActions({ SkyRenderer, render }) {
         scene.sky = scene.skyRenderer.skyMesh;
         scene.skyConstellation = scene.skyRenderer.constellationMesh;
         scene.skyBaseQuaternion = scene.skyContainer?.quaternion?.clone?.() || null;
-        scene.skyRenderer?.setParameters?.(readInitialSkyParameters());
+        scene.skyRenderer?.setParameters?.(readInitialSkyParameters(scene));
         applySkyLayerVisibility(scene, { viewSky, viewConstellationLines });
 
         render();

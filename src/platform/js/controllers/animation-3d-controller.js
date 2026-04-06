@@ -50,6 +50,7 @@ export class Animation3DController {
         this.scene.stateSunDirection = state.sunDirection;
         this.scene.stateTime = state.time;
         this.scene.latestSceneState = state;
+        this.scene.skyRenderer?.setTime?.(state.time);
 
         // 1. Update lighting from sun position
         this.updateLighting(state.sunLongitude, state.bodies);

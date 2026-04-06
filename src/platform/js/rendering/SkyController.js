@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { AtmosphereModel } from "./AtmosphereModel.js";
+import { PlanetRenderer } from "./PlanetRenderer.js";
 import { StarRenderer } from "./StarRenderer.js";
 import { STAR_CATALOG_BRIGHT } from "./star-catalog-hipparcos.js";
 
@@ -48,6 +49,7 @@ const ATMOSPHERE_FRAGMENT_SHADER = `
 const DEFAULT_SKY_PARAMETERS = Object.freeze({
     atmosphere_enabled: false,
     procedural_stars_enabled: true,
+    planet_center_mode: "earth",
     bloom_strength: 0.65,
     star_size_scale: 0.92,
     star_intensity_scale: 120.0,
@@ -71,6 +73,13 @@ function toBoolean(value, fallback = false) {
     if (typeof value === "boolean") return value;
     if (value === "true") return true;
     if (value === "false") return false;
+    return fallback;
+}
+
+function resolvePlanetCenterMode(value, fallback = "earth") {
+    if (value === "moon" || value === "earth") {
+        return value;
+    }
     return fallback;
 }
 
@@ -151,6 +160,18 @@ function resolveSkyParameters(current, patch) {
     if (Object.prototype.hasOwnProperty.call(patch, "timeMs")) {
         next.sky_time_ms = toFiniteNumber(patch.timeMs, next.sky_time_ms);
     }
+    if (Object.prototype.hasOwnProperty.call(patch, "planet_center_mode")) {
+        next.planet_center_mode = resolvePlanetCenterMode(
+            patch.planet_center_mode,
+            next.planet_center_mode,
+        );
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "planetCenterMode")) {
+        next.planet_center_mode = resolvePlanetCenterMode(
+            patch.planetCenterMode,
+            next.planet_center_mode,
+        );
+    }
 
     // Procedural stars are always enabled; visibility is controlled by view-sky.
     next.procedural_stars_enabled = true;
@@ -189,6 +210,7 @@ export class SkyController {
         this.constellationMesh = null;
         this.atmosphereMesh = null;
         this.starRenderer = null;
+        this.planetRenderer = null;
 
         this.skyTexture = null;
         this.constellationTexture = null;
@@ -245,6 +267,7 @@ export class SkyController {
         } else if (this.starRenderer?.setParameters) {
             this.starRenderer.setParameters({ sky_time_ms: safeTime, timeMs: safeTime });
         }
+        this.planetRenderer?.setTime?.(safeTime);
     }
 
     setLayerVisibility({ viewSky = false, viewConstellationLines = false } = {}) {
@@ -336,6 +359,14 @@ export class SkyController {
             this.container.add(this.starRenderer.points);
         }
 
+        this.planetRenderer = new PlanetRenderer(this.container, {
+            radius: this.radius,
+            layer: SKY_LAYER,
+            centerMode: this.parameters.planet_center_mode,
+            atmosphereEnabled: this.parameters.atmosphere_enabled,
+        });
+        this.planetRenderer.create(visible);
+
         this.container.scale.set(-1, 1, 1);
         this.container.rotateZ(Math.PI);
         this.parentContainer.add(this.container);
@@ -362,6 +393,8 @@ export class SkyController {
     dispose() {
         this.starRenderer?.dispose?.();
         this.starRenderer = null;
+        this.planetRenderer?.dispose?.();
+        this.planetRenderer = null;
 
         if (this.skyMesh) {
             this.skyMesh.material?.dispose?.();
@@ -447,6 +480,10 @@ export class SkyController {
             this.starRenderer.setTime(this.parameters.sky_time_ms);
         }
 
+        this.planetRenderer?.setCenterMode?.(this.parameters.planet_center_mode);
+        this.planetRenderer?.setAtmosphereEnabled?.(this.parameters.atmosphere_enabled);
+        this.planetRenderer?.setTime?.(this.parameters.sky_time_ms);
+
         let skyOpacity = this.parameters.atmosphere_enabled
             ? SKY_STARMAP_OPACITY * 0.58
             : SKY_STARMAP_OPACITY;
@@ -488,6 +525,7 @@ export class SkyController {
         } else if (this.starRenderer?.object3D) {
             this.starRenderer.object3D.visible = showProceduralStars;
         }
+        this.planetRenderer?.setVisible?.(showSkyLayer);
 
         if (this.container) {
             this.container.visible = showSkyLayer || showConstellations;
