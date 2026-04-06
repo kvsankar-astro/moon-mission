@@ -1369,85 +1369,101 @@
                 hidden
             >
                 <div class="mobile-shell__card-head">
-                    <span class="mobile-shell__card-title">Views</span>
+                    <div class="mobile-shell__card-head-main">
+                        <span class="mobile-shell__card-title">Views</span>
+                    </div>
+                    <div class="mobile-shell__card-head-actions">
+                        <button
+                            id="mobile-views-collapse"
+                            type="button"
+                            class="mobile-shell__collapse-btn"
+                            aria-expanded="true"
+                            aria-label="Collapse views controls"
+                            title="Collapse views controls"
+                        >
+                            ▴
+                        </button>
+                    </div>
                 </div>
-                <div class="mobile-shell__views-subtabs" role="tablist" aria-label="Mobile view presets">
-                    <button
-                        type="button"
-                        class="mobile-shell__view-btn"
-                        role="tab"
-                        data-mobile-view-preset="moon"
-                        aria-selected="false"
+                <div id="mobile-views-body" class="mobile-shell__card-body">
+                    <div class="mobile-shell__views-subtabs" role="tablist" aria-label="Mobile view presets">
+                        <button
+                            type="button"
+                            class="mobile-shell__view-btn"
+                            role="tab"
+                            data-mobile-view-preset="moon"
+                            aria-selected="false"
+                        >
+                            Craft to Moon
+                        </button>
+                        <button
+                            type="button"
+                            class="mobile-shell__view-btn"
+                            role="tab"
+                            data-mobile-view-preset="earth"
+                            aria-selected="false"
+                        >
+                            Craft to Earth
+                        </button>
+                        <button
+                            type="button"
+                            class="mobile-shell__view-btn"
+                            role="tab"
+                            data-mobile-view-preset="earth-to-moon"
+                            aria-selected="false"
+                        >
+                            Earth to Moon
+                        </button>
+                    </div>
+                    <div class="mobile-shell__views-fov" role="group" aria-label="Views field of view">
+                        <span class="mobile-shell__views-fov-label">FoV</span>
+                        <button
+                            id="mobile-views-fov-auto"
+                            type="button"
+                            class="mobile-shell__views-fov-auto is-active"
+                            aria-pressed="true"
+                        >
+                            Auto FoV
+                        </button>
+                        <input
+                            id="mobile-views-fov-slider"
+                            class="mobile-shell__views-fov-slider"
+                            type="range"
+                            min="1"
+                            max="179"
+                            step="1"
+                            value="50"
+                            aria-label="Views field of view slider"
+                        >
+                        <output id="mobile-views-fov-value" class="mobile-shell__views-fov-value">50°</output>
+                    </div>
+                    <div
+                        id="mobile-views-moon-visibility"
+                        class="mobile-shell__views-visibility"
+                        aria-live="polite"
+                        hidden
                     >
-                        Craft to Moon
-                    </button>
-                    <button
-                        type="button"
-                        class="mobile-shell__view-btn"
-                        role="tab"
-                        data-mobile-view-preset="earth"
-                        aria-selected="false"
-                    >
-                        Craft to Earth
-                    </button>
-                    <button
-                        type="button"
-                        class="mobile-shell__view-btn"
-                        role="tab"
-                        data-mobile-view-preset="earth-to-moon"
-                        aria-selected="false"
-                    >
-                        Earth to Moon
-                    </button>
-                </div>
-                <div class="mobile-shell__views-fov" role="group" aria-label="Views field of view">
-                    <span class="mobile-shell__views-fov-label">FoV</span>
-                    <button
-                        id="mobile-views-fov-auto"
-                        type="button"
-                        class="mobile-shell__views-fov-auto is-active"
-                        aria-pressed="true"
-                    >
-                        Auto FoV
-                    </button>
-                    <input
-                        id="mobile-views-fov-slider"
-                        class="mobile-shell__views-fov-slider"
-                        type="range"
-                        min="1"
-                        max="179"
-                        step="1"
-                        value="50"
-                        aria-label="Views field of view slider"
-                    >
-                    <output id="mobile-views-fov-value" class="mobile-shell__views-fov-value">50°</output>
-                </div>
-                <div
-                    id="mobile-views-moon-visibility"
-                    class="mobile-shell__views-visibility"
-                    aria-live="polite"
-                    hidden
-                >
-                    <button
-                        id="mobile-views-farside-toggle"
-                        type="button"
-                        class="mobile-shell__views-farside-toggle is-active"
-                        aria-pressed="true"
-                    >
-                        Far Side: ON
-                    </button>
-                    <div id="mobile-views-moon-visibility-summary" class="mobile-shell__views-visibility-summary">
-                        <div class="mobile-shell__views-visibility-head">
-                            <span>Near Day</span>
-                            <span>Near Night</span>
-                            <span>Far Day</span>
-                            <span>Far Night</span>
-                        </div>
-                        <div class="mobile-shell__views-visibility-values">
-                            <span>--%</span>
-                            <span>--%</span>
-                            <span>--%</span>
-                            <span>--%</span>
+                        <button
+                            id="mobile-views-farside-toggle"
+                            type="button"
+                            class="mobile-shell__views-farside-toggle is-active"
+                            aria-pressed="true"
+                        >
+                            Far Side: ON
+                        </button>
+                        <div id="mobile-views-moon-visibility-summary" class="mobile-shell__views-visibility-summary">
+                            <div class="mobile-shell__views-visibility-head">
+                                <span>Near Day</span>
+                                <span>Near Night</span>
+                                <span>Far Day</span>
+                                <span>Far Night</span>
+                            </div>
+                            <div class="mobile-shell__views-visibility-values">
+                                <span>--%</span>
+                                <span>--%</span>
+                                <span>--%</span>
+                                <span>--%</span>
+                            </div>
                         </div>
                     </div>
                 </div>

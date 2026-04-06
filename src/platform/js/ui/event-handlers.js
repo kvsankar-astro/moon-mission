@@ -948,6 +948,8 @@ export function bindMobileMissionCard() {
     const missionCardBody = document.getElementById("mobile-mission-body");
     const missionCollapseButton = document.getElementById("mobile-mission-collapse");
     const viewsCard = document.getElementById("mobile-card-views");
+    const viewsCardBody = document.getElementById("mobile-views-body");
+    const viewsCollapseButton = document.getElementById("mobile-views-collapse");
     const composeCard = document.getElementById("mobile-card-compose");
     const missionControls = {
         play: document.getElementById("mobile-control-play"),
@@ -1019,6 +1021,7 @@ export function bindMobileMissionCard() {
         compose: composeCard,
     };
     const MISSION_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-mission-panel-collapsed:v1";
+    const VIEWS_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-views-panel-collapsed:v1";
     const EARTHSHINE_GAIN_STORAGE_KEY = "moon-mission:mobile-earthshine-gain:v1";
     const COMPOSE_TIMELINE_RESOLUTION = 1000;
     const COMPOSE_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -1159,6 +1162,7 @@ export function bindMobileMissionCard() {
             syncMobileMoonVisibilityInfo({ force: true });
             syncMobileComposePresentation();
         }
+        applyMobileRenderViewportCentering();
     };
 
     const setMissionCardCollapsed = (collapsed) => {
@@ -1176,6 +1180,60 @@ export function bindMobileMissionCard() {
         } catch {
             // Ignore localStorage failures.
         }
+    };
+
+    const setViewsCardCollapsed = (collapsed) => {
+        if (!viewsCard || !viewsCardBody || !viewsCollapseButton) return;
+        viewsCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
+        viewsCollapseButton.textContent = collapsed ? "▾" : "▴";
+        viewsCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        viewsCollapseButton.setAttribute(
+            "aria-label",
+            collapsed ? "Expand views controls" : "Collapse views controls",
+        );
+        viewsCollapseButton.title = collapsed ? "Expand views controls" : "Collapse views controls";
+        try {
+            window.localStorage?.setItem(VIEWS_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
+        } catch {
+            // Ignore localStorage failures.
+        }
+    };
+
+    const isLayoutVisible = (element) => {
+        if (!element || element.hidden) return false;
+        const style = window.getComputedStyle?.(element);
+        if (!style || style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+            return false;
+        }
+        const rect = element.getBoundingClientRect?.();
+        return !!rect && rect.height > 0 && rect.width > 0;
+    };
+
+    const applyMobileRenderViewportCentering = () => {
+        if (!contentWrapper) return;
+        let shiftPx = 0;
+        const shouldCenterForTab = activeMobileTab === "views" || activeMobileTab === "compose";
+        if (isMobileViewport() && shouldCenterForTab) {
+            const viewportHeight = Math.max(1, window.innerHeight || 1);
+            const activeCard = mobileTabCards[activeMobileTab] || null;
+            let topInset = 0;
+            if (isLayoutVisible(activeCard)) {
+                const rect = activeCard.getBoundingClientRect();
+                topInset = Math.max(0, Math.min(viewportHeight, rect.bottom));
+            }
+            let bottomInset = viewportHeight;
+            const bottomCandidates = [mobileShellNav, document.getElementById("timeline-dock")];
+            bottomCandidates.forEach((candidate) => {
+                if (!isLayoutVisible(candidate)) return;
+                const rect = candidate.getBoundingClientRect();
+                const top = Math.max(0, Math.min(viewportHeight, rect.top));
+                bottomInset = Math.min(bottomInset, top);
+            });
+            if (bottomInset > topInset + 24) {
+                shiftPx = Math.round(((topInset + bottomInset) * 0.5) - (viewportHeight * 0.5));
+            }
+        }
+        contentWrapper.style.setProperty("--mobile-render-shift-y", `${shiftPx}px`);
     };
 
     const clampFov = (value) => {
@@ -2664,6 +2722,7 @@ export function bindMobileMissionCard() {
             syncMobileMoonVisibilityInfo({ force: true });
         }
         syncMobileComposePresentation();
+        applyMobileRenderViewportCentering();
     };
 
     const syncMobileViewPresetState = () => {
@@ -2980,6 +3039,14 @@ export function bindMobileMissionCard() {
         });
     }
 
+    if (viewsCollapseButton) {
+        viewsCollapseButton.addEventListener("click", function () {
+            const collapsed = viewsCard?.classList.contains("mobile-shell__card--collapsed");
+            setViewsCardCollapsed(!collapsed);
+            applyMobileRenderViewportCentering();
+        });
+    }
+
     let initialEarthshineGain = 1;
     try {
         const storedGain = Number(window.localStorage?.getItem(EARTHSHINE_GAIN_STORAGE_KEY));
@@ -2999,6 +3066,14 @@ export function bindMobileMissionCard() {
     }
     setMissionCardCollapsed(initialMissionCollapsed);
 
+    let initialViewsCollapsed = false;
+    try {
+        initialViewsCollapsed = window.localStorage?.getItem(VIEWS_PANEL_COLLAPSE_STORAGE_KEY) === "true";
+    } catch {
+        initialViewsCollapsed = false;
+    }
+    setViewsCardCollapsed(initialViewsCollapsed);
+
     setMobileViewsAutoFov(true);
     setActiveMobileTab("mission");
     syncMobileViewPresetState();
@@ -3010,6 +3085,7 @@ export function bindMobileMissionCard() {
     toggleMobileMode();
     startMobileMoonVisibilityLoop();
     syncMobileMoonVisibilityInfo({ force: true });
+    applyMobileRenderViewportCentering();
     window.addEventListener("resize", toggleMobileMode);
 
     const proxyClick = (desktopId) => {
@@ -3164,4 +3240,3 @@ export function bindMobileMissionCard() {
         });
     });
 }
-

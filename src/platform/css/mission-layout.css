@@ -2404,6 +2404,12 @@ table {
 }
 
 @media screen and (max-width: 600px) {
+    body.mobile-shell-enabled .content-wrapper {
+        transform: translate3d(0, var(--mobile-render-shift-y, 0px), 0);
+        transition: transform 140ms ease-out;
+        will-change: transform;
+    }
+
     body.mobile-shell-enabled #mobile-shell {
         display: block;
         position: fixed;
