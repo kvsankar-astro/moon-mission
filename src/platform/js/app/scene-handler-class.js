@@ -25,6 +25,8 @@ function createSceneHandlerClass(deps) {
             this.initialized = false;
             this.lastAnimationScene = null;
             this.lookAtWorldTarget = new THREE.Vector3();
+            this.skyWorldPosition = new THREE.Vector3();
+            this.sunWorldPosition = new THREE.Vector3();
 
             this.init();
         }
@@ -70,39 +72,41 @@ function createSceneHandlerClass(deps) {
                 return;
             }
 
-            const skyWorldPosition = new THREE.Vector3();
-            const sunWorldPosition = new THREE.Vector3();
-
             const renderWithCamera = (camera) => {
                 if (!camera) return;
                 camera.updateMatrixWorld?.();
                 if (animationScene.skyContainer?.position) {
-                    skyWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+                    this.skyWorldPosition.setFromMatrixPosition(camera.matrixWorld);
                     if (animationScene.skyContainer.parent?.worldToLocal) {
-                        animationScene.skyContainer.parent.worldToLocal(skyWorldPosition);
+                        animationScene.skyContainer.parent.worldToLocal(this.skyWorldPosition);
                     }
-                    animationScene.skyContainer.position.copy(skyWorldPosition);
+                    animationScene.skyContainer.position.copy(this.skyWorldPosition);
                 }
                 if (animationScene.sunRenderer?.setReferencePosition) {
-                    sunWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+                    this.sunWorldPosition.setFromMatrixPosition(camera.matrixWorld);
                     const sunParent = animationScene.sunRenderer.group?.parent;
                     if (sunParent?.worldToLocal) {
-                        sunParent.worldToLocal(sunWorldPosition);
+                        sunParent.worldToLocal(this.sunWorldPosition);
                     }
                     animationScene.sunRenderer.setReferencePosition(
-                        sunWorldPosition.x,
-                        sunWorldPosition.y,
-                        sunWorldPosition.z,
+                        this.sunWorldPosition.x,
+                        this.sunWorldPosition.y,
+                        this.sunWorldPosition.z,
                     );
                 }
                 // Render sky first on its dedicated layer, then clear depth so
                 // foreground bodies fully occlude background stars.
-                this.renderer.autoClear = true;
-                camera.layers.set(2);
-                this.renderer.render(animationScene.scene, camera);
+                const renderSkyLayer = animationScene.skyContainer?.visible !== false;
+                if (renderSkyLayer) {
+                    this.renderer.autoClear = true;
+                    camera.layers.set(2);
+                    this.renderer.render(animationScene.scene, camera);
+                    this.renderer.autoClear = false;
+                    this.renderer.clearDepth();
+                } else {
+                    this.renderer.autoClear = true;
+                }
 
-                this.renderer.autoClear = false;
-                this.renderer.clearDepth();
                 camera.layers.set(0);
                 this.renderer.render(animationScene.scene, camera);
 

@@ -37,6 +37,12 @@ const PLANET_STYLE_BY_BODY = Object.freeze({
     Sun: { color: [1.00, 0.95, 0.74], size: 6.2 },
 });
 
+// Updating planetary sky markers every render frame is unnecessarily expensive
+// (Astronomy.GeoVector + per-attribute writes). Throttle to a modest real-time
+// cadence, but still force refresh on large timeline jumps/scrubs.
+const PLANET_UPDATE_MIN_REALTIME_MS = 90;
+const PLANET_UPDATE_FORCE_SIM_DELTA_MS = 6 * 60 * 60 * 1000;
+
 const PLANET_VERTEX_SHADER = `
 attribute float aSize;
 attribute float aAlpha;
@@ -159,6 +165,8 @@ export class PlanetRenderer {
         this.sizes = new Float32Array(EARTH_CENTERED_BODIES.length);
         this.alphas = new Float32Array(EARTH_CENTERED_BODIES.length);
         this.bodySlots = new Array(EARTH_CENTERED_BODIES.length).fill("");
+        this.lastUpdateRealtimeMs = Number.NaN;
+        this.lastUpdateSimMs = Number.NaN;
     }
 
     create(visible = true) {
@@ -172,6 +180,10 @@ export class PlanetRenderer {
         this.geometry.setAttribute("aColor", new THREE.BufferAttribute(this.colors, 3));
         this.geometry.setAttribute("aSize", new THREE.BufferAttribute(this.sizes, 1));
         this.geometry.setAttribute("aAlpha", new THREE.BufferAttribute(this.alphas, 1));
+        this.geometry.boundingSphere = new THREE.Sphere(
+            new THREE.Vector3(0, 0, 0),
+            this.radius * 1.01,
+        );
 
         this.material = new THREE.ShaderMaterial({
             vertexShader: PLANET_VERTEX_SHADER,
@@ -192,8 +204,9 @@ export class PlanetRenderer {
         this.points.frustumCulled = false;
         this.parentContainer.add(this.points);
 
+        this.#refreshStaticAttributes();
         this.setVisible(visible);
-        this.setTime(this.timeMs);
+        this.setTime(this.timeMs, { force: true });
     }
 
     setVisible(visible) {
@@ -207,7 +220,8 @@ export class PlanetRenderer {
         const nextMode = mode === "moon" ? "moon" : "earth";
         if (nextMode === this.centerMode) return;
         this.centerMode = nextMode;
-        this.setTime(this.timeMs);
+        this.#refreshStaticAttributes();
+        this.setTime(this.timeMs, { force: true });
     }
 
     setAtmosphereEnabled(enabled) {
@@ -217,9 +231,27 @@ export class PlanetRenderer {
         }
     }
 
-    setTime(timeMs) {
-        this.timeMs = Number.isFinite(timeMs) ? Number(timeMs) : this.timeMs;
+    setTime(timeMs, { force = false } = {}) {
+        const nextTimeMs = Number.isFinite(timeMs) ? Number(timeMs) : this.timeMs;
+        const nowMs = (typeof performance !== "undefined" && Number.isFinite(performance.now()))
+            ? performance.now()
+            : Date.now();
+        const hasPriorUpdate = Number.isFinite(this.lastUpdateRealtimeMs) && Number.isFinite(this.lastUpdateSimMs);
+        const realtimeDeltaMs = hasPriorUpdate ? (nowMs - this.lastUpdateRealtimeMs) : Number.POSITIVE_INFINITY;
+        const simDeltaMs = hasPriorUpdate ? Math.abs(nextTimeMs - this.lastUpdateSimMs) : Number.POSITIVE_INFINITY;
+        if (
+            !force &&
+            realtimeDeltaMs < PLANET_UPDATE_MIN_REALTIME_MS &&
+            simDeltaMs < PLANET_UPDATE_FORCE_SIM_DELTA_MS
+        ) {
+            this.timeMs = nextTimeMs;
+            return;
+        }
+
+        this.timeMs = nextTimeMs;
         this.#updatePlanetPositions();
+        this.lastUpdateRealtimeMs = nowMs;
+        this.lastUpdateSimMs = this.timeMs;
     }
 
     dispose() {
@@ -258,14 +290,12 @@ export class PlanetRenderer {
         for (let i = 0; i < this.bodySlots.length; i += 1) {
             const bodyName = bodyList[i];
             this.bodySlots[i] = bodyName || "";
-            const style = PLANET_STYLE_BY_BODY[bodyName] || PLANET_STYLE_BY_BODY.Mars;
 
             const idx3 = i * 3;
             if (!bodyName) {
                 this.positions[idx3] = 0;
                 this.positions[idx3 + 1] = 0;
                 this.positions[idx3 + 2] = 0;
-                this.sizes[i] = 0;
                 this.alphas[i] = 0;
                 continue;
             }
@@ -289,11 +319,7 @@ export class PlanetRenderer {
                 this.positions[idx3] = 0;
                 this.positions[idx3 + 1] = 0;
                 this.positions[idx3 + 2] = 0;
-                this.sizes[i] = 0;
                 this.alphas[i] = 0;
-                this.colors[idx3] = style.color[0];
-                this.colors[idx3 + 1] = style.color[1];
-                this.colors[idx3 + 2] = style.color[2];
                 continue;
             }
 
@@ -308,18 +334,32 @@ export class PlanetRenderer {
             this.positions[idx3] = skyDir.x * markerRadius;
             this.positions[idx3 + 1] = skyDir.y * markerRadius;
             this.positions[idx3 + 2] = skyDir.z * markerRadius;
-            this.colors[idx3] = style.color[0];
-            this.colors[idx3 + 1] = style.color[1];
-            this.colors[idx3 + 2] = style.color[2];
-            this.sizes[i] = style.size;
             this.alphas[i] = 1;
         }
 
         this.geometry.attributes.position.needsUpdate = true;
+        this.geometry.attributes.aAlpha.needsUpdate = true;
+    }
+
+    #refreshStaticAttributes() {
+        const bodyList = resolveBodyList(this.centerMode);
+        for (let i = 0; i < this.bodySlots.length; i += 1) {
+            const bodyName = bodyList[i];
+            this.bodySlots[i] = bodyName || "";
+            const style = PLANET_STYLE_BY_BODY[bodyName] || PLANET_STYLE_BY_BODY.Mars;
+            const idx3 = i * 3;
+            this.colors[idx3] = style.color[0];
+            this.colors[idx3 + 1] = style.color[1];
+            this.colors[idx3 + 2] = style.color[2];
+            this.sizes[i] = bodyName ? style.size : 0;
+            if (!bodyName) {
+                this.alphas[i] = 0;
+            }
+        }
+        if (!this.geometry) return;
         this.geometry.attributes.aColor.needsUpdate = true;
         this.geometry.attributes.aSize.needsUpdate = true;
         this.geometry.attributes.aAlpha.needsUpdate = true;
-        this.geometry.computeBoundingSphere();
     }
 
     #hideAllMarkers() {

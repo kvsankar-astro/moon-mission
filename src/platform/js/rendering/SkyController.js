@@ -259,7 +259,7 @@ export class SkyController {
         this.#applyParameters();
     }
 
-    setTime(timeMs) {
+    setTime(timeMs, { realtimeFrame = false } = {}) {
         const safeTime = toFiniteNumber(timeMs, this.parameters.sky_time_ms);
         this.parameters.sky_time_ms = safeTime;
         if (this.starRenderer?.setTime) {
@@ -267,7 +267,7 @@ export class SkyController {
         } else if (this.starRenderer?.setParameters) {
             this.starRenderer.setParameters({ sky_time_ms: safeTime, timeMs: safeTime });
         }
-        this.planetRenderer?.setTime?.(safeTime);
+        this.planetRenderer?.setTime?.(safeTime, { force: !realtimeFrame });
     }
 
     setLayerVisibility({ viewSky = false, viewConstellationLines = false } = {}) {
@@ -482,7 +482,7 @@ export class SkyController {
 
         this.planetRenderer?.setCenterMode?.(this.parameters.planet_center_mode);
         this.planetRenderer?.setAtmosphereEnabled?.(this.parameters.atmosphere_enabled);
-        this.planetRenderer?.setTime?.(this.parameters.sky_time_ms);
+        this.planetRenderer?.setTime?.(this.parameters.sky_time_ms, { force: true });
 
         let skyOpacity = this.parameters.atmosphere_enabled
             ? SKY_STARMAP_OPACITY * 0.58

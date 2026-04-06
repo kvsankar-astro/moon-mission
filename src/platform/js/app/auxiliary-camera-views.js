@@ -3156,13 +3156,18 @@ class AuxiliaryCameraViewsManager {
         this.clampPanelPosition(panelState);
     }
 
-    renderLayers(renderer, scene, camera) {
-        renderer.autoClear = true;
-        camera.layers.set(2);
-        renderer.render(scene, camera);
+    renderLayers(renderer, scene, camera, { renderSkyLayer = true } = {}) {
+        if (renderSkyLayer) {
+            renderer.autoClear = true;
+            camera.layers.set(2);
+            renderer.render(scene, camera);
 
-        renderer.autoClear = false;
-        renderer.clearDepth();
+            renderer.autoClear = false;
+            renderer.clearDepth();
+        } else {
+            renderer.autoClear = true;
+        }
+
         camera.layers.set(0);
         renderer.render(scene, camera);
         renderer.autoClear = false;
@@ -3262,14 +3267,12 @@ class AuxiliaryCameraViewsManager {
 
         if (originalSkyOpacity != null) {
             skyMaterial.opacity = Math.min(originalSkyOpacity, profile.skyStarmapOpacityCap);
-            skyMaterial.needsUpdate = true;
         }
         if (originalConstellationOpacity != null) {
             constellationMaterial.opacity = Math.min(
                 originalConstellationOpacity,
                 profile.skyConstellationOpacityCap,
             );
-            constellationMaterial.needsUpdate = true;
         }
         if (sunRenderer?.setVisualState) {
             sunRenderer.setVisualState(profile.sunVisualState);
@@ -3279,11 +3282,9 @@ class AuxiliaryCameraViewsManager {
             renderer.toneMappingExposure = originalExposure;
             if (originalSkyOpacity != null && skyMaterial) {
                 skyMaterial.opacity = originalSkyOpacity;
-                skyMaterial.needsUpdate = true;
             }
             if (originalConstellationOpacity != null && constellationMaterial) {
                 constellationMaterial.opacity = originalConstellationOpacity;
-                constellationMaterial.needsUpdate = true;
             }
             if (sunRenderer?.setVisualState && originalSunVisualState) {
                 sunRenderer.setVisualState(originalSunVisualState);
@@ -4959,7 +4960,9 @@ class AuxiliaryCameraViewsManager {
         });
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer);
         try {
-            this.renderLayers(panelState.renderer, scene, panelState.camera);
+            this.renderLayers(panelState.renderer, scene, panelState.camera, {
+                renderSkyLayer: hasSkyContainer && skyContainer?.visible !== false,
+            });
         } finally {
             restoreComposerExposureProfile();
             restoreComposerBodyAmbient();
@@ -5205,7 +5208,9 @@ class AuxiliaryCameraViewsManager {
                     sunRenderer.setDirection(panelSunDirection.x, panelSunDirection.y, panelSunDirection.z);
                 }
 
-                this.renderLayers(panelState.renderer, scene, panelState.camera);
+                this.renderLayers(panelState.renderer, scene, panelState.camera, {
+                    renderSkyLayer: hasSkyContainer && skyContainer?.visible !== false,
+                });
 
                 if (panelState.infoMode === "moon-phase") {
                     const phase = this.cachedMoonPhaseInfo;
