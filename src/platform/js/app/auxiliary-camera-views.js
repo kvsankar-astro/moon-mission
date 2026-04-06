@@ -1,3 +1,5 @@
+import { STAR_CATALOG_BRIGHT as CROSS_INDEX_BRIGHT_STARS } from "../rendering/star-catalog-bright.js";
+
 const PANEL_SPECS = Object.freeze([
     {
         id: "earth",
@@ -94,6 +96,9 @@ const COMPOSER_OPTICS_ADVANCED_MAX = 2.5;
 const COMPOSER_OPTICS_ADVANCED_DEFAULT = 1.0;
 const COMPOSER_RA_DEC_GRID_RA_STEP_DEG = 30;
 const COMPOSER_RA_DEC_GRID_DEC_STEP_DEG = 15;
+const COMPOSER_BRIGHT_STAR_LABEL_MAX_MAGNITUDE = 2.0;
+const COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT = 36;
+const COMPOSER_SKY_LABEL_EDGE_MARGIN_PX = 10;
 const COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION = 0.5;
 const KM_TO_MILES = 0.621371192237334;
 const FLYBY_EVENT_PILL_SPECS = Object.freeze([
@@ -448,6 +453,8 @@ class AuxiliaryCameraViewsManager {
         this.composerFlybyWindowStartMs = Number.NaN;
         this.composerFlybyWindowEndMs = Number.NaN;
         this.composerFlybyEvents = [];
+        this.composerBrightStarCatalogRef = null;
+        this.composerBrightStarLabelDescriptors = [];
 
         if (!isDesktopViewport()) {
             return;
@@ -534,6 +541,55 @@ class AuxiliaryCameraViewsManager {
         } catch {
             // Ignore persistence failures (privacy mode/quota).
         }
+    }
+
+    resolveComposerBrightStarLabelDescriptors() {
+        const catalog = Array.isArray(CROSS_INDEX_BRIGHT_STARS) ? CROSS_INDEX_BRIGHT_STARS : null;
+        if (!catalog || catalog.length === 0) {
+            this.composerBrightStarCatalogRef = null;
+            this.composerBrightStarLabelDescriptors = [];
+            return this.composerBrightStarLabelDescriptors;
+        }
+        if (this.composerBrightStarCatalogRef === catalog && this.composerBrightStarLabelDescriptors.length > 0) {
+            return this.composerBrightStarLabelDescriptors;
+        }
+
+        const descriptors = [];
+        const seenLabels = new Set();
+        for (let i = 0; i < catalog.length; i += 1) {
+            const star = catalog[i];
+            const magnitude = Number(star?.vmag);
+            const label = String(star?.name || "").trim();
+            const raDeg = Number(star?.raDeg);
+            const decDeg = Number(star?.decDeg);
+            if (!Number.isFinite(magnitude) || magnitude > COMPOSER_BRIGHT_STAR_LABEL_MAX_MAGNITUDE) {
+                continue;
+            }
+            if (!label || !Number.isFinite(raDeg) || !Number.isFinite(decDeg)) {
+                continue;
+            }
+            const dedupeKey = label.toLowerCase();
+            if (seenLabels.has(dedupeKey)) {
+                continue;
+            }
+            seenLabels.add(dedupeKey);
+            const raRad = this.THREE.MathUtils.degToRad(raDeg);
+            const decRad = this.THREE.MathUtils.degToRad(decDeg);
+            const cosDec = Math.cos(decRad);
+            descriptors.push({
+                text: label,
+                magnitude,
+                localDirection: {
+                    x: cosDec * Math.cos(raRad),
+                    y: -cosDec * Math.sin(raRad),
+                    z: Math.sin(decRad),
+                },
+            });
+        }
+        descriptors.sort((a, b) => (a.magnitude - b.magnitude) || a.text.localeCompare(b.text));
+        this.composerBrightStarCatalogRef = catalog;
+        this.composerBrightStarLabelDescriptors = descriptors.slice(0, COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT);
+        return this.composerBrightStarLabelDescriptors;
     }
 
     readTimelineDockOffset() {
@@ -905,6 +961,8 @@ class AuxiliaryCameraViewsManager {
         let composerInfoOverlayCheckbox = null;
         let composerRaDecGridWrap = null;
         let composerRaDecGridCheckbox = null;
+        let composerSkyLabelsWrap = null;
+        let composerSkyLabelsCheckbox = null;
         let composerMetricsStrip = null;
         let composerMetricFovHValue = null;
         let composerMetricFovVValue = null;
@@ -959,6 +1017,17 @@ class AuxiliaryCameraViewsManager {
             composerRaDecGridWrap.appendChild(composerRaDecGridCheckbox);
             composerRaDecGridWrap.appendChild(composerRaDecGridText);
             composerInfoToggles.appendChild(composerRaDecGridWrap);
+
+            composerSkyLabelsWrap = document.createElement("label");
+            composerSkyLabelsWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerSkyLabelsCheckbox = document.createElement("input");
+            composerSkyLabelsCheckbox.type = "checkbox";
+            composerSkyLabelsCheckbox.setAttribute("aria-label", "Toggle composer bright star and planet labels");
+            const composerSkyLabelsText = document.createElement("span");
+            composerSkyLabelsText.textContent = "Sky Labels";
+            composerSkyLabelsWrap.appendChild(composerSkyLabelsCheckbox);
+            composerSkyLabelsWrap.appendChild(composerSkyLabelsText);
+            composerInfoToggles.appendChild(composerSkyLabelsWrap);
             composerInfoRow.appendChild(composerInfoToggles);
 
             composerPresetWrap = document.createElement("div");
@@ -1445,6 +1514,8 @@ class AuxiliaryCameraViewsManager {
             composerInfoOverlayCheckbox,
             composerRaDecGridWrap,
             composerRaDecGridCheckbox,
+            composerSkyLabelsWrap,
+            composerSkyLabelsCheckbox,
             composerMetricsStrip,
             composerMetricFovHValue,
             composerMetricFovVValue,
@@ -1493,6 +1564,7 @@ class AuxiliaryCameraViewsManager {
             onComposerInfoOverlayToggle: null,
             onComposerRollInput: null,
             onComposerRaDecGridToggle: null,
+            onComposerSkyLabelsToggle: null,
             onComposerViewportWheel: null,
             onComposerViewportPointerDown: null,
             onComposerViewportPointerMove: null,
@@ -1529,6 +1601,7 @@ class AuxiliaryCameraViewsManager {
             composerInteractionEnabled: true,
             composerInfoOverlayEnabled: true,
             composerRaDecGridEnabled: false,
+            composerSkyLabelsEnabled: false,
             composerViewportPointer: null,
             missionEnabled: panelMode === "composer"
                 ? this.composerEnabled
@@ -1727,6 +1800,15 @@ class AuxiliaryCameraViewsManager {
                     return;
                 }
                 panelState.composerRaDecGridEnabled = !!panelState.composerRaDecGridCheckbox?.checked;
+                panelState.overlayDirty = true;
+                this.requestRender?.();
+            };
+            const onComposerSkyLabelsToggle = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                panelState.composerSkyLabelsEnabled = !!panelState.composerSkyLabelsCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
             };
@@ -2066,6 +2148,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerInfoOverlayCheckbox?.addEventListener("change", onComposerInfoOverlayToggle);
             panelState.composerRollSlider?.addEventListener("input", onComposerRollInput, { passive: true });
             panelState.composerRaDecGridCheckbox?.addEventListener("change", onComposerRaDecGridToggle);
+            panelState.composerSkyLabelsCheckbox?.addEventListener("change", onComposerSkyLabelsToggle);
             panelState.viewport.addEventListener("wheel", onComposerViewportWheel, { passive: false });
             panelState.viewport.addEventListener("pointerdown", onComposerViewportPointerDown);
             panelState.viewport.addEventListener("pointermove", onComposerViewportPointerMove);
@@ -2097,6 +2180,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerInfoOverlayToggle = onComposerInfoOverlayToggle;
             panelState.onComposerRollInput = onComposerRollInput;
             panelState.onComposerRaDecGridToggle = onComposerRaDecGridToggle;
+            panelState.onComposerSkyLabelsToggle = onComposerSkyLabelsToggle;
             panelState.onComposerViewportWheel = onComposerViewportWheel;
             panelState.onComposerViewportPointerDown = onComposerViewportPointerDown;
             panelState.onComposerViewportPointerMove = onComposerViewportPointerMove;
@@ -2143,6 +2227,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerSunFlareGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
+            panelState.composerSkyLabelsEnabled = false;
             if (panelState.composerInfoOverlayCheckbox) {
                 panelState.composerInfoOverlayCheckbox.checked = true;
             }
@@ -2163,6 +2248,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.composerRaDecGridCheckbox) {
                 panelState.composerRaDecGridCheckbox.checked = false;
+            }
+            if (panelState.composerSkyLabelsCheckbox) {
+                panelState.composerSkyLabelsCheckbox.checked = false;
             }
         }
         syncAutoToggleUi();
@@ -2330,6 +2418,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerOpticsFlareSlider && (panelState.composerOpticsFlareSlider.disabled = disableControls);
         panelState.composerRollSlider && (panelState.composerRollSlider.disabled = disableControls);
         panelState.composerRaDecGridCheckbox && (panelState.composerRaDecGridCheckbox.disabled = disableControls);
+        panelState.composerSkyLabelsCheckbox && (panelState.composerSkyLabelsCheckbox.disabled = disableControls);
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
         }
@@ -3907,6 +3996,204 @@ class AuxiliaryCameraViewsManager {
         drawFovReadout();
     }
 
+    renderComposerSkyLabelOverlay(panelState, { scene = null, skyContainer = null, skyRenderer = null } = {}) {
+        if (!panelState?.overlayCtx || !panelState?.overlayCanvas) {
+            return;
+        }
+        if (panelState.composerSkyLabelsEnabled !== true) {
+            return;
+        }
+
+        const canvas = panelState.overlayCanvas;
+        const ctx = panelState.overlayCtx;
+        const width = canvas.width;
+        const height = canvas.height;
+        if (width <= 1 || height <= 1) {
+            return;
+        }
+
+        const resolvedSkyRenderer = skyRenderer || scene?.skyRenderer || null;
+        const activeSkyContainer = skyContainer || scene?.skyContainer || resolvedSkyRenderer?.container || null;
+        const planetRenderer = resolvedSkyRenderer?.planetRenderer || null;
+        if (!activeSkyContainer?.getWorldQuaternion) {
+            return;
+        }
+
+        const occupied = [];
+        const edge = COMPOSER_SKY_LABEL_EDGE_MARGIN_PX;
+        activeSkyContainer.getWorldQuaternion(this.tmpQuatA);
+        const projectSkyPointFromLocal = (x, y, z) => {
+            this.tmpVectorB.set(x, y, z);
+            if (activeSkyContainer?.matrixWorld) {
+                this.tmpVectorB.applyMatrix4(activeSkyContainer.matrixWorld);
+            } else {
+                this.tmpVectorB.applyQuaternion(this.tmpQuatA);
+            }
+            this.tmpVectorC.copy(this.tmpVectorB).project(panelState.camera);
+            if (
+                !Number.isFinite(this.tmpVectorC.x) ||
+                !Number.isFinite(this.tmpVectorC.y) ||
+                !Number.isFinite(this.tmpVectorC.z)
+            ) {
+                return null;
+            }
+            if (this.tmpVectorC.z < -1 || this.tmpVectorC.z > 1) {
+                return null;
+            }
+            return {
+                x: ((this.tmpVectorC.x * 0.5) + 0.5) * width,
+                y: (1 - ((this.tmpVectorC.y * 0.5) + 0.5)) * height,
+            };
+        };
+
+        const intersects = (a, b) => !(
+            a.right < b.left ||
+            a.left > b.right ||
+            a.bottom < b.top ||
+            a.top > b.bottom
+        );
+
+        const drawLabel = (text, point, style = "star") => {
+            if (!text || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                return false;
+            }
+            const font = "600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+            ctx.save();
+            ctx.font = font;
+            const textWidth = ctx.measureText(text).width;
+            ctx.restore();
+
+            const textHeight = 11;
+            const padX = 4;
+            const padY = 3;
+            const preferLeft = point.x < (width * 0.5);
+            const preferTop = point.y < (height * 0.5);
+            const baseOffsetX = preferLeft ? 8 : -8;
+            const baseOffsetY = preferTop ? -8 : 10;
+            const baseAlign = preferLeft ? "left" : "right";
+            const candidates = [
+                { dx: baseOffsetX, dy: baseOffsetY, align: baseAlign },
+                { dx: baseOffsetX, dy: -baseOffsetY, align: baseAlign },
+                { dx: 0, dy: preferTop ? -12 : 12, align: "center" },
+                { dx: -baseOffsetX, dy: baseOffsetY, align: preferLeft ? "right" : "left" },
+                { dx: baseOffsetX + 10, dy: baseOffsetY + 8, align: baseAlign },
+                { dx: baseOffsetX - 10, dy: baseOffsetY - 8, align: baseAlign },
+            ];
+
+            const computeBox = (x, y, align) => {
+                let left;
+                let right;
+                if (align === "right") {
+                    left = x - textWidth - padX;
+                    right = x + padX;
+                } else if (align === "center") {
+                    left = x - (textWidth * 0.5) - padX;
+                    right = x + (textWidth * 0.5) + padX;
+                } else {
+                    left = x - padX;
+                    right = x + textWidth + padX;
+                }
+                return {
+                    left,
+                    right,
+                    top: y - (textHeight * 0.5) - padY,
+                    bottom: y + (textHeight * 0.5) + padY,
+                };
+            };
+
+            for (const candidate of candidates) {
+                const x = Math.round((point.x + candidate.dx) * 2) / 2;
+                const y = Math.round((point.y + candidate.dy) * 2) / 2;
+                const box = computeBox(x, y, candidate.align);
+                if (
+                    box.left < edge ||
+                    box.right > (width - edge) ||
+                    box.top < edge ||
+                    box.bottom > (height - edge)
+                ) {
+                    continue;
+                }
+                if (occupied.some((existing) => intersects(existing, box))) {
+                    continue;
+                }
+
+                ctx.save();
+                ctx.font = font;
+                ctx.textAlign = candidate.align;
+                ctx.textBaseline = "middle";
+                ctx.lineJoin = "round";
+                ctx.lineWidth = 2.4;
+                ctx.strokeStyle = "rgba(7, 14, 24, 0.74)";
+                ctx.fillStyle = style === "planet"
+                    ? "rgba(226, 238, 255, 0.92)"
+                    : "rgba(205, 220, 242, 0.86)";
+                ctx.strokeText(text, x, y);
+                ctx.fillText(text, x, y);
+                ctx.restore();
+                occupied.push(box);
+                return true;
+            }
+            return false;
+        };
+
+        const planetPositionAttr = planetRenderer?.geometry?.getAttribute?.("position") || null;
+        const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
+        const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
+        const planetPositionArray = planetPositionAttr?.array || null;
+        const planetAlphaArray = planetAlphaAttr?.array || null;
+        if (planetPositionArray && planetAlphaArray && planetBodySlots.length > 0) {
+            const planetCount = Math.min(
+                planetBodySlots.length,
+                planetPositionAttr.count || 0,
+                planetAlphaAttr.count || 0,
+            );
+            for (let i = 0; i < planetCount; i += 1) {
+                const label = String(planetBodySlots[i] || "").trim();
+                if (!label) {
+                    continue;
+                }
+                // In Flyby panel these are already represented by foreground bodies
+                // and can be visually misleading when treated as sky markers.
+                if (label === "Moon" || label === "Sun") {
+                    continue;
+                }
+                const alpha = Number(planetAlphaArray[i]);
+                if (!Number.isFinite(alpha) || alpha <= 0.001) {
+                    continue;
+                }
+                const idx3 = i * 3;
+                const point = projectSkyPointFromLocal(
+                    Number(planetPositionArray[idx3]),
+                    Number(planetPositionArray[idx3 + 1]),
+                    Number(planetPositionArray[idx3 + 2]),
+                );
+                if (!point) {
+                    continue;
+                }
+                drawLabel(label, point, "planet");
+            }
+        }
+
+        const brightStarDescriptors = this.resolveComposerBrightStarLabelDescriptors();
+        if (brightStarDescriptors.length > 0) {
+            for (const descriptor of brightStarDescriptors) {
+                const localDirection = descriptor?.localDirection;
+                if (!localDirection) {
+                    continue;
+                }
+                const point = projectSkyPointFromLocal(
+                    Number(localDirection.x),
+                    Number(localDirection.y),
+                    Number(localDirection.z),
+                );
+                if (!point) {
+                    continue;
+                }
+                drawLabel(descriptor.text, point, "star");
+            }
+        }
+    }
+
     renderMoonFarSideOverlay(panelState, { distanceToTarget, targetRadius, earthDirectionWorld }) {
         if (!panelState?.overlayCtx || !panelState?.overlayCanvas) {
             return;
@@ -4530,6 +4817,7 @@ class AuxiliaryCameraViewsManager {
         moon,
         sun = null,
         sunRenderer,
+        skyRenderer = null,
         earthRadius,
         moonRadius,
         referenceCamera,
@@ -4678,6 +4966,7 @@ class AuxiliaryCameraViewsManager {
         }
         this.clearPanelOverlay(panelState);
         this.renderComposerRaDecGridOverlay(panelState);
+        this.renderComposerSkyLabelOverlay(panelState, { scene, skyContainer, skyRenderer });
         this.renderComposerMoonOutlineOverlay(panelState, {
             moonWorld: this.moonWorld,
             moonRadius: composerMoonRadius,
@@ -4693,6 +4982,7 @@ class AuxiliaryCameraViewsManager {
 
     render({
         scene,
+        skyRenderer = null,
         latestSceneState = null,
         activeCraft,
         craftsById = null,
@@ -4802,6 +5092,7 @@ class AuxiliaryCameraViewsManager {
                     }
                     const rendered = this.renderComposerPanel(panelState, {
                         scene,
+                        skyRenderer,
                         latestSceneState,
                         activeCraft,
                         earth,
@@ -5095,6 +5386,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerRaDecGridToggle) {
                 panelState.composerRaDecGridCheckbox?.removeEventListener("change", panelState.onComposerRaDecGridToggle);
+            }
+            if (panelState.onComposerSkyLabelsToggle) {
+                panelState.composerSkyLabelsCheckbox?.removeEventListener("change", panelState.onComposerSkyLabelsToggle);
             }
             if (panelState.onComposerViewportPointerDown) {
                 panelState.viewport.removeEventListener("pointerdown", panelState.onComposerViewportPointerDown);
