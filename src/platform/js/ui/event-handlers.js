@@ -339,6 +339,32 @@ function bindTimelineCarouselDragGesture() {
     const DRAG_THRESHOLD_PX = 4;
     const CLICK_SUPPRESS_MS = 220;
 
+    const clearDragState = () => {
+        dragState.pointerId = null;
+        dragState.dragging = false;
+        carousel.classList.remove("is-dragging");
+    };
+
+    const onPointerMoveWindow = (event) => {
+        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
+        const deltaX = event.clientX - dragState.startX;
+        if (!dragState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
+            dragState.dragging = true;
+            carousel.classList.add("is-dragging");
+        }
+        if (!dragState.dragging) return;
+        carousel.scrollLeft = dragState.startScrollLeft - deltaX;
+        event.preventDefault();
+    };
+
+    const endDragWindow = (event) => {
+        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
+        if (dragState.dragging) {
+            dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
+        }
+        clearDragState();
+    };
+
     const onPointerDown = (event) => {
         if (event.button !== 0) return;
         if (event.pointerType !== "mouse") return;
@@ -349,75 +375,12 @@ function bindTimelineCarouselDragGesture() {
         carousel.classList.remove("is-dragging");
     };
 
-    const onPointerMove = (event) => {
-        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
-        const deltaX = event.clientX - dragState.startX;
-        if (!dragState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
-            dragState.dragging = true;
-            carousel.classList.add("is-dragging");
-            // Capture only after drag intent is clear; capturing on pointerdown
-            // can retarget a normal click away from the event button.
-            carousel.setPointerCapture?.(event.pointerId);
-        }
-        if (!dragState.dragging) return;
-        carousel.scrollLeft = dragState.startScrollLeft - deltaX;
-        event.preventDefault();
-    };
-
-    const endDrag = (event) => {
-        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
-        if (dragState.dragging) {
-            dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
-        }
-        dragState.pointerId = null;
-        dragState.dragging = false;
-        carousel.classList.remove("is-dragging");
-    };
-
     // Use capture phase so button targets inside chips cannot swallow drag-start.
     carousel.addEventListener("pointerdown", onPointerDown, true);
-    carousel.addEventListener("pointermove", onPointerMove, true);
-    carousel.addEventListener("pointerup", endDrag, true);
-    carousel.addEventListener("pointercancel", endDrag, true);
-    carousel.addEventListener("lostpointercapture", () => {
-        dragState.pointerId = null;
-        dragState.dragging = false;
-        carousel.classList.remove("is-dragging");
-    }, true);
-
-    // Mouse fallback for environments where pointer events don't initiate from
-    // focusable button descendants consistently.
-    const mouseState = {
-        active: false,
-        startX: 0,
-        startScrollLeft: 0,
-        dragging: false,
-    };
-    carousel.addEventListener("mousedown", (event) => {
-        if (event.button !== 0) return;
-        mouseState.active = true;
-        mouseState.startX = event.clientX;
-        mouseState.startScrollLeft = carousel.scrollLeft;
-        mouseState.dragging = false;
-    }, true);
-    window.addEventListener("mousemove", (event) => {
-        if (!mouseState.active) return;
-        const deltaX = event.clientX - mouseState.startX;
-        if (!mouseState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
-            mouseState.dragging = true;
-            carousel.classList.add("is-dragging");
-        }
-        if (!mouseState.dragging) return;
-        carousel.scrollLeft = mouseState.startScrollLeft - deltaX;
-        dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
-        event.preventDefault();
-    }, true);
-    window.addEventListener("mouseup", () => {
-        if (!mouseState.active) return;
-        mouseState.active = false;
-        mouseState.dragging = false;
-        carousel.classList.remove("is-dragging");
-    }, true);
+    window.addEventListener("pointermove", onPointerMoveWindow, true);
+    window.addEventListener("pointerup", endDragWindow, true);
+    window.addEventListener("pointercancel", endDragWindow, true);
+    window.addEventListener("blur", clearDragState);
 
     carousel.addEventListener("click", (event) => {
         if (Date.now() > dragState.suppressClickUntilMs) return;
