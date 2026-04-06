@@ -1057,7 +1057,10 @@ export function bindMobileMissionCard() {
         "view-eclipticplane",
         "view-equatorialplane",
     ];
+    // Hotfix gate: keep mobile Earthrise UI disabled in production until feature completion.
+    const MOBILE_EARTHRISE_ENABLED = false;
     const composeFeatureEnabled = (() => {
+        if (!MOBILE_EARTHRISE_ENABLED) return false;
         const dataPath = String(window?.missionConfig?.dataPath || "").toLowerCase();
         return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
     })();
