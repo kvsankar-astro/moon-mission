@@ -55,6 +55,10 @@ function setText(idOrSelector, value) {
     element.textContent = value;
 }
 
+function hasElement(idOrSelector) {
+    return !!getElement(idOrSelector);
+}
+
 function setElementsHidden(selector, hidden) {
     const elements = document.querySelectorAll(selector);
     if (!elements.length) return;
@@ -102,6 +106,62 @@ const VIEW_SETTING_CHECKBOXES = {
     viewFPS: "view-fps"
 };
 
+const OPTIONAL_SKY_CHECKBOX_IDS = {
+    atmosphere_enabled: ["sky-atmosphere-enabled", "atmosphere-enabled", "atmosphere_enabled"],
+    procedural_stars_enabled: [
+        "view-procedural-stars",
+        "sky-procedural-stars-enabled",
+        "procedural-stars-enabled",
+        "procedural_stars_enabled",
+    ],
+};
+
+const OPTIONAL_SKY_RANGE_IDS = {
+    bloom_strength: ["sky-bloom-strength", "bloom-strength", "bloom_strength"],
+    star_size_scale: ["sky-star-size-scale", "star-size-scale", "star_size_scale"],
+    extinction_strength: ["sky-extinction-strength", "extinction-strength", "extinction_strength"],
+    twinkle_strength: ["sky-twinkle-strength", "twinkle-strength", "twinkle_strength"],
+    observer_lat: ["sky-observer-lat", "observer-lat", "observer_lat"],
+    observer_lon: ["sky-observer-lon", "observer-lon", "observer_lon"],
+    sky_time_ms: ["sky-time-ms", "sky_time_ms"],
+    sky_time_seconds: ["sky-time-seconds", "sky_time_seconds"],
+};
+
+function readOptionalBoolean(ids) {
+    for (const id of ids) {
+        if (!hasElement(id)) continue;
+        return getChecked(id);
+    }
+    return undefined;
+}
+
+function readOptionalNumber(ids) {
+    for (const id of ids) {
+        if (!hasElement(id)) continue;
+        const value = Number(getElement(id)?.value);
+        if (Number.isFinite(value)) {
+            return value;
+        }
+    }
+    return undefined;
+}
+
+function setOptionalNumber(ids, value) {
+    if (!Number.isFinite(value)) return;
+    for (const id of ids) {
+        if (!hasElement(id)) continue;
+        setRangeValue(id, value);
+    }
+}
+
+function setOptionalBoolean(ids, value) {
+    if (typeof value !== "boolean") return;
+    for (const id of ids) {
+        if (!hasElement(id)) continue;
+        setChecked(id, value);
+    }
+}
+
 export function readViewSettings() {
     /** @type {Record<string, boolean>} */
     const settings = {};
@@ -120,6 +180,25 @@ export function readViewSettings() {
     settings.trailTrackBrightness3D = getRangeValue("trail-track-brightness-3d", 1);
     settings.trailTailBrightness2D = getRangeValue("trail-tail-brightness-2d", 1);
     settings.trailTailBrightness3D = getRangeValue("trail-tail-brightness-3d", 1);
+
+    const atmosphereEnabled = readOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.atmosphere_enabled);
+    if (typeof atmosphereEnabled === "boolean") {
+        settings.atmosphere_enabled = atmosphereEnabled;
+    }
+    const proceduralStarsEnabled = readOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.procedural_stars_enabled);
+    if (typeof proceduralStarsEnabled === "boolean") {
+        settings.procedural_stars_enabled = proceduralStarsEnabled;
+    }
+
+    for (const [key, ids] of Object.entries(OPTIONAL_SKY_RANGE_IDS)) {
+        const value = readOptionalNumber(ids);
+        if (!Number.isFinite(value)) continue;
+        if (key === "sky_time_seconds") {
+            settings.sky_time_ms = value * 1000;
+        } else if (key !== "sky_time_ms" || !Number.isFinite(settings.sky_time_ms)) {
+            settings[key] = value;
+        }
+    }
 
     return settings;
 }
@@ -168,6 +247,22 @@ export function applyViewSettings(patch) {
     if (Number.isFinite(patch.trailTailBrightness3D)) {
         setRangeValue("trail-tail-brightness-3d", patch.trailTailBrightness3D);
         setText("trail-tail-brightness-3d-value", Number(patch.trailTailBrightness3D).toFixed(2));
+    }
+
+    setOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.atmosphere_enabled, patch.atmosphere_enabled);
+    setOptionalBoolean(OPTIONAL_SKY_CHECKBOX_IDS.procedural_stars_enabled, patch.procedural_stars_enabled);
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.bloom_strength, Number(patch.bloom_strength));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.star_size_scale, Number(patch.star_size_scale));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.extinction_strength, Number(patch.extinction_strength));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.twinkle_strength, Number(patch.twinkle_strength));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.observer_lat, Number(patch.observer_lat));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.observer_lon, Number(patch.observer_lon));
+    setOptionalNumber(OPTIONAL_SKY_RANGE_IDS.sky_time_ms, Number(patch.sky_time_ms));
+    if (Number.isFinite(Number(patch.sky_time_ms))) {
+        setOptionalNumber(
+            OPTIONAL_SKY_RANGE_IDS.sky_time_seconds,
+            Number(patch.sky_time_ms) / 1000,
+        );
     }
 }
 

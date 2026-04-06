@@ -3,7 +3,7 @@ export function applySceneTextures(scene, textures) {
     scene.earthSpecularTexture = textures.earthSpecularTexture;
     scene.moonMap = textures.moonMap;
     scene.moonDisplacementMap = textures.moonDisplacementMap;
-    scene.skyTexture = textures.skyTexture;
+    scene.skyTexture = textures.skyTexture || textures.skyMilkyWayTexture || scene.skyTexture;
     scene.skyConstellationTexture = textures.skyConstellationTexture;
 }
 

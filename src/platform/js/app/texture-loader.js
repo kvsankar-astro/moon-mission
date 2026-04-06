@@ -3,6 +3,8 @@ export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthSpecularTexture: "images/earth/earthspec1k.jpg",
     moonMap: "images/moon/Solarsystemscope_texture_8k_moon.jpg",
     moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
+    // Primary sky background is treated as Milky Way + diffuse background layer.
+    skyMilkyWayTexture: "images/sky/starmap_2020_4k_stars.jpg",
     skyTexture: "images/sky/starmap_2020_4k_stars.jpg",
     skyConstellationTexture: "images/sky/constellation_figures_2020_4k.jpg",
 };
@@ -12,6 +14,7 @@ const PLACEHOLDER_COLORS = Object.freeze({
     earthSpecularTexture: 0x111111,
     moonMap: 0x8f8f8f,
     moonDisplacementMap: 0x808080,
+    skyMilkyWayTexture: 0x081325,
     skyTexture: 0x081325,
     skyConstellationTexture: 0x000000,
 });
@@ -52,6 +55,7 @@ function applyTextureDefaults({
     // Color textures should be sampled in sRGB space.
     setColorTextureSpace(THREE, texturesByKey.earthTexture);
     setColorTextureSpace(THREE, texturesByKey.moonMap);
+    setColorTextureSpace(THREE, texturesByKey.skyMilkyWayTexture);
     setColorTextureSpace(THREE, texturesByKey.skyTexture);
     setColorTextureSpace(THREE, texturesByKey.skyConstellationTexture);
 }
@@ -76,6 +80,7 @@ export function createPlaceholderSceneTextures({
         earthSpecularTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthSpecularTexture),
         moonMap: createSolidTexture(THREE, PLACEHOLDER_COLORS.moonMap),
         moonDisplacementMap: createSolidTexture(THREE, PLACEHOLDER_COLORS.moonDisplacementMap),
+        skyMilkyWayTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.skyMilkyWayTexture),
         skyTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.skyTexture),
         skyConstellationTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.skyConstellationTexture),
     };
@@ -104,6 +109,9 @@ export function loadSceneTextures({
         for (let i = 0; i < entries.length; i += 1) {
             const [key] = entries[i];
             byKey[key] = textures[i];
+        }
+        if (!byKey.skyTexture && byKey.skyMilkyWayTexture) {
+            byKey.skyTexture = byKey.skyMilkyWayTexture;
         }
 
         applyTextureDefaults({
