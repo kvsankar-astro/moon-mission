@@ -3,6 +3,8 @@
 
     const POLL_INTERVAL_MS = 2 * 60 * 1000;
     const INITIAL_POLL_DELAY_MS = 20 * 1000;
+    const FETCH_TIMEOUT_MS = 7000;
+    const ENDPOINT_RESOLVE_RETRY_MAX_MS = 15 * 60 * 1000;
     const MAX_ANCESTOR_DEPTH = 4;
 
     let resolvedVersionUrl = null;
@@ -10,6 +12,10 @@
     let notifiedVersionKey = null;
     let bannerRoot = null;
     let bannerMessage = null;
+    let pollTimerId = null;
+    let checkInFlight = false;
+    let started = false;
+    let endpointResolveRetryDelayMs = POLL_INTERVAL_MS;
 
     function trimString(value) {
         return typeof value === "string" ? value.trim() : "";
@@ -49,14 +55,28 @@
 
     async function fetchVersion(url) {
         const requestUrl = `${url}${url.includes("?") ? "&" : "?"}vcheck=${Date.now()}`;
-        const response = await fetch(requestUrl, {
-            cache: "no-store",
-            credentials: "same-origin",
-        });
-        if (!response.ok) {
-            throw new Error(`Version check failed: ${response.status}`);
+        const controller = typeof AbortController === "function"
+            ? new AbortController()
+            : null;
+        const timeoutHandle = controller
+            ? window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+            : null;
+
+        try {
+            const response = await fetch(requestUrl, {
+                cache: "no-store",
+                credentials: "same-origin",
+                signal: controller?.signal,
+            });
+            if (!response.ok) {
+                throw new Error(`Version check failed: ${response.status}`);
+            }
+            return response.json();
+        } finally {
+            if (timeoutHandle != null) {
+                window.clearTimeout(timeoutHandle);
+            }
         }
-        return response.json();
     }
 
     async function resolveVersionEndpoint() {
@@ -176,14 +196,42 @@
         bannerRoot.style.display = "inline-flex";
     }
 
-    async function checkForUpdates() {
-        if (document.visibilityState === "hidden") return;
+    function scheduleNextCheck(delayMs = POLL_INTERVAL_MS) {
+        if (pollTimerId != null) {
+            window.clearTimeout(pollTimerId);
+            pollTimerId = null;
+        }
+        pollTimerId = window.setTimeout(runCheckCycle, Math.max(0, Number(delayMs) || 0));
+    }
+
+    async function runCheckCycle() {
+        if (checkInFlight) {
+            scheduleNextCheck(POLL_INTERVAL_MS);
+            return;
+        }
+
+        if (document.visibilityState === "hidden") {
+            scheduleNextCheck(POLL_INTERVAL_MS);
+            return;
+        }
+
+        checkInFlight = true;
+        let nextDelayMs = POLL_INTERVAL_MS;
+
         try {
             if (!resolvedVersionUrl) {
                 const resolved = await resolveVersionEndpoint();
-                if (!resolved?.url) return;
+                if (!resolved?.url) {
+                    nextDelayMs = endpointResolveRetryDelayMs;
+                    endpointResolveRetryDelayMs = Math.min(
+                        endpointResolveRetryDelayMs * 2,
+                        ENDPOINT_RESOLVE_RETRY_MAX_MS,
+                    );
+                    return;
+                }
                 resolvedVersionUrl = resolved.url;
                 loadedVersionKey = extractVersionKey(resolved.payload);
+                endpointResolveRetryDelayMs = POLL_INTERVAL_MS;
                 return;
             }
 
@@ -197,17 +245,27 @@
             showUpdateBanner(latestPayload);
         } catch {
             // Silent by design: this is optional UX, never a hard failure.
+            if (!resolvedVersionUrl) {
+                nextDelayMs = endpointResolveRetryDelayMs;
+                endpointResolveRetryDelayMs = Math.min(
+                    endpointResolveRetryDelayMs * 2,
+                    ENDPOINT_RESOLVE_RETRY_MAX_MS,
+                );
+            }
+        } finally {
+            checkInFlight = false;
+            scheduleNextCheck(nextDelayMs);
         }
     }
 
     function start() {
-        window.setTimeout(() => {
-            checkForUpdates();
-            window.setInterval(checkForUpdates, POLL_INTERVAL_MS);
-        }, INITIAL_POLL_DELAY_MS);
+        if (started) return;
+        started = true;
+        scheduleNextCheck(INITIAL_POLL_DELAY_MS);
+
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
-                checkForUpdates();
+                scheduleNextCheck(1500);
             }
         });
     }
@@ -218,4 +276,3 @@
         start();
     }
 })();
-
