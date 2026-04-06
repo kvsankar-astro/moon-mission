@@ -1,4 +1,5 @@
-import { AUXILIARY_VIEW_CAMERA_PRESETS } from "../app/auxiliary-camera-views.js";
+import { AUXILIARY_VIEW_CAMERA_PRESETS, resolveLunarFlybyTimeMs } from "../app/auxiliary-camera-views.js";
+import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
 /**
  * UI Event Handlers
@@ -33,6 +34,52 @@ function onInput(id, handler) {
 
 function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
+}
+
+function extractTimelineEventMetadataFromButtons() {
+    const buttons = document.querySelectorAll("#burnbuttons button[data-event-index]");
+    if (!buttons.length) return [];
+    const events = [];
+    buttons.forEach((button) => {
+        const startTime = Number(button.dataset.eventTimeMs);
+        if (!Number.isFinite(startTime)) return;
+        const key = button.dataset.eventKey || "";
+        const label = (button.textContent || "").trim();
+        const hoverText = button.getAttribute("title") || "";
+        const infoText = hoverText;
+        const className = button.className || "";
+        const burnFlag = /\bburn\b/i.test(key) || /\bburn\b/i.test(label) || /\bburn\b/i.test(className);
+        events.push({
+            startTime,
+            key,
+            label,
+            hoverText,
+            infoText,
+            burnFlag,
+        });
+    });
+    return events;
+}
+
+function formatLocalDateTimeShort(timeMs) {
+    if (!Number.isFinite(timeMs)) {
+        return "--";
+    }
+    try {
+        const datePart = new Intl.DateTimeFormat(undefined, {
+            month: "short",
+            day: "2-digit",
+        }).format(timeMs);
+        const timePart = new Intl.DateTimeFormat(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+            timeZoneName: "short",
+        }).format(timeMs);
+        return `${datePart} ${timePart}`;
+    } catch {
+        return new Date(timeMs).toLocaleString();
+    }
 }
 
 let keyboardShortcutsBound = false;
@@ -644,6 +691,21 @@ export function bindMainControls(handlers) {
         toggleLanding,
         toggleInfo
     } = handlers;
+    const bodyHaloToggle = typeof document !== "undefined"
+        ? document.getElementById("view-body-halos")
+        : null;
+    const locatorsPill = typeof document !== "undefined"
+        ? document.getElementById("locators-pill")
+        : null;
+
+    const syncLocatorsPillState = () => {
+        if (!locatorsPill || !bodyHaloToggle) return;
+        locatorsPill.setAttribute("aria-pressed", bodyHaloToggle.checked ? "true" : "false");
+    };
+    const setViewAndSyncLocators = (event) => {
+        setView(event);
+        syncLocatorsPillState();
+    };
 
     onClick("reset", reset);
 
@@ -677,7 +739,7 @@ export function bindMainControls(handlers) {
     onClick("view-sky", setView);
     onClick("view-constellation-lines", setView);
     onClick("view-moonsoi", setView);
-    onClick("view-moon-highlight", setView);
+    onClick("view-body-halos", setViewAndSyncLocators);
     onClick("view-moon-osculating-orbit", setView);
     onClick("view-eclipticplane", setView);
     onClick("view-equatorialplane", setView);
@@ -702,6 +764,12 @@ export function bindMainControls(handlers) {
     onClick("landingbutton", toggleLanding);
 
     onClick("info-button", toggleInfo);
+    onClick("locators-pill", function () {
+        if (!bodyHaloToggle) return;
+        bodyHaloToggle.checked = !bodyHaloToggle.checked;
+        setViewAndSyncLocators();
+    });
+    syncLocatorsPillState();
 }
 
 export function bindKeyboardShortcuts() {
@@ -854,6 +922,7 @@ export function bindMobileMissionCard() {
     const missionCardBody = document.getElementById("mobile-mission-body");
     const missionCollapseButton = document.getElementById("mobile-mission-collapse");
     const viewsCard = document.getElementById("mobile-card-views");
+    const composeCard = document.getElementById("mobile-card-compose");
     const missionControls = {
         play: document.getElementById("mobile-control-play"),
         slower: document.getElementById("mobile-control-slower"),
@@ -868,9 +937,27 @@ export function bindMobileMissionCard() {
         speed: document.getElementById("mobile-views-control-speed"),
         now: document.getElementById("mobile-views-control-realtime"),
     };
-    const mobileTransportSets = [missionControls, viewsControls];
+    const composeControls = {
+        play: document.getElementById("mobile-compose-control-play"),
+        slower: document.getElementById("mobile-compose-control-slower"),
+        faster: document.getElementById("mobile-compose-control-faster"),
+        speed: document.getElementById("mobile-compose-control-speed"),
+        now: document.getElementById("mobile-compose-control-realtime"),
+    };
+    const mobileTransportSets = [missionControls, viewsControls, composeControls];
 
     const mobileViewButtons = document.querySelectorAll(".mobile-shell__view-btn");
+    const mobileComposeLockButtons = document.querySelectorAll(".mobile-shell__compose-lock-btn");
+    const mobileComposeTimelineSlider = document.getElementById("mobile-compose-timeline-slider");
+    const mobileComposeTimelineValue = document.getElementById("mobile-compose-timeline-value");
+    const mobileComposeTimelineLocal = document.getElementById("mobile-compose-timeline-local");
+    const mobileComposeEarthshineSlider = document.getElementById("mobile-compose-earthshine-slider");
+    const mobileComposeEarthshineValue = document.getElementById("mobile-compose-earthshine-value");
+    const mobileComposeRollSlider = document.getElementById("mobile-compose-roll-slider");
+    const mobileComposeRollValue = document.getElementById("mobile-compose-roll-value");
+    const mobileComposeFovSlider = document.getElementById("mobile-compose-fov-slider");
+    const mobileComposeFovValue = document.getElementById("mobile-compose-fov-value");
+    const mobileComposeFovAuto = document.getElementById("mobile-compose-fov-auto");
     const mobileViewsFovSlider = document.getElementById("mobile-views-fov-slider");
     const mobileViewsFovValue = document.getElementById("mobile-views-fov-value");
     const mobileViewsFovAuto = document.getElementById("mobile-views-fov-auto");
@@ -882,7 +969,9 @@ export function bindMobileMissionCard() {
     const mobileMoonFarSideOverlay = document.getElementById("mobile-moon-farside-overlay");
     const contentWrapper = document.getElementById("content-wrapper");
     const missionEvent = document.getElementById("mobile-mission-event");
+    const mobileShellNav = shell.querySelector(".mobile-shell__nav");
     const navButtons = document.querySelectorAll(".mobile-shell__nav-btn");
+    const composeNavButton = shell.querySelector('.mobile-shell__nav-btn[data-mobile-tab="compose"]');
     const desktopPosition = document.getElementById("camera-position");
     const desktopLook = document.getElementById("camera-look");
     const desktopPlay = document.getElementById("animate");
@@ -893,18 +982,40 @@ export function bindMobileMissionCard() {
     const mobileViewPresetById = new Map(
         AUXILIARY_VIEW_CAMERA_PRESETS.map((preset) => [preset.id, preset]),
     );
+    const mobileComposePresetById = new Map([
+        ["free", { positionMode: "spacecraft", lookMode: "manual" }],
+        ["earth", { positionMode: "spacecraft", lookMode: "earth" }],
+        ["moon", { positionMode: "spacecraft", lookMode: "moon" }],
+    ]);
     const mobileTabCards = {
         mission: missionCard,
         views: viewsCard,
+        compose: composeCard,
     };
     const MISSION_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-mission-panel-collapsed:v1";
+    const EARTHSHINE_GAIN_STORAGE_KEY = "moon-mission:mobile-earthshine-gain:v1";
+    const COMPOSE_TIMELINE_RESOLUTION = 1000;
+    const COMPOSE_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
+    const EARTHSHINE_GAIN_MIN = 0;
+    const EARTHSHINE_GAIN_MAX = 2.4;
+    const EARTHSHINE_BASE_INTENSITY = Number.isFinite(LT.EARTHSHINE_INTENSITY)
+        ? LT.EARTHSHINE_INTENSITY
+        : 0.08;
+    const EARTHSHINE_BASE_MIN = Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
+        ? LT.EARTHSHINE_MIN_INTENSITY
+        : 0.015;
+    const EARTHSHINE_BASE_MAX = Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
+        ? LT.EARTHSHINE_MAX_INTENSITY
+        : 0.08;
+    const COMPOSE_DEFAULT_FOV = 110;
     let activeMobileTab = "mission";
     let activeMobileViewPresetId = "moon";
+    let activeMobileComposeLockPresetId = "free";
     let mobileViewsAutoFovEnabled = true;
     const radiusByObject = new WeakMap();
     const AUTO_FOV_MARGIN_SCALE = 1.03;
     const MIN_FOV = 1;
-    const MAX_FOV = 60;
+    const MAX_FOV = 179;
     let mobileViewsPresetInitialized = false;
     let mobileViewsSavedViewState = null;
     let mobileAlwaysSuppressedViewState = null;
@@ -917,6 +1028,14 @@ export function bindMobileMissionCard() {
     let mobileMoonOverlayCtx = null;
     let mobileViewsPinchState = null;
     let mobileMoonVisibilitySignature = "";
+    let composeTimelineWindowStartMs = Number.NaN;
+    let composeTimelineWindowEndMs = Number.NaN;
+    let composeTimelineDragging = false;
+    let mobileEarthshineGain = 1;
+    let mobileComposeHiddenCraftState = null;
+    let mobileComposeRollRad = (250 * Math.PI) / 180;
+    let mobileComposeFreeStartupAligned = false;
+    let mobileComposeDefaultFovApplied = false;
     const MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS = 180;
     const moonVisibilitySamples = createFibonacciSphereSamples(240);
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
@@ -934,11 +1053,34 @@ export function bindMobileMissionCard() {
         "view-sky",
         "view-constellation-lines",
         "view-moonsoi",
-        "view-moon-highlight",
         "view-moon-osculating-orbit",
         "view-eclipticplane",
         "view-equatorialplane",
     ];
+    const composeFeatureEnabled = (() => {
+        const dataPath = String(window?.missionConfig?.dataPath || "").toLowerCase();
+        return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
+    })();
+    const isViewsVisualSimplificationTab = (tabName) => tabName === "views" || tabName === "compose";
+
+    if (!composeFeatureEnabled) {
+        if (composeCard) {
+            composeCard.hidden = true;
+        }
+        if (composeNavButton) {
+            composeNavButton.hidden = true;
+            composeNavButton.disabled = true;
+        }
+    }
+
+    const syncMobileNavLayout = () => {
+        if (!mobileShellNav) return;
+        const visibleNavCount = Array.from(navButtons).reduce((count, button) => {
+            return button.hidden ? count : count + 1;
+        }, 0);
+        mobileShellNav.style.setProperty("--mobile-shell-tab-count", String(Math.max(1, visibleNavCount)));
+    };
+    syncMobileNavLayout();
 
     const toggleMobileMode = () => {
         const mobile = isMobileViewport();
@@ -956,13 +1098,14 @@ export function bindMobileMissionCard() {
                 settingsButton.classList.remove("is-open");
             }
             applyMobileAlwaysSuppressedViews();
-            if (activeMobileTab === "views") {
+            if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 applyViewsVisualSimplification();
                 startMobileMoonVisibilityLoop();
             }
             syncMobileMoonVisibilityInfo({ force: true });
+            syncMobileComposeControls();
         } else {
-            if (activeMobileTab === "views") {
+            if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 restoreViewsVisualSimplification();
                 if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
                     desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
@@ -974,6 +1117,7 @@ export function bindMobileMissionCard() {
             restoreMobileAlwaysSuppressedViews();
             stopMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
+            syncMobileComposePresentation();
         }
     };
 
@@ -996,7 +1140,7 @@ export function bindMobileMissionCard() {
 
     const clampFov = (value) => {
         const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return 50;
+        if (!Number.isFinite(numeric)) return COMPOSE_DEFAULT_FOV;
         return Math.min(MAX_FOV, Math.max(MIN_FOV, numeric));
     };
 
@@ -1006,9 +1150,16 @@ export function bindMobileMissionCard() {
         if (mobileViewsFovSlider) {
             mobileViewsFovSlider.value = String(rounded);
         }
+        if (mobileComposeFovSlider) {
+            mobileComposeFovSlider.value = String(rounded);
+        }
         if (mobileViewsFovValue) {
             mobileViewsFovValue.textContent = `${rounded}°`;
             mobileViewsFovValue.value = `${rounded}°`;
+        }
+        if (mobileComposeFovValue) {
+            mobileComposeFovValue.textContent = `${rounded}°`;
+            mobileComposeFovValue.value = `${rounded}°`;
         }
     };
 
@@ -1788,6 +1939,14 @@ export function bindMobileMissionCard() {
                 mobileMoonOverlayLoopHandle = null;
                 return;
             }
+            syncMobileComposePresentation();
+            const scene = resolveActiveScene();
+            if (
+                scene?.camera?.fov &&
+                (activeMobileTab === "views" || activeMobileTab === "compose")
+            ) {
+                updateMobileViewsFovDisplay(scene.camera.fov);
+            }
             mobileMoonOverlayLoopHandle = window.requestAnimationFrame(tick);
         };
         mobileMoonOverlayLoopHandle = window.requestAnimationFrame(tick);
@@ -1826,11 +1985,19 @@ export function bindMobileMissionCard() {
             mobileViewsFovAuto.setAttribute("aria-pressed", mobileViewsAutoFovEnabled ? "true" : "false");
             mobileViewsFovAuto.title = mobileViewsAutoFovEnabled ? "Auto FoV enabled" : "Auto FoV disabled";
         }
+        if (mobileComposeFovAuto) {
+            mobileComposeFovAuto.classList.toggle("is-active", mobileViewsAutoFovEnabled);
+            mobileComposeFovAuto.setAttribute("aria-pressed", mobileViewsAutoFovEnabled ? "true" : "false");
+            mobileComposeFovAuto.title = mobileViewsAutoFovEnabled ? "Auto FoV enabled" : "Auto FoV disabled";
+        }
     };
 
     const applyAutoFovForActivePreset = () => {
         if (!mobileViewsAutoFovEnabled) return false;
-        const preset = mobileViewPresetById.get(activeMobileViewPresetId);
+        const isComposeTab = activeMobileTab === "compose" && composeFeatureEnabled;
+        const preset = isComposeTab
+            ? mobileComposePresetById.get(activeMobileComposeLockPresetId)
+            : mobileViewPresetById.get(activeMobileViewPresetId);
         if (!preset) return false;
 
         const scene = resolveActiveScene();
@@ -1876,6 +2043,376 @@ export function bindMobileMissionCard() {
                 applyAutoFovForActivePreset();
             });
         });
+    };
+
+    const clampEarthshineGain = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return 1;
+        return Math.min(EARTHSHINE_GAIN_MAX, Math.max(EARTHSHINE_GAIN_MIN, numeric));
+    };
+
+    const updateMobileComposeEarthshineDisplay = (value) => {
+        const gain = clampEarthshineGain(value);
+        if (mobileComposeEarthshineSlider) {
+            mobileComposeEarthshineSlider.value = String(gain.toFixed(2));
+        }
+        if (mobileComposeEarthshineValue) {
+            const text = `${gain.toFixed(2)}`;
+            mobileComposeEarthshineValue.value = text;
+            mobileComposeEarthshineValue.textContent = text;
+        }
+    };
+
+    const applyMobileComposeEarthshineGain = (value, { persist = true } = {}) => {
+        const gain = clampEarthshineGain(value);
+        mobileEarthshineGain = gain;
+        LT.EARTHSHINE_INTENSITY = EARTHSHINE_BASE_INTENSITY * gain;
+        LT.EARTHSHINE_MIN_INTENSITY = EARTHSHINE_BASE_MIN * gain;
+        LT.EARTHSHINE_MAX_INTENSITY = EARTHSHINE_BASE_MAX * gain;
+        updateMobileComposeEarthshineDisplay(gain);
+        if (persist) {
+            try {
+                window.localStorage?.setItem(EARTHSHINE_GAIN_STORAGE_KEY, String(gain));
+            } catch {
+                // Ignore localStorage write failures.
+            }
+        }
+    };
+
+    const readMainTimelineState = () => {
+        const slider = document.getElementById("timeline-slider");
+        if (!(slider instanceof HTMLInputElement)) return null;
+        const min = Number(slider.min);
+        const max = Number(slider.max);
+        const value = Number(slider.value);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) return null;
+        return {
+            slider,
+            min: Math.min(min, max),
+            max: Math.max(min, max),
+            value: Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max)),
+        };
+    };
+
+    const seekMainTimelineTime = (timeMs, finalize = false) => {
+        const timelineState = readMainTimelineState();
+        if (!timelineState) return;
+        const clamped = Math.min(Math.max(timeMs, timelineState.min), timelineState.max);
+        timelineState.slider.value = String(clamped);
+        timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
+        if (finalize) {
+            timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    };
+
+    const resolveComposeTimelineAnchorTimeMs = () => {
+        const timelineState = readMainTimelineState();
+        if (!timelineState) return Number.NaN;
+        const eventInfos = extractTimelineEventMetadataFromButtons();
+        const flybyTimeMs = resolveLunarFlybyTimeMs(eventInfos);
+        if (Number.isFinite(flybyTimeMs)) {
+            return flybyTimeMs;
+        }
+        return timelineState.value;
+    };
+
+    const normalizeComposeRoll = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return 0;
+        const twoPi = Math.PI * 2;
+        return ((numeric % twoPi) + twoPi) % twoPi;
+    };
+
+    const formatComposeRollLabel = (degrees) => {
+        const normalized = ((Math.round(degrees) % 360) + 360) % 360;
+        if (normalized === 0) return `N ${normalized}\u00b0`;
+        if (normalized === 90) return `E ${normalized}\u00b0`;
+        if (normalized === 180) return `S ${normalized}\u00b0`;
+        if (normalized === 270) return `W ${normalized}\u00b0`;
+        return `${normalized}\u00b0`;
+    };
+
+    const syncMobileComposeRollSliderUi = () => {
+        if (!mobileComposeRollSlider) return;
+        mobileComposeRollRad = normalizeComposeRoll(mobileComposeRollRad);
+        const degreesNormalized = (((mobileComposeRollRad * 180) / Math.PI) % 360 + 360) % 360;
+        const rounded = Math.round(degreesNormalized) % 360;
+        mobileComposeRollSlider.value = String(rounded);
+        if (mobileComposeRollValue) {
+            const label = formatComposeRollLabel(rounded);
+            mobileComposeRollValue.value = label;
+            mobileComposeRollValue.textContent = label;
+        }
+    };
+
+    const resolveComposeLookTarget = (scene, controller) => {
+        const camera = scene?.camera;
+        if (!camera?.position?.clone) return null;
+        const lookMode = (controller?.lookMode || desktopLook?.value || "manual").trim();
+        if (lookMode === "earth" || lookMode === "moon" || lookMode === "spacecraft") {
+            const targetObject = resolveSceneObject(scene, lookMode);
+            if (targetObject?.getWorldPosition) {
+                const target = camera.position.clone();
+                targetObject.getWorldPosition(target);
+                return target;
+            }
+        }
+        if (controller?.controls?.target?.clone) {
+            return controller.controls.target.clone();
+        }
+        if (camera.getWorldDirection) {
+            const target = camera.position.clone();
+            const viewDir = camera.position.clone();
+            camera.getWorldDirection(viewDir);
+            return target.add(viewDir);
+        }
+        return null;
+    };
+
+    const applyMobileComposeRoll = () => {
+        if (!shouldUseEarthrisePresentation()) return;
+        const scene = resolveActiveScene();
+        const controller = scene?.cameraController;
+        controller?.setMountedManualRollRad?.(mobileComposeRollRad);
+        const camera = scene?.camera;
+        if (!camera?.position?.clone) return;
+
+        const lookTarget = resolveComposeLookTarget(scene, controller);
+        if (!lookTarget?.clone) return;
+
+        const viewDir = lookTarget.clone().sub(camera.position);
+        if (viewDir.lengthSq?.() <= 1e-12) return;
+        viewDir.normalize();
+
+        const baseUp = camera.position.clone().set(0, 0, 1);
+        baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
+        if (baseUp.lengthSq() <= 1e-10) {
+            baseUp.set(0, 1, 0);
+            baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
+        }
+        if (baseUp.lengthSq() <= 1e-10) {
+            baseUp.set(1, 0, 0);
+            baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
+        }
+        if (baseUp.lengthSq() <= 1e-10) return;
+
+        const rolledUp = baseUp.normalize().applyAxisAngle(viewDir, mobileComposeRollRad).normalize();
+        camera.up.copy(rolledUp);
+        camera.lookAt(lookTarget);
+        if (controller?.controls?.target?.copy) {
+            controller.controls.target.copy(lookTarget);
+        }
+    };
+
+    const shouldUseEarthrisePresentation = () => (
+        composeFeatureEnabled &&
+        isMobileViewport() &&
+        activeMobileTab === "compose"
+    );
+
+    const restoreComposeCraftVisibility = () => {
+        if (!mobileComposeHiddenCraftState?.craft) return;
+        try {
+            mobileComposeHiddenCraftState.craft.visible = mobileComposeHiddenCraftState.wasVisible;
+        } catch {
+            // Ignore stale object graph state.
+        }
+        mobileComposeHiddenCraftState = null;
+    };
+
+    const hideComposeCraft = () => {
+        const scene = resolveActiveScene();
+        const craft = resolveActiveCraft(scene);
+        if (!craft) {
+            restoreComposeCraftVisibility();
+            return;
+        }
+        const existingCraft = mobileComposeHiddenCraftState?.craft || null;
+        if (existingCraft && existingCraft !== craft) {
+            restoreComposeCraftVisibility();
+        }
+        if (!mobileComposeHiddenCraftState || mobileComposeHiddenCraftState.craft !== craft) {
+            mobileComposeHiddenCraftState = {
+                craft,
+                wasVisible: craft.visible !== false,
+            };
+        }
+        craft.visible = false;
+    };
+
+    const enforceComposeCameraAtCraftCenter = () => {
+        if (!shouldUseEarthrisePresentation()) return;
+        const scene = resolveActiveScene();
+        const controller = scene?.cameraController;
+        if (!controller?.mountOffset?.set) return;
+        if (controller.positionMode !== "spacecraft") return;
+        controller.mountOffset.set(0, 0, 0);
+    };
+
+    const alignMobileComposeFreeLookToEarth = () => {
+        if (!shouldUseEarthrisePresentation()) return false;
+        const scene = resolveActiveScene();
+        const controller = scene?.cameraController;
+        const camera = scene?.camera;
+        const earthObject = resolveSceneObject(scene, "earth");
+        if (!camera?.position?.clone || !camera.lookAt || !earthObject?.getWorldPosition) {
+            return false;
+        }
+        const target = camera.position.clone();
+        earthObject.getWorldPosition(target);
+        const view = target.clone().sub(camera.position);
+        if (view.lengthSq?.() <= 1e-12) {
+            return false;
+        }
+        camera.lookAt(target);
+        if (controller?.controls?.target?.copy) {
+            controller.controls.target.copy(target);
+        }
+        if (!controller?._freeFlyActive) {
+            controller?.controls?.update?.();
+            controller?.controls?.dispatchEvent?.({ type: "change" });
+        }
+        return true;
+    };
+
+    const syncMobileComposePresentation = () => {
+        if (!shouldUseEarthrisePresentation()) {
+            restoreComposeCraftVisibility();
+            return;
+        }
+        hideComposeCraft();
+        enforceComposeCameraAtCraftCenter();
+        applyMobileComposeRoll();
+        syncMobileComposeRollSliderUi();
+    };
+
+    const syncMobileComposeLockPresetState = () => {
+        if (!desktopPosition || !desktopLook || !mobileComposeLockButtons.length) return;
+        const positionMode = (desktopPosition.value || "").trim();
+        const lookMode = (desktopLook.value || "").trim();
+        let matchedPresetId = null;
+
+        mobileComposeLockButtons.forEach((button) => {
+            const presetId = button.dataset.mobileComposeLock || "";
+            const preset = mobileComposePresetById.get(presetId);
+            const isActive = !!preset &&
+                preset.positionMode === positionMode &&
+                preset.lookMode === lookMode;
+            if (isActive) matchedPresetId = presetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+
+        if (!matchedPresetId) {
+            matchedPresetId = mobileComposePresetById.has(activeMobileComposeLockPresetId)
+                ? activeMobileComposeLockPresetId
+                : "free";
+            mobileComposeLockButtons.forEach((button) => {
+                const isActive = (button.dataset.mobileComposeLock || "") === matchedPresetId;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+        }
+
+        activeMobileComposeLockPresetId = matchedPresetId;
+    };
+
+    const applyMobileComposeLockPreset = (presetId) => {
+        if (!desktopPosition || !desktopLook) return;
+        const preset = mobileComposePresetById.get(presetId);
+        if (!preset) return;
+        const scene = resolveActiveScene();
+        scene?.cameraController?.mountOffset?.set?.(0, 0, 0);
+        activeMobileComposeLockPresetId = presetId;
+        desktopPosition.value = preset.positionMode;
+        desktopLook.value = preset.lookMode;
+        desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
+        syncMobileComposeLockPresetState();
+        syncMobileComposePresentation();
+    };
+
+    const syncMobileComposeTimelineWindow = ({ finalize = false } = {}) => {
+        const timelineState = readMainTimelineState();
+        if (!timelineState || !mobileComposeTimelineSlider) {
+            if (mobileComposeTimelineValue) {
+                mobileComposeTimelineValue.textContent = "--";
+                mobileComposeTimelineValue.value = "--";
+            }
+            if (mobileComposeTimelineLocal) {
+                mobileComposeTimelineLocal.textContent = "Local: --";
+            }
+            return;
+        }
+
+        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
+        const anchorMs = resolveComposeTimelineAnchorTimeMs();
+        const hasAnchor = Number.isFinite(anchorMs);
+        const windowSpan = Math.min(fullSpan, COMPOSE_TIMELINE_WINDOW_MS);
+        const halfSpan = windowSpan * 0.5;
+        let startMs = (hasAnchor ? anchorMs : timelineState.value) - halfSpan;
+        let endMs = (hasAnchor ? anchorMs : timelineState.value) + halfSpan;
+        if (startMs < timelineState.min) {
+            endMs += timelineState.min - startMs;
+            startMs = timelineState.min;
+        }
+        if (endMs > timelineState.max) {
+            startMs -= endMs - timelineState.max;
+            endMs = timelineState.max;
+        }
+        startMs = Math.max(timelineState.min, startMs);
+        endMs = Math.min(timelineState.max, endMs);
+        if (endMs <= startMs) {
+            endMs = Math.min(timelineState.max, startMs + 1);
+        }
+        composeTimelineWindowStartMs = startMs;
+        composeTimelineWindowEndMs = endMs;
+
+        if (!composeTimelineDragging) {
+            const ratio = Math.min(
+                1,
+                Math.max(0, (timelineState.value - startMs) / Math.max(endMs - startMs, 1)),
+            );
+            mobileComposeTimelineSlider.value = String(Math.round(ratio * COMPOSE_TIMELINE_RESOLUTION));
+        }
+
+        if (mobileComposeTimelineValue) {
+            const utcText = new Date(timelineState.value).toUTCString();
+            mobileComposeTimelineValue.value = utcText;
+            mobileComposeTimelineValue.textContent = utcText;
+        }
+        if (mobileComposeTimelineLocal) {
+            mobileComposeTimelineLocal.textContent = `Local: ${formatLocalDateTimeShort(timelineState.value)}`;
+        }
+
+        if (finalize) {
+            seekMainTimelineTime(timelineState.value, true);
+        }
+    };
+
+    const syncMobileComposeControls = () => {
+        if (shouldUseEarthrisePresentation() && desktopPosition && desktopLook) {
+            const desiredPreset = mobileComposePresetById.get(activeMobileComposeLockPresetId) || mobileComposePresetById.get("free");
+            if (
+                desiredPreset &&
+                (desktopPosition.value !== desiredPreset.positionMode || desktopLook.value !== desiredPreset.lookMode)
+            ) {
+                desktopPosition.value = desiredPreset.positionMode;
+                desktopLook.value = desiredPreset.lookMode;
+                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+        }
+        syncMobileComposeLockPresetState();
+        if (
+            shouldUseEarthrisePresentation() &&
+            !mobileComposeFreeStartupAligned &&
+            activeMobileComposeLockPresetId === "free"
+        ) {
+            mobileComposeFreeStartupAligned = alignMobileComposeFreeLookToEarth();
+        }
+        syncMobileComposeTimelineWindow();
+        updateMobileComposeEarthshineDisplay(mobileEarthshineGain);
+        syncMobileComposeRollSliderUi();
+        syncMobileComposePresentation();
     };
 
     const setCheckboxState = (id, checked) => {
@@ -1938,11 +2475,16 @@ export function bindMobileMissionCard() {
     };
 
     const setActiveMobileTab = (tabName) => {
-        const nextTab = mobileTabCards[tabName] ? tabName : "mission";
+        const requestedTab = (tabName === "compose" && !composeFeatureEnabled) ? "mission" : tabName;
+        const nextTab = mobileTabCards[requestedTab] ? requestedTab : "mission";
         const previousTab = activeMobileTab;
         activeMobileTab = nextTab;
+        const mobileViewport = isMobileViewport();
+        const previousNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(previousTab);
+        const nextNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(nextTab);
 
         navButtons.forEach((button) => {
+            if (button.hidden) return;
             const isActive = button.dataset.mobileTab === nextTab;
             button.classList.toggle("is-active", isActive);
             if (isActive) {
@@ -1954,10 +2496,14 @@ export function bindMobileMissionCard() {
 
         Object.entries(mobileTabCards).forEach(([tabKey, card]) => {
             if (!card) return;
+            if (tabKey === "compose" && !composeFeatureEnabled) {
+                card.hidden = true;
+                return;
+            }
             card.hidden = tabKey !== nextTab;
         });
 
-        if (nextTab === "views" && isMobileViewport()) {
+        if (nextNeedsSimplification && !previousNeedsSimplification) {
             applyViewsVisualSimplification();
             if (!mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
                 mobileSavedMissionCameraModes = {
@@ -1965,6 +2511,17 @@ export function bindMobileMissionCard() {
                     lookMode: desktopLook.value,
                 };
             }
+        } else if (!nextNeedsSimplification && previousNeedsSimplification) {
+            restoreViewsVisualSimplification();
+            if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
+                desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
+                desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
+                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
+                mobileSavedMissionCameraModes = null;
+            }
+        }
+
+        if (nextTab === "views" && mobileViewport) {
             if (!mobileViewsPresetInitialized || !mobileViewPresetById.has(activeMobileViewPresetId)) {
                 activeMobileViewPresetId = "moon";
                 applyMobileViewPreset(activeMobileViewPresetId);
@@ -1981,17 +2538,29 @@ export function bindMobileMissionCard() {
             }
             startMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
-        } else if (previousTab === "views" && isMobileViewport()) {
-            restoreViewsVisualSimplification();
-            if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
-                desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
-                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-                mobileSavedMissionCameraModes = null;
+        } else if (nextTab === "compose" && mobileViewport && composeFeatureEnabled) {
+            if (!mobileComposeDefaultFovApplied) {
+                setMobileViewsAutoFov(false);
+                applyMobileViewsFov(COMPOSE_DEFAULT_FOV);
+                mobileComposeDefaultFovApplied = true;
+            }
+            syncMobileComposeControls();
+            if (mobileViewsAutoFovEnabled) {
+                scheduleAutoFovApply();
+            } else {
+                const scene = resolveActiveScene();
+                if (scene?.camera?.fov) {
+                    updateMobileViewsFovDisplay(scene.camera.fov);
+                }
             }
             stopMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
+        } else if (previousTab === "views" && mobileViewport) {
+            syncMobileMoonVisibilityInfo({ force: true });
+        } else if (previousTab === "compose" && mobileViewport) {
+            syncMobileMoonVisibilityInfo({ force: true });
         }
+        syncMobileComposePresentation();
     };
 
     const syncMobileViewPresetState = () => {
@@ -2077,11 +2646,26 @@ export function bindMobileMissionCard() {
         });
     }
 
+    if (mobileComposeLockButtons.length) {
+        mobileComposeLockButtons.forEach((button) => {
+            button.addEventListener("click", function () {
+                const presetId = button.dataset.mobileComposeLock || "free";
+                applyMobileComposeLockPreset(presetId);
+                syncMobileComposeTimelineWindow();
+            });
+        });
+    }
+
     if (desktopPosition) {
         desktopPosition.addEventListener("change", () => {
             syncMobileViewPresetState();
-            if (mobileViewsAutoFovEnabled && activeMobileTab === "views") {
+            syncMobileComposeLockPresetState();
+            syncMobileComposePresentation();
+            if (mobileViewsAutoFovEnabled && (activeMobileTab === "views" || activeMobileTab === "compose")) {
                 scheduleAutoFovApply();
+            }
+            if (activeMobileTab === "compose") {
+                syncMobileComposeTimelineWindow();
             }
             syncMobileMoonVisibilityInfo({ force: true });
         });
@@ -2089,8 +2673,13 @@ export function bindMobileMissionCard() {
     if (desktopLook) {
         desktopLook.addEventListener("change", () => {
             syncMobileViewPresetState();
-            if (mobileViewsAutoFovEnabled && activeMobileTab === "views") {
+            syncMobileComposeLockPresetState();
+            syncMobileComposePresentation();
+            if (mobileViewsAutoFovEnabled && (activeMobileTab === "views" || activeMobileTab === "compose")) {
                 scheduleAutoFovApply();
+            }
+            if (activeMobileTab === "compose") {
+                syncMobileComposeTimelineWindow();
             }
             syncMobileMoonVisibilityInfo({ force: true });
         });
@@ -2105,31 +2694,136 @@ export function bindMobileMissionCard() {
             syncMobileMoonVisibilityInfo({ force: true });
         });
     }
+    if (mobileComposeFovAuto) {
+        mobileComposeFovAuto.addEventListener("click", function () {
+            setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
+            if (mobileViewsAutoFovEnabled) {
+                scheduleAutoFovApply();
+            }
+            syncMobileMoonVisibilityInfo({ force: true });
+        });
+    }
 
-    if (mobileViewsFovSlider) {
-        const onManualFovChange = () => {
+    if (mobileViewsFovSlider || mobileComposeFovSlider) {
+        const onManualFovChange = (event) => {
+            const sourceSlider = event?.currentTarget;
             setMobileViewsAutoFov(false);
-            applyMobileViewsFov(Number(mobileViewsFovSlider.value));
+            applyMobileViewsFov(Number(sourceSlider?.value));
             syncMobileMoonVisibilityInfo({ force: true });
         };
-        mobileViewsFovSlider.addEventListener("input", onManualFovChange);
-        mobileViewsFovSlider.addEventListener("change", onManualFovChange);
+        mobileViewsFovSlider?.addEventListener("input", onManualFovChange);
+        mobileViewsFovSlider?.addEventListener("change", onManualFovChange);
+        mobileComposeFovSlider?.addEventListener("input", onManualFovChange);
+        mobileComposeFovSlider?.addEventListener("change", onManualFovChange);
+    }
+
+    if (mobileComposeTimelineSlider) {
+        const onComposeTimelineInput = () => {
+            const startMs = composeTimelineWindowStartMs;
+            const endMs = composeTimelineWindowEndMs;
+            if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+                return;
+            }
+            composeTimelineDragging = true;
+            const sliderValue = Number(mobileComposeTimelineSlider.value);
+            const ratio = Math.min(
+                1,
+                Math.max(0, sliderValue / COMPOSE_TIMELINE_RESOLUTION),
+            );
+            const nextTimeMs = startMs + (endMs - startMs) * ratio;
+            seekMainTimelineTime(nextTimeMs, false);
+            syncMobileComposeTimelineWindow();
+        };
+        const onComposeTimelineFinalize = () => {
+            composeTimelineDragging = false;
+            const startMs = composeTimelineWindowStartMs;
+            const endMs = composeTimelineWindowEndMs;
+            if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
+                return;
+            }
+            const sliderValue = Number(mobileComposeTimelineSlider.value);
+            const ratio = Math.min(
+                1,
+                Math.max(0, sliderValue / COMPOSE_TIMELINE_RESOLUTION),
+            );
+            const nextTimeMs = startMs + (endMs - startMs) * ratio;
+            seekMainTimelineTime(nextTimeMs, true);
+            syncMobileComposeTimelineWindow();
+        };
+        mobileComposeTimelineSlider.addEventListener("input", onComposeTimelineInput, { passive: true });
+        mobileComposeTimelineSlider.addEventListener("pointerdown", () => {
+            composeTimelineDragging = true;
+        });
+        mobileComposeTimelineSlider.addEventListener("pointerup", onComposeTimelineFinalize);
+        mobileComposeTimelineSlider.addEventListener("change", onComposeTimelineFinalize);
+    }
+
+    if (mobileComposeEarthshineSlider) {
+        const onComposeEarthshineInput = () => {
+            applyMobileComposeEarthshineGain(mobileComposeEarthshineSlider.value, { persist: true });
+        };
+        mobileComposeEarthshineSlider.addEventListener("input", onComposeEarthshineInput, { passive: true });
+        mobileComposeEarthshineSlider.addEventListener("change", onComposeEarthshineInput);
+    }
+
+    if (mobileComposeRollSlider) {
+        const onComposeRollInput = () => {
+            const degrees = Number(mobileComposeRollSlider.value);
+            if (!Number.isFinite(degrees)) return;
+            mobileComposeRollRad = normalizeComposeRoll((degrees * Math.PI) / 180);
+            syncMobileComposeRollSliderUi();
+            applyMobileComposeRoll();
+        };
+        mobileComposeRollSlider.addEventListener("input", onComposeRollInput, { passive: true });
+        mobileComposeRollSlider.addEventListener("change", onComposeRollInput);
+    }
+
+    const timelineSlider = document.getElementById("timeline-slider");
+    if (timelineSlider) {
+        const syncComposeFromTimeline = () => {
+            if (activeMobileTab === "compose") {
+                syncMobileComposeTimelineWindow();
+            }
+        };
+        timelineSlider.addEventListener("input", syncComposeFromTimeline);
+        timelineSlider.addEventListener("change", syncComposeFromTimeline);
+    }
+
+    const burnButtonsHost = document.getElementById("burnbuttons");
+    if (burnButtonsHost) {
+        const burnButtonsObserver = new MutationObserver(() => {
+            if (activeMobileTab === "compose") {
+                syncMobileComposeTimelineWindow();
+            }
+        });
+        burnButtonsObserver.observe(burnButtonsHost, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["data-event-time-ms", "data-event-key", "title"],
+        });
     }
 
     if (contentWrapper) {
-        const shouldHandleViewsPinch = () => (
-            isMobileViewport() &&
-            activeMobileTab === "views" &&
-            !!mobileViewPresetById.get(activeMobileViewPresetId)
-        );
+        const shouldHandleMobilePinchZoom = () => {
+            if (!isMobileViewport()) return false;
+            if (activeMobileTab === "views") {
+                return !!mobileViewPresetById.get(activeMobileViewPresetId);
+            }
+            if (activeMobileTab === "compose") {
+                return composeFeatureEnabled;
+            }
+            return false;
+        };
 
         const onViewsPinchStart = (event) => {
-            if (!shouldHandleViewsPinch()) return;
+            if (!shouldHandleMobilePinchZoom()) return;
             if (!event.touches || event.touches.length !== 2) return;
             const distance = resolveTouchDistance(event.touches[0], event.touches[1]);
             if (!Number.isFinite(distance) || distance <= 0) return;
             const scene = resolveActiveScene();
-            const baseFov = clampFov(scene?.camera?.fov ?? Number(mobileViewsFovSlider?.value));
+            const fovInput = activeMobileTab === "compose" ? mobileComposeFovSlider : mobileViewsFovSlider;
+            const baseFov = clampFov(scene?.camera?.fov ?? Number(fovInput?.value));
             mobileViewsPinchState = {
                 baseDistance: distance,
                 baseFov,
@@ -2139,7 +2833,7 @@ export function bindMobileMissionCard() {
         };
 
         const onViewsPinchMove = (event) => {
-            if (!shouldHandleViewsPinch()) {
+            if (!shouldHandleMobilePinchZoom()) {
                 mobileViewsPinchState = null;
                 return;
             }
@@ -2150,6 +2844,9 @@ export function bindMobileMissionCard() {
             if (!Number.isFinite(scale) || scale <= 0) return;
             const nextFov = clampFov(mobileViewsPinchState.baseFov / scale);
             applyMobileViewsFov(nextFov);
+            if (activeMobileTab === "compose") {
+                syncMobileComposePresentation();
+            }
             syncMobileMoonVisibilityInfo();
             event.preventDefault();
         };
@@ -2178,6 +2875,17 @@ export function bindMobileMissionCard() {
         });
     }
 
+    let initialEarthshineGain = 1;
+    try {
+        const storedGain = Number(window.localStorage?.getItem(EARTHSHINE_GAIN_STORAGE_KEY));
+        if (Number.isFinite(storedGain)) {
+            initialEarthshineGain = storedGain;
+        }
+    } catch {
+        initialEarthshineGain = 1;
+    }
+    applyMobileComposeEarthshineGain(initialEarthshineGain, { persist: false });
+
     let initialMissionCollapsed = false;
     try {
         initialMissionCollapsed = window.localStorage?.getItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY) === "true";
@@ -2189,6 +2897,7 @@ export function bindMobileMissionCard() {
     setMobileViewsAutoFov(true);
     setActiveMobileTab("mission");
     syncMobileViewPresetState();
+    syncMobileComposeControls();
     const initialScene = resolveActiveScene();
     if (initialScene?.camera?.fov) {
         updateMobileViewsFovDisplay(initialScene.camera.fov);
@@ -2350,3 +3059,4 @@ export function bindMobileMissionCard() {
         });
     });
 }
+

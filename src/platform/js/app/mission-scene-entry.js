@@ -72,7 +72,7 @@ function createMissionSceneEntry(ctx) {
         getViewSky,
         getViewConstellationLines,
         getViewMoonSOI,
-        getViewMoonHighlightRing,
+        getViewBodyHalos,
         getViewXYZAxes,
         getViewAuxiliaryPanels,
         getViewEclipticPlane,
@@ -197,7 +197,7 @@ function createMissionSceneEntry(ctx) {
                 viewPolarAxes: getViewPolarAxes(),
                 viewPoles: getViewPoles(),
                 viewMoonSOI: getViewMoonSOI(),
-                viewMoonHighlightRing: getViewMoonHighlightRing(),
+                viewBodyHalos: getViewBodyHalos(),
                 viewMoonOsculatingOrbit: getViewMoonOsculatingOrbit(),
                 viewXYZAxes: getViewXYZAxes(),
                 viewEclipticPlane: getViewEclipticPlane(),
@@ -208,3 +208,5 @@ function createMissionSceneEntry(ctx) {
 }
 
 export { createMissionSceneEntry };
+
+

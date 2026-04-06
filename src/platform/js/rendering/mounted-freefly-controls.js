@@ -136,7 +136,20 @@ export class MountedFreeFlyControls {
         if (this._pointerId === null || event.pointerId !== this._pointerId) return;
         this._dragMode = null;
         this._pointerId = null;
-        this.domElement.releasePointerCapture?.(event.pointerId);
+        if (typeof this.domElement.hasPointerCapture === "function") {
+            try {
+                if (!this.domElement.hasPointerCapture(event.pointerId)) {
+                    return;
+                }
+            } catch {
+                return;
+            }
+        }
+        try {
+            this.domElement.releasePointerCapture?.(event.pointerId);
+        } catch {
+            // Ignore stale pointer IDs from browser/DOM sequencing differences.
+        }
     }
 
     _handleWheel(event) {

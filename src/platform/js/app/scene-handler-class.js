@@ -115,9 +115,9 @@ function createSceneHandlerClass(deps) {
             if (
                 previousRenderedScene &&
                 previousRenderedScene !== animationScene &&
-                previousRenderedScene.sceneHelpers?.updateBodyHighlight
+                previousRenderedScene.sceneHelpers?.updateBodyHalos
             ) {
-                previousRenderedScene.sceneHelpers.updateBodyHighlight({ visible: false });
+                previousRenderedScene.sceneHelpers.updateBodyHalos({ visible: false });
             }
 
             this.lastAnimationScene = animationScene;
@@ -139,8 +139,11 @@ function createSceneHandlerClass(deps) {
                 Object.values(animationScene.craftsById || {})[0] ||
                 null;
             if (!activeCraft) {
-                animationScene.refreshSecondaryBodyHighlight?.({ suppress: true });
+                animationScene.refreshBodyHalos?.({ suppress: false });
                 renderWithCamera(animationScene.camera);
+                if (viewAuxiliaryPanels) {
+                    animationScene.refreshBodyHalos?.({ suppress: true });
+                }
                 this.auxiliaryCameraViews?.render({
                     scene: animationScene.scene,
                     activeCraft: null,
@@ -159,6 +162,9 @@ function createSceneHandlerClass(deps) {
                     panelsVisible: viewAuxiliaryPanels,
                     missionConfig: globalConfig,
                 });
+                if (viewAuxiliaryPanels) {
+                    animationScene.refreshBodyHalos?.({ suppress: false });
+                }
                 return;
             }
 
@@ -185,9 +191,7 @@ function createSceneHandlerClass(deps) {
             }
 
             const usingSpecialCamera = joyRideFlag || landingFlag;
-            animationScene.refreshSecondaryBodyHighlight?.({
-                suppress: usingSpecialCamera,
-            });
+            animationScene.refreshBodyHalos?.({ suppress: false });
 
             if (usingSpecialCamera) {
                 const craftEarthDistance = activeCraft.position.distanceTo(animationScene.earthContainer.position);
@@ -230,6 +234,9 @@ function createSceneHandlerClass(deps) {
                 renderWithCamera(animationScene.camera);
             }
 
+            if (viewAuxiliaryPanels) {
+                animationScene.refreshBodyHalos?.({ suppress: true });
+            }
             this.auxiliaryCameraViews?.render({
                 scene: animationScene.scene,
                 activeCraft,
@@ -248,8 +255,12 @@ function createSceneHandlerClass(deps) {
                 panelsVisible: viewAuxiliaryPanels,
                 missionConfig: globalConfig,
             });
+            if (viewAuxiliaryPanels) {
+                animationScene.refreshBodyHalos?.({ suppress: false });
+            }
         }
     };
 }
 
 export { createSceneHandlerClass };
+

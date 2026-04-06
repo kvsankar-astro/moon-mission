@@ -2,7 +2,7 @@ const CAMERA_ALLOWED_LOOK_BY_POSITION = Object.freeze({
     manual: Object.freeze(["manual", "moon", "spacecraft"]),
     earth: Object.freeze(["moon", "spacecraft"]),
     moon: Object.freeze(["manual", "earth", "spacecraft"]),
-    spacecraft: Object.freeze(["earth", "moon"]),
+    spacecraft: Object.freeze(["manual", "earth", "moon"]),
 });
 
 function buildAllowedPositionByLook(allowedLookByPosition) {
@@ -45,6 +45,7 @@ const CAMERA_PAIR_VALUE_BY_KEY = Object.freeze({
     moon__manual: Object.freeze({ positionMode: "moon", lookMode: "manual" }),
     moon__earth: Object.freeze({ positionMode: "moon", lookMode: "earth" }),
     moon__spacecraft: Object.freeze({ positionMode: "moon", lookMode: "spacecraft" }),
+    spacecraft__manual: Object.freeze({ positionMode: "spacecraft", lookMode: "manual" }),
     spacecraft__earth: Object.freeze({ positionMode: "spacecraft", lookMode: "earth" }),
     spacecraft__moon: Object.freeze({ positionMode: "spacecraft", lookMode: "moon" }),
 });

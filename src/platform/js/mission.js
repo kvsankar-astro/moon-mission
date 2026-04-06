@@ -313,7 +313,7 @@ runtimeViewState.setViewFlags({
     viewSky: initialMissionViewState.viewSky,
     viewConstellationLines: initialMissionViewState.viewConstellationLines,
     viewMoonSOI: initialMissionViewState.viewMoonSOI,
-    viewMoonHighlightRing: initialMissionViewState.viewMoonHighlightRing,
+    viewBodyHalos: initialMissionViewState.viewBodyHalos,
     viewMoonOsculatingOrbit: initialMissionViewState.viewMoonOsculatingOrbit,
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
     viewEquatorialPlane: initialMissionViewState.viewEquatorialPlane,
@@ -670,7 +670,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewSky: () => runtimeViewState.getViewSky(),
     getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
     getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
-    getViewMoonHighlightRing: () => runtimeViewState.getViewMoonHighlightRing(),
+    getViewBodyHalos: () => runtimeViewState.getViewBodyHalos(),
     getViewMoonOsculatingOrbit: () => runtimeViewState.getViewMoonOsculatingOrbit(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
     getViewAuxiliaryPanels: () => runtimeViewState.getViewAuxiliaryPanels(),
@@ -766,9 +766,9 @@ const missionStateCells = {
         (value) => { runtimeViewState.setViewConstellationLines(value); },
     ),
     viewMoonSOI: bindStateCell(() => runtimeViewState.getViewMoonSOI(), (value) => { runtimeViewState.setViewMoonSOI(value); }),
-    viewMoonHighlightRing: bindStateCell(
-        () => runtimeViewState.getViewMoonHighlightRing(),
-        (value) => { runtimeViewState.setViewMoonHighlightRing(value); },
+    viewBodyHalos: bindStateCell(
+        () => runtimeViewState.getViewBodyHalos(),
+        (value) => { runtimeViewState.setViewBodyHalos(value); },
     ),
     viewMoonOsculatingOrbit: bindStateCell(
         () => runtimeViewState.getViewMoonOsculatingOrbit(),
@@ -931,3 +931,5 @@ window.AnimationScene = AnimationScene;
 window.addEventListener('load', main);
 
 // end of file
+
+

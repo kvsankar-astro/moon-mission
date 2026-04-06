@@ -33,6 +33,14 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
+    function syncLocatorsPillState(enabled) {
+        if (typeof document === "undefined") return;
+        const locatorsPill = document.getElementById("locators-pill");
+        if (!locatorsPill) return;
+        const isEnabled = Boolean(enabled);
+        locatorsPill.setAttribute("aria-pressed", isEnabled ? "true" : "false");
+    }
+
     function isRelativeOriginSelected() {
         if (typeof document === "undefined") return false;
         return !!document.getElementById("origin-relative")?.checked;
@@ -189,11 +197,11 @@ export function createSettingsActions({
             previousScene.stopCreation();
             previousScene.dispose();
             delete animationScenes[previousConfig];
-        } else if (previousScene?.sceneHelpers?.updateBodyHighlight) {
+        } else if (previousScene?.sceneHelpers?.updateBodyHalos) {
             // Scene instances are reused across origin switches in steady state.
-            // Ensure the previous scene's screen-space highlight overlay is hidden
-            // so we never leave ghost secondary-body circles on screen.
-            previousScene.sceneHelpers.updateBodyHighlight({ visible: false });
+            // Ensure the previous scene's body-attached halos are hidden
+            // while the next origin scene is initializing.
+            previousScene.sceneHelpers.updateBodyHalos({ visible: false });
         }
 
         setConfig(transitionPlan.nextConfig);
@@ -208,6 +216,7 @@ export function createSettingsActions({
     function setView() {
         const requestedView = readViewSettings();
         setViewFlags(requestedView);
+        syncLocatorsPillState(requestedView.viewBodyHalos);
 
         setFPSCounterVisibility(requestedView.viewFPS);
         const globalConfig = getGlobalConfig();
@@ -297,20 +306,15 @@ export function createSettingsActions({
 
                 scene.earthNorthPoleSphere.visible = view.viewPoles;
                 scene.earthSouthPoleSphere.visible = view.viewPoles;
+                if (scene.sceneHelpers?.setBodyHalosVisible) {
+                    scene.sceneHelpers.setBodyHalosVisible(view.viewBodyHalos);
+                }
 
                 if (globalConfig?.is_lunar) {
                     scene.moonNorthPoleSphere.visible = view.viewPoles;
                     scene.moonSouthPoleSphere.visible = view.viewPoles;
                     scene.moonAxis.visible = view.viewPolarAxes;
                     scene.moonSOISphere.visible = view.viewMoonSOI;
-                    const shouldShowMoonHighlight =
-                        (cfg === "geo" || cfg === "lunar") && view.viewMoonHighlightRing;
-                    if (scene.bodyHighlightSprite) {
-                        scene.bodyHighlightSprite.visible = false;
-                    }
-                    if (scene.sceneHelpers?.setBodyHighlightVisible) {
-                        scene.sceneHelpers.setBodyHighlightVisible(shouldShowMoonHighlight);
-                    }
                     if (scene.moonOsculatingOrbitLine) {
                         scene.moonOsculatingOrbitLine.visible =
                             cfg === "geo" &&
@@ -338,3 +342,4 @@ export function createSettingsActions({
 
     return { toggleMode, setDimensionTop, setView };
 }
+

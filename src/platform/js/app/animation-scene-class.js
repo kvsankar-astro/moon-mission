@@ -1,4 +1,3 @@
-import { shouldShowSecondaryBodyHighlight } from "../core/domain/secondary-body-highlight-policy.js";
 import { getRelativeFrameQuaternion } from "../data/relative-frame-provider.js";
 
 function createAnimationSceneClass(deps) {
@@ -145,8 +144,6 @@ function createAnimationSceneClass(deps) {
             this.earthGlow = null;
             this.moon = null;
             this.moonAxisRotationAngle = 0;
-            this.bodyHighlightSprite = null;
-            this.moonHighlightSprite = null;
             this.moonOsculatingOrbitLine = null;
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
@@ -281,23 +278,22 @@ function createAnimationSceneClass(deps) {
             this.moonSOISphere = this.sceneHelpers.moonSOISphere;
         }
 
-        addSecondaryBodyHighlight() {
-            const { globalConfig, viewMoonHighlightRing } = getRuntimeState();
-            if (!globalConfig || !globalConfig.is_lunar || !this.secondaryBody3D || !this.secondaryBodyRadius) {
-                return;
-            }
-
+        addBodyHalos() {
+            const runtimeState = getRuntimeState();
+            const earthTarget = this.earthContainer || this.earth || null;
+            const moonTarget = this.moonContainer || this.moon || null;
+            const craftTarget = this.craft || Object.values(this.craftsById || {})[0] || null;
             if (!this.sceneHelpers) {
                 this.sceneHelpers = new SceneHelpers(this.motherContainer);
             }
-
-            this.sceneHelpers.createBodyHighlight(
-                this.secondaryBody3D,
-                this.secondaryBodyRadius,
-                (this.name === "geo" || this.name === "lunar") && viewMoonHighlightRing,
-            );
-            this.bodyHighlightSprite = this.sceneHelpers.bodyHighlightSprite;
-            this.moonHighlightSprite = this.sceneHelpers.moonHighlightSprite;
+            this.sceneHelpers.createBodyHalos({
+                earthTarget,
+                earthRadius: runtimeState.earthRadius,
+                moonTarget: runtimeState.globalConfig?.is_lunar ? moonTarget : null,
+                moonRadius: runtimeState.moonRadius,
+                craftTarget,
+                visible: runtimeState.viewBodyHalos,
+            });
         }
 
         addMoonOsculatingOrbit() {
@@ -325,16 +321,10 @@ function createAnimationSceneClass(deps) {
             this.moonSOISphere = null;
         }
 
-        disposeSecondaryBodyHighlight() {
-            const { globalConfig } = getRuntimeState();
-            if (!globalConfig || !globalConfig.is_lunar) {
-                return;
-            }
+        disposeBodyHalos() {
             if (this.sceneHelpers) {
-                this.sceneHelpers.disposeBodyHighlight();
+                this.sceneHelpers.disposeBodyHalos();
             }
-            this.bodyHighlightSprite = null;
-            this.moonHighlightSprite = null;
         }
 
         disposeMoonOsculatingOrbit() {
@@ -376,32 +366,26 @@ function createAnimationSceneClass(deps) {
             }
         }
 
-        refreshSecondaryBodyHighlight({ suppress = false } = {}) {
+        refreshBodyHalos({ suppress = false } = {}) {
             const runtimeState = getRuntimeState();
             if (
-                !runtimeState.globalConfig?.is_lunar ||
                 !this.sceneHelpers ||
                 !this.camera
             ) {
                 return;
             }
-
-            const cameraPositionMode = this.cameraController?.positionMode || "manual";
-            const cameraLookMode = this.cameraController?.lookMode || "manual";
-            const shouldShowBodyHighlight = shouldShowSecondaryBodyHighlight({
-                isLunarMission: runtimeState.globalConfig?.is_lunar,
-                configName: this.name,
-                secondaryBody: this.secondaryBody,
-                frameMode: runtimeState.frameMode,
-                viewMoonHighlightRing: runtimeState.viewMoonHighlightRing,
-                suppress,
-                cameraPositionMode,
-                cameraLookMode,
-            });
-            this.sceneHelpers.updateBodyHighlight({
+            const earthTarget = this.earthContainer || this.earth || null;
+            const moonTarget = this.moonContainer || this.moon || null;
+            const craftTarget = this.craft || Object.values(this.craftsById || {})[0] || null;
+            this.sceneHelpers.updateBodyHalos({
                 camera: this.camera,
                 rendererDomElement: this.cameraController?._rendererDomElement || this.renderer?.domElement || null,
-                visible: shouldShowBodyHighlight,
+                earthTarget,
+                earthRadius: runtimeState.earthRadius,
+                moonTarget: runtimeState.globalConfig?.is_lunar ? moonTarget : null,
+                moonRadius: runtimeState.moonRadius,
+                craftTarget,
+                visible: runtimeState.viewBodyHalos && !suppress,
             });
         }
 
@@ -772,3 +756,4 @@ function createAnimationSceneClass(deps) {
 }
 
 export { createAnimationSceneClass };
+

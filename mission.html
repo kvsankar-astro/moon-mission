@@ -809,6 +809,14 @@
             <div class="navbar flex-container">
 
                 <button id="settings-panel-button" type="button" aria-expanded="false" aria-label="Toggle settings panel" title="Settings">&#9776;</button>
+                <button
+                    id="locators-pill"
+                    type="button"
+                    aria-pressed="true"
+                    title="Toggle body locators"
+                >
+                    Locators
+                </button>
                 
                 <div id="blurb" class="blurb">
                     <h1 class="mission-breadcrumb">
@@ -1091,9 +1099,9 @@
                                     <input type="checkbox" name="view" value="moonsoi" id="view-moonsoi">
                                     <span>Moon's SOI</span>
                                 </label>
-                                <label class="settings-option geo">
-                                    <input type="checkbox" name="view" value="moon-highlight" id="view-moon-highlight" checked="checked">
-                                    <span>Secondary Body Ring</span>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="body-halos" id="view-body-halos" checked="checked">
+                                    <span>Body Halos</span>
                                 </label>
                                 <label class="settings-option geo">
                                     <input type="checkbox" name="view" value="moon-osculating-orbit" id="view-moon-osculating-orbit" checked="checked">
@@ -1407,7 +1415,7 @@
                         class="mobile-shell__views-fov-slider"
                         type="range"
                         min="1"
-                        max="60"
+                        max="179"
                         step="1"
                         value="50"
                         aria-label="Views field of view slider"
@@ -1451,9 +1459,129 @@
                     <button id="mobile-views-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
                 </div>
             </section>
+            <section
+                id="mobile-card-compose"
+                class="mobile-shell__card mobile-shell__card--compose"
+                aria-label="Earth Rise Composer card"
+                hidden
+            >
+                <div class="mobile-shell__card-head">
+                    <span class="mobile-shell__card-title">Earth Rise Composer</span>
+                </div>
+                <div class="mobile-shell__compose-lock" role="group" aria-label="Earthrise camera lock">
+                    <span class="mobile-shell__compose-label mobile-shell__compose-label--lock">Lock</span>
+                    <div class="mobile-shell__compose-lock-buttons">
+                        <button
+                            type="button"
+                            class="mobile-shell__compose-lock-btn is-active"
+                            role="tab"
+                            data-mobile-compose-lock="free"
+                            aria-selected="true"
+                        >
+                            Free
+                        </button>
+                        <button
+                            type="button"
+                            class="mobile-shell__compose-lock-btn"
+                            role="tab"
+                            data-mobile-compose-lock="earth"
+                            aria-selected="false"
+                        >
+                            Earth
+                        </button>
+                        <button
+                            type="button"
+                            class="mobile-shell__compose-lock-btn"
+                            role="tab"
+                            data-mobile-compose-lock="moon"
+                            aria-selected="false"
+                        >
+                            Moon
+                        </button>
+                    </div>
+                    <span class="mobile-shell__compose-hint">Drag view</span>
+                </div>
+                <div class="mobile-shell__compose-stack" role="group" aria-label="Earthrise controls">
+                    <div class="mobile-shell__compose-row">
+                        <span class="mobile-shell__compose-label">FoV</span>
+                        <input
+                            id="mobile-compose-fov-slider"
+                            class="mobile-shell__compose-slider mobile-shell__compose-fov-slider"
+                            type="range"
+                            min="1"
+                            max="179"
+                            step="1"
+                            value="110"
+                            aria-label="Earthrise field of view slider"
+                        >
+                        <output id="mobile-compose-fov-value" class="mobile-shell__compose-value">110°</output>
+                    </div>
+                    <div class="mobile-shell__compose-auto-row">
+                        <button
+                            id="mobile-compose-fov-auto"
+                            type="button"
+                            class="mobile-shell__views-fov-auto is-active"
+                            aria-pressed="true"
+                        >
+                            Auto
+                        </button>
+                    </div>
+                    <div class="mobile-shell__compose-row">
+                        <span class="mobile-shell__compose-label">Ambient</span>
+                        <input
+                            id="mobile-compose-earthshine-slider"
+                            class="mobile-shell__compose-slider"
+                            type="range"
+                            min="0"
+                            max="2.40"
+                            step="0.01"
+                            value="1"
+                            aria-label="Earthrise ambient fill"
+                        >
+                        <output id="mobile-compose-earthshine-value" class="mobile-shell__compose-value">1.00</output>
+                    </div>
+                    <div class="mobile-shell__compose-row">
+                        <span class="mobile-shell__compose-label">Roll</span>
+                        <input
+                            id="mobile-compose-roll-slider"
+                            class="mobile-shell__compose-slider"
+                            type="range"
+                            min="0"
+                            max="359"
+                            step="1"
+                            value="250"
+                            aria-label="Earthrise roll angle"
+                        >
+                        <output id="mobile-compose-roll-value" class="mobile-shell__compose-value">250°</output>
+                    </div>
+                    <div class="mobile-shell__compose-row">
+                        <span class="mobile-shell__compose-label">Time</span>
+                        <input
+                            id="mobile-compose-timeline-slider"
+                            class="mobile-shell__compose-slider"
+                            type="range"
+                            min="0"
+                            max="1000"
+                            step="1"
+                            value="500"
+                            aria-label="Earthrise short timeline scrub"
+                        >
+                    </div>
+                    <output id="mobile-compose-timeline-value" class="mobile-shell__compose-time-value">--</output>
+                    <div id="mobile-compose-timeline-local" class="mobile-shell__compose-local">Local: --</div>
+                </div>
+                <div class="mobile-shell__controls" role="group" aria-label="Earthrise transport">
+                    <button id="mobile-compose-control-play" type="button" class="mobile-shell__control-btn">Play</button>
+                    <button id="mobile-compose-control-realtime" type="button" class="mobile-shell__control-btn">Now</button>
+                    <button id="mobile-compose-control-slower" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Slower">−</button>
+                    <button id="mobile-compose-control-speed" type="button" class="mobile-shell__control-btn">1x</button>
+                    <button id="mobile-compose-control-faster" type="button" class="mobile-shell__control-btn mobile-shell__control-btn--icon" aria-label="Faster">+</button>
+                </div>
+            </section>
             <nav class="mobile-shell__nav" aria-label="Mobile cards">
                 <button type="button" class="mobile-shell__nav-btn is-active" data-mobile-tab="mission" aria-current="page">Mission</button>
                 <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="views">Views</button>
+                <button type="button" class="mobile-shell__nav-btn" data-mobile-tab="compose">Earthrise</button>
             </nav>
         </div>
 

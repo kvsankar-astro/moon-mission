@@ -31,11 +31,11 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
         render();
         wait20().then();
 
-        scene.addSecondaryBodyHighlight();
+        scene.addSpacecraft();
         render();
         wait20().then();
 
-        scene.addSpacecraft();
+        scene.addBodyHalos();
         render();
         wait20().then();
 
@@ -72,3 +72,4 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
 
     return { init3dRest };
 }
+

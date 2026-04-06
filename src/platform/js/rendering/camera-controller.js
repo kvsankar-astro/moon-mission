@@ -63,6 +63,7 @@ export class CameraController {
         this._tmpUp = new THREE.Vector3();
         this._tmpViewDir = new THREE.Vector3();
         this._tmpProjectedUp = new THREE.Vector3();
+        this.mountedManualRollRad = 0;
 
         this._rendererDomElement = null;
         this.freeFlyControls = null;
@@ -251,6 +252,13 @@ export class CameraController {
         this.camera.up.copy(this._tmpProjectedUp.normalize());
     }
 
+    setMountedManualRollRad(radians) {
+        const numeric = Number(radians);
+        if (!Number.isFinite(numeric)) return;
+        const twoPi = Math.PI * 2;
+        this.mountedManualRollRad = ((numeric % twoPi) + twoPi) % twoPi;
+    }
+
     /**
      * Set the from-to modes without changing camera unless updateFromTo() is called.
      * @param {string} positionMode
@@ -378,6 +386,13 @@ export class CameraController {
             if (mountPos) {
                 this.controls.target.copy(mountPos).add(this.mountTargetOffset);
                 this._applyEclipticNorthUp(this.controls.target);
+                if (Math.abs(this.mountedManualRollRad) > 1e-10) {
+                    this._tmpViewDir.copy(this.controls.target).sub(this.camera.position);
+                    if (this._tmpViewDir.lengthSq() > 1e-18) {
+                        this._tmpViewDir.normalize();
+                        this.camera.up.applyAxisAngle(this._tmpViewDir, this.mountedManualRollRad).normalize();
+                    }
+                }
                 this.camera.lookAt(this.controls.target);
             }
         }

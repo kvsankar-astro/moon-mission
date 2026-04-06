@@ -1,23 +1,55 @@
 /**
- * Scene Helpers - Axes, reference planes, and sphere of influence visualization
+ * Scene Helpers - Axes, reference planes, and scene visual aids.
  *
- * Manages visual helper objects that aid in understanding the 3D scene:
+ * Manages:
  * - XYZ axes helper
  * - Ecliptic plane (grid + plane helper)
  * - Equatorial plane (grid + plane helper, tilted by Earth's axial inclination)
  * - Moon's Sphere of Influence (SOI) wireframe
+ * - Optional attached halos for Earth, Moon, and active craft
  */
 
-import * as THREE from 'three';
-import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
-import { sampleOsculatingOrbitPoints } from '../core/domain/orbital-elements.js';
+import * as THREE from "three";
+import { COLORS as COL, PHYSICS_CONSTANTS as PC } from "../core/constants.js";
+import { sampleOsculatingOrbitPoints } from "../core/domain/orbital-elements.js";
 
 const MOON_ORBIT_SAMPLE_COUNT = 192;
 const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
-const MOON_HIGHLIGHT_SHOW_THRESHOLD_PX = 260;
-const MOON_HIGHLIGHT_MIN_DIAMETER_PX = 64;
-const MOON_HIGHLIGHT_MAX_DIAMETER_PX = 148;
-const MOON_HIGHLIGHT_MIN_WORLD_SCALE = 3.8;
+
+const BODY_HALO_KEYS = ["earth", "moon", "craft"];
+const BODY_HALO_STYLE = Object.freeze({
+    earth: {
+        edgeRgb: [173, 212, 255],
+        glowRgb: [122, 174, 255],
+        edgeAlpha: 0.86,
+        innerGlowAlpha: 0.34,
+        outerRadiusScale: 1.5,
+        innerRadiusScale: 1.0,
+    },
+    moon: {
+        edgeRgb: [232, 240, 255],
+        glowRgb: [197, 218, 255],
+        edgeAlpha: 0.86,
+        innerGlowAlpha: 0.30,
+        outerRadiusScale: 1.85,
+        innerRadiusScale: 1.0,
+    },
+    craft: {
+        edgeRgb: [255, 208, 124],
+        glowRgb: [255, 189, 95],
+        edgeAlpha: 0.88,
+        innerGlowAlpha: 0.35,
+        outerRadiusScale: 1.5,
+        innerRadiusScale: 1.0,
+        minimumRadius: 0.85,
+    },
+});
+
+function rgba(rgb, alpha) {
+    const [r, g, b] = rgb;
+    const normalizedAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
+    return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha.toFixed(3)})`;
+}
 
 export class SceneHelpers {
     /**
@@ -40,120 +72,130 @@ export class SceneHelpers {
 
         // Moon SOI
         this.moonSOISphere = null;
-        this.moonContainer = null;  // Reference to moon container for SOI attachment
-        this.bodyHighlightTarget = null;
-        this.bodyHighlightSprite = null;
-        this.bodyHighlightTexture = null;
-        this.bodyHighlightMaterial = null;
-        this.bodyHighlightOverlay = null;
-        this.bodyHighlightBodyRadius = 0;
-        this.bodyHighlightEnabled = false;
-        this.moonHighlightSprite = null;
-        this.moonHighlightTexture = null;
-        this.moonHighlightMaterial = null;
-        this.moonHighlightOverlay = null;
-        this.moonHighlightMoonRadius = 0;
+        this.moonContainer = null;
+
+        // Body halos
+        this.bodyHalosEnabled = false;
+        this.bodyHaloTargets = {
+            earth: null,
+            moon: null,
+            craft: null,
+        };
+        this.bodyHaloRadii = {
+            earth: 0,
+            moon: 0,
+            craft: 0,
+        };
+        this.bodyHaloSprites = {
+            earth: null,
+            moon: null,
+            craft: null,
+        };
+        this.bodyHaloMaterials = {
+            earth: null,
+            moon: null,
+            craft: null,
+        };
+        this.bodyHaloTextures = {
+            earth: null,
+            moon: null,
+            craft: null,
+        };
+        this.resolvedBodyHaloRadii = {
+            earth: 0,
+            moon: 0,
+            craft: 0,
+        };
+        this.estimatedRadiusByObject = new WeakMap();
+        this._bodyHaloCameraPosition = new THREE.Vector3();
+        this._bodyHaloTargetPosition = new THREE.Vector3();
+        this._bodyHaloOccluderPosition = new THREE.Vector3();
+        this._bodyHaloCameraToOccluder = new THREE.Vector3();
+        this._bodyHaloRayDirection = new THREE.Vector3();
+
+        // Moon osculating orbit
         this.moonOsculatingOrbitLine = null;
         this.moonOsculatingOrbitLastUpdateTimeMs = null;
-        this._bodyHighlightWorldPosition = new THREE.Vector3();
-        this._cameraWorldPosition = new THREE.Vector3();
-        this._projectedBodyHighlightPosition = new THREE.Vector3();
     }
 
-    /**
-     * Create XYZ axes helper
-     * @param {number} size - Length of axes
-     * @param {boolean} visible - Initial visibility
-     */
     createAxesHelper(size, visible = false) {
         this.axesHelper = new THREE.AxesHelper(size);
         this.axesHelper.visible = visible;
         this.parentContainer.add(this.axesHelper);
     }
 
-    /**
-     * Create ecliptic plane visualization (grid + plane helper)
-     * @param {number} gridRadius - Radius of the polar grid
-     * @param {number} planeSize - Size of the plane helper
-     * @param {boolean} visible - Initial visibility
-     */
     createEclipticPlane(gridRadius, planeSize, visible = false) {
-        const sectors = 18;   // 20° increments
+        const sectors = 18;
         const rings = 6;
         const divisions = 64;
 
-        // Polar grid on ecliptic
         this.eclipticPolarGridHelper = new THREE.PolarGridHelper(
-            gridRadius, sectors, rings, divisions,
-            COL.ECLIPTIC_PLANE, COL.ECLIPTIC_PLANE
+            gridRadius,
+            sectors,
+            rings,
+            divisions,
+            COL.ECLIPTIC_PLANE,
+            COL.ECLIPTIC_PLANE,
         );
         this.eclipticPolarGridHelper.rotation.x = Math.PI / 2;
         this.eclipticPolarGridHelper.visible = visible;
         this.parentContainer.add(this.eclipticPolarGridHelper);
 
-        // Plane helper for ecliptic
         const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
         this.eclipticPlaneHelper = new THREE.PlaneHelper(eclipticPlane, planeSize, COL.ECLIPTIC_PLANE);
         this.eclipticPlaneHelper.visible = visible;
         this.parentContainer.add(this.eclipticPlaneHelper);
     }
 
-    /**
-     * Create equatorial plane visualization (tilted by Earth's axial inclination)
-     * @param {number} gridRadius - Radius of the polar grid
-     * @param {number} planeSize - Size of the plane helper
-     * @param {boolean} visible - Initial visibility
-     */
     createEquatorialPlane(gridRadius, planeSize, visible = false) {
         const sectors = 18;
         const rings = 6;
         const divisions = 64;
 
-        // Container tilted to equatorial plane
         this.equatorialPlaneContainer = new THREE.Group();
         this.equatorialPlaneContainer.lookAt(
             0,
             Math.sin(PC.EARTH_AXIS_INCLINATION_RADS),
-            Math.cos(PC.EARTH_AXIS_INCLINATION_RADS)
+            Math.cos(PC.EARTH_AXIS_INCLINATION_RADS),
         );
 
-        // Polar grid on equatorial plane
         this.equatorialPolarGridHelper = new THREE.PolarGridHelper(
-            gridRadius, sectors, rings, divisions,
-            COL.EQUATORIAL_PLANE, COL.EQUATORIAL_PLANE
+            gridRadius,
+            sectors,
+            rings,
+            divisions,
+            COL.EQUATORIAL_PLANE,
+            COL.EQUATORIAL_PLANE,
         );
         this.equatorialPolarGridHelper.rotation.x = Math.PI / 2;
         this.equatorialPolarGridHelper.visible = visible;
         this.equatorialPlaneContainer.add(this.equatorialPolarGridHelper);
 
-        // Plane helper for equatorial plane
         const direction = new THREE.Vector3();
         this.equatorialPlaneContainer.getWorldDirection(direction);
         const equatorialPlane = new THREE.Plane(direction, 0);
-        this.equatorialPlaneHelper = new THREE.PlaneHelper(equatorialPlane, planeSize, COL.EQUATORIAL_PLANE);
+        this.equatorialPlaneHelper = new THREE.PlaneHelper(
+            equatorialPlane,
+            planeSize,
+            COL.EQUATORIAL_PLANE,
+        );
         this.equatorialPlaneHelper.visible = visible;
         this.equatorialPlaneContainer.add(this.equatorialPlaneHelper);
 
         this.parentContainer.add(this.equatorialPlaneContainer);
     }
 
-    /**
-     * Create Moon's Sphere of Influence wireframe
-     * @param {THREE.Object3D} moonContainer - Moon container to attach SOI to
-     * @param {number} moonRadius - Visual radius of the moon
-     * @param {boolean} visible - Initial visibility
-     */
     createMoonSOI(moonContainer, moonRadius, visible = false) {
         this.moonContainer = moonContainer;
 
         const soiRadius = moonRadius * (PC.MOON_SOI_RADIUS_KM / PC.MOON_RADIUS_KM);
-        const latSegments = 18;   // 10° increments
-        const longSegments = 36;  // 10° increments
+        const latSegments = 18;
+        const longSegments = 36;
 
         const geometry = new THREE.SphereGeometry(soiRadius, longSegments, latSegments);
         const material = new THREE.MeshBasicMaterial({
             color: COL.MOON_SOI,
-            wireframe: true
+            wireframe: true,
         });
 
         this.moonSOISphere = new THREE.Mesh(geometry, material);
@@ -161,178 +203,365 @@ export class SceneHelpers {
         this.moonContainer.add(this.moonSOISphere);
     }
 
-    createBodyHighlight(bodyContainer, bodyRadius, visible = false) {
-        this.bodyHighlightTarget = bodyContainer;
-        this.bodyHighlightBodyRadius = bodyRadius;
-        this.bodyHighlightEnabled = Boolean(visible);
+    _createBodyHaloTexture(key) {
+        const canvas = document.createElement("canvas");
+        const size = 512;
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        if (!context) {
+            return null;
+        }
+
+        const style = BODY_HALO_STYLE[key];
+        const center = size / 2;
+        const outerRadius = center * 0.92;
+        const innerRadiusRatio = (style.innerRadiusScale || 1) / (style.outerRadiusScale || 1.5);
+        const innerRadius = Math.max(0, Math.min(outerRadius * 0.99, outerRadius * innerRadiusRatio));
+
+        context.clearRect(0, 0, size, size);
+
+        // Draw an annulus that starts exactly at the body edge and fades to the outer halo radius.
+        const haloGradient = context.createRadialGradient(
+            center,
+            center,
+            innerRadius,
+            center,
+            center,
+            outerRadius,
+        );
+        haloGradient.addColorStop(0.0, rgba(style.glowRgb, style.innerGlowAlpha));
+        haloGradient.addColorStop(0.5, rgba(style.glowRgb, (style.innerGlowAlpha || 0.3) * 0.55));
+        haloGradient.addColorStop(1.0, rgba(style.glowRgb, 0));
+
+        context.beginPath();
+        context.arc(center, center, outerRadius, 0, Math.PI * 2);
+        context.arc(center, center, innerRadius, 0, Math.PI * 2, true);
+        context.fillStyle = haloGradient;
+        context.fill("evenodd");
+
+        // Crisp edge exactly at body radius so the locator starts at 1.0r.
+        context.beginPath();
+        context.arc(center, center, innerRadius, 0, Math.PI * 2);
+        context.strokeStyle = rgba(style.edgeRgb, style.edgeAlpha);
+        context.lineWidth = size * 0.008;
+        context.stroke();
+
+        // Very soft outer edge helps visibility without a hard boundary.
+        context.beginPath();
+        context.arc(center, center, outerRadius * 0.985, 0, Math.PI * 2);
+        context.strokeStyle = rgba(style.glowRgb, 0.08);
+        context.lineWidth = size * 0.004;
+        context.stroke();
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    _ensureBodyHaloSprite(key) {
+        if (this.bodyHaloSprites[key]) {
+            return this.bodyHaloSprites[key];
+        }
+
+        if (typeof document === "undefined") {
+            return null;
+        }
+
+        const texture = this._createBodyHaloTexture(key);
+        if (!texture) {
+            return null;
+        }
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false,
+            depthWrite: false,
+            toneMapped: false,
+        });
+        const sprite = new THREE.Sprite(material);
+        sprite.visible = false;
+        sprite.renderOrder = 22;
+
+        this.bodyHaloTextures[key] = texture;
+        this.bodyHaloMaterials[key] = material;
+        this.bodyHaloSprites[key] = sprite;
+        return sprite;
+    }
+
+    _attachBodyHaloSprite(key, target) {
+        const sprite = this._ensureBodyHaloSprite(key);
+        if (!sprite || !target) {
+            return;
+        }
+
+        if (sprite.parent === target) {
+            return;
+        }
+
+        sprite.parent?.remove?.(sprite);
+        target.add(sprite);
+    }
+
+    setBodyHaloTargets({
+        earthTarget = undefined,
+        earthRadius = undefined,
+        moonTarget = undefined,
+        moonRadius = undefined,
+        craftTarget = undefined,
+        craftRadius = undefined,
+    } = {}) {
+        if (earthTarget !== undefined) {
+            this.bodyHaloTargets.earth = earthTarget || null;
+        }
+        if (moonTarget !== undefined) {
+            this.bodyHaloTargets.moon = moonTarget || null;
+        }
+        if (craftTarget !== undefined) {
+            this.bodyHaloTargets.craft = craftTarget || null;
+        }
+
+        if (earthRadius !== undefined) {
+            this.bodyHaloRadii.earth = Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 0;
+        }
+        if (moonRadius !== undefined) {
+            this.bodyHaloRadii.moon = Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 0;
+        }
+        if (craftRadius !== undefined) {
+            this.bodyHaloRadii.craft = Number.isFinite(craftRadius) && craftRadius > 0 ? craftRadius : 0;
+        }
+    }
+
+    createBodyHalos({
+        earthTarget = undefined,
+        earthRadius = undefined,
+        moonTarget = undefined,
+        moonRadius = undefined,
+        craftTarget = undefined,
+        craftRadius = undefined,
+        visible = false,
+    } = {}) {
+        this.setBodyHaloTargets({
+            earthTarget,
+            earthRadius,
+            moonTarget,
+            moonRadius,
+            craftTarget,
+            craftRadius,
+        });
+        this.bodyHalosEnabled = Boolean(visible);
 
         if (typeof document === "undefined") {
             return;
         }
 
-        const canvas = document.createElement("canvas");
-        canvas.width = 256;
-        canvas.height = 256;
-        const context = canvas.getContext("2d");
-        if (!context) {
-            return;
+        for (const key of BODY_HALO_KEYS) {
+            const target = this.bodyHaloTargets[key];
+            if (!target) continue;
+            this._attachBodyHaloSprite(key, target);
         }
 
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.beginPath();
-        context.arc(128, 128, 99, 0, 2 * Math.PI);
-        context.strokeStyle = "rgba(228, 238, 255, 0.62)";
-        context.lineWidth = 7;
-        context.stroke();
-
-        context.beginPath();
-        context.arc(128, 128, 108, 0, 2 * Math.PI);
-        context.strokeStyle = "rgba(228, 238, 255, 0.18)";
-        context.lineWidth = 3;
-        context.stroke();
-
-        this.bodyHighlightTexture = new THREE.CanvasTexture(canvas);
-        this.bodyHighlightTexture.needsUpdate = true;
-        this.bodyHighlightMaterial = new THREE.SpriteMaterial({
-            map: this.bodyHighlightTexture,
-            color: COL.MOON_FOCUS_RING,
-            transparent: true,
-            depthTest: false,
-            depthWrite: false,
-        });
-        this.bodyHighlightSprite = new THREE.Sprite(this.bodyHighlightMaterial);
-        const spriteDiameter = bodyRadius * MOON_HIGHLIGHT_MIN_WORLD_SCALE;
-        this.bodyHighlightSprite.scale.set(spriteDiameter, spriteDiameter, 1);
-        this.bodyHighlightSprite.visible = false;
-        this.bodyHighlightSprite.frustumCulled = false;
-        this.bodyHighlightSprite.renderOrder = 18;
-        this.bodyHighlightTarget.add(this.bodyHighlightSprite);
-
-        const overlayHost = document.getElementById("canvas-wrapper");
-        if (overlayHost) {
-            const overlay = document.createElement("div");
-            overlay.setAttribute("aria-hidden", "true");
-            overlay.style.position = "fixed";
-            overlay.style.left = "0";
-            overlay.style.top = "0";
-            overlay.style.width = "0";
-            overlay.style.height = "0";
-            overlay.style.borderRadius = "999px";
-            overlay.style.pointerEvents = "none";
-            overlay.style.transform = "translate(-50%, -50%)";
-            overlay.style.border = "1px solid rgba(214, 224, 244, 0.52)";
-            overlay.style.boxShadow = "0 0 0 1px rgba(214, 224, 244, 0.05)";
-            overlay.style.display = "none";
-            overlay.style.zIndex = "4";
-            overlayHost.appendChild(overlay);
-            this.bodyHighlightOverlay = overlay;
+        if (!this.bodyHalosEnabled) {
+            this.hideBodyHalos();
         }
-
-        this.moonHighlightSprite = this.bodyHighlightSprite;
-        this.moonHighlightTexture = this.bodyHighlightTexture;
-        this.moonHighlightMaterial = this.bodyHighlightMaterial;
-        this.moonHighlightOverlay = this.bodyHighlightOverlay;
-        this.moonHighlightMoonRadius = this.bodyHighlightBodyRadius;
     }
 
-    createMoonHighlight(moonContainer, moonRadius, visible = false) {
-        this.createBodyHighlight(moonContainer, moonRadius, visible);
+    hideBodyHalos() {
+        for (const key of BODY_HALO_KEYS) {
+            const sprite = this.bodyHaloSprites[key];
+            if (sprite) {
+                sprite.visible = false;
+            }
+        }
     }
 
-    updateBodyHighlight({
-        camera,
-        renderer,
-        rendererDomElement,
-        visible = true,
-    }) {
-        if (!this.bodyHighlightSprite || !this.bodyHighlightTarget) {
-            return;
+    _estimateObjectRadius(object, fallback = 1) {
+        if (!object) return fallback;
+        if (this.estimatedRadiusByObject.has(object)) {
+            return this.estimatedRadiusByObject.get(object);
         }
 
-        const viewportSource = rendererDomElement || renderer?.domElement || null;
-        if (!visible || !this.bodyHighlightEnabled || !camera || !viewportSource) {
-            this.bodyHighlightSprite.visible = false;
-            if (this.bodyHighlightOverlay) {
-                this.bodyHighlightOverlay.style.display = "none";
+        let radius = Number.NaN;
+        const considerGeometry = (geometry, scaleFactor = 1) => {
+            if (!geometry) return;
+            if (!geometry.boundingSphere) {
+                geometry.computeBoundingSphere?.();
             }
-            return;
-        }
-
-        const viewportWidth = viewportSource.clientWidth || window.innerWidth || 0;
-        const viewportHeight = viewportSource.clientHeight || window.innerHeight || 0;
-        if (!viewportWidth || !viewportHeight || !camera.isPerspectiveCamera) {
-            this.bodyHighlightSprite.visible = false;
-            if (this.bodyHighlightOverlay) {
-                this.bodyHighlightOverlay.style.display = "none";
+            const geometryRadius = geometry.boundingSphere?.radius;
+            if (!Number.isFinite(geometryRadius) || geometryRadius <= 0) return;
+            const scaled = geometryRadius * scaleFactor;
+            if (!Number.isFinite(radius) || scaled > radius) {
+                radius = scaled;
             }
-            return;
-        }
+        };
 
-        this.bodyHighlightTarget.updateWorldMatrix(true, false);
-        camera.updateMatrixWorld();
-
-        this.bodyHighlightTarget.getWorldPosition(this._bodyHighlightWorldPosition);
-        camera.getWorldPosition(this._cameraWorldPosition);
-        const bodyDistance = this._bodyHighlightWorldPosition.distanceTo(this._cameraWorldPosition);
-        if (!Number.isFinite(bodyDistance) || bodyDistance <= 0) {
-            this.bodyHighlightSprite.visible = false;
-            if (this.bodyHighlightOverlay) {
-                this.bodyHighlightOverlay.style.display = "none";
-            }
-            return;
-        }
-
-        const bodyDiameterWorld = Math.max(this.bodyHighlightBodyRadius * 2, 0);
-        const pixelsPerWorldUnit =
-            viewportHeight / (2 * bodyDistance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-        const apparentBodyDiameterPx = bodyDiameterWorld * pixelsPerWorldUnit;
-        if (
-            !Number.isFinite(apparentBodyDiameterPx) ||
-            apparentBodyDiameterPx <= 0 ||
-            apparentBodyDiameterPx > MOON_HIGHLIGHT_SHOW_THRESHOLD_PX
-        ) {
-            this.bodyHighlightSprite.visible = false;
-            if (this.bodyHighlightOverlay) {
-                this.bodyHighlightOverlay.style.display = "none";
-            }
-            return;
-        }
-
-        this._projectedBodyHighlightPosition.copy(this._bodyHighlightWorldPosition).project(camera);
-        if (this._projectedBodyHighlightPosition.z < -1 || this._projectedBodyHighlightPosition.z > 1) {
-            this.bodyHighlightSprite.visible = false;
-            if (this.bodyHighlightOverlay) {
-                this.bodyHighlightOverlay.style.display = "none";
-            }
-            return;
-        }
-
-        const targetHighlightDiameterPx = THREE.MathUtils.clamp(
-            Math.max(apparentBodyDiameterPx * 1.5, MOON_HIGHLIGHT_MIN_DIAMETER_PX),
-            MOON_HIGHLIGHT_MIN_DIAMETER_PX,
-            MOON_HIGHLIGHT_MAX_DIAMETER_PX,
+        const rootScale = Math.max(
+            Math.abs(object.scale?.x ?? 1),
+            Math.abs(object.scale?.y ?? 1),
+            Math.abs(object.scale?.z ?? 1),
         );
-        const targetHighlightDiameterWorld = targetHighlightDiameterPx / pixelsPerWorldUnit;
-        const minimumWorldDiameter = this.bodyHighlightBodyRadius * MOON_HIGHLIGHT_MIN_WORLD_SCALE;
-        const spriteDiameter = Math.max(targetHighlightDiameterWorld, minimumWorldDiameter);
-        this.bodyHighlightSprite.scale.set(spriteDiameter, spriteDiameter, 1);
-        this.bodyHighlightSprite.visible = false;
+        considerGeometry(object.geometry, rootScale);
 
-        if (this.bodyHighlightOverlay) {
-            const screenX = (this._projectedBodyHighlightPosition.x * 0.5 + 0.5) * viewportWidth;
-            const screenY = (-this._projectedBodyHighlightPosition.y * 0.5 + 0.5) * viewportHeight;
-            const borderWidthPx = targetHighlightDiameterPx >= 96 ? 1.5 : 1;
-            this.bodyHighlightOverlay.style.display = "block";
-            this.bodyHighlightOverlay.style.left = `${screenX}px`;
-            this.bodyHighlightOverlay.style.top = `${screenY}px`;
-            this.bodyHighlightOverlay.style.width = `${targetHighlightDiameterPx}px`;
-            this.bodyHighlightOverlay.style.height = `${targetHighlightDiameterPx}px`;
-            this.bodyHighlightOverlay.style.borderWidth = `${borderWidthPx}px`;
+        if (typeof object.traverse === "function") {
+            object.traverse((node) => {
+                const nodeScale = Math.max(
+                    Math.abs(node?.scale?.x ?? 1),
+                    Math.abs(node?.scale?.y ?? 1),
+                    Math.abs(node?.scale?.z ?? 1),
+                );
+                considerGeometry(node?.geometry, nodeScale);
+            });
         }
+
+        if (Number.isFinite(radius) && radius > 0) {
+            this.estimatedRadiusByObject.set(object, radius);
+            return radius;
+        }
+
+        return fallback;
     }
 
-    updateMoonHighlight(options) {
-        this.updateBodyHighlight(options);
+    _resolveHaloBodyRadius(key, target) {
+        const style = BODY_HALO_STYLE[key];
+        const explicitRadius = this.bodyHaloRadii[key];
+        let resolvedRadius = Number.isFinite(explicitRadius) && explicitRadius > 0
+            ? explicitRadius
+            : key === "craft"
+                ? this._estimateObjectRadius(target, style.minimumRadius || 0.75)
+                : 0;
+
+        if (key === "craft" && Number.isFinite(style.minimumRadius)) {
+            resolvedRadius = Math.max(style.minimumRadius, resolvedRadius);
+        }
+        if (!Number.isFinite(resolvedRadius) || resolvedRadius <= 0) {
+            return 0;
+        }
+        return resolvedRadius;
+    }
+
+    _isBodyHaloOccluded({
+        key,
+        targetDistance,
+        cameraWorldPosition,
+    }) {
+        const occlusionPadding = 0.98;
+        for (const occluderKey of BODY_HALO_KEYS) {
+            if (occluderKey === key) continue;
+            const occluderTarget = this.bodyHaloTargets[occluderKey];
+            if (!occluderTarget) continue;
+            const occluderRadius = this.resolvedBodyHaloRadii[occluderKey];
+            if (!Number.isFinite(occluderRadius) || occluderRadius <= 0) continue;
+
+            occluderTarget.getWorldPosition(this._bodyHaloOccluderPosition);
+            this._bodyHaloCameraToOccluder
+                .copy(this._bodyHaloOccluderPosition)
+                .sub(cameraWorldPosition);
+            const projectedDistance = this._bodyHaloCameraToOccluder.dot(this._bodyHaloRayDirection);
+            if (projectedDistance <= 0 || projectedDistance >= targetDistance) {
+                continue;
+            }
+
+            const centerDistanceSq = this._bodyHaloCameraToOccluder.lengthSq();
+            const perpendicularDistanceSq = Math.max(
+                0,
+                centerDistanceSq - projectedDistance * projectedDistance,
+            );
+            const occluderRadiusSq = (occluderRadius * occlusionPadding) ** 2;
+            if (perpendicularDistanceSq <= occluderRadiusSq) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    _updateSingleBodyHalo({ key, cameraWorldPosition }) {
+        const target = this.bodyHaloTargets[key];
+        const sprite = this.bodyHaloSprites[key];
+        if (!target || !sprite) {
+            if (sprite) sprite.visible = false;
+            return;
+        }
+
+        if (sprite.parent !== target) {
+            this._attachBodyHaloSprite(key, target);
+        }
+
+        const style = BODY_HALO_STYLE[key];
+        const resolvedRadius = this.resolvedBodyHaloRadii[key];
+        if (!Number.isFinite(resolvedRadius) || resolvedRadius <= 0) {
+            sprite.visible = false;
+            return;
+        }
+
+        target.getWorldPosition(this._bodyHaloTargetPosition);
+        this._bodyHaloRayDirection
+            .copy(this._bodyHaloTargetPosition)
+            .sub(cameraWorldPosition);
+        const targetDistance = this._bodyHaloRayDirection.length();
+        if (!Number.isFinite(targetDistance) || targetDistance <= 1e-6) {
+            sprite.visible = false;
+            return;
+        }
+        this._bodyHaloRayDirection.multiplyScalar(1 / targetDistance);
+        if (this._isBodyHaloOccluded({
+            key,
+            targetDistance,
+            cameraWorldPosition,
+        })) {
+            sprite.visible = false;
+            return;
+        }
+
+        const outerRadiusScale = Number.isFinite(style.outerRadiusScale) && style.outerRadiusScale > 0
+            ? style.outerRadiusScale
+            : 1.5;
+        const diameter = resolvedRadius * outerRadiusScale * 2;
+        sprite.scale.set(diameter, diameter, 1);
+        sprite.visible = true;
+    }
+
+    updateBodyHalos({
+        camera,
+        visible = true,
+        earthTarget = undefined,
+        earthRadius = undefined,
+        moonTarget = undefined,
+        moonRadius = undefined,
+        craftTarget = undefined,
+        craftRadius = undefined,
+    } = {}) {
+        this.setBodyHaloTargets({
+            earthTarget,
+            earthRadius,
+            moonTarget,
+            moonRadius,
+            craftTarget,
+            craftRadius,
+        });
+
+        if (!visible || !this.bodyHalosEnabled || !camera || !camera.isPerspectiveCamera) {
+            this.hideBodyHalos();
+            return;
+        }
+
+        camera.getWorldPosition(this._bodyHaloCameraPosition);
+        for (const key of BODY_HALO_KEYS) {
+            const target = this.bodyHaloTargets[key];
+            this.resolvedBodyHaloRadii[key] = target
+                ? this._resolveHaloBodyRadius(key, target)
+                : 0;
+        }
+
+        for (const key of BODY_HALO_KEYS) {
+            if (!this.bodyHaloSprites[key]) {
+                this._ensureBodyHaloSprite(key);
+            }
+            this._updateSingleBodyHalo({
+                key,
+                cameraWorldPosition: this._bodyHaloCameraPosition,
+            });
+        }
     }
 
     createMoonOsculatingOrbit(visible = false) {
@@ -407,8 +636,6 @@ export class SceneHelpers {
             : this.moonOsculatingOrbitLastUpdateTimeMs;
     }
 
-    // ===== Visibility Controls =====
-
     setAxesVisible(visible) {
         if (this.axesHelper) this.axesHelper.visible = visible;
     }
@@ -427,23 +654,16 @@ export class SceneHelpers {
         if (this.moonSOISphere) this.moonSOISphere.visible = visible;
     }
 
-    setBodyHighlightVisible(visible) {
-        this.bodyHighlightEnabled = Boolean(visible);
-        if (this.bodyHighlightSprite) this.bodyHighlightSprite.visible = false;
-        if (!visible && this.bodyHighlightOverlay) {
-            this.bodyHighlightOverlay.style.display = "none";
+    setBodyHalosVisible(visible) {
+        this.bodyHalosEnabled = Boolean(visible);
+        if (!this.bodyHalosEnabled) {
+            this.hideBodyHalos();
         }
-    }
-
-    setMoonHighlightVisible(visible) {
-        this.setBodyHighlightVisible(visible);
     }
 
     setMoonOsculatingOrbitVisible(visible) {
         if (this.moonOsculatingOrbitLine) this.moonOsculatingOrbitLine.visible = visible;
     }
-
-    // ===== Disposal =====
 
     disposeAxesHelper() {
         if (this.axesHelper) {
@@ -491,31 +711,23 @@ export class SceneHelpers {
         }
     }
 
-    disposeBodyHighlight() {
-        if (this.bodyHighlightOverlay?.parentNode) {
-            this.bodyHighlightOverlay.parentNode.removeChild(this.bodyHighlightOverlay);
+    disposeBodyHalos() {
+        for (const key of BODY_HALO_KEYS) {
+            const sprite = this.bodyHaloSprites[key];
+            if (sprite?.parent) {
+                sprite.parent.remove(sprite);
+            }
+            this.bodyHaloMaterials[key]?.dispose?.();
+            this.bodyHaloTextures[key]?.dispose?.();
+            this.bodyHaloSprites[key] = null;
+            this.bodyHaloMaterials[key] = null;
+            this.bodyHaloTextures[key] = null;
+            this.bodyHaloTargets[key] = null;
+            this.bodyHaloRadii[key] = 0;
+            this.resolvedBodyHaloRadii[key] = 0;
         }
-        this.bodyHighlightOverlay = null;
-        if (this.bodyHighlightSprite && this.bodyHighlightTarget) {
-            this.bodyHighlightTarget.remove(this.bodyHighlightSprite);
-        }
-        this.bodyHighlightMaterial?.dispose?.();
-        this.bodyHighlightTexture?.dispose?.();
-        this.bodyHighlightSprite = null;
-        this.bodyHighlightMaterial = null;
-        this.bodyHighlightTexture = null;
-        this.bodyHighlightTarget = null;
-        this.bodyHighlightBodyRadius = 0;
-        this.bodyHighlightEnabled = false;
-        this.moonHighlightSprite = null;
-        this.moonHighlightMaterial = null;
-        this.moonHighlightTexture = null;
-        this.moonHighlightOverlay = null;
-        this.moonHighlightMoonRadius = 0;
-    }
-
-    disposeMoonHighlight() {
-        this.disposeBodyHighlight();
+        this.bodyHalosEnabled = false;
+        this.estimatedRadiusByObject = new WeakMap();
     }
 
     disposeMoonOsculatingOrbit() {
@@ -528,15 +740,12 @@ export class SceneHelpers {
         }
     }
 
-    /**
-     * Dispose all helpers
-     */
     dispose() {
         this.disposeAxesHelper();
         this.disposeEclipticPlane();
         this.disposeEquatorialPlane();
         this.disposeMoonSOI();
-        this.disposeMoonHighlight();
+        this.disposeBodyHalos();
         this.disposeMoonOsculatingOrbit();
     }
 }

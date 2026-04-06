@@ -95,7 +95,7 @@ const VIEW_SETTING_CHECKBOXES = {
     viewSky: "view-sky",
     viewConstellationLines: "view-constellation-lines",
     viewMoonSOI: "view-moonsoi",
-    viewMoonHighlightRing: "view-moon-highlight",
+    viewBodyHalos: "view-body-halos",
     viewMoonOsculatingOrbit: "view-moon-osculating-orbit",
     viewEclipticPlane: "view-eclipticplane",
     viewEquatorialPlane: "view-equatorialplane",
@@ -184,3 +184,4 @@ export function applyCameraFromTo(patch) {
     if (patch.positionMode) setSelectValue("camera-position", patch.positionMode);
     if (patch.lookMode) setSelectValue("camera-look", patch.lookMode);
 }
+

@@ -108,6 +108,64 @@ function shouldEnableAuxiliaryPanels(missionConfig) {
     return !!(features && typeof features === "object" && features.auxiliaryPanels === true);
 }
 
+function resolveLunarFlybyTimeMs(eventInfos) {
+    if (!Array.isArray(eventInfos) || eventInfos.length === 0) {
+        return Number.NaN;
+    }
+    let best = null;
+    for (const eventInfo of eventInfos) {
+        const startTime = eventInfo?.startTime;
+        const timeMs = startTime instanceof Date ? startTime.getTime() : Number(startTime);
+        if (!Number.isFinite(timeMs)) {
+            continue;
+        }
+        const key = eventInfo?.key || "";
+        const label = eventInfo?.label || "";
+        const hoverText = eventInfo?.hoverText || "";
+        const infoText = eventInfo?.infoText || "";
+        const burnFlag = eventInfo?.burnFlag === true;
+        const keyLabelCorpus = `${key} ${label}`.toLowerCase();
+        const narrativeCorpus = `${hoverText} ${infoText}`.toLowerCase();
+
+        const hasMoonKeyLabel = /\b(moon|lunar)\b/.test(keyLabelCorpus);
+        const hasFlybyKeyLabel = /\bflyby\b/.test(keyLabelCorpus);
+        const hasClosestKeyLabel = /\b(closest approach|closestapproach|perilune|periselene|pericynthion)\b/.test(keyLabelCorpus);
+        const explicitLunarFlybyKeyLabel = /\b(lunar flyby|moon flyby)\b/.test(keyLabelCorpus);
+        const keySuggestsClosest = /\bclosest\b/.test(key.toLowerCase()) && /\b(approach|peri)\b/.test(key.toLowerCase());
+        const hasMoonNarrative = /\b(moon|lunar)\b/.test(narrativeCorpus);
+        const hasFlybyNarrative = /\bflyby\b/.test(narrativeCorpus);
+        const hasClosestNarrative = /\b(closest approach|perilune|periselene|pericynthion)\b/.test(narrativeCorpus);
+        let score = 0;
+        if (keySuggestsClosest || hasClosestKeyLabel) {
+            score = 220;
+        } else if (explicitLunarFlybyKeyLabel) {
+            score = 210;
+        } else if (hasMoonKeyLabel && hasFlybyKeyLabel) {
+            score = 200;
+        } else if (!burnFlag && hasMoonNarrative && hasClosestNarrative) {
+            score = 120;
+        } else if (!burnFlag && hasMoonNarrative && hasFlybyNarrative) {
+            score = 110;
+        }
+        if (score <= 0) {
+            continue;
+        }
+        if (
+            !best ||
+            score > best.score ||
+            (score === best.score && burnFlag === false && best.burnFlag === true) ||
+            (score === best.score && burnFlag === best.burnFlag && timeMs < best.timeMs)
+        ) {
+            best = {
+                score,
+                timeMs,
+                burnFlag,
+            };
+        }
+    }
+    return best ? best.timeMs : Number.NaN;
+}
+
 class AuxiliaryCameraViewsManager {
     constructor({ THREE, overlayHost, requestRender }) {
         this.THREE = THREE;
@@ -667,6 +725,18 @@ class AuxiliaryCameraViewsManager {
             composerDialNeedle = document.createElement("div");
             composerDialNeedle.className = "aux-camera-view__composer-dial-needle";
             composerDial.appendChild(composerDialNeedle);
+            const dialCardinals = [
+                { suffix: "north", label: "N" },
+                { suffix: "east", label: "E" },
+                { suffix: "south", label: "S" },
+                { suffix: "west", label: "W" },
+            ];
+            for (const cardinal of dialCardinals) {
+                const marker = document.createElement("span");
+                marker.className = `aux-camera-view__composer-dial-cardinal aux-camera-view__composer-dial-cardinal--${cardinal.suffix}`;
+                marker.textContent = cardinal.label;
+                composerDial.appendChild(marker);
+            }
             composerDialWrap.appendChild(composerDial);
             composerControlMatrix.appendChild(composerDialWrap);
             panel.appendChild(composerControlMatrix);
@@ -952,32 +1022,22 @@ class AuxiliaryCameraViewsManager {
                 this.updateComposerDialThumb(panelState);
                 this.requestRender?.();
             };
-            const onComposerLookFreeClick = () => {
+            const setComposerLockTarget = (target) => {
                 if (!panelState.composerInteractionEnabled) {
                     this.activateComposerWindow(panelState, { finalize: true });
-                    return;
                 }
-                panelState.composerLockTarget = "none";
+                panelState.composerLockTarget = target;
                 syncComposerLockUi();
                 this.requestRender?.();
+            };
+            const onComposerLookFreeClick = () => {
+                setComposerLockTarget("none");
             };
             const onComposerLookEarthClick = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
-                panelState.composerLockTarget = "earth";
-                syncComposerLockUi();
-                this.requestRender?.();
+                setComposerLockTarget("earth");
             };
             const onComposerLookMoonClick = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
-                panelState.composerLockTarget = "moon";
-                syncComposerLockUi();
-                this.requestRender?.();
+                setComposerLockTarget("moon");
             };
             const onComposerAmbientInput = () => {
                 if (!panelState.composerInteractionEnabled) {
@@ -1153,6 +1213,9 @@ class AuxiliaryCameraViewsManager {
                     return;
                 }
                 if (!(event.target instanceof Element)) {
+                    return;
+                }
+                if (event.target.closest(".aux-camera-view__composer-button")) {
                     return;
                 }
                 if (event.target.closest(".aux-camera-view__header")) {
@@ -1387,9 +1450,9 @@ class AuxiliaryCameraViewsManager {
         if (panelState.fovSlider) {
             panelState.fovSlider.disabled = disableControls || panelState.autoFovEnabled;
         }
-        panelState.composerLookFreeButton && (panelState.composerLookFreeButton.disabled = disableControls);
-        panelState.composerLookEarthButton && (panelState.composerLookEarthButton.disabled = disableControls);
-        panelState.composerLookMoonButton && (panelState.composerLookMoonButton.disabled = disableControls);
+        panelState.composerLookFreeButton && (panelState.composerLookFreeButton.disabled = false);
+        panelState.composerLookEarthButton && (panelState.composerLookEarthButton.disabled = false);
+        panelState.composerLookMoonButton && (panelState.composerLookMoonButton.disabled = false);
         panelState.composerAmbientSlider && (panelState.composerAmbientSlider.disabled = disableControls);
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
@@ -1530,61 +1593,7 @@ class AuxiliaryCameraViewsManager {
     }
 
     resolveLunarFlybyTimeMs(eventInfos) {
-        if (!Array.isArray(eventInfos) || eventInfos.length === 0) {
-            return Number.NaN;
-        }
-        let best = null;
-        for (const eventInfo of eventInfos) {
-            const startTime = eventInfo?.startTime;
-            const timeMs = startTime instanceof Date ? startTime.getTime() : Number(startTime);
-            if (!Number.isFinite(timeMs)) {
-                continue;
-            }
-            const key = eventInfo?.key || "";
-            const label = eventInfo?.label || "";
-            const hoverText = eventInfo?.hoverText || "";
-            const infoText = eventInfo?.infoText || "";
-            const burnFlag = eventInfo?.burnFlag === true;
-            const keyLabelCorpus = `${key} ${label}`.toLowerCase();
-            const narrativeCorpus = `${hoverText} ${infoText}`.toLowerCase();
-
-            const hasMoonKeyLabel = /\b(moon|lunar)\b/.test(keyLabelCorpus);
-            const hasFlybyKeyLabel = /\bflyby\b/.test(keyLabelCorpus);
-            const hasClosestKeyLabel = /\b(closest approach|closestapproach|perilune|periselene|pericynthion)\b/.test(keyLabelCorpus);
-            const explicitLunarFlybyKeyLabel = /\b(lunar flyby|moon flyby)\b/.test(keyLabelCorpus);
-            const keySuggestsClosest = /\bclosest\b/.test(key.toLowerCase()) && /\b(approach|peri)\b/.test(key.toLowerCase());
-            const hasMoonNarrative = /\b(moon|lunar)\b/.test(narrativeCorpus);
-            const hasFlybyNarrative = /\bflyby\b/.test(narrativeCorpus);
-            const hasClosestNarrative = /\b(closest approach|perilune|periselene|pericynthion)\b/.test(narrativeCorpus);
-            let score = 0;
-            if (keySuggestsClosest || hasClosestKeyLabel) {
-                score = 220;
-            } else if (explicitLunarFlybyKeyLabel) {
-                score = 210;
-            } else if (hasMoonKeyLabel && hasFlybyKeyLabel) {
-                score = 200;
-            } else if (!burnFlag && hasMoonNarrative && hasClosestNarrative) {
-                score = 120;
-            } else if (!burnFlag && hasMoonNarrative && hasFlybyNarrative) {
-                score = 110;
-            }
-            if (score <= 0) {
-                continue;
-            }
-            if (
-                !best ||
-                score > best.score ||
-                (score === best.score && burnFlag === false && best.burnFlag === true) ||
-                (score === best.score && burnFlag === best.burnFlag && timeMs < best.timeMs)
-            ) {
-                best = {
-                    score,
-                    timeMs,
-                    burnFlag,
-                };
-            }
-        }
-        return best ? best.timeMs : Number.NaN;
+        return resolveLunarFlybyTimeMs(eventInfos);
     }
 
     setComposerLookFromDirection(panelState, directionVector) {
@@ -2902,4 +2911,4 @@ class AuxiliaryCameraViewsManager {
     }
 }
 
-export { AuxiliaryCameraViewsManager, AUXILIARY_VIEW_CAMERA_PRESETS };
+export { AuxiliaryCameraViewsManager, AUXILIARY_VIEW_CAMERA_PRESETS, resolveLunarFlybyTimeMs };

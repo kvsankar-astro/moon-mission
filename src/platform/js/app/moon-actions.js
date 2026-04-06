@@ -52,7 +52,7 @@ export function createMoonActions({
         }
 
         scene.disposeMoonSOI();
-        scene.disposeSecondaryBodyHighlight();
+        scene.disposeBodyHalos();
         scene.disposeMoonOsculatingOrbit();
 
         if (scene.moonRenderer) {
@@ -66,7 +66,6 @@ export function createMoonActions({
         scene.moonNorthPoleSphere = null;
         scene.moonSouthPoleSphere = null;
         scene.moonContainer = null;
-        scene.moonHighlightSprite = null;
         scene.moonOsculatingOrbitLine = null;
         scene.moonMap = null;
         scene.moonDisplacementMap = null;
@@ -74,3 +73,4 @@ export function createMoonActions({
 
     return { addMoon, disposeMoon };
 }
+

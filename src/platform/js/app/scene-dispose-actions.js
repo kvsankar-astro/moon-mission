@@ -3,7 +3,7 @@ export function createSceneDisposeActions() {
         console.debug("Disposing AnimationScene with complete WebGL cleanup...");
 
         scene.disposeEarthLocations();
-        scene.disposeSecondaryBodyHighlight?.();
+        scene.disposeBodyHalos?.();
         scene.disposeEarth();
         scene.disposeSky();
         scene.disposeSun();
@@ -27,3 +27,4 @@ export function createSceneDisposeActions() {
 
     return { dispose };
 }
+

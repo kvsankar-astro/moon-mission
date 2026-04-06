@@ -94,7 +94,6 @@ export const COLORS = {
     EARTH_AXIS: 0xFFFF00,        // yellow
     MOON_AXIS: 0xFFFF00,         // yellow
     MOON_SOI: 0x414141,          // charcoal
-    MOON_FOCUS_RING: 0xd7e5ff,   // pale blue
     MOON_OSCULATING_ORBIT: 0x7d90b2, // muted slate blue
     NORTH_POLE: 0xff6347,        // tomato
     SOUTH_POLE: 0x6a5acd,        // slate blue
