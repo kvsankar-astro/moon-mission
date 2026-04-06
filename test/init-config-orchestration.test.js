@@ -89,7 +89,7 @@ describe("createInitConfigOrchestrationActions", () => {
             loadMissionConfig: vi.fn(async () => ({
                 ui: {
                     viewDefaults: {
-                        viewMoonHighlightRing: true,
+                        viewBodyHalos: true,
                         viewMoonOsculatingOrbit: true,
                     },
                 },
@@ -100,12 +100,13 @@ describe("createInitConfigOrchestrationActions", () => {
         await actions.ensureGlobalConfigLoaded();
 
         expect(deps.setViewFlags).toHaveBeenCalledWith({
-            viewMoonHighlightRing: true,
+            viewBodyHalos: true,
             viewMoonOsculatingOrbit: true,
         });
         expect(deps.applyViewSettings).toHaveBeenCalledWith({
-            viewMoonHighlightRing: true,
+            viewBodyHalos: true,
             viewMoonOsculatingOrbit: true,
         });
     });
 });
+

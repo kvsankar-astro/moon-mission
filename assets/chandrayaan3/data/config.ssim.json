@@ -7,7 +7,7 @@
       "viewSky": false,
       "viewAuxiliaryPanels": false,
       "viewMoonSOI": false,
-      "viewMoonHighlightRing": false,
+      "viewBodyHalos": false,
       "relativeDefaultPlaneSelection": "DEFAULT"
     },
     "testDefaultsByOrigin": {
@@ -29,3 +29,4 @@
     }
   }
 }
+

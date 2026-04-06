@@ -12,7 +12,8 @@ import {
 describe("camera-policy", () => {
     it("resolves allowed look/position modes", () => {
         expect(resolveAllowedLooks("earth")).toEqual(["moon", "spacecraft"]);
-        expect(resolveAllowedPositions("manual")).toEqual(["manual", "moon"]);
+        expect(resolveAllowedLooks("spacecraft")).toEqual(["manual", "earth", "moon"]);
+        expect(resolveAllowedPositions("manual")).toEqual(["manual", "moon", "spacecraft"]);
         expect(resolveAllowedLooks("unknown")).toEqual(["manual"]);
         expect(resolveAllowedPositions("unknown")).toEqual(["manual"]);
     });
@@ -43,11 +44,16 @@ describe("camera-policy", () => {
     });
 
     it("resolves pair values and keys", () => {
+        expect(resolvePairFromValue("spacecraft__manual")).toEqual({
+            positionMode: "spacecraft",
+            lookMode: "manual",
+        });
         expect(resolvePairFromValue("spacecraft__moon")).toEqual({
             positionMode: "spacecraft",
             lookMode: "moon",
         });
         expect(resolvePairFromValue("invalid")).toBeNull();
+        expect(resolvePairKey("spacecraft", "manual")).toBe("spacecraft__manual");
         expect(resolvePairKey("moon", "earth")).toBe("moon__earth");
         expect(resolvePairKey("invalid", "invalid")).toBe("manual__manual");
     });

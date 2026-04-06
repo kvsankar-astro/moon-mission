@@ -962,7 +962,7 @@ async function enforceSsimProfileViewDefaults(page) {
     ['viewOrbitDescent', '#view-orbit-descent'],
     ['viewSky', '#view-sky'],
     ['viewMoonSOI', '#view-moonsoi'],
-    ['viewMoonHighlightRing', '#view-moon-highlight'],
+    ['viewBodyHalos', '#view-body-halos'],
     ['viewAuxiliaryPanels', '#view-aux-camera-panels'],
   ];
 
@@ -3984,3 +3984,4 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     }, TIMEOUTS.TEST_CASE_TIMEOUT);
   });
 });
+
