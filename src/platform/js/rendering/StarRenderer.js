@@ -70,7 +70,7 @@ export function bvToLinearRgb(bv) {
   const sg = clamp01(g);
   const sb = clamp01(b);
   const luma = (0.2126 * sr) + (0.7152 * sg) + (0.0722 * sb);
-  const sat = 0.87;
+  const sat = 0.98;
 
   const dsr = luma + ((sr - luma) * sat);
   const dsg = luma + ((sg - luma) * sat);
@@ -175,6 +175,20 @@ void main() {
   // Keep vacuum stars tight but not subpixel-dim; atmosphere broadens near horizon.
   float psfSoftening = mix(0.98, 1.08 + (0.24 * horizonTwinkleBoost), atmosphere);
   float spriteSize = baseSize * psfSoftening;
+  // Stage 2 size shaping:
+  // - global lift for all stars
+  // - additional bright-star-only lift
+  float globalSizeGain = mix(1.14, 1.07, atmosphere);
+  spriteSize *= globalSizeGain;
+  // Bright-star-only size boost: faint stars stay unchanged; space mode gets
+  // a stronger enlargement so major guide stars are easier to pick out.
+  float brightSizeClass = smoothstep(2.8, -1.2, aMagnitude);
+  float brightSizeBoost = mix(
+    1.0 + (0.85 * brightSizeClass),
+    1.0 + (0.40 * brightSizeClass),
+    atmosphere
+  );
+  spriteSize *= brightSizeBoost;
 
   // Keep point-size driven by photometric sprite size + viewport scaling.
   float viewportScale = max(0.9, uPointScale / 500.0);
@@ -223,14 +237,24 @@ void main() {
     atmosphere
   );
   float perceivedIntensity = contrastIntensity + visibilityLift;
+  // Stage 2 intensity shaping:
+  // - global gain across all stars
+  // - stronger bright-only separation on top
+  float globalIntensityGain = mix(1.36, 1.18, atmosphere);
+  perceivedIntensity *= globalIntensityGain;
   // Bright-star-only monotonic boost: never dims any star.
   float brightClass = smoothstep(90.0, 4500.0, baseIntensity);
   float brightBoost = mix(
-    1.0 + (1.45 * brightClass),
-    1.0 + (0.65 * brightClass),
+    1.0 + (3.25 * brightClass),
+    1.0 + (1.55 * brightClass),
     atmosphere
   );
   perceivedIntensity *= brightBoost;
+
+  // Mild saturation enhancement in shader space: stronger in vacuum.
+  float colorSatGain = mix(1.08, 1.02, atmosphere);
+  float colorLuma = dot(vColor, vec3(0.2126, 0.7152, 0.0722));
+  vec3 starColor = vec3(colorLuma) + ((vColor - vec3(colorLuma)) * colorSatGain);
 
   // Pinpoint path for small stars: render as crisp, bright stellar pixels.
   if (vPointSize <= 1.45) {
@@ -239,10 +263,11 @@ void main() {
     float tinyT = clamp((vPointSize - 0.75) / 0.70, 0.0, 1.0);
     float tinyCoreSharpness = mix(7.2, 12.8, tinyT);
     float pixelCore = exp(-r2 * tinyCoreSharpness);
-    float pixelSupport = 1.0 - smoothstep(0.74, 1.0, r);
+    float tinyRoundMask = smoothstep(1.0, 0.0, r2);
+    float tinyEdgeSoft = 1.0 - smoothstep(0.72, 1.0, r);
     float pixelHalo = vHalo * exp(-r2 * mix(2.8, 4.8, tinyT)) * 0.06;
-    float tinyProfile = max(pixelCore, pixelSupport * 0.68) + pixelHalo;
-    vec3 pixelColor = vColor * (tinyProfile * perceivedIntensity * 1.35);
+    float tinyProfile = ((pixelCore * 0.82) + (tinyEdgeSoft * 0.55)) * tinyRoundMask + pixelHalo;
+    vec3 pixelColor = starColor * (tinyProfile * perceivedIntensity * 1.35);
     gl_FragColor = vec4(pixelColor, 1.0);
     return;
   }
@@ -257,7 +282,7 @@ void main() {
 
   float haloGate = smoothstep(0.03, 0.28, vHalo);
   float halo = haloGate * vHalo * exp(-r2 * 3.8) * mix(0.030, 0.060, atmosphere);
-  halo *= (1.0 + (0.70 * brightClass));
+  halo *= (1.0 + (1.05 * brightClass));
 
   // Mild diffraction spikes for brighter stars to avoid uniformly round blobs.
   float spikeAxis = (
@@ -265,14 +290,17 @@ void main() {
     exp(-abs(p.y) * mix(20.0, 14.0, atmosphere))
   );
   float spikes = haloGate * vHalo * spikeAxis * exp(-r2 * 2.4) * 0.026;
-  spikes *= (1.0 + (0.45 * brightClass));
+  spikes *= (1.0 + (0.72 * brightClass));
 
   float profile = (gaussianCore * (1.36 + (0.18 * brightClass))) +
     (moffatWing * mix(0.18, 0.30, atmosphere)) +
     halo +
     spikes;
+  // Subtle radial edge attenuation to reduce square-looking sprite boundaries.
+  float circularEdgeFalloff = 1.0 - (0.16 * smoothstep(0.84, 1.0, r));
+  profile *= circularEdgeFalloff;
 
-  vec3 color = vColor * (profile * perceivedIntensity);
+  vec3 color = starColor * (profile * perceivedIntensity);
   gl_FragColor = vec4(color, 1.0);
 }
 `;
