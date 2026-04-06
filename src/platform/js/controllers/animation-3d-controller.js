@@ -46,13 +46,14 @@ export class Animation3DController {
             landingFreezeTime = null,
         } = options;
         this.pixelsPerAU = pixelsPerAU;
-        // Carry sun direction for lighting (supports relative frame)
+        // Carry body-specific sun directions for lighting and craft optics.
         this.scene.stateSunDirection = state.sunDirection;
+        this.scene.stateSunDirections = state.sunDirections || null;
         this.scene.stateTime = state.time;
         this.scene.latestSceneState = state;
 
         // 1. Update lighting from sun position
-        this.updateLighting(state.sunLongitude, state.bodies);
+        this.updateLighting(state.sunLongitude, state.bodies, state.sunDirections);
 
         // 2. Rotate Earth and Moon based on time
         this.scene.rotateEarth(state.time);
@@ -77,7 +78,7 @@ export class Animation3DController {
      * Update light positions based on sun longitude.
      * @param {number} sunLongitude - Sun longitude in radians
      */
-    updateLighting(sunLongitude, bodies = null) {
+    updateLighting(sunLongitude, bodies = null, sunDirections = null) {
         if (!this.scene.light || !this.scene.light2) {
             return;
         }
@@ -85,30 +86,54 @@ export class Animation3DController {
         const earthState = bodies?.EARTH;
         const moonState = bodies?.MOON;
 
-        // Prefer precomputed sun direction (supports relative frame); fall back to longitude.
-        const dir = this.scene.stateSunDirection;
-        let sunDirX = Math.cos(sunLongitude);
-        let sunDirY = Math.sin(sunLongitude);
-        let sunDirZ = 0;
-        if (dir && Number.isFinite(dir.x) && Number.isFinite(dir.y) && Number.isFinite(dir.z)) {
-            sunDirX = dir.x;
-            sunDirY = dir.y;
-            sunDirZ = dir.z;
-        }
-        const sunNorm = Math.hypot(sunDirX, sunDirY, sunDirZ);
-        if (Number.isFinite(sunNorm) && sunNorm > 1e-12) {
-            sunDirX /= sunNorm;
-            sunDirY /= sunNorm;
-            sunDirZ /= sunNorm;
-        } else {
-            sunDirX = 1;
-            sunDirY = 0;
-            sunDirZ = 0;
-        }
+        const normalizeDir = (candidate, fallbackX = 1, fallbackY = 0, fallbackZ = 0) => {
+            let x = fallbackX;
+            let y = fallbackY;
+            let z = fallbackZ;
+            if (candidate && Number.isFinite(candidate.x) && Number.isFinite(candidate.y) && Number.isFinite(candidate.z)) {
+                x = candidate.x;
+                y = candidate.y;
+                z = candidate.z;
+            }
+            const norm = Math.hypot(x, y, z);
+            if (!Number.isFinite(norm) || norm <= 1e-12) {
+                return { x: fallbackX, y: fallbackY, z: fallbackZ };
+            }
+            return {
+                x: x / norm,
+                y: y / norm,
+                z: z / norm,
+            };
+        };
 
-        // Keep spacecraft key light directional-only.
-        this.scene.light2.position.set(sunDirX, sunDirY, sunDirZ);
-        this.scene.sunRenderer?.setDirection?.(sunDirX, sunDirY, sunDirZ);
+        const fallbackDir = normalizeDir({
+            x: Math.cos(sunLongitude),
+            y: Math.sin(sunLongitude),
+            z: 0,
+        });
+        const earthSunDir = normalizeDir(
+            sunDirections?.earthCentered || this.scene.stateSunDirection,
+            fallbackDir.x,
+            fallbackDir.y,
+            fallbackDir.z,
+        );
+        const moonSunDir = normalizeDir(
+            sunDirections?.moonCentered,
+            earthSunDir.x,
+            earthSunDir.y,
+            earthSunDir.z,
+        );
+        const craftSunDir = normalizeDir(
+            sunDirections?.craftCenteredLightTime || sunDirections?.craftCentered,
+            earthSunDir.x,
+            earthSunDir.y,
+            earthSunDir.z,
+        );
+
+        // Keep spacecraft key light directional-only and use craft apparent sun.
+        this.scene.light2.position.set(craftSunDir.x, craftSunDir.y, craftSunDir.z);
+        // Default global Sun billboard direction remains Earth-centered.
+        this.scene.sunRenderer?.setDirection?.(earthSunDir.x, earthSunDir.y, earthSunDir.z);
         this.scene.sunRenderer?.updateAppearance?.(this.scene?.stateTime ?? 0);
 
         // Anchor the shadow-casting primary light to the illuminated body so
@@ -132,9 +157,9 @@ export class Animation3DController {
             const anchorY = shadowAnchorState.position.y * this.pixelsPerAU;
             const anchorZ = shadowAnchorState.position.z * this.pixelsPerAU;
             this.scene.light.position.set(
-                anchorX + sunDirX * shadowDistance,
-                anchorY + sunDirY * shadowDistance,
-                anchorZ + sunDirZ * shadowDistance,
+                anchorX + (moonState?.available ? moonSunDir.x : earthSunDir.x) * shadowDistance,
+                anchorY + (moonState?.available ? moonSunDir.y : earthSunDir.y) * shadowDistance,
+                anchorZ + (moonState?.available ? moonSunDir.z : earthSunDir.z) * shadowDistance,
             );
             if (this.scene.light.target) {
                 this.scene.light.target.position.set(anchorX, anchorY, anchorZ);
@@ -154,7 +179,11 @@ export class Animation3DController {
                 shadowCamera.updateProjectionMatrix?.();
             }
         } else {
-            this.scene.light.position.set(sunDirX, sunDirY, sunDirZ);
+            this.scene.light.position.set(
+                moonState?.available ? moonSunDir.x : earthSunDir.x,
+                moonState?.available ? moonSunDir.y : earthSunDir.y,
+                moonState?.available ? moonSunDir.z : earthSunDir.z,
+            );
             if (this.scene.light.target) {
                 this.scene.light.target.position.set(0, 0, 0);
                 this.scene.light.target.updateMatrixWorld();
@@ -188,7 +217,7 @@ export class Animation3DController {
 
             // Earthshine phase: full Earth at the Moon when Sun and Earth are
             // in similar directions from the Moon's viewpoint.
-            const sunEarthAlignment = clamp01((1 + (sunDirX * nx + sunDirY * ny + sunDirZ * nz)) * 0.5);
+            const sunEarthAlignment = clamp01((1 + (moonSunDir.x * nx + moonSunDir.y * ny + moonSunDir.z * nz)) * 0.5);
             const phasedEarthshine = Math.pow(sunEarthAlignment, earthshinePhaseExponent);
             this.scene.lightFill.intensity =
                 minEarthshine + (maxEarthshine - minEarthshine) * phasedEarthshine;
@@ -216,7 +245,7 @@ export class Animation3DController {
         }
 
         // Final fallback: opposite sun direction.
-        this.scene.lightFill.position.set(-sunDirX, -sunDirY, -sunDirZ);
+        this.scene.lightFill.position.set(-moonSunDir.x, -moonSunDir.y, -moonSunDir.z);
         this.scene.lightFill.intensity = minEarthshine;
     }
 
@@ -449,7 +478,10 @@ export class Animation3DController {
 
         // Keep only solar wings tracking the live sun direction (1-DOF tilt per wing).
         // Craft body attitude remains velocity-aligned above.
-        renderer?.updateSolarArrayTracking?.(this.scene.stateSunDirection);
+        const craftSun = this.scene.stateSunDirections?.craftCenteredLightTime ||
+            this.scene.stateSunDirections?.craftCentered ||
+            this.scene.stateSunDirection;
+        renderer?.updateSolarArrayTracking?.(craftSun);
     }
 
     /**

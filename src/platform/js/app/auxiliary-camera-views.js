@@ -404,6 +404,9 @@ class AuxiliaryCameraViewsManager {
         this.moonWorld = new THREE.Vector3();
         this.sunWorld = new THREE.Vector3();
         this.sunDirectionWorld = new THREE.Vector3();
+        this.sunDirectionEarthWorld = new THREE.Vector3(1, 0, 0);
+        this.sunDirectionMoonWorld = new THREE.Vector3(1, 0, 0);
+        this.sunDirectionCraftWorld = new THREE.Vector3(1, 0, 0);
         this.sunDirectionFromEarth = new THREE.Vector3();
         this.craftFromMoonDir = new THREE.Vector3();
         this.earthFromMoonDir = new THREE.Vector3();
@@ -4303,19 +4306,42 @@ class AuxiliaryCameraViewsManager {
         return false;
     }
 
-    vectorFromSunDirection(outVector) {
+    vectorFromSunDirection(outVector, mode = "earth") {
+        const pickSource = () => {
+            if (mode === "moon") {
+                return this.sunDirectionMoonWorld;
+            }
+            if (mode === "craft") {
+                return this.sunDirectionCraftWorld;
+            }
+            return this.sunDirectionEarthWorld;
+        };
+        const source = pickSource();
         if (
-            Number.isFinite(this.sunDirectionWorld.x) &&
-            Number.isFinite(this.sunDirectionWorld.y) &&
-            Number.isFinite(this.sunDirectionWorld.z)
+            Number.isFinite(source?.x) &&
+            Number.isFinite(source?.y) &&
+            Number.isFinite(source?.z)
         ) {
-            const len = this.sunDirectionWorld.length();
+            const len = source.length();
             if (len > 1e-12) {
-                outVector.copy(this.sunDirectionWorld).multiplyScalar(1 / len);
+                outVector.copy(source).multiplyScalar(1 / len);
                 return true;
             }
         }
         return false;
+    }
+
+    resolveSunDirectionForPanel(panelState) {
+        if (!panelState) {
+            return this.sunDirectionEarthWorld;
+        }
+        if (panelState.anchorKey === "craft" || panelState.mode === "composer") {
+            return this.sunDirectionCraftWorld;
+        }
+        if (panelState.targetKey === "moon" || panelState.anchorKey === "moon") {
+            return this.sunDirectionMoonWorld;
+        }
+        return this.sunDirectionEarthWorld;
     }
 
     computeMoonPhaseInfo({ earth, moon, sun }) {
@@ -4428,7 +4454,7 @@ class AuxiliaryCameraViewsManager {
         this.craftFromMoonDir.multiplyScalar(1 / craftLen);
         this.earthFromMoonDir.multiplyScalar(1 / earthLen);
 
-        let sunAvailable = this.vectorFromSunDirection(this.sunFromMoonDir);
+        let sunAvailable = this.vectorFromSunDirection(this.sunFromMoonDir, "moon");
         if (!sunAvailable && sun && this.getObjectWorldPosition(sun, this.sunWorld)) {
             this.sunFromMoonDir.subVectors(this.sunWorld, this.moonWorld);
             const sunLen = this.sunFromMoonDir.length();
@@ -4695,6 +4721,7 @@ class AuxiliaryCameraViewsManager {
         sun = null,
         sunRenderer = null,
         sunDirection = null,
+        sunDirections = null,
         skyContainer = null,
         earthRadius = null,
         moonRadius = null,
@@ -4726,16 +4753,31 @@ class AuxiliaryCameraViewsManager {
         this.composerFlybyWindowEndMs = flybyWindow.endMs;
         this.composerFlybyEvents = resolveFlybyPlannerEvents(timelineEventInfos);
         activeCraft.getWorldPosition(this.craftWorld);
-        if (
+        const normalizeSunDirection = (target, candidate) => {
+            if (candidate && Number.isFinite(candidate.x) && Number.isFinite(candidate.y) && Number.isFinite(candidate.z)) {
+                target.set(candidate.x, candidate.y, candidate.z);
+            }
+            const len = target.length();
+            if (Number.isFinite(len) && len > 1e-12) {
+                target.multiplyScalar(1 / len);
+                return true;
+            }
+            target.set(1, 0, 0);
+            return false;
+        };
+
+        const fallbackSun = (
             sunDirection &&
             Number.isFinite(sunDirection.x) &&
             Number.isFinite(sunDirection.y) &&
             Number.isFinite(sunDirection.z)
-        ) {
-            this.sunDirectionWorld.set(sunDirection.x, sunDirection.y, sunDirection.z);
-        } else {
-            this.sunDirectionWorld.set(1, 0, 0);
-        }
+        )
+            ? sunDirection
+            : { x: 1, y: 0, z: 0 };
+        this.sunDirectionWorld.set(fallbackSun.x, fallbackSun.y, fallbackSun.z);
+        normalizeSunDirection(this.sunDirectionEarthWorld, sunDirections?.earthCentered || fallbackSun);
+        normalizeSunDirection(this.sunDirectionMoonWorld, sunDirections?.moonCentered || sunDirections?.earthCentered || fallbackSun);
+        normalizeSunDirection(this.sunDirectionCraftWorld, sunDirections?.craftCenteredLightTime || sunDirections?.craftCentered || sunDirections?.earthCentered || fallbackSun);
         const nowMs = performance.now();
         const refreshAnalytics = !Number.isFinite(this.analyticsLastUpdateMs) || (nowMs - this.analyticsLastUpdateMs) >= 120;
         if (refreshAnalytics) {
@@ -4772,6 +4814,10 @@ class AuxiliaryCameraViewsManager {
                         this.setPanelVisible(panelState, false);
                         visiblePanels += 1;
                         continue;
+                    }
+                    if (sunRenderer?.setDirection) {
+                        const panelSunDirection = this.resolveSunDirectionForPanel(panelState);
+                        sunRenderer.setDirection(panelSunDirection.x, panelSunDirection.y, panelSunDirection.z);
                     }
                     const rendered = this.renderComposerPanel(panelState, {
                         scene,
@@ -4882,6 +4928,10 @@ class AuxiliaryCameraViewsManager {
                         );
                     }
                 }
+                if (sunRenderer?.setDirection) {
+                    const panelSunDirection = this.resolveSunDirectionForPanel(panelState);
+                    sunRenderer.setDirection(panelSunDirection.x, panelSunDirection.y, panelSunDirection.z);
+                }
 
                 this.renderLayers(panelState.renderer, scene, panelState.camera);
 
@@ -4947,6 +4997,11 @@ class AuxiliaryCameraViewsManager {
                     this.originalSunReference.x,
                     this.originalSunReference.y,
                     this.originalSunReference.z,
+                );
+                sunRenderer.setDirection(
+                    this.sunDirectionEarthWorld.x,
+                    this.sunDirectionEarthWorld.y,
+                    this.sunDirectionEarthWorld.z,
                 );
             }
             this.restoreVisibility(suppressedCrafts);

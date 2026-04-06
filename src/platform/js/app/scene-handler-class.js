@@ -110,6 +110,24 @@ function createSceneHandlerClass(deps) {
                 camera.layers.set(1);
                 this.renderer.render(animationScene.scene, camera);
             };
+            const setSunDirectionForView = (mode = "earth") => {
+                const sunRenderer = animationScene.sunRenderer;
+                if (!sunRenderer?.setDirection) {
+                    return;
+                }
+                const directions = animationScene.stateSunDirections || null;
+                const chosen = mode === "craft"
+                    ? (directions?.craftCenteredLightTime || directions?.craftCentered || directions?.earthCentered || animationScene.stateSunDirection)
+                    : (directions?.earthCentered || animationScene.stateSunDirection);
+                if (
+                    chosen &&
+                    Number.isFinite(chosen.x) &&
+                    Number.isFinite(chosen.y) &&
+                    Number.isFinite(chosen.z)
+                ) {
+                    sunRenderer.setDirection(chosen.x, chosen.y, chosen.z);
+                }
+            };
 
             const previousRenderedScene = this.lastAnimationScene;
             if (
@@ -140,6 +158,7 @@ function createSceneHandlerClass(deps) {
                 null;
             if (!activeCraft) {
                 animationScene.refreshBodyHalos?.({ suppress: false });
+                setSunDirectionForView("earth");
                 renderWithCamera(animationScene.camera);
                 if (viewAuxiliaryPanels) {
                     animationScene.refreshBodyHalos?.({ suppress: true });
@@ -155,6 +174,7 @@ function createSceneHandlerClass(deps) {
                     sun: animationScene.sun,
                     sunRenderer: animationScene.sunRenderer,
                     sunDirection: animationScene.stateSunDirection,
+                    sunDirections: animationScene.stateSunDirections,
                     skyContainer: animationScene.skyContainer,
                     earthRadius,
                     moonRadius,
@@ -227,11 +247,14 @@ function createSceneHandlerClass(deps) {
 
                 const specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
                 if (specialCamera) {
+                    setSunDirectionForView(joyRideFlag ? "craft" : "earth");
                     renderWithCamera(specialCamera);
                 } else {
+                    setSunDirectionForView("earth");
                     renderWithCamera(animationScene.camera);
                 }
             } else {
+                setSunDirectionForView("earth");
                 renderWithCamera(animationScene.camera);
             }
 
@@ -249,6 +272,7 @@ function createSceneHandlerClass(deps) {
                 sun: animationScene.sun,
                 sunRenderer: animationScene.sunRenderer,
                 sunDirection: animationScene.stateSunDirection,
+                sunDirections: animationScene.stateSunDirections,
                 skyContainer: animationScene.skyContainer,
                 earthRadius,
                 moonRadius,

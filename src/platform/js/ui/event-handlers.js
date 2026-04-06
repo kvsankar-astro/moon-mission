@@ -1366,7 +1366,7 @@ export function bindMobileMissionCard() {
     };
 
     const resolveMoonVisibilitySunDirection = (scene, moonWorld) => {
-        const fromState = scene?.stateSunDirection;
+        const fromState = scene?.stateSunDirections?.moonCentered || scene?.stateSunDirection;
         if (
             fromState &&
             Number.isFinite(fromState.x) &&
@@ -1473,7 +1473,7 @@ export function bindMobileMissionCard() {
             return null;
         }
         const resolveSunDirectionWorld = () => {
-            const fromState = scene?.stateSunDirection;
+            const fromState = scene?.stateSunDirections?.moonCentered || scene?.stateSunDirection;
             if (
                 fromState &&
                 Number.isFinite(fromState.x) &&
@@ -1485,7 +1485,7 @@ export function bindMobileMissionCard() {
                     return sunDir;
                 }
             }
-            const stateSun = scene?.latestSceneState?.sunDirection;
+            const stateSun = scene?.latestSceneState?.sunDirections?.moonCentered || scene?.latestSceneState?.sunDirection;
             if (
                 stateSun &&
                 Number.isFinite(stateSun.x) &&
@@ -1627,7 +1627,7 @@ export function bindMobileMissionCard() {
             return null;
         }
 
-        const sunDirection = sceneState?.sunDirection;
+        const sunDirection = sceneState?.sunDirections?.moonCentered || sceneState?.sunDirection;
         if (!hasFinitePositionVector(sunDirection)) {
             return null;
         }

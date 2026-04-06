@@ -18,6 +18,9 @@ import {
     resolveMissionCraft,
 } from "./core/domain/mission-config.js";
 
+const SPEED_OF_LIGHT_KM_PER_SEC = 299792.458;
+const MS_PER_SEC = 1000;
+
 // ============================================================================
 // Body State Computation
 // ============================================================================
@@ -240,6 +243,22 @@ function vectorDistance(v1, v2) {
     const dy = (v1.y ?? v1.vy ?? 0) - (v2.y ?? v2.vy ?? 0);
     const dz = (v1.z ?? v1.vz ?? 0) - (v2.z ?? v2.vz ?? 0);
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+function directionFromTo(from, to) {
+    if (!from || !to) return null;
+    const dx = (to.x ?? 0) - (from.x ?? 0);
+    const dy = (to.y ?? 0) - (from.y ?? 0);
+    const dz = (to.z ?? 0) - (from.z ?? 0);
+    const mag = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (!Number.isFinite(mag) || mag <= 1e-12) {
+        return null;
+    }
+    return {
+        x: dx / mag,
+        y: dy / mag,
+        z: dz / mag,
+    };
 }
 
 function normalizeBodyId(value) {
@@ -489,9 +508,9 @@ export function computeSceneState(time, config, options) {
         throw new Error("computeSceneState() requires `sunLongitude` from the imperative shell");
     }
 
-    // 1. Sun position for lighting (input from imperative shell)
+    // 1. Sun position fallback for lighting (input from imperative shell)
     const sunLongitude = providedSunLongitude;
-    let sunDirection = {
+    let fallbackSunDirection = {
         x: Math.cos(sunLongitude),
         y: Math.sin(sunLongitude),
         z: 0,
@@ -513,10 +532,10 @@ export function computeSceneState(time, config, options) {
         chebyshevData?.[config]?.metadata?.sun_frame === "relative";
 
     if (frameQuat && !sunAlreadyRelative) {
-        sunDirection = normalize(rotateVectorByQuaternion(sunDirection, frameQuat));
+        fallbackSunDirection = normalize(rotateVectorByQuaternion(fallbackSunDirection, frameQuat));
     }
 
-    // In relative mode (geo), express the Sun direction in the rotating Earth–Moon frame
+    // In relative mode (geo), express fallback Sun direction in rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo" && !hasPrecomputedRelativeFrameData) {
         relativeFrameMoonState = getBodyEphemerisState({
             bodyId: "MOON",
@@ -552,9 +571,9 @@ export function computeSceneState(time, config, options) {
             z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
         });
 
-        const relSun = transform(sunDirection);
+        const relSun = transform(fallbackSunDirection);
         const relNorm = normalize(relSun);
-        sunDirection = relNorm;
+        fallbackSunDirection = relNorm;
     }
 
     // 2. Body states
@@ -584,6 +603,20 @@ export function computeSceneState(time, config, options) {
         bodies[bodyId] = computeBodyState(bodyId, time, config, dataForBodies);
     }
 
+    const resolveSunStateAtTime = (timeMs) =>
+        getBodyEphemerisState({
+            bodyId: "SUN",
+            timeMs,
+            config,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            defaultSpacecraftSource: ephemerisSource,
+            spacecraftMnemonic: (globalConfig?.spacecraft_mnemonic || "SC").toUpperCase(),
+        });
+
     // 3. Telemetry (for spacecraft)
     const preferredCraftIds = buildPreferredCraftIds({
         globalConfig,
@@ -600,6 +633,61 @@ export function computeSceneState(time, config, options) {
             break;
         }
     }
+
+    const earthState = resolveBodyStateById(bodies, "EARTH");
+    const moonState = resolveBodyStateById(bodies, "MOON");
+    let sunState = resolveBodyStateById(bodies, "SUN");
+
+    const earthCenteredSunDirection = (
+        sunState?.available && earthState?.available
+            ? directionFromTo(earthState.position, sunState.position)
+            : null
+    ) || fallbackSunDirection;
+    const moonCenteredSunDirection = (
+        sunState?.available && moonState?.available
+            ? directionFromTo(moonState.position, sunState.position)
+            : null
+    ) || earthCenteredSunDirection;
+
+    let craftCenteredSunDirection = earthCenteredSunDirection;
+    let craftCenteredSunDirectionLightTime = craftCenteredSunDirection;
+    if (sunState?.available && telemetryBodyState?.available) {
+        const craftPos = telemetryBodyState.position;
+        const directCraftSunDirection = directionFromTo(craftPos, sunState.position);
+        if (directCraftSunDirection) {
+            craftCenteredSunDirection = directCraftSunDirection;
+            craftCenteredSunDirectionLightTime = directCraftSunDirection;
+        }
+
+        let apparentSunPos = sunState.position;
+        for (let i = 0; i < 2; i += 1) {
+            const rangeKm = vectorDistance(craftPos, apparentSunPos);
+            if (!Number.isFinite(rangeKm) || rangeKm <= 0) {
+                break;
+            }
+            const lightTimeMs = (rangeKm / SPEED_OF_LIGHT_KM_PER_SEC) * MS_PER_SEC;
+            if (!Number.isFinite(lightTimeMs) || lightTimeMs <= 0) {
+                break;
+            }
+            const apparentState = resolveSunStateAtTime(time - lightTimeMs);
+            if (!apparentState?.available || !apparentState.position) {
+                break;
+            }
+            apparentSunPos = apparentState.position;
+            const apparentDirection = directionFromTo(craftPos, apparentSunPos);
+            if (apparentDirection) {
+                craftCenteredSunDirectionLightTime = apparentDirection;
+            }
+        }
+    }
+
+    const sunDirections = {
+        earthCentered: earthCenteredSunDirection,
+        moonCentered: moonCenteredSunDirection,
+        craftCentered: craftCenteredSunDirection,
+        craftCenteredLightTime: craftCenteredSunDirectionLightTime,
+    };
+
     const telemetry = telemetryBodyState
         ? computeTelemetry(telemetryBodyState, config, bodies.MOON, bodies.EARTH)
         : null;
@@ -616,7 +704,9 @@ export function computeSceneState(time, config, options) {
         time,
         config,
         sunLongitude,
-        sunDirection,
+        // Backward compatibility: keep top-level sunDirection as Earth-centered.
+        sunDirection: earthCenteredSunDirection,
+        sunDirections,
         bodies,
         telemetryBodyId,
         telemetry,
