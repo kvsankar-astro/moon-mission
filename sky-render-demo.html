@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Sky Render Demo</title>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.179.1/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.179.1/examples/jsm/"
+        }
+    }
+    </script>
+    <link rel="stylesheet" href="/src/platform/css/sky-render-demo.css">
+</head>
+<body>
+    <main class="layout">
+        <section class="controls" aria-label="Sky controls">
+            <h1>Physically Plausible Sky Demo</h1>
+            <p class="subhead">Atmosphere ON/OFF, observer controls, and time-of-day rotation using the shared sky pipeline.</p>
+
+            <label class="row">
+                <span>Atmosphere</span>
+                <input id="atmosphere-enabled" type="checkbox">
+            </label>
+
+            <label class="row">
+                <span>Time (hours)</span>
+                <input id="time-slider" type="range" min="0" max="24" step="0.01" value="22">
+                <output id="time-value">22.00 h</output>
+            </label>
+
+            <label class="row">
+                <span>Observer Latitude</span>
+                <input id="observer-lat" type="range" min="-90" max="90" step="0.1" value="28.6">
+                <output id="observer-lat-value">28.6°</output>
+            </label>
+
+            <label class="row">
+                <span>Observer Longitude</span>
+                <input id="observer-lon" type="range" min="-180" max="180" step="0.1" value="-80.6">
+                <output id="observer-lon-value">-80.6°</output>
+            </label>
+
+            <label class="row">
+                <span>Star Size Scale</span>
+                <input id="star-size-scale" type="range" min="0.4" max="3" step="0.01" value="1.2">
+                <output id="star-size-scale-value">1.20</output>
+            </label>
+
+            <label class="row">
+                <span>Extinction Strength</span>
+                <input id="extinction-strength" type="range" min="0" max="0.35" step="0.005" value="0.18">
+                <output id="extinction-strength-value">0.180</output>
+            </label>
+
+            <label class="row">
+                <span>Twinkle Strength</span>
+                <input id="twinkle-strength" type="range" min="0" max="0.2" step="0.002" value="0.05">
+                <output id="twinkle-strength-value">0.050</output>
+            </label>
+
+            <label class="row">
+                <span>Bloom Strength</span>
+                <input id="bloom-strength" type="range" min="0" max="2" step="0.01" value="0.7">
+                <output id="bloom-strength-value">0.70</output>
+            </label>
+
+            <p id="status" class="status"></p>
+        </section>
+
+        <section class="viewport">
+            <div id="sky-demo-canvas" class="canvas-host"></div>
+        </section>
+    </main>
+
+    <script type="module" src="/src/platform/js/sky-render-demo.js"></script>
+</body>
+</html>

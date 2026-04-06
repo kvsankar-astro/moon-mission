@@ -2,6 +2,13 @@ export function applySkyLayerVisibility(scene, { viewSky = false, viewConstellat
     const showSky = Boolean(viewSky);
     const showConstellationLines = Boolean(viewConstellationLines);
 
+    if (scene.skyRenderer?.setLayerVisibility) {
+        scene.skyRenderer.setLayerVisibility({
+            viewSky: showSky,
+            viewConstellationLines: showConstellationLines,
+        });
+    }
+
     if (scene.sky) {
         scene.sky.visible = showSky;
     }

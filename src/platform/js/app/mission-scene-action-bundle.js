@@ -1,5 +1,5 @@
 import { degreesToRadians, distance3D, sphericalToCartesian } from "../utils/math-utils.js";
-import { SkyRenderer } from "../rendering/sky-renderer.js";
+import { SkyController } from "../rendering/SkyController.js";
 import { SunRenderer } from "../rendering/sun-renderer.js";
 import { LightManager } from "../rendering/light-manager.js";
 import { EarthRenderer } from "../rendering/earth-renderer.js";
@@ -252,7 +252,7 @@ function createMissionSceneActionBundle(deps) {
     });
 
     const skyActions = createSkyActions({
-        SkyRenderer,
+        SkyRenderer: SkyController,
         render,
     });
 

@@ -33,6 +33,38 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
+    function extractSkyParameterPatch(viewSettings) {
+        if (!viewSettings || typeof viewSettings !== "object") {
+            return null;
+        }
+        const patch = {};
+        if (typeof viewSettings.atmosphere_enabled === "boolean") {
+            patch.atmosphere_enabled = viewSettings.atmosphere_enabled;
+        }
+        if (Number.isFinite(viewSettings.bloom_strength)) {
+            patch.bloom_strength = viewSettings.bloom_strength;
+        }
+        if (Number.isFinite(viewSettings.star_size_scale)) {
+            patch.star_size_scale = viewSettings.star_size_scale;
+        }
+        if (Number.isFinite(viewSettings.extinction_strength)) {
+            patch.extinction_strength = viewSettings.extinction_strength;
+        }
+        if (Number.isFinite(viewSettings.twinkle_strength)) {
+            patch.twinkle_strength = viewSettings.twinkle_strength;
+        }
+        if (Number.isFinite(viewSettings.observer_lat)) {
+            patch.observer_lat = viewSettings.observer_lat;
+        }
+        if (Number.isFinite(viewSettings.observer_lon)) {
+            patch.observer_lon = viewSettings.observer_lon;
+        }
+        if (Number.isFinite(viewSettings.sky_time_ms)) {
+            patch.sky_time_ms = viewSettings.sky_time_ms;
+        }
+        return Object.keys(patch).length ? patch : null;
+    }
+
     function syncLocatorsPillState(enabled) {
         if (typeof document === "undefined") return;
         const locatorsPill = document.getElementById("locators-pill");
@@ -329,6 +361,13 @@ export function createSettingsActions({
                     viewSky: view.viewSky,
                     viewConstellationLines: view.viewConstellationLines,
                 });
+                const skyPatch = extractSkyParameterPatch(view);
+                if (skyPatch) {
+                    scene.skyRenderer?.setParameters?.(skyPatch);
+                    if (Number.isFinite(skyPatch.sky_time_ms)) {
+                        scene.skyRenderer?.setTime?.(skyPatch.sky_time_ms);
+                    }
+                }
                 scene.eclipticPlaneHelper.visible = view.viewEclipticPlane;
                 scene.eclipticPolarGridHelper.visible = view.viewEclipticPlane;
                 scene.equatorialPlaneHelper.visible = view.viewEquatorialPlane;
