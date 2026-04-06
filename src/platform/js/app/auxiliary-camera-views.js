@@ -28,8 +28,8 @@ const PANEL_SPECS = Object.freeze([
     },
     {
         id: "earth-rise-composer",
-        title: "Flyby Planner",
-        chipLabel: "Do you want to plan the lunar flyby?",
+        title: "Flyby in Focus",
+        chipLabel: "Flyby",
         anchorKey: "craft",
         targetKey: "moon",
         infoMode: "none",
@@ -54,12 +54,10 @@ const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
 const PANEL_SIDE_RATIO_DEFAULT = 0.27;
-const PANEL_SIDE_RATIO_COMPOSER = 0.4;
+const PANEL_SIDE_RATIO_COMPOSER = 0.52;
 const PANEL_MIN_SIDE_DEFAULT = 160;
-const PANEL_MIN_SIDE_COMPOSER = 240;
-const COMPOSER_TEASER_OPEN_WIDTH_RATIO = 0.6;
-const COMPOSER_TEASER_OPEN_HEIGHT_RATIO = 0.7;
-const COMPOSER_DEFAULT_HEIGHT_MULTIPLIER = 1.22;
+const PANEL_MIN_SIDE_COMPOSER = 300;
+const COMPOSER_DEFAULT_ASPECT_RATIO = 16 / 9;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
 const AUTO_FOV_MAX_DEGREES = 179;
@@ -80,7 +78,7 @@ const COMPOSER_MOON_SHADOW_LIFT_SCALE = 0.28;
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
 const COMPOSER_DEFAULT_ROLL_RAD = Math.PI * 1.5;
-const COMPOSER_TEASER_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/a/a8/NASA-Apollo8-Dec24-Earthrise.jpg";
+const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.75;
 const COMPOSER_DEFAULT_OPEN_TIME_MS = Date.UTC(2026, 3, 6, 23, 27, 0);
 const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
@@ -571,39 +569,91 @@ class AuxiliaryCameraViewsManager {
         });
     }
 
+    resolveComposerRequiredPanelHeight(panelState) {
+        if (!panelState || panelState.mode !== "composer" || !panelState.panel) {
+            return Number.NaN;
+        }
+        const header = panelState.panel.querySelector(".aux-camera-view__header");
+        const controls = panelState.panel.querySelector(".aux-camera-view__composer-control-matrix");
+        if (!header || !controls) {
+            return Number.NaN;
+        }
+        const headerHeight = Math.ceil(header.getBoundingClientRect().height || 0);
+        const controlsHeight = Math.ceil(controls.scrollHeight || 0);
+        if (headerHeight <= 0 || controlsHeight <= 0) {
+            return Number.NaN;
+        }
+        return headerHeight + controlsHeight + PANEL_GAP_PX;
+    }
+
     applyDefaultPanelLayout() {
         if (!this.panels.length) {
             return;
         }
+        const viewportWidth = Math.max(window.innerWidth, 1);
+        const viewportHeight = Math.max(window.innerHeight, 1);
         const headerEl = document.querySelector(".header");
         const timelineEl = document.querySelector(".timeline-dock");
         const headerRect = headerEl?.getBoundingClientRect?.() || null;
         const timelineRect = timelineEl?.getBoundingClientRect?.() || null;
         const headerSpace = Number.isFinite(headerRect?.height) ? headerRect.height : 0;
         const controlSpace = Number.isFinite(timelineRect?.height) ? timelineRect.height : 0;
-        const h = Math.max(0, window.innerHeight - headerSpace - controlSpace);
+        const h = Math.max(0, viewportHeight - headerSpace - controlSpace);
         const dockOffset = this.readTimelineDockOffset();
         const topY = Number.isFinite(headerRect?.bottom)
             ? (headerRect.bottom + PANEL_GAP_PX)
             : (dockOffset + PANEL_TOP_OFFSET_PX);
-        const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, window.innerWidth - dockOffset - PANEL_MARGIN_PX * 2);
+        const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - dockOffset - PANEL_MARGIN_PX * 2);
+        const maxPanelWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - (PANEL_MARGIN_PX * 2));
+        const maxPanelHeight = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportHeight - (PANEL_MARGIN_PX * 2));
         const panelRects = this.panels.map((panelState) => {
             const isComposer = panelState.mode === "composer";
             const ratio = isComposer ? PANEL_SIDE_RATIO_COMPOSER : PANEL_SIDE_RATIO_DEFAULT;
             const sideFromFormula = ratio * h;
             const minSideTarget = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
             const minSide = Math.min(minSideTarget, maxSideFromWidth);
-            const width = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
-            const maxHeightFromViewport = Math.max(minSideTarget, h - PANEL_MARGIN_PX);
-            const height = isComposer
-                ? Math.round(
-                    this.THREE.MathUtils.clamp(
-                        width * COMPOSER_DEFAULT_HEIGHT_MULTIPLIER,
-                        minSideTarget,
-                        maxHeightFromViewport,
-                    ),
-                )
-                : width;
+            let width = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
+            let height = width;
+            if (isComposer) {
+                const minComposerHeight = Math.round(viewportHeight * COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO);
+                let preferredWidth = Math.max(width, minSideTarget);
+                let preferredHeight = Math.round(preferredWidth / COMPOSER_DEFAULT_ASPECT_RATIO);
+
+                if (preferredHeight > maxPanelHeight) {
+                    preferredHeight = maxPanelHeight;
+                    preferredWidth = Math.round(preferredHeight * COMPOSER_DEFAULT_ASPECT_RATIO);
+                }
+                if (preferredWidth > maxPanelWidth) {
+                    preferredWidth = maxPanelWidth;
+                    preferredHeight = Math.round(preferredWidth / COMPOSER_DEFAULT_ASPECT_RATIO);
+                }
+
+                width = Math.max(minSideTarget, Math.min(preferredWidth, maxPanelWidth));
+                height = Math.max(minSideTarget, Math.min(preferredHeight, maxPanelHeight));
+
+                const heightFloor = Math.max(minSideTarget, minComposerHeight);
+                const boundedHeightFloor = Math.min(heightFloor, maxPanelHeight);
+                if (height < boundedHeightFloor) {
+                    height = boundedHeightFloor;
+                    width = Math.round(height * COMPOSER_DEFAULT_ASPECT_RATIO);
+                    if (width > maxPanelWidth) {
+                        width = maxPanelWidth;
+                        height = Math.round(width / COMPOSER_DEFAULT_ASPECT_RATIO);
+                    }
+                }
+
+                // Ensure controls column fits without vertical scroll whenever viewport allows.
+                panelState.panel.style.width = `${width}px`;
+                const requiredHeight = this.resolveComposerRequiredPanelHeight(panelState);
+                if (Number.isFinite(requiredHeight) && requiredHeight > 0 && requiredHeight > height) {
+                    height = Math.min(maxPanelHeight, Math.ceil(requiredHeight));
+                    width = Math.round(height * COMPOSER_DEFAULT_ASPECT_RATIO);
+                    if (width > maxPanelWidth) {
+                        width = maxPanelWidth;
+                        height = Math.round(width / COMPOSER_DEFAULT_ASPECT_RATIO);
+                    }
+                }
+            }
             panelState.panel.style.width = `${width}px`;
             panelState.panel.style.height = `${height}px`;
             return { panelState, width, height };
@@ -613,49 +663,23 @@ class AuxiliaryCameraViewsManager {
         let leftY = topY;
         for (const item of panelRects) {
             const onLeft = item.panelState.side === "left";
-            const x = onLeft
+            let x = onLeft
                 ? dockOffset
-                : (window.innerWidth - item.width - dockOffset);
-            const y = onLeft ? leftY : rightY;
+                : (viewportWidth - item.width - dockOffset);
+            let y = onLeft ? leftY : rightY;
+            if (item.panelState.mode === "composer") {
+                x = Math.round((viewportWidth - item.width) * 0.5);
+                y = Math.round((viewportHeight - item.height) * 0.5);
+            }
             this.applyPanelPosition(item.panelState, x, y);
-            if (onLeft) {
-                leftY += item.height + PANEL_GAP_PX;
-            } else {
-                rightY += item.height + PANEL_GAP_PX;
+            if (item.panelState.mode !== "composer") {
+                if (onLeft) {
+                    leftY += item.height + PANEL_GAP_PX;
+                } else {
+                    rightY += item.height + PANEL_GAP_PX;
+                }
             }
         }
-    }
-
-    autosizeComposerFromTeaser(panelState) {
-        if (!panelState || panelState.mode !== "composer") {
-            return;
-        }
-        const viewportWidth = Math.max(window.innerWidth, 1);
-        const viewportHeight = Math.max(window.innerHeight, 1);
-        const maxWidth = Math.max(PANEL_MIN_SIDE_COMPOSER, viewportWidth - (PANEL_MARGIN_PX * 2));
-        const maxHeight = Math.max(PANEL_MIN_SIDE_COMPOSER, viewportHeight - (PANEL_MARGIN_PX * 2));
-        const width = Math.round(
-            this.THREE.MathUtils.clamp(
-                viewportWidth * COMPOSER_TEASER_OPEN_WIDTH_RATIO,
-                PANEL_MIN_SIDE_COMPOSER,
-                maxWidth,
-            ),
-        );
-        const height = Math.round(
-            this.THREE.MathUtils.clamp(
-                viewportHeight * COMPOSER_TEASER_OPEN_HEIGHT_RATIO,
-                PANEL_MIN_SIDE_COMPOSER,
-                maxHeight,
-            ),
-        );
-        panelState.panel.style.width = `${width}px`;
-        panelState.panel.style.height = `${height}px`;
-        const centeredX = Math.round((viewportWidth - width) * 0.5);
-        const centeredY = Math.round((viewportHeight - height) * 0.5);
-        this.applyPanelPosition(panelState, centeredX, centeredY);
-        this.syncPanelSize(panelState);
-        this.queuePersistPanelState();
-        this.requestRender?.();
     }
 
     applyPanelPosition(panelState, x, y) {
@@ -707,36 +731,10 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const chip = panelState.chipButton;
-        const onboarded = panelState.composerOnboarded === true;
-        chip.classList.toggle("aux-camera-chip--composer-teaser", !onboarded);
-        chip.classList.toggle("aux-camera-chip--composer-tab", onboarded);
+        chip.classList.remove("aux-camera-chip--composer-teaser");
+        chip.classList.add("aux-camera-chip--composer-tab");
         chip.replaceChildren();
-        if (onboarded) {
-            chip.textContent = "Flyby";
-            chip.setAttribute("aria-label", `Restore ${panelState.title}`);
-            return;
-        }
-        const title = document.createElement("span");
-        title.className = "aux-camera-chip__teaser-title";
-        title.textContent = "Do you want to plan the lunar flyby?";
-        const close = document.createElement("span");
-        close.className = "aux-camera-chip__teaser-close";
-        close.textContent = "\u00d7";
-        close.setAttribute("role", "button");
-        close.setAttribute("aria-label", "Dismiss flyby teaser");
-        close.setAttribute("title", "Dismiss");
-        const image = document.createElement("img");
-        image.className = "aux-camera-chip__teaser-image";
-        image.src = COMPOSER_TEASER_IMAGE_URL;
-        image.alt = "";
-        image.decoding = "async";
-        image.loading = "lazy";
-        const media = document.createElement("span");
-        media.className = "aux-camera-chip__teaser-media";
-        media.appendChild(image);
-        chip.appendChild(close);
-        chip.appendChild(title);
-        chip.appendChild(media);
+        chip.textContent = "Flyby";
         chip.setAttribute("aria-label", `Open ${panelState.title}`);
     }
 
@@ -1508,8 +1506,8 @@ class AuxiliaryCameraViewsManager {
             y: 0,
             onPanelPointerDown: null,
             minimized: false,
-            composerOnboarded: panelMode === "composer" ? false : true,
-            composerLockTarget: "earth",
+            composerOnboarded: true,
+            composerLockTarget: "moon",
             composerYawRad: 0,
             composerPitchRad: 0,
             composerRollRad: COMPOSER_DEFAULT_ROLL_RAD,
@@ -1569,21 +1567,7 @@ class AuxiliaryCameraViewsManager {
             this.setPanelMinimized(panelState, true);
         };
         let syncComposerLockUi = null;
-        const onChipClick = (event) => {
-            const openedFromTeaser = panelState.mode === "composer" && panelState.composerOnboarded !== true;
-            const clickedDismissTeaser = panelState.mode === "composer" &&
-                panelState.composerOnboarded !== true &&
-                event?.target instanceof Element &&
-                !!event.target.closest(".aux-camera-chip__teaser-close");
-            if (clickedDismissTeaser) {
-                panelState.composerOnboarded = true;
-                this.updateComposerChipPresentation(panelState);
-                return;
-            }
-            if (panelState.mode === "composer" && panelState.composerOnboarded !== true) {
-                panelState.composerOnboarded = true;
-                this.updateComposerChipPresentation(panelState);
-            }
+        const onChipClick = () => {
             if (panelState.mode === "composer") {
                 panelState.composerLockTarget = "moon";
                 syncComposerLockUi?.();
@@ -1594,9 +1578,6 @@ class AuxiliaryCameraViewsManager {
             }
             this.setPanelMinimized(panelState, false);
             this.bringPanelToFront(panelState);
-            if (openedFromTeaser) {
-                this.autosizeComposerFromTeaser(panelState);
-            }
             if (panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
                 this.activateComposerWindow(panelState, { finalize: true });
             }
@@ -2217,8 +2198,8 @@ class AuxiliaryCameraViewsManager {
         const resizeObserver = this.getPanelResizeObserver();
         resizeObserver?.observe(panel);
         this.syncPanelSize(panelState);
-        // Startup behavior: show composer as a teaser card, other panels open.
-        const startMinimized = panelState.mode === "composer";
+        // Startup behavior: open all enabled panels, including composer.
+        const startMinimized = false;
         this.setPanelMinimized(panelState, startMinimized, {
             persist: false,
             requestRender: false,
