@@ -828,6 +828,16 @@
                     <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/moon-mission">GitHub</a>.
                         Works best in desktop screens. Chrome works better than Firefox.</p>
                 </div>
+                <button
+                    id="mobile-views-collapse"
+                    type="button"
+                    class="mobile-shell__collapse-btn mission-floating-collapse-btn"
+                    aria-expanded="true"
+                    aria-label="Collapse views controls"
+                    title="Collapse views controls"
+                >
+                    ▴
+                </button>
                 
                 <div id="test-id-display" style="position: fixed; top: 10px; right: 150px; color: #ffff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;"></div>
                 <div id="fps-counter" style="position: fixed; top: 10px; right: 10px; color: #00ff00; font-family: monospace; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;">
@@ -1295,10 +1305,10 @@
         </div> <!-- content-wrapper -->
 
         <div id="mobile-shell" class="mobile-shell" aria-label="Mobile mission shell">
-            <section id="mobile-card-mission" class="mobile-shell__card mobile-shell__card--mission" aria-label="Mission card">
+            <section id="mobile-card-mission" class="mobile-shell__card mobile-shell__card--mission" aria-label="Mission info card">
                 <div class="mobile-shell__card-head">
                     <div class="mobile-shell__card-head-main">
-                        <span class="mobile-shell__card-title">Mission</span>
+                        <span class="mobile-shell__card-title">Mission Info</span>
                         <div class="mobile-shell__unit-pill" role="group" aria-label="Mobile telemetry units">
                             <button
                                 id="mobile-unit-km"
@@ -1319,18 +1329,6 @@
                                 miles
                             </button>
                         </div>
-                    </div>
-                    <div class="mobile-shell__card-head-actions">
-                        <button
-                            id="mobile-mission-collapse"
-                            type="button"
-                            class="mobile-shell__collapse-btn"
-                            aria-expanded="true"
-                            aria-label="Collapse mission panel"
-                            title="Collapse mission panel"
-                        >
-                            ▴
-                        </button>
                     </div>
                 </div>
                 <div id="mobile-mission-body" class="mobile-shell__card-body">
@@ -1368,23 +1366,6 @@
                 aria-label="Views card"
                 hidden
             >
-                <div class="mobile-shell__card-head">
-                    <div class="mobile-shell__card-head-main">
-                        <span class="mobile-shell__card-title">Views</span>
-                    </div>
-                    <div class="mobile-shell__card-head-actions">
-                        <button
-                            id="mobile-views-collapse"
-                            type="button"
-                            class="mobile-shell__collapse-btn"
-                            aria-expanded="true"
-                            aria-label="Collapse views controls"
-                            title="Collapse views controls"
-                        >
-                            ▴
-                        </button>
-                    </div>
-                </div>
                 <div id="mobile-views-body" class="mobile-shell__card-body">
                     <div class="mobile-shell__views-subtabs" role="tablist" aria-label="Mobile view presets">
                         <button

@@ -1908,6 +1908,18 @@ fieldset {
     opacity: 0.75;
 }
 
+.mission-floating-collapse-btn {
+    display: none;
+}
+
+body.mobile-shell-enabled .mission-floating-collapse-btn {
+    display: inline-flex;
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 55;
+}
+
 .cy3 { font-family: "Lucida Console", monospace; text-align: right; }
 
 .stats {
@@ -2483,6 +2495,19 @@ table {
 
     body.mobile-shell-enabled .mobile-shell__card--collapsed .mobile-shell__card-head {
         margin-bottom: 0;
+    }
+
+    body.mobile-shell-enabled #mobile-card-mission.mobile-shell__card--collapsed .mobile-shell__card-head {
+        display: none;
+    }
+
+    body.mobile-shell-enabled #mobile-card-views.mobile-shell__card--collapsed .mobile-shell__controls {
+        display: none;
+    }
+
+    body.mobile-shell-enabled #mobile-card-mission.mobile-shell__card--collapsed,
+    body.mobile-shell-enabled #mobile-card-views.mobile-shell__card--collapsed {
+        display: none;
     }
 
     body.mobile-shell-enabled .mobile-shell__unit-pill {

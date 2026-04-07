@@ -946,10 +946,9 @@ export function bindMobileMissionCard() {
 
     const missionCard = document.getElementById("mobile-card-mission");
     const missionCardBody = document.getElementById("mobile-mission-body");
-    const missionCollapseButton = document.getElementById("mobile-mission-collapse");
     const viewsCard = document.getElementById("mobile-card-views");
     const viewsCardBody = document.getElementById("mobile-views-body");
-    const viewsCollapseButton = document.getElementById("mobile-views-collapse");
+    const panelCollapseButton = document.getElementById("mobile-views-collapse");
     const composeCard = document.getElementById("mobile-card-compose");
     const missionControls = {
         play: document.getElementById("mobile-control-play"),
@@ -1097,6 +1096,33 @@ export function bindMobileMissionCard() {
         return dataPath.includes("/artemis2/") || dataPath.includes("\\artemis2\\");
     })();
     const isViewsVisualSimplificationTab = (tabName) => tabName === "views" || tabName === "compose";
+    const shouldEnableMobileTapPlaybackToggle = () => {
+        if (!isMobileViewport()) return false;
+        return activeMobileTab === "mission" || activeMobileTab === "views";
+    };
+
+    const syncMobilePanelCollapseButton = () => {
+        if (!panelCollapseButton) return;
+        const tabKey = activeMobileTab;
+        let collapsed = false;
+        let label = "Collapse panel";
+        let hidden = false;
+        if (tabKey === "mission") {
+            collapsed = !!missionCard?.classList.contains("mobile-shell__card--collapsed");
+            label = collapsed ? "Expand mission panel" : "Collapse mission panel";
+        } else if (tabKey === "views") {
+            collapsed = !!viewsCard?.classList.contains("mobile-shell__card--collapsed");
+            label = collapsed ? "Expand views controls" : "Collapse views controls";
+        } else {
+            hidden = true;
+        }
+        panelCollapseButton.hidden = hidden;
+        if (hidden) return;
+        panelCollapseButton.textContent = collapsed ? "▾" : "▴";
+        panelCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        panelCollapseButton.setAttribute("aria-label", label);
+        panelCollapseButton.title = label;
+    };
 
     if (!composeFeatureEnabled) {
         if (composeCard) {
@@ -1166,15 +1192,9 @@ export function bindMobileMissionCard() {
     };
 
     const setMissionCardCollapsed = (collapsed) => {
-        if (!missionCard || !missionCardBody || !missionCollapseButton) return;
+        if (!missionCard || !missionCardBody) return;
         missionCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
-        missionCollapseButton.textContent = collapsed ? "▾" : "▴";
-        missionCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        missionCollapseButton.setAttribute(
-            "aria-label",
-            collapsed ? "Expand mission panel" : "Collapse mission panel",
-        );
-        missionCollapseButton.title = collapsed ? "Expand mission panel" : "Collapse mission panel";
+        syncMobilePanelCollapseButton();
         try {
             window.localStorage?.setItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
         } catch {
@@ -1183,15 +1203,9 @@ export function bindMobileMissionCard() {
     };
 
     const setViewsCardCollapsed = (collapsed) => {
-        if (!viewsCard || !viewsCardBody || !viewsCollapseButton) return;
+        if (!viewsCard || !viewsCardBody) return;
         viewsCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
-        viewsCollapseButton.textContent = collapsed ? "▾" : "▴";
-        viewsCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        viewsCollapseButton.setAttribute(
-            "aria-label",
-            collapsed ? "Expand views controls" : "Collapse views controls",
-        );
-        viewsCollapseButton.title = collapsed ? "Expand views controls" : "Collapse views controls";
+        syncMobilePanelCollapseButton();
         try {
             window.localStorage?.setItem(VIEWS_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
         } catch {
@@ -1212,7 +1226,10 @@ export function bindMobileMissionCard() {
     const applyMobileRenderViewportCentering = () => {
         if (!contentWrapper) return;
         let shiftPx = 0;
-        const shouldCenterForTab = activeMobileTab === "views" || activeMobileTab === "compose";
+        const shouldCenterForTab =
+            activeMobileTab === "mission" ||
+            activeMobileTab === "views" ||
+            activeMobileTab === "compose";
         if (isMobileViewport() && shouldCenterForTab) {
             const viewportHeight = Math.max(1, window.innerHeight || 1);
             const activeCard = mobileTabCards[activeMobileTab] || null;
@@ -2192,6 +2209,19 @@ export function bindMobileMissionCard() {
         return applyMobileViewsAutoFov(clampedAutoFov);
     };
 
+    const scheduleAutoFovRefresh = () => {
+        if (!mobileViewsAutoFovEnabled) return;
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                if (!mobileViewsAutoFovEnabled) return;
+                if (activeMobileTab !== "views" && activeMobileTab !== "compose") return;
+                applyAutoFovForActivePreset();
+                requestMobileSceneRender();
+                syncMobileMoonVisibilityInfo({ force: true });
+            });
+        });
+    };
+
     const clampEarthshineGain = (value) => {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return 1;
@@ -2693,6 +2723,7 @@ export function bindMobileMissionCard() {
             syncMobileViewPresetState();
             if (mobileViewsAutoFovEnabled) {
                 applyAutoFovForActivePreset();
+                scheduleAutoFovRefresh();
             }
             const scene = resolveActiveScene();
             if (scene?.camera?.fov) {
@@ -2709,6 +2740,7 @@ export function bindMobileMissionCard() {
             syncMobileComposeControls();
             if (mobileViewsAutoFovEnabled) {
                 applyAutoFovForActivePreset();
+                scheduleAutoFovRefresh();
             }
             const scene = resolveActiveScene();
             if (scene?.camera?.fov) {
@@ -2723,6 +2755,7 @@ export function bindMobileMissionCard() {
         }
         syncMobileComposePresentation();
         applyMobileRenderViewportCentering();
+        syncMobilePanelCollapseButton();
     };
 
     const syncMobileViewPresetState = () => {
@@ -2957,6 +2990,10 @@ export function bindMobileMissionCard() {
     }
 
     if (contentWrapper) {
+        let mobileTapCandidate = null;
+        const MOBILE_TAP_MAX_DURATION_MS = 280;
+        const MOBILE_TAP_MAX_MOVE_PX = 12;
+
         const shouldHandleMobilePinchZoom = () => {
             if (!isMobileViewport()) return false;
             if (activeMobileTab === "views") {
@@ -2969,6 +3006,24 @@ export function bindMobileMissionCard() {
         };
 
         const onViewsPinchStart = (event) => {
+            if (
+                shouldEnableMobileTapPlaybackToggle() &&
+                event.touches &&
+                event.touches.length === 1
+            ) {
+                const touch = event.touches[0];
+                mobileTapCandidate = {
+                    x: touch.clientX,
+                    y: touch.clientY,
+                    startMs: (typeof performance !== "undefined" && performance.now)
+                        ? performance.now()
+                        : Date.now(),
+                    moved: false,
+                };
+            } else if (!event.touches || event.touches.length !== 1) {
+                mobileTapCandidate = null;
+            }
+
             if (!shouldHandleMobilePinchZoom()) return;
             if (!event.touches || event.touches.length !== 2) return;
             const distance = resolveTouchDistance(event.touches[0], event.touches[1]);
@@ -2985,6 +3040,17 @@ export function bindMobileMissionCard() {
         };
 
         const onViewsPinchMove = (event) => {
+            if (mobileTapCandidate && event.touches && event.touches.length === 1) {
+                const touch = event.touches[0];
+                const dx = touch.clientX - mobileTapCandidate.x;
+                const dy = touch.clientY - mobileTapCandidate.y;
+                if (Math.hypot(dx, dy) > MOBILE_TAP_MAX_MOVE_PX) {
+                    mobileTapCandidate.moved = true;
+                }
+            } else if (mobileTapCandidate && (!event.touches || event.touches.length !== 1)) {
+                mobileTapCandidate = null;
+            }
+
             if (!shouldHandleMobilePinchZoom()) {
                 mobileViewsPinchState = null;
                 return;
@@ -3003,8 +3069,36 @@ export function bindMobileMissionCard() {
             event.preventDefault();
         };
 
-        const clearViewsPinchState = () => {
+        const clearViewsPinchState = (event) => {
             mobileViewsPinchState = null;
+            if (
+                mobileTapCandidate &&
+                shouldEnableMobileTapPlaybackToggle() &&
+                event?.changedTouches &&
+                event.changedTouches.length === 1
+            ) {
+                const endTouch = event.changedTouches[0];
+                const dx = endTouch.clientX - mobileTapCandidate.x;
+                const dy = endTouch.clientY - mobileTapCandidate.y;
+                const elapsed = ((typeof performance !== "undefined" && performance.now)
+                    ? performance.now()
+                    : Date.now()) - mobileTapCandidate.startMs;
+                const moved = mobileTapCandidate.moved || Math.hypot(dx, dy) > MOBILE_TAP_MAX_MOVE_PX;
+                const target = event.target;
+                const targetElement = target instanceof Element ? target : null;
+                const isRenderAreaTap = !!(
+                    targetElement &&
+                    (
+                        targetElement === contentWrapper ||
+                        targetElement.closest?.("#content-wrapper")
+                    )
+                );
+                if (!moved && elapsed <= MOBILE_TAP_MAX_DURATION_MS && isRenderAreaTap) {
+                    proxyClick("animate");
+                    queueTransportSync();
+                }
+            }
+            mobileTapCandidate = null;
         };
 
         contentWrapper.addEventListener("touchstart", onViewsPinchStart, { passive: false });
@@ -3032,17 +3126,15 @@ export function bindMobileMissionCard() {
         });
     }
 
-    if (missionCollapseButton) {
-        missionCollapseButton.addEventListener("click", function () {
-            const collapsed = missionCard?.classList.contains("mobile-shell__card--collapsed");
-            setMissionCardCollapsed(!collapsed);
-        });
-    }
-
-    if (viewsCollapseButton) {
-        viewsCollapseButton.addEventListener("click", function () {
-            const collapsed = viewsCard?.classList.contains("mobile-shell__card--collapsed");
-            setViewsCardCollapsed(!collapsed);
+    if (panelCollapseButton) {
+        panelCollapseButton.addEventListener("click", function () {
+            if (activeMobileTab === "mission") {
+                const collapsed = missionCard?.classList.contains("mobile-shell__card--collapsed");
+                setMissionCardCollapsed(!collapsed);
+            } else if (activeMobileTab === "views") {
+                const collapsed = viewsCard?.classList.contains("mobile-shell__card--collapsed");
+                setViewsCardCollapsed(!collapsed);
+            }
             applyMobileRenderViewportCentering();
         });
     }
@@ -3076,6 +3168,7 @@ export function bindMobileMissionCard() {
 
     setMobileViewsAutoFov(true);
     setActiveMobileTab("mission");
+    syncMobilePanelCollapseButton();
     syncMobileViewPresetState();
     syncMobileComposeControls();
     const initialScene = resolveActiveScene();
