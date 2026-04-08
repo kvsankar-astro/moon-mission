@@ -97,7 +97,6 @@
     },
     "cameraDefaults": {
       "geo": {
-    "time_scale": "TDB",
         "positionScale": {
           "x": -0.85,
           "y": -0.525,

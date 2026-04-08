@@ -32,6 +32,9 @@ function annotateConfigJson5(filePath) {
     // Insert time_scale: "TDB" into phase blocks that don't already have it.
     // Match:  "geo": {  (with optional whitespace/newlines before {)
     // Only insert if the block doesn't already contain time_scale on the next few lines.
+    // CAVEAT: This regex also matches nested "geo" keys (e.g., inside
+    // ui.cameraDefaults).  After running, manually verify no stray
+    // annotations landed inside non-phase blocks.
     for (const key of PHASE_KEYS) {
         const pattern = new RegExp(
             `("${key}"\\s*:\\s*\\{)(\\s*\\n)(?!\\s*"time_scale")`,
