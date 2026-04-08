@@ -761,7 +761,7 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
             "segments_count": int(sum(len(body_output[body]["segments"]) for body in body_ids)),
             "bodies": body_ids,
             "coordinate_frame": "J2000",
-            "units": {"time": "julian_date", "position": "km"},
+            "units": {"time": "julian_date_tdb", "position": "km"},
         },
         "time_range": {
             "start": float(min(body_output[body]["time_range"]["start"] for body in body_ids)),

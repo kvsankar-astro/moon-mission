@@ -1,7 +1,12 @@
 import { resolveEventInstant } from "../core/domain/event-time-resolver.js";
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
+import { createTimestampFromScale, parseConfigTimestamp } from "../utils/time-utils.js";
 
-function parseUtcPartsStart(originConfig) {
+function resolveTimeScale(config) {
+    return config?.time_scale === "TDB" ? "TDB" : "UTC";
+}
+
+function parseOriginPartsStart(originConfig) {
     if (!originConfig) return Number.NaN;
 
     const year = parseInt(originConfig.start_year, 10);
@@ -19,20 +24,20 @@ function parseUtcPartsStart(originConfig) {
         return Number.NaN;
     }
 
-    return Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+    return createTimestampFromScale(year, month, day, hour, minute, resolveTimeScale(originConfig));
 }
 
 function parseSpanStart(spanConfig) {
     if (!spanConfig) return Number.NaN;
 
     if (typeof spanConfig.startTime === "string") {
-        const parsed = Date.parse(spanConfig.startTime);
+        const parsed = parseConfigTimestamp(spanConfig.startTime, resolveTimeScale(spanConfig));
         if (Number.isFinite(parsed)) {
             return parsed;
         }
     }
 
-    return parseUtcPartsStart(spanConfig);
+    return parseOriginPartsStart(spanConfig);
 }
 
 function resolveEventAvailabilityStartMs({
@@ -43,7 +48,7 @@ function resolveEventAvailabilityStartMs({
     const availabilityStartTime = typeof eventData?.availabilityStartTime === "string"
         ? eventData.availabilityStartTime.trim()
         : "";
-    const originStartMs = parseUtcPartsStart(globalConfig?.[config]);
+    const originStartMs = parseOriginPartsStart(globalConfig?.[config]);
 
     if (!availabilityStartTime && !eventData?.requiresEphemeris) {
         return Number.NaN;
@@ -85,7 +90,7 @@ function maybeBuildNowEventInfo({
     const nowMs = new Date(nowDate).getTime();
     if (!Number.isFinite(nowMs)) return existingNow || null;
 
-    const originStartMs = parseUtcPartsStart(globalConfig?.[config]);
+    const originStartMs = parseOriginPartsStart(globalConfig?.[config]);
     const sourceMnemonic = resolvePrimaryCraftMnemonic(globalConfig);
     const dataEndMs = getDataEndTimeMs?.(sourceMnemonic);
     if (!Number.isFinite(originStartMs) || !Number.isFinite(dataEndMs)) {

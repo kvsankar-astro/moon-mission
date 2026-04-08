@@ -504,3 +504,21 @@ export function getRequiredEphemerisSources({
 
     return requiredSources;
 }
+
+/**
+ * Convert a Chebyshev time_range (TDB Julian dates) to UTC epoch-ms.
+ * Useful for clamping the animation slider to actual data availability.
+ */
+export function chebyshevRangeToUtcMs(timeRange) {
+    if (
+        !timeRange ||
+        !Number.isFinite(timeRange.start) ||
+        !Number.isFinite(timeRange.end)
+    ) {
+        return null;
+    }
+    return {
+        startMs: (timeRange.start - JD_UNIX_EPOCH) * MS_PER_DAY - TDB_OFFSET_MS,
+        endMs: (timeRange.end - JD_UNIX_EPOCH) * MS_PER_DAY - TDB_OFFSET_MS,
+    };
+}

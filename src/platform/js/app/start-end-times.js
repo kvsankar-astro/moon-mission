@@ -1,4 +1,9 @@
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
+import { createTimestampFromScale, parseConfigTimestamp } from "../utils/time-utils.js";
+
+function resolveTimeScale(config) {
+    return config?.time_scale === "TDB" ? "TDB" : "UTC";
+}
 
 function buildRangeFromParts(windowConfig, createUTCTimestamp, oneMinuteMs) {
     if (!windowConfig) return [null, null];
@@ -29,19 +34,23 @@ function buildRangeFromParts(windowConfig, createUTCTimestamp, oneMinuteMs) {
         return [null, null];
     }
 
-    const startTime = createUTCTimestamp(
+    const timeScale = resolveTimeScale(windowConfig);
+
+    const startTime = createTimestampFromScale(
         startYear,
         startMonth,
         startDay,
         startHour,
         startMinute,
+        timeScale,
     );
-    const endTime = createUTCTimestamp(
+    const endTime = createTimestampFromScale(
         stopYear,
         stopMonth,
         stopDay,
         stopHour,
         stopMinute,
+        timeScale,
     ) - oneMinuteMs;
 
     return [startTime, endTime];
@@ -50,8 +59,13 @@ function buildRangeFromParts(windowConfig, createUTCTimestamp, oneMinuteMs) {
 function buildRangeFromSpan(spanConfig, createUTCTimestamp, oneMinuteMs) {
     if (!spanConfig) return [null, null];
 
-    const startIso = typeof spanConfig.startTime === "string" ? Date.parse(spanConfig.startTime) : NaN;
-    const endIso = typeof spanConfig.endTime === "string" ? Date.parse(spanConfig.endTime) : NaN;
+    const timeScale = resolveTimeScale(spanConfig);
+    const startIso = typeof spanConfig.startTime === "string"
+        ? parseConfigTimestamp(spanConfig.startTime, timeScale)
+        : NaN;
+    const endIso = typeof spanConfig.endTime === "string"
+        ? parseConfigTimestamp(spanConfig.endTime, timeScale)
+        : NaN;
     const [partsStart, partsEnd] = buildRangeFromParts(spanConfig, createUTCTimestamp, oneMinuteMs);
     return [
         Number.isFinite(startIso) ? startIso : partsStart,

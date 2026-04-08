@@ -294,7 +294,7 @@ def export_origin(
             "segments_count": total_segments,
             "bodies": list(body_payloads.keys()),
             "coordinate_frame": options.frame,
-            "units": {"time": "julian_date", "position": "km"},
+            "units": {"time": "julian_date_tdb", "position": "km"},
             "step_size_seconds": options.step_seconds,
             "spice_target": {"name": target_name, "code": target_code},
             "source_kernels": [options.lsk, *options.mission_spk, *options.aux_spk],

@@ -43,6 +43,52 @@ export function createUTCTimestamp(year, month, day, hour, minute) {
     return Date.UTC(year, month - 1, day, hour, minute, 0, 0);
 }
 
+// ── Time-scale conversion ──────────────────────────────────────────────────
+// TDB - UTC offset: 37 leap seconds (2017-present) + 32.184s fixed TT-UTC.
+// Config phase times from HORIZONS are TDB; event times are UTC.
+// All runtime epoch-ms values are in UTC.
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+
+/**
+ * Convert a TDB epoch-ms value to UTC epoch-ms.
+ * Use when a config timestamp is annotated `time_scale: "TDB"`.
+ */
+export function tdbToUtcMs(tdbMs) {
+    return tdbMs - TDB_OFFSET_MS;
+}
+
+/**
+ * Convert a UTC epoch-ms value to TDB epoch-ms.
+ */
+export function utcToTdbMs(utcMs) {
+    return utcMs + TDB_OFFSET_MS;
+}
+
+/**
+ * Parse an ISO-8601 timestamp string, applying time_scale conversion.
+ * Returns UTC epoch-ms regardless of the input scale.
+ *
+ * @param {string} isoString - ISO timestamp (with or without Z suffix)
+ * @param {string} [timeScale="UTC"] - "UTC" or "TDB"
+ * @returns {number} UTC epoch-ms (NaN if unparseable)
+ */
+export function parseConfigTimestamp(isoString, timeScale) {
+    if (typeof isoString !== "string") return NaN;
+    const ms = Date.parse(isoString);
+    if (!Number.isFinite(ms)) return NaN;
+    return timeScale === "TDB" ? tdbToUtcMs(ms) : ms;
+}
+
+/**
+ * Create a UTC epoch-ms timestamp from date components with time_scale.
+ * When timeScale is "TDB", the components describe a TDB calendar date
+ * and the result is shifted to the corresponding UTC epoch-ms.
+ */
+export function createTimestampFromScale(year, month, day, hour, minute, timeScale) {
+    const ms = Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+    return timeScale === "TDB" ? tdbToUtcMs(ms) : ms;
+}
+
 /**
  * Extract UTC date components from a Date or timestamp.
  * Used for astronomical ephemeris calculations.
