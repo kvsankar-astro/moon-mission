@@ -14,6 +14,7 @@ const assetsRoot = path.join(repoRoot, "assets");
 
 const args = new Set(process.argv.slice(2));
 const checkOnly = args.has("--check");
+const lintTimeScale = args.has("--lint-time-scale");
 
 function findMissionDataDirectories(rootDir) {
     const entries = fs.readdirSync(rootDir, { withFileTypes: true });
@@ -94,6 +95,44 @@ function compileMissionConfig(dataDir) {
     };
 }
 
+const PHASE_KEYS = new Set(["geo", "lunar", "landing", "relative"]);
+
+function lintTimeScaleAnnotations(dataDirs) {
+    const warnings = [];
+    for (const dataDir of dataDirs) {
+        const sourcePath = path.join(dataDir, "config.json5");
+        if (!fs.existsSync(sourcePath)) continue;
+        const config = readJson5(sourcePath);
+        const mission = path.basename(path.dirname(dataDir));
+
+        for (const key of PHASE_KEYS) {
+            const block = config[key];
+            if (!block || typeof block !== "object") continue;
+            if (!block.time_scale) {
+                warnings.push(`${mission}: phase "${key}" missing time_scale`);
+            }
+        }
+
+        if (config.events && typeof config.events === "object" && !config.events.time_scale) {
+            warnings.push(`${mission}: "events" block missing time_scale`);
+        }
+
+        const crafts = Array.isArray(config.crafts) ? config.crafts : [];
+        for (const craft of crafts) {
+            const spans = craft.spans;
+            if (!spans || typeof spans !== "object") continue;
+            for (const spanKey of Object.keys(spans)) {
+                if (!PHASE_KEYS.has(spanKey)) continue;
+                const span = spans[spanKey];
+                if (span && typeof span === "object" && !span.time_scale) {
+                    warnings.push(`${mission}: craft "${craft.id || craft.mnemonic}" span "${spanKey}" missing time_scale`);
+                }
+            }
+        }
+    }
+    return warnings;
+}
+
 function main() {
     if (!fs.existsSync(assetsRoot)) {
         console.error("assets/ directory not found");
@@ -129,11 +168,22 @@ function main() {
             process.exit(1);
         }
         console.log("All config.json files are in sync with config.json5 sources.");
-        return;
+    } else {
+        console.log(`Checked mission configs: ${checkedCount}`);
+        console.log(`Updated config.json files: ${writeCount}`);
     }
 
-    console.log(`Checked mission configs: ${checkedCount}`);
-    console.log(`Updated config.json files: ${writeCount}`);
+    if (lintTimeScale) {
+        const warnings = lintTimeScaleAnnotations(dataDirs);
+        if (warnings.length > 0) {
+            console.error(`\ntime_scale lint failures (${warnings.length}):`);
+            for (const w of warnings) {
+                console.error(`  ${w}`);
+            }
+            process.exit(1);
+        }
+        console.log("time_scale lint: all phase/span/events blocks annotated.");
+    }
 }
 
 main();

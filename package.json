@@ -19,6 +19,7 @@
     "configs:bootstrap": "node scripts/bootstrap-mission-config-json5.mjs",
     "configs:compile": "node scripts/compile-mission-configs.mjs",
     "configs:check": "node scripts/compile-mission-configs.mjs --check",
+    "configs:lint": "node scripts/compile-mission-configs.mjs --check --lint-time-scale",
     "hooks:install": "git config core.hooksPath .githooks",
     "test:quick": "node test/quick-check.js",
     "test:baseline": "vitest test/ui.test.js",
