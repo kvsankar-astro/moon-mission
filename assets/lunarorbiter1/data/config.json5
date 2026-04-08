@@ -53,6 +53,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "startTime": "1966-08-14T15:40:37.082Z",
     "endTime": "1966-10-26T23:40:37.271Z",
     "start_year": "1966",
@@ -74,6 +75,7 @@
     "orbits_file": "geo-LO1"
   },
   "lunar": {
+    "time_scale": "TDB",
     "startTime": "1966-08-14T15:40:37.082Z",
     "endTime": "1966-10-26T23:40:37.271Z",
     "start_year": "1966",
@@ -95,6 +97,7 @@
     "orbits_file": "lunar-LO1"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated landing slice configured for Lunar Orbiter 1.",
     "start_year": "1966",
@@ -119,6 +122,7 @@
     "comment": "3D model not configured for Lunar Orbiter 1."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1966-08-10T19:31:00Z",
       "durationSeconds": 0,

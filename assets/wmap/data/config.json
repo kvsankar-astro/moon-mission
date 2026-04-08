@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2001",
     "start_month": "06",
     "start_day": "30",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-WMAP"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2001",
     "start_month": "06",
     "start_day": "30",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-WMAP"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2001",
@@ -89,6 +92,7 @@
     "comment": "3D model not configured for WMAP."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2001-06-30T19:46:46Z",
       "durationSeconds": 0,

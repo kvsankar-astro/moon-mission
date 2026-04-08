@@ -629,7 +629,7 @@ describe('Chebyshev Ephemeris Accuracy', () => {
         expect(chebData.metadata).toBeDefined();
         expect(chebData.metadata.source).toBe(dataFile.expectedSource);
         expect(chebData.metadata.coordinate_frame).toBe('J2000');
-        expect(chebData.metadata.units.time).toBe('julian_date');
+        expect(chebData.metadata.units.time).toMatch(/^julian_date(_tdb)?$/);
         expect(chebData.metadata.units.position).toBe('km');
 
         // Validate time range

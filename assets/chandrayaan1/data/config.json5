@@ -27,6 +27,7 @@
   "is_lunar": true,
   "origins": ["geo", "lunar"],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2008",
     "start_month": "10",
     "start_day": "22",
@@ -43,6 +44,7 @@
     "orbits_file": "geo-CH1-bodies"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2008",
     "start_month": "10",
     "start_day": "22",
@@ -59,6 +61,7 @@
     "orbits_file": "lunar-CH1-bodies"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated landing slice for Chandrayaan-1 in this profile.",
     "start_year": "2008",
@@ -81,6 +84,7 @@
     "comment": "3D model not configured for CH1 yet"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2008-10-22T01:12:00Z",
       "durationSeconds": 0,

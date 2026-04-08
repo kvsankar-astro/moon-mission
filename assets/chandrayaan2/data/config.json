@@ -31,12 +31,15 @@
       "viewLabel": "Orbiter",
       "primary": false,
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-SC"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-SC"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-CY2"
       }
     },
@@ -47,24 +50,34 @@
       "name": "Vikram",
       "viewLabel": "Vikram",
       "primary": true,
-      "aliases": ["SC"],
+      "aliases": [
+        "SC"
+      ],
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-SC"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-SC"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-CY2"
       }
     }
   ],
   "is_lunar": true,
-  "origins": ["geo", "lunar"],
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-CY2"
   },
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2019",
     "start_month": "07",
     "start_day": "22",
@@ -76,11 +89,16 @@
     "stop_hour": "20",
     "stop_minute": "26",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "CH2O", "CH2L"],
+    "planets": [
+      "MOON",
+      "CH2O",
+      "CH2L"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-SC"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2019",
     "start_month": "07",
     "start_day": "22",
@@ -92,11 +110,16 @@
     "stop_hour": "20",
     "stop_minute": "26",
     "step_size_in_seconds": 60,
-    "planets": ["CH2O", "CH2L", "EARTH"],
+    "planets": [
+      "CH2O",
+      "CH2L",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-SC"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "craftId": "CH2L",
     "comment": "Landing data not available - Vikram lander contact lost during descent",
@@ -111,22 +134,24 @@
     "stop_hour": "20",
     "stop_minute": "30",
     "step_size_in_seconds": 1,
-    "planets": ["CH2L"],
+    "planets": [
+      "CH2L"
+    ],
     "center": "moon_center",
     "orbits_file": "landing-CY2"
   },
   "landingSites": [
     {
       "name": "Vikram Target Site (JPL)",
-      "longitude": 22.77050,
+      "longitude": 22.7705,
       "latitude": -70.89754,
       "color": "#FF00FF",
       "description": "Landing location according to JPL orbit data"
     },
     {
       "name": "Vikram Primary Site",
-      "longitude": 22.78110,
-      "latitude": -70.902670,
+      "longitude": 22.7811,
+      "latitude": -70.90267,
       "color": "#0000FF",
       "description": "Primary landing site between Manzinus C and Simpelius N craters"
     },
@@ -143,6 +168,7 @@
     "comment": "3D model not available for CH2"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2019-07-22T09:31:00Z",
       "durationSeconds": 0,
@@ -298,7 +324,45 @@
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn2", "lbn3", "lbn4", "lbn5", "vikramSeparation", "vikramDeboost1", "vikramDeboost2", "vikramLanding", "now", "cy2DataEnd"]
+    "geo": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "ebn5",
+      "tli",
+      "loi",
+      "lbn2",
+      "lbn3",
+      "lbn4",
+      "lbn5",
+      "vikramSeparation",
+      "vikramDeboost1",
+      "vikramDeboost2",
+      "vikramLanding",
+      "now",
+      "cy2DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "ebn5",
+      "tli",
+      "loi",
+      "lbn2",
+      "lbn3",
+      "lbn4",
+      "lbn5",
+      "vikramSeparation",
+      "vikramDeboost1",
+      "vikramDeboost2",
+      "vikramLanding",
+      "now",
+      "cy2DataEnd"
+    ]
   }
 }

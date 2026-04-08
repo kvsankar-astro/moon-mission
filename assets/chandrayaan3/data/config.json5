@@ -30,12 +30,15 @@
       "color": "#f59e0b",
       "orbitcolor": "#38bdf8",
       "geo": {
+    "time_scale": "TDB",
         "orbits_file": "geo-CH3O"
       },
       "lunar": {
+    "time_scale": "TDB",
         "orbits_file": "lunar-CH3O"
       },
       "relative": {
+    "time_scale": "TDB",
         "orbits_file": "relative-CH3O"
       }
     },
@@ -50,6 +53,8 @@
       "orbitcolor": "#f472b6",
       "spans": {
         "geo": {
+        "time_scale": "TDB",
+    "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",
@@ -62,6 +67,8 @@
           "stop_minute": "31"
         },
         "lunar": {
+        "time_scale": "TDB",
+    "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",
@@ -75,12 +82,15 @@
         }
       },
       "geo": {
+    "time_scale": "TDB",
         "orbits_file": "geo-CH3L"
       },
       "lunar": {
+    "time_scale": "TDB",
         "orbits_file": "lunar-CH3L"
       },
       "relative": {
+    "time_scale": "TDB",
         "orbits_file": "relative-CH3L"
       }
     }
@@ -95,9 +105,11 @@
   "is_lunar": true,
   "origins": ["geo", "lunar"],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-CH3L"
   },
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2023",
     "start_month": "07", 
     "start_day": "14",
@@ -115,6 +127,7 @@
     "orbit_style_file": "geo-style.json"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2023",
     "start_month": "07",
     "start_day": "14", 
@@ -132,6 +145,7 @@
     "orbit_style_file": "lunar-style.json"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": true,
     "craftId": "CH3L",
     "start_year": "2023",
@@ -177,6 +191,7 @@
     "file": "cy3-small.glb"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2023-07-14T09:23:00Z",
       "durationSeconds": 0,

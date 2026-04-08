@@ -53,6 +53,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2018",
     "start_month": "04",
     "start_day": "18",
@@ -72,6 +73,7 @@
     "orbits_file": "geo-TESS"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2018",
     "start_month": "04",
     "start_day": "18",
@@ -91,6 +93,7 @@
     "orbits_file": "lunar-TESS"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2018",
@@ -115,6 +118,7 @@
     "comment": "3D model not configured for TESS."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2018-04-18T22:51:00Z",
       "durationSeconds": 0,

@@ -26,6 +26,7 @@
   },
 
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1969", "start_month": "05", "start_day": "23",
     "start_hour": "05", "start_minute": "38",
     "stop_year": "1969", "stop_month": "05", "stop_day": "28",
@@ -37,6 +38,7 @@
   },
 
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1969", "start_month": "05", "start_day": "23",
     "start_hour": "05", "start_minute": "38",
     "stop_year": "1969", "stop_month": "05", "stop_day": "28",
@@ -48,6 +50,7 @@
   },
 
   "events": {
+    "time_scale": "UTC",
     "closestApproach": {
       "startTime": "1969-05-22T21:30:43Z",
       "durationSeconds": 0,

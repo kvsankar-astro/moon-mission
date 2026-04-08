@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2009",
     "start_month": "06",
     "start_day": "18",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-LRO"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2009",
     "start_month": "06",
     "start_day": "18",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-LRO"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2009",
@@ -89,10 +92,11 @@
     "comment": "3D model not configured for LRO."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2009-06-18T09:32:00Z",
       "durationSeconds": 0,
-      "label": "\ud83d\ude80 Launch",
+      "label": "🚀 Launch",
       "burnFlag": false,
       "infoText": "Mission timeline start",
       "body": "SC"
@@ -120,7 +124,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\u23f0 Now",
+      "label": "⏰ Now",
       "burnFlag": false,
       "infoText": "Now",
       "body": ""
@@ -133,7 +137,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\ud83c\udfc1LRO Data End",
+      "label": "🏁LRO Data End",
       "burnFlag": false,
       "infoText": "LRO Data End",
       "body": ""

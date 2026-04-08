@@ -27,12 +27,15 @@
       "color": "#f59e0b",
       "orbitcolor": "#38bdf8",
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-CH3O"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-CH3O"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-CH3O"
       }
     },
@@ -47,6 +50,7 @@
       "orbitcolor": "#f472b6",
       "spans": {
         "geo": {
+          "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",
@@ -59,6 +63,7 @@
           "stop_minute": "31"
         },
         "lunar": {
+          "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",
@@ -72,12 +77,15 @@
         }
       },
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-CH3L"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-CH3L"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-CH3L"
       }
     }
@@ -90,45 +98,60 @@
     "descentOrbitLabel": "Vikram Descent Orbit"
   },
   "is_lunar": true,
-  "origins": ["geo", "lunar"],
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-CH3L"
   },
   "geo": {
-    "start_year": "2023",
-    "start_month": "07", 
-    "start_day": "14",
-    "start_hour": "09",
-    "start_minute": "23",
-    "stop_year": "2023",
-    "stop_month": "09", 
-    "stop_day": "06",
-    "stop_hour": "12",
-    "stop_minute": "33",
-    "step_size_in_seconds": 60,
-    "planets": ["MOON", "CH3O", "CH3L"],
-    "center": "earth_center",
-    "orbits_file": "geo-CH3L",
-    "orbit_style_file": "geo-style.json"
-  },
-  "lunar": {
+    "time_scale": "TDB",
     "start_year": "2023",
     "start_month": "07",
-    "start_day": "14", 
+    "start_day": "14",
     "start_hour": "09",
     "start_minute": "23",
     "stop_year": "2023",
     "stop_month": "09",
     "stop_day": "06",
-    "stop_hour": "12", 
+    "stop_hour": "12",
     "stop_minute": "33",
     "step_size_in_seconds": 60,
-    "planets": ["CH3O", "CH3L", "EARTH"],
+    "planets": [
+      "MOON",
+      "CH3O",
+      "CH3L"
+    ],
+    "center": "earth_center",
+    "orbits_file": "geo-CH3L",
+    "orbit_style_file": "geo-style.json"
+  },
+  "lunar": {
+    "time_scale": "TDB",
+    "start_year": "2023",
+    "start_month": "07",
+    "start_day": "14",
+    "start_hour": "09",
+    "start_minute": "23",
+    "stop_year": "2023",
+    "stop_month": "09",
+    "stop_day": "06",
+    "stop_hour": "12",
+    "stop_minute": "33",
+    "step_size_in_seconds": 60,
+    "planets": [
+      "CH3O",
+      "CH3L",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-CH3L",
     "orbit_style_file": "lunar-style.json"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": true,
     "craftId": "CH3L",
     "start_year": "2023",
@@ -136,13 +159,15 @@
     "start_day": "23",
     "start_hour": "12",
     "start_minute": "15",
-    "stop_year": "2023", 
+    "stop_year": "2023",
     "stop_month": "08",
     "stop_day": "23",
     "stop_hour": "12",
     "stop_minute": "40",
     "step_size_in_seconds": 1,
-    "planets": ["CH3L"],
+    "planets": [
+      "CH3L"
+    ],
     "center": "moon_center",
     "orbits_file": "landing-CH3L"
   },
@@ -155,7 +180,7 @@
       "description": "SC primary landing site"
     },
     {
-      "name": "SC Primary Site 2", 
+      "name": "SC Primary Site 2",
       "longitude": 32.318695,
       "latitude": -69.374454,
       "color": "#00FFFF",
@@ -163,9 +188,9 @@
     },
     {
       "name": "SC Secondary Site",
-      "longitude": -17.33040,
+      "longitude": -17.3304,
       "latitude": -69.497764,
-      "color": "#FFD700", 
+      "color": "#FFD700",
       "description": "SC secondary landing site"
     }
   ],
@@ -174,6 +199,7 @@
     "file": "cy3-small.glb"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2023-07-14T09:23:00Z",
       "durationSeconds": 0,
@@ -313,7 +339,41 @@
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "ebn5", "tli", "loi", "lbn1", "lbn2", "lbn3", "lbn4", "landerSeparation", "vikramLanding", "now", "cy3DataEnd"]
+    "geo": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "ebn5",
+      "tli",
+      "loi",
+      "lbn1",
+      "lbn2",
+      "lbn3",
+      "lbn4",
+      "landerSeparation",
+      "vikramLanding",
+      "now",
+      "cy3DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "ebn5",
+      "tli",
+      "loi",
+      "lbn1",
+      "lbn2",
+      "lbn3",
+      "lbn4",
+      "landerSeparation",
+      "vikramLanding",
+      "now",
+      "cy3DataEnd"
+    ]
   }
 }

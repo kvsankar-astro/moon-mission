@@ -49,6 +49,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1969",
     "start_month": "05",
     "start_day": "18",
@@ -68,6 +69,7 @@
     "orbits_file": "geo-A10S"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1969",
     "start_month": "05",
     "start_day": "18",
@@ -87,6 +89,7 @@
     "orbits_file": "lunar-A10S"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "1969",
@@ -111,6 +114,7 @@
     "comment": "3D model not configured for A10S."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1969-05-18T16:49:00Z",
       "durationSeconds": 0,

@@ -50,6 +50,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1994",
     "start_month": "02",
     "start_day": "19",
@@ -69,6 +70,7 @@
     "orbits_file": "geo-CLM"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1994",
     "start_month": "02",
     "start_day": "19",
@@ -88,6 +90,7 @@
     "orbits_file": "lunar-CLM"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "1994",
@@ -112,6 +115,7 @@
     "comment": "3D model not configured for CLM."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1994-01-25T16:34:00Z",
       "durationSeconds": 0,

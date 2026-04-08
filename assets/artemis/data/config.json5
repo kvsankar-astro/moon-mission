@@ -45,12 +45,15 @@
       "color": "#f59e0b",
       "orbitcolor": "#38bdf8",
       "geo": {
+    "time_scale": "TDB",
         "orbits_file": "geo-ARTP1"
       },
       "lunar": {
+    "time_scale": "TDB",
         "orbits_file": "lunar-ARTP1"
       },
       "relative": {
+    "time_scale": "TDB",
         "orbits_file": "relative-ARTP1"
       }
     },
@@ -64,12 +67,15 @@
       "color": "#ef4444",
       "orbitcolor": "#f472b6",
       "geo": {
+    "time_scale": "TDB",
         "orbits_file": "geo-ARTP1"
       },
       "lunar": {
+    "time_scale": "TDB",
         "orbits_file": "lunar-ARTP1"
       },
       "relative": {
+    "time_scale": "TDB",
         "orbits_file": "relative-ARTP1"
       }
     }
@@ -94,9 +100,11 @@
     "lunar"
   ],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-ARTP1"
   },
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2011",
     "start_month": "06",
     "start_day": "01",
@@ -117,6 +125,7 @@
     "orbits_file": "geo-ARTP1"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2011",
     "start_month": "06",
     "start_day": "01",
@@ -137,6 +146,7 @@
     "orbits_file": "lunar-ARTP1"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2007",
@@ -161,6 +171,7 @@
     "comment": "3D model not configured for ARTEMIS."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2007-02-17T23:01:00Z",
       "durationSeconds": 0,

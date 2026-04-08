@@ -12,8 +12,10 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
-  "origins": ["geo", "lunar"],
-
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "ui": {
     "pageTitle": "Apollo 11 S-IVB Third Stage Trajectory",
     "headerTitle": "Apollo 11 S-IVB",
@@ -21,30 +23,48 @@
     "orbitLabel": "S-IVB Trajectory",
     "descentOrbitLabel": "S-IVB Trajectory"
   },
-
   "geo": {
-    "start_year": "1969", "start_month": "07", "start_day": "17",
-    "start_hour": "16", "start_minute": "40",
-    "stop_year": "1969", "stop_month": "07", "stop_day": "28",
-    "stop_hour": "00", "stop_minute": "06",
+    "time_scale": "TDB",
+    "start_year": "1969",
+    "start_month": "07",
+    "start_day": "17",
+    "start_hour": "16",
+    "start_minute": "40",
+    "stop_year": "1969",
+    "stop_month": "07",
+    "stop_day": "28",
+    "stop_hour": "00",
+    "stop_minute": "06",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": [
+      "MOON",
+      "SC"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-SIVB"
   },
-
   "lunar": {
-    "start_year": "1969", "start_month": "07", "start_day": "17",
-    "start_hour": "16", "start_minute": "40",
-    "stop_year": "1969", "stop_month": "07", "stop_day": "28",
-    "stop_hour": "00", "stop_minute": "06",
+    "time_scale": "TDB",
+    "start_year": "1969",
+    "start_month": "07",
+    "start_day": "17",
+    "start_hour": "16",
+    "start_minute": "40",
+    "stop_year": "1969",
+    "stop_month": "07",
+    "stop_day": "28",
+    "stop_hour": "00",
+    "stop_minute": "06",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-SIVB"
   },
-
   "events": {
+    "time_scale": "UTC",
     "trackingStart": {
       "startTime": "1969-07-17T16:40:00Z",
       "durationSeconds": 0,
@@ -78,9 +98,18 @@
       "body": "SC"
     }
   },
-
   "eventConfigs": {
-    "geo": ["trackingStart", "lunarFlyby", "lunarLandingContext", "dataEnd"],
-    "lunar": ["trackingStart", "lunarFlyby", "lunarLandingContext", "dataEnd"]
+    "geo": [
+      "trackingStart",
+      "lunarFlyby",
+      "lunarLandingContext",
+      "dataEnd"
+    ],
+    "lunar": [
+      "trackingStart",
+      "lunarFlyby",
+      "lunarLandingContext",
+      "dataEnd"
+    ]
   }
 }

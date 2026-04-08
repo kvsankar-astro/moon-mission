@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1998",
     "start_month": "04",
     "start_day": "01",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-HGS1"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1998",
     "start_month": "04",
     "start_day": "01",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-HGS1"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "1997",
@@ -89,6 +92,7 @@
     "comment": "3D model not configured for HGS-1."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1997-12-24T23:19:00Z",
       "durationSeconds": 0,

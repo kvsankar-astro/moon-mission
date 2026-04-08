@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "07",
     "start_day": "04",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-CAPS"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "07",
     "start_day": "04",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-CAPS"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2022",
@@ -89,10 +92,11 @@
     "comment": "3D model not configured for CAPS."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2022-06-28T09:55:52Z",
       "durationSeconds": 0,
-      "label": "\ud83d\ude80 Launch",
+      "label": "🚀 Launch",
       "burnFlag": false,
       "infoText": "Mission timeline start",
       "body": "SC"
@@ -112,7 +116,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\u23f0 Now",
+      "label": "⏰ Now",
       "burnFlag": false,
       "infoText": "Now",
       "body": ""
@@ -125,7 +129,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\ud83c\udfc1CAPS Data End",
+      "label": "🏁CAPS Data End",
       "burnFlag": false,
       "infoText": "CAPS Data End",
       "body": ""

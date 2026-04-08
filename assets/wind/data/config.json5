@@ -53,6 +53,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1994",
     "start_month": "11",
     "start_day": "01",
@@ -72,6 +73,7 @@
     "orbits_file": "geo-WIND"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1994",
     "start_month": "11",
     "start_day": "01",
@@ -91,6 +93,7 @@
     "orbits_file": "lunar-WIND"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "1994",
@@ -115,6 +118,7 @@
     "comment": "3D model not configured for WIND."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1994-11-01T09:31:00Z",
       "durationSeconds": 0,

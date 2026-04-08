@@ -22,8 +22,12 @@
     "descentOrbitLabel": "CH1 Orbit"
   },
   "is_lunar": true,
-  "origins": ["geo", "lunar"],
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2008",
     "start_month": "10",
     "start_day": "22",
@@ -35,11 +39,15 @@
     "stop_hour": "19",
     "stop_minute": "00",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": [
+      "MOON",
+      "SC"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-CH1-bodies"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2008",
     "start_month": "10",
     "start_day": "22",
@@ -51,11 +59,15 @@
     "stop_hour": "19",
     "stop_minute": "00",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-CH1-bodies"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated landing slice for Chandrayaan-1 in this profile.",
     "start_year": "2008",
@@ -69,7 +81,9 @@
     "stop_hour": "15",
     "stop_minute": "01",
     "step_size_in_seconds": 1,
-    "planets": ["SC"],
+    "planets": [
+      "SC"
+    ],
     "center": "moon_center",
     "orbits_file": "landing-CH1"
   },
@@ -78,6 +92,7 @@
     "comment": "3D model not configured for CH1 yet"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2008-10-22T01:12:00Z",
       "durationSeconds": 0,
@@ -225,7 +240,39 @@
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "tli", "loi", "lbn1", "lbn2", "lbn3", "polar100km", "mipRelease", "mipImpact", "now", "ch1DataEnd"],
-    "lunar": ["missionStart", "ebn1", "ebn2", "ebn3", "ebn4", "tli", "loi", "lbn1", "lbn2", "lbn3", "polar100km", "mipRelease", "mipImpact", "now", "ch1DataEnd"]
+    "geo": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "tli",
+      "loi",
+      "lbn1",
+      "lbn2",
+      "lbn3",
+      "polar100km",
+      "mipRelease",
+      "mipImpact",
+      "now",
+      "ch1DataEnd"
+    ],
+    "lunar": [
+      "missionStart",
+      "ebn1",
+      "ebn2",
+      "ebn3",
+      "ebn4",
+      "tli",
+      "loi",
+      "lbn1",
+      "lbn2",
+      "lbn3",
+      "polar100km",
+      "mipRelease",
+      "mipImpact",
+      "now",
+      "ch1DataEnd"
+    ]
   }
 }

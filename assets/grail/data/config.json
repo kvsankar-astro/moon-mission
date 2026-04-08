@@ -19,12 +19,15 @@
       "color": "#f59e0b",
       "orbitcolor": "#38bdf8",
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-GRAA"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-GRAA"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-GRAA"
       }
     },
@@ -38,12 +41,15 @@
       "color": "#e11d48",
       "orbitcolor": "#f472b6",
       "geo": {
+        "time_scale": "TDB",
         "orbits_file": "geo-GRAA"
       },
       "lunar": {
+        "time_scale": "TDB",
         "orbits_file": "lunar-GRAA"
       },
       "relative": {
+        "time_scale": "TDB",
         "orbits_file": "relative-GRAA"
       }
     }
@@ -68,9 +74,11 @@
     "lunar"
   ],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-GRAA"
   },
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2011",
     "start_month": "09",
     "start_day": "10",
@@ -91,6 +99,7 @@
     "orbits_file": "geo-GRAA"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2011",
     "start_month": "12",
     "start_day": "31",
@@ -111,6 +120,7 @@
     "orbits_file": "lunar-GRAA"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2012",
@@ -135,6 +145,7 @@
     "comment": "3D model not configured for GRAIL."
   },
   "events": {
+    "time_scale": "UTC",
     "launch": {
       "startTime": "2011-09-10T13:08:52Z",
       "durationSeconds": 0,

@@ -12,8 +12,10 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
-  "origins": ["geo", "lunar"],
-
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "ui": {
     "pageTitle": "Apollo 10 LM 'Snoopy' Trajectory",
     "headerTitle": "Apollo 10 Snoopy",
@@ -21,30 +23,48 @@
     "orbitLabel": "Snoopy Trajectory",
     "descentOrbitLabel": "Snoopy Trajectory"
   },
-
   "geo": {
-    "start_year": "1969", "start_month": "05", "start_day": "23",
-    "start_hour": "05", "start_minute": "38",
-    "stop_year": "1969", "stop_month": "05", "stop_day": "28",
-    "stop_hour": "00", "stop_minute": "06",
+    "time_scale": "TDB",
+    "start_year": "1969",
+    "start_month": "05",
+    "start_day": "23",
+    "start_hour": "05",
+    "start_minute": "38",
+    "stop_year": "1969",
+    "stop_month": "05",
+    "stop_day": "28",
+    "stop_hour": "00",
+    "stop_minute": "06",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": [
+      "MOON",
+      "SC"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-SNOOPY"
   },
-
   "lunar": {
-    "start_year": "1969", "start_month": "05", "start_day": "23",
-    "start_hour": "05", "start_minute": "38",
-    "stop_year": "1969", "stop_month": "05", "stop_day": "28",
-    "stop_hour": "00", "stop_minute": "06",
+    "time_scale": "TDB",
+    "start_year": "1969",
+    "start_month": "05",
+    "start_day": "23",
+    "start_hour": "05",
+    "start_minute": "38",
+    "stop_year": "1969",
+    "stop_month": "05",
+    "stop_day": "28",
+    "stop_hour": "00",
+    "stop_minute": "06",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-SNOOPY"
   },
-
   "events": {
+    "time_scale": "UTC",
     "closestApproach": {
       "startTime": "1969-05-22T21:30:43Z",
       "durationSeconds": 0,
@@ -94,9 +114,14 @@
       "body": "SC"
     }
   },
-
   "eventConfigs": {
-    "geo": ["trackingStart", "dataEnd"],
-    "lunar": ["trackingStart", "dataEnd"]
+    "geo": [
+      "trackingStart",
+      "dataEnd"
+    ],
+    "lunar": [
+      "trackingStart",
+      "dataEnd"
+    ]
   }
 }

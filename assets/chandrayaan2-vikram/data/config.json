@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2019",
     "start_month": "07",
     "start_day": "22",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-C2V"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2019",
     "start_month": "07",
     "start_day": "22",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-C2V"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2019",
@@ -89,10 +92,11 @@
     "comment": "3D model not configured for C2V."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2019-07-22T09:13:00Z",
       "durationSeconds": 0,
-      "label": "\ud83d\ude80 Launch",
+      "label": "🚀 Launch",
       "burnFlag": false,
       "infoText": "Mission timeline start",
       "body": "SC"
@@ -120,7 +124,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\u23f0 Now",
+      "label": "⏰ Now",
       "burnFlag": false,
       "infoText": "Now",
       "body": ""
@@ -133,7 +137,7 @@
       },
       "startTime": "dynamic",
       "durationSeconds": 0,
-      "label": "\ud83c\udfc1C2V Data End",
+      "label": "🏁C2V Data End",
       "burnFlag": false,
       "infoText": "C2V Data End",
       "body": ""

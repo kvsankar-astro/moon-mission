@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "startTime": "2007-10-20T02:31:05.182Z",
     "endTime": "2009-06-10T18:26:06.184Z",
     "start_year": "2007",
@@ -48,6 +49,7 @@
     "orbits_file": "geo-SEL"
   },
   "lunar": {
+    "time_scale": "TDB",
     "startTime": "2007-10-20T02:31:05.182Z",
     "endTime": "2009-06-10T18:26:06.184Z",
     "start_year": "2007",
@@ -69,6 +71,7 @@
     "orbits_file": "lunar-SEL"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated landing slice configured for SELENE.",
     "start_year": "2009",
@@ -93,6 +96,7 @@
     "comment": "3D model not configured for SELENE."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2007-09-14T01:31:01Z",
       "durationSeconds": 0,

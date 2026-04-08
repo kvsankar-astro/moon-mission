@@ -42,10 +42,14 @@
       "primary": true,
       "spans": {
         "geo": {
+        "time_scale": "TDB",
+    "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
           "endTime": "2026-04-10T23:54:30Z"
         },
         "lunar": {
+        "time_scale": "TDB",
+    "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
           "endTime": "2026-04-10T23:54:30Z"
         }
@@ -76,6 +80,7 @@
     "lunar"
   ],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-ORION"
   },
   "ui": {
@@ -94,6 +99,7 @@
     },
     "cameraDefaults": {
       "geo": {
+    "time_scale": "TDB",
         "positionScale": {
           "x": -0.85,
           "y": -0.525,
@@ -104,6 +110,7 @@
   },
   "is_lunar": true,
   "geo": {
+    "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
     "endTime": "2026-04-10T23:54:30Z",
     "start_year": "2026",
@@ -125,6 +132,7 @@
     "orbits_file": "geo-ORION"
   },
   "lunar": {
+    "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
     "endTime": "2026-04-10T23:54:30Z",
     "start_year": "2026",
@@ -146,6 +154,7 @@
     "orbits_file": "lunar-ORION"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2026-04-01T22:35:12Z",
       "durationSeconds": 0,

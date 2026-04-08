@@ -13,7 +13,10 @@
     "SUN": "chebyshev"
   },
   "ephemeris_source": "chebyshev",
-  "origins": ["geo", "lunar"],
+  "origins": [
+    "geo",
+    "lunar"
+  ],
   "ui": {
     "pageTitle": "NASA's Artemis 1 Mission 2022 - An Orbit Animation",
     "headerTitle": "Artemis 1",
@@ -22,6 +25,7 @@
   },
   "is_lunar": true,
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "11",
     "start_day": "16",
@@ -33,11 +37,15 @@
     "stop_hour": "17",
     "stop_minute": "19",
     "step_size_in_seconds": 60,
-    "planets": ["MOON", "SC"],
+    "planets": [
+      "MOON",
+      "SC"
+    ],
     "center": "earth_center",
     "orbits_file": "geo-ORION"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "11",
     "start_day": "16",
@@ -49,11 +57,15 @@
     "stop_hour": "17",
     "stop_minute": "19",
     "step_size_in_seconds": 60,
-    "planets": ["SC", "EARTH"],
+    "planets": [
+      "SC",
+      "EARTH"
+    ],
     "center": "moon_center",
     "orbits_file": "lunar-ORION"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2022-11-16T06:47:44Z",
       "durationSeconds": 0,
@@ -112,7 +124,23 @@
     }
   },
   "eventConfigs": {
-    "geo": ["missionStart", "tli", "outboundFlyby", "droEntry", "droExit", "returnFlyby", "splashdown"],
-    "lunar": ["missionStart", "tli", "outboundFlyby", "droEntry", "droExit", "returnFlyby", "splashdown"]
+    "geo": [
+      "missionStart",
+      "tli",
+      "outboundFlyby",
+      "droEntry",
+      "droExit",
+      "returnFlyby",
+      "splashdown"
+    ],
+    "lunar": [
+      "missionStart",
+      "tli",
+      "outboundFlyby",
+      "droEntry",
+      "droExit",
+      "returnFlyby",
+      "splashdown"
+    ]
   }
 }

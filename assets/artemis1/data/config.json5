@@ -25,6 +25,7 @@
   },
   "is_lunar": true,
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "11",
     "start_day": "16",
@@ -41,6 +42,7 @@
     "orbits_file": "geo-ORION"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2022",
     "start_month": "11",
     "start_day": "16",
@@ -57,6 +59,7 @@
     "orbits_file": "lunar-ORION"
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2022-11-16T06:47:44Z",
       "durationSeconds": 0,

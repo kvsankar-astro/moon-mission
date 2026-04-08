@@ -53,6 +53,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2024",
     "start_month": "07",
     "start_day": "15",
@@ -72,6 +73,7 @@
     "orbits_file": "geo-JUI"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2024",
     "start_month": "07",
     "start_day": "15",
@@ -91,6 +93,7 @@
     "orbits_file": "lunar-JUI"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2023",
@@ -115,6 +118,7 @@
     "comment": "3D model not configured for JUICE."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2023-04-14T12:14:00Z",
       "durationSeconds": 0,

@@ -27,6 +27,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "1999",
     "start_month": "02",
     "start_day": "08",
@@ -46,6 +47,7 @@
     "orbits_file": "geo-NOZ"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "1999",
     "start_month": "02",
     "start_day": "08",
@@ -65,6 +67,7 @@
     "orbits_file": "lunar-NOZ"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "1998",
@@ -89,6 +92,7 @@
     "comment": "3D model not configured for Nozomi."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "1998-07-03T18:12:00Z",
       "durationSeconds": 0,

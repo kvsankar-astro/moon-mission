@@ -52,6 +52,7 @@
     "lunar"
   ],
   "geo": {
+    "time_scale": "TDB",
     "start_year": "2025",
     "start_month": "04",
     "start_day": "30",
@@ -71,6 +72,7 @@
     "orbits_file": "geo-LTB"
   },
   "lunar": {
+    "time_scale": "TDB",
     "start_year": "2025",
     "start_month": "04",
     "start_day": "30",
@@ -90,6 +92,7 @@
     "orbits_file": "lunar-LTB"
   },
   "landing": {
+    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2025",
@@ -114,6 +117,7 @@
     "comment": "3D model not configured for LTB."
   },
   "events": {
+    "time_scale": "UTC",
     "missionStart": {
       "startTime": "2025-02-27T00:16:32Z",
       "durationSeconds": 0,
