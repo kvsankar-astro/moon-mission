@@ -280,12 +280,14 @@ def print_config():
     print(f"orbits_file = {orbits_file}")
 
 def get_horizons_start_time(planet):
-    # HORIZONS API requires single quotes around datetime values with spaces
+    # HORIZONS interprets START_TIME as TDB for vector tables (EPHEM_TYPE=VECTORS)
+    # when no explicit time-system suffix is appended.  Config phase times carry
+    # time_scale: "TDB" to document this convention.
     return f"'{start_year}-{start_month}-{start_day} {start_hour}:{start_minute}:{int(start_second):02d}'"
 
 def get_horizons_stop_time(planet):
-    # HORIZONS API requires single quotes around datetime values with spaces
-    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}:{int(stop_second):02d}'"    
+    # Same TDB convention as get_horizons_start_time.
+    return f"'{stop_year}-{stop_month}-{stop_day} {stop_hour}:{stop_minute}:{int(stop_second):02d}'"
     
 
 def set_start_and_stop_times():

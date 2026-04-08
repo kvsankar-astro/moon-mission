@@ -89,14 +89,22 @@ Unit tests:  44 files, 214 passed, 6 skipped, 0 failed
 Config sync: 40 missions checked, all in sync
 ```
 
-## Remaining Audit
+## All-Mission Audit (completed)
 
-This fix affects **all missions** using Chebyshev ephemeris data, not just Artemis 2. The ~69-second position shift has been present globally.
+### HORIZONS data audit
+All 111 `data-generated/*/ho-*-vectors.txt` files confirmed `JDTDB` column header — zero exceptions. No mission uses NPZ at runtime (all configs set `ephemeris_source: "chebyshev"`).
 
-1. Verify every `data-generated/*/ho-*-vectors.txt` confirms `JDTDB` column header
-2. Check NPZ-based ephemeris path (`npz-ephemeris.js`) — NPZ files also store `jdct` (TDB)
-3. Regenerate visual baselines (`make baseline`) — body positions shift by ~69s for all missions
-4. Verify Earth shadow events (Artemis 2, Apr 3) improve similarly
+### time_scale annotation
+Added `time_scale: "TDB"` to all phase/span blocks and `time_scale: "UTC"` to all events blocks across 40 mission configs (166 blocks total). Chebyshev JSON metadata updated to `units.time: "julian_date_tdb"` (129 files, gitignored).
+
+Runtime `start-end-times.js` and `config-events.js` now read `time_scale` and apply TDB→UTC conversion when present, shifting animation slider boundaries by ~69s to match actual data availability.
+
+### Animation slider overshoot
+Before fix: 30/36 missions had ~69-second overshoot at slider end (spacecraft disappears).
+After fix: 0/36 missions overshoot.
+
+### HORIZONS request documentation
+`orbits.py` `get_horizons_start_time()` / `get_horizons_stop_time()` documented as TDB (HORIZONS default for vector tables). Config phase times carry `time_scale: "TDB"` to match.
 
 ## Resolved: delta-T accuracy
 
