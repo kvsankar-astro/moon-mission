@@ -55,6 +55,7 @@ yarn-error.log*
 
 # Scripts
 scripts/deploy.py
+scripts/validate-eclipse-skyfield.mjs
 
 # Build output
 dist/
