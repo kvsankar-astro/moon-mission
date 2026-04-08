@@ -71,10 +71,11 @@ export function createBodyLocationActions({
                     : null;
 
             if (range) {
+                const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
                 const jd =
-                    typeof new Date(date).getJD_UTC === "function"
-                        ? new Date(date).getJD_UTC()
-                        : 2440587.5 + date / 86400000;
+                    typeof new Date(date).getJD_TDB === "function"
+                        ? new Date(date).getJD_TDB()
+                        : 2440587.5 + (date + TDB_OFFSET_MS) / 86400000;
                 flag = jd >= range.start && jd <= range.end;
             } else {
                 flag = date >= getStartTime() && date <= getEndTimeSC();

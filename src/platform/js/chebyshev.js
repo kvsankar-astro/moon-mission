@@ -156,18 +156,19 @@ async function decodeGzipJsonResponse(response, url = "unknown") {
 export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, stepMs) {
     const vectors = [];
 
-    // HORIZONS-backed ephemerides in this repo are stored in UTC Julian dates.
+    // Chebyshev segment data uses JD in TDB (HORIZONS JDCT / SPICE JDTDB).
+    const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+    const JD_UNIX_EPOCH = 2440587.5;
+    const MS_PER_DAY = 86400000;
     const msToJD = (ms) => {
         const date = new Date(ms);
-        if (typeof date.getJD_UTC === "function") {
-            return date.getJD_UTC();
+        if (typeof date.getJD_TDB === "function") {
+            return date.getJD_TDB();
         }
-        const JD_UNIX_EPOCH = 2440587.5;
-        return JD_UNIX_EPOCH + ms / 86400000;
+        return JD_UNIX_EPOCH + (ms + TDB_OFFSET_MS) / MS_PER_DAY;
     };
 
-    const JD_UNIX_EPOCH = 2440587.5;
-    const jdToMs = (jd) => (jd - JD_UNIX_EPOCH) * 86400000;
+    const jdToMs = (jd) => (jd - JD_UNIX_EPOCH) * MS_PER_DAY - TDB_OFFSET_MS;
 
     for (const seg of chebData.segments || []) {
         const segStartMs = jdToMs(seg.t_start);

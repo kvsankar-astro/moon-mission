@@ -26,9 +26,13 @@ function isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
-const HAS_DATE_GET_JD_UTC =
+// TDB - UTC offset: 37 leap seconds (2017-present) + 32.184s fixed TT-UTC offset.
+// Chebyshev segment data uses JD in TDB (HORIZONS JDCT / SPICE ET→JDTDB),
+// so all lookups must convert UTC epoch-ms to JD_TDB.
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+const HAS_DATE_GET_JD_TDB =
     typeof Date !== "undefined" &&
-    typeof Date.prototype.getJD_UTC === "function";
+    typeof Date.prototype.getJD_TDB === "function";
 
 function normalizeBodyId(bodyId) {
     return typeof bodyId === "string" ? bodyId.toUpperCase() : "";
@@ -91,11 +95,19 @@ function convertRawState(rawState, source) {
     };
 }
 
+/**
+ * Convert UTC epoch-ms to Julian Date in TDB for Chebyshev segment lookups.
+ *
+ * HORIZONS state-vector data is tagged with JDCT (Julian Date Coordinate
+ * Time = TDB).  The compress-orbits / export-spice-chebyshev pipelines
+ * preserve those TDB Julian dates as segment boundaries (t_start / t_end).
+ * Runtime must therefore query with JD_TDB, not JD_UTC.
+ */
 export function getHorizonsJulianDate(timeMs) {
-    if (HAS_DATE_GET_JD_UTC) {
-        return new Date(timeMs).getJD_UTC();
+    if (HAS_DATE_GET_JD_TDB) {
+        return new Date(timeMs).getJD_TDB();
     }
-    return JD_UNIX_EPOCH + timeMs / MS_PER_DAY;
+    return JD_UNIX_EPOCH + (timeMs + TDB_OFFSET_MS) / MS_PER_DAY;
 }
 
 export function resolveBodySource({

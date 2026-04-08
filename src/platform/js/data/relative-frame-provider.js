@@ -6,15 +6,16 @@ import {
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
 
 function toHorizonsJulianDate(timeMs) {
     if (
         typeof Date !== "undefined" &&
-        typeof Date.prototype.getJD_UTC === "function"
+        typeof Date.prototype.getJD_TDB === "function"
     ) {
-        return new Date(timeMs).getJD_UTC();
+        return new Date(timeMs).getJD_TDB();
     }
-    return JD_UNIX_EPOCH + timeMs / MS_PER_DAY;
+    return JD_UNIX_EPOCH + (timeMs + TDB_OFFSET_MS) / MS_PER_DAY;
 }
 
 function normalizeQuaternion(quat) {

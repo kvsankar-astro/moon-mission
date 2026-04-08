@@ -8,10 +8,11 @@ import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math
 //
 // 1. UTC (Coordinated Universal Time) - Civil time, used for:
 //    - Mission event times in config.json
-//    - HORIZONS ephemeris data (default output)
-//    - Chebyshev polynomial data (derived from HORIZONS)
+//    - Animation clock / user-facing timestamps
 //
 // 2. TDB (Barycentric Dynamical Time) - Astronomical time, used for:
+//    - HORIZONS state-vector data (JDCT column = TDB)
+//    - Chebyshev polynomial segment boundaries (t_start / t_end)
 //    - IAU lunar pole orientation calculations
 //    - Planetary ephemeris calculations
 //    - Any formula with "d = days from J2000" or "T = centuries from J2000"
