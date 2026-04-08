@@ -2,6 +2,7 @@ import {
     isMissionCraftBody,
     resolveMissionCraft,
 } from "../core/domain/mission-config.js";
+import { TIME_CONSTANTS } from "../core/constants.js";
 
 export function createBodyLocationActions({
     THREE,
@@ -71,7 +72,7 @@ export function createBodyLocationActions({
                     : null;
 
             if (range) {
-                const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+                const { TDB_OFFSET_MS } = TIME_CONSTANTS;
                 const jd =
                     typeof new Date(date).getJD_TDB === "function"
                         ? new Date(date).getJD_TDB()

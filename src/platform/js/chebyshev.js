@@ -21,6 +21,7 @@ import {
     shouldAttemptGzipTransport,
     toChebyshevGzipCandidateUrl,
 } from "./core/domain/chebyshev-transport.js";
+import { TIME_CONSTANTS } from "./core/constants.js";
 
 export {
     evaluateChebyshev,
@@ -157,7 +158,7 @@ export function generateCurveFromChebyshev(chebData, startTimeMs, endTimeMs, ste
     const vectors = [];
 
     // Chebyshev segment data uses JD in TDB (HORIZONS JDCT / SPICE JDTDB).
-    const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+    const { TDB_OFFSET_MS } = TIME_CONSTANTS;
     const JD_UNIX_EPOCH = 2440587.5;
     const MS_PER_DAY = 86400000;
     const msToJD = (ms) => {

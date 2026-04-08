@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { TIME_CONSTANTS } from "../core/constants.js";
 
 /**
  * Parse a NumPy .npy header to extract shape and dtype string.
@@ -261,7 +262,7 @@ export function generateCurveFromNpz(series, startTimeMs, endTimeMs, stepMs) {
     const step = Math.max(1, stepMs);
     for (let t = startTimeMs; t <= endTimeMs; t += step) {
         // NPZ data stores JD in TDB (HORIZONS JDCT), same as Chebyshev.
-        const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+        const { TDB_OFFSET_MS } = TIME_CONSTANTS;
         const jd =
             typeof new Date(t).getJD_TDB === "function"
                 ? new Date(t).getJD_TDB()

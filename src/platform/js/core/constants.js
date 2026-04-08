@@ -54,7 +54,13 @@ export const TIME_CONSTANTS = {
     ONE_MINUTE_MS: 60 * 1000,
     MILLI_SECONDS_PER_MINUTE: 60000,
     MILLI_SECONDS_PER_HOUR: 3600000,
-    STEP_DURATION_MS: 1 * 60000 // 1 minute - update when Orbit JSON time resolution changes
+    STEP_DURATION_MS: 1 * 60000, // 1 minute - update when Orbit JSON time resolution changes
+
+    // TDB - UTC offset in milliseconds.
+    // TDB ≈ UTC + leap_seconds + 32.184s (fixed TT-UTC offset).
+    // 37 leap seconds are in effect from 2017-01-01 onward.
+    // Update this value when the next leap second is announced.
+    TDB_OFFSET_MS: (37.000 + 32.184) * 1000,
 };
 
 // ===================================

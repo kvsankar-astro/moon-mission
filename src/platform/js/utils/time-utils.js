@@ -43,11 +43,12 @@ export function createUTCTimestamp(year, month, day, hour, minute) {
     return Date.UTC(year, month - 1, day, hour, minute, 0, 0);
 }
 
+import { TIME_CONSTANTS } from "../core/constants.js";
+
 // ── Time-scale conversion ──────────────────────────────────────────────────
-// TDB - UTC offset: 37 leap seconds (2017-present) + 32.184s fixed TT-UTC.
 // Config phase times from HORIZONS are TDB; event times are UTC.
 // All runtime epoch-ms values are in UTC.
-const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+const { TDB_OFFSET_MS } = TIME_CONSTANTS;
 
 /**
  * Convert a TDB epoch-ms value to UTC epoch-ms.

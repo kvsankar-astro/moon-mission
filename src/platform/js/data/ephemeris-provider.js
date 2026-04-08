@@ -1,5 +1,6 @@
 import { getMoonState, getEarthFromMoonState } from "../astronomy-bodies.js";
 import { getStateFromChebyshev } from "../chebyshev.js";
+import { TIME_CONSTANTS } from "../core/constants.js";
 import { getStateFromNpzSeries } from "./npz-ephemeris.js";
 
 const DEFAULT_SOURCE_BY_BODY = {
@@ -26,10 +27,9 @@ function isPrimaryBodySeriesAlias(normalizedBodyId, normalizedSpacecraftMnemonic
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
-// TDB - UTC offset: 37 leap seconds (2017-present) + 32.184s fixed TT-UTC offset.
 // Chebyshev segment data uses JD in TDB (HORIZONS JDCT / SPICE ET→JDTDB),
 // so all lookups must convert UTC epoch-ms to JD_TDB.
-const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+const { TDB_OFFSET_MS } = TIME_CONSTANTS;
 const HAS_DATE_GET_JD_TDB =
     typeof Date !== "undefined" &&
     typeof Date.prototype.getJD_TDB === "function";

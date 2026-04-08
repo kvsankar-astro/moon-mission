@@ -3,10 +3,11 @@ import {
     findSegment,
     normalizeSegmentTime,
 } from "../core/domain/ephemeris-core.js";
+import { TIME_CONSTANTS } from "../core/constants.js";
 
 const JD_UNIX_EPOCH = 2440587.5;
 const MS_PER_DAY = 86400000;
-const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+const { TDB_OFFSET_MS } = TIME_CONSTANTS;
 
 function toHorizonsJulianDate(timeMs) {
     if (

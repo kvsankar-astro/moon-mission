@@ -1,4 +1,5 @@
 import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math-utils.js";
+import { TIME_CONSTANTS } from "./core/constants.js";
 
 // ============================================================================
 // Julian Date Conversion Functions
@@ -26,7 +27,7 @@ import { degreesToRadians, radiansToDegrees, normalizeAngle } from "./utils/math
 
 const JD_UNIX_EPOCH = 2440587.5;  // Julian Date at Unix epoch (1970-01-01 00:00:00 UTC)
 const MS_PER_DAY = 86400000;      // Milliseconds per day
-const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;  // TDB - UTC offset in milliseconds (~69.184s)
+const { TDB_OFFSET_MS } = TIME_CONSTANTS;
 
 /**
  * Convert JavaScript Date to Julian Date in UTC.
