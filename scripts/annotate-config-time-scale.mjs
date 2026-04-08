@@ -29,17 +29,12 @@ function annotateConfigJson5(filePath) {
     let text = readFileSync(filePath, "utf8");
     let changes = 0;
 
-    // Skip files that already have time_scale annotations
-    if (text.includes('"time_scale"')) {
-        return 0;
-    }
-
-    // Insert time_scale: "TDB" into phase blocks.
+    // Insert time_scale: "TDB" into phase blocks that don't already have it.
     // Match:  "geo": {  (with optional whitespace/newlines before {)
-    // Insert "time_scale": "TDB", as the first field.
+    // Only insert if the block doesn't already contain time_scale on the next few lines.
     for (const key of PHASE_KEYS) {
         const pattern = new RegExp(
-            `("${key}"\\s*:\\s*\\{)(\\s*\\n)`,
+            `("${key}"\\s*:\\s*\\{)(\\s*\\n)(?!\\s*"time_scale")`,
             "g",
         );
         const replacement = `$1$2    "time_scale": "TDB",\n`;
@@ -48,9 +43,9 @@ function annotateConfigJson5(filePath) {
         if (text !== before) changes++;
     }
 
-    // Insert time_scale: "UTC" into events block.
+    // Insert time_scale: "UTC" into events block (skip if already present).
     {
-        const pattern = /("events"\s*:\s*\{)(\s*\n)/;
+        const pattern = /("events"\s*:\s*\{)(\s*\n)(?!\s*"time_scale")/;
         const replacement = `$1$2    "time_scale": "UTC",\n`;
         const before = text;
         text = text.replace(pattern, replacement);
@@ -76,7 +71,7 @@ function annotateConfigJson5(filePath) {
         let annotatedSpans = spansBlock;
         for (const key of PHASE_KEYS) {
             const spanPattern = new RegExp(
-                `("${key}"\\s*:\\s*\\{)(\\s*\\n)`,
+                `("${key}"\\s*:\\s*\\{)(\\s*\\n)(?!\\s*"time_scale")`,
                 "g",
             );
             const spanReplacement = `$1$2        "time_scale": "TDB",\n`;

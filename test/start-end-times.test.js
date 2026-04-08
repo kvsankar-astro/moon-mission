@@ -4,6 +4,13 @@ import {
     createStartEndTimesResolver,
     resolveMissionBodyTimeRange,
 } from "../src/platform/js/app/start-end-times.js";
+import {
+    parseConfigTimestamp,
+    createTimestampFromScale,
+    tdbToUtcMs,
+} from "../src/platform/js/utils/time-utils.js";
+
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
 
 function createUTCTimestamp(year, month, day, hour, minute) {
     return Date.UTC(year, month - 1, day, hour, minute, 0, 0);
@@ -154,5 +161,73 @@ describe("createStartEndTimesResolver", () => {
         });
         expect(lanStart).toBe(Date.UTC(2023, 7, 17, 12, 0, 0, 0));
         expect(lanEnd).toBe(Date.UTC(2023, 7, 23, 12, 34, 0, 0));
+    });
+});
+
+describe("parseConfigTimestamp", () => {
+    it("parses UTC timestamp unchanged", () => {
+        const ms = parseConfigTimestamp("2026-04-07T00:35:00Z", "UTC");
+        expect(ms).toBe(Date.parse("2026-04-07T00:35:00Z"));
+    });
+
+    it("parses TDB timestamp and shifts to UTC", () => {
+        const ms = parseConfigTimestamp("2026-04-02T01:58:33Z", "TDB");
+        const raw = Date.parse("2026-04-02T01:58:33Z");
+        expect(ms).toBe(raw - TDB_OFFSET_MS);
+    });
+
+    it("defaults to UTC when time_scale is absent", () => {
+        const ms = parseConfigTimestamp("2026-04-07T00:35:00Z");
+        expect(ms).toBe(Date.parse("2026-04-07T00:35:00Z"));
+    });
+
+    it("returns NaN for invalid input", () => {
+        expect(parseConfigTimestamp("not-a-date", "UTC")).toBeNaN();
+        expect(parseConfigTimestamp(null, "UTC")).toBeNaN();
+    });
+});
+
+describe("createTimestampFromScale", () => {
+    it("returns UTC epoch-ms for UTC scale", () => {
+        const ms = createTimestampFromScale(2026, 4, 7, 0, 35, "UTC");
+        expect(ms).toBe(Date.UTC(2026, 3, 7, 0, 35, 0, 0));
+    });
+
+    it("shifts TDB components to UTC epoch-ms", () => {
+        const ms = createTimestampFromScale(2026, 4, 2, 1, 58, "TDB");
+        const raw = Date.UTC(2026, 3, 2, 1, 58, 0, 0);
+        expect(ms).toBe(raw - TDB_OFFSET_MS);
+    });
+});
+
+describe("time_scale: TDB in phase config", () => {
+    it("shifts phase range by ~69s when time_scale is TDB", () => {
+        const getStartAndEndTimes = createStartEndTimesResolver({
+            getGlobalConfig: () => ({
+                spacecraft_mnemonic: "SC",
+                geo: {
+                    time_scale: "TDB",
+                    start_year: "2026",
+                    start_month: "04",
+                    start_day: "02",
+                    start_hour: "01",
+                    start_minute: "58",
+                    stop_year: "2026",
+                    stop_month: "04",
+                    stop_day: "10",
+                    stop_hour: "23",
+                    stop_minute: "54",
+                },
+            }),
+            getConfig: () => "geo",
+            createUTCTimestamp,
+            oneMinuteMs: 60000,
+        });
+
+        const [start, end] = getStartAndEndTimes("SC");
+        const rawStart = Date.UTC(2026, 3, 2, 1, 58, 0, 0);
+        const rawEnd = Date.UTC(2026, 3, 10, 23, 54, 0, 0) - 60000;
+        expect(start).toBe(rawStart - TDB_OFFSET_MS);
+        expect(end).toBe(rawEnd - TDB_OFFSET_MS);
     });
 });

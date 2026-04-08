@@ -54,7 +54,6 @@
       "spans": {
         "geo": {
         "time_scale": "TDB",
-    "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",
@@ -68,7 +67,6 @@
         },
         "lunar": {
         "time_scale": "TDB",
-    "time_scale": "TDB",
           "start_year": "2023",
           "start_month": "07",
           "start_day": "14",

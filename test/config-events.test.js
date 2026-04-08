@@ -243,4 +243,59 @@ describe("computeEventsUpdate", () => {
         expect(update.eventInfos.map((event) => event.clickable)).toEqual([false, true]);
         expect(update.eventInfos.map((event) => event.preEphemeris)).toEqual([true, false]);
     });
+
+    it("event times remain UTC even when phase has time_scale TDB", () => {
+        const eclipseUtcMs = Date.parse("2026-04-07T00:35:00Z");
+        const update = computeEventsUpdate({
+            globalConfig: {
+                spacecraft_mnemonic: "ORION",
+                primaryCraftId: "SC",
+                crafts: [
+                    {
+                        id: "SC",
+                        mnemonic: "ORION",
+                        primary: true,
+                        spans: {
+                            geo: {
+                                time_scale: "TDB",
+                                startTime: "2026-04-02T01:58:33Z",
+                                endTime: "2026-04-10T23:54:30Z",
+                            },
+                        },
+                    },
+                ],
+                geo: {
+                    time_scale: "TDB",
+                    start_year: "2026",
+                    start_month: "04",
+                    start_day: "02",
+                    start_hour: "01",
+                    start_minute: "58",
+                },
+                events: {
+                    time_scale: "UTC",
+                    eclipseStart: {
+                        startTime: "2026-04-07T00:35:00Z",
+                        durationSeconds: 0,
+                        label: "Eclipse In",
+                        burnFlag: false,
+                        body: "SC",
+                        requiresEphemeris: true,
+                    },
+                },
+                eventConfigs: {
+                    geo: ["eclipseStart"],
+                },
+            },
+            config: "geo",
+            nowDate: new Date("2026-04-06T00:00:00Z"),
+            getDataEndTimeMs: () => new Date("2026-04-10T23:54:30Z").getTime(),
+        });
+
+        expect(update.shouldUpdate).toBe(true);
+        const eclipseEvent = update.eventInfos.find((e) => e.key === "eclipseStart");
+        expect(eclipseEvent).toBeDefined();
+        // Event time must be the exact UTC value — NOT shifted by TDB offset
+        expect(eclipseEvent.startTime.getTime()).toBe(eclipseUtcMs);
+    });
 });

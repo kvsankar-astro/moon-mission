@@ -5,7 +5,7 @@ function resolveTimeScale(config) {
     return config?.time_scale === "TDB" ? "TDB" : "UTC";
 }
 
-function buildRangeFromParts(windowConfig, createUTCTimestamp, oneMinuteMs) {
+function buildRangeFromParts(windowConfig, _createUTCTimestamp, oneMinuteMs) {
     if (!windowConfig) return [null, null];
 
     const startYear = parseInt(windowConfig.start_year);

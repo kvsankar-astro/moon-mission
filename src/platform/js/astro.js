@@ -30,7 +30,7 @@ const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;  // TDB - UTC offset in millisec
 
 /**
  * Convert JavaScript Date to Julian Date in UTC.
- * Use this for Chebyshev data lookups (HORIZONS data is in UTC).
+ * Note: Chebyshev/NPZ data uses TDB, not UTC — use getJD_TDB() for those lookups.
  *
  * @returns {number} Julian Date in UTC
  */

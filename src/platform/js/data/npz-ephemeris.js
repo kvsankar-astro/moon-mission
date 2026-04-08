@@ -260,10 +260,12 @@ export function generateCurveFromNpz(series, startTimeMs, endTimeMs, stepMs) {
     const out = [];
     const step = Math.max(1, stepMs);
     for (let t = startTimeMs; t <= endTimeMs; t += step) {
+        // NPZ data stores JD in TDB (HORIZONS JDCT), same as Chebyshev.
+        const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
         const jd =
-            typeof new Date(t).getJD_UTC === "function"
-                ? new Date(t).getJD_UTC()
-                : 2440587.5 + t / 86400000;
+            typeof new Date(t).getJD_TDB === "function"
+                ? new Date(t).getJD_TDB()
+                : 2440587.5 + (t + TDB_OFFSET_MS) / 86400000;
         const state = getStateFromNpzSeries(series, jd);
         if (state) {
             out.push({
