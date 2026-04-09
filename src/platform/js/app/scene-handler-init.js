@@ -13,7 +13,26 @@ export function initSceneHandlerDom({
     const width = getSvgWidth();
     const height = getSvgHeight();
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const createRendererWithFallback = () => {
+        const attempts = [
+            { antialias: true },
+            { antialias: false, powerPreference: "high-performance" },
+            { antialias: false, powerPreference: "low-power", preserveDrawingBuffer: false },
+        ];
+
+        let lastError = null;
+        for (const options of attempts) {
+            try {
+                return new THREE.WebGLRenderer(options);
+            } catch (error) {
+                lastError = error;
+            }
+        }
+
+        throw lastError || new Error("Unable to create WebGLRenderer with fallback options");
+    };
+
+    const renderer = createRendererWithFallback();
     if ("outputColorSpace" in renderer && THREE.SRGBColorSpace) {
         renderer.outputColorSpace = THREE.SRGBColorSpace;
     } else {

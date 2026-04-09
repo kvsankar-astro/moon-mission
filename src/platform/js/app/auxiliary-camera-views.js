@@ -1411,7 +1411,9 @@ class AuxiliaryCameraViewsManager {
         let renderer = null;
         try {
             renderer = new this.THREE.WebGLRenderer({
-                antialias: true,
+                antialias: false,
+                powerPreference: "low-power",
+                preserveDrawingBuffer: false,
             });
             if ("outputColorSpace" in renderer && this.THREE.SRGBColorSpace) {
                 renderer.outputColorSpace = this.THREE.SRGBColorSpace;
@@ -2286,8 +2288,8 @@ class AuxiliaryCameraViewsManager {
         const resizeObserver = this.getPanelResizeObserver();
         resizeObserver?.observe(panel);
         this.syncPanelSize(panelState);
-        // Startup behavior: open all enabled panels, including composer.
-        const startMinimized = false;
+        // Startup behavior: keep flyby/composer collapsed until user opens it.
+        const startMinimized = panelState.mode === "composer";
         this.setPanelMinimized(panelState, startMinimized, {
             persist: false,
             requestRender: false,
