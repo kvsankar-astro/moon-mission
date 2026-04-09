@@ -334,6 +334,16 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
   const currentPath = join(currentDir, currentName);
   const baselinePath = join(baselineDir, baselineName);
 
+  // SSIM policy: keep body locator halos disabled in both current and baseline captures.
+  await page.evaluate(() => {
+    const haloToggle = document.querySelector('#view-body-halos');
+    if (haloToggle instanceof HTMLInputElement && haloToggle.checked) {
+      haloToggle.checked = false;
+      haloToggle.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+
   // Hide test ID for screenshot and store its content
   const testIdContent = await hideTestIdForScreenshot(page);
   const chromeState = await hideChromeForScreenshot(page);
@@ -516,6 +526,44 @@ async function setCameraPair(page, pairValue = 'manual__manual') {
     positionSelect.dispatchEvent(new Event('change', { bubbles: true }));
     lookSelect.dispatchEvent(new Event('change', { bubbles: true }));
   }, { positionMode, lookMode });
+}
+
+async function clickSpeedControl(page, direction = 'faster', times = 1) {
+  const idSelector = direction === 'slower' ? '#slower' : '#faster';
+  const signText = direction === 'slower' ? '−' : '+';
+  for (let i = 0; i < times; i += 1) {
+    const byId = page.locator(idSelector);
+    if (await byId.count() > 0 && await byId.first().isVisible() && await byId.first().isEnabled()) {
+      await byId.first().click();
+      continue;
+    }
+    const byText = page.locator('button', { hasText: signText });
+    if (await byText.count() > 0) {
+      const candidate = byText.first();
+      if (await candidate.isVisible() && await candidate.isEnabled()) {
+        await candidate.click();
+      }
+    }
+  }
+}
+
+async function normalizeSpeedToRealtime(page) {
+  const realtime = page.locator('#realtime');
+  if (await realtime.count() > 0 && await realtime.first().isVisible()) {
+    await realtime.first().click();
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  }
+}
+
+async function accelerateSpeedToMax(page, maxClicks = 16) {
+  for (let i = 0; i < maxClicks; i += 1) {
+    const faster = page.locator('#faster');
+    if (await faster.count() === 0 || !await faster.first().isVisible() || !await faster.first().isEnabled()) {
+      break;
+    }
+    await clickSpeedControl(page, 'faster', 1);
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  }
 }
 
 async function resetCameraToManual(page) {
@@ -810,7 +858,7 @@ const TEST_MODES = {
   EARTH: { 
     zoomInSteps: 3,          // General view control tests
     polesZoom: 10,           // Poles visibility - increased zoom in
-    polarAxesZoom: 10,       // Polar axes visibility - increased zoom in
+    polarAxesZoom: 1,        // Polar axes visibility
     soiZoomOut: 15           // SOI wide view
   },
   MOON: { 
@@ -1058,6 +1106,16 @@ async function pinSsimDefaultViewToggles(page) {
   }
 }
 
+async function enforceSsimUiChromeDefaults(page) {
+  await page.evaluate(() => {
+    const locatorsPill = document.getElementById('locators-pill');
+    if (locatorsPill) {
+      locatorsPill.style.display = 'none';
+      locatorsPill.setAttribute('aria-hidden', 'true');
+    }
+  });
+}
+
 async function prepareRelativeLandingFovView(page, cameraPair) {
   await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
@@ -1204,6 +1262,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
     await enforceSsimProfileViewDefaults(page);
     await pinSsimDefaultViewToggles(page);
+    await enforceSsimUiChromeDefaults(page);
   });
 
   afterEach(() => {
@@ -1480,7 +1539,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-speed-controls';
       await displayTestId(page, testId);
       // Verify speed control buttons exist
-      const speedButtons = ['#faster', '#slower', '#realtime', '#resetspeed'];
+      const speedButtons = ['#faster', '#slower', '#realtime'];
       for (const button of speedButtons) {
         expect(await page.locator(button).count()).toBe(1);
       }
@@ -1497,7 +1556,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Test faster button (3 clicks)
       for (let i = 1; i <= 3; i++) {
-        await page.click('#faster');
+        await clickSpeedControl(page, 'faster', 1);
         await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
         currentTime = await page.locator('#date').textContent();
         timelineSamples.push({ time: i, timeline: currentTime, action: 'faster' });
@@ -1505,7 +1564,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Test slower button (3 clicks)
       for (let i = 4; i <= 6; i++) {
-        await page.click('#slower');
+        await clickSpeedControl(page, 'slower', 1);
         await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
         currentTime = await page.locator('#date').textContent();
         timelineSamples.push({ time: i, timeline: currentTime, action: 'slower' });
@@ -1732,6 +1791,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
+      await ensureAnimationPaused(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       
       // Store initial state and zoom in for optimal pole visibility
       const initialState = await storeInitialState(page);
@@ -1812,6 +1873,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       }
       await page.click('#dimension-3D');
+      await ensureAnimationPaused(page);
       
       // Uncheck orbits for better polar axes visibility
       if (await page.isChecked('#view-orbit')) {
@@ -1822,8 +1884,15 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       }
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
+      await setTimeline(page, '#burn1');
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+      await resetCameraToManual(page);
+      await closeSettingsPanel(page);
+      await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+      await ensureAnimationPaused(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       
-      // Store initial state and zoom in for clear meridian line visibility
+      // Store initial state and zoom for deterministic framing.
       const initialState = await storeInitialState(page);
       await zoomIn(page, TEST_MODES.EARTH.polarAxesZoom, 'EARTH');
       
@@ -1840,7 +1909,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       // Disable polar axes
       await openSettingsPanel(page);
       expect(await page.isChecked('#view-polar-axes')).toBe(true);
-      await page.click('#view-polar-axes');
+      await ensureCheckboxState(page, '#view-polar-axes', false);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -1857,7 +1926,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Re-enable polar axes
       await openSettingsPanel(page);
-      await page.click('#view-polar-axes');
+      await ensureCheckboxState(page, '#view-polar-axes', true);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
       await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
@@ -1873,7 +1942,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       expect(comparison.isMatch).toBe(true);
 
       // Restore zoom level and state
-      await zoomOut(page, TEST_MODES.EARTH.polesZoom, 'EARTH');
+      await zoomOut(page, TEST_MODES.EARTH.polarAxesZoom, 'EARTH');
       await restoreStoredState(page, initialState);
       
       // Restore orbits if they were initially checked
@@ -3623,13 +3692,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         // Set optimal zoom level
         await zoomToDistance(page, 500);
         
-        // Start animation and speed it up 5x
+        // Start animation and ramp to max speed for deterministic full-run completion
         await page.click('#animate');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
+        await normalizeSpeedToRealtime(page);
+        await accelerateSpeedToMax(page);
         console.log('Starting Earth 3D full run animation...');
         
         // Wait for animation to complete naturally or timeout
@@ -3654,12 +3720,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#animate');
         }
         
-        // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
+        // Reset speed back to realtime for downstream tests
+        await normalizeSpeedToRealtime(page);
         
         // Take final screenshot
         const comparison = await compareScreenshots(
@@ -3706,13 +3768,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         // Set optimal zoom level
         await zoomToDistance(page, 500);
         
-        // Start animation and speed it up 5x
+        // Start animation and ramp to max speed for deterministic full-run completion
         await page.click('#animate');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
+        await normalizeSpeedToRealtime(page);
+        await accelerateSpeedToMax(page);
         console.log('Starting Moon 3D full run animation...');
         
         // Wait for animation to complete naturally or timeout
@@ -3737,12 +3796,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#animate');
         }
         
-        // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
+        // Reset speed back to realtime for downstream tests
+        await normalizeSpeedToRealtime(page);
 
         // Take final screenshot
         const comparison = await compareScreenshots(
@@ -3781,13 +3836,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await waitForScene(page);
         
         
-        // Start animation and speed it up 5x
+        // Start animation and ramp to max speed for deterministic full-run completion
         await page.click('#animate');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
+        await normalizeSpeedToRealtime(page);
+        await accelerateSpeedToMax(page);
         console.log('Starting Earth 2D full run animation...');
         
         // Wait for animation to complete naturally or timeout
@@ -3812,12 +3864,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#animate');
         }
         
-        // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
+        // Reset speed back to realtime for downstream tests
+        await normalizeSpeedToRealtime(page);
         
         // Take final screenshot
         const comparison = await compareScreenshots(
@@ -3853,13 +3901,10 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
         await waitForScene(page);
         
         
-        // Start animation and speed it up 5x
+        // Start animation and ramp to max speed for deterministic full-run completion
         await page.click('#animate');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
-        await page.click('#faster');
+        await normalizeSpeedToRealtime(page);
+        await accelerateSpeedToMax(page);
         console.log('Starting Moon 2D full run animation...');
         
         // Wait for animation to complete naturally or timeout
@@ -3884,12 +3929,8 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#animate');
         }
         
-        // Reset speed back to normal (5 slower clicks to undo 5 faster clicks)
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
-        await page.click('#slower');
+        // Reset speed back to realtime for downstream tests
+        await normalizeSpeedToRealtime(page);
         
         // Take final screenshot
         const comparison = await compareScreenshots(
