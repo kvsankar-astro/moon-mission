@@ -524,7 +524,11 @@ async function resetCameraToManual(page) {
 
   // Emulate the legacy "camera default" reset distance/orientation in 3D mode.
   await page.evaluate(() => {
-    const cfg = document.getElementById('origin-moon')?.checked ? 'lunar' : 'geo';
+    const cfg = document.getElementById('origin-relative')?.checked
+      ? 'relative'
+      : document.getElementById('origin-moon')?.checked
+        ? 'lunar'
+        : 'geo';
     const scene = window.animationScenes?.[cfg];
     if (!scene?.initialized3D) return;
     scene.setCameraParameters(true);
@@ -1057,6 +1061,8 @@ async function pinSsimDefaultViewToggles(page) {
 async function prepareRelativeLandingFovView(page, cameraPair) {
   await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
+  await ensureAnimationPaused(page);
+
   await openSettingsPanel(page);
   if (!await page.isChecked('#dimension-3D')) {
     await page.click('#dimension-3D');
@@ -1065,7 +1071,27 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
   await ensureCheckboxState(page, '#view-orbit', false);
   await ensureCheckboxState(page, '#view-orbit-descent', false);
   await ensureCheckboxState(page, '#view-sky', false);
+  await ensureCheckboxState(page, '#view-body-halos', false);
+  const moonSoiToggle = page.locator('#view-moonsoi');
+  if (await moonSoiToggle.count() > 0) {
+    await ensureCheckboxState(page, '#view-moonsoi', false);
+  }
+  await setCameraPair(page, 'manual__manual');
   await closeSettingsPanel(page);
+
+  // Reset relative camera to deterministic defaults before mounting pair view.
+  await page.evaluate(() => {
+    const scene = window.animationScenes?.relative;
+    if (!scene?.initialized3D) return;
+    scene.setCameraParameters(true);
+    const controls = scene.cameraController?.controls;
+    if (controls?.target) {
+      controls.target.set(0, 0, 0);
+      controls.noRotate = false;
+      controls.noPan = false;
+      controls.update();
+    }
+  });
   await waitForScene(page);
 
   await openSettingsPanel(page);
@@ -1078,12 +1104,14 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
 
 async function prepareRelativePageLoadView(page) {
   await ensureOriginMode(page, 'relative');
+  await ensureAnimationPaused(page);
   await openSettingsPanel(page);
   if (!await page.isChecked('#dimension-3D')) {
     await page.click('#dimension-3D');
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
   await ensureCheckboxState(page, '#view-sky', false);
+  await ensureCheckboxState(page, '#view-body-halos', false);
   const moonSoiToggle = page.locator('#view-moonsoi');
   if (await moonSoiToggle.count() > 0) {
     await ensureCheckboxState(page, '#view-moonsoi', false);
@@ -2085,6 +2113,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
           await page.click('#landing');
           await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
         }
+        await ensureCheckboxState(page, '#view-body-halos', false);
         await page.waitForTimeout(TIMEOUTS.EXTENDED_DELAY);
         await page.click('#joyride');
         await closeSettingsPanel(page);
