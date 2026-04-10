@@ -11,7 +11,7 @@
 // Time Window Used:
 //   Launch/reference start: `2026-04-01 22:35:12 UTC`
 //   Orbit data start: `2026-04-02 01:58:33 UTC`
-//   Orbit data end: `2026-04-10 23:54:22 TDB`
+//   Orbit data end: `2026-04-10 23:53:32 TDB`
 //   Sampling step: `60` seconds
 //   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:51` (HORIZONS blurb, Apr 10 19:28 UTC revision)
 //   Selected interesting window strategy: full currently published HORIZONS trajectory, because the public data set already corresponds to the complete post-separation lunar-flyby mission arc.
@@ -26,7 +26,7 @@
 //   - Apr 10 HORIZONS major-events update shortens the published mission duration to 9 days, cancels the manual piloting demonstration, advances lunar SOI exit and the return/entry timeline, and adds additional return-leg OEM segments.
 //   - The Apr 10 19:28 UTC HORIZONS revision further splits the final return trajectory at `2026-Apr-10 06:24` TDB and adds `Orion_OEM_20260410_0908.V0.1`.
 //   - For rows where HORIZONS omits seconds in the UTC column, this config keeps second-level alignment derived from MET offsets relative to launch.
-//   - Live vectors currently reject stop times later than `2026-04-10 23:54:22.8596` TDB; this config floors the orbit window to `2026-04-10 23:54:22` for the latest clean pull.
+//   - The staged Chebyshev coverage currently ends at `2026-04-10 23:53:32.999` TDB; this config floors the orbit window to `2026-04-10 23:53:32` so the UI slider does not overshoot the final staged sample.
 //   - Generated runtime artifacts are staged under `../moon-mission-data/assets/artemis2/data/`.
 // --- sourcing-snapshot:end ---
 {
@@ -45,12 +45,12 @@
         "geo": {
         "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:22Z"
+          "endTime": "2026-04-10T23:53:32Z"
         },
         "lunar": {
         "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:22Z"
+          "endTime": "2026-04-10T23:53:32Z"
         }
       }
     }
@@ -130,7 +130,7 @@
   "geo": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:22Z",
+    "endTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -152,7 +152,7 @@
   "lunar": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:22Z",
+    "endTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",

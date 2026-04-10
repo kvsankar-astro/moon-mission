@@ -14,12 +14,12 @@
         "geo": {
           "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:22Z"
+          "endTime": "2026-04-10T23:53:32Z"
         },
         "lunar": {
           "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:54:22Z"
+          "endTime": "2026-04-10T23:53:32Z"
         }
       }
     }
@@ -99,7 +99,7 @@
   "geo": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:22Z",
+    "endTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -121,7 +121,7 @@
   "lunar": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:54:22Z",
+    "endTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
