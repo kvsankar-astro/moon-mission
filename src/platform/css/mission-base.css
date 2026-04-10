@@ -146,11 +146,12 @@ body {
 }
 
 #header-pill-strip {
+    --header-pill-toggle-lane: 24px;
     pointer-events: all;
     display: grid;
     grid-template-rows: auto auto;
     row-gap: 6px;
-    padding: 6px 10px 4px 34px;
+    padding: 6px 10px 4px calc(10px + var(--header-pill-toggle-lane));
     position: relative;
 }
 
@@ -172,6 +173,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+    z-index: 2;
 }
 
 .header-pill-strip__toggle:hover {
@@ -201,6 +203,13 @@ body {
     justify-content: center;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+.header-pill-strip__spacer {
+    display: none;
+    pointer-events: none;
+    user-select: none;
+    visibility: hidden;
 }
 
 .header-pill-group {
@@ -501,16 +510,17 @@ body {
     }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 600px) {
     #settings-panel-button {
         min-width: 36px;
         padding: 0 9px;
     }
 
     #header-pill-strip {
+        --header-pill-toggle-lane: 34px;
         row-gap: 5px;
         padding-top: 4px;
-        padding-left: 30px;
+        padding-left: 6px;
     }
 
     .header-pill-strip__toggle {
@@ -523,7 +533,34 @@ body {
     }
 
     #header-pill-strip-primary {
+        display: grid;
+        grid-template-rows: auto auto;
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        column-gap: 8px;
+        row-gap: 2px;
+        align-items: end;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        scroll-snap-type: x proximity;
+        scroll-padding-left: 14px;
+        touch-action: pan-x;
+        padding: 0 6px 3px 0;
+    }
+
+    #header-pill-strip-primary::-webkit-scrollbar {
+        width: 0;
+        height: 0;
         display: none;
+    }
+
+    #header-pill-strip-primary .header-pill-strip__spacer--primary {
+        display: block;
+        grid-row: 1 / span 2;
+        width: var(--header-pill-toggle-lane);
+        min-width: var(--header-pill-toggle-lane);
     }
 
     #header-pill-strip-secondary {
@@ -532,23 +569,71 @@ body {
         gap: 6px;
         overflow-x: auto;
         overflow-y: hidden;
-        scrollbar-width: thin;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
         scroll-snap-type: x proximity;
-        padding: 0 6px 2px;
+        scroll-padding-left: 14px;
+        touch-action: pan-x;
+        padding: 0 6px 2px 0;
     }
 
-    #locators-pill {
-        min-width: 82px;
-        height: 25px;
-        font-size: 10px;
+    #header-pill-strip-secondary::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+        display: none;
     }
 
-    .header-pill-group {
-        gap: 5px;
+    #header-pill-strip-secondary .header-pill-strip__spacer--secondary {
+        display: block;
+        flex: 0 0 var(--header-pill-toggle-lane);
     }
 
-    .header-pill-group__label {
+    #header-pill-strip-primary .header-pill-group {
+        display: contents;
+    }
+
+    #header-pill-strip-primary .header-pill-group[hidden] {
+        display: none !important;
+    }
+
+    #header-pill-strip-primary .header-pill-group__label {
+        grid-row: 1;
+        display: inline-block;
+        font-size: 8px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+        color: #8ea2c5;
+        text-transform: uppercase;
+        align-self: end;
+    }
+
+    #header-pill-strip-primary .header-pill-segment,
+    #header-pill-strip-primary #locators-pill {
+        grid-row: 2;
+        flex: 0 0 auto;
+    }
+
+    #header-pill-strip-primary #flyby-pill-wrap {
+        padding: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    #header-pill-strip-primary #flyby-pill,
+    #header-pill-strip-primary #locators-pill {
+        min-width: 60px;
+        height: 23px;
+        padding: 0 9px;
         font-size: 9px;
+    }
+
+    #header-pill-strip-primary #flyby-pill {
+        border: 1px solid rgba(100, 130, 180, 0.44);
+        border-radius: 999px;
+        background: rgba(10, 18, 32, 0.82);
+        color: #aebbd2;
     }
 
     .header-pill-segment__btn {

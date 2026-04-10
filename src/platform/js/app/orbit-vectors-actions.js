@@ -94,7 +94,8 @@ export function createOrbitVectorsActions({
         trailTailBrightness2D = 1,
     ) {
         if (!orbitElement) return;
-        const style = orbitStyle === "trail" ? "trail" : "classic";
+        const style = "classic";
+        const showTrail = false;
         const tailStyle = resolveTailVisualStyle({
             dimension: "2D",
             prominence: trailTailBrightness2D,
@@ -108,7 +109,7 @@ export function createOrbitVectorsActions({
         orbitElement
             .querySelectorAll(".orbit-trail-background, .orbit-trail-tail, .orbit-trail-mid, .orbit-trail-head-glow, .orbit-trail-head")
             .forEach((element) =>
-                element.setAttribute("visibility", style === "trail" ? "inherit" : "hidden"),
+                element.setAttribute("visibility", showTrail ? "inherit" : "hidden"),
             );
         orbitElement
             .querySelectorAll(".orbit-trail-background")
@@ -403,7 +404,7 @@ export function createOrbitVectorsActions({
                             "stroke-opacity",
                             scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey][index],
                         )
-                        .attr("stroke-linecap", "round")
+                        .attr("stroke-linecap", "butt")
                         .attr("stroke-linejoin", "round")
                         .attr("visibility", "hidden");
                 });

@@ -10,6 +10,12 @@ function resolveMobileOrbitVisualBoost() {
     return window.innerWidth <= 600 ? 2 : 1;
 }
 
+function resolveMobileOrbitVisualBoost2D() {
+    const baseBoost = resolveMobileOrbitVisualBoost();
+    // Keep 2D trails readable on small screens: apply only a mild mobile boost.
+    return 1 + ((baseBoost - 1) * 0.3);
+}
+
 function normalizeHexColor(value, fallback = "#f8b84b") {
     const text = typeof value === "string" ? value.trim() : "";
     const match = text.match(/^#?([0-9a-f]{6})$/i);
@@ -300,6 +306,20 @@ function resolveTrailWindow(times, timeMs, options = {}) {
         };
     }
 
+    if (options.mode === "landing-preview") {
+        const tailWindow = Math.max(110, Math.min(720, Math.floor(times.length / 80)));
+        const headWindow = Math.max(26, Math.min(130, Math.floor(tailWindow / 4)));
+        const tailStartIndex = Math.max(0, currentIndex - tailWindow);
+        const headStartIndex = Math.max(0, currentIndex - headWindow);
+        return {
+            currentIndex,
+            tailStartIndex,
+            headStartIndex,
+            tailLength: currentIndex - tailStartIndex + 1,
+            headLength: currentIndex - headStartIndex + 1,
+        };
+    }
+
     const defaultTailFraction = Number.isFinite(Number(options.orbitStyleMetadata?.default_tail_fraction))
         ? clamp(Number(options.orbitStyleMetadata.default_tail_fraction), 0.05, 1)
         : ORBIT_TRAIL_STYLE.tailOrbitFraction;
@@ -420,7 +440,9 @@ function resolveOverlapAdjustedOpacity(baseOpacity, overlapFactor = 1) {
 function resolveTailVisualStyle(options = {}) {
     const dimension = options.dimension === "3D" ? "3D" : "2D";
     const prominence = normalizeTrailProminence(options.prominence, 1);
-    const mobileBoost = resolveMobileOrbitVisualBoost();
+    const mobileBoost = dimension === "3D"
+        ? resolveMobileOrbitVisualBoost()
+        : resolveMobileOrbitVisualBoost2D();
     const tailOpacityBase = dimension === "3D"
         ? ORBIT_TRAIL_STYLE.tailOpacity3D
         : ORBIT_TRAIL_STYLE.tailOpacity2D;
@@ -493,7 +515,7 @@ function resolveTrackOpacity2D(brightness = 1) {
     return clamp(
         ORBIT_TRAIL_STYLE.backgroundOpacity2D *
             (Number(brightness) || 1) *
-            resolveMobileOrbitVisualBoost(),
+            resolveMobileOrbitVisualBoost2D(),
         0,
         1,
     );
@@ -516,7 +538,7 @@ function resolveTailOpacity2D(brightness = 1) {
     return clamp(
         ORBIT_TRAIL_STYLE.tailOpacity2D *
             (Number(brightness) || 1) *
-            resolveMobileOrbitVisualBoost(),
+            resolveMobileOrbitVisualBoost2D(),
         0,
         1,
     );
@@ -526,7 +548,7 @@ function resolveHeadOpacity2D(brightness = 1) {
     return clamp(
         ORBIT_TRAIL_STYLE.headOpacity2D *
             (Number(brightness) || 1) *
-            resolveMobileOrbitVisualBoost(),
+            resolveMobileOrbitVisualBoost2D(),
         0,
         1,
     );

@@ -1920,8 +1920,22 @@ fieldset {
 body.mobile-shell-enabled .mission-floating-collapse-btn {
     display: inline-flex;
     position: fixed;
-    top: 10px;
-    right: 10px;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: calc(env(safe-area-inset-right, 0px) + 8px);
+    width: 28px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid rgba(121, 171, 255, 0.32);
+    background: rgba(12, 24, 40, 0.84);
+    color: rgba(231, 240, 255, 0.96);
+    font-size: 13px;
+    line-height: 1;
+    font-weight: 700;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(3px);
     z-index: 55;
 }
 
@@ -2224,6 +2238,10 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 }
 
 @media screen and (max-width: 600px) {
+    body.mobile-shell-enabled #header {
+        z-index: 60;
+    }
+
     .desktoponly {
       visibility: hidden;
       display: none;
@@ -2231,6 +2249,15 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
     #header-pill-strip {
         display: grid;
+    }
+
+    body.mobile-shell-enabled #header-pill-strip {
+        position: fixed;
+        left: var(--timeline-dock-offset);
+        right: var(--timeline-dock-offset);
+        top: var(--mobile-pill-strip-top, 120px);
+        margin: 0;
+        z-index: 22;
     }
 
     #control-panel {
@@ -2415,6 +2442,7 @@ table {
 @media screen and (max-width: 600px) {
     body.mobile-shell-enabled .content-wrapper {
         transform: translate3d(0, var(--mobile-render-shift-y, 0px), 0);
+        transform-origin: center center;
         transition: transform 140ms ease-out;
         will-change: transform;
     }
@@ -2474,16 +2502,16 @@ table {
     }
 
     body.mobile-shell-enabled .mobile-shell__collapse-btn {
-        min-height: 20px;
-        min-width: 22px;
-        border-radius: 999px;
-        border: 1px solid rgba(121, 171, 255, 0.28);
-        background: rgba(24, 42, 71, 0.66);
-        color: rgba(221, 236, 255, 0.94);
-        font-size: 10px;
+        min-height: 24px;
+        min-width: 28px;
+        border-radius: 8px;
+        border: 1px solid rgba(121, 171, 255, 0.32);
+        background: rgba(12, 24, 40, 0.84);
+        color: rgba(231, 240, 255, 0.96);
+        font-size: 13px;
         line-height: 1;
         font-weight: 700;
-        padding: 0 6px;
+        padding: 0 8px;
     }
 
     body.mobile-shell-enabled .mobile-shell__card--collapsed .mobile-shell__card-body {
@@ -2542,14 +2570,16 @@ table {
     body.mobile-shell-enabled .mobile-shell__metrics {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 5px;
+        gap: 4px;
         margin-bottom: 6px;
     }
 
     body.mobile-shell-enabled .mobile-shell__metric {
         display: grid;
-        gap: 2px;
-        padding: 5px 6px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 6px;
         border-radius: 8px;
         border: 1px solid rgba(121, 171, 255, 0.13);
         background: rgba(17, 28, 46, 0.5);
@@ -2558,15 +2588,21 @@ table {
     body.mobile-shell-enabled .mobile-shell__metric-label {
         font-size: 8px;
         color: rgba(177, 207, 250, 0.78);
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-transform: none;
+        white-space: nowrap;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     body.mobile-shell-enabled .mobile-shell__metric-value {
         font-size: 10px;
         color: rgba(239, 246, 255, 0.96);
-        line-height: 1.25;
+        line-height: 1.1;
         font-weight: 600;
+        text-align: right;
+        white-space: nowrap;
     }
 
     body.mobile-shell-enabled .mobile-shell__time-main {

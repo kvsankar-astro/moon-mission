@@ -20,14 +20,20 @@ In this mode:
 - `mission.html?mission=<id>&mode=relative`
 - Relative mode is URL-driven. Entering or leaving it causes a page reload.
 
-### Settings Panel
+### Origin Controls (Header Pill Strip + Settings Panel)
 
-Origin/Phase is controlled by three radio options:
-- `Earth` (`#origin-earth`)
-- `Moon` (`#origin-moon`)
-- `Relative` (`#origin-relative`)
+Origin/Phase can be changed from either synchronized surface:
 
-Current selection remains visible but disabled. The other two remain enabled.
+- Header pill strip buttons:
+  - `Earth` (`#origin-pill-earth`)
+  - `Moon` (`#origin-pill-moon`)
+  - `Relative` (`#origin-pill-relative`)
+- Settings panel radio inputs:
+  - `Earth` (`#origin-earth`)
+  - `Moon` (`#origin-moon`)
+  - `Relative` (`#origin-relative`)
+
+The pill-strip buttons proxy to the same underlying origin inputs, and both surfaces keep their active state synchronized.
 
 ### Mission Selector
 

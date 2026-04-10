@@ -212,6 +212,7 @@ export class Animation2DController {
             const times = scene.orbitTimesByBodyId?.[bodyId] || [];
             const orbitStyleMetadata = scene.orbitStyleMetadataByBodyId?.[bodyId] || null;
             const window = resolveTrailWindow(times, timeMs, {
+                mode: "landing-preview",
                 orbitStyleMetadata,
                 phaseKey: scene?.name,
                 tailOrbitFraction: scene?.orbitTrailTailFraction,
@@ -222,14 +223,8 @@ export class Animation2DController {
                 layers.tailStartIndex >= 0 && layers.currentIndex >= layers.tailStartIndex
                     ? points.slice(layers.tailStartIndex, layers.currentIndex + 1)
                     : [];
-            const midPoints =
-                layers.midStartIndex >= 0 && layers.currentIndex >= layers.midStartIndex
-                    ? points.slice(layers.midStartIndex, layers.currentIndex + 1)
-                    : [];
-            const headGlowPoints =
-                layers.headGlowStartIndex >= 0 && layers.currentIndex >= layers.headGlowStartIndex
-                    ? points.slice(layers.headGlowStartIndex, layers.currentIndex + 1)
-                    : [];
+            const midPoints = [];
+            const headGlowPoints = [];
             const headPoints =
                 layers.headStartIndex >= 0 && layers.currentIndex >= layers.headStartIndex
                     ? points.slice(layers.headStartIndex, layers.currentIndex + 1)

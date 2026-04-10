@@ -31,6 +31,17 @@ Useful pages:
 - `http://localhost:7274/orbit-data.html`
 - `http://localhost:7274/assets-status.html`
 
+### Mission Runtime Control Surfaces
+
+- `mission.html` now exposes two synchronized control surfaces:
+  - Header pill strip (`#header-pill-strip`) for quick controls.
+  - Settings panel (`#settings-panel`) for full/advanced controls.
+- Pill interactions are wired as proxies to the existing settings inputs in `src/platform/js/ui/event-handlers.js` (`originPillPairs`, `planePillPairs`, `followPillPairs`, `viewPillPairs`, `dimensionPillPairs`, `togglePillPairs`).
+- When adding/removing a mission control:
+  1. Update `mission.html` (pill button and/or settings input).
+  2. Update the corresponding pair mapping and sync behavior in `src/platform/js/ui/event-handlers.js`.
+  3. Verify both surfaces stay synchronized in runtime and UI tests.
+
 ## 3) Core Commands
 
 ### Development

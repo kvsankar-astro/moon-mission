@@ -245,3 +245,134 @@ button, input, textarea, select, a, [role="button"], [onclick] {
         font-size: 10px;
     }
 }
+
+.ground-track-panel-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 1110;
+    pointer-events: none;
+}
+
+.ground-track-panel {
+    position: absolute;
+    width: min(420px, calc(100vw - 20px));
+    height: 320px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    border: 1px solid rgba(121, 171, 255, 0.32);
+    border-radius: var(--ui-radius-sm);
+    background: rgba(10, 17, 29, 0.74);
+    color: rgba(230, 239, 255, 0.92);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+    pointer-events: all;
+    overflow: hidden;
+    resize: both;
+    min-width: 280px;
+    min-height: 220px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+}
+
+.ground-track-panel--hidden {
+    display: none;
+}
+
+.ground-track-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 4px 7px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.2);
+    background: rgba(12, 20, 35, 0.74);
+    cursor: grab;
+    touch-action: none;
+}
+
+.ground-track-panel__header:active {
+    cursor: grabbing;
+}
+
+.ground-track-panel__header-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ground-track-panel__title {
+    color: rgba(230, 239, 255, 0.92);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ground-track-panel__mode-button,
+.ground-track-panel__icon-button {
+    border-radius: 999px;
+    border: 1px solid rgba(121, 171, 255, 0.28);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(220, 232, 250, 0.92);
+    cursor: pointer;
+}
+
+.ground-track-panel__mode-button {
+    min-height: 20px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.ground-track-panel__mode-button.is-active {
+    border-color: rgba(121, 171, 255, 0.72);
+    background: rgba(62, 104, 180, 0.26);
+    color: #eef5ff;
+}
+
+.ground-track-panel__icon-button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.ground-track-panel__mode-button:hover,
+.ground-track-panel__icon-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(121, 171, 255, 0.46);
+}
+
+.ground-track-panel__map {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    background: #07101d;
+    display: block;
+}
+
+.ground-track-panel__footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 9px 7px;
+    border-top: 1px solid rgba(121, 171, 255, 0.14);
+    font-size: 10px;
+}
+
+.ground-track-panel__status {
+    color: #9bb0d2;
+}
+
+.ground-track-panel__coords {
+    color: #dbe7ff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 600px) {
+    .ground-track-panel {
+        width: min(100vw - (2 * var(--timeline-dock-offset)), 420px);
+        height: min(320px, 42vh);
+    }
+}

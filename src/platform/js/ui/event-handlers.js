@@ -713,6 +713,9 @@ export function bindMainControls(handlers) {
     const flybyPill = typeof document !== "undefined"
         ? document.getElementById("flyby-pill")
         : null;
+    const splashdownFocusPill = typeof document !== "undefined"
+        ? document.getElementById("focus-pill-splashdown")
+        : null;
     const flybyPillWrap = typeof document !== "undefined"
         ? document.getElementById("flyby-pill-wrap")
         : null;
@@ -823,15 +826,63 @@ export function bindMainControls(handlers) {
             return false;
         }
     };
-    const syncFlybyPillVisibility = () => {
+    const resolveTimelineEventButtonByKeys = (keys) => {
+        if (!Array.isArray(keys) || keys.length === 0) return null;
+        const normalizedKeys = keys
+            .map((key) => String(key || "").trim())
+            .filter(Boolean);
+        if (normalizedKeys.length === 0) return null;
+        const buttons = document.querySelectorAll("#burnbuttons button[data-event-key]");
+        for (const button of buttons) {
+            const key = String(button?.dataset?.eventKey || "").trim();
+            if (normalizedKeys.includes(key)) {
+                return button;
+            }
+        }
+        return null;
+    };
+    const syncFocusPillVisibility = () => {
         if (!flybyPillWrap) return;
-        const visible = isArtemis2Mission();
-        flybyPillWrap.hidden = !visible;
+        const flybyVisible = isArtemis2Mission();
+        const splashdownVisible = !!resolveTimelineEventButtonByKeys(["splashdown"]);
+        if (flybyPill) {
+            flybyPill.hidden = !flybyVisible;
+        }
+        if (splashdownFocusPill) {
+            splashdownFocusPill.hidden = !splashdownVisible;
+        }
+        const visible = flybyVisible || splashdownVisible;
+        const flybyGroup = flybyPillWrap.closest(".header-pill-group");
+        if (flybyGroup) {
+            flybyGroup.hidden = !visible;
+        } else {
+            flybyPillWrap.hidden = !visible;
+        }
+        requestAnimationFrame(() => {
+            const primaryRow = document.getElementById("header-pill-strip-primary");
+            if (!primaryRow) return;
+            primaryRow.scrollLeft = 0;
+        });
     };
     const syncFlybyPillState = (isActive = false) => {
         if (!flybyPill) return;
         flybyPill.classList.toggle("is-active", !!isActive);
         flybyPill.setAttribute("aria-pressed", isActive ? "true" : "false");
+    };
+    const syncSplashdownFocusPillState = (isActive = false) => {
+        if (!splashdownFocusPill) return;
+        splashdownFocusPill.classList.toggle("is-active", !!isActive);
+        splashdownFocusPill.setAttribute("aria-pressed", isActive ? "true" : "false");
+    };
+    const syncFocusPillState = () => {
+        const composerPanelVisible = !!document.querySelector(
+            "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
+        );
+        const groundTrackPanelVisible = !!document.querySelector(
+            "#ground-track-panel:not(.ground-track-panel--hidden)",
+        );
+        syncFlybyPillState(composerPanelVisible);
+        syncSplashdownFocusPillState(groundTrackPanelVisible);
     };
     const getSelectedCameraPillValue = (name) => {
         const selected = document.querySelector(`input[name="${name}"]:checked`);
@@ -890,6 +941,7 @@ export function bindMainControls(handlers) {
             const style = window.getComputedStyle?.(element);
             return style ? style.display !== "none" && style.visibility !== "hidden" : true;
         };
+        const isRelativeOrigin = !!document.getElementById("origin-relative")?.checked;
         const landingOptionRow = landingToggle?.closest?.(".settings-option")
             || landingToggle?.closest?.("label")
             || null;
@@ -912,6 +964,26 @@ export function bindMainControls(handlers) {
             const hasDescentOrbit = !!descentOrbitOption
                 && !descentOrbitOption.classList.contains("settings-option--hidden");
             descentPill.hidden = !hasDescentOrbit;
+        }
+        const secondaryOrbitToggle = document.getElementById("view-moon-osculating-orbit");
+        const secondaryOrbitOption = secondaryOrbitToggle?.closest?.(".settings-option") || null;
+        if (secondaryOrbitToggle) {
+            secondaryOrbitToggle.disabled = isRelativeOrigin;
+            if (isRelativeOrigin) {
+                secondaryOrbitToggle.checked = false;
+            }
+        }
+        if (secondaryOrbitOption) {
+            secondaryOrbitOption.classList.toggle("settings-option--hidden", isRelativeOrigin);
+        }
+        if (secondaryOrbitPill) {
+            secondaryOrbitPill.hidden = isRelativeOrigin;
+            secondaryOrbitPill.disabled = isRelativeOrigin;
+            secondaryOrbitPill.setAttribute("aria-disabled", isRelativeOrigin ? "true" : "false");
+            if (isRelativeOrigin) {
+                secondaryOrbitPill.classList.remove("is-active");
+                secondaryOrbitPill.setAttribute("aria-pressed", "false");
+            }
         }
         const moonSitesPill = document.getElementById("toggle-pill-craters");
         if (moonSitesPill) {
@@ -971,6 +1043,21 @@ export function bindMainControls(handlers) {
             "title",
             collapsed ? "Expand mission controls" : "Collapse mission controls",
         );
+        if (!collapsed) {
+            // Always reveal the first control group (Origin/Flyby side) after expand.
+            const primaryRow = document.getElementById("header-pill-strip-primary");
+            const secondaryRow = document.getElementById("header-pill-strip-secondary");
+            if (primaryRow) primaryRow.scrollLeft = 0;
+            if (secondaryRow) secondaryRow.scrollLeft = 0;
+        }
+    };
+    const resetHeaderPillStripScroll = () => {
+        const primaryRow = document.getElementById("header-pill-strip-primary");
+        const secondaryRow = document.getElementById("header-pill-strip-secondary");
+        if (primaryRow) {
+            primaryRow.scrollLeft = 0;
+        }
+        if (secondaryRow) secondaryRow.scrollLeft = 0;
     };
     const enforceMobileLocatorTabPolicy = () => {
         if (!bodyHaloToggle) return;
@@ -1059,8 +1146,12 @@ export function bindMainControls(handlers) {
         );
         if (composerChip instanceof HTMLButtonElement && !composerChip.hidden) {
             composerChip.click();
-            syncFlybyPillState(true);
+            syncFocusPillState();
         }
+    });
+    onClick("focus-pill-splashdown", function () {
+        document.dispatchEvent(new CustomEvent("ground-track-panel-open"));
+        syncFocusPillState();
     });
     onClick("landing", toggleLanding);
     onClick("landingbutton", toggleLanding);
@@ -1185,8 +1276,8 @@ export function bindMainControls(handlers) {
             input.addEventListener("change", syncPlanePillState);
         }
     });
-    syncFlybyPillVisibility();
-    syncFlybyPillState();
+    syncFocusPillVisibility();
+    syncFocusPillState();
     syncOriginPillState();
     syncLocatorsPillState();
     syncSecondaryOrbitLabel();
@@ -1198,6 +1289,22 @@ export function bindMainControls(handlers) {
     syncDimensionPillState();
     syncPlanePillState();
     syncHeaderPillStripCollapseUi(false);
+    requestAnimationFrame(resetHeaderPillStripScroll);
+    window.addEventListener("resize", resetHeaderPillStripScroll);
+    const burnButtonsHost = document.getElementById("burnbuttons");
+    if (burnButtonsHost && typeof MutationObserver !== "undefined") {
+        const focusPillObserver = new MutationObserver(() => {
+            syncFocusPillVisibility();
+            syncFocusPillState();
+        });
+        focusPillObserver.observe(burnButtonsHost, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["class", "data-event-key", "data-event-time-ms", "title"],
+        });
+    }
+    document.addEventListener("ground-track-panel-visibilitychange", syncFocusPillState);
 }
 
 export function bindKeyboardShortcuts() {
@@ -1398,6 +1505,13 @@ export function bindMobileMissionCard() {
     const mobileMoonFarSideOverlay = document.getElementById("mobile-moon-farside-overlay");
     const contentWrapper = document.getElementById("content-wrapper");
     const missionEvent = document.getElementById("mobile-mission-event");
+    const setMissionEventMessage = (message) => {
+        if (!missionEvent) return;
+        const text = typeof message === "string" ? message.trim() : "";
+        missionEvent.hidden = text.length === 0;
+        missionEvent.textContent = text;
+    };
+    setMissionEventMessage("");
     const mobileShellNav = shell.querySelector(".mobile-shell__nav");
     const navButtons = document.querySelectorAll(".mobile-shell__nav-btn");
     const composeNavButton = shell.querySelector('.mobile-shell__nav-btn[data-mobile-tab="compose"]');
@@ -1473,23 +1587,7 @@ export function bindMobileMissionCard() {
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
         "view-aux-camera-panels",
     ];
-    const MOBILE_VIEWS_SUPPRESSED_VIEW_IDS = [
-        "view-orbit",
-        "view-orbit-descent",
-        "view-additional-crafts",
-        "view-aux-camera-panels",
-        "view-body-halos",
-        "view-craters",
-        "view-xyz-axes",
-        "view-poles",
-        "view-polar-axes",
-        "view-sky",
-        "view-constellation-lines",
-        "view-moonsoi",
-        "view-moon-osculating-orbit",
-        "view-eclipticplane",
-        "view-equatorialplane",
-    ];
+    const MOBILE_VIEWS_SUPPRESSED_VIEW_IDS = [];
     // Hotfix gate: keep mobile Earthrise UI disabled in production until feature completion.
     const MOBILE_EARTHRISE_ENABLED = false;
     const composeFeatureEnabled = (() => {
@@ -1520,7 +1618,7 @@ export function bindMobileMissionCard() {
         }
         panelCollapseButton.hidden = hidden;
         if (hidden) return;
-        panelCollapseButton.textContent = collapsed ? "▾" : "▴";
+        panelCollapseButton.textContent = collapsed ? "+" : "−";
         panelCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
         panelCollapseButton.setAttribute("aria-label", label);
         panelCollapseButton.title = label;
@@ -1628,10 +1726,12 @@ export function bindMobileMissionCard() {
     const applyMobileRenderViewportCentering = () => {
         if (!contentWrapper) return;
         let shiftPx = 0;
+        const rootStyle = document.documentElement?.style;
         const shouldCenterForTab =
             activeMobileTab === "mission" ||
             activeMobileTab === "views" ||
             activeMobileTab === "compose";
+        let activeCardBottomPx = Number.NaN;
         if (isMobileViewport() && shouldCenterForTab) {
             const viewportHeight = Math.max(1, window.innerHeight || 1);
             const activeCard = mobileTabCards[activeMobileTab] || null;
@@ -1639,6 +1739,18 @@ export function bindMobileMissionCard() {
             if (isLayoutVisible(activeCard)) {
                 const rect = activeCard.getBoundingClientRect();
                 topInset = Math.max(0, Math.min(viewportHeight, rect.bottom));
+                activeCardBottomPx = rect.bottom;
+            }
+            const pillStrip = document.getElementById("header-pill-strip");
+            const pillStripExpanded = !!(
+                pillStrip &&
+                isLayoutVisible(pillStrip) &&
+                !pillStrip.classList.contains("header-pill-strip--collapsed")
+            );
+            if (pillStripExpanded) {
+                const stripRect = pillStrip.getBoundingClientRect();
+                const stripBottom = Math.max(0, Math.min(viewportHeight, stripRect.bottom));
+                topInset = Math.max(topInset, stripBottom);
             }
             let bottomInset = viewportHeight;
             const bottomCandidates = [mobileShellNav, document.getElementById("timeline-dock")];
@@ -1653,6 +1765,23 @@ export function bindMobileMissionCard() {
             }
         }
         contentWrapper.style.setProperty("--mobile-render-shift-y", `${shiftPx}px`);
+        if (isMobileViewport() && document.body?.classList.contains("mobile-shell-enabled")) {
+            const headerBottomPx = (() => {
+                const header = document.getElementById("header");
+                if (!header) return Number.NaN;
+                const rect = header.getBoundingClientRect?.();
+                return rect ? rect.bottom : Number.NaN;
+            })();
+            const collapsedTopPx = Number.isFinite(headerBottomPx)
+                ? Math.round(headerBottomPx + 4)
+                : 56;
+            const topPx = Number.isFinite(activeCardBottomPx)
+                ? Math.max(48, Math.round(activeCardBottomPx + 4))
+                : Math.max(48, collapsedTopPx);
+            rootStyle?.setProperty("--mobile-pill-strip-top", `${topPx}px`);
+        } else {
+            rootStyle?.removeProperty("--mobile-pill-strip-top");
+        }
     };
 
     const clampFov = (value) => {
@@ -3726,11 +3855,10 @@ export function bindMobileMissionCard() {
     navButtons.forEach((button) => {
         button.addEventListener("click", function () {
             if (button.disabled) {
-                if (missionEvent) {
-                    missionEvent.textContent = `${button.textContent.trim()} card coming next`;
-                }
+                setMissionEventMessage(`${button.textContent.trim()} card coming next`);
                 return;
             }
+            setMissionEventMessage("");
             setActiveMobileTab(button.dataset.mobileTab || "mission");
         });
     });

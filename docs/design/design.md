@@ -6,7 +6,9 @@ All design-focused documents live under `docs/design/`.
 ## 1) Product Surfaces
 
 - `index.html`: landing page with mission cards and launch entry points.
-- `mission.html`: mission runtime shell (selector + 2D/3D visualization).
+- `mission.html`: mission runtime shell (selector + 2D/3D visualization), with:
+  - Header pill strip (`#header-pill-strip`) for quick mission/view controls.
+  - Settings panel (`#settings-panel`) for full control coverage and advanced options.
 - `orbit-data.html`: data-source coverage/audit view.
 - `assets-status.html`: runtime asset-size/status view.
 
@@ -32,6 +34,12 @@ All design-focused documents live under `docs/design/`.
 - Orchestration/UI:
   - `src/platform/js/app/*`
   - `src/platform/js/ui/*`
+
+### UI Control Synchronization Model
+
+- The header pill strip and settings panel are synchronized UI surfaces over shared runtime state.
+- `src/platform/js/ui/event-handlers.js` maps pill actions to canonical settings inputs and keeps active/pressed state synchronized both ways.
+- `src/platform/js/ui/ui-state.js` remains the source for reading/applying view setting values consumed by runtime actions.
 
 ## 3) Frame/Origin Model
 

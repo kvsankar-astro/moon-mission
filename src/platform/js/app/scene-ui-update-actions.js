@@ -1,3 +1,5 @@
+import { createGroundTrackPanelActions } from "./ground-track-panel.js";
+
 function createSceneUiUpdateActions(deps) {
     const {
         d3,
@@ -17,6 +19,7 @@ function createSceneUiUpdateActions(deps) {
     let telemetrySnapshot = null;
     let telemetryPrimaryBody = "EARTH";
     let sceneStateSnapshot = null;
+    const groundTrackPanelActions = createGroundTrackPanelActions();
 
     function convertDistanceValue(valueKm) {
         if (!Number.isFinite(valueKm)) return null;
@@ -438,7 +441,7 @@ function createSceneUiUpdateActions(deps) {
         }
     }
 
-    function updateTelemetry(sceneState, primaryBody, config = null) {
+    function updateTelemetry(sceneState, primaryBody, config = null, animTime = null) {
         ensureUnitControlsBound();
         telemetryPrimaryBody = primaryBody;
         telemetrySnapshot = sceneState?.telemetry || null;
@@ -446,6 +449,11 @@ function createSceneUiUpdateActions(deps) {
         if (config && typeof window !== "undefined" && window.animationScenes?.[config]) {
             window.animationScenes[config].latestSceneState = sceneState || null;
         }
+        groundTrackPanelActions.update({
+            sceneState,
+            config,
+            animTime: Number.isFinite(animTime) ? animTime : Date.now(),
+        });
         renderTelemetry();
     }
 

@@ -28,6 +28,7 @@ I created this animation for educational purposes. It has the following features
 * Real-world orbit data and predictions based on information available from JPL/NASA HORIZONS interface
 * Rendering of the orbit in 2D and 3D
 * Rendering with Earth-centered, Moon-centered, and Earth-Moon relative-frame origins
+* Header pill strip for fast mission controls (origin, follow/view presets, plane, dimension, and visibility toggles), with synchronized Settings panel controls as fallback
 * Multi-craft missions with per-craft styling, visibility pills, and per-craft timeline spans
 * Camera from/to controls for mounted viewpoints (spacecraft, Earth, Moon)
 * Optional auxiliary camera panels (desktop) for simultaneous craft->Earth and craft->Moon views
@@ -69,6 +70,12 @@ URL parameters:
 - `mission.html?mission=<id>` - Open a mission directly (IDs come from `assets/mission-catalog.json`)
 - `mission.html?mission=<id>&mode=relative` - Relative-frame mode
 - `mission.html?mission=<id>&testMode=true` - Test harness mode for deterministic test behavior
+
+### Mission Controls UI
+
+- Primary quick controls live in the header pill strip (`#header-pill-strip`) in `mission.html`.
+- The Settings panel (`#settings-panel`) remains available for the full control set and advanced options.
+- Both surfaces are kept in sync through shared underlying inputs/event wiring (`src/platform/js/ui/event-handlers.js`), so changing one updates the other.
 
 ### Debugging with NPZ ephemeris
 

@@ -75,9 +75,10 @@ function createAnimationSceneClass(deps) {
             z: Number.isFinite(baseLookTarget?.z) ? baseLookTarget.z : 0,
         };
 
+        const PANEL_EDGE_PADDING_PX = 50;
         const desiredScreenY = Math.max(
             0,
-            Math.min(window.innerHeight * 0.8, panelBottom + 14),
+            Math.min(window.innerHeight * 0.8, panelBottom + PANEL_EDGE_PADDING_PX),
         );
 
         const anchorWorld = new THREE.Vector3();

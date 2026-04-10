@@ -79,9 +79,7 @@ export function createSettingsActions({
     }
 
     function resolveEffectiveOrbitStyle(orbitStyle) {
-        const selectedStyle = orbitStyle === "trail" ? "trail" : "classic";
-        if (selectedStyle !== "trail") return selectedStyle;
-        return getAnimationRunning?.() ? "trail" : "classic";
+        return "classic";
     }
 
     function applyOrbitSvgStyle(

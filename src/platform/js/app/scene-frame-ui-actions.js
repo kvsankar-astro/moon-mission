@@ -16,15 +16,15 @@ function createSceneFrameUiActions(deps) {
         }
     }
 
-    function updateSharedUi({ sceneState, primaryBody, globalConfig, config }) {
-        sceneUiUpdateActions.updateTelemetry(sceneState, primaryBody, config);
+    function updateSharedUi({ sceneState, primaryBody, globalConfig, config, animTime }) {
+        sceneUiUpdateActions.updateTelemetry(sceneState, primaryBody, config, animTime);
         sceneUiUpdateActions.updatePhaseIndicator(sceneState, globalConfig);
         sceneUiUpdateActions.updateActiveEvent(sceneState);
     }
 
     function updateFrameUi({ animTime, sceneState, primaryBody, globalConfig, config }) {
         updateAnimationDate(animTime);
-        updateSharedUi({ sceneState, primaryBody, globalConfig, config });
+        updateSharedUi({ sceneState, primaryBody, globalConfig, config, animTime });
     }
 
     return {

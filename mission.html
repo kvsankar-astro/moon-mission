@@ -57,6 +57,7 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <link rel="stylesheet" href="src/platform/css/jquery-ui-compat.css">
         <link rel="stylesheet" type="text/css" href="src/platform/css/mission.css">
         <style>
@@ -374,6 +375,7 @@
         <script src="https://d3js.org/d3.v3.min.js"></script>
         <script src="src/platform/js/ui/jquery-ui-dialog-stub.js"></script>
         <script src="https://unpkg.com/astronomy-engine/astronomy.browser.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
         <script type="module" src="src/platform/js/astro.js"></script>
         <script>
@@ -850,17 +852,7 @@
                     ‹
                 </button>
                 <div id="header-pill-strip-primary" class="header-pill-strip__row header-pill-strip__row--primary" aria-label="Mode controls">
-                    <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Flyby control">
-                        <button
-                            id="flyby-pill"
-                            type="button"
-                            class="header-pill-segment__btn"
-                            aria-pressed="false"
-                            title="Toggle Flyby view"
-                        >
-                            Flyby
-                        </button>
-                    </div>
+                    <span class="header-pill-strip__spacer header-pill-strip__spacer--primary" aria-hidden="true"></span>
                     <div class="header-pill-group" role="group" aria-label="Origin or phase">
                         <span class="header-pill-group__label">Origin</span>
                         <div class="header-pill-segment" role="group" aria-label="Origin options">
@@ -869,15 +861,42 @@
                             <button id="origin-pill-relative" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Relative origin">Relative</button>
                         </div>
                     </div>
-                    <button
-                        id="locators-pill"
-                        type="button"
-                        class="header-pill header-pill--locators"
-                        aria-pressed="true"
-                        title="Toggle body locators"
-                    >
-                        Locators
-                    </button>
+                    <div class="header-pill-group header-pill-group--flyby" role="group" aria-label="Focus control">
+                        <span class="header-pill-group__label">Focus</span>
+                        <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Focus options">
+                            <button
+                                id="flyby-pill"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Flyby focus panel"
+                            >
+                                Flyby
+                            </button>
+                            <button
+                                id="focus-pill-splashdown"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                hidden
+                                title="Jump to Splashdown"
+                            >
+                                Splashdown
+                            </button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group header-pill-group--locators" role="group" aria-label="Locators control">
+                        <span class="header-pill-group__label">Locators</span>
+                        <button
+                            id="locators-pill"
+                            type="button"
+                            class="header-pill header-pill--locators"
+                            aria-pressed="true"
+                            title="Toggle body locators"
+                        >
+                            Locators
+                        </button>
+                    </div>
                     <div class="header-pill-group" role="group" aria-label="Follow target">
                         <span class="header-pill-group__label">Follow</span>
                         <div class="header-pill-segment" role="group" aria-label="Follow target options">
@@ -917,7 +936,8 @@
                     </div>
                 </div>
                 <div id="header-pill-strip-secondary" class="header-pill-strip__row header-pill-strip__row--secondary" aria-label="Visibility controls">
-                    <button id="toggle-pill-landing" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle landing mode">Landing</button>
+                    <span class="header-pill-strip__spacer header-pill-strip__spacer--secondary" aria-hidden="true"></span>
+                    <button id="toggle-pill-landing" type="button" class="header-toggle-pill" aria-pressed="false" aria-disabled="true" hidden title="Toggle landing mode">Landing</button>
                     <button id="toggle-pill-orbit" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle orbit tracks">Orbit</button>
                     <button id="toggle-pill-descent" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle descent orbit">Descent</button>
                     <button id="toggle-pill-moon-orbit" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle secondary body osculating orbit">Secondary Orbit</button>
@@ -1346,6 +1366,26 @@
             </div>
         </div>
 
+        <div id="ground-track-panel-wrapper" class="ground-track-panel-wrapper">
+            <div id="ground-track-panel" class="ground-track-panel ground-track-panel--hidden">
+                <div class="ground-track-panel__header">
+                    <div class="ground-track-panel__title">Ground Track</div>
+                    <div class="ground-track-panel__header-controls">
+                        <button id="ground-track-style-2d" class="ground-track-panel__mode-button" type="button" title="2D map view" aria-pressed="true">2D</button>
+                        <button id="ground-track-style-3d" class="ground-track-panel__mode-button" type="button" title="3D globe view" aria-pressed="false">3D</button>
+                        <button id="ground-track-zoom-out" class="ground-track-panel__icon-button" type="button" title="Zoom out">−</button>
+                        <button id="ground-track-zoom-in" class="ground-track-panel__icon-button" type="button" title="Zoom in">+</button>
+                        <button id="ground-track-panel-close" class="ground-track-panel__icon-button ground-track-panel__close" type="button" title="Close">×</button>
+                    </div>
+                </div>
+                <div id="ground-track-map" class="ground-track-panel__map" role="img" aria-label="Ground track map"></div>
+                <div class="ground-track-panel__footer">
+                    <div id="ground-track-status" class="ground-track-panel__status">Waiting for trajectory...</div>
+                    <div id="ground-track-coords" class="ground-track-panel__coords">--</div>
+                </div>
+            </div>
+        </div>
+
         <!--
         <div id="zoom-panel" class="zoom-panel dimension-2D desktoponly">
             <table class="desktoponly">
@@ -1433,11 +1473,11 @@
                             <span id="mobile-metric-speed" class="mobile-shell__metric-value">--</span>
                         </div>
                         <div class="mobile-shell__metric">
-                            <span class="mobile-shell__metric-label">∠</span>
+                            <span class="mobile-shell__metric-label" title="Craft-Moon-Earth Angle">Craft-Moon-Earth Angle</span>
                             <span id="mobile-metric-angle" class="mobile-shell__metric-value">--</span>
                         </div>
                     </div>
-                    <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite">No active event</div>
+                    <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite" hidden></div>
                     <div class="mobile-shell__controls" role="group" aria-label="Mission transport">
                         <button id="mobile-control-play" type="button" class="mobile-shell__control-btn">Play</button>
                         <button id="mobile-control-realtime" type="button" class="mobile-shell__control-btn">Now</button>
