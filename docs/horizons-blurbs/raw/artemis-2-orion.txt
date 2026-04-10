@@ -3,7 +3,7 @@ API SOURCE: NASA/JPL Horizons API
 
 *******************************************************************************
  Revised: Apr 10, 2026        Artemis II / Spacecraft (Earth)             -1024
-          06:19 UTC       https://www.nasa.gov/mission/artemis-ii/
+          19:28 UTC       https://www.nasa.gov/mission/artemis-ii/
                          https://www.nasa.gov/artemis-ii-press-kit/
 
  BACKGROUND:
@@ -133,5 +133,6 @@ API SOURCE: NASA/JPL Horizons API
   Orion_OEM_20260408_0223.V0.1              2026-Apr-06 17:35 2026-Apr-08 04:38
   Orion_OEM_20260408_1023.V0.1              2026-Apr-08 04:38 2026-Apr-08 14:31
   Orion_OEM_20260409_0312.V0.1              2026-Apr-08 14:31 2026-Apr-09 09:24
-  Orion_OEM_20260410_0411.V0.1              2026-Apr-09 09:24 2026-Apr-10 23:51
+  Orion_OEM_20260410_0411.V0.1              2026-Apr-09 09:24 2026-Apr-10 06:24
+  Orion_OEM_20260410_0908.V0.1              2026-Apr-10 06:24 2026-Apr-10 23:51
 *******************************************************************************

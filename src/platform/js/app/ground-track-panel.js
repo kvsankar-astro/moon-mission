@@ -13,11 +13,16 @@ const DEFAULT_MAP_CENTER = [12, 0];
 const DEFAULT_MAP_ZOOM = 2;
 const TRACK_WRAP_OFFSETS = [-360, 0, 360];
 const GROUND_TRACK_START_EVENT_KEY = "returnCorrection3";
+const GROUND_TRACK_PANEL_EVENT_KEYS = [
+    "returnCorrection3",
+    "serviceModuleSeparation",
+    "crewModuleRaiseBurn",
+    "entryInterface",
+];
 const J2000_OBLIQUITY_RADIANS = THREE.MathUtils.degToRad(23.439291111);
+const EARTH_RADIUS_KM = 6371;
 const KM_TO_MILES = 0.621371192237334;
 const KMPS_TO_MPH = 2236.9362920544;
-const UNIT_MODE_KM = "km";
-const UNIT_MODE_MILES = "miles";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 10;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
@@ -330,31 +335,24 @@ function createGroundTrackPanelActions(options = {}) {
         if (node) node.textContent = text;
     }
 
-    function resolveMetricUnitMode() {
-        const milesButtons = [
-            document.getElementById("stats-unit-miles"),
-            document.getElementById("mobile-unit-miles"),
-        ];
-        const isMiles = milesButtons.some((button) =>
-            button?.classList?.contains("is-active") || button?.getAttribute("aria-pressed") === "true"
-        );
-        return isMiles ? UNIT_MODE_MILES : UNIT_MODE_KM;
-    }
-
-    function formatDistanceText(valueKm) {
+    function formatDistanceKmText(valueKm) {
         if (!Number.isFinite(valueKm)) return "--";
-        const unitMode = resolveMetricUnitMode();
-        const converted = unitMode === UNIT_MODE_MILES ? valueKm * KM_TO_MILES : valueKm;
-        const unitText = unitMode === UNIT_MODE_MILES ? "miles" : "km";
-        return `${formatMetric(converted)} ${unitText}`;
+        return `${formatMetric(valueKm)} km`;
     }
 
-    function formatVelocityText(valueKmPerSec) {
+    function formatDistanceMilesText(valueKm) {
+        if (!Number.isFinite(valueKm)) return "--";
+        return `${formatMetric(valueKm * KM_TO_MILES)} miles`;
+    }
+
+    function formatVelocityKmpsText(valueKmPerSec) {
         if (!Number.isFinite(valueKmPerSec)) return "--";
-        const unitMode = resolveMetricUnitMode();
-        const converted = unitMode === UNIT_MODE_MILES ? valueKmPerSec * KMPS_TO_MPH : valueKmPerSec;
-        const unitText = unitMode === UNIT_MODE_MILES ? "miles/h" : "km/s";
-        return `${formatMetric(converted)} ${unitText}`;
+        return `${formatMetric(valueKmPerSec)} km/s`;
+    }
+
+    function formatVelocityMphText(valueKmPerSec) {
+        if (!Number.isFinite(valueKmPerSec)) return "--";
+        return `${formatMetric(valueKmPerSec * KMPS_TO_MPH)} miles/h`;
     }
 
     function normalizeLongitudeDegrees(lon) {
@@ -402,9 +400,13 @@ function createGroundTrackPanelActions(options = {}) {
         }
     }
 
-    function updateInfoStrip({ earthDistanceKm, earthSpeedKmPerSec, location }) {
-        setMetricValue("ground-track-metric-earth-distance", formatDistanceText(earthDistanceKm));
-        setMetricValue("ground-track-metric-velocity", formatVelocityText(earthSpeedKmPerSec));
+    function updateInfoStrip({ earthDistanceKm, earthSpeedKmPerSec, earthAltitudeKm, location }) {
+        setMetricValue("ground-track-metric-earth-distance-km", formatDistanceKmText(earthDistanceKm));
+        setMetricValue("ground-track-metric-earth-distance-miles", formatDistanceMilesText(earthDistanceKm));
+        setMetricValue("ground-track-metric-velocity-kmps", formatVelocityKmpsText(earthSpeedKmPerSec));
+        setMetricValue("ground-track-metric-velocity-mph", formatVelocityMphText(earthSpeedKmPerSec));
+        setMetricValue("ground-track-metric-altitude-km", formatDistanceKmText(earthAltitudeKm));
+        setMetricValue("ground-track-metric-altitude-miles", formatDistanceMilesText(earthAltitudeKm));
         setMetricValue("ground-track-metric-latitude", formatLatitudeText(location?.[0]));
         setMetricValue("ground-track-metric-longitude", formatLongitudeText(location?.[1]));
     }
@@ -481,17 +483,14 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function resolveGroundTrackEvents(config, startMs, endMs) {
-        const configKey = config === "lunar" ? "lunar" : "geo";
-        const eventKeys = Array.isArray(missionConfigData?.eventConfigs?.[configKey])
-            ? missionConfigData.eventConfigs[configKey]
-            : [];
         const eventMap = missionConfigData?.events || {};
         const events = [];
 
-        for (const eventKey of eventKeys) {
+        for (const eventKey of GROUND_TRACK_PANEL_EVENT_KEYS) {
             const key = String(eventKey || "").trim();
             if (!key || key === "now") continue;
             const eventInfo = eventMap[key];
+            if (!eventInfo || typeof eventInfo !== "object") continue;
             const eventTimeMs = parseMissionTimeMs(eventInfo?.startTime);
             if (!Number.isFinite(eventTimeMs)) continue;
             if (Number.isFinite(startMs) && eventTimeMs < startMs) continue;
@@ -505,27 +504,6 @@ function createGroundTrackPanelActions(options = {}) {
             });
         }
 
-        if (events.length > 0) {
-            events.sort((a, b) => a.timeMs - b.timeMs);
-            return events;
-        }
-
-        const buttons = document.querySelectorAll("#burnbuttons button[data-event-index]");
-        for (const button of buttons) {
-            const eventTimeMs = Number(button?.dataset?.eventTimeMs);
-            if (!Number.isFinite(eventTimeMs)) continue;
-            if (Number.isFinite(startMs) && eventTimeMs < startMs) continue;
-            if (Number.isFinite(endMs) && eventTimeMs > endMs) continue;
-            const key = String(button?.dataset?.eventKey || button?.id || "").trim();
-            if (key === "now") continue;
-            const title = String(button?.textContent || button?.getAttribute("title") || key || "Event").trim();
-            if (!title) continue;
-            events.push({
-                id: key || `${eventTimeMs}`,
-                title,
-                timeMs: eventTimeMs,
-            });
-        }
         events.sort((a, b) => a.timeMs - b.timeMs);
         return events;
     }
@@ -965,9 +943,20 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function fitMapOverviewIfNeeded() {
-        if (!map || hasMapUserView) return;
+        if (!map) return;
         isProgrammaticMapViewChange = true;
         map.setView(DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM, { animate: false });
+        isProgrammaticMapViewChange = false;
+    }
+
+    function centerMapOnLocation(location) {
+        if (!map || !location) return;
+        const currentCenter = map.getCenter?.();
+        const referenceLon = Number.isFinite(currentCenter?.lng) ? currentCenter.lng : 0;
+        const centeredLon = wrapLongitudeNearReference(location[1], referenceLon);
+        const currentZoom = Number.isFinite(map.getZoom?.()) ? map.getZoom() : DEFAULT_MAP_ZOOM;
+        isProgrammaticMapViewChange = true;
+        map.setView([location[0], centeredLon], currentZoom, { animate: false });
         isProgrammaticMapViewChange = false;
     }
 
@@ -1025,26 +1014,34 @@ function createGroundTrackPanelActions(options = {}) {
         renderGlobeNow();
     }
 
-    function orientGlobeToTrack(segments) {
+    function orientGlobeToTrack(location, segments) {
         if (!globeState.globeRoot) return;
         const points = segments.flat();
-        if (points.length === 0) {
+        const focusPoint = Array.isArray(location) && location.length === 2
+            ? location
+            : points[Math.floor(points.length * 0.5)];
+        if (!focusPoint) {
             isProgrammaticGlobeViewChange = true;
             globeState.globeRoot.quaternion.identity();
             globeState.camera?.up?.copy?.(GLOBE_VIEW_UP);
-            globeState.camera.position.set(0, 0, 3.15);
+            const defaultDistance = Number.isFinite(globeState.camera?.position?.length?.())
+                ? clamp(globeState.camera.position.length(), GLOBE_MIN_DISTANCE, GLOBE_MAX_DISTANCE)
+                : 3.15;
+            globeState.camera.position.set(0, 0, defaultDistance);
             globeState.controls?.update();
             isProgrammaticGlobeViewChange = false;
             renderGlobeNow();
             return;
         }
-        const midpoint = points[Math.floor(points.length * 0.5)];
-        const vector = latLonToVector3(midpoint[0], midpoint[1]).normalize();
+        const vector = latLonToVector3(focusPoint[0], focusPoint[1]).normalize();
         const quaternion = resolveNorthUpTrackQuaternion(vector);
+        const distance = Number.isFinite(globeState.camera?.position?.length?.())
+            ? clamp(globeState.camera.position.length(), GLOBE_MIN_DISTANCE, GLOBE_MAX_DISTANCE)
+            : 3.15;
         isProgrammaticGlobeViewChange = true;
         globeState.globeRoot.quaternion.copy(quaternion);
         globeState.camera?.up?.copy?.(GLOBE_VIEW_UP);
-        globeState.camera.position.set(0, 0, 3.15);
+        globeState.camera.position.set(0, 0, distance);
         globeState.controls?.target.set(0, 0, 0);
         globeState.controls?.update();
         isProgrammaticGlobeViewChange = false;
@@ -1210,9 +1207,13 @@ function createGroundTrackPanelActions(options = {}) {
             const activeMap = ensureMap();
             if (!activeMap) return;
             activeMap.invalidateSize(false);
-            fitMapOverviewIfNeeded();
             renderMapTrack(currentSegments);
             updateMapMarker(currentLocation);
+            if (currentLocation) {
+                centerMapOnLocation(currentLocation);
+            } else {
+                fitMapOverviewIfNeeded();
+            }
             return;
         }
 
@@ -1220,11 +1221,7 @@ function createGroundTrackPanelActions(options = {}) {
         resizeGlobe();
         renderGlobeTrack(currentSegments);
         updateGlobeMarker(currentLocation);
-        if (!hasGlobeUserView) {
-            orientGlobeToTrack(currentSegments);
-        } else {
-            renderGlobeNow();
-        }
+        orientGlobeToTrack(currentLocation, currentSegments);
     }
 
     function setViewMode(mode) {
@@ -1441,6 +1438,20 @@ function createGroundTrackPanelActions(options = {}) {
         return magnitude(earthCenteredVelocity);
     }
 
+    function resolveEarthAltitudeKm(sceneState, config, earthDistanceKm) {
+        const telemetry = sceneState?.telemetry || null;
+        if (Number.isFinite(telemetry?.altitudeEarth)) {
+            return telemetry.altitudeEarth;
+        }
+        if (config === "geo" && Number.isFinite(telemetry?.altitudePrimary)) {
+            return telemetry.altitudePrimary;
+        }
+        if (Number.isFinite(earthDistanceKm)) {
+            return earthDistanceKm - EARTH_RADIUS_KM;
+        }
+        return Number.NaN;
+    }
+
     function resolveTrackSegments(config) {
         if (config !== "geo" && config !== "lunar") return { key: `${config}:none`, segments: [] };
         const scene = window.animationScenes?.[config];
@@ -1505,6 +1516,7 @@ function createGroundTrackPanelActions(options = {}) {
             updateInfoStrip({
                 earthDistanceKm: Number.NaN,
                 earthSpeedKmPerSec: Number.NaN,
+                earthAltitudeKm: Number.NaN,
                 location: null,
             });
             syncVisibleView();
@@ -1529,6 +1541,7 @@ function createGroundTrackPanelActions(options = {}) {
         const velocity = resolveCurrentEarthCenteredVelocity(sceneState, config);
         const earthDistanceKm = resolveEarthDistanceKm(sceneState, config, vector);
         const earthSpeedKmPerSec = resolveEarthVelocityKmPerSec(sceneState, config, velocity);
+        const earthAltitudeKm = resolveEarthAltitudeKm(sceneState, config, earthDistanceKm);
         const liveLocation = eciToLatLonDegrees(vector, animTime);
         if (Number.isFinite(startMs) && animTime < startMs) {
             currentLocation = null;
@@ -1551,6 +1564,7 @@ function createGroundTrackPanelActions(options = {}) {
         updateInfoStrip({
             earthDistanceKm,
             earthSpeedKmPerSec,
+            earthAltitudeKm,
             location: currentLocation,
         });
         syncTimelineCardUi(config, animTime, startMs, endMs);

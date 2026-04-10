@@ -59,6 +59,7 @@ const PANEL_SIDE_RATIO_DEFAULT = 0.27;
 const PANEL_SIDE_RATIO_COMPOSER = 0.52;
 const PANEL_MIN_SIDE_DEFAULT = 160;
 const PANEL_MIN_SIDE_COMPOSER = 300;
+const STARTUP_MINIMIZED_PANEL_IDS = new Set(["moon", "earth-to-moon"]);
 const COMPOSER_DEFAULT_ASPECT_RATIO = 16 / 9;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
@@ -2289,7 +2290,7 @@ class AuxiliaryCameraViewsManager {
         resizeObserver?.observe(panel);
         this.syncPanelSize(panelState);
         // Startup behavior: keep flyby/composer collapsed until user opens it.
-        const startMinimized = panelState.mode === "composer";
+        const startMinimized = panelState.mode === "composer" || STARTUP_MINIMIZED_PANEL_IDS.has(panelState.id);
         this.setPanelMinimized(panelState, startMinimized, {
             persist: false,
             requestRender: false,
