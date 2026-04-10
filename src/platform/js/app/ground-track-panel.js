@@ -631,6 +631,10 @@ function createGroundTrackPanelActions(options = {}) {
 
         const rangeStart = Number.isFinite(startMs) ? startMs : mainTimeline?.min;
         const rangeEnd = Number.isFinite(endMs) ? endMs : mainTimeline?.max;
+        const configuredWindow = resolveGroundTrackWindowMs(missionConfigData, config);
+        const eventRangeEnd = Number.isFinite(configuredWindow?.endMs)
+            ? configuredWindow.endMs
+            : rangeEnd;
         const activeTime = clamp(animTime, rangeStart, rangeEnd);
 
         if (slider instanceof HTMLInputElement && Number.isFinite(rangeStart) && Number.isFinite(rangeEnd)) {
@@ -657,7 +661,7 @@ function createGroundTrackPanelActions(options = {}) {
         }
 
         setTimelineLocalText(`Local: ${formatLocalDateTime(activeTime)}`);
-        syncGroundTrackEventList(config, activeTime, rangeStart, rangeEnd);
+        syncGroundTrackEventList(config, activeTime, rangeStart, eventRangeEnd);
     }
 
     function updateModeButtons() {
