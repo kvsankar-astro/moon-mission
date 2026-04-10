@@ -333,7 +333,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--data-repo-slug",
-        default="kvsankar-astro/moon-mission-data",
+        default="kvsankar/moon-mission-data",
         help="GitHub repo slug for moon-mission-data links",
     )
     parser.add_argument(

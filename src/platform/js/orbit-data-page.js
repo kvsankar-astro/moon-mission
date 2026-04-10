@@ -1,6 +1,6 @@
 (function() {
     var LOCAL_DATA_URL = "assets/orbit-availability.json";
-    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar-astro/moon-mission/master/assets/orbit-availability.json";
+    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar/moon-mission/master/assets/orbit-availability.json";
     var sectionOrder = {
         "20th century": 0,
         "21st century": 1,

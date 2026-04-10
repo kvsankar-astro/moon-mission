@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
-  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar-astro/moon-mission-data' }}
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
   MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
 
 permissions:

@@ -32,7 +32,7 @@
   "mission_url": "https://www.kaguya.jaxa.jp/en/",
   "mission_description": "SELENE / Kaguya Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "selene, kaguya, jaxa, japan, moon, lunar, orbiter, animation, spice",
-  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

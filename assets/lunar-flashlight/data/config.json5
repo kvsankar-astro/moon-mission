@@ -30,7 +30,7 @@
   "mission_url": "https://www.nasa.gov/feature/jpl/nasa-s-lunar-flashlight-ready-to-search-for-the-moon-s-water-ice",
   "mission_description": "Lunar Flashlight Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, flashlight, lunar, mission, moon, orbit",
-  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

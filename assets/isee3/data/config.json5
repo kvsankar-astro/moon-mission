@@ -31,7 +31,7 @@
   "mission_url": "http://heasarc.gsfc.nasa.gov/docs/heasarc/missions/isee3.html",
   "mission_description": "ISEE-3 / ICE Lunar Encounter Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, isee3, ice, moon, flyby, orbit",
-  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

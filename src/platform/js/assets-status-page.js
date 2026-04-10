@@ -1,6 +1,6 @@
 (function() {
     var LOCAL_DATA_URL = "assets/assets-status.json";
-    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar-astro/moon-mission/master/assets/assets-status.json";
+    var RAW_DATA_URL = "https://raw.githubusercontent.com/kvsankar/moon-mission/master/assets/assets-status.json";
     var collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 
     var state = {

@@ -6,7 +6,7 @@
   "mission_url": "http://moon.mit.edu/",
   "mission_description": "GRAIL Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, ebb, flow, grail, mission, moon, orbit, twin",
-  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
+  "mission_github": "https://github.com/kvsankar/moon-mission",
   "primaryCraftId": "GRAA",
   "crafts": [
     {

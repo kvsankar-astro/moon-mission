@@ -12,9 +12,9 @@
       "path": "C:/sankar/projects/moon-mission-data",
       "gitCommit": "b10ab6d8a1d32a6f1394eeb6a1ec82725662a736",
       "gitBranch": "main",
-      "githubRepo": "kvsankar-astro/moon-mission-data",
+      "githubRepo": "kvsankar/moon-mission-data",
       "githubBranch": "main",
-      "githubUrl": "https://github.com/kvsankar-astro/moon-mission-data"
+      "githubUrl": "https://github.com/kvsankar/moon-mission-data"
     }
   },
   "totals": {
@@ -49,8 +49,8 @@
               "name": "geo-SNOOPY-cheb.json.gz",
               "sizeBytes": 55791,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/geo-SNOOPY-cheb.json.gz"
               }
             }
           ]
@@ -64,8 +64,8 @@
               "name": "lunar-SNOOPY-cheb.json.gz",
               "sizeBytes": 56110,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/lunar-SNOOPY-cheb.json.gz"
               }
             }
           ]
@@ -79,8 +79,8 @@
               "name": "relative-SNOOPY-cheb.json.gz",
               "sizeBytes": 60621,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-lm/data/relative-SNOOPY-cheb.json.gz"
               }
             }
           ]
@@ -111,8 +111,8 @@
               "name": "geo-A10S-cheb.json.gz",
               "sizeBytes": 110490,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/geo-A10S-cheb.json.gz"
               }
             }
           ]
@@ -126,8 +126,8 @@
               "name": "lunar-A10S-cheb.json.gz",
               "sizeBytes": 111374,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/lunar-A10S-cheb.json.gz"
               }
             }
           ]
@@ -141,8 +141,8 @@
               "name": "relative-A10S-cheb.json.gz",
               "sizeBytes": 119615,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo10-sivb/data/relative-A10S-cheb.json.gz"
               }
             }
           ]
@@ -173,8 +173,8 @@
               "name": "geo-SIVB-cheb.json.gz",
               "sizeBytes": 109314,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/geo-SIVB-cheb.json.gz"
               }
             }
           ]
@@ -188,8 +188,8 @@
               "name": "lunar-SIVB-cheb.json.gz",
               "sizeBytes": 110476,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/lunar-SIVB-cheb.json.gz"
               }
             }
           ]
@@ -203,8 +203,8 @@
               "name": "relative-SIVB-cheb.json.gz",
               "sizeBytes": 118616,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo11-sivb/data/relative-SIVB-cheb.json.gz"
               }
             }
           ]
@@ -235,8 +235,8 @@
               "name": "geo-A12S-cheb.json.gz",
               "sizeBytes": 342764,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/geo-A12S-cheb.json.gz"
               }
             }
           ]
@@ -250,8 +250,8 @@
               "name": "lunar-A12S-cheb.json.gz",
               "sizeBytes": 346586,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/lunar-A12S-cheb.json.gz"
               }
             }
           ]
@@ -265,8 +265,8 @@
               "name": "relative-A12S-cheb.json.gz",
               "sizeBytes": 371576,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo12-sivb/data/relative-A12S-cheb.json.gz"
               }
             }
           ]
@@ -297,8 +297,8 @@
               "name": "geo-A8S-cheb.json.gz",
               "sizeBytes": 110724,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/geo-A8S-cheb.json.gz"
               }
             }
           ]
@@ -312,8 +312,8 @@
               "name": "lunar-A8S-cheb.json.gz",
               "sizeBytes": 111458,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/lunar-A8S-cheb.json.gz"
               }
             }
           ]
@@ -327,8 +327,8 @@
               "name": "relative-A8S-cheb.json.gz",
               "sizeBytes": 120032,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo8-sivb/data/relative-A8S-cheb.json.gz"
               }
             }
           ]
@@ -359,8 +359,8 @@
               "name": "geo-A9S-cheb.json.gz",
               "sizeBytes": 109627,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/geo-A9S-cheb.json.gz"
               }
             }
           ]
@@ -374,8 +374,8 @@
               "name": "lunar-A9S-cheb.json.gz",
               "sizeBytes": 109734,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/lunar-A9S-cheb.json.gz"
               }
             }
           ]
@@ -389,8 +389,8 @@
               "name": "relative-A9S-cheb.json.gz",
               "sizeBytes": 118082,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/apollo9-sivb/data/relative-A9S-cheb.json.gz"
               }
             }
           ]
@@ -421,8 +421,8 @@
               "name": "geo-ARTP1-cheb.json.gz",
               "sizeBytes": 2643985,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis/data/geo-ARTP1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis/data/geo-ARTP1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/geo-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/geo-ARTP1-cheb.json.gz"
               }
             }
           ]
@@ -436,8 +436,8 @@
               "name": "lunar-ARTP1-cheb.json.gz",
               "sizeBytes": 2660671,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/lunar-ARTP1-cheb.json.gz"
               }
             }
           ]
@@ -451,8 +451,8 @@
               "name": "relative-ARTP1-cheb.json.gz",
               "sizeBytes": 2782406,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis/data/relative-ARTP1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis/data/relative-ARTP1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/relative-ARTP1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/relative-ARTP1-cheb.json.gz"
               }
             }
           ]
@@ -483,8 +483,8 @@
               "name": "geo-ORION-cheb.json.gz",
               "sizeBytes": 457763,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis1/data/geo-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis1/data/geo-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/geo-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/geo-ORION-cheb.json.gz"
               }
             }
           ]
@@ -498,8 +498,8 @@
               "name": "lunar-ORION-cheb.json.gz",
               "sizeBytes": 460324,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis1/data/lunar-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis1/data/lunar-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/lunar-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/lunar-ORION-cheb.json.gz"
               }
             }
           ]
@@ -513,8 +513,8 @@
               "name": "relative-ORION-cheb.json.gz",
               "sizeBytes": 491824,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis1/data/relative-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis1/data/relative-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis1/data/relative-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis1/data/relative-ORION-cheb.json.gz"
               }
             }
           ]
@@ -545,8 +545,8 @@
               "name": "geo-ORION-cheb.json.gz",
               "sizeBytes": 116190,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis2/data/geo-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis2/data/geo-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/geo-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/geo-ORION-cheb.json.gz"
               }
             }
           ]
@@ -560,8 +560,8 @@
               "name": "lunar-ORION-cheb.json.gz",
               "sizeBytes": 116965,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis2/data/lunar-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis2/data/lunar-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/lunar-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/lunar-ORION-cheb.json.gz"
               }
             }
           ]
@@ -575,8 +575,8 @@
               "name": "relative-ORION-cheb.json.gz",
               "sizeBytes": 124377,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/artemis2/data/relative-ORION-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/artemis2/data/relative-ORION-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/relative-ORION-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/relative-ORION-cheb.json.gz"
               }
             }
           ]
@@ -607,8 +607,8 @@
               "name": "geo-CAPS-cheb.json.gz",
               "sizeBytes": 1690929,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/capstone/data/geo-CAPS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/capstone/data/geo-CAPS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/geo-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/geo-CAPS-cheb.json.gz"
               }
             }
           ]
@@ -622,8 +622,8 @@
               "name": "lunar-CAPS-cheb.json.gz",
               "sizeBytes": 1717491,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/capstone/data/lunar-CAPS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/capstone/data/lunar-CAPS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/lunar-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/lunar-CAPS-cheb.json.gz"
               }
             }
           ]
@@ -637,8 +637,8 @@
               "name": "relative-CAPS-cheb.json.gz",
               "sizeBytes": 1846052,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/capstone/data/relative-CAPS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/capstone/data/relative-CAPS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/relative-CAPS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/relative-CAPS-cheb.json.gz"
               }
             }
           ]
@@ -669,8 +669,8 @@
               "name": "geo-CH1-bodies-cheb.json.gz",
               "sizeBytes": 63781,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz"
               }
             }
           ]
@@ -684,8 +684,8 @@
               "name": "lunar-CH1-bodies-cheb.json.gz",
               "sizeBytes": 62679,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz"
               }
             }
           ]
@@ -699,8 +699,8 @@
               "name": "relative-CH1-cheb.json.gz",
               "sizeBytes": 536399,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/relative-CH1-cheb.json.gz"
               }
             }
           ]
@@ -731,8 +731,8 @@
               "name": "geo-SC-cheb.json.gz",
               "sizeBytes": 1498335,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/geo-SC-cheb.json.gz"
               }
             }
           ]
@@ -746,8 +746,8 @@
               "name": "lunar-SC-cheb.json.gz",
               "sizeBytes": 1502181,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/lunar-SC-cheb.json.gz"
               }
             }
           ]
@@ -761,8 +761,8 @@
               "name": "relative-CY2-cheb.json.gz",
               "sizeBytes": 1580843,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan2/data/relative-CY2-cheb.json.gz"
               }
             }
           ]
@@ -825,8 +825,8 @@
               "name": "geo-CH3L-cheb.json.gz",
               "sizeBytes": 1544416,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3L-cheb.json.gz"
               }
             },
             {
@@ -834,8 +834,8 @@
               "name": "geo-CH3O-cheb.json.gz",
               "sizeBytes": 308319,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/geo-CH3O-cheb.json.gz"
               }
             }
           ]
@@ -849,8 +849,8 @@
               "name": "lunar-CH3L-cheb.json.gz",
               "sizeBytes": 1543145,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3L-cheb.json.gz"
               }
             },
             {
@@ -858,8 +858,8 @@
               "name": "lunar-CH3O-cheb.json.gz",
               "sizeBytes": 308782,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/lunar-CH3O-cheb.json.gz"
               }
             }
           ]
@@ -873,8 +873,8 @@
               "name": "relative-CH3L-cheb.json.gz",
               "sizeBytes": 1623077,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3L-cheb.json.gz"
               }
             },
             {
@@ -882,8 +882,8 @@
               "name": "relative-CH3O-cheb.json.gz",
               "sizeBytes": 270006,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan3/data/relative-CH3O-cheb.json.gz"
               }
             }
           ]
@@ -946,8 +946,8 @@
               "name": "geo-CLM-cheb.json.gz",
               "sizeBytes": 1103201,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/clementine/data/geo-CLM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/clementine/data/geo-CLM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/geo-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/geo-CLM-cheb.json.gz"
               }
             }
           ]
@@ -961,8 +961,8 @@
               "name": "lunar-CLM-cheb.json.gz",
               "sizeBytes": 1107906,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/clementine/data/lunar-CLM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/clementine/data/lunar-CLM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/lunar-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/lunar-CLM-cheb.json.gz"
               }
             }
           ]
@@ -976,8 +976,8 @@
               "name": "relative-CLM-cheb.json.gz",
               "sizeBytes": 1211072,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/clementine/data/relative-CLM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/clementine/data/relative-CLM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/clementine/data/relative-CLM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/clementine/data/relative-CLM-cheb.json.gz"
               }
             }
           ]
@@ -1008,8 +1008,8 @@
               "name": "geo-GRAA-cheb.json.gz",
               "sizeBytes": 2557436,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail/data/geo-GRAA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail/data/geo-GRAA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/geo-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/geo-GRAA-cheb.json.gz"
               }
             }
           ]
@@ -1023,8 +1023,8 @@
               "name": "lunar-GRAA-cheb.json.gz",
               "sizeBytes": 1891243,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail/data/lunar-GRAA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail/data/lunar-GRAA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/lunar-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/lunar-GRAA-cheb.json.gz"
               }
             }
           ]
@@ -1038,8 +1038,8 @@
               "name": "relative-GRAA-cheb.json.gz",
               "sizeBytes": 2733435,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail/data/relative-GRAA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail/data/relative-GRAA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail/data/relative-GRAA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail/data/relative-GRAA-cheb.json.gz"
               }
             }
           ]
@@ -1134,8 +1134,8 @@
               "name": "geo-GRSS-cheb.json.gz",
               "sizeBytes": 1694222,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/geo-GRSS-cheb.json.gz"
               }
             }
           ]
@@ -1149,8 +1149,8 @@
               "name": "lunar-GRSS-cheb.json.gz",
               "sizeBytes": 1716763,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/lunar-GRSS-cheb.json.gz"
               }
             }
           ]
@@ -1164,8 +1164,8 @@
               "name": "relative-GRSS-cheb.json.gz",
               "sizeBytes": 1847957,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/grail-ss-stage/data/relative-GRSS-cheb.json.gz"
               }
             }
           ]
@@ -1196,8 +1196,8 @@
               "name": "geo-HGS1-cheb.json.gz",
               "sizeBytes": 432083,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/hgs1/data/geo-HGS1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/hgs1/data/geo-HGS1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/geo-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/geo-HGS1-cheb.json.gz"
               }
             }
           ]
@@ -1211,8 +1211,8 @@
               "name": "lunar-HGS1-cheb.json.gz",
               "sizeBytes": 434004,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz"
               }
             }
           ]
@@ -1226,8 +1226,8 @@
               "name": "relative-HGS1-cheb.json.gz",
               "sizeBytes": 930202,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/hgs1/data/relative-HGS1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/hgs1/data/relative-HGS1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/relative-HGS1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/relative-HGS1-cheb.json.gz"
               }
             }
           ]
@@ -1258,8 +1258,8 @@
               "name": "geo-ICE-cheb.json.gz",
               "sizeBytes": 1690835,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/isee3/data/geo-ICE-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/isee3/data/geo-ICE-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/geo-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/geo-ICE-cheb.json.gz"
               }
             }
           ]
@@ -1273,8 +1273,8 @@
               "name": "lunar-ICE-cheb.json.gz",
               "sizeBytes": 1711739,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/isee3/data/lunar-ICE-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/isee3/data/lunar-ICE-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/lunar-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/lunar-ICE-cheb.json.gz"
               }
             }
           ]
@@ -1288,8 +1288,8 @@
               "name": "relative-ICE-cheb.json.gz",
               "sizeBytes": 1844058,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/isee3/data/relative-ICE-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/isee3/data/relative-ICE-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/isee3/data/relative-ICE-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/isee3/data/relative-ICE-cheb.json.gz"
               }
             }
           ]
@@ -1320,8 +1320,8 @@
               "name": "geo-JUI-cheb.json.gz",
               "sizeBytes": 1690404,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/juice/data/geo-JUI-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/juice/data/geo-JUI-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/geo-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/geo-JUI-cheb.json.gz"
               }
             }
           ]
@@ -1335,8 +1335,8 @@
               "name": "lunar-JUI-cheb.json.gz",
               "sizeBytes": 1712149,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/juice/data/lunar-JUI-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/juice/data/lunar-JUI-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/lunar-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/lunar-JUI-cheb.json.gz"
               }
             }
           ]
@@ -1350,8 +1350,8 @@
               "name": "relative-JUI-cheb.json.gz",
               "sizeBytes": 1845410,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/juice/data/relative-JUI-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/juice/data/relative-JUI-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/juice/data/relative-JUI-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/juice/data/relative-JUI-cheb.json.gz"
               }
             }
           ]
@@ -1382,8 +1382,8 @@
               "name": "geo-KPLO-cheb.json.gz",
               "sizeBytes": 3786486,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/geo-KPLO-cheb.json.gz"
               }
             }
           ]
@@ -1397,8 +1397,8 @@
               "name": "lunar-KPLO-cheb.json.gz",
               "sizeBytes": 3823809,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/lunar-KPLO-cheb.json.gz"
               }
             }
           ]
@@ -1412,8 +1412,8 @@
               "name": "relative-KPLO-cheb.json.gz",
               "sizeBytes": 4138574,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/kplo-danuri/data/relative-KPLO-cheb.json.gz"
               }
             }
           ]
@@ -1444,8 +1444,8 @@
               "name": "geo-LAD-cheb.json.gz",
               "sizeBytes": 2241148,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/ladee/data/geo-LAD-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/ladee/data/geo-LAD-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/geo-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/geo-LAD-cheb.json.gz"
               }
             }
           ]
@@ -1459,8 +1459,8 @@
               "name": "lunar-LAD-cheb.json.gz",
               "sizeBytes": 2255012,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/ladee/data/lunar-LAD-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/ladee/data/lunar-LAD-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/lunar-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/lunar-LAD-cheb.json.gz"
               }
             }
           ]
@@ -1474,8 +1474,8 @@
               "name": "relative-LAD-cheb.json.gz",
               "sizeBytes": 2462374,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/ladee/data/relative-LAD-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/ladee/data/relative-LAD-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/ladee/data/relative-LAD-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/ladee/data/relative-LAD-cheb.json.gz"
               }
             }
           ]
@@ -1506,8 +1506,8 @@
               "name": "geo-LCCN-cheb.json.gz",
               "sizeBytes": 6335,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/geo-LCCN-cheb.json.gz"
               }
             }
           ]
@@ -1521,8 +1521,8 @@
               "name": "lunar-LCCN-cheb.json.gz",
               "sizeBytes": 6331,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/lunar-LCCN-cheb.json.gz"
               }
             }
           ]
@@ -1536,8 +1536,8 @@
               "name": "relative-LCCN-cheb.json.gz",
               "sizeBytes": 8209,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-centaur/data/relative-LCCN-cheb.json.gz"
               }
             }
           ]
@@ -1568,8 +1568,8 @@
               "name": "geo-LCSH-cheb.json.gz",
               "sizeBytes": 1720482,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/geo-LCSH-cheb.json.gz"
               }
             }
           ]
@@ -1583,8 +1583,8 @@
               "name": "lunar-LCSH-cheb.json.gz",
               "sizeBytes": 1726676,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/lunar-LCSH-cheb.json.gz"
               }
             }
           ]
@@ -1598,8 +1598,8 @@
               "name": "relative-LCSH-cheb.json.gz",
               "sizeBytes": 1852990,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lcross-shepherd/data/relative-LCSH-cheb.json.gz"
               }
             }
           ]
@@ -1630,8 +1630,8 @@
               "name": "geo-LRO-cheb.json.gz",
               "sizeBytes": 2216405,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lro/data/geo-LRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lro/data/geo-LRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/geo-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/geo-LRO-cheb.json.gz"
               }
             }
           ]
@@ -1645,8 +1645,8 @@
               "name": "lunar-LRO-cheb.json.gz",
               "sizeBytes": 2229739,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lro/data/lunar-LRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lro/data/lunar-LRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/lunar-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/lunar-LRO-cheb.json.gz"
               }
             }
           ]
@@ -1660,8 +1660,8 @@
               "name": "relative-LRO-cheb.json.gz",
               "sizeBytes": 2434334,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lro/data/relative-LRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lro/data/relative-LRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lro/data/relative-LRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lro/data/relative-LRO-cheb.json.gz"
               }
             }
           ]
@@ -1692,8 +1692,8 @@
               "name": "geo-LFL-cheb.json.gz",
               "sizeBytes": 3411586,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/geo-LFL-cheb.json.gz"
               }
             }
           ]
@@ -1707,8 +1707,8 @@
               "name": "lunar-LFL-cheb.json.gz",
               "sizeBytes": 3461972,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/lunar-LFL-cheb.json.gz"
               }
             }
           ]
@@ -1722,8 +1722,8 @@
               "name": "relative-LFL-cheb.json.gz",
               "sizeBytes": 3717254,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-flashlight/data/relative-LFL-cheb.json.gz"
               }
             }
           ]
@@ -1754,8 +1754,8 @@
               "name": "geo-LPRO-cheb.json.gz",
               "sizeBytes": 262585,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/geo-LPRO-cheb.json.gz"
               }
             }
           ]
@@ -1769,8 +1769,8 @@
               "name": "lunar-LPRO-cheb.json.gz",
               "sizeBytes": 264289,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/lunar-LPRO-cheb.json.gz"
               }
             }
           ]
@@ -1784,8 +1784,8 @@
               "name": "relative-LPRO-cheb.json.gz",
               "sizeBytes": 285088,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-prospector/data/relative-LPRO-cheb.json.gz"
               }
             }
           ]
@@ -1816,8 +1816,8 @@
               "name": "geo-LTB-cheb.json.gz",
               "sizeBytes": 1680654,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/geo-LTB-cheb.json.gz"
               }
             }
           ]
@@ -1831,8 +1831,8 @@
               "name": "lunar-LTB-cheb.json.gz",
               "sizeBytes": 1703593,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/lunar-LTB-cheb.json.gz"
               }
             }
           ]
@@ -1846,8 +1846,8 @@
               "name": "relative-LTB-cheb.json.gz",
               "sizeBytes": 1844552,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunar-trailblazer/data/relative-LTB-cheb.json.gz"
               }
             }
           ]
@@ -1878,8 +1878,8 @@
               "name": "geo-LO1-cheb.json.gz",
               "sizeBytes": 425586,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/geo-LO1-cheb.json.gz"
               }
             }
           ]
@@ -1893,8 +1893,8 @@
               "name": "lunar-LO1-cheb.json.gz",
               "sizeBytes": 427639,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/lunar-LO1-cheb.json.gz"
               }
             }
           ]
@@ -1908,8 +1908,8 @@
               "name": "relative-LO1-cheb.json.gz",
               "sizeBytes": 862075,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/lunarorbiter1/data/relative-LO1-cheb.json.gz"
               }
             }
           ]
@@ -1940,8 +1940,8 @@
               "name": "geo-NOZ-cheb.json.gz",
               "sizeBytes": 1686139,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/nozomi/data/geo-NOZ-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/nozomi/data/geo-NOZ-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/geo-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/geo-NOZ-cheb.json.gz"
               }
             }
           ]
@@ -1955,8 +1955,8 @@
               "name": "lunar-NOZ-cheb.json.gz",
               "sizeBytes": 1699659,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/lunar-NOZ-cheb.json.gz"
               }
             }
           ]
@@ -1970,8 +1970,8 @@
               "name": "relative-NOZ-cheb.json.gz",
               "sizeBytes": 1846070,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/nozomi/data/relative-NOZ-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/nozomi/data/relative-NOZ-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/nozomi/data/relative-NOZ-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/nozomi/data/relative-NOZ-cheb.json.gz"
               }
             }
           ]
@@ -2002,8 +2002,8 @@
               "name": "geo-SEL-cheb.json.gz",
               "sizeBytes": 8601567,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/selene/data/geo-SEL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/selene/data/geo-SEL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/geo-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/geo-SEL-cheb.json.gz"
               }
             }
           ]
@@ -2017,8 +2017,8 @@
               "name": "lunar-SEL-cheb.json.gz",
               "sizeBytes": 8641944,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/selene/data/lunar-SEL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/selene/data/lunar-SEL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/lunar-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/lunar-SEL-cheb.json.gz"
               }
             }
           ]
@@ -2032,8 +2032,8 @@
               "name": "relative-SEL-cheb.json.gz",
               "sizeBytes": 15320620,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/selene/data/relative-SEL-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/selene/data/relative-SEL-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/selene/data/relative-SEL-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/selene/data/relative-SEL-cheb.json.gz"
               }
             }
           ]
@@ -2064,8 +2064,8 @@
               "name": "geo-SLIM-cheb.json.gz",
               "sizeBytes": 1866952,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/slim/data/geo-SLIM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/slim/data/geo-SLIM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/geo-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/geo-SLIM-cheb.json.gz"
               }
             }
           ]
@@ -2079,8 +2079,8 @@
               "name": "lunar-SLIM-cheb.json.gz",
               "sizeBytes": 1881244,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/slim/data/lunar-SLIM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/slim/data/lunar-SLIM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/lunar-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/lunar-SLIM-cheb.json.gz"
               }
             }
           ]
@@ -2094,8 +2094,8 @@
               "name": "relative-SLIM-cheb.json.gz",
               "sizeBytes": 2022661,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/slim/data/relative-SLIM-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/slim/data/relative-SLIM-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/slim/data/relative-SLIM-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/slim/data/relative-SLIM-cheb.json.gz"
               }
             }
           ]
@@ -2126,8 +2126,8 @@
               "name": "geo-SM1-cheb.json.gz",
               "sizeBytes": 6159033,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/smart1/data/geo-SM1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/smart1/data/geo-SM1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/geo-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/geo-SM1-cheb.json.gz"
               }
             }
           ]
@@ -2141,8 +2141,8 @@
               "name": "lunar-SM1-cheb.json.gz",
               "sizeBytes": 6187605,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/smart1/data/lunar-SM1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/smart1/data/lunar-SM1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/lunar-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/lunar-SM1-cheb.json.gz"
               }
             }
           ]
@@ -2156,8 +2156,8 @@
               "name": "relative-SM1-cheb.json.gz",
               "sizeBytes": 12618972,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/smart1/data/relative-SM1-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/smart1/data/relative-SM1-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/smart1/data/relative-SM1-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/smart1/data/relative-SM1-cheb.json.gz"
               }
             }
           ]
@@ -2188,8 +2188,8 @@
               "name": "geo-STRA-cheb.json.gz",
               "sizeBytes": 2574566,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/stereo/data/geo-STRA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/stereo/data/geo-STRA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/geo-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/geo-STRA-cheb.json.gz"
               }
             }
           ]
@@ -2203,8 +2203,8 @@
               "name": "lunar-STRA-cheb.json.gz",
               "sizeBytes": 2595295,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/stereo/data/lunar-STRA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/stereo/data/lunar-STRA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/lunar-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/lunar-STRA-cheb.json.gz"
               }
             }
           ]
@@ -2218,8 +2218,8 @@
               "name": "relative-STRA-cheb.json.gz",
               "sizeBytes": 2724533,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/stereo/data/relative-STRA-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/stereo/data/relative-STRA-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/stereo/data/relative-STRA-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/stereo/data/relative-STRA-cheb.json.gz"
               }
             }
           ]
@@ -2250,8 +2250,8 @@
               "name": "geo-TESS-cheb.json.gz",
               "sizeBytes": 1740034,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/tess/data/geo-TESS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/tess/data/geo-TESS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/geo-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/geo-TESS-cheb.json.gz"
               }
             }
           ]
@@ -2265,8 +2265,8 @@
               "name": "lunar-TESS-cheb.json.gz",
               "sizeBytes": 1747029,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/tess/data/lunar-TESS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/tess/data/lunar-TESS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/lunar-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/lunar-TESS-cheb.json.gz"
               }
             }
           ]
@@ -2280,8 +2280,8 @@
               "name": "relative-TESS-cheb.json.gz",
               "sizeBytes": 1869100,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/tess/data/relative-TESS-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/tess/data/relative-TESS-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/tess/data/relative-TESS-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/tess/data/relative-TESS-cheb.json.gz"
               }
             }
           ]
@@ -2312,8 +2312,8 @@
               "name": "geo-WIND-cheb.json.gz",
               "sizeBytes": 1779844,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wind/data/geo-WIND-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wind/data/geo-WIND-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/geo-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/geo-WIND-cheb.json.gz"
               }
             }
           ]
@@ -2327,8 +2327,8 @@
               "name": "lunar-WIND-cheb.json.gz",
               "sizeBytes": 1790741,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wind/data/lunar-WIND-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wind/data/lunar-WIND-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/lunar-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/lunar-WIND-cheb.json.gz"
               }
             }
           ]
@@ -2342,8 +2342,8 @@
               "name": "relative-WIND-cheb.json.gz",
               "sizeBytes": 1915440,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wind/data/relative-WIND-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wind/data/relative-WIND-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wind/data/relative-WIND-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wind/data/relative-WIND-cheb.json.gz"
               }
             }
           ]
@@ -2374,8 +2374,8 @@
               "name": "geo-WMAP-cheb.json.gz",
               "sizeBytes": 1707164,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wmap/data/geo-WMAP-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wmap/data/geo-WMAP-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/geo-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/geo-WMAP-cheb.json.gz"
               }
             }
           ]
@@ -2389,8 +2389,8 @@
               "name": "lunar-WMAP-cheb.json.gz",
               "sizeBytes": 1724574,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wmap/data/lunar-WMAP-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wmap/data/lunar-WMAP-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/lunar-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/lunar-WMAP-cheb.json.gz"
               }
             }
           ]
@@ -2404,8 +2404,8 @@
               "name": "relative-WMAP-cheb.json.gz",
               "sizeBytes": 1852287,
               "urls": {
-                "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/assets/wmap/data/relative-WMAP-cheb.json.gz",
-                "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/assets/wmap/data/relative-WMAP-cheb.json.gz"
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/wmap/data/relative-WMAP-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/wmap/data/relative-WMAP-cheb.json.gz"
               }
             }
           ]
@@ -2428,8 +2428,8 @@
             "name": "2_no_clouds_8k.jpg",
             "sizeBytes": 9517350,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/earth/2_no_clouds_8k.jpg",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/earth/2_no_clouds_8k.jpg"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/earth/2_no_clouds_8k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/earth/2_no_clouds_8k.jpg"
             }
           },
           {
@@ -2437,8 +2437,8 @@
             "name": "earthspec1k.jpg",
             "sizeBytes": 116543,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/earth/earthspec1k.jpg",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/earth/earthspec1k.jpg"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/earth/earthspec1k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/earth/earthspec1k.jpg"
             }
           },
           {
@@ -2446,8 +2446,8 @@
             "name": "ldem_16_gsfc.png",
             "sizeBytes": 5023158,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/moon/ldem_16_gsfc.png",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/moon/ldem_16_gsfc.png"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/moon/ldem_16_gsfc.png",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/moon/ldem_16_gsfc.png"
             }
           },
           {
@@ -2455,8 +2455,8 @@
             "name": "Solarsystemscope_texture_8k_moon.jpg",
             "sizeBytes": 15030356,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/moon/Solarsystemscope_texture_8k_moon.jpg",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/moon/Solarsystemscope_texture_8k_moon.jpg"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/moon/Solarsystemscope_texture_8k_moon.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/moon/Solarsystemscope_texture_8k_moon.jpg"
             }
           },
           {
@@ -2464,8 +2464,8 @@
             "name": "constellation_figures_2020_4k.jpg",
             "sizeBytes": 516113,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/sky/constellation_figures_2020_4k.jpg",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/sky/constellation_figures_2020_4k.jpg"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/constellation_figures_2020_4k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/constellation_figures_2020_4k.jpg"
             }
           },
           {
@@ -2473,8 +2473,8 @@
             "name": "starmap_2020_4k_stars.jpg",
             "sizeBytes": 1875078,
             "urls": {
-              "blob": "https://github.com/kvsankar-astro/moon-mission-data/blob/main/images/sky/starmap_2020_4k_stars.jpg",
-              "raw": "https://raw.githubusercontent.com/kvsankar-astro/moon-mission-data/main/images/sky/starmap_2020_4k_stars.jpg"
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/starmap_2020_4k_stars.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/starmap_2020_4k_stars.jpg"
             }
           }
         ]

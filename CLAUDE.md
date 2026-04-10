@@ -63,7 +63,7 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 
 ## Data staging
 
-Deploy/test workflows stage runtime data from `kvsankar-astro/moon-mission-data` (or repo variable override) via:
+Deploy/test workflows stage runtime data from `kvsankar/moon-mission-data` (or repo variable override) via:
 
 - `scripts/stage-ephemeris-data.py`
 
