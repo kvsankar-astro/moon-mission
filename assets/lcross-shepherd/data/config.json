@@ -6,7 +6,7 @@
   "mission_url": "https://www.nasa.gov/mission_pages/LCROSS/overview/index.html",
   "mission_description": "LCROSS Shepherd Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, lcross, mission, moon, orbit, shepherd",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

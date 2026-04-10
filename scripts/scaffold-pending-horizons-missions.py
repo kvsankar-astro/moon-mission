@@ -409,7 +409,7 @@ def main() -> None:
             "mission_url": mission_url,
             "mission_description": f"{mission_name} Orbit Animation by Sankar Viswanathan",
             "mission_keywords": ", ".join(sorted(set((slug.replace("-", " ") + " moon mission orbit animation").split()))),
-            "mission_github": "https://github.com/kvsankar/moon-mission",
+            "mission_github": "https://github.com/kvsankar-astro/moon-mission",
             "ephemeris_source": "chebyshev",
             "ephemeris_sources": {
                 "SC": "chebyshev",

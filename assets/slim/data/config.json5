@@ -31,7 +31,7 @@
   "mission_url": "https://www.isas.jaxa.jp/home/slim/SLIM/index.html",
   "mission_description": "SLIM Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, mission, moon, orbit, slim",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

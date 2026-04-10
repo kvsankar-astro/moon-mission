@@ -150,7 +150,7 @@ CI workflows stage runtime mission assets from a separate data repository before
 
 By default workflows use:
 
-- `MISSION_DATA_REPO = kvsankar/moon-mission-data`
+- `MISSION_DATA_REPO = kvsankar-astro/moon-mission-data`
 - `MISSION_DATA_REF = main`
 
 You can override these via GitHub repository variables with the same names. No extra token is needed when the data repo is public.

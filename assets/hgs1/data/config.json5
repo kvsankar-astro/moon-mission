@@ -30,7 +30,7 @@
   "mission_url": "",
   "mission_description": "HGS-1 Lunar Flyby Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, hgs1, moon, flyby, gravity assist, orbit",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

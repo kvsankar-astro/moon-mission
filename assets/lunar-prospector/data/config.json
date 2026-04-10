@@ -6,7 +6,7 @@
   "mission_url": "http://lunarprospector.arc.nasa.gov/",
   "mission_description": "Lunar Prospector Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, lunar, mission, moon, orbit, prospector",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

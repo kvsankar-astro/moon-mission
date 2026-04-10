@@ -14,7 +14,7 @@ concurrency:
 
 env:
   SITE_URL: "https://kvsankar.github.io/moon-mission/"
-  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar-astro/moon-mission-data' }}
   MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
 
 jobs:

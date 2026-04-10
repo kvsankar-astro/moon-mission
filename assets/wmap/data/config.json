@@ -6,7 +6,7 @@
   "mission_url": "http://map.gsfc.nasa.gov/",
   "mission_description": "WMAP Lunar Swingby and L2 Transfer Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, wmap, nasa, mission, moon, orbit, l2, swingby",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

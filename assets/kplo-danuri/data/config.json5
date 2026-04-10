@@ -30,7 +30,7 @@
   "mission_url": "https://www.kari.re.kr/eng/sub03_07_01.do",
   "mission_description": "KPLO Danuri Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, danuri, kplo, mission, moon, orbit",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

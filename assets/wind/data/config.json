@@ -6,7 +6,7 @@
   "mission_url": "https://wind.nasa.gov/",
   "mission_description": "Wind Lunar Swingby Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "animation, wind, heliophysics, mission, moon, orbit, swingby",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",

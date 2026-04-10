@@ -6,7 +6,7 @@
   "mission_url": "https://www.nasa.gov/mission/lunar-orbiter-1/",
   "mission_description": "Lunar Orbiter 1 Orbit Animation by Sankar Viswanathan",
   "mission_keywords": "lunar orbiter 1, lo1, nasa, moon, lunar, orbiter, animation, spice",
-  "mission_github": "https://github.com/kvsankar/moon-mission",
+  "mission_github": "https://github.com/kvsankar-astro/moon-mission",
   "ephemeris_source": "chebyshev",
   "ephemeris_sources": {
     "SC": "chebyshev",
