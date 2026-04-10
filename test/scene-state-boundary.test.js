@@ -128,6 +128,11 @@ const ONE_MINUTE_MS = 60_000;
 const missions = discoverMissions();
 
 describe("scene-state boundary sweep", () => {
+    if (missions.length === 0) {
+        it.skip("no local mission Chebyshev files found for boundary sweep", () => {});
+        return;
+    }
+
     for (const mission of missions) {
         describe(mission.name, () => {
             let config;
