@@ -710,10 +710,104 @@ export function bindMainControls(handlers) {
     const locatorsPill = typeof document !== "undefined"
         ? document.getElementById("locators-pill")
         : null;
+    const flybyPill = typeof document !== "undefined"
+        ? document.getElementById("flyby-pill")
+        : null;
+    const flybyPillWrap = typeof document !== "undefined"
+        ? document.getElementById("flyby-pill-wrap")
+        : null;
+    const joyRideToggle = typeof document !== "undefined"
+        ? document.getElementById("joyride")
+        : null;
+    const planePillPairs = [
+        ["plane-pill-default", "checkbox-lock-default"],
+        ["plane-pill-xy", "checkbox-lock-xy"],
+        ["plane-pill-yz", "checkbox-lock-yz"],
+        ["plane-pill-zx", "checkbox-lock-zx"],
+        ["plane-pill-xy-minus", "checkbox-lock-xy-minus"],
+        ["plane-pill-yz-minus", "checkbox-lock-yz-minus"],
+        ["plane-pill-zx-minus", "checkbox-lock-zx-minus"],
+    ];
+    const followPillPairs = [
+        ["follow-pill-earth", "earth"],
+        ["follow-pill-moon", "moon"],
+        ["follow-pill-craft", "spacecraft"],
+    ];
+    const viewPillPairs = [
+        ["view-pill-free", "manual", "manual"],
+        ["view-pill-earth-moon", "earth", "moon"],
+        ["view-pill-moon-earth", "moon", "earth"],
+        ["view-pill-craft-moon", "spacecraft", "moon"],
+        ["view-pill-craft-earth", "spacecraft", "earth"],
+    ];
 
     const syncLocatorsPillState = () => {
         if (!locatorsPill || !bodyHaloToggle) return;
         locatorsPill.setAttribute("aria-pressed", bodyHaloToggle.checked ? "true" : "false");
+    };
+    const syncPlanePillState = () => {
+        planePillPairs.forEach(([pillId, inputId]) => {
+            const pill = document.getElementById(pillId);
+            const input = document.getElementById(inputId);
+            if (!pill || !input) return;
+            const isActive = input.checked === true;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const isArtemis2Mission = () => {
+        if (typeof window === "undefined") return false;
+        try {
+            const params = new URLSearchParams(window.location.search || "");
+            const mission = String(params.get("mission") || "").trim().toLowerCase();
+            return mission === "artemis2";
+        } catch {
+            return false;
+        }
+    };
+    const syncFlybyPillVisibility = () => {
+        if (!flybyPillWrap) return;
+        const visible = isArtemis2Mission();
+        flybyPillWrap.hidden = !visible;
+    };
+    const syncFlybyPillState = () => {
+        if (!flybyPill || !joyRideToggle) return;
+        const isActive = joyRideToggle.checked === true;
+        flybyPill.classList.toggle("is-active", isActive);
+        flybyPill.setAttribute("aria-pressed", isActive ? "true" : "false");
+    };
+    const getSelectedCameraPillValue = (name) => {
+        const selected = document.querySelector(`input[name="${name}"]:checked`);
+        return selected?.value || "manual";
+    };
+    const setCameraPillValue = (name, value) => {
+        const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (!input) return;
+        if (!input.checked) {
+            input.click();
+        }
+    };
+    const syncFollowPillState = () => {
+        const positionValue = getSelectedCameraPillValue("camera-position-pill");
+        const lookValue = getSelectedCameraPillValue("camera-look-pill");
+        followPillPairs.forEach(([pillId, value]) => {
+            const pill = document.getElementById(pillId);
+            if (!pill) return;
+            const isActive = positionValue === "manual" && lookValue === value;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const syncViewPillState = () => {
+        const positionValue = getSelectedCameraPillValue("camera-position-pill");
+        const lookValue = getSelectedCameraPillValue("camera-look-pill");
+        viewPillPairs.forEach(([pillId, position, look]) => {
+            const pill = document.getElementById(pillId);
+            if (!pill) return;
+            const isActive = positionValue === position && lookValue === look;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
     };
     const isMobileViewsOrComposeTab = () => {
         if (typeof window === "undefined" || window.innerWidth > 600) return false;
@@ -786,6 +880,7 @@ export function bindMainControls(handlers) {
     }
     onClick("joyride", toggleJoyRide);
     onClick("joyridebutton", toggleJoyRide);
+    onClick("flyby-pill", toggleJoyRide);
     onClick("landing", toggleLanding);
     onClick("landingbutton", toggleLanding);
 
@@ -795,7 +890,61 @@ export function bindMainControls(handlers) {
         bodyHaloToggle.checked = !bodyHaloToggle.checked;
         setViewAndSyncLocators();
     });
+    followPillPairs.forEach(([pillId, value]) => {
+        const pill = document.getElementById(pillId);
+        if (!pill) return;
+        pill.addEventListener("click", function () {
+            const positionValue = getSelectedCameraPillValue("camera-position-pill");
+            const lookValue = getSelectedCameraPillValue("camera-look-pill");
+            const isAlreadyActive = positionValue === "manual" && lookValue === value;
+            setCameraPillValue("camera-position-pill", "manual");
+            setCameraPillValue("camera-look-pill", isAlreadyActive ? "manual" : value);
+            syncFollowPillState();
+            syncViewPillState();
+        });
+    });
+    viewPillPairs.forEach(([pillId, position, look]) => {
+        const pill = document.getElementById(pillId);
+        if (!pill) return;
+        pill.addEventListener("click", function () {
+            const positionValue = getSelectedCameraPillValue("camera-position-pill");
+            const lookValue = getSelectedCameraPillValue("camera-look-pill");
+            const isAlreadyActive = positionValue === position && lookValue === look;
+            const nextPosition = isAlreadyActive ? "manual" : position;
+            const nextLook = isAlreadyActive ? "manual" : look;
+            setCameraPillValue("camera-position-pill", nextPosition);
+            setCameraPillValue("camera-look-pill", nextLook);
+            syncFollowPillState();
+            syncViewPillState();
+        });
+    });
+    document.querySelectorAll('input[name="camera-position-pill"], input[name="camera-look-pill"]')
+        .forEach((input) => input.addEventListener("change", function () {
+            syncFollowPillState();
+            syncViewPillState();
+        }));
+    if (joyRideToggle) {
+        joyRideToggle.addEventListener("change", syncFlybyPillState);
+    }
+    planePillPairs.forEach(([pillId, inputId]) => {
+        const pill = document.getElementById(pillId);
+        const input = document.getElementById(inputId);
+        if (pill && input) {
+            pill.addEventListener("click", function () {
+                if (!input.checked) {
+                    input.click();
+                }
+                syncPlanePillState();
+            });
+            input.addEventListener("change", syncPlanePillState);
+        }
+    });
+    syncFlybyPillVisibility();
+    syncFlybyPillState();
     syncLocatorsPillState();
+    syncFollowPillState();
+    syncViewPillState();
+    syncPlanePillState();
 }
 
 export function bindKeyboardShortcuts() {

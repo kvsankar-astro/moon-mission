@@ -933,6 +933,11 @@ canvas {
     background: rgba(10, 17, 29, 0.95);
 }
 
+/* Flyby is now controlled from the header pill strip; hide legacy chip button. */
+.aux-camera-chip--composer-tab {
+    display: none !important;
+}
+
 .aux-camera-chip__teaser-title {
     display: flex;
     align-items: center;
@@ -2224,16 +2229,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
       display: none;
     }
 
-    #locators-pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        top: 6px;
-        min-width: 86px;
-        height: 26px;
-        padding: 0 12px;
-        font-size: 10px;
-        z-index: 24;
+    #header-pill-strip {
+        display: none;
     }
 
     #control-panel {

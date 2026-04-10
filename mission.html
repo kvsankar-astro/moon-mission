@@ -809,14 +809,6 @@
             <div class="navbar flex-container">
 
                 <button id="settings-panel-button" type="button" aria-expanded="false" aria-label="Toggle settings panel" title="Settings">&#9776;</button>
-                <button
-                    id="locators-pill"
-                    type="button"
-                    aria-pressed="true"
-                    title="Toggle body locators"
-                >
-                    Locators
-                </button>
                 
                 <div id="blurb" class="blurb">
                     <h1 class="mission-breadcrumb">
@@ -844,6 +836,59 @@
                     FPS: 0
                 </div>
     
+            </div>
+
+            <div id="header-pill-strip" class="header-pill-strip" aria-label="Locator and plane controls">
+                <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Flyby control">
+                    <button
+                        id="flyby-pill"
+                        type="button"
+                        class="header-pill-segment__btn"
+                        aria-pressed="false"
+                        title="Toggle Flyby view"
+                    >
+                        Flyby
+                    </button>
+                </div>
+                <button
+                    id="locators-pill"
+                    type="button"
+                    class="header-pill header-pill--locators"
+                    aria-pressed="true"
+                    title="Toggle body locators"
+                >
+                    Locators
+                </button>
+                <div class="header-pill-group" role="group" aria-label="Follow target">
+                    <span class="header-pill-group__label">Follow</span>
+                    <div class="header-pill-segment" role="group" aria-label="Follow target options">
+                        <button id="follow-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Earth (Manual → Earth)">Earth</button>
+                        <button id="follow-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Moon (Manual → Moon)">Moon</button>
+                        <button id="follow-pill-craft" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Craft (Manual → Craft)">Craft</button>
+                    </div>
+                </div>
+                <div class="header-pill-group" role="group" aria-label="View preset">
+                    <span class="header-pill-group__label">View</span>
+                    <div class="header-pill-segment" role="group" aria-label="View preset options">
+                        <button id="view-pill-free" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Free (Manual → Manual)">Free</button>
+                        <button id="view-pill-earth-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Earth → Moon">E→M</button>
+                        <button id="view-pill-moon-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Moon → Earth">M→E</button>
+                        <button id="view-pill-craft-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Moon">C→M</button>
+                        <button id="view-pill-craft-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Earth">C→E</button>
+                    </div>
+                </div>
+                <div class="header-pill-group" role="group" aria-label="Plane orientation">
+                    <span class="header-pill-group__label">Plane</span>
+                    <div class="header-pill-segment" role="group" aria-label="Plane orientation options">
+                        <button id="plane-pill-default" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Default plane">Default</button>
+                        <button id="plane-pill-xy" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY plane">XY</button>
+                        <button id="plane-pill-yz" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ plane">YZ</button>
+                        <button id="plane-pill-zx" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX plane">ZX</button>
+                        <button id="plane-pill-xy-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY minus plane">XY-</button>
+                        <button id="plane-pill-yz-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ minus plane">YZ-</button>
+                        <button id="plane-pill-zx-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX minus plane">ZX-</button>
+                    </div>
+                </div>
             </div>
     
             <div id="settings-panel" class="settings-panel">

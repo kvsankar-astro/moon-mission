@@ -75,6 +75,7 @@ export function createModeActions({
         }
 
         toggleButtonDownState("joyridebutton", transitionPlan.controlStates.joyRide);
+        toggleButtonDownState("flyby-pill", transitionPlan.controlStates.joyRide);
         toggleButtonDownState("landingbutton", transitionPlan.controlStates.landing);
         setChecked("joyride", transitionPlan.controlStates.joyRide);
         setChecked("landing", transitionPlan.controlStates.landing);
