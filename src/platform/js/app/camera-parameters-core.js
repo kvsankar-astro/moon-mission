@@ -12,6 +12,7 @@ export function computeSceneCameraParameters({
     controllerDistance,
     defaultCameraDistance,
 }) {
+    const requestedPlaneSelection = planeSelection;
     const originKey = isRelativeMode ? "relative" : missionConfig;
     const preferredDistance = computePreferredCameraDistance({
         missionConfig,
@@ -35,7 +36,10 @@ export function computeSceneCameraParameters({
         };
     }
 
-    const cameraDistance = isInitialization
+    const shouldResetRelativeDefaultDistance =
+        isRelativeMode && requestedPlaneSelection === "DEFAULT";
+
+    const cameraDistance = isInitialization || shouldResetRelativeDefaultDistance
         ? preferredDistance.magnitude
         : controllerDistance !== null && controllerDistance > 0
             ? controllerDistance
