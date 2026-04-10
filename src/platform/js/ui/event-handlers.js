@@ -956,6 +956,22 @@ export function bindMainControls(handlers) {
         const activeTab = document.body?.dataset?.mobileActiveTab || "";
         return activeTab === "views" || activeTab === "compose";
     };
+    const syncHeaderPillStripCollapseUi = (collapsed) => {
+        const strip = document.getElementById("header-pill-strip");
+        const toggle = document.getElementById("header-pill-strip-toggle");
+        if (!strip || !toggle) return;
+        strip.classList.toggle("header-pill-strip--collapsed", !!collapsed);
+        toggle.textContent = collapsed ? "›" : "‹";
+        toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+        toggle.setAttribute(
+            "aria-label",
+            collapsed ? "Expand mission controls" : "Collapse mission controls",
+        );
+        toggle.setAttribute(
+            "title",
+            collapsed ? "Expand mission controls" : "Collapse mission controls",
+        );
+    };
     const enforceMobileLocatorTabPolicy = () => {
         if (!bodyHaloToggle) return;
         // Mobile Views/Compose never show locators.
@@ -1150,6 +1166,12 @@ export function bindMainControls(handlers) {
             syncLandingPillState();
         });
     }
+    onClick("header-pill-strip-toggle", function () {
+        const strip = document.getElementById("header-pill-strip");
+        if (!strip) return;
+        const collapsed = !strip.classList.contains("header-pill-strip--collapsed");
+        syncHeaderPillStripCollapseUi(collapsed);
+    });
     planePillPairs.forEach(([pillId, inputId]) => {
         const pill = document.getElementById(pillId);
         const input = document.getElementById(inputId);
@@ -1175,6 +1197,7 @@ export function bindMainControls(handlers) {
     syncLandingPillState();
     syncDimensionPillState();
     syncPlanePillState();
+    syncHeaderPillStripCollapseUi(false);
 }
 
 export function bindKeyboardShortcuts() {
