@@ -12,8 +12,10 @@ export function computeSceneCameraParameters({
     controllerDistance,
     defaultCameraDistance,
 }) {
+    const originKey = isRelativeMode ? "relative" : missionConfig;
     const preferredDistance = computePreferredCameraDistance({
         missionConfig,
+        originKey,
         defaultCameraDistance,
         globalConfig,
     });

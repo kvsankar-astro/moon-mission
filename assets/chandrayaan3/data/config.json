@@ -95,7 +95,57 @@
     "headerTitle": "Chandrayaan 3",
     "lockOnLabel": "Vikram",
     "orbitLabel": "Vikram Orbit",
-    "descentOrbitLabel": "Vikram Descent Orbit"
+    "descentOrbitLabel": "Vikram Descent Orbit",
+    "cameraDefaults": {
+      "geo": {
+        "desktop": {
+          "positionScale": {
+            "x": -0.1666666667,
+            "y": -0.0333333333,
+            "z": 0.0416666667
+          }
+        },
+        "mobile": {
+          "positionScale": {
+            "x": -0.1666666667,
+            "y": -0.0333333333,
+            "z": 0.0416666667
+          }
+        }
+      },
+      "lunar": {
+        "desktop": {
+          "positionScale": {
+            "x": -0.0104166667,
+            "y": -0.0104166667,
+            "z": -0.0104166667
+          }
+        },
+        "mobile": {
+          "positionScale": {
+            "x": -0.0104166667,
+            "y": -0.0104166667,
+            "z": -0.0104166667
+          }
+        }
+      },
+      "relative": {
+        "desktop": {
+          "positionScale": {
+            "x": -0.0104166667,
+            "y": -0.0104166667,
+            "z": -0.0104166667
+          }
+        },
+        "mobile": {
+          "positionScale": {
+            "x": -0.0104166667,
+            "y": -0.0104166667,
+            "z": -0.0104166667
+          }
+        }
+      }
+    }
   },
   "is_lunar": true,
   "origins": [
