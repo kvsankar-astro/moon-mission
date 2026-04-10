@@ -2,12 +2,12 @@ API VERSION: 1.2
 API SOURCE: NASA/JPL Horizons API
 
 *******************************************************************************
- Revised: Apr 06, 2026        Artemis II / Spacecraft (Earth)             -1024
-          06:42 UTC       https://www.nasa.gov/mission/artemis-ii/
+ Revised: Apr 10, 2026        Artemis II / Spacecraft (Earth)             -1024
+          06:19 UTC       https://www.nasa.gov/mission/artemis-ii/
                          https://www.nasa.gov/artemis-ii-press-kit/
 
  BACKGROUND:
-  Four astronauts will fly aboard NASA's Orion spacecraft to confirm the 
+  Four astronauts will fly aboard NASA's Orion 2 spacecraft to confirm the 
   spacecraft's systems operate as designed in preparation for a sustained 
   human presence on the Moon. 
 
@@ -22,7 +22,7 @@ API SOURCE: NASA/JPL Horizons API
 
  MAJOR EVENTS:
   Launched April 1 @ 22:35:12 UTC from pad LC-39B at the Kennedy Space 
-  Center, USA.  Mission length is 10 days.
+  Center, USA.  Mission length is 9 days.
 
   MET column below gives timings of major dynamical events RELATIVE TO LAUNCH.
   Format is "days/HH:MM:SS" since launch. Given launch time, MET converted to 
@@ -52,29 +52,33 @@ API SOURCE: NASA/JPL Horizons API
     launch + 4/04:28:05 6 03:03:17 - Begin trajectory correction burn #3 (OTC-3)
              4/04:28:23 6 03:03:35   End OTC-3 (18 sec, delta-v 3 m/s)
              4/07:03:32 6 05:38:44 - Orion enters lunar SOI, 62800 km from Moon
-                                      (Hill sphere definition)
+                                      center (Hill sphere definition)
   Day 6
-    launch + 5/00:26    6 23:01    - Closest approach to the Moon  (8282.5 km)
-             5/00:30    6 23:05    - Maximum distance from Earth (413146.2 km)
+    launch + 5/00:26    6 23:01    - Closest approach to Moon center (8282 km)
+             5/00:30    6 23:05    - Maximum distance Earth center (413146.2 km)
   Day 7
-    launch + 5/18:52    7 17:27    - Orion exits lunar sphere of influence
-             6/01:29    8 00:04    - Return trajectory correction burn #1
+    launch + 5/18:52    7 16:23    - Orion exits lunar SOI, 62800 km from Moon
+                                      center (Hill sphere definition)
+             6/01:28    8 00:03    - Return trajectory correction burn #1
+                                      Total delta-v = 0.49 m/s, time 15 sec.
   Day 8
-    launch + 7/04:20    9 02:55    - Manual piloting demonstration
+    launch + 7/04:20    9 02:55    - [CANCELLED] Manual piloting demonstration
+                                      Oxidizer tank pressure characterization
   Day 9
-    launch + 8/04:29   10 03:04    - Return trajectory correction burn #2
+    launch + 8/03:18   10 01:53    - Return trajectory correction burn #2
+                                      Total delta-v = 1.62 m/s, time 9 sec.
   Day 10
-    launch + 8/20:29   10 19:04    - Return trajectory correction burn #3
-             9/01:09   10 23:44    - Orion crew and service module separation
-             9/01:12   10 23:47    - Crew module raise burn
-             9/01:29   11 00:04    - Entry interface (122 km above Earth)
+    launch + 8/19:18   10 17:53    - Return trajectory correction burn #3
+             9/00:58   10 23:33    - Orion 2 crew and service module separation
+             9/01:01   10 23:36    - Crew module raise burn
+             9/01:18   10 23:53    - Entry interface (122 km above Earth)
                                      Events by altitude:
                                       11 km : Forward bay cover deploys
                                       7.6 km: Droque parachute deploys
                                       2.9 km: Pilot parachutes deploy @ 2.9 km,
                                               pulling out 3 main parachutes
-             9/01:42   11 00:17    - Splashdown, Pacific Ocean, off Baja Cali.
-             9/01:57   11 00:32    - Orion final power down
+             9/01:32   11 00:07    - Splashdown, Pacific Ocean, off Baja Cali.
+             9/01:47   11 00:22    - Orion 2 final power down
 
  SPACECRAFT DETAILS
   SLS                
@@ -125,6 +129,9 @@ API SOURCE: NASA/JPL Horizons API
   traj_em2_260404-260406_260405_od011v1     2026-Apr-04 11:58 2026-Apr-05 02:45
   Orion_OEM_20260405_1125.V0.1              2026-Apr-05 02:45 2026-Apr-05 04:35
   EPH_OEM_20260405_1908.V0.1                2026-Apr-05 04:35 2026-Apr-05 23:59
-  JPL_od014v1_260406_07_dco096_0515         2026-Apr-05 23:59 2026-Apr-06 23:59
-  EPH_OEM_20260405_1908.V0.1                2026-Apr-06 23:59 2026-Apr-10 23:51
+  JPL_od014v1_260406_07_dco096_0515         2026-Apr-05 23:59 2026-Apr-06 17:35
+  Orion_OEM_20260408_0223.V0.1              2026-Apr-06 17:35 2026-Apr-08 04:38
+  Orion_OEM_20260408_1023.V0.1              2026-Apr-08 04:38 2026-Apr-08 14:31
+  Orion_OEM_20260409_0312.V0.1              2026-Apr-08 14:31 2026-Apr-09 09:24
+  Orion_OEM_20260410_0411.V0.1              2026-Apr-09 09:24 2026-Apr-10 23:51
 *******************************************************************************
