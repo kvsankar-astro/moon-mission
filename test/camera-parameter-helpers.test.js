@@ -88,7 +88,7 @@ describe("computePreferredCameraDistance", () => {
         });
     });
 
-    it("supports per-origin camera defaults for relative origin key", () => {
+    it("falls back to orbit-fit framing for relative defaults without explicit non-geo opt-in", () => {
         const result = computePreferredCameraDistance({
             missionConfig: "geo",
             originKey: "relative",
@@ -97,7 +97,29 @@ describe("computePreferredCameraDistance", () => {
                 ui: {
                     cameraDefaults: {
                         relative: {
-                            positionScale: { x: -0.25, y: 0.5, z: 0.75 },
+                            positionScale: { x: -0.01, y: -0.01, z: -0.01 },
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(result.position.x).toBeCloseTo(156.06039975106458, 6);
+        expect(result.position.y).toBe(0);
+        expect(result.position.z).toBeCloseTo(401.60712874037545, 6);
+    });
+
+    it("keeps configured relative defaults when explicit non-geo opt-in is set", () => {
+        const result = computePreferredCameraDistance({
+            missionConfig: "geo",
+            originKey: "relative",
+            defaultCameraDistance: 600,
+            globalConfig: {
+                ui: {
+                    cameraDefaults: {
+                        relative: {
+                            nonGeoOverride: true,
+                            positionScale: { x: 0, y: 0, z: 1.2 },
                         },
                     },
                 },
@@ -105,9 +127,9 @@ describe("computePreferredCameraDistance", () => {
         });
 
         expect(result.position).toEqual({
-            x: -150,
-            y: 300,
-            z: 450,
+            x: 0,
+            y: 0,
+            z: 720,
         });
     });
 

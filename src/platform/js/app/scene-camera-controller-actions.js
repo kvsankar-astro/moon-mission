@@ -37,7 +37,7 @@ export function createSceneCameraControllerActions({
         scene.droneCamera = scene.cameraController.droneCamera;
         scene.cameraControls = scene.cameraController.controls;
 
-        scene.setCameraParameters(null, true);
+        scene.setCameraParameters(true);
     }
 
     function disposeCamera(scene) {
@@ -54,4 +54,3 @@ export function createSceneCameraControllerActions({
 
     return { addCamera, disposeCamera };
 }
-

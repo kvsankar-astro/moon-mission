@@ -499,13 +499,21 @@ function createAnimationSceneClass(deps) {
                 controllerDistance = this.cameraController.getDistanceFromOrigin();
             }
 
+            const relativeOriginChecked =
+                typeof document !== "undefined" &&
+                !!document.getElementById("origin-relative")?.checked;
+            const runtimeState = getRuntimeState();
+            const isRelativeMode =
+                runtimeState.frameMode === "relative" || relativeOriginChecked;
+            const relativeDefaultPlaneSelection =
+                runtimeState.globalConfig?.ui?.viewDefaults?.relativeDefaultPlaneSelection || "XY";
+
             const params = computeSceneCameraParameters({
                 planeSelection: sceneViewState?.planeSelection || DEFAULT_VIEW_STATE.planeSelection,
                 missionConfig: this.name,
-                globalConfig: getRuntimeState().globalConfig,
-                isRelativeMode: getRuntimeState().frameMode === "relative",
-                relativeDefaultPlaneSelection:
-                    getRuntimeState().globalConfig?.ui?.viewDefaults?.relativeDefaultPlaneSelection || "DEFAULT",
+                globalConfig: runtimeState.globalConfig,
+                isRelativeMode,
+                relativeDefaultPlaneSelection,
                 isInitialization,
                 controllerDistance,
                 defaultCameraDistance: getDefaultCameraDistance(),
@@ -522,7 +530,6 @@ function createAnimationSceneClass(deps) {
                 this.setCameraPosition(params.position.x, params.position.y, params.position.z);
             }
 
-            const runtimeState = getRuntimeState();
             const resolvedLookTarget = params.pinEarthBelowPanel
                 ? resolvePanelAnchoredLookTarget({
                     scene: this,

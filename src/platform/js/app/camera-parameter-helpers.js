@@ -54,6 +54,13 @@ function resolveConfiguredCameraDefaults({
     const profile = resolveCameraProfile({ globalConfig, originKey, clientKey });
     if (!profile || typeof profile !== "object") return null;
 
+    // Systemic default framing policy:
+    // For non-geo origins, prefer orbit-sized fallback unless a mission explicitly opts in.
+    // This prevents legacy per-mission scales from forcing over-zoomed default loads.
+    if (originKey !== "geo" && profile.nonGeoOverride !== true) {
+        return null;
+    }
+
     const absolutePosition = normalizeVector3(profile.position);
     const positionScale = normalizeVector3(profile.positionScale);
     const up = normalizeVector3(profile.up);
