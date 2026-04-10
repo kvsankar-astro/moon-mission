@@ -227,8 +227,12 @@ def init_config(option, config):
     global start_second, stop_second
     global step_size_in_seconds, planets, center, orbits_file, phase_spacecraft_body_token
 
-    start_dt = parse_exact_phase_datetime(config[option].get('startTime'))
-    stop_dt = parse_exact_phase_datetime(config[option].get('endTime'))
+    start_dt = parse_exact_phase_datetime(config[option].get('sourceStartTime'))
+    if start_dt is None:
+        start_dt = parse_exact_phase_datetime(config[option].get('startTime'))
+    stop_dt = parse_exact_phase_datetime(config[option].get('sourceEndTime'))
+    if stop_dt is None:
+        stop_dt = parse_exact_phase_datetime(config[option].get('endTime'))
 
     if start_dt is not None:
         start_year = f"{start_dt.year:04d}"

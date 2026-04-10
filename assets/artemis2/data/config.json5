@@ -11,7 +11,8 @@
 // Time Window Used:
 //   Launch/reference start: `2026-04-01 22:35:12 UTC`
 //   Orbit data start: `2026-04-02 01:58:33 UTC`
-//   Orbit data end: `2026-04-10 23:53:32 TDB`
+//   Published HORIZONS orbit-data end: `2026-04-10 23:53:32 TDB`
+//   Runtime orbit-data end: `2026-04-11 00:08:21 TDB`
 //   Sampling step: `60` seconds
 //   Original trajectory window from source: `2026-Apr-02 01:59` to `2026-Apr-10 23:51` (HORIZONS blurb, Apr 10 19:28 UTC revision)
 //   Selected interesting window strategy: full currently published HORIZONS trajectory, because the public data set already corresponds to the complete post-separation lunar-flyby mission arc.
@@ -22,11 +23,12 @@
 //   - `https://www.nasa.gov/missions/artemis/artemis-2/nasa-sets-coverage-for-artemis-ii-moon-mission/`: public lunar-flyby broadcast milestones (Earthset/Earthrise/eclipse and flyby media timings).
 // Notes:
 //   - Launch and early mission events remain preserved even when they occur before the sampled orbit-data window.
-//   - Splashdown and final power-down remain preserved as post-data mission events.
+//   - Splashdown is modeled beyond the final published HORIZONS sample using NASA's public return milestones and an assumed offshore recovery point west of San Diego.
+//   - Final power-down remains preserved as a post-data mission event.
 //   - Apr 10 HORIZONS major-events update shortens the published mission duration to 9 days, cancels the manual piloting demonstration, advances lunar SOI exit and the return/entry timeline, and adds additional return-leg OEM segments.
 //   - The Apr 10 19:28 UTC HORIZONS revision further splits the final return trajectory at `2026-Apr-10 06:24` TDB and adds `Orion_OEM_20260410_0908.V0.1`.
 //   - For rows where HORIZONS omits seconds in the UTC column, this config keeps second-level alignment derived from MET offsets relative to launch.
-//   - The staged Chebyshev coverage currently ends at `2026-04-10 23:53:32.999` TDB; this config floors the orbit window to `2026-04-10 23:53:32` so the UI slider does not overshoot the final staged sample.
+//   - The final published Orion state still ends at `2026-04-10 23:53:32.999` TDB; the extra return-to-splashdown samples are app-modeled beyond that point.
 //   - Generated runtime artifacts are staged under `../moon-mission-data/assets/artemis2/data/`.
 // --- sourcing-snapshot:end ---
 {
@@ -45,12 +47,12 @@
         "geo": {
         "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:53:32Z"
+          "endTime": "2026-04-11T00:08:21Z"
         },
         "lunar": {
         "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:53:32Z"
+          "endTime": "2026-04-11T00:08:21Z"
         }
       }
     }
@@ -81,6 +83,42 @@
   "relative": {
     "time_scale": "TDB",
     "orbits_file": "relative-ORION"
+  },
+  "postHorizonExtension": {
+    "enabled": true,
+    "mode": "guidedSplashdown",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
+    "splashdownTarget": {
+      "latitudeDeg": 32.7,
+      "longitudeDeg": -118.05,
+      "note": "Assumed point about 50 miles west of San Diego because NASA's public Flight Day 10 post gives the recovery coast but not exact coordinates."
+    },
+    "milestones": [
+      {
+        "label": "Entry Interface",
+        "utcTime": "2026-04-10T23:53:12Z",
+        "altitudeKm": 121.92,
+        "pathFraction": 0.16
+      },
+      {
+        "label": "Drogue Deploy",
+        "utcTime": "2026-04-11T00:03:12Z",
+        "altitudeKm": 6.7056,
+        "pathFraction": 0.88
+      },
+      {
+        "label": "Main Chutes",
+        "utcTime": "2026-04-11T00:04:12Z",
+        "altitudeKm": 1.8288,
+        "pathFraction": 0.96
+      },
+      {
+        "label": "Splashdown",
+        "utcTime": "2026-04-11T00:07:12Z",
+        "altitudeKm": 0.0,
+        "pathFraction": 1.0
+      }
+    ]
   },
   "ui": {
     "pageTitle": "NASA's Artemis 2 Mission 2026 - An Orbit Animation",
@@ -130,7 +168,8 @@
   "geo": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:53:32Z",
+    "endTime": "2026-04-11T00:08:21Z",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -138,9 +177,9 @@
     "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
-    "stop_day": "10",
-    "stop_hour": "23",
-    "stop_minute": "54",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "08",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -152,7 +191,8 @@
   "lunar": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:53:32Z",
+    "endTime": "2026-04-11T00:08:21Z",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -160,9 +200,9 @@
     "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
-    "stop_day": "10",
-    "stop_hour": "23",
-    "stop_minute": "54",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "08",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",

@@ -14,12 +14,12 @@
         "geo": {
           "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:53:32Z"
+          "endTime": "2026-04-11T00:08:21Z"
         },
         "lunar": {
           "time_scale": "TDB",
           "startTime": "2026-04-02T01:58:33Z",
-          "endTime": "2026-04-10T23:53:32Z"
+          "endTime": "2026-04-11T00:08:21Z"
         }
       }
     }
@@ -50,6 +50,42 @@
   "relative": {
     "time_scale": "TDB",
     "orbits_file": "relative-ORION"
+  },
+  "postHorizonExtension": {
+    "enabled": true,
+    "mode": "guidedSplashdown",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
+    "splashdownTarget": {
+      "latitudeDeg": 32.7,
+      "longitudeDeg": -118.05,
+      "note": "Assumed point about 50 miles west of San Diego because NASA's public Flight Day 10 post gives the recovery coast but not exact coordinates."
+    },
+    "milestones": [
+      {
+        "label": "Entry Interface",
+        "utcTime": "2026-04-10T23:53:12Z",
+        "altitudeKm": 121.92,
+        "pathFraction": 0.16
+      },
+      {
+        "label": "Drogue Deploy",
+        "utcTime": "2026-04-11T00:03:12Z",
+        "altitudeKm": 6.7056,
+        "pathFraction": 0.88
+      },
+      {
+        "label": "Main Chutes",
+        "utcTime": "2026-04-11T00:04:12Z",
+        "altitudeKm": 1.8288,
+        "pathFraction": 0.96
+      },
+      {
+        "label": "Splashdown",
+        "utcTime": "2026-04-11T00:07:12Z",
+        "altitudeKm": 0,
+        "pathFraction": 1
+      }
+    ]
   },
   "ui": {
     "pageTitle": "NASA's Artemis 2 Mission 2026 - An Orbit Animation",
@@ -99,7 +135,8 @@
   "geo": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:53:32Z",
+    "endTime": "2026-04-11T00:08:21Z",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -107,9 +144,9 @@
     "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
-    "stop_day": "10",
-    "stop_hour": "23",
-    "stop_minute": "54",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "08",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -121,7 +158,8 @@
   "lunar": {
     "time_scale": "TDB",
     "startTime": "2026-04-02T01:58:33Z",
-    "endTime": "2026-04-10T23:53:32Z",
+    "endTime": "2026-04-11T00:08:21Z",
+    "sourceEndTime": "2026-04-10T23:53:32Z",
     "start_year": "2026",
     "start_month": "04",
     "start_day": "02",
@@ -129,9 +167,9 @@
     "start_minute": "58",
     "stop_year": "2026",
     "stop_month": "04",
-    "stop_day": "10",
-    "stop_hour": "23",
-    "stop_minute": "54",
+    "stop_day": "11",
+    "stop_hour": "00",
+    "stop_minute": "08",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",

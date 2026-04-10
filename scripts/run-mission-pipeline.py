@@ -201,6 +201,15 @@ def run_full_pipeline(mission: str, max_retries: int) -> None:
     print(f"\n=== {mission} ===")
     run_orbits_with_retry(mission, max_retries=max_retries)
 
+    config = load_config(mission)
+    post_horizon_extension = config.get("postHorizonExtension")
+    if isinstance(post_horizon_extension, dict) and post_horizon_extension.get("enabled", True):
+        code, _ = run_cmd(
+            [sys.executable, "scripts/extend-post-horizons-trajectory.py", "--mission", mission],
+        )
+        if code != 0:
+            raise RuntimeError(f"[{mission}] extend-post-horizons-trajectory.py failed")
+
     for attempt in range(1, max_retries + 1):
         code, compress_out = run_cmd(
             [sys.executable, "scripts/compress-orbits.py", "--mission", mission],

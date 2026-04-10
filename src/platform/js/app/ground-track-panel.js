@@ -18,11 +18,13 @@ const GROUND_TRACK_PANEL_EVENT_KEYS = [
     "serviceModuleSeparation",
     "crewModuleRaiseBurn",
     "entryInterface",
+    "splashdown",
 ];
 const J2000_OBLIQUITY_RADIANS = THREE.MathUtils.degToRad(23.439291111);
 const EARTH_RADIUS_KM = 6371;
 const KM_TO_MILES = 0.621371192237334;
 const KMPS_TO_MPH = 2236.9362920544;
+const GROUND_TRACK_EVENT_WINDOW_EPSILON_MS = 1000;
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 10;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
@@ -493,8 +495,8 @@ function createGroundTrackPanelActions(options = {}) {
             if (!eventInfo || typeof eventInfo !== "object") continue;
             const eventTimeMs = parseMissionTimeMs(eventInfo?.startTime);
             if (!Number.isFinite(eventTimeMs)) continue;
-            if (Number.isFinite(startMs) && eventTimeMs < startMs) continue;
-            if (Number.isFinite(endMs) && eventTimeMs > endMs) continue;
+            if (Number.isFinite(startMs) && eventTimeMs < (startMs - GROUND_TRACK_EVENT_WINDOW_EPSILON_MS)) continue;
+            if (Number.isFinite(endMs) && eventTimeMs > (endMs + GROUND_TRACK_EVENT_WINDOW_EPSILON_MS)) continue;
             const title = String(eventInfo?.label || key || "Event").trim();
             if (!title) continue;
             events.push({
