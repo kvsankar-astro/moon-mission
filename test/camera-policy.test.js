@@ -33,7 +33,7 @@ describe("camera-policy", () => {
                 lookMode: "earth",
                 sourceId: "camera-look",
             }),
-        ).toEqual({ positionMode: "moon", lookMode: "earth" });
+        ).toEqual({ positionMode: "manual", lookMode: "earth" });
 
         expect(
             normalizeFromTo({
@@ -54,6 +54,7 @@ describe("camera-policy", () => {
         });
         expect(resolvePairFromValue("invalid")).toBeNull();
         expect(resolvePairKey("spacecraft", "manual")).toBe("spacecraft__manual");
+        expect(resolvePairKey("manual", "earth")).toBe("manual__earth");
         expect(resolvePairKey("moon", "earth")).toBe("moon__earth");
         expect(resolvePairKey("invalid", "invalid")).toBe("manual__manual");
     });

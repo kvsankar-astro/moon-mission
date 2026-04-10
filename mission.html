@@ -838,56 +838,88 @@
     
             </div>
 
-            <div id="header-pill-strip" class="header-pill-strip" aria-label="Locator and plane controls">
-                <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Flyby control">
+            <div id="header-pill-strip" class="header-pill-strip" aria-label="Mission controls">
+                <div id="header-pill-strip-primary" class="header-pill-strip__row header-pill-strip__row--primary" aria-label="Mode controls">
+                    <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Flyby control">
+                        <button
+                            id="flyby-pill"
+                            type="button"
+                            class="header-pill-segment__btn"
+                            aria-pressed="false"
+                            title="Toggle Flyby view"
+                        >
+                            Flyby
+                        </button>
+                    </div>
+                    <div class="header-pill-group" role="group" aria-label="Origin or phase">
+                        <span class="header-pill-group__label">Origin</span>
+                        <div class="header-pill-segment" role="group" aria-label="Origin options">
+                            <button id="origin-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Earth origin">Earth</button>
+                            <button id="origin-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Moon origin">Moon</button>
+                            <button id="origin-pill-relative" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Relative origin">Relative</button>
+                        </div>
+                    </div>
                     <button
-                        id="flyby-pill"
+                        id="locators-pill"
                         type="button"
-                        class="header-pill-segment__btn"
-                        aria-pressed="false"
-                        title="Toggle Flyby view"
+                        class="header-pill header-pill--locators"
+                        aria-pressed="true"
+                        title="Toggle body locators"
                     >
-                        Flyby
+                        Locators
                     </button>
-                </div>
-                <button
-                    id="locators-pill"
-                    type="button"
-                    class="header-pill header-pill--locators"
-                    aria-pressed="true"
-                    title="Toggle body locators"
-                >
-                    Locators
-                </button>
-                <div class="header-pill-group" role="group" aria-label="Follow target">
-                    <span class="header-pill-group__label">Follow</span>
-                    <div class="header-pill-segment" role="group" aria-label="Follow target options">
-                        <button id="follow-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Earth (Manual → Earth)">Earth</button>
-                        <button id="follow-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Moon (Manual → Moon)">Moon</button>
-                        <button id="follow-pill-craft" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Craft (Manual → Craft)">Craft</button>
+                    <div class="header-pill-group" role="group" aria-label="Follow target">
+                        <span class="header-pill-group__label">Follow</span>
+                        <div class="header-pill-segment" role="group" aria-label="Follow target options">
+                            <button id="follow-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Earth (Manual → Earth)">Earth</button>
+                            <button id="follow-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Moon (Manual → Moon)">Moon</button>
+                            <button id="follow-pill-craft" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Follow Craft (Manual → Craft)">Craft</button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group" role="group" aria-label="View preset">
+                        <span class="header-pill-group__label">View</span>
+                        <div class="header-pill-segment" role="group" aria-label="View preset options">
+                            <button id="view-pill-free" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Free (Manual → Manual)">Free</button>
+                            <button id="view-pill-earth-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Earth → Moon">E→M</button>
+                            <button id="view-pill-moon-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Moon → Earth">M→E</button>
+                            <button id="view-pill-craft-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Moon">C→M</button>
+                            <button id="view-pill-craft-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Earth">C→E</button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group" role="group" aria-label="Plane orientation">
+                        <span class="header-pill-group__label">Plane</span>
+                        <div class="header-pill-segment" role="group" aria-label="Plane orientation options">
+                            <button id="plane-pill-default" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Default plane">Default</button>
+                            <button id="plane-pill-xy" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY plane">XY</button>
+                            <button id="plane-pill-yz" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ plane">YZ</button>
+                            <button id="plane-pill-zx" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX plane">ZX</button>
+                            <button id="plane-pill-xy-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY minus plane">XY-</button>
+                            <button id="plane-pill-yz-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ minus plane">YZ-</button>
+                            <button id="plane-pill-zx-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX minus plane">ZX-</button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group" role="group" aria-label="Dimension mode">
+                        <span class="header-pill-group__label">Dimension</span>
+                        <div class="header-pill-segment" role="group" aria-label="Dimension options">
+                            <button id="dimension-pill-2d" type="button" class="header-pill-segment__btn" aria-pressed="false" title="2D view">2D</button>
+                            <button id="dimension-pill-3d" type="button" class="header-pill-segment__btn" aria-pressed="true" title="3D view">3D</button>
+                        </div>
                     </div>
                 </div>
-                <div class="header-pill-group" role="group" aria-label="View preset">
-                    <span class="header-pill-group__label">View</span>
-                    <div class="header-pill-segment" role="group" aria-label="View preset options">
-                        <button id="view-pill-free" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Free (Manual → Manual)">Free</button>
-                        <button id="view-pill-earth-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Earth → Moon">E→M</button>
-                        <button id="view-pill-moon-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Moon → Earth">M→E</button>
-                        <button id="view-pill-craft-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Moon">C→M</button>
-                        <button id="view-pill-craft-earth" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Craft → Earth">C→E</button>
-                    </div>
-                </div>
-                <div class="header-pill-group" role="group" aria-label="Plane orientation">
-                    <span class="header-pill-group__label">Plane</span>
-                    <div class="header-pill-segment" role="group" aria-label="Plane orientation options">
-                        <button id="plane-pill-default" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Default plane">Default</button>
-                        <button id="plane-pill-xy" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY plane">XY</button>
-                        <button id="plane-pill-yz" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ plane">YZ</button>
-                        <button id="plane-pill-zx" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX plane">ZX</button>
-                        <button id="plane-pill-xy-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="XY minus plane">XY-</button>
-                        <button id="plane-pill-yz-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="YZ minus plane">YZ-</button>
-                        <button id="plane-pill-zx-minus" type="button" class="header-pill-segment__btn" aria-pressed="false" title="ZX minus plane">ZX-</button>
-                    </div>
+                <div id="header-pill-strip-secondary" class="header-pill-strip__row header-pill-strip__row--secondary" aria-label="Visibility controls">
+                    <button id="toggle-pill-landing" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle landing mode">Landing</button>
+                    <button id="toggle-pill-orbit" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle orbit tracks">Orbit</button>
+                    <button id="toggle-pill-descent" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle descent orbit">Descent</button>
+                    <button id="toggle-pill-moon-orbit" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle secondary body osculating orbit">Secondary Orbit</button>
+                    <button id="toggle-pill-sky" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle sky">Sky</button>
+                    <button id="toggle-pill-constellations" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle constellation lines">Constellations</button>
+                    <button id="toggle-pill-moon-soi" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle Moon sphere of influence">Moon SOI</button>
+                    <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
+                    <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
+                    <button id="toggle-pill-craters" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle moon sites">Moon Sites</button>
+                    <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
+                    <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
+                    <button id="toggle-pill-polar-axes" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle polar axes">Polar Axes</button>
                 </div>
             </div>
     
@@ -1128,7 +1160,7 @@
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
-                                    <span>Locations</span>
+                                    <span>Moon Sites</span>
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="xyz" id="view-xyz-axes">
@@ -1160,7 +1192,7 @@
                                 </label>
                                 <label class="settings-option geo">
                                     <input type="checkbox" name="view" value="moon-osculating-orbit" id="view-moon-osculating-orbit" checked="checked">
-                                    <span>Secondary Body Orbit</span>
+                                    <span id="label-secondary-body-orbit">Secondary Body Orbit</span>
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">

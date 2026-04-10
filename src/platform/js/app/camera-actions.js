@@ -419,6 +419,7 @@ export function createCameraActions({
     }
 
     function changeCameraFromTo(event) {
+        const preserveManualRelease = event?.detail?.preserveManualRelease === true;
         const targetName = event?.target?.name;
         const sourceId = targetName === "camera-position-pill"
             ? "camera-position"
@@ -509,18 +510,20 @@ export function createCameraActions({
             // Preserve the legacy "Camera: Default" behavior: when returning to the standard
             // manual/manual mode, reset camera parameters to a predictable default.
             if (positionMode === "manual" && lookMode === "manual") {
-                scene.setCameraParameters(false);
-                // Ensure TrackballControls rotates around the scene origin again.
-                if (scene.cameraController?.controls?.target) {
-                    const manualTarget = resolveManualLookTarget(scene);
-                    scene.cameraController.controls.target.set(
-                        manualTarget.x,
-                        manualTarget.y,
-                        manualTarget.z,
-                    );
-                    scene.cameraController.controls.noRotate = false;
-                    scene.cameraController.controls.noPan = false;
-                    scene.cameraController.controls.update();
+                if (!preserveManualRelease) {
+                    scene.setCameraParameters(false);
+                    // Ensure TrackballControls rotates around the scene origin again.
+                    if (scene.cameraController?.controls?.target) {
+                        const manualTarget = resolveManualLookTarget(scene);
+                        scene.cameraController.controls.target.set(
+                            manualTarget.x,
+                            manualTarget.y,
+                            manualTarget.z,
+                        );
+                        scene.cameraController.controls.noRotate = false;
+                        scene.cameraController.controls.noPan = false;
+                        scene.cameraController.controls.update();
+                    }
                 }
                 // Lift any visibility overrides when returning to free camera.
                 updateMountedBodyVisibility(scene, positionMode);

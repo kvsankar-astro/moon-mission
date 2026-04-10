@@ -1,5 +1,5 @@
 const CAMERA_ALLOWED_LOOK_BY_POSITION = Object.freeze({
-    manual: Object.freeze(["manual", "moon", "spacecraft"]),
+    manual: Object.freeze(["manual", "earth", "moon", "spacecraft"]),
     earth: Object.freeze(["moon", "spacecraft"]),
     moon: Object.freeze(["manual", "earth", "spacecraft"]),
     spacecraft: Object.freeze(["manual", "earth", "moon"]),
@@ -38,6 +38,7 @@ const CAMERA_LOCK_AVAILABILITY_BY_POSITION = Object.freeze({
 
 const CAMERA_PAIR_VALUE_BY_KEY = Object.freeze({
     manual__manual: Object.freeze({ positionMode: "manual", lookMode: "manual" }),
+    manual__earth: Object.freeze({ positionMode: "manual", lookMode: "earth" }),
     manual__moon: Object.freeze({ positionMode: "manual", lookMode: "moon" }),
     manual__spacecraft: Object.freeze({ positionMode: "manual", lookMode: "spacecraft" }),
     earth__moon: Object.freeze({ positionMode: "earth", lookMode: "moon" }),

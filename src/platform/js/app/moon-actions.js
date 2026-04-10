@@ -30,15 +30,15 @@ export function createMoonActions({
 
         scene.addMoonSOI();
         scene.addMoonOsculatingOrbit();
-        if (scene.sceneHelpers?.setMoonOsculatingOrbitVisible) {
-            const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
-            const relativeOriginToggle = document.getElementById("origin-relative");
-            scene.sceneHelpers.setMoonOsculatingOrbitVisible(
-                scene.name === "geo" &&
+            if (scene.sceneHelpers?.setMoonOsculatingOrbitVisible) {
+                const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
+                const relativeOriginToggle = document.getElementById("origin-relative");
+                scene.sceneHelpers.setMoonOsculatingOrbitVisible(
+                    scene.name !== "relative" &&
                     (moonOrbitToggle?.checked ?? getViewMoonOsculatingOrbit()) &&
                     !(relativeOriginToggle?.checked ?? (getFrameMode() === "relative")),
-            );
-        }
+                );
+            }
         scene.rotateMoon(getAnimTime());
 
         render();

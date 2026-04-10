@@ -147,12 +147,18 @@ body {
 
 #header-pill-strip {
     pointer-events: all;
+    display: grid;
+    grid-template-rows: auto auto;
+    row-gap: 6px;
+    padding: 6px 10px 4px;
+}
+
+.header-pill-strip__row {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
     gap: 8px;
-    padding: 6px 10px 4px;
 }
 
 .header-pill-group {
@@ -257,6 +263,46 @@ body {
     background: rgba(77, 141, 255, 0.22);
     border-color: rgba(120, 170, 255, 0.72);
     color: #eef5ff;
+}
+
+.header-toggle-pill {
+    height: 24px;
+    padding: 0 10px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.82);
+    color: #aebbd2;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.header-toggle-pill:hover {
+    color: #dbe7ff;
+    background: rgba(45, 75, 125, 0.28);
+}
+
+.header-toggle-pill:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 1px;
+}
+
+.header-toggle-pill[aria-pressed="true"] {
+    background: rgba(77, 141, 255, 0.22);
+    border-color: rgba(120, 170, 255, 0.72);
+    color: #eef5ff;
+}
+
+.header-toggle-pill:disabled,
+.header-toggle-pill[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: rgba(10, 18, 32, 0.55);
+    border-color: rgba(100, 130, 180, 0.26);
+    color: rgba(174, 187, 210, 0.72);
 }
 
 .settings-panel__header {
@@ -420,8 +466,23 @@ body {
     }
 
     #header-pill-strip {
-        gap: 6px;
+        row-gap: 5px;
         padding-top: 4px;
+    }
+
+    #header-pill-strip-primary {
+        display: none;
+    }
+
+    #header-pill-strip-secondary {
+        justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
+        scroll-snap-type: x proximity;
+        padding: 0 6px 2px;
     }
 
     #locators-pill {
@@ -443,6 +504,14 @@ body {
         height: 23px;
         padding: 0 6px;
         font-size: 9px;
+    }
+
+    .header-toggle-pill {
+        height: 23px;
+        padding: 0 9px;
+        font-size: 9px;
+        scroll-snap-align: start;
+        white-space: nowrap;
     }
 
     .camera-pill-group--plane {

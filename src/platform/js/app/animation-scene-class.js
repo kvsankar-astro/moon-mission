@@ -303,7 +303,7 @@ function createAnimationSceneClass(deps) {
 
         addMoonOsculatingOrbit() {
             const { globalConfig, viewMoonOsculatingOrbit, frameMode } = getRuntimeState();
-            if (!globalConfig || !globalConfig.is_lunar || this.name !== "geo") {
+            if (!globalConfig || !globalConfig.is_lunar || this.name === "relative") {
                 return;
             }
 
@@ -355,17 +355,21 @@ function createAnimationSceneClass(deps) {
 
             const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
             const relativeOriginToggle = document.getElementById("origin-relative");
+            const secondaryBodyId = this.name === "lunar" ? "EARTH" : "MOON";
+            const gravitationalParameter = this.name === "lunar"
+                ? (PC.MOON_GM_KM3_S2 || PC.EARTH_GM_KM3_S2)
+                : PC.EARTH_GM_KM3_S2;
             const showMoonOrbit =
-                this.name === "geo" &&
-                bodyId === "MOON" &&
+                bodyId === secondaryBodyId &&
                 (moonOrbitToggle?.checked ?? runtimeState.viewMoonOsculatingOrbit) &&
                 !(relativeOriginToggle?.checked ?? (runtimeState.frameMode === "relative"));
-            if (bodyId === "MOON" && this.moonOsculatingOrbitLine) {
+            if (bodyId === secondaryBodyId && this.moonOsculatingOrbitLine) {
                 this.sceneHelpers.updateMoonOsculatingOrbit({
                     position: bodyState.position,
                     velocity: bodyState.velocity,
                     pixelsPerAU,
                     timeMs,
+                    gravitationalParameter,
                     visible: showMoonOrbit,
                 });
             }

@@ -299,11 +299,10 @@ export function createSettingsActions({
                             ? document.getElementById(`orbit-${bodyId}`)
                             : null;
                     if (!orbitElement) continue;
-                    const isGeoSecondaryBodyOrbit =
+                    const isSecondaryBodyOrbit =
                         globalConfig?.is_lunar &&
-                        cfg === "geo" &&
-                        bodyId === "MOON";
-                    const visible = isGeoSecondaryBodyOrbit
+                        ((cfg === "geo" && bodyId === "MOON") || (cfg === "lunar" && bodyId === "EARTH"));
+                    const visible = isSecondaryBodyOrbit
                         ? view.viewMoonOsculatingOrbit && !isRelativeOriginSelected()
                         : view.viewOrbit && shouldShowSceneCraft({
                             scene,
@@ -349,7 +348,7 @@ export function createSettingsActions({
                     scene.moonSOISphere.visible = view.viewMoonSOI;
                     if (scene.moonOsculatingOrbitLine) {
                         scene.moonOsculatingOrbitLine.visible =
-                            cfg === "geo" &&
+                            cfg !== "relative" &&
                             view.viewMoonOsculatingOrbit &&
                             !isRelativeOriginSelected();
                     }

@@ -2230,7 +2230,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     #header-pill-strip {
-        display: none;
+        display: grid;
     }
 
     #control-panel {

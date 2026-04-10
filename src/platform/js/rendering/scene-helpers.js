@@ -615,6 +615,7 @@ export class SceneHelpers {
         velocity,
         pixelsPerAU,
         timeMs,
+        gravitationalParameter = PC.EARTH_GM_KM3_S2,
         visible = false,
     }) {
         if (!this.moonOsculatingOrbitLine) {
@@ -638,7 +639,7 @@ export class SceneHelpers {
                 y: velocity.vy,
                 z: velocity.vz,
             },
-            gravitationalParameter: PC.EARTH_GM_KM3_S2,
+            gravitationalParameter,
             sampleCount: MOON_ORBIT_SAMPLE_COUNT,
         });
         if (!sampledOrbit?.points?.length) {

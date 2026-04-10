@@ -719,6 +719,29 @@ export function bindMainControls(handlers) {
     const joyRideToggle = typeof document !== "undefined"
         ? document.getElementById("joyride")
         : null;
+    const descentOrbitOption = typeof document !== "undefined"
+        ? document.getElementById("orbit-descent-option")
+        : null;
+    const landingToggle = typeof document !== "undefined"
+        ? document.getElementById("landing")
+        : null;
+    const moonSitesToggle = typeof document !== "undefined"
+        ? document.getElementById("view-craters")
+        : null;
+    const secondaryOrbitLabel = typeof document !== "undefined"
+        ? document.getElementById("label-secondary-body-orbit")
+        : null;
+    const secondaryOrbitPill = typeof document !== "undefined"
+        ? document.getElementById("toggle-pill-moon-orbit")
+        : null;
+    const landingPill = typeof document !== "undefined"
+        ? document.getElementById("toggle-pill-landing")
+        : null;
+    const originPillPairs = [
+        ["origin-pill-earth", "origin-earth"],
+        ["origin-pill-moon", "origin-moon"],
+        ["origin-pill-relative", "origin-relative"],
+    ];
     const planePillPairs = [
         ["plane-pill-default", "checkbox-lock-default"],
         ["plane-pill-xy", "checkbox-lock-xy"],
@@ -740,6 +763,24 @@ export function bindMainControls(handlers) {
         ["view-pill-craft-moon", "spacecraft", "moon"],
         ["view-pill-craft-earth", "spacecraft", "earth"],
     ];
+    const dimensionPillPairs = [
+        ["dimension-pill-2d", "dimension-2D"],
+        ["dimension-pill-3d", "dimension-3D"],
+    ];
+    const togglePillPairs = [
+        ["toggle-pill-orbit", "view-orbit"],
+        ["toggle-pill-descent", "view-orbit-descent"],
+        ["toggle-pill-sky", "view-sky"],
+        ["toggle-pill-craters", "view-craters"],
+        ["toggle-pill-xyz", "view-xyz-axes"],
+        ["toggle-pill-poles", "view-poles"],
+        ["toggle-pill-polar-axes", "view-polar-axes"],
+        ["toggle-pill-constellations", "view-constellation-lines"],
+        ["toggle-pill-moon-soi", "view-moonsoi"],
+        ["toggle-pill-moon-orbit", "view-moon-osculating-orbit"],
+        ["toggle-pill-ecliptic", "view-eclipticplane"],
+        ["toggle-pill-equatorial", "view-equatorialplane"],
+    ];
 
     const syncLocatorsPillState = () => {
         if (!locatorsPill || !bodyHaloToggle) return;
@@ -747,6 +788,26 @@ export function bindMainControls(handlers) {
     };
     const syncPlanePillState = () => {
         planePillPairs.forEach(([pillId, inputId]) => {
+            const pill = document.getElementById(pillId);
+            const input = document.getElementById(inputId);
+            if (!pill || !input) return;
+            const isActive = input.checked === true;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const syncOriginPillState = () => {
+        originPillPairs.forEach(([pillId, inputId]) => {
+            const pill = document.getElementById(pillId);
+            const input = document.getElementById(inputId);
+            if (!pill || !input) return;
+            const isActive = input.checked === true;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const syncDimensionPillState = () => {
+        dimensionPillPairs.forEach(([pillId, inputId]) => {
             const pill = document.getElementById(pillId);
             const input = document.getElementById(inputId);
             if (!pill || !input) return;
@@ -780,12 +841,19 @@ export function bindMainControls(handlers) {
         const selected = document.querySelector(`input[name="${name}"]:checked`);
         return selected?.value || "manual";
     };
-    const setCameraPillValue = (name, value) => {
-        const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
-        if (!input) return;
-        if (!input.checked) {
-            input.click();
-        }
+    const applyCameraPillPair = (positionValue, lookValue, options = {}) => {
+        const preserveManualRelease = options?.preserveManualRelease === true;
+        const positionInput = document.querySelector(`input[name="camera-position-pill"][value="${positionValue}"]`);
+        const lookInput = document.querySelector(`input[name="camera-look-pill"][value="${lookValue}"]`);
+        if (!positionInput || !lookInput) return;
+        positionInput.checked = true;
+        lookInput.checked = true;
+        lookInput.dispatchEvent(
+            new CustomEvent("change", {
+                bubbles: true,
+                detail: { preserveManualRelease },
+            }),
+        );
     };
     const syncFollowPillState = () => {
         const positionValue = getSelectedCameraPillValue("camera-position-pill");
@@ -808,6 +876,84 @@ export function bindMainControls(handlers) {
             pill.classList.toggle("is-active", isActive);
             pill.setAttribute("aria-pressed", isActive ? "true" : "false");
         });
+    };
+    const syncTogglePillState = () => {
+        togglePillPairs.forEach(([pillId, inputId]) => {
+            const pill = document.getElementById(pillId);
+            const input = document.getElementById(inputId);
+            if (!pill || !input) return;
+            const isActive = input.checked === true;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const syncTogglePillVisibility = () => {
+        const isElementVisible = (element) => {
+            if (!element) return false;
+            if (element.classList?.contains("settings-option--hidden")) return false;
+            const style = window.getComputedStyle?.(element);
+            return style ? style.display !== "none" && style.visibility !== "hidden" : true;
+        };
+        const landingOptionRow = landingToggle?.closest?.(".settings-option")
+            || landingToggle?.closest?.("label")
+            || null;
+        const hasLanding = !!landingToggle
+            && !landingToggle.disabled
+            && isElementVisible(landingOptionRow);
+
+        if (landingPill) {
+            landingPill.hidden = !hasLanding;
+            landingPill.disabled = !hasLanding;
+            landingPill.setAttribute("aria-disabled", hasLanding ? "false" : "true");
+            if (!hasLanding) {
+                landingPill.classList.remove("is-active");
+                landingPill.setAttribute("aria-pressed", "false");
+            }
+        }
+
+        const descentPill = document.getElementById("toggle-pill-descent");
+        if (descentPill) {
+            const hasDescentOrbit = !!descentOrbitOption
+                && !descentOrbitOption.classList.contains("settings-option--hidden");
+            descentPill.hidden = !hasDescentOrbit;
+        }
+        const moonSitesPill = document.getElementById("toggle-pill-craters");
+        if (moonSitesPill) {
+            if (moonSitesToggle) {
+                moonSitesToggle.disabled = !hasLanding;
+                if (!hasLanding) {
+                    moonSitesToggle.checked = false;
+                }
+            }
+            moonSitesPill.disabled = !hasLanding;
+            moonSitesPill.setAttribute("aria-disabled", hasLanding ? "false" : "true");
+            if (!hasLanding) {
+                moonSitesPill.classList.remove("is-active");
+                moonSitesPill.setAttribute("aria-pressed", "false");
+                moonSitesPill.title = "Moon Sites available for landing missions";
+            } else {
+                moonSitesPill.title = "Toggle Moon Sites";
+            }
+        }
+    };
+    const syncLandingPillState = () => {
+        if (!landingPill || !landingToggle) return;
+        const isActive = landingToggle.checked === true;
+        landingPill.classList.toggle("is-active", isActive);
+        landingPill.setAttribute("aria-pressed", isActive ? "true" : "false");
+    };
+    const syncSecondaryOrbitLabel = () => {
+        const isLunarOrigin = !!document.getElementById("origin-moon")?.checked;
+        const secondaryBodyName = isLunarOrigin ? "Earth" : "Moon";
+        const toggleTitle = `Toggle ${secondaryBodyName} osculating orbit (secondary body)`;
+        if (secondaryOrbitLabel) {
+            secondaryOrbitLabel.textContent = "Secondary Body Orbit";
+            secondaryOrbitLabel.title = toggleTitle;
+        }
+        if (secondaryOrbitPill) {
+            secondaryOrbitPill.textContent = "Secondary Orbit";
+            secondaryOrbitPill.title = toggleTitle;
+        }
     };
     const isMobileViewsOrComposeTab = () => {
         if (typeof window === "undefined" || window.innerWidth > 600) return false;
@@ -832,6 +978,12 @@ export function bindMainControls(handlers) {
     onClick("origin-earth", toggleMode);
     onClick("origin-moon", toggleMode);
     onClick("origin-relative", toggleRelativeMode);
+    onClick("origin-earth", syncOriginPillState);
+    onClick("origin-moon", syncOriginPillState);
+    onClick("origin-relative", syncOriginPillState);
+    onClick("origin-earth", syncSecondaryOrbitLabel);
+    onClick("origin-moon", syncSecondaryOrbitLabel);
+    onClick("origin-relative", syncSecondaryOrbitLabel);
     onChange("camera-position", changeCameraFromTo);
     onChange("camera-look", changeCameraFromTo);
     onChangeAll('input[name="camera-position-pill"]', changeCameraFromTo);
@@ -873,6 +1025,8 @@ export function bindMainControls(handlers) {
 
     onClick("dimension-2D", setDimensionTop);
     onClick("dimension-3D", setDimensionTop);
+    onClick("dimension-2D", syncDimensionPillState);
+    onClick("dimension-3D", syncDimensionPillState);
 
     const animateHandler = typeof toggleAnimation === "function" ? toggleAnimation : cy3Animate;
     if (typeof animateHandler === "function") {
@@ -883,6 +1037,12 @@ export function bindMainControls(handlers) {
     onClick("flyby-pill", toggleJoyRide);
     onClick("landing", toggleLanding);
     onClick("landingbutton", toggleLanding);
+    onClick("toggle-pill-landing", function () {
+        if (!landingToggle || landingToggle.disabled) return;
+        landingToggle.click();
+        syncTogglePillVisibility();
+        syncLandingPillState();
+    });
 
     onClick("info-button", toggleInfo);
     onClick("locators-pill", function () {
@@ -897,8 +1057,11 @@ export function bindMainControls(handlers) {
             const positionValue = getSelectedCameraPillValue("camera-position-pill");
             const lookValue = getSelectedCameraPillValue("camera-look-pill");
             const isAlreadyActive = positionValue === "manual" && lookValue === value;
-            setCameraPillValue("camera-position-pill", "manual");
-            setCameraPillValue("camera-look-pill", isAlreadyActive ? "manual" : value);
+            applyCameraPillPair(
+                "manual",
+                isAlreadyActive ? "manual" : value,
+                { preserveManualRelease: isAlreadyActive },
+            );
             syncFollowPillState();
             syncViewPillState();
         });
@@ -912,17 +1075,70 @@ export function bindMainControls(handlers) {
             const isAlreadyActive = positionValue === position && lookValue === look;
             const nextPosition = isAlreadyActive ? "manual" : position;
             const nextLook = isAlreadyActive ? "manual" : look;
-            setCameraPillValue("camera-position-pill", nextPosition);
-            setCameraPillValue("camera-look-pill", nextLook);
+            const isFreeRelease = nextPosition === "manual" && nextLook === "manual";
+            applyCameraPillPair(nextPosition, nextLook, { preserveManualRelease: isFreeRelease });
             syncFollowPillState();
             syncViewPillState();
         });
+    });
+    togglePillPairs.forEach(([pillId, inputId]) => {
+        const pill = document.getElementById(pillId);
+        const input = document.getElementById(inputId);
+        if (!pill || !input) return;
+        pill.addEventListener("click", function () {
+            if (pill.disabled || pill.getAttribute("aria-disabled") === "true") return;
+            input.checked = !input.checked;
+            setView();
+            syncTogglePillState();
+            syncLocatorsPillState();
+        });
+        input.addEventListener("change", function () {
+            syncTogglePillVisibility();
+            syncTogglePillState();
+            syncLocatorsPillState();
+        });
+    });
+    originPillPairs.forEach(([pillId, inputId]) => {
+        const pill = document.getElementById(pillId);
+        const input = document.getElementById(inputId);
+        if (!pill || !input) return;
+        pill.addEventListener("click", function () {
+            if (!input.checked) {
+                input.click();
+            }
+            syncOriginPillState();
+            syncSecondaryOrbitLabel();
+            syncTogglePillVisibility();
+        });
+        input.addEventListener("change", function () {
+            syncOriginPillState();
+            syncSecondaryOrbitLabel();
+            syncTogglePillVisibility();
+        });
+    });
+    dimensionPillPairs.forEach(([pillId, inputId]) => {
+        const pill = document.getElementById(pillId);
+        const input = document.getElementById(inputId);
+        if (!pill || !input) return;
+        pill.addEventListener("click", function () {
+            if (!input.checked) {
+                input.click();
+            }
+            syncDimensionPillState();
+        });
+        input.addEventListener("change", syncDimensionPillState);
     });
     document.querySelectorAll('input[name="camera-position-pill"], input[name="camera-look-pill"]')
         .forEach((input) => input.addEventListener("change", function () {
             syncFollowPillState();
             syncViewPillState();
         }));
+    if (landingToggle) {
+        landingToggle.addEventListener("change", function () {
+            syncTogglePillVisibility();
+            syncLandingPillState();
+        });
+    }
     if (joyRideToggle) {
         joyRideToggle.addEventListener("change", syncFlybyPillState);
     }
@@ -941,9 +1157,15 @@ export function bindMainControls(handlers) {
     });
     syncFlybyPillVisibility();
     syncFlybyPillState();
+    syncOriginPillState();
     syncLocatorsPillState();
+    syncSecondaryOrbitLabel();
     syncFollowPillState();
     syncViewPillState();
+    syncTogglePillVisibility();
+    syncTogglePillState();
+    syncLandingPillState();
+    syncDimensionPillState();
     syncPlanePillState();
 }
 
