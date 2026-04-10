@@ -1369,7 +1369,7 @@
         <div id="ground-track-panel-wrapper" class="ground-track-panel-wrapper">
             <div id="ground-track-panel" class="ground-track-panel ground-track-panel--hidden">
                 <div class="ground-track-panel__header">
-                    <div class="ground-track-panel__title">Ground Track</div>
+                    <div class="ground-track-panel__title">Splashdown in Spotlight</div>
                     <div class="ground-track-panel__header-controls">
                         <button id="ground-track-style-2d" class="ground-track-panel__mode-button" type="button" title="2D map view" aria-pressed="true">2D</button>
                         <button id="ground-track-style-3d" class="ground-track-panel__mode-button" type="button" title="3D globe view" aria-pressed="false">3D</button>
@@ -1378,10 +1378,67 @@
                         <button id="ground-track-panel-close" class="ground-track-panel__icon-button ground-track-panel__close" type="button" title="Close">×</button>
                     </div>
                 </div>
-                <div id="ground-track-map" class="ground-track-panel__map" role="img" aria-label="Ground track map"></div>
+                <div class="ground-track-panel__body">
+                    <div class="ground-track-panel__sidebar">
+                        <div class="ground-track-panel__timeline-title">Timeline</div>
+                        <div class="ground-track-panel__timeline-transport">
+                            <div class="controls-cluster controls-cluster--transport">
+                                <div class="controls-subgroup controls-subgroup--playback">
+                                    <button id="ground-track-play" class="button button--primary" type="button" title="Play or pause animation">Play</button>
+                                    <button id="ground-track-step-back-second" class="button" type="button" title="Step timeline backward by one second">-1s</button>
+                                    <button id="ground-track-step-forward-second" class="button" type="button" title="Step timeline forward by one second">+1s</button>
+                                    <button id="ground-track-step-back-minute" class="button" type="button" title="Step timeline backward by one minute">-1m</button>
+                                    <button id="ground-track-step-forward-minute" class="button" type="button" title="Step timeline forward by one minute">+1m</button>
+                                </div>
+                            </div>
+                            <div class="controls-cluster controls-cluster--speed">
+                                <div class="controls-subgroup">
+                                    <button id="ground-track-slower" class="button button--icon" type="button" title="Slower">−</button>
+                                    <button id="ground-track-speed" class="button button--realtime" type="button" title="Set speed to realtime (1 sec/sec)">1 sec/sec</button>
+                                    <button id="ground-track-faster" class="button button--icon" type="button" title="Faster">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ground-track-panel__timeline-row">
+                            <span class="ground-track-panel__timeline-label">Time</span>
+                            <input
+                                id="ground-track-timeline-slider"
+                                class="ground-track-panel__timeline-slider"
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="1000"
+                                value="0"
+                                aria-label="Ground track timeline slider"
+                            >
+                        </div>
+                        <div id="ground-track-timeline-local" class="ground-track-panel__timeline-local">Local: --</div>
+                        <div id="ground-track-event-list" class="ground-track-panel__event-list" role="group" aria-label="Ground track events"></div>
+                    </div>
+                    <div class="ground-track-panel__viewport">
+                        <div id="ground-track-map" class="ground-track-panel__map" role="img" aria-label="Ground track map"></div>
+                    </div>
+                </div>
+                <div class="ground-track-panel__metrics-strip" aria-hidden="true">
+                    <div class="ground-track-panel__metric-cell">
+                        <div class="ground-track-panel__metric-key">Earth</div>
+                        <div id="ground-track-metric-earth-distance" class="ground-track-panel__metric-value">--</div>
+                    </div>
+                    <div class="ground-track-panel__metric-cell">
+                        <div class="ground-track-panel__metric-key">Velocity</div>
+                        <div id="ground-track-metric-velocity" class="ground-track-panel__metric-value">--</div>
+                    </div>
+                    <div class="ground-track-panel__metric-cell">
+                        <div class="ground-track-panel__metric-key">Lat</div>
+                        <div id="ground-track-metric-latitude" class="ground-track-panel__metric-value">--</div>
+                    </div>
+                    <div class="ground-track-panel__metric-cell">
+                        <div class="ground-track-panel__metric-key">Long</div>
+                        <div id="ground-track-metric-longitude" class="ground-track-panel__metric-value">--</div>
+                    </div>
+                </div>
                 <div class="ground-track-panel__footer">
                     <div id="ground-track-status" class="ground-track-panel__status">Waiting for trajectory...</div>
-                    <div id="ground-track-coords" class="ground-track-panel__coords">--</div>
                 </div>
             </div>
         </div>

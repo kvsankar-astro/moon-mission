@@ -19,7 +19,7 @@ function createSceneUiUpdateActions(deps) {
     let telemetrySnapshot = null;
     let telemetryPrimaryBody = "EARTH";
     let sceneStateSnapshot = null;
-    const groundTrackPanelActions = createGroundTrackPanelActions();
+    const groundTrackPanelActions = createGroundTrackPanelActions({ formatMetric });
 
     function convertDistanceValue(valueKm) {
         if (!Number.isFinite(valueKm)) return null;

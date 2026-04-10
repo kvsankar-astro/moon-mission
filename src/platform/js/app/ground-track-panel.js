@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { loadMissionConfig } from "../data/mission-data.js";
 
 const VIEW_MODE_2D = "map2d";
 const VIEW_MODE_3D = "globe3d";
@@ -11,6 +12,12 @@ const EARTH_TEXTURE_URL = "images/earth/2_no_clouds_8k.jpg";
 const DEFAULT_MAP_CENTER = [12, 0];
 const DEFAULT_MAP_ZOOM = 2;
 const TRACK_WRAP_OFFSETS = [-360, 0, 360];
+const GROUND_TRACK_START_EVENT_KEY = "returnCorrection3";
+const J2000_OBLIQUITY_RADIANS = THREE.MathUtils.degToRad(23.439291111);
+const KM_TO_MILES = 0.621371192237334;
+const KMPS_TO_MPH = 2236.9362920544;
+const UNIT_MODE_KM = "km";
+const UNIT_MODE_MILES = "miles";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 10;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
@@ -20,6 +27,10 @@ const GLOBE_MARKER_ALTITUDE = 1.035;
 const GLOBE_MIN_DISTANCE = 1.9;
 const GLOBE_MAX_DISTANCE = 5.2;
 const GLOBE_FOV_DEGREES = 32;
+const GLOBE_WORLD_NORTH = new THREE.Vector3(0, 1, 0);
+const GLOBE_VIEW_UP = new THREE.Vector3(0, 1, 0);
+const GLOBE_VIEW_FRONT = new THREE.Vector3(0, 0, 1);
+const COMPOSER_PANEL_ASPECT_RATIO = 16 / 9;
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -65,6 +76,25 @@ function hasVector(vector) {
         Number.isFinite(vector.z);
 }
 
+function normalizeVelocityVector(vector) {
+    if (hasVector(vector)) {
+        return vector;
+    }
+    if (
+        vector &&
+        Number.isFinite(vector.vx) &&
+        Number.isFinite(vector.vy) &&
+        Number.isFinite(vector.vz)
+    ) {
+        return {
+            x: vector.vx,
+            y: vector.vy,
+            z: vector.vz,
+        };
+    }
+    return null;
+}
+
 function subtractVectors(a, b) {
     return {
         x: a.x - b.x,
@@ -73,14 +103,32 @@ function subtractVectors(a, b) {
     };
 }
 
+function magnitude(vector) {
+    if (!hasVector(vector)) return Number.NaN;
+    return Math.hypot(vector.x, vector.y, vector.z);
+}
+
+function rotateEclipticToEquatorial(vector) {
+    if (!hasVector(vector)) return null;
+    const cosEps = Math.cos(J2000_OBLIQUITY_RADIANS);
+    const sinEps = Math.sin(J2000_OBLIQUITY_RADIANS);
+    return {
+        x: vector.x,
+        y: (vector.y * cosEps) - (vector.z * sinEps),
+        z: (vector.y * sinEps) + (vector.z * cosEps),
+    };
+}
+
 function eciToLatLonDegrees(vectorEci, timeMs) {
     if (!hasVector(vectorEci) || !Number.isFinite(timeMs)) return null;
+    const equatorialVector = rotateEclipticToEquatorial(vectorEci);
+    if (!hasVector(equatorialVector)) return null;
     const gmst = julianDateToGmstRadians(dateToJulianDate(timeMs));
     const cosG = Math.cos(gmst);
     const sinG = Math.sin(gmst);
-    const x = (vectorEci.x * cosG) + (vectorEci.y * sinG);
-    const y = (-vectorEci.x * sinG) + (vectorEci.y * cosG);
-    const z = vectorEci.z;
+    const x = (equatorialVector.x * cosG) + (equatorialVector.y * sinG);
+    const y = (-equatorialVector.x * sinG) + (equatorialVector.y * cosG);
+    const z = equatorialVector.z;
     const r = Math.hypot(x, y, z);
     if (!Number.isFinite(r) || r <= 1e-9) return null;
     const lat = Math.asin(clamp(z / r, -1, 1)) * (180 / Math.PI);
@@ -130,6 +178,22 @@ function readCssPx(name, fallback = 0) {
     return Number.isFinite(value) ? value : fallback;
 }
 
+function parseMissionTimeMs(value) {
+    if (typeof value !== "string" || value.length === 0) return Number.NaN;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function resolveGroundTrackWindowMs(configData, phaseKey = "geo") {
+    const phaseConfig = phaseKey === "lunar"
+        ? (configData?.lunar || configData?.geo)
+        : (configData?.geo || configData?.lunar);
+    return {
+        startMs: parseMissionTimeMs(configData?.events?.[GROUND_TRACK_START_EVENT_KEY]?.startTime),
+        endMs: parseMissionTimeMs(phaseConfig?.endTime),
+    };
+}
+
 function latLonToVector3(latDeg, lonDeg, radius = GLOBE_RADIUS) {
     const lat = THREE.MathUtils.degToRad(latDeg);
     const lon = THREE.MathUtils.degToRad(lonDeg);
@@ -137,8 +201,29 @@ function latLonToVector3(latDeg, lonDeg, radius = GLOBE_RADIUS) {
     return new THREE.Vector3(
         radius * cosLat * Math.cos(lon),
         radius * Math.sin(lat),
-        radius * cosLat * Math.sin(lon),
+        -radius * cosLat * Math.sin(lon),
     );
+}
+
+function resolveNorthUpTrackQuaternion(targetVector) {
+    if (!(targetVector instanceof THREE.Vector3)) {
+        return new THREE.Quaternion();
+    }
+    const front = GLOBE_VIEW_FRONT.clone();
+    const north = GLOBE_WORLD_NORTH.clone();
+    const qFaceTarget = new THREE.Quaternion().setFromUnitVectors(targetVector.clone().normalize(), front);
+    const rotatedNorth = north.applyQuaternion(qFaceTarget);
+    const projectedNorth = rotatedNorth.sub(front.clone().multiplyScalar(rotatedNorth.dot(front)));
+    if (projectedNorth.lengthSq() <= 1e-10) {
+        return qFaceTarget;
+    }
+    projectedNorth.normalize();
+    const signedAngle = Math.atan2(
+        front.dot(new THREE.Vector3().crossVectors(projectedNorth, GLOBE_VIEW_UP)),
+        projectedNorth.dot(GLOBE_VIEW_UP),
+    );
+    const qNorthUp = new THREE.Quaternion().setFromAxisAngle(front, signedAngle);
+    return qNorthUp.multiply(qFaceTarget);
 }
 
 function disposeObject3D(object) {
@@ -152,7 +237,16 @@ function disposeObject3D(object) {
     }
 }
 
-function createGroundTrackPanelActions() {
+function createGroundTrackPanelActions(options = {}) {
+    const formatMetric = typeof options?.formatMetric === "function"
+        ? options.formatMetric
+        : ((value) => {
+            if (!Number.isFinite(value)) return "--";
+            const abs = Math.abs(value);
+            if (abs >= 100) return value.toFixed(0);
+            if (abs >= 10) return value.toFixed(1);
+            return value.toFixed(2);
+        });
     let initialized = false;
     let map = null;
     let tileLayer = null;
@@ -172,8 +266,15 @@ function createGroundTrackPanelActions() {
     let hasGlobeUserView = false;
     let isProgrammaticMapViewChange = false;
     let isProgrammaticGlobeViewChange = false;
+    let missionConfigData = null;
+    let missionConfigReady = false;
+    let missionConfigPromise = null;
     let panelPosition = null;
     let dragState = null;
+    let groundTrackEventSignature = "";
+    let groundTrackEventNodes = [];
+    let selectedGroundTrackEventTimeMs = Number.NaN;
+    let autoOpenScheduled = false;
     const cacheByKey = new Map();
     const globeState = {
         renderer: null,
@@ -189,6 +290,26 @@ function createGroundTrackPanelActions() {
 
     const getNode = (id) => document.getElementById(id);
 
+    function ensureMissionConfigData() {
+        if (missionConfigReady) return Promise.resolve(missionConfigData);
+        if (missionConfigPromise) return missionConfigPromise;
+        missionConfigPromise = loadMissionConfig()
+            .then((configData) => {
+                missionConfigData = configData || null;
+                missionConfigReady = true;
+                return missionConfigData;
+            })
+            .catch(() => {
+                missionConfigData = null;
+                missionConfigReady = true;
+                return null;
+            })
+            .finally(() => {
+                missionConfigPromise = null;
+            });
+        return missionConfigPromise;
+    }
+
     function setStatus(text) {
         const node = getNode("ground-track-status");
         if (node) node.textContent = text;
@@ -197,6 +318,366 @@ function createGroundTrackPanelActions() {
     function setCoords(text) {
         const node = getNode("ground-track-coords");
         if (node) node.textContent = text;
+    }
+
+    function setMetricValue(id, text) {
+        const node = getNode(id);
+        if (node) node.textContent = text;
+    }
+
+    function setTimelineLocalText(text) {
+        const node = getNode("ground-track-timeline-local");
+        if (node) node.textContent = text;
+    }
+
+    function resolveMetricUnitMode() {
+        const milesButtons = [
+            document.getElementById("stats-unit-miles"),
+            document.getElementById("mobile-unit-miles"),
+        ];
+        const isMiles = milesButtons.some((button) =>
+            button?.classList?.contains("is-active") || button?.getAttribute("aria-pressed") === "true"
+        );
+        return isMiles ? UNIT_MODE_MILES : UNIT_MODE_KM;
+    }
+
+    function formatDistanceText(valueKm) {
+        if (!Number.isFinite(valueKm)) return "--";
+        const unitMode = resolveMetricUnitMode();
+        const converted = unitMode === UNIT_MODE_MILES ? valueKm * KM_TO_MILES : valueKm;
+        const unitText = unitMode === UNIT_MODE_MILES ? "miles" : "km";
+        return `${formatMetric(converted)} ${unitText}`;
+    }
+
+    function formatVelocityText(valueKmPerSec) {
+        if (!Number.isFinite(valueKmPerSec)) return "--";
+        const unitMode = resolveMetricUnitMode();
+        const converted = unitMode === UNIT_MODE_MILES ? valueKmPerSec * KMPS_TO_MPH : valueKmPerSec;
+        const unitText = unitMode === UNIT_MODE_MILES ? "miles/h" : "km/s";
+        return `${formatMetric(converted)} ${unitText}`;
+    }
+
+    function normalizeLongitudeDegrees(lon) {
+        if (!Number.isFinite(lon)) return Number.NaN;
+        let normalized = lon;
+        while (normalized > 180) normalized -= 360;
+        while (normalized <= -180) normalized += 360;
+        return normalized;
+    }
+
+    function formatLatitudeText(lat) {
+        if (!Number.isFinite(lat)) return "--";
+        const hemisphere = lat > 0 ? "N" : (lat < 0 ? "S" : "");
+        const value = `${Math.abs(lat).toFixed(2)}°`;
+        return hemisphere ? `${value} ${hemisphere}` : value;
+    }
+
+    function formatLongitudeText(lon) {
+        const normalized = normalizeLongitudeDegrees(lon);
+        if (!Number.isFinite(normalized)) return "--";
+        const hemisphere = normalized > 0 ? "E" : (normalized < 0 ? "W" : "");
+        const value = `${Math.abs(normalized).toFixed(2)}°`;
+        return hemisphere ? `${value} ${hemisphere}` : value;
+    }
+
+    function formatLatLonPair(location) {
+        if (!Array.isArray(location) || location.length !== 2) return "--";
+        return `${formatLatitudeText(location[0])}, ${formatLongitudeText(location[1])}`;
+    }
+
+    function formatLocalDateTime(timeMs, { includeSeconds = true } = {}) {
+        if (!Number.isFinite(timeMs)) return "--";
+        try {
+            return new Intl.DateTimeFormat(undefined, {
+                month: "short",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: includeSeconds ? "2-digit" : undefined,
+                hour12: false,
+                timeZoneName: "short",
+            }).format(timeMs);
+        } catch {
+            return new Date(timeMs).toLocaleString();
+        }
+    }
+
+    function updateInfoStrip({ earthDistanceKm, earthSpeedKmPerSec, location }) {
+        setMetricValue("ground-track-metric-earth-distance", formatDistanceText(earthDistanceKm));
+        setMetricValue("ground-track-metric-velocity", formatVelocityText(earthSpeedKmPerSec));
+        setMetricValue("ground-track-metric-latitude", formatLatitudeText(location?.[0]));
+        setMetricValue("ground-track-metric-longitude", formatLongitudeText(location?.[1]));
+    }
+
+    function readMainTimelineState() {
+        const slider = document.getElementById("timeline-slider");
+        if (!(slider instanceof HTMLInputElement)) return null;
+        const min = Number(slider.min);
+        const max = Number(slider.max);
+        const value = Number(slider.value);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) return null;
+        return {
+            slider,
+            min: Math.min(min, max),
+            max: Math.max(min, max),
+            value: clamp(value, Math.min(min, max), Math.max(min, max)),
+        };
+    }
+
+    function seekMainTimelineTime(timeMs, finalize = false) {
+        const timelineState = readMainTimelineState();
+        if (!timelineState) return;
+        const clamped = clamp(timeMs, timelineState.min, timelineState.max);
+        timelineState.slider.value = String(clamped);
+        timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
+        if (finalize) {
+            timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    }
+
+    const REPEAT_PRESS_BUTTON_IDS = new Set(["slower", "faster", "realtime"]);
+
+    function dispatchSyntheticPress(target) {
+        if (!(target instanceof HTMLButtonElement) || target.disabled) {
+            return false;
+        }
+        if (typeof window !== "undefined" && typeof window.PointerEvent === "function") {
+            target.dispatchEvent(new PointerEvent("pointerdown", {
+                bubbles: true,
+                cancelable: true,
+                pointerId: 1,
+                pointerType: "mouse",
+                isPrimary: true,
+                button: 0,
+            }));
+            target.dispatchEvent(new PointerEvent("pointerup", {
+                bubbles: true,
+                cancelable: true,
+                pointerId: 1,
+                pointerType: "mouse",
+                isPrimary: true,
+                button: 0,
+            }));
+            return true;
+        }
+        target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+        target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
+        return true;
+    }
+
+    function clickMainControlButton(id) {
+        const button = document.getElementById(id);
+        if (!(button instanceof HTMLButtonElement)) {
+            return false;
+        }
+        if (button.disabled || button.getAttribute("aria-disabled") === "true") {
+            return false;
+        }
+        if (REPEAT_PRESS_BUTTON_IDS.has(id)) {
+            return dispatchSyntheticPress(button);
+        }
+        button.click();
+        return true;
+    }
+
+    function resolveGroundTrackEvents(config, startMs, endMs) {
+        const configKey = config === "lunar" ? "lunar" : "geo";
+        const eventKeys = Array.isArray(missionConfigData?.eventConfigs?.[configKey])
+            ? missionConfigData.eventConfigs[configKey]
+            : [];
+        const eventMap = missionConfigData?.events || {};
+        const events = [];
+
+        for (const eventKey of eventKeys) {
+            const key = String(eventKey || "").trim();
+            if (!key || key === "now") continue;
+            const eventInfo = eventMap[key];
+            const eventTimeMs = parseMissionTimeMs(eventInfo?.startTime);
+            if (!Number.isFinite(eventTimeMs)) continue;
+            if (Number.isFinite(startMs) && eventTimeMs < startMs) continue;
+            if (Number.isFinite(endMs) && eventTimeMs > endMs) continue;
+            const title = String(eventInfo?.label || key || "Event").trim();
+            if (!title) continue;
+            events.push({
+                id: key,
+                title,
+                timeMs: eventTimeMs,
+            });
+        }
+
+        if (events.length > 0) {
+            events.sort((a, b) => a.timeMs - b.timeMs);
+            return events;
+        }
+
+        const buttons = document.querySelectorAll("#burnbuttons button[data-event-index]");
+        for (const button of buttons) {
+            const eventTimeMs = Number(button?.dataset?.eventTimeMs);
+            if (!Number.isFinite(eventTimeMs)) continue;
+            if (Number.isFinite(startMs) && eventTimeMs < startMs) continue;
+            if (Number.isFinite(endMs) && eventTimeMs > endMs) continue;
+            const key = String(button?.dataset?.eventKey || button?.id || "").trim();
+            if (key === "now") continue;
+            const title = String(button?.textContent || button?.getAttribute("title") || key || "Event").trim();
+            if (!title) continue;
+            events.push({
+                id: key || `${eventTimeMs}`,
+                title,
+                timeMs: eventTimeMs,
+            });
+        }
+        events.sort((a, b) => a.timeMs - b.timeMs);
+        return events;
+    }
+
+    function syncGroundTrackEventList(config, currentTimeMs, startMs, endMs) {
+        const wrap = getNode("ground-track-event-list");
+        if (!wrap) return;
+        const events = resolveGroundTrackEvents(config, startMs, endMs);
+        const signature = events.map((eventInfo) => `${eventInfo.id}:${eventInfo.timeMs}`).join("|");
+        if (groundTrackEventSignature !== signature) {
+            wrap.replaceChildren();
+            groundTrackEventSignature = signature;
+            groundTrackEventNodes = [];
+            selectedGroundTrackEventTimeMs = Number.NaN;
+            for (const eventInfo of events) {
+                const pill = document.createElement("button");
+                pill.type = "button";
+                pill.className = "ground-track-panel__event-pill";
+                pill.setAttribute("aria-label", `Jump timeline to ${eventInfo.title}`);
+                const title = document.createElement("span");
+                title.className = "ground-track-panel__event-pill-title";
+                title.textContent = eventInfo.title;
+                const time = document.createElement("span");
+                time.className = "ground-track-panel__event-pill-time";
+                time.textContent = formatLocalDateTime(eventInfo.timeMs);
+                pill.appendChild(title);
+                pill.appendChild(time);
+                pill.addEventListener("click", () => {
+                    selectedGroundTrackEventTimeMs = eventInfo.timeMs;
+                    seekMainTimelineTime(eventInfo.timeMs, true);
+                    syncGroundTrackEventList(config, eventInfo.timeMs, startMs, endMs);
+                });
+                wrap.appendChild(pill);
+                groundTrackEventNodes.push({
+                    element: pill,
+                    id: eventInfo.id,
+                    timeMs: eventInfo.timeMs,
+                });
+            }
+        }
+
+        if (groundTrackEventNodes.length === 0) {
+            return;
+        }
+
+        let activeIndex = -1;
+        const selectedEventIndex = Number.isFinite(selectedGroundTrackEventTimeMs)
+            ? groundTrackEventNodes.findIndex((eventNode) => eventNode.timeMs === selectedGroundTrackEventTimeMs)
+            : -1;
+        if (selectedEventIndex >= 0 && Number.isFinite(currentTimeMs)) {
+            if (Math.abs(currentTimeMs - selectedGroundTrackEventTimeMs) <= 1000) {
+                activeIndex = selectedEventIndex;
+            } else {
+                selectedGroundTrackEventTimeMs = Number.NaN;
+            }
+        }
+        if (Number.isFinite(currentTimeMs) && activeIndex < 0) {
+            for (let i = 0; i < groundTrackEventNodes.length; i += 1) {
+                if (currentTimeMs >= groundTrackEventNodes[i].timeMs) {
+                    activeIndex = i;
+                } else {
+                    break;
+                }
+            }
+            if (activeIndex < 0) {
+                activeIndex = 0;
+            }
+        }
+        for (let i = 0; i < groundTrackEventNodes.length; i += 1) {
+            groundTrackEventNodes[i].element.classList.toggle("is-active", i === activeIndex);
+        }
+    }
+
+    function syncTimelineCardUi(config, animTime, startMs, endMs) {
+        const playButton = getNode("ground-track-play");
+        const stepBackSecondButton = getNode("ground-track-step-back-second");
+        const stepForwardSecondButton = getNode("ground-track-step-forward-second");
+        const stepBackMinuteButton = getNode("ground-track-step-back-minute");
+        const stepForwardMinuteButton = getNode("ground-track-step-forward-minute");
+        const slowerButton = getNode("ground-track-slower");
+        const speedButton = getNode("ground-track-speed");
+        const fasterButton = getNode("ground-track-faster");
+        const slider = getNode("ground-track-timeline-slider");
+        const mainTimeline = readMainTimelineState();
+
+        if (playButton instanceof HTMLButtonElement) {
+            const mainPlay = document.getElementById("animate");
+            if (mainPlay instanceof HTMLButtonElement) {
+                playButton.textContent = (mainPlay.textContent || "Play").trim() || "Play";
+                playButton.disabled = mainPlay.disabled || mainPlay.getAttribute("aria-disabled") === "true";
+                playButton.title = mainPlay.title || "Play or pause animation";
+            } else {
+                playButton.textContent = "Play";
+                playButton.disabled = true;
+            }
+        }
+
+        if (speedButton instanceof HTMLButtonElement) {
+            const mainSpeed = document.getElementById("realtime");
+            if (mainSpeed instanceof HTMLButtonElement) {
+                speedButton.textContent = (mainSpeed.textContent || "1 sec/sec").trim() || "1 sec/sec";
+                speedButton.disabled = mainSpeed.disabled || mainSpeed.getAttribute("aria-disabled") === "true";
+                speedButton.title = mainSpeed.title || "Set speed to realtime (1 sec/sec)";
+            } else {
+                speedButton.textContent = "1 sec/sec";
+                speedButton.disabled = true;
+            }
+        }
+
+        const mainSlower = document.getElementById("slower");
+        if (slowerButton instanceof HTMLButtonElement) {
+            slowerButton.disabled = !(mainSlower instanceof HTMLButtonElement) ||
+                mainSlower.disabled ||
+                mainSlower.getAttribute("aria-disabled") === "true";
+        }
+
+        const mainFaster = document.getElementById("faster");
+        if (fasterButton instanceof HTMLButtonElement) {
+            fasterButton.disabled = !(mainFaster instanceof HTMLButtonElement) ||
+                mainFaster.disabled ||
+                mainFaster.getAttribute("aria-disabled") === "true";
+        }
+
+        const rangeStart = Number.isFinite(startMs) ? startMs : mainTimeline?.min;
+        const rangeEnd = Number.isFinite(endMs) ? endMs : mainTimeline?.max;
+        const activeTime = clamp(animTime, rangeStart, rangeEnd);
+
+        if (slider instanceof HTMLInputElement && Number.isFinite(rangeStart) && Number.isFinite(rangeEnd)) {
+            slider.min = String(rangeStart);
+            slider.max = String(Math.max(rangeStart + 1000, rangeEnd));
+            slider.step = "1000";
+            slider.value = String(activeTime);
+            slider.disabled = false;
+        } else if (slider instanceof HTMLInputElement) {
+            slider.disabled = true;
+        }
+
+        if (stepBackSecondButton instanceof HTMLButtonElement) {
+            stepBackSecondButton.disabled = !Number.isFinite(rangeStart) || activeTime <= rangeStart;
+        }
+        if (stepForwardSecondButton instanceof HTMLButtonElement) {
+            stepForwardSecondButton.disabled = !Number.isFinite(rangeEnd) || activeTime >= rangeEnd;
+        }
+        if (stepBackMinuteButton instanceof HTMLButtonElement) {
+            stepBackMinuteButton.disabled = !Number.isFinite(rangeStart) || activeTime <= rangeStart;
+        }
+        if (stepForwardMinuteButton instanceof HTMLButtonElement) {
+            stepForwardMinuteButton.disabled = !Number.isFinite(rangeEnd) || activeTime >= rangeEnd;
+        }
+
+        setTimelineLocalText(`Local: ${formatLocalDateTime(activeTime)}`);
+        syncGroundTrackEventList(config, activeTime, rangeStart, rangeEnd);
     }
 
     function updateModeButtons() {
@@ -361,6 +842,7 @@ function createGroundTrackPanelActions() {
         scene.background = new THREE.Color(0x08172a);
 
         const camera = new THREE.PerspectiveCamera(GLOBE_FOV_DEGREES, width / height, 0.1, 100);
+        camera.up.copy(GLOBE_VIEW_UP);
         camera.position.set(0, 0, 3.15);
 
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -370,6 +852,8 @@ function createGroundTrackPanelActions() {
         controls.zoomSpeed = 0.9;
         controls.minDistance = GLOBE_MIN_DISTANCE;
         controls.maxDistance = GLOBE_MAX_DISTANCE;
+        controls.minPolarAngle = 0.08;
+        controls.maxPolarAngle = Math.PI - 0.08;
         controls.addEventListener("change", () => {
             if (!isProgrammaticGlobeViewChange) {
                 hasGlobeUserView = true;
@@ -547,6 +1031,7 @@ function createGroundTrackPanelActions() {
         if (points.length === 0) {
             isProgrammaticGlobeViewChange = true;
             globeState.globeRoot.quaternion.identity();
+            globeState.camera?.up?.copy?.(GLOBE_VIEW_UP);
             globeState.camera.position.set(0, 0, 3.15);
             globeState.controls?.update();
             isProgrammaticGlobeViewChange = false;
@@ -554,11 +1039,11 @@ function createGroundTrackPanelActions() {
             return;
         }
         const midpoint = points[Math.floor(points.length * 0.5)];
-        const front = new THREE.Vector3(0, 0, 1);
         const vector = latLonToVector3(midpoint[0], midpoint[1]).normalize();
-        const quaternion = new THREE.Quaternion().setFromUnitVectors(vector, front);
+        const quaternion = resolveNorthUpTrackQuaternion(vector);
         isProgrammaticGlobeViewChange = true;
         globeState.globeRoot.quaternion.copy(quaternion);
+        globeState.camera?.up?.copy?.(GLOBE_VIEW_UP);
         globeState.camera.position.set(0, 0, 3.15);
         globeState.controls?.target.set(0, 0, 0);
         globeState.controls?.update();
@@ -586,6 +1071,48 @@ function createGroundTrackPanelActions() {
         const x = PANEL_DEFAULT_LEFT_PX;
         const y = window.innerHeight - height - timelineHeight - timelineOffset - PANEL_DEFAULT_BOTTOM_GAP_PX;
         return clampPanelRect({ x, y, width, height });
+    }
+
+    function resolveComposerPanelRect() {
+        const composerPanel = document.querySelector(".aux-camera-view--composer");
+        if (!(composerPanel instanceof HTMLElement)) return null;
+        const rect = composerPanel.getBoundingClientRect();
+        if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top) || rect.width <= 0 || rect.height <= 0) {
+            return null;
+        }
+        return {
+            x: rect.left,
+            y: rect.top,
+            width: rect.width,
+            height: rect.height,
+        };
+    }
+
+    function resolveComposerFallbackRect() {
+        const maxWidth = Math.max(320, window.innerWidth - (PANEL_EDGE_MARGIN_PX * 2));
+        const maxHeight = Math.max(220, window.innerHeight - (PANEL_EDGE_MARGIN_PX * 2));
+        let width = Math.min(Math.round(window.innerWidth * 0.52), maxWidth);
+        let height = Math.round(width / COMPOSER_PANEL_ASPECT_RATIO);
+        if (height > maxHeight) {
+            height = maxHeight;
+            width = Math.min(maxWidth, Math.round(height * COMPOSER_PANEL_ASPECT_RATIO));
+        }
+        return {
+            x: Math.round((window.innerWidth - width) * 0.5),
+            y: Math.round((window.innerHeight - height) * 0.5),
+            width,
+            height,
+        };
+    }
+
+    function applyComposerPanelPlacement(panel) {
+        if (!panel) return false;
+        const rect = resolveComposerPanelRect() || resolveComposerFallbackRect();
+        if (!rect) return false;
+        panel.style.width = `${Math.round(rect.width)}px`;
+        panel.style.height = `${Math.round(rect.height)}px`;
+        applyPanelPosition(panel, rect.x, rect.y);
+        return true;
     }
 
     function clampPanelRect({ x, y, width, height }) {
@@ -721,6 +1248,22 @@ function createGroundTrackPanelActions() {
         });
     }
 
+    function scheduleAutoOpenIfNeeded(config) {
+        if (autoOpenScheduled || config === "relative") return;
+        const panel = getNode("ground-track-panel");
+        if (!panel) return;
+        autoOpenScheduled = true;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                setPanelVisible(true);
+                requestAnimationFrame(() => {
+                    applyComposerPanelPlacement(panel);
+                    syncVisibleView();
+                });
+            });
+        });
+    }
+
     function ensurePanelEventsBound() {
         if (initialized) return;
         initialized = true;
@@ -731,6 +1274,15 @@ function createGroundTrackPanelActions() {
         const zoomOutButton = getNode("ground-track-zoom-out");
         const style2dButton = getNode("ground-track-style-2d");
         const style3dButton = getNode("ground-track-style-3d");
+        const playButton = getNode("ground-track-play");
+        const stepBackSecondButton = getNode("ground-track-step-back-second");
+        const stepForwardSecondButton = getNode("ground-track-step-forward-second");
+        const stepBackMinuteButton = getNode("ground-track-step-back-minute");
+        const stepForwardMinuteButton = getNode("ground-track-step-forward-minute");
+        const slowerButton = getNode("ground-track-slower");
+        const speedButton = getNode("ground-track-speed");
+        const fasterButton = getNode("ground-track-faster");
+        const timelineSlider = getNode("ground-track-timeline-slider");
         const panel = getNode("ground-track-panel");
         const header = panel?.querySelector(".ground-track-panel__header");
 
@@ -746,6 +1298,58 @@ function createGroundTrackPanelActions() {
             setPanelVisible(true);
         });
         closeButton?.addEventListener("click", () => setPanelVisible(false));
+        playButton?.addEventListener("click", () => {
+            clickMainControlButton("animate");
+        });
+        stepBackSecondButton?.addEventListener("click", () => {
+            const slider = getNode("ground-track-timeline-slider");
+            const min = Number(slider?.min);
+            const value = Number(slider?.value);
+            if (!Number.isFinite(min) || !Number.isFinite(value)) return;
+            seekMainTimelineTime(Math.max(min, value - 1000), true);
+        });
+        stepForwardSecondButton?.addEventListener("click", () => {
+            const slider = getNode("ground-track-timeline-slider");
+            const max = Number(slider?.max);
+            const value = Number(slider?.value);
+            if (!Number.isFinite(max) || !Number.isFinite(value)) return;
+            seekMainTimelineTime(Math.min(max, value + 1000), true);
+        });
+        stepBackMinuteButton?.addEventListener("click", () => {
+            const slider = getNode("ground-track-timeline-slider");
+            const min = Number(slider?.min);
+            const value = Number(slider?.value);
+            if (!Number.isFinite(min) || !Number.isFinite(value)) return;
+            seekMainTimelineTime(Math.max(min, value - 60000), true);
+        });
+        stepForwardMinuteButton?.addEventListener("click", () => {
+            const slider = getNode("ground-track-timeline-slider");
+            const max = Number(slider?.max);
+            const value = Number(slider?.value);
+            if (!Number.isFinite(max) || !Number.isFinite(value)) return;
+            seekMainTimelineTime(Math.min(max, value + 60000), true);
+        });
+        slowerButton?.addEventListener("click", () => {
+            clickMainControlButton("slower");
+        });
+        speedButton?.addEventListener("click", () => {
+            clickMainControlButton("realtime");
+        });
+        fasterButton?.addEventListener("click", () => {
+            clickMainControlButton("faster");
+        });
+        if (timelineSlider instanceof HTMLInputElement) {
+            timelineSlider.addEventListener("input", () => {
+                const value = Number(timelineSlider.value);
+                if (!Number.isFinite(value)) return;
+                seekMainTimelineTime(value, false);
+            });
+            timelineSlider.addEventListener("change", () => {
+                const value = Number(timelineSlider.value);
+                if (!Number.isFinite(value)) return;
+                seekMainTimelineTime(value, true);
+            });
+        }
         zoomInButton?.addEventListener("click", () => {
             if (panelMode === VIEW_MODE_2D) {
                 map?.zoomIn();
@@ -801,6 +1405,42 @@ function createGroundTrackPanelActions() {
         return craftPos;
     }
 
+    function resolveCurrentEarthCenteredVelocity(sceneState, config) {
+        const bodies = sceneState?.bodies || {};
+        const craftId = resolveTelemetryBodyId(sceneState);
+        const craftVel = normalizeVelocityVector(bodies?.[craftId]?.velocity || null);
+        if (!hasVector(craftVel)) return null;
+        if (config === "lunar") {
+            const earthVel = normalizeVelocityVector(bodies?.EARTH?.velocity || null);
+            if (!hasVector(earthVel)) return null;
+            return subtractVectors(craftVel, earthVel);
+        }
+        if (config === "relative") return null;
+        return craftVel;
+    }
+
+    function resolveEarthDistanceKm(sceneState, config, earthCenteredVector) {
+        const telemetry = sceneState?.telemetry || null;
+        if (Number.isFinite(telemetry?.distanceEarth)) {
+            return telemetry.distanceEarth;
+        }
+        if (config === "geo" && Number.isFinite(telemetry?.distancePrimary)) {
+            return telemetry.distancePrimary;
+        }
+        return magnitude(earthCenteredVector);
+    }
+
+    function resolveEarthVelocityKmPerSec(sceneState, config, earthCenteredVelocity) {
+        const telemetry = sceneState?.telemetry || null;
+        if (Number.isFinite(telemetry?.velocityEarth)) {
+            return telemetry.velocityEarth;
+        }
+        if (config === "geo" && Number.isFinite(telemetry?.velocityPrimary)) {
+            return telemetry.velocityPrimary;
+        }
+        return magnitude(earthCenteredVelocity);
+    }
+
     function resolveTrackSegments(config) {
         if (config !== "geo" && config !== "lunar") return { key: `${config}:none`, segments: [] };
         const scene = window.animationScenes?.[config];
@@ -815,14 +1455,20 @@ function createGroundTrackPanelActions() {
         const count = config === "lunar"
             ? Math.min(craftCurve.length, craftTimes.length, earthCurve.length)
             : Math.min(craftCurve.length, craftTimes.length);
-        const key = `${config}:${craftId}:${count}`;
-        if (cacheByKey.has(key)) return { key, segments: cacheByKey.get(key) };
+        const windowBounds = resolveGroundTrackWindowMs(missionConfigData, config);
+        const startMs = windowBounds.startMs;
+        const endMs = Number.isFinite(craftTimes[count - 1]) ? craftTimes[count - 1] : windowBounds.endMs;
+        const key = `${config}:${craftId}:${count}:${Number.isFinite(startMs) ? startMs : "na"}:${Number.isFinite(endMs) ? endMs : "na"}`;
+        if (cacheByKey.has(key)) return { key, ...cacheByKey.get(key) };
 
         const points = [];
+        let lastLocation = null;
         for (let i = 0; i < count; i += 1) {
             const craft = craftCurve[i];
             const timeMs = craftTimes[i];
             if (!hasVector(craft) || !Number.isFinite(timeMs)) continue;
+            if (Number.isFinite(startMs) && timeMs < startMs) continue;
+            if (Number.isFinite(endMs) && timeMs > endMs) continue;
             let earthCentered = craft;
             if (config === "lunar") {
                 const earth = earthCurve[i];
@@ -830,11 +1476,14 @@ function createGroundTrackPanelActions() {
                 earthCentered = subtractVectors(craft, earth);
             }
             const latLon = eciToLatLonDegrees(earthCentered, timeMs);
-            if (latLon) points.push(latLon);
+            if (!latLon) continue;
+            points.push(latLon);
+            lastLocation = latLon;
         }
         const segments = unwrapTrackPoints(points);
-        cacheByKey.set(key, segments);
-        return { key, segments };
+        const result = { segments, lastLocation, startMs, endMs };
+        cacheByKey.set(key, result);
+        return { key, ...result };
     }
 
     function clearTrackVisuals() {
@@ -852,11 +1501,23 @@ function createGroundTrackPanelActions() {
             clearTrackVisuals();
             setStatus("Ground track is unavailable in Relative origin.");
             setCoords("--");
+            syncTimelineCardUi(config, animTime, Number.NaN, Number.NaN);
+            updateInfoStrip({
+                earthDistanceKm: Number.NaN,
+                earthSpeedKmPerSec: Number.NaN,
+                location: null,
+            });
             syncVisibleView();
             return;
         }
 
-        const { key, segments } = resolveTrackSegments(config);
+        const {
+            key,
+            segments,
+            lastLocation,
+            startMs,
+            endMs,
+        } = resolveTrackSegments(config);
         if (key !== currentTrackKey) {
             currentTrackKey = key;
             currentSegments = segments;
@@ -865,21 +1526,50 @@ function createGroundTrackPanelActions() {
         }
 
         const vector = resolveCurrentEarthCenteredVector(sceneState, config);
-        currentLocation = eciToLatLonDegrees(vector, animTime);
-        if (!currentLocation) {
+        const velocity = resolveCurrentEarthCenteredVelocity(sceneState, config);
+        const earthDistanceKm = resolveEarthDistanceKm(sceneState, config, vector);
+        const earthSpeedKmPerSec = resolveEarthVelocityKmPerSec(sceneState, config, velocity);
+        const liveLocation = eciToLatLonDegrees(vector, animTime);
+        if (Number.isFinite(startMs) && animTime < startMs) {
+            currentLocation = null;
+            setStatus("Ground track window starts at RTC-3.");
+            setCoords("--");
+        } else if (Number.isFinite(endMs) && animTime > endMs) {
+            currentLocation = lastLocation || null;
+            setStatus("Ground track window ends at the final ephemeris sample.");
+            setCoords(formatLatLonPair(currentLocation));
+        } else if (!liveLocation) {
+            currentLocation = null;
             setStatus("Current ground location unavailable.");
             setCoords("--");
         } else {
-            setStatus("Ground track synced to mission timeline.");
-            setCoords(`${currentLocation[0].toFixed(2)}°, ${currentLocation[1].toFixed(2)}°`);
+            currentLocation = liveLocation;
+            setStatus("Ground track window: RTC-3 to final ephemeris sample.");
+            setCoords(formatLatLonPair(currentLocation));
         }
 
+        updateInfoStrip({
+            earthDistanceKm,
+            earthSpeedKmPerSec,
+            location: currentLocation,
+        });
+        syncTimelineCardUi(config, animTime, startMs, endMs);
         syncVisibleView();
     }
 
     function update({ sceneState, config, animTime }) {
         ensurePanelEventsBound();
+        scheduleAutoOpenIfNeeded(config);
         latestPayload = { sceneState, config, animTime };
+        if (!missionConfigReady && !missionConfigPromise) {
+            ensureMissionConfigData().then(() => {
+                cacheByKey.clear();
+                currentTrackKey = "";
+                if (latestPayload) {
+                    renderPayload(latestPayload);
+                }
+            });
+        }
         renderPayload(latestPayload);
     }
 
