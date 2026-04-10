@@ -130,7 +130,7 @@ jobs:
             --output-root ./dist-pages \
             --app-root . \
             --data-root ./mission-data \
-            --site-url "https://kvsankar-astro.github.io/moon-mission/"
+            --site-url "https://kvsankar.github.io/moon-mission/"
 
       - name: Verify staged runtime assets against manifest (existence + SHA)
         run: |
