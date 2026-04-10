@@ -54,6 +54,16 @@ export function startMissionApp({ eventBus, handlers }) {
         const lookSelect = document.getElementById("camera-look");
         if (positionSelect) positionSelect.value = "manual";
         if (lookSelect) lookSelect.value = "manual";
+
+        const setPillValue = (name, value) => {
+            const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
+            if (input) input.checked = true;
+        };
+
+        // Keep pill radios aligned with hidden select state so no restored
+        // mounted-mode radio can re-apply a stale camera mount on startup.
+        setPillValue("camera-position-pill", "manual");
+        setPillValue("camera-look-pill", "manual");
     };
 
     bindMainControls({

@@ -58,6 +58,10 @@ export function createModeActions({
         const button = document.getElementById(id);
         if (!button) return;
         button.classList.toggle("down", !!isDown);
+        // Top strip segmented pills use `is-active` (not `down`) for visual shading.
+        if (button.classList.contains("header-pill__segment-button")) {
+            button.classList.toggle("is-active", !!isDown);
+        }
         button.setAttribute("aria-pressed", isDown ? "true" : "false");
     }
 
@@ -75,7 +79,6 @@ export function createModeActions({
         }
 
         toggleButtonDownState("joyridebutton", transitionPlan.controlStates.joyRide);
-        toggleButtonDownState("flyby-pill", transitionPlan.controlStates.joyRide);
         toggleButtonDownState("landingbutton", transitionPlan.controlStates.landing);
         setChecked("joyride", transitionPlan.controlStates.joyRide);
         setChecked("landing", transitionPlan.controlStates.landing);

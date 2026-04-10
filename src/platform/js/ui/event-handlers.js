@@ -716,9 +716,6 @@ export function bindMainControls(handlers) {
     const flybyPillWrap = typeof document !== "undefined"
         ? document.getElementById("flyby-pill-wrap")
         : null;
-    const joyRideToggle = typeof document !== "undefined"
-        ? document.getElementById("joyride")
-        : null;
     const descentOrbitOption = typeof document !== "undefined"
         ? document.getElementById("orbit-descent-option")
         : null;
@@ -831,10 +828,9 @@ export function bindMainControls(handlers) {
         const visible = isArtemis2Mission();
         flybyPillWrap.hidden = !visible;
     };
-    const syncFlybyPillState = () => {
-        if (!flybyPill || !joyRideToggle) return;
-        const isActive = joyRideToggle.checked === true;
-        flybyPill.classList.toggle("is-active", isActive);
+    const syncFlybyPillState = (isActive = false) => {
+        if (!flybyPill) return;
+        flybyPill.classList.toggle("is-active", !!isActive);
         flybyPill.setAttribute("aria-pressed", isActive ? "true" : "false");
     };
     const getSelectedCameraPillValue = (name) => {
@@ -1034,7 +1030,22 @@ export function bindMainControls(handlers) {
     }
     onClick("joyride", toggleJoyRide);
     onClick("joyridebutton", toggleJoyRide);
-    onClick("flyby-pill", toggleJoyRide);
+    onClick("flyby-pill", function () {
+        // Flyby pill should also restore/open the Flyby in Focus panel when available.
+        // The composer panel starts minimized by design, so we trigger its chip restore.
+        const composerChip = document.querySelector(
+            "#aux-camera-views .aux-camera-chip--composer-tab",
+        ) || Array.from(
+            document.querySelectorAll("#aux-camera-views .aux-camera-chip"),
+        ).find((button) =>
+            button instanceof HTMLButtonElement &&
+            /^flyby\b/i.test((button.textContent || "").trim()),
+        );
+        if (composerChip instanceof HTMLButtonElement && !composerChip.hidden) {
+            composerChip.click();
+            syncFlybyPillState(true);
+        }
+    });
     onClick("landing", toggleLanding);
     onClick("landingbutton", toggleLanding);
     onClick("toggle-pill-landing", function () {
@@ -1138,9 +1149,6 @@ export function bindMainControls(handlers) {
             syncTogglePillVisibility();
             syncLandingPillState();
         });
-    }
-    if (joyRideToggle) {
-        joyRideToggle.addEventListener("change", syncFlybyPillState);
     }
     planePillPairs.forEach(([pillId, inputId]) => {
         const pill = document.getElementById(pillId);
