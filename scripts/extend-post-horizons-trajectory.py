@@ -79,6 +79,11 @@ def format_label_time(ms: float) -> str:
     return dt.strftime("%Y-%m-%d %H:%M")
 
 
+def timestamp_to_iso(ms: float) -> str:
+    dt = datetime.fromtimestamp(ms / 1000.0, tz=timezone.utc)
+    return dt.isoformat().replace("+00:00", "Z")
+
+
 def label_ms_to_jd_tdb(ms: np.ndarray | float) -> np.ndarray | float:
     return JD_UNIX_EPOCH + (np.asarray(ms, dtype=float) / MS_PER_DAY)
 
@@ -295,7 +300,39 @@ def load_npz_series(npz_path: Path) -> dict[str, np.ndarray]:
     return {name: data[name] for name in data.files}
 
 
-def write_meta(path: Path, artifacts: PhaseArtifacts, counts: dict[str, int], generated_by: str, note: str) -> None:
+def build_extension_metadata(extension_cfg: dict, runtime_end_time: str) -> dict:
+    provenance = extension_cfg.get("provenance")
+    if not isinstance(provenance, dict):
+        provenance = {}
+    return {
+        "kind": str(provenance.get("kind", "app-generated")),
+        "segment_label": str(provenance.get("segmentLabel", "Ballistic splashdown continuation")),
+        "short_label": str(provenance.get("shortLabel", "Generated final descent")),
+        "summary": str(
+            provenance.get(
+                "summary",
+                "App-modeled ballistic continuation from the final published JPL HORIZONS Orion sample through splashdown.",
+            ),
+        ),
+        "ui_note": str(
+            provenance.get(
+                "uiNote",
+                "The final descent to splashdown is app-generated ballistic continuation data and not JPL HORIZONS vector data.",
+            ),
+        ),
+        "source_end_time": str(extension_cfg.get("sourceEndTime", "")),
+        "runtime_end_time": runtime_end_time,
+    }
+
+
+def write_meta(
+    path: Path,
+    artifacts: PhaseArtifacts,
+    counts: dict[str, int],
+    generated_by: str,
+    note: str,
+    extension_meta: dict | None = None,
+) -> None:
     payload = {
         "step_size_seconds": artifacts.step_seconds,
         "step_size_minutes": artifacts.step_seconds / 60.0,
@@ -312,6 +349,8 @@ def write_meta(path: Path, artifacts: PhaseArtifacts, counts: dict[str, int], ge
         },
         "modeling_note": note,
     }
+    if extension_meta:
+        payload["post_horizons_extension"] = extension_meta
     payload.update({f"{body_id}_vectors_count": count for body_id, count in counts.items()})
     with path.open("w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
@@ -421,6 +460,10 @@ def extend_geo_npz(
         extended_payload[key] = positions_to_structured(all_times_ms, body_positions_extended)
 
     np.savez_compressed(geo_artifacts.npz_path, **extended_payload)
+    extension_meta = build_extension_metadata(
+        extension_cfg,
+        runtime_end_time=timestamp_to_iso(geo_artifacts.end_label_ms),
+    )
     write_meta(
         geo_artifacts.meta_path,
         geo_artifacts,
@@ -430,6 +473,7 @@ def extend_geo_npz(
         },
         generated_by="extend-post-horizons-trajectory.py",
         note="Guided post-HORIZONS splashdown continuation from the final published Orion sample.",
+        extension_meta=extension_meta,
     )
     return extended_payload
 
@@ -437,6 +481,7 @@ def extend_geo_npz(
 def derive_lunar_npz(
     lunar_artifacts: PhaseArtifacts,
     geo_payload: dict[str, np.ndarray],
+    extension_cfg: dict,
 ) -> None:
     sc = geo_payload["SC_vectors"]
     moon = geo_payload["MOON_vectors"]
@@ -458,6 +503,10 @@ def derive_lunar_npz(
     }
 
     np.savez_compressed(lunar_artifacts.npz_path, **payload)
+    extension_meta = build_extension_metadata(
+        extension_cfg,
+        runtime_end_time=timestamp_to_iso(lunar_artifacts.end_label_ms),
+    )
     write_meta(
         lunar_artifacts.meta_path,
         lunar_artifacts,
@@ -467,6 +516,7 @@ def derive_lunar_npz(
         },
         generated_by="extend-post-horizons-trajectory.py",
         note="Derived from extended geo data for frame consistency through splashdown.",
+        extension_meta=extension_meta,
     )
 
 
@@ -489,7 +539,7 @@ def main() -> int:
     lunar_artifacts = resolve_phase_artifacts(config, manifest, mission, "lunar")
 
     geo_payload = extend_geo_npz(geo_artifacts, extension_cfg)
-    derive_lunar_npz(lunar_artifacts, geo_payload)
+    derive_lunar_npz(lunar_artifacts, geo_payload, extension_cfg)
 
     print(f"[{mission}] extended geo/lunar trajectories through splashdown")
     return 0

@@ -42,15 +42,17 @@ GENERATED_DIR_BASE = PROJECT_ROOT / "data-generated"
 DATA_DIR = None       # Output: assets/<mission>/data/ (Chebyshev files)
 GENERATED_DIR = None  # Input: data-generated/<mission>/ (NPZ files from orbits.py)
 PHASES = None
+MISSION_CONFIG = None
 
 
-def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
+def load_mission_config(mission_name: str) -> tuple[Path, Path, dict, dict]:
     """Load mission configuration and return DATA_DIR, GENERATED_DIR, and PHASES.
 
     Returns:
         data_dir: assets/<mission>/data/ - for output Chebyshev files
         generated_dir: data-generated/<mission>/ - for input NPZ files
         phases: dict of phase configurations
+        config: full compiled mission config.json payload
     """
     data_dir = ASSETS_DIR / mission_name / "data"
     generated_dir = GENERATED_DIR_BASE / mission_name
@@ -103,7 +105,44 @@ def load_mission_config(mission_name: str) -> tuple[Path, Path, dict]:
             "tolerance_km": tolerance,
         }
 
-    return data_dir, generated_dir, phases
+    return data_dir, generated_dir, phases, config
+
+
+def build_post_horizons_extension_metadata(config: dict, phase_name: str) -> dict | None:
+    if phase_name not in {"geo", "lunar", "relative"}:
+        return None
+    extension_cfg = config.get("postHorizonExtension")
+    if not isinstance(extension_cfg, dict) or extension_cfg.get("enabled", True) is False:
+        return None
+    source_end_time = str(extension_cfg.get("sourceEndTime", "")).strip()
+    if not source_end_time:
+        return None
+    phase_cfg = config.get(phase_name)
+    if not isinstance(phase_cfg, dict):
+        phase_cfg = config.get("geo")
+    runtime_end_time = str(phase_cfg.get("endTime", "")).strip() if isinstance(phase_cfg, dict) else ""
+    provenance_cfg = extension_cfg.get("provenance")
+    if not isinstance(provenance_cfg, dict):
+        provenance_cfg = {}
+    return {
+        "kind": str(provenance_cfg.get("kind", "app-generated")),
+        "segment_label": str(provenance_cfg.get("segmentLabel", "Ballistic splashdown continuation")),
+        "short_label": str(provenance_cfg.get("shortLabel", "Generated final descent")),
+        "summary": str(
+            provenance_cfg.get(
+                "summary",
+                "App-modeled ballistic continuation from the final published JPL HORIZONS Orion sample through splashdown.",
+            ),
+        ),
+        "ui_note": str(
+            provenance_cfg.get(
+                "uiNote",
+                "The final descent to splashdown is app-generated ballistic continuation data and not JPL HORIZONS vector data.",
+            ),
+        ),
+        "source_end_time": source_end_time,
+        "runtime_end_time": runtime_end_time,
+    }
 
 
 # ============================================================================
@@ -768,6 +807,9 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
             "end": float(max(body_output[body]["time_range"]["end"] for body in body_ids)),
         },
     }
+    extension_metadata = build_post_horizons_extension_metadata(MISSION_CONFIG or {}, phase_name)
+    if extension_metadata:
+        output["metadata"]["post_horizons_extension"] = extension_metadata
     output.update(body_output)
     if "SC" in body_output:
         output["segments"] = body_output["SC"]["segments"]
@@ -801,7 +843,7 @@ def compress_phase(phase_name: str, validate: bool = True, dry_run: bool = False
 
 
 def main():
-    global DATA_DIR, GENERATED_DIR, PHASES
+    global DATA_DIR, GENERATED_DIR, PHASES, MISSION_CONFIG
 
     parser = argparse.ArgumentParser(
         description="Compress ephemeris data using Chebyshev polynomials"
@@ -835,7 +877,7 @@ def main():
     args = parser.parse_args()
 
     # Load mission configuration
-    DATA_DIR, GENERATED_DIR, PHASES = load_mission_config(args.mission)
+    DATA_DIR, GENERATED_DIR, PHASES, MISSION_CONFIG = load_mission_config(args.mission)
 
     if not PHASES:
         print(f"Error: No phases found for mission '{args.mission}'")

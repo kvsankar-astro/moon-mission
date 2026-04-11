@@ -1263,6 +1263,11 @@ canvas {
     background: rgba(255, 184, 92, 0.96);
 }
 
+.timeline-dock__marker--generated::before {
+    background: #ffb347;
+    box-shadow: 0 0 10px rgba(255, 179, 71, 0.55);
+}
+
 .timeline-dock__marker:hover::before,
 .timeline-dock__marker:focus-visible::before {
     height: 10px;
@@ -1641,6 +1646,26 @@ a:hover { color: white; }
     box-shadow:
         0 0 0 1px rgba(213, 232, 255, 0.32),
         0 0 14px rgba(106, 170, 255, 0.34);
+}
+
+.burnbutton--generated {
+    border-color: rgba(255, 179, 71, 0.78);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 210, 148, 0.16),
+        0 0 10px rgba(255, 179, 71, 0.12);
+}
+
+.burnbutton--generated::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #ffb347;
+    box-shadow: 0 0 8px rgba(255, 179, 71, 0.55);
+    pointer-events: none;
 }
 
 #burnbuttons .swiper-slide {

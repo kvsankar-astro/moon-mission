@@ -15,6 +15,12 @@ import {
     resolveTrackOpacity2D,
 } from "./orbit-trail-style.js";
 import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
+import {
+    resolveGeneratedCurvePoints,
+    resolvePostHorizonExtension,
+} from "./post-horizons-extension.js";
+
+const GENERATED_ORBIT_SEGMENT_COLOR = "#ffb347";
 
 export function createOrbitVectorsActions({
     d3,
@@ -281,6 +287,8 @@ export function createOrbitVectorsActions({
         scene.orbitSvgBackgroundChunksByBodyId = {};
         scene.orbitSvgBackgroundBaseOpacitiesByBodyId = {};
         scene.orbitTimesByBodyId = {};
+        scene.orbitSvgGeneratedPointsByBodyId = {};
+        const postHorizonExtension = resolvePostHorizonExtension(readGlobalConfig(), config);
 
         for (let i = 0; i < scene.planetsForLocations.length; ++i) {
             const planetKey = scene.planetsForLocations[i];
@@ -355,6 +363,11 @@ export function createOrbitVectorsActions({
                     getStartTime(),
                     stepMs,
                 );
+                scene.orbitSvgGeneratedPointsByBodyId[planetKey] = resolveGeneratedCurvePoints(
+                    orbitPoints,
+                    scene.orbitTimesByBodyId[planetKey],
+                    postHorizonExtension?.sourceEndMs,
+                );
                 scene.orbitSvgBackgroundChunksByBodyId[planetKey] = chunkOrbitPoints(orbitPoints);
                 scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey] =
                     scene.orbitSvgBackgroundChunksByBodyId[planetKey].map(() =>
@@ -389,6 +402,22 @@ export function createOrbitVectorsActions({
                             "; fill: none",
                     )
                     .attr("visibility", "inherit");
+
+                if (scene.orbitSvgGeneratedPointsByBodyId[planetKey].length >= 2) {
+                    svgContainer
+                        .select("#" + "orbit-" + planetKey)
+                        .append("polyline")
+                        .attr("class", "orbit-generated-path")
+                        .attr("points", pointsToAttr(scene.orbitSvgGeneratedPointsByBodyId[planetKey]))
+                        .attr("fill", "none")
+                        .attr("stroke", GENERATED_ORBIT_SEGMENT_COLOR)
+                        .attr("stroke-width", 1.6 / zoomFactor)
+                        .attr("stroke-opacity", 0.98)
+                        .attr("stroke-dasharray", `${6 / zoomFactor} ${4 / zoomFactor}`)
+                        .attr("stroke-linecap", "round")
+                        .attr("stroke-linejoin", "round")
+                        .attr("visibility", "inherit");
+                }
 
                 scene.orbitSvgBackgroundChunksByBodyId[planetKey].forEach((chunk, index) => {
                     svgContainer

@@ -179,7 +179,9 @@ function createAnimationSceneClass(deps) {
             this.curveVelocitiesById = {};
             this.orbitLinesByBodyId = {};
             this.orbitTrailLinesByBodyId = {};
+            this.generatedOrbitLinesByBodyId = {};
             this.orbitSvgPointsByBodyId = {};
+            this.orbitSvgGeneratedPointsByBodyId = {};
             this.orbitTimesByBodyId = {};
             this.supportOrbitsChebByBodyId = {};
             this.locations = [];

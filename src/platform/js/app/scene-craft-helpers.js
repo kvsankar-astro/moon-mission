@@ -216,6 +216,17 @@ function applySceneOrbitVisibility(
         });
     }
 
+    for (const [bodyId, generatedOrbitLine] of Object.entries(scene.generatedOrbitLinesByBodyId || {})) {
+        if (!generatedOrbitLine) continue;
+        generatedOrbitLine.visible = isLineVisibleForBody(bodyId);
+        if (generatedOrbitLine.material) {
+            generatedOrbitLine.material.transparent = true;
+            generatedOrbitLine.material.opacity = viewOrbit ? 0.98 : 0;
+            generatedOrbitLine.material.depthWrite = false;
+            generatedOrbitLine.material.needsUpdate = true;
+        }
+    }
+
     for (const [bodyId, bundle] of Object.entries(scene.orbitTrailLinesByBodyId || {})) {
         const visible = isLineVisibleForBody(bodyId) && isTrailStyle;
         const tailStyle = resolveTailVisualStyle({

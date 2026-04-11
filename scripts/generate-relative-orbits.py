@@ -44,6 +44,41 @@ def load_config(mission_name: str) -> dict:
     return json.loads(cfg_path.read_text(encoding="utf-8"))
 
 
+def build_post_horizons_extension_metadata(config: dict, phase_name: str = "relative") -> dict | None:
+    extension_cfg = config.get("postHorizonExtension")
+    if not isinstance(extension_cfg, dict) or extension_cfg.get("enabled", True) is False:
+        return None
+    source_end_time = str(extension_cfg.get("sourceEndTime", "")).strip()
+    if not source_end_time:
+        return None
+    phase_cfg = config.get(phase_name)
+    if not isinstance(phase_cfg, dict):
+        phase_cfg = config.get("geo")
+    runtime_end_time = str(phase_cfg.get("endTime", "")).strip() if isinstance(phase_cfg, dict) else ""
+    provenance_cfg = extension_cfg.get("provenance")
+    if not isinstance(provenance_cfg, dict):
+        provenance_cfg = {}
+    return {
+        "kind": str(provenance_cfg.get("kind", "app-generated")),
+        "segment_label": str(provenance_cfg.get("segmentLabel", "Ballistic splashdown continuation")),
+        "short_label": str(provenance_cfg.get("shortLabel", "Generated final descent")),
+        "summary": str(
+            provenance_cfg.get(
+                "summary",
+                "App-modeled ballistic continuation from the final published JPL HORIZONS Orion sample through splashdown.",
+            ),
+        ),
+        "ui_note": str(
+            provenance_cfg.get(
+                "uiNote",
+                "The final descent to splashdown is app-generated ballistic continuation data and not JPL HORIZONS vector data.",
+            ),
+        ),
+        "source_end_time": source_end_time,
+        "runtime_end_time": runtime_end_time,
+    }
+
+
 def normalize(v: np.ndarray) -> np.ndarray:
     n = np.linalg.norm(v)
     if not np.isfinite(n) or n == 0:
@@ -625,6 +660,9 @@ def generate_relative_for_mission(
             "segments": frame_segments,
         },
     }
+    extension_metadata = build_post_horizons_extension_metadata(cfg, "relative")
+    if extension_metadata:
+        output["metadata"]["post_horizons_extension"] = extension_metadata
     for body_id in metadata_body_ids:
         if body_id == "FRAME_ROT":
             continue

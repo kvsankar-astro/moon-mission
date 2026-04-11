@@ -156,5 +156,9 @@ API SOURCE: NASA/JPL Horizons API
 *******************************************************************************
 ```
 
+## Animation Coverage Note
+
+The mission page extends Orion beyond the last published JPL HORIZONS state with an app-generated ballistic splashdown continuation. Entry Interface timing still comes from the HORIZONS major-events table, but the plotted final descent from the last public Orion sample through splashdown is not JPL HORIZONS vector data.
+
 ---
 *Fetched from JPL HORIZONS on 2026-04-11 01:09 UTC*

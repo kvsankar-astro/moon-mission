@@ -59,6 +59,8 @@ function createInitConfigUiActions(deps) {
                         ? "button burnbutton burnbutton--inactive"
                         : "button burnbutton",
                 )
+                .classed("burnbutton--generated", !!eventInfo.generated)
+                .attr("data-generated", eventInfo.generated ? "true" : "false")
                 .attr("aria-disabled", eventInfo.clickable === false ? "true" : "false")
                 .attr("title", getEventHoverText(eventInfo))
                 .html(eventInfo["label"]);

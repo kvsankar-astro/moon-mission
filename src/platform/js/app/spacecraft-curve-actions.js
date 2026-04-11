@@ -11,6 +11,12 @@ import {
     resolveTailVisualStyle,
 } from "./orbit-trail-style.js";
 import { invalidateSceneOrbitOverlap } from "./orbit-overlap-manager.js";
+import {
+    resolveGeneratedCurvePoints,
+    resolvePostHorizonExtension,
+} from "./post-horizons-extension.js";
+
+const GENERATED_ORBIT_SEGMENT_COLOR = "#ffb347";
 
 export function createSpacecraftCurveActions({
     THREE,
@@ -147,6 +153,7 @@ export function createSpacecraftCurveActions({
         scene.orbitLinesByBodyId[bodyId] = orbitLines;
         scene.orbitBackgroundChunksByBodyId[bodyId] = orbitChunks;
         scene.orbitBackgroundBaseOpacitiesByBodyId[bodyId] = orbitBaseOpacities;
+        scene.generatedOrbitLinesByBodyId ||= {};
 
         do {
             const points = Math.min(leftOrbitPoints, scene.pointsPerSlice);
@@ -194,12 +201,47 @@ export function createSpacecraftCurveActions({
                 break;
             }
         } while (true);
+
+        const curveTimes = Array.isArray(scene.curveTimesById?.[bodyId])
+            ? scene.curveTimesById[bodyId]
+            : [];
+        const postHorizonExtension = resolvePostHorizonExtension(globalConfig, scene?.name || "geo");
+        const generatedCurve = resolveGeneratedCurvePoints(
+            validCurve,
+            curveTimes,
+            postHorizonExtension?.sourceEndMs,
+        );
+        if (generatedCurve.length >= 2) {
+            const generatedOrbitLine = new THREE.Line(
+                createLineGeometryFromPoints(generatedCurve),
+                createLineMaterial(GENERATED_ORBIT_SEGMENT_COLOR, {
+                    transparent: true,
+                    opacity: 0.98,
+                    depthWrite: false,
+                    linewidth: 0.4,
+                }),
+            );
+            generatedOrbitLine.userData = {
+                ...(generatedOrbitLine.userData || {}),
+                bodyId,
+                generatedSegment: true,
+            };
+            generatedOrbitLine.renderOrder = 16;
+            generatedOrbitLine.visible = false;
+            scene.generatedOrbitLinesByBodyId[bodyId] = generatedOrbitLine;
+            scene.motherContainer.add(generatedOrbitLine);
+            applyCraftOrbitVisibility(scene, globalConfig);
+            render();
+        } else {
+            scene.generatedOrbitLinesByBodyId[bodyId] = null;
+        }
     }
 
     function addSpacecraftCurve(scene) {
         invalidateSceneOrbitOverlap(scene);
         scene.orbitLines = [];
         scene.orbitLinesByBodyId = {};
+        scene.generatedOrbitLinesByBodyId = {};
         scene.orbitBackgroundChunksByBodyId = {};
         scene.orbitBackgroundBaseOpacitiesByBodyId = {};
         scene.orbitMaterialsByBodyId = {};
@@ -303,6 +345,14 @@ export function createSpacecraftCurveActions({
         scene.orbitLinesByBodyId = {};
         scene.orbitBackgroundChunksByBodyId = {};
         scene.orbitBackgroundBaseOpacitiesByBodyId = {};
+
+        for (const line of Object.values(scene.generatedOrbitLinesByBodyId || {})) {
+            if (!line) continue;
+            line.geometry?.dispose?.();
+            line.material?.dispose?.();
+            scene.motherContainer.remove(line);
+        }
+        scene.generatedOrbitLinesByBodyId = {};
 
         for (const bundle of Object.values(scene.orbitTrailLinesByBodyId || {})) {
             for (const line of [bundle?.tailLine, bundle?.midLine, bundle?.headGlowLine, bundle?.headLine]) {

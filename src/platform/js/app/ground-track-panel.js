@@ -25,6 +25,8 @@ const EARTH_REFERENCE_RADIUS_KM = 6378.1363;
 const KM_TO_MILES = 0.621371192237334;
 const KMPS_TO_MPH = 2236.9362920544;
 const GROUND_TRACK_EVENT_WINDOW_EPSILON_MS = 1000;
+const GROUND_TRACK_COLOR = "#2b84c6";
+const GROUND_TRACK_GENERATED_COLOR = "#ffb347";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 10;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
@@ -201,6 +203,88 @@ function resolveGroundTrackWindowMs(configData, phaseKey = "geo") {
     };
 }
 
+function resolvePostHorizonExtension(configData, phaseKey = "geo") {
+    if (phaseKey !== "geo" && phaseKey !== "lunar") return null;
+    const extension = configData?.postHorizonExtension;
+    if (!extension || typeof extension !== "object" || extension.enabled === false) {
+        return null;
+    }
+    const sourceEndMs = parseMissionTimeMs(extension?.sourceEndTime);
+    if (!Number.isFinite(sourceEndMs)) return null;
+    const phaseConfig = phaseKey === "lunar"
+        ? (configData?.lunar || configData?.geo)
+        : (configData?.geo || configData?.lunar);
+    const phaseEndMs = parseMissionTimeMs(phaseConfig?.endTime);
+    if (!Number.isFinite(phaseEndMs) || phaseEndMs <= sourceEndMs) {
+        return null;
+    }
+    const provenance = extension?.provenance && typeof extension.provenance === "object"
+        ? extension.provenance
+        : {};
+    return {
+        sourceEndMs,
+        segmentLabel: String(provenance?.segmentLabel || "Ballistic splashdown continuation").trim(),
+        shortLabel: String(provenance?.shortLabel || "Generated final descent").trim(),
+        summary: String(provenance?.summary || "").trim(),
+        uiNote: String(provenance?.uiNote || "").trim(),
+    };
+}
+
+function formatUtcDateTime(timeMs) {
+    if (!Number.isFinite(timeMs)) return "--";
+    try {
+        return new Intl.DateTimeFormat("en-GB", {
+            timeZone: "UTC",
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        }).format(timeMs).replace(",", "") + " UTC";
+    } catch {
+        return `${new Date(timeMs).toISOString().replace("T", " ").replace("Z", " UTC")}`;
+    }
+}
+
+function buildGeneratedSegmentNote(provenance) {
+    if (!provenance) return "";
+    if (provenance.uiNote) return provenance.uiNote;
+    return `After ${formatUtcDateTime(provenance.sourceEndMs)}, the final descent to splashdown is app-generated ballistic continuation data and not JPL HORIZONS vector data.`;
+}
+
+function unwrapTimedTrackPoints(points) {
+    const unwrapped = [];
+    let previousLon = null;
+    for (const point of points) {
+        const lat = point?.lat;
+        let lon = point?.lon;
+        const timeMs = point?.timeMs;
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(timeMs)) continue;
+        if (Number.isFinite(previousLon)) {
+            while ((lon - previousLon) > 180) lon -= 360;
+            while ((lon - previousLon) < -180) lon += 360;
+        }
+        unwrapped.push({ lat, lon, timeMs });
+        previousLon = lon;
+    }
+    return unwrapped;
+}
+
+function timedPointsToSegments(points) {
+    if (!Array.isArray(points) || points.length < 2) return [];
+    return [[...points.map((point) => [point.lat, point.lon])]];
+}
+
+function resolveGeneratedTrackSegments(points, sourceEndMs) {
+    if (!Array.isArray(points) || points.length < 2 || !Number.isFinite(sourceEndMs)) return [];
+    const firstGeneratedIndex = points.findIndex((point) => point.timeMs > sourceEndMs);
+    if (firstGeneratedIndex < 0) return [];
+    const startIndex = Math.max(0, firstGeneratedIndex - 1);
+    return timedPointsToSegments(points.slice(startIndex));
+}
+
 function latLonToVector3(latDeg, lonDeg, radius = GLOBE_RADIUS) {
     const lat = THREE.MathUtils.degToRad(latDeg);
     const lon = THREE.MathUtils.degToRad(lonDeg);
@@ -261,6 +345,7 @@ function createGroundTrackPanelActions(options = {}) {
     let trackLayerGroup = null;
     let currentTrackKey = "";
     let currentSegments = [];
+    let currentGeneratedSegments = [];
     let currentLocation = null;
     let shadowRoot = null;
     let shadowShell = null;
@@ -320,6 +405,17 @@ function createGroundTrackPanelActions(options = {}) {
     function setStatus(text) {
         const node = getNode("ground-track-status");
         if (node) node.textContent = text;
+    }
+
+    function setProvenanceNote({ visible, badgeText, text, active = false }) {
+        const note = getNode("ground-track-provenance-note");
+        if (!(note instanceof HTMLElement)) return;
+        note.hidden = !visible;
+        note.classList.toggle("is-active", !!active);
+        const badge = getNode("ground-track-provenance-badge");
+        if (badge) badge.textContent = badgeText || "Generated final descent";
+        const label = getNode("ground-track-provenance-text");
+        if (label) label.textContent = text || "";
     }
 
     function setCoords(text) {
@@ -486,6 +582,8 @@ function createGroundTrackPanelActions(options = {}) {
 
     function resolveGroundTrackEvents(config, startMs, endMs) {
         const eventMap = missionConfigData?.events || {};
+        const provenance = resolvePostHorizonExtension(missionConfigData, config);
+        const sourceEndMs = provenance?.sourceEndMs;
         const events = [];
 
         for (const eventKey of GROUND_TRACK_PANEL_EVENT_KEYS) {
@@ -503,6 +601,7 @@ function createGroundTrackPanelActions(options = {}) {
                 id: key,
                 title,
                 timeMs: eventTimeMs,
+                generated: Number.isFinite(sourceEndMs) && eventTimeMs > sourceEndMs,
             });
         }
 
@@ -514,7 +613,7 @@ function createGroundTrackPanelActions(options = {}) {
         const wrap = getNode("ground-track-event-list");
         if (!wrap) return;
         const events = resolveGroundTrackEvents(config, startMs, endMs);
-        const signature = events.map((eventInfo) => `${eventInfo.id}:${eventInfo.timeMs}`).join("|");
+        const signature = events.map((eventInfo) => `${eventInfo.id}:${eventInfo.timeMs}:${eventInfo.generated ? 1 : 0}`).join("|");
         if (groundTrackEventSignature !== signature) {
             wrap.replaceChildren();
             groundTrackEventSignature = signature;
@@ -525,13 +624,22 @@ function createGroundTrackPanelActions(options = {}) {
                 pill.type = "button";
                 pill.className = "ground-track-panel__event-pill";
                 pill.setAttribute("aria-label", `Jump timeline to ${eventInfo.title}`);
+                const titleWrap = document.createElement("span");
+                titleWrap.className = "ground-track-panel__event-pill-title-wrap";
                 const title = document.createElement("span");
                 title.className = "ground-track-panel__event-pill-title";
                 title.textContent = eventInfo.title;
+                titleWrap.appendChild(title);
+                if (eventInfo.generated) {
+                    const badge = document.createElement("span");
+                    badge.className = "ground-track-panel__event-pill-badge";
+                    badge.textContent = "Generated";
+                    titleWrap.appendChild(badge);
+                }
                 const time = document.createElement("span");
                 time.className = "ground-track-panel__event-pill-time";
                 time.textContent = formatLocalDateTime(eventInfo.timeMs);
-                pill.appendChild(title);
+                pill.appendChild(titleWrap);
                 pill.appendChild(time);
                 pill.addEventListener("click", () => {
                     selectedGroundTrackEventTimeMs = eventInfo.timeMs;
@@ -933,14 +1041,25 @@ function createGroundTrackPanelActions(options = {}) {
         if (marker) marker.setStyle({ opacity: 0, fillOpacity: 0 });
     }
 
-    function renderMapTrack(segments) {
+    function renderMapTrack(segments, generatedSegments = []) {
         if (!trackLayerGroup || !window["L"]) return;
         trackLayerGroup.clearLayers();
         duplicateWrappedSegments(segments).forEach((segment) => {
             window["L"].polyline(segment, {
-                color: "#2b84c6",
+                color: GROUND_TRACK_COLOR,
                 weight: 2.2,
                 opacity: 0.92,
+                lineCap: "round",
+                lineJoin: "round",
+                noClip: true,
+            }).addTo(trackLayerGroup);
+        });
+        duplicateWrappedSegments(generatedSegments).forEach((segment) => {
+            window["L"].polyline(segment, {
+                color: GROUND_TRACK_GENERATED_COLOR,
+                weight: 2.8,
+                opacity: 0.98,
+                dashArray: "8 6",
                 lineCap: "round",
                 lineJoin: "round",
                 noClip: true,
@@ -990,7 +1109,7 @@ function createGroundTrackPanelActions(options = {}) {
         renderGlobeNow();
     }
 
-    function renderGlobeTrack(segments) {
+    function renderGlobeTrack(segments, generatedSegments = []) {
         if (!globeState.trackGroup) return;
         clearGlobeTrack();
         segments.forEach((segment) => {
@@ -1001,6 +1120,18 @@ function createGroundTrackPanelActions(options = {}) {
                 color: 0x4ec3ff,
                 transparent: true,
                 opacity: 0.95,
+            });
+            const line = new THREE.Line(geometry, material);
+            globeState.trackGroup.add(line);
+        });
+        generatedSegments.forEach((segment) => {
+            if (!Array.isArray(segment) || segment.length < 2) return;
+            const points = segment.map(([lat, lon]) => latLonToVector3(lat, lon, GLOBE_TRACK_ALTITUDE * 1.0008));
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({
+                color: 0xffb347,
+                transparent: true,
+                opacity: 1.0,
             });
             const line = new THREE.Line(geometry, material);
             globeState.trackGroup.add(line);
@@ -1213,7 +1344,7 @@ function createGroundTrackPanelActions(options = {}) {
             const activeMap = ensureMap();
             if (!activeMap) return;
             activeMap.invalidateSize(false);
-            renderMapTrack(currentSegments);
+            renderMapTrack(currentSegments, currentGeneratedSegments);
             updateMapMarker(currentLocation);
             if (currentLocation) {
                 centerMapOnLocation(currentLocation);
@@ -1225,7 +1356,7 @@ function createGroundTrackPanelActions(options = {}) {
 
         ensureGlobe();
         resizeGlobe();
-        renderGlobeTrack(currentSegments);
+        renderGlobeTrack(currentSegments, currentGeneratedSegments);
         updateGlobeMarker(currentLocation);
         orientGlobeToTrack(currentLocation, currentSegments);
     }
@@ -1459,23 +1590,44 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function resolveTrackSegments(config) {
-        if (config !== "geo" && config !== "lunar") return { key: `${config}:none`, segments: [] };
+        if (config !== "geo" && config !== "lunar") {
+            return {
+                key: `${config}:none`,
+                segments: [],
+                generatedSegments: [],
+                sourceEndMs: Number.NaN,
+            };
+        }
         const scene = window.animationScenes?.[config];
-        if (!scene) return { key: `${config}:none`, segments: [] };
+        if (!scene) {
+            return {
+                key: `${config}:none`,
+                segments: [],
+                generatedSegments: [],
+                sourceEndMs: Number.NaN,
+            };
+        }
         const craftId = scene.activeCraftId || scene.primaryCraftId || "SC";
         const craftCurve = scene.curvesById?.[craftId] || [];
         const craftTimes = scene.curveTimesById?.[craftId] || [];
         if (!Array.isArray(craftCurve) || !Array.isArray(craftTimes) || craftCurve.length < 2 || craftTimes.length < 2) {
-            return { key: `${config}:${craftId}:empty`, segments: [] };
+            return {
+                key: `${config}:${craftId}:empty`,
+                segments: [],
+                generatedSegments: [],
+                sourceEndMs: Number.NaN,
+            };
         }
         const earthCurve = config === "lunar" ? (scene.curvesById?.EARTH || []) : null;
         const count = config === "lunar"
             ? Math.min(craftCurve.length, craftTimes.length, earthCurve.length)
             : Math.min(craftCurve.length, craftTimes.length);
         const windowBounds = resolveGroundTrackWindowMs(missionConfigData, config);
+        const provenance = resolvePostHorizonExtension(missionConfigData, config);
+        const sourceEndMs = provenance?.sourceEndMs;
         const startMs = windowBounds.startMs;
         const endMs = Number.isFinite(craftTimes[count - 1]) ? craftTimes[count - 1] : windowBounds.endMs;
-        const key = `${config}:${craftId}:${count}:${Number.isFinite(startMs) ? startMs : "na"}:${Number.isFinite(endMs) ? endMs : "na"}`;
+        const key = `${config}:${craftId}:${count}:${Number.isFinite(startMs) ? startMs : "na"}:${Number.isFinite(endMs) ? endMs : "na"}:${Number.isFinite(sourceEndMs) ? sourceEndMs : "na"}`;
         if (cacheByKey.has(key)) return { key, ...cacheByKey.get(key) };
 
         const points = [];
@@ -1494,17 +1646,31 @@ function createGroundTrackPanelActions(options = {}) {
             }
             const latLon = eciToLatLonDegrees(earthCentered, timeMs);
             if (!latLon) continue;
-            points.push(latLon);
+            points.push({
+                lat: latLon[0],
+                lon: latLon[1],
+                timeMs,
+            });
             lastLocation = latLon;
         }
-        const segments = unwrapTrackPoints(points);
-        const result = { segments, lastLocation, startMs, endMs };
+        const unwrappedPoints = unwrapTimedTrackPoints(points);
+        const segments = timedPointsToSegments(unwrappedPoints);
+        const generatedSegments = resolveGeneratedTrackSegments(unwrappedPoints, sourceEndMs);
+        const result = {
+            segments,
+            generatedSegments,
+            lastLocation,
+            startMs,
+            endMs,
+            sourceEndMs,
+        };
         cacheByKey.set(key, result);
         return { key, ...result };
     }
 
     function clearTrackVisuals() {
         currentSegments = [];
+        currentGeneratedSegments = [];
         currentLocation = null;
         currentTrackKey = "";
         clearMapTrack();
@@ -1517,6 +1683,7 @@ function createGroundTrackPanelActions(options = {}) {
         if (config === "relative") {
             clearTrackVisuals();
             setStatus("Ground track is unavailable in Relative origin.");
+            setProvenanceNote({ visible: false, badgeText: "", text: "", active: false });
             setCoords("--");
             syncTimelineCardUi(config, animTime, Number.NaN, Number.NaN);
             updateInfoStrip({
@@ -1532,16 +1699,27 @@ function createGroundTrackPanelActions(options = {}) {
         const {
             key,
             segments,
+            generatedSegments,
             lastLocation,
             startMs,
             endMs,
+            sourceEndMs,
         } = resolveTrackSegments(config);
         if (key !== currentTrackKey) {
             currentTrackKey = key;
             currentSegments = segments;
+            currentGeneratedSegments = generatedSegments;
             hasMapUserView = false;
             hasGlobeUserView = false;
         }
+        const provenance = resolvePostHorizonExtension(missionConfigData, config);
+        const generatedSegmentActive = Number.isFinite(sourceEndMs) && animTime > sourceEndMs;
+        setProvenanceNote({
+            visible: !!provenance,
+            badgeText: provenance?.shortLabel || "Generated final descent",
+            text: buildGeneratedSegmentNote(provenance),
+            active: generatedSegmentActive,
+        });
 
         const vector = resolveCurrentEarthCenteredVector(sceneState, config);
         const velocity = resolveCurrentEarthCenteredVelocity(sceneState, config);
@@ -1555,7 +1733,7 @@ function createGroundTrackPanelActions(options = {}) {
             setCoords("--");
         } else if (Number.isFinite(endMs) && animTime > endMs) {
             currentLocation = lastLocation || null;
-            setStatus("Ground track window ends at the final ephemeris sample.");
+            setStatus("Ground track window ends after the modeled splashdown continuation.");
             setCoords(formatLatLonPair(currentLocation));
         } else if (!liveLocation) {
             currentLocation = null;
@@ -1563,7 +1741,9 @@ function createGroundTrackPanelActions(options = {}) {
             setCoords("--");
         } else {
             currentLocation = liveLocation;
-            setStatus("Ground track window: RTC-3 to final ephemeris sample.");
+            setStatus(generatedSegmentActive
+                ? "Current marker is on the modeled post-HORIZONS splashdown continuation."
+                : "Ground track window: RTC-3 to splashdown.");
             setCoords(formatLatLonPair(currentLocation));
         }
 

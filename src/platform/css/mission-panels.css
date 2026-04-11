@@ -530,6 +530,27 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     white-space: nowrap;
 }
 
+.ground-track-panel__event-pill-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ground-track-panel__event-pill-badge {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 205, 122, 0.44);
+    border-radius: 999px;
+    padding: 2px 6px;
+    background: rgba(255, 168, 49, 0.16);
+    color: rgba(255, 217, 163, 0.98);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
 .ground-track-panel__event-pill-time {
     color: rgba(196, 215, 244, 0.9);
     font-weight: 600;
@@ -614,7 +635,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__footer {
     display: flex;
-    justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
     padding: 6px 9px 7px;
     border-top: 1px solid rgba(121, 171, 255, 0.14);
@@ -623,6 +645,40 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .ground-track-panel__status {
     color: #9bb0d2;
+}
+
+.ground-track-panel__provenance-note {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: rgba(214, 226, 243, 0.92);
+}
+
+.ground-track-panel__provenance-note.is-active .ground-track-panel__provenance-badge {
+    border-color: rgba(255, 213, 138, 0.7);
+    background: rgba(255, 169, 43, 0.26);
+    color: rgba(255, 232, 190, 0.98);
+}
+
+.ground-track-panel__provenance-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px solid rgba(255, 199, 112, 0.46);
+    border-radius: 999px;
+    background: rgba(255, 169, 43, 0.14);
+    color: rgba(255, 221, 172, 0.95);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.ground-track-panel__provenance-text {
+    color: rgba(203, 218, 239, 0.92);
+    line-height: 1.3;
 }
 
 @media screen and (max-width: 600px) {

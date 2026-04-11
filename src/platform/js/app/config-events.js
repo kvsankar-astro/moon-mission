@@ -1,6 +1,12 @@
 import { resolveEventInstant } from "../core/domain/event-time-resolver.js";
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
 import { createTimestampFromScale, parseConfigTimestamp } from "../utils/time-utils.js";
+import {
+    appendGeneratedUiText,
+    buildPostHorizonUiNote,
+    isGeneratedExtensionTime,
+    resolvePostHorizonExtension,
+} from "./post-horizons-extension.js";
 
 function resolveTimeScale(config) {
     return config?.time_scale === "TDB" ? "TDB" : "UTC";
@@ -144,6 +150,7 @@ export function computeEventsUpdate({
     const events = globalConfig.events;
     const eventConfigs = globalConfig.eventConfigs;
     const configEvents = eventConfigs[config] || [];
+    const postHorizonExtension = resolvePostHorizonExtension(globalConfig, config);
 
     /** @type {Array<{ startTime: Date, durationSeconds: number, label: string, burnFlag?: boolean, infoText?: string, body?: string }>} */
     const eventInfos = [];
@@ -174,6 +181,7 @@ export function computeEventsUpdate({
         }
 
         const startTime = new Date(resolvedTime.timestampMs);
+        const generated = isGeneratedExtensionTime(resolvedTime.timestampMs, postHorizonExtension);
         eventInfos.push({
             key: eventKey,
             kind: resolvedTime.kind,
@@ -182,12 +190,20 @@ export function computeEventsUpdate({
             label: eventData.label,
             burnFlag: eventData.burnFlag,
             infoText: eventData.infoText,
-            hoverText: eventData.hoverText || eventData.infoText || eventData.label,
+            hoverText: generated
+                ? appendGeneratedUiText(
+                    eventData.hoverText || eventData.infoText || eventData.label,
+                    postHorizonExtension,
+                )
+                : (eventData.hoverText || eventData.infoText || eventData.label),
             body: eventData.body,
             timeSource: eventData.timeSource || null,
             clickable: true,
             preEphemeris: false,
             availabilityStartTime: null,
+            generated,
+            generatedLabel: generated ? postHorizonExtension?.shortLabel || "Generated" : "",
+            generatedNote: generated ? buildPostHorizonUiNote(postHorizonExtension) : "",
         });
     }
 

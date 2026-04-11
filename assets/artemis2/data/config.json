@@ -55,6 +55,13 @@
     "enabled": true,
     "mode": "guidedSplashdown",
     "sourceEndTime": "2026-04-10T23:53:32Z",
+    "provenance": {
+      "kind": "app-generated",
+      "segmentLabel": "Ballistic splashdown continuation",
+      "shortLabel": "Generated final descent",
+      "summary": "App-modeled ballistic continuation from the final published JPL HORIZONS Orion sample through splashdown.",
+      "uiNote": "After 10 Apr 2026, 23:53:32 UTC, the final descent to splashdown is app-generated ballistic continuation data and not JPL HORIZONS vector data."
+    },
     "splashdownTarget": {
       "latitudeDeg": 32.7,
       "longitudeDeg": -118.05,
@@ -496,7 +503,7 @@
       "label": "Entry Interface",
       "burnFlag": false,
       "infoText": "10th Apr 2026, 23:53:12 UTC - Entry interface at 122 km above Earth. Later descent milestones listed in HORIZONS include forward bay cover deployment at 11 km, drogue parachute deployment at 7.6 km, and pilot parachute deployment at 2.9 km, but HORIZONS does not publish absolute timestamps for those sub-events.",
-      "hoverText": "The current HORIZONS major-events table advances Orion's 122 km entry interface before its parachute sequence milestones.",
+      "hoverText": "The current HORIZONS major-events table advances Orion's 122 km entry interface before its parachute sequence milestones; the plotted descent after the last published Orion sample is app-generated continuation data.",
       "body": "SC",
       "requiresEphemeris": true
     },
@@ -505,8 +512,8 @@
       "durationSeconds": 0,
       "label": "Splashdown",
       "burnFlag": false,
-      "infoText": "11th Apr 2026, 00:07:12 UTC - Pacific splashdown near Baja California after the current 9-day Artemis II mission profile",
-      "hoverText": "The current HORIZONS major-events table places splashdown in the Pacific near Baja California.",
+      "infoText": "11th Apr 2026, 00:07:12 UTC - Pacific splashdown near Baja California after the current 9-day Artemis II mission profile. The final descent path shown here from the last published Orion state to splashdown is app-generated ballistic continuation data.",
+      "hoverText": "The current HORIZONS major-events table places splashdown in the Pacific near Baja California, but the plotted final descent is app-generated ballistic continuation data beyond the last published Orion sample.",
       "body": "SC",
       "requiresEphemeris": true
     },

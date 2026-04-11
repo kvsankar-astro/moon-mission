@@ -30,6 +30,8 @@ function buildEventSignature(eventInfos) {
                 eventInfo?.label || "",
                 eventInfo?.burnFlag ? "1" : "0",
                 eventInfo?.clickable === false ? "0" : "1",
+                eventInfo?.generated ? "1" : "0",
+                eventInfo?.generatedLabel || "",
                 eventInfo?.hoverText || "",
             ].join("|");
         })
@@ -121,6 +123,9 @@ function createTimelineDockController({
         if (eventInfo?.burnFlag) {
             markerClasses.push("timeline-dock__marker--burn");
         }
+        if (eventInfo?.generated) {
+            markerClasses.push("timeline-dock__marker--generated");
+        }
         if (eventInfo?.clickable === false) {
             markerClasses.push("timeline-dock__marker--inactive");
             marker.setAttribute("aria-disabled", "true");
@@ -128,7 +133,10 @@ function createTimelineDockController({
         marker.className = markerClasses.join(" ");
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
         const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "Event";
-        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}`;
+        const generatedSuffix = eventInfo?.generatedLabel
+            ? `\n${eventInfo.generatedLabel}`
+            : "";
+        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}${generatedSuffix}`;
         marker.setAttribute("aria-label", marker.title);
         marker.addEventListener("mouseenter", () => {
             onMarkerHover?.(eventInfo, index);

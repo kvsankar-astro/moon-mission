@@ -47,5 +47,14 @@
         }
       }
     }
+  },
+  "post_horizons_extension": {
+    "kind": "app-generated",
+    "segment_label": "Ballistic splashdown continuation",
+    "short_label": "Generated final descent",
+    "summary": "App-modeled ballistic continuation from the final published JPL HORIZONS Orion sample through splashdown.",
+    "ui_note": "The final descent from the last published Orion sample through splashdown is app-generated ballistic continuation data, not JPL HORIZONS vector data.",
+    "source_end_time": "2026-04-10T23:53:32Z",
+    "runtime_end_time": "2026-04-11T00:08:21Z"
   }
 }
