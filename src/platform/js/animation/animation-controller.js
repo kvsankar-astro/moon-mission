@@ -100,8 +100,8 @@ export class AnimationController {
         // Clamp to valid range
         if (time < this.startTime) {
             this.currentTime = this.startTime;
-        } else if (time > this.endTime - this.stepDurationMs) {
-            this.currentTime = this.endTime - this.stepDurationMs;
+        } else if (time > this.endTime) {
+            this.currentTime = this.endTime;
         } else {
             this.currentTime = time;
         }
@@ -135,7 +135,7 @@ export class AnimationController {
      */
     play() {
         // If at end, restart from beginning
-        if (this.currentTime >= this.endTime - this.stepDurationMs) {
+        if (this.currentTime >= this.endTime) {
             this.currentTime = this.startTime;
         }
 
@@ -207,7 +207,7 @@ export class AnimationController {
      */
     goToEnd() {
         this.pause();
-        this.setTime(this.endTime - this.stepDurationMs);
+        this.setTime(this.endTime);
     }
 
     /**
@@ -322,8 +322,8 @@ export class AnimationController {
         }
 
         // Check bounds
-        if (newTime > this.endTime - this.stepDurationMs) {
-            newTime = this.endTime - this.stepDurationMs;
+        if (newTime > this.endTime) {
+            newTime = this.endTime;
             this.currentTime = newTime;
             this.pause(); // Stop at end
             this.onTimeChange(this.currentTime);

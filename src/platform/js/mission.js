@@ -376,14 +376,14 @@ function syncTimelineDock() {
     );
     const dockStartTime = Number.isFinite(startTime) ? startTime : 0;
     const rawDockEndTime = Number.isFinite(latestEndTime)
-        ? latestEndTime - stepDurationMs
+        ? latestEndTime
         : dockStartTime;
     const dockEndTime = Math.max(dockStartTime, rawDockEndTime);
 
     timelineDockController.setRange({
         startTimeMs: dockStartTime,
         endTimeMs: dockEndTime,
-        stepMs: stepDurationMs,
+        stepMs: Math.min(stepDurationMs, TC.ONE_SECOND_MS),
     });
     timelineDockController.setCurrentTime(runtimeSessionState.getAnimTime());
 

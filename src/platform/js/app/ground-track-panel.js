@@ -21,7 +21,7 @@ const GROUND_TRACK_PANEL_EVENT_KEYS = [
     "splashdown",
 ];
 const J2000_OBLIQUITY_RADIANS = THREE.MathUtils.degToRad(23.439291111);
-const EARTH_RADIUS_KM = 6371;
+const EARTH_REFERENCE_RADIUS_KM = 6378.1363;
 const KM_TO_MILES = 0.621371192237334;
 const KMPS_TO_MPH = 2236.9362920544;
 const GROUND_TRACK_EVENT_WINDOW_EPSILON_MS = 1000;
@@ -1446,14 +1446,14 @@ function createGroundTrackPanelActions(options = {}) {
 
     function resolveEarthAltitudeKm(sceneState, config, earthDistanceKm) {
         const telemetry = sceneState?.telemetry || null;
+        if (Number.isFinite(earthDistanceKm)) {
+            return earthDistanceKm - EARTH_REFERENCE_RADIUS_KM;
+        }
         if (Number.isFinite(telemetry?.altitudeEarth)) {
             return telemetry.altitudeEarth;
         }
         if (config === "geo" && Number.isFinite(telemetry?.altitudePrimary)) {
             return telemetry.altitudePrimary;
-        }
-        if (Number.isFinite(earthDistanceKm)) {
-            return earthDistanceKm - EARTH_RADIUS_KM;
         }
         return Number.NaN;
     }

@@ -453,8 +453,7 @@ export function generateBodyCurve({
 }) {
     const vectors = [];
     const step = Math.max(1, stepMs);
-
-    for (let timeMs = startTimeMs; timeMs <= endTimeMs; timeMs += step) {
+    const sampleStateAtTime = (timeMs) => {
         const state = getBodyEphemerisState({
             bodyId,
             timeMs,
@@ -469,7 +468,7 @@ export function generateBodyCurve({
             resolvedSource,
         });
 
-        if (!state.available) continue;
+        if (!state.available) return;
 
         vectors.push({
             x: state.position.x,
@@ -478,7 +477,17 @@ export function generateBodyCurve({
             vx: state.velocity.vx,
             vy: state.velocity.vy,
             vz: state.velocity.vz,
+            timeMs,
         });
+    };
+
+    for (let timeMs = startTimeMs; timeMs <= endTimeMs; timeMs += step) {
+        sampleStateAtTime(timeMs);
+    }
+
+    const lastTimeMs = vectors.length ? vectors[vectors.length - 1].timeMs : Number.NaN;
+    if (Number.isFinite(endTimeMs) && Math.abs(lastTimeMs - endTimeMs) > 1e-3) {
+        sampleStateAtTime(endTimeMs);
     }
 
     return vectors;

@@ -260,7 +260,7 @@ export function generateCurveFromNpz(series, startTimeMs, endTimeMs, stepMs) {
     if (!series) return [];
     const out = [];
     const step = Math.max(1, stepMs);
-    for (let t = startTimeMs; t <= endTimeMs; t += step) {
+    const sampleStateAtTime = (t) => {
         // NPZ data stores JD in TDB (HORIZONS JDCT), same as Chebyshev.
         const { TDB_OFFSET_MS } = TIME_CONSTANTS;
         const jd =
@@ -279,6 +279,15 @@ export function generateCurveFromNpz(series, startTimeMs, endTimeMs, stepMs) {
                 vz: state.vel.vz,
             });
         }
+    };
+
+    for (let t = startTimeMs; t <= endTimeMs; t += step) {
+        sampleStateAtTime(t);
+    }
+
+    const lastTimeMs = out.length ? out[out.length - 1].timeMs : Number.NaN;
+    if (Number.isFinite(endTimeMs) && Math.abs(lastTimeMs - endTimeMs) > 1e-3) {
+        sampleStateAtTime(endTimeMs);
     }
     return out;
 }
