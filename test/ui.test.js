@@ -343,6 +343,7 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
     }
   });
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  await ensureHeaderPillStripCollapsed(page);
 
   // Hide test ID for screenshot and store its content
   const testIdContent = await hideTestIdForScreenshot(page);
@@ -1116,6 +1117,35 @@ async function enforceSsimUiChromeDefaults(page) {
   });
 }
 
+async function ensureHeaderPillStripCollapsed(page) {
+  const toggle = page.locator('#header-pill-strip-toggle');
+  const strip = page.locator('#header-pill-strip');
+  if (await toggle.count() === 0 || await strip.count() === 0) {
+    return;
+  }
+
+  const isCollapsed = await strip.evaluate((node) => node.classList.contains('header-pill-strip--collapsed'));
+  if (!isCollapsed && await toggle.first().isVisible() && await toggle.first().isEnabled()) {
+    await toggle.first().click();
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+  }
+
+  await page.evaluate(() => {
+    const strip = document.getElementById('header-pill-strip');
+    const toggle = document.getElementById('header-pill-strip-toggle');
+    if (!strip || !toggle) {
+      return;
+    }
+
+    strip.classList.add('header-pill-strip--collapsed');
+    toggle.textContent = '›';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-label', 'Expand mission controls');
+    toggle.setAttribute('title', 'Expand mission controls');
+  });
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
 async function prepareRelativeLandingFovView(page, cameraPair) {
   await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
@@ -1139,7 +1169,7 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
 
   // Reset relative camera to deterministic defaults before mounting pair view.
   await page.evaluate(() => {
-    const scene = window.animationScenes?.relative;
+    const scene = window.animationScenes?.relative || window.animationScenes?.geo;
     if (!scene?.initialized3D) return;
     scene.setCameraParameters(true);
     const controls = scene.cameraController?.controls;
@@ -1170,11 +1200,25 @@ async function prepareRelativePageLoadView(page) {
   }
   await ensureCheckboxState(page, '#view-sky', false);
   await ensureCheckboxState(page, '#view-body-halos', false);
+  await setCameraPair(page, 'manual__manual');
   const moonSoiToggle = page.locator('#view-moonsoi');
   if (await moonSoiToggle.count() > 0) {
     await ensureCheckboxState(page, '#view-moonsoi', false);
   }
   await closeSettingsPanel(page);
+  await waitForScene(page);
+  await page.evaluate(() => {
+    const scene = window.animationScenes?.relative || window.animationScenes?.geo;
+    if (!scene?.initialized3D) return;
+    scene.setCameraParameters(true);
+    const controls = scene.cameraController?.controls;
+    if (controls?.target) {
+      controls.target.set(0, 0, 0);
+      controls.noRotate = false;
+      controls.noPan = false;
+      controls.update();
+    }
+  });
   await waitForScene(page);
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
@@ -1263,6 +1307,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     await enforceSsimProfileViewDefaults(page);
     await pinSsimDefaultViewToggles(page);
     await enforceSsimUiChromeDefaults(page);
+    await ensureHeaderPillStripCollapsed(page);
   });
 
   afterEach(() => {
@@ -2364,6 +2409,9 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await waitForScene(page);
       // Additional wait for Moon orbit curves to fully render
       await page.waitForTimeout(TIMEOUTS.STABLE_RENDER_TIMEOUT);
+      await resetCameraToManual(page);
+      await waitForScene(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 
       // Reset timeline again after mode switch to ensure consistent start state
       await setTimeline(page, '#burn1');

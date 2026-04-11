@@ -1,5 +1,17 @@
 {
   "ui": {
+    "cameraDefaults": {
+      "lunar": {
+        "desktop": {
+          "nonGeoOverride": true,
+          "positionScale": { "x": -0.0104166667, "y": -0.0104166667, "z": -0.0104166667 }
+        },
+        "mobile": {
+          "nonGeoOverride": true,
+          "positionScale": { "x": -0.0104166667, "y": -0.0104166667, "z": -0.0104166667 }
+        }
+      }
+    },
     "viewDefaults": {
       "orbitStyle": "classic",
       "viewOrbit": true,
