@@ -40,6 +40,7 @@ const GLOBE_WORLD_NORTH = new THREE.Vector3(0, 1, 0);
 const GLOBE_VIEW_UP = new THREE.Vector3(0, 1, 0);
 const GLOBE_VIEW_FRONT = new THREE.Vector3(0, 0, 1);
 const COMPOSER_PANEL_ASPECT_RATIO = 16 / 9;
+const SPLASHDOWN_PANEL_MISSION_KEY = "artemis2";
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -191,6 +192,27 @@ function parseMissionTimeMs(value) {
     if (typeof value !== "string" || value.length === 0) return Number.NaN;
     const parsed = Date.parse(value);
     return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function resolveCurrentMissionQueryValue() {
+    if (typeof window === "undefined") return "";
+    try {
+        const params = new URLSearchParams(window.location.search || "");
+        return String(params.get("mission") || "").trim().toLowerCase();
+    } catch {
+        return "";
+    }
+}
+
+function isSplashdownPanelMissionEnabled(configData = null) {
+    const missionQueryValue = resolveCurrentMissionQueryValue();
+    if (missionQueryValue) {
+        return missionQueryValue === SPLASHDOWN_PANEL_MISSION_KEY;
+    }
+    const missionName = String(configData?.mission_name || configData?.mission_name_short || "")
+        .trim()
+        .toLowerCase();
+    return missionName === "artemis 2" || missionName === "artemis ii";
 }
 
 function resolveGroundTrackWindowMs(configData, phaseKey = "geo") {
@@ -431,6 +453,21 @@ function createGroundTrackPanelActions(options = {}) {
     function setTimelineLocalText(text) {
         const node = getNode("ground-track-timeline-local");
         if (node) node.textContent = text;
+    }
+
+    function syncPanelAvailability(enabled) {
+        const wrapper = getNode("ground-track-panel-wrapper");
+        if (wrapper instanceof HTMLElement) {
+            wrapper.hidden = !enabled;
+        }
+        const panel = getNode("ground-track-panel");
+        if (!(panel instanceof HTMLElement) || enabled) return;
+        if (!panel.classList.contains("ground-track-panel--hidden")) {
+            panel.classList.add("ground-track-panel--hidden");
+            document.dispatchEvent(new CustomEvent("ground-track-panel-visibilitychange", {
+                detail: { visible: false },
+            }));
+        }
     }
 
     function formatDistanceKmText(valueKm) {
@@ -1367,6 +1404,10 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function setPanelVisible(visible) {
+        if (visible && !isSplashdownPanelMissionEnabled(missionConfigData)) {
+            syncPanelAvailability(false);
+            return;
+        }
         const panel = getNode("ground-track-panel");
         if (!panel) return;
         panel.classList.toggle("ground-track-panel--hidden", !visible);
@@ -1383,7 +1424,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function scheduleAutoOpenIfNeeded(config) {
-        if (autoOpenScheduled || config === "relative") return;
+        if (autoOpenScheduled || config === "relative" || !isSplashdownPanelMissionEnabled(missionConfigData)) return;
         const panel = getNode("ground-track-panel");
         if (!panel) return;
         autoOpenScheduled = true;
@@ -1758,6 +1799,13 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function update({ sceneState, config, animTime }) {
+        const panelEnabled = isSplashdownPanelMissionEnabled(missionConfigData);
+        syncPanelAvailability(panelEnabled);
+        if (!panelEnabled) {
+            latestPayload = null;
+            clearTrackVisuals();
+            return;
+        }
         ensurePanelEventsBound();
         scheduleAutoOpenIfNeeded(config);
         latestPayload = { sceneState, config, animTime };

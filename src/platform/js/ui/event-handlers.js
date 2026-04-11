@@ -844,7 +844,7 @@ export function bindMainControls(handlers) {
     const syncFocusPillVisibility = () => {
         if (!flybyPillWrap) return;
         const flybyVisible = isArtemis2Mission();
-        const splashdownVisible = !!resolveTimelineEventButtonByKeys(["splashdown"]);
+        const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
         if (flybyPill) {
             flybyPill.hidden = !flybyVisible;
         }
@@ -1150,6 +1150,7 @@ export function bindMainControls(handlers) {
         }
     });
     onClick("focus-pill-splashdown", function () {
+        if (!isArtemis2Mission()) return;
         document.dispatchEvent(new CustomEvent("ground-track-panel-open"));
         syncFocusPillState();
     });
