@@ -9,6 +9,9 @@ All design-focused documents live under `docs/design/`.
 - `mission.html`: mission runtime shell (selector + 2D/3D visualization), with:
   - Header pill strip (`#header-pill-strip`) for quick mission/view controls.
   - Settings panel (`#settings-panel`) for full control coverage and advanced options.
+  - Mission-specific overlay panels where needed. Artemis II currently adds:
+    - `Flyby in Focus`: composer-style auxiliary camera panel
+    - `Splashdown in Spotlight`: sidebar + `2D`/`3D` ground-track panel
 - `orbit-data.html`: data-source coverage/audit view.
 - `assets-status.html`: runtime asset-size/status view.
 
@@ -40,6 +43,9 @@ All design-focused documents live under `docs/design/`.
 - The header pill strip and settings panel are synchronized UI surfaces over shared runtime state.
 - `src/platform/js/ui/event-handlers.js` maps pill actions to canonical settings inputs and keeps active/pressed state synchronized both ways.
 - `src/platform/js/ui/ui-state.js` remains the source for reading/applying view setting values consumed by runtime actions.
+- Some pills also launch mission-specific panels instead of only toggling settings state.
+  - Artemis II `Flyby` restores the `Flyby in Focus` auxiliary composer panel.
+  - Artemis II `Splashdown` opens `Splashdown in Spotlight`.
 
 ## 3) Frame/Origin Model
 
@@ -86,6 +92,14 @@ Example event-sourcing deep dive:
   - `Classic`
   - `Trail` (track + tail controls and style sidecars)
 - Optional auxiliary camera panels for desktop multi-view workflows.
+- Artemis II extends that panel system with two higher-level mission workflows:
+  - `Flyby in Focus`
+    - implemented in `src/platform/js/app/auxiliary-camera-views.js`
+    - uses the composer-style panel shell and flyby-specific timeline window
+  - `Splashdown in Spotlight`
+    - implemented in `src/platform/js/app/ground-track-panel.js`
+    - combines a left-hand timeline/event sidebar with either a Leaflet `2D` map or a Three.js `3D` globe
+    - highlights the app-generated post-HORIZONS splashdown continuation separately from the public JPL segment
 
 Rendering/UX design investigations:
 - [moon-rendering-research-and-plan.md](moon-rendering-research-and-plan.md)

@@ -89,6 +89,22 @@ Note:
 - Predictable close/back behavior for overlays.
 - No hidden critical actions behind gesture-only discovery.
 
+## Artemis II Special Panels
+
+Artemis II currently carries two mission-specific overlay workflows in addition to the generic mobile shell:
+
+- `Flyby in Focus`
+  - launched from the `Flyby` focus pill
+  - presents the lunar flyby composer workflow instead of a generic camera card
+- `Splashdown in Spotlight`
+  - launched from the `Splashdown` focus pill
+  - auto-opens on initial Artemis II load
+  - uses a full-height left-hand timeline/event sidebar and a right-hand `2D` map / `3D` globe viewport
+  - keeps second-level (`-1s`, `+1s`) and minute-level (`-1m`, `+1m`) transport controls
+  - shows RTC-3 through splashdown return events, dual-unit metrics, and a provenance note for the app-generated final descent
+
+Mobile implementations should preserve the same workflow meaning as desktop for these panels, even if the exact placement and sizing rules differ.
+
 ## Rendering/Performance Rules
 
 - Single active heavy renderer at a time (especially in `Views`).

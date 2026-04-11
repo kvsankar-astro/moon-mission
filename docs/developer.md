@@ -42,6 +42,28 @@ Useful pages:
   2. Update the corresponding pair mapping and sync behavior in `src/platform/js/ui/event-handlers.js`.
   3. Verify both surfaces stay synchronized in runtime and UI tests.
 
+### Artemis II Mission-Specific Panels
+
+- Artemis II currently adds two mission-specific panel surfaces beyond the generic settings/info shell:
+  - `Flyby in Focus`
+  - `Splashdown in Spotlight`
+- `Flyby in Focus` is implemented as the composer-mode auxiliary panel in `src/platform/js/app/auxiliary-camera-views.js` (`PANEL_SPECS` entry `earth-rise-composer`).
+  - It is exposed from the `Flyby` focus pill and the auxiliary panel chip strip.
+  - It uses the composer timeline/camera stack tied to the Artemis II lunar flyby window rather than the simpler generic camera panel flow.
+- `Splashdown in Spotlight` is implemented by:
+  - DOM shell in `mission.html` (`#ground-track-panel`)
+  - styling in `src/platform/css/mission-panels.css`
+  - runtime/controller logic in `src/platform/js/app/ground-track-panel.js`
+  - pill launch wiring in `src/platform/js/ui/event-handlers.js`
+- Current `Splashdown in Spotlight` behavior:
+  - auto-opens on Artemis II load for non-`relative` modes
+  - reopens from the `Splashdown` focus pill
+  - uses a full-height left sidebar for timeline transport and return-event pills
+  - supports `2D` map and `3D` globe modes
+  - shows RTC-3-through-splashdown return events and a metrics strip for distance, velocity, altitude, and location
+  - marks the post-HORIZONS descent segment as app-generated when the modeled continuation is in view
+- When changing either Artemis II panel, update the panel DOM, panel runtime module, and pill/launcher wiring together. These features are mission-specific enough that code and docs drift easily if only one layer changes.
+
 ## 3) Core Commands
 
 ### Development
