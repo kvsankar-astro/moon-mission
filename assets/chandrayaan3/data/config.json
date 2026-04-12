@@ -263,6 +263,8 @@
       "durationSeconds": 300,
       "label": "🔥EBN#1",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#1:     15th Jul, 12:11 IST - 173km x 41762km orbit",
       "body": "SC"
     },
@@ -271,6 +273,8 @@
       "durationSeconds": 900,
       "label": "🔥EBN#2",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#2:     17th Jul, 7:45 IST - 226km x 41603km orbit",
       "body": "SC"
     },
@@ -279,6 +283,8 @@
       "durationSeconds": 900,
       "label": "🔥EBN#3",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#3:     18th Jul, 14:54 IST - 228km x 51400km orbit",
       "body": "SC"
     },
@@ -287,6 +293,8 @@
       "durationSeconds": 1200,
       "label": "🔥EBN#4",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#4:     20th Jul, 14:46 IST - 233km x 71351km orbit",
       "body": "SC"
     },
@@ -295,6 +303,8 @@
       "durationSeconds": 300,
       "label": "🔥EBN#5",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#5:      25th Jul, 14:30 IST - 236km x 127603km orbit",
       "body": "SC"
     },
@@ -303,14 +313,18 @@
       "durationSeconds": 1500,
       "label": "🔥TLI",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Trans-lunar injection burn",
       "infoText": "TLI:         1st Aug, 00:13 IST - 288km x 369328km orbit",
       "body": "SC"
     },
     "loi": {
       "startTime": "2023-08-05T14:00:00Z",
-      "durationSeconds": 0,
+      "durationSeconds": 1835,
       "label": "🔥LBN#1/LOI",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "LOI: 5th Aug, 19:30 IST - 164km x 18074km orbit",
       "body": "SC"
     },
@@ -319,6 +333,8 @@
       "durationSeconds": 1228,
       "label": "🔥LBN#1",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#1:     6th Aug, 23:19 IST - 170km x 4313km orbit",
       "body": "SC"
     },
@@ -327,6 +343,8 @@
       "durationSeconds": 1190,
       "label": "🔥LBN#2",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#2:     9th Aug, 13:51 IST - 174km x 1437km orbit",
       "body": "SC"
     },
@@ -335,6 +353,8 @@
       "durationSeconds": 1155,
       "label": "🔥LBN#3",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#3:    14th Aug, 12:08 IST - 150km x 177km orbit",
       "body": "SC"
     },
@@ -343,6 +363,8 @@
       "durationSeconds": 52,
       "label": "🔥LBN#4",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#4:   16th Aug, 8:30 IST - 153km x 163km orbit",
       "body": "SC"
     },
@@ -359,6 +381,8 @@
       "durationSeconds": 0,
       "label": "Vikram Landing",
       "burnFlag": true,
+      "burnDirection": "attitude",
+      "burnTypeLabel": "Powered descent burn",
       "infoText": "Vikram Landing - 23rd August, 18:04 IST",
       "body": "SC"
     },

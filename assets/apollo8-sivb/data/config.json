@@ -103,10 +103,12 @@
     },
     "tli": {
       "startTime": "1968-12-21T16:05:00Z",
-      "durationSeconds": 0,
+      "durationSeconds": 317,
       "label": "TLI Arc Start",
       "burnFlag": true,
-      "infoText": "Start of reconstructed departure arc",
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Trans-lunar injection burn",
+      "infoText": "Start of reconstructed departure arc; Apollo 8's S-IVB translunar injection burn lasted 5 minutes 17 seconds.",
       "body": "SC"
     },
     "now": {

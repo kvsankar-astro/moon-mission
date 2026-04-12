@@ -136,6 +136,8 @@
       "durationSeconds": 0,
       "label": "LOI-1",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "First lunar orbit insertion burn. Public orbit coverage in this project begins later, on 2007-10-20.",
       "body": "SC"
     },

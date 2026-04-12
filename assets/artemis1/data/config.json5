@@ -73,6 +73,8 @@
       "durationSeconds": 1200,
       "label": "TLI",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Trans-lunar injection burn",
       "infoText": "Trans-lunar injection burn (~20 minutes) - ICPS sends Orion toward Moon",
       "body": "SC"
     },
@@ -81,6 +83,8 @@
       "durationSeconds": 780,
       "label": "Outbound Flyby",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Powered flyby burn",
       "infoText": "Outbound Powered Flyby (OPF) burn - closest approach ~130 km at 11:57 UTC",
       "body": "SC"
     },
@@ -89,6 +93,8 @@
       "durationSeconds": 88,
       "label": "DRO Insertion",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Distant retrograde orbit insertion burn",
       "infoText": "Distant Retrograde Orbit insertion burn (1 min 28 sec)",
       "body": "SC"
     },
@@ -97,14 +103,18 @@
       "durationSeconds": 105,
       "label": "DRO Departure",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Distant retrograde orbit departure burn",
       "infoText": "Distant Retrograde Orbit departure burn (1 min 45 sec)",
       "body": "SC"
     },
     "returnFlyby": {
       "startTime": "2022-12-05T16:43:00Z",
-      "durationSeconds": 0,
+      "durationSeconds": 207,
       "label": "Return Flyby",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Powered flyby burn",
       "infoText": "Return Powered Flyby (RPF) - closest approach ~130 km",
       "body": "SC"
     },

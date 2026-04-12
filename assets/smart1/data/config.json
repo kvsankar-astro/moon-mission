@@ -110,6 +110,8 @@
       "durationSeconds": 0,
       "label": "Lunar Orbit Insertion",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "SMART-1 entered lunar orbit after its long solar-electric spiral from Earth.",
       "body": "SC"
     },

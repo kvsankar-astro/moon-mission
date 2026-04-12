@@ -132,6 +132,8 @@
       "durationSeconds": 0,
       "label": "LOI Arc Boundary",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "Transfer to LOI segment boundary",
       "body": "SC"
     },

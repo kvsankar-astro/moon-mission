@@ -124,6 +124,8 @@
       "durationSeconds": 1080,
       "label": "🔥EBN#1",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#1: 23 Oct 2008, 09:00 IST - first Earth orbit raise",
       "body": "SC"
     },
@@ -132,6 +134,8 @@
       "durationSeconds": 960,
       "label": "🔥EBN#2",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#2: 25 Oct 2008, 05:48 IST - second Earth orbit raise",
       "body": "SC"
     },
@@ -140,6 +144,8 @@
       "durationSeconds": 570,
       "label": "🔥EBN#3",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#3: 26 Oct 2008, 07:08 IST - third Earth orbit raise",
       "body": "SC"
     },
@@ -148,6 +154,8 @@
       "durationSeconds": 180,
       "label": "🔥EBN#4",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Orbit-raising burn",
       "infoText": "EBN#4: 29 Oct 2008, 07:38 IST - fourth Earth orbit raise",
       "body": "SC"
     },
@@ -156,6 +164,8 @@
       "durationSeconds": 150,
       "label": "🔥TLI",
       "burnFlag": true,
+      "burnDirection": "prograde",
+      "burnTypeLabel": "Trans-lunar injection burn",
       "infoText": "TLI: 4 Nov 2008, 04:56 IST - entered lunar transfer trajectory",
       "body": "SC"
     },
@@ -164,6 +174,8 @@
       "durationSeconds": 817,
       "label": "🔥LOI",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "LOI: 8 Nov 2008, 16:51 IST - lunar orbit insertion burn",
       "body": "SC"
     },
@@ -172,6 +184,8 @@
       "durationSeconds": 57,
       "label": "🔥LBN#1",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#1: 9 Nov 2008, 20:03 IST - first lunar orbit reduction",
       "body": "SC"
     },
@@ -180,6 +194,8 @@
       "durationSeconds": 866,
       "label": "🔥LBN#2",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#2: 10 Nov 2008, 21:58 IST - second lunar orbit reduction",
       "body": "SC"
     },
@@ -188,6 +204,8 @@
       "durationSeconds": 31,
       "label": "🔥LBN#3",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Orbit-lowering burn",
       "infoText": "LBN#3: 11 Nov 2008, 18:30 IST - third lunar orbit reduction",
       "body": "SC"
     },

@@ -106,6 +106,8 @@
       "durationSeconds": 0,
       "label": "Depletion Burn",
       "burnFlag": true,
+      "burnDirection": "attitude",
+      "burnTypeLabel": "Depletion burn",
       "infoText": "Nominal depletion burn",
       "body": "SC"
     },

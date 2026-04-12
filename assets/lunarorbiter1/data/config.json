@@ -110,6 +110,8 @@
       "durationSeconds": 0,
       "label": "Lunar Orbit Insertion",
       "burnFlag": true,
+      "burnDirection": "retrograde",
+      "burnTypeLabel": "Lunar orbit insertion burn",
       "infoText": "Approximate lunar-orbit-insertion time inferred from NASA's stated 92-hour cruise after launch.",
       "body": "SC"
     },
