@@ -141,6 +141,12 @@ assets/*/data/*-style.json
 # Runtime media and vendored assets are staged locally from moon-mission-data.
 assets/*/images/
 images/*
+!images/moon/
+images/moon/*
+!images/moon/ldem_16_gsfc.png
+!images/moon/ldem_16_uint_quality.png
+!images/moon/lroc_color_2025_4k_fast.jpg
+!images/moon/lroc_color_2025_16k_quality.jpg
 !images/social/
 images/social/*
 !images/social/mission-social.png

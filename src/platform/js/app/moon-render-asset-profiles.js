@@ -1,0 +1,341 @@
+const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
+    moonMap: "images/moon/lroc_color_2025_4k_fast.jpg",
+    moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
+});
+
+const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
+    normalMapMaxWidth: 4096,
+    normalMapStrength: 1.08,
+    normalDetailBoost: 1.0,
+    normalDetailRadius: 2,
+    normalScale: 0.92,
+    displacementScale: 0.0092,
+    displacementBias: -0.0041,
+    roughness: 0.965,
+    metalness: 0.0,
+    lommelSeeligerBlend: 0.18,
+    lsClampMin: 0.82,
+    lsClampMax: 1.12,
+    oppositionStrength: 0.0020,
+    shadowLift: 0.0,
+    highlightBoost: 1.015,
+    shadowWeightExponent: 1.56,
+    highlightWeightExponent: 1.0,
+    terminatorContrast: 1.78,
+    terminatorReliefStrength: 1.0,
+    terminatorShadowFloor: 0.35,
+    terminatorIndirectOcclusion: 0.55,
+    shadowNormalBias: 0.0012,
+    shadowBias: -0.00001,
+});
+
+const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
+    normalMapMaxWidth: 5760,
+    normalMapStrength: 2.48,
+    normalDetailBoost: 2.75,
+    normalDetailRadius: 3,
+    normalScale: 1.52,
+    displacementScale: 0.0128,
+    displacementBias: -0.0048,
+    roughness: 0.955,
+    metalness: 0.0,
+    lommelSeeligerBlend: 0.20,
+    lsClampMin: 0.74,
+    lsClampMax: 1.14,
+    oppositionStrength: 0.0023,
+    shadowLift: 0.0,
+    highlightBoost: 1.025,
+    shadowWeightExponent: 1.92,
+    highlightWeightExponent: 1.0,
+    terminatorContrast: 2.78,
+    terminatorReliefStrength: 7.5,
+    terminatorShadowFloor: 0.0,
+    terminatorIndirectOcclusion: 1.0,
+    shadowNormalBias: 0.00018,
+    shadowBias: -0.000003,
+});
+
+export const MOON_RENDER_ASSET_PROFILE_STORAGE_KEY = "moonRenderAssetProfile";
+export const MOON_RENDER_ASSET_PATHS_STORAGE_KEY = "moonRenderAssetPaths";
+
+export const DEFAULT_MOON_RENDER_ASSET_PROFILES = Object.freeze({
+    fast: DEFAULT_FAST_MOON_RENDER_ASSET_PATHS,
+    // NASA SVS CGI Moon Kit runtime derivatives.
+    // Source page: https://svs.gsfc.nasa.gov/4720/
+    // Fast color is derived from the 2025 4k TIFF master.
+    // Detailed color is derived from the 2025 16k TIFF master.
+    quality: Object.freeze({
+        moonMap: "images/moon/lroc_color_2025_16k_quality.jpg",
+        moonDisplacementMap: "images/moon/ldem_16_uint_quality.png",
+    }),
+});
+
+export const DEFAULT_MOON_RENDER_PROFILE_SETTINGS = Object.freeze({
+    fast: DEFAULT_FAST_MOON_RENDER_SETTINGS,
+    quality: DEFAULT_QUALITY_MOON_RENDER_SETTINGS,
+});
+
+function safeGetStorage(globalObject) {
+    try {
+        return globalObject?.localStorage || null;
+    } catch {
+        return null;
+    }
+}
+
+function normalizeProfileName(value) {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (normalized === "quality") {
+        return "quality";
+    }
+    if (normalized === "fast") {
+        return "fast";
+    }
+    return null;
+}
+
+function normalizeAssetPath(pathValue, fallbackValue) {
+    const normalized = String(pathValue || "").trim();
+    return normalized || fallbackValue;
+}
+
+function migrateLegacyMoonAssetPath(profileName, assetKey, pathValue) {
+    const normalized = String(pathValue || "").trim();
+    if (!normalized) {
+        return normalized;
+    }
+
+    if (assetKey === "moonMap") {
+        if (profileName === "fast" && normalized === "images/moon/Solarsystemscope_texture_8k_moon.jpg") {
+            return DEFAULT_FAST_MOON_RENDER_ASSET_PATHS.moonMap;
+        }
+        if (profileName === "quality" && normalized === "images/moon/lroc_color_2025_8k_quality.jpg") {
+            return DEFAULT_MOON_RENDER_ASSET_PROFILES.quality.moonMap;
+        }
+    }
+
+    return normalized;
+}
+
+function normalizeFiniteNumber(value, fallbackValue) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallbackValue;
+}
+
+function mergeRenderSettings(defaultSettings, overrides) {
+    if (!overrides || typeof overrides !== "object") {
+        return { ...defaultSettings };
+    }
+
+    return {
+        normalMapMaxWidth: normalizeFiniteNumber(
+            overrides.normalMapMaxWidth,
+            defaultSettings.normalMapMaxWidth,
+        ),
+        normalMapStrength: normalizeFiniteNumber(
+            overrides.normalMapStrength,
+            defaultSettings.normalMapStrength,
+        ),
+        normalDetailBoost: normalizeFiniteNumber(
+            overrides.normalDetailBoost,
+            defaultSettings.normalDetailBoost,
+        ),
+        normalDetailRadius: normalizeFiniteNumber(
+            overrides.normalDetailRadius,
+            defaultSettings.normalDetailRadius,
+        ),
+        normalScale: normalizeFiniteNumber(overrides.normalScale, defaultSettings.normalScale),
+        displacementScale: normalizeFiniteNumber(
+            overrides.displacementScale,
+            defaultSettings.displacementScale,
+        ),
+        displacementBias: normalizeFiniteNumber(
+            overrides.displacementBias,
+            defaultSettings.displacementBias,
+        ),
+        roughness: normalizeFiniteNumber(overrides.roughness, defaultSettings.roughness),
+        metalness: normalizeFiniteNumber(overrides.metalness, defaultSettings.metalness),
+        lommelSeeligerBlend: normalizeFiniteNumber(
+            overrides.lommelSeeligerBlend,
+            defaultSettings.lommelSeeligerBlend,
+        ),
+        lsClampMin: normalizeFiniteNumber(overrides.lsClampMin, defaultSettings.lsClampMin),
+        lsClampMax: normalizeFiniteNumber(overrides.lsClampMax, defaultSettings.lsClampMax),
+        oppositionStrength: normalizeFiniteNumber(
+            overrides.oppositionStrength,
+            defaultSettings.oppositionStrength,
+        ),
+        shadowLift: normalizeFiniteNumber(overrides.shadowLift, defaultSettings.shadowLift),
+        highlightBoost: normalizeFiniteNumber(
+            overrides.highlightBoost,
+            defaultSettings.highlightBoost,
+        ),
+        shadowWeightExponent: normalizeFiniteNumber(
+            overrides.shadowWeightExponent,
+            defaultSettings.shadowWeightExponent,
+        ),
+        highlightWeightExponent: normalizeFiniteNumber(
+            overrides.highlightWeightExponent,
+            defaultSettings.highlightWeightExponent,
+        ),
+        terminatorContrast: normalizeFiniteNumber(
+            overrides.terminatorContrast,
+            defaultSettings.terminatorContrast,
+        ),
+        terminatorReliefStrength: normalizeFiniteNumber(
+            overrides.terminatorReliefStrength,
+            defaultSettings.terminatorReliefStrength,
+        ),
+        terminatorShadowFloor: normalizeFiniteNumber(
+            overrides.terminatorShadowFloor,
+            defaultSettings.terminatorShadowFloor,
+        ),
+        terminatorIndirectOcclusion: normalizeFiniteNumber(
+            overrides.terminatorIndirectOcclusion,
+            defaultSettings.terminatorIndirectOcclusion,
+        ),
+        shadowNormalBias: normalizeFiniteNumber(
+            overrides.shadowNormalBias,
+            defaultSettings.shadowNormalBias,
+        ),
+        shadowBias: normalizeFiniteNumber(
+            overrides.shadowBias,
+            defaultSettings.shadowBias,
+        ),
+    };
+}
+
+export function resolveMoonRenderAssetProfiles({
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+} = {}) {
+    const merged = {
+        fast: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.fast },
+        quality: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.quality },
+    };
+
+    const storage = safeGetStorage(globalObject);
+    const storedText = storage?.getItem?.(MOON_RENDER_ASSET_PATHS_STORAGE_KEY);
+    if (storedText) {
+        try {
+            const storedOverrides = JSON.parse(storedText);
+            if (storedOverrides && typeof storedOverrides === "object") {
+                ["fast", "quality"].forEach((profileName) => {
+                    const profileOverrides = storedOverrides[profileName];
+                    if (!profileOverrides || typeof profileOverrides !== "object") {
+                        return;
+                    }
+                    merged[profileName] = {
+                        moonMap: normalizeAssetPath(
+                            migrateLegacyMoonAssetPath(profileName, "moonMap", profileOverrides.moonMap),
+                            merged[profileName].moonMap,
+                        ),
+                        moonDisplacementMap: normalizeAssetPath(
+                            migrateLegacyMoonAssetPath(profileName, "moonDisplacementMap", profileOverrides.moonDisplacementMap),
+                            merged[profileName].moonDisplacementMap,
+                        ),
+                    };
+                });
+            }
+        } catch {
+            // Ignore corrupt local overrides and continue with defaults.
+        }
+    }
+
+    const overrides = globalObject?.MOON_RENDER_ASSET_PATHS;
+    if (!overrides || typeof overrides !== "object") {
+        return merged;
+    }
+
+    ["fast", "quality"].forEach((profileName) => {
+        const profileOverrides = overrides[profileName];
+        if (!profileOverrides || typeof profileOverrides !== "object") {
+            return;
+        }
+        merged[profileName] = {
+            moonMap: normalizeAssetPath(
+                migrateLegacyMoonAssetPath(profileName, "moonMap", profileOverrides.moonMap),
+                merged[profileName].moonMap,
+            ),
+            moonDisplacementMap: normalizeAssetPath(
+                migrateLegacyMoonAssetPath(profileName, "moonDisplacementMap", profileOverrides.moonDisplacementMap),
+                merged[profileName].moonDisplacementMap,
+            ),
+        };
+    });
+
+    return merged;
+}
+
+export function resolveMoonRenderProfileSettings({
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+} = {}) {
+    const merged = {
+        fast: { ...DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast },
+        quality: { ...DEFAULT_MOON_RENDER_PROFILE_SETTINGS.quality },
+    };
+
+    const overrides = globalObject?.MOON_RENDER_PROFILE_SETTINGS;
+    if (!overrides || typeof overrides !== "object") {
+        return merged;
+    }
+
+    ["fast", "quality"].forEach((profileName) => {
+        const profileOverrides = overrides[profileName];
+        if (!profileOverrides || typeof profileOverrides !== "object") {
+            return;
+        }
+        merged[profileName] = mergeRenderSettings(merged[profileName], profileOverrides);
+    });
+
+    return merged;
+}
+
+export function resolveMoonRenderAssetProfile({
+    search = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+} = {}) {
+    const searchText = search == null
+        ? String(globalObject?.location?.search || "")
+        : String(search || "");
+    const params = new URLSearchParams(searchText);
+    const queryProfile = normalizeProfileName(
+        params.get("moonRenderProfile") || params.get("moonProfile"),
+    );
+    if (queryProfile) {
+        return queryProfile;
+    }
+
+    const globalProfile = normalizeProfileName(globalObject?.MOON_RENDER_ASSET_PROFILE);
+    if (globalProfile) {
+        return globalProfile;
+    }
+
+    const storage = safeGetStorage(globalObject);
+    const storedProfile = normalizeProfileName(
+        storage?.getItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY),
+    );
+    if (storedProfile) {
+        return storedProfile;
+    }
+
+    return "fast";
+}
+
+export function resolveMoonRenderAssetSelection({
+    search = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+} = {}) {
+    const profiles = resolveMoonRenderAssetProfiles({ globalObject });
+    const settingsProfiles = resolveMoonRenderProfileSettings({ globalObject });
+    const profile = resolveMoonRenderAssetProfile({ search, globalObject });
+    const active = profiles[profile] || profiles.fast;
+    const activeRenderSettings = settingsProfiles[profile] || settingsProfiles.fast;
+
+    return {
+        profile,
+        active,
+        fallback: profiles.fast,
+        activeRenderSettings,
+        fallbackRenderSettings: settingsProfiles.fast,
+    };
+}

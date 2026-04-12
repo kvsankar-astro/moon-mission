@@ -42,6 +42,16 @@ Useful pages:
   2. Update the corresponding pair mapping and sync behavior in `src/platform/js/ui/event-handlers.js`.
   3. Verify both surfaces stay synchronized in runtime and UI tests.
 
+### Moon Render Asset Profiles
+
+- The Moon renderer now supports two runtime asset profiles selected from the pill strip.
+- Profile defaults and migration logic live in `src/platform/js/app/moon-render-asset-profiles.js`.
+- Runtime asset provenance and the NASA source chain are documented in [docs/moon-render-assets.md](moon-render-assets.md).
+- When changing Moon runtime assets:
+  1. Keep the runtime file paths in `moon-render-asset-profiles.js` in sync with the actual files under `images/moon/`.
+  2. Update `docs/moon-render-assets.md` with the new source/derivation story.
+  3. Be careful with `.gitignore`; only explicitly tracked Moon runtime files should be unignored.
+
 ### Artemis II Mission-Specific Panels
 
 - Artemis II currently adds two mission-specific panel surfaces beyond the generic settings/info shell:

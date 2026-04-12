@@ -69,6 +69,8 @@ import { createCameraActions } from "./camera-actions.js";
 import { createLockActions } from "./lock-actions.js";
 import { applyMissionMetadata } from "./mission-metadata.js";
 import { createModeActions } from "./mode-actions.js";
+import { loadSceneTextures } from "./texture-loader.js";
+import { applyAndRefreshSceneTextures } from "./scene-texture-actions.js";
 import {
     normalizePlaneSelection,
     syncPlaneSelectionControls,
@@ -196,6 +198,8 @@ function buildMissionRuntimeStaticDeps(ctx) {
         createCameraActions,
         createModeActions,
         createBurnActions,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
         readCameraPositionMode,
         readCameraLookMode,
         applyViewSettings,

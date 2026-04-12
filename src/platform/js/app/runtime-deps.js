@@ -61,6 +61,7 @@ function createRuntimeUiControlsDeps(deps) {
         createLockActions,
         createCameraActions,
         createModeActions,
+        createMoonRenderProfileActions,
         createBurnActions,
         getConfig,
         getPanXState,
@@ -106,6 +107,10 @@ function createRuntimeUiControlsDeps(deps) {
         getEventInfos,
         setAnimTime,
         missionSetTime,
+        THREE,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
+        globalObject,
     } = deps;
 
     return {
@@ -114,6 +119,7 @@ function createRuntimeUiControlsDeps(deps) {
         createLockActions,
         createCameraActions,
         createModeActions,
+        createMoonRenderProfileActions,
         createBurnActions,
         getPanX: () => getPanXState(getConfig()),
         setPanX: (val) => {
@@ -167,6 +173,10 @@ function createRuntimeUiControlsDeps(deps) {
         getEventInfos,
         setAnimTime,
         missionSetTime,
+        THREE,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
+        globalObject,
     };
 }
 

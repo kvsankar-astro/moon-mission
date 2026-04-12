@@ -4,6 +4,7 @@ import { createRuntimeUiControlsActions } from "./runtime-ui-controls.js";
 import { createRuntimeInitDeps, createRuntimeUiControlsDeps } from "./runtime-deps.js";
 import { createOrbitProcessActions } from "./orbit-process-actions.js";
 import { createInitOrchestrationActions } from "./init-orchestration.js";
+import { createMoonRenderProfileActions } from "./moon-render-profile-actions.js";
 
 function createRuntimeBootstrapActions(ports) {
     const {
@@ -33,6 +34,8 @@ function createRuntimeBootstrapActions(ports) {
         createCameraActions,
         createModeActions,
         createBurnActions,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
         readCameraPositionMode,
         readCameraLookMode,
         applyCameraFromTo,
@@ -109,6 +112,8 @@ function createRuntimeBootstrapActions(ports) {
         orbitDataProcessed,
         getSceneStateInitDone,
         setSceneState,
+        THREE,
+        windowRef,
         UC,
     } = deps;
 
@@ -182,6 +187,7 @@ function createRuntimeBootstrapActions(ports) {
         createLockActions,
         createCameraActions,
         createModeActions,
+        createMoonRenderProfileActions,
         createBurnActions,
         getConfig,
         getPanXState,
@@ -227,6 +233,10 @@ function createRuntimeBootstrapActions(ports) {
         getEventInfos,
         setAnimTime,
         missionSetTime: animationActions.missionSetTime,
+        THREE,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
+        globalObject: windowRef,
     }));
 
     const runtimeInitActions = createRuntimeInitActions(createRuntimeInitDeps({

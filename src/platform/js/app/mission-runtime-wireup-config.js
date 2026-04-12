@@ -100,6 +100,8 @@ function buildMissionRuntimeWireupConfig(ctx) {
         createCameraActions,
         createModeActions,
         createBurnActions,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
         readCameraPositionMode,
         readCameraLookMode,
         applyCameraFromTo,
@@ -190,6 +192,8 @@ function buildMissionRuntimeWireupConfig(ctx) {
         createCameraActions,
         createModeActions,
         createBurnActions,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
         animateLoop,
         isTestMode,
     };

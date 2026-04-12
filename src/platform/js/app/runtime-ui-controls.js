@@ -5,6 +5,7 @@ function createRuntimeUiControlsActions(deps) {
         createLockActions,
         createCameraActions,
         createModeActions,
+        createMoonRenderProfileActions,
         createBurnActions,
         getPanX,
         setPanX,
@@ -50,6 +51,10 @@ function createRuntimeUiControlsActions(deps) {
         getEventInfos,
         setAnimTime,
         missionSetTime,
+        THREE,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
+        globalObject,
     } = deps;
 
     const navigationActions = createNavigationActions({
@@ -121,6 +126,15 @@ function createRuntimeUiControlsActions(deps) {
         setView,
     });
 
+    const moonRenderProfileActions = createMoonRenderProfileActions({
+        THREE,
+        animationScenes,
+        loadSceneTextures,
+        applyAndRefreshSceneTextures,
+        render,
+        globalObject,
+    });
+
     const burnActions = createBurnActions({
         getEventInfos,
         setAnimTime,
@@ -133,6 +147,7 @@ function createRuntimeUiControlsActions(deps) {
         ...lockActions,
         ...cameraActions,
         ...modeActions,
+        ...moonRenderProfileActions,
         burnButtonHandler: burnActions.burnButtonHandler,
     };
 }

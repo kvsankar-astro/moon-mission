@@ -109,6 +109,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 toggleJoyRide: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleJoyRide(event),
                 toggleLanding: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLanding(event),
                 toggleInfo: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleInfo(event),
+                setMoonRenderProfile: (profile) => getMissionRuntimeWireup().runtimeBootstrapActions.setMoonRenderProfile(profile),
+                getMoonRenderProfile: () => getMissionRuntimeWireup().runtimeBootstrapActions.getMoonRenderProfile(),
                 initAnimation,
             },
         });

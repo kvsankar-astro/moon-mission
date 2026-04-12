@@ -1,74 +1,66 @@
 import * as THREE from "three";
+import {
+    DEFAULT_MOON_RENDER_ASSET_PROFILES,
+    DEFAULT_MOON_RENDER_PROFILE_SETTINGS,
+    MOON_RENDER_ASSET_PATHS_STORAGE_KEY,
+    MOON_RENDER_ASSET_PROFILE_STORAGE_KEY,
+    resolveMoonRenderAssetProfiles,
+    resolveMoonRenderAssetSelection,
+    resolveMoonRenderProfileSettings,
+} from "./app/moon-render-asset-profiles.js";
 
-const DEFAULTS = {
-    normalMapMaxWidth: 4096,
-    normalMapStrength: 0.72,
-    normalScaleX: 0.58,
-    normalScaleY: 0.58,
-    displacementScale: 0.0068,
-    displacementBias: -0.0038,
-    roughness: 0.96,
-    metalness: 0.0,
-    lommelSeeligerBlend: 0.1,
-    lsClampMin: 0.93,
-    lsClampMax: 1.05,
-    oppositionStrength: 0.004,
-    shadowLift: 0.06,
-    highlightBoost: 1.12,
-    shadowWeightExponent: 0.95,
-    highlightWeightExponent: 0.8,
-    primaryIntensity: 2.8,
-    ambientIntensity: 0.04,
-    earthshineIntensity: 0.08,
+const TUNER_VIEW_DEFAULTS = Object.freeze({
+    primaryIntensity: 3.1,
+    ambientIntensity: 0.015,
+    earthshineIntensity: 0.03,
     primaryAzimuthDeg: 135,
     primaryElevationDeg: 28,
     earthshineAzimuthDeg: -18,
     earthshineElevationDeg: 5,
-    toneExposure: 1.26,
+    toneExposure: 1.14,
     cameraFovDeg: 28,
     cameraDistance: 3.1,
-};
+});
 
-const PRESETS = {
-    mainAppParity: {
-        normalMapMaxWidth: 4096,
-        normalMapStrength: 0.72,
-        normalScaleX: 0.58,
-        normalScaleY: 0.58,
-        displacementScale: 0.0068,
-        displacementBias: -0.0038,
-        roughness: 0.96,
-        metalness: 0.0,
-        lommelSeeligerBlend: 0.1,
-        lsClampMin: 0.93,
-        lsClampMax: 1.05,
-        oppositionStrength: 0.004,
-        shadowLift: 0.06,
-        highlightBoost: 1.12,
-        shadowWeightExponent: 0.95,
-        highlightWeightExponent: 0.8,
-        primaryIntensity: 2.8,
-        ambientIntensity: 0.04,
-        earthshineIntensity: 0.08,
-        // In main app these directions are mission/time-driven; these are neutral preview defaults.
-        primaryAzimuthDeg: 135,
-        primaryElevationDeg: 28,
-        earthshineAzimuthDeg: -18,
-        earthshineElevationDeg: 5,
-        toneExposure: 1.14,
-        cameraFovDeg: 28,
-        cameraDistance: 3.1,
-    },
-};
+function createTunerStateFromRenderSettings(renderSettings) {
+    const normalized = renderSettings || DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast;
+    return {
+        normalMapMaxWidth: normalized.normalMapMaxWidth,
+        normalMapStrength: normalized.normalMapStrength,
+        normalDetailBoost: normalized.normalDetailBoost,
+        normalDetailRadius: normalized.normalDetailRadius,
+        normalScaleX: normalized.normalScale,
+        normalScaleY: normalized.normalScale,
+        displacementScale: normalized.displacementScale,
+        displacementBias: normalized.displacementBias,
+        roughness: normalized.roughness,
+        metalness: normalized.metalness,
+        lommelSeeligerBlend: normalized.lommelSeeligerBlend,
+        lsClampMin: normalized.lsClampMin,
+        lsClampMax: normalized.lsClampMax,
+        oppositionStrength: normalized.oppositionStrength,
+        shadowLift: normalized.shadowLift,
+        highlightBoost: normalized.highlightBoost,
+        shadowWeightExponent: normalized.shadowWeightExponent,
+        highlightWeightExponent: normalized.highlightWeightExponent,
+        terminatorContrast: normalized.terminatorContrast,
+        terminatorReliefStrength: normalized.terminatorReliefStrength,
+        terminatorShadowFloor: normalized.terminatorShadowFloor,
+        terminatorIndirectOcclusion: normalized.terminatorIndirectOcclusion,
+        ...TUNER_VIEW_DEFAULTS,
+    };
+}
 
 const CONTROL_GROUPS = [
     {
         title: "Surface",
         controls: [
             { key: "normalMapMaxWidth", label: "Normal Map Max Width", min: 512, max: 8192, step: 128 },
-            { key: "normalMapStrength", label: "Normal Map Strength", min: 0.0, max: 2.5, step: 0.01 },
-            { key: "normalScaleX", label: "Normal Scale X", min: 0.0, max: 2.5, step: 0.01 },
-            { key: "normalScaleY", label: "Normal Scale Y", min: 0.0, max: 2.5, step: 0.01 },
+            { key: "normalMapStrength", label: "Normal Map Strength", min: 0.0, max: 6.0, step: 0.01 },
+            { key: "normalDetailBoost", label: "Normal Detail Boost", min: 0.0, max: 4.0, step: 0.01 },
+            { key: "normalDetailRadius", label: "Normal Detail Radius", min: 1, max: 8, step: 1 },
+            { key: "normalScaleX", label: "Normal Scale X", min: 0.0, max: 3.0, step: 0.01 },
+            { key: "normalScaleY", label: "Normal Scale Y", min: 0.0, max: 3.0, step: 0.01 },
             { key: "displacementScale", label: "Displacement Scale", min: 0.0, max: 0.02, step: 0.0001 },
             { key: "displacementBias", label: "Displacement Bias", min: -0.02, max: 0.02, step: 0.0001 },
             { key: "roughness", label: "Roughness", min: 0.0, max: 1.0, step: 0.01 },
@@ -86,6 +78,7 @@ const CONTROL_GROUPS = [
             { key: "highlightBoost", label: "Highlight Boost", min: 1.0, max: 1.5, step: 0.005 },
             { key: "shadowWeightExponent", label: "Shadow Exponent", min: 0.2, max: 3.0, step: 0.01 },
             { key: "highlightWeightExponent", label: "Highlight Exponent", min: 0.2, max: 3.0, step: 0.01 },
+            { key: "terminatorContrast", label: "Terminator Contrast", min: 1.0, max: 3.0, step: 0.01 },
         ],
     },
     {
@@ -110,7 +103,6 @@ const CONTROL_GROUPS = [
     },
 ];
 
-const state = { ...DEFAULTS };
 const controlsByKey = new Map();
 
 const canvas = document.getElementById("tuner-canvas");
@@ -120,6 +112,33 @@ const presetMainButton = document.getElementById("tuner-preset-main");
 const resetButton = document.getElementById("tuner-reset");
 const copyButton = document.getElementById("tuner-copy");
 const applyButton = document.getElementById("tuner-apply");
+const openMissionLink = document.getElementById("tuner-open-mission-link");
+const assetProfileSelect = document.getElementById("tuner-asset-profile");
+const fastMoonMapInput = document.getElementById("tuner-fast-moon-map");
+const fastMoonDisplacementInput = document.getElementById("tuner-fast-moon-displacement");
+const qualityMoonMapInput = document.getElementById("tuner-quality-moon-map");
+const qualityMoonDisplacementInput = document.getElementById("tuner-quality-moon-displacement");
+const reloadAssetsButton = document.getElementById("tuner-reload-assets");
+const resetAssetsButton = document.getElementById("tuner-reset-assets");
+const assetStatus = document.getElementById("tuner-asset-status");
+
+let moonMaterial = null;
+let moonMesh = null;
+let baseTexture = null;
+let heightTexture = null;
+let generatedNormalMap = null;
+let shaderRef = null;
+let cameraYaw = -0.35;
+let cameraPitch = 0.22;
+let isDragging = false;
+let dragLastX = 0;
+let dragLastY = 0;
+let normalMapRegenTimer = null;
+let assetProfiles = resolveMoonRenderAssetProfiles();
+let activeAssetProfile = resolveMoonRenderAssetSelection().profile;
+let renderSettingsByProfile = resolveMoonRenderProfileSettings();
+let defaultsState = createTunerStateFromRenderSettings(renderSettingsByProfile[activeAssetProfile]);
+const state = { ...defaultsState };
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -144,21 +163,122 @@ scene.add(ambientLight);
 const moonContainer = new THREE.Group();
 scene.add(moonContainer);
 
-let moonMaterial = null;
-let moonMesh = null;
-let baseTexture = null;
-let heightTexture = null;
-let generatedNormalMap = null;
-let shaderRef = null;
-let cameraYaw = -0.35;
-let cameraPitch = 0.22;
-let isDragging = false;
-let dragLastX = 0;
-let dragLastY = 0;
-let normalMapRegenTimer = null;
-
 function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+}
+
+function getStorage() {
+    try {
+        return window.localStorage;
+    } catch {
+        return null;
+    }
+}
+
+function cloneDefaultAssetProfiles() {
+    return {
+        fast: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.fast },
+        quality: { ...DEFAULT_MOON_RENDER_ASSET_PROFILES.quality },
+    };
+}
+
+function normalizeAssetPath(value, fallbackValue) {
+    const normalized = String(value || "").trim();
+    return normalized || fallbackValue;
+}
+
+function setAssetStatusMessage(message, { isError = false } = {}) {
+    if (!assetStatus) {
+        return;
+    }
+    assetStatus.textContent = message;
+    assetStatus.style.color = isError ? "#ffd2d2" : "";
+}
+
+function updateOpenMissionLink() {
+    if (!openMissionLink) {
+        return;
+    }
+    openMissionLink.href = `mission.html?mission=chandrayaan3&moonRenderProfile=${encodeURIComponent(activeAssetProfile)}`;
+}
+
+function syncDefaultsStateFromActiveProfile() {
+    defaultsState = createTunerStateFromRenderSettings(renderSettingsByProfile[activeAssetProfile]);
+}
+
+function applyActiveProfilePreset() {
+    syncDefaultsStateFromActiveProfile();
+    state.terminatorReliefStrength = defaultsState.terminatorReliefStrength;
+    state.terminatorShadowFloor = defaultsState.terminatorShadowFloor;
+    state.terminatorIndirectOcclusion = defaultsState.terminatorIndirectOcclusion;
+    applyPreset(defaultsState);
+}
+
+function syncAssetControlsFromState() {
+    if (assetProfileSelect) {
+        assetProfileSelect.value = activeAssetProfile;
+    }
+    if (fastMoonMapInput) {
+        fastMoonMapInput.value = assetProfiles.fast.moonMap;
+    }
+    if (fastMoonDisplacementInput) {
+        fastMoonDisplacementInput.value = assetProfiles.fast.moonDisplacementMap;
+    }
+    if (qualityMoonMapInput) {
+        qualityMoonMapInput.value = assetProfiles.quality.moonMap;
+    }
+    if (qualityMoonDisplacementInput) {
+        qualityMoonDisplacementInput.value = assetProfiles.quality.moonDisplacementMap;
+    }
+    updateOpenMissionLink();
+}
+
+function getAssetProfilesFromControls() {
+    return {
+        fast: {
+            moonMap: normalizeAssetPath(
+                fastMoonMapInput?.value,
+                DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap,
+            ),
+            moonDisplacementMap: normalizeAssetPath(
+                fastMoonDisplacementInput?.value,
+                DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonDisplacementMap,
+            ),
+        },
+        quality: {
+            moonMap: normalizeAssetPath(
+                qualityMoonMapInput?.value,
+                DEFAULT_MOON_RENDER_ASSET_PROFILES.quality.moonMap,
+            ),
+            moonDisplacementMap: normalizeAssetPath(
+                qualityMoonDisplacementInput?.value,
+                DEFAULT_MOON_RENDER_ASSET_PROFILES.quality.moonDisplacementMap,
+            ),
+        },
+    };
+}
+
+function persistAssetControls() {
+    assetProfiles = getAssetProfilesFromControls();
+    activeAssetProfile = assetProfileSelect?.value === "quality" ? "quality" : "fast";
+    window.MOON_RENDER_ASSET_PATHS = assetProfiles;
+    window.MOON_RENDER_ASSET_PROFILE = activeAssetProfile;
+
+    const storage = getStorage();
+    storage?.setItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY, activeAssetProfile);
+    storage?.setItem?.(MOON_RENDER_ASSET_PATHS_STORAGE_KEY, JSON.stringify(assetProfiles));
+    updateOpenMissionLink();
+}
+
+function resetPersistedAssetControls() {
+    const storage = getStorage();
+    storage?.removeItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY);
+    storage?.removeItem?.(MOON_RENDER_ASSET_PATHS_STORAGE_KEY);
+    delete window.MOON_RENDER_ASSET_PATHS;
+    delete window.MOON_RENDER_ASSET_PROFILE;
+    assetProfiles = cloneDefaultAssetProfiles();
+    activeAssetProfile = "fast";
+    syncAssetControlsFromState();
 }
 
 function degreesToRadians(value) {
@@ -189,7 +309,7 @@ function updateCamera() {
     camera.lookAt(0, 0, 0);
 }
 
-function buildNormalMapFromHeightTexture(heightTex, strength, maxWidth) {
+function buildNormalMapFromHeightTexture(heightTex, strength, maxWidth, detailBoost = 1.0, detailRadius = 2) {
     const image = heightTex?.image;
     if (!image || typeof document === "undefined") return null;
 
@@ -213,16 +333,28 @@ function buildNormalMapFromHeightTexture(heightTex, strength, maxWidth) {
 
     context.drawImage(image, 0, 0, width, height);
     const sourceData = context.getImageData(0, 0, width, height).data;
+    const grayscale = new Float32Array(width * height);
+    let minHeight = Infinity;
+    let maxHeight = -Infinity;
+    for (let index = 0, pixel = 0; index < sourceData.length; index += 4, pixel += 1) {
+        const r = sourceData[index] / 255;
+        const g = sourceData[index + 1] / 255;
+        const b = sourceData[index + 2] / 255;
+        const heightValue = 0.299 * r + 0.587 * g + 0.114 * b;
+        grayscale[pixel] = heightValue;
+        if (heightValue < minHeight) minHeight = heightValue;
+        if (heightValue > maxHeight) maxHeight = heightValue;
+    }
+    const invHeightRange = 1 / Math.max(1e-5, maxHeight - minHeight);
     const normalData = new Uint8Array(width * height * 4);
+    const resolvedDetailBoost = Number.isFinite(Number(detailBoost)) ? Number(detailBoost) : 1.0;
+    const resolvedDetailRadius = Math.max(2, Math.round(Number.isFinite(Number(detailRadius)) ? Number(detailRadius) : 2));
 
     const sampleHeight = (x, y) => {
         const cx = Math.max(0, Math.min(width - 1, x));
         const cy = Math.max(0, Math.min(height - 1, y));
-        const index = (cy * width + cx) * 4;
-        const r = sourceData[index] / 255;
-        const g = sourceData[index + 1] / 255;
-        const b = sourceData[index + 2] / 255;
-        return 0.299 * r + 0.587 * g + 0.114 * b;
+        const sample = grayscale[cy * width + cx];
+        return (sample - minHeight) * invHeightRange;
     };
 
     for (let y = 0; y < height; y += 1) {
@@ -231,9 +363,19 @@ function buildNormalMapFromHeightTexture(heightTex, strength, maxWidth) {
             const hR = sampleHeight(x + 1, y);
             const hU = sampleHeight(x, y - 1);
             const hD = sampleHeight(x, y + 1);
+            const hLWide = sampleHeight(x - resolvedDetailRadius, y);
+            const hRWide = sampleHeight(x + resolvedDetailRadius, y);
+            const hUWide = sampleHeight(x, y - resolvedDetailRadius);
+            const hDWide = sampleHeight(x, y + resolvedDetailRadius);
+            const gradientXFine = hR - hL;
+            const gradientYFine = hD - hU;
+            const gradientXWide = (hRWide - hLWide) / resolvedDetailRadius;
+            const gradientYWide = (hDWide - hUWide) / resolvedDetailRadius;
+            const gradientX = gradientXWide + (gradientXFine - gradientXWide) * resolvedDetailBoost;
+            const gradientY = gradientYWide + (gradientYFine - gradientYWide) * resolvedDetailBoost;
 
-            let nx = -1 * (hR - hL) * strength;
-            let ny = -1 * (hD - hU) * strength;
+            let nx = -1 * gradientX * strength;
+            let ny = -1 * gradientY * strength;
             let nz = 1.0;
             const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
             nx *= invLen;
@@ -271,6 +413,10 @@ function applyPhotometricShader(material) {
         shader.uniforms.uMoonHighlightBoost = { value: state.highlightBoost };
         shader.uniforms.uMoonShadowWeightExponent = { value: state.shadowWeightExponent };
         shader.uniforms.uMoonHighlightWeightExponent = { value: state.highlightWeightExponent };
+        shader.uniforms.uMoonTerminatorContrast = { value: state.terminatorContrast };
+        shader.uniforms.uMoonTerminatorReliefStrength = { value: state.terminatorReliefStrength };
+        shader.uniforms.uMoonTerminatorShadowFloor = { value: state.terminatorShadowFloor };
+        shader.uniforms.uMoonTerminatorIndirectOcclusion = { value: state.terminatorIndirectOcclusion };
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
@@ -283,7 +429,11 @@ uniform float uMoonOppositionStrength;
 uniform float uMoonShadowLift;
 uniform float uMoonHighlightBoost;
 uniform float uMoonShadowWeightExponent;
-uniform float uMoonHighlightWeightExponent;`,
+uniform float uMoonHighlightWeightExponent;
+uniform float uMoonTerminatorContrast;
+uniform float uMoonTerminatorReliefStrength;
+uniform float uMoonTerminatorShadowFloor;
+uniform float uMoonTerminatorIndirectOcclusion;`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
@@ -309,12 +459,36 @@ uniform float uMoonHighlightWeightExponent;`,
     float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
     diffuseColor.rgb *= ( 1.0 + moonOpposition );
 
+    float moonTerminatorScale = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
+    reflectedLight.directDiffuse *= moonTerminatorScale;
+
+    float moonTerminatorReliefBoost = max( 0.0, uMoonTerminatorContrast - 1.0 ) * max( 0.0, uMoonTerminatorReliefStrength );
+    float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
+    float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
+    float moonTerminatorBand = 1.0 - smoothstep( 0.06, moonTerminatorOuter, moonNdotL );
     float moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
     float moonHighlightWeight = pow( moonNdotL, max(0.2, uMoonHighlightWeightExponent) );
-    float moonShadowTone = 1.0 + uMoonShadowLift * moonShadowWeight;
-    float moonHighlightTone = mix(1.0, uMoonHighlightBoost, moonHighlightWeight);
+    float moonShadowCrush = mix( 0.18, 0.24, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
+    float moonHighlightLift = mix( 0.04, 0.055, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
+    float moonShadowTarget = max( clamp( uMoonTerminatorShadowFloor, 0.0, 1.0 ), 1.0 + uMoonShadowLift - moonShadowCrush );
+    float moonHighlightTarget = uMoonHighlightBoost + moonHighlightLift;
+    float moonShadowTone = mix(1.0, moonShadowTarget, moonShadowWeight);
+    float moonHighlightTone = mix(1.0, moonHighlightTarget, moonHighlightWeight);
     vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
     reflectedLight.directDiffuse *= moonToneMultiplier;
+#endif`,
+            )
+            .replace(
+                "#include <lights_fragment_end>",
+                `#include <lights_fragment_end>
+#if NUM_DIR_LIGHTS > 0
+    vec3 moonOcclusionNormal = normalize( geometryNormal );
+    vec3 moonOcclusionLightDir = normalize( directionalLights[0].direction );
+    float moonOcclusionNdotL = clamp( dot( moonOcclusionNormal, moonOcclusionLightDir ), 0.0, 1.0 );
+    float moonOcclusionBand = 1.0 - smoothstep( 0.08, 0.42, moonOcclusionNdotL );
+    float moonOcclusionWeight = pow( 1.0 - moonOcclusionNdotL, max(0.2, uMoonShadowWeightExponent) ) * moonOcclusionBand;
+    float moonIndirectOcclusion = 1.0 - clamp( uMoonTerminatorIndirectOcclusion, 0.0, 1.0 ) * moonOcclusionWeight;
+    reflectedLight.indirectDiffuse *= moonIndirectOcclusion;
 #endif`,
             );
     };
@@ -331,6 +505,16 @@ function updateShaderUniforms() {
     shaderRef.uniforms.uMoonHighlightBoost.value = state.highlightBoost;
     shaderRef.uniforms.uMoonShadowWeightExponent.value = state.shadowWeightExponent;
     shaderRef.uniforms.uMoonHighlightWeightExponent.value = state.highlightWeightExponent;
+    shaderRef.uniforms.uMoonTerminatorContrast.value = state.terminatorContrast;
+    if (shaderRef.uniforms.uMoonTerminatorReliefStrength) {
+        shaderRef.uniforms.uMoonTerminatorReliefStrength.value = state.terminatorReliefStrength;
+    }
+    if (shaderRef.uniforms.uMoonTerminatorShadowFloor) {
+        shaderRef.uniforms.uMoonTerminatorShadowFloor.value = state.terminatorShadowFloor;
+    }
+    if (shaderRef.uniforms.uMoonTerminatorIndirectOcclusion) {
+        shaderRef.uniforms.uMoonTerminatorIndirectOcclusion.value = state.terminatorIndirectOcclusion;
+    }
 }
 
 function updateLightSettings() {
@@ -368,6 +552,8 @@ function scheduleNormalMapRebuild() {
             heightTexture,
             state.normalMapStrength,
             Math.max(512, Math.round(state.normalMapMaxWidth)),
+            state.normalDetailBoost,
+            state.normalDetailRadius,
         );
         if (!rebuilt) return;
         if (generatedNormalMap) generatedNormalMap.dispose();
@@ -391,7 +577,7 @@ function updateJsonBox() {
 
 function clampControlValue(control, rawValue) {
     const numeric = Number(rawValue);
-    const safe = Number.isFinite(numeric) ? numeric : DEFAULTS[control.key];
+    const safe = Number.isFinite(numeric) ? numeric : defaultsState[control.key];
     return clamp(safe, control.min, control.max);
 }
 
@@ -406,7 +592,12 @@ function applyControlValue(control, nextValue, source = null) {
 
     if (control.key === "cameraFovDeg" || control.key === "cameraDistance") {
         updateCamera();
-    } else if (control.key === "normalMapStrength" || control.key === "normalMapMaxWidth") {
+    } else if (
+        control.key === "normalMapStrength" ||
+        control.key === "normalMapMaxWidth" ||
+        control.key === "normalDetailBoost" ||
+        control.key === "normalDetailRadius"
+    ) {
         scheduleNormalMapRebuild();
     } else if (
         control.key === "primaryIntensity"
@@ -509,13 +700,13 @@ function applyPreset(presetValues) {
 
 function attachButtons() {
     presetMainButton.addEventListener("click", () => {
-        applyPreset(PRESETS.mainAppParity);
+        applyActiveProfilePreset();
         presetMainButton.textContent = "Main Preset Applied";
         window.setTimeout(() => { presetMainButton.textContent = "Main App Preset"; }, 1400);
     });
 
     resetButton.addEventListener("click", () => {
-        applyPreset(DEFAULTS);
+        applyActiveProfilePreset();
         cameraYaw = -0.35;
         cameraPitch = 0.22;
         updateCamera();
@@ -546,6 +737,27 @@ function attachButtons() {
             window.setTimeout(() => { applyButton.textContent = "Apply JSON"; }, 1500);
             console.error(error);
         }
+    });
+
+    assetProfileSelect?.addEventListener("change", () => {
+        activeAssetProfile = assetProfileSelect.value === "quality" ? "quality" : "fast";
+        applyActiveProfilePreset();
+        updateOpenMissionLink();
+        setAssetStatusMessage(`Selected ${activeAssetProfile} profile. Reload assets to apply textures.`);
+    });
+
+    reloadAssetsButton?.addEventListener("click", () => {
+        reloadMoonAssets().catch((error) => {
+            console.error(error);
+            setAssetStatusMessage("Failed to reload Moon assets. Check console for details.", { isError: true });
+            reloadAssetsButton.disabled = false;
+            resetAssetsButton.disabled = false;
+        });
+    });
+
+    resetAssetsButton?.addEventListener("click", () => {
+        resetPersistedAssetControls();
+        setAssetStatusMessage("Reset Moon asset paths to defaults. Reload assets to apply.");
     });
 }
 
@@ -597,6 +809,20 @@ function resize() {
     camera.updateProjectionMatrix();
 }
 
+function configureLoadedMoonTextures(nextBaseTexture, nextHeightTexture) {
+    nextBaseTexture.colorSpace = THREE.SRGBColorSpace;
+    nextBaseTexture.wrapS = THREE.ClampToEdgeWrapping;
+    nextBaseTexture.wrapT = THREE.ClampToEdgeWrapping;
+    nextHeightTexture.wrapS = THREE.ClampToEdgeWrapping;
+    nextHeightTexture.wrapT = THREE.ClampToEdgeWrapping;
+}
+
+function disposeIfDifferent(previousTexture, nextTexture) {
+    if (previousTexture && previousTexture !== nextTexture) {
+        previousTexture.dispose();
+    }
+}
+
 function createMoon() {
     const geometry = new THREE.SphereGeometry(1, 256, 256);
     moonMaterial = new THREE.MeshStandardMaterial({
@@ -624,21 +850,111 @@ function loadTexture(url) {
     });
 }
 
+async function loadTextureWithFallback(primaryUrl, fallbackUrl, label) {
+    try {
+        return await loadTexture(primaryUrl);
+    } catch (primaryError) {
+        if (!fallbackUrl || fallbackUrl === primaryUrl) {
+            throw primaryError;
+        }
+        console.warn(
+            `[moon-render-tuner] Failed to load ${label} from ${primaryUrl}; falling back to ${fallbackUrl}.`,
+            primaryError,
+        );
+        return loadTexture(fallbackUrl);
+    }
+}
+
+async function reloadMoonAssets() {
+    persistAssetControls();
+    const selection = resolveMoonRenderAssetSelection();
+    const previousBaseTexture = baseTexture;
+    const previousHeightTexture = heightTexture;
+    const previousNormalTexture = generatedNormalMap;
+
+    if (reloadAssetsButton) {
+        reloadAssetsButton.disabled = true;
+    }
+    if (resetAssetsButton) {
+        resetAssetsButton.disabled = true;
+    }
+    setAssetStatusMessage(`Loading ${selection.profile} Moon assets...`);
+
+    try {
+        const [nextBaseTexture, nextHeightTexture] = await Promise.all([
+            loadTextureWithFallback(
+                selection.active.moonMap,
+                selection.fallback.moonMap,
+                `${selection.profile}.moonMap`,
+            ),
+            loadTextureWithFallback(
+                selection.active.moonDisplacementMap,
+                selection.fallback.moonDisplacementMap,
+                `${selection.profile}.moonDisplacementMap`,
+            ),
+        ]);
+        configureLoadedMoonTextures(nextBaseTexture, nextHeightTexture);
+
+        const nextNormalTexture = buildNormalMapFromHeightTexture(
+            nextHeightTexture,
+            state.normalMapStrength,
+            Math.max(512, Math.round(state.normalMapMaxWidth)),
+            state.normalDetailBoost,
+            state.normalDetailRadius,
+        );
+
+        baseTexture = nextBaseTexture;
+        heightTexture = nextHeightTexture;
+        generatedNormalMap = nextNormalTexture;
+
+        if (moonMaterial) {
+            moonMaterial.map = baseTexture;
+            moonMaterial.displacementMap = heightTexture;
+            moonMaterial.normalMap = generatedNormalMap;
+            moonMaterial.needsUpdate = true;
+            updateMaterialSettings();
+        }
+
+        disposeIfDifferent(previousBaseTexture, baseTexture);
+        disposeIfDifferent(previousHeightTexture, heightTexture);
+        disposeIfDifferent(previousNormalTexture, generatedNormalMap);
+        setAssetStatusMessage(`Loaded ${selection.profile} Moon assets.`);
+    } catch (error) {
+        console.error(error);
+        setAssetStatusMessage("Failed to reload Moon assets. Check console for the failing path.", { isError: true });
+    } finally {
+        if (reloadAssetsButton) {
+            reloadAssetsButton.disabled = false;
+        }
+        if (resetAssetsButton) {
+            resetAssetsButton.disabled = false;
+        }
+        syncAssetControlsFromState();
+    }
+}
+
 async function initScene() {
+    const moonAssets = resolveMoonRenderAssetSelection();
     [baseTexture, heightTexture] = await Promise.all([
-        loadTexture("images/moon/Solarsystemscope_texture_8k_moon.jpg"),
-        loadTexture("images/moon/ldem_16_gsfc.png"),
+        loadTextureWithFallback(
+            moonAssets.active.moonMap,
+            moonAssets.fallback.moonMap,
+            `${moonAssets.profile}.moonMap`,
+        ),
+        loadTextureWithFallback(
+            moonAssets.active.moonDisplacementMap,
+            moonAssets.fallback.moonDisplacementMap,
+            `${moonAssets.profile}.moonDisplacementMap`,
+        ),
     ]);
-    baseTexture.colorSpace = THREE.SRGBColorSpace;
-    baseTexture.wrapS = THREE.ClampToEdgeWrapping;
-    baseTexture.wrapT = THREE.ClampToEdgeWrapping;
-    heightTexture.wrapS = THREE.ClampToEdgeWrapping;
-    heightTexture.wrapT = THREE.ClampToEdgeWrapping;
+    configureLoadedMoonTextures(baseTexture, heightTexture);
 
     generatedNormalMap = buildNormalMapFromHeightTexture(
         heightTexture,
         state.normalMapStrength,
         Math.max(512, Math.round(state.normalMapMaxWidth)),
+        state.normalDetailBoost,
+        state.normalDetailRadius,
     );
     createMoon();
     applyRendererSettings();
@@ -661,6 +977,7 @@ function setFatalMessage(error) {
 }
 
 createControls();
+syncAssetControlsFromState();
 attachButtons();
 attachPointerControls();
 updateJsonBox();

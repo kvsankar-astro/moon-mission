@@ -141,6 +141,10 @@
             margin-top: 10px;
         }
 
+        .tuner-actions--compact {
+            margin-top: 8px;
+        }
+
         .tuner-button {
             border: 1px solid #3b5688;
             border-radius: 8px;
@@ -150,6 +154,29 @@
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
+        }
+
+        .tuner-select,
+        .tuner-text {
+            width: 100%;
+            border: 1px solid #3b5688;
+            border-radius: 8px;
+            background: rgba(11, 19, 35, 0.95);
+            color: var(--text);
+            padding: 7px 8px;
+            font-size: 12px;
+        }
+
+        .tuner-stack {
+            display: grid;
+            gap: 8px;
+        }
+
+        .tuner-hint {
+            margin: 0;
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--muted);
         }
 
         .tuner-button:hover {
@@ -218,11 +245,48 @@
         <aside class="tuner-sidebar">
             <div class="tuner-toolbar">
                 <h1 class="tuner-title">Moon Render Tuner</h1>
-                <a class="tuner-link" href="mission.html?mission=chandrayaan3">Open Mission</a>
+                <a id="tuner-open-mission-link" class="tuner-link" href="mission.html?mission=chandrayaan3">Open Mission</a>
             </div>
             <p class="tuner-subtitle">
                 Tune moon shading interactively. Use <strong>Copy JSON</strong> and send the JSON back.
+                Moon asset profile and path overrides persist locally so the mission app can reuse them too.
             </p>
+
+            <div class="tuner-group">
+                <h2 class="tuner-group-title">Moon Assets</h2>
+                <div class="tuner-stack">
+                    <div>
+                        <label class="tuner-label" for="tuner-asset-profile">Active Profile</label>
+                        <select id="tuner-asset-profile" class="tuner-select">
+                            <option value="fast">Fast</option>
+                            <option value="quality">Quality</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="tuner-label" for="tuner-fast-moon-map">Fast Color Map</label>
+                        <input id="tuner-fast-moon-map" class="tuner-text" type="text" spellcheck="false">
+                    </div>
+                    <div>
+                        <label class="tuner-label" for="tuner-fast-moon-displacement">Fast Height Map</label>
+                        <input id="tuner-fast-moon-displacement" class="tuner-text" type="text" spellcheck="false">
+                    </div>
+                    <div>
+                        <label class="tuner-label" for="tuner-quality-moon-map">Quality Color Map</label>
+                        <input id="tuner-quality-moon-map" class="tuner-text" type="text" spellcheck="false">
+                    </div>
+                    <div>
+                        <label class="tuner-label" for="tuner-quality-moon-displacement">Quality Height Map</label>
+                        <input id="tuner-quality-moon-displacement" class="tuner-text" type="text" spellcheck="false">
+                    </div>
+                </div>
+                <div class="tuner-actions tuner-actions--compact">
+                    <button id="tuner-reload-assets" class="tuner-button" type="button">Reload Assets</button>
+                    <button id="tuner-reset-assets" class="tuner-button" type="button">Reset Asset Paths</button>
+                </div>
+                <p id="tuner-asset-status" class="tuner-hint">
+                    Choose a profile, optionally point it at heavier Moon assets, then reload to compare.
+                </p>
+            </div>
 
             <div id="tuner-controls-root"></div>
 

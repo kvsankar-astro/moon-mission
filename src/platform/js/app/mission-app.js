@@ -81,6 +81,8 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleJoyRide: (event) => eventBus.emit("mode:joyRideToggle", { event }),
         toggleLanding: (event) => eventBus.emit("mission:landingToggle", { event }),
         toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),
+        setMoonRenderProfile: handlers.setMoonRenderProfile,
+        getMoonRenderProfile: handlers.getMoonRenderProfile,
     });
     bindKeyboardShortcuts();
     bindControlPanelToggle();

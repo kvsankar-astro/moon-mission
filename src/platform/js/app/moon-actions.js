@@ -19,6 +19,7 @@ export function createMoonActions({
 
         scene.moonRenderer = new MoonRenderer(getMoonRadius());
         scene.moonRenderer.setTextures(scene.moonMap, scene.moonDisplacementMap);
+        scene.moonRenderer.setRenderSettings(scene.moonRenderSettings);
         scene.moonRenderer.create(getViewPolarAxes(), getViewPoles());
 
         scene.moonContainer = scene.moonRenderer.container;
@@ -69,6 +70,8 @@ export function createMoonActions({
         scene.moonOsculatingOrbitLine = null;
         scene.moonMap = null;
         scene.moonDisplacementMap = null;
+        scene.moonRenderProfile = null;
+        scene.moonRenderSettings = null;
     }
 
     return { addMoon, disposeMoon };

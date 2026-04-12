@@ -21,6 +21,8 @@ export class LightManager {
         this.primaryLight = null;
         this.earthshineLight = null;
         this.craftLight = null;
+        this.bodyAmbientLight = null;
+        this.craftAmbientLight = null;
 
         // Ambient lights stored for disposal
         this.ambientLights = [];
@@ -61,12 +63,14 @@ export class LightManager {
         const ambientLight = new THREE.AmbientLight(LT.AMBIENT_COLOR, LT.AMBIENT_INTENSITY);
         this.parentContainer.add(ambientLight);
         this.ambientLights.push(ambientLight);
+        this.bodyAmbientLight = ambientLight;
 
         // Ambient light for spacecraft (on layer 1)
         const craftAmbientLight = new THREE.AmbientLight(LT.CRAFT_AMBIENT_COLOR, LT.CRAFT_AMBIENT_INTENSITY);
         craftAmbientLight.layers.set(1);
         this.parentContainer.add(craftAmbientLight);
         this.ambientLights.push(craftAmbientLight);
+        this.craftAmbientLight = craftAmbientLight;
     }
 
     /**
@@ -98,5 +102,7 @@ export class LightManager {
             light.dispose();
         }
         this.ambientLights = [];
+        this.bodyAmbientLight = null;
+        this.craftAmbientLight = null;
     }
 }

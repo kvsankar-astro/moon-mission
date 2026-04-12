@@ -1,8 +1,10 @@
+import { DEFAULT_MOON_RENDER_ASSET_PROFILES, resolveMoonRenderAssetSelection } from "./moon-render-asset-profiles.js";
+
 export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthTexture: "images/earth/2_no_clouds_8k.jpg",
     earthSpecularTexture: "images/earth/earthspec1k.jpg",
-    moonMap: "images/moon/Solarsystemscope_texture_8k_moon.jpg",
-    moonDisplacementMap: "images/moon/ldem_16_gsfc.png",
+    moonMap: DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap,
+    moonDisplacementMap: DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonDisplacementMap,
     // Primary sky background is treated as Milky Way + diffuse background layer.
     skyMilkyWayTexture: "images/sky/starmap_4k.jpg",
     skyTexture: "images/sky/starmap_4k.jpg",
@@ -28,6 +30,22 @@ function loadTexture(loader, fileName) {
             (error) => reject(error),
         );
     });
+}
+
+async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName, { logLabel = "" } = {}) {
+    try {
+        return await loadTexture(loader, primaryFileName);
+    } catch (primaryError) {
+        if (!fallbackFileName || fallbackFileName === primaryFileName) {
+            throw primaryError;
+        }
+
+        console.warn(
+            `Moon asset load failed for ${logLabel || primaryFileName}; falling back to fast profile asset.`,
+            primaryError,
+        );
+        return loadTexture(loader, fallbackFileName);
+    }
 }
 
 function setColorTextureSpace(THREE, texture) {
@@ -74,7 +92,10 @@ function createSolidTexture(THREE, hexColor) {
 export function createPlaceholderSceneTextures({
     THREE,
     minFilter = null,
+    search = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
+    const moonAssets = resolveMoonRenderAssetSelection({ search, globalObject });
     const byKey = {
         earthTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthTexture),
         earthSpecularTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthSpecularTexture),
@@ -91,6 +112,9 @@ export function createPlaceholderSceneTextures({
         minFilter,
     });
 
+    byKey.moonRenderProfile = moonAssets.profile;
+    byKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
+
     return byKey;
 }
 
@@ -98,11 +122,29 @@ export function loadSceneTextures({
     THREE,
     files = DEFAULT_SCENE_TEXTURE_FILES,
     minFilter = null,
+    search = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
     const loader = new THREE.TextureLoader();
+    const moonAssets = resolveMoonRenderAssetSelection({ search, globalObject });
+    const resolvedFiles = {
+        ...files,
+        moonMap: moonAssets.active.moonMap || files.moonMap,
+        moonDisplacementMap: moonAssets.active.moonDisplacementMap || files.moonDisplacementMap,
+    };
 
-    const entries = Object.entries(files);
-    const promises = entries.map(([, fileName]) => loadTexture(loader, fileName));
+    const entries = Object.entries(resolvedFiles);
+    const promises = entries.map(([key, fileName]) => {
+        if (key === "moonMap" || key === "moonDisplacementMap") {
+            return loadTextureWithFallback(
+                loader,
+                fileName,
+                moonAssets.fallback[key],
+                { logLabel: `${moonAssets.profile}.${key}` },
+            );
+        }
+        return loadTexture(loader, fileName);
+    });
 
     return Promise.all(promises).then((textures) => {
         const byKey = {};
@@ -119,6 +161,9 @@ export function loadSceneTextures({
             texturesByKey: byKey,
             minFilter,
         });
+
+        byKey.moonRenderProfile = moonAssets.profile;
+        byKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
 
         return byKey;
     });

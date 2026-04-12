@@ -3,6 +3,7 @@ import {
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
 } from "../app/auxiliary-camera-views.js";
+import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
 /**
@@ -702,7 +703,9 @@ export function bindMainControls(handlers) {
         cy3Animate,
         toggleJoyRide,
         toggleLanding,
-        toggleInfo
+        toggleInfo,
+        setMoonRenderProfile,
+        getMoonRenderProfile,
     } = handlers;
     const bodyHaloToggle = typeof document !== "undefined"
         ? document.getElementById("view-body-halos")
@@ -767,6 +770,10 @@ export function bindMainControls(handlers) {
         ["dimension-pill-2d", "dimension-2D"],
         ["dimension-pill-3d", "dimension-3D"],
     ];
+    const moonProfilePillPairs = [
+        ["moon-profile-pill-fast", "fast"],
+        ["moon-profile-pill-quality", "quality"],
+    ];
     const togglePillPairs = [
         ["toggle-pill-orbit", "view-orbit"],
         ["toggle-pill-descent", "view-orbit-descent"],
@@ -812,6 +819,18 @@ export function bindMainControls(handlers) {
             const input = document.getElementById(inputId);
             if (!pill || !input) return;
             const isActive = input.checked === true;
+            pill.classList.toggle("is-active", isActive);
+            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
+        });
+    };
+    const syncMoonRenderProfilePillState = () => {
+        const activeProfile = typeof getMoonRenderProfile === "function"
+            ? getMoonRenderProfile()
+            : resolveMoonRenderAssetProfile();
+        moonProfilePillPairs.forEach(([pillId, profile]) => {
+            const pill = document.getElementById(pillId);
+            if (!pill) return;
+            const isActive = activeProfile === profile;
             pill.classList.toggle("is-active", isActive);
             pill.setAttribute("aria-pressed", isActive ? "true" : "false");
         });
@@ -1247,6 +1266,30 @@ export function bindMainControls(handlers) {
         });
         input.addEventListener("change", syncDimensionPillState);
     });
+    moonProfilePillPairs.forEach(([pillId, profile]) => {
+        const pill = document.getElementById(pillId);
+        if (!pill) return;
+        pill.addEventListener("click", function () {
+            const currentProfile = typeof getMoonRenderProfile === "function"
+                ? getMoonRenderProfile()
+                : resolveMoonRenderAssetProfile();
+            if (currentProfile === profile) {
+                syncMoonRenderProfilePillState();
+                return;
+            }
+            pill.disabled = true;
+            Promise.resolve(
+                typeof setMoonRenderProfile === "function"
+                    ? setMoonRenderProfile(profile)
+                    : profile,
+            ).catch((error) => {
+                console.error("Failed to switch Moon render profile:", error);
+            }).finally(() => {
+                pill.disabled = false;
+                syncMoonRenderProfilePillState();
+            });
+        });
+    });
     document.querySelectorAll('input[name="camera-position-pill"], input[name="camera-look-pill"]')
         .forEach((input) => input.addEventListener("change", function () {
             syncFollowPillState();
@@ -1288,6 +1331,7 @@ export function bindMainControls(handlers) {
     syncTogglePillState();
     syncLandingPillState();
     syncDimensionPillState();
+    syncMoonRenderProfilePillState();
     syncPlanePillState();
     syncHeaderPillStripCollapseUi(false);
     requestAnimationFrame(resetHeaderPillStripScroll);

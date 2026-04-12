@@ -83,6 +83,28 @@ export class Animation3DController {
         if (!this.scene.light || !this.scene.light2) {
             return;
         }
+        const bodyAmbientLight = this.scene.lightManager?.bodyAmbientLight || null;
+        const renderSettings = this.scene.moonRenderSettings || null;
+        const suppressLunarFillLighting =
+            (
+                (Number.isFinite(Number(renderSettings?.terminatorIndirectOcclusion)) &&
+                    Number(renderSettings?.terminatorIndirectOcclusion) >= 0.9) ||
+                (Number.isFinite(Number(renderSettings?.terminatorShadowFloor)) &&
+                    Number(renderSettings?.terminatorShadowFloor) <= 0.05)
+            );
+        if (bodyAmbientLight) {
+            bodyAmbientLight.intensity = suppressLunarFillLighting
+                ? 0.0
+                : (Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0.01);
+        }
+        const shadowNormalBias = Number(renderSettings?.shadowNormalBias);
+        if (Number.isFinite(shadowNormalBias) && this.scene.light?.shadow) {
+            this.scene.light.shadow.normalBias = shadowNormalBias;
+        }
+        const shadowBias = Number(renderSettings?.shadowBias);
+        if (Number.isFinite(shadowBias) && this.scene.light?.shadow) {
+            this.scene.light.shadow.bias = shadowBias;
+        }
 
         const earthState = bodies?.EARTH;
         const moonState = bodies?.MOON;
@@ -192,6 +214,11 @@ export class Animation3DController {
         }
 
         if (!this.scene.lightFill) {
+            return;
+        }
+
+        if (suppressLunarFillLighting) {
+            this.scene.lightFill.intensity = 0.0;
             return;
         }
 

@@ -187,6 +187,7 @@ function createMissionSceneActionBundle(deps) {
         loadSceneTextures,
         applyAndRefreshSceneTextures,
         render,
+        globalObject: typeof window !== "undefined" ? window : globalThis,
     });
 
     const sceneCameraPositionActions = createSceneCameraPositionActions({
