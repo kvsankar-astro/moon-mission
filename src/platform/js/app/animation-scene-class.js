@@ -147,6 +147,8 @@ function createAnimationSceneClass(deps) {
             this.earthGlow = null;
             this.moon = null;
             this.moonAxisRotationAngle = 0;
+            this.moonSOISphere = null;
+            this.moonHillSphere = null;
             this.moonOsculatingOrbitLine = null;
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
@@ -270,7 +272,7 @@ function createAnimationSceneClass(deps) {
         }
 
         addMoonSOI() {
-            const { globalConfig, moonRadius, viewMoonSOI } = getRuntimeState();
+            const { globalConfig, moonRadius, viewMoonSOI, viewMoonHillSphere } = getRuntimeState();
             if (!globalConfig || !globalConfig.is_lunar) {
                 return;
             }
@@ -281,6 +283,8 @@ function createAnimationSceneClass(deps) {
 
             this.sceneHelpers.createMoonSOI(this.moon, moonRadius, viewMoonSOI);
             this.moonSOISphere = this.sceneHelpers.moonSOISphere;
+            this.sceneHelpers.createMoonHillSphere(this.moon, moonRadius, viewMoonHillSphere);
+            this.moonHillSphere = this.sceneHelpers.moonHillSphere;
         }
 
         addBodyHalos() {
@@ -325,8 +329,10 @@ function createAnimationSceneClass(deps) {
             }
             if (this.sceneHelpers) {
                 this.sceneHelpers.disposeMoonSOI();
+                this.sceneHelpers.disposeMoonHillSphere();
             }
             this.moonSOISphere = null;
+            this.moonHillSphere = null;
         }
 
         disposeBodyHalos() {

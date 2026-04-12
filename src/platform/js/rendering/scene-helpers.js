@@ -5,7 +5,7 @@
  * - XYZ axes helper
  * - Ecliptic plane (grid + plane helper)
  * - Equatorial plane (grid + plane helper, tilted by Earth's axial inclination)
- * - Moon's Sphere of Influence (SOI) wireframe
+ * - Moon influence shells (SOI + Hill sphere)
  * - Optional attached halos for Earth, Moon, and active craft
  */
 
@@ -17,6 +17,16 @@ const MOON_ORBIT_SAMPLE_COUNT = 192;
 const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
 
 const BODY_HALO_KEYS = ["earth", "moon", "craft"];
+const MOON_SOI_STYLE = Object.freeze({
+    edgeRgb: [186, 208, 242],
+    edgeAlpha: 0.28,
+    edgeExponent: 6.8,
+});
+const MOON_HILL_SPHERE_STYLE = Object.freeze({
+    edgeRgb: [164, 228, 255],
+    edgeAlpha: 0.18,
+    edgeExponent: 7.2,
+});
 const BODY_HALO_STYLE = Object.freeze({
     earth: {
         edgeRgb: [214, 236, 255],
@@ -70,6 +80,49 @@ function rgbToColor(rgb) {
     return new THREE.Color((r || 0) / 255, (g || 0) / 255, (b || 0) / 255);
 }
 
+function createGrazingShellMaterial({
+    colorRgb,
+    opacity,
+    exponent,
+    side = THREE.DoubleSide,
+}) {
+    return new THREE.ShaderMaterial({
+        transparent: true,
+        depthTest: true,
+        depthWrite: false,
+        toneMapped: false,
+        side,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+            uColor: { value: rgbToColor(colorRgb) },
+            uOpacity: { value: opacity },
+            uExponent: { value: exponent },
+        },
+        vertexShader: `
+            varying vec3 vWorldNormal;
+            varying vec3 vViewDirection;
+            void main() {
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldNormal = normalize(mat3(modelMatrix) * normal);
+                vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+                gl_Position = projectionMatrix * viewMatrix * worldPosition;
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 uColor;
+            uniform float uOpacity;
+            uniform float uExponent;
+            varying vec3 vWorldNormal;
+            varying vec3 vViewDirection;
+            void main() {
+                float grazing = clamp(1.0 - abs(dot(normalize(vWorldNormal), normalize(vViewDirection))), 0.0, 1.0);
+                float intensity = pow(grazing, max(0.001, uExponent));
+                gl_FragColor = vec4(uColor, intensity * uOpacity);
+            }
+        `,
+    });
+}
+
 export class SceneHelpers {
     /**
      * @param {THREE.Object3D} parentContainer - Container to add helpers to
@@ -91,6 +144,7 @@ export class SceneHelpers {
 
         // Moon SOI
         this.moonSOISphere = null;
+        this.moonHillSphere = null;
         this.moonContainer = null;
 
         // Body halos
@@ -204,22 +258,61 @@ export class SceneHelpers {
         this.parentContainer.add(this.equatorialPlaneContainer);
     }
 
-    createMoonSOI(moonContainer, moonRadius, visible = false) {
+    _createMoonInfluenceShell({
+        moonContainer,
+        moonRadius,
+        radiusKm,
+        visible = false,
+        style = MOON_SOI_STYLE,
+        name = "MoonInfluenceShell",
+    }) {
+        if (!moonContainer) return null;
         this.moonContainer = moonContainer;
 
-        const soiRadius = moonRadius * (PC.MOON_SOI_RADIUS_KM / PC.MOON_RADIUS_KM);
-        const latSegments = 18;
-        const longSegments = 36;
+        const shellRadius = moonRadius * (radiusKm / PC.MOON_RADIUS_KM);
+        const latSegments = 40;
+        const longSegments = 72;
+        const shellGroup = new THREE.Group();
+        shellGroup.name = name;
 
-        const geometry = new THREE.SphereGeometry(soiRadius, longSegments, latSegments);
-        const material = new THREE.MeshBasicMaterial({
-            color: COL.MOON_SOI,
-            wireframe: true,
+        const rimMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(shellRadius, longSegments, latSegments),
+            createGrazingShellMaterial({
+                colorRgb: style.edgeRgb,
+                opacity: style.edgeAlpha,
+                exponent: style.edgeExponent,
+            }),
+        );
+        rimMesh.renderOrder = 18;
+        shellGroup.add(rimMesh);
+
+        shellGroup.visible = visible;
+        this.moonContainer.add(shellGroup);
+        return shellGroup;
+    }
+
+    createMoonSOI(moonContainer, moonRadius, visible = false) {
+        this.disposeMoonSOI();
+        this.moonSOISphere = this._createMoonInfluenceShell({
+            moonContainer,
+            moonRadius,
+            radiusKm: PC.MOON_SOI_RADIUS_KM,
+            visible,
+            style: MOON_SOI_STYLE,
+            name: "MoonSOIHalo",
         });
+    }
 
-        this.moonSOISphere = new THREE.Mesh(geometry, material);
-        this.moonSOISphere.visible = visible;
-        this.moonContainer.add(this.moonSOISphere);
+    createMoonHillSphere(moonContainer, moonRadius, visible = false) {
+        this.disposeMoonHillSphere();
+        this.moonHillSphere = this._createMoonInfluenceShell({
+            moonContainer,
+            moonRadius,
+            radiusKm: PC.MOON_HILL_SPHERE_RADIUS_KM,
+            visible,
+            style: MOON_HILL_SPHERE_STYLE,
+            name: "MoonHillSphereHalo",
+        });
     }
 
     _createBodyHaloTexture(key) {
@@ -298,48 +391,13 @@ export class SceneHelpers {
             group.userData.bodyHaloShellGroup = true;
 
             const geometry = new THREE.SphereGeometry(1, 64, 64);
-            const createShellMaterial = ({ colorRgb, opacity, exponent }) => new THREE.ShaderMaterial({
-                transparent: true,
-                depthTest: true,
-                depthWrite: false,
-                toneMapped: false,
-                side: THREE.BackSide,
-                blending: THREE.AdditiveBlending,
-                uniforms: {
-                    uColor: { value: rgbToColor(colorRgb) },
-                    uOpacity: { value: opacity },
-                    uExponent: { value: exponent },
-                },
-                vertexShader: `
-                    varying vec3 vWorldNormal;
-                    varying vec3 vViewDirection;
-                    void main() {
-                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-                        vWorldNormal = normalize(mat3(modelMatrix) * normal);
-                        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
-                        gl_Position = projectionMatrix * viewMatrix * worldPosition;
-                    }
-                `,
-                fragmentShader: `
-                    uniform vec3 uColor;
-                    uniform float uOpacity;
-                    uniform float uExponent;
-                    varying vec3 vWorldNormal;
-                    varying vec3 vViewDirection;
-                    void main() {
-                        float grazing = clamp(1.0 - abs(dot(normalize(vWorldNormal), normalize(vViewDirection))), 0.0, 1.0);
-                        float intensity = pow(grazing, max(0.001, uExponent));
-                        gl_FragColor = vec4(uColor, intensity * uOpacity);
-                    }
-                `,
-            });
-
             const rimMesh = new THREE.Mesh(
                 geometry,
-                createShellMaterial({
+                createGrazingShellMaterial({
                     colorRgb: style.edgeRgb,
                     opacity: style.edgeAlpha,
                     exponent: 10.5,
+                    side: THREE.BackSide,
                 }),
             );
             rimMesh.scale.setScalar(Math.max(1.001, style.haloStartScale || 1.04));
@@ -348,10 +406,11 @@ export class SceneHelpers {
 
             const glowMesh = new THREE.Mesh(
                 geometry.clone(),
-                createShellMaterial({
+                createGrazingShellMaterial({
                     colorRgb: style.glowRgb,
                     opacity: style.innerGlowAlpha,
                     exponent: 2.8,
+                    side: THREE.BackSide,
                 }),
             );
             glowMesh.scale.setScalar(Math.max(rimMesh.scale.x + 0.01, style.outerRadiusScale || 1.5));
@@ -781,6 +840,10 @@ export class SceneHelpers {
         if (this.moonSOISphere) this.moonSOISphere.visible = visible;
     }
 
+    setMoonHillSphereVisible(visible) {
+        if (this.moonHillSphere) this.moonHillSphere.visible = visible;
+    }
+
     setBodyHalosVisible(visible) {
         this.bodyHalosEnabled = Boolean(visible);
         if (!this.bodyHalosEnabled) {
@@ -832,9 +895,30 @@ export class SceneHelpers {
     disposeMoonSOI() {
         if (this.moonSOISphere && this.moonContainer) {
             this.moonContainer.remove(this.moonSOISphere);
-            this.moonSOISphere.geometry.dispose();
-            this.moonSOISphere.material.dispose();
+            this.moonSOISphere.traverse?.((node) => {
+                node.geometry?.dispose?.();
+                if (Array.isArray(node.material)) {
+                    node.material.forEach((material) => material?.dispose?.());
+                } else {
+                    node.material?.dispose?.();
+                }
+            });
             this.moonSOISphere = null;
+        }
+    }
+
+    disposeMoonHillSphere() {
+        if (this.moonHillSphere && this.moonContainer) {
+            this.moonContainer.remove(this.moonHillSphere);
+            this.moonHillSphere.traverse?.((node) => {
+                node.geometry?.dispose?.();
+                if (Array.isArray(node.material)) {
+                    node.material.forEach((material) => material?.dispose?.());
+                } else {
+                    node.material?.dispose?.();
+                }
+            });
+            this.moonHillSphere = null;
         }
     }
 
@@ -879,6 +963,7 @@ export class SceneHelpers {
         this.disposeEclipticPlane();
         this.disposeEquatorialPlane();
         this.disposeMoonSOI();
+        this.disposeMoonHillSphere();
         this.disposeBodyHalos();
         this.disposeMoonOsculatingOrbit();
     }

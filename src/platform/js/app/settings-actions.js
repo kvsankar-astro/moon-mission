@@ -343,7 +343,12 @@ export function createSettingsActions({
                     scene.moonNorthPoleSphere.visible = view.viewPoles;
                     scene.moonSouthPoleSphere.visible = view.viewPoles;
                     scene.moonAxis.visible = view.viewPolarAxes;
-                    scene.moonSOISphere.visible = view.viewMoonSOI;
+                    if (scene.moonSOISphere) {
+                        scene.moonSOISphere.visible = view.viewMoonSOI;
+                    }
+                    if (scene.moonHillSphere) {
+                        scene.moonHillSphere.visible = view.viewMoonHillSphere;
+                    }
                     if (scene.moonOsculatingOrbitLine) {
                         scene.moonOsculatingOrbitLine.visible =
                             cfg !== "relative" &&

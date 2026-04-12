@@ -2,9 +2,9 @@ export function computeMoonUiPatch() {
     // Always show moon-related controls; availability is managed elsewhere.
     /** @type {{ nextConfig?: string, showSelectors: string[], hideSelectors: string[], showLabelForIds: string[], hideLabelForIds: string[], checked: Record<string, boolean> }} */
     const patch = {
-        showSelectors: ["#origin-moon", "#origin-relative", "#view-moonsoi", ".geo"],
+        showSelectors: ["#origin-moon", "#origin-relative", "#view-moonsoi", "#view-moon-hill-sphere", ".geo"],
         hideSelectors: [],
-        showLabelForIds: ["origin-moon", "origin-relative", "view-moonsoi"],
+        showLabelForIds: ["origin-moon", "origin-relative", "view-moonsoi", "view-moon-hill-sphere"],
         hideLabelForIds: [],
         checked: {},
     };

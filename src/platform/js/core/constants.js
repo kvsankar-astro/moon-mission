@@ -33,6 +33,7 @@ export const PHYSICS_CONSTANTS = {
     MOON_GM_KM3_S2: 4902.800118,
     MOON_RADIUS_KM: 1737.4 + 0.52, // 0.52 is to keep the lander on the surface
     MOON_SOI_RADIUS_KM: 66000,
+    MOON_HILL_SPHERE_RADIUS_KM: 62800,
     EARTH_MOON_DISTANCE_MEAN_AU: 0.00257,
     
     // Angular constants

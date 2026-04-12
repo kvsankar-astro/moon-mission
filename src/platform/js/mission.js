@@ -314,6 +314,7 @@ runtimeViewState.setViewFlags({
     viewSky: initialMissionViewState.viewSky,
     viewConstellationLines: initialMissionViewState.viewConstellationLines,
     viewMoonSOI: initialMissionViewState.viewMoonSOI,
+    viewMoonHillSphere: initialMissionViewState.viewMoonHillSphere,
     viewBodyHalos: initialMissionViewState.viewBodyHalos,
     viewMoonOsculatingOrbit: initialMissionViewState.viewMoonOsculatingOrbit,
     viewEclipticPlane: initialMissionViewState.viewEclipticPlane,
@@ -671,6 +672,7 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewSky: () => runtimeViewState.getViewSky(),
     getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
     getViewMoonSOI: () => runtimeViewState.getViewMoonSOI(),
+    getViewMoonHillSphere: () => runtimeViewState.getViewMoonHillSphere(),
     getViewBodyHalos: () => runtimeViewState.getViewBodyHalos(),
     getViewMoonOsculatingOrbit: () => runtimeViewState.getViewMoonOsculatingOrbit(),
     getViewXYZAxes: () => runtimeViewState.getViewXYZAxes(),
@@ -767,6 +769,10 @@ const missionStateCells = {
         (value) => { runtimeViewState.setViewConstellationLines(value); },
     ),
     viewMoonSOI: bindStateCell(() => runtimeViewState.getViewMoonSOI(), (value) => { runtimeViewState.setViewMoonSOI(value); }),
+    viewMoonHillSphere: bindStateCell(
+        () => runtimeViewState.getViewMoonHillSphere(),
+        (value) => { runtimeViewState.setViewMoonHillSphere(value); },
+    ),
     viewBodyHalos: bindStateCell(
         () => runtimeViewState.getViewBodyHalos(),
         (value) => { runtimeViewState.setViewBodyHalos(value); },

@@ -106,6 +106,7 @@ const VIEW_SETTING_CHECKBOXES = {
     viewSky: "view-sky",
     viewConstellationLines: "view-constellation-lines",
     viewMoonSOI: "view-moonsoi",
+    viewMoonHillSphere: "view-moon-hill-sphere",
     viewBodyHalos: "view-body-halos",
     viewMoonOsculatingOrbit: "view-moon-osculating-orbit",
     viewEclipticPlane: "view-eclipticplane",

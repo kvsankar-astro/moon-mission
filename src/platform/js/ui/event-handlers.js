@@ -793,6 +793,7 @@ export function bindMainControls(handlers) {
         ["toggle-pill-polar-axes", "view-polar-axes"],
         ["toggle-pill-constellations", "view-constellation-lines"],
         ["toggle-pill-moon-soi", "view-moonsoi"],
+        ["toggle-pill-moon-hill-sphere", "view-moon-hill-sphere"],
         ["toggle-pill-moon-orbit", "view-moon-osculating-orbit"],
         ["toggle-pill-ecliptic", "view-eclipticplane"],
         ["toggle-pill-equatorial", "view-equatorialplane"],
@@ -1240,6 +1241,7 @@ export function bindMainControls(handlers) {
     onClick("view-sky", setView);
     onClick("view-constellation-lines", setView);
     onClick("view-moonsoi", setView);
+    onClick("view-moon-hill-sphere", setView);
     onClick("view-body-halos", setViewAndSyncLocators);
     onClick("view-moon-osculating-orbit", setView);
     onClick("view-eclipticplane", setView);

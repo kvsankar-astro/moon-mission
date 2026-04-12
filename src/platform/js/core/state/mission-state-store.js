@@ -271,6 +271,7 @@ function createMissionStateStore(ctx) {
             setBooleanStateIfDefined("viewSky", view.viewSky);
             setBooleanStateIfDefined("viewConstellationLines", view.viewConstellationLines);
             setBooleanStateIfDefined("viewMoonSOI", view.viewMoonSOI);
+            setBooleanStateIfDefined("viewMoonHillSphere", view.viewMoonHillSphere);
             setBooleanStateIfDefined("viewBodyHalos", view.viewBodyHalos);
             setBooleanStateIfDefined("viewMoonOsculatingOrbit", view.viewMoonOsculatingOrbit);
             setBooleanStateIfDefined("viewEclipticPlane", view.viewEclipticPlane);

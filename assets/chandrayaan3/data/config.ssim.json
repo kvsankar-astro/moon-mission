@@ -19,6 +19,7 @@
       "viewSky": false,
       "viewAuxiliaryPanels": false,
       "viewMoonSOI": false,
+      "viewMoonHillSphere": false,
       "viewBodyHalos": false,
       "relativeDefaultPlaneSelection": "DEFAULT"
     },
