@@ -754,6 +754,7 @@ export function bindMainControls(handlers) {
         ["plane-pill-yz-minus", "checkbox-lock-yz-minus"],
         ["plane-pill-zx-minus", "checkbox-lock-zx-minus"],
     ];
+    let planePresetReleasedByNavigation = false;
     const followPillPairs = [
         ["follow-pill-earth", "earth"],
         ["follow-pill-moon", "moon"],
@@ -798,7 +799,7 @@ export function bindMainControls(handlers) {
             const pill = document.getElementById(pillId);
             const input = document.getElementById(inputId);
             if (!pill || !input) return;
-            const isActive = input.checked === true;
+            const isActive = !planePresetReleasedByNavigation && input.checked === true;
             pill.classList.toggle("is-active", isActive);
             pill.setAttribute("aria-pressed", isActive ? "true" : "false");
         });
@@ -912,6 +913,59 @@ export function bindMainControls(handlers) {
         }
         const selected = document.querySelector(`input[name="${name}"]:checked`);
         return selected?.value || "manual";
+    };
+    const releasePlanePresetFromManualNavigation = () => {
+        const activePlaneInput = planePillPairs
+            .map(([, inputId]) => document.getElementById(inputId))
+            .find((input) => input?.checked);
+        if (!activePlaneInput) return;
+        if (activePlaneInput.id === "checkbox-lock-default") return;
+        planePresetReleasedByNavigation = true;
+        syncPlanePillState();
+    };
+    const bindPlanePresetReleaseOnSceneDrag = () => {
+        const canvasWrapper = document.getElementById("canvas-wrapper");
+        if (!canvasWrapper) return;
+
+        let activePointerId = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragReleased = false;
+        const DRAG_RELEASE_THRESHOLD_PX = 4;
+        const DRAG_RELEASE_THRESHOLD_SQUARED = DRAG_RELEASE_THRESHOLD_PX * DRAG_RELEASE_THRESHOLD_PX;
+
+        const resetDragState = (pointerId = null) => {
+            if (pointerId !== null && activePointerId !== pointerId) return;
+            activePointerId = null;
+            dragStartX = 0;
+            dragStartY = 0;
+            dragReleased = false;
+        };
+
+        canvasWrapper.addEventListener("pointerdown", function (event) {
+            if (event.isPrimary === false) return;
+            activePointerId = event.pointerId;
+            dragStartX = Number.isFinite(event.clientX) ? event.clientX : 0;
+            dragStartY = Number.isFinite(event.clientY) ? event.clientY : 0;
+            dragReleased = false;
+        }, true);
+
+        window.addEventListener("pointermove", function (event) {
+            if (activePointerId === null || event.pointerId !== activePointerId || dragReleased) return;
+            const deltaX = (Number.isFinite(event.clientX) ? event.clientX : 0) - dragStartX;
+            const deltaY = (Number.isFinite(event.clientY) ? event.clientY : 0) - dragStartY;
+            if ((deltaX * deltaX) + (deltaY * deltaY) < DRAG_RELEASE_THRESHOLD_SQUARED) return;
+            dragReleased = true;
+            releasePlanePresetFromManualNavigation();
+        }, { passive: true });
+
+        window.addEventListener("pointerup", function (event) {
+            resetDragState(event.pointerId);
+        }, { passive: true });
+
+        window.addEventListener("pointercancel", function (event) {
+            resetDragState(event.pointerId);
+        }, { passive: true });
     };
     const applyCameraPillPair = (positionValue, lookValue, options = {}) => {
         const preserveManualRelease = options?.preserveManualRelease === true;
@@ -1330,14 +1384,23 @@ export function bindMainControls(handlers) {
         const input = document.getElementById(inputId);
         if (pill && input) {
             pill.addEventListener("click", function () {
+                planePresetReleasedByNavigation = false;
                 if (!input.checked) {
                     input.click();
                 }
                 syncPlanePillState();
             });
-            input.addEventListener("change", syncPlanePillState);
+            input.addEventListener("change", function () {
+                planePresetReleasedByNavigation = false;
+                syncPlanePillState();
+            });
         }
     });
+    ["panleft", "panright", "panup", "pandown"].forEach((id) => {
+        const button = document.getElementById(id);
+        button?.addEventListener("click", releasePlanePresetFromManualNavigation);
+    });
+    bindPlanePresetReleaseOnSceneDrag();
     syncFocusPillVisibility();
     syncFocusPillState();
     syncOriginPillState();
