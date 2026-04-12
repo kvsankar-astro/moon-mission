@@ -734,12 +734,21 @@ export function bindMainControls(handlers) {
     const secondaryOrbitLabel = typeof document !== "undefined"
         ? document.getElementById("label-secondary-body-orbit")
         : null;
+    const orbitLabel = typeof document !== "undefined"
+        ? document.getElementById("label-orbit")
+        : null;
+    const orbitPill = typeof document !== "undefined"
+        ? document.getElementById("toggle-pill-orbit")
+        : null;
     const secondaryOrbitPill = typeof document !== "undefined"
         ? document.getElementById("toggle-pill-moon-orbit")
         : null;
     const landingPill = typeof document !== "undefined"
         ? document.getElementById("toggle-pill-landing")
         : null;
+    const landingOptionRow = landingToggle?.closest?.(".settings-option")
+        || landingToggle?.closest?.("label")
+        || null;
     const originPillPairs = [
         ["origin-pill-earth", "origin-earth"],
         ["origin-pill-moon", "origin-moon"],
@@ -1029,9 +1038,6 @@ export function bindMainControls(handlers) {
             return style ? style.display !== "none" && style.visibility !== "hidden" : true;
         };
         const isRelativeOrigin = !!document.getElementById("origin-relative")?.checked;
-        const landingOptionRow = landingToggle?.closest?.(".settings-option")
-            || landingToggle?.closest?.("label")
-            || null;
         const hasLanding = !!landingToggle
             && !landingToggle.disabled
             && isElementVisible(landingOptionRow);
@@ -1097,17 +1103,55 @@ export function bindMainControls(handlers) {
         landingPill.classList.toggle("is-active", isActive);
         landingPill.setAttribute("aria-pressed", isActive ? "true" : "false");
     };
-    const syncSecondaryOrbitLabel = () => {
+    let landingPillSyncScheduled = false;
+    const scheduleLandingPillSync = () => {
+        if (landingPillSyncScheduled) return;
+        landingPillSyncScheduled = true;
+        requestAnimationFrame(() => {
+            landingPillSyncScheduled = false;
+            syncTogglePillVisibility();
+            syncLandingPillState();
+        });
+    };
+    const bindLandingPillVisibilityObserver = () => {
+        if (!landingToggle || typeof MutationObserver === "undefined") return;
+        const observerTargets = [
+            landingOptionRow,
+            landingToggle,
+            document.getElementById("landingbutton"),
+        ].filter(Boolean);
+        if (!observerTargets.length) return;
+        const observer = new MutationObserver(() => {
+            scheduleLandingPillSync();
+        });
+        observerTargets.forEach((target) => {
+            observer.observe(target, {
+                attributes: true,
+                attributeFilter: ["class", "style", "hidden", "disabled", "aria-hidden"],
+            });
+        });
+    };
+    const syncOrbitLabels = () => {
         const isLunarOrigin = !!document.getElementById("origin-moon")?.checked;
+        const primaryBodyName = isLunarOrigin ? "Moon" : "Earth";
         const secondaryBodyName = isLunarOrigin ? "Earth" : "Moon";
-        const toggleTitle = `Toggle ${secondaryBodyName} osculating orbit (secondary body)`;
+        const primaryToggleTitle = `Toggle ${primaryBodyName} orbit tracks`;
+        const secondaryToggleTitle = `Toggle ${secondaryBodyName} orbit tracks`;
+        if (orbitLabel) {
+            orbitLabel.textContent = `${primaryBodyName} Orbit`;
+            orbitLabel.title = primaryToggleTitle;
+        }
+        if (orbitPill) {
+            orbitPill.textContent = `${primaryBodyName} Orbit`;
+            orbitPill.title = primaryToggleTitle;
+        }
         if (secondaryOrbitLabel) {
-            secondaryOrbitLabel.textContent = "Secondary Body Orbit";
-            secondaryOrbitLabel.title = toggleTitle;
+            secondaryOrbitLabel.textContent = `${secondaryBodyName} Orbit`;
+            secondaryOrbitLabel.title = secondaryToggleTitle;
         }
         if (secondaryOrbitPill) {
-            secondaryOrbitPill.textContent = "Secondary Orbit";
-            secondaryOrbitPill.title = toggleTitle;
+            secondaryOrbitPill.textContent = `${secondaryBodyName} Orbit`;
+            secondaryOrbitPill.title = secondaryToggleTitle;
         }
     };
     const isMobileViewsOrComposeTab = () => {
@@ -1167,9 +1211,9 @@ export function bindMainControls(handlers) {
     onClick("origin-earth", syncOriginPillState);
     onClick("origin-moon", syncOriginPillState);
     onClick("origin-relative", syncOriginPillState);
-    onClick("origin-earth", syncSecondaryOrbitLabel);
-    onClick("origin-moon", syncSecondaryOrbitLabel);
-    onClick("origin-relative", syncSecondaryOrbitLabel);
+    onClick("origin-earth", syncOrbitLabels);
+    onClick("origin-moon", syncOrbitLabels);
+    onClick("origin-relative", syncOrbitLabels);
     onChange("camera-position", changeCameraFromTo);
     onChange("camera-look", changeCameraFromTo);
     onChangeAll('input[name="camera-position-pill"]', changeCameraFromTo);
@@ -1313,12 +1357,12 @@ export function bindMainControls(handlers) {
                 input.click();
             }
             syncOriginPillState();
-            syncSecondaryOrbitLabel();
+            syncOrbitLabels();
             syncTogglePillVisibility();
         });
         input.addEventListener("change", function () {
             syncOriginPillState();
-            syncSecondaryOrbitLabel();
+            syncOrbitLabels();
             syncTogglePillVisibility();
         });
     });
@@ -1373,6 +1417,7 @@ export function bindMainControls(handlers) {
             syncLandingPillState();
         });
     }
+    bindLandingPillVisibilityObserver();
     onClick("header-pill-strip-toggle", function () {
         const strip = document.getElementById("header-pill-strip");
         if (!strip) return;
@@ -1405,7 +1450,7 @@ export function bindMainControls(handlers) {
     syncFocusPillState();
     syncOriginPillState();
     syncLocatorsPillState();
-    syncSecondaryOrbitLabel();
+    syncOrbitLabels();
     syncFollowPillState();
     syncViewPillState();
     syncTogglePillVisibility();
