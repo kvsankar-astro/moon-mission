@@ -53,10 +53,12 @@ export class CameraController {
         this.lookMode = CAMERA_LOOK_MODE.MANUAL;
         this.mountOffset = new THREE.Vector3();
         this.mountTargetOffset = new THREE.Vector3();
+        this.followOffset = new THREE.Vector3();
         this._mountWorld = new THREE.Vector3();
         this._lookWorld = new THREE.Vector3();
         this._targets = { earth: null, moon: null, spacecraft: null };
         this._pendingMountOffsetInit = false;
+        this._pendingFollowOffsetInit = false;
         this._fromToChangeHandler = null;
 
         this._tmpQuat = new THREE.Quaternion();
@@ -68,7 +70,8 @@ export class CameraController {
         this._rendererDomElement = null;
         this.freeFlyControls = null;
         this._freeFlyActive = false;
-        this._mountedWheelFovEnabled = true;
+        this._mountedWheelFovEnabled = false;
+        this._mountedDollyEnabled = true;
         this._mountedWheelHandler = null;
     }
 
@@ -149,15 +152,23 @@ export class CameraController {
         this._fromToChangeHandler = () => {
             if (!this.camera || !this.controls) return;
             if (this._freeFlyActive) return;
-            if (this.positionMode === CAMERA_POSITION_MODE.MANUAL) return;
-            const mountPos = this._resolveTargetWorld(this.positionMode, this._mountWorld);
-            if (!mountPos) return;
-            this.mountOffset.copy(this.camera.position).sub(mountPos);
+            if (this.positionMode !== CAMERA_POSITION_MODE.MANUAL) {
+                const mountPos = this._resolveTargetWorld(this.positionMode, this._mountWorld);
+                if (!mountPos) return;
+                this.mountOffset.copy(this.camera.position).sub(mountPos);
 
-            // When aim is manual, allow panning by persisting the target offset relative to the mount.
-            // (TrackballControls pan moves both camera and target; we keep that delta stable.)
-            if (this.lookMode === CAMERA_LOOK_MODE.MANUAL) {
-                this.mountTargetOffset.copy(this.controls.target).sub(mountPos);
+                // When aim is manual, allow panning by persisting the target offset relative to the mount.
+                // (TrackballControls pan moves both camera and target; we keep that delta stable.)
+                if (this.lookMode === CAMERA_LOOK_MODE.MANUAL) {
+                    this.mountTargetOffset.copy(this.controls.target).sub(mountPos);
+                }
+                return;
+            }
+
+            if (this.lookMode !== CAMERA_LOOK_MODE.MANUAL) {
+                const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
+                if (!lookPos) return;
+                this.followOffset.copy(this.camera.position).sub(lookPos);
             }
         };
         this.controls.addEventListener('change', this._fromToChangeHandler, { passive: true });
@@ -189,6 +200,10 @@ export class CameraController {
 
     setMountedWheelFovEnabled(enabled) {
         this._mountedWheelFovEnabled = !!enabled;
+    }
+
+    setMountedDollyEnabled(enabled) {
+        this._mountedDollyEnabled = !!enabled;
     }
 
     _isMountedModeActive() {
@@ -266,6 +281,7 @@ export class CameraController {
      */
     setFromToModes(positionMode, lookMode) {
         const previousPositionMode = this.positionMode;
+        const previousLookMode = this.lookMode;
         if (Object.values(CAMERA_POSITION_MODE).includes(positionMode)) {
             this.positionMode = positionMode;
         }
@@ -277,6 +293,16 @@ export class CameraController {
             // Initialize mountOffset lazily on the next updateFromTo() once targets are available,
             // keeping the camera in its current world position when switching mounts.
             this._pendingMountOffsetInit = true;
+        }
+
+        const enteringFollowMode =
+            this.positionMode === CAMERA_POSITION_MODE.MANUAL &&
+            this.lookMode !== CAMERA_LOOK_MODE.MANUAL &&
+            (previousPositionMode !== this.positionMode || previousLookMode !== this.lookMode);
+        if (enteringFollowMode) {
+            // Capture the current world-space camera-to-target vector on the next update so
+            // follow mode preserves the exact user-established angle and distance.
+            this._pendingFollowOffsetInit = true;
         }
     }
 
@@ -347,18 +373,12 @@ export class CameraController {
                 }
 
                 if (this.controls) {
-                    // Mounted camera is lens-zoom-only: wheel maps to FoV, not dolly.
+                    // Mounted camera keeps its user-defined relative standoff; allow dolly
+                    // unless an outer policy (for example fixed 1-degree FoV) disables it.
                     this.controls.enabled = !wantsFreeFly;
                     this.controls.noPan = true;
                     this.controls.noRotate = true;
-                    this.controls.noZoom = true;
-                }
-
-                // Mounted views are physically anchored to the body's origin.
-                // Prevent residual offsets from leaking across mode/FoV changes
-                // (especially visible in mobile preset workflows).
-                if (!wantsFreeFly) {
-                    this.mountOffset.set(0, 0, 0);
+                    this.controls.noZoom = !this._mountedDollyEnabled;
                 }
 
                 // Follow the mount.
@@ -402,6 +422,14 @@ export class CameraController {
         if (hasForcedLook) {
             const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
             if (lookPos) {
+                if (!hasPositionMount) {
+                    if (this._pendingFollowOffsetInit) {
+                        this.followOffset.copy(this.camera.position).sub(lookPos);
+                        this._pendingFollowOffsetInit = false;
+                    }
+                    this.camera.position.copy(lookPos).add(this.followOffset);
+                }
+
                 const allowOrbitAroundTarget =
                     (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
                 const isMountedCrossBodyView =

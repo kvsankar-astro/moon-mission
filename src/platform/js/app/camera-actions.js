@@ -186,7 +186,8 @@ export function createCameraActions({
         if (!controller) return;
 
         const shouldFix = wantsFixed && isEligible;
-        controller.setMountedWheelFovEnabled?.(!shouldFix);
+        controller.setMountedWheelFovEnabled?.(false);
+        controller.setMountedDollyEnabled?.(!shouldFix);
         if (shouldFix) {
             if (savedFov === null) {
                 const current = scene?.camera?.fov ?? controller.camera?.fov;
@@ -368,7 +369,7 @@ export function createCameraActions({
         }, { passive: true });
     }
 
-    function snapMountedCamera(scene, positionMode, lookMode, { preserveDistance = false } = {}) {
+    function snapMountedCamera(scene, positionMode, lookMode, { preserveDistance = false, preserveOffset = false } = {}) {
         const controller = scene?.cameraController;
         if (!controller || !scene.camera) return;
         if (positionMode === "manual") return;
@@ -379,19 +380,31 @@ export function createCameraActions({
         const mountPos = controller._resolveTargetWorld?.(positionMode, controller._mountWorld);
         if (!mountPos) return;
 
-        // Snap to the exact mount origin by default (no standoff).
-        // Preserve distance only for explicit "keep distance" paths.
         const defaultDistance = 0;
+        const liveDistance = scene.camera?.position?.distanceTo?.(mountPos);
         const distance = preserveDistance
-            ? Math.max(controller.mountOffset?.length?.() ?? defaultDistance, 0)
+            ? Math.max(
+                Number.isFinite(liveDistance) ? liveDistance : (controller.mountOffset?.length?.() ?? defaultDistance),
+                0,
+            )
             : defaultDistance;
+        const currentOffset = controller.mountOffset?.clone?.() ?? null;
 
         // Default view direction when using manual aim:
         // - From Earth/Moon: look toward spacecraft
         // - From Spacecraft: look toward Moon (fallback Earth)
         let mountOffset = { x: 0, y: 0, z: distance };
+        if (
+            preserveDistance &&
+            preserveOffset &&
+            currentOffset &&
+            Number.isFinite(currentOffset.lengthSq?.()) &&
+            currentOffset.lengthSq() > 1e-18
+        ) {
+            mountOffset = { x: currentOffset.x, y: currentOffset.y, z: currentOffset.z };
+        }
         let lookWorld = null;
-        if (lookMode === "manual") {
+        if (!preserveOffset && lookMode === "manual") {
             const defaultLookTarget = resolveDefaultLookTarget(scene, positionMode);
             lookWorld = defaultLookTarget?.getWorldPosition?.(controller._lookWorld) ?? null;
             if (lookWorld) {
@@ -496,7 +509,10 @@ export function createCameraActions({
 
             // Immediate camera feedback: only snap when the mount changes (or when we just forced look->manual).
             if (positionMode !== "manual" && shouldSnap) {
-                snapMountedCamera(scene, positionMode, lookMode);
+                snapMountedCamera(scene, positionMode, lookMode, {
+                    preserveDistance: true,
+                    preserveOffset: !positionChanged && !configChanged,
+                });
             }
 
             scene.cameraController?.updateFromTo?.(resolveFromToTargets(scene));
