@@ -1,4 +1,5 @@
 import { formatDateTimeUTC } from "../utils/time-utils.js";
+import { buildEventHoverText } from "./burn-event-metadata.js";
 
 function createInitConfigUiActions(deps) {
     const {
@@ -24,7 +25,7 @@ function createInitConfigUiActions(deps) {
     }
 
     function getEventHoverText(eventInfo) {
-        const baseText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+        const baseText = buildEventHoverText(eventInfo);
         const eventTimeMs = resolveEventTimeMs(eventInfo);
         if (!Number.isFinite(eventTimeMs)) {
             return baseText;
@@ -52,6 +53,8 @@ function createInitConfigUiActions(deps) {
                 .attr("data-event-index", String(i))
                 .attr("data-event-key", eventInfo["key"] || "")
                 .attr("data-event-time-ms", Number.isFinite(eventTimeMs) ? String(eventTimeMs) : "")
+                .attr("data-burn-flag", eventInfo?.burnFlag ? "true" : "false")
+                .attr("data-duration-seconds", String(eventInfo?.durationSeconds ?? 0))
                 .attr("type", "button")
                 .attr(
                     "class",

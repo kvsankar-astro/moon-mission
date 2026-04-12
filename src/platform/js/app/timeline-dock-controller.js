@@ -3,6 +3,7 @@ import {
     formatDateTimeLocal,
     formatTimeOnlyLocal,
 } from "../utils/time-utils.js";
+import { buildEventHoverText } from "./burn-event-metadata.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -32,6 +33,9 @@ function buildEventSignature(eventInfos) {
                 eventInfo?.clickable === false ? "0" : "1",
                 eventInfo?.generated ? "1" : "0",
                 eventInfo?.generatedLabel || "",
+                eventInfo?.burnDirection || "",
+                eventInfo?.burnTypeLabel || "",
+                String(eventInfo?.durationSeconds ?? ""),
                 eventInfo?.hoverText || "",
             ].join("|");
         })
@@ -132,7 +136,7 @@ function createTimelineDockController({
         }
         marker.className = markerClasses.join(" ");
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
-        const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "Event";
+        const hoverText = buildEventHoverText(eventInfo) || "Event";
         const generatedSuffix = eventInfo?.generatedLabel
             ? `\n${eventInfo.generatedLabel}`
             : "";

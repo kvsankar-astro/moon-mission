@@ -10,9 +10,14 @@
  */
 
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
-import { velocityToAngle } from "../utils/math-utils.js";
 import { projectToPlane, toScreenCoordinates } from "../scene-state.js";
 import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
+import {
+    isBurnIndicatorVisibleAtTime,
+    resolveBurnIndicatorAngle,
+    resolveBurnIndicatorFill,
+    resolveBurnIndicatorShape,
+} from "../app/burn-event-metadata.js";
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
@@ -46,7 +51,7 @@ export class Animation2DController {
         this.pany = 0;
 
         // Cached spacecraft data for transforms
-        this.craftData = { x: 0, y: 0, z: 0, angle: 0 };
+        this.craftData = { x: 0, y: 0, z: 0, angle: 0, velocityAngle: 0 };
     }
 
     /**
@@ -141,9 +146,13 @@ export class Animation2DController {
             this.craftData.y = screenPos.y;
             this.craftData.z = screenPos.z;
 
-            // Calculate angle from velocity
+            // Track the along-path heading so burn markers can align with
+            // prograde/retrograde semantics instead of a hard-coded triangle offset.
             const projectedVel = this.projectVelocity(bodyState);
-            this.craftData.angle = velocityToAngle(projectedVel.vx, projectedVel.vy);
+            // SVG screen coordinates invert Y, so burn heading must use the
+            // screen-space velocity vector rather than the raw projected plane vector.
+            this.craftData.velocityAngle =
+                Math.atan2(-projectedVel.vy, projectedVel.vx) * 180.0 / Math.PI;
         }
     }
 
@@ -196,8 +205,11 @@ export class Animation2DController {
      * @param {Object} state - Full scene state
      */
     updateSpacecraftVisuals(scState, state) {
-        // Update burn indicator transform
-        this.updateBurnIndicator();
+        const activeEvent = isBurnIndicatorVisibleAtTime(state?.activeEvent, state?.time)
+            ? state?.activeEvent || null
+            : null;
+        this.craftData.angle = resolveBurnIndicatorAngle(activeEvent, this.craftData.velocityAngle || 0);
+        this.updateBurnIndicator(activeEvent);
     }
 
     updateOrbitTrails(scene, timeMs) {
@@ -252,13 +264,17 @@ export class Animation2DController {
     /**
      * Update the burn indicator transform.
      */
-    updateBurnIndicator() {
+    updateBurnIndicator(activeEvent = null) {
         const { x, y, angle } = this.craftData;
 
         // Only update if we have valid coordinates
         if (x === undefined || y === undefined || isNaN(x) || isNaN(y)) {
             return;
         }
+
+        d3.select("#burn")
+            .attr("points", resolveBurnIndicatorShape(activeEvent))
+            .attr("fill", resolveBurnIndicatorFill(activeEvent));
 
         const scale = 1 / this.zoomFactor;
 

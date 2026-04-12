@@ -52,8 +52,7 @@ function extractTimelineEventMetadataFromButtons() {
         const label = (button.textContent || "").trim();
         const hoverText = button.getAttribute("title") || "";
         const infoText = hoverText;
-        const className = button.className || "";
-        const burnFlag = /\bburn\b/i.test(key) || /\bburn\b/i.test(label) || /\bburn\b/i.test(className);
+        const burnFlag = button.dataset.burnFlag === "true";
         events.push({
             startTime,
             key,

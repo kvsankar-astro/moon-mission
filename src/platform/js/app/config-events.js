@@ -189,6 +189,8 @@ export function computeEventsUpdate({
             durationSeconds: eventData.durationSeconds,
             label: eventData.label,
             burnFlag: eventData.burnFlag,
+            burnDirection: eventData.burnDirection || "",
+            burnTypeLabel: eventData.burnTypeLabel || "",
             infoText: eventData.infoText,
             hoverText: generated
                 ? appendGeneratedUiText(

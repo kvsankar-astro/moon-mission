@@ -57,6 +57,7 @@ import {
     getSceneActiveCraftId,
     getSceneVisibleCraftIds,
 } from "./app/scene-craft-helpers.js";
+import { buildEventHoverText } from "./app/burn-event-metadata.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -341,7 +342,7 @@ function ensureTimelineDockController() {
             animationController.goToEvent(eventInfo.startTime.getTime());
         },
         onMarkerHover: (eventInfo) => {
-            const hoverText = eventInfo?.hoverText || eventInfo?.infoText || eventInfo?.label || "";
+            const hoverText = buildEventHoverText(eventInfo);
             if (hoverText) {
                 updateEventInfo(hoverText);
             }

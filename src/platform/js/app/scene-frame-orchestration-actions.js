@@ -154,7 +154,10 @@ function createSceneFrameOrchestrationActions(deps) {
             const withinStableUiWindow = elapsedWallMs < EVENT_DISPLAY_MIN_STABLE_UI_MS;
 
             if (withinAnimationWindow || withinStableUiWindow) {
-                activeEvent = latchedEvent.event;
+                activeEvent = {
+                    ...latchedEvent.event,
+                    _shownAtWallTimeMs: latchedEvent.shownAtWallTimeMs,
+                };
             } else {
                 activeEventLatchByConfig.delete(config);
             }

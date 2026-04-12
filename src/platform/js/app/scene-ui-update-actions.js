@@ -1,4 +1,5 @@
 import { createGroundTrackPanelActions } from "./ground-track-panel.js";
+import { buildEventInfoText, isBurnIndicatorVisibleAtTime } from "./burn-event-metadata.js";
 
 function createSceneUiUpdateActions(deps) {
     const {
@@ -487,11 +488,19 @@ function createSceneUiUpdateActions(deps) {
 
     function updateActiveEvent(sceneState) {
         if (sceneState.activeEvent) {
-            if (!activeEventVisible) {
+            const showBurnIndicator = isBurnIndicatorVisibleAtTime(
+                sceneState.activeEvent,
+                sceneState?.time,
+            );
+            if (showBurnIndicator && !activeEventVisible) {
                 d3.select("#burng").style("visibility", "visible");
                 activeEventVisible = true;
             }
-            const eventText = sceneState.activeEvent.infoText || sceneState.activeEvent.label || "";
+            if (!showBurnIndicator && activeEventVisible) {
+                d3.select("#burng").style("visibility", "hidden");
+                activeEventVisible = false;
+            }
+            const eventText = buildEventInfoText(sceneState.activeEvent);
             updateEventInfo(eventText);
             setMobileText("mobile-mission-event", eventText || "No active event");
             updateActiveEventButtonHighlight(sceneState.activeEvent);
