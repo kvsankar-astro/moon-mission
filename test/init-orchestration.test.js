@@ -102,6 +102,55 @@ describe("createInitOrchestrationActions", () => {
         expect(playAnimation).not.toHaveBeenCalled();
     });
 
+    it("ignores startup override and stays at mission start when current time is outside the active data span", async () => {
+        const missionStart = vi.fn();
+        const missionSetTime = vi.fn();
+        const setAnimTime = vi.fn();
+        const setRealtimeSpeed = vi.fn();
+        const playAnimation = vi.fn();
+
+        const actions = createInitOrchestrationActions({
+            initConfig: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue(undefined),
+            getConfig: () => "geo",
+            isOrbitDataProcessed: () => true,
+            missionStart,
+            missionSetTime,
+            setRealtimeSpeed,
+            playAnimation,
+            setAnimTime,
+            setLocation: vi.fn(),
+            setDimension: vi.fn(),
+            getSetView: () => vi.fn(),
+            getChangeCameraFromTo: () => vi.fn(),
+            updateCraftScale: vi.fn(),
+            d3: { select: () => ({ text: vi.fn() }) },
+            d3SelectAll: () => ({ attr: vi.fn() }),
+            render: vi.fn(),
+            requestAnimationFrame: vi.fn(),
+            animateLoop: vi.fn(),
+            getStartTime: () => Date.UTC(2026, 0, 1),
+            getLatestEndTime: () => Date.UTC(2026, 0, 2),
+        });
+
+        const startupOverrideMs = Date.UTC(2026, 1, 1, 0, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 3, 2, 8, 0, 0));
+        try {
+            await actions.initAnimation({
+                reset: true,
+                startupAnimTimeOverride: startupOverrideMs,
+            });
+        } finally {
+            nowSpy.mockRestore();
+        }
+
+        expect(missionStart).toHaveBeenCalled();
+        expect(setAnimTime).not.toHaveBeenCalledWith(startupOverrideMs);
+        expect(missionSetTime).not.toHaveBeenCalled();
+        expect(setRealtimeSpeed).not.toHaveBeenCalled();
+        expect(playAnimation).not.toHaveBeenCalled();
+    });
+
     it("prefers Now over startup override on reset when current time is in range", async () => {
         const setAnimTime = vi.fn();
         const missionSetTime = vi.fn();

@@ -215,6 +215,17 @@ function isSplashdownPanelMissionEnabled(configData = null) {
     return missionName === "artemis 2" || missionName === "artemis ii";
 }
 
+function shouldAutoOpenSplashdownPanel(configData, nowMs = Date.now()) {
+    if (!isSplashdownPanelMissionEnabled(configData)) {
+        return false;
+    }
+    const splashdownMs = parseMissionTimeMs(configData?.events?.splashdown?.startTime);
+    if (!Number.isFinite(splashdownMs) || !Number.isFinite(nowMs)) {
+        return false;
+    }
+    return nowMs < splashdownMs;
+}
+
 function resolveGroundTrackWindowMs(configData, phaseKey = "geo") {
     const phaseConfig = phaseKey === "lunar"
         ? (configData?.lunar || configData?.geo)
@@ -1424,7 +1435,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function scheduleAutoOpenIfNeeded(config) {
-        if (autoOpenScheduled || config === "relative" || !isSplashdownPanelMissionEnabled(missionConfigData)) return;
+        if (autoOpenScheduled || config === "relative" || !shouldAutoOpenSplashdownPanel(missionConfigData)) return;
         const panel = getNode("ground-track-panel");
         if (!panel) return;
         autoOpenScheduled = true;
@@ -1814,9 +1825,15 @@ function createGroundTrackPanelActions(options = {}) {
                 cacheByKey.clear();
                 currentTrackKey = "";
                 if (latestPayload) {
+                    scheduleAutoOpenIfNeeded(latestPayload.config);
+                }
+                if (latestPayload) {
                     renderPayload(latestPayload);
                 }
             });
+        }
+        if (missionConfigReady) {
+            scheduleAutoOpenIfNeeded(config);
         }
         renderPayload(latestPayload);
     }
@@ -1824,4 +1841,4 @@ function createGroundTrackPanelActions(options = {}) {
     return { update, setPanelVisible };
 }
 
-export { createGroundTrackPanelActions };
+export { createGroundTrackPanelActions, shouldAutoOpenSplashdownPanel };

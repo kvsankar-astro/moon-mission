@@ -137,12 +137,18 @@ function createInitOrchestrationActions(deps) {
                     const nowTimeMs = Date.now();
                     const startTime = Number(getStartTime?.());
                     const latestEndTime = Number(getLatestEndTime?.());
-                    const shouldStartAtNow = !!flags.reset &&
-                        Number.isFinite(nowTimeMs) &&
+                    const isCurrentTimeWithinActiveSpan = Number.isFinite(nowTimeMs) &&
                         Number.isFinite(startTime) &&
                         Number.isFinite(latestEndTime) &&
                         nowTimeMs >= startTime &&
                         nowTimeMs <= latestEndTime;
+                    const shouldStartAtNow = !!flags.reset &&
+                        isCurrentTimeWithinActiveSpan;
+                    const shouldForceMissionStart = !!flags.reset &&
+                        Number.isFinite(nowTimeMs) &&
+                        Number.isFinite(startTime) &&
+                        Number.isFinite(latestEndTime) &&
+                        !isCurrentTimeWithinActiveSpan;
 
                     if (shouldStartAtNow) {
                         setAnimTime?.(nowTimeMs);
@@ -157,6 +163,8 @@ function createInitOrchestrationActions(deps) {
                         if (typeof playAnimation === "function") {
                             playAnimation();
                         }
+                    } else if (shouldForceMissionStart) {
+                        missionStart();
                     } else if (hasStartupAnimTimeOverride) {
                         setAnimTime?.(startupAnimTimeOverride);
                         if (typeof missionSetTime === "function") {
