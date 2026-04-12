@@ -1,6 +1,6 @@
 # Moon Render Assets
 
-This note documents the runtime Moon texture assets currently used by the app and the provenance of the NASA-derived color maps.
+This note documents the runtime Moon surface texture assets currently used by the app and the provenance of the NASA-derived color maps.
 
 ## Current Runtime Profiles
 
@@ -8,11 +8,13 @@ This note documents the runtime Moon texture assets currently used by the app an
 
 - Color map: `images/moon/lroc_color_2025_4k_fast.jpg`
 - Height map: `images/moon/ldem_16_gsfc.png`
+- Internal profile key: `fast`
 
 ### Detailed runtime profile
 
 - Color map: `images/moon/lroc_color_2025_16k_quality.jpg`
 - Height map: `images/moon/ldem_16_uint_quality.png`
+- Internal profile key: `quality`
 
 ## Provenance
 
@@ -33,7 +35,7 @@ The conversion was performed locally to create browser-friendly runtime assets i
 
 ## Rationale
 
-- The previous `fast` color map was `images/moon/Solarsystemscope_texture_8k_moon.jpg`, which was not NASA-traceable.
+- The previous `fast` / `Standard` color map was `images/moon/Solarsystemscope_texture_8k_moon.jpg`, which was not NASA-traceable.
 - The current setup keeps both color profiles NASA-traceable while preserving a real runtime ladder:
   - lower-bandwidth NASA `4k` color for the standard profile
   - higher-fidelity NASA `16k` color for the detailed profile
@@ -44,4 +46,3 @@ The conversion was performed locally to create browser-friendly runtime assets i
 
 - The NASA TIFF source masters live under `data-generated/moon-source/` as local working files and are not meant for deployment/runtime.
 - The app consumes the derived runtime images under `images/moon/`.
-

@@ -140,6 +140,10 @@ let renderSettingsByProfile = resolveMoonRenderProfileSettings();
 let defaultsState = createTunerStateFromRenderSettings(renderSettingsByProfile[activeAssetProfile]);
 const state = { ...defaultsState };
 
+function describeAssetProfile(profileName) {
+    return profileName === "quality" ? "Detailed" : "Standard";
+}
+
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -743,7 +747,9 @@ function attachButtons() {
         activeAssetProfile = assetProfileSelect.value === "quality" ? "quality" : "fast";
         applyActiveProfilePreset();
         updateOpenMissionLink();
-        setAssetStatusMessage(`Selected ${activeAssetProfile} profile. Reload assets to apply textures.`);
+        setAssetStatusMessage(
+            `Selected ${describeAssetProfile(activeAssetProfile)} profile. Reload assets to apply textures.`,
+        );
     });
 
     reloadAssetsButton?.addEventListener("click", () => {
@@ -878,7 +884,7 @@ async function reloadMoonAssets() {
     if (resetAssetsButton) {
         resetAssetsButton.disabled = true;
     }
-    setAssetStatusMessage(`Loading ${selection.profile} Moon assets...`);
+    setAssetStatusMessage(`Loading ${describeAssetProfile(selection.profile)} Moon surface assets...`);
 
     try {
         const [nextBaseTexture, nextHeightTexture] = await Promise.all([
@@ -918,7 +924,7 @@ async function reloadMoonAssets() {
         disposeIfDifferent(previousBaseTexture, baseTexture);
         disposeIfDifferent(previousHeightTexture, heightTexture);
         disposeIfDifferent(previousNormalTexture, generatedNormalMap);
-        setAssetStatusMessage(`Loaded ${selection.profile} Moon assets.`);
+        setAssetStatusMessage(`Loaded ${describeAssetProfile(selection.profile)} Moon surface assets.`);
     } catch (error) {
         console.error(error);
         setAssetStatusMessage("Failed to reload Moon assets. Check console for the failing path.", { isError: true });

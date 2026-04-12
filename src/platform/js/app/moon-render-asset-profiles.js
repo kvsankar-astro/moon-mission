@@ -62,7 +62,7 @@ export const DEFAULT_MOON_RENDER_ASSET_PROFILES = Object.freeze({
     fast: DEFAULT_FAST_MOON_RENDER_ASSET_PATHS,
     // NASA SVS CGI Moon Kit runtime derivatives.
     // Source page: https://svs.gsfc.nasa.gov/4720/
-    // Fast color is derived from the 2025 4k TIFF master.
+    // Standard color is derived from the 2025 4k TIFF master.
     // Detailed color is derived from the 2025 16k TIFF master.
     quality: Object.freeze({
         moonMap: "images/moon/lroc_color_2025_16k_quality.jpg",

@@ -44,7 +44,8 @@ Useful pages:
 
 ### Moon Render Asset Profiles
 
-- The Moon renderer now supports two runtime asset profiles selected from the pill strip.
+- The Moon renderer now supports two runtime asset profiles selected from the `Moon Surface` pill strip.
+- User-facing labels are `Standard` and `Detailed`; internal storage/config keys remain `fast` and `quality` for compatibility.
 - Profile defaults and migration logic live in `src/platform/js/app/moon-render-asset-profiles.js`.
 - Runtime asset provenance and the NASA source chain are documented in [docs/moon-render-assets.md](moon-render-assets.md).
 - When changing Moon runtime assets:
