@@ -904,6 +904,12 @@ export function bindMainControls(handlers) {
         syncSplashdownFocusPillState(groundTrackPanelVisible);
     };
     const getSelectedCameraPillValue = (name) => {
+        if (name === "camera-position-pill") {
+            return document.getElementById("camera-position")?.value || "manual";
+        }
+        if (name === "camera-look-pill") {
+            return document.getElementById("camera-look")?.value || "manual";
+        }
         const selected = document.querySelector(`input[name="${name}"]:checked`);
         return selected?.value || "manual";
     };
@@ -911,9 +917,17 @@ export function bindMainControls(handlers) {
         const preserveManualRelease = options?.preserveManualRelease === true;
         const positionInput = document.querySelector(`input[name="camera-position-pill"][value="${positionValue}"]`);
         const lookInput = document.querySelector(`input[name="camera-look-pill"][value="${lookValue}"]`);
+        const positionSelect = document.getElementById("camera-position");
+        const lookSelect = document.getElementById("camera-look");
         if (!positionInput || !lookInput) return;
         positionInput.checked = true;
         lookInput.checked = true;
+        if (positionSelect) {
+            positionSelect.value = positionValue;
+        }
+        if (lookSelect) {
+            lookSelect.value = lookValue;
+        }
         lookInput.dispatchEvent(
             new CustomEvent("change", {
                 bubbles: true,
@@ -1295,6 +1309,10 @@ export function bindMainControls(handlers) {
             syncFollowPillState();
             syncViewPillState();
         }));
+    document.addEventListener("camera-from-to-ui-updated", function () {
+        syncFollowPillState();
+        syncViewPillState();
+    });
     if (landingToggle) {
         landingToggle.addEventListener("change", function () {
             syncTogglePillVisibility();

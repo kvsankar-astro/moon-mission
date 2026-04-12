@@ -37,6 +37,13 @@ function setSelectValue(idOrSelector, value) {
     element.value = value;
 }
 
+function setRadioGroupValue(groupName, value) {
+    if (!groupName) return;
+    const element = document.querySelector(`input[name="${groupName}"][value="${value}"]`);
+    if (!element) return;
+    element.checked = true;
+}
+
 function getRangeValue(idOrSelector, fallback = 1) {
     const element = getElement(idOrSelector);
     const value = Number(element?.value);
@@ -265,7 +272,21 @@ export function readCameraLookMode() {
 
 export function applyCameraFromTo(patch) {
     if (!patch) return;
-    if (patch.positionMode) setSelectValue("camera-position", patch.positionMode);
-    if (patch.lookMode) setSelectValue("camera-look", patch.lookMode);
+    if (patch.positionMode) {
+        setSelectValue("camera-position", patch.positionMode);
+        setRadioGroupValue("camera-position-pill", patch.positionMode);
+    }
+    if (patch.lookMode) {
+        setSelectValue("camera-look", patch.lookMode);
+        setRadioGroupValue("camera-look-pill", patch.lookMode);
+    }
+    document.dispatchEvent(
+        new CustomEvent("camera-from-to-ui-updated", {
+            detail: {
+                positionMode: patch.positionMode || readCameraPositionMode(),
+                lookMode: patch.lookMode || readCameraLookMode(),
+            },
+        }),
+    );
 }
 
