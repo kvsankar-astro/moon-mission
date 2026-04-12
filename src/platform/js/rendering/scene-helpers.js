@@ -21,18 +21,20 @@ const BODY_HALO_STYLE = Object.freeze({
     earth: {
         edgeRgb: [214, 236, 255],
         glowRgb: [186, 223, 255],
-        edgeAlpha: 0.86,
-        innerGlowAlpha: 0.34,
-        outerRadiusScale: 2.25,
+        edgeAlpha: 0.74,
+        innerGlowAlpha: 0.24,
+        outerRadiusScale: 2.05,
         innerRadiusScale: 1.0,
+        haloStartScale: 1.045,
     },
     moon: {
         edgeRgb: [232, 240, 255],
         glowRgb: [197, 218, 255],
-        edgeAlpha: 0.86,
-        innerGlowAlpha: 0.30,
-        outerRadiusScale: 3.7,
+        edgeAlpha: 0.76,
+        innerGlowAlpha: 0.22,
+        outerRadiusScale: 3.25,
         innerRadiusScale: 1.0,
+        haloStartScale: 1.05,
     },
     craft: {
         edgeRgb: [255, 208, 124],
@@ -41,6 +43,7 @@ const BODY_HALO_STYLE = Object.freeze({
         innerGlowAlpha: 0.35,
         outerRadiusScale: 1.5,
         innerRadiusScale: 1.0,
+        haloStartScale: 1.08,
         minimumRadius: 0.85,
     },
 });
@@ -60,6 +63,11 @@ function rgba(rgb, alpha) {
     const [r, g, b] = rgb;
     const normalizedAlpha = Math.max(0, Math.min(1, Number(alpha) || 0));
     return `rgba(${r}, ${g}, ${b}, ${normalizedAlpha.toFixed(3)})`;
+}
+
+function rgbToColor(rgb) {
+    const [r, g, b] = rgb;
+    return new THREE.Color((r || 0) / 255, (g || 0) / 255, (b || 0) / 255);
 }
 
 export class SceneHelpers {
@@ -227,16 +235,23 @@ export class SceneHelpers {
         const style = BODY_HALO_STYLE[key];
         const center = size / 2;
         const outerRadius = center * 0.92;
-        const innerRadiusRatio = (style.innerRadiusScale || 1) / (style.outerRadiusScale || 1.5);
-        const innerRadius = Math.max(0, Math.min(outerRadius * 0.99, outerRadius * innerRadiusRatio));
+        const outerRadiusScale = style.outerRadiusScale || 1.5;
+        const bodyEdgeRadius = Math.max(0, Math.min(outerRadius * 0.99, outerRadius * ((style.innerRadiusScale || 1) / outerRadiusScale)));
+        const rimLineWidth = size * 0.008;
+        const rimCenterRadius = Math.min(outerRadius * 0.992, bodyEdgeRadius + (rimLineWidth * 0.5));
+        const haloStartScale = Math.max(style.haloStartScale || style.innerRadiusScale || 1, style.innerRadiusScale || 1);
+        const haloStartRadius = Math.max(
+            Math.min(outerRadius * 0.994, rimCenterRadius + (rimLineWidth * 0.52)),
+            Math.min(outerRadius * 0.99, outerRadius * (haloStartScale / outerRadiusScale)),
+        );
 
         context.clearRect(0, 0, size, size);
 
-        // Draw an annulus that starts exactly at the body edge and fades to the outer halo radius.
+        // Draw an annulus that starts just outside the visible body edge so the locator never intrudes into the planet disk.
         const haloGradient = context.createRadialGradient(
             center,
             center,
-            innerRadius,
+            haloStartRadius,
             center,
             center,
             outerRadius,
@@ -247,15 +262,15 @@ export class SceneHelpers {
 
         context.beginPath();
         context.arc(center, center, outerRadius, 0, Math.PI * 2);
-        context.arc(center, center, innerRadius, 0, Math.PI * 2, true);
+        context.arc(center, center, haloStartRadius, 0, Math.PI * 2, true);
         context.fillStyle = haloGradient;
         context.fill("evenodd");
 
-        // Crisp edge exactly at body radius so the locator starts at 1.0r.
+        // Put the bright locator rim entirely outside the body: its inner edge should kiss the limb.
         context.beginPath();
-        context.arc(center, center, innerRadius, 0, Math.PI * 2);
+        context.arc(center, center, rimCenterRadius, 0, Math.PI * 2);
         context.strokeStyle = rgba(style.edgeRgb, style.edgeAlpha);
-        context.lineWidth = size * 0.008;
+        context.lineWidth = rimLineWidth;
         context.stroke();
 
         // Very soft outer edge helps visibility without a hard boundary.
@@ -274,6 +289,79 @@ export class SceneHelpers {
     _ensureBodyHaloSprite(key) {
         if (this.bodyHaloSprites[key]) {
             return this.bodyHaloSprites[key];
+        }
+
+        if (key !== "craft") {
+            const style = BODY_HALO_STYLE[key];
+            const group = new THREE.Group();
+            group.visible = false;
+            group.userData.bodyHaloShellGroup = true;
+
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+            const createShellMaterial = ({ colorRgb, opacity, exponent }) => new THREE.ShaderMaterial({
+                transparent: true,
+                depthTest: true,
+                depthWrite: false,
+                toneMapped: false,
+                side: THREE.BackSide,
+                blending: THREE.AdditiveBlending,
+                uniforms: {
+                    uColor: { value: rgbToColor(colorRgb) },
+                    uOpacity: { value: opacity },
+                    uExponent: { value: exponent },
+                },
+                vertexShader: `
+                    varying vec3 vWorldNormal;
+                    varying vec3 vViewDirection;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+                        vViewDirection = normalize(cameraPosition - worldPosition.xyz);
+                        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uColor;
+                    uniform float uOpacity;
+                    uniform float uExponent;
+                    varying vec3 vWorldNormal;
+                    varying vec3 vViewDirection;
+                    void main() {
+                        float grazing = clamp(1.0 - abs(dot(normalize(vWorldNormal), normalize(vViewDirection))), 0.0, 1.0);
+                        float intensity = pow(grazing, max(0.001, uExponent));
+                        gl_FragColor = vec4(uColor, intensity * uOpacity);
+                    }
+                `,
+            });
+
+            const rimMesh = new THREE.Mesh(
+                geometry,
+                createShellMaterial({
+                    colorRgb: style.edgeRgb,
+                    opacity: style.edgeAlpha,
+                    exponent: 10.5,
+                }),
+            );
+            rimMesh.scale.setScalar(Math.max(1.001, style.haloStartScale || 1.04));
+            rimMesh.renderOrder = 22;
+            group.add(rimMesh);
+
+            const glowMesh = new THREE.Mesh(
+                geometry.clone(),
+                createShellMaterial({
+                    colorRgb: style.glowRgb,
+                    opacity: style.innerGlowAlpha,
+                    exponent: 2.8,
+                }),
+            );
+            glowMesh.scale.setScalar(Math.max(rimMesh.scale.x + 0.01, style.outerRadiusScale || 1.5));
+            glowMesh.renderOrder = 21;
+            group.add(glowMesh);
+
+            this.bodyHaloMaterials[key] = [rimMesh.material, glowMesh.material];
+            this.bodyHaloTextures[key] = null;
+            this.bodyHaloSprites[key] = group;
+            return group;
         }
 
         if (typeof document === "undefined") {
@@ -512,6 +600,12 @@ export class SceneHelpers {
             return;
         }
 
+        if (sprite.userData?.bodyHaloShellGroup) {
+            sprite.scale.setScalar(resolvedRadius);
+            sprite.visible = true;
+            return;
+        }
+
         target.getWorldPosition(this._bodyHaloTargetPosition);
         this._bodyHaloRayDirection
             .copy(this._bodyHaloTargetPosition)
@@ -534,7 +628,13 @@ export class SceneHelpers {
         const outerRadiusScale = Number.isFinite(style.outerRadiusScale) && style.outerRadiusScale > 0
             ? style.outerRadiusScale
             : 1.5;
-        const diameter = resolvedRadius * outerRadiusScale * 2;
+        // Sprites are flat billboards at the body center, so near-body perspective makes a
+        // 1.0r sprite hole project smaller than the actual spherical limb. Compensate so the
+        // locator ring stays outside the visible body instead of slipping inside it.
+        const perspectiveRadiusScale = targetDistance > resolvedRadius
+            ? targetDistance / Math.sqrt(Math.max(1e-6, (targetDistance * targetDistance) - (resolvedRadius * resolvedRadius)))
+            : 1;
+        const diameter = resolvedRadius * perspectiveRadiusScale * outerRadiusScale * 2;
         sprite.scale.set(diameter, diameter, 1);
         sprite.visible = true;
     }
@@ -744,8 +844,15 @@ export class SceneHelpers {
             if (sprite?.parent) {
                 sprite.parent.remove(sprite);
             }
-            this.bodyHaloMaterials[key]?.dispose?.();
+            if (Array.isArray(this.bodyHaloMaterials[key])) {
+                this.bodyHaloMaterials[key].forEach((material) => material?.dispose?.());
+            } else {
+                this.bodyHaloMaterials[key]?.dispose?.();
+            }
             this.bodyHaloTextures[key]?.dispose?.();
+            sprite?.traverse?.((node) => {
+                node.geometry?.dispose?.();
+            });
             this.bodyHaloSprites[key] = null;
             this.bodyHaloMaterials[key] = null;
             this.bodyHaloTextures[key] = null;
