@@ -370,10 +370,12 @@ export function createSettingsActions({
                         scene.skyRenderer?.setTime?.(skyPatch.sky_time_ms);
                     }
                 }
-                scene.eclipticPlaneHelper.visible = view.viewEclipticPlane;
-                scene.eclipticPolarGridHelper.visible = view.viewEclipticPlane;
-                scene.equatorialPlaneHelper.visible = view.viewEquatorialPlane;
-                scene.equatorialPolarGridHelper.visible = view.viewEquatorialPlane;
+                scene.sceneHelpers?.setEclipticPlaneVisible?.(view.viewEclipticPlane);
+                scene.sceneHelpers?.setEquatorialPlaneVisible?.(view.viewEquatorialPlane);
+                if (scene.eclipticPlaneHelper) scene.eclipticPlaneHelper.visible = view.viewEclipticPlane;
+                if (scene.eclipticPolarGridHelper) scene.eclipticPolarGridHelper.visible = view.viewEclipticPlane;
+                if (scene.equatorialPlaneHelper) scene.equatorialPlaneHelper.visible = view.viewEquatorialPlane;
+                if (scene.equatorialPolarGridHelper) scene.equatorialPolarGridHelper.visible = view.viewEquatorialPlane;
             }
         });
 

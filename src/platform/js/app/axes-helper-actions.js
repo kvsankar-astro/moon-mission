@@ -1,21 +1,15 @@
 export function createAxesHelperActions({ SceneHelpers, getPixelsPerAU, PC }) {
-    function addAxesHelper(scene, { earthRadius, viewXYZAxes, viewEclipticPlane, viewEquatorialPlane }) {
+    function addAxesHelper(scene, { viewXYZAxes, viewEclipticPlane, viewEquatorialPlane }) {
         if (!scene.sceneHelpers) {
             scene.sceneHelpers = new SceneHelpers(scene.motherContainer);
         }
 
         const axesSize = 2 * getPixelsPerAU() * PC.EARTH_MOON_DISTANCE_MEAN_AU;
-        const gridRadius = earthRadius * 64;
-        const eclipticPlaneSize = earthRadius * 128;
-        const equatorialPlaneSize = earthRadius * 144;
+        const referencePlaneRadius = getPixelsPerAU() * PC.EARTH_MOON_DISTANCE_MEAN_AU * 1.5;
 
         scene.sceneHelpers.createAxesHelper(axesSize, viewXYZAxes);
-        scene.sceneHelpers.createEclipticPlane(gridRadius, eclipticPlaneSize, viewEclipticPlane);
-        scene.sceneHelpers.createEquatorialPlane(
-            gridRadius,
-            equatorialPlaneSize,
-            viewEquatorialPlane,
-        );
+        scene.sceneHelpers.createEclipticPlane(referencePlaneRadius, viewEclipticPlane);
+        scene.sceneHelpers.createEquatorialPlane(referencePlaneRadius, viewEquatorialPlane);
 
         scene.axesHelper = scene.sceneHelpers.axesHelper;
         scene.eclipticPolarGridHelper = scene.sceneHelpers.eclipticPolarGridHelper;

@@ -3,8 +3,8 @@
  *
  * Manages:
  * - XYZ axes helper
- * - Ecliptic plane (grid + plane helper)
- * - Equatorial plane (grid + plane helper, tilted by Earth's axial inclination)
+ * - Ecliptic plane (circular translucent reference disc)
+ * - Equatorial plane (circular translucent reference disc, tilted by Earth's axial inclination)
  * - Moon influence shells (SOI + Hill sphere)
  * - Optional attached halos for Earth, Moon, and active craft
  */
@@ -15,6 +15,13 @@ import { sampleOsculatingOrbitPoints } from "../core/domain/orbital-elements.js"
 
 const MOON_ORBIT_SAMPLE_COUNT = 192;
 const MOON_ORBIT_REFRESH_MS = 15 * 60 * 1000;
+const REFERENCE_PLANE_SEGMENTS = 160;
+const ECLIPTIC_PLANE_STYLE = Object.freeze({
+    fillOpacity: 0.08,
+});
+const EQUATORIAL_PLANE_STYLE = Object.freeze({
+    fillOpacity: 0.07,
+});
 
 const BODY_HALO_KEYS = ["earth", "moon", "craft"];
 const MOON_SOI_STYLE = Object.freeze({
@@ -123,6 +130,45 @@ function createGrazingShellMaterial({
     });
 }
 
+function createReferencePlaneGroup({
+    radius,
+    color,
+    style,
+    name,
+}) {
+    const safeRadius = Math.max(1, Number(radius) || 0);
+    const group = new THREE.Group();
+    group.name = name;
+
+    const discMesh = new THREE.Mesh(
+        new THREE.CircleGeometry(safeRadius, REFERENCE_PLANE_SEGMENTS),
+        new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: style.fillOpacity,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            toneMapped: false,
+        }),
+    );
+    discMesh.renderOrder = 6;
+    group.add(discMesh);
+
+    return group;
+}
+
+function disposeObjectTree(object) {
+    if (!object) return;
+    object.traverse?.((node) => {
+        node.geometry?.dispose?.();
+        if (Array.isArray(node.material)) {
+            node.material.forEach((material) => material?.dispose?.());
+        } else {
+            node.material?.dispose?.();
+        }
+    });
+}
+
 export class SceneHelpers {
     /**
      * @param {THREE.Object3D} parentContainer - Container to add helpers to
@@ -197,62 +243,41 @@ export class SceneHelpers {
         this.parentContainer.add(this.axesHelper);
     }
 
-    createEclipticPlane(gridRadius, planeSize, visible = false) {
-        const sectors = 18;
-        const rings = 6;
-        const divisions = 64;
-
-        this.eclipticPolarGridHelper = new THREE.PolarGridHelper(
-            gridRadius,
-            sectors,
-            rings,
-            divisions,
-            COL.ECLIPTIC_PLANE,
-            COL.ECLIPTIC_PLANE,
-        );
-        this.eclipticPolarGridHelper.rotation.x = Math.PI / 2;
-        this.eclipticPolarGridHelper.visible = visible;
-        this.parentContainer.add(this.eclipticPolarGridHelper);
-
-        const eclipticPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-        this.eclipticPlaneHelper = new THREE.PlaneHelper(eclipticPlane, planeSize, COL.ECLIPTIC_PLANE);
+    createEclipticPlane(radius, visible = false) {
+        this.disposeEclipticPlane();
+        this.eclipticPolarGridHelper = null;
+        this.eclipticPlaneHelper = createReferencePlaneGroup({
+            radius,
+            color: COL.ECLIPTIC_PLANE,
+            style: ECLIPTIC_PLANE_STYLE,
+            name: "EclipticPlaneDisc",
+        });
         this.eclipticPlaneHelper.visible = visible;
         this.parentContainer.add(this.eclipticPlaneHelper);
     }
 
-    createEquatorialPlane(gridRadius, planeSize, visible = false) {
-        const sectors = 18;
-        const rings = 6;
-        const divisions = 64;
+    createEquatorialPlane(radius, visible = false) {
+        this.disposeEquatorialPlane();
+        this.equatorialPolarGridHelper = null;
 
-        this.equatorialPlaneContainer = new THREE.Group();
-        this.equatorialPlaneContainer.lookAt(
+        const normal = new THREE.Vector3(
             0,
             Math.sin(PC.EARTH_AXIS_INCLINATION_RADS),
             Math.cos(PC.EARTH_AXIS_INCLINATION_RADS),
-        );
+        ).normalize();
+        const zAxis = new THREE.Vector3(0, 0, 1);
 
-        this.equatorialPolarGridHelper = new THREE.PolarGridHelper(
-            gridRadius,
-            sectors,
-            rings,
-            divisions,
-            COL.EQUATORIAL_PLANE,
-            COL.EQUATORIAL_PLANE,
-        );
-        this.equatorialPolarGridHelper.rotation.x = Math.PI / 2;
-        this.equatorialPolarGridHelper.visible = visible;
-        this.equatorialPlaneContainer.add(this.equatorialPolarGridHelper);
+        this.equatorialPlaneContainer = new THREE.Group();
+        this.equatorialPlaneContainer.quaternion.setFromUnitVectors(zAxis, normal);
 
-        const direction = new THREE.Vector3();
-        this.equatorialPlaneContainer.getWorldDirection(direction);
-        const equatorialPlane = new THREE.Plane(direction, 0);
-        this.equatorialPlaneHelper = new THREE.PlaneHelper(
-            equatorialPlane,
-            planeSize,
-            COL.EQUATORIAL_PLANE,
-        );
+        this.equatorialPlaneHelper = createReferencePlaneGroup({
+            radius,
+            color: COL.EQUATORIAL_PLANE,
+            style: EQUATORIAL_PLANE_STYLE,
+            name: "EquatorialPlaneDisc",
+        });
         this.equatorialPlaneHelper.visible = visible;
+        this.equatorialPlaneContainer.visible = visible;
         this.equatorialPlaneContainer.add(this.equatorialPlaneHelper);
 
         this.parentContainer.add(this.equatorialPlaneContainer);
@@ -832,6 +857,7 @@ export class SceneHelpers {
     }
 
     setEquatorialPlaneVisible(visible) {
+        if (this.equatorialPlaneContainer) this.equatorialPlaneContainer.visible = visible;
         if (this.equatorialPolarGridHelper) this.equatorialPolarGridHelper.visible = visible;
         if (this.equatorialPlaneHelper) this.equatorialPlaneHelper.visible = visible;
     }
@@ -864,32 +890,23 @@ export class SceneHelpers {
     }
 
     disposeEclipticPlane() {
-        if (this.eclipticPolarGridHelper) {
-            this.parentContainer.remove(this.eclipticPolarGridHelper);
-            this.eclipticPolarGridHelper.dispose();
-            this.eclipticPolarGridHelper = null;
-        }
         if (this.eclipticPlaneHelper) {
             this.parentContainer.remove(this.eclipticPlaneHelper);
-            this.eclipticPlaneHelper.dispose();
+            disposeObjectTree(this.eclipticPlaneHelper);
             this.eclipticPlaneHelper = null;
         }
+        this.eclipticPolarGridHelper = null;
     }
 
     disposeEquatorialPlane() {
-        if (this.equatorialPolarGridHelper) {
-            this.equatorialPolarGridHelper.dispose();
-            this.equatorialPolarGridHelper = null;
-        }
-        if (this.equatorialPlaneHelper) {
-            this.equatorialPlaneHelper.dispose();
-            this.equatorialPlaneHelper = null;
-        }
         if (this.equatorialPlaneContainer) {
             this.parentContainer.remove(this.equatorialPlaneContainer);
+            disposeObjectTree(this.equatorialPlaneContainer);
             this.equatorialPlaneContainer.clear();
             this.equatorialPlaneContainer = null;
         }
+        this.equatorialPolarGridHelper = null;
+        this.equatorialPlaneHelper = null;
     }
 
     disposeMoonSOI() {
