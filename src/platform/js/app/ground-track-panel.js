@@ -1,6 +1,20 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { loadMissionConfig } from "../data/mission-data.js";
+import {
+    registerMissionPanel,
+    updateMissionPanel,
+} from "./panel-registry.js";
+import { showMissionPanelInfo } from "./panel-info-popover.js";
+import {
+    readMissionPanelState,
+    writeMissionPanelState,
+} from "./panel-layout-store.js";
+import {
+    getMissionPanelDefaultState,
+    isMissionPanelEnabled,
+    shouldMissionPanelAutoOpenBeforeEvent,
+} from "./panel-defaults.js";
 
 const VIEW_MODE_2D = "map2d";
 const VIEW_MODE_3D = "globe3d";
@@ -40,7 +54,7 @@ const GLOBE_WORLD_NORTH = new THREE.Vector3(0, 1, 0);
 const GLOBE_VIEW_UP = new THREE.Vector3(0, 1, 0);
 const GLOBE_VIEW_FRONT = new THREE.Vector3(0, 0, 1);
 const COMPOSER_PANEL_ASPECT_RATIO = 16 / 9;
-const SPLASHDOWN_PANEL_MISSION_KEY = "artemis2";
+const GROUND_TRACK_PANEL_REGISTRY_ID = "workflow:splashdown";
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -204,10 +218,10 @@ function resolveCurrentMissionQueryValue() {
     }
 }
 
-function isSplashdownPanelMissionEnabled(configData = null) {
+function isLegacySplashdownMissionMatch(configData = null) {
     const missionQueryValue = resolveCurrentMissionQueryValue();
     if (missionQueryValue) {
-        return missionQueryValue === SPLASHDOWN_PANEL_MISSION_KEY;
+        return missionQueryValue === "artemis2";
     }
     const missionName = String(configData?.mission_name || configData?.mission_name_short || "")
         .trim()
@@ -215,8 +229,24 @@ function isSplashdownPanelMissionEnabled(configData = null) {
     return missionName === "artemis 2" || missionName === "artemis ii";
 }
 
+function isSplashdownPanelMissionEnabled(configData = null) {
+    return isMissionPanelEnabled(
+        configData,
+        GROUND_TRACK_PANEL_REGISTRY_ID,
+        { fallbackEnabled: isLegacySplashdownMissionMatch(configData) },
+    );
+}
+
 function shouldAutoOpenSplashdownPanel(configData, nowMs = Date.now()) {
     if (!isSplashdownPanelMissionEnabled(configData)) {
+        return false;
+    }
+    const autoOpenEnabled = shouldMissionPanelAutoOpenBeforeEvent(
+        configData,
+        GROUND_TRACK_PANEL_REGISTRY_ID,
+        { fallback: isLegacySplashdownMissionMatch(configData) },
+    );
+    if (!autoOpenEnabled) {
         return false;
     }
     const splashdownMs = parseMissionTimeMs(configData?.events?.splashdown?.startTime);
@@ -400,6 +430,11 @@ function createGroundTrackPanelActions(options = {}) {
     let groundTrackEventNodes = [];
     let selectedGroundTrackEventTimeMs = Number.NaN;
     let autoOpenScheduled = false;
+    let panelVisibilityState = "closed";
+    let restoredPanelLayout = readMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID) || null;
+    let hasRestoredPanelLayout = !!restoredPanelLayout;
+    let hasRestoredPanelVisibilityState = false;
+    let defaultPanelStateApplied = false;
     const cacheByKey = new Map();
     const globeState = {
         renderer: null,
@@ -415,6 +450,96 @@ function createGroundTrackPanelActions(options = {}) {
 
     const getNode = (id) => document.getElementById(id);
 
+    function getPanelRegistryState() {
+        if (!isSplashdownPanelMissionEnabled(missionConfigData)) {
+            return "unavailable";
+        }
+        return panelVisibilityState;
+    }
+
+    function persistPanelLayoutState(panel = getNode("ground-track-panel")) {
+        if (!(panel instanceof HTMLElement)) {
+            return;
+        }
+        writeMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID, {
+            x: Math.round(panelPosition?.x ?? panel.offsetLeft ?? 0),
+            y: Math.round(panelPosition?.y ?? panel.offsetTop ?? 0),
+            width: Math.round(panel.offsetWidth || 0),
+            height: Math.round(panel.offsetHeight || 0),
+            state: panelVisibilityState,
+        });
+    }
+
+    function confirmDeletePanel() {
+        const confirmFn = globalThis?.confirm;
+        if (typeof confirmFn === "function") {
+            const accepted = confirmFn(
+                'Delete "Splashdown in Spotlight" from this mission layout? You can add it back from the Panels menu.',
+            );
+            if (!accepted) {
+                return false;
+            }
+        }
+        setPanelState("deleted");
+        return true;
+    }
+
+    function syncPanelRegistry() {
+        const panelStateName = getPanelRegistryState();
+        const missionLabel = String(
+            missionConfigData?.mission_name_short ||
+            missionConfigData?.mission_name ||
+            "Current mission",
+        ).trim();
+        updateMissionPanel(GROUND_TRACK_PANEL_REGISTRY_ID, {
+            id: GROUND_TRACK_PANEL_REGISTRY_ID,
+            title: "Splashdown in Spotlight",
+            kind: "workflow",
+            panelType: "splashdown",
+            builtIn: true,
+            available: isSplashdownPanelMissionEnabled(missionConfigData),
+            state: panelStateName,
+            sortOrder: 50,
+            infoItems: [
+                { label: "Panel Kind", value: "Splashdown workflow" },
+                { label: "Mission", value: missionLabel || "Current mission" },
+            ],
+            actions: {
+                open: () => setPanelState("open"),
+                restore: () => setPanelState("open"),
+                focus: panelStateName === "open"
+                    ? () => setPanelState("open")
+                    : undefined,
+                minimize: panelStateName === "open"
+                    ? () => setPanelState("minimized")
+                    : undefined,
+                close: (panelStateName === "open" || panelStateName === "minimized")
+                    ? () => setPanelState("closed")
+                    : undefined,
+                delete: panelStateName !== "deleted"
+                    ? () => confirmDeletePanel()
+                    : undefined,
+            },
+        });
+    }
+
+    function applyConfiguredDefaultPanelState() {
+        if (
+            !missionConfigData ||
+            hasRestoredPanelVisibilityState === true ||
+            defaultPanelStateApplied === true
+        ) {
+            return;
+        }
+        const defaultState = getMissionPanelDefaultState(
+            missionConfigData,
+            GROUND_TRACK_PANEL_REGISTRY_ID,
+            { fallbackState: "closed" },
+        );
+        defaultPanelStateApplied = true;
+        setPanelState(defaultState);
+    }
+
     function ensureMissionConfigData() {
         if (missionConfigReady) return Promise.resolve(missionConfigData);
         if (missionConfigPromise) return missionConfigPromise;
@@ -422,11 +547,14 @@ function createGroundTrackPanelActions(options = {}) {
             .then((configData) => {
                 missionConfigData = configData || null;
                 missionConfigReady = true;
+                applyConfiguredDefaultPanelState();
+                syncPanelRegistry();
                 return missionConfigData;
             })
             .catch(() => {
                 missionConfigData = null;
                 missionConfigReady = true;
+                syncPanelRegistry();
                 return null;
             })
             .finally(() => {
@@ -473,12 +601,14 @@ function createGroundTrackPanelActions(options = {}) {
         }
         const panel = getNode("ground-track-panel");
         if (!(panel instanceof HTMLElement) || enabled) return;
+        panelVisibilityState = "closed";
         if (!panel.classList.contains("ground-track-panel--hidden")) {
             panel.classList.add("ground-track-panel--hidden");
             document.dispatchEvent(new CustomEvent("ground-track-panel-visibilitychange", {
-                detail: { visible: false },
+                detail: { visible: false, state: panelVisibilityState },
             }));
         }
+        syncPanelRegistry();
     }
 
     function formatDistanceKmText(valueKm) {
@@ -1370,6 +1500,7 @@ function createGroundTrackPanelActions(options = {}) {
                 header.releasePointerCapture(event.pointerId);
             }
             dragState = null;
+            persistPanelLayoutState(panel);
         };
 
         header.addEventListener("pointerdown", onPointerDown);
@@ -1414,18 +1545,30 @@ function createGroundTrackPanelActions(options = {}) {
         syncVisibleView();
     }
 
-    function setPanelVisible(visible) {
-        if (visible && !isSplashdownPanelMissionEnabled(missionConfigData)) {
+    function setPanelState(nextState) {
+        const resolvedState = nextState === "minimized"
+            ? "minimized"
+            : (nextState === "deleted"
+                ? "deleted"
+                : (nextState === "open" ? "open" : "closed"));
+        if (resolvedState === "open" && !isSplashdownPanelMissionEnabled(missionConfigData)) {
             syncPanelAvailability(false);
             return;
         }
+        panelVisibilityState = resolvedState;
         const panel = getNode("ground-track-panel");
         if (!panel) return;
-        panel.classList.toggle("ground-track-panel--hidden", !visible);
+        const isVisible = resolvedState === "open";
+        panel.classList.toggle("ground-track-panel--hidden", !isVisible);
         document.dispatchEvent(new CustomEvent("ground-track-panel-visibilitychange", {
-            detail: { visible: !!visible },
+            detail: {
+                visible: isVisible,
+                state: panelVisibilityState,
+            },
         }));
-        if (!visible) return;
+        persistPanelLayoutState(panel);
+        syncPanelRegistry();
+        if (!isVisible) return;
         ensurePanelPosition(panel);
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
@@ -1434,8 +1577,13 @@ function createGroundTrackPanelActions(options = {}) {
         });
     }
 
+    function setPanelVisible(visible) {
+        setPanelState(visible ? "open" : "closed");
+    }
+
     function scheduleAutoOpenIfNeeded(config) {
         if (autoOpenScheduled || config === "relative" || !shouldAutoOpenSplashdownPanel(missionConfigData)) return;
+        if (hasRestoredPanelLayout) return;
         const panel = getNode("ground-track-panel");
         if (!panel) return;
         autoOpenScheduled = true;
@@ -1455,7 +1603,6 @@ function createGroundTrackPanelActions(options = {}) {
         initialized = true;
 
         const toggleButton = getNode("ground-track-button");
-        const closeButton = getNode("ground-track-panel-close");
         const zoomInButton = getNode("ground-track-zoom-in");
         const zoomOutButton = getNode("ground-track-zoom-out");
         const style2dButton = getNode("ground-track-style-2d");
@@ -1471,8 +1618,78 @@ function createGroundTrackPanelActions(options = {}) {
         const timelineSlider = getNode("ground-track-timeline-slider");
         const panel = getNode("ground-track-panel");
         const header = panel?.querySelector(".ground-track-panel__header");
+        const headerControls = panel?.querySelector(".ground-track-panel__header-controls");
+        let closeButton = getNode("ground-track-panel-close");
+        let minimizeButton = getNode("ground-track-panel-minimize");
+        let infoButton = getNode("ground-track-panel-info");
+        let deleteButton = getNode("ground-track-panel-delete");
+
+        if (panel instanceof HTMLElement) {
+            const persistedWidth = Number(restoredPanelLayout?.width);
+            const persistedHeight = Number(restoredPanelLayout?.height);
+            if (Number.isFinite(persistedWidth) && persistedWidth > 0) {
+                panel.style.width = `${Math.round(persistedWidth)}px`;
+            }
+            if (Number.isFinite(persistedHeight) && persistedHeight > 0) {
+                panel.style.height = `${Math.round(persistedHeight)}px`;
+            }
+            const persistedX = Number(restoredPanelLayout?.x);
+            const persistedY = Number(restoredPanelLayout?.y);
+            if (Number.isFinite(persistedX) && Number.isFinite(persistedY)) {
+                panelPosition = {
+                    x: Math.round(persistedX),
+                    y: Math.round(persistedY),
+                };
+            }
+            const persistedState = String(restoredPanelLayout?.state || "").trim().toLowerCase();
+            if (persistedState === "open" || persistedState === "minimized" || persistedState === "closed" || persistedState === "deleted") {
+                panelVisibilityState = persistedState;
+                hasRestoredPanelVisibilityState = true;
+                defaultPanelStateApplied = true;
+            }
+        }
+
+        if (!infoButton && headerControls instanceof HTMLElement) {
+            infoButton = document.createElement("button");
+            infoButton.id = "ground-track-panel-info";
+            infoButton.className = "ground-track-panel__icon-button ground-track-panel__info mission-panel-shell__button mission-panel-shell__button--icon";
+            infoButton.type = "button";
+            infoButton.title = "Info";
+            infoButton.setAttribute("aria-label", "Show panel info");
+            infoButton.textContent = "i";
+            infoButton.dataset.panelInfoTrigger = "true";
+            headerControls.insertBefore(infoButton, closeButton || null);
+        }
+
+        if (!minimizeButton && headerControls instanceof HTMLElement) {
+            minimizeButton = document.createElement("button");
+            minimizeButton.id = "ground-track-panel-minimize";
+            minimizeButton.className = "ground-track-panel__icon-button ground-track-panel__minimize mission-panel-shell__button mission-panel-shell__button--icon";
+            minimizeButton.type = "button";
+            minimizeButton.title = "Minimize";
+            minimizeButton.setAttribute("aria-label", "Minimize");
+            minimizeButton.textContent = "_";
+            if (closeButton instanceof HTMLElement) {
+                headerControls.insertBefore(minimizeButton, closeButton);
+            } else {
+                headerControls.appendChild(minimizeButton);
+            }
+        }
+
+        if (!deleteButton && headerControls instanceof HTMLElement) {
+            deleteButton = document.createElement("button");
+            deleteButton.id = "ground-track-panel-delete";
+            deleteButton.className = "ground-track-panel__delete mission-panel-shell__button mission-panel-shell__button--pill";
+            deleteButton.type = "button";
+            deleteButton.title = "Delete";
+            deleteButton.setAttribute("aria-label", "Delete");
+            deleteButton.textContent = "del";
+            headerControls.appendChild(deleteButton);
+        }
 
         bindPanelDragging(panel, header);
+        clampPanelPosition(panel);
+        panel?.classList.toggle("ground-track-panel--hidden", panelVisibilityState !== "open");
 
         if (toggleButton && panel) {
             toggleButton.addEventListener("click", () => {
@@ -1483,7 +1700,10 @@ function createGroundTrackPanelActions(options = {}) {
         document.addEventListener("ground-track-panel-open", () => {
             setPanelVisible(true);
         });
+        infoButton?.addEventListener("click", () => showMissionPanelInfo(GROUND_TRACK_PANEL_REGISTRY_ID, infoButton));
+        minimizeButton?.addEventListener("click", () => setPanelState("minimized"));
         closeButton?.addEventListener("click", () => setPanelVisible(false));
+        deleteButton?.addEventListener("click", () => confirmDeletePanel());
         playButton?.addEventListener("click", () => {
             clickMainControlButton("animate");
         });
@@ -1559,6 +1779,7 @@ function createGroundTrackPanelActions(options = {}) {
             resizeObserver = new ResizeObserver(() => {
                 if (panel.classList.contains("ground-track-panel--hidden")) return;
                 clampPanelPosition(panel);
+                persistPanelLayoutState(panel);
                 map?.invalidateSize(false);
                 resizeGlobe();
             });
@@ -1569,6 +1790,7 @@ function createGroundTrackPanelActions(options = {}) {
             if (!panel) return;
             if (!panel.classList.contains("ground-track-panel--hidden")) {
                 clampPanelPosition(panel);
+                persistPanelLayoutState(panel);
             }
             map?.invalidateSize(false);
             resizeGlobe();
@@ -1837,6 +2059,19 @@ function createGroundTrackPanelActions(options = {}) {
         }
         renderPayload(latestPayload);
     }
+
+    registerMissionPanel({
+        id: GROUND_TRACK_PANEL_REGISTRY_ID,
+        title: "Splashdown in Spotlight",
+        kind: "workflow",
+        panelType: "splashdown",
+        builtIn: true,
+        available: isSplashdownPanelMissionEnabled(missionConfigData),
+        state: getPanelRegistryState(),
+        sortOrder: 50,
+        actions: {},
+    });
+    syncPanelRegistry();
 
     return { update, setPanelVisible };
 }

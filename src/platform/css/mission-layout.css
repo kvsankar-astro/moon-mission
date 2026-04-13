@@ -143,7 +143,8 @@ canvas {
     min-width: 0;
 }
 
-.aux-camera-view__minimize-button {
+.aux-camera-view__minimize-button,
+.aux-camera-view__header-button {
     border: 1px solid rgba(121, 171, 255, 0.35);
     border-radius: 4px;
     background: rgba(14, 24, 41, 0.72);
@@ -156,9 +157,14 @@ canvas {
     cursor: pointer;
 }
 
-.aux-camera-view__minimize-button:hover {
+.aux-camera-view__minimize-button:hover,
+.aux-camera-view__header-button:hover {
     background: rgba(66, 126, 218, 0.35);
     border-color: rgba(132, 183, 255, 0.7);
+}
+
+.aux-camera-view__close-button {
+    text-transform: none;
 }
 
 .aux-camera-view__auto-toggle {

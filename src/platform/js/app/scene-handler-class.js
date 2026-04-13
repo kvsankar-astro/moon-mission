@@ -1,5 +1,6 @@
 import { getSceneCraftObject } from "./scene-craft-helpers.js";
 import { AuxiliaryCameraViewsManager } from "./auxiliary-camera-views.js";
+import { DesktopPanelManager } from "./panel-manager.js";
 
 function createSceneHandlerClass(deps) {
     const {
@@ -22,6 +23,7 @@ function createSceneHandlerClass(deps) {
             this.renderer = null;
             this.canvasNode = null;
             this.auxiliaryCameraViews = null;
+            this.desktopPanelManager = null;
             this.initialized = false;
             this.lastAnimationScene = null;
             this.lookAtWorldTarget = new THREE.Vector3();
@@ -53,6 +55,9 @@ function createSceneHandlerClass(deps) {
                 const overlayHost = document.getElementById("content-wrapper") ||
                     document.getElementById("wrapper") ||
                     document.body;
+                this.desktopPanelManager = new DesktopPanelManager({
+                    overlayHost,
+                });
                 this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
                     THREE,
                     overlayHost,

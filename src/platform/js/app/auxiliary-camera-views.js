@@ -1,4 +1,19 @@
 import { STAR_CATALOG_BRIGHT as CROSS_INDEX_BRIGHT_STARS } from "../rendering/star-catalog-bright.js";
+import {
+    registerMissionPanel,
+    unregisterMissionPanel,
+    updateMissionPanel,
+} from "./panel-registry.js";
+import { showMissionPanelInfo } from "./panel-info-popover.js";
+import {
+    readMissionPanelState,
+    writeMissionPanelStates,
+} from "./panel-layout-store.js";
+import {
+    getMissionPanelDefaultState,
+    isMissionPanelEnabled,
+    normalizeMissionPanelState,
+} from "./panel-defaults.js";
 
 const PANEL_SPECS = Object.freeze([
     {
@@ -187,6 +202,13 @@ function shouldEnableAuxiliaryPanels(missionConfig) {
     }
     const features = ui.features;
     return !!(features && typeof features === "object" && features.auxiliaryPanels === true);
+}
+
+function getAuxiliaryPanelFallbackState(spec) {
+    if (spec?.mode === "composer" || STARTUP_MINIMIZED_PANEL_IDS.has(spec?.id)) {
+        return "minimized";
+    }
+    return "open";
 }
 
 function resolveEventStartTimeMs(eventInfo) {
@@ -400,6 +422,7 @@ class AuxiliaryCameraViewsManager {
         this.persistStateTimeout = null;
         this.missionPanelsEnabled = false;
         this.composerEnabled = false;
+        this.lastMissionConfig = null;
 
         this.craftWorld = new THREE.Vector3();
         this.anchorWorld = new THREE.Vector3();
@@ -481,15 +504,6 @@ class AuxiliaryCameraViewsManager {
         this.root.className = "aux-camera-views";
         this.overlayHost.appendChild(this.root);
 
-        this.chipDockLeft = document.createElement("div");
-        this.chipDockLeft.className = "aux-camera-chip-dock aux-camera-chip-dock--left";
-        this.root.appendChild(this.chipDockLeft);
-
-        this.chipDockRight = document.createElement("div");
-        this.chipDockRight.className = "aux-camera-chip-dock aux-camera-chip-dock--right";
-        this.root.appendChild(this.chipDockRight);
-        this.chipDock = this.chipDockRight;
-
         PANEL_SPECS.forEach((spec, index) => {
             this.createPanel(spec, index);
         });
@@ -527,21 +541,128 @@ class AuxiliaryCameraViewsManager {
 
     persistPanelState() {
         const storage = globalThis?.localStorage;
-        if (!storage) {
-            return;
-        }
         const payload = {};
+        const layoutPayload = {};
         for (const panelState of this.panels) {
             payload[panelState.id] = {
                 fov: Number.isFinite(panelState.camera?.fov) ? Number(panelState.camera.fov) : null,
                 autoFovEnabled: panelState.autoFovEnabled === true,
             };
+            layoutPayload[panelState.panelRegistryId] = {
+                x: Math.round(Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft || 0),
+                y: Math.round(Number.isFinite(panelState.y) ? panelState.y : panelState.panel.offsetTop || 0),
+                width: Math.round(panelState.panel.offsetWidth || panelState.width || 0),
+                height: Math.round(panelState.panel.offsetHeight || panelState.height || 0),
+                state: this.getPanelRegistryState(panelState),
+            };
+        }
+        if (!storage) {
+            writeMissionPanelStates(layoutPayload);
+            return;
         }
         try {
             storage.setItem(PANEL_STATE_STORAGE_KEY, JSON.stringify(payload));
         } catch {
             // Ignore persistence failures (privacy mode/quota).
         }
+        writeMissionPanelStates(layoutPayload);
+    }
+
+    getPanelRegistryState(panelState) {
+        if (!panelState || panelState.missionEnabled !== true) {
+            return "unavailable";
+        }
+        if (panelState.deleted === true) {
+            return "deleted";
+        }
+        if (panelState.closed === true) {
+            return "closed";
+        }
+        if (panelState.minimized === true) {
+            return "minimized";
+        }
+        return "open";
+    }
+
+    syncPanelRegistry(panelState) {
+        if (!panelState?.panelRegistryId) {
+            return;
+        }
+        const panelStateName = this.getPanelRegistryState(panelState);
+        const infoItems = panelState.mode === "composer"
+            ? [
+                { label: "Panel Kind", value: "Flyby workflow" },
+                { label: "Mode", value: "composer" },
+            ]
+            : [
+                { label: "Panel Kind", value: "view" },
+                { label: "Anchor", value: panelState.anchorKey || "--" },
+                { label: "Target", value: panelState.targetKey || "--" },
+            ];
+
+        updateMissionPanel(panelState.panelRegistryId, {
+            id: panelState.panelRegistryId,
+            title: panelState.title,
+            kind: panelState.mode === "composer" ? "workflow" : "view",
+            panelType: panelState.mode === "composer" ? "flyby-focus" : "aux-camera-view",
+            builtIn: true,
+            available: panelState.missionEnabled === true,
+            state: panelStateName,
+            sortOrder: panelState.sortOrder,
+            infoItems,
+            actions: {
+                open: () => this.restorePanel(panelState),
+                restore: () => this.restorePanel(panelState),
+                focus: panelStateName === "open"
+                    ? () => this.restorePanel(panelState)
+                    : undefined,
+                minimize: panelStateName === "open"
+                    ? () => this.setPanelMinimized(panelState, true)
+                    : undefined,
+                close: (panelStateName === "open" || panelStateName === "minimized")
+                    ? () => this.setPanelClosed(panelState, true)
+                    : undefined,
+                delete: panelStateName !== "deleted"
+                    ? () => this.confirmAndDeletePanel(panelState)
+                    : undefined,
+            },
+        });
+    }
+
+    applyPanelVisibilityState(panelState, state, { persist = true, requestRender = true } = {}) {
+        if (!panelState) {
+            return;
+        }
+        const nextState = normalizeMissionPanelState(state, "open");
+        if (nextState === "deleted") {
+            this.setPanelDeleted(panelState, true, { persist, requestRender });
+            return;
+        }
+        if (nextState === "closed") {
+            this.setPanelClosed(panelState, true, { persist, requestRender });
+            return;
+        }
+        if (nextState === "minimized") {
+            this.setPanelMinimized(panelState, true, { persist, requestRender });
+            return;
+        }
+        panelState.deleted = false;
+        panelState.closed = false;
+        this.setPanelMinimized(panelState, false, { persist, requestRender });
+    }
+
+    confirmAndDeletePanel(panelState) {
+        const confirmFn = globalThis?.confirm;
+        if (typeof confirmFn === "function") {
+            const accepted = confirmFn(
+                `Delete "${panelState?.title || "panel"}" from this mission layout? You can add it back from the Panels menu.`,
+            );
+            if (!accepted) {
+                return false;
+            }
+        }
+        this.setPanelDeleted(panelState, true);
+        return true;
     }
 
     resolveComposerBrightStarLabelDescriptors() {
@@ -762,11 +883,15 @@ class AuxiliaryCameraViewsManager {
 
     setPanelMinimized(panelState, minimized, { persist = true, requestRender = true } = {}) {
         const nextMinimized = minimized === true;
+        if (nextMinimized) {
+            panelState.closed = false;
+            panelState.deleted = false;
+        }
         panelState.minimized = nextMinimized;
         panelState.panel.classList.toggle("is-minimized", nextMinimized);
         panelState.panel.hidden = nextMinimized;
         if (panelState.chipButton) {
-            panelState.chipButton.hidden = !nextMinimized;
+            panelState.chipButton.hidden = !nextMinimized || panelState.closed === true;
             panelState.chipButton.setAttribute("aria-pressed", nextMinimized ? "true" : "false");
             panelState.chipButton.title = nextMinimized
                 ? `Restore ${panelState.title}`
@@ -781,6 +906,69 @@ class AuxiliaryCameraViewsManager {
         if (requestRender) {
             this.requestRender?.();
         }
+        this.syncPanelRegistry(panelState);
+    }
+
+    setPanelClosed(panelState, closed, { persist = true, requestRender = true } = {}) {
+        const nextClosed = closed === true;
+        panelState.closed = nextClosed;
+        if (nextClosed) {
+            panelState.minimized = false;
+            panelState.deleted = false;
+        }
+        panelState.panel.hidden = nextClosed || panelState.minimized === true;
+        if (panelState.chipButton) {
+            panelState.chipButton.hidden = nextClosed || panelState.minimized !== true;
+        }
+        if (nextClosed) {
+            this.clearPanelOverlay(panelState);
+        }
+        if (persist) {
+            this.queuePersistPanelState();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
+        this.syncPanelRegistry(panelState);
+    }
+
+    setPanelDeleted(panelState, deleted, { persist = true, requestRender = true } = {}) {
+        const nextDeleted = deleted === true;
+        panelState.deleted = nextDeleted;
+        if (nextDeleted) {
+            panelState.minimized = false;
+            panelState.closed = false;
+            panelState.panel.hidden = true;
+            if (panelState.chipButton) {
+                panelState.chipButton.hidden = true;
+            }
+            this.clearPanelOverlay(panelState);
+        }
+        if (persist) {
+            this.queuePersistPanelState();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
+        this.syncPanelRegistry(panelState);
+    }
+
+    restorePanel(panelState) {
+        if (!panelState) {
+            return;
+        }
+        panelState.deleted = false;
+        panelState.closed = false;
+        this.setPanelMinimized(panelState, false, {
+            persist: true,
+            requestRender: false,
+        });
+        this.bringPanelToFront(panelState);
+        if (panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
+            this.activateComposerWindow(panelState, { finalize: true });
+        }
+        this.requestRender?.();
+        this.syncPanelRegistry(panelState);
     }
 
     updateComposerChipPresentation(panelState) {
@@ -849,19 +1037,19 @@ class AuxiliaryCameraViewsManager {
 
     createPanel(spec, index) {
         const panel = document.createElement("section");
-        panel.className = "aux-camera-view";
+        panel.className = "aux-camera-view mission-panel-shell";
         panel.dataset.target = spec.targetKey;
 
         const header = document.createElement("div");
-        header.className = "aux-camera-view__header";
+        header.className = "aux-camera-view__header mission-panel-shell__header";
 
         const title = document.createElement("div");
-        title.className = "aux-camera-view__title";
+        title.className = "aux-camera-view__title mission-panel-shell__title";
         title.textContent = spec.title;
         header.appendChild(title);
 
         const headerControls = document.createElement("div");
-        headerControls.className = "aux-camera-view__header-controls";
+        headerControls.className = "aux-camera-view__header-controls mission-panel-shell__header-controls";
 
         const fovControls = document.createElement("div");
         fovControls.className = "aux-camera-view__fov-controls";
@@ -893,13 +1081,35 @@ class AuxiliaryCameraViewsManager {
         fovControls.appendChild(fovValue);
 
         const minimizeButton = document.createElement("button");
-        minimizeButton.className = "aux-camera-view__minimize-button";
+        minimizeButton.className = "aux-camera-view__minimize-button mission-panel-shell__button mission-panel-shell__button--icon";
         minimizeButton.type = "button";
-        minimizeButton.textContent = "x";
-        minimizeButton.setAttribute("aria-label", `Collapse ${spec.title}`);
+        minimizeButton.textContent = "_";
+        minimizeButton.setAttribute("aria-label", `Minimize ${spec.title}`);
+
+        const infoButton = document.createElement("button");
+        infoButton.className = "aux-camera-view__header-button aux-camera-view__info-button mission-panel-shell__button mission-panel-shell__button--icon";
+        infoButton.type = "button";
+        infoButton.textContent = "i";
+        infoButton.setAttribute("aria-label", `Show info for ${spec.title}`);
+        infoButton.dataset.panelInfoTrigger = "true";
+
+        const closeButton = document.createElement("button");
+        closeButton.className = "aux-camera-view__header-button aux-camera-view__close-button mission-panel-shell__button mission-panel-shell__button--icon";
+        closeButton.type = "button";
+        closeButton.textContent = "×";
+        closeButton.setAttribute("aria-label", `Close ${spec.title}`);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "aux-camera-view__header-button aux-camera-view__delete-button mission-panel-shell__button mission-panel-shell__button--pill";
+        deleteButton.type = "button";
+        deleteButton.textContent = "del";
+        deleteButton.setAttribute("aria-label", `Delete ${spec.title}`);
 
         headerControls.appendChild(fovControls);
+        headerControls.appendChild(infoButton);
         headerControls.appendChild(minimizeButton);
+        headerControls.appendChild(closeButton);
+        headerControls.appendChild(deleteButton);
         header.appendChild(headerControls);
         panel.appendChild(header);
 
@@ -1456,6 +1666,10 @@ class AuxiliaryCameraViewsManager {
 
         const camera = new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
+        const panelRegistryId = `aux:${spec.id}`;
+        const persistedLayout = readMissionPanelState(panelRegistryId);
+        const persistedState = normalizeMissionPanelState(persistedLayout?.state, "");
+        const hasPersistedVisibilityState = persistedState.length > 0;
 
         const panelState = {
             id: spec.id,
@@ -1536,11 +1750,17 @@ class AuxiliaryCameraViewsManager {
             fovSlider,
             fovValue,
             autoToggle,
+            infoButton,
             minimizeButton,
+            closeButton,
+            deleteButton,
             chipButton,
             autoFovEnabled: true,
             onAutoToggleClick: null,
+            onInfoClick: null,
             onMinimizeClick: null,
+            onCloseClick: null,
+            onDeleteClick: null,
             onChipClick: null,
             onInfoPillClick: null,
             onComposerLookFreeClick: null,
@@ -1581,6 +1801,13 @@ class AuxiliaryCameraViewsManager {
             y: 0,
             onPanelPointerDown: null,
             minimized: false,
+            closed: false,
+            deleted: false,
+            panelRegistryId,
+            sortOrder: index,
+            fallbackDefaultState: getAuxiliaryPanelFallbackState(spec),
+            hasPersistedVisibilityState,
+            defaultStateApplied: hasPersistedVisibilityState,
             composerOnboarded: true,
             composerLockTarget: "moon",
             composerYawRad: 0,
@@ -1639,8 +1866,17 @@ class AuxiliaryCameraViewsManager {
             }
             this.queuePersistPanelState();
         };
+        const onInfoClick = () => {
+            showMissionPanelInfo(panelState.panelRegistryId, infoButton);
+        };
         const onMinimizeClick = () => {
             this.setPanelMinimized(panelState, true);
+        };
+        const onCloseClick = () => {
+            this.setPanelClosed(panelState, true);
+        };
+        const onDeleteClick = () => {
+            this.confirmAndDeletePanel(panelState);
         };
         let syncComposerLockUi = null;
         const onChipClick = () => {
@@ -1660,11 +1896,17 @@ class AuxiliaryCameraViewsManager {
         };
         fovSlider.addEventListener("input", onFovInput, { passive: true });
         autoToggle.addEventListener("click", onAutoToggleClick);
+        infoButton.addEventListener("click", onInfoClick);
         minimizeButton.addEventListener("click", onMinimizeClick);
+        closeButton.addEventListener("click", onCloseClick);
+        deleteButton.addEventListener("click", onDeleteClick);
         chipButton.addEventListener("click", onChipClick);
         panelState.onAutoToggleClick = onAutoToggleClick;
         panelState.onFovInput = onFovInput;
+        panelState.onInfoClick = onInfoClick;
         panelState.onMinimizeClick = onMinimizeClick;
+        panelState.onCloseClick = onCloseClick;
+        panelState.onDeleteClick = onDeleteClick;
         panelState.onChipClick = onChipClick;
 
         if (panelState.mode === "composer") {
@@ -2281,21 +2523,47 @@ class AuxiliaryCameraViewsManager {
             this.bringPanelToFront(panelState);
         };
         panel.addEventListener("pointerdown", panelState.onPanelPointerDown);
+        if (Number.isFinite(Number(persistedLayout?.width))) {
+            panel.style.width = `${Math.round(Number(persistedLayout.width))}px`;
+        }
+        if (Number.isFinite(Number(persistedLayout?.height))) {
+            panel.style.height = `${Math.round(Number(persistedLayout.height))}px`;
+        }
         const defaultPosition = this.getDefaultPanelPosition(panel, index);
-        this.applyPanelPosition(panelState, defaultPosition.x, defaultPosition.y);
+        const persistedX = Number(persistedLayout?.x);
+        const persistedY = Number(persistedLayout?.y);
+        this.applyPanelPosition(
+            panelState,
+            Number.isFinite(persistedX) ? persistedX : defaultPosition.x,
+            Number.isFinite(persistedY) ? persistedY : defaultPosition.y,
+        );
         this.bringPanelToFront(panelState);
 
         this.panelStateByElement.set(panel, panelState);
         const resizeObserver = this.getPanelResizeObserver();
         resizeObserver?.observe(panel);
         this.syncPanelSize(panelState);
-        // Startup behavior: keep flyby/composer collapsed until user opens it.
-        const startMinimized = panelState.mode === "composer" || STARTUP_MINIMIZED_PANEL_IDS.has(panelState.id);
-        this.setPanelMinimized(panelState, startMinimized, {
-            persist: false,
-            requestRender: false,
-        });
+        this.applyPanelVisibilityState(
+            panelState,
+            hasPersistedVisibilityState ? persistedState : panelState.fallbackDefaultState,
+            {
+                persist: false,
+                requestRender: false,
+            },
+        );
         this.setPanelMissionEnabled(panelState, panelState.missionEnabled);
+        registerMissionPanel({
+            id: panelState.panelRegistryId,
+            title: panelState.title,
+            kind: panelState.mode === "composer" ? "workflow" : "view",
+            panelType: panelState.mode === "composer" ? "flyby-focus" : "aux-camera-view",
+            builtIn: true,
+            available: panelState.missionEnabled === true,
+            state: this.getPanelRegistryState(panelState),
+            sortOrder: panelState.sortOrder,
+            actions: {},
+        });
+        this.syncPanelRegistry(panelState);
     }
 
     handlePanelResizeEntries(entries) {
@@ -2343,10 +2611,15 @@ class AuxiliaryCameraViewsManager {
             this.clearPanelOverlay(panelState);
             return;
         }
-        const shouldShowPanel = visible && panelState.minimized !== true;
+        const shouldShowPanel = visible &&
+            panelState.minimized !== true &&
+            panelState.closed !== true &&
+            panelState.deleted !== true;
         panelState.panel.hidden = !shouldShowPanel;
         if (panelState.chipButton) {
-            panelState.chipButton.hidden = panelState.minimized !== true;
+            panelState.chipButton.hidden = panelState.minimized !== true ||
+                panelState.closed === true ||
+                panelState.deleted === true;
         }
         if (!shouldShowPanel) {
             this.clearPanelOverlay(panelState);
@@ -2433,13 +2706,20 @@ class AuxiliaryCameraViewsManager {
     setPanelMissionEnabled(panelState, enabled) {
         panelState.missionEnabled = enabled === true;
         if (panelState.missionEnabled) {
-            if (panelState.minimized === true) {
+            if (panelState.deleted === true) {
+                panelState.panel.hidden = true;
+                if (panelState.chipButton) panelState.chipButton.hidden = true;
+            } else if (panelState.closed === true) {
+                panelState.panel.hidden = true;
+                if (panelState.chipButton) panelState.chipButton.hidden = true;
+            } else if (panelState.minimized === true) {
                 panelState.panel.hidden = true;
                 if (panelState.chipButton) panelState.chipButton.hidden = false;
             } else {
                 panelState.panel.hidden = false;
                 if (panelState.chipButton) panelState.chipButton.hidden = true;
             }
+            this.syncPanelRegistry(panelState);
             return;
         }
         panelState.panel.hidden = true;
@@ -2447,24 +2727,56 @@ class AuxiliaryCameraViewsManager {
             panelState.chipButton.hidden = true;
         }
         this.clearPanelOverlay(panelState);
+        this.syncPanelRegistry(panelState);
     }
 
     syncMissionPanelPolicy(missionConfig) {
         const nextPanelsEnabled = shouldEnableAuxiliaryPanels(missionConfig);
         const nextComposerEnabled = nextPanelsEnabled && shouldEnableEarthriseComposer(missionConfig);
-        if (
-            this.missionPanelsEnabled === nextPanelsEnabled &&
-            this.composerEnabled === nextComposerEnabled
-        ) {
+        const policyChanged =
+            this.missionPanelsEnabled !== nextPanelsEnabled ||
+            this.composerEnabled !== nextComposerEnabled;
+        const missionConfigChanged = this.lastMissionConfig !== missionConfig;
+        const hasPendingDefaultState = !!(
+            missionConfig &&
+            typeof missionConfig === "object" &&
+            this.panels.some((panelState) =>
+                panelState.hasPersistedVisibilityState !== true &&
+                panelState.defaultStateApplied !== true)
+        );
+        if (!policyChanged && !missionConfigChanged && !hasPendingDefaultState) {
             return;
         }
         this.missionPanelsEnabled = nextPanelsEnabled;
         this.composerEnabled = nextComposerEnabled;
+        this.lastMissionConfig = missionConfig;
         for (const panelState of this.panels) {
-            const enabled = panelState.mode === "composer"
+            if (
+                missionConfig &&
+                typeof missionConfig === "object" &&
+                panelState.hasPersistedVisibilityState !== true &&
+                panelState.defaultStateApplied !== true
+            ) {
+                const defaultState = getMissionPanelDefaultState(
+                    missionConfig,
+                    panelState.panelRegistryId,
+                    { fallbackState: panelState.fallbackDefaultState || "open" },
+                );
+                this.applyPanelVisibilityState(panelState, defaultState, {
+                    persist: false,
+                    requestRender: false,
+                });
+                panelState.defaultStateApplied = true;
+            }
+            const globallyEnabled = panelState.mode === "composer"
                 ? this.composerEnabled
                 : this.missionPanelsEnabled;
-            this.setPanelMissionEnabled(panelState, enabled);
+            const configuredEnabled = isMissionPanelEnabled(
+                missionConfig,
+                panelState.panelRegistryId,
+                { fallbackEnabled: true },
+            );
+            this.setPanelMissionEnabled(panelState, globallyEnabled && configuredEnabled);
         }
     }
 
@@ -5087,9 +5399,12 @@ class AuxiliaryCameraViewsManager {
                 }
                 const context = { activeCraft, earth, moon, sun };
                 if (panelState.mode === "composer") {
+                    if (panelState.deleted === true || panelState.closed === true) {
+                        this.setPanelVisible(panelState, false);
+                        continue;
+                    }
                     if (panelState.minimized === true) {
                         this.setPanelVisible(panelState, false);
-                        visiblePanels += 1;
                         continue;
                     }
                     if (sunRenderer?.setDirection) {
@@ -5125,9 +5440,12 @@ class AuxiliaryCameraViewsManager {
                     this.setPanelVisible(panelState, false);
                     continue;
                 }
+                if (panelState.deleted === true || panelState.closed === true) {
+                    this.setPanelVisible(panelState, false);
+                    continue;
+                }
                 if (panelState.minimized === true) {
                     this.setPanelVisible(panelState, false);
-                    visiblePanels += 1; // keep root visible while minimized chips are shown
                     continue;
                 }
 
@@ -5288,10 +5606,7 @@ class AuxiliaryCameraViewsManager {
             this.restoreVisibility(suppressedLines);
         }
 
-        const hasMinimizedPanels = this.panels.some(
-            (panelState) => panelState.missionEnabled !== false && panelState.minimized === true,
-        );
-        this.root.hidden = visiblePanels === 0 && !hasMinimizedPanels;
+        this.root.hidden = visiblePanels === 0;
     }
 
     dispose() {
@@ -5317,8 +5632,12 @@ class AuxiliaryCameraViewsManager {
         for (const panelState of this.panels) {
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
             panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
+            panelState.infoButton.removeEventListener("click", panelState.onInfoClick);
             panelState.minimizeButton.removeEventListener("click", panelState.onMinimizeClick);
+            panelState.closeButton.removeEventListener("click", panelState.onCloseClick);
+            panelState.deleteButton.removeEventListener("click", panelState.onDeleteClick);
             panelState.chipButton.removeEventListener("click", panelState.onChipClick);
+            unregisterMissionPanel(panelState.panelRegistryId);
             if (panelState.onInfoPillClick) {
                 panelState.infoPill.removeEventListener("click", panelState.onInfoPillClick);
             }

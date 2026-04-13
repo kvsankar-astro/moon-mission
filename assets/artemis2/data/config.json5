@@ -135,6 +135,31 @@
     "orbitLabel": "Orion Orbit",
     "auxiliaryPanelsEnabled": true,
     "earthriseComposerEnabled": true,
+    "panels": {
+      "defaults": {
+        "aux:earth": {
+          "enabled": true,
+          "defaultState": "open"
+        },
+        "aux:moon": {
+          "enabled": true,
+          "defaultState": "minimized"
+        },
+        "aux:earth-to-moon": {
+          "enabled": true,
+          "defaultState": "minimized"
+        },
+        "aux:earth-rise-composer": {
+          "enabled": true,
+          "defaultState": "minimized"
+        },
+        "workflow:splashdown": {
+          "enabled": true,
+          "defaultState": "closed",
+          "autoOpenBeforeEvent": true
+        }
+      }
+    },
     "viewDefaults": {
       "viewXYZAxes": false,
       "viewPoles": false,
