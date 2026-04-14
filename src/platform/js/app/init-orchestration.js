@@ -148,6 +148,7 @@ function createInitOrchestrationActions(deps) {
                         Number.isFinite(nowTimeMs) &&
                         Number.isFinite(startTime) &&
                         Number.isFinite(latestEndTime) &&
+                        !hasStartupAnimTimeOverride &&
                         !isCurrentTimeWithinActiveSpan;
 
                     if (shouldStartAtNow) {
