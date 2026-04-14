@@ -417,6 +417,7 @@ class AuxiliaryCameraViewsManager {
         this.panelStateByElement = new WeakMap();
         this.pendingResizePanelStates = new Set();
         this.pendingResizeRaf = null;
+        this.defaultLayoutRaf = null;
         this.handlePanelResizeEntriesBound = this.handlePanelResizeEntries.bind(this);
         this.persistedPanelState = this.readPersistedPanelState();
         this.persistStateTimeout = null;
@@ -509,6 +510,7 @@ class AuxiliaryCameraViewsManager {
         });
 
         this.applyDefaultPanelLayout();
+        this.scheduleDefaultPanelLayout();
     }
 
     readPersistedPanelState() {
@@ -880,12 +882,28 @@ class AuxiliaryCameraViewsManager {
         return headerHeight + controlsHeight + PANEL_GAP_PX;
     }
 
+    scheduleDefaultPanelLayout() {
+        if (this.defaultLayoutRaf != null) {
+            cancelAnimationFrame(this.defaultLayoutRaf);
+        }
+        this.defaultLayoutRaf = requestAnimationFrame(() => {
+            this.defaultLayoutRaf = null;
+            if (!this.root) {
+                return;
+            }
+            this.applyDefaultPanelLayout();
+            this.queuePersistPanelState();
+            this.requestRender?.();
+        });
+    }
+
     applyDefaultPanelLayout() {
         if (!this.panels.length) {
             return;
         }
         const viewportWidth = Math.max(window.innerWidth, 1);
         const viewportHeight = Math.max(window.innerHeight, 1);
+        const bounds = this.resolvePanelViewportBounds();
         const headerEl = document.querySelector(".header");
         const timelineEl = document.querySelector(".timeline-dock");
         const headerRect = headerEl?.getBoundingClientRect?.() || null;
@@ -894,13 +912,12 @@ class AuxiliaryCameraViewsManager {
         const controlSpace = Number.isFinite(timelineRect?.height) ? timelineRect.height : 0;
         const h = Math.max(0, viewportHeight - headerSpace - controlSpace);
         const dockOffset = this.readTimelineDockOffset();
-        const topY = Number.isFinite(headerRect?.bottom)
-            ? (headerRect.bottom + PANEL_GAP_PX)
-            : (dockOffset + PANEL_TOP_OFFSET_PX);
         const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - dockOffset - PANEL_MARGIN_PX * 2);
         const maxPanelWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - (PANEL_MARGIN_PX * 2));
         const maxPanelHeight = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportHeight - (PANEL_MARGIN_PX * 2));
-        const panelRects = this.panels.map((panelState) => {
+        const panelRects = this.panels
+            .filter((panelState) => panelState.defaultLayoutManaged !== false)
+            .map((panelState) => {
             const isComposer = panelState.mode === "composer";
             const ratio = isComposer ? PANEL_SIDE_RATIO_COMPOSER : PANEL_SIDE_RATIO_DEFAULT;
             const sideFromFormula = ratio * h;
@@ -951,27 +968,30 @@ class AuxiliaryCameraViewsManager {
             panelState.panel.style.width = `${width}px`;
             panelState.panel.style.height = `${height}px`;
             return { panelState, width, height };
-        });
+            });
 
-        let rightY = topY;
-        let leftY = topY;
+        let rightColumnEdge = bounds.right;
+        let rightColumnWidth = 0;
+        let rightY = bounds.top;
         for (const item of panelRects) {
-            const onLeft = item.panelState.side === "left";
-            let x = onLeft
-                ? dockOffset
-                : (viewportWidth - item.width - dockOffset);
-            let y = onLeft ? leftY : rightY;
             if (item.panelState.mode === "composer") {
-                x = Math.round((viewportWidth - item.width) * 0.5);
-                y = Math.round((viewportHeight - item.height) * 0.5);
+                const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
+                const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
+                this.applyPanelPosition(item.panelState, x, y);
+                continue;
             }
-            this.applyPanelPosition(item.panelState, x, y);
-            if (item.panelState.mode !== "composer") {
-                if (onLeft) {
-                    leftY += item.height + PANEL_GAP_PX;
-                } else {
-                    rightY += item.height + PANEL_GAP_PX;
-                }
+
+            if (rightY > bounds.top && (rightY + item.height) > bounds.bottom) {
+                rightColumnEdge -= (rightColumnWidth + PANEL_GAP_PX);
+                rightColumnWidth = 0;
+                rightY = bounds.top;
+            }
+
+            const x = rightColumnEdge - item.width;
+            this.applyPanelPosition(item.panelState, x, rightY);
+            rightY += item.height + PANEL_GAP_PX;
+            if (item.width > rightColumnWidth) {
+                rightColumnWidth = item.width;
             }
         }
     }
@@ -1128,12 +1148,21 @@ class AuxiliaryCameraViewsManager {
         if (!panelState) {
             return;
         }
+        const wasHidden = panelState.minimized === true || panelState.closed === true || panelState.deleted === true;
         panelState.deleted = false;
         panelState.closed = false;
         this.setPanelMinimized(panelState, false, {
             persist: true,
             requestRender: false,
         });
+        if (wasHidden && panelState.mode === "composer") {
+            this.setPanelMaximized(panelState, true, {
+                persist: false,
+                requestRender: false,
+            });
+        } else if (wasHidden && panelState.defaultLayoutManaged !== false) {
+            this.scheduleDefaultPanelLayout();
+        }
         this.bringPanelToFront(panelState);
         if (panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
             this.activateComposerWindow(panelState, { finalize: true });
@@ -1183,6 +1212,7 @@ class AuxiliaryCameraViewsManager {
                 return;
             }
             if (!this.shouldStartDrag(event)) return;
+            panelState.defaultLayoutManaged = false;
             this.bringPanelToFront(panelState);
             this.dragState = {
                 panelState,
@@ -1879,6 +1909,15 @@ class AuxiliaryCameraViewsManager {
         const persistedLayout = readMissionPanelState(panelRegistryId);
         const persistedState = normalizeMissionPanelState(persistedLayout?.state, "");
         const hasPersistedVisibilityState = persistedState.length > 0;
+        const persistedX = Number(persistedLayout?.x);
+        const persistedY = Number(persistedLayout?.y);
+        const persistedWidth = Number(persistedLayout?.width);
+        const persistedHeight = Number(persistedLayout?.height);
+        const hasPersistedFrame =
+            Number.isFinite(persistedX) &&
+            Number.isFinite(persistedY) &&
+            Number.isFinite(persistedWidth) &&
+            Number.isFinite(persistedHeight);
 
         const panelState = {
             id: spec.id,
@@ -2015,12 +2054,16 @@ class AuxiliaryCameraViewsManager {
             minimized: false,
             closed: false,
             deleted: false,
-            maximized: persistedLayout?.maximized === true,
+            maximized: persistedLayout?.maximized === true || (
+                hasPersistedVisibilityState !== true &&
+                panelMode === "composer"
+            ),
             restoreFrame: this.normalizePanelRestoreFrame(persistedLayout?.restoreFrame, null),
             panelRegistryId,
             sortOrder: index,
             fallbackDefaultState: getAuxiliaryPanelFallbackState(spec),
             hasPersistedVisibilityState,
+            defaultLayoutManaged: hasPersistedFrame !== true,
             defaultStateApplied: hasPersistedVisibilityState,
             composerOnboarded: true,
             composerLockTarget: "moon",
@@ -2742,15 +2785,13 @@ class AuxiliaryCameraViewsManager {
             this.bringPanelToFront(panelState);
         };
         panel.addEventListener("pointerdown", panelState.onPanelPointerDown);
-        if (Number.isFinite(Number(persistedLayout?.width))) {
-            panel.style.width = `${Math.round(Number(persistedLayout.width))}px`;
+        if (Number.isFinite(persistedWidth)) {
+            panel.style.width = `${Math.round(persistedWidth)}px`;
         }
-        if (Number.isFinite(Number(persistedLayout?.height))) {
-            panel.style.height = `${Math.round(Number(persistedLayout.height))}px`;
+        if (Number.isFinite(persistedHeight)) {
+            panel.style.height = `${Math.round(persistedHeight)}px`;
         }
         const defaultPosition = this.getDefaultPanelPosition(panel, index);
-        const persistedX = Number(persistedLayout?.x);
-        const persistedY = Number(persistedLayout?.y);
         this.applyPanelPosition(
             panelState,
             Number.isFinite(persistedX) ? persistedX : defaultPosition.x,
@@ -3005,6 +3046,9 @@ class AuxiliaryCameraViewsManager {
                 { fallbackEnabled: true },
             );
             this.setPanelMissionEnabled(panelState, globallyEnabled && configuredEnabled);
+        }
+        if (this.panels.some((panelState) => panelState.defaultLayoutManaged !== false)) {
+            this.scheduleDefaultPanelLayout();
         }
     }
 
@@ -5854,6 +5898,10 @@ class AuxiliaryCameraViewsManager {
         if (this.pendingResizeRaf != null) {
             cancelAnimationFrame(this.pendingResizeRaf);
             this.pendingResizeRaf = null;
+        }
+        if (this.defaultLayoutRaf != null) {
+            cancelAnimationFrame(this.defaultLayoutRaf);
+            this.defaultLayoutRaf = null;
         }
         if (this.persistStateTimeout != null) {
             clearTimeout(this.persistStateTimeout);

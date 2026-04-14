@@ -433,7 +433,7 @@ function createGroundTrackPanelActions(options = {}) {
     let panelVisibilityState = "closed";
     let restoredPanelLayout = readMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID) || null;
     let hasRestoredPanelLayout = !!restoredPanelLayout;
-    let panelExpanded = restoredPanelLayout?.maximized === true;
+    let panelExpanded = restoredPanelLayout?.maximized === true || hasRestoredPanelLayout !== true;
     let restorePanelFrame = restoredPanelLayout?.restoreFrame && typeof restoredPanelLayout.restoreFrame === "object"
         ? {
             x: Math.round(Number(restoredPanelLayout.restoreFrame.x) || 0),
@@ -513,19 +513,11 @@ function createGroundTrackPanelActions(options = {}) {
             : (window.innerHeight - PANEL_EDGE_MARGIN_PX);
         const maxWidth = Math.max(320, right - left);
         const maxHeight = Math.max(220, bottom - top);
-        let width = Math.min(maxWidth, Math.round(maxHeight * COMPOSER_PANEL_ASPECT_RATIO));
-        let height = Math.round(width / COMPOSER_PANEL_ASPECT_RATIO);
-        if (height > maxHeight) {
-            height = maxHeight;
-            width = Math.min(maxWidth, Math.round(height * COMPOSER_PANEL_ASPECT_RATIO));
-        }
-        width = Math.max(320, Math.min(width, maxWidth));
-        height = Math.max(220, Math.min(height, maxHeight));
         return {
-            x: Math.round(left + ((maxWidth - width) * 0.5)),
-            y: Math.round(top + ((maxHeight - height) * 0.5)),
-            width,
-            height,
+            x: left,
+            y: top,
+            width: maxWidth,
+            height: maxHeight,
         };
     }
 
@@ -1678,6 +1670,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function setPanelState(nextState) {
+        const previousState = panelVisibilityState;
         const resolvedState = nextState === "minimized"
             ? "minimized"
             : (nextState === "deleted"
@@ -1691,6 +1684,7 @@ function createGroundTrackPanelActions(options = {}) {
         const panel = getNode("ground-track-panel");
         if (!panel) return;
         const isVisible = resolvedState === "open";
+        const shouldMaximizeOnOpen = isVisible && previousState !== "open";
         panel.classList.toggle("ground-track-panel--hidden", !isVisible);
         document.dispatchEvent(new CustomEvent("ground-track-panel-visibilitychange", {
             detail: {
@@ -1701,6 +1695,10 @@ function createGroundTrackPanelActions(options = {}) {
         syncPanelRegistry();
         if (!isVisible) {
             persistPanelLayoutState(panel);
+            return;
+        }
+        if (shouldMaximizeOnOpen && panelExpanded !== true) {
+            setPanelExpanded(true, panel);
             return;
         }
         if (panelExpanded === true) {

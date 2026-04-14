@@ -90,8 +90,8 @@ canvas {
     width: 280px;
     height: 280px;
     aspect-ratio: 1 / 1;
-    min-width: 200px;
-    min-height: 200px;
+    min-width: 160px;
+    min-height: 160px;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     border: 1px solid rgba(121, 171, 255, 0.32);
