@@ -4,9 +4,13 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { getEffectiveTestBaseUrl, getEffectiveTestPort } from './local-test-config.js';
+import { normalizeToolingPath } from './tooling-path-utils.js';
 
 const MODE = process.argv[2] || 'test';
-const WORKSPACE_ROOT = process.cwd();
+const WORKSPACE_ROOT = normalizeToolingPath(process.cwd());
+if (WORKSPACE_ROOT !== process.cwd()) {
+  process.chdir(WORKSPACE_ROOT);
+}
 const DEFAULT_DATA_ROOT = path.resolve(WORKSPACE_ROOT, '..', 'moon-mission-data');
 const TEST_PORT = getEffectiveTestPort(WORKSPACE_ROOT);
 const TEST_URL = getEffectiveTestBaseUrl(WORKSPACE_ROOT);

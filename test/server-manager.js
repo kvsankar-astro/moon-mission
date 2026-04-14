@@ -19,8 +19,12 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { createConnection } from 'net';
 import { getEffectiveTestPort, getServerStatePaths } from './local-test-config.js';
+import { normalizeToolingPath } from './tooling-path-utils.js';
 
-const ROOT_DIR = process.cwd();
+const ROOT_DIR = normalizeToolingPath(process.cwd());
+if (ROOT_DIR !== process.cwd()) {
+  process.chdir(ROOT_DIR);
+}
 const TEST_PORT = getEffectiveTestPort(ROOT_DIR);
 const { pidFile: PID_FILE, stateFile: STATE_FILE } = getServerStatePaths(ROOT_DIR);
 const POWERSHELL_EXE = process.env.SystemRoot
@@ -161,9 +165,9 @@ async function startServer() {
   // Spawn vite directly via node - works cross-platform without opening terminal windows
   let serverProcess;
   // Use node directly to spawn vite - avoids shell/cmd window issues on Windows
-  const viteScript = join(process.cwd(), 'node_modules', 'vite', 'bin', 'vite.js');
+  const viteScript = join(ROOT_DIR, 'node_modules', 'vite', 'bin', 'vite.js');
   serverProcess = spawn(process.execPath, [viteScript, '--port', String(TEST_PORT), '--strictPort'], {
-    cwd: process.cwd(),
+    cwd: ROOT_DIR,
     stdio: 'ignore',
     detached: true,
     windowsHide: true

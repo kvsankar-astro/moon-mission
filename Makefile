@@ -12,7 +12,11 @@
 
 TEST_PORT = 8111
 TEST_URL = http://localhost:$(TEST_PORT)
+ifeq ($(OS),Windows_NT)
+NODE ?= C:/PROGRA~1/nodejs/node.exe
+else
 NODE ?= node
+endif
 
 .PHONY: test test-fast test-headed baseline server-start server-stop server-status clean help
 
