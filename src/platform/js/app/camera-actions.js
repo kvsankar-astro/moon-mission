@@ -6,6 +6,11 @@ import {
     resolvePairFromValue,
     resolvePairKey,
 } from "../core/domain/camera-policy.js";
+import {
+    clampFovDegrees as clampFovDegreesForRange,
+    zoomSliderValueToFovDegrees,
+} from "./fov-slider-scale.js";
+import { mountMissionFovControl } from "./mission-fov-control.js";
 import { applySkyLayerVisibility } from "./sky-visibility.js";
 
 export function createCameraActions({
@@ -32,6 +37,31 @@ export function createCameraActions({
     let lastAppliedConfig = null;
     let desktopMainViewAutoFovEnabled = false;
     let lastSyncedDesktopMainFov = 50;
+    const desktopMainFovControl = mountMissionFovControl(
+        typeof document !== "undefined" ? document.getElementById("desktop-main-fov") : null,
+        {
+            groupAriaLabel: "Main view field of view",
+            autoButtonAriaLabel: "Main view automatic field of view",
+            sliderAriaLabel: "Main view zoom slider",
+            valueAriaLabel: "Main view field of view value",
+            initialFovDegrees: 50,
+            minDegrees: MIN_FOV_DEGREES,
+            maxDegrees: MAX_FOV_DEGREES,
+            classNames: {
+                label: ["header-main-fov__label"],
+                autoButton: ["header-main-fov__auto"],
+                track: ["header-main-fov__track"],
+                edge: ["header-main-fov__edge"],
+                slider: ["header-main-fov__slider"],
+                value: ["header-main-fov__value"],
+            },
+            ids: {
+                autoButton: "desktop-main-fov-auto",
+                slider: "desktop-main-fov-slider",
+                value: "desktop-main-fov-value",
+            },
+        },
+    );
 
     const mountedBodyOverride = {
         earth: { hidden: null },
@@ -182,35 +212,40 @@ export function createCameraActions({
     }
 
     function clampFovDegrees(value) {
-        const parsed = Number(value);
-        if (!Number.isFinite(parsed)) {
-            return 50;
-        }
-        return Math.max(MIN_FOV_DEGREES, Math.min(MAX_FOV_DEGREES, parsed));
-    }
-
-    function formatFovDegrees(value) {
-        return clampFovDegrees(value).toFixed(1);
+        return clampFovDegreesForRange(value, {
+            minDegrees: MIN_FOV_DEGREES,
+            maxDegrees: MAX_FOV_DEGREES,
+            fallbackDegrees: 50,
+        });
     }
 
     function getDesktopMainFovElements() {
-        return {
-            container: document.getElementById("desktop-main-fov"),
-            autoButton: document.getElementById("desktop-main-fov-auto"),
-            slider: document.getElementById("desktop-main-fov-slider"),
-            value: document.getElementById("desktop-main-fov-value"),
-        };
+        return desktopMainFovControl
+            ? {
+                container: desktopMainFovControl.container,
+                autoButton: desktopMainFovControl.autoButton,
+                slider: desktopMainFovControl.slider,
+                value: desktopMainFovControl.value,
+                control: desktopMainFovControl,
+            }
+            : {
+                container: null,
+                autoButton: null,
+                slider: null,
+                value: null,
+                control: null,
+            };
     }
 
     function resolveCurrentDesktopMainFov(scene) {
-        const { slider } = getDesktopMainFovElements();
+        const { control } = getDesktopMainFovElements();
         const currentFov = Number(scene?.camera?.fov ?? scene?.cameraController?.camera?.fov);
         if (Number.isFinite(currentFov)) {
             return clampFovDegrees(currentFov);
         }
-        const sliderFov = Number(slider?.value);
+        const sliderFov = control?.readSliderFovDegrees(50);
         if (Number.isFinite(sliderFov)) {
-            return clampFovDegrees(sliderFov);
+            return sliderFov;
         }
         return 50;
     }
@@ -224,37 +259,38 @@ export function createCameraActions({
     }
 
     function updateDesktopMainFovValue(fovDegrees) {
-        const { slider, value } = getDesktopMainFovElements();
-        const nextFov = parseDesktopMainFovValue(
-            Number.isFinite(Number(fovDegrees))
-                ? Number(fovDegrees)
-                : slider?.value,
-            50,
-        );
-        const formattedFov = formatFovDegrees(nextFov);
+        const { control } = getDesktopMainFovElements();
+        const parsedFov = Number(fovDegrees);
+        const nextFov = Number.isFinite(parsedFov)
+            ? clampFovDegrees(parsedFov)
+            : clampFovDegrees(lastSyncedDesktopMainFov);
         lastSyncedDesktopMainFov = nextFov;
-        if (slider) {
-            slider.value = formattedFov;
-        }
-        if (value) {
-            value.value = formattedFov;
-        }
+        control?.setFovDegrees(nextFov, 50);
     }
 
     function setDesktopMainFovAutoEnabled(enabled) {
         desktopMainViewAutoFovEnabled = enabled === true;
-        const { autoButton, slider, value } = getDesktopMainFovElements();
-        if (autoButton) {
-            autoButton.classList.toggle("is-active", desktopMainViewAutoFovEnabled);
-            autoButton.setAttribute("aria-pressed", desktopMainViewAutoFovEnabled ? "true" : "false");
-            autoButton.title = desktopMainViewAutoFovEnabled ? "Auto FoV enabled" : "Auto FoV disabled";
+        const { control } = getDesktopMainFovElements();
+        control?.setAutoEnabled(desktopMainViewAutoFovEnabled);
+        control?.setDisabledState({
+            autoButtonDisabled: control?.autoButton?.disabled === true,
+            sliderDisabled: desktopMainViewAutoFovEnabled,
+            valueDisabled: desktopMainViewAutoFovEnabled,
+        });
+    }
+
+    function resolveDesktopMainFovInputValue(event, fallbackValue) {
+        const target = event?.target;
+        const targetId = target?.id;
+        if (targetId === "desktop-main-fov-slider") {
+            return desktopMainFovControl?.readSliderFovDegrees(fallbackValue)
+                ?? zoomSliderValueToFovDegrees(target?.value, {
+                    minDegrees: MIN_FOV_DEGREES,
+                    maxDegrees: MAX_FOV_DEGREES,
+                    fallbackDegrees: fallbackValue,
+                });
         }
-        if (slider) {
-            slider.disabled = desktopMainViewAutoFovEnabled;
-        }
-        if (value) {
-            value.disabled = desktopMainViewAutoFovEnabled;
-        }
+        return parseDesktopMainFovValue(target?.value, fallbackValue);
     }
 
     function isDesktopMainFovViewMode(positionMode, lookMode) {
@@ -394,7 +430,7 @@ export function createCameraActions({
     }
 
     function syncDesktopMainFovUi(scene, positionMode, lookMode) {
-        const { container, autoButton, slider, value } = getDesktopMainFovElements();
+        const { container, autoButton, slider, value, control } = getDesktopMainFovElements();
         if (!container && !autoButton && !slider && !value) {
             return;
         }
@@ -410,12 +446,11 @@ export function createCameraActions({
             if (autoButton) {
                 autoButton.disabled = true;
             }
-            if (slider) {
-                slider.disabled = true;
-            }
-            if (value) {
-                value.disabled = true;
-            }
+            control?.setDisabledState({
+                autoButtonDisabled: true,
+                sliderDisabled: true,
+                valueDisabled: true,
+            });
             return;
         }
         const autoSupported = isDesktopAutoFovSupported(positionMode, lookMode);
@@ -435,12 +470,11 @@ export function createCameraActions({
             }
         }
         updateDesktopMainFovValue(currentFov);
-        if (slider) {
-            slider.disabled = desktopMainViewAutoFovEnabled;
-        }
-        if (value) {
-            value.disabled = desktopMainViewAutoFovEnabled;
-        }
+        control?.setDisabledState({
+            autoButtonDisabled: !autoSupported,
+            sliderDisabled: desktopMainViewAutoFovEnabled,
+            valueDisabled: desktopMainViewAutoFovEnabled,
+        });
     }
 
     function changeDesktopMainFov(event) {
@@ -455,7 +489,7 @@ export function createCameraActions({
             setDesktopMainFovAutoEnabled(false);
         }
         const currentFov = resolveCurrentDesktopMainFov(scene);
-        const nextFov = parseDesktopMainFovValue(event?.target?.value, currentFov);
+        const nextFov = resolveDesktopMainFovInputValue(event, currentFov);
         if (!scene) {
             updateDesktopMainFovValue(nextFov);
             return;

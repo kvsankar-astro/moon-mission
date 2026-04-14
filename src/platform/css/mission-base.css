@@ -320,7 +320,7 @@ body {
 
 .header-main-fov {
     display: inline-grid;
-    grid-template-columns: auto auto minmax(108px, 132px) minmax(46px, 58px);
+    grid-template-columns: auto auto minmax(138px, 176px) minmax(56px, 72px);
     align-items: center;
     column-gap: 6px;
     min-height: 24px;
@@ -347,6 +347,10 @@ body {
 .header-main-fov__value {
     min-width: 0;
     width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
     padding: 2px 6px;
     border: 1px solid rgba(100, 130, 180, 0.44);
     border-radius: 999px;
@@ -354,23 +358,17 @@ body {
     text-align: right;
     color: #eef5ff;
     font-variant-numeric: tabular-nums;
-    caret-color: #eef5ff;
-    appearance: textfield;
-    -moz-appearance: textfield;
+    cursor: default;
+    user-select: none;
 }
 
-.header-main-fov__value::-webkit-outer-spin-button,
-.header-main-fov__value::-webkit-inner-spin-button {
-    appearance: none;
-    margin: 0;
+.header-main-fov__value:focus,
+.header-main-fov__value:focus-visible {
+    outline: none;
 }
 
-.header-main-fov__value:focus {
-    outline: 1px solid rgba(120, 170, 255, 0.78);
-    outline-offset: 1px;
-}
-
-.header-main-fov__value:disabled {
+.header-main-fov__value.is-disabled,
+.header-main-fov__value[aria-disabled="true"] {
     opacity: 0.55;
     cursor: not-allowed;
 }
@@ -404,6 +402,23 @@ body {
 .header-main-fov__auto:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+.header-main-fov__track {
+    display: grid;
+    grid-template-columns: auto minmax(72px, 1fr) auto;
+    align-items: center;
+    column-gap: 5px;
+    min-width: 0;
+}
+
+.header-main-fov__edge {
+    color: rgba(157, 182, 216, 0.78);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .header-main-fov__slider {

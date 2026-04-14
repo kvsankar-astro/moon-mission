@@ -10,19 +10,19 @@ describe("AUXILIARY_VIEW_CAMERA_PRESETS", () => {
         expect(AUXILIARY_VIEW_CAMERA_PRESETS).toEqual([
             {
                 id: "earth",
-                label: "Craft -> Earth",
+                label: "Craft \u2192 Earth",
                 positionMode: "spacecraft",
                 lookMode: "earth",
             },
             {
                 id: "moon",
-                label: "Craft -> Moon",
+                label: "Craft \u2192 Moon",
                 positionMode: "spacecraft",
                 lookMode: "moon",
             },
             {
                 id: "earth-to-moon",
-                label: "Earth -> Moon",
+                label: "Earth \u2192 Moon",
                 positionMode: "earth",
                 lookMode: "moon",
             },

@@ -150,8 +150,17 @@ canvas {
 .aux-camera-view__fov-controls {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
+}
+
+.aux-camera-view__fov-track {
+    display: grid;
+    grid-template-columns: auto minmax(40px, 1fr) auto;
+    align-items: center;
+    column-gap: 4px;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .aux-camera-view__minimize-button,
@@ -179,39 +188,74 @@ canvas {
 }
 
 .aux-camera-view__auto-toggle {
-    border: 1px solid rgba(121, 171, 255, 0.35);
-    border-radius: 4px;
-    background: rgba(14, 24, 41, 0.72);
-    color: rgba(211, 226, 248, 0.92);
+    min-height: 18px;
+    padding: 0 8px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.55);
+    color: #aebbd2;
     font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
     line-height: 1;
-    padding: 2px 6px;
+    text-transform: uppercase;
     cursor: pointer;
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+
+.aux-camera-view__auto-toggle:hover {
+    color: #dbe7ff;
+    background: rgba(45, 75, 125, 0.28);
 }
 
 .aux-camera-view__auto-toggle.is-active {
-    background: rgba(68, 130, 223, 0.42);
-    border-color: rgba(132, 183, 255, 0.72);
-    color: rgba(240, 247, 255, 0.97);
+    background: rgba(77, 141, 255, 0.22);
+    border-color: rgba(120, 170, 255, 0.72);
+    color: #eef5ff;
 }
 
 .aux-camera-view__fov-label,
 .aux-camera-view__fov-value {
-    color: rgba(208, 223, 246, 0.88);
     font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.aux-camera-view__fov-label {
+    color: #9db6d8;
+    text-transform: uppercase;
+}
+
+.aux-camera-view__fov-edge {
+    color: rgba(157, 182, 216, 0.78);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .aux-camera-view__fov-value {
-    width: 34px;
+    min-width: 0;
+    width: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    box-sizing: border-box;
+    padding: 2px 6px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.6);
     text-align: right;
+    color: #eef5ff;
     font-variant-numeric: tabular-nums;
+    cursor: default;
+    user-select: none;
 }
 
 .aux-camera-view__fov-slider {
+    flex: 1 1 84px;
     width: 84px;
     accent-color: rgba(106, 169, 255, 1);
 }
@@ -244,21 +288,32 @@ canvas {
     height: 10px;
 }
 
-.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-label,
-.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-value {
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-label {
     display: none;
 }
 
 .aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-controls {
     width: 100%;
+    gap: 5px;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-track {
+    grid-template-columns: auto minmax(34px, 1fr) auto;
+    column-gap: 3px;
 }
 
 .aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-slider {
     width: 100%;
 }
 
-.aux-camera-view[data-controls-density="compact"][data-info-mode="moon-visibility"] .aux-camera-view__panel-controls {
-    display: none;
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-edge {
+    font-size: 6px;
+    letter-spacing: 0.03em;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-value {
+    width: 48px;
+    font-size: 8px;
 }
 
 .aux-camera-view--composer {
@@ -453,7 +508,7 @@ canvas {
 
 .aux-camera-view__composer-fov .aux-camera-view__fov-controls {
     display: grid;
-    grid-template-columns: 72px auto minmax(0, 1fr) 42px;
+    grid-template-columns: 72px auto minmax(0, 1fr) 56px;
     align-items: center;
     column-gap: 8px;
     min-width: 0;

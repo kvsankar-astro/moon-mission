@@ -4,6 +4,7 @@ import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
 import { ssim } from 'ssim.js';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { fovDegreesToZoomSliderValue } from '../src/platform/js/app/fov-slider-scale.js';
 import { getEffectiveTestBaseUrl } from './local-test-config.js';
 
 async function displayStartupMessage(page, testId) {
@@ -971,7 +972,14 @@ async function ensureOriginMode(page, mode) {
 }
 
 async function ensureFovOneDegree(page, enabled = true) {
-  await page.evaluate((shouldEnable) => {
+  const sliderValue = Math.round(
+    fovDegreesToZoomSliderValue(enabled ? 1 : 50, {
+      minDegrees: 0.1,
+      maxDegrees: 179,
+      fallbackDegrees: enabled ? 1 : 50,
+    })
+  );
+  await page.evaluate((nextSliderValue) => {
     const autoButton = document.getElementById('desktop-main-fov-auto');
     const slider = document.getElementById('desktop-main-fov-slider');
     if (!(slider instanceof HTMLInputElement)) return;
@@ -979,9 +987,9 @@ async function ensureFovOneDegree(page, enabled = true) {
     if (autoPressed && autoButton instanceof HTMLElement) {
       autoButton.click();
     }
-    slider.value = shouldEnable ? '1' : '50';
+    slider.value = String(nextSliderValue);
     slider.dispatchEvent(new Event('input', { bubbles: true }));
-  }, enabled);
+  }, sliderValue);
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
 }
 

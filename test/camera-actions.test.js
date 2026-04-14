@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Vector3 } from "three";
 
 import { createCameraActions } from "../src/platform/js/app/camera-actions.js";
+import { fovDegreesToZoomSliderValue } from "../src/platform/js/app/fov-slider-scale.js";
 
 function createVectorTarget(x, y, z) {
     return {
@@ -217,5 +218,68 @@ describe("createCameraActions", () => {
 
         expect(controller.setFov).toHaveBeenCalledWith(0.4);
         expect(camera.fov).toBe(0.4);
+    });
+
+    it("maps the desktop zoom slider back to the requested FoV", () => {
+        globalThis.document = createDocumentStub();
+
+        let positionMode = "spacecraft";
+        let lookMode = "moon";
+
+        const camera = {
+            position: new Vector3(0, 0, 0),
+            fov: 50,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls: {
+                target: new Vector3(),
+                update: vi.fn(),
+                addEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            },
+            _freeFlyActive: false,
+            setFov: vi.fn((fov) => {
+                camera.fov = fov;
+            }),
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: vi.fn(),
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeDesktopMainFov({
+            target: {
+                id: "desktop-main-fov-slider",
+                value: String(Math.round(fovDegreesToZoomSliderValue(12.5, {
+                    minDegrees: 0.1,
+                    maxDegrees: 179,
+                    fallbackDegrees: 50,
+                }))),
+            },
+        });
+
+        expect(controller.setFov).toHaveBeenCalledWith(expect.closeTo(12.5, 0.15));
+        expect(camera.fov).toBeCloseTo(12.5, 1);
     });
 });
