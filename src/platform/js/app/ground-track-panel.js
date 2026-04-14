@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { loadMissionConfig } from "../data/mission-data.js";
+import { loadMissionConfig, loadChebyshev } from "../data/mission-data.js";
+import { getBodyEphemerisState } from "../data/ephemeris-provider.js";
 import {
     registerMissionPanel,
     updateMissionPanel,
@@ -127,6 +128,15 @@ function subtractVectors(a, b) {
     };
 }
 
+function negateVector(vector) {
+    if (!hasVector(vector)) return null;
+    return {
+        x: -vector.x,
+        y: -vector.y,
+        z: -vector.z,
+    };
+}
+
 function magnitude(vector) {
     if (!hasVector(vector)) return Number.NaN;
     return Math.hypot(vector.x, vector.y, vector.z);
@@ -206,6 +216,11 @@ function parseMissionTimeMs(value) {
     if (typeof value !== "string" || value.length === 0) return Number.NaN;
     const parsed = Date.parse(value);
     return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
+function deriveGeoOrbitChebUrl(url) {
+    if (typeof url !== "string" || url.length === 0) return "";
+    return url.replace(/(^|[\\/])(geo|lunar|relative)-/i, "$1geo-");
 }
 
 function resolveCurrentMissionQueryValue() {
@@ -445,6 +460,8 @@ function createGroundTrackPanelActions(options = {}) {
     let hasRestoredPanelVisibilityState = false;
     let defaultPanelStateApplied = false;
     const cacheByKey = new Map();
+    const trackChebyshevDataByUrl = new Map();
+    const trackChebyshevLoadPromisesByUrl = new Map();
     const globeState = {
         renderer: null,
         scene: null,
@@ -458,6 +475,193 @@ function createGroundTrackPanelActions(options = {}) {
     };
 
     const getNode = (id) => document.getElementById(id);
+
+    function isRelativeFrameActive(config) {
+        if (config === "relative") return true;
+        if (config !== "geo") return false;
+        return !!document.getElementById("origin-relative")?.checked;
+    }
+
+    function resolveSpacecraftMnemonic() {
+        return String(missionConfigData?.spacecraft_mnemonic || "SC").trim().toUpperCase();
+    }
+
+    function resolveGroundTrackCraftId(config) {
+        const scene = window.animationScenes?.[config];
+        return scene?.activeCraftId || scene?.primaryCraftId || "SC";
+    }
+
+    function resolveGroundTrackChebyshevDescriptor(config, relativeFrameActive = isRelativeFrameActive(config)) {
+        const scene = window.animationScenes?.[config];
+        const geoScene = window.animationScenes?.geo;
+        if (config === "geo" && relativeFrameActive) {
+            const craftUrl =
+                scene?.relativeSupportOrbitsCheb ||
+                scene?.supportOrbitsChebByBodyId?.MOON ||
+                geoScene?.relativeSupportOrbitsCheb ||
+                geoScene?.supportOrbitsChebByBodyId?.MOON ||
+                deriveGeoOrbitChebUrl(scene?.orbitsCheb) ||
+                deriveGeoOrbitChebUrl(geoScene?.orbitsCheb) ||
+                geoScene?.orbitsCheb ||
+                "";
+            if (!craftUrl) return null;
+            return {
+                key: `geo-relative:${craftUrl}`,
+                mode: "geo-relative",
+                craftUrl,
+                geoSupportUrl: craftUrl,
+            };
+        }
+        if (config === "lunar") {
+            const craftUrl = scene?.orbitsCheb || "";
+            const geoSupportUrl =
+                geoScene?.relativeSupportOrbitsCheb ||
+                geoScene?.orbitsCheb ||
+                deriveGeoOrbitChebUrl(craftUrl);
+            if (!craftUrl || !geoSupportUrl) return null;
+            return {
+                key: `lunar-earth:${craftUrl}:${geoSupportUrl}`,
+                mode: "lunar-earth",
+                craftUrl,
+                geoSupportUrl,
+            };
+        }
+        return null;
+    }
+
+    async function ensureTrackChebyshevLoaded(url) {
+        if (typeof url !== "string" || url.length === 0) {
+            return null;
+        }
+        if (trackChebyshevDataByUrl.has(url)) {
+            return trackChebyshevDataByUrl.get(url);
+        }
+        if (trackChebyshevLoadPromisesByUrl.has(url)) {
+            return trackChebyshevLoadPromisesByUrl.get(url);
+        }
+        const promise = loadChebyshev(url)
+            .then((data) => {
+                trackChebyshevDataByUrl.set(url, data);
+                trackChebyshevLoadPromisesByUrl.delete(url);
+                return data;
+            })
+            .catch((error) => {
+                trackChebyshevLoadPromisesByUrl.delete(url);
+                throw error;
+            });
+        trackChebyshevLoadPromisesByUrl.set(url, promise);
+        return promise;
+    }
+
+    function getLoadedTrackChebyshevData(url) {
+        if (typeof url !== "string" || url.length === 0) return null;
+        return trackChebyshevDataByUrl.get(url) || null;
+    }
+
+    function ensureTrackDescriptorLoaded(descriptor) {
+        if (!descriptor) return;
+        const urls = [
+            descriptor.craftUrl,
+            descriptor.geoSupportUrl,
+        ].filter((url, index, array) => typeof url === "string" && url.length > 0 && array.indexOf(url) === index);
+        if (urls.length === 0) return;
+        Promise.all(urls.map((url) => ensureTrackChebyshevLoaded(url)))
+            .then(() => {
+                if (latestPayload) {
+                    queueMicrotask(() => {
+                        if (latestPayload) {
+                            renderPayload(latestPayload);
+                        }
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to load ground track ephemeris support", error);
+            });
+    }
+
+    function buildTrackEphemerisInput(config, chebyshevDataMap) {
+        const chebyshevDataLoaded = {};
+        Object.keys(chebyshevDataMap || {}).forEach((key) => {
+            chebyshevDataLoaded[key] = !!chebyshevDataMap[key];
+        });
+        return {
+            config,
+            npzData: null,
+            npzDataLoaded: {},
+            chebyshevData: chebyshevDataMap,
+            chebyshevDataLoaded,
+            landingNpzData: null,
+            landingNpzLoaded: false,
+            landingChebyshevData: null,
+            landingChebyshevLoaded: false,
+            globalConfig: missionConfigData,
+            startLandingTime: Number.NaN,
+            endLandingTime: Number.NaN,
+            bodySources: {},
+            defaultSpacecraftSource: "chebyshev",
+            spacecraftMnemonic: resolveSpacecraftMnemonic(),
+            resolvedSource: "chebyshev",
+        };
+    }
+
+    function sampleChebyshevState({ bodyId, timeMs, config, chebyshevDataMap }) {
+        return getBodyEphemerisState({
+            bodyId,
+            timeMs,
+            ...buildTrackEphemerisInput(config, chebyshevDataMap),
+        });
+    }
+
+    function resolveEphemerisEarthCenteredSample({ descriptor, timeMs, craftId }) {
+        if (!descriptor || !Number.isFinite(timeMs)) return null;
+        if (descriptor.mode === "geo-relative") {
+            const craftData = getLoadedTrackChebyshevData(descriptor.craftUrl);
+            if (!craftData) return null;
+            const craftState = sampleChebyshevState({
+                bodyId: craftId,
+                timeMs,
+                config: "geo",
+                chebyshevDataMap: { geo: craftData },
+            });
+            if (!craftState?.available || !hasVector(craftState.position)) return null;
+            return {
+                vector: craftState.position,
+                velocity: normalizeVelocityVector(craftState.velocity),
+            };
+        }
+        if (descriptor.mode === "lunar-earth") {
+            const lunarData = getLoadedTrackChebyshevData(descriptor.craftUrl);
+            const geoData = getLoadedTrackChebyshevData(descriptor.geoSupportUrl);
+            if (!lunarData || !geoData) return null;
+            const craftState = sampleChebyshevState({
+                bodyId: craftId,
+                timeMs,
+                config: "lunar",
+                chebyshevDataMap: { lunar: lunarData },
+            });
+            const moonState = sampleChebyshevState({
+                bodyId: "MOON",
+                timeMs,
+                config: "geo",
+                chebyshevDataMap: { geo: geoData },
+            });
+            const craftVelocity = normalizeVelocityVector(craftState?.velocity || null);
+            const moonVelocity = normalizeVelocityVector(moonState?.velocity || null);
+            const earthPositionInLunar = negateVector(moonState?.position || null);
+            const earthVelocityInLunar = negateVector(moonVelocity);
+            if (!craftState?.available || !hasVector(craftState.position) || !hasVector(earthPositionInLunar)) {
+                return null;
+            }
+            return {
+                vector: subtractVectors(craftState.position, earthPositionInLunar),
+                velocity: hasVector(craftVelocity) && hasVector(earthVelocityInLunar)
+                    ? subtractVectors(craftVelocity, earthVelocityInLunar)
+                    : null,
+            };
+        }
+        return null;
+    }
 
     function getPanelRegistryState() {
         if (!isSplashdownPanelMissionEnabled(missionConfigData)) {
@@ -1971,9 +2175,17 @@ function createGroundTrackPanelActions(options = {}) {
         updateModeButtons();
     }
 
-    function resolveCurrentEarthCenteredVector(sceneState, config) {
+    function resolveCurrentEarthCenteredVector(sceneState, config, animTime, descriptor = null) {
+        const craftId = resolveTelemetryBodyId(sceneState) || resolveGroundTrackCraftId(config);
+        const ephemerisSample = resolveEphemerisEarthCenteredSample({
+            descriptor,
+            timeMs: animTime,
+            craftId,
+        });
+        if (hasVector(ephemerisSample?.vector)) {
+            return ephemerisSample.vector;
+        }
         const bodies = sceneState?.bodies || {};
-        const craftId = resolveTelemetryBodyId(sceneState);
         const craftPos = bodies?.[craftId]?.position || null;
         if (!hasVector(craftPos)) return null;
         if (config === "lunar") {
@@ -1981,13 +2193,20 @@ function createGroundTrackPanelActions(options = {}) {
             if (!hasVector(earthPos)) return null;
             return subtractVectors(craftPos, earthPos);
         }
-        if (config === "relative") return null;
         return craftPos;
     }
 
-    function resolveCurrentEarthCenteredVelocity(sceneState, config) {
+    function resolveCurrentEarthCenteredVelocity(sceneState, config, animTime, descriptor = null) {
+        const craftId = resolveTelemetryBodyId(sceneState) || resolveGroundTrackCraftId(config);
+        const ephemerisSample = resolveEphemerisEarthCenteredSample({
+            descriptor,
+            timeMs: animTime,
+            craftId,
+        });
+        if (hasVector(ephemerisSample?.velocity)) {
+            return ephemerisSample.velocity;
+        }
         const bodies = sceneState?.bodies || {};
-        const craftId = resolveTelemetryBodyId(sceneState);
         const craftVel = normalizeVelocityVector(bodies?.[craftId]?.velocity || null);
         if (!hasVector(craftVel)) return null;
         if (config === "lunar") {
@@ -1995,7 +2214,6 @@ function createGroundTrackPanelActions(options = {}) {
             if (!hasVector(earthVel)) return null;
             return subtractVectors(craftVel, earthVel);
         }
-        if (config === "relative") return null;
         return craftVel;
     }
 
@@ -2035,7 +2253,7 @@ function createGroundTrackPanelActions(options = {}) {
         return Number.NaN;
     }
 
-    function resolveTrackSegments(config) {
+    function resolveTrackSegments(config, relativeFrameActive = isRelativeFrameActive(config)) {
         if (config !== "geo" && config !== "lunar") {
             return {
                 key: `${config}:none`,
@@ -2056,7 +2274,7 @@ function createGroundTrackPanelActions(options = {}) {
         const craftId = scene.activeCraftId || scene.primaryCraftId || "SC";
         const craftCurve = scene.curvesById?.[craftId] || [];
         const craftTimes = scene.curveTimesById?.[craftId] || [];
-        if (!Array.isArray(craftCurve) || !Array.isArray(craftTimes) || craftCurve.length < 2 || craftTimes.length < 2) {
+        if (!Array.isArray(craftTimes) || craftTimes.length < 2) {
             return {
                 key: `${config}:${craftId}:empty`,
                 segments: [],
@@ -2064,32 +2282,68 @@ function createGroundTrackPanelActions(options = {}) {
                 sourceEndMs: Number.NaN,
             };
         }
-        const earthCurve = config === "lunar" ? (scene.curvesById?.EARTH || []) : null;
-        const count = config === "lunar"
-            ? Math.min(craftCurve.length, craftTimes.length, earthCurve.length)
-            : Math.min(craftCurve.length, craftTimes.length);
+        const descriptor = resolveGroundTrackChebyshevDescriptor(config, relativeFrameActive);
+        if ((relativeFrameActive || config === "lunar") && !descriptor) {
+            return {
+                key: `${config}:${relativeFrameActive ? "relative" : "inertial"}:${craftId}:pending`,
+                segments: [],
+                generatedSegments: [],
+                sourceEndMs: Number.NaN,
+                loading: true,
+            };
+        }
+        const useEphemerisTrackData = !!descriptor;
+        if (!useEphemerisTrackData && (!Array.isArray(craftCurve) || craftCurve.length < 2)) {
+            return {
+                key: `${config}:${craftId}:empty`,
+                segments: [],
+                generatedSegments: [],
+                sourceEndMs: Number.NaN,
+            };
+        }
+        if (useEphemerisTrackData) {
+            const craftData = getLoadedTrackChebyshevData(descriptor.craftUrl);
+            const geoSupportData = getLoadedTrackChebyshevData(descriptor.geoSupportUrl);
+            if (!craftData || !geoSupportData) {
+                ensureTrackDescriptorLoaded(descriptor);
+                return {
+                    key: `${descriptor.key}:loading`,
+                    segments: [],
+                    generatedSegments: [],
+                    sourceEndMs: Number.NaN,
+                    loading: true,
+                };
+            }
+        }
+        const count = Math.min(craftTimes.length, useEphemerisTrackData ? craftTimes.length : craftCurve.length);
         const windowBounds = resolveGroundTrackWindowMs(missionConfigData, config);
         const provenance = resolvePostHorizonExtension(missionConfigData, config);
         const sourceEndMs = provenance?.sourceEndMs;
         const startMs = windowBounds.startMs;
         const endMs = Number.isFinite(craftTimes[count - 1]) ? craftTimes[count - 1] : windowBounds.endMs;
-        const key = `${config}:${craftId}:${count}:${Number.isFinite(startMs) ? startMs : "na"}:${Number.isFinite(endMs) ? endMs : "na"}:${Number.isFinite(sourceEndMs) ? sourceEndMs : "na"}`;
+        const key = `${config}:${relativeFrameActive ? "relative" : "inertial"}:${craftId}:${count}:${descriptor?.key || "scene"}:${Number.isFinite(startMs) ? startMs : "na"}:${Number.isFinite(endMs) ? endMs : "na"}:${Number.isFinite(sourceEndMs) ? sourceEndMs : "na"}`;
         if (cacheByKey.has(key)) return { key, ...cacheByKey.get(key) };
 
         const points = [];
         let lastLocation = null;
         for (let i = 0; i < count; i += 1) {
-            const craft = craftCurve[i];
             const timeMs = craftTimes[i];
-            if (!hasVector(craft) || !Number.isFinite(timeMs)) continue;
+            if (!Number.isFinite(timeMs)) continue;
             if (Number.isFinite(startMs) && timeMs < startMs) continue;
             if (Number.isFinite(endMs) && timeMs > endMs) continue;
-            let earthCentered = craft;
-            if (config === "lunar") {
-                const earth = earthCurve[i];
-                if (!hasVector(earth)) continue;
-                earthCentered = subtractVectors(craft, earth);
+            let earthCentered = null;
+            if (useEphemerisTrackData) {
+                earthCentered = resolveEphemerisEarthCenteredSample({
+                    descriptor,
+                    timeMs,
+                    craftId,
+                })?.vector || null;
+            } else {
+                const craft = craftCurve[i];
+                if (!hasVector(craft)) continue;
+                earthCentered = craft;
             }
+            if (!hasVector(earthCentered)) continue;
             const latLon = eciToLatLonDegrees(earthCentered, timeMs);
             if (!latLon) continue;
             points.push({
@@ -2126,9 +2380,28 @@ function createGroundTrackPanelActions(options = {}) {
     function renderPayload({ sceneState, config, animTime }) {
         if (!sceneState || !Number.isFinite(animTime) || !config) return;
 
-        if (config === "relative") {
+        const relativeFrameActive = isRelativeFrameActive(config);
+
+        const {
+            key,
+            segments,
+            generatedSegments,
+            lastLocation,
+            startMs,
+            endMs,
+            sourceEndMs,
+            loading = false,
+        } = resolveTrackSegments(config, relativeFrameActive);
+        if (key !== currentTrackKey) {
+            currentTrackKey = key;
+            currentSegments = segments;
+            currentGeneratedSegments = generatedSegments;
+            hasMapUserView = false;
+            hasGlobeUserView = false;
+        }
+        if (loading === true) {
             clearTrackVisuals();
-            setStatus("Ground track is unavailable in Relative origin.");
+            setStatus("Loading ground track trajectory...");
             setProvenanceNote({ visible: false, badgeText: "", text: "", active: false });
             setCoords("--");
             syncTimelineCardUi(config, animTime, Number.NaN, Number.NaN);
@@ -2141,23 +2414,6 @@ function createGroundTrackPanelActions(options = {}) {
             syncVisibleView();
             return;
         }
-
-        const {
-            key,
-            segments,
-            generatedSegments,
-            lastLocation,
-            startMs,
-            endMs,
-            sourceEndMs,
-        } = resolveTrackSegments(config);
-        if (key !== currentTrackKey) {
-            currentTrackKey = key;
-            currentSegments = segments;
-            currentGeneratedSegments = generatedSegments;
-            hasMapUserView = false;
-            hasGlobeUserView = false;
-        }
         const provenance = resolvePostHorizonExtension(missionConfigData, config);
         const generatedSegmentActive = Number.isFinite(sourceEndMs) && animTime > sourceEndMs;
         setProvenanceNote({
@@ -2167,8 +2423,9 @@ function createGroundTrackPanelActions(options = {}) {
             active: generatedSegmentActive,
         });
 
-        const vector = resolveCurrentEarthCenteredVector(sceneState, config);
-        const velocity = resolveCurrentEarthCenteredVelocity(sceneState, config);
+        const descriptor = resolveGroundTrackChebyshevDescriptor(config, relativeFrameActive);
+        const vector = resolveCurrentEarthCenteredVector(sceneState, config, animTime, descriptor);
+        const velocity = resolveCurrentEarthCenteredVelocity(sceneState, config, animTime, descriptor);
         const earthDistanceKm = resolveEarthDistanceKm(sceneState, config, vector);
         const earthSpeedKmPerSec = resolveEarthVelocityKmPerSec(sceneState, config, velocity);
         const earthAltitudeKm = resolveEarthAltitudeKm(sceneState, config, earthDistanceKm);
