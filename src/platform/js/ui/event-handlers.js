@@ -3,6 +3,10 @@ import {
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
 } from "../app/auxiliary-camera-views.js";
+import {
+    resolveBodyOrbitCopy,
+    resolveCraftOrbitCopy,
+} from "./orbit-control-labels.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
@@ -1134,26 +1138,27 @@ export function bindMainControls(handlers) {
         });
     };
     const syncOrbitLabels = () => {
-        const isLunarOrigin = !!document.getElementById("origin-moon")?.checked;
-        const primaryBodyName = isLunarOrigin ? "Moon" : "Earth";
-        const secondaryBodyName = isLunarOrigin ? "Earth" : "Moon";
-        const primaryToggleTitle = `Toggle ${primaryBodyName} orbit tracks`;
-        const secondaryToggleTitle = `Toggle ${secondaryBodyName} orbit tracks`;
+        const originMode = document.getElementById("origin-relative")?.checked
+            ? "relative"
+            : document.getElementById("origin-moon")?.checked
+                ? "lunar"
+                : "geo";
+        const craftOrbitCopy = resolveCraftOrbitCopy();
+        const bodyOrbitCopy = resolveBodyOrbitCopy(originMode);
         if (orbitLabel) {
-            orbitLabel.textContent = `${primaryBodyName} Orbit`;
-            orbitLabel.title = primaryToggleTitle;
+            orbitLabel.title = craftOrbitCopy.title;
         }
         if (orbitPill) {
-            orbitPill.textContent = `${primaryBodyName} Orbit`;
-            orbitPill.title = primaryToggleTitle;
+            orbitPill.textContent = craftOrbitCopy.label;
+            orbitPill.title = craftOrbitCopy.title;
         }
         if (secondaryOrbitLabel) {
-            secondaryOrbitLabel.textContent = `${secondaryBodyName} Orbit`;
-            secondaryOrbitLabel.title = secondaryToggleTitle;
+            secondaryOrbitLabel.textContent = bodyOrbitCopy.label;
+            secondaryOrbitLabel.title = bodyOrbitCopy.title;
         }
         if (secondaryOrbitPill) {
-            secondaryOrbitPill.textContent = `${secondaryBodyName} Orbit`;
-            secondaryOrbitPill.title = secondaryToggleTitle;
+            secondaryOrbitPill.textContent = bodyOrbitCopy.label;
+            secondaryOrbitPill.title = bodyOrbitCopy.title;
         }
     };
     const isMobileViewsOrComposeTab = () => {

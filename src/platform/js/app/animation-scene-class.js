@@ -1,4 +1,5 @@
 import { getRelativeFrameQuaternion } from "../data/relative-frame-provider.js";
+import { resolveSecondaryBodyOrbitGravitationalParameter } from "./secondary-body-orbit-parameters.js";
 
 function createAnimationSceneClass(deps) {
     const {
@@ -365,9 +366,10 @@ function createAnimationSceneClass(deps) {
             const moonOrbitToggle = document.getElementById("view-moon-osculating-orbit");
             const relativeOriginToggle = document.getElementById("origin-relative");
             const secondaryBodyId = this.name === "lunar" ? "EARTH" : "MOON";
-            const gravitationalParameter = this.name === "lunar"
-                ? (PC.MOON_GM_KM3_S2 || PC.EARTH_GM_KM3_S2)
-                : PC.EARTH_GM_KM3_S2;
+            const gravitationalParameter = resolveSecondaryBodyOrbitGravitationalParameter(
+                PC,
+                this.name,
+            );
             const showMoonOrbit =
                 bodyId === secondaryBodyId &&
                 (moonOrbitToggle?.checked ?? runtimeState.viewMoonOsculatingOrbit) &&
