@@ -433,6 +433,15 @@ function createGroundTrackPanelActions(options = {}) {
     let panelVisibilityState = "closed";
     let restoredPanelLayout = readMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID) || null;
     let hasRestoredPanelLayout = !!restoredPanelLayout;
+    let panelExpanded = restoredPanelLayout?.maximized === true;
+    let restorePanelFrame = restoredPanelLayout?.restoreFrame && typeof restoredPanelLayout.restoreFrame === "object"
+        ? {
+            x: Math.round(Number(restoredPanelLayout.restoreFrame.x) || 0),
+            y: Math.round(Number(restoredPanelLayout.restoreFrame.y) || 0),
+            width: Math.round(Number(restoredPanelLayout.restoreFrame.width) || 0),
+            height: Math.round(Number(restoredPanelLayout.restoreFrame.height) || 0),
+        }
+        : null;
     let hasRestoredPanelVisibilityState = false;
     let defaultPanelStateApplied = false;
     const cacheByKey = new Map();
@@ -467,7 +476,77 @@ function createGroundTrackPanelActions(options = {}) {
             width: Math.round(panel.offsetWidth || 0),
             height: Math.round(panel.offsetHeight || 0),
             state: panelVisibilityState,
+            maximized: panelExpanded === true,
+            restoreFrame: restorePanelFrame && typeof restorePanelFrame === "object"
+                ? {
+                    x: Math.round(Number(restorePanelFrame.x) || 0),
+                    y: Math.round(Number(restorePanelFrame.y) || 0),
+                    width: Math.round(Number(restorePanelFrame.width) || 0),
+                    height: Math.round(Number(restorePanelFrame.height) || 0),
+                }
+                : null,
         });
+    }
+
+    function capturePanelFrame(panel = getNode("ground-track-panel")) {
+        if (!(panel instanceof HTMLElement)) {
+            return null;
+        }
+        return {
+            x: Math.round(panelPosition?.x ?? panel.offsetLeft ?? 0),
+            y: Math.round(panelPosition?.y ?? panel.offsetTop ?? 0),
+            width: Math.round(panel.offsetWidth || 0),
+            height: Math.round(panel.offsetHeight || 0),
+        };
+    }
+
+    function resolveExpandedPanelRect() {
+        const headerRect = document.querySelector(".header")?.getBoundingClientRect?.() || null;
+        const timelineRect = document.querySelector(".timeline-dock")?.getBoundingClientRect?.() || null;
+        const left = PANEL_EDGE_MARGIN_PX;
+        const top = Number.isFinite(headerRect?.bottom)
+            ? Math.round(headerRect.bottom + PANEL_EDGE_MARGIN_PX)
+            : PANEL_EDGE_MARGIN_PX;
+        const right = window.innerWidth - PANEL_EDGE_MARGIN_PX;
+        const bottom = Number.isFinite(timelineRect?.top)
+            ? Math.round(timelineRect.top - PANEL_EDGE_MARGIN_PX)
+            : (window.innerHeight - PANEL_EDGE_MARGIN_PX);
+        const maxWidth = Math.max(320, right - left);
+        const maxHeight = Math.max(220, bottom - top);
+        let width = Math.min(maxWidth, Math.round(maxHeight * COMPOSER_PANEL_ASPECT_RATIO));
+        let height = Math.round(width / COMPOSER_PANEL_ASPECT_RATIO);
+        if (height > maxHeight) {
+            height = maxHeight;
+            width = Math.min(maxWidth, Math.round(height * COMPOSER_PANEL_ASPECT_RATIO));
+        }
+        width = Math.max(320, Math.min(width, maxWidth));
+        height = Math.max(220, Math.min(height, maxHeight));
+        return {
+            x: Math.round(left + ((maxWidth - width) * 0.5)),
+            y: Math.round(top + ((maxHeight - height) * 0.5)),
+            width,
+            height,
+        };
+    }
+
+    function applyExpandedPanelRect(panel = getNode("ground-track-panel")) {
+        if (!(panel instanceof HTMLElement)) {
+            return;
+        }
+        const rect = resolveExpandedPanelRect();
+        panel.style.width = `${rect.width}px`;
+        panel.style.height = `${rect.height}px`;
+        applyPanelPosition(panel, rect.x, rect.y);
+    }
+
+    function syncExpandButton(button = getNode("ground-track-panel-expand")) {
+        if (!(button instanceof HTMLElement)) {
+            return;
+        }
+        button.textContent = panelExpanded === true ? "❐" : "□";
+        button.title = panelExpanded === true ? "Restore" : "Expand";
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-pressed", panelExpanded === true ? "true" : "false");
     }
 
     function confirmDeletePanel() {
@@ -1474,6 +1553,7 @@ function createGroundTrackPanelActions(options = {}) {
         if (!panel || !header) return;
 
         const onPointerDown = (event) => {
+            if (panelExpanded === true) return;
             if (!shouldStartDrag(event)) return;
             const rect = panel.getBoundingClientRect();
             dragState = {
@@ -1545,6 +1625,40 @@ function createGroundTrackPanelActions(options = {}) {
         syncVisibleView();
     }
 
+    function setPanelExpanded(expanded, panel = getNode("ground-track-panel")) {
+        if (!(panel instanceof HTMLElement)) {
+            return;
+        }
+        const nextExpanded = expanded === true;
+        if (nextExpanded === panelExpanded) {
+            syncExpandButton();
+            return;
+        }
+        if (nextExpanded) {
+            restorePanelFrame = capturePanelFrame(panel);
+            panelExpanded = true;
+            panel.classList.add("is-maximized");
+            applyExpandedPanelRect(panel);
+        } else {
+            panelExpanded = false;
+            panel.classList.remove("is-maximized");
+            if (restorePanelFrame && restorePanelFrame.width > 0 && restorePanelFrame.height > 0) {
+                panel.style.width = `${restorePanelFrame.width}px`;
+                panel.style.height = `${restorePanelFrame.height}px`;
+                applyPanelPosition(panel, restorePanelFrame.x, restorePanelFrame.y);
+            } else {
+                ensurePanelPosition(panel);
+            }
+        }
+        syncExpandButton();
+        persistPanelLayoutState(panel);
+        if (!panel.classList.contains("ground-track-panel--hidden")) {
+            map?.invalidateSize(false);
+            resizeGlobe();
+            syncVisibleView();
+        }
+    }
+
     function setPanelState(nextState) {
         const resolvedState = nextState === "minimized"
             ? "minimized"
@@ -1566,10 +1680,19 @@ function createGroundTrackPanelActions(options = {}) {
                 state: panelVisibilityState,
             },
         }));
-        persistPanelLayoutState(panel);
         syncPanelRegistry();
-        if (!isVisible) return;
-        ensurePanelPosition(panel);
+        if (!isVisible) {
+            persistPanelLayoutState(panel);
+            return;
+        }
+        if (panelExpanded === true) {
+            panel.classList.add("is-maximized");
+            applyExpandedPanelRect(panel);
+        } else {
+            ensurePanelPosition(panel);
+        }
+        syncExpandButton();
+        persistPanelLayoutState(panel);
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 syncVisibleView();
@@ -1621,6 +1744,7 @@ function createGroundTrackPanelActions(options = {}) {
         const headerControls = panel?.querySelector(".ground-track-panel__header-controls");
         let closeButton = getNode("ground-track-panel-close");
         let minimizeButton = getNode("ground-track-panel-minimize");
+        let expandButton = getNode("ground-track-panel-expand");
         let infoButton = getNode("ground-track-panel-info");
         let deleteButton = getNode("ground-track-panel-delete");
 
@@ -1647,6 +1771,7 @@ function createGroundTrackPanelActions(options = {}) {
                 hasRestoredPanelVisibilityState = true;
                 defaultPanelStateApplied = true;
             }
+            panel.classList.toggle("is-maximized", panelExpanded === true);
         }
 
         if (!infoButton && headerControls instanceof HTMLElement) {
@@ -1676,6 +1801,19 @@ function createGroundTrackPanelActions(options = {}) {
             }
         }
 
+        if (!expandButton && headerControls instanceof HTMLElement) {
+            expandButton = document.createElement("button");
+            expandButton.id = "ground-track-panel-expand";
+            expandButton.className = "ground-track-panel__icon-button ground-track-panel__expand mission-panel-shell__button mission-panel-shell__button--icon";
+            expandButton.type = "button";
+            expandButton.textContent = "□";
+            if (closeButton instanceof HTMLElement) {
+                headerControls.insertBefore(expandButton, closeButton);
+            } else {
+                headerControls.appendChild(expandButton);
+            }
+        }
+
         if (!deleteButton && headerControls instanceof HTMLElement) {
             deleteButton = document.createElement("button");
             deleteButton.id = "ground-track-panel-delete";
@@ -1688,8 +1826,13 @@ function createGroundTrackPanelActions(options = {}) {
         }
 
         bindPanelDragging(panel, header);
-        clampPanelPosition(panel);
+        if (panelExpanded === true) {
+            applyExpandedPanelRect(panel);
+        } else {
+            clampPanelPosition(panel);
+        }
         panel?.classList.toggle("ground-track-panel--hidden", panelVisibilityState !== "open");
+        syncExpandButton(expandButton);
 
         if (toggleButton && panel) {
             toggleButton.addEventListener("click", () => {
@@ -1702,6 +1845,7 @@ function createGroundTrackPanelActions(options = {}) {
         });
         infoButton?.addEventListener("click", () => showMissionPanelInfo(GROUND_TRACK_PANEL_REGISTRY_ID, infoButton));
         minimizeButton?.addEventListener("click", () => setPanelState("minimized"));
+        expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
         closeButton?.addEventListener("click", () => setPanelVisible(false));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());
         playButton?.addEventListener("click", () => {
@@ -1778,7 +1922,11 @@ function createGroundTrackPanelActions(options = {}) {
         if (panel && typeof ResizeObserver !== "undefined") {
             resizeObserver = new ResizeObserver(() => {
                 if (panel.classList.contains("ground-track-panel--hidden")) return;
-                clampPanelPosition(panel);
+                if (panelExpanded === true) {
+                    applyExpandedPanelRect(panel);
+                } else {
+                    clampPanelPosition(panel);
+                }
                 persistPanelLayoutState(panel);
                 map?.invalidateSize(false);
                 resizeGlobe();
@@ -1789,7 +1937,11 @@ function createGroundTrackPanelActions(options = {}) {
         window.addEventListener("resize", () => {
             if (!panel) return;
             if (!panel.classList.contains("ground-track-panel--hidden")) {
-                clampPanelPosition(panel);
+                if (panelExpanded === true) {
+                    applyExpandedPanelRect(panel);
+                } else {
+                    clampPanelPosition(panel);
+                }
                 persistPanelLayoutState(panel);
             }
             map?.invalidateSize(false);

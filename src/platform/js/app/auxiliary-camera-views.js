@@ -554,6 +554,15 @@ class AuxiliaryCameraViewsManager {
                 width: Math.round(panelState.panel.offsetWidth || panelState.width || 0),
                 height: Math.round(panelState.panel.offsetHeight || panelState.height || 0),
                 state: this.getPanelRegistryState(panelState),
+                maximized: panelState.maximized === true,
+                restoreFrame: panelState.restoreFrame && typeof panelState.restoreFrame === "object"
+                    ? {
+                        x: Math.round(Number(panelState.restoreFrame.x) || 0),
+                        y: Math.round(Number(panelState.restoreFrame.y) || 0),
+                        width: Math.round(Number(panelState.restoreFrame.width) || 0),
+                        height: Math.round(Number(panelState.restoreFrame.height) || 0),
+                    }
+                    : null,
             };
         }
         if (!storage) {
@@ -747,6 +756,112 @@ class AuxiliaryCameraViewsManager {
         });
     }
 
+    resolvePanelViewportBounds() {
+        const viewportWidth = Math.max(window.innerWidth, 1);
+        const viewportHeight = Math.max(window.innerHeight, 1);
+        const headerEl = document.querySelector(".header");
+        const timelineEl = document.querySelector(".timeline-dock");
+        const headerRect = headerEl?.getBoundingClientRect?.() || null;
+        const timelineRect = timelineEl?.getBoundingClientRect?.() || null;
+        const left = PANEL_MARGIN_PX;
+        const right = viewportWidth - PANEL_MARGIN_PX;
+        const top = Number.isFinite(headerRect?.bottom)
+            ? Math.round(headerRect.bottom + PANEL_GAP_PX)
+            : (this.readTimelineDockOffset() + PANEL_TOP_OFFSET_PX);
+        const bottom = Number.isFinite(timelineRect?.top)
+            ? Math.round(timelineRect.top - PANEL_GAP_PX)
+            : (viewportHeight - PANEL_MARGIN_PX);
+        return {
+            left,
+            top,
+            right,
+            bottom,
+            width: Math.max(160, right - left),
+            height: Math.max(160, bottom - top),
+        };
+    }
+
+    capturePanelFrame(panelState) {
+        if (!panelState?.panel) {
+            return null;
+        }
+        const panel = panelState.panel;
+        return {
+            x: Math.round(Number.isFinite(panelState.x) ? panelState.x : (panel.offsetLeft || 0)),
+            y: Math.round(Number.isFinite(panelState.y) ? panelState.y : (panel.offsetTop || 0)),
+            width: Math.round(panel.offsetWidth || panelState.width || 0),
+            height: Math.round(panel.offsetHeight || panelState.height || 0),
+        };
+    }
+
+    normalizePanelRestoreFrame(frame, fallbackFrame = null) {
+        const source = frame && typeof frame === "object" ? frame : null;
+        if (!source) {
+            return fallbackFrame;
+        }
+        const width = Math.round(Number(source.width) || 0);
+        const height = Math.round(Number(source.height) || 0);
+        const x = Math.round(Number(source.x) || 0);
+        const y = Math.round(Number(source.y) || 0);
+        if (width <= 0 || height <= 0) {
+            return fallbackFrame;
+        }
+        return { x, y, width, height };
+    }
+
+    resolveMaximizedPanelFrame(panelState) {
+        const bounds = this.resolvePanelViewportBounds();
+        if (panelState?.mode === "composer") {
+            let width = Math.max(
+                PANEL_MIN_SIDE_COMPOSER,
+                Math.min(bounds.width, Math.round(bounds.height * COMPOSER_DEFAULT_ASPECT_RATIO)),
+            );
+            let height = Math.round(width / COMPOSER_DEFAULT_ASPECT_RATIO);
+            if (height > bounds.height) {
+                height = bounds.height;
+                width = Math.round(height * COMPOSER_DEFAULT_ASPECT_RATIO);
+            }
+            width = Math.max(PANEL_MIN_SIDE_COMPOSER, Math.min(width, bounds.width));
+            height = Math.max(PANEL_MIN_SIDE_COMPOSER, Math.min(height, bounds.height));
+            return {
+                x: Math.round(bounds.left + ((bounds.width - width) * 0.5)),
+                y: Math.round(bounds.top + ((bounds.height - height) * 0.5)),
+                width,
+                height,
+            };
+        }
+
+        const side = Math.max(PANEL_MIN_SIDE_DEFAULT, Math.min(bounds.width, bounds.height));
+        return {
+            x: Math.round(bounds.left + ((bounds.width - side) * 0.5)),
+            y: Math.round(bounds.top + ((bounds.height - side) * 0.5)),
+            width: side,
+            height: side,
+        };
+    }
+
+    applyMaximizedPanelFrame(panelState) {
+        if (!panelState?.panel) {
+            return;
+        }
+        const nextFrame = this.resolveMaximizedPanelFrame(panelState);
+        panelState.panel.style.width = `${nextFrame.width}px`;
+        panelState.panel.style.height = `${nextFrame.height}px`;
+        this.applyPanelPosition(panelState, nextFrame.x, nextFrame.y);
+    }
+
+    syncPanelExpandButton(panelState) {
+        const button = panelState?.expandButton;
+        if (!button) {
+            return;
+        }
+        const maximized = panelState.maximized === true;
+        button.textContent = maximized ? "❐" : "□";
+        button.title = maximized ? `Restore ${panelState.title}` : `Expand ${panelState.title}`;
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-pressed", maximized ? "true" : "false");
+    }
+
     resolveComposerRequiredPanelHeight(panelState) {
         if (!panelState || panelState.mode !== "composer" || !panelState.panel) {
             return Number.NaN;
@@ -909,6 +1024,52 @@ class AuxiliaryCameraViewsManager {
         this.syncPanelRegistry(panelState);
     }
 
+    setPanelMaximized(panelState, maximized, { persist = true, requestRender = true } = {}) {
+        if (!panelState?.panel) {
+            return;
+        }
+        const nextMaximized = maximized === true;
+        if (nextMaximized === (panelState.maximized === true)) {
+            this.syncPanelExpandButton(panelState);
+            return;
+        }
+
+        if (nextMaximized) {
+            panelState.restoreFrame = this.capturePanelFrame(panelState);
+            panelState.deleted = false;
+            panelState.closed = false;
+            panelState.minimized = false;
+            panelState.maximized = true;
+            panelState.panel.classList.add("is-maximized");
+            this.applyMaximizedPanelFrame(panelState);
+            this.bringPanelToFront(panelState);
+        } else {
+            panelState.maximized = false;
+            panelState.panel.classList.remove("is-maximized");
+            const restoreFrame = this.normalizePanelRestoreFrame(
+                panelState.restoreFrame,
+                this.capturePanelFrame(panelState),
+            );
+            if (restoreFrame) {
+                panelState.panel.style.width = `${restoreFrame.width}px`;
+                panelState.panel.style.height = `${restoreFrame.height}px`;
+                this.applyPanelPosition(panelState, restoreFrame.x, restoreFrame.y);
+            } else {
+                this.clampPanelPosition(panelState);
+            }
+        }
+
+        this.syncPanelExpandButton(panelState);
+        this.syncPanelSize(panelState);
+        if (persist) {
+            this.queuePersistPanelState();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
+        this.syncPanelRegistry(panelState);
+    }
+
     setPanelClosed(panelState, closed, { persist = true, requestRender = true } = {}) {
         const nextClosed = closed === true;
         panelState.closed = nextClosed;
@@ -991,6 +1152,9 @@ class AuxiliaryCameraViewsManager {
 
     bindPanelDragging(panelState, header) {
         const onPointerDown = (event) => {
+            if (panelState?.maximized === true) {
+                return;
+            }
             if (!this.shouldStartDrag(event)) return;
             this.bringPanelToFront(panelState);
             this.dragState = {
@@ -1039,6 +1203,7 @@ class AuxiliaryCameraViewsManager {
         const panel = document.createElement("section");
         panel.className = "aux-camera-view mission-panel-shell";
         panel.dataset.target = spec.targetKey;
+        panel.dataset.infoMode = spec.infoMode || "none";
 
         const header = document.createElement("div");
         header.className = "aux-camera-view__header mission-panel-shell__header";
@@ -1050,6 +1215,7 @@ class AuxiliaryCameraViewsManager {
 
         const headerControls = document.createElement("div");
         headerControls.className = "aux-camera-view__header-controls mission-panel-shell__header-controls";
+        let panelControls = null;
 
         const fovControls = document.createElement("div");
         fovControls.className = "aux-camera-view__fov-controls";
@@ -1086,6 +1252,12 @@ class AuxiliaryCameraViewsManager {
         minimizeButton.textContent = "_";
         minimizeButton.setAttribute("aria-label", `Minimize ${spec.title}`);
 
+        const expandButton = document.createElement("button");
+        expandButton.className = "aux-camera-view__header-button aux-camera-view__expand-button mission-panel-shell__button mission-panel-shell__button--icon";
+        expandButton.type = "button";
+        expandButton.textContent = "□";
+        expandButton.setAttribute("aria-label", `Expand ${spec.title}`);
+
         const infoButton = document.createElement("button");
         infoButton.className = "aux-camera-view__header-button aux-camera-view__info-button mission-panel-shell__button mission-panel-shell__button--icon";
         infoButton.type = "button";
@@ -1105,9 +1277,9 @@ class AuxiliaryCameraViewsManager {
         deleteButton.textContent = "del";
         deleteButton.setAttribute("aria-label", `Delete ${spec.title}`);
 
-        headerControls.appendChild(fovControls);
         headerControls.appendChild(infoButton);
         headerControls.appendChild(minimizeButton);
+        headerControls.appendChild(expandButton);
         headerControls.appendChild(closeButton);
         headerControls.appendChild(deleteButton);
         header.appendChild(headerControls);
@@ -1119,6 +1291,11 @@ class AuxiliaryCameraViewsManager {
         panel.dataset.side = panelSide;
         if (panelMode === "composer") {
             panel.classList.add("aux-camera-view--composer");
+        } else {
+            panelControls = document.createElement("div");
+            panelControls.className = "aux-camera-view__panel-controls";
+            panelControls.appendChild(fovControls);
+            panel.appendChild(panelControls);
         }
 
         let info = null;
@@ -1752,13 +1929,16 @@ class AuxiliaryCameraViewsManager {
             autoToggle,
             infoButton,
             minimizeButton,
+            expandButton,
             closeButton,
             deleteButton,
+            panelControls,
             chipButton,
             autoFovEnabled: true,
             onAutoToggleClick: null,
             onInfoClick: null,
             onMinimizeClick: null,
+            onExpandClick: null,
             onCloseClick: null,
             onDeleteClick: null,
             onChipClick: null,
@@ -1803,6 +1983,8 @@ class AuxiliaryCameraViewsManager {
             minimized: false,
             closed: false,
             deleted: false,
+            maximized: persistedLayout?.maximized === true,
+            restoreFrame: this.normalizePanelRestoreFrame(persistedLayout?.restoreFrame, null),
             panelRegistryId,
             sortOrder: index,
             fallbackDefaultState: getAuxiliaryPanelFallbackState(spec),
@@ -1872,6 +2054,9 @@ class AuxiliaryCameraViewsManager {
         const onMinimizeClick = () => {
             this.setPanelMinimized(panelState, true);
         };
+        const onExpandClick = () => {
+            this.setPanelMaximized(panelState, panelState.maximized !== true);
+        };
         const onCloseClick = () => {
             this.setPanelClosed(panelState, true);
         };
@@ -1898,6 +2083,7 @@ class AuxiliaryCameraViewsManager {
         autoToggle.addEventListener("click", onAutoToggleClick);
         infoButton.addEventListener("click", onInfoClick);
         minimizeButton.addEventListener("click", onMinimizeClick);
+        expandButton.addEventListener("click", onExpandClick);
         closeButton.addEventListener("click", onCloseClick);
         deleteButton.addEventListener("click", onDeleteClick);
         chipButton.addEventListener("click", onChipClick);
@@ -1905,6 +2091,7 @@ class AuxiliaryCameraViewsManager {
         panelState.onFovInput = onFovInput;
         panelState.onInfoClick = onInfoClick;
         panelState.onMinimizeClick = onMinimizeClick;
+        panelState.onExpandClick = onExpandClick;
         panelState.onCloseClick = onCloseClick;
         panelState.onDeleteClick = onDeleteClick;
         panelState.onChipClick = onChipClick;
@@ -2551,6 +2738,12 @@ class AuxiliaryCameraViewsManager {
                 requestRender: false,
             },
         );
+        this.syncPanelExpandButton(panelState);
+        if (panelState.maximized === true) {
+            panelState.panel.classList.add("is-maximized");
+            this.applyMaximizedPanelFrame(panelState);
+            this.syncPanelSize(panelState);
+        }
         this.setPanelMissionEnabled(panelState, panelState.missionEnabled);
         registerMissionPanel({
             id: panelState.panelRegistryId,
@@ -2597,6 +2790,9 @@ class AuxiliaryCameraViewsManager {
         if (!visible) return;
         this.applyDefaultPanelLayout();
         for (const panelState of this.panels) {
+            if (panelState.maximized === true) {
+                this.applyMaximizedPanelFrame(panelState);
+            }
             this.syncPanelSize(panelState);
         }
         this.queuePersistPanelState();
@@ -3449,6 +3645,10 @@ class AuxiliaryCameraViewsManager {
         const minSize = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
         const panelWidth = Math.max(minSize, Math.floor(panelState.panel.clientWidth || 0));
         const panelHeight = Math.max(minSize, Math.floor(panelState.panel.clientHeight || 0));
+        if (!isComposer) {
+            const controlsDensity = (panelWidth >= 360 && panelHeight >= 280) ? "expanded" : "compact";
+            panelState.panel.dataset.controlsDensity = controlsDensity;
+        }
         if (!isComposer && panelWidth > 0 && Math.abs(panelWidth - panelHeight) > 1) {
             panelState.panel.style.height = `${panelWidth}px`;
         }
@@ -5634,6 +5834,7 @@ class AuxiliaryCameraViewsManager {
             panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
             panelState.infoButton.removeEventListener("click", panelState.onInfoClick);
             panelState.minimizeButton.removeEventListener("click", panelState.onMinimizeClick);
+            panelState.expandButton.removeEventListener("click", panelState.onExpandClick);
             panelState.closeButton.removeEventListener("click", panelState.onCloseClick);
             panelState.deleteButton.removeEventListener("click", panelState.onDeleteClick);
             panelState.chipButton.removeEventListener("click", panelState.onChipClick);

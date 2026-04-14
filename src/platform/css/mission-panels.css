@@ -255,6 +255,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     overflow: hidden;
 }
 
+.mission-panel-shell.is-maximized {
+    resize: none;
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.38);
+}
+
 .mission-panel-shell__header {
     display: flex;
     align-items: center;
@@ -269,6 +274,11 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .mission-panel-shell__header:active {
     cursor: grabbing;
+}
+
+.mission-panel-shell.is-maximized .mission-panel-shell__header,
+.mission-panel-shell.is-maximized .mission-panel-shell__header:active {
+    cursor: default;
 }
 
 .mission-panel-shell__header-controls {

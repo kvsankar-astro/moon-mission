@@ -86,7 +86,7 @@ canvas {
     position: absolute;
     pointer-events: auto;
     display: grid;
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto auto auto 1fr;
     width: 280px;
     height: 280px;
     aspect-ratio: 1 / 1;
@@ -134,6 +134,17 @@ canvas {
     font-size: 10px;
     font-weight: 600;
     white-space: nowrap;
+}
+
+.aux-camera-view__panel-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    padding: 5px 7px 4px;
+    border-bottom: 1px solid rgba(121, 171, 255, 0.1);
+    background: rgba(10, 18, 32, 0.42);
 }
 
 .aux-camera-view__fov-controls {
@@ -208,6 +219,27 @@ canvas {
 .aux-camera-view__fov-slider:disabled {
     opacity: 0.62;
     cursor: default;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__panel-controls {
+    padding: 4px 7px;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-label,
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-value {
+    display: none;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-controls {
+    width: 100%;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-slider {
+    width: 100%;
+}
+
+.aux-camera-view[data-controls-density="compact"][data-info-mode="moon-visibility"] .aux-camera-view__panel-controls {
+    display: none;
 }
 
 .aux-camera-view--composer {
