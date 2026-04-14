@@ -1,37 +1,47 @@
 # Panel System V1 Implementation Plan
 
-> Implementation note: the current V1 target is no standalone `Panel Manager` panel. The lifecycle surface is being simplified to a header `Panels` menu plus minimized chips, with the registry/persistence work retained underneath.
+> Status: the panel-foundation work is partially landed. This plan now separates shipped work from the next panel milestones.
 
-## Immediate Sequence
+## Landed Foundation
 
-1. Land the design spec and baseline the current UI with SSIM tests.
-2. Introduce shared panel data helpers and lifecycle vocabulary without changing panel visuals yet.
-3. Build a lightweight `Panels` launcher and minimized-chip restore path.
-4. Migrate existing panel metadata into the new registry.
-5. Incrementally move auxiliary panels and splashdown panel onto shared shell behavior.
-6. Add `Create View`, rename, info, close, and delete actions.
-7. Persist per-mission layouts and validate restore behavior.
+The following pieces are now in the codebase:
 
-## First Implementation Slice
+1. Shared panel registry, launcher wiring, info popover, and mission-scoped layout persistence.
+2. A header `Panels` launcher in place of the earlier floating `Panel Manager` concept.
+3. Auxiliary view panels and workflow panels registered into the same lifecycle model.
+4. Shared shell vocabulary across auxiliary panels and `Splashdown in Spotlight`.
+5. Mission-config-driven default built-in panel state via `ui.panels.defaults`.
+6. Workflow panels opening maximized by default on a clean mission layout.
+7. Default auxiliary panel placement aligned on the right side of the viewport without overlap.
+8. Shared nonlinear `Zoom` / FoV control semantics across the main semantic view and panel views.
 
-The first code slice should create the minimum shared panel foundation that can coexist with current code:
+## Current Gaps
 
-- add shared panel-state helpers
-- add a lightweight `Panels` launcher surface
-- expose current auxiliary panels and splashdown panel to the launcher as tracked instances
-- support minimized chips without a dedicated manager panel
-- keep existing panel rendering logic in place for now
+These are still outstanding:
 
-This keeps the initial change set focused while giving the app a new central place to manage lifecycle.
+- `Create View`
+- user-created view panels
+- panel rename support
+- immutable `viewSignature` surfaced through shared panel info
+- moving built-in panel definitions themselves into mission config, rather than only their default state
+- broader regression coverage for panel-specific layout edge cases
+
+## Recommended Next Sequence
+
+1. Define an explicit `viewSignature` model for built-in and future user-created view panels.
+2. Add a `Create View` flow seeded from the current main semantic view.
+3. Separate panel identity state from mutable per-panel presentation state.
+4. Add rename support and extend shared info payloads to show immutable view identity.
+5. Decide whether built-in panel definitions should move fully into mission config after the identity model is in place.
 
 ## Migration Notes
 
-- Auxiliary camera panels already have partial layout state and minimized chip behavior. Reuse these concepts, but move toward a mission-scoped panel layout model.
-- Splashdown panel currently duplicates drag and placement logic. It should be one of the first consumers of shared shell behavior after the manager lands.
-- Mission config-driven defaults now hang off `ui.panels.defaults`, keyed by panel registry id, so built-in panel availability/default state is mission-owned rather than hardcoded in panel modules.
+- `panel-manager.js` is now effectively a launcher/menu controller, despite the legacy filename.
+- Auxiliary panels and workflow panels still own some content-specific rendering logic, but their shell lifecycle is aligned.
+- Mission defaults currently cover built-in panel availability and default state, not yet arbitrary user-defined panel instances.
 
 ## Verification Approach
 
-- Run `make test` before implementation as the baseline.
-- After each major panel migration slice, rerun targeted UI checks.
-- When shell styling changes land, rerun full SSIM coverage and update baselines only if the visual change is intentional.
+- Use `make test` when a full UI + SSIM baseline is needed.
+- For targeted panel changes, rerun `npm run test:unit` plus browser smoke checks on representative mission URLs such as `mission.html?mission=artemis2`.
+- Rebaseline screenshots only when visual changes are intentional and reviewed.

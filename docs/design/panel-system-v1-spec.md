@@ -1,71 +1,69 @@
 # Panel System V1 Spec
 
-> Implementation note: the initial draft below references a floating `Panel Manager` panel. The current V1 direction is lighter: a header-level `Panels` menu plus minimized chips, while keeping the same underlying registry, lifecycle, and layout goals.
+> Status: this document describes the desktop panel foundation that is currently shipped, and separates that from deferred panel work.
 
 ## Purpose
 
-Unify the app's desktop panel experience under a single panel framework that supports:
+Unify the app's desktop panel experience under one panel framework that supports:
 
-- common window chrome and interaction behavior
-- mission-defined default panels
-- user-created view panels
+- common shell chrome and interaction behavior
+- mission-defined built-in panel defaults
 - per-mission layout persistence
-- a lightweight panel launcher for lifecycle control
+- a lightweight header `Panels` launcher for panel lifecycle
 
-This spec is desktop-only for v1.
+This spec is desktop-only for V1.
 
-## Goals
+## Current V1 Scope
 
-- All desktop panels share a common shell: border, header, title, info button, drag, resize, minimize, close, expand, z-order behavior.
-- Default panels come from mission configuration rather than hardcoded UI assumptions.
-- Users can create additional `View panels`.
-- `View panels` have immutable identity defined by `origin/focus/follow/view/plane/dimension`.
-- Panel layouts are saved and restored per mission.
-- A `Panel Manager` panel lets users inspect, restore, close, create, and manage panels.
+The current shipped V1 scope is:
 
-## Non-Goals
+- shared shell behavior for desktop panels
+- mission-config-driven default visibility for built-in panels
+- persisted per-mission desktop layout
+- a header `Panels` pill and menu instead of a floating manager panel
+- built-in auxiliary view panels plus workflow panels
+- shared `Zoom`/FoV control semantics across the main view and panel views
 
-- Mobile panel system.
-- Named/custom user-saved layouts across a single mission.
-- Cross-mission shared layouts.
-- Changing a view panel's identity after creation.
-- Full docking/snapping/tiling system in v1.
+## Deferred Beyond Current V1
+
+These items are still design targets, not current shipped behavior:
+
+- `Create View`
+- user-created view panels
+- panel rename support
+- immutable `viewSignature` inspection for user-created panels
+- a standalone manager panel
+- named layouts per mission
+- mobile panel UX
 
 ## Panel Types
 
-### 1. View panel
+### 1. Auxiliary view panels
 
-- Renders a mission scene view.
-- Identity is the immutable `viewSignature`:
-  - `origin`
-  - `focus`
-  - `follow`
-  - `view`
-  - `plane`
-  - `dimension`
-- Users may create new view panels from any valid signature.
-- Users may rename them.
-- Other mutable settings may vary per panel:
-  - locators
-  - orbit visibility
-  - overlay visibility
-  - labels
-  - style/render toggles
-  - similar per-view presentation state
+- Render additional built-in mission scene views.
+- Artemis II currently includes:
+  - `Craft -> Earth`
+  - `Craft -> Moon`
+  - `Earth -> Moon`
+- These panels use the shared shell and keep panel-local presentation state.
+- Identity is currently defined by the built-in panel preset, not by a user-editable `viewSignature` flow yet.
 
-### 2. Workflow panel
+### 2. Workflow panels
 
-- Mission- or feature-specific panels that do not map cleanly to a view signature.
-- Examples today:
+- Mission- or feature-specific panels that do not map cleanly to a simple built-in aux view.
+- Current examples:
   - `Flyby in Focus`
   - `Splashdown in Spotlight`
-- These use the shared shell but own specialized internal UI and behavior.
+- These use the shared shell, but own specialized internal UI and behavior.
+- On a clean mission layout, workflow panels open maximized by default.
 
-### 3. Panels launcher
+### 3. `Panels` launcher
 
-- V1 uses a lightweight `Panels` launcher in the header rather than a standalone manager panel.
-- The launcher lists mission panels, shows their current state, and exposes restore/open/focus and info actions.
-- A dedicated manager panel remains a possible later enhancement, but is out of scope for V1.
+- Desktop V1 uses a lightweight `Panels` launcher in the header rather than a standalone manager panel.
+- The launcher lists current mission panels, shows their state, and exposes:
+  - `Info`
+  - `Restore` / `Open` / `Add` / `Focus` as the primary action, depending on panel state
+- Non-open panels are listed first, with currently open panels in a second section.
 
 ## Core Concepts
 
@@ -75,14 +73,14 @@ This spec is desktop-only for v1.
 - Responsible for:
   - title bar
   - panel title
-  - info button
+  - info
   - minimize
+  - expand / restore
   - close
   - delete
-  - expand/maximize
   - drag
   - resize
-  - focus/z-order
+  - focus / z-order
   - persisted geometry
 
 ### Panel content
@@ -92,27 +90,28 @@ This spec is desktop-only for v1.
   - rendering
   - panel-specific controls
   - panel-specific state
-  - interpreting panel identity/config
+  - mission-specific UI behavior
 
 ### Panel instance
 
 - A concrete panel on screen.
-- Has runtime and persisted state.
+- Has runtime state plus persisted mission-layout state.
 
 ### Layout
 
-- The set of panel instances for a mission, including:
-  - which panels exist
-  - which are open/minimized/closed
+- The set of built-in panel instances for a mission, including:
+  - which panels are present in the layout
+  - open / minimized / closed / deleted state
   - geometry
+  - maximize state
   - z-order
-  - per-panel mutable settings
+  - panel-local mutable settings
 
 ## Mission Configuration
 
 Each mission may declare default built-in panel behavior in mission config.
 
-Example shape:
+Current shape:
 
 ```json
 {
@@ -140,138 +139,89 @@ Example shape:
 
 Rules:
 
-- Default panels are defined per mission.
-- Built-in defaults are keyed by panel registry id.
-- If no saved layout exists for a mission, initialize panel lifecycle state from mission config.
-- Built-in panel availability can still be mission-conditional.
+- Defaults are keyed by panel registry id.
+- If a saved mission layout exists, it wins over config defaults.
+- If no saved layout exists, built-in panel visibility initializes from mission config.
+- Built-in panel availability remains mission-owned rather than hardcoded in generic UI.
 
-## Panel Identity and Renaming
+## Current Lifecycle Semantics
 
-For `View panels`:
+### `open`
 
-- Identity is immutable and separate from display title.
-- Users may rename the panel title freely.
-- The immutable identity must always be inspectable via a shared `Panel Info` action in the shell.
+- Panel is visible in the workspace.
+- It appears in the `Open` section of the `Panels` menu.
 
-`Panel Info` should show:
+### `minimized`
 
-- panel type
-- whether built-in or user-created
-- for view panels, the full `viewSignature`
-- optionally read-only internal id
+- Panel stays alive but leaves the workspace.
+- It appears in the non-open section of the `Panels` menu and can be restored.
 
-This resolves the tension between user-friendly naming and exact technical identity.
-
-## User Flows
-
-### 1. Mission load
-
-- Load mission config.
-- Load saved mission layout if present.
-- If absent or invalid, instantiate mission default panels.
-- Open panels according to saved/default state.
-
-### 2. Create new view panel
-
-Recommended v1 UX:
-
-- User configures the main/default view using existing controls.
-- User clicks `Create View`.
-- App opens a small creation dialog or panel:
-  - prefilled from current main view signature
-  - editable before creation
-  - includes title field
-  - includes `Create` action
-- Result: a new user-created view panel is added to the current mission layout.
-
-Notes:
-
-- This supports "capture current view as a panel" while still allowing edits before creation.
-- This action should be available from both the header and the `Panel Manager`.
-
-### 3. Restore and manage panels
-
-- User opens `Panel Manager`.
-- Manager lists all panels for the current mission.
-- User can:
-  - show/open hidden panels
-  - restore minimized panels
-  - close panels
-  - delete panels
-  - inspect panel info
-  - rename panels
-  - create new view panels
-  - reset mission layout
-
-### 4. Minimize behavior
-
-- Panel stays alive but leaves workspace view.
-- It appears as a chip inside `Panel Manager`.
-- `Panel Manager` is the guaranteed restore path.
-
-### 5. Close behavior
+### `closed`
 
 - Panel is hidden but retained in the current mission layout.
-- It can be reopened from `Panel Manager`.
+- It can be reopened from the `Panels` menu.
 
-### 6. Delete behavior
+### `deleted`
 
-- `Delete` removes the panel from the current mission layout.
-- This action should be available from both the shell and the `Panel Manager`.
-- `Delete` should be destructive-looking and require confirmation.
+- Panel is removed from the current mission layout.
+- For built-in panels, `Delete` removes the instance from the saved layout but the panel remains re-addable from the `Panels` menu.
+- `Delete` is destructive-looking and confirmed.
+- `Panel Manager`-specific delete semantics are no longer relevant because V1 no longer uses a manager panel.
 
-Built-in panels:
+### `maximized`
 
-- `Delete` removes that instance from the current mission's saved layout.
-- The panel remains re-addable from `Panel Manager` under an `Available Mission Panels` section.
-- `Reset Layout` restores it.
+- Panel expands into the usable desktop viewport band.
+- Restoring exits to the previous saved frame.
+- Workflow panels default to this state on a clean layout.
 
-User-created view panels:
+## Shared Shell Requirements
 
-- `Delete` removes them from the current mission layout entirely.
+Visual consistency across current desktop panel types:
 
-`Panel Manager` exception:
+- same border language
+- same title bar layout
+- same icon-button treatment
+- same drag affordance
+- same resize affordance
+- same focus treatment
+- same spacing and radius tokens
 
-- It may be minimized or closed to a chip.
-- It should not be deletable.
+Functional consistency:
 
-### 7. Expand behavior
+- click brings panel to front
+- drag from title bar
+- resize from shell edge / corner
+- shell actions use the same meaning everywhere
+- delete confirmation copy is consistent
 
-- Temporary enlarged/maximized workspace mode.
-- Does not alter panel identity.
-- Restoring exits to previous geometry.
-
-## Panel Manager Requirements
-
-The manager must:
-
-- list all current mission panels
-- distinguish built-in vs user-created
-- show open/minimized/hidden state
-- expose actions:
-  - open/restore
-  - minimize
-  - close
-  - delete
-  - rename
-  - info
-  - create view
-  - reset layout
-
-Recommended sections:
-
-- `Open Panels`
-- `Minimized`
-- `Closed`
-- `Available Mission Panels`
-
-Recommended row contents:
+Shared shell controls:
 
 - title
-- type badge
+- info
+- minimize
+- expand / restore
+- close
+- delete
+
+## `Panels` Launcher Behavior
+
+The current launcher must:
+
+- appear as a header pill on desktop when mission panels are available
+- stay closed on load
+- open as a compact anchored menu
+- list all mission panels that are available to the current mission
+- show the panel state badge for each row
+- show built-in status
+- expose `Info` plus one primary lifecycle action per row
+
+Recommended row contents, matching current behavior:
+
+- title
 - state badge
-- info button
-- action buttons
+- built-in badge when applicable
+- `Info`
+- one state-dependent primary action
 
 ## Layout Persistence
 
@@ -280,16 +230,15 @@ Scope:
 - per mission only
 - desktop only
 
-Persistence includes:
+Persistence currently includes:
 
-- panel instances
-- panel type/kind
-- panel title
-- built-in vs user-created
+- panel presence in the mission layout
+- built-in vs mission-defined availability
 - visibility state:
   - open
   - minimized
-  - hidden
+  - closed
+  - deleted
   - maximized
 - geometry:
   - x
@@ -297,10 +246,9 @@ Persistence includes:
   - width
   - height
 - z-order
-- per-panel mutable settings
-- for view panels, immutable `viewSignature`
+- panel-local mutable settings needed by the current panel implementations
 
-Suggested storage key:
+Storage key:
 
 ```text
 moon-mission:panel-layout:v1:<missionKey>
@@ -308,172 +256,51 @@ moon-mission:panel-layout:v1:<missionKey>
 
 Rules:
 
-- Save on meaningful layout changes with debounce.
-- Clamp offscreen panels on load and on resize.
-- If persisted layout is invalid or partially incompatible, recover gracefully:
-  - keep valid panels
-  - rebuild missing defaults as needed
+- save on meaningful layout changes
+- clamp offscreen panels on restore and resize
+- if layout data is partially invalid, recover gracefully and rebuild from defaults where needed
 
-## Data Model
+## Default Layout Behavior
 
-Suggested runtime model:
+On a clean mission load with no saved panel layout:
 
-```ts
-type PanelKind = "view" | "workflow" | "manager";
+- built-in panel lifecycle state comes from mission config
+- auxiliary view panels are placed in a right-aligned, non-overlapping stack
+- if the viewport is too short for a single column, auxiliary defaults wrap into additional columns to the left
+- workflow panels open maximized by default
 
-type ViewSignature = {
-  origin: string;
-  focus: string;
-  follow: string;
-  view: string;
-  plane: string;
-  dimension: string;
-};
+Saved layouts override these clean-load defaults.
 
-type PanelFrameState = {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  zIndex: number;
-  minimized: boolean;
-  hidden: boolean;
-  maximized: boolean;
-};
+## Current Info Behavior
 
-type PanelInstance = {
-  id: string;
-  kind: PanelKind;
-  panelType: string;
-  builtIn: boolean;
-  title: string;
-  frame: PanelFrameState;
-  viewSignature?: ViewSignature;
-  contentState?: Record<string, unknown>;
-};
-```
+The current shared info UI shows consistent panel metadata.
 
-Interpretation:
-
-- `kind` is high-level category.
-- `panelType` is implementation key, like `view`, `flyby-focus`, `splashdown`, `panel-manager`.
-- `contentState` stores mutable per-panel settings.
-
-## Validation Rules
-
-For `View panels`:
-
-- `viewSignature` must be valid for current mission/runtime.
-- Validation checks:
-  - origin allowed
-  - dimension allowed
-  - plane allowed
-  - focus/follow/view combination supported
-- Invalid signatures should not crash restore.
-
-Preferred v1 behavior:
-
-- Keep the row in `Panel Manager` with an unavailable state and a reason if feasible.
-- Otherwise drop the panel gracefully and rebuild defaults as needed.
-
-## Shared Panel Shell Requirements
-
-Visual consistency across all panel types:
-
-- same border language
-- same title bar layout
-- same button placement and styles
-- same drag affordance
-- same resize affordance
-- same focus treatment
-- same spacing, radius, and shadow tokens
-
-Functional consistency:
-
-- click brings panel to front
-- drag from title bar
-- resize from shell edge/corner
-- keyboard-focusable controls
-- shell buttons have consistent meaning everywhere
-
-Shared shell controls:
+Today that means:
 
 - title
-- info
-- minimize
-- expand
-- close
-- delete
+- panel type
+- built-in vs user-created status
+- internal id
 
-Recommended v1 info behavior:
+For current built-in panels, this is enough to identify the panel instance. Future user-created view panels will extend this with immutable `viewSignature` details.
 
-- the shell owns one shared info UI
-- every panel's `Info` button opens the same style of info popover/panel
-- the shell always shows standard fields:
-  - title
-  - panel type
-  - built-in vs user-created
-  - internal id
-- for `View panels`, it also shows the full immutable `viewSignature`
-- for `Workflow panels`, it shows the canonical workflow/panel kind
-- panel content may optionally append extra read-only fields, but the container and structure stay common
+## Current Acceptance Criteria
 
-## Implementation Direction
+- A mission can define default built-in panel states in config.
+- On first desktop load, built-in panels appear with consistent shared shell styling and behavior.
+- Auxiliary view panels are right-aligned by default without overlap.
+- Workflow panels participate in the same shell model and default to maximized on a clean layout.
+- The user can drag, resize, minimize, expand, close, delete, and restore the currently supported desktop panels consistently.
+- The `Panels` launcher can inspect and reopen the current mission's panels.
+- The app restores the same desktop panel layout when reloading the same mission.
 
-Current code suggests three migration targets:
+## Deferred Follow-On
 
-- auxiliary camera panels in `src/platform/js/app/auxiliary-camera-views.js`
-- splashdown panel in `src/platform/js/app/ground-track-panel.js`
-- legacy dialog/settings/info surfaces
+The next substantial panel milestone remains:
 
-Recommended refactor direction:
-
-1. Introduce a generic `PanelManager` runtime module.
-   - owns registry of panel instances
-   - owns persistence
-   - owns z-order
-   - owns panel lifecycle
-2. Introduce a reusable `PanelShell`.
-   - shared DOM/CSS creation
-   - shared drag/resize/minimize/maximize/close/delete behavior
-3. Convert existing auxiliary camera panels.
-   - map current preset panels into built-in panels
-   - move their frame behavior into shared shell
-   - keep their specialized render content as panel content
-4. Convert splashdown panel.
-   - keep internal content module
-   - remove duplicate shell/drag/layout code
-   - register it as a workflow panel
-5. Add `Panel Manager` panel.
-   - initial lifecycle surface
-6. Add `Create View` flow.
-   - seed from current main view
-   - create user panel instance
-   - persist immediately
-
-## V1 Defaults
-
-For a mission with configured defaults:
-
-- built-in default panels are created from mission config
-- layout starts from config if no saved state exists
-- `Panel Manager` exists by default but may start hidden or minimized
-- mobile path is ignored for this system
-
-## Open Questions
-
-- Should shell `Close` on user-created panels always hide rather than delete, even though `Delete` is also present?
-- Should minimized panels also appear as external chips outside `Panel Manager` in addition to the manager chip list?
-- Should `Create View` use a dialog, an inline mini-form in `Panel Manager`, or both?
-
-## Acceptance Criteria
-
-- A mission can define its default desktop panels in config.
-- On first load, those panels appear with consistent shared shell styling and behavior.
-- The user can drag, resize, minimize, expand, close, delete, and restore all desktop panels consistently.
-- The user can create a new view panel from a valid view signature.
-- The new view panel preserves immutable identity and separate user-editable title.
-- The user can inspect panel identity through a common shell `Info` action.
-- The app restores the same panel layout when reloading the same mission.
-- Splashdown and existing auxiliary view panels participate in the same panel framework.
-- `Panel Manager` can manage the lifecycle of all panels in the mission.
+- explicit `viewSignature` modeling
+- `Create View`
+- user-created view panels
+- title rename support
+- richer info payload for view identity
+- optionally moving built-in panel definitions themselves into mission config rather than only their default state

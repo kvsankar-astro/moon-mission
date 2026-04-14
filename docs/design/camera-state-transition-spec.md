@@ -1,5 +1,7 @@
 # Camera State Transition Spec
 
+> Status: this remains the design target for tightening camera-mode transitions. The FoV/Zoom sections below have been updated to match the current shipped desktop behavior.
+
 ## Purpose
 
 Define an explicit camera interaction model that prevents ambiguous state carry-over between:
@@ -212,13 +214,15 @@ FoV UI and FoV wheel interaction are disabled in:
 
 ### Behavior
 
-- Manual FoV, slider FoV, numeric-input FoV, and wheel FoV all update the same underlying FoV state.
+- Desktop FoV control is presented as a shared nonlinear `Zoom` slider plus a readonly FoV value.
+- The main semantic view and the desktop panel views use the same control-construction path via `mission-fov-control.js`.
+- Slider, wheel, and auto-FoV all update the same underlying FoV state.
 - Auto-FoV and manual FoV must be mutually consistent:
   - any manual FoV input exits auto mode
   - auto recompute updates all visible FoV UI controls
 - FoV precision is one decimal place in UI.
-- Numeric entry accepts numeric values in `nnn.n` style.
 - FoV lower bound must be below `1.0` degree.
+- The zoom slider midpoint should target a useful framing FoV, not the raw optical midpoint. The current shipped midpoint target is `35.0` degrees.
 
 ### Auto-FoV Fit Rule
 
@@ -278,10 +282,10 @@ At minimum:
 
 | Mode | FoV UI visible | FoV input active | Expected |
 | --- | --- | --- | --- |
-| `free` | no | no | slider, wheel, numeric input do nothing |
-| `follow(moon)` | no | no | slider, wheel, numeric input do nothing |
-| `earth->moon` | yes | yes | slider, wheel, numeric input stay in sync |
-| `moon->earth` | yes | yes | slider, wheel, numeric input stay in sync |
+| `free` | no | no | slider and wheel do nothing |
+| `follow(moon)` | no | no | slider and wheel do nothing |
+| `earth->moon` | yes | yes | slider and wheel stay in sync |
+| `moon->earth` | yes | yes | slider and wheel stay in sync |
 | `craft->moon` | yes | yes | auto/manual transitions stay in sync |
 | `craft->earth` | yes | yes | auto-fit respects visible viewport band |
 

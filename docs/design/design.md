@@ -8,6 +8,8 @@ All design-focused documents live under `docs/design/`.
 - `index.html`: landing page with mission cards and launch entry points.
 - `mission.html`: mission runtime shell (selector + 2D/3D visualization), with:
   - Header pill strip (`#header-pill-strip`) for quick mission/view controls.
+  - Header `Panels` launcher for desktop panel lifecycle.
+  - Shared desktop `Zoom` control for semantic `A->B` views; the same control semantics are reused inside desktop panel views.
   - Settings panel (`#settings-panel`) for full control coverage and advanced options.
   - Mission-specific overlay panels where needed. Artemis II currently adds:
     - `Flyby in Focus`: composer-style auxiliary camera panel
@@ -46,6 +48,7 @@ All design-focused documents live under `docs/design/`.
 - Some pills also launch mission-specific panels instead of only toggling settings state.
   - Artemis II `Flyby` restores the `Flyby in Focus` auxiliary composer panel.
   - Artemis II `Splashdown` opens `Splashdown in Spotlight`.
+- Desktop mission panels are managed through a shared registry, a header `Panels` launcher, and mission-scoped persisted layout state.
 
 ## 3) Frame/Origin Model
 
@@ -92,6 +95,7 @@ Example event-sourcing deep dive:
   - `Classic`
   - `Trail` (track + tail controls and style sidecars)
 - Optional auxiliary camera panels for desktop multi-view workflows.
+- Desktop panels now share a common shell language, lifecycle actions, and mission-scoped layout persistence.
 - Artemis II extends that panel system with two higher-level mission workflows:
   - `Flyby in Focus`
     - implemented in `src/platform/js/app/auxiliary-camera-views.js`
@@ -108,6 +112,7 @@ Rendering/UX design investigations:
 - [orion-procedural-model-generation.md](orion-procedural-model-generation.md)
 - [panel-system-v1-spec.md](panel-system-v1-spec.md)
 - [panel-system-v1-implementation-plan.md](panel-system-v1-implementation-plan.md)
+- [camera-state-transition-spec.md](camera-state-transition-spec.md)
 
 ## 7) Performance and Refactor Direction
 
