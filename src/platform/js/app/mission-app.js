@@ -71,6 +71,8 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleMode: (event) => eventBus.emit("settings:originChanged", { event }),
         toggleRelativeMode: (event) => eventBus.emit("settings:relativeModeChanged", { event }),
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
+        changeDesktopMainFov: handlers.changeDesktopMainFov,
+        toggleDesktopMainFovAuto: handlers.toggleDesktopMainFovAuto,
         toggleLockSC: (event) => eventBus.emit("camera:lockOn", { target: "SC", event }),
         toggleLockMoon: (event) => eventBus.emit("camera:lockOn", { target: "MOON", event }),
         toggleLockEarth: (event) => eventBus.emit("camera:lockOn", { target: "EARTH", event }),

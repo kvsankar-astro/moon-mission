@@ -37,6 +37,36 @@ function onInput(id, handler) {
     element.addEventListener("input", handler);
 }
 
+function normalizeSingleDecimalInputValue(rawValue, { maxIntegerDigits = 3 } = {}) {
+    const stringValue = String(rawValue ?? "");
+    const sanitized = stringValue.replace(/[^\d.]/g, "");
+    if (!sanitized) {
+        return "";
+    }
+
+    const hasDecimal = sanitized.includes(".");
+    const [rawIntegerPart, ...rawFractionParts] = sanitized.split(".");
+    const joinedFractionPart = rawFractionParts.join("");
+
+    let integerPart = rawIntegerPart.slice(0, maxIntegerDigits);
+    if (integerPart.length > 1) {
+        integerPart = integerPart.replace(/^0+(?=\d)/, "");
+    }
+    if (!integerPart && hasDecimal) {
+        integerPart = "0";
+    }
+
+    if (!hasDecimal) {
+        return integerPart;
+    }
+
+    const fractionPart = joinedFractionPart.slice(0, 1);
+    if (!fractionPart && sanitized.endsWith(".")) {
+        return `${integerPart}.`;
+    }
+    return `${integerPart}.${fractionPart}`;
+}
+
 function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
@@ -694,6 +724,8 @@ export function bindMainControls(handlers) {
         toggleMode,
         toggleRelativeMode,
         changeCameraFromTo,
+        changeDesktopMainFov,
+        toggleDesktopMainFovAuto,
         togglePlane,
         setView,
         setDimensionTop,
@@ -1218,7 +1250,28 @@ export function bindMainControls(handlers) {
     onChange("camera-look", changeCameraFromTo);
     onChangeAll('input[name="camera-position-pill"]', changeCameraFromTo);
     onChangeAll('input[name="camera-look-pill"]', changeCameraFromTo);
-    onChange("camera-fov-one-degree", changeCameraFromTo);
+    onInput("desktop-main-fov-slider", changeDesktopMainFov);
+    onChange("desktop-main-fov-value", changeDesktopMainFov);
+    onClick("desktop-main-fov-auto", toggleDesktopMainFovAuto);
+    const desktopMainFovValue = document.getElementById("desktop-main-fov-value");
+    if (desktopMainFovValue) {
+        desktopMainFovValue.addEventListener("input", function (event) {
+            const target = event?.target;
+            if (!(target instanceof HTMLInputElement)) return;
+            const normalized = normalizeSingleDecimalInputValue(target.value);
+            if (target.value !== normalized) {
+                target.value = normalized;
+            }
+        });
+        desktopMainFovValue.addEventListener("blur", function (event) {
+            changeDesktopMainFov(event);
+        });
+        desktopMainFovValue.addEventListener("keydown", function (event) {
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            event.currentTarget?.blur?.();
+        });
+    }
 
     onClick("checkbox-lock-default", togglePlane);
     onClick("checkbox-lock-xy", togglePlane);
@@ -1326,8 +1379,8 @@ export function bindMainControls(handlers) {
             const isAlreadyActive = positionValue === position && lookValue === look;
             const nextPosition = isAlreadyActive ? "manual" : position;
             const nextLook = isAlreadyActive ? "manual" : look;
-            const isFreeRelease = nextPosition === "manual" && nextLook === "manual";
-            applyCameraPillPair(nextPosition, nextLook, { preserveManualRelease: isFreeRelease });
+            // Semantic source->target views should return to a clean free camera when released.
+            applyCameraPillPair(nextPosition, nextLook);
             syncFollowPillState();
             syncViewPillState();
         });

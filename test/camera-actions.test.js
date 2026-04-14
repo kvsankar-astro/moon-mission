@@ -1,0 +1,221 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { Vector3 } from "three";
+
+import { createCameraActions } from "../src/platform/js/app/camera-actions.js";
+
+function createVectorTarget(x, y, z) {
+    return {
+        getWorldPosition(out = new Vector3()) {
+            return out.set(x, y, z);
+        },
+    };
+}
+
+function createDocumentStub() {
+    return {
+        getElementById() {
+            return null;
+        },
+        querySelector() {
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+    };
+}
+
+describe("createCameraActions", () => {
+    const originalDocument = globalThis.document;
+
+    afterEach(() => {
+        globalThis.document = originalDocument;
+    });
+
+    it("re-centers semantic mounted views on the source body", () => {
+        globalThis.document = createDocumentStub();
+
+        let positionMode = "earth";
+        let lookMode = "moon";
+
+        const camera = {
+            position: new Vector3(25, -10, 4),
+            fov: 50,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls: {
+                target: new Vector3(),
+                update: vi.fn(),
+                addEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            },
+            _freeFlyActive: false,
+            _mountWorld: new Vector3(),
+            _lookWorld: new Vector3(),
+            mountOffset: new Vector3(25, -10, 4),
+            updateFromTo: vi.fn(),
+            setFromToModes(nextPositionMode, nextLookMode) {
+                this.positionMode = nextPositionMode;
+                this.lookMode = nextLookMode;
+            },
+            _resolveTargetWorld(mode, out = new Vector3()) {
+                if (mode === "earth") return out.set(0, 0, 0);
+                if (mode === "moon") return out.set(100, 0, 0);
+                if (mode === "spacecraft") return out.set(50, 0, 0);
+                return null;
+            },
+            setMountOffset(offset) {
+                this.mountOffset.set(offset.x ?? 0, offset.y ?? 0, offset.z ?? 0);
+            },
+            setMountTargetOffset: vi.fn(),
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+            earthContainer: createVectorTarget(0, 0, 0),
+            moonContainer: createVectorTarget(100, 0, 0),
+            craft: createVectorTarget(50, 0, 0),
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: (next) => {
+                if (typeof next?.positionMode === "string") {
+                    positionMode = next.positionMode;
+                }
+                if (typeof next?.lookMode === "string") {
+                    lookMode = next.lookMode;
+                }
+            },
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeCameraFromTo({ target: { id: "camera-look" } });
+
+        expect(scene.camera.position.toArray()).toEqual([0, 0, 0]);
+        expect(scene.cameraController.mountOffset.length()).toBe(0);
+    });
+
+    it("ignores desktop FoV input outside semantic source-to-target views", () => {
+        globalThis.document = createDocumentStub();
+
+        let positionMode = "manual";
+        let lookMode = "manual";
+
+        const camera = {
+            position: new Vector3(0, 0, 0),
+            fov: 50,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls: {
+                target: new Vector3(),
+                update: vi.fn(),
+                addEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            },
+            _freeFlyActive: false,
+            setFov: vi.fn((fov) => {
+                camera.fov = fov;
+            }),
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: vi.fn(),
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeDesktopMainFov({ target: { value: "27" } });
+
+        expect(controller.setFov).not.toHaveBeenCalled();
+        expect(camera.fov).toBe(50);
+    });
+
+    it("allows semantic view FoV values below one degree", () => {
+        globalThis.document = createDocumentStub();
+
+        let positionMode = "spacecraft";
+        let lookMode = "earth";
+
+        const camera = {
+            position: new Vector3(0, 0, 0),
+            fov: 50,
+            up: new Vector3(0, 0, 1),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls: {
+                target: new Vector3(),
+                update: vi.fn(),
+                addEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            },
+            _freeFlyActive: false,
+            setFov: vi.fn((fov) => {
+                camera.fov = fov;
+            }),
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: vi.fn(),
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeDesktopMainFov({ target: { value: "0.4" } });
+
+        expect(controller.setFov).toHaveBeenCalledWith(0.4);
+        expect(camera.fov).toBe(0.4);
+    });
+});

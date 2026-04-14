@@ -971,17 +971,18 @@ async function ensureOriginMode(page, mode) {
 }
 
 async function ensureFovOneDegree(page, enabled = true) {
-  const toggle = page.locator('#camera-fov-one-degree');
-  const isChecked = await toggle.isChecked();
-  if (isChecked !== enabled) {
-    await page.evaluate((checked) => {
-      const input = document.getElementById('camera-fov-one-degree');
-      if (!input) return;
-      input.checked = checked;
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }, enabled);
-    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-  }
+  await page.evaluate((shouldEnable) => {
+    const autoButton = document.getElementById('desktop-main-fov-auto');
+    const slider = document.getElementById('desktop-main-fov-slider');
+    if (!(slider instanceof HTMLInputElement)) return;
+    const autoPressed = autoButton?.getAttribute('aria-pressed') === 'true';
+    if (autoPressed && autoButton instanceof HTMLElement) {
+      autoButton.click();
+    }
+    slider.value = shouldEnable ? '1' : '50';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  }, enabled);
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
 }
 
 async function ensureAnimationPaused(page) {

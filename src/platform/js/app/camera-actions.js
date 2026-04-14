@@ -22,11 +22,16 @@ export function createCameraActions({
     getViewConstellationLines,
 }) {
     const CAMERA_MODE_VALUES = ["manual", "earth", "moon", "spacecraft"];
+    const MIN_FOV_DEGREES = 0.1;
+    const MAX_FOV_DEGREES = 179;
+    const AUTO_FOV_MARGIN_SCALE = 1.03;
+    const AUTO_FOV_EPSILON_DEGREES = 1e-4;
     let pendingApplyHandle = null;
     let lastAppliedPositionMode = "manual";
     let lastAppliedLookMode = "manual";
     let lastAppliedConfig = null;
-    let savedFov = null;
+    let desktopMainViewAutoFovEnabled = false;
+    let lastSyncedDesktopMainFov = 50;
 
     const mountedBodyOverride = {
         earth: { hidden: null },
@@ -172,56 +177,312 @@ export function createCameraActions({
         });
     }
 
-    function applyFixedFov(scene, positionMode, lookMode) {
-        const toggle = document.getElementById("camera-fov-one-degree");
-        const wantsFixed = !!toggle?.checked;
-        const isEligible =
-            (positionMode === "earth" || positionMode === "moon") &&
-            (lookMode === "earth" || lookMode === "moon");
-        if (toggle) {
-            toggle.disabled = !isEligible;
+    function getActiveScene() {
+        return animationScenes[getConfig()] || null;
+    }
+
+    function clampFovDegrees(value) {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed)) {
+            return 50;
         }
+        return Math.max(MIN_FOV_DEGREES, Math.min(MAX_FOV_DEGREES, parsed));
+    }
 
-        const controller = scene?.cameraController;
-        if (!controller) return;
+    function formatFovDegrees(value) {
+        return clampFovDegrees(value).toFixed(1);
+    }
 
-        const shouldFix = wantsFixed && isEligible;
-        controller.setMountedWheelFovEnabled?.(false);
-        controller.setMountedDollyEnabled?.(!shouldFix);
-        if (shouldFix) {
-            if (savedFov === null) {
-                const current = scene?.camera?.fov ?? controller.camera?.fov;
-                savedFov = Number.isFinite(current) ? current : 50;
-            }
-            controller.setFov(1);
-            // Reset zoom/standoff when enabling fixed FoV so the view is centered.
-            if (positionMode !== "manual") {
-                snapMountedCamera(scene, positionMode, lookMode, { preserveDistance: false });
-            }
-            if (controller.controls) {
-                controller.controls.noZoom = true;
-            }
-        } else if (savedFov !== null) {
-            controller.setFov(savedFov);
-            savedFov = null;
-            if (controller.controls) {
-                controller.controls.noZoom = false;
-            }
+    function getDesktopMainFovElements() {
+        return {
+            container: document.getElementById("desktop-main-fov"),
+            autoButton: document.getElementById("desktop-main-fov-auto"),
+            slider: document.getElementById("desktop-main-fov-slider"),
+            value: document.getElementById("desktop-main-fov-value"),
+        };
+    }
+
+    function resolveCurrentDesktopMainFov(scene) {
+        const { slider } = getDesktopMainFovElements();
+        const currentFov = Number(scene?.camera?.fov ?? scene?.cameraController?.camera?.fov);
+        if (Number.isFinite(currentFov)) {
+            return clampFovDegrees(currentFov);
+        }
+        const sliderFov = Number(slider?.value);
+        if (Number.isFinite(sliderFov)) {
+            return clampFovDegrees(sliderFov);
+        }
+        return 50;
+    }
+
+    function parseDesktopMainFovValue(rawValue, fallbackValue) {
+        const parsed = Number.parseFloat(String(rawValue ?? "").trim());
+        if (!Number.isFinite(parsed)) {
+            return clampFovDegrees(fallbackValue);
+        }
+        return clampFovDegrees(parsed);
+    }
+
+    function updateDesktopMainFovValue(fovDegrees) {
+        const { slider, value } = getDesktopMainFovElements();
+        const nextFov = parseDesktopMainFovValue(
+            Number.isFinite(Number(fovDegrees))
+                ? Number(fovDegrees)
+                : slider?.value,
+            50,
+        );
+        const formattedFov = formatFovDegrees(nextFov);
+        lastSyncedDesktopMainFov = nextFov;
+        if (slider) {
+            slider.value = formattedFov;
+        }
+        if (value) {
+            value.value = formattedFov;
         }
     }
 
-    function updateFovIndicator(positionMode, lookMode) {
-        const indicator = document.getElementById("camera-fov-indicator");
-        const toggle = document.getElementById("camera-fov-one-degree");
-        const isEligible =
-            (positionMode === "earth" || positionMode === "moon") &&
-            (lookMode === "earth" || lookMode === "moon");
-        const fixed = !!toggle?.checked && isEligible;
-        if (toggle) toggle.disabled = !isEligible;
-        if (indicator) {
-            indicator.textContent = "";
-            indicator.classList.toggle("is-active", fixed);
+    function setDesktopMainFovAutoEnabled(enabled) {
+        desktopMainViewAutoFovEnabled = enabled === true;
+        const { autoButton, slider, value } = getDesktopMainFovElements();
+        if (autoButton) {
+            autoButton.classList.toggle("is-active", desktopMainViewAutoFovEnabled);
+            autoButton.setAttribute("aria-pressed", desktopMainViewAutoFovEnabled ? "true" : "false");
+            autoButton.title = desktopMainViewAutoFovEnabled ? "Auto FoV enabled" : "Auto FoV disabled";
         }
+        if (slider) {
+            slider.disabled = desktopMainViewAutoFovEnabled;
+        }
+        if (value) {
+            value.disabled = desktopMainViewAutoFovEnabled;
+        }
+    }
+
+    function isDesktopMainFovViewMode(positionMode, lookMode) {
+        if (lookMode !== "earth" && lookMode !== "moon") {
+            return false;
+        }
+        if (positionMode !== "earth" && positionMode !== "moon" && positionMode !== "spacecraft") {
+            return false;
+        }
+        return positionMode !== lookMode;
+    }
+
+    function isDesktopAutoFovSupported(positionMode, lookMode) {
+        return isDesktopMainFovViewMode(positionMode, lookMode);
+    }
+
+    function isCenteredMountedView(positionMode, lookMode) {
+        if (positionMode === "manual" || lookMode === "manual") {
+            return false;
+        }
+        return positionMode !== lookMode;
+    }
+
+    function updateDesktopMainFovInteractionMode(scene, positionMode, lookMode) {
+        const controller = scene?.cameraController;
+        if (!controller) return;
+        const shouldUseMountedWheelFov = isDesktopMainFovViewMode(positionMode, lookMode);
+        controller.setMountedWheelFovEnabled?.(shouldUseMountedWheelFov);
+        controller.setMountedDollyEnabled?.(!shouldUseMountedWheelFov);
+    }
+
+    function resolveDesktopMainFovViewportMetrics() {
+        const documentRef = typeof document !== "undefined" ? document : null;
+        const viewportWidth = Math.max(
+            Number(typeof window !== "undefined" ? window.innerWidth : 0) || 0,
+            1,
+        );
+        const viewportHeight = Math.max(
+            Number(typeof window !== "undefined" ? window.innerHeight : 0) || 0,
+            1,
+        );
+        const centerX = viewportWidth * 0.5;
+        const centerY = viewportHeight * 0.5;
+
+        const headerBottom = Math.max(
+            0,
+            Number(documentRef?.getElementById("header")?.getBoundingClientRect?.().bottom) || 0,
+        );
+        const bottomAnchors = ["control-panel", "timeline-dock"]
+            .map((id) => documentRef?.getElementById(id)?.getBoundingClientRect?.())
+            .filter((rect) => rect && Number.isFinite(rect.top) && rect.bottom > 0 && rect.top < viewportHeight);
+        const bottomLimit = bottomAnchors.length
+            ? Math.min(...bottomAnchors.map((rect) => rect.top))
+            : viewportHeight;
+
+        const safeHalfWidth = Math.max(1, Math.min(centerX, viewportWidth - centerX));
+        const safeHalfHeight = Math.max(1, Math.min(centerY - headerBottom, bottomLimit - centerY));
+
+        return {
+            usableHalfWidthFraction: Math.min(1, safeHalfWidth / Math.max(centerX, 1)),
+            usableHalfHeightFraction: Math.min(1, safeHalfHeight / Math.max(centerY, 1)),
+        };
+    }
+
+    function computeAutoFovDegrees({
+        distanceToTarget,
+        targetRadius,
+        aspect,
+        usableHalfWidthFraction = 1,
+        usableHalfHeightFraction = 1,
+    }) {
+        if (!Number.isFinite(distanceToTarget) || distanceToTarget <= 0) {
+            return Number.NaN;
+        }
+        const radius = Number.isFinite(targetRadius) && targetRadius > 0 ? targetRadius : 1;
+        const fitRadius = radius * AUTO_FOV_MARGIN_SCALE;
+        const safeDistance = Math.max(distanceToTarget, fitRadius + 1e-9);
+        const ratio = Math.min(fitRadius / safeDistance, 0.999999);
+        const angularRadius = Math.asin(ratio);
+        const safeAspect = Math.max(Number(aspect) || 1, 1e-3);
+        const safeHeightFraction = Math.max(Number(usableHalfHeightFraction) || 0, 1e-3);
+        const safeWidthFraction = Math.max(Number(usableHalfWidthFraction) || 0, 1e-3);
+        const tanAngularRadius = Math.tan(angularRadius);
+        const verticalFromHeight = 2 * Math.atan(tanAngularRadius / safeHeightFraction);
+        const verticalFromWidth = 2 * Math.atan(tanAngularRadius / (safeAspect * safeWidthFraction));
+        return (Math.max(verticalFromHeight, verticalFromWidth) * 180) / Math.PI;
+    }
+
+    function resolveDesktopAutoFovDegrees(scene, positionMode, lookMode) {
+        if (!scene || !isDesktopAutoFovSupported(positionMode, lookMode)) {
+            return Number.NaN;
+        }
+        const targets = resolveFromToTargets(scene);
+        const anchor = targets[positionMode] || null;
+        const target = targets[lookMode] || null;
+        if (!anchor?.getWorldPosition || !target?.getWorldPosition || !scene?.camera) {
+            return Number.NaN;
+        }
+        const anchorWorld = scene.camera.position.clone();
+        const targetWorld = scene.camera.position.clone();
+        anchor.getWorldPosition(anchorWorld);
+        target.getWorldPosition(targetWorld);
+        const distanceToTarget = anchorWorld.distanceTo(targetWorld);
+        const targetRadius = estimateRadius(scene, lookMode);
+        const viewportMetrics = resolveDesktopMainFovViewportMetrics();
+        return computeAutoFovDegrees({
+            distanceToTarget,
+            targetRadius,
+            aspect: scene.camera.aspect,
+            usableHalfWidthFraction: viewportMetrics.usableHalfWidthFraction,
+            usableHalfHeightFraction: viewportMetrics.usableHalfHeightFraction,
+        });
+    }
+
+    function applyDesktopMainFov(scene, fovDegrees, { dispatchChange = true } = {}) {
+        const nextFov = clampFovDegrees(fovDegrees);
+        const controller = scene?.cameraController;
+        if (!controller?.setFov) {
+            updateDesktopMainFovValue(nextFov);
+            return false;
+        }
+        const currentFov = Number(scene?.camera?.fov ?? controller.camera?.fov);
+        if (Number.isFinite(currentFov) && Math.abs(currentFov - nextFov) < AUTO_FOV_EPSILON_DEGREES) {
+            updateDesktopMainFovValue(currentFov);
+            return false;
+        }
+        controller.setFov(nextFov);
+        scene?.camera?.updateProjectionMatrix?.();
+        if (!controller._freeFlyActive) {
+            controller.controls?.update?.();
+            if (dispatchChange) {
+                controller.controls?.dispatchEvent?.({ type: "change" });
+            }
+        }
+        updateDesktopMainFovValue(nextFov);
+        return true;
+    }
+
+    function syncDesktopMainFovUi(scene, positionMode, lookMode) {
+        const { container, autoButton, slider, value } = getDesktopMainFovElements();
+        if (!container && !autoButton && !slider && !value) {
+            return;
+        }
+        const shouldShow = isDesktopMainFovViewMode(positionMode, lookMode);
+        updateDesktopMainFovInteractionMode(scene, positionMode, lookMode);
+        if (container) {
+            container.hidden = !shouldShow;
+        }
+        if (!shouldShow) {
+            if (desktopMainViewAutoFovEnabled) {
+                setDesktopMainFovAutoEnabled(false);
+            }
+            if (autoButton) {
+                autoButton.disabled = true;
+            }
+            if (slider) {
+                slider.disabled = true;
+            }
+            if (value) {
+                value.disabled = true;
+            }
+            return;
+        }
+        const autoSupported = isDesktopAutoFovSupported(positionMode, lookMode);
+        if (autoButton) {
+            autoButton.disabled = !autoSupported;
+        }
+        if (!autoSupported && desktopMainViewAutoFovEnabled) {
+            setDesktopMainFovAutoEnabled(false);
+        }
+
+        let currentFov = resolveCurrentDesktopMainFov(scene);
+        if (desktopMainViewAutoFovEnabled && autoSupported) {
+            const autoFov = resolveDesktopAutoFovDegrees(scene, positionMode, lookMode);
+            if (Number.isFinite(autoFov)) {
+                applyDesktopMainFov(scene, autoFov, { dispatchChange: false });
+                currentFov = autoFov;
+            }
+        }
+        updateDesktopMainFovValue(currentFov);
+        if (slider) {
+            slider.disabled = desktopMainViewAutoFovEnabled;
+        }
+        if (value) {
+            value.disabled = desktopMainViewAutoFovEnabled;
+        }
+    }
+
+    function changeDesktopMainFov(event) {
+        const scene = getActiveScene();
+        const positionMode = readCameraPositionMode();
+        const lookMode = readCameraLookMode();
+        if (!isDesktopMainFovViewMode(positionMode, lookMode)) {
+            syncDesktopMainFovUi(scene, positionMode, lookMode);
+            return;
+        }
+        if (desktopMainViewAutoFovEnabled) {
+            setDesktopMainFovAutoEnabled(false);
+        }
+        const currentFov = resolveCurrentDesktopMainFov(scene);
+        const nextFov = parseDesktopMainFovValue(event?.target?.value, currentFov);
+        if (!scene) {
+            updateDesktopMainFovValue(nextFov);
+            return;
+        }
+        applyDesktopMainFov(scene, nextFov);
+        render();
+    }
+
+    function toggleDesktopMainFovAuto() {
+        const scene = getActiveScene();
+        const positionMode = readCameraPositionMode();
+        const lookMode = readCameraLookMode();
+        const autoSupported = isDesktopAutoFovSupported(positionMode, lookMode);
+        if (!autoSupported) {
+            setDesktopMainFovAutoEnabled(false);
+            syncDesktopMainFovUi(scene, positionMode, lookMode);
+            return;
+        }
+        if (desktopMainViewAutoFovEnabled) {
+            setDesktopMainFovAutoEnabled(false);
+            syncDesktopMainFovUi(scene, positionMode, lookMode);
+            render();
+            return;
+        }
+        setDesktopMainFovAutoEnabled(true);
+        syncDesktopMainFovUi(scene, positionMode, lookMode);
+        render();
     }
 
     function estimateRadius(scene, mode) {
@@ -329,8 +590,19 @@ export function createCameraActions({
             if (autoAdjusting) return;
             const positionMode = readCameraPositionMode();
             const lookMode = readCameraLookMode();
+            const currentFov = Number(scene?.camera?.fov);
+
+            if (
+                desktopMainViewAutoFovEnabled &&
+                isDesktopMainFovViewMode(positionMode, lookMode) &&
+                Number.isFinite(currentFov) &&
+                Math.abs(currentFov - lastSyncedDesktopMainFov) > AUTO_FOV_EPSILON_DEGREES
+            ) {
+                setDesktopMainFovAutoEnabled(false);
+            }
 
             updateMountedBodyVisibility(scene, positionMode);
+            syncDesktopMainFovUi(scene, positionMode, lookMode);
 
             // If the mounted body is hidden (camera inside), "look at self" becomes meaningless.
             // Auto-switch to manual aim and orient toward a meaningful target without teleporting.
@@ -365,6 +637,17 @@ export function createCameraActions({
                 } finally {
                     autoAdjusting = false;
                 }
+            }
+        }, { passive: true });
+
+        controls.addEventListener("mounted-fov-input", () => {
+            const positionMode = readCameraPositionMode();
+            const lookMode = readCameraLookMode();
+            if (!isDesktopMainFovViewMode(positionMode, lookMode)) {
+                return;
+            }
+            if (desktopMainViewAutoFovEnabled) {
+                setDesktopMainFovAutoEnabled(false);
             }
         }, { passive: true });
     }
@@ -480,8 +763,7 @@ export function createCameraActions({
         const config = getConfig();
         const scene = animationScenes[config];
         updateLockOnAvailability(scene, positionMode, lookMode);
-        applyFixedFov(scene, positionMode, lookMode);
-        updateFovIndicator(positionMode, lookMode);
+        syncDesktopMainFovUi(scene, positionMode, lookMode);
 
         const configChanged = config !== lastAppliedConfig;
         const positionChanged = positionMode !== lastAppliedPositionMode;
@@ -507,11 +789,13 @@ export function createCameraActions({
 
             ensureMountedVisibilityListener(scene);
 
-            // Immediate camera feedback: only snap when the mount changes (or when we just forced look->manual).
+            // Immediate camera feedback: mounted source->target views must re-center on the
+            // source body instead of inheriting a previous free-fly offset.
             if (positionMode !== "manual" && shouldSnap) {
+                const shouldCenterMountedView = isCenteredMountedView(positionMode, lookMode);
                 snapMountedCamera(scene, positionMode, lookMode, {
-                    preserveDistance: true,
-                    preserveOffset: !positionChanged && !configChanged,
+                    preserveDistance: !shouldCenterMountedView,
+                    preserveOffset: !shouldCenterMountedView && !positionChanged && !configChanged,
                 });
             }
 
@@ -610,5 +894,11 @@ export function createCameraActions({
         }
     }
 
-    return { changeCameraFromTo, togglePlane, recenterMountedCamera };
+    return {
+        changeCameraFromTo,
+        changeDesktopMainFov,
+        toggleDesktopMainFovAuto,
+        togglePlane,
+        recenterMountedCamera,
+    };
 }

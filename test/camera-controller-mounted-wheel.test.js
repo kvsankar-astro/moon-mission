@@ -120,7 +120,13 @@ describe("CameraController mounted wheel FoV behavior", () => {
 
         expect(wheelEvent.preventDefault).toHaveBeenCalledTimes(1);
         expect(controller.camera.position.distanceTo(initialPosition)).toBeLessThan(1e-12);
-        expect(controller.camera.fov).toBeCloseTo(initialFov + 1, 8);
+        expect(controller.camera.fov).toBeCloseTo(initialFov + 0.2, 8);
+        expect(controller.controls.dispatchEvent).toHaveBeenCalledWith({
+            type: "mounted-fov-input",
+            currentFov: initialFov,
+            nextFov: initialFov + 0.2,
+            deltaY: 120,
+        });
         expect(controller.controls.dispatchEvent).toHaveBeenCalledWith({ type: "change" });
     });
 });

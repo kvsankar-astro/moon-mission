@@ -89,6 +89,10 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 toggleRelativeMode: (event) => toggleRelativeMode(event),
                 changeCameraFromTo: (event) =>
                     getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(event),
+                changeDesktopMainFov: (event) =>
+                    getMissionRuntimeWireup().runtimeBootstrapActions.changeDesktopMainFov(event),
+                toggleDesktopMainFovAuto: () =>
+                    getMissionRuntimeWireup().runtimeBootstrapActions.toggleDesktopMainFovAuto(),
                 toggleLockSC: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockSC(event),
                 toggleLockMoon: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockMoon(event),
                 toggleLockEarth: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.toggleLockEarth(event),

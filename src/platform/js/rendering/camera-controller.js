@@ -222,13 +222,19 @@ export class CameraController {
         const direction = Math.sign(event.deltaY);
         if (direction === 0) return;
 
-        const normalizedStep = Math.max(0.25, Math.min(Math.abs(event.deltaY) / 120, 3));
+        const normalizedStep = Math.max(0.5, Math.min(Math.abs(event.deltaY) / 120, 3));
+        const fovStep = normalizedStep * 0.2;
         const currentFov = this.camera.fov;
-        const nextFov = THREE.MathUtils.clamp(currentFov + direction * normalizedStep, 1, 179);
+        const nextFov = THREE.MathUtils.clamp(currentFov + direction * fovStep, 0.1, 179);
         if (!Number.isFinite(nextFov) || Math.abs(nextFov - currentFov) < 1e-6) return;
 
-        this.camera.fov = nextFov;
-        this.camera.updateProjectionMatrix();
+        this.setFov(nextFov);
+        this.controls.dispatchEvent?.({
+            type: "mounted-fov-input",
+            currentFov,
+            nextFov,
+            deltaY: event.deltaY,
+        });
         this.controls.dispatchEvent?.({ type: "change" });
     }
 

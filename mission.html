@@ -922,13 +922,6 @@
                             <button id="dimension-pill-3d" type="button" class="header-pill-segment__btn" aria-pressed="true" title="3D view">3D</button>
                         </div>
                     </div>
-                    <div class="header-pill-group" role="group" aria-label="Moon surface profile">
-                        <span class="header-pill-group__label">Moon Surface</span>
-                        <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
-                            <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
-                            <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
-                        </div>
-                    </div>
                 </div>
                 <div id="header-pill-strip-secondary" class="header-pill-strip__row header-pill-strip__row--secondary" aria-label="Visibility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--secondary" aria-hidden="true"></span>
@@ -947,6 +940,37 @@
                     <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
                     <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
                     <button id="toggle-pill-polar-axes" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle polar axes">Polar Axes</button>
+                    <div class="header-pill-group header-pill-group--secondary" role="group" aria-label="Moon surface profile">
+                        <span class="header-pill-group__label">Moon Surface</span>
+                        <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
+                            <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
+                            <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
+                        </div>
+                    </div>
+                    <div id="desktop-main-fov" class="header-main-fov" role="group" aria-label="Main view field of view" hidden>
+                        <span class="header-main-fov__label">FoV</span>
+                        <button id="desktop-main-fov-auto" type="button" class="header-main-fov__auto" aria-pressed="false" title="Auto FoV disabled">Auto</button>
+                        <input
+                            id="desktop-main-fov-slider"
+                            class="header-main-fov__slider"
+                            type="range"
+                            min="0.1"
+                            max="179"
+                            step="0.1"
+                            value="50"
+                            aria-label="Main view field of view slider"
+                        >
+                        <input
+                            id="desktop-main-fov-value"
+                            class="header-main-fov__value"
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            spellcheck="false"
+                            value="50.0"
+                            aria-label="Main view field of view value"
+                        >
+                    </div>
                 </div>
             </div>
     
@@ -1014,14 +1038,6 @@
                                     <input type="radio" name="camera-look-pill" value="spacecraft" id="camera-look-pill-spacecraft">
                                     <span>Craft</span>
                                 </label>
-                            </div>
-
-                                  <div class="settings-row orbit-style-control">
-                                <label class="settings-option">
-                                    <input type="checkbox" id="camera-fov-one-degree">
-                                    <span>FoV 1°</span>
-                                </label>
-                                <div id="camera-fov-indicator" class="settings-note"></div>
                             </div>
 
                             <div class="camera-fromto-selects" aria-hidden="true">
@@ -1376,6 +1392,7 @@
                         <button id="ground-track-style-3d" class="ground-track-panel__mode-button mission-panel-shell__button mission-panel-shell__button--pill" type="button" title="3D globe view" aria-pressed="false">3D</button>
                         <button id="ground-track-zoom-out" class="ground-track-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon" type="button" title="Zoom out">−</button>
                         <button id="ground-track-zoom-in" class="ground-track-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon" type="button" title="Zoom in">+</button>
+                        <button id="ground-track-panel-expand" class="ground-track-panel__icon-button ground-track-panel__expand mission-panel-shell__button mission-panel-shell__button--icon" type="button" title="Expand" aria-pressed="false">□</button>
                         <button id="ground-track-panel-close" class="ground-track-panel__icon-button ground-track-panel__close mission-panel-shell__button mission-panel-shell__button--icon" type="button" title="Close">×</button>
                     </div>
                 </div>
