@@ -543,10 +543,27 @@ function createGroundTrackPanelActions(options = {}) {
         if (!(button instanceof HTMLElement)) {
             return;
         }
-        button.textContent = panelExpanded === true ? "❐" : "□";
+        button.dataset.icon = panelExpanded === true ? "restore" : "expand";
+        button.textContent = "";
         button.title = panelExpanded === true ? "Restore" : "Expand";
         button.setAttribute("aria-label", button.title);
         button.setAttribute("aria-pressed", panelExpanded === true ? "true" : "false");
+    }
+
+    function resetExpandedPanelForDelete(panel = getNode("ground-track-panel")) {
+        if (!(panel instanceof HTMLElement) || panelExpanded !== true) {
+            return;
+        }
+        panelExpanded = false;
+        panel.classList.remove("is-maximized");
+        if (restorePanelFrame && restorePanelFrame.width > 0 && restorePanelFrame.height > 0) {
+            panel.style.width = `${restorePanelFrame.width}px`;
+            panel.style.height = `${restorePanelFrame.height}px`;
+            applyPanelPosition(panel, restorePanelFrame.x, restorePanelFrame.y);
+        } else {
+            ensurePanelPosition(panel);
+        }
+        syncExpandButton();
     }
 
     function confirmDeletePanel() {
@@ -559,6 +576,7 @@ function createGroundTrackPanelActions(options = {}) {
                 return false;
             }
         }
+        resetExpandedPanelForDelete();
         setPanelState("deleted");
         return true;
     }
@@ -1781,7 +1799,8 @@ function createGroundTrackPanelActions(options = {}) {
             infoButton.type = "button";
             infoButton.title = "Info";
             infoButton.setAttribute("aria-label", "Show panel info");
-            infoButton.textContent = "i";
+            infoButton.dataset.icon = "info";
+            infoButton.textContent = "";
             infoButton.dataset.panelInfoTrigger = "true";
             headerControls.insertBefore(infoButton, closeButton || null);
         }
@@ -1793,7 +1812,8 @@ function createGroundTrackPanelActions(options = {}) {
             minimizeButton.type = "button";
             minimizeButton.title = "Minimize";
             minimizeButton.setAttribute("aria-label", "Minimize");
-            minimizeButton.textContent = "_";
+            minimizeButton.dataset.icon = "minimize";
+            minimizeButton.textContent = "";
             if (closeButton instanceof HTMLElement) {
                 headerControls.insertBefore(minimizeButton, closeButton);
             } else {
@@ -1806,7 +1826,8 @@ function createGroundTrackPanelActions(options = {}) {
             expandButton.id = "ground-track-panel-expand";
             expandButton.className = "ground-track-panel__icon-button ground-track-panel__expand mission-panel-shell__button mission-panel-shell__button--icon";
             expandButton.type = "button";
-            expandButton.textContent = "□";
+            expandButton.dataset.icon = "expand";
+            expandButton.textContent = "";
             if (closeButton instanceof HTMLElement) {
                 headerControls.insertBefore(expandButton, closeButton);
             } else {
@@ -1817,11 +1838,12 @@ function createGroundTrackPanelActions(options = {}) {
         if (!deleteButton && headerControls instanceof HTMLElement) {
             deleteButton = document.createElement("button");
             deleteButton.id = "ground-track-panel-delete";
-            deleteButton.className = "ground-track-panel__delete mission-panel-shell__button mission-panel-shell__button--pill";
+            deleteButton.className = "ground-track-panel__delete mission-panel-shell__button mission-panel-shell__button--icon mission-panel-shell__button--danger";
             deleteButton.type = "button";
             deleteButton.title = "Delete";
             deleteButton.setAttribute("aria-label", "Delete");
-            deleteButton.textContent = "del";
+            deleteButton.dataset.icon = "delete";
+            deleteButton.textContent = "";
             headerControls.appendChild(deleteButton);
         }
 

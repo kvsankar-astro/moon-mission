@@ -225,6 +225,25 @@ canvas {
     padding: 4px 7px;
 }
 
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__header {
+    gap: 6px;
+    padding: 4px 6px;
+}
+
+.aux-camera-view[data-controls-density="compact"] .aux-camera-view__header-controls {
+    gap: 3px;
+}
+
+.aux-camera-view[data-controls-density="compact"] .mission-panel-shell__button--icon {
+    width: 19px;
+    height: 19px;
+}
+
+.aux-camera-view[data-controls-density="compact"] .mission-panel-shell__button--icon::before {
+    width: 10px;
+    height: 10px;
+}
+
 .aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-label,
 .aux-camera-view[data-controls-density="compact"] .aux-camera-view__fov-value {
     display: none;
@@ -763,6 +782,7 @@ canvas {
 }
 
 .aux-camera-view__viewport {
+    grid-row: 4;
     position: relative;
     min-width: 0;
     min-height: 0;
@@ -774,6 +794,10 @@ canvas {
     padding: 4px 7px 4px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(10, 18, 31, 0.64);
+}
+
+.aux-camera-view__info[hidden] {
+    display: none !important;
 }
 
 .aux-camera-view__info-line {

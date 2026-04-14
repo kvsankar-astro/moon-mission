@@ -265,6 +265,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    min-width: 0;
     padding: 4px 7px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.2);
     background: rgba(12, 20, 35, 0.74);
@@ -283,30 +284,36 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .mission-panel-shell__header-controls {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
-    gap: 6px;
-    min-width: 0;
+    gap: 4px;
 }
 
 .mission-panel-shell__title {
+    flex: 1 1 auto;
+    min-width: 0;
     color: rgba(230, 239, 255, 0.92);
     font-size: 10px;
     font-weight: 600;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .mission-panel-shell__button {
+    position: relative;
     border: 1px solid rgba(121, 171, 255, 0.28);
     background: rgba(255, 255, 255, 0.05);
     color: rgba(220, 232, 250, 0.92);
     cursor: pointer;
     text-transform: none;
-    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
 }
 
 .mission-panel-shell__button:hover {
     background: rgba(255, 255, 255, 0.12);
     border-color: rgba(121, 171, 255, 0.46);
+    box-shadow: 0 0 0 1px rgba(141, 184, 246, 0.1);
 }
 
 .mission-panel-shell__button:focus-visible {
@@ -323,13 +330,76 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .mission-panel-shell__button--icon {
-    width: 20px;
-    height: 20px;
+    width: 21px;
+    height: 21px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
     padding: 0;
     border-radius: 999px;
     font-size: 12px;
     line-height: 1;
-    font-weight: 700;
+}
+
+.mission-panel-shell__button--icon[data-icon] {
+    font-size: 0;
+    line-height: 0;
+}
+
+.mission-panel-shell__button--icon[data-icon]::before {
+    content: "";
+    width: 11px;
+    height: 11px;
+    display: block;
+    background: currentColor;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+}
+
+.mission-panel-shell__button--icon[data-icon="info"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='5.6'/%3E%3Cpath d='M8 7v3.7'/%3E%3Cpath d='M8 5.1h.01'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='5.6'/%3E%3Cpath d='M8 7v3.7'/%3E%3Cpath d='M8 5.1h.01'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="minimize"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="expand"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3H3v3M10 3h3v3M13 10v3h-3M6 13H3v-3'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3H3v3M10 3h3v3M13 10v3h-3M6 13H3v-3'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="restore"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5h6v6H5z'/%3E%3Cpath d='M3.5 8V3.5H8'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 5h6v6H5z'/%3E%3Cpath d='M3.5 8V3.5H8'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="close"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M5 5l6 6M11 5l-6 6'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round'%3E%3Cpath d='M5 5l6 6M11 5l-6 6'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="delete"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h4'/%3E%3Cpath d='M3.5 5h9'/%3E%3Cpath d='M5.2 5l.5 7h4.6l.5-7'/%3E%3Cpath d='M6.8 6.6v4.1M9.2 6.6v4.1'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h4'/%3E%3Cpath d='M3.5 5h9'/%3E%3Cpath d='M5.2 5l.5 7h4.6l.5-7'/%3E%3Cpath d='M6.8 6.6v4.1M9.2 6.6v4.1'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--danger {
+    border-color: rgba(229, 118, 118, 0.3);
+    color: rgba(255, 211, 211, 0.95);
+    background: rgba(88, 24, 30, 0.22);
+}
+
+.mission-panel-shell__button--danger:hover {
+    background: rgba(122, 34, 44, 0.32);
+    border-color: rgba(238, 139, 139, 0.55);
 }
 
 .ground-track-panel-wrapper {

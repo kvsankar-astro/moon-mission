@@ -856,7 +856,8 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const maximized = panelState.maximized === true;
-        button.textContent = maximized ? "❐" : "□";
+        button.dataset.icon = maximized ? "restore" : "expand";
+        button.textContent = "";
         button.title = maximized ? `Restore ${panelState.title}` : `Expand ${panelState.title}`;
         button.setAttribute("aria-label", button.title);
         button.setAttribute("aria-pressed", maximized ? "true" : "false");
@@ -1014,6 +1015,8 @@ class AuxiliaryCameraViewsManager {
         }
         if (nextMinimized) {
             this.clearPanelOverlay(panelState);
+        } else {
+            this.scheduleVisiblePanelRefresh(panelState);
         }
         if (persist) {
             this.queuePersistPanelState();
@@ -1095,6 +1098,12 @@ class AuxiliaryCameraViewsManager {
 
     setPanelDeleted(panelState, deleted, { persist = true, requestRender = true } = {}) {
         const nextDeleted = deleted === true;
+        if (nextDeleted && panelState.maximized === true) {
+            this.setPanelMaximized(panelState, false, {
+                persist: false,
+                requestRender: false,
+            });
+        }
         panelState.deleted = nextDeleted;
         if (nextDeleted) {
             panelState.minimized = false;
@@ -1105,6 +1114,7 @@ class AuxiliaryCameraViewsManager {
             }
             this.clearPanelOverlay(panelState);
         }
+        this.syncPanelExpandButton(panelState);
         if (persist) {
             this.queuePersistPanelState();
         }
@@ -1142,6 +1152,23 @@ class AuxiliaryCameraViewsManager {
         chip.replaceChildren();
         chip.textContent = "Flyby";
         chip.setAttribute("aria-label", `Open ${panelState.title}`);
+    }
+
+    scheduleVisiblePanelRefresh(panelState) {
+        if (!panelState?.panel || !panelState?.viewport || panelState.panel.hidden) {
+            return;
+        }
+        if (panelState.visibleRefreshRaf != null) {
+            cancelAnimationFrame(panelState.visibleRefreshRaf);
+        }
+        panelState.visibleRefreshRaf = requestAnimationFrame(() => {
+            panelState.visibleRefreshRaf = null;
+            if (!panelState?.panel || !panelState?.viewport || panelState.panel.hidden) {
+                return;
+            }
+            this.syncPanelSize(panelState);
+            this.requestRender?.();
+        });
     }
 
     shouldStartDrag(event) {
@@ -1249,32 +1276,37 @@ class AuxiliaryCameraViewsManager {
         const minimizeButton = document.createElement("button");
         minimizeButton.className = "aux-camera-view__minimize-button mission-panel-shell__button mission-panel-shell__button--icon";
         minimizeButton.type = "button";
-        minimizeButton.textContent = "_";
+        minimizeButton.dataset.icon = "minimize";
+        minimizeButton.textContent = "";
         minimizeButton.setAttribute("aria-label", `Minimize ${spec.title}`);
 
         const expandButton = document.createElement("button");
         expandButton.className = "aux-camera-view__header-button aux-camera-view__expand-button mission-panel-shell__button mission-panel-shell__button--icon";
         expandButton.type = "button";
-        expandButton.textContent = "□";
+        expandButton.dataset.icon = "expand";
+        expandButton.textContent = "";
         expandButton.setAttribute("aria-label", `Expand ${spec.title}`);
 
         const infoButton = document.createElement("button");
         infoButton.className = "aux-camera-view__header-button aux-camera-view__info-button mission-panel-shell__button mission-panel-shell__button--icon";
         infoButton.type = "button";
-        infoButton.textContent = "i";
+        infoButton.dataset.icon = "info";
+        infoButton.textContent = "";
         infoButton.setAttribute("aria-label", `Show info for ${spec.title}`);
         infoButton.dataset.panelInfoTrigger = "true";
 
         const closeButton = document.createElement("button");
         closeButton.className = "aux-camera-view__header-button aux-camera-view__close-button mission-panel-shell__button mission-panel-shell__button--icon";
         closeButton.type = "button";
-        closeButton.textContent = "×";
+        closeButton.dataset.icon = "close";
+        closeButton.textContent = "";
         closeButton.setAttribute("aria-label", `Close ${spec.title}`);
 
         const deleteButton = document.createElement("button");
-        deleteButton.className = "aux-camera-view__header-button aux-camera-view__delete-button mission-panel-shell__button mission-panel-shell__button--pill";
+        deleteButton.className = "aux-camera-view__header-button aux-camera-view__delete-button mission-panel-shell__button mission-panel-shell__button--icon mission-panel-shell__button--danger";
         deleteButton.type = "button";
-        deleteButton.textContent = "del";
+        deleteButton.dataset.icon = "delete";
+        deleteButton.textContent = "";
         deleteButton.setAttribute("aria-label", `Delete ${spec.title}`);
 
         headerControls.appendChild(infoButton);
@@ -5830,6 +5862,10 @@ class AuxiliaryCameraViewsManager {
         this.pendingResizePanelStates.clear();
         this.dragState = null;
         for (const panelState of this.panels) {
+            if (panelState.visibleRefreshRaf != null) {
+                cancelAnimationFrame(panelState.visibleRefreshRaf);
+                panelState.visibleRefreshRaf = null;
+            }
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
             panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
             panelState.infoButton.removeEventListener("click", panelState.onInfoClick);
