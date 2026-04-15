@@ -87,6 +87,15 @@ export function applyDynamicLabels({
     updateSpacecraftMnemonic(labels.spacecraftShort);
 }
 
+function dispatchMissionUiConfig(document, globalConfig) {
+    if (!document || !globalConfig) return;
+    document.dispatchEvent(new CustomEvent("mission-ui-config-updated", {
+        detail: {
+            ui: globalConfig.ui || {},
+        },
+    }));
+}
+
 export function applyMissionMetadata({
     globalConfig,
     planetProperties,
@@ -101,6 +110,7 @@ export function applyMissionMetadata({
         updateMultipleElementsText,
         updateSpacecraftMnemonic,
     });
+    dispatchMissionUiConfig(document, globalConfig);
 
     if (globalConfig?.spacecraft_mnemonic) {
         planetProperties["SC"]["name"] = globalConfig.spacecraft_mnemonic;

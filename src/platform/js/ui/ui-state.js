@@ -44,6 +44,12 @@ function setRadioGroupValue(groupName, value) {
     element.checked = true;
 }
 
+function getRadioGroupValue(groupName, fallback = "") {
+    if (!groupName) return fallback;
+    const element = document.querySelector(`input[name="${groupName}"]:checked`);
+    return element?.value ?? fallback;
+}
+
 function getRangeValue(idOrSelector, fallback = 1) {
     const element = getElement(idOrSelector);
     const value = Number(element?.value);
@@ -92,6 +98,29 @@ export function readOriginMode() {
     if (getChecked("origin-earth")) return "geo";
     if (getChecked("origin-moon")) return "lunar";
     return "undefined";
+}
+
+export function applyOriginMode(originMode) {
+    const normalizedMode = String(originMode || "").trim().toLowerCase();
+    setChecked("origin-earth", normalizedMode === "earth" || normalizedMode === "geo");
+    setChecked("origin-moon", normalizedMode === "moon" || normalizedMode === "lunar");
+    setChecked("origin-relative", normalizedMode === "relative");
+}
+
+export function readPlaneSelection() {
+    return getRadioGroupValue("plane", "DEFAULT");
+}
+
+export function applyPlaneSelection(planeSelection) {
+    setRadioGroupValue("plane", planeSelection || "DEFAULT");
+}
+
+export function readDimensionSelection() {
+    return getRadioGroupValue("dimension", "3D");
+}
+
+export function applyDimensionSelection(dimension) {
+    setRadioGroupValue("dimension", dimension || "3D");
 }
 
 const VIEW_SETTING_CHECKBOXES = {
