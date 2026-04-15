@@ -83,6 +83,8 @@ Useful pages:
 - `npm run test:unit` - unit/integration tests excluding UI visual suite
 - `make test` - primary Playwright+SSIM UI suite (managed server on `8111`)
 - `make baseline` - regenerate screenshot baselines (intentional visual changes only)
+- `make data-audit` - audit app/data repo boundary against `../moon-mission-data`
+- `npm run audit:data-boundary` - same audit without `make`
 
 ### Mission config JSON5 workflow
 
@@ -113,6 +115,16 @@ Do **not** commit generated runtime ephemeris artifacts in this repo:
 - `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, `*-style.json`
 
 These belong in `../moon-mission-data`.
+
+Maintainer/source files that stay in this repo:
+- `assets/*/data/config.json5` - maintainer-edited source with comments
+- `assets/*/data/config.json` - compiled runtime JSON
+- `assets/*/data/ephemeris-manifest.json` - mirrored boundary file shared with the data repo
+
+Boundary audit workflow:
+- use `make data-audit` or `npm run audit:data-boundary`
+- read [docs/repo-sync-playbook.md](repo-sync-playbook.md) for interpretation and cleanup rules
+- current audit rules intentionally leave some maintainer-source files such as `config.json5` under `assets/*/data/*` in the `unknown` bucket for manual review; do not delete them just because they are flagged as unknown
 
 If you regenerate orbit data:
 1. Update/verify mission config + manifests in this repo.
@@ -168,13 +180,16 @@ Use this before committing:
 2. No credentials/secrets in diff.
 3. `npm run test:unit` passes.
 4. If UI changed, run `make test`; if intentional visual diff, update baselines with rationale.
-5. Confirm repo boundary (app repo vs data repo) for every changed file.
-6. Verify links/docs if paths changed.
+5. If mission data/config/manifests/staging changed, run `make data-audit`.
+6. Confirm repo boundary (app repo vs data repo) for every changed file.
+7. Verify links/docs if paths changed.
 
 ## 10) Related Docs
 
 - Design hub: [docs/design/design.md](design/design.md)
 - Test strategy: [docs/testing.md](testing.md)
+- Repo boundary + sync playbook: [docs/repo-sync-playbook.md](repo-sync-playbook.md)
+- Mission-data boundary status: [docs/mission-data-current-state.md](mission-data-current-state.md)
 - Agent conventions: [AGENTS.md](../AGENTS.md)
 Mission config note:
 - Maintainers edit `config.json5`; runtime consumes `config.json`.

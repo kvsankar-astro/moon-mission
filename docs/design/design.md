@@ -129,6 +129,10 @@ Data repo (`moon-mission-data`):
 
 Design intent: keep runtime code evolution independent from heavy generated asset churn.
 
+Operational references:
+- [../repo-sync-playbook.md](../repo-sync-playbook.md)
+- [../mission-data-current-state.md](../mission-data-current-state.md)
+
 ## 9) Testing and Release Design Links
 
 - Workflow guide (commands/CI/conventions): [../developer.md](../developer.md)

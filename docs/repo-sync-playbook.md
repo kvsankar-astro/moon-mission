@@ -39,6 +39,13 @@ These belong in `moon-mission` and should not be committed to `moon-mission-data
 - `config.json`
 - `README*.md`
 
+### Review-needed maintainer source
+
+These also belong in `moon-mission`, but the current boundary-audit rules intentionally leave them in the `unknown` bucket so they are reviewed explicitly instead of being auto-classified:
+
+- `config.json5`
+- `config.ssim.json`
+
 ### Mirrored
 
 These are expected in both repos and should stay byte-identical:
@@ -86,6 +93,14 @@ JSON output is available with:
 
 ```bash
 python scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data --format json
+```
+
+Wrapper commands are also available:
+
+```bash
+make data-audit
+# or
+npm run audit:data-boundary
 ```
 
 To fail a CI or pre-push style check when drift exists:

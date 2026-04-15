@@ -112,6 +112,18 @@ Generated orbit/ephemeris artifacts are maintained in the sibling data repositor
 
 CI/deploy workflows stage those artifacts into this app during build/deploy.
 
+Useful audit commands:
+
+```bash
+make data-audit
+# or
+npm run audit:data-boundary
+```
+
+Repo-boundary process details:
+- [docs/repo-sync-playbook.md](docs/repo-sync-playbook.md)
+- [docs/mission-data-current-state.md](docs/mission-data-current-state.md)
+
 ## Design
 
 The animation has 2D and 3D rendering modes. 

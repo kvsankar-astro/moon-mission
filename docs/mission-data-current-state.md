@@ -1,8 +1,10 @@
 # Mission Data Current State
 
-Last updated: 2026-04-04
+Last updated: 2026-04-15
 
 This document captures the **current boundary and operating model** between app code and runtime mission data.
+
+Detailed operational process and audit-tool usage live in [docs/repo-sync-playbook.md](repo-sync-playbook.md).
 
 ## Source of truth
 
@@ -16,6 +18,7 @@ This document captures the **current boundary and operating model** between app 
 ## What belongs where
 
 App repo (`moon-mission`) tracks:
+- `assets/*/data/config.json5`
 - `assets/*/data/config.json`
 - `assets/*/data/ephemeris-manifest.json`
 - shared authored content (`assets/mission-briefs.json`, `assets/mission-images.json`)
@@ -48,6 +51,11 @@ App-only deploy workflows keep existing runtime data on remote and only ship app
 ## How to verify current state quickly
 
 ```bash
+# Audit app repo vs sibling data repo boundary
+make data-audit
+# or
+npm run audit:data-boundary
+
 # Mission config coverage in app repo
 rg --files assets -g "*/data/config.json"
 
@@ -62,3 +70,15 @@ python scripts/generate-assets-status.py
 
 - This file intentionally avoids static mission-by-mission “done/pending” tables because they drift quickly.
 - Use the status pages and manifests as the live operational view, and keep this document focused on durable process/boundary rules.
+- The repo-boundary audit currently treats `config.json5` and a few other maintainer-source files under `assets/*/data/*` as `unknown` for manual review rather than auto-classifying them as app-only. That is expected with the current rules file; review them, but do not treat them as generated-data drift by default.
+
+## Backlog Follow-Up
+
+- Review and merge `mission-data-refresh` into `master` in deliberate slices rather than as one bulk branch.
+- Expected merge themes:
+  - mission coverage and config/manifest refreshes
+  - mission-sourcing and HORIZONS documentation updates
+  - orbit data/status pages
+  - orbit overlap / trail-style runtime changes
+  - test and SSIM baseline updates only after functional slices are accepted
+- Until that work is triaged, keep `mission-data-refresh` as a retained staging branch/worktree rather than deleting it as branch hygiene.
