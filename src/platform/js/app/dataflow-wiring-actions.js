@@ -19,6 +19,7 @@ function createDataflowWiringActions(deps) {
         ensureIndeterminateProgressBar,
         showElementById,
         hideElementById,
+        loadJson,
         loadChebyshev,
         loadNpz,
         processOrbitData,
@@ -114,8 +115,11 @@ function createDataflowWiringActions(deps) {
         handleDimensionSwitch,
         setLocation,
         getOrbitStyle,
+        getViewOrbit,
         getTrailTrackBrightness2D,
         getTrailTailBrightness2D,
+        getViewportWidth,
+        render,
         loadProgress,
     } = deps;
 
@@ -169,6 +173,11 @@ function createDataflowWiringActions(deps) {
             updateEphemerisPanel();
         },
         getBodySource,
+        loadJson,
+        getGlobalConfig,
+        getViewOrbit,
+        getOrbitStyle,
+        render,
         loadProgress,
     });
 
@@ -249,6 +258,7 @@ function createDataflowWiringActions(deps) {
         getDefaultCameraDistance,
         getAnimTime,
         isLocationAvaialable: isLocationAvaialableOverride || isLocationAvaialable,
+        getViewportWidth,
         getGlobalConfig,
         getOrbitStyle,
     });
@@ -315,7 +325,6 @@ function createDataflowWiringActions(deps) {
         getCurrentDimension,
         animationScenes,
         getConfig,
-        getGlobalConfig,
         getZoomFactor,
         setZoomFactor: (val) => {
             setZoomFactorState(val, getConfig());

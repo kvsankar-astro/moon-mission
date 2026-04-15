@@ -76,7 +76,7 @@ function createSceneFrameOrchestrationActions(deps) {
         let candidateTime = forward ? -Infinity : Infinity;
 
         for (const event of eventInfos || []) {
-            if (!isDisplayableTimelineEvent(event, globalConfig)) continue;
+            if (!isDisplayableTimelineEvent(event)) continue;
             const eventTimeMs = resolveEventTimeMs(event);
             if (!Number.isFinite(eventTimeMs)) continue;
 
@@ -103,7 +103,7 @@ function createSceneFrameOrchestrationActions(deps) {
         let candidateTime = -Infinity;
 
         for (const event of eventInfos || []) {
-            if (!isDisplayableTimelineEvent(event, globalConfig)) continue;
+            if (!isDisplayableTimelineEvent(event)) continue;
             const eventTimeMs = resolveEventTimeMs(event);
             if (!Number.isFinite(eventTimeMs)) continue;
 

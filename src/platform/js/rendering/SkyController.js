@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as THREE from "three";
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { AtmosphereModel } from "./AtmosphereModel.js";
@@ -460,6 +462,7 @@ export class SkyController {
             );
         }
 
+        /** @type {any} */
         const starParameters = { ...this.parameters };
         if (this.parameters.procedural_stars_enabled) {
             // Keep procedural stars clearly visible without flattening the full

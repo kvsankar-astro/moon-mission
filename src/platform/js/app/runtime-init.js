@@ -42,6 +42,9 @@ function createRuntimeInitActions(deps) {
             bindRepeatButtons,
             d3Select,
             handlersById: getHandlersById(),
+            /**
+             * @param {{ mouseOut?: boolean }} [state]
+             */
             resetMouseRepeatState: ({ mouseOut } = {}) => {
                 if (mouseOut) {
                     setMouseDown(false);

@@ -20,6 +20,11 @@ function setOptionalId(element, id) {
     }
 }
 
+/**
+ * @typedef {{ label?: string|string[], autoButton?: string|string[], track?: string|string[], edge?: string|string[], slider?: string|string[], value?: string|string[] }} MissionFovControlClassNames
+ * @typedef {{ label?: string, autoButton?: string, track?: string, slider?: string, value?: string }} MissionFovControlIds
+ */
+
 function createElement(tagName, {
     classNames = [],
     textContent = "",
@@ -53,6 +58,10 @@ export function mountMissionFovControl(container, {
     classNames = {},
     ids = {},
 } = {}) {
+    /** @type {MissionFovControlClassNames} */
+    const normalizedClassNames = classNames || {};
+    /** @type {MissionFovControlIds} */
+    const normalizedIds = ids || {};
     if (
         !container ||
         typeof container !== "object" ||
@@ -69,32 +78,32 @@ export function mountMissionFovControl(container, {
     }
 
     const label = createElement("span", {
-        classNames: classNames.label,
+        classNames: /** @type {any} */ (normalizedClassNames.label),
         textContent: labelText,
-        id: ids.label,
+        id: normalizedIds.label,
     });
 
     const autoButton = createElement("button", {
-        classNames: classNames.autoButton,
+        classNames: /** @type {any} */ (normalizedClassNames.autoButton),
         textContent: autoButtonText,
-        id: ids.autoButton,
+        id: normalizedIds.autoButton,
         type: "button",
     });
     autoButton.setAttribute("aria-label", autoButtonAriaLabel);
 
     const track = createElement("div", {
-        classNames: classNames.track,
-        id: ids.track,
+        classNames: /** @type {any} */ (normalizedClassNames.track),
+        id: normalizedIds.track,
     });
 
     const tightEdge = createElement("span", {
-        classNames: classNames.edge,
+        classNames: /** @type {any} */ (normalizedClassNames.edge),
         textContent: tightText,
     });
 
     const slider = createElement("input", {
-        classNames: classNames.slider,
-        id: ids.slider,
+        classNames: /** @type {any} */ (normalizedClassNames.slider),
+        id: normalizedIds.slider,
         type: "range",
     });
     applyZoomScaleToFovSlider(slider, {
@@ -105,7 +114,7 @@ export function mountMissionFovControl(container, {
     slider.setAttribute("aria-label", sliderAriaLabel);
 
     const wideEdge = createElement("span", {
-        classNames: classNames.edge,
+        classNames: /** @type {any} */ (normalizedClassNames.edge),
         textContent: wideText,
     });
 
@@ -114,8 +123,8 @@ export function mountMissionFovControl(container, {
     track.appendChild(wideEdge);
 
     const value = createElement("output", {
-        classNames: classNames.value,
-        id: ids.value,
+        classNames: /** @type {any} */ (normalizedClassNames.value),
+        id: normalizedIds.value,
     });
     value.setAttribute("aria-label", valueAriaLabel);
 

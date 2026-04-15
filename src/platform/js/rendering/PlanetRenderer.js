@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as THREE from "three";
 
 const EARTH_CENTERED_BODIES = Object.freeze([

@@ -46,6 +46,7 @@ function createMissionWiringComposition(ports) {
         ensureIndeterminateProgressBar: ctx.ensureIndeterminateProgressBar,
         showElementById: ctx.showElementById,
         hideElementById: ctx.hideElementById,
+        loadJson: ctx.loadJson,
         loadChebyshev: ctx.loadChebyshev,
         loadNpz: ctx.loadNpz,
         processOrbitData: ctx.processOrbitData,
@@ -114,6 +115,7 @@ function createMissionWiringComposition(ports) {
         generateBodyCurve: ctx.generateBodyCurve,
         getLatestEndTime: ctx.getLatestEndTime,
         getPlaneVariables: ctx.getPlaneVariables,
+        getViewOrbit: ctx.getViewOrbit,
         getOrbitStyle: ctx.getEffectiveOrbitStyle || ctx.getOrbitStyle,
         getTrailTrackBrightness2D: ctx.getTrailTrackBrightness2D,
         getTrailTailBrightness2D: ctx.getTrailTailBrightness2D,
@@ -137,6 +139,8 @@ function createMissionWiringComposition(ports) {
         setPlaneVariables: ctx.setPlaneVariables,
         handleDimensionSwitch: ctx.handleDimensionSwitch,
         setLocation: ctx.setLocation,
+        getViewportWidth: ctx.getViewportWidth,
+        render: ctx.render,
         loadProgress,
     });
 

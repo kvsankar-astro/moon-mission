@@ -800,6 +800,7 @@ export function bindSettingsPanel() {
             settingsOutsideClickBound = true;
             document.addEventListener("pointerdown", function (event) {
                 if (!readSettingsPanelOpen()) return;
+                if (!(event.target instanceof Node)) return;
                 const dialogWrapper = dialogApi?.widgetElement?.("#settings-panel");
                 if (dialogWrapper && dialogWrapper.contains(event.target)) return;
                 if (settingsButton && settingsButton.contains(event.target)) return;
@@ -1657,6 +1658,7 @@ export function bindKeyboardShortcuts() {
             const panel = document.getElementById("shortcut-panel");
             const button = document.getElementById("shortcut-help");
             if (!panel || panel.classList.contains("shortcut-panel--hidden")) return;
+            if (!(event.target instanceof Node)) return;
             if (panel.contains(event.target)) return;
             if (button && button.contains(event.target)) return;
             toggleShortcutPanel(false);
@@ -2639,6 +2641,7 @@ export function bindMobileMissionCard() {
         if (radiusByObject.has(object)) {
             return radiusByObject.get(object);
         }
+        /** @type {number | null} */
         let radius = null;
         const takeRadius = (geometry) => {
             if (!geometry) return;

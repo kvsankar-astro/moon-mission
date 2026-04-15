@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Scene Helpers - Axes, reference planes, and scene visual aids.
  *

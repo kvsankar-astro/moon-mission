@@ -33,11 +33,13 @@ export class AnimationController {
      * @param {Function} options.onPlayStateChange - Callback when play/pause state changes
      * @param {Function} options.onSpeedChange - Callback when speed changes
      */
-    constructor(options = {}) {
+    constructor(options = /** @type {any} */ ({}) ) {
+        /** @type {{ onTimeChange?: Function, onPlayStateChange?: Function, onSpeedChange?: Function }} */
+        const normalizedOptions = options || {};
         // Callbacks
-        this.onTimeChange = options.onTimeChange || (() => {});
-        this.onPlayStateChange = options.onPlayStateChange || (() => {});
-        this.onSpeedChange = options.onSpeedChange || (() => {});
+        this.onTimeChange = normalizedOptions.onTimeChange || (() => {});
+        this.onPlayStateChange = normalizedOptions.onPlayStateChange || (() => {});
+        this.onSpeedChange = normalizedOptions.onSpeedChange || (() => {});
 
         // Time boundaries (set via configure())
         this.startTime = 0;

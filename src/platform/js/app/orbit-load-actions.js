@@ -1,6 +1,7 @@
 import { applyOrbitStyleMetadataToScene } from "./orbit-style-meta-actions.js";
 
-let orbitStyleMetaHideTimer = 0;
+/** @type {any} */
+let orbitStyleMetaHideTimer = null;
 
 export function createOrbitLoadActions({
     d3,
@@ -134,7 +135,7 @@ export function createOrbitLoadActions({
 
         if (orbitStyleMetaHideTimer) {
             clearTimeout(orbitStyleMetaHideTimer);
-            orbitStyleMetaHideTimer = 0;
+            orbitStyleMetaHideTimer = null;
         }
 
         if (!status) {
@@ -151,7 +152,7 @@ export function createOrbitLoadActions({
         label.textContent = text || "Style data ready";
 
         if (status === "applied" && !sticky) {
-            orbitStyleMetaHideTimer = setTimeout(() => {
+            orbitStyleMetaHideTimer = window.setTimeout(() => {
                 const currentHost = document.getElementById("orbit-style-meta-status");
                 if (!currentHost) return;
                 currentHost.hidden = true;
@@ -159,7 +160,7 @@ export function createOrbitLoadActions({
                 currentHost.removeAttribute("data-status");
                 const currentLabel = document.getElementById("orbit-style-meta-status-text");
                 if (currentLabel) currentLabel.textContent = "";
-                orbitStyleMetaHideTimer = 0;
+                orbitStyleMetaHideTimer = null;
             }, 1800);
         }
     }

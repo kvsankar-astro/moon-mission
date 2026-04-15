@@ -1972,6 +1972,7 @@
 
         function mountOrbitCardPreview(row, host) {
             var stopped = false;
+            /** @type {any} */
             var timerId = 0;
 
             function stop() {
@@ -2227,6 +2228,7 @@
             var launchLink = options && options.launchLink;
             var metaLabel = options && options.metaLabel;
             var stopped = false;
+            /** @type {any} */
             var timerId = 0;
             var renderToken = 0;
             var modeOptions = [];
@@ -2890,6 +2892,7 @@
                     var gapDurationMs = 3000;
                     var cycleDurationMs = durationMs + gapDurationMs;
                     var startTs = Date.now();
+                    /** @type {any} */
                     var timerId = 0;
                     var tailWindow = Math.max(110, Math.min(720, Math.floor(scPx.length / 80)));
                     var headWindow = Math.max(26, Math.min(130, Math.floor(tailWindow / 4)));

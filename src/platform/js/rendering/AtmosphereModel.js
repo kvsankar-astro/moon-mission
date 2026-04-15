@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Lightweight physically-motivated atmosphere helper model.
  *

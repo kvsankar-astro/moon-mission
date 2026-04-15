@@ -52,8 +52,14 @@ function setColorTextureSpace(texture) {
     if (!texture) return;
     if ("colorSpace" in texture && THREE.SRGBColorSpace) {
         texture.colorSpace = THREE.SRGBColorSpace;
-    } else if ("encoding" in texture && THREE.sRGBEncoding) {
-        texture.encoding = THREE.sRGBEncoding;
+    } else if ("encoding" in texture && /** @type {any} */ (THREE).sRGBEncoding) {
+        texture.encoding = /** @type {any} */ (THREE).sRGBEncoding;
+    }
+}
+
+function setSceneBackgroundColor(scene, color) {
+    if (scene?.background instanceof THREE.Color) {
+        scene.background.set(color);
     }
 }
 
@@ -437,7 +443,7 @@ function main() {
             const daylight = computeDaylightFactor(state.timeHours);
             atmosphereDome.material.uniforms.uAtmosphere.value = state.atmosphereEnabled ? 1 : 0;
             atmosphereDome.material.uniforms.uDaylight.value = daylight;
-            scene.background.set((state.atmosphereEnabled && daylight > 0.08) ? 0x0b1d39 : 0x000000);
+            setSceneBackgroundColor(scene, (state.atmosphereEnabled && daylight > 0.08) ? 0x0b1d39 : 0x000000);
             horizonRing.visible = state.atmosphereEnabled;
         });
     });
@@ -465,7 +471,7 @@ function main() {
     state = readUiState();
     atmosphereDome.material.uniforms.uAtmosphere.value = state.atmosphereEnabled ? 1 : 0;
     atmosphereDome.material.uniforms.uDaylight.value = computeDaylightFactor(state.timeHours);
-    scene.background.set(0x000000);
+    setSceneBackgroundColor(scene, 0x000000);
     horizonRing.visible = state.atmosphereEnabled;
     renderLoop();
 }

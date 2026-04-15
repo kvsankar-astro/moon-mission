@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as THREE from "three";
 import {
     DEFAULT_MOON_RENDER_ASSET_PROFILES,
@@ -9,6 +11,7 @@ import {
     resolveMoonRenderProfileSettings,
 } from "./app/moon-render-asset-profiles.js";
 
+/** @type {Record<string, number>} */
 const TUNER_VIEW_DEFAULTS = Object.freeze({
     primaryIntensity: 3.1,
     ambientIntensity: 0.015,

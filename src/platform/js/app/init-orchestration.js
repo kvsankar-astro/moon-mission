@@ -95,6 +95,9 @@ function createInitOrchestrationActions(deps) {
         }
     }
 
+    /**
+     * @param {{ onReady?: Function, pollIntervalMs?: number, runId?: number }} [options]
+     */
     async function waitUntilOrbitDataProcessed({
         onReady,
         pollIntervalMs = 50,

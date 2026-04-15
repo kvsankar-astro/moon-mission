@@ -144,9 +144,11 @@ function createAnimationSceneClass(deps) {
             this.initialized3D = false;
             this.earth = null;
             this.earthContainer = null;
+            this.motherContainer = null;
             this.earthAxis = null;
             this.earthGlow = null;
             this.moon = null;
+            this.moonContainer = null;
             this.moonAxisRotationAngle = 0;
             this.moonSOISphere = null;
             this.moonHillSphere = null;
@@ -190,6 +192,7 @@ function createAnimationSceneClass(deps) {
             this.locations = [];
             this.sceneHelpers = null;
             this.skyRenderer = null;
+            this.skyContainer = null;
             this.skyBaseQuaternion = null;
             this.sunRenderer = null;
             this.sun = null;

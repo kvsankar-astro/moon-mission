@@ -34,6 +34,28 @@ const HAS_DATE_GET_JD_TDB =
     typeof Date !== "undefined" &&
     typeof Date.prototype.getJD_TDB === "function";
 
+/**
+ * @typedef {Object} BodyEphemerisArgs
+ * @property {string} bodyId
+ * @property {number} timeMs
+ * @property {string} config
+ * @property {any} npzData
+ * @property {any} npzDataLoaded
+ * @property {any} chebyshevData
+ * @property {any} chebyshevDataLoaded
+ * @property {any} [landingNpzData]
+ * @property {any} [landingNpzLoaded]
+ * @property {any} [landingChebyshevData]
+ * @property {any} [landingChebyshevLoaded]
+ * @property {any} [globalConfig]
+ * @property {number} [startLandingTime]
+ * @property {number} [endLandingTime]
+ * @property {any} [bodySources]
+ * @property {string} [defaultSpacecraftSource]
+ * @property {string} [spacecraftMnemonic]
+ * @property {string} [resolvedSource]
+ */
+
 function normalizeBodyId(bodyId) {
     return typeof bodyId === "string" ? bodyId.toUpperCase() : "";
 }
@@ -250,6 +272,20 @@ function getLandingStateFromSource({
     return null;
 }
 
+/**
+ * @param {{
+ *   bodyId: string,
+ *   config: string,
+ *   npzData: any,
+ *   npzDataLoaded: any,
+ *   chebyshevData: any,
+ *   chebyshevDataLoaded: any,
+ *   bodySources?: any,
+ *   defaultSpacecraftSource?: string,
+ *   spacecraftMnemonic?: string,
+ *   resolvedSource?: string,
+ * }} params
+ */
 export function getBodyEphemerisRange({
     bodyId,
     config,
@@ -291,6 +327,9 @@ export function getBodyEphemerisRange({
     return null;
 }
 
+/**
+ * @param {BodyEphemerisArgs} params
+ */
 export function getBodyEphemerisState({
     bodyId,
     timeMs,
@@ -436,6 +475,23 @@ export function getBodyEphemerisState({
     };
 }
 
+/**
+ * @param {{
+ *   bodyId: string,
+ *   config: string,
+ *   startTimeMs: number,
+ *   endTimeMs: number,
+ *   stepMs: number,
+ *   npzData: any,
+ *   npzDataLoaded: any,
+ *   chebyshevData: any,
+ *   chebyshevDataLoaded: any,
+ *   bodySources?: any,
+ *   defaultSpacecraftSource?: string,
+ *   spacecraftMnemonic?: string,
+ *   resolvedSource?: string,
+ * }} params
+ */
 export function generateBodyCurve({
     bodyId,
     config,

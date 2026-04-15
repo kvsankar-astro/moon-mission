@@ -33,11 +33,21 @@ const MS_PER_SEC = 1000;
  * @param {string} config - Configuration: "geo" or "lunar"
  * @param {Object} data - Data sources
  * @param {Object} data.chebyshevData - Chebyshev data keyed by config
+ * @param {Object} data.chebyshevDataLoaded - Chebyshev loaded flags keyed by config
+ * @param {Object} data.npzData - NPZ data keyed by config
+ * @param {Object} data.npzDataLoaded - NPZ loaded flags keyed by config
  * @param {Object} data.landingNpzData - Landing phase NPZ data
+ * @param {Object} data.landingNpzLoaded - Landing phase NPZ loaded flags
  * @param {Object} data.landingChebyshevData - Landing phase Chebyshev data
+ * @param {Object} data.landingChebyshevLoaded - Landing phase Chebyshev loaded flags
  * @param {Object} data.globalConfig - Mission configuration
  * @param {number} data.startLandingTime - Landing phase start time
  * @param {number} data.endLandingTime - Landing phase end time
+ * @param {string} [data.frameMode] - Frame mode ("absolute" or "relative")
+ * @param {string} [data.ephemerisSource] - Default spacecraft ephemeris source
+ * @param {Object} [data.bodySources] - Per-body ephemeris source overrides
+ * @param {boolean} [data.includeNextState] - Whether to compute next-step state
+ * @param {Object} [data.precomputedBodyEphemeris] - Optional precomputed body states
  * @returns {Object|null} Body state: { position: {x,y,z}, velocity: {vx,vy,vz}, available: boolean, nextPosition?: {x,y,z}, nextVelocity?: {vx,vy,vz} }
  */
 export function computeBodyState(bodyId, time, config, data) {
@@ -578,6 +588,7 @@ export function computeSceneState(time, config, options) {
 
     // 2. Body states
     const bodies = {};
+    /** @type {any} */
     const dataForBodies = {
         chebyshevData,
         chebyshevDataLoaded,

@@ -36,7 +36,7 @@ const { TDB_OFFSET_MS } = TIME_CONSTANTS;
  * @returns {number} Julian Date in UTC
  */
 Date.prototype.getJD_UTC = function() {
-    return (this / MS_PER_DAY) + JD_UNIX_EPOCH;
+    return (this.getTime() / MS_PER_DAY) + JD_UNIX_EPOCH;
 }
 
 /**
@@ -48,7 +48,7 @@ Date.prototype.getJD_UTC = function() {
  * @returns {number} Julian Date in TDB
  */
 Date.prototype.getJD_TDB = function() {
-    return ((this / 1.0) + TDB_OFFSET_MS) / MS_PER_DAY + JD_UNIX_EPOCH;
+    return (this.getTime() + TDB_OFFSET_MS) / MS_PER_DAY + JD_UNIX_EPOCH;
 }
 
 /**

@@ -85,6 +85,28 @@ function resolvePrimaryCraftMnemonic(globalConfig) {
     return primaryCraft?.mnemonic || globalConfig?.spacecraft_mnemonic || "SC";
 }
 
+/**
+ * @typedef {Object} EventInfo
+ * @property {string} [key]
+ * @property {string} [kind]
+ * @property {Date} startTime
+ * @property {number} durationSeconds
+ * @property {string} label
+ * @property {boolean} [burnFlag]
+ * @property {string} [burnDirection]
+ * @property {string} [burnTypeLabel]
+ * @property {string} [infoText]
+ * @property {string} [hoverText]
+ * @property {string} [body]
+ * @property {string|null} [timeSource]
+ * @property {boolean} [clickable]
+ * @property {boolean} [preEphemeris]
+ * @property {Date|null} [availabilityStartTime]
+ * @property {boolean} [generated]
+ * @property {string} [generatedLabel]
+ * @property {string} [generatedNote]
+ */
+
 function maybeBuildNowEventInfo({
     globalConfig,
     config,
@@ -152,7 +174,7 @@ export function computeEventsUpdate({
     const configEvents = eventConfigs[config] || [];
     const postHorizonExtension = resolvePostHorizonExtension(globalConfig, config);
 
-    /** @type {Array<{ startTime: Date, durationSeconds: number, label: string, burnFlag?: boolean, infoText?: string, body?: string }>} */
+    /** @type {EventInfo[]} */
     const eventInfos = [];
     /** @type {string[]} */
     const warnings = [];
@@ -239,7 +261,7 @@ export function computeEventsUpdate({
         filteredEventInfos.push(nowEventInfo);
     }
 
-    filteredEventInfos.sort((a, b) => a.startTime - b.startTime);
+    filteredEventInfos.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
     return {
         shouldUpdate: true,

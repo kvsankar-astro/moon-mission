@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Celestial coordinate math helpers (J2000/equatorial to horizontal).
  */

@@ -20,6 +20,7 @@ export function computeSceneCameraParameters({
         defaultCameraDistance,
         globalConfig,
     });
+    const preferredDistanceConfig = /** @type {any} */ (preferredDistance);
     const effectivePlaneSelection = resolveEffectivePlaneSelection(planeSelection, {
         isRelativeMode,
         relativeDefaultPlaneSelection,
@@ -29,10 +30,10 @@ export function computeSceneCameraParameters({
         return {
             fov: 50.0,
             craftVisible: true,
-            position: preferredDistance.position,
-            up: preferredDistance.up || { x: 0, y: 0, z: 1 },
-            lookTarget: preferredDistance.lookTarget || null,
-            pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
+            position: preferredDistanceConfig.position,
+            up: preferredDistanceConfig.up || { x: 0, y: 0, z: 1 },
+            lookTarget: preferredDistanceConfig.lookTarget || null,
+            pinEarthBelowPanel: !!preferredDistanceConfig.pinEarthBelowPanel,
         };
     }
 
@@ -40,7 +41,7 @@ export function computeSceneCameraParameters({
         isRelativeMode && requestedPlaneSelection === "DEFAULT";
 
     const cameraDistance = isInitialization || shouldResetRelativeDefaultDistance
-        ? preferredDistance.magnitude
+        ? preferredDistanceConfig.magnitude
         : controllerDistance !== null && controllerDistance > 0
             ? controllerDistance
             : defaultCameraDistance;
@@ -56,7 +57,7 @@ export function computeSceneCameraParameters({
         craftVisible: true,
         position: pose?.position ?? null,
         up: pose?.up ?? null,
-        lookTarget: preferredDistance.lookTarget || null,
-        pinEarthBelowPanel: !!preferredDistance.pinEarthBelowPanel,
+        lookTarget: preferredDistanceConfig.lookTarget || null,
+        pinEarthBelowPanel: !!preferredDistanceConfig.pinEarthBelowPanel,
     };
 }

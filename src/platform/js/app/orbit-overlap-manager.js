@@ -23,7 +23,8 @@ const sceneByJobId = new Map();
 
 let nextJobId = 1;
 let workerInstance = null;
-let hideIndicatorTimer = 0;
+/** @type {any} */
+let hideIndicatorTimer = null;
 
 function setOverlapIndicator(status, text, { sticky = false } = {}) {
     if (typeof document === "undefined") {
@@ -54,7 +55,7 @@ function setOverlapIndicator(status, text, { sticky = false } = {}) {
     label.textContent = text || "Orbit ready";
 
     if (status === "done" && !sticky) {
-        hideIndicatorTimer = setTimeout(() => {
+        hideIndicatorTimer = window.setTimeout(() => {
             const currentHost = document.getElementById("orbit-overlap-status");
             if (!currentHost) return;
             currentHost.hidden = true;
@@ -62,7 +63,7 @@ function setOverlapIndicator(status, text, { sticky = false } = {}) {
             currentHost.removeAttribute("data-status");
             const currentLabel = document.getElementById("orbit-overlap-status-text");
             if (currentLabel) currentLabel.textContent = "";
-            hideIndicatorTimer = 0;
+            hideIndicatorTimer = null;
         }, 1600);
     }
 }
@@ -71,7 +72,8 @@ function getSceneOverlapState(scene) {
     let state = sceneStateByScene.get(scene);
     if (!state) {
         state = {
-            timer: 0,
+            /** @type {any} */
+            timer: null,
             activeJobId: null,
             appliedSignature: "",
             pendingSignature: "",

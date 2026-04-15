@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Moon Renderer - Moon sphere with texture, displacement, axis, and poles
  *

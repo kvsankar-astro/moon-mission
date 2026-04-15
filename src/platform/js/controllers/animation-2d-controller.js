@@ -12,6 +12,7 @@
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { projectToPlane, toScreenCoordinates } from "../scene-state.js";
 import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
+import * as d3 from "d3";
 import {
     isBurnIndicatorVisibleAtTime,
     resolveBurnIndicatorAngle,
@@ -29,10 +30,12 @@ export class Animation2DController {
      * @param {Object} options.planetProperties - Planet display properties
      * @param {Function} options.showPlanet - Function to determine planet visibility
      */
-    constructor(config, options = {}) {
+    constructor(config, options = /** @type {any} */ ({}) ) {
+        /** @type {{ planetProperties?: Record<string, any>, showPlanet?: Function }} */
+        const normalizedOptions = options || {};
         this.config = config;
-        this.planetProperties = options.planetProperties || {};
-        this.showPlanet = options.showPlanet || (() => true);
+        this.planetProperties = normalizedOptions.planetProperties || {};
+        this.showPlanet = normalizedOptions.showPlanet || (() => true);
 
         // Plane configuration for coordinate projection
         // These determine which 3D axes map to 2D x/y
@@ -83,14 +86,16 @@ export class Animation2DController {
      * @param {string} options.primaryBody - Primary body name
      * @param {Array} options.planetsForLocations - List of planet IDs to render
      */
-    render(state, options = {}) {
+    render(state, options = /** @type {any} */ ({}) ) {
+        /** @type {{ craftId?: string, pixelsPerAU?: number, primaryBody?: string, planetsForLocations?: any[], scene?: any }} */
+        const renderOptions = options || {};
         const {
             craftId = "SC",
             pixelsPerAU = 250,
             primaryBody,
             planetsForLocations = [],
             scene = null,
-        } = options;
+        } = renderOptions;
         this.pixelsPerAU = pixelsPerAU;
         if (scene) {
             scene.latestSceneState = state;

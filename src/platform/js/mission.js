@@ -915,17 +915,17 @@ const {
 }));
 
 toggleMode = function (...args) {
-    missionRuntimeWireup.toggleMode(...args);
+    missionRuntimeWireup.toggleMode.apply(missionRuntimeWireup, args);
     syncTimelineDock();
     syncActiveCraftControl();
 };
 setDimensionTop = function (...args) {
-    missionRuntimeWireup.setDimensionTop(...args);
+    missionRuntimeWireup.setDimensionTop.apply(missionRuntimeWireup, args);
     syncTimelineDock();
     syncActiveCraftControl();
 };
 setView = function (...args) {
-    missionRuntimeWireup.setView(...args);
+    missionRuntimeWireup.setView.apply(missionRuntimeWireup, args);
     syncTimelineDock();
     syncActiveCraftControl();
 };

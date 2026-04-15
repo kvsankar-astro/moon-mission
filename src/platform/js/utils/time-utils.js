@@ -20,11 +20,11 @@
  */
 export function dateFromConfigComponents(config) {
     return Date.UTC(
-        parseInt(config.year),
-        parseInt(config.month) - 1,  // JavaScript months are 0-indexed
-        parseInt(config.day),
-        parseInt(config.hour),
-        parseInt(config.minute),
+        Number.parseInt(String(config.year), 10),
+        Number.parseInt(String(config.month), 10) - 1,  // JavaScript months are 0-indexed
+        Number.parseInt(String(config.day), 10),
+        Number.parseInt(String(config.hour), 10),
+        Number.parseInt(String(config.minute), 10),
         0,
         0
     );
@@ -123,6 +123,7 @@ export function formatDateTimeIST(dateOrTimestamp) {
         : dateOrTimestamp;
 
     // Use Intl.DateTimeFormat for IST timezone
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         timeZone: 'Asia/Kolkata',
         weekday: 'short',
@@ -157,6 +158,7 @@ export function formatDateTimeLocal(dateOrTimestamp, { includeOffset = true } = 
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         weekday: 'short',
         year: 'numeric',
@@ -185,6 +187,7 @@ export function formatDateTimeUTC(dateOrTimestamp) {
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         timeZone: 'UTC',
         weekday: 'short',
@@ -210,6 +213,7 @@ export function formatDateOnly(dateOrTimestamp) {
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
@@ -225,6 +229,7 @@ export function formatDateOnlyLocal(dateOrTimestamp) {
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         year: 'numeric',
         month: 'short',
@@ -244,6 +249,7 @@ export function formatTimeOnly(dateOrTimestamp) {
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         timeZone: 'Asia/Kolkata',
         hour: '2-digit',
@@ -260,6 +266,7 @@ export function formatTimeOnlyLocal(dateOrTimestamp, { includeOffset = false } =
         ? new Date(dateOrTimestamp)
         : dateOrTimestamp;
 
+    /** @type {Intl.DateTimeFormatOptions} */
     const options = {
         hour: '2-digit',
         minute: '2-digit',

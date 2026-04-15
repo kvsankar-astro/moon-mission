@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "types": ["three", "jquery", "d3", "node"],
+    "types": ["three", "jquery", "d3"],
     "typeRoots": ["./node_modules/@types", "./src/types"],
     "baseUrl": ".",
     "paths": {

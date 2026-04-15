@@ -43,6 +43,9 @@ class DesktopPanelManager {
             .forEach((node) => node.remove());
     }
 
+    /**
+     * @param {{ overlayHost?: HTMLElement | null }} [options]
+     */
     constructor({ overlayHost } = {}) {
         this.overlayHost = overlayHost || document.body;
         this.root = null;

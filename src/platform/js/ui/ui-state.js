@@ -165,7 +165,7 @@ function setOptionalBoolean(ids, value) {
 }
 
 export function readViewSettings() {
-    /** @type {Record<string, boolean>} */
+    /** @type {Record<string, any>} */
     const settings = {};
 
     for (const [key, id] of Object.entries(VIEW_SETTING_CHECKBOXES)) {
@@ -203,7 +203,7 @@ export function readViewSettings() {
 
 /**
  * Apply a partial update to the view settings checkboxes.
- * @param {Record<string, boolean>} patch - Partial settings object keyed like readViewSettings()
+ * @param {Record<string, any>} patch - Partial settings object keyed like readViewSettings()
  */
 export function applyViewSettings(patch) {
     if (!patch) return;

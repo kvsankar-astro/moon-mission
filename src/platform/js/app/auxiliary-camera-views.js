@@ -5026,6 +5026,9 @@ class AuxiliaryCameraViewsManager {
         return hiddenEntries;
     }
 
+    /**
+     * @param {{ activeCraft?: any, craftsById?: Record<string, any>, dronesById?: Record<string, any> }} [options]
+     */
     suppressCraftVisuals({ activeCraft, craftsById, dronesById } = {}) {
         const hiddenEntries = [];
         const seen = new Set();

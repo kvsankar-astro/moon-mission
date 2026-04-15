@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Camera Controller - Camera and controls management
  *

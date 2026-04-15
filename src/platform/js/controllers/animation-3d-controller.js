@@ -34,17 +34,19 @@ export class Animation3DController {
      * @param {number} options.pixelsPerAU - Scale factor for coordinate conversion
      * @param {Function} options.updateCraftScale - Callback to update craft scale
      */
-    render(state, options = {}) {
+    render(state, options = /** @type {any} */ ({}) ) {
         if (!this.scene || !this.scene.initialized3D) {
             return;
         }
 
+        /** @type {{ craftId?: string, pixelsPerAU?: number, updateCraftScale?: Function, landingFreezeTime?: number | null }} */
+        const renderOptions = options || {};
         const {
             craftId = "SC",
             pixelsPerAU = 250,
             updateCraftScale,
             landingFreezeTime = null,
-        } = options;
+        } = renderOptions;
         this.pixelsPerAU = pixelsPerAU;
         // Carry body-specific sun directions for lighting and craft optics.
         this.scene.stateSunDirection = state.sunDirection;

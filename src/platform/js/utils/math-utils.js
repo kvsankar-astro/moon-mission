@@ -138,14 +138,18 @@ export function lerp(a, b, t) {
  * @returns {string} Formatted number string
  */
 export function formatFloat(number, decPlaces = 2, thouSeparator = ",", decSeparator = ".") {
-    let n = number;
-    const places = isNaN(decPlaces = Math.abs(decPlaces)) ? 2 : decPlaces;
+    let n = Number(number) || 0;
+    const normalizedPlaces = Math.abs(Number(decPlaces));
+    const places = Number.isFinite(normalizedPlaces) ? normalizedPlaces : 2;
     const sign = n < 0 ? "-" : "";
-    const i = parseInt(n = Math.abs(+n || 0).toFixed(places)) + "";
+    n = Math.abs(Number(n) || 0);
+    const fixed = n.toFixed(places);
+    const i = `${Number.parseInt(fixed, 10)}`;
+    const integerPart = Number(i) || 0;
     const j = (i.length) > 3 ? i.length % 3 : 0;
     
     return sign + 
            (j ? i.substr(0, j) + thouSeparator : "") + 
            i.substr(j).replace(/(\d{3})(?=\d)/g, "$1" + thouSeparator) + 
-           (places ? decSeparator + Math.abs(n - i).toFixed(places).slice(2) : "");
+           (places ? decSeparator + Math.abs(n - integerPart).toFixed(places).slice(2) : "");
 }

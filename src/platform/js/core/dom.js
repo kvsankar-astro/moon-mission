@@ -6,6 +6,8 @@
  * Extracted from mission.js to isolate DOM interactions.
  */
 
+import * as d3 from "d3";
+
 // ===================================
 // Element Selection Utilities
 // ===================================
@@ -117,7 +119,7 @@ export function updateMultipleElementsHTML(updates, suppressWarnings = false) {
  * Safe D3 element selection with error handling
  * @param {string} selector - D3 selector string
  * @param {boolean} suppressWarnings - Whether to suppress warnings for empty selections
- * @returns {d3.selection} - D3 selection object
+ * @returns {any} - D3 selection object
  */
 export function d3Select(selector, suppressWarnings = false) {
     const selection = d3.select(selector);
@@ -131,7 +133,7 @@ export function d3Select(selector, suppressWarnings = false) {
  * Safe D3 multiple element selection with error handling
  * @param {string} selector - D3 selector string
  * @param {boolean} suppressWarnings - Whether to suppress warnings for empty selections
- * @returns {d3.selection} - D3 selection object
+ * @returns {any} - D3 selection object
  */
 export function d3SelectAll(selector, suppressWarnings = false) {
     const selection = d3.selectAll(selector);

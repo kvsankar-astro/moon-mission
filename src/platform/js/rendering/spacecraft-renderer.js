@@ -657,21 +657,23 @@ export class SpacecraftRenderer {
         if (this.craft) {
             // Dispose craft inner geometry and material
             if (this.craftInner) {
-                if (this.craftInner.geometry) {
-                    this.craftInner.geometry.dispose();
+                const craftInner = /** @type {any} */ (this.craftInner);
+                if (craftInner.geometry) {
+                    craftInner.geometry.dispose();
                 }
-                if (this.craftInner.material) {
-                    this.craftInner.material.dispose();
+                if (craftInner.material) {
+                    craftInner.material.dispose();
                 }
             }
 
             // Dispose edges
             if (this.craftEdges) {
-                if (this.craftEdges.geometry) {
-                    this.craftEdges.geometry.dispose();
+                const craftEdges = /** @type {any} */ (this.craftEdges);
+                if (craftEdges.geometry) {
+                    craftEdges.geometry.dispose();
                 }
-                if (this.craftEdges.material) {
-                    this.craftEdges.material.dispose();
+                if (craftEdges.material) {
+                    craftEdges.material.dispose();
                 }
             }
 
@@ -689,11 +691,12 @@ export class SpacecraftRenderer {
 
         // Dispose drone
         if (this.drone) {
-            if (this.drone.geometry) {
-                this.drone.geometry.dispose();
+            const drone = /** @type {any} */ (this.drone);
+            if (drone.geometry) {
+                drone.geometry.dispose();
             }
-            if (this.drone.material) {
-                this.drone.material.dispose();
+            if (drone.material) {
+                drone.material.dispose();
             }
             this.parentContainer.remove(this.drone);
             this.drone = null;
@@ -722,14 +725,15 @@ export class SpacecraftRenderer {
 
             // Dispose geometry and materials recursively
             this.craft.traverse((child) => {
-                if (child.geometry) {
-                    child.geometry.dispose();
+                const node = /** @type {any} */ (child);
+                if (node.geometry) {
+                    node.geometry.dispose();
                 }
-                if (child.material) {
-                    if (Array.isArray(child.material)) {
-                        child.material.forEach(m => m.dispose());
+                if (node.material) {
+                    if (Array.isArray(node.material)) {
+                        node.material.forEach((material) => material.dispose());
                     } else {
-                        child.material.dispose();
+                        node.material.dispose();
                     }
                 }
             });
