@@ -53,6 +53,9 @@
         "cislunar-pathfinders": [
           "capstone",
           "artemis",
+          "artemis-overview",
+          "artemis-lagrange",
+          "artemis-lunar-capture",
           "lunar-flashlight",
           "slim"
         ],
@@ -579,17 +582,89 @@
       "queryValue": "artemis",
       "aliases": [
         "artemis",
+        "themis-artemis",
+        "themis-artemis-probes",
         "artemis-p1",
         "artemis-p2"
       ],
-      "title": "ARTEMIS",
-      "subtitle": "United States - 2011",
-      "description": "Twin repurposed THEMIS probes retargeted into lunar orbit.",
+      "title": "THEMIS-ARTEMIS",
+      "subtitle": "United States - 2007-2011",
+      "description": "Twin former THEMIS probes retargeted through Earth-Moon L1/L2 operations into lunar orbit.",
       "accent": "#4a90d9",
       "country": "United States",
       "startYear": 2007,
       "endYear": 2011,
+      "order": 146,
+      "dimensions": {
+        "missionType": "Twin Orbiters",
+        "craftClass": "Multi-Craft",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis-overview",
+      "folder": "artemis-overview",
+      "queryValue": "artemis-overview",
+      "aliases": [
+        "artemis-overview",
+        "themis-artemis-overview",
+        "artemis-p1",
+        "artemis-p2"
+      ],
+      "title": "THEMIS-ARTEMIS Overview",
+      "subtitle": "United States - 2007-2011",
+      "description": "Low-cadence full-arc view from THEMIS launch through the twin ARTEMIS lunar captures.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2007,
+      "endYear": 2011,
+      "order": 147,
+      "dimensions": {
+        "missionType": "Twin Orbiters",
+        "craftClass": "Multi-Craft",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis-lagrange",
+      "folder": "artemis-lagrange",
+      "queryValue": "artemis-lagrange",
+      "aliases": [
+        "artemis-lagrange",
+        "themis-artemis-lagrange",
+        "artemis-l1-l2"
+      ],
+      "title": "THEMIS-ARTEMIS Lagrange Transfer",
+      "subtitle": "United States - 2010",
+      "description": "Focused Earth-Moon L1/L2 transfer window for the repurposed THEMIS probes.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2010,
+      "endYear": 2010,
       "order": 148,
+      "dimensions": {
+        "missionType": "Twin Orbiters",
+        "craftClass": "Multi-Craft",
+        "crewProfile": "Robotic"
+      }
+    },
+    {
+      "key": "artemis-lunar-capture",
+      "folder": "artemis-lunar-capture",
+      "queryValue": "artemis-lunar-capture",
+      "aliases": [
+        "artemis-lunar-capture",
+        "themis-artemis-lunar-capture",
+        "artemis-lunar"
+      ],
+      "title": "THEMIS-ARTEMIS Lunar Capture",
+      "subtitle": "United States - 2011",
+      "description": "Paired 2011 lunar-orbit capture window for ARTEMIS-P1 and ARTEMIS-P2.",
+      "accent": "#4a90d9",
+      "country": "United States",
+      "startYear": 2011,
+      "endYear": 2011,
+      "order": 149,
       "dimensions": {
         "missionType": "Twin Orbiters",
         "craftClass": "Multi-Craft",

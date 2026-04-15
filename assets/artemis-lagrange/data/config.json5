@@ -1,11 +1,14 @@
+// Source-of-truth mission config for maintainers (JSON5).
+// Generated from mission-data-refresh slice import.
+// Edit this file, then run: npm run configs:compile
 {
   "spacecraft_mnemonic": "ARTP1",
   "spacecraft_id": -192,
-  "mission_name": "THEMIS-ARTEMIS",
-  "mission_name_short": "THEMIS-ARTEMIS",
-  "mission_url": "https://www.nasa.gov/mission_pages/artemis/missions/artemis-probes/",
-  "mission_description": "THEMIS-ARTEMIS Twin Lunar Orbiters Animation by Sankar Viswanathan",
-  "mission_keywords": "animation, themis-artemis, artemis, themis, moon, twin spacecraft, orbit",
+  "mission_name": "THEMIS-ARTEMIS Lagrange Transfer",
+  "mission_name_short": "THEMIS-ARTEMIS Lagrange",
+  "mission_url": "https://science.nasa.gov/mission/themis-artemis/",
+  "mission_description": "THEMIS-ARTEMIS Lagrange Transfer Orbit Animation by Sankar Viswanathan",
+  "mission_keywords": "animation, themis-artemis, artemis, themis, moon, twin spacecraft, lagrange, l1, l2, orbit",
   "mission_github": "https://github.com/kvsankar/moon-mission",
   "primaryCraftId": "ARTP1",
   "crafts": [
@@ -18,18 +21,9 @@
       "primary": true,
       "color": "#f59e0b",
       "orbitcolor": "#38bdf8",
-      "geo": {
-        "time_scale": "TDB",
-        "orbits_file": "geo-ARTP1"
-      },
-      "lunar": {
-        "time_scale": "TDB",
-        "orbits_file": "lunar-ARTP1"
-      },
-      "relative": {
-        "time_scale": "TDB",
-        "orbits_file": "relative-ARTP1"
-      }
+      "geo": { "orbits_file": "geo-ARTLG" },
+      "lunar": { "orbits_file": "lunar-ARTLG" },
+      "relative": { "orbits_file": "relative-ARTLG" }
     },
     {
       "id": "ARTP2",
@@ -40,18 +34,9 @@
       "primary": false,
       "color": "#ef4444",
       "orbitcolor": "#f472b6",
-      "geo": {
-        "time_scale": "TDB",
-        "orbits_file": "geo-ARTP1"
-      },
-      "lunar": {
-        "time_scale": "TDB",
-        "orbits_file": "lunar-ARTP1"
-      },
-      "relative": {
-        "time_scale": "TDB",
-        "orbits_file": "relative-ARTP1"
-      }
+      "geo": { "orbits_file": "geo-ARTLG" },
+      "lunar": { "orbits_file": "lunar-ARTLG" },
+      "relative": { "orbits_file": "relative-ARTLG" }
     }
   ],
   "ephemeris_source": "chebyshev",
@@ -62,65 +47,54 @@
     "SUN": "chebyshev"
   },
   "ui": {
-    "pageTitle": "THEMIS-ARTEMIS Twin Spacecraft - Lunar Orbit Animation",
-    "headerTitle": "THEMIS-ARTEMIS",
+    "pageTitle": "THEMIS-ARTEMIS Lagrange Transfer - Orbit Animation",
+    "headerTitle": "THEMIS-ARTEMIS Lagrange",
     "lockOnLabel": "ARTEMIS-P1",
     "orbitLabel": "ARTEMIS-P1 Orbit",
     "descentOrbitLabel": "ARTEMIS-P1 Orbit"
   },
   "is_lunar": true,
-  "origins": [
-    "geo",
-    "lunar"
-  ],
+  "origins": ["geo", "lunar"],
   "relative": {
-    "time_scale": "TDB",
-    "orbits_file": "relative-ARTP1"
+    "orbits_file": "relative-ARTLG"
   },
   "geo": {
-    "time_scale": "TDB",
-    "start_year": "2011",
-    "start_month": "06",
-    "start_day": "01",
+    "startTime": "2010-08-20T00:00:00Z",
+    "endTime": "2010-10-30T00:00:00Z",
+    "start_year": "2010",
+    "start_month": "08",
+    "start_day": "20",
     "start_hour": "00",
     "start_minute": "00",
-    "stop_year": "2011",
-    "stop_month": "09",
-    "stop_day": "01",
+    "stop_year": "2010",
+    "stop_month": "10",
+    "stop_day": "30",
     "stop_hour": "00",
     "stop_minute": "00",
     "step_size_in_seconds": 60,
-    "planets": [
-      "MOON",
-      "ARTP1",
-      "ARTP2"
-    ],
+    "planets": ["MOON", "ARTP1", "ARTP2"],
     "center": "earth_center",
-    "orbits_file": "geo-ARTP1"
+    "orbits_file": "geo-ARTLG"
   },
   "lunar": {
-    "time_scale": "TDB",
-    "start_year": "2011",
-    "start_month": "06",
-    "start_day": "01",
+    "startTime": "2010-08-20T00:00:00Z",
+    "endTime": "2010-10-30T00:00:00Z",
+    "start_year": "2010",
+    "start_month": "08",
+    "start_day": "20",
     "start_hour": "00",
     "start_minute": "00",
-    "stop_year": "2011",
-    "stop_month": "09",
-    "stop_day": "01",
+    "stop_year": "2010",
+    "stop_month": "10",
+    "stop_day": "30",
     "stop_hour": "00",
     "stop_minute": "00",
     "step_size_in_seconds": 60,
-    "planets": [
-      "ARTP1",
-      "ARTP2",
-      "EARTH"
-    ],
+    "planets": ["ARTP1", "ARTP2", "EARTH"],
     "center": "moon_center",
-    "orbits_file": "lunar-ARTP1"
+    "orbits_file": "lunar-ARTLG"
   },
   "landing": {
-    "time_scale": "TDB",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2007",
@@ -134,32 +108,30 @@
     "stop_hour": "23",
     "stop_minute": "01",
     "step_size_in_seconds": 1,
-    "planets": [
-      "ARTP1"
-    ],
+    "planets": ["ARTP1"],
     "center": "moon_center",
     "orbits_file": "landing-ARTP1"
   },
   "spacecraftModel": {
     "enabled": false,
-    "comment": "3D model not configured for ARTEMIS."
+    "comment": "3D model not configured for THEMIS-ARTEMIS."
   },
   "events": {
-    "time_scale": "UTC",
-    "missionStart": {
+    "launch": {
       "startTime": "2007-02-17T23:01:00Z",
       "durationSeconds": 0,
       "label": "Launch",
       "burnFlag": false,
       "infoText": "Launch of the THEMIS-B and THEMIS-C spacecraft, later retargeted and renamed as ARTEMIS-P1 and ARTEMIS-P2. This event is preserved before the first public HORIZONS sample.",
-      "body": "ARTP1"
+      "body": "ARTP1",
+      "enabled": false
     },
-    "trajectoryStart": {
-      "startTime": "2007-02-18T00:00:00Z",
+    "dataStart": {
+      "startTime": "2010-08-20T00:00:00Z",
       "durationSeconds": 0,
-      "label": "Trajectory Start",
+      "label": "Data Start",
       "burnFlag": false,
-      "infoText": "First public HORIZONS trajectory day for the ARTEMIS definitive reconstruction.",
+      "infoText": "Start of the curated THEMIS-ARTEMIS Lagrange-point transfer window.",
       "body": "ARTP1"
     },
     "p1L2OrbitDateOnly": {
@@ -184,7 +156,8 @@
       "label": "P1 Lunar Orbit",
       "burnFlag": false,
       "infoText": "Explorer-audited milestone date for ARTEMIS-P1 entering lunar orbit; exact time was not verified in the currently saved source bundle.",
-      "body": "ARTP1"
+      "body": "ARTP1",
+      "enabled": false
     },
     "p2LunarOrbitDateOnly": {
       "startTime": "2011-07-17T00:00:00Z",
@@ -192,13 +165,12 @@
       "label": "P2 Lunar Orbit",
       "burnFlag": false,
       "infoText": "Explorer-audited milestone date for ARTEMIS-P2 entering lunar orbit; exact time was not verified in the currently saved source bundle.",
-      "body": "ARTP2"
+      "body": "ARTP2",
+      "enabled": false
     },
     "now": {
       "kind": "now",
-      "timeSource": {
-        "type": "now"
-      },
+      "timeSource": { "type": "now" },
       "startTime": "dynamic",
       "durationSeconds": 0,
       "label": "Now",
@@ -235,23 +207,19 @@
   },
   "eventConfigs": {
     "geo": [
-      "missionStart",
-      "trajectoryStart",
+      "launch",
+      "dataStart",
       "p1L2OrbitDateOnly",
       "p2L1OrbitDateOnly",
-      "p1LunarOrbitDateOnly",
-      "p2LunarOrbitDateOnly",
       "now",
       "artp1DataEnd",
       "artp2DataEnd"
     ],
     "lunar": [
-      "missionStart",
-      "trajectoryStart",
+      "launch",
+      "dataStart",
       "p1L2OrbitDateOnly",
       "p2L1OrbitDateOnly",
-      "p1LunarOrbitDateOnly",
-      "p2LunarOrbitDateOnly",
       "now",
       "artp1DataEnd",
       "artp2DataEnd"

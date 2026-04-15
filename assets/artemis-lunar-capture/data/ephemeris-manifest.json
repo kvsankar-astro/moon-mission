@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "artemis-lunar-capture",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-ARTLC",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-ARTLC.npz",
+          "generated": "data-generated/artemis-lunar-capture/geo-ARTLC.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-ARTLC-cheb.json",
+          "generated": "assets/artemis-lunar-capture/data/geo-ARTLC-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-ARTLC-meta.json",
+          "generated": "data-generated/artemis-lunar-capture/geo-ARTLC-meta.json"
+        },
+        "json": {
+          "runtime": "geo-ARTLC.json",
+          "generated": "data-generated/artemis-lunar-capture/geo-ARTLC.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-ARTLC",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-ARTLC.npz",
+          "generated": "data-generated/artemis-lunar-capture/lunar-ARTLC.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-ARTLC-cheb.json",
+          "generated": "assets/artemis-lunar-capture/data/lunar-ARTLC-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-ARTLC-meta.json",
+          "generated": "data-generated/artemis-lunar-capture/lunar-ARTLC-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-ARTLC.json",
+          "generated": "data-generated/artemis-lunar-capture/lunar-ARTLC.json"
+        }
+      }
+    }
+  }
+}

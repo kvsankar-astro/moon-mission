@@ -1,0 +1,51 @@
+{
+  "format": "ephemeris-manifest",
+  "version": "1.0",
+  "mission": "artemis-overview",
+  "phases": {
+    "geo": {
+      "orbits_file": "geo-ARTOV",
+      "tolerance_km": 5,
+      "artifacts": {
+        "npz": {
+          "runtime": "geo-ARTOV.npz",
+          "generated": "data-generated/artemis-overview/geo-ARTOV.npz"
+        },
+        "chebyshev": {
+          "runtime": "geo-ARTOV-cheb.json",
+          "generated": "assets/artemis-overview/data/geo-ARTOV-cheb.json"
+        },
+        "meta": {
+          "runtime": "geo-ARTOV-meta.json",
+          "generated": "data-generated/artemis-overview/geo-ARTOV-meta.json"
+        },
+        "json": {
+          "runtime": "geo-ARTOV.json",
+          "generated": "data-generated/artemis-overview/geo-ARTOV.json"
+        }
+      }
+    },
+    "lunar": {
+      "orbits_file": "lunar-ARTOV",
+      "tolerance_km": 20,
+      "artifacts": {
+        "npz": {
+          "runtime": "lunar-ARTOV.npz",
+          "generated": "data-generated/artemis-overview/lunar-ARTOV.npz"
+        },
+        "chebyshev": {
+          "runtime": "lunar-ARTOV-cheb.json",
+          "generated": "assets/artemis-overview/data/lunar-ARTOV-cheb.json"
+        },
+        "meta": {
+          "runtime": "lunar-ARTOV-meta.json",
+          "generated": "data-generated/artemis-overview/lunar-ARTOV-meta.json"
+        },
+        "json": {
+          "runtime": "lunar-ARTOV.json",
+          "generated": "data-generated/artemis-overview/lunar-ARTOV.json"
+        }
+      }
+    }
+  }
+}
