@@ -117,6 +117,12 @@ jobs:
             --app-root . \
             --data-root ./mission-data \
             --target-root ./dist-pages
+          if [ -d images ]; then
+            cp -r images dist-pages/
+          fi
+          if [ -d third-party ]; then
+            cp -r third-party dist-pages/
+          fi
           if [ -d images/social ]; then
             mkdir -p dist-pages/images/social
             cp -r images/social/. dist-pages/images/social/
