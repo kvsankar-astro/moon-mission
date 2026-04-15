@@ -28,16 +28,20 @@
   ],
   "geo": {
     "time_scale": "TDB",
+    "startTime": "2022-12-11T08:32:33Z",
+    "endTime": "2023-05-29T12:56:00Z",
     "start_year": "2022",
     "start_month": "12",
     "start_day": "11",
     "start_hour": "08",
-    "start_minute": "34",
+    "start_minute": "32",
+    "start_second": "33",
     "stop_year": "2023",
-    "stop_month": "03",
-    "stop_day": "13",
-    "stop_hour": "08",
-    "stop_minute": "34",
+    "stop_month": "05",
+    "stop_day": "29",
+    "stop_hour": "12",
+    "stop_minute": "56",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -48,16 +52,20 @@
   },
   "lunar": {
     "time_scale": "TDB",
+    "startTime": "2022-12-11T08:32:33Z",
+    "endTime": "2023-05-29T12:56:00Z",
     "start_year": "2022",
     "start_month": "12",
     "start_day": "11",
     "start_hour": "08",
-    "start_minute": "34",
+    "start_minute": "32",
+    "start_second": "33",
     "stop_year": "2023",
-    "stop_month": "03",
-    "stop_day": "13",
-    "stop_hour": "08",
-    "stop_minute": "34",
+    "stop_month": "05",
+    "stop_day": "29",
+    "stop_hour": "12",
+    "stop_minute": "56",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",
@@ -109,6 +117,30 @@
       "infoText": "Lunar Flashlight deployment",
       "body": "SC"
     },
+    "earthFlyby": {
+      "startTime": "2023-05-17T04:44:34Z",
+      "durationSeconds": 0,
+      "label": "Earth Flyby",
+      "burnFlag": false,
+      "infoText": "Close Earth flyby at about 65,000 km as Lunar Flashlight departed the Earth-Moon system toward deep space.",
+      "body": "SC"
+    },
+    "moonCloseApproach": {
+      "startTime": "2023-05-19T14:41:34Z",
+      "durationSeconds": 0,
+      "label": "Moon Flyby",
+      "burnFlag": false,
+      "infoText": "Outbound close approach to the Moon after the final Earth flyby, before the spacecraft continued away from Earth's sphere of influence.",
+      "body": "SC"
+    },
+    "earthSoiExit": {
+      "startTime": "2023-05-29T12:56:00Z",
+      "durationSeconds": 0,
+      "label": "Earth SoI Exit",
+      "burnFlag": false,
+      "infoText": "First minute-aligned point beyond Earth's approximate 924,000 km sphere-of-influence boundary.",
+      "body": "SC"
+    },
     "now": {
       "kind": "now",
       "timeSource": {
@@ -137,12 +169,20 @@
   },
   "eventConfigs": {
     "geo": [
-      "now",
-      "lflDataEnd"
+      "missionStart",
+      "deployment",
+      "earthFlyby",
+      "moonCloseApproach",
+      "earthSoiExit",
+      "now"
     ],
     "lunar": [
-      "now",
-      "lflDataEnd"
+      "missionStart",
+      "deployment",
+      "earthFlyby",
+      "moonCloseApproach",
+      "earthSoiExit",
+      "now"
     ]
   }
 }
