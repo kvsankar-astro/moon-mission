@@ -10,11 +10,11 @@
 //   Name source: `docs/horizons-blurbs/mission-index.json`
 // Time Window Used:
 //   Launch/reference start: `2023-09-06 23:42:00 UTC`
-//   Orbit data start: `2023-10-19 15:19:57 UTC`
+//   Orbit data start: `2023-09-07 00:31:51 UTC`
 //   Orbit data end: `2024-01-19 15:19:57 UTC`
 //   Sampling step: `60` seconds
 //   Original trajectory window from source: `2023-09-07 00:32:00 UTC` to `2024-01-31 00:00:00 UTC`
-//   Selected interesting window strategy: `terminal`; capped to `92` days for pipeline/runtime constraints.
+//   Selected interesting window strategy: `launch_to_landing`; orbit coverage begins shortly after launch/separation.
 // Primary Source References:
 //   - docs/horizons-blurbs/raw/slim.txt: first listed trajectory segment begins 2023-Sep-07 00:32
 //   - docs/horizons-blurbs/raw/slim.txt: final listed segment ends 2024-Jan-31
@@ -54,15 +54,17 @@
   "geo": {
     "time_scale": "TDB",
     "start_year": "2023",
-    "start_month": "10",
-    "start_day": "19",
-    "start_hour": "15",
-    "start_minute": "19",
+    "start_month": "09",
+    "start_day": "07",
+    "start_hour": "00",
+    "start_minute": "31",
+    "start_second": "51",
     "stop_year": "2024",
     "stop_month": "01",
     "stop_day": "19",
     "stop_hour": "15",
     "stop_minute": "19",
+    "stop_second": "57",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -74,15 +76,17 @@
   "lunar": {
     "time_scale": "TDB",
     "start_year": "2023",
-    "start_month": "10",
-    "start_day": "19",
-    "start_hour": "15",
-    "start_minute": "19",
+    "start_month": "09",
+    "start_day": "07",
+    "start_hour": "00",
+    "start_minute": "31",
+    "start_second": "51",
     "stop_year": "2024",
     "stop_month": "01",
     "stop_day": "19",
     "stop_hour": "15",
     "stop_minute": "19",
+    "stop_second": "57",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",
@@ -162,12 +166,14 @@
   },
   "eventConfigs": {
     "geo": [
+      "missionStart",
+      "softLanding",
       "now",
-      "slimDataEnd"
     ],
     "lunar": [
+      "missionStart",
+      "softLanding",
       "now",
-      "slimDataEnd"
     ]
   }
 }

@@ -29,15 +29,17 @@
   "geo": {
     "time_scale": "TDB",
     "start_year": "2023",
-    "start_month": "10",
-    "start_day": "19",
-    "start_hour": "15",
-    "start_minute": "19",
+    "start_month": "09",
+    "start_day": "07",
+    "start_hour": "00",
+    "start_minute": "31",
+    "start_second": "51",
     "stop_year": "2024",
     "stop_month": "01",
     "stop_day": "19",
     "stop_hour": "15",
     "stop_minute": "19",
+    "stop_second": "57",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -49,15 +51,17 @@
   "lunar": {
     "time_scale": "TDB",
     "start_year": "2023",
-    "start_month": "10",
-    "start_day": "19",
-    "start_hour": "15",
-    "start_minute": "19",
+    "start_month": "09",
+    "start_day": "07",
+    "start_hour": "00",
+    "start_minute": "31",
+    "start_second": "51",
     "stop_year": "2024",
     "stop_month": "01",
     "stop_day": "19",
     "stop_hour": "15",
     "stop_minute": "19",
+    "stop_second": "57",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",
@@ -137,12 +141,14 @@
   },
   "eventConfigs": {
     "geo": [
-      "now",
-      "slimDataEnd"
+      "missionStart",
+      "softLanding",
+      "now"
     ],
     "lunar": [
-      "now",
-      "slimDataEnd"
+      "missionStart",
+      "softLanding",
+      "now"
     ]
   }
 }

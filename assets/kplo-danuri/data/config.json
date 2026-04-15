@@ -29,15 +29,17 @@
   "geo": {
     "time_scale": "TDB",
     "start_year": "2022",
-    "start_month": "09",
-    "start_day": "15",
-    "start_hour": "00",
-    "start_minute": "00",
+    "start_month": "08",
+    "start_day": "04",
+    "start_hour": "23",
+    "start_minute": "51",
+    "start_second": "10",
     "stop_year": "2022",
     "stop_month": "12",
-    "stop_day": "16",
-    "stop_hour": "00",
+    "stop_day": "27",
+    "stop_hour": "09",
     "stop_minute": "00",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -49,15 +51,17 @@
   "lunar": {
     "time_scale": "TDB",
     "start_year": "2022",
-    "start_month": "09",
-    "start_day": "15",
-    "start_hour": "00",
-    "start_minute": "00",
+    "start_month": "08",
+    "start_day": "04",
+    "start_hour": "23",
+    "start_minute": "51",
+    "start_second": "10",
     "stop_year": "2022",
     "stop_month": "12",
-    "stop_day": "16",
-    "stop_hour": "00",
+    "stop_day": "27",
+    "stop_hour": "09",
     "stop_minute": "00",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",
@@ -101,12 +105,20 @@
       "infoText": "Mission timeline start",
       "body": "SC"
     },
-    "moonArrival": {
-      "startTime": "2022-12-16T00:00:00Z",
+    "lunarCapture": {
+      "startTime": "2022-12-16T17:45:00Z",
       "durationSeconds": 0,
-      "label": "Moon Arrival",
+      "label": "Lunar Capture",
       "burnFlag": false,
-      "infoText": "Arrival at Moon after BLT",
+      "infoText": "First lunar orbit insertion maneuver captured Danuri into an elliptical lunar orbit.",
+      "body": "SC"
+    },
+    "targetOrbit": {
+      "startTime": "2022-12-27T09:00:00Z",
+      "durationSeconds": 0,
+      "label": "Target Orbit",
+      "burnFlag": false,
+      "infoText": "Danuri reached its target two-hour lunar mission orbit after completing the LOI sequence.",
       "body": "SC"
     },
     "now": {
@@ -137,14 +149,16 @@
   },
   "eventConfigs": {
     "geo": [
-      "moonArrival",
-      "now",
-      "kploDataEnd"
+      "missionStart",
+      "lunarCapture",
+      "targetOrbit",
+      "now"
     ],
     "lunar": [
-      "moonArrival",
-      "now",
-      "kploDataEnd"
+      "missionStart",
+      "lunarCapture",
+      "targetOrbit",
+      "now"
     ]
   }
 }

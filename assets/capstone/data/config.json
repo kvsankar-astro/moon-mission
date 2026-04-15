@@ -28,16 +28,20 @@
   ],
   "geo": {
     "time_scale": "TDB",
+    "startTime": "2022-06-28T10:07:00Z",
+    "endTime": "2022-11-21T00:00:00Z",
     "start_year": "2022",
-    "start_month": "07",
-    "start_day": "04",
-    "start_hour": "17",
-    "start_minute": "15",
+    "start_month": "06",
+    "start_day": "28",
+    "start_hour": "10",
+    "start_minute": "07",
+    "start_second": "00",
     "stop_year": "2022",
-    "stop_month": "10",
-    "stop_day": "04",
-    "stop_hour": "17",
-    "stop_minute": "15",
+    "stop_month": "11",
+    "stop_day": "21",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "MOON",
@@ -48,16 +52,20 @@
   },
   "lunar": {
     "time_scale": "TDB",
+    "startTime": "2022-06-28T10:07:00Z",
+    "endTime": "2022-11-21T00:00:00Z",
     "start_year": "2022",
-    "start_month": "07",
-    "start_day": "04",
-    "start_hour": "17",
-    "start_minute": "15",
+    "start_month": "06",
+    "start_day": "28",
+    "start_hour": "10",
+    "start_minute": "07",
+    "start_second": "00",
     "stop_year": "2022",
-    "stop_month": "10",
-    "stop_day": "04",
-    "stop_hour": "17",
-    "stop_minute": "15",
+    "stop_month": "11",
+    "stop_day": "21",
+    "stop_hour": "00",
+    "stop_minute": "00",
+    "stop_second": "00",
     "step_size_in_seconds": 60,
     "planets": [
       "SC",
@@ -109,6 +117,14 @@
       "infoText": "Photon-CAPSTONE trajectory segment boundary",
       "body": "SC"
     },
+    "nrhoOperational": {
+      "startTime": "2022-11-21T00:00:00Z",
+      "durationSeconds": 0,
+      "label": "NRHO Operational",
+      "burnFlag": false,
+      "infoText": "CAPSTONE completed cleanup and verification maneuvers and was operating in its target near rectilinear halo orbit.",
+      "body": "SC"
+    },
     "now": {
       "kind": "now",
       "timeSource": {
@@ -137,14 +153,16 @@
   },
   "eventConfigs": {
     "geo": [
+      "missionStart",
       "separation",
-      "now",
-      "capsDataEnd"
+      "nrhoOperational",
+      "now"
     ],
     "lunar": [
+      "missionStart",
       "separation",
-      "now",
-      "capsDataEnd"
+      "nrhoOperational",
+      "now"
     ]
   }
 }
