@@ -8,6 +8,11 @@ export default defineConfig({
     testTimeout: isCI ? 180000 : 60000,  // 3 min in CI, 1 min locally
     hookTimeout: isCI ? 180000 : 30000,  // 3 min in CI, 30s locally
     teardownTimeout: 10000,  // Timeout for teardown: 10 seconds
+    exclude: [
+      '**/.tmp/**',
+      '**/node_modules/**',
+      '**/dist/**',
+    ],
     pool: 'forks',  // Use forks for better isolation
     poolOptions: {
       forks: {
