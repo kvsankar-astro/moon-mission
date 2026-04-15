@@ -152,7 +152,7 @@ async function waitForSceneReady(page) {
       if (!progressBar) return true;
       const style = window.getComputedStyle(progressBar);
       return style.display === 'none' || style.visibility === 'hidden';
-    }, { timeout: TIMEOUTS.SCENE_READY });
+    }, undefined, { timeout: TIMEOUTS.SCENE_READY });
   } catch {
     // Some runtime paths do not show the progress bar.
   }
@@ -166,7 +166,7 @@ async function waitForSceneReady(page) {
     if (!Number.isFinite(targetState)) return false;
 
     return (window.animationScenes?.geo?.state ?? -1) >= targetState;
-  }, { timeout: TIMEOUTS.SCENE_READY });
+  }, undefined, { timeout: TIMEOUTS.SCENE_READY });
 }
 
 async function openSettingsPanel(page) {
@@ -179,7 +179,7 @@ async function openSettingsPanel(page) {
     await page.waitForFunction(() => {
       const button = document.getElementById('settings-panel-button');
       return button?.getAttribute('aria-expanded') === 'true';
-    }, { timeout: TIMEOUTS.UI_RESPONSE });
+    }, undefined, { timeout: TIMEOUTS.UI_RESPONSE });
   }
 }
 
@@ -191,7 +191,7 @@ async function closeSettingsPanel(page) {
     await page.waitForFunction(() => {
       const button = document.getElementById('settings-panel-button');
       return button?.getAttribute('aria-expanded') === 'false';
-    }, { timeout: TIMEOUTS.UI_RESPONSE });
+    }, undefined, { timeout: TIMEOUTS.UI_RESPONSE });
   }
 }
 
@@ -286,7 +286,7 @@ async function waitForAnimationCompletion(page) {
     }
 
     return stopped && (labelsMatch || sliderAtEnd);
-  }, { timeout: TIMEOUTS.PLAYBACK_COMPLETE, polling: 500 });
+  }, undefined, { timeout: TIMEOUTS.PLAYBACK_COMPLETE, polling: 500 });
 }
 
 let browser;
