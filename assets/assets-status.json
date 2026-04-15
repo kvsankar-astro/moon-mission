@@ -1,11 +1,11 @@
 {
   "schema": "moon-mission-assets-status",
   "version": 1,
-  "generatedAtUtc": "2026-04-15T11:09:28.829474+00:00",
+  "generatedAtUtc": "2026-04-15T11:26:51.566882+00:00",
   "sources": {
     "appRepo": {
       "path": "C:/sankar/projects/moon-mission",
-      "gitCommit": "e978fb30f0b6c908b10e032c880e4593c1992619",
+      "gitCommit": "1987333b3661205e7de5fdef5e04acd78a111e0a",
       "gitBranch": "master"
     },
     "dataRepo": {
@@ -18,7 +18,7 @@
     }
   },
   "totals": {
-    "missionCount": 41,
+    "missionCount": 39,
     "chebyshevFileCount": 120,
     "chebyshevBytes": 231174667,
     "sharedFileCount": 7,
@@ -1165,70 +1165,6 @@
               }
             }
           ]
-        }
-      }
-    },
-    {
-      "missionFolder": "grail-a-ebb",
-      "missionName": "GRAIL-A Ebb",
-      "hasDataDir": false,
-      "dataSpan": {
-        "startUtc": "2012-09-16T00:00:00Z",
-        "endUtc": "2012-12-17T00:00:00Z",
-        "durationDays": 92.0
-      },
-      "totals": {
-        "chebyshevFiles": 0,
-        "chebyshevBytes": 0,
-        "chebyshevBytesPerDay": 0.0
-      },
-      "origins": {
-        "geo": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "moon": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "relative": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        }
-      }
-    },
-    {
-      "missionFolder": "grail-b-flow",
-      "missionName": "GRAIL-B Flow",
-      "hasDataDir": false,
-      "dataSpan": {
-        "startUtc": "2012-09-16T00:00:00Z",
-        "endUtc": "2012-12-17T00:00:00Z",
-        "durationDays": 92.0
-      },
-      "totals": {
-        "chebyshevFiles": 0,
-        "chebyshevBytes": 0,
-        "chebyshevBytesPerDay": 0.0
-      },
-      "origins": {
-        "geo": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "moon": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "relative": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
         }
       }
     },

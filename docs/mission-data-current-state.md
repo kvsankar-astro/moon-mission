@@ -98,10 +98,12 @@ Completed on `master`:
 - combined multi-craft public mission surfaces for:
   - `Chandrayaan 2`
   - `Chandrayaan 3`
+- combined multi-craft public mission surface for:
+  - `GRAIL`
 - retirement of standalone `Vikram` mission folders as first-class app missions
+- retirement of standalone `GRAIL-A Ebb` / `GRAIL-B Flow` mission folders as first-class app missions
 - stricter orbit-artifact integrity auditing, including required `geo`/`lunar`/`relative` coverage and `relative-*.npz`
 
 Still best treated as explicit follow-up slices rather than branch-merge work:
 - active multi-craft UX/runtime polish
-- `GRAIL` consolidation decision
 - orbit-overlap / trail-style runtime tuning and related catalog/UX cleanup

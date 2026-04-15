@@ -171,7 +171,7 @@ Branch behavior:
 
 Reimplementation spec:
 - `Chandrayaan 2` and `Chandrayaan 3` already landed on `master` as the combined multi-craft public mission surfaces, and the standalone Vikram mission folders have been retired from the app-facing catalog
-- `GRAIL` remains the open consolidation decision in this area
+- `GRAIL` already landed on `master` as the combined twin-spacecraft public mission surface, and the standalone `GRAIL-A Ebb` / `GRAIL-B Flow` app mission folders have been retired
 - any remaining combined-surface cleanup should focus on:
   - mission briefs/images
   - source docs and sourcing playbooks
@@ -197,7 +197,7 @@ These changes existed in the shelf branch but should not be copied forward autom
 3. Relative-mode Sun frame / Moon lighting fixes
 4. Minimal chrome capture mode
 5. Lower-sky brightness retune
-6. Mission catalog consolidation decision (`GRAIL`)
+6. Remaining combined-surface polish after mission consolidation
 
 ## Branch Hygiene Decision
 
