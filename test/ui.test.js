@@ -444,6 +444,14 @@ async function openSettingsPanel(page) {
     throw new Error('Failed to open settings panel after retries');
   }
 
+  await page.waitForFunction(() => {
+    const button = document.getElementById('settings-panel-button');
+    const panel = document.getElementById('settings-panel');
+    const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
+    const wrapperVisible = dialogWrapper ? getComputedStyle(dialogWrapper).display !== 'none' : false;
+    return button?.getAttribute('aria-expanded') === 'true' && wrapperVisible;
+  }, { timeout: 3000 });
+
   // Ensure panel body is expanded; controls are not interactable when collapsed.
   const collapseButton = page.locator('#settings-panel-collapse');
   if (await collapseButton.count()) {
@@ -486,6 +494,28 @@ async function closeSettingsPanel(page) {
 
   if (!closed) {
     throw new Error('Failed to close settings panel after retries');
+  }
+
+  await page.waitForFunction(() => {
+    const button = document.getElementById('settings-panel-button');
+    const panel = document.getElementById('settings-panel');
+    const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
+    const wrapperHidden = !dialogWrapper || getComputedStyle(dialogWrapper).display === 'none';
+    return button?.getAttribute('aria-expanded') !== 'true' && wrapperHidden;
+  }, { timeout: 3000 });
+}
+
+async function ensureSettingsPanelClosed(page) {
+  const isOpen = await page.evaluate(() => {
+    const button = document.getElementById('settings-panel-button');
+    const panel = document.getElementById('settings-panel');
+    const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
+    const wrapperVisible = dialogWrapper ? getComputedStyle(dialogWrapper).display !== 'none' : false;
+    return button?.getAttribute('aria-expanded') === 'true' || wrapperVisible;
+  });
+
+  if (isOpen) {
+    await closeSettingsPanel(page);
   }
 }
 
@@ -915,6 +945,7 @@ async function resolveTimelineTarget(page, target = '#burn1') {
 // Timeline management for consistent test states
 async function setTimeline(page, target = '#burn1') {
   try {
+    await ensureSettingsPanelClosed(page);
     const burnButton = await resolveTimelineTarget(page, target);
     await page.click(burnButton);
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
