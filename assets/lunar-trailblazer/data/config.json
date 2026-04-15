@@ -137,11 +137,13 @@
   },
   "eventConfigs": {
     "geo": [
+      "missionStart",
       "missionEnded",
       "now",
       "ltbDataEnd"
     ],
     "lunar": [
+      "missionStart",
       "missionEnded",
       "now",
       "ltbDataEnd"

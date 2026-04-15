@@ -19,6 +19,7 @@
 //   - `docs/horizons-blurbs/raw/tess.txt`: launch time, mission overview, and the note that the first `60` days use `11` burns, `3.5` phasing loops, and a lunar flyby to reach the operational orbit.
 //   - `docs/horizons-blurbs/raw/tess.txt`: trajectory table with `2018-Apr-18 23:37` to `2027-Sep-15 13:00`.
 //   - Generated lunar trajectory from `data-generated/tess/lunar-TESS.npz`: closest lunar approach at `2018-05-17 06:35 UTC`, about `8,253 km` above the lunar surface.
+//   - NASA post-launch assessment / commissioning materials: observed lunar flyby at `2018-05-17 06:34:36 UTC` and period-adjust maneuver at `2018-05-30 01:20:23.149 UTC`.
 // Notes:
 //   - This mission is an example of a science observatory whose lunar relevance is concentrated entirely in the transfer arc rather than the long-duration science orbit.
 //   - Launch is preserved as a pre-data event because public HORIZONS trajectory coverage starts after ascent and early deployment.
@@ -136,20 +137,24 @@
       "body": "SC"
     },
     "lunarFlyby": {
-      "startTime": "2018-05-17T06:35:00Z",
+      "startTime": "2018-05-17T06:34:36Z",
       "durationSeconds": 0,
       "label": "Lunar Flyby",
       "burnFlag": false,
-      "infoText": "Closest lunar approach from the generated HORIZONS trajectory, used to raise TESS into its stable 2:1 lunar-resonance science orbit.",
-      "body": "SC"
+      "infoText": "Closest lunar approach during the gravity-assist that raised TESS into its stable 2:1 lunar-resonance science orbit.",
+      "body": "SC",
+      "provenanceStatus": "verified",
+      "provenanceNote": "Pinned to NASA post-launch assessment / commissioning materials reporting observed lunar flyby at 2018-05-17 06:34:36 UTC."
     },
     "scienceOrbitSetup": {
-      "startTime": "2018-06-17T00:00:00Z",
+      "startTime": "2018-05-30T01:20:23.149Z",
       "durationSeconds": 0,
-      "label": "Science Orbit Setup",
+      "label": "Period Adjust Maneuver",
       "burnFlag": false,
-      "infoText": "Approximate end of the first 60-day transfer and phasing sequence into TESS's high Earth science orbit.",
-      "body": "SC"
+      "infoText": "Final commissioning maneuver that lowered apogee and established TESS's 2:1 lunar-resonant science orbit.",
+      "body": "SC",
+      "provenanceStatus": "verified",
+      "provenanceNote": "Pinned to the official TESS Post Launch Assessment Review PAM execution epoch: 2018-05-30 01:20:23.149 UTC."
     },
     "now": {
       "kind": "now",

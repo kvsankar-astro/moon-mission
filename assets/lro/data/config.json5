@@ -170,11 +170,13 @@
   },
   "eventConfigs": {
     "geo": [
+      "missionStart",
       "reconStart",
       "now",
       "lroDataEnd"
     ],
     "lunar": [
+      "missionStart",
       "reconStart",
       "now",
       "lroDataEnd"
