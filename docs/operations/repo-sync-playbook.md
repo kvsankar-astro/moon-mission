@@ -7,26 +7,31 @@ This document defines the safe boundary between:
 
 It also documents the no-loss sync process and the audit tools used to detect drift.
 
+Use this document when you need the **authoritative** answer for:
+- what belongs in `moon-mission` vs `moon-mission-data`
+- how to classify unknown files safely
+- how to sync mirrored files and generated artifacts without data loss
+
+Do not use this document as the status page for what is currently landed on `master`; that belongs in [mission-data-current-state.md](mission-data-current-state.md).
+
 ## Source Of Truth Layers
 
-There are two repos, but three practical sources we work with:
+There are two live repos we work with:
 
 - `moon-mission`
-  - the live app repo and integration point
-- `moon-mission-orbit-data`
-  - a Git worktree of `moon-mission` used as the curated mission-source branch
-  - this is the place to compare and curate mission `config.json`, `ephemeris-manifest.json`, event models, mission folder structure, and related onboarding metadata
+  - the app/runtime repo and integration point
+  - the place for runtime code, mission config source, catalog metadata, and UI assets
 - `moon-mission-data`
   - the generated runtime-artifact repo
-  - this is the place for generated `*.npz`, `*-cheb.json`, `*-meta.json`, and orbit-style sidecars
+  - the place for generated `*.npz`, `*-cheb.json`, `*-meta.json`, and orbit-style sidecars
 
 In short:
 
-- curated mission semantics come from `moon-mission-orbit-data`
+- curated mission semantics live on `moon-mission`
 - generated runtime artifacts come from `moon-mission-data`
-- `moon-mission` should converge to both
+- `moon-mission` and `moon-mission-data` should stay boundary-clean and manifest-aligned
 
-**Last updated:** 2026-04-02
+**Last updated:** 2026-04-15
 
 ## Ownership Model
 
@@ -115,10 +120,9 @@ To fail a CI or pre-push style check when drift exists:
 python scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data --fail-on-drift
 ```
 
-### 1b. Compare app onboarding against the curated worktree
+### 1b. Compare app onboarding and runtime-data expectations
 
-Use `moon-mission-orbit-data` as the authority when deciding whether a config,
-manifest, mission folder, or event model is stale in `moon-mission`.
+Use current `moon-mission` config/manifests, catalog metadata, and committed sourcing notes as the authority when deciding whether a mission folder, event model, or manifest expectation is stale.
 
 Typical checks:
 
@@ -126,6 +130,7 @@ Typical checks:
 - compare `assets/<mission>/data/ephemeris-manifest.json`
 - compare mission family structure such as merged-vs-standalone folders
 - compare catalog/brief/image references after mission-family refactors
+- compare expected `geo`/`lunar`/`relative` runtime artifacts against what exists in `moon-mission-data`
 
 ### 2. Stage runtime assets from the data repo
 
@@ -158,17 +163,17 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
    - no unexpected `data-only` files remain in `moon-mission`
 5. Commit the app-repo and data-repo slices separately, but from the same audited state.
 
-### When curated mission structure changes
+### When mission structure or semantics change
 
-1. First compare `moon-mission` against `moon-mission-orbit-data`.
-2. Bring over curated changes to:
+1. Update the app-side mission truth first in `moon-mission`:
    - mission `config.json`
+   - mission `config.json5`
    - `ephemeris-manifest.json`
    - event and timeline semantics
    - mission-family folder structure
    - landing-page/catalog metadata
-3. Only after that compare `moon-mission` against `moon-mission-data`.
-4. Resolve any remaining artifact gaps by either:
+2. Only after that compare `moon-mission` against `moon-mission-data`.
+3. Resolve any remaining artifact gaps by either:
    - generating missing runtime artifacts into `moon-mission-data`, or
    - relaxing stale app manifest expectations if the curated source no longer requires them
 
@@ -181,12 +186,12 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
 
 ## Current Precise Sync Plan
 
-As of 2026-04-02, use the audit output to work through the boundary in this order:
+As of 2026-04-15, use the audit output to work through the boundary in this order:
 
-1. Compare `moon-mission` with `moon-mission-orbit-data` first for mission semantics and structure.
-2. Treat `config.json` as app-owned only.
-3. Treat generated orbit payloads and style sidecars as data-owned only.
-4. Keep `ephemeris-manifest.json` mirrored and byte-identical between `moon-mission` and `moon-mission-data`, but derive the intended manifest shape from `moon-mission-orbit-data`.
+1. Treat `config.json5` and `config.json` as app-owned truth in `moon-mission`.
+2. Treat generated orbit payloads, compressed Chebyshev files, NPZ files, metadata, and style sidecars as data-owned truth in `moon-mission-data`.
+3. Keep `ephemeris-manifest.json` mirrored and byte-identical between repos.
+4. Require `geo`, `lunar`, and `relative` compressed coverage for active missions, plus `relative-*.npz`.
 5. Review `unknown` files manually before moving or deleting them.
 6. Clean up local-only generated files in `moon-mission` only after confirming they exist or are intentionally archived in `moon-mission-data`.
 

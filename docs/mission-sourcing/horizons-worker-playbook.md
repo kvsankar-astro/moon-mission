@@ -25,7 +25,7 @@ Shared files reserved for main agent:
   - assets/mission-images.json
   - mission.html
   - index.html
-  - docs/horizons-lunar-missions.md
+  - docs/mission-sourcing/horizons-lunar-missions.md
 Branch policy:
   - Do not commit or push unless explicitly told you own finalization for this batch.
 ```
@@ -224,7 +224,7 @@ Mission lists evolve quickly; avoid hardcoded “N missions” tables in worker 
 
 Use live inventory from:
 - `assets/mission-catalog.json`
-- `docs/horizons-lunar-missions.md`
+- `docs/mission-sourcing/horizons-lunar-missions.md`
 
 Helpful checks:
 

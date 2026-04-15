@@ -85,6 +85,7 @@ Current mission configs in this repo are set to `chebyshev` for `SC`, `MOON`, `E
 
 For NPZ debugging, set `"ephemeris_source": "npz"` (or per-body overrides), and stage matching `.npz` files (for example `geo-<SC>.npz`, `lunar-<SC>.npz`, and `landing-<SC>-geo.npz` / `landing-<SC>-lunar.npz` when used).
 
+Documentation hub: [docs/README.md](docs/README.md)  
 Developer workflow/build/CI guide: [docs/developer.md](docs/developer.md)  
 System design index: [docs/design/design.md](docs/design/design.md)
 
@@ -121,8 +122,8 @@ npm run audit:data-boundary
 ```
 
 Repo-boundary process details:
-- [docs/repo-sync-playbook.md](docs/repo-sync-playbook.md)
-- [docs/mission-data-current-state.md](docs/mission-data-current-state.md)
+- [docs/operations/repo-sync-playbook.md](docs/operations/repo-sync-playbook.md)
+- [docs/operations/mission-data-current-state.md](docs/operations/mission-data-current-state.md)
 
 ## Design
 
@@ -156,7 +157,7 @@ make test
 `make test` runs the primary UI + visual regression suite (`test/ui.test.js`) on `http://localhost:8111`.
 
 For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
-- [docs/testing.md](docs/testing.md)
+- [docs/guides/testing.md](docs/guides/testing.md)
 
 ### Hosting
 
@@ -241,7 +242,7 @@ See [docs/archived/modernization-plan-2026.md](docs/archived/modernization-plan-
 
 ## AI assistance
 
-See [docs/ai-tools.md](docs/ai-tools.md) for how AI tools are used in this repo (and where tool-specific notes live).
+See [docs/guides/ai-tools.md](docs/guides/ai-tools.md) for how AI tools are used in this repo (and where tool-specific notes live).
 
 ## Inspirations
 

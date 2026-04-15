@@ -2,7 +2,17 @@
 
 This document is the **how-to-work-in-this-repo** guide for contributors and coding agents.
 
-For system/architecture details, use [docs/design/design.md](design/design.md).
+Use this document for:
+- local setup
+- day-to-day commands
+- testing and deploy expectations
+- commit hygiene and contributor workflow
+
+Do not use this document as the authoritative source for repo-boundary exceptions or mission-data drift handling. For those, use:
+- [docs/operations/repo-sync-playbook.md](operations/repo-sync-playbook.md)
+- [docs/operations/mission-data-current-state.md](operations/mission-data-current-state.md)
+
+For the overall docs map, use [docs/README.md](README.md). For system/architecture details, use [docs/design/design.md](design/design.md).
 
 ## 1) Repo Layout (Operational View)
 
@@ -47,10 +57,10 @@ Useful pages:
 - The Moon renderer now supports two runtime asset profiles selected from the `Moon Surface` pill strip.
 - User-facing labels are `Standard` and `Detailed`; internal storage/config keys remain `fast` and `quality` for compatibility.
 - Profile defaults and migration logic live in `src/platform/js/app/moon-render-asset-profiles.js`.
-- Runtime asset provenance and the NASA source chain are documented in [docs/moon-render-assets.md](moon-render-assets.md).
+- Runtime asset provenance and the NASA source chain are documented in [docs/operations/moon-render-assets.md](operations/moon-render-assets.md).
 - When changing Moon runtime assets:
   1. Keep the runtime file paths in `moon-render-asset-profiles.js` in sync with the actual files under `images/moon/`.
-  2. Update `docs/moon-render-assets.md` with the new source/derivation story.
+  2. Update `docs/operations/moon-render-assets.md` with the new source/derivation story.
   3. Be careful with `.gitignore`; only explicitly tracked Moon runtime files should be unignored.
 
 ### Artemis II Mission-Specific Panels
@@ -109,7 +119,7 @@ Pre-commit behavior (when hooks are installed):
 - `python scripts/generate-assets-status.py`
 - `python scripts/show-deployed-version.py`
 
-## 4) Data Boundary Rules (Important)
+## 4) Data Boundary Quick Rules
 
 Do **not** commit generated runtime ephemeris artifacts in this repo:
 - `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, `*-style.json`
@@ -123,7 +133,7 @@ Maintainer/source files that stay in this repo:
 
 Boundary audit workflow:
 - use `make data-audit` or `npm run audit:data-boundary`
-- read [docs/repo-sync-playbook.md](repo-sync-playbook.md) for interpretation and cleanup rules
+- read [docs/operations/repo-sync-playbook.md](operations/repo-sync-playbook.md) for the authoritative classification, staging, and cleanup rules
 - the audit now also checks active missions for origin completeness:
   - compressed Chebyshev coverage for `geo`, `lunar`, and `relative`
   - required body presence per origin (`craft(s)` plus `SUN`/`EARTH`/`MOON`, excluding the origin-degenerate body)
@@ -133,7 +143,8 @@ Boundary audit workflow:
 If you regenerate orbit data:
 1. Update/verify mission config + manifests in this repo.
 2. Sync generated artifacts in `moon-mission-data`.
-3. Commit in the correct repo(s) separately.
+3. Use the playbook to verify mirrored/manifold expectations before cleanup.
+4. Commit in the correct repo(s) separately.
 
 ## 5) Branching / Commit Conventions
 
@@ -195,9 +206,10 @@ Use this before committing:
 ## 10) Related Docs
 
 - Design hub: [docs/design/design.md](design/design.md)
-- Test strategy: [docs/testing.md](testing.md)
-- Repo boundary + sync playbook: [docs/repo-sync-playbook.md](repo-sync-playbook.md)
-- Mission-data boundary status: [docs/mission-data-current-state.md](mission-data-current-state.md)
+- Docs hub: [docs/README.md](README.md)
+- Test strategy: [docs/guides/testing.md](guides/testing.md)
+- Repo boundary + sync playbook: [docs/operations/repo-sync-playbook.md](operations/repo-sync-playbook.md)
+- Mission-data boundary status: [docs/operations/mission-data-current-state.md](operations/mission-data-current-state.md)
 - Agent conventions: [AGENTS.md](../AGENTS.md)
 Mission config note:
 - Maintainers edit `config.json5`; runtime consumes `config.json`.

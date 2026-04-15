@@ -160,5 +160,11 @@ API SOURCE: NASA/JPL Horizons API
 
 The mission page extends Orion beyond the last published JPL HORIZONS state with an app-generated ballistic splashdown continuation. Entry Interface timing still comes from the HORIZONS major-events table, but the plotted final descent from the last public Orion sample through splashdown is not JPL HORIZONS vector data.
 
+## Canonicalization Note
+
+This file is the canonical Artemis II Orion source snapshot in this repo.
+
+An earlier pre-launch duplicate had also existed under the alternate filename `artemis-ii-orion.*`. That older March 31, 2026 snapshot was retired once the April 10, 2026 post-flight update became the canonical source set.
+
 ---
 *Fetched from JPL HORIZONS on 2026-04-11 01:09 UTC*

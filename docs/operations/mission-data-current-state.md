@@ -4,14 +4,21 @@ Last updated: 2026-04-15
 
 This document captures the **current boundary and operating model** between app code and runtime mission data.
 
-Detailed operational process and audit-tool usage live in [docs/repo-sync-playbook.md](repo-sync-playbook.md).
+Detailed operational process and audit-tool usage live in [docs/operations/repo-sync-playbook.md](repo-sync-playbook.md).
+
+Use this document for:
+- the current live repo/data boundary state
+- the current deployment/staging reality
+- the current extraction status of mission-data work already landed on `master`
+
+Do not use this document as the step-by-step sync procedure; the playbook is the authoritative process document.
 
 ## Source of truth
 
 - App/runtime code, mission config, and UI assets live in this repo (`moon-mission`).
 - Generated runtime orbit artifacts live in sibling repo `../moon-mission-data`.
 - Coverage/audit-style mission inventory is maintained in:
-  - [docs/horizons-lunar-missions.md](horizons-lunar-missions.md)
+  - [docs/mission-sourcing/horizons-lunar-missions.md](../mission-sourcing/horizons-lunar-missions.md)
   - `orbit-data.html` (data-source coverage view)
   - `assets-status.html` (runtime asset-size/status view)
 
@@ -72,12 +79,12 @@ python scripts/generate-assets-status.py
 ## Notes
 
 - This file intentionally avoids static mission-by-mission “done/pending” tables because they drift quickly.
-- Use the status pages and manifests as the live operational view, and keep this document focused on durable process/boundary rules.
+- Use the status pages and manifests as the live operational view, and keep this document focused on current-state summary rather than detailed procedure.
 - The repo-boundary audit currently treats `config.json5` and a few other maintainer-source files under `assets/*/data/*` as `unknown` for manual review rather than auto-classifying them as app-only. That is expected with the current rules file; review them, but do not treat them as generated-data drift by default.
 
 ## Slice Extraction Status
 
-`mission-data-refresh` is being mined in deliberate slices rather than merged wholesale.
+The old `mission-data-refresh` staging branch was mined in deliberate slices and then retired. The extracted work now lives directly on `master`.
 
 Completed on `master`:
 - robotic ARTEMIS naming cleanup and mission-family split presentation as `THEMIS-ARTEMIS`
