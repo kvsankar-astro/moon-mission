@@ -34,6 +34,7 @@ make test
 
 Notes:
 - `make test` currently runs `test/ui.test.js` only (headless, port `8111`).
+- `make test` starts and stops its own managed server on `8111`.
 - It does not automatically run `mission-smoke` or `chebyshev-accuracy`.
 
 Full local audit (recommended before larger merges):
@@ -78,6 +79,8 @@ make baseline
 - `SSIM_REGRESSION_STRICT=true` - fail UI suite on SSIM regression report.
 - `UPDATE_SSIM_COMMITTED=true` - update `ssim-history.json` from current run (use intentionally).
 
+Vitest discovery excludes nested `.tmp/**` scratch repos so temporary worktrees do not pollute app test runs.
+
 ## Conventions
 
 - Screenshot IDs follow stable mode-first naming (for example `earth-3d-...`, `moon-2d-...`).
@@ -86,6 +89,7 @@ make baseline
 
 ## Troubleshooting
 
-- **Port conflicts**: `test/server-manager.js` reuses an existing server on `8111` in local mode; in CI mode it expects a clean port.
+- **Port conflicts**: `make test` expects to own port `8111`; if a previous local server is still around, stop it before rerunning.
 - **Slow rendering/timeouts**: use headless mode for consistency; CI has built-in timeout scaling.
 - **Unexpected visual diffs**: confirm intent first, then regenerate baseline/SSIM artifacts deliberately.
+- **Mission/config boundary changes**: run `npm run test:unit` in addition to `make test`; unit tests catch config-window and scene-state boundary issues that the UI suite may not surface.

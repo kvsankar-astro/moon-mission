@@ -182,6 +182,8 @@ Current workflow behavior:
 - `.github/workflows/deploy.yml` is manual-only (`workflow_dispatch`) for GitHub Pages deploys.
 - `.github/workflows/deploy-hostgator.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
 
+App-only deploys preserve the already-published runtime asset set and are meant for app-shell changes only. Use the full deploy workflows when adding new missions, manifests, or runtime assets.
+
 For development, you can use the Vite dev server:
 ```bash
 npm run dev

@@ -48,6 +48,8 @@ App-only deploy workflows keep existing runtime data on remote and only ship app
 - `.github/workflows/deploy-app-only.yml`
 - `.github/workflows/deploy-hostgator-app-only.yml`
 
+Use the full deploy workflows when a change introduces new missions, new manifests, or new runtime assets that are not already present on the published site. App-only deploys are for app-shell changes against an already-populated runtime-data set.
+
 ## How to verify current state quickly
 
 ```bash
@@ -59,8 +61,9 @@ npm run audit:data-boundary
 # Mission config coverage in app repo
 rg --files assets -g "*/data/config.json"
 
-# Relative artifacts present locally (if staged)
-rg --files assets -g "*/data/relative-*-cheb.json"
+# Relative artifacts present in the sibling data repo
+rg --files ..\moon-mission-data\assets -g "*/data/relative-*-cheb.json"
+rg --files ..\moon-mission-data\assets -g "*/data/relative-*.npz"
 
 # Generate/update asset-size status JSON for assets-status.html
 python scripts/generate-assets-status.py
@@ -72,13 +75,30 @@ python scripts/generate-assets-status.py
 - Use the status pages and manifests as the live operational view, and keep this document focused on durable process/boundary rules.
 - The repo-boundary audit currently treats `config.json5` and a few other maintainer-source files under `assets/*/data/*` as `unknown` for manual review rather than auto-classifying them as app-only. That is expected with the current rules file; review them, but do not treat them as generated-data drift by default.
 
-## Backlog Follow-Up
+## Slice Extraction Status
 
-- Review and merge `mission-data-refresh` into `master` in deliberate slices rather than as one bulk branch.
-- Expected merge themes:
-  - mission coverage and config/manifest refreshes
-  - mission-sourcing and HORIZONS documentation updates
-  - orbit data/status pages
-  - orbit overlap / trail-style runtime changes
-  - test and SSIM baseline updates only after functional slices are accepted
-- Until that work is triaged, keep `mission-data-refresh` as a retained staging branch/worktree rather than deleting it as branch hygiene.
+`mission-data-refresh` is being mined in deliberate slices rather than merged wholesale.
+
+Completed on `master`:
+- robotic ARTEMIS naming cleanup and mission-family split presentation as `THEMIS-ARTEMIS`
+- new mission slices:
+  - `artemis-overview`
+  - `artemis-lagrange`
+  - `artemis-lunar-capture`
+- story-window refinements aligned to product semantics for:
+  - `SLIM`
+  - `KPLO Danuri`
+  - `CAPSTONE`
+  - `Lunar Flashlight`
+- selected single-craft config/event cleanup for:
+  - `TESS`
+  - `LADEE`
+  - `LRO`
+  - `Lunar Trailblazer`
+- stricter orbit-artifact integrity auditing, including required `geo`/`lunar`/`relative` coverage and `relative-*.npz`
+
+Still best treated as explicit follow-up slices rather than branch-merge work:
+- multi-craft extraction
+- `GRAIL` consolidation decision
+- standalone `Vikram` mission cleanup decision
+- orbit-overlap / trail-style runtime tuning and related catalog/UX cleanup

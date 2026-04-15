@@ -81,7 +81,7 @@ Useful pages:
 
 - `npm run dev` - Vite dev server
 - `npm run test:unit` - unit/integration tests excluding UI visual suite
-- `make test` - primary Playwright+SSIM UI suite (managed server on `8111`)
+- `make test` - primary Playwright+SSIM UI suite (`test/ui.test.js`, managed server on `8111`)
 - `make baseline` - regenerate screenshot baselines (intentional visual changes only)
 - `make data-audit` - audit app/data repo boundary against `../moon-mission-data`
 - `npm run audit:data-boundary` - same audit without `make`
@@ -153,6 +153,7 @@ If you regenerate orbit data:
 
 Minimum expected checks for most changes:
 - `npm run test:unit`
+- `npm run configs:check` when mission config source/compiled files changed
 
 When UI/visual behavior changes:
 - `make test`
@@ -160,6 +161,7 @@ When UI/visual behavior changes:
 
 When mission/data loading logic changes:
 - run `npm run test:unit` plus targeted smoke/manual checks using mission URLs.
+- if the change affects published mission assets or manifests, choose a full deploy instead of an app-only deploy.
 
 ## 8) CI / Deploy Workflows
 
@@ -175,7 +177,9 @@ Manual deploy workflows:
 
 Notes:
 - Deploy workflows are manual (`workflow_dispatch`).
-- App-only deploys preserve runtime data on remote and publish app-shell changes.
+- App-only deploys preserve runtime data on remote and publish app-shell changes only.
+- Use full deploys when introducing new missions, new manifests, or new runtime assets that are not already present on the published site.
+- Local and CI Vitest discovery excludes nested `.tmp/**` scratch repos so temporary checkouts do not pollute test runs.
 
 ## 9) Pre-Commit Checklist
 
