@@ -8,6 +8,8 @@ import fnmatch
 import hashlib
 import importlib.util
 import json
+import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -47,9 +49,28 @@ def load_stage_module(script_path: Path):
     return module
 
 
+def resolve_git_executable() -> str:
+    git_path = shutil.which("git")
+    if git_path:
+        return git_path
+
+    if os.name == "nt":
+        fallbacks = [
+            Path(r"C:\Program Files\Git\cmd\git.exe"),
+            Path(r"C:\Program Files\Git\bin\git.exe"),
+            Path(r"C:\PROGRA~1\Git\cmd\git.exe"),
+            Path(r"C:\PROGRA~1\Git\bin\git.exe"),
+        ]
+        for candidate in fallbacks:
+            if candidate.exists():
+                return str(candidate)
+
+    return "git"
+
+
 def git_tracked_paths(repo_root: Path) -> set[str]:
     result = subprocess.run(
-        ["git", "ls-files"],
+        [resolve_git_executable(), "ls-files"],
         cwd=repo_root,
         check=True,
         capture_output=True,

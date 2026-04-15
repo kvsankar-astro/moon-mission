@@ -14,8 +14,10 @@ TEST_PORT = 8111
 TEST_URL = http://localhost:$(TEST_PORT)
 ifeq ($(OS),Windows_NT)
 NODE ?= C:/PROGRA~1/nodejs/node.exe
+PYTHON ?= C:/PROGRA~1/Python313/python.exe
 else
 NODE ?= node
+PYTHON ?= python
 endif
 
 .PHONY: test test-fast test-headed baseline server-start server-stop server-status clean help data-audit
@@ -76,4 +78,4 @@ clean: server-stop
 	@echo "Clean complete"
 
 data-audit:
-	python scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data
+	$(PYTHON) scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data
