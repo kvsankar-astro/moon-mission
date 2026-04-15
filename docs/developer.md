@@ -124,6 +124,10 @@ Maintainer/source files that stay in this repo:
 Boundary audit workflow:
 - use `make data-audit` or `npm run audit:data-boundary`
 - read [docs/repo-sync-playbook.md](repo-sync-playbook.md) for interpretation and cleanup rules
+- the audit now also checks active missions for origin completeness:
+  - compressed Chebyshev coverage for `geo`, `lunar`, and `relative`
+  - required body presence per origin (`craft(s)` plus `SUN`/`EARTH`/`MOON`, excluding the origin-degenerate body)
+  - required `relative-*.npz` support files
 - current audit rules intentionally leave some maintainer-source files such as `config.json5` under `assets/*/data/*` in the `unknown` bucket for manual review; do not delete them just because they are flagged as unknown
 
 If you regenerate orbit data:

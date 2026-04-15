@@ -103,6 +103,12 @@ make data-audit
 npm run audit:data-boundary
 ```
 
+The audit also validates active-mission orbit completeness:
+
+- `geo`, `lunar`, and `relative` compressed Chebyshev coverage
+- body coverage per origin: mission craft body/bodies plus the required celestial bodies, excluding the origin-degenerate body
+- `relative-*.npz` support files alongside relative-mode Chebyshev payloads
+
 To fail a CI or pre-push style check when drift exists:
 
 ```bash

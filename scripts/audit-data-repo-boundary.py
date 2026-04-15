@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -26,6 +27,30 @@ class ClassifiedPath:
     tracked: bool
 
 
+CHEB_METADATA_SCAN_BYTES = 128 * 1024
+NON_CRAFT_BODIES = {"SUN", "EARTH", "MOON", "FRAME_ROT"}
+ORIGIN_REQUIREMENTS = {
+    "geo": {
+        "required_bodies": {"SUN", "MOON"},
+        "forbidden_bodies": {"EARTH"},
+        "require_frame_rot": False,
+        "require_relative_npz": False,
+    },
+    "lunar": {
+        "required_bodies": {"SUN", "EARTH"},
+        "forbidden_bodies": {"MOON"},
+        "require_frame_rot": False,
+        "require_relative_npz": False,
+    },
+    "relative": {
+        "required_bodies": {"SUN", "MOON"},
+        "forbidden_bodies": {"EARTH"},
+        "require_frame_rot": True,
+        "require_relative_npz": True,
+    },
+}
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -35,6 +60,11 @@ def sha256(path: Path) -> str:
 
 
 def load_rules(path: Path) -> dict[str, Any]:
+    with path.open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def load_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
 
@@ -93,6 +123,171 @@ def scan_mission_data_paths(repo_root: Path) -> list[str]:
         if path.is_file():
             results.append(path.relative_to(repo_root).as_posix())
     return sorted(results)
+
+
+def load_active_mission_folders(app_root: Path) -> set[str]:
+    catalog_path = app_root / "assets" / "mission-catalog.json"
+    if not catalog_path.exists():
+        raise FileNotFoundError(f"Mission catalog not found: {catalog_path}")
+
+    catalog = load_json(catalog_path)
+    missions = catalog.get("missions", [])
+    if not isinstance(missions, list):
+        raise ValueError(f"Mission catalog has invalid missions list: {catalog_path}")
+
+    folders: set[str] = set()
+    for mission in missions:
+        if not isinstance(mission, dict):
+            continue
+        folder = mission.get("folder")
+        if isinstance(folder, str) and folder.strip():
+            folders.add(folder.strip())
+    return folders
+
+
+def extract_cheb_bodies(path: Path) -> set[str]:
+    with path.open("r", encoding="utf-8") as handle:
+        head = handle.read(CHEB_METADATA_SCAN_BYTES)
+
+    match = re.search(r'"bodies"\s*:\s*\[(.*?)\]', head, flags=re.DOTALL)
+    if match:
+        try:
+            raw = json.loads(f"[{match.group(1)}]")
+            return {
+                body.strip()
+                for body in raw
+                if isinstance(body, str) and body.strip()
+            }
+        except json.JSONDecodeError:
+            pass
+
+    data = load_json(path)
+    metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+    raw = metadata.get("bodies", []) if isinstance(metadata, dict) else []
+    if not isinstance(raw, list):
+        return set()
+    return {
+        body.strip()
+        for body in raw
+        if isinstance(body, str) and body.strip()
+    }
+
+
+def audit_origin_artifact_integrity(app_root: Path, data_root: Path) -> dict[str, Any]:
+    active_missions = load_active_mission_folders(app_root)
+    issues: list[dict[str, Any]] = []
+
+    for mission in sorted(active_missions):
+        data_dir = data_root / "assets" / mission / "data"
+        for origin, rule in ORIGIN_REQUIREMENTS.items():
+            cheb_paths = sorted(data_dir.glob(f"{origin}-*-cheb.json"))
+            if not cheb_paths:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-chebyshev",
+                        "detail": f"No {origin}-*-cheb.json files found",
+                    }
+                )
+                continue
+
+            missing_gzip = [
+                path.name
+                for path in cheb_paths
+                if not path.with_name(f"{path.name}.gz").exists()
+            ]
+            if missing_gzip:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-compressed-chebyshev",
+                        "detail": ", ".join(missing_gzip),
+                    }
+                )
+
+            if rule["require_relative_npz"]:
+                npz_paths = sorted(data_dir.glob("relative-*.npz"))
+                if not npz_paths:
+                    issues.append(
+                        {
+                            "mission": mission,
+                            "origin": origin,
+                            "kind": "missing-relative-npz",
+                            "detail": "No relative-*.npz files found",
+                        }
+                    )
+
+            bodies: set[str] = set()
+            missing_body_metadata: list[str] = []
+            for path in cheb_paths:
+                file_bodies = extract_cheb_bodies(path)
+                if not file_bodies and path.name.endswith("-sun-cheb.json"):
+                    file_bodies = {"SUN"}
+                if not file_bodies:
+                    missing_body_metadata.append(path.name)
+                    continue
+                bodies.update(file_bodies)
+
+            if missing_body_metadata and not bodies:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-body-metadata",
+                        "detail": ", ".join(missing_body_metadata),
+                    }
+                )
+                continue
+
+            missing_required = sorted(rule["required_bodies"] - bodies)
+            if missing_required:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-required-bodies",
+                        "detail": ", ".join(missing_required),
+                    }
+                )
+
+            forbidden_bodies = sorted(rule["forbidden_bodies"] & bodies)
+            if forbidden_bodies:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "contains-origin-degenerate-body",
+                        "detail": ", ".join(forbidden_bodies),
+                    }
+                )
+
+            if rule["require_frame_rot"] and "FRAME_ROT" not in bodies:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-frame-rot",
+                        "detail": "FRAME_ROT",
+                    }
+                )
+
+            craft_bodies = sorted(bodies - NON_CRAFT_BODIES)
+            if not craft_bodies:
+                issues.append(
+                    {
+                        "mission": mission,
+                        "origin": origin,
+                        "kind": "missing-craft-bodies",
+                        "detail": "No craft-like bodies found",
+                    }
+                )
+
+    return {
+        "missions_checked": len(active_missions),
+        "issues": issues,
+    }
 
 
 def classify_path(rel_path: str, rules: dict[str, Any], tracked: bool) -> ClassifiedPath:
@@ -251,6 +446,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
     stage_script = app_root / "scripts" / "stage-ephemeris-data.py"
     artifact_gaps = required_artifact_gaps(app_root, data_root, stage_script)
     mirrored = compare_mirrored_files(app_root, data_root, app_entries, data_entries)
+    origin_integrity = audit_origin_artifact_integrity(app_root, data_root)
 
     return {
         "app_root": app_root.as_posix(),
@@ -276,6 +472,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
             "data_unknown_files": sum(1 for entry in data_entries if entry.category == "unknown"),
             "mirrored_mismatches": len(mirrored["mismatches"]),
             "missing_required_artifacts": len(artifact_gaps["required"]),
+            "origin_integrity_issues": len(origin_integrity["issues"]),
         },
         "app_repo": {
             "data_only_files": serialize([entry for entry in app_entries if entry.category == "data_only"]),
@@ -297,6 +494,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
         },
         "mirrored_files": mirrored,
         "required_artifacts": artifact_gaps,
+        "origin_integrity": origin_integrity,
     }
 
 
@@ -338,6 +536,18 @@ def print_text_report(report: dict[str, Any]) -> None:
     print_paths(
         "Missing required artifacts from data repo",
         [{"path": item} for item in report["required_artifacts"]["required"]],
+    )
+    print_paths(
+        "Origin/body integrity issues",
+        [
+            {
+                "path": (
+                    f"{item['mission']}[{item['origin']}] "
+                    f"{item['kind']}: {item['detail']}"
+                )
+            }
+            for item in report["origin_integrity"]["issues"]
+        ],
     )
 
     print_section("Mission directory asymmetry")
@@ -391,6 +601,7 @@ def has_drift(report: dict[str, Any]) -> bool:
             report["summary"]["data_unknown_files"] > 0,
             report["summary"]["mirrored_mismatches"] > 0,
             report["summary"]["missing_required_artifacts"] > 0,
+            report["summary"]["origin_integrity_issues"] > 0,
         )
     )
 

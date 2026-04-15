@@ -184,6 +184,16 @@ def collect_required_orbit_artifacts(app_root: Path) -> List[RequiredArtifact]:
                     rel_path=relative_gz,
                     optional=False,
                 )
+                if relative_runtime.endswith("-cheb.json"):
+                    relative_npz = relative_rel_path.with_name(
+                        f"{relative_runtime[: -len('-cheb.json')]}.npz"
+                    )
+                    required[_norm(relative_npz)] = RequiredArtifact(
+                        mission=mission,
+                        phase="relative",
+                        rel_path=relative_npz,
+                        optional=False,
+                    )
 
             for origin_key in ("geo", "lunar", "relative"):
                 phase_cfg = config.get(origin_key)

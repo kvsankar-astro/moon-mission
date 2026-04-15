@@ -133,10 +133,21 @@ def collect_required(app_root: Path) -> tuple[set[str], dict[str, str]]:
             rel_cheb_gz_path = (
                 Path("assets") / mission / "data" / f"{relative_runtime}.gz"
             ).as_posix()
+            rel_npz_path = None
+            if relative_runtime.endswith("-cheb.json"):
+                rel_npz_path = (
+                    Path("assets")
+                    / mission
+                    / "data"
+                    / f"{relative_runtime[: -len('-cheb.json')]}.npz"
+                ).as_posix()
             required.add(rel_cheb_path)
             required.add(rel_cheb_gz_path)
             reasons[rel_cheb_path] = f"relative-mode:{mission}"
             reasons[rel_cheb_gz_path] = f"relative-mode:{mission}:gzip"
+            if rel_npz_path:
+                required.add(rel_npz_path)
+                reasons[rel_npz_path] = f"relative-mode:{mission}:npz"
 
         for origin_key in ("geo", "lunar", "relative"):
             phase_cfg = config.get(origin_key)
