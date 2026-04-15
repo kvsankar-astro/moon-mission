@@ -124,15 +124,15 @@
       ],
       "title": "Chandrayaan 2",
       "subtitle": "India - 2019",
-      "description": "Orbiter mission with Vikram descent timeline.",
+      "description": "Orbiter and Vikram lander mission with descent timeline.",
       "accent": "#ffa000",
       "country": "India",
       "startYear": 2019,
       "endYear": 2019,
       "order": 20,
       "dimensions": {
-        "missionType": "Orbiter",
-        "craftClass": "Orbiter",
+        "missionType": "Orbiter + Lander",
+        "craftClass": "Multi-Craft",
         "crewProfile": "Robotic"
       }
     },
@@ -147,15 +147,15 @@
       ],
       "title": "Chandrayaan 3",
       "subtitle": "India - 2023",
-      "description": "South-polar lunar landing mission profile.",
+      "description": "South-polar lunar landing mission with propulsion module and Vikram.",
       "accent": "#ffa000",
       "country": "India",
       "startYear": 2023,
       "endYear": 2023,
       "order": 30,
       "dimensions": {
-        "missionType": "Propulsion Module",
-        "craftClass": "Propulsion Module",
+        "missionType": "Lander + Propulsion Module",
+        "craftClass": "Multi-Craft",
         "crewProfile": "Robotic"
       }
     },
