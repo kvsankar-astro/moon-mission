@@ -2,6 +2,11 @@
 
 This document records the current roadmap threads so they are easy to resume later without depending on chat context.
 
+Branch recovery note:
+
+- The shelf branch `temp/orbit-ux-shelf-20260328` contained additional branch-only product/runtime ideas that are not fully on `master`.
+- Those extracted reimplementation targets are tracked in [orbit-ux-shelf-reimplementation-backlog.md](orbit-ux-shelf-reimplementation-backlog.md).
+
 ## Current Guardrail
 
 Before starting broad refactor work, run the visual gate again:

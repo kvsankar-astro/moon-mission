@@ -109,6 +109,7 @@ Rendering/UX design investigations:
 - [moon-rendering-research-and-plan.md](moon-rendering-research-and-plan.md)
 - [sun-rendering-earthrise-research.md](sun-rendering-earthrise-research.md)
 - [orbit-ux-and-refactor-roadmap.md](orbit-ux-and-refactor-roadmap.md)
+- [orbit-ux-shelf-reimplementation-backlog.md](orbit-ux-shelf-reimplementation-backlog.md)
 - [orion-procedural-model-generation.md](orion-procedural-model-generation.md)
 - [panel-system-v1-spec.md](panel-system-v1-spec.md)
 - [panel-system-v1-implementation-plan.md](panel-system-v1-implementation-plan.md)
