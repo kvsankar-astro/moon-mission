@@ -60,7 +60,7 @@
   },
   "geo": {
     "startTime": "2010-08-20T00:00:00Z",
-    "endTime": "2010-10-30T00:00:00Z",
+    "endTime": "2010-10-29T23:55:00Z",
     "start_year": "2010",
     "start_month": "08",
     "start_day": "20",
@@ -78,7 +78,7 @@
   },
   "lunar": {
     "startTime": "2010-08-20T00:00:00Z",
-    "endTime": "2010-10-30T00:00:00Z",
+    "endTime": "2010-10-29T23:55:00Z",
     "start_year": "2010",
     "start_month": "08",
     "start_day": "20",

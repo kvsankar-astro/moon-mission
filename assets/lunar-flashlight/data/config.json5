@@ -53,7 +53,7 @@
     "lunar"
   ],
   "geo": {
-    "time_scale": "TDB",
+    "time_scale": "UTC",
     "startTime": "2022-12-11T08:32:33Z",
     "endTime": "2023-05-29T12:56:00Z",
     "start_year": "2022",
@@ -77,7 +77,7 @@
     "orbits_file": "geo-LFL"
   },
   "lunar": {
-    "time_scale": "TDB",
+    "time_scale": "UTC",
     "startTime": "2022-12-11T08:32:33Z",
     "endTime": "2023-05-29T12:56:00Z",
     "start_year": "2022",
@@ -101,7 +101,7 @@
     "orbits_file": "lunar-LFL"
   },
   "landing": {
-    "time_scale": "TDB",
+    "time_scale": "UTC",
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
     "start_year": "2022",
