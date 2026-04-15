@@ -79,7 +79,86 @@ body {
 }
 
 /* .navbar button { padding-right: 10px; margin-right: 10px; } */
-.blurb p { padding: 0px; margin: 0px; }
+.blurb {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blurb__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+}
+
+.blurb__row .mission-breadcrumb {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.blurb__details {
+    display: grid;
+    gap: 2px;
+    margin-top: 2px;
+    max-height: 96px;
+    overflow: hidden;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        max-height 0.24s ease,
+        margin-top 0.18s ease,
+        opacity 0.18s ease,
+        transform 0.18s ease;
+}
+
+.blurb--compact .blurb__details {
+    max-height: 0;
+    margin-top: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+}
+
+.blurb h2,
+.blurb p {
+    padding: 0;
+    margin: 0;
+}
+
+.blurb__toggle {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    min-height: 24px;
+    padding: 0 10px;
+    border: 1px solid rgba(100, 130, 180, 0.44);
+    border-radius: 999px;
+    background: rgba(10, 18, 32, 0.58);
+    color: #dbe7ff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.blurb__toggle:hover {
+    background: rgba(45, 75, 125, 0.28);
+    border-color: rgba(120, 170, 255, 0.72);
+}
+
+.blurb__toggle:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .blurb__details,
+    .blurb__toggle {
+        transition: none;
+    }
+}
 
 .settings-panel {
     display: none;

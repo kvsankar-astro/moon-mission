@@ -16,10 +16,20 @@ export function computeDynamicLabels({ globalConfig }) {
         "Secondary Craft";
     const additionalCraftToggleLabel =
         ui.additionalCraftToggleLabel || `Show ${additionalCraftLabel}`;
+    const headerSummary =
+        globalConfig.mission_description ||
+        ui.headerSummary ||
+        "Created by Sankar Viswanathan using NASA JPL HORIZONS ephemerides.";
+    const metaDescription =
+        globalConfig.mission_description ||
+        ui.metaDescription ||
+        "Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan.";
 
     return {
         pageTitle: ui.pageTitle || `${spacecraftName} - Orbit Animation`,
         headerTitle: ui.headerTitle || spacecraftName,
+        headerSummary,
+        metaDescription,
         missionUrl: globalConfig.mission_url || "#",
         spacecraftShort,
         labelElements: [
@@ -37,6 +47,21 @@ export function computeDynamicLabels({ globalConfig }) {
     };
 }
 
+function updateMetaDescription(document, content) {
+    if (!document || !content) return;
+    const selectors = [
+        'meta[name="description"]',
+        'meta[property="og:description"]',
+        'meta[name="twitter:description"]',
+    ];
+    selectors.forEach((selector) => {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.setAttribute("content", content);
+        }
+    });
+}
+
 export function applyDynamicLabels({
     labels,
     document,
@@ -52,6 +77,11 @@ export function applyDynamicLabels({
         missionLink.textContent = labels.headerTitle;
         missionLink.href = labels.missionUrl;
     }
+    const missionSummary = document.getElementById("mission-summary");
+    if (missionSummary) {
+        missionSummary.textContent = labels.headerSummary;
+    }
+    updateMetaDescription(document, labels.metaDescription);
 
     updateMultipleElementsText(labels.labelElements, true);
     updateSpacecraftMnemonic(labels.spacecraftShort);

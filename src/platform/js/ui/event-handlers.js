@@ -91,6 +91,7 @@ function formatLocalDateTimeShort(timeMs) {
 }
 
 let keyboardShortcutsBound = false;
+let headerBlurbBehaviorBound = false;
 let settingsPanelResizeBound = false;
 let settingsOutsideClickBound = false;
 let shortcutPanelGlobalBound = false;
@@ -103,6 +104,7 @@ let settingsAutoCollapsedControls = false;
 let timelineCarouselWiggleTimeoutId = null;
 const mobileSettingsSectionState = new Map();
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
+const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
 const REPEAT_PRESS_BUTTON_IDS = new Set([
     "zoomin",
     "zoomout",
@@ -278,6 +280,152 @@ function resolveSettingsPanelAnchorSelector() {
 
 function isMobileViewport() {
     return window.innerWidth <= 600;
+}
+
+function bindHeaderBlurbBehavior() {
+    if (headerBlurbBehaviorBound) return;
+    headerBlurbBehaviorBound = true;
+
+    const blurb = document.getElementById("blurb");
+    const toggle = document.getElementById("blurb-toggle");
+    if (!blurb || !toggle) return;
+
+    let compact = blurb.classList.contains("blurb--compact");
+    let manualPreference = false;
+    let autoCollapseTimerId = null;
+
+    const interactiveRegionSelector = [
+        "#header-pill-strip",
+        "#settings-panel-button",
+        "#settings-panel",
+        "#control-panel",
+        "#zoom-panel",
+        "#timeline-dock",
+        "#canvas-wrapper",
+        "#svg-wrapper",
+        ".aux-camera-view",
+        "#ground-track-panel",
+        "#mobile-shell-nav",
+        ".mobile-shell__card",
+        "#mobile-views-collapse",
+    ].join(", ");
+
+    const meaningfulKeyboardKeys = new Set([
+        " ",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "PageUp",
+        "PageDown",
+        "Home",
+        "End",
+    ]);
+
+    const syncUi = () => {
+        blurb.classList.toggle("blurb--compact", compact);
+        toggle.textContent = compact ? "About" : "Hide";
+        toggle.setAttribute("aria-expanded", compact ? "false" : "true");
+        toggle.setAttribute(
+            "aria-label",
+            compact ? "Show mission summary" : "Hide mission summary",
+        );
+        toggle.title = compact ? "Show mission summary" : "Hide mission summary";
+    };
+
+    const clearAutoCollapseTimer = () => {
+        if (autoCollapseTimerId === null) return;
+        window.clearTimeout(autoCollapseTimerId);
+        autoCollapseTimerId = null;
+    };
+
+    const canAutoCollapse = () => !manualPreference && !compact && !isMobileViewport();
+
+    const setCompact = (nextCompact, { manual = false } = {}) => {
+        compact = !!nextCompact;
+        if (manual) {
+            manualPreference = true;
+        }
+        syncUi();
+        if (canAutoCollapse()) {
+            clearAutoCollapseTimer();
+            autoCollapseTimerId = window.setTimeout(() => {
+                if (!canAutoCollapse()) return;
+                compact = true;
+                syncUi();
+                clearAutoCollapseTimer();
+            }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
+            return;
+        }
+        clearAutoCollapseTimer();
+    };
+
+    const isMeaningfulInteractionTarget = (target) => {
+        if (!(target instanceof Element)) return false;
+        if (target.closest("#blurb")) return false;
+        if (target.closest(interactiveRegionSelector)) return true;
+        return !!target.closest(
+            'button, a, input, select, textarea, summary, label, [role="button"], [role="tab"], [role="slider"]',
+        );
+    };
+
+    const collapseFromInteraction = (target) => {
+        if (!canAutoCollapse()) return;
+        if (!isMeaningfulInteractionTarget(target)) return;
+        compact = true;
+        syncUi();
+        clearAutoCollapseTimer();
+    };
+
+    toggle.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setCompact(!compact, { manual: true });
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        collapseFromInteraction(event.target);
+    }, true);
+
+    document.addEventListener("input", (event) => {
+        collapseFromInteraction(event.target);
+    }, true);
+
+    document.addEventListener("wheel", (event) => {
+        collapseFromInteraction(event.target);
+    }, { passive: true, capture: true });
+
+    document.addEventListener("keydown", (event) => {
+        if (!canAutoCollapse()) return;
+        if (isInteractiveInputTarget(event.target)) return;
+        if (!meaningfulKeyboardKeys.has(event.key)) return;
+        collapseFromInteraction(document.getElementById("control-panel") || document.body);
+    }, true);
+
+    window.addEventListener("resize", () => {
+        syncUi();
+        if (canAutoCollapse()) {
+            clearAutoCollapseTimer();
+            autoCollapseTimerId = window.setTimeout(() => {
+                if (!canAutoCollapse()) return;
+                compact = true;
+                syncUi();
+                clearAutoCollapseTimer();
+            }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
+            return;
+        }
+        clearAutoCollapseTimer();
+    }, { passive: true });
+
+    syncUi();
+    if (canAutoCollapse()) {
+        autoCollapseTimerId = window.setTimeout(() => {
+            if (!canAutoCollapse()) return;
+            compact = true;
+            syncUi();
+            clearAutoCollapseTimer();
+        }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
+    }
 }
 
 function resolveDefaultMobileSectionCollapsed(sectionKey) {
@@ -712,6 +860,7 @@ export function bindMainControls(handlers) {
         setMoonRenderProfile,
         getMoonRenderProfile,
     } = handlers;
+    bindHeaderBlurbBehavior();
     const bodyHaloToggle = typeof document !== "undefined"
         ? document.getElementById("view-body-halos")
         : null;

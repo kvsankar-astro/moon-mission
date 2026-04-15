@@ -1916,6 +1916,9 @@ fieldset {
         flex: 1 1 auto;
         min-width: 0;
     }
+    .blurb__row {
+        align-items: center;
+    }
     .blurb h1 {
         font-weight: 600;
         font-size: 10px;
@@ -1928,6 +1931,15 @@ fieldset {
     }
     .blurb h2,
     .blurb p {
+        display: none;
+    }
+    .blurb__details {
+        max-height: 0;
+        margin-top: 0;
+        opacity: 0;
+        transform: none;
+    }
+    .blurb__toggle {
         display: none;
     }
     #settings-panel-button {

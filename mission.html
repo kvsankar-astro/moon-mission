@@ -827,14 +827,29 @@
                 <button id="settings-panel-button" type="button" aria-expanded="false" aria-label="Toggle settings panel" title="Settings">&#9776;</button>
                 
                 <div id="blurb" class="blurb">
-                    <h1 class="mission-breadcrumb">
-                        <a id="missions-home-link" href="index.html">Lunar Missions</a>
-                        <span class="mission-breadcrumb__sep" aria-hidden="true">&gt;</span>
-                        <a id="mission-link" href=""><!-- mission name injected by JS --></a>
-                    </h1>
-                    <h2>Created by <a href="https://sankara.net/">Sankar Viswanathan</a> using NASA JPL <a href="https://ssd.jpl.nasa.gov/horizons/">HORIZONS</a> Ephemerides.</h2>
-                    <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/moon-mission">GitHub</a>.
-                        Works best in desktop screens. Chrome works better than Firefox.</p>
+                    <div class="blurb__row">
+                        <h1 class="mission-breadcrumb">
+                            <a id="missions-home-link" href="index.html">Lunar Missions</a>
+                            <span class="mission-breadcrumb__sep" aria-hidden="true">&gt;</span>
+                            <a id="mission-link" href=""><!-- mission name injected by JS --></a>
+                        </h1>
+                        <button
+                            id="blurb-toggle"
+                            type="button"
+                            class="blurb__toggle"
+                            aria-controls="blurb-details"
+                            aria-expanded="true"
+                            aria-label="Hide mission summary"
+                            title="Hide mission summary"
+                        >
+                            Hide
+                        </button>
+                    </div>
+                    <div id="blurb-details" class="blurb__details">
+                        <h2 id="mission-summary">Created by Sankar Viswanathan using NASA JPL HORIZONS ephemerides.</h2>
+                        <p class="desktoponly">Source code available at <a href="https://github.com/kvsankar/moon-mission">GitHub</a>.
+                            Works best in desktop screens. Chrome works better than Firefox.</p>
+                    </div>
                 </div>
                 <button
                     id="mobile-views-collapse"
