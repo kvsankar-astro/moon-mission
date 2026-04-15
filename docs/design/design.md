@@ -119,6 +119,8 @@ Rendering/UX design investigations:
 
 Performance and architecture experiments:
 - [performance-functional-core-experiments.md](performance-functional-core-experiments.md)
+- [refactor-audit.md](refactor-audit.md)
+- [target-architecture.md](target-architecture.md)
 
 ## 8) Data Boundary Design
 
