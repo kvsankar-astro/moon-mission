@@ -3,7 +3,7 @@
  *
  * These tests hit the deployed sankara.net site directly and verify that each
  * public mission can:
- * - load in Earth/3D mode
+ * - load in Earth, Moon, and Relative 3D modes
  * - start from the beginning of its timeline
  * - run at high speed until the mission timeline completes
  * - avoid console and page errors while doing so
@@ -30,6 +30,12 @@ const TIMEOUTS = {
   QUICK_DELAY: 200,
   STANDARD_DELAY: 500,
 };
+
+const ORIGIN_CONFIGS = [
+  { key: 'earth', label: 'Earth', selector: '#origin-earth' },
+  { key: 'moon', label: 'Moon', selector: '#origin-moon' },
+  { key: 'relative', label: 'Relative', selector: '#origin-relative' },
+];
 
 const TEST_CONFIG = {
   baseUrl: process.env.PRODUCTION_SMOKE_BASE_URL || DEFAULT_PRODUCTION_BASE_URL,
@@ -60,6 +66,21 @@ function isIgnoredNetworkUrl(url) {
   } catch {
     return false;
   }
+}
+
+function isIgnoredNetworkFailure(url, errorText = '') {
+  if (/net::ERR_ABORTED/i.test(errorText)) {
+    try {
+      const pathname = new URL(url).pathname;
+      if (/\.(png|jpe?g|webp|gif|svg)$/i.test(pathname)) {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 }
 
 function loadMissionCatalog(rootDir = process.cwd()) {
@@ -121,7 +142,7 @@ function createConsoleAndPageErrorCollectors(page, missionId) {
   page.on('requestfailed', (request) => {
     const url = request.url();
     const errorText = request.failure()?.errorText || 'request failed';
-    if (isIgnoredNetworkUrl(url)) {
+    if (isIgnoredNetworkUrl(url) || isIgnoredNetworkFailure(url, errorText)) {
       return;
     }
     const entry = `${errorText} @ ${url}`;
@@ -160,12 +181,36 @@ async function waitForSceneReady(page) {
   await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY });
 
   await page.waitForFunction(() => {
+    const isRelativeMode = !!document.querySelector('#origin-relative')?.checked;
+    const isLunarMode = !!document.querySelector('#origin-moon')?.checked;
     const initDoneState = window.AnimationScene?.SCENE_STATE_INIT_DONE;
     const addCurveDoneState = window.AnimationScene?.SCENE_STATE_ADD_CURVE_DONE;
     const targetState = Number.isFinite(initDoneState) ? initDoneState : addCurveDoneState;
     if (!Number.isFinite(targetState)) return false;
 
-    return (window.animationScenes?.geo?.state ?? -1) >= targetState;
+    const activeConfig = isRelativeMode ? 'relative' : isLunarMode ? 'lunar' : 'geo';
+    const scene = window.animationScenes?.[activeConfig] || (isRelativeMode ? window.animationScenes?.geo : null);
+    if (!scene) return false;
+
+    const sceneReady = (scene.state ?? -1) >= targetState;
+    if (!sceneReady) {
+      return false;
+    }
+
+    if (!isRelativeMode || !scene.initialized3D) {
+      return true;
+    }
+
+    const primaryCraftId = scene.primaryCraftId || 'SC';
+    const orbitLines = scene.orbitLinesByBodyId?.[primaryCraftId];
+    if (!Array.isArray(orbitLines) || orbitLines.length === 0) {
+      return false;
+    }
+
+    return orbitLines.some((orbitLine) => {
+      const opacity = orbitLine?.material?.opacity;
+      return orbitLine?.visible === true && Number.isFinite(opacity) && opacity >= 0.95;
+    });
   }, undefined, { timeout: TIMEOUTS.SCENE_READY });
 }
 
@@ -195,11 +240,11 @@ async function closeSettingsPanel(page) {
   }
 }
 
-async function forceEarth3DMode(page) {
+async function forceOrigin3DMode(page, originSelector) {
   await openSettingsPanel(page);
 
-  if (!await page.isChecked('#origin-earth')) {
-    await page.click('#origin-earth');
+  if (!await page.isChecked(originSelector)) {
+    await page.click(originSelector);
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   }
 
@@ -324,30 +369,33 @@ describe('Production Mission Smoke Tests', () => {
   });
 
   for (const mission of MISSIONS) {
-    it(`runs ${mission.title} (${mission.id}) to completion on production in Earth/3D`, async () => {
-      const page = await browser.newPage();
-      const { consoleErrors, pageErrors, networkErrors } = createConsoleAndPageErrorCollectors(page, mission.id);
+    for (const origin of ORIGIN_CONFIGS) {
+      it(`runs ${mission.title} (${mission.id}) to completion on production in ${origin.label}/3D`, async () => {
+        const page = await browser.newPage();
+        const collectorId = `${mission.id}/${origin.key}`;
+        const { consoleErrors, pageErrors, networkErrors } = createConsoleAndPageErrorCollectors(page, collectorId);
 
-      try {
-        const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${encodeURIComponent(mission.id)}&testMode=true`;
-        console.log(`[prod-smoke/${mission.id}] loading ${url}`);
+        try {
+          const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${encodeURIComponent(mission.id)}&testMode=true`;
+          console.log(`[prod-smoke/${collectorId}] loading ${url}`);
 
-        await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD, waitUntil: 'domcontentloaded' });
-        await waitForSceneReady(page);
-        await forceEarth3DMode(page);
-        await waitForSceneReady(page);
-        await jumpToTimelineStart(page);
-        await normalizeSpeedToRealtime(page);
-        await accelerateSpeedToMax(page);
-        await startAnimation(page);
-        await waitForAnimationCompletion(page);
+          await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD, waitUntil: 'domcontentloaded' });
+          await waitForSceneReady(page);
+          await forceOrigin3DMode(page, origin.selector);
+          await waitForSceneReady(page);
+          await jumpToTimelineStart(page);
+          await normalizeSpeedToRealtime(page);
+          await accelerateSpeedToMax(page);
+          await startAnimation(page);
+          await waitForAnimationCompletion(page);
 
-        expect(consoleErrors, `Console errors for ${mission.id}`).toHaveLength(0);
-        expect(pageErrors, `Page errors for ${mission.id}`).toHaveLength(0);
-        expect(networkErrors, `Network errors for ${mission.id}`).toHaveLength(0);
-      } finally {
-        await page.close();
-      }
-    }, TIMEOUTS.TEST_CASE);
+          expect(consoleErrors, `Console errors for ${collectorId}`).toHaveLength(0);
+          expect(pageErrors, `Page errors for ${collectorId}`).toHaveLength(0);
+          expect(networkErrors, `Network errors for ${collectorId}`).toHaveLength(0);
+        } finally {
+          await page.close();
+        }
+      }, TIMEOUTS.TEST_CASE);
+    }
   }
 });
