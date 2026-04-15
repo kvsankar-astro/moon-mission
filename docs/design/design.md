@@ -114,6 +114,7 @@ Rendering/UX design investigations:
 - [panel-system-v1-spec.md](panel-system-v1-spec.md)
 - [panel-system-v1-implementation-plan.md](panel-system-v1-implementation-plan.md)
 - [camera-state-transition-spec.md](camera-state-transition-spec.md)
+- [real-size-craft-follow-backlog.md](real-size-craft-follow-backlog.md)
 
 ## 7) Performance and Refactor Direction
 
