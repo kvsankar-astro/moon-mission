@@ -95,10 +95,13 @@ Completed on `master`:
   - `LADEE`
   - `LRO`
   - `Lunar Trailblazer`
+- combined multi-craft public mission surfaces for:
+  - `Chandrayaan 2`
+  - `Chandrayaan 3`
+- retirement of standalone `Vikram` mission folders as first-class app missions
 - stricter orbit-artifact integrity auditing, including required `geo`/`lunar`/`relative` coverage and `relative-*.npz`
 
 Still best treated as explicit follow-up slices rather than branch-merge work:
-- multi-craft extraction
+- active multi-craft UX/runtime polish
 - `GRAIL` consolidation decision
-- standalone `Vikram` mission cleanup decision
 - orbit-overlap / trail-style runtime tuning and related catalog/UX cleanup

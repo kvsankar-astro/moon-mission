@@ -170,13 +170,13 @@ Branch behavior:
 - treats `grail` as the twin-mission combined surface
 
 Reimplementation spec:
-- decide deliberately whether public mission catalog should favor combined multi-craft mission pages over split craft-specific pages
-- if yes, update:
-  - mission catalog and landing cards
+- `Chandrayaan 2` and `Chandrayaan 3` already landed on `master` as the combined multi-craft public mission surfaces, and the standalone Vikram mission folders have been retired from the app-facing catalog
+- `GRAIL` remains the open consolidation decision in this area
+- any remaining combined-surface cleanup should focus on:
   - mission briefs/images
   - source docs and sourcing playbooks
   - timeline/event language
-  - any redirects or aliases from retired slugs
+  - final handling of retired split-mission slugs if we ever want explicit redirects
 
 Why it matters:
 - this is a product/catalog decision, not just a config cleanup
@@ -197,7 +197,7 @@ These changes existed in the shelf branch but should not be copied forward autom
 3. Relative-mode Sun frame / Moon lighting fixes
 4. Minimal chrome capture mode
 5. Lower-sky brightness retune
-6. Mission catalog consolidation decisions (`Vikram`, `GRAIL`)
+6. Mission catalog consolidation decision (`GRAIL`)
 
 ## Branch Hygiene Decision
 

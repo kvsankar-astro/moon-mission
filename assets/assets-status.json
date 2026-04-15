@@ -1,16 +1,16 @@
 {
   "schema": "moon-mission-assets-status",
   "version": 1,
-  "generatedAtUtc": "2026-04-03T05:30:49.651250+00:00",
+  "generatedAtUtc": "2026-04-15T11:09:28.829474+00:00",
   "sources": {
     "appRepo": {
       "path": "C:/sankar/projects/moon-mission",
-      "gitCommit": "386518fa86073fc8aae84546010c40d6f1b405ca",
+      "gitCommit": "e978fb30f0b6c908b10e032c880e4593c1992619",
       "gitBranch": "master"
     },
     "dataRepo": {
       "path": "C:/sankar/projects/moon-mission-data",
-      "gitCommit": "b10ab6d8a1d32a6f1394eeb6a1ec82725662a736",
+      "gitCommit": "2a2edf172896c2850766bd8c2d2bba11f15240c3",
       "gitBranch": "main",
       "githubRepo": "kvsankar/moon-mission-data",
       "githubBranch": "main",
@@ -18,11 +18,11 @@
     }
   },
   "totals": {
-    "missionCount": 40,
-    "chebyshevFileCount": 111,
-    "chebyshevBytes": 198506899,
-    "sharedFileCount": 6,
-    "sharedBytes": 32078598
+    "missionCount": 41,
+    "chebyshevFileCount": 120,
+    "chebyshevBytes": 231174667,
+    "sharedFileCount": 7,
+    "sharedBytes": 34078834
   },
   "missions": [
     {
@@ -399,7 +399,7 @@
     },
     {
       "missionFolder": "artemis",
-      "missionName": "ARTEMIS",
+      "missionName": "THEMIS-ARTEMIS",
       "hasDataDir": true,
       "dataSpan": {
         "startUtc": "2011-06-01T00:00:00Z",
@@ -453,6 +453,192 @@
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis/data/relative-ARTP1-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis/data/relative-ARTP1-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis-lagrange",
+      "missionName": "THEMIS-ARTEMIS Lagrange Transfer",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2010-08-20T00:00:00Z",
+        "endUtc": "2010-10-29T23:55:00Z",
+        "durationDays": 70.99652777777777
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 3984814,
+        "chebyshevBytesPerDay": 56126.88570450433
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 1305531,
+          "files": [
+            {
+              "path": "assets/artemis-lagrange/data/geo-ARTLG-cheb.json.gz",
+              "name": "geo-ARTLG-cheb.json.gz",
+              "sizeBytes": 1305531,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lagrange/data/geo-ARTLG-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lagrange/data/geo-ARTLG-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 1309714,
+          "files": [
+            {
+              "path": "assets/artemis-lagrange/data/lunar-ARTLG-cheb.json.gz",
+              "name": "lunar-ARTLG-cheb.json.gz",
+              "sizeBytes": 1309714,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lagrange/data/lunar-ARTLG-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lagrange/data/lunar-ARTLG-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 1369569,
+          "files": [
+            {
+              "path": "assets/artemis-lagrange/data/relative-ARTLG-cheb.json.gz",
+              "name": "relative-ARTLG-cheb.json.gz",
+              "sizeBytes": 1369569,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lagrange/data/relative-ARTLG-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lagrange/data/relative-ARTLG-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis-lunar-capture",
+      "missionName": "THEMIS-ARTEMIS Lunar Capture",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2011-06-20T00:00:00Z",
+        "endUtc": "2011-07-30T23:55:00Z",
+        "durationDays": 40.99652777777778
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 2104866,
+        "chebyshevBytesPerDay": 51342.54323706276
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 687829,
+          "files": [
+            {
+              "path": "assets/artemis-lunar-capture/data/geo-ARTLC-cheb.json.gz",
+              "name": "geo-ARTLC-cheb.json.gz",
+              "sizeBytes": 687829,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lunar-capture/data/geo-ARTLC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lunar-capture/data/geo-ARTLC-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 691871,
+          "files": [
+            {
+              "path": "assets/artemis-lunar-capture/data/lunar-ARTLC-cheb.json.gz",
+              "name": "lunar-ARTLC-cheb.json.gz",
+              "sizeBytes": 691871,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lunar-capture/data/lunar-ARTLC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lunar-capture/data/lunar-ARTLC-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 725166,
+          "files": [
+            {
+              "path": "assets/artemis-lunar-capture/data/relative-ARTLC-cheb.json.gz",
+              "name": "relative-ARTLC-cheb.json.gz",
+              "sizeBytes": 725166,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-lunar-capture/data/relative-ARTLC-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-lunar-capture/data/relative-ARTLC-cheb.json.gz"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "missionFolder": "artemis-overview",
+      "missionName": "THEMIS-ARTEMIS Overview",
+      "hasDataDir": true,
+      "dataSpan": {
+        "startUtc": "2007-02-18T00:15:06Z",
+        "endUtc": "2011-07-30T23:50:00Z",
+        "durationDays": 1623.9825694444444
+      },
+      "totals": {
+        "chebyshevFiles": 3,
+        "chebyshevBytes": 24566385,
+        "chebyshevBytesPerDay": 15127.246721868467
+      },
+      "origins": {
+        "geo": {
+          "fileCount": 1,
+          "totalBytes": 9450779,
+          "files": [
+            {
+              "path": "assets/artemis-overview/data/geo-ARTOV-cheb.json.gz",
+              "name": "geo-ARTOV-cheb.json.gz",
+              "sizeBytes": 9450779,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-overview/data/geo-ARTOV-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-overview/data/geo-ARTOV-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "moon": {
+          "fileCount": 1,
+          "totalBytes": 7478419,
+          "files": [
+            {
+              "path": "assets/artemis-overview/data/lunar-ARTOV-cheb.json.gz",
+              "name": "lunar-ARTOV-cheb.json.gz",
+              "sizeBytes": 7478419,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-overview/data/lunar-ARTOV-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-overview/data/lunar-ARTOV-cheb.json.gz"
+              }
+            }
+          ]
+        },
+        "relative": {
+          "fileCount": 1,
+          "totalBytes": 7637187,
+          "files": [
+            {
+              "path": "assets/artemis-overview/data/relative-ARTOV-cheb.json.gz",
+              "name": "relative-ARTOV-cheb.json.gz",
+              "sizeBytes": 7637187,
+              "urls": {
+                "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis-overview/data/relative-ARTOV-cheb.json.gz",
+                "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis-overview/data/relative-ARTOV-cheb.json.gz"
               }
             }
           ]
@@ -527,23 +713,23 @@
       "hasDataDir": true,
       "dataSpan": {
         "startUtc": "2026-04-02T01:58:33Z",
-        "endUtc": "2026-04-10T23:54:35Z",
-        "durationDays": 8.913912037037036
+        "endUtc": "2026-04-11T00:08:21Z",
+        "durationDays": 8.923472222222221
       },
       "totals": {
         "chebyshevFiles": 3,
-        "chebyshevBytes": 357532,
-        "chebyshevBytesPerDay": 40109.43775465422
+        "chebyshevBytes": 397356,
+        "chebyshevBytesPerDay": 44529.30317981603
       },
       "origins": {
         "geo": {
           "fileCount": 1,
-          "totalBytes": 116190,
+          "totalBytes": 129377,
           "files": [
             {
               "path": "assets/artemis2/data/geo-ORION-cheb.json.gz",
               "name": "geo-ORION-cheb.json.gz",
-              "sizeBytes": 116190,
+              "sizeBytes": 129377,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/geo-ORION-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/geo-ORION-cheb.json.gz"
@@ -553,12 +739,12 @@
         },
         "moon": {
           "fileCount": 1,
-          "totalBytes": 116965,
+          "totalBytes": 130080,
           "files": [
             {
               "path": "assets/artemis2/data/lunar-ORION-cheb.json.gz",
               "name": "lunar-ORION-cheb.json.gz",
-              "sizeBytes": 116965,
+              "sizeBytes": 130080,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/lunar-ORION-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/lunar-ORION-cheb.json.gz"
@@ -568,12 +754,12 @@
         },
         "relative": {
           "fileCount": 1,
-          "totalBytes": 124377,
+          "totalBytes": 137899,
           "files": [
             {
               "path": "assets/artemis2/data/relative-ORION-cheb.json.gz",
               "name": "relative-ORION-cheb.json.gz",
-              "sizeBytes": 124377,
+              "sizeBytes": 137899,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/artemis2/data/relative-ORION-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/artemis2/data/relative-ORION-cheb.json.gz"
@@ -588,24 +774,24 @@
       "missionName": "CAPSTONE",
       "hasDataDir": true,
       "dataSpan": {
-        "startUtc": "2022-07-04T17:15:00Z",
-        "endUtc": "2022-10-04T17:15:00Z",
-        "durationDays": 92.0
+        "startUtc": "2022-06-28T10:07:00Z",
+        "endUtc": "2022-11-21T00:00:00Z",
+        "durationDays": 145.57847222222222
       },
       "totals": {
         "chebyshevFiles": 3,
-        "chebyshevBytes": 5254472,
-        "chebyshevBytesPerDay": 57113.82608695652
+        "chebyshevBytes": 5419744,
+        "chebyshevBytesPerDay": 37229.02100337256
       },
       "origins": {
         "geo": {
           "fileCount": 1,
-          "totalBytes": 1690929,
+          "totalBytes": 1749332,
           "files": [
             {
               "path": "assets/capstone/data/geo-CAPS-cheb.json.gz",
               "name": "geo-CAPS-cheb.json.gz",
-              "sizeBytes": 1690929,
+              "sizeBytes": 1749332,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/geo-CAPS-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/geo-CAPS-cheb.json.gz"
@@ -615,12 +801,12 @@
         },
         "moon": {
           "fileCount": 1,
-          "totalBytes": 1717491,
+          "totalBytes": 1768503,
           "files": [
             {
               "path": "assets/capstone/data/lunar-CAPS-cheb.json.gz",
               "name": "lunar-CAPS-cheb.json.gz",
-              "sizeBytes": 1717491,
+              "sizeBytes": 1768503,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/lunar-CAPS-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/lunar-CAPS-cheb.json.gz"
@@ -630,12 +816,12 @@
         },
         "relative": {
           "fileCount": 1,
-          "totalBytes": 1846052,
+          "totalBytes": 1901909,
           "files": [
             {
               "path": "assets/capstone/data/relative-CAPS-cheb.json.gz",
               "name": "relative-CAPS-cheb.json.gz",
-              "sizeBytes": 1846052,
+              "sizeBytes": 1901909,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/capstone/data/relative-CAPS-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/capstone/data/relative-CAPS-cheb.json.gz"
@@ -656,18 +842,18 @@
       },
       "totals": {
         "chebyshevFiles": 3,
-        "chebyshevBytes": 662859,
-        "chebyshevBytesPerDay": 27919.648999648998
+        "chebyshevBytes": 654610,
+        "chebyshevBytesPerDay": 27572.200772200773
       },
       "origins": {
         "geo": {
           "fileCount": 1,
-          "totalBytes": 63781,
+          "totalBytes": 59662,
           "files": [
             {
               "path": "assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
               "name": "geo-CH1-bodies-cheb.json.gz",
-              "sizeBytes": 63781,
+              "sizeBytes": 59662,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/geo-CH1-bodies-cheb.json.gz"
@@ -677,12 +863,12 @@
         },
         "moon": {
           "fileCount": 1,
-          "totalBytes": 62679,
+          "totalBytes": 58549,
           "files": [
             {
               "path": "assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
               "name": "lunar-CH1-bodies-cheb.json.gz",
-              "sizeBytes": 62679,
+              "sizeBytes": 58549,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/chandrayaan1/data/lunar-CH1-bodies-cheb.json.gz"
@@ -766,38 +952,6 @@
               }
             }
           ]
-        }
-      }
-    },
-    {
-      "missionFolder": "chandrayaan2-vikram",
-      "missionName": "Chandrayaan-2 Lander Vikram",
-      "hasDataDir": false,
-      "dataSpan": {
-        "startUtc": "2019-07-22T09:31:00Z",
-        "endUtc": "2019-09-06T20:26:00Z",
-        "durationDays": 46.454861111111114
-      },
-      "totals": {
-        "chebyshevFiles": 0,
-        "chebyshevBytes": 0,
-        "chebyshevBytesPerDay": 0.0
-      },
-      "origins": {
-        "geo": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "moon": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "relative": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
         }
       }
     },
@@ -887,38 +1041,6 @@
               }
             }
           ]
-        }
-      }
-    },
-    {
-      "missionFolder": "chandrayaan3-vikram",
-      "missionName": "Chandrayaan-3 Lander Vikram",
-      "hasDataDir": false,
-      "dataSpan": {
-        "startUtc": "2023-07-14T09:25:00Z",
-        "endUtc": "2023-09-06T12:31:00Z",
-        "durationDays": 54.12916666666667
-      },
-      "totals": {
-        "chebyshevFiles": 0,
-        "chebyshevBytes": 0,
-        "chebyshevBytesPerDay": 0.0
-      },
-      "origins": {
-        "geo": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "moon": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
-        },
-        "relative": {
-          "fileCount": 0,
-          "totalBytes": 0,
-          "files": []
         }
       }
     },
@@ -1183,18 +1305,18 @@
       },
       "totals": {
         "chebyshevFiles": 3,
-        "chebyshevBytes": 1796289,
-        "chebyshevBytesPerDay": 19524.880434782608
+        "chebyshevBytes": 3611145,
+        "chebyshevBytesPerDay": 39251.57608695652
       },
       "origins": {
         "geo": {
           "fileCount": 1,
-          "totalBytes": 432083,
+          "totalBytes": 1736217,
           "files": [
             {
               "path": "assets/hgs1/data/geo-HGS1-cheb.json.gz",
               "name": "geo-HGS1-cheb.json.gz",
-              "sizeBytes": 432083,
+              "sizeBytes": 1736217,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/geo-HGS1-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/geo-HGS1-cheb.json.gz"
@@ -1204,12 +1326,12 @@
         },
         "moon": {
           "fileCount": 1,
-          "totalBytes": 434004,
+          "totalBytes": 944726,
           "files": [
             {
               "path": "assets/hgs1/data/lunar-HGS1-cheb.json.gz",
               "name": "lunar-HGS1-cheb.json.gz",
-              "sizeBytes": 434004,
+              "sizeBytes": 944726,
               "urls": {
                 "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz",
                 "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/assets/hgs1/data/lunar-HGS1-cheb.json.gz"
@@ -1363,14 +1485,14 @@
       "missionName": "KPLO Danuri",
       "hasDataDir": true,
       "dataSpan": {
-        "startUtc": "2022-09-15T00:00:00Z",
-        "endUtc": "2022-12-16T00:00:00Z",
-        "durationDays": 92.0
+        "startUtc": "2022-08-04T23:51:10Z",
+        "endUtc": "2022-12-27T09:00:00Z",
+        "durationDays": 144.38113425925926
       },
       "totals": {
         "chebyshevFiles": 3,
         "chebyshevBytes": 11748869,
-        "chebyshevBytesPerDay": 127705.09782608696
+        "chebyshevBytesPerDay": 81373.99017037115
       },
       "origins": {
         "geo": {
@@ -1673,14 +1795,14 @@
       "missionName": "Lunar Flashlight",
       "hasDataDir": true,
       "dataSpan": {
-        "startUtc": "2022-12-11T08:34:00Z",
-        "endUtc": "2023-03-13T08:34:00Z",
-        "durationDays": 92.0
+        "startUtc": "2022-12-11T08:32:33Z",
+        "endUtc": "2023-05-29T12:56:00Z",
+        "durationDays": 169.18295138888888
       },
       "totals": {
         "chebyshevFiles": 3,
         "chebyshevBytes": 10590812,
-        "chebyshevBytesPerDay": 115117.52173913043
+        "chebyshevBytesPerDay": 62599.75909544012
       },
       "origins": {
         "geo": {
@@ -2045,14 +2167,14 @@
       "missionName": "SLIM",
       "hasDataDir": true,
       "dataSpan": {
-        "startUtc": "2023-10-19T15:19:00Z",
-        "endUtc": "2024-01-19T15:19:00Z",
-        "durationDays": 92.0
+        "startUtc": "2023-09-07T00:31:51Z",
+        "endUtc": "2024-01-19T15:19:57Z",
+        "durationDays": 134.61673611111112
       },
       "totals": {
         "chebyshevFiles": 3,
         "chebyshevBytes": 5770857,
-        "chebyshevBytesPerDay": 62726.70652173913
+        "chebyshevBytesPerDay": 42868.79303949845
       },
       "origins": {
         "geo": {
@@ -2414,14 +2536,14 @@
     }
   ],
   "sharedAssets": {
-    "fileCount": 6,
-    "totalBytes": 32078598,
+    "fileCount": 7,
+    "totalBytes": 34078834,
     "groups": [
       {
         "key": "images",
         "label": "Shared Images / Textures",
-        "fileCount": 6,
-        "totalBytes": 32078598,
+        "fileCount": 7,
+        "totalBytes": 34078834,
         "files": [
           {
             "path": "images/earth/2_no_clouds_8k.jpg",
@@ -2475,6 +2597,15 @@
             "urls": {
               "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/starmap_2020_4k_stars.jpg",
               "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/starmap_2020_4k_stars.jpg"
+            }
+          },
+          {
+            "path": "images/sky/starmap_4k.jpg",
+            "name": "starmap_4k.jpg",
+            "sizeBytes": 2000236,
+            "urls": {
+              "blob": "https://github.com/kvsankar/moon-mission-data/blob/main/images/sky/starmap_4k.jpg",
+              "raw": "https://raw.githubusercontent.com/kvsankar/moon-mission-data/main/images/sky/starmap_4k.jpg"
             }
           }
         ]
