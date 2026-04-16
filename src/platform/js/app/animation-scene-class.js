@@ -202,6 +202,8 @@ function createAnimationSceneClass(deps) {
             this.spacecraftRenderer = null;
             this.cameraController = null;
             this.stopCreationFlag = false;
+            this.decorationsReady3D = false;
+            this.deferred3DInitRunId = 0;
             this.state = AnimationScene.SCENE_STATE_START;
 
             this.planeSelection = DEFAULT_VIEW_STATE.planeSelection;

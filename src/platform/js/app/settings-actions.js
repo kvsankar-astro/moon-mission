@@ -326,12 +326,16 @@ export function createSettingsActions({
                     view.trailTailBrightness3D,
                 );
                 if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
-                    scene.landingOrbitLine.visible = view.viewOrbitDescent;
+                    if (scene.landingOrbitLine) {
+                        scene.landingOrbitLine.visible = view.viewOrbitDescent;
+                    }
                 }
 
                 scene.locations.forEach((x) => { x.visible = view.viewCraters; });
 
-                scene.axesHelper.visible = view.viewXYZAxes;
+                if (scene.axesHelper) {
+                    scene.axesHelper.visible = view.viewXYZAxes;
+                }
 
                 scene.earthNorthPoleSphere.visible = view.viewPoles;
                 scene.earthSouthPoleSphere.visible = view.viewPoles;

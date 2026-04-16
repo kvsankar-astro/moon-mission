@@ -1,6 +1,10 @@
 export function createSceneDisposeActions() {
     function dispose(scene) {
         console.debug("Disposing AnimationScene with complete WebGL cleanup...");
+        scene.decorationsReady3D = false;
+        scene.deferred3DInitRunId = Number.isFinite(scene.deferred3DInitRunId)
+            ? scene.deferred3DInitRunId + 1
+            : 1;
 
         scene.disposeEarthLocations();
         scene.disposeBodyHalos?.();
