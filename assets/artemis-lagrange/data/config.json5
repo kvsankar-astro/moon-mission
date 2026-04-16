@@ -56,9 +56,11 @@
   "is_lunar": true,
   "origins": ["geo", "lunar"],
   "relative": {
+    "time_scale": "TDB",
     "orbits_file": "relative-ARTLG"
   },
   "geo": {
+    "time_scale": "TDB",
     "startTime": "2010-08-20T00:00:00Z",
     "endTime": "2010-10-29T23:55:00Z",
     "start_year": "2010",
@@ -77,6 +79,7 @@
     "orbits_file": "geo-ARTLG"
   },
   "lunar": {
+    "time_scale": "TDB",
     "startTime": "2010-08-20T00:00:00Z",
     "endTime": "2010-10-29T23:55:00Z",
     "start_year": "2010",
@@ -97,6 +100,7 @@
   "landing": {
     "enabled": false,
     "comment": "No dedicated high-resolution landing slice configured for this mission.",
+    "time_scale": "TDB",
     "start_year": "2007",
     "start_month": "02",
     "start_day": "17",
@@ -117,6 +121,7 @@
     "comment": "3D model not configured for THEMIS-ARTEMIS."
   },
   "events": {
+    "time_scale": "UTC",
     "launch": {
       "startTime": "2007-02-17T23:01:00Z",
       "durationSeconds": 0,
