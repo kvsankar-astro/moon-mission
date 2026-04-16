@@ -1,6 +1,7 @@
 {
   "ui": {
     "headerBlurbAutoCollapseEnabled": false,
+    "desktopChromeAutoHideEnabled": false,
     "cameraDefaults": {
       "lunar": {
         "desktop": {

@@ -686,6 +686,10 @@ body {
 }
 
 @media (min-width: 601px) {
+    body.test-mode-enabled #settings-panel-button {
+        display: inline-flex;
+    }
+
     #settings-panel-button {
         display: none;
     }

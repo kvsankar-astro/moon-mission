@@ -225,6 +225,12 @@ const TEST_CONFIG = {
   }
 };
 
+const LOCAL_ASTRONOMY_BROWSER_FILE = join(
+  process.cwd(),
+  'node_modules',
+  'astronomy-engine',
+  'astronomy.browser.js',
+);
 const SSIM_PROFILE_FILE = join(process.cwd(), 'assets', 'chandrayaan3', 'data', 'config.ssim.json');
 
 function loadSsimProfileConfig() {
@@ -1297,6 +1303,16 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       args: launchArgs
     });
     page = await browser.newPage();
+    if (existsSync(LOCAL_ASTRONOMY_BROWSER_FILE)) {
+      const astronomyBrowserSource = readFileSync(LOCAL_ASTRONOMY_BROWSER_FILE, 'utf8');
+      await page.route('https://unpkg.com/astronomy-engine/astronomy.browser.js', async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/javascript; charset=utf-8',
+          body: astronomyBrowserSource,
+        });
+      });
+    }
 
     // Capture console logs from the page and collect errors for assertion
     page.on('console', msg => {

@@ -73,6 +73,20 @@ const urlMode = new URLSearchParams(window.location.search).get('mode');
 const isRelativeMode = urlMode === "relative";
 const frameMode = isRelativeMode ? "relative" : "inertial";
 
+function applyTestModeClass() {
+    if (!isTestMode || typeof document === "undefined") return;
+    const applyClass = () => {
+        document.body?.classList.add("test-mode-enabled");
+    };
+    if (document.body) {
+        applyClass();
+        return;
+    }
+    document.addEventListener("DOMContentLoaded", applyClass, { once: true });
+}
+
+applyTestModeClass();
+
 let {
     craftSize,
     planetProperties,
