@@ -89,11 +89,12 @@ class DesktopPanelManager {
         this.root.className = "panel-manager-root";
 
         this.launcherSlot = document.createElement("div");
-        this.launcherSlot.className = "panel-manager-launcher-slot";
+        this.launcherSlot.className = "panel-manager-launcher-slot header-pill-segment header-pill-segment--single";
+        this.launcherSlot.hidden = true;
 
         this.launcher = document.createElement("button");
         this.launcher.type = "button";
-        this.launcher.className = "panel-manager-launcher header-toggle-pill";
+        this.launcher.className = "panel-manager-launcher header-pill-segment__btn";
         this.launcher.textContent = "Panels";
         this.launcher.hidden = true;
         this.launcher.setAttribute("aria-haspopup", "dialog");
@@ -127,7 +128,8 @@ class DesktopPanelManager {
         });
         this.root.appendChild(this.menu);
 
-        const headerRow = document.getElementById("header-pill-strip-secondary") ||
+        const headerRow = document.getElementById("header-pill-strip-tertiary") ||
+            document.getElementById("header-pill-strip-secondary") ||
             document.getElementById("header-pill-strip-primary") ||
             document.getElementById("header-pill-strip") ||
             document.getElementById("header");
@@ -164,6 +166,9 @@ class DesktopPanelManager {
             this.setMenuOpen(false);
             if (this.root) {
                 this.root.hidden = true;
+            }
+            if (this.launcherSlot) {
+                this.launcherSlot.hidden = true;
             }
             if (this.launcher) {
                 this.launcher.hidden = true;
@@ -322,6 +327,9 @@ class DesktopPanelManager {
 
         if (!shouldShowLauncher && this.menuOpen) {
             this.setMenuOpen(false);
+        }
+        if (this.launcherSlot) {
+            this.launcherSlot.hidden = !shouldShowLauncher;
         }
         this.launcher.hidden = !shouldShowLauncher;
         this.launcher.textContent = "Panels";

@@ -834,17 +834,6 @@
                             <span class="mission-breadcrumb__sep" aria-hidden="true">&gt;</span>
                             <a id="mission-link" href=""><!-- mission name injected by JS --></a>
                         </h1>
-                        <button
-                            id="blurb-toggle"
-                            type="button"
-                            class="blurb__toggle"
-                            aria-controls="blurb-details"
-                            aria-expanded="true"
-                            aria-label="Hide mission summary"
-                            title="Hide mission summary"
-                        >
-                            Hide
-                        </button>
                     </div>
                     <div id="blurb-details" class="blurb__details">
                         <h2 id="mission-summary">Created by Sankar Viswanathan using NASA JPL HORIZONS ephemerides.</h2>
@@ -852,6 +841,17 @@
                             Works best in desktop screens. Chrome works better than Firefox.</p>
                     </div>
                 </div>
+                <button
+                    id="blurb-toggle"
+                    type="button"
+                    class="blurb__toggle"
+                    aria-controls="blurb-details"
+                    aria-expanded="true"
+                    aria-label="Hide mission summary"
+                    title="Hide mission summary"
+                >
+                    Hide
+                </button>
                 <button
                     id="mobile-views-collapse"
                     type="button"
@@ -889,30 +889,6 @@
                             <button id="origin-pill-earth" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Earth origin">Earth</button>
                             <button id="origin-pill-moon" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Moon origin">Moon</button>
                             <button id="origin-pill-relative" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Relative origin">Relative</button>
-                        </div>
-                    </div>
-                    <div class="header-pill-group header-pill-group--flyby" role="group" aria-label="Focus control">
-                        <span class="header-pill-group__label">Focus</span>
-                        <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Focus options">
-                            <button
-                                id="flyby-pill"
-                                type="button"
-                                class="header-pill-segment__btn"
-                                aria-pressed="false"
-                                title="Open Flyby focus panel"
-                            >
-                                Flyby
-                            </button>
-                            <button
-                                id="focus-pill-splashdown"
-                                type="button"
-                                class="header-pill-segment__btn"
-                                aria-pressed="false"
-                                hidden
-                                title="Jump to Splashdown"
-                            >
-                                Splashdown
-                            </button>
                         </div>
                     </div>
                     <div class="header-pill-group" role="group" aria-label="Follow target">
@@ -970,14 +946,56 @@
                     <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
                     <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
                     <button id="toggle-pill-polar-axes" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle polar axes">Polar Axes</button>
-                    <div class="header-pill-group header-pill-group--secondary" role="group" aria-label="Moon surface profile">
+                </div>
+                <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
+                    <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
+                    <div class="header-pill-group header-pill-group--focus" role="group" aria-label="Focus control">
+                        <span class="header-pill-group__label">Focus</span>
+                        <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Focus options">
+                            <button
+                                id="flyby-pill"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Flyby focus panel"
+                            >
+                                Flyby
+                            </button>
+                            <button
+                                id="focus-pill-splashdown"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                hidden
+                                title="Jump to Splashdown"
+                            >
+                                Splashdown
+                            </button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Moon surface profile">
                         <span class="header-pill-group__label">Moon Surface</span>
                         <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
                             <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
                     </div>
-                    <div id="desktop-main-fov" class="header-main-fov" hidden></div>
+                    <div id="advanced-controls-pill-wrap" class="header-pill-segment header-pill-segment--single">
+                        <button
+                            id="advanced-controls-pill"
+                            type="button"
+                            class="header-pill-segment__btn"
+                            aria-haspopup="dialog"
+                            aria-expanded="false"
+                            title="Open advanced controls"
+                        >
+                            Advanced
+                        </button>
+                    </div>
+                    <div class="header-pill-group header-pill-group--zoom" role="group" aria-label="Zoom control">
+                        <span class="header-pill-group__label">Zoom</span>
+                        <div id="desktop-main-fov" class="header-main-fov" hidden></div>
+                    </div>
                 </div>
             </div>
     

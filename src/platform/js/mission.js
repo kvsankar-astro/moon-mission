@@ -555,6 +555,15 @@ function updateTransportControlsUI(isPlaying) {
     transportCluster.classList.toggle("is-playing", !!isPlaying);
 }
 
+function dispatchAnimationPlayStateUpdated(isPlaying) {
+    if (typeof document === "undefined") return;
+    document.dispatchEvent(new CustomEvent("animation-play-state-updated", {
+        detail: {
+            isPlaying: isPlaying === true,
+        },
+    }));
+}
+
 // Animation Controller instance
 // Callbacks sync global state and update UI for backward compatibility
 var animationController = new AnimationController({
@@ -569,6 +578,7 @@ var animationController = new AnimationController({
         runtimeSessionState.setAnimationRunning(isPlaying);
         updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
         updateTransportControlsUI(isPlaying);
+        dispatchAnimationPlayStateUpdated(isPlaying);
         setView?.();
         eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
     },
@@ -580,6 +590,7 @@ var animationController = new AnimationController({
 
 window.addEventListener("load", function () {
     updateTransportControlsUI(animationController.getIsRunning());
+    dispatchAnimationPlayStateUpdated(animationController.getIsRunning());
     updateSpeedControlsUI(
         animationController.getSpeedMultiplier(),
         animationController.getIsRealtimeSpeed(),

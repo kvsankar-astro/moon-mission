@@ -3,6 +3,7 @@ import {
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
 } from "../app/auxiliary-camera-views.js";
+import { invokeMissionPanelAction } from "../app/panel-registry.js";
 import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
@@ -99,13 +100,54 @@ let shortcutPanelGlobalBound = false;
 let controlPanelResizeBound = false;
 let timelineDockHeightSyncBound = false;
 let timelineCarouselDragBound = false;
+let desktopChromeAutohideBound = false;
 let timelineDockResizeObserver = null;
 let timelineDockMutationObserver = null;
 let settingsAutoCollapsedControls = false;
+let settingsPanelPresentationMode = "full";
+let settingsPanelLauncherId = null;
 let timelineCarouselWiggleTimeoutId = null;
+let headerPillStripManualCollapsed = false;
+let headerPillStripAutoCollapsed = false;
+let headerPillStripLastAutoRevealAt = 0;
 const mobileSettingsSectionState = new Map();
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
 const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
+const DESKTOP_CHROME_AUTO_HIDE_DELAY_MS = 10000;
+const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
+const SETTINGS_PANEL_FILTERED_CLASS = "settings-panel__filtered-hidden";
+const SETTINGS_PANEL_MODE_FULL = "full";
+const SETTINGS_PANEL_MODE_ADVANCED = "advanced";
+const MISSION_INTERACTIVE_REGION_SELECTOR = [
+    "#header-pill-strip",
+    "#settings-panel-button",
+    "#advanced-controls-pill",
+    "#settings-panel",
+    "#control-panel",
+    "#zoom-panel",
+    "#timeline-dock",
+    "#canvas-wrapper",
+    "#svg-wrapper",
+    ".aux-camera-view",
+    "#ground-track-panel",
+    "#mobile-shell-nav",
+    ".mobile-shell__card",
+    "#mobile-views-collapse",
+    "#info-panel",
+    "#shortcut-panel",
+    ".panel-manager-menu",
+].join(", ");
+const MEANINGFUL_ACTIVITY_KEYS = new Set([
+    " ",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "PageUp",
+    "PageDown",
+    "Home",
+    "End",
+]);
 const REPEAT_PRESS_BUTTON_IDS = new Set([
     "zoomin",
     "zoomout",
@@ -270,17 +312,201 @@ function applyMobileSettingsPanelLayout(wrapper) {
     wrapper.style.maxHeight = `${maxHeight}px`;
 }
 
-function resolveSettingsPanelAnchorSelector() {
+function isMobileViewport() {
+    return window.innerWidth <= 600;
+}
+
+function isElementLayoutVisible(element) {
+    if (!(element instanceof Element)) return false;
+    if (element.hasAttribute("hidden")) return false;
+    const style = window.getComputedStyle?.(element);
+    if (!style) return false;
+    if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+        return false;
+    }
+    const rect = element.getBoundingClientRect?.();
+    return !!rect && rect.width > 0 && rect.height > 0;
+}
+
+function isSettingsPanelOpen() {
+    const dialogApi = getMissionDialogApi();
+    const wrapper = dialogApi?.widgetElement?.("#settings-panel");
+    if (wrapper) {
+        return isElementLayoutVisible(wrapper);
+    }
+    const panel = document.getElementById("settings-panel");
+    return isElementLayoutVisible(panel);
+}
+
+function resetHeaderPillStripScrollPosition() {
+    const primaryRow = document.getElementById("header-pill-strip-primary");
+    const secondaryRow = document.getElementById("header-pill-strip-secondary");
+    const tertiaryRow = document.getElementById("header-pill-strip-tertiary");
+    if (primaryRow) primaryRow.scrollLeft = 0;
+    if (secondaryRow) secondaryRow.scrollLeft = 0;
+    if (tertiaryRow) tertiaryRow.scrollLeft = 0;
+}
+
+function isHeaderPillStripEffectivelyCollapsed() {
+    return headerPillStripManualCollapsed || headerPillStripAutoCollapsed;
+}
+
+function syncHeaderPillStripCollapseUi() {
+    const strip = document.getElementById("header-pill-strip");
+    const toggle = document.getElementById("header-pill-strip-toggle");
+    if (!strip || !toggle) return;
+    const collapsed = isHeaderPillStripEffectivelyCollapsed();
+    strip.classList.toggle("header-pill-strip--collapsed", collapsed);
+    toggle.textContent = collapsed ? "›" : "‹";
+    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    toggle.setAttribute(
+        "aria-label",
+        collapsed ? "Expand mission controls" : "Collapse mission controls",
+    );
+    toggle.setAttribute(
+        "title",
+        collapsed ? "Expand mission controls" : "Collapse mission controls",
+    );
+    if (!collapsed) {
+        resetHeaderPillStripScrollPosition();
+    }
+}
+
+function setHeaderPillStripManualCollapsedState(collapsed) {
+    const nextCollapsed = !!collapsed;
+    if (headerPillStripManualCollapsed === nextCollapsed) return;
+    headerPillStripManualCollapsed = nextCollapsed;
+    syncHeaderPillStripCollapseUi();
+}
+
+function setHeaderPillStripAutoCollapsedState(collapsed) {
+    const nextCollapsed = !!collapsed;
+    if (headerPillStripAutoCollapsed === nextCollapsed) return;
+    if (headerPillStripAutoCollapsed && !nextCollapsed) {
+        headerPillStripLastAutoRevealAt = Date.now();
+    }
+    if (nextCollapsed) {
+        headerPillStripLastAutoRevealAt = 0;
+    }
+    headerPillStripAutoCollapsed = nextCollapsed;
+    syncHeaderPillStripCollapseUi();
+}
+
+function setSettingsPanelLauncherState(buttonId, isOpen) {
+    const button = buttonId ? document.getElementById(buttonId) : null;
+    if (!button) return;
+    button.setAttribute("aria-expanded", String(!!isOpen));
+    button.classList.toggle("is-open", !!isOpen);
+}
+
+function syncSettingsPanelLauncherStates(openLauncherId = null) {
+    ["settings-panel-button", "advanced-controls-pill"].forEach((buttonId) => {
+        setSettingsPanelLauncherState(buttonId, buttonId === openLauncherId);
+    });
+}
+
+function setSettingsPanelFilteredHidden(element, hidden) {
+    if (!(element instanceof Element)) return;
+    element.classList.toggle(SETTINGS_PANEL_FILTERED_CLASS, !!hidden);
+}
+
+function resolveSettingsPanelAdvancedViewItems() {
+    const items = [];
+    const addClosestOption = (controlId) => {
+        const control = document.getElementById(controlId);
+        const option = control?.closest(".settings-option");
+        if (option) {
+            items.push(option);
+        }
+    };
+
+    addClosestOption("view-additional-crafts");
+    addClosestOption("view-aux-camera-panels");
+    addClosestOption("view-fps");
+
+    const activeCraftRow = document.getElementById("active-craft-row");
+    if (activeCraftRow) {
+        items.push(activeCraftRow);
+    }
+
+    const orbitStyleOption = document.querySelector(".settings-option--orbit-style");
+    if (orbitStyleOption) {
+        items.push(orbitStyleOption);
+    }
+
+    const trailControls = document.querySelector(".settings-row--trail-controls");
+    if (trailControls) {
+        items.push(trailControls);
+    }
+
+    return items;
+}
+
+function applySettingsPanelPresentation(mode = SETTINGS_PANEL_MODE_FULL) {
+    const panel = document.getElementById("settings-panel");
+    if (!panel) return;
+
+    const normalizedMode = mode === SETTINGS_PANEL_MODE_ADVANCED
+        ? SETTINGS_PANEL_MODE_ADVANCED
+        : SETTINGS_PANEL_MODE_FULL;
+    settingsPanelPresentationMode = normalizedMode;
+
+    panel.classList.toggle("settings-panel--advanced", normalizedMode === SETTINGS_PANEL_MODE_ADVANCED);
+
+    const title = panel.querySelector(".settings-panel__title");
+    if (title) {
+        title.textContent = normalizedMode === SETTINGS_PANEL_MODE_ADVANCED ? "Advanced" : "Settings";
+    }
+
+    const sections = panel.querySelectorAll(".settings-section");
+    sections.forEach((section) => setSettingsPanelFilteredHidden(section, false));
+
+    const viewSection = panel.querySelector(".settings-section--view");
+    const viewSectionTitle = viewSection?.querySelector(".settings-section__title");
+    if (viewSectionTitle) {
+        if (!viewSectionTitle.dataset.fullTitle) {
+            viewSectionTitle.dataset.fullTitle = viewSectionTitle.textContent || "View";
+        }
+        viewSectionTitle.textContent = normalizedMode === SETTINGS_PANEL_MODE_ADVANCED
+            ? "Craft / Display"
+            : viewSectionTitle.dataset.fullTitle;
+    }
+
+    const viewOptions = viewSection?.querySelector(".settings-options");
+    if (viewOptions) {
+        Array.from(viewOptions.children).forEach((child) => setSettingsPanelFilteredHidden(child, false));
+    }
+
+    if (normalizedMode !== SETTINGS_PANEL_MODE_ADVANCED) {
+        return;
+    }
+
+    sections.forEach((section) => {
+        const keepSection = section.classList.contains("settings-section--camera") ||
+            section.classList.contains("settings-section--view");
+        setSettingsPanelFilteredHidden(section, !keepSection);
+    });
+
+    if (viewOptions) {
+        Array.from(viewOptions.children).forEach((child) => setSettingsPanelFilteredHidden(child, true));
+        resolveSettingsPanelAdvancedViewItems().forEach((item) => {
+            setSettingsPanelFilteredHidden(item, false);
+        });
+    }
+}
+
+function resolveSettingsPanelAnchorSelector(options = {}) {
+    const launcherId = options.launcherId || settingsPanelLauncherId;
+    if (launcherId === "advanced-controls-pill") {
+        return "#advanced-controls-pill";
+    }
+
     const sourceLine = document.querySelector("#blurb .desktoponly");
     const sourceLineVisible = !!(sourceLine && sourceLine.getClientRects().length);
     if (sourceLineVisible && window.innerWidth > 600) {
         return "#blurb .desktoponly";
     }
     return "#settings-panel-button";
-}
-
-function isMobileViewport() {
-    return window.innerWidth <= 600;
 }
 
 function bindHeaderBlurbBehavior() {
@@ -295,34 +521,6 @@ function bindHeaderBlurbBehavior() {
     let manualPreference = false;
     let autoCollapseTimerId = null;
     let autoCollapseEnabled = true;
-
-    const interactiveRegionSelector = [
-        "#header-pill-strip",
-        "#settings-panel-button",
-        "#settings-panel",
-        "#control-panel",
-        "#zoom-panel",
-        "#timeline-dock",
-        "#canvas-wrapper",
-        "#svg-wrapper",
-        ".aux-camera-view",
-        "#ground-track-panel",
-        "#mobile-shell-nav",
-        ".mobile-shell__card",
-        "#mobile-views-collapse",
-    ].join(", ");
-
-    const meaningfulKeyboardKeys = new Set([
-        " ",
-        "ArrowLeft",
-        "ArrowRight",
-        "ArrowUp",
-        "ArrowDown",
-        "PageUp",
-        "PageDown",
-        "Home",
-        "End",
-    ]);
 
     const syncUi = () => {
         blurb.classList.toggle("blurb--compact", compact);
@@ -374,7 +572,7 @@ function bindHeaderBlurbBehavior() {
     const isMeaningfulInteractionTarget = (target) => {
         if (!(target instanceof Element)) return false;
         if (target.closest("#blurb")) return false;
-        if (target.closest(interactiveRegionSelector)) return true;
+        if (target.closest(MISSION_INTERACTIVE_REGION_SELECTOR)) return true;
         return !!target.closest(
             'button, a, input, select, textarea, summary, label, [role="button"], [role="tab"], [role="slider"]',
         );
@@ -409,7 +607,7 @@ function bindHeaderBlurbBehavior() {
     document.addEventListener("keydown", (event) => {
         if (!canAutoCollapse()) return;
         if (isInteractiveInputTarget(event.target)) return;
-        if (!meaningfulKeyboardKeys.has(event.key)) return;
+        if (!MEANINGFUL_ACTIVITY_KEYS.has(event.key)) return;
         collapseFromInteraction(document.getElementById("control-panel") || document.body);
     }, true);
 
@@ -443,6 +641,194 @@ function bindHeaderBlurbBehavior() {
             clearAutoCollapseTimer();
         }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
     }
+}
+
+function bindDesktopChromeAutohideBehavior() {
+    if (desktopChromeAutohideBound) return;
+    desktopChromeAutohideBound = true;
+
+    let autoHideEnabled = true;
+    let animationPlaying = false;
+    let autoHideTimerId = null;
+
+    const hoverSelectors = [
+        "#header-pill-strip",
+        "#control-panel",
+        "#timeline-dock",
+        "#zoom-panel",
+        "#info-panel",
+        "#shortcut-panel",
+        ".aux-camera-view",
+        "#ground-track-panel",
+        ".panel-manager-menu.is-open",
+    ];
+
+    const clearAutoHideTimer = () => {
+        if (autoHideTimerId === null) return;
+        window.clearTimeout(autoHideTimerId);
+        autoHideTimerId = null;
+    };
+
+    const isDesktopViewportActive = () => !isMobileViewport() &&
+        !document.body?.classList.contains("mobile-shell-enabled") &&
+        document.visibilityState !== "hidden";
+
+    const isAnySelectorHovered = (selector) => {
+        const elements = document.querySelectorAll(selector);
+        return Array.from(elements).some((element) => {
+            if (!(element instanceof Element)) return false;
+            if (!isElementLayoutVisible(element)) return false;
+            if (typeof element.matches === "function" && element.matches(":hover")) return true;
+            return !!element.querySelector?.(":hover");
+        });
+    };
+
+    const isSettingsPanelHovered = () => {
+        const dialogApi = getMissionDialogApi();
+        const wrapper = dialogApi?.widgetElement?.("#settings-panel");
+        if (wrapper && isElementLayoutVisible(wrapper)) {
+            if (wrapper.matches(":hover")) return true;
+            return !!wrapper.querySelector?.(":hover");
+        }
+        const panel = document.getElementById("settings-panel");
+        if (!isElementLayoutVisible(panel)) return false;
+        if (panel.matches(":hover")) return true;
+        return !!panel.querySelector?.(":hover");
+    };
+
+    const hasInteractiveFocus = () => {
+        const active = document.activeElement;
+        if (!(active instanceof Element)) return false;
+        if (isInteractiveInputTarget(active)) return true;
+        if (active.matches?.('[role="slider"]')) return true;
+        return !!active.closest("#settings-panel, #info-panel, #shortcut-panel, .panel-manager-menu");
+    };
+
+    const hasBlockingUiOpen = () => {
+        if (isSettingsPanelOpen()) return true;
+        const infoPanel = document.getElementById("info-panel");
+        if (infoPanel && !infoPanel.classList.contains("info-panel--hidden") && isElementLayoutVisible(infoPanel)) {
+            return true;
+        }
+        const shortcutPanel = document.getElementById("shortcut-panel");
+        if (
+            shortcutPanel &&
+            !shortcutPanel.classList.contains("shortcut-panel--hidden") &&
+            isElementLayoutVisible(shortcutPanel)
+        ) {
+            return true;
+        }
+        const panelMenu = document.querySelector(".panel-manager-menu.is-open");
+        if (panelMenu && isElementLayoutVisible(panelMenu)) {
+            return true;
+        }
+        return false;
+    };
+
+    const isChromeHovered = () => isSettingsPanelHovered() || hoverSelectors.some(isAnySelectorHovered);
+
+    const canAutoHideChrome = () => autoHideEnabled &&
+        animationPlaying &&
+        isDesktopViewportActive() &&
+        !hasBlockingUiOpen() &&
+        !hasInteractiveFocus() &&
+        !isChromeHovered();
+
+    const revealChrome = () => {
+        setHeaderPillStripAutoCollapsedState(false);
+        setControlPanelCollapsedState(false);
+    };
+
+    const scheduleAutoHide = () => {
+        clearAutoHideTimer();
+        if (!canAutoHideChrome()) return;
+        autoHideTimerId = window.setTimeout(() => {
+            if (!canAutoHideChrome()) {
+                revealChrome();
+                clearAutoHideTimer();
+                return;
+            }
+            setHeaderPillStripAutoCollapsedState(true);
+            setControlPanelCollapsedState(true);
+            clearAutoHideTimer();
+        }, DESKTOP_CHROME_AUTO_HIDE_DELAY_MS);
+    };
+
+    const syncChromeVisibility = () => {
+        clearAutoHideTimer();
+        if (!canAutoHideChrome()) {
+            revealChrome();
+            return;
+        }
+        revealChrome();
+        scheduleAutoHide();
+    };
+
+    const handleUserActivity = () => {
+        if (!isDesktopViewportActive()) {
+            clearAutoHideTimer();
+            revealChrome();
+            return;
+        }
+        revealChrome();
+        scheduleAutoHide();
+    };
+
+    const syncAnimationPlaying = (isPlaying) => {
+        animationPlaying = isPlaying === true;
+        syncChromeVisibility();
+    };
+
+    const readInitialPlayState = () => {
+        const button = document.getElementById("animate");
+        return ((button?.textContent || "").trim().toLowerCase() === "pause");
+    };
+
+    document.addEventListener("animation-play-state-updated", (event) => {
+        const customEvent = /** @type {CustomEvent | null} */ (event);
+        syncAnimationPlaying(customEvent?.detail?.isPlaying === true);
+    });
+
+    document.addEventListener("mission-ui-config-updated", (event) => {
+        const configEvent = /** @type {CustomEvent | null} */ (event);
+        autoHideEnabled = configEvent?.detail?.ui?.desktopChromeAutoHideEnabled !== false;
+        syncChromeVisibility();
+    });
+
+    document.addEventListener("pointermove", () => {
+        handleUserActivity();
+    }, { passive: true, capture: true });
+
+    document.addEventListener("pointerdown", () => {
+        requestAnimationFrame(handleUserActivity);
+    }, true);
+
+    document.addEventListener("wheel", () => {
+        handleUserActivity();
+    }, { passive: true, capture: true });
+
+    document.addEventListener("focusin", () => {
+        handleUserActivity();
+    }, true);
+
+    document.addEventListener("keydown", (event) => {
+        if (isInteractiveInputTarget(event.target)) {
+            handleUserActivity();
+            return;
+        }
+        if (!MEANINGFUL_ACTIVITY_KEYS.has(event.key)) return;
+        handleUserActivity();
+    }, true);
+
+    document.addEventListener("visibilitychange", () => {
+        syncChromeVisibility();
+    });
+
+    window.addEventListener("resize", () => {
+        syncChromeVisibility();
+    }, { passive: true });
+
+    syncAnimationPlaying(readInitialPlayState());
 }
 
 function resolveDefaultMobileSectionCollapsed(sectionKey) {
@@ -621,7 +1007,9 @@ function bindTimelineCarouselDragGesture() {
 function setControlPanelCollapsedState(collapsed) {
     const panel = document.getElementById("control-panel");
     if (!panel) return;
-    panel.classList.toggle("control-panel--collapsed", collapsed);
+    const nextCollapsed = !!collapsed;
+    if (panel.classList.contains("control-panel--collapsed") === nextCollapsed) return;
+    panel.classList.toggle("control-panel--collapsed", nextCollapsed);
     requestAnimationFrame(() => syncControlPanelInfoOffset(panel));
 }
 
@@ -727,34 +1115,34 @@ function setTimelineEventCarouselExpandedState(expanded, options = {}) {
  */
 export function bindSettingsPanel() {
     const settingsButton = document.getElementById("settings-panel-button");
-    const readSettingsPanelOpen = () => {
-        const dialogApi = getMissionDialogApi();
-        const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-        if (wrapper) return getComputedStyle(wrapper).display !== "none";
-        const panel = document.getElementById("settings-panel");
-        return panel ? getComputedStyle(panel).display !== "none" : false;
-    };
-    const updateSettingsButtonState = (isOpen) => {
-        if (!settingsButton) return;
-        settingsButton.setAttribute("aria-expanded", String(isOpen));
-        settingsButton.classList.toggle("is-open", isOpen);
-    };
+    const advancedButton = document.getElementById("advanced-controls-pill");
     const closeSettingsPanel = (dialogApi) => {
         dialogApi?.close?.("#settings-panel");
-        updateSettingsButtonState(false);
+        settingsPanelLauncherId = null;
+        applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
+        syncSettingsPanelLauncherStates(null);
         if (settingsAutoCollapsedControls) {
             setControlPanelCollapsedState(false);
             settingsAutoCollapsedControls = false;
         }
     };
 
-    onClick("settings-panel-button", function () {
+    const openSettingsPanel = ({
+        launcherId,
+        mode = SETTINGS_PANEL_MODE_FULL,
+    }) => {
         const dialogApi = getMissionDialogApi();
-        const isOpen = readSettingsPanelOpen();
-        if (isOpen) {
+        const isOpen = isSettingsPanelOpen();
+        if (isOpen && settingsPanelLauncherId === launcherId) {
             closeSettingsPanel(dialogApi);
             return;
         }
+        if (isOpen) {
+            dialogApi?.close?.("#settings-panel");
+        }
+
+        settingsPanelLauncherId = launcherId;
+        applySettingsPanelPresentation(mode);
 
         const options = {
             dialogClass: "dialog settings-dialog",
@@ -762,10 +1150,10 @@ export function bindSettingsPanel() {
             position: {
                 my: "left top",
                 at: "left bottom",
-                of: resolveSettingsPanelAnchorSelector(),
+                of: resolveSettingsPanelAnchorSelector({ launcherId }),
                 collision: "fit flip"
             },
-            title: "Settings",
+            title: mode === SETTINGS_PANEL_MODE_ADVANCED ? "Advanced" : "Settings",
             closeOnEscape: false
         };
 
@@ -778,7 +1166,11 @@ export function bindSettingsPanel() {
         if (wrapper) {
             wrapper.style.backgroundImage = "none";
             wrapper.style.border = "0";
-            wrapper.style.maxWidth = window.innerWidth <= 600 ? "92vw" : "80%";
+            wrapper.style.maxWidth = window.innerWidth <= 600
+                ? "92vw"
+                : mode === SETTINGS_PANEL_MODE_ADVANCED
+                    ? "380px"
+                    : "80%";
             wrapper.style.zIndex = "18";
             const titleBar = wrapper.querySelector(".ui-dialog-titlebar");
             if (titleBar) titleBar.style.display = "none";
@@ -804,7 +1196,7 @@ export function bindSettingsPanel() {
         if (!settingsPanelResizeBound) {
             settingsPanelResizeBound = true;
             window.addEventListener("resize", function () {
-                if (!readSettingsPanelOpen()) return;
+                if (!isSettingsPanelOpen()) return;
                 adjustSettingsPanelBodyOverflow();
                 const dialogApi = getMissionDialogApi();
                 const wrapper = dialogApi?.widgetElement?.("#settings-panel");
@@ -816,16 +1208,31 @@ export function bindSettingsPanel() {
         if (!settingsOutsideClickBound) {
             settingsOutsideClickBound = true;
             document.addEventListener("pointerdown", function (event) {
-                if (!readSettingsPanelOpen()) return;
+                if (!isSettingsPanelOpen()) return;
                 if (!(event.target instanceof Node)) return;
                 const dialogWrapper = dialogApi?.widgetElement?.("#settings-panel");
                 if (dialogWrapper && dialogWrapper.contains(event.target)) return;
                 if (settingsButton && settingsButton.contains(event.target)) return;
+                if (advancedButton && advancedButton.contains(event.target)) return;
                 closeSettingsPanel(dialogApi);
             });
         }
 
-        updateSettingsButtonState(true);
+        syncSettingsPanelLauncherStates(launcherId);
+    };
+
+    onClick("settings-panel-button", function () {
+        openSettingsPanel({
+            launcherId: "settings-panel-button",
+            mode: SETTINGS_PANEL_MODE_FULL,
+        });
+    });
+
+    onClick("advanced-controls-pill", function () {
+        openSettingsPanel({
+            launcherId: "advanced-controls-pill",
+            mode: SETTINGS_PANEL_MODE_ADVANCED,
+        });
     });
 }
 
@@ -888,8 +1295,12 @@ export function bindMainControls(handlers) {
         toggleLanding,
     });
     bindHeaderBlurbBehavior();
+    bindDesktopChromeAutohideBehavior();
     const bodyHaloToggle = typeof document !== "undefined"
         ? document.getElementById("view-body-halos")
+        : null;
+    const auxiliaryPanelsToggle = typeof document !== "undefined"
+        ? document.getElementById("view-aux-camera-panels")
         : null;
     const locatorsPill = typeof document !== "undefined"
         ? document.getElementById("locators-pill")
@@ -1070,9 +1481,9 @@ export function bindMainControls(handlers) {
             flybyPillWrap.hidden = !visible;
         }
         requestAnimationFrame(() => {
-            const primaryRow = document.getElementById("header-pill-strip-primary");
-            if (!primaryRow) return;
-            primaryRow.scrollLeft = 0;
+            const tertiaryRow = document.getElementById("header-pill-strip-tertiary");
+            if (!tertiaryRow) return;
+            tertiaryRow.scrollLeft = 0;
         });
     };
     const syncFlybyPillState = (isActive = false) => {
@@ -1320,37 +1731,6 @@ export function bindMainControls(handlers) {
         const activeTab = document.body?.dataset?.mobileActiveTab || "";
         return activeTab === "views" || activeTab === "compose";
     };
-    const syncHeaderPillStripCollapseUi = (collapsed) => {
-        const strip = document.getElementById("header-pill-strip");
-        const toggle = document.getElementById("header-pill-strip-toggle");
-        if (!strip || !toggle) return;
-        strip.classList.toggle("header-pill-strip--collapsed", !!collapsed);
-        toggle.textContent = collapsed ? "›" : "‹";
-        toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        toggle.setAttribute(
-            "aria-label",
-            collapsed ? "Expand mission controls" : "Collapse mission controls",
-        );
-        toggle.setAttribute(
-            "title",
-            collapsed ? "Expand mission controls" : "Collapse mission controls",
-        );
-        if (!collapsed) {
-            // Always reveal the first control group (Origin/Flyby side) after expand.
-            const primaryRow = document.getElementById("header-pill-strip-primary");
-            const secondaryRow = document.getElementById("header-pill-strip-secondary");
-            if (primaryRow) primaryRow.scrollLeft = 0;
-            if (secondaryRow) secondaryRow.scrollLeft = 0;
-        }
-    };
-    const resetHeaderPillStripScroll = () => {
-        const primaryRow = document.getElementById("header-pill-strip-primary");
-        const secondaryRow = document.getElementById("header-pill-strip-secondary");
-        if (primaryRow) {
-            primaryRow.scrollLeft = 0;
-        }
-        if (secondaryRow) secondaryRow.scrollLeft = 0;
-    };
     const enforceMobileLocatorTabPolicy = () => {
         if (!bodyHaloToggle) return;
         // Mobile Views/Compose never show locators.
@@ -1470,20 +1850,30 @@ export function bindMainControls(handlers) {
     onClick("joyride", toggleJoyRide);
     onClick("joyridebutton", toggleJoyRide);
     onClick("flyby-pill", function () {
-        // Flyby pill should also restore/open the Flyby in Focus panel when available.
-        // The composer panel starts minimized by design, so we trigger its chip restore.
-        const composerChip = document.querySelector(
-            "#aux-camera-views .aux-camera-chip--composer-tab",
-        ) || Array.from(
-            document.querySelectorAll("#aux-camera-views .aux-camera-chip"),
-        ).find((button) =>
-            button instanceof HTMLButtonElement &&
-            /^flyby\b/i.test((button.textContent || "").trim()),
-        );
-        if (composerChip instanceof HTMLButtonElement && !composerChip.hidden) {
-            composerChip.click();
-            syncFocusPillState();
+        if (
+            auxiliaryPanelsToggle instanceof HTMLInputElement &&
+            !auxiliaryPanelsToggle.checked &&
+            !auxiliaryPanelsToggle.disabled
+        ) {
+            auxiliaryPanelsToggle.checked = true;
+            setView();
         }
+        const restored = invokeMissionPanelAction("aux:earth-rise-composer", "restore");
+        if (!restored) {
+            // Legacy fallback while the remaining aux panel code migrates to panel-registry actions.
+            const composerChip = document.querySelector(
+                "#aux-camera-views .aux-camera-chip--composer-tab",
+            ) || Array.from(
+                document.querySelectorAll("#aux-camera-views .aux-camera-chip"),
+            ).find((button) =>
+                button instanceof HTMLButtonElement &&
+                /^flyby\b/i.test((button.textContent || "").trim()),
+            );
+            if (composerChip instanceof HTMLButtonElement && !composerChip.hidden) {
+                composerChip.click();
+            }
+        }
+        requestAnimationFrame(() => syncFocusPillState());
     });
     onClick("focus-pill-splashdown", function () {
         if (!isArtemis2Mission()) return;
@@ -1616,10 +2006,15 @@ export function bindMainControls(handlers) {
     }
     bindLandingPillVisibilityObserver();
     onClick("header-pill-strip-toggle", function () {
-        const strip = document.getElementById("header-pill-strip");
-        if (!strip) return;
-        const collapsed = !strip.classList.contains("header-pill-strip--collapsed");
-        syncHeaderPillStripCollapseUi(collapsed);
+        const recentlyAutoRevealed = headerPillStripLastAutoRevealAt > 0 &&
+            (Date.now() - headerPillStripLastAutoRevealAt) <= HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS;
+        if (headerPillStripAutoCollapsed || recentlyAutoRevealed) {
+            headerPillStripLastAutoRevealAt = 0;
+            setHeaderPillStripManualCollapsedState(false);
+            setHeaderPillStripAutoCollapsedState(false);
+            return;
+        }
+        setHeaderPillStripManualCollapsedState(!isHeaderPillStripEffectivelyCollapsed());
     });
     planePillPairs.forEach(([pillId, inputId, planeSelection]) => {
         const pill = document.getElementById(pillId);
@@ -1652,9 +2047,9 @@ export function bindMainControls(handlers) {
     syncDimensionPillState();
     syncMoonRenderProfilePillState();
     syncPlanePillState();
-    syncHeaderPillStripCollapseUi(false);
-    requestAnimationFrame(resetHeaderPillStripScroll);
-    window.addEventListener("resize", resetHeaderPillStripScroll);
+    syncHeaderPillStripCollapseUi();
+    requestAnimationFrame(resetHeaderPillStripScrollPosition);
+    window.addEventListener("resize", resetHeaderPillStripScrollPosition);
     const burnButtonsHost = document.getElementById("burnbuttons");
     if (burnButtonsHost && typeof MutationObserver !== "undefined") {
         const focusPillObserver = new MutationObserver(() => {
@@ -2022,11 +2417,9 @@ export function bindMobileMissionCard() {
             if (settingsPanel) {
                 settingsPanel.style.display = "none";
             }
-            const settingsButton = document.getElementById("settings-panel-button");
-            if (settingsButton) {
-                settingsButton.setAttribute("aria-expanded", "false");
-                settingsButton.classList.remove("is-open");
-            }
+            settingsPanelLauncherId = null;
+            applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
+            syncSettingsPanelLauncherStates(null);
             applyMobileAlwaysSuppressedViews();
             if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 applyViewsVisualSimplification();
