@@ -418,44 +418,74 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
 
 // Simplified helper functions
 async function openSettingsPanel(page) {
-  await page.waitForSelector('#settings-panel-button', { timeout: 15000 });
+  await page.waitForFunction(() => {
+    return !!document.getElementById('settings-panel') && !!(window.MissionDialog || window.CY3Dialog);
+  }, { timeout: 15000 });
 
-  let opened = false;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const toggle = page.locator('#settings-panel-button');
-    const expanded = await toggle.getAttribute('aria-expanded');
-    if (expanded === 'true') {
-      opened = true;
-      break;
+  const opened = await page.evaluate(() => {
+    const panel = document.getElementById('settings-panel');
+    const dialogApi = window.MissionDialog || window.CY3Dialog;
+    if (!panel || !dialogApi?.init || !dialogApi?.open) {
+      return false;
     }
 
-    await page.evaluate(() => {
-      const button = document.getElementById('settings-panel-button');
-      button?.click();
+    panel.classList.remove('settings-panel--advanced');
+    panel.querySelectorAll('.settings-panel__filtered-hidden').forEach((item) => {
+      item.classList.remove('settings-panel__filtered-hidden');
+      item.setAttribute('aria-hidden', 'false');
     });
 
-    try {
-      await page.waitForFunction(() => {
-        const button = document.getElementById('settings-panel-button');
-        return button?.getAttribute('aria-expanded') === 'true';
-      }, { timeout: 3000 });
-      opened = true;
-      break;
-    } catch {
-      await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+    const title = panel.querySelector('.settings-panel__title');
+    if (title) {
+      title.textContent = 'Settings';
     }
-  }
+
+    const viewTitle = panel.querySelector('.settings-section--view .settings-section__title');
+    if (viewTitle) {
+      if (!viewTitle.dataset.fullTitle) {
+        viewTitle.dataset.fullTitle = viewTitle.textContent || 'View';
+      }
+      viewTitle.textContent = viewTitle.dataset.fullTitle;
+    }
+
+    dialogApi.init(panel, {
+      dialogClass: 'dialog settings-dialog',
+      modal: false,
+      position: {
+        my: 'left top',
+        at: 'left bottom',
+        of: '#header',
+        collision: 'fit flip',
+      },
+      title: 'Settings',
+      closeOnEscape: false,
+    });
+    dialogApi.open(panel);
+
+    const wrapper = dialogApi.widgetElement(panel);
+    if (wrapper) {
+      wrapper.style.backgroundImage = 'none';
+      wrapper.style.border = '0';
+      wrapper.style.maxWidth = window.innerWidth <= 600 ? '92vw' : '80%';
+      wrapper.style.zIndex = '18';
+      const titleBar = wrapper.querySelector('.ui-dialog-titlebar');
+      if (titleBar) {
+        titleBar.style.display = 'none';
+      }
+    }
+
+    return true;
+  });
 
   if (!opened) {
-    throw new Error('Failed to open settings panel after retries');
+    throw new Error('Failed to open settings panel via dialog API');
   }
 
   await page.waitForFunction(() => {
-    const button = document.getElementById('settings-panel-button');
     const panel = document.getElementById('settings-panel');
     const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
     const wrapperVisible = dialogWrapper ? getComputedStyle(dialogWrapper).display !== 'none' : false;
-    return button?.getAttribute('aria-expanded') === 'true' && wrapperVisible;
+    return wrapperVisible && !panel?.classList.contains('settings-panel--advanced');
   }, { timeout: 3000 });
 
   // Ensure panel body is expanded; controls are not interactable when collapsed.
@@ -470,54 +500,37 @@ async function openSettingsPanel(page) {
 }
 
 async function closeSettingsPanel(page) {
-  await page.waitForSelector('#settings-panel-button', { timeout: 15000 });
+  await page.waitForFunction(() => {
+    return !!document.getElementById('settings-panel') && !!(window.MissionDialog || window.CY3Dialog);
+  }, { timeout: 15000 });
 
-  let closed = false;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const toggle = page.locator('#settings-panel-button');
-    const expanded = await toggle.getAttribute('aria-expanded');
-    if (expanded !== 'true') {
-      closed = true;
-      break;
+  const closed = await page.evaluate(() => {
+    const panel = document.getElementById('settings-panel');
+    const dialogApi = window.MissionDialog || window.CY3Dialog;
+    if (!panel || !dialogApi?.close) {
+      return false;
     }
-
-    await page.evaluate(() => {
-      const button = document.getElementById('settings-panel-button');
-      button?.click();
-    });
-
-    try {
-      await page.waitForFunction(() => {
-        const button = document.getElementById('settings-panel-button');
-        return button?.getAttribute('aria-expanded') === 'false';
-      }, { timeout: 3000 });
-      closed = true;
-      break;
-    } catch {
-      await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
-    }
-  }
+    dialogApi.close(panel);
+    return true;
+  });
 
   if (!closed) {
-    throw new Error('Failed to close settings panel after retries');
+    throw new Error('Failed to close settings panel via dialog API');
   }
 
   await page.waitForFunction(() => {
-    const button = document.getElementById('settings-panel-button');
     const panel = document.getElementById('settings-panel');
     const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
-    const wrapperHidden = !dialogWrapper || getComputedStyle(dialogWrapper).display === 'none';
-    return button?.getAttribute('aria-expanded') !== 'true' && wrapperHidden;
+    return !dialogWrapper || getComputedStyle(dialogWrapper).display === 'none';
   }, { timeout: 3000 });
 }
 
 async function ensureSettingsPanelClosed(page) {
   const isOpen = await page.evaluate(() => {
-    const button = document.getElementById('settings-panel-button');
     const panel = document.getElementById('settings-panel');
     const dialogWrapper = panel?.closest('.settings-dialog, .ui-dialog');
     const wrapperVisible = dialogWrapper ? getComputedStyle(dialogWrapper).display !== 'none' : false;
-    return button?.getAttribute('aria-expanded') === 'true' || wrapperVisible;
+    return wrapperVisible;
   });
 
   if (isOpen) {
@@ -702,15 +715,22 @@ async function waitForRelativePageLoadOrbitStabilized(page) {
 async function waitForScene(page) {
   try {
     await page.waitForSelector('#animate', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
-    
+    const renderCanvasSelector = '#canvas-wrapper canvas';
+
     // Check if we're in 2D mode - canvas might not be immediately visible
     const dimensionIs2D = await page.isChecked('#dimension-2D');
     if (!dimensionIs2D) {
-      // For 3D mode, wait for canvas to be visible
-      await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+      // For 3D mode, wait for the real renderer canvas, not mobile overlay canvases.
+      await page.waitForSelector(renderCanvasSelector, {
+        timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
+        state: 'visible',
+      });
     } else {
       // For 2D mode, just wait for canvas to exist (might be hidden during transitions)
-      await page.waitForSelector('canvas', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT, state: 'attached' });
+      await page.waitForSelector(renderCanvasSelector, {
+        timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
+        state: 'attached',
+      });
     }
 
     // For 2D mode, use a simplified and faster check
@@ -996,7 +1016,10 @@ async function ensureOriginMode(page, mode) {
         return targetIsRelative
           ? url.searchParams.get('mode') === 'relative'
           : url.searchParams.get('mode') !== 'relative';
-      }, { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+      }, {
+        timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
+        waitUntil: 'commit',
+      });
       await page.click(targetSelector);
       await waitForNavigation;
       await page.waitForLoadState('domcontentloaded');
@@ -1409,7 +1432,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       // Verify core UI elements
       const elements = [
-        '#animate', '#settings-panel-button', '#info-button',
+        '#animate', '#advanced-controls-pill', '#info-button',
         '#slower', '#faster', '#realtime', '#forward', '#backward'
       ];
       
@@ -1455,7 +1478,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       const testId = 'earth-3d-ui-elements-check';
       await displayTestId(page, testId);
       // Main UI elements
-      const mainElements = ['#animate', '#settings-panel-button', '#info-button', '#burn1', '#distance-SC-EARTH'];
+      const mainElements = ['#animate', '#advanced-controls-pill', '#info-button', '#burn1', '#distance-SC-EARTH'];
       for (const selector of mainElements) {
         expect(await page.locator(selector).count()).toBe(1);
       }
