@@ -4,9 +4,7 @@
 
 Redesign the mobile mission experience to be scene-first, readable, and touch-friendly, while keeping desktop behavior unchanged.
 
-This spec applies to the long-running branch:
-
-- `feature/mobile-experience`
+This spec is tracked on the current repository state and should not treat older feature-branch layouts as the source of truth.
 
 ## Design Direction
 

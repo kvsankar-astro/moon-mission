@@ -7,7 +7,7 @@ Assistant-facing notes for this repository.
 - Contributor/agent workflow: `AGENTS.md`
 - Repo workflow/build/CI conventions: `docs/developer.md`
 - System design and architecture docs: `docs/design/design.md`
-- Test strategy and commands: `docs/testing.md`
+- Test strategy and commands: `docs/guides/testing.md`
 
 ## Current project shape (important)
 
@@ -48,10 +48,11 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 
 - Edit `config.json5`, then run `npm run configs:compile`.
 - `config.json` must remain in sync (`npm run configs:check`).
+- Current CI uses the stricter `npm run configs:lint` gate (sync + required `time_scale` annotations).
 
 ## CI quick reference
 
-- `.github/workflows/ci.yml`: unit tests
+- `.github/workflows/ci.yml`: `npm run configs:lint` + `npm run test:unit`
 - `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
 - `.github/workflows/deploy-hostgator.yml`: manual Hostgator deploy + parity audit
 

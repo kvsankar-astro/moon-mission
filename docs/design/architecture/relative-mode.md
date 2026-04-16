@@ -96,6 +96,10 @@ Outputs:
 - `assets/<mission>/data/relative-<SPACECRAFT>-cheb.json`
 - Intermediate debug NPZ: `data-generated/<mission>/relative-<SPACECRAFT>.npz`
 
+Ownership note:
+- The runtime path above is the staged/app-visible location.
+- Generated `relative-*-cheb.json` and `relative-*-cheb.json.gz` files are tracked in `../moon-mission-data`, not committed in `moon-mission`.
+
 Current generator behavior:
 - emits a multi-body relative file when source data is available
 - includes the primary craft plus any additional craft bodies present in the source
@@ -109,11 +113,11 @@ Velocity note:
 ## Commands
 
 ```bash
-# Ensure geocentric source data exists
-python scripts/orbits.py --mission=<mission> --phase=geo
+# Preferred end-to-end mission pipeline
+python scripts/run-mission-pipeline.py --missions <mission>
 
-# Generate relative Chebyshev
-python scripts/generate-relative-orbits.py --mission <mission>
+# Relative-only regeneration when source NPZ/Chebyshev already exists
+python scripts/generate-relative-orbits.py --mission <mission> --force
 
 # Optional batch generation
 python scripts/generate-relative-orbits.py --all --exclude artemis1 --ensure-npz
@@ -132,5 +136,5 @@ Relative artifacts are mission-local and tracked in the data repository boundary
 To inspect current coverage in this workspace:
 
 ```bash
-rg --files assets -g "*/data/relative-*-cheb.json"
+rg --files ..\moon-mission-data\assets -g "*/data/relative-*-cheb.json"
 ```

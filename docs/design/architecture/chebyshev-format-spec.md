@@ -22,6 +22,10 @@ Common files per mission in `assets/<mission>/data/`:
 `<ID>` is typically the mission's primary craft mnemonic from `config.json` (`spacecraft_mnemonic`).
 Secondary craft series may also appear as additional top-level body keys in the same file.
 
+Ownership note:
+- These are the runtime/staged paths consumed by the app.
+- Generated `*-cheb.json` and `*-cheb.json.gz` files are tracked in `../moon-mission-data`, not committed in `moon-mission`.
+
 ## JSON Structure
 
 ```json
@@ -181,6 +185,8 @@ Velocity units returned are km/s.
 
 Primary tools:
 
+- `scripts/run-mission-pipeline.py`
+  - Preferred one-shot wrapper for mission data refreshes and common retry handling
 - `scripts/orbits.py`
   - Fetches vectors and writes `data-generated/<mission>/*.npz` (+ metadata)
   - Adds synthetic landing phases `landing-geo` and `landing-lunar` when landing is configured

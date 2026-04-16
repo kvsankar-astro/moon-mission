@@ -40,6 +40,8 @@ Notes:
 Full local audit (recommended before larger merges):
 
 ```bash
+npm run configs:lint
+npm run test:unit
 node test/server-manager.js start
 HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/ui.test.js --run
 HEADLESS=true VITE_TEST_BASE_URL=http://localhost:8111 npx vitest test/mission-smoke.test.js --run
@@ -93,3 +95,4 @@ Vitest discovery excludes nested `.tmp/**` scratch repos so temporary worktrees 
 - **Slow rendering/timeouts**: use headless mode for consistency; CI has built-in timeout scaling.
 - **Unexpected visual diffs**: confirm intent first, then regenerate baseline/SSIM artifacts deliberately.
 - **Mission/config boundary changes**: run `npm run test:unit` in addition to `make test`; unit tests catch config-window and scene-state boundary issues that the UI suite may not surface.
+- **Mission config timing changes**: run `npm run configs:lint`; current CI requires explicit `time_scale` annotations and config/runtime sync.

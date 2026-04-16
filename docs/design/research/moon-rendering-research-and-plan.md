@@ -1,6 +1,6 @@
 # Moon Rendering Research and Execution Plan
 
-Last updated: 2026-04-03 (IST)
+Last updated: 2026-04-16 (IST)
 
 ## Why this document exists
 
@@ -21,10 +21,7 @@ Secondary objectives:
 - It is still not at target quality.
 - We likely moved from a mostly shading-illusion regime toward a mixed regime (real geometry + shading), but data quality and runtime geometry limits remain.
 
-Unit tests currently pass after changes (`npm run test:unit`):
-- 40 test files passed
-- 200 tests passed
-- 6 skipped
+Use `npm run test:unit` as the current verification gate for renderer work; avoid relying on historical hardcoded test counts in this note because the suite keeps evolving.
 
 ## Key technical findings
 
@@ -100,27 +97,19 @@ Displacement:
 
 ## Local asset footprint snapshot (current)
 
-Current local Moon textures (ignored by git in this repo):
+Current local Moon textures:
 - `images/moon/Solarsystemscope_texture_8k_moon.jpg` = 15,030,356 bytes (~14.33 MB)
 - `images/moon/ldem_16_gsfc.png` = 5,023,158 bytes (~4.79 MB)
 
 Combined local footprint: ~19.12 MB
 
 Note:
-- `images/*` is gitignored in this repo, so these runtime texture files are not versioned here.
+- Most `images/*` paths are gitignored, but the currently shipped Moon runtime profile assets under `images/moon/` are tracked exceptions in this repo.
 - Any asset-source strategy must account for repository boundaries and reproducibility.
 
-## Worktree and branch context
+## Primary code areas for Moon rendering work
 
-- Main workspace branch: `master`
-- Parallel bugfix worktree created:
-  - path: sibling worktree `../moon-mission-bugfix`
-  - branch: `bugfix/parallel-bugfix`
-  - base commit at creation: `452d188`
-
-## Modified code areas (rendering investigation)
-
-Current uncommitted changes are concentrated in:
+The main renderer touchpoints remain:
 - `src/platform/js/rendering/moon-renderer.js`
 - `src/platform/js/rendering/light-manager.js`
 - `src/platform/js/controllers/animation-3d-controller.js`
@@ -128,8 +117,6 @@ Current uncommitted changes are concentrated in:
 - `src/platform/js/app/auxiliary-camera-views.js`
 - `src/platform/js/app/light-actions.js`
 - `src/platform/js/core/constants.js`
-
-Net code size delta is small (order of ~10 KB), but behavior impact is high due to rendering pipeline changes.
 
 ## Proposed plan (phased, low-risk)
 

@@ -40,6 +40,8 @@ Useful pages:
 - `http://localhost:7274/mission.html`
 - `http://localhost:7274/orbit-data.html`
 - `http://localhost:7274/assets-status.html`
+- `http://localhost:7274/moon-render-tuner.html`
+- `http://localhost:7274/sky-render-demo.html`
 
 ### Mission Runtime Control Surfaces
 
@@ -100,7 +102,8 @@ Useful pages:
 
 - `npm run configs:bootstrap` - one-time/backfill helper to create `config.json5` from existing `config.json`
 - `npm run configs:compile` - compile all `config.json5` files into runtime `config.json`
-- `npm run configs:check` - CI check that compiled `config.json` is in sync with `config.json5`
+- `npm run configs:check` - sync-only check that compiled `config.json` is in sync with `config.json5`
+- `npm run configs:lint` - stricter CI/local gate for config sync plus required `time_scale` annotations
 - `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
 
 Pre-commit behavior (when hooks are installed):
@@ -164,7 +167,7 @@ If you regenerate orbit data:
 
 Minimum expected checks for most changes:
 - `npm run test:unit`
-- `npm run configs:check` when mission config source/compiled files changed
+- `npm run configs:lint` when mission config source/compiled files changed
 
 When UI/visual behavior changes:
 - `make test`
@@ -177,8 +180,8 @@ When mission/data loading logic changes:
 ## 8) CI / Deploy Workflows
 
 CI:
-- `.github/workflows/ci.yml` runs on push/PR/manual and executes unit tests.
-- CI also enforces `config.json` ↔ `config.json5` sync (`npm run configs:check`).
+- `.github/workflows/ci.yml` runs on push/PR/manual and executes config lint plus unit tests.
+- CI also enforces config sync plus explicit `time_scale` annotations via `npm run configs:lint`.
 
 Manual deploy workflows:
 - `.github/workflows/deploy.yml` - GitHub Pages (app + staged mission data)

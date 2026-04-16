@@ -7,7 +7,7 @@ This file provides Gemini-oriented project context aligned with the current code
 - Workflow/conventions: `AGENTS.md`
 - Repo workflow/build/CI conventions: `docs/developer.md`
 - System design and architecture docs: `docs/design/design.md`
-- Test strategy: `docs/testing.md`
+- Test strategy: `docs/guides/testing.md`
 
 ## Current code layout
 
@@ -40,10 +40,19 @@ Open:
 
 ## Orbit data workflow
 
+Preferred end-to-end mission pipeline:
+
+```bash
+python scripts/run-mission-pipeline.py --missions <mission>
+```
+
+Manual recovery/partial rerun steps remain available:
+
 ```bash
 python scripts/orbits.py --mission <mission>
 python scripts/compress-orbits.py --mission <mission>
-python scripts/generate-relative-orbits.py --mission <mission>
+python scripts/generate-relative-orbits.py --mission <mission> --force
+python scripts/compress-chebyshev-gzip.py --mission <mission> --force
 ```
 
 Runtime defaults currently use Chebyshev for all key bodies (`SC`, `MOON`, `EARTH`, `SUN`), with provider support still present for `npz` and `astronomy`.
@@ -53,6 +62,7 @@ Mission config workflow:
 - edit `config.json5`
 - run `npm run configs:compile`
 - validate with `npm run configs:check`
+- use `npm run configs:lint` before push when config timing/phase/event structure changed; CI runs that stricter check
 
 ## Landing brief notes
 
@@ -62,6 +72,6 @@ Mission config workflow:
 
 ## CI / deploy notes
 
-- `.github/workflows/ci.yml` runs on push, pull request, and manual dispatch.
+- `.github/workflows/ci.yml` runs `npm run configs:lint` and `npm run test:unit` on push, pull request, and manual dispatch.
 - `.github/workflows/deploy.yml` and `.github/workflows/deploy-hostgator.yml` are manual-only deploy workflows.
 - Deploy/test staging pulls runtime data, including orbit-style sidecars, from `moon-mission-data`.

@@ -60,6 +60,8 @@ Open:
 - `http://localhost:7274/mission.html?mission=artemis2&mode=relative`
 - `http://localhost:7274/orbit-data.html`
 - `http://localhost:7274/assets-status.html`
+- `http://localhost:7274/moon-render-tuner.html`
+- `http://localhost:7274/sky-render-demo.html`
 
 ## Multi-Mission Support
 
@@ -98,6 +100,7 @@ Mission config authoring workflow:
 - edit `assets/*/data/config.json5` (maintainer source with comments)
 - compile runtime JSON with `npm run configs:compile` (writes `assets/*/data/config.json`)
 - verify sync with `npm run configs:check`
+- run `npm run configs:lint` before push when mission config timing or phase/event structure changed; current CI uses this stricter check
 
 ## Data Repository Boundary
 
@@ -110,6 +113,8 @@ Generated orbit/ephemeris artifacts are maintained in the sibling data repositor
 - `*.npz`
 - `*-meta.json`
 - authored style sidecars such as `geo-style.json` / `lunar-style.json`
+
+App-managed tracked exceptions that stay in this repo include the current Moon runtime profile images under `images/moon/` and social/share images under `images/social/`.
 
 CI/deploy workflows stage those artifacts into this app during build/deploy.
 
@@ -156,6 +161,10 @@ make test
 
 `make test` runs the primary UI + visual regression suite (`test/ui.test.js`) on `http://localhost:8111`.
 
+Current CI gate:
+- `npm run configs:lint`
+- `npm run test:unit`
+
 For strategy and full-suite commands (`ui`, `mission-smoke`, `chebyshev-accuracy`), see:
 - [docs/guides/testing.md](docs/guides/testing.md)
 
@@ -166,7 +175,9 @@ However, you need to serve it over HTTP (not `file://`) to avoid module/fetch/CO
 
 ### Deployment Data Repository
 
-CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, optional `.npz` / `*-meta.json`, and orbit-style sidecars such as `geo-style.json` / `lunar-style.json`), shared textures (`images/`), mission screenshots (`assets/*/images/`), and optional vendored runtime libraries (`third-party/`).
+CI workflows stage runtime mission assets from a separate data repository before publishing. Staged assets include orbit artifacts (`*-cheb.json`, `*-cheb.json.gz`, manifests, optional `.npz` / `*-meta.json`, and orbit-style sidecars such as `geo-style.json` / `lunar-style.json`), mission screenshots (`assets/*/images/`), additional shared runtime media, and optional vendored runtime libraries (`third-party/`).
+
+Tracked app-managed exceptions such as the Moon profile textures under `images/moon/` and share images under `images/social/` are copied from this repo during deploy rather than staged from `moon-mission-data`.
 
 By default workflows use:
 

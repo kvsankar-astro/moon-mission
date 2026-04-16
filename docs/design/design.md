@@ -23,6 +23,9 @@ Design material now lives under `docs/design/`, grouped by purpose:
     - `Splashdown in Spotlight`
 - `orbit-data.html`: data-source coverage/audit view.
 - `assets-status.html`: runtime asset-size/status view.
+- Supporting standalone pages for focused renderer work:
+  - `moon-render-tuner.html`
+  - `sky-render-demo.html`
 
 ## 2) Runtime Architecture (High-Level)
 

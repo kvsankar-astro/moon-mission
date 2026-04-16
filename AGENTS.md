@@ -28,7 +28,8 @@
 - `npm run dev` — run Vite dev server (default `http://localhost:7274/`).
 - `npm run configs:bootstrap` — create `assets/*/data/config.json5` from existing `config.json` (one-time/backfill utility).
 - `npm run configs:compile` — compile all `config.json5` files into runtime `config.json`.
-- `npm run configs:check` — verify `config.json` files are in sync with `config.json5` (CI-safe).
+- `npm run configs:check` — verify `config.json` files are in sync with `config.json5` (sync-only check).
+- `npm run configs:lint` — verify config sync plus required `time_scale` annotations (matches current CI).
 - `npm run hooks:install` — set `core.hooksPath` to `.githooks` to enable local pre-commit checks.
 - `make test` — recommended UI test run (starts server on `8111`, runs Vitest, stops server).
 - `make baseline` — regenerate visual baselines (use only when changes are intentional).

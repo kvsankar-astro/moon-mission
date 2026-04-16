@@ -89,13 +89,20 @@ Use this when the mission already has an `assets/<mission>/` folder.
    - If a mission-significant event falls just after the last sampled orbit-data timestamp, keep it as well.
    - Document both the mission event time and the first/last usable HORIZONS orbit-data times in the `config.json5` sourcing snapshot comment block.
    - Do not delete out-of-window events just because they cannot be shown immediately; runtime gating infra will handle visibility.
-5. Re-run only the pipeline steps needed:
+5. Keep config authoring aligned with current repo rules:
+   - edit `assets/<mission>/data/config.json5` as the source of truth
+   - run `npm run configs:compile`
+   - run `npm run configs:lint` before finalizing mission-local config work
+   - annotate phase/span blocks with explicit `time_scale` (`TDB` or `UTC`) and keep the `events` block explicitly `UTC`
+6. Prefer the one-shot pipeline unless you are intentionally rerunning only one stage:
+   - `python scripts/run-mission-pipeline.py --missions <mission>`
+7. Re-run only the manual pipeline steps needed when partial recovery is preferable:
    - `python scripts/orbits.py --mission <mission>`
    - `python scripts/compress-orbits.py --mission <mission>`
    - `python scripts/generate-relative-orbits.py --mission <mission> --force`
    - `python scripts/compress-chebyshev-gzip.py --mission <mission> --force`
-6. Verify generated outputs land in the correct repo.
-7. Write down what changed and what still needs shared-file integration.
+8. Verify generated outputs land in the correct repo.
+9. Write down what changed and what still needs shared-file integration.
 
 ### Preferred Outputs
 
@@ -149,13 +156,20 @@ Use this when the mission is missing from `assets/`.
    - `now`
    - `<mnemonic>DataEnd`
    - Keep out-of-window events if they are mission-significant, even when orbit samples start later or stop earlier.
-6. Run the pipeline:
+6. Compile and lint config state before data generation:
+   - `npm run configs:compile`
+   - `npm run configs:lint`
+   - explicitly annotate phase/span blocks with `time_scale`
+   - keep the `events` block explicitly `UTC`
+7. Run the preferred one-shot pipeline:
+   - `python scripts/run-mission-pipeline.py --missions <mission>`
+8. Use manual steps only when partial reruns are the better recovery path:
    - `python scripts/orbits.py --mission <mission>`
    - `python scripts/compress-orbits.py --mission <mission>`
    - `python scripts/generate-relative-orbits.py --mission <mission> --force`
    - `python scripts/compress-chebyshev-gzip.py --mission <mission> --force`
-7. Stage generated artifacts in `../moon-mission-data`.
-8. Leave integration notes for main-agent-owned shared files:
+9. Stage generated artifacts in `../moon-mission-data`.
+10. Leave integration notes for main-agent-owned shared files:
    - `assets/mission-catalog.json`
    - `assets/mission-briefs.json`
    - `assets/mission-images.json`
