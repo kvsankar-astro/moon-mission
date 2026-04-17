@@ -30,7 +30,6 @@ import {
     getBodyEphemerisState,
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
-import { resolveMissionCraft } from "./core/domain/mission-config.js";
 import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 import {
     DEFAULT_VIEW_STATE,
@@ -52,12 +51,10 @@ import { createRuntimeInteractionState } from "./core/state/runtime-interaction-
 import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
-import { createTimelineDockController } from "./app/timeline-dock-controller.js";
 import {
-    getSceneActiveCraftId,
-    getSceneVisibleCraftIds,
-} from "./app/scene-craft-helpers.js";
-import { buildEventHoverText } from "./app/burn-event-metadata.js";
+    createAnimationControllerCallbacks,
+    createMissionPlaybackUiShell,
+} from "./app/mission-playback-coordination.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -328,283 +325,54 @@ runtimeViewState.setViewFlags({
 });
 
 const eventBus = createEventBus();
-let timelineDockController = null;
-let lastTimelineEventsRef = null;
-
-function ensureTimelineDockController() {
-    if (timelineDockController) return timelineDockController;
-    timelineDockController = createTimelineDockController({
-        onSeekTime: (timeMs) => {
-            animationController.setTime(timeMs);
-        },
-        onMarkerSelect: (eventInfo) => {
-            if (eventInfo?.clickable === false) return;
-            if (!(eventInfo?.startTime instanceof Date)) return;
-            animationController.goToEvent(eventInfo.startTime.getTime());
-        },
-        onMarkerHover: (eventInfo) => {
-            const hoverText = buildEventHoverText(eventInfo);
-            if (hoverText) {
-                updateEventInfo(hoverText);
-            }
-        },
-        onMarkerLeave: () => {
-            clearEventInfo();
-        },
-        onCraftSelect: (craftId) => {
-            const viewToggle = document.getElementById("view-additional-crafts");
-            const craftSelect = document.getElementById("active-craft-select");
-            if (viewToggle) {
-                viewToggle.checked = true;
-            }
-            if (craftSelect) {
-                craftSelect.value = craftId;
-            }
-            setView?.();
-        },
-    });
-    timelineDockController.bind();
-    return timelineDockController;
-}
-
-function syncTimelineDock() {
-    if (!timelineDockController) return;
-
-    const cfg = runtimeViewState.getConfig();
-    const scene = animationScenes[cfg];
-    const stepDurationMs = Math.max(
-        1,
-        Math.round(scene?.stepDurationInMilliSeconds || TC.ONE_MINUTE_MS),
-    );
-    const dockStartTime = Number.isFinite(startTime) ? startTime : 0;
-    const rawDockEndTime = Number.isFinite(latestEndTime)
-        ? latestEndTime
-        : dockStartTime;
-    const dockEndTime = Math.max(dockStartTime, rawDockEndTime);
-
-    timelineDockController.setRange({
-        startTimeMs: dockStartTime,
-        endTimeMs: dockEndTime,
-        stepMs: Math.min(stepDurationMs, TC.ONE_SECOND_MS),
-    });
-    timelineDockController.setCurrentTime(runtimeSessionState.getAnimTime());
-
-    if (eventInfos !== lastTimelineEventsRef) {
-        timelineDockController.setEvents(eventInfos || []);
-        lastTimelineEventsRef = eventInfos;
-    }
-
-    const visibleCraftIds = getSceneVisibleCraftIds(scene, globalConfig);
-    const activeCraftId = getSceneActiveCraftId(scene, globalConfig);
-    timelineDockController.setCrafts(
-        visibleCraftIds.map((bodyId) => {
-            const craft = resolveMissionCraft(globalConfig, bodyId);
-            return {
-                id: bodyId,
-                label:
-                    craft?.viewLabel ||
-                    craft?.name ||
-                    craft?.mnemonic ||
-                    craft?.id ||
-                    bodyId,
-                roleLabel: craft?.primary ? "Primary" : "Additional",
-                color:
-                    craft?.orbitcolor ||
-                    craft?.color ||
-                    null,
-                active: bodyId === activeCraftId,
-            };
-        }),
-    );
-}
-
-function syncActiveCraftControl() {
-    const additionalCraftOption = document.getElementById("additional-crafts-option");
-    const additionalCraftToggle = document.getElementById("view-additional-crafts");
-    const descentOrbitOption = document.getElementById("orbit-descent-option");
-    const row = document.getElementById("active-craft-row");
-    const select = document.getElementById("active-craft-select");
-
-    const missionCraftCount = Array.isArray(globalConfig?.crafts) ? globalConfig.crafts.length : 1;
-    const hasAdditionalCrafts = missionCraftCount > 1;
-    if (additionalCraftOption) {
-        additionalCraftOption.classList.toggle("settings-option--hidden", !hasAdditionalCrafts);
-    }
-    if (!hasAdditionalCrafts && additionalCraftToggle) {
-        additionalCraftToggle.checked = false;
-    }
-
-    const hasDescentOrbit = !!(globalConfig?.landing?.enabled);
-    if (descentOrbitOption) {
-        descentOrbitOption.classList.toggle("settings-option--hidden", !hasDescentOrbit);
-    }
-
-    if (!row || !select) return;
-
-    if (!hasAdditionalCrafts) {
-        row.classList.add("settings-row--hidden");
-        select.innerHTML = "";
-        return;
-    }
-
-    const cfg = runtimeViewState.getConfig();
-    const scene = animationScenes[cfg];
-    const visibleCraftIds = getSceneVisibleCraftIds(scene, globalConfig);
-    const activeCraftId = getSceneActiveCraftId(scene, globalConfig);
-
-    if (!Array.isArray(visibleCraftIds) || visibleCraftIds.length <= 1) {
-        row.classList.add("settings-row--hidden");
-        select.innerHTML = "";
-        return;
-    }
-
-    row.classList.remove("settings-row--hidden");
-    const optionSignature = visibleCraftIds
-        .map((bodyId) => {
-            const craft = resolveMissionCraft(globalConfig, bodyId);
-            return `${bodyId}:${craft?.viewLabel || craft?.name || craft?.mnemonic || craft?.id || bodyId}`;
-        })
-        .join("|");
-    if (select.dataset.optionSignature !== optionSignature) {
-        select.innerHTML = "";
-        for (const bodyId of visibleCraftIds) {
-            const craft = resolveMissionCraft(globalConfig, bodyId);
-            const option = document.createElement("option");
-            option.value = bodyId;
-            option.textContent =
-                craft?.viewLabel ||
-                craft?.name ||
-                craft?.mnemonic ||
-                craft?.id ||
-                bodyId;
-            select.appendChild(option);
-        }
-        select.dataset.optionSignature = optionSignature;
-    }
-    if (activeCraftId) {
-        select.value = activeCraftId;
-    }
-}
-
-const SPEED_RATE_LABELS = new Map([
-    [60, "1 min/sec"],
-    [300, "5 min/sec"],
-    [900, "15 min/sec"],
-    [1800, "30 min/sec"],
-    [3600, "1 hr/sec"],
-    [10800, "3 hr/sec"],
-    [21600, "6 hr/sec"],
-    [43200, "12 hr/sec"],
-    [86400, "1 day/sec"],
-]);
-
-function formatSimRateLabel(multiplier, isRealtime) {
-    if (isRealtime) return "1 sec/sec";
-    const value = Number(multiplier);
-    if (!Number.isFinite(value) || value <= 0) return "1 min/sec";
-    const rounded = Math.round(value);
-    if (SPEED_RATE_LABELS.has(rounded)) return SPEED_RATE_LABELS.get(rounded);
-    const minutesPerSecond = value / 60;
-    if (minutesPerSecond >= 60) {
-        const hoursPerSecond = minutesPerSecond / 60;
-        if (hoursPerSecond >= 24) {
-            return `${(hoursPerSecond / 24).toFixed(2).replace(/\.00$/, "")} day/sec`;
-        }
-        return `${hoursPerSecond.toFixed(2).replace(/\.00$/, "")} hr/sec`;
-    }
-    return `${minutesPerSecond.toFixed(2).replace(/\.00$/, "")} min/sec`;
-}
-
-function updateSpeedControlsUI(multiplier, isRealtime) {
-    const slowerButton = document.getElementById("slower");
-    const realtimeButton = document.getElementById("realtime");
-    const fasterButton = document.getElementById("faster");
-    const label = formatSimRateLabel(multiplier, isRealtime);
-    const numericMultiplier = Number(multiplier || 0);
-    const atMaxSpeed = !isRealtime && Math.abs(numericMultiplier - 86400) < 1e-3;
-
-    if (realtimeButton) {
-        realtimeButton.textContent = label;
-        realtimeButton.title = isRealtime
-            ? "Realtime active (1 sec/sec)."
-            : `Current speed ${label}. Click to set realtime (1 sec/sec).`;
-        realtimeButton.setAttribute(
-            "aria-label",
-            isRealtime
-                ? "Realtime active (1 sec/sec)."
-                : `Current speed ${label}. Click to set realtime (1 sec/sec).`,
-        );
-        realtimeButton.classList.toggle("down", !!isRealtime);
-        realtimeButton.setAttribute("aria-pressed", isRealtime ? "true" : "false");
-    }
-
-    if (slowerButton) {
-        slowerButton.disabled = !!isRealtime;
-        slowerButton.setAttribute("aria-disabled", isRealtime ? "true" : "false");
-    }
-
-    if (fasterButton) {
-        fasterButton.disabled = atMaxSpeed;
-        fasterButton.setAttribute("aria-disabled", atMaxSpeed ? "true" : "false");
-    }
-}
-
-function updateTransportControlsUI(isPlaying) {
-    const transportCluster = document.querySelector(".controls-cluster--transport");
-    if (!transportCluster) return;
-    transportCluster.classList.toggle("is-playing", !!isPlaying);
-}
-
-function dispatchAnimationPlayStateUpdated(isPlaying) {
-    if (typeof document === "undefined") return;
-    document.dispatchEvent(new CustomEvent("animation-play-state-updated", {
-        detail: {
-            isPlaying: isPlaying === true,
-        },
-    }));
-}
-
-// Animation Controller instance
-// Callbacks sync global state and update UI for backward compatibility
-var animationController = new AnimationController({
-    onTimeChange: (time) => {
-        runtimeSessionState.setAnimTime(time);
-        bridgeActions.setLocation();    // Update scene positions
-        syncTimelineDock();
-        syncActiveCraftControl();
-        eventBus.emit("animation:timeChanged", { time });
-    },
-    onPlayStateChange: (isPlaying) => {
-        runtimeSessionState.setAnimationRunning(isPlaying);
-        updateD3ElementText("#animate", isPlaying ? "Pause" : "Play");
-        updateTransportControlsUI(isPlaying);
-        dispatchAnimationPlayStateUpdated(isPlaying);
-        setView?.();
-        eventBus.emit(isPlaying ? "animation:play" : "animation:pause", { isPlaying });
-    },
-    onSpeedChange: (multiplier, isRealtime) => {
-        updateSpeedControlsUI(multiplier, isRealtime);
-        eventBus.emit("animation:speedChanged", { multiplier, isRealtime });
-    }
+let animationController = null;
+const {
+    syncTimelineDock,
+    syncActiveCraftControl,
+    updateSpeedControlsUI,
+    updateTransportControlsUI,
+    dispatchAnimationPlayStateUpdated,
+    syncPlaybackStartup,
+} = createMissionPlaybackUiShell({
+    documentRef: document,
+    CustomEventClass: typeof CustomEvent === "function" ? CustomEvent : null,
+    getAnimationController: () => animationController,
+    getSetView: () => setView,
+    getAnimationScenes: () => animationScenes,
+    getConfig: () => runtimeViewState.getConfig(),
+    getGlobalConfig: () => globalConfig,
+    getStartTime: () => startTime,
+    getLatestEndTime: () => latestEndTime,
+    getAnimTime: () => runtimeSessionState.getAnimTime(),
+    getEventInfos: () => eventInfos,
+    defaultStepMs: TC.ONE_MINUTE_MS,
+    maxTimelineStepMs: TC.ONE_SECOND_MS,
+    updateEventInfo,
+    clearEventInfo,
 });
+const animationControllerCallbacks = createAnimationControllerCallbacks({
+    runtimeSessionState,
+    bridgeActions,
+    syncTimelineDock,
+    syncActiveCraftControl,
+    updateD3ElementText,
+    updateTransportControlsUI,
+    dispatchAnimationPlayStateUpdated,
+    getSetView: () => setView,
+    updateSpeedControlsUI,
+    eventBus,
+});
+animationController = new AnimationController(animationControllerCallbacks);
 
 window.addEventListener("load", function () {
-    updateTransportControlsUI(animationController.getIsRunning());
-    dispatchAnimationPlayStateUpdated(animationController.getIsRunning());
-    updateSpeedControlsUI(
-        animationController.getSpeedMultiplier(),
-        animationController.getIsRealtimeSpeed(),
-    );
-    const nowButton = document.getElementById("missionnow");
-    if (nowButton && nowButton.dataset.bound !== "true") {
-        nowButton.dataset.bound = "true";
-        nowButton.addEventListener("click", function () {
+    syncPlaybackStartup({
+        isRunning: animationController.getIsRunning(),
+        speedMultiplier: animationController.getSpeedMultiplier(),
+        isRealtimeSpeed: animationController.getIsRealtimeSpeed(),
+        goToNow: () => {
             animationController.goToNow();
-        });
-    }
-    ensureTimelineDockController();
-    syncTimelineDock();
-    syncActiveCraftControl();
+        },
+    });
 });
 
 var globalConfig = null; // Store loaded config from config.json
