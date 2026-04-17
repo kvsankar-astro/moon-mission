@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     createMissionStatePorts,
     createMissionStateStore,
+    flattenMissionStatePorts,
 } from "../src/platform/js/core/state/mission-state-store.js";
 
 function createCell(initialValue) {
@@ -215,6 +216,19 @@ function createPorts(overrides = {}) {
 }
 
 describe("createMissionStateStore", () => {
+    it("keeps the flat store as a compatibility wrapper around explicit state ports", () => {
+        const { ports } = createPorts();
+        const store = flattenMissionStatePorts(ports);
+
+        expect(store.getConfig).toBe(ports.app.getConfig);
+        expect(store.setConfig).toBe(ports.app.setConfig);
+        expect(store.getEventInfos).toBe(ports.data.getEventInfos);
+        expect(store.setAnimTime).toBe(ports.session.setAnimTime);
+        expect(store.getViewSky).toBe(ports.sceneView.getViewSky);
+        expect(store.toggleLanding).toBe(ports.sceneRuntime.toggleLanding);
+        expect(store.getMissionStartCalled).toBe(ports.interaction.getMissionStartCalled);
+    });
+
     it("updates and reads state without DOM dependencies", () => {
         const { store } = createStore();
         expect(store.getConfig()).toBe("geo");

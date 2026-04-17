@@ -1,4 +1,7 @@
-import { createMissionStateStore } from "../core/state/mission-state-store.js";
+import {
+    createMissionStatePorts,
+    flattenMissionStatePorts,
+} from "../core/state/mission-state-store.js";
 
 function createMutableStateCell(get, set) {
     return { get, set };
@@ -192,7 +195,7 @@ function createMissionStateCells({
 }
 
 function createMissionStateAccess(ctx) {
-    return createMissionStateStore(ctx);
+    return flattenMissionStatePorts(createMissionStatePorts(ctx));
 }
 
 export {
