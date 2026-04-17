@@ -160,6 +160,9 @@ preserve and extend.
 - `shell/ui/frame-ui-updater.js`
 - `shell/ui/mission-ui-effects.js`
 - `shell/time/clock-effects.js`
+- `app/scene-telemetry-ui-actions.js`
+- `app/scene-phase-ui-actions.js`
+- `app/scene-active-event-ui-actions.js`
 
 ### Healthier coordination seams
 
@@ -265,16 +268,20 @@ application-service side of the boundary and avoid reabsorbing policy logic.
 
 ### `app/scene-ui-update-actions.js`
 
-This module currently mixes:
+This seam is now much healthier than it was.
 
-- telemetry calculations
-- event resolution and display logic
-- angle calculations
-- ground-track panel coordination
-- DOM updates
+Telemetry, phase, and active-event rendering now live in:
 
-The calculations should be extracted into pure helpers or view-model builders,
-leaving only DOM and panel mutation in the shell.
+- `app/scene-telemetry-ui-actions.js`
+- `app/scene-phase-ui-actions.js`
+- `app/scene-active-event-ui-actions.js`
+
+and the remaining `scene-ui-update-actions.js` surface is mostly a composition
+wrapper across those smaller UI shells.
+
+The remaining cleanup is to decide whether that wrapper stays as a small
+composition seam or disappears into `scene-frame-ui-actions.js`. Either way, it
+is no longer one of the major architecture blockers.
 
 ### `app/runtime-ui-controls.js`
 
@@ -345,7 +352,7 @@ more wrapper layers.
 
 ## Progress Snapshot
 
-As of `2026-04-17`, the repo is roughly `58-60%` of the way to the target
+As of `2026-04-17`, the repo is roughly `68-70%` of the way to the target
 architecture.
 
 What has improved materially:
@@ -373,12 +380,19 @@ What has improved materially:
 - frame orchestration now preserves the functional-core boundary longer in the
   hot path
 - several frame/UI calculations already live in small pure helpers
+- scene telemetry UI planning now lives in
+  `core/domain/scene-telemetry-ui-state.js`, with
+  `app/scene-telemetry-ui-actions.js` owning the shell-side rendering and
+  unit-control binding
+- phase and active-event updates now have their own shell adapters in
+  `app/scene-phase-ui-actions.js` and
+  `app/scene-active-event-ui-actions.js`, leaving
+  `app/scene-ui-update-actions.js` mostly as composition
 
 What still dominates the remaining risk:
 
 - `core/state/mission-state-store.js`
 - `ui/event-handlers.js`
-- `app/scene-ui-update-actions.js`
 - `app/scene-view-state.js`
 - `data/mission-data.js`
 - `mission.js`
@@ -389,11 +403,11 @@ Progress by refactor slice:
 |---|---|---|
 | 1. split the state facade | in progress | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, but `mission-state-store.js` is still too broad |
 | 2. separate settings intent from effects | in progress | view planning/application split landed, but settings still fan out through wider runtime wiring |
-| 3. finish the frame pipeline split | in progress | `frame-plan.js`, transient event planning, and `scene-frame-plan.js` are in place; `scene-ui-update-actions.js` still owns too much display logic |
+| 3. finish the frame pipeline split | close to done | `frame-plan.js`, transient event planning, `scene-frame-plan.js`, and the scene telemetry/phase/event UI split are all in place; the remaining work is mostly final composition cleanup rather than core logic extraction |
 | 4. make scene view state truly scene-scoped | lightly started | structure exists, but legacy fallback still obscures the true source of truth |
 | 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; `mission-state-store.js` and parts of runtime bootstrap still rebuild broad surfaces |
 | 6. split data loading from data normalization | partially prepared | domain helpers exist, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
-| 7. break up large shell modules | in progress | `mission.js` is shrinking meaningfully, but `ui/event-handlers.js` remains the biggest shell monolith and the scene/UI shell still needs decomposition |
+| 7. break up large shell modules | in progress | `mission.js` is shrinking meaningfully and the scene/UI shell is now decomposed, but `ui/event-handlers.js` remains the biggest shell monolith |
 
 ## Target Architecture
 
@@ -421,7 +435,7 @@ Current anchors:
 - `core/plans/frame-plan.js`
 - `scene-state.js`
 - pure parts of `app/orbit-trail-style.js`
-- future pure helpers extracted from `scene-ui-update-actions.js`
+- `core/domain/scene-telemetry-ui-state.js`
 
 Should not own:
 
@@ -608,6 +622,12 @@ Expected result:
 - easier performance tuning
 - easier UI testing without full scene mutation
 
+Current note:
+
+- the scene telemetry/phase/event UI split is now in place
+- the remaining work is mostly deciding how small the final composition wrapper
+  should be around those adapters
+
 ### Slice 4: make scene view state truly scene-scoped
 
 Status: lightly started
@@ -694,45 +714,44 @@ Expected result:
 The next batches should stay focused on the highest-leverage seams that still
 collapse concerns back together.
 
-### Batch A: slim `mission.js` further toward bootstrap only
+### Batch A: break up the main event-handler shell
+
+Primary target:
+
+- `ui/event-handlers.js`
+
+Goal:
+
+- split settings-panel behavior, layout sync, timeline presentation, and other
+  mission-specific UI behaviors into smaller shell features
+- keep browser event binding separate from UI policy and presentation helpers
+
+### Batch B: keep pushing the state facade toward explicit ports
 
 Primary target:
 
 - `core/state/mission-state-store.js`
 - `app/mission-state-access.js`
-- `app/mission-runtime-entry-deps.js`
 
 Goal:
 
-- split the broad state facade into explicit ports
-- stop rebuilding one generic runtime state surface after all of the recent
-  composition cleanup
-
-### Batch B: keep display derivation out of shell UI updates
-
-Primary target:
-
-- `app/scene-ui-update-actions.js`
-
-Goal:
-
-- extract event text, telemetry formatting, and remaining display derivation
-  into pure helpers or view-model builders
-- leave DOM and panel mutation in the shell
+- turn the remaining broad compatibility facade into thinner explicit ports
+- keep shrinking the generic state-access bridge now that the composition layer
+  is cleaner
 
 ### Batch C: split mission data integration from pure data rules
 
 Primary target:
 
 - `data/mission-data.js`
-- `ui/event-handlers.js`
+- `app/scene-view-state.js`
 
 Goal:
 
 - separate fetch/cache/runtime overlay loading from pure config, manifest, and
   asset resolution
-- keep decomposing the remaining broad shell surfaces that still collect
-  unrelated responsibilities
+- keep moving scene-scoped view state away from legacy fallback and toward a
+  true source of truth
 
 ## Guardrails
 
