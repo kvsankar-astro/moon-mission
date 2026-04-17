@@ -8,6 +8,7 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
@@ -2277,11 +2278,6 @@ export function bindMobileMissionCard() {
     const composeNavButton = shell.querySelector('.mobile-shell__nav-btn[data-mobile-tab="compose"]');
     const desktopPosition = document.getElementById("camera-position");
     const desktopLook = document.getElementById("camera-look");
-    const desktopPlay = document.getElementById("animate");
-    const desktopNow = document.getElementById("missionnow");
-    const desktopSlower = document.getElementById("slower");
-    const desktopFaster = document.getElementById("faster");
-    const desktopSpeed = document.getElementById("realtime");
     const mobileViewPresetById = new Map(
         AUXILIARY_VIEW_CAMERA_PRESETS.map((preset) => [preset.id, preset]),
     );
@@ -4471,145 +4467,10 @@ export function bindMobileMissionCard() {
     applyMobileRenderViewportCentering();
     window.addEventListener("resize", toggleMobileMode);
 
-    const proxyClick = (desktopId) => {
-        const target = document.getElementById(desktopId);
-        if (!target || target.disabled) return;
-        target.click();
-    };
-
-    const proxyPress = (desktopId) => {
-        const target = document.getElementById(desktopId);
-        if (!target || target.disabled) return;
-        dispatchSyntheticPress(target, "touch");
-    };
-
-    const queueTransportSync = () => {
-        window.requestAnimationFrame(() => {
-            window.requestAnimationFrame(() => {
-                syncTransportState();
-            });
-        });
-    };
-
-    mobileTransportSets.forEach((set) => {
-        if (set.play) {
-            set.play.addEventListener("click", function () {
-                proxyClick("animate");
-                queueTransportSync();
-            });
-        }
-        if (set.now) {
-            set.now.addEventListener("click", function () {
-                proxyClick("missionnow");
-                queueTransportSync();
-            });
-        }
-        if (set.slower) {
-            set.slower.addEventListener("click", function () {
-                proxyPress("slower");
-                queueTransportSync();
-            });
-        }
-        if (set.faster) {
-            set.faster.addEventListener("click", function () {
-                proxyPress("faster");
-                queueTransportSync();
-            });
-        }
-        if (set.speed) {
-            set.speed.addEventListener("click", function () {
-                proxyPress("realtime");
-                queueTransportSync();
-            });
-        }
+    bindMobileTransportSync({
+        mobileTransportSets,
+        dispatchSyntheticPress,
     });
-
-    const syncTransportState = () => {
-        mobileTransportSets.forEach((set) => {
-            if (set.play && desktopPlay) {
-                const isPlaying = (desktopPlay.textContent || "").trim().toLowerCase() === "pause";
-                set.play.textContent = isPlaying ? "Pause" : "Play";
-                set.play.classList.toggle("is-active", isPlaying);
-            }
-            if (set.now && desktopNow) {
-                set.now.textContent = (desktopNow.textContent || "").trim() || "Now";
-                set.now.title = desktopNow.title || "Jump to current time";
-                set.now.setAttribute(
-                    "aria-label",
-                    desktopNow.getAttribute("aria-label") || "Jump to current time",
-                );
-                set.now.disabled = !!desktopNow.disabled;
-                set.now.setAttribute("aria-disabled", desktopNow.disabled ? "true" : "false");
-            }
-            if (set.slower && desktopSlower) {
-                set.slower.disabled = !!desktopSlower.disabled;
-                set.slower.setAttribute("aria-disabled", desktopSlower.disabled ? "true" : "false");
-            }
-            if (set.faster && desktopFaster) {
-                set.faster.disabled = !!desktopFaster.disabled;
-                set.faster.setAttribute("aria-disabled", desktopFaster.disabled ? "true" : "false");
-            }
-            if (set.speed && desktopSpeed) {
-                set.speed.textContent = (desktopSpeed.textContent || "").trim() || "1x";
-                set.speed.setAttribute(
-                    "aria-label",
-                    desktopSpeed.getAttribute("aria-label") || "Current speed. Click to set realtime (1 sec/sec).",
-                );
-                set.speed.title = desktopSpeed.title || "Set speed to realtime (1 sec/sec)";
-                const isRealtime = desktopSpeed.classList.contains("down");
-                set.speed.classList.toggle("is-active", isRealtime);
-                set.speed.disabled = !!desktopSpeed.disabled;
-                set.speed.setAttribute("aria-disabled", desktopSpeed.disabled ? "true" : "false");
-            }
-        });
-    };
-
-    syncTransportState();
-
-    if (desktopPlay) {
-        const playObserver = new MutationObserver(syncTransportState);
-        playObserver.observe(desktopPlay, {
-            childList: true,
-            characterData: true,
-            subtree: true,
-            attributes: true,
-        });
-    }
-
-    if (desktopNow) {
-        const nowObserver = new MutationObserver(syncTransportState);
-        nowObserver.observe(desktopNow, {
-            attributes: true,
-            attributeFilter: ["class", "aria-pressed", "aria-label", "title", "disabled"],
-            childList: true,
-            characterData: true,
-            subtree: true,
-        });
-    }
-    if (desktopSlower) {
-        const slowerObserver = new MutationObserver(syncTransportState);
-        slowerObserver.observe(desktopSlower, {
-            attributes: true,
-            attributeFilter: ["class", "aria-pressed", "disabled", "aria-disabled"],
-        });
-    }
-    if (desktopFaster) {
-        const fasterObserver = new MutationObserver(syncTransportState);
-        fasterObserver.observe(desktopFaster, {
-            attributes: true,
-            attributeFilter: ["class", "aria-pressed", "disabled", "aria-disabled"],
-        });
-    }
-    if (desktopSpeed) {
-        const speedObserver = new MutationObserver(syncTransportState);
-        speedObserver.observe(desktopSpeed, {
-            childList: true,
-            characterData: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ["title", "aria-label", "class", "aria-pressed", "disabled"],
-        });
-    }
 
     navButtons.forEach((button) => {
         button.addEventListener("click", function () {
