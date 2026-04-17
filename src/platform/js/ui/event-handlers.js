@@ -8,6 +8,7 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
@@ -3778,50 +3779,24 @@ export function bindMobileMissionCard() {
         syncMobileComposeRollSliderUi();
     };
 
-    const syncMobileComposeLockPresetState = () => {
-        if (!desktopPosition || !desktopLook || !mobileComposeLockButtons.length) return;
-        const positionMode = (desktopPosition.value || "").trim();
-        const lookMode = (desktopLook.value || "").trim();
-        let matchedPresetId = null;
-
-        mobileComposeLockButtons.forEach((button) => {
-            const presetId = button.dataset.mobileComposeLock || "";
-            const preset = mobileComposePresetById.get(presetId);
-            const isActive = !!preset &&
-                preset.positionMode === positionMode &&
-                preset.lookMode === lookMode;
-            if (isActive) matchedPresetId = presetId;
-            button.classList.toggle("is-active", isActive);
-            button.setAttribute("aria-selected", isActive ? "true" : "false");
-        });
-
-        if (!matchedPresetId) {
-            matchedPresetId = mobileComposePresetById.has(activeMobileComposeLockPresetId)
-                ? activeMobileComposeLockPresetId
-                : "free";
-            mobileComposeLockButtons.forEach((button) => {
-                const isActive = (button.dataset.mobileComposeLock || "") === matchedPresetId;
-                button.classList.toggle("is-active", isActive);
-                button.setAttribute("aria-selected", isActive ? "true" : "false");
-            });
-        }
-
-        activeMobileComposeLockPresetId = matchedPresetId;
-    };
-
-    const applyMobileComposeLockPreset = (presetId) => {
-        if (!desktopPosition || !desktopLook) return;
-        const preset = mobileComposePresetById.get(presetId);
-        if (!preset) return;
-        const scene = resolveActiveScene();
-        scene?.cameraController?.mountOffset?.set?.(0, 0, 0);
-        activeMobileComposeLockPresetId = presetId;
-        desktopPosition.value = preset.positionMode;
-        desktopLook.value = preset.lookMode;
-        desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-        syncMobileComposeLockPresetState();
-        syncMobileComposePresentation();
-    };
+    const mobileComposeLockSync = createMobileComposeLockSync({
+        mobileComposeLockButtons,
+        mobileComposePresetById,
+        desktopPosition,
+        desktopLook,
+        resolveActiveScene,
+        getActivePresetId: () => activeMobileComposeLockPresetId,
+        setActivePresetId: (presetId) => {
+            activeMobileComposeLockPresetId = presetId;
+        },
+        onAfterApply: () => {
+            syncMobileComposePresentation();
+        },
+        onAfterButtonClick: () => {
+            syncMobileComposeTimelineWindow();
+        },
+    });
+    mobileComposeLockSync.bind();
 
     const syncMobileComposeTimelineWindow = ({ finalize = false } = {}) => {
         const timelineState = readMainTimelineState();
@@ -3874,7 +3849,7 @@ export function bindMobileMissionCard() {
                 desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
             }
         }
-        syncMobileComposeLockPresetState();
+        mobileComposeLockSync.syncState();
         if (
             shouldUseEarthrisePresentation() &&
             !mobileComposeFreeStartupAligned &&
@@ -4070,7 +4045,7 @@ export function bindMobileMissionCard() {
             applyAutoFovForActivePreset();
         },
         onAfterDesktopChange: () => {
-            syncMobileComposeLockPresetState();
+            mobileComposeLockSync.syncState();
             syncMobileComposePresentation();
             applyAutoFovForActivePreset();
             if (activeMobileTab === "compose") {
@@ -4080,16 +4055,6 @@ export function bindMobileMissionCard() {
         },
     });
     mobileViewPresetSync.bind();
-
-    if (mobileComposeLockButtons.length) {
-        mobileComposeLockButtons.forEach((button) => {
-            button.addEventListener("click", function () {
-                const presetId = button.dataset.mobileComposeLock || "free";
-                applyMobileComposeLockPreset(presetId);
-                syncMobileComposeTimelineWindow();
-            });
-        });
-    }
 
     if (mobileViewsFovAuto) {
         mobileViewsFovAuto.addEventListener("click", function () {
