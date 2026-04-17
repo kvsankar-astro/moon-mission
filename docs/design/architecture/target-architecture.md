@@ -85,12 +85,15 @@ They should avoid becoming effect-heavy controller hubs.
 The current mission boot flow is:
 
 1. `mission.html` resolves the mission and loads `src/platform/js/mission.js`.
-2. `mission.js` creates legacy state, closure-based runtime stores, the event
-   bus, scene/view/runtime entries, and delegates the legacy state-cell
-   compatibility bridge to `app/mission-state-access.js`.
+2. `mission.js` creates legacy state and the small runtime stores, then
+   delegates playback bootstrap to `app/mission-entry-composition.js`, scene
+   assembly to `app/mission-scene-composition.js`, runtime root assembly to
+   `app/mission-runtime-root.js`, and the legacy state-cell compatibility
+   bridge to `app/mission-state-access.js`.
 3. `app/mission-playback-coordination.js` now owns the timeline dock, active
    craft control sync, transport-state sync, and the related planner/shell
-   split that used to live inline in `mission.js`.
+   split, while `app/mission-entry-composition.js` owns the event bus and
+   animation-controller bootstrap that used to be inline in `mission.js`.
 4. `app/mission-app.js` wires browser events and kicks off
    `handlers.initAnimation({ reset: true })`.
 5. `app/mission-runtime-handlers-entry.js` delegates startup to
@@ -112,8 +115,8 @@ The current mission boot flow is:
 
 | Layer | Current anchors | Notes |
 |---|---|---|
-| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js`, `app/mission-playback-coordination.js` | Browser bootstrap still starts here; playback/timeline/transport sync is now thinner because it moved into a dedicated coordination module |
-| Composition and runtime assembly | `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, and the legacy state-cell bridge is out of `mission.js`, but `mission.js` and some runtime buckets still carry broad composition responsibility |
+| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is now much closer to a composition root than a controller hub |
+| Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, playback and scene assembly moved out of `mission.js`, and runtime root glue is isolated, but `mission-state-store.js` and some runtime buckets still carry broad composition responsibility |
 | Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js` | Strongest functional-core foundation in the repo and the area with the clearest recent refactor wins |
 | State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` is still transitional because of legacy fallbacks |
 | Data and integration | `data/mission-data.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset resolution and fetch/cache/provider work is still mixed |
@@ -163,6 +166,12 @@ preserve and extend.
 - `app/mission-playback-coordination.js`
 - `app/runtime-ui-control-groups.js`
 
+### Healthier composition seams
+
+- `app/mission-runtime-root.js`
+- `app/mission-entry-composition.js`
+- `app/mission-scene-composition.js`
+
 ### Strong transitional seam
 
 - `scene-state.js` is already written as a functional-core module, even though
@@ -177,16 +186,19 @@ These are the main places where concerns are still mixed.
 
 ### `mission.js`
 
-`mission.js` is smaller in responsibility than the older docs implied, but it
-is still too central. It currently mixes:
+`mission.js` is now materially thinner than the older docs implied, but it is
+still too central. It currently mixes:
 
 - legacy state creation
 - runtime store creation
-- render entry
+- closure-based access to legacy bootstrap state
 - final top-level composition
 - global exposure and remaining browser bootstrap glue
 
-It should converge toward page bootstrap and composition only.
+It is no longer the place where playback bootstrap, scene-entry dependency bags,
+or runtime-root wrapper glue live, and that is real progress. The remaining
+target is for it to converge toward page bootstrap, legacy-state setup, and
+minimal composition only.
 
 ### `core/state/mission-state-store.js`
 
@@ -312,6 +324,10 @@ instead of remaining a broad UI utility file.
 
 The chain through:
 
+- `mission.js`
+- `mission-runtime-root.js`
+- `mission-entry-composition.js`
+- `mission-scene-composition.js`
 - `mission-runtime-wireup-entry.js`
 - `mission-runtime-entry.js`
 - `mission-runtime-wireup-config.js`
@@ -321,14 +337,15 @@ The chain through:
 - `mission-wiring-composition.js`
 - `runtime-bootstrap-actions.js`
 
-does create structure, but it still relies on repeated remapping of large
-dependency sets. The recent dependency-builder work made this meaningfully
-better, but the next stage still needs to simplify ownership instead of adding
+does create structure, and it is now noticeably clearer than it was when
+`mission.js` owned most of that wiring inline. It still relies on repeated
+remapping of large dependency sets, though, especially around state access and
+runtime bootstrap. The next stage needs to simplify ownership instead of adding
 more wrapper layers.
 
 ## Progress Snapshot
 
-As of `2026-04-17`, the repo is roughly `50%` of the way to the target
+As of `2026-04-17`, the repo is roughly `58-60%` of the way to the target
 architecture.
 
 What has improved materially:
@@ -340,8 +357,18 @@ What has improved materially:
   inline control bucket
 - mission playback coordination moved out of `mission.js`, with explicit dock
   and craft-control planners plus a smaller UI shell
+- runtime root assembly now lives in `app/mission-runtime-root.js` instead of
+  being hand-wired inline in `mission.js`
+- playback bootstrap now lives in `app/mission-entry-composition.js`, so event
+  bus creation, animation-controller wiring, and startup transport sync are no
+  longer owned directly by `mission.js`
+- scene-entry dependency assembly now lives in
+  `app/mission-scene-composition.js`, which also owns the render bridge and
+  scene-only imports
 - the legacy state-cell compatibility map now lives in
   `app/mission-state-access.js` instead of `mission.js`
+- `mission-state-access.js` now also owns local state-cell bucket assembly, so
+  `mission.js` no longer hand-builds each legacy cell inline
 - view application has a clearer plan/apply split
 - frame orchestration now preserves the functional-core boundary longer in the
   hot path
@@ -350,23 +377,23 @@ What has improved materially:
 What still dominates the remaining risk:
 
 - `core/state/mission-state-store.js`
-- `mission.js`
 - `ui/event-handlers.js`
 - `app/scene-ui-update-actions.js`
 - `app/scene-view-state.js`
 - `data/mission-data.js`
+- `mission.js`
 
 Progress by refactor slice:
 
 | Slice | Status | Notes |
 |---|---|---|
-| 1. split the state facade | in progress | narrow runtime stores exist, and `mission-state-access.js` now owns compatibility cell assembly; `mission-state-store.js` is still too broad |
+| 1. split the state facade | in progress | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, but `mission-state-store.js` is still too broad |
 | 2. separate settings intent from effects | in progress | view planning/application split landed, but settings still fan out through wider runtime wiring |
 | 3. finish the frame pipeline split | in progress | `frame-plan.js`, transient event planning, and `scene-frame-plan.js` are in place; `scene-ui-update-actions.js` still owns too much display logic |
 | 4. make scene view state truly scene-scoped | lightly started | structure exists, but legacy fallback still obscures the true source of truth |
-| 5. collapse redundant composition layers | in progress | runtime wiring, bootstrap deps, playback coordination, and state-access builders are all thinner; `mission.js` and runtime bootstrap assembly are still too central |
+| 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; `mission-state-store.js` and parts of runtime bootstrap still rebuild broad surfaces |
 | 6. split data loading from data normalization | partially prepared | domain helpers exist, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
-| 7. break up large shell modules | in progress | `mission.js` is shrinking, but `ui/event-handlers.js` remains the biggest shell monolith and the scene/UI shell still needs decomposition |
+| 7. break up large shell modules | in progress | `mission.js` is shrinking meaningfully, but `ui/event-handlers.js` remains the biggest shell monolith and the scene/UI shell still needs decomposition |
 
 ## Target Architecture
 
@@ -611,6 +638,9 @@ Goals:
 
 Likely sources:
 
+- `app/mission-runtime-root.js`
+- `app/mission-entry-composition.js`
+- `app/mission-scene-composition.js`
 - `mission.js`
 - `app/mission-runtime-wireup-entry.js`
 - `app/mission-runtime-entry.js`
@@ -668,16 +698,15 @@ collapse concerns back together.
 
 Primary target:
 
-- `mission.js`
-- `app/mission-runtime-wireup-entry.js`
-- `app/mission-runtime-entry.js`
-- `app/mission-runtime-handlers-entry.js`
+- `core/state/mission-state-store.js`
+- `app/mission-state-access.js`
+- `app/mission-runtime-entry-deps.js`
 
 Goal:
 
-- move more final root assembly and wrapper glue behind dedicated builders
-- reduce `mission.js` to legacy state setup, minimal composition, and page
-  bootstrap only
+- split the broad state facade into explicit ports
+- stop rebuilding one generic runtime state surface after all of the recent
+  composition cleanup
 
 ### Batch B: keep display derivation out of shell UI updates
 
@@ -696,13 +725,14 @@ Goal:
 Primary target:
 
 - `data/mission-data.js`
+- `ui/event-handlers.js`
 
 Goal:
 
 - separate fetch/cache/runtime overlay loading from pure config, manifest, and
   asset resolution
-- leave `mission-data.js` as a smaller integration adapter instead of a mixed
-  data-and-domain module
+- keep decomposing the remaining broad shell surfaces that still collect
+  unrelated responsibilities
 
 ## Guardrails
 
