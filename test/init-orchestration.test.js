@@ -239,4 +239,101 @@ describe("createInitOrchestrationActions", () => {
         expect(requestAnimationFrame).toHaveBeenCalledTimes(1);
         expect(requestAnimationFrame).toHaveBeenCalledWith(animateLoop);
     });
+
+    it("falls back to setLocation when missionSetTime is unavailable", async () => {
+        const setAnimTime = vi.fn();
+        const setLocation = vi.fn();
+
+        const actions = createInitOrchestrationActions({
+            initConfig: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue(undefined),
+            getConfig: () => "geo",
+            isOrbitDataProcessed: () => true,
+            missionStart: vi.fn(),
+            missionSetTime: null,
+            setRealtimeSpeed: vi.fn(),
+            playAnimation: vi.fn(),
+            setAnimTime,
+            setLocation,
+            setDimension: vi.fn(),
+            getSetView: () => vi.fn(),
+            getChangeCameraFromTo: () => vi.fn(),
+            updateCraftScale: vi.fn(),
+            d3: { select: () => ({ text: vi.fn() }) },
+            d3SelectAll: () => ({ attr: vi.fn() }),
+            render: vi.fn(),
+            requestAnimationFrame: vi.fn(),
+            animateLoop: vi.fn(),
+            getStartTime: () => Date.UTC(2026, 0, 1),
+            getLatestEndTime: () => Date.UTC(2026, 0, 2),
+        });
+
+        const startupOverrideMs = Date.UTC(2026, 1, 1, 0, 0, 0);
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 3, 2, 8, 0, 0));
+        try {
+            await actions.initAnimation({
+                reset: true,
+                startupAnimTimeOverride: startupOverrideMs,
+            });
+        } finally {
+            nowSpy.mockRestore();
+        }
+
+        expect(setAnimTime).toHaveBeenCalledWith(startupOverrideMs);
+        expect(setLocation).toHaveBeenCalled();
+    });
+
+    it("retries startup view reapply until the planner reports the scene ready", async () => {
+        const setView = vi.fn();
+        const planStartupViewReapply = vi
+            .fn()
+            .mockReturnValueOnce({ type: "retry" })
+            .mockReturnValueOnce({ type: "apply" });
+        const scheduleTimeout = vi.fn((callback) => {
+            callback();
+            return 1;
+        });
+
+        const actions = createInitOrchestrationActions({
+            initConfig: vi.fn().mockResolvedValue(undefined),
+            init: vi.fn().mockResolvedValue(undefined),
+            getConfig: () => "geo",
+            isOrbitDataProcessed: () => true,
+            missionStart: vi.fn(),
+            missionSetTime: vi.fn(),
+            setRealtimeSpeed: vi.fn(),
+            playAnimation: vi.fn(),
+            setAnimTime: vi.fn(),
+            setLocation: vi.fn(),
+            setDimension: vi.fn(),
+            getSetView: () => setView,
+            getChangeCameraFromTo: () => vi.fn(),
+            updateCraftScale: vi.fn(),
+            d3: { select: () => ({ text: vi.fn() }) },
+            d3SelectAll: () => ({ attr: vi.fn() }),
+            render: vi.fn(),
+            requestAnimationFrame: vi.fn(),
+            animateLoop: vi.fn(),
+            getStartTime: () => Date.UTC(2026, 0, 1),
+            getLatestEndTime: () => Date.UTC(2026, 11, 31),
+            animationScenes: {
+                geo: {
+                    initialized3D: false,
+                },
+            },
+            planStartupViewReapply,
+            scheduleTimeout,
+        });
+
+        const nowSpy = vi.spyOn(Date, "now").mockReturnValue(Date.UTC(2026, 3, 2, 8, 0, 0));
+        try {
+            await actions.initAnimation({ reset: true });
+        } finally {
+            nowSpy.mockRestore();
+        }
+
+        expect(planStartupViewReapply).toHaveBeenCalledTimes(2);
+        expect(scheduleTimeout).toHaveBeenCalledTimes(1);
+        expect(setView).toHaveBeenCalledTimes(2);
+    });
 });

@@ -1,3 +1,9 @@
+import {
+    isStartupViewSceneReady,
+    planStartupViewReapply,
+    resolveStartupAnimationMode,
+} from "./startup-animation-plan.js";
+
 function createInitOrchestrationActions(deps) {
     const {
         initConfig,
@@ -22,6 +28,10 @@ function createInitOrchestrationActions(deps) {
         getStartTime,
         getLatestEndTime,
         animationScenes,
+        scheduleTimeout = setTimeout,
+        resolveStartupAnimationMode: resolveStartupAnimationModeImpl = resolveStartupAnimationMode,
+        planStartupViewReapply: planStartupViewReapplyImpl = planStartupViewReapply,
+        isStartupViewSceneReady: isStartupViewSceneReadyImpl = isStartupViewSceneReady,
     } = deps;
     let animationLoopStarted = false;
     let latestInitRunId = 0;
@@ -42,35 +52,31 @@ function createInitOrchestrationActions(deps) {
     }
 
     function reapplyStartupViewWhenReady(runId, maxAttempts = 40, pollIntervalMs = 50) {
-        if (runId !== latestInitRunId) {
-            return;
-        }
-
         const setView = getSetView();
-        if (typeof setView !== "function") {
-            return;
-        }
-
         const cfg = getConfig();
         const scene = animationScenes?.[cfg];
-        const needs3DReady = shouldWaitFor3DSceneReady();
-        const sceneReady = !needs3DReady || (
-            !!scene?.initialized3D &&
-            isSceneOrbitRenderable(scene)
-        );
+        const reapplyPlan = planStartupViewReapplyImpl({
+            runId,
+            latestRunId: latestInitRunId,
+            hasSetView: typeof setView === "function",
+            sceneReady: isStartupViewSceneReadyImpl({
+                needs3DReady: shouldWaitFor3DSceneReady(),
+                scene,
+                isSceneOrbitRenderable,
+            }),
+            attemptsRemaining: maxAttempts,
+        });
 
-        if (sceneReady) {
+        if (reapplyPlan.type === "skip") {
+            return;
+        }
+
+        if (reapplyPlan.type === "apply") {
             setView();
             return;
         }
 
-        if (maxAttempts <= 0) {
-            // Best effort fallback: apply once even if readiness signal was late.
-            setView();
-            return;
-        }
-
-        setTimeout(() => {
+        scheduleTimeout(() => {
             reapplyStartupViewWhenReady(runId, maxAttempts - 1, pollIntervalMs);
         }, pollIntervalMs);
     }
@@ -108,7 +114,7 @@ function createInitOrchestrationActions(deps) {
         }
         const cfg = getConfig();
         if (!isOrbitDataProcessed(cfg)) {
-            setTimeout(() => {
+            scheduleTimeout(() => {
                 waitUntilOrbitDataProcessed({
                     onReady,
                     pollIntervalMs,
@@ -125,6 +131,35 @@ function createInitOrchestrationActions(deps) {
 
     async function initAnimation(flags) {
         const runId = ++latestInitRunId;
+        const applyTimeSetOrLocationRefresh = (timeMs) => {
+            setAnimTime?.(timeMs);
+            if (typeof missionSetTime === "function") {
+                missionSetTime();
+            } else {
+                setLocation();
+            }
+        };
+        const applyStartupAnimationMode = (startupAction) => {
+            switch (startupAction.type) {
+            case "start-now":
+                applyTimeSetOrLocationRefresh(startupAction.animTime);
+                if (startupAction.shouldSetRealtimeSpeed && typeof setRealtimeSpeed === "function") {
+                    setRealtimeSpeed();
+                }
+                if (startupAction.shouldPlayAnimation && typeof playAnimation === "function") {
+                    playAnimation();
+                }
+                return;
+            case "set-time":
+                applyTimeSetOrLocationRefresh(startupAction.animTime);
+                return;
+            case "mission-start":
+                missionStart();
+                return;
+            default:
+                setLocation();
+            }
+        };
         try {
             await initConfig();
             await init(() => {});
@@ -135,52 +170,14 @@ function createInitOrchestrationActions(deps) {
                     if (runId !== latestInitRunId) {
                         return;
                     }
-                    const startupAnimTimeOverride = Number(flags?.startupAnimTimeOverride);
-                    const hasStartupAnimTimeOverride = Number.isFinite(startupAnimTimeOverride);
-                    const nowTimeMs = Date.now();
-                    const startTime = Number(getStartTime?.());
-                    const latestEndTime = Number(getLatestEndTime?.());
-                    const isCurrentTimeWithinActiveSpan = Number.isFinite(nowTimeMs) &&
-                        Number.isFinite(startTime) &&
-                        Number.isFinite(latestEndTime) &&
-                        nowTimeMs >= startTime &&
-                        nowTimeMs <= latestEndTime;
-                    const shouldStartAtNow = !!flags.reset &&
-                        isCurrentTimeWithinActiveSpan;
-                    const shouldForceMissionStart = !!flags.reset &&
-                        Number.isFinite(nowTimeMs) &&
-                        Number.isFinite(startTime) &&
-                        Number.isFinite(latestEndTime) &&
-                        !hasStartupAnimTimeOverride &&
-                        !isCurrentTimeWithinActiveSpan;
+                    const startupAction = resolveStartupAnimationModeImpl({
+                        flags,
+                        nowTimeMs: Date.now(),
+                        startTime: Number(getStartTime?.()),
+                        latestEndTime: Number(getLatestEndTime?.()),
+                    });
 
-                    if (shouldStartAtNow) {
-                        setAnimTime?.(nowTimeMs);
-                        if (typeof missionSetTime === "function") {
-                            missionSetTime();
-                        } else {
-                            setLocation();
-                        }
-                        if (typeof setRealtimeSpeed === "function") {
-                            setRealtimeSpeed();
-                        }
-                        if (typeof playAnimation === "function") {
-                            playAnimation();
-                        }
-                    } else if (shouldForceMissionStart) {
-                        missionStart();
-                    } else if (hasStartupAnimTimeOverride) {
-                        setAnimTime?.(startupAnimTimeOverride);
-                        if (typeof missionSetTime === "function") {
-                            missionSetTime();
-                        } else {
-                            setLocation();
-                        }
-                    } else if (flags.reset) {
-                        missionStart();
-                    } else {
-                        setLocation();
-                    }
+                    applyStartupAnimationMode(startupAction);
 
                     setDimension(true);
 
