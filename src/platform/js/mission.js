@@ -36,8 +36,10 @@ import {
 } from "./app/plane-view-state.js";
 import { createEphemerisInfoPanelActions } from "./app/ephemeris-info-panel.js";
 import { createMissionLegacyState } from "./app/mission-legacy-state.js";
-import { createMissionRuntimeHandlersEntry } from "./app/mission-runtime-handlers-entry.js";
-import { createMissionRuntimeWireupEntry } from "./app/mission-runtime-wireup-entry.js";
+import {
+    createMissionRuntimeRoot,
+    publishMissionRuntimeGlobals,
+} from "./app/mission-runtime-root.js";
 import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
 import {
     createMissionStateCells,
@@ -560,102 +562,92 @@ const {
     processOrbitData,
     animateLoop,
     main,
-} = createMissionRuntimeHandlersEntry({
-    performanceRef: performance,
-    requestAnimationFrameRef: requestAnimationFrame,
-    startMissionApp,
-    eventBus,
-    toggleModeGuarded,
-    toggleRelativeMode,
-    getSetView: () => setView,
-    getSetDimensionTop: () => setDimensionTop,
-    getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
-    getMissionRuntimeWireup: () => missionRuntimeWireup,
-    readLoopState: () => runtimeLoopState.getLoopState(),
-    writeLoopState: (nextLoopState) => {
-        runtimeLoopState.setLoopState(nextLoopState);
+    missionRuntimeWireup: nextMissionRuntimeWireup,
+    toggleMode: runtimeToggleMode,
+    setDimensionTop: runtimeSetDimensionTop,
+    setView: runtimeSetView,
+} = createMissionRuntimeRoot({
+    handlersEntryContext: {
+        performanceRef: performance,
+        requestAnimationFrameRef: requestAnimationFrame,
+        startMissionApp,
+        eventBus,
+        toggleModeGuarded,
+        toggleRelativeMode,
+        getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
+        readLoopState: () => runtimeLoopState.getLoopState(),
+        writeLoopState: (nextLoopState) => {
+            runtimeLoopState.setLoopState(nextLoopState);
+        },
+        getFpsUpdateInterval: () => fpsUpdateInterval,
+        getTicksPerAnimationStep: () => ticksPerAnimationStep,
+        updateFPSCounter,
+        updateFpsCounterState,
+        updateFrameDeltaState,
+        computeAnimationStepState,
+        getAnimationController: () => animationController,
+        getScene: () => animationScenes[runtimeViewState.getConfig()],
+        getCameraControlsCallback: () => bridgeActions.cameraControlsCallback,
+        updateThreeDLoopCamera,
     },
-    getFpsUpdateInterval: () => fpsUpdateInterval,
-    getTicksPerAnimationStep: () => ticksPerAnimationStep,
-    updateFPSCounter,
-    updateFpsCounterState,
-    updateFrameDeltaState,
-    computeAnimationStepState,
-    getAnimationController: () => animationController,
-    getScene: () => animationScenes[runtimeViewState.getConfig()],
-    getCameraControlsCallback: () => bridgeActions.cameraControlsCallback,
-    updateThreeDLoopCamera,
+    wireupEntryContext: {
+        d3,
+        d3SelectAll,
+        THREE,
+        Astronomy,
+        windowRef: window,
+        documentRef: document,
+        consoleRef: console,
+        SwiperClass: Swiper,
+        formatMetric: FORMAT_METRIC,
+        missionStateCells,
+        runtimeFlags,
+        animationScenes,
+        orbitDataLoaded,
+        orbitDataProcessed,
+        chebyshevData,
+        chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        landingNpzData,
+        landingNpzLoaded,
+        landingChebyshevData,
+        landingChebyshevLoaded,
+        planetProperties,
+        ephemerisRecords,
+        ephemerisStatuses,
+        resolveBodySource,
+        getActiveEphemerisSource,
+        sceneViewStateActions,
+        AnimationScene,
+        SceneHandlerClass: SceneHandler,
+        bridgeActions,
+        modeSwitchActions,
+        animation3DControllers,
+        animation2DControllers,
+        animationController,
+        bindInfoPanelControls,
+        updateEphemerisPanel,
+        pixelsPerAU: PIXELS_PER_AU,
+        render,
+        isRelativeMode,
+        isTestMode,
+    },
+    syncTimelineDock,
+    syncActiveCraftControl,
 });
-
-({ missionRuntimeWireup } = createMissionRuntimeWireupEntry({
-    d3,
-    d3SelectAll,
-    THREE,
-    Astronomy,
-    windowRef: window,
-    documentRef: document,
-    consoleRef: console,
-    SwiperClass: Swiper,
-    formatMetric: FORMAT_METRIC,
-    missionStateCells,
-    runtimeFlags,
-    animationScenes,
-    orbitDataLoaded,
-    orbitDataProcessed,
-    chebyshevData,
-    chebyshevDataLoaded,
-    npzData,
-    npzDataLoaded,
-    landingNpzData,
-    landingNpzLoaded,
-    landingChebyshevData,
-    landingChebyshevLoaded,
-    planetProperties,
-    ephemerisRecords,
-    ephemerisStatuses,
-    resolveBodySource,
-    getActiveEphemerisSource,
-    sceneViewStateActions,
-    AnimationScene,
-    SceneHandlerClass: SceneHandler,
-    bridgeActions,
-    modeSwitchActions,
-    animation3DControllers,
-    animation2DControllers,
-    animationController,
-    bindInfoPanelControls,
-    updateEphemerisPanel,
-    pixelsPerAU: PIXELS_PER_AU,
-    render,
-    processOrbitData,
-    animateLoop,
-    initAnimation,
-    isRelativeMode,
-    isTestMode,
-}));
-
-toggleMode = function (...args) {
-    missionRuntimeWireup.toggleMode.apply(missionRuntimeWireup, args);
-    syncTimelineDock();
-    syncActiveCraftControl();
-};
-setDimensionTop = function (...args) {
-    missionRuntimeWireup.setDimensionTop.apply(missionRuntimeWireup, args);
-    syncTimelineDock();
-    syncActiveCraftControl();
-};
-setView = function (...args) {
-    missionRuntimeWireup.setView.apply(missionRuntimeWireup, args);
-    syncTimelineDock();
-    syncActiveCraftControl();
-};
+missionRuntimeWireup = nextMissionRuntimeWireup;
+toggleMode = runtimeToggleMode;
+setDimensionTop = runtimeSetDimensionTop;
+setView = runtimeSetView;
 export { main };
 
-// Expose variables globally for testing
-window.animationScenes = animationScenes;
-window.AnimationScene = AnimationScene;
-
-window.addEventListener('load', main);
+publishMissionRuntimeGlobals({
+    windowRef: window,
+    animationScenes,
+    AnimationScene,
+    main,
+});
 
 // end of file
 
