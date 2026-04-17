@@ -8,6 +8,7 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
@@ -4003,10 +4004,10 @@ export function bindMobileMissionCard() {
         if (nextTab === "views" && mobileViewport) {
             if (!mobileViewsPresetInitialized || !mobileViewPresetById.has(activeMobileViewPresetId)) {
                 activeMobileViewPresetId = "moon";
-                applyMobileViewPreset(activeMobileViewPresetId);
+                mobileViewPresetSync.applyPreset(activeMobileViewPresetId);
                 mobileViewsPresetInitialized = true;
             }
-            syncMobileViewPresetState();
+            mobileViewPresetSync.syncState();
             if (mobileViewsAutoFovEnabled) {
                 applyAutoFovForActivePreset();
                 scheduleAutoFovRefresh();
@@ -4044,86 +4045,41 @@ export function bindMobileMissionCard() {
         syncMobilePanelCollapseButton();
     };
 
-    const syncMobileViewPresetState = () => {
-        if (!desktopPosition || !desktopLook || !mobileViewButtons.length) return;
-        const positionMode = (desktopPosition.value || "").trim();
-        const lookMode = (desktopLook.value || "").trim();
-        let matchedPresetId = null;
-
-        mobileViewButtons.forEach((button) => {
-            const presetId = button.dataset.mobileViewPreset || "";
-            const preset = mobileViewPresetById.get(presetId);
-            const isActive = !!preset &&
-                preset.positionMode === positionMode &&
-                preset.lookMode === lookMode;
-            if (isActive) {
-                matchedPresetId = presetId;
+    const mobileViewPresetSync = createMobileViewPresetSync({
+        mobileViewButtons,
+        mobileViewPresetById,
+        desktopPosition,
+        desktopLook,
+        getActivePresetId: () => activeMobileViewPresetId,
+        setActivePresetId: (presetId) => {
+            activeMobileViewPresetId = presetId;
+        },
+        getEnforceInProgress: () => mobileViewPresetEnforceInProgress,
+        setEnforceInProgress: (inProgress) => {
+            mobileViewPresetEnforceInProgress = inProgress;
+        },
+        isMobileViewport,
+        getActiveTab: () => activeMobileTab,
+        onAfterApply: () => {
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onAfterEnforcedSync: () => {
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onAfterButtonClick: () => {
+            applyAutoFovForActivePreset();
+        },
+        onAfterDesktopChange: () => {
+            syncMobileComposeLockPresetState();
+            syncMobileComposePresentation();
+            applyAutoFovForActivePreset();
+            if (activeMobileTab === "compose") {
+                syncMobileComposeTimelineWindow();
             }
-            button.classList.toggle("is-active", isActive);
-            button.setAttribute("aria-selected", isActive ? "true" : "false");
-        });
-
-        if (matchedPresetId) {
-            activeMobileViewPresetId = matchedPresetId;
-            return;
-        }
-
-        const fallbackPresetId = mobileViewPresetById.has(activeMobileViewPresetId)
-            ? activeMobileViewPresetId
-            : (mobileViewButtons[0]?.dataset.mobileViewPreset || "");
-        if (!fallbackPresetId) return;
-
-        activeMobileViewPresetId = fallbackPresetId;
-
-        // Keep exactly one mobile Views preset selected at all times.
-        mobileViewButtons.forEach((button) => {
-            const isActive = (button.dataset.mobileViewPreset || "") === fallbackPresetId;
-            button.classList.toggle("is-active", isActive);
-            button.setAttribute("aria-selected", isActive ? "true" : "false");
-        });
-
-        const fallbackPreset = mobileViewPresetById.get(fallbackPresetId);
-        const shouldApplyFallback = (
-            !mobileViewPresetEnforceInProgress &&
-            isMobileViewport() &&
-            activeMobileTab === "views" &&
-            !!fallbackPreset &&
-            (desktopPosition.value !== fallbackPreset.positionMode || desktopLook.value !== fallbackPreset.lookMode)
-        );
-
-        if (!shouldApplyFallback) return;
-
-        mobileViewPresetEnforceInProgress = true;
-        try {
-            applyMobileViewPreset(fallbackPresetId);
-        } finally {
-            mobileViewPresetEnforceInProgress = false;
-        }
-        syncMobileMoonVisibilityInfo({ force: true });
-    };
-
-    const applyMobileViewPreset = (presetId) => {
-        if (!desktopPosition || !desktopLook) return;
-        const preset = mobileViewPresetById.get(presetId);
-        if (!preset) return;
-
-        activeMobileViewPresetId = presetId;
-        desktopPosition.value = preset.positionMode;
-        desktopLook.value = preset.lookMode;
-        desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-        syncMobileMoonVisibilityInfo({ force: true });
-    };
-
-    if (mobileViewButtons.length) {
-        mobileViewButtons.forEach((button) => {
-            button.addEventListener("click", function () {
-                const presetId = button.dataset.mobileViewPreset || "";
-                applyMobileViewPreset(presetId);
-                syncMobileViewPresetState();
-                applyAutoFovForActivePreset();
-            });
-        });
-    }
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+    });
+    mobileViewPresetSync.bind();
 
     if (mobileComposeLockButtons.length) {
         mobileComposeLockButtons.forEach((button) => {
@@ -4132,31 +4088,6 @@ export function bindMobileMissionCard() {
                 applyMobileComposeLockPreset(presetId);
                 syncMobileComposeTimelineWindow();
             });
-        });
-    }
-
-    if (desktopPosition) {
-        desktopPosition.addEventListener("change", () => {
-            syncMobileViewPresetState();
-            syncMobileComposeLockPresetState();
-            syncMobileComposePresentation();
-            applyAutoFovForActivePreset();
-            if (activeMobileTab === "compose") {
-                syncMobileComposeTimelineWindow();
-            }
-            syncMobileMoonVisibilityInfo({ force: true });
-        });
-    }
-    if (desktopLook) {
-        desktopLook.addEventListener("change", () => {
-            syncMobileViewPresetState();
-            syncMobileComposeLockPresetState();
-            syncMobileComposePresentation();
-            applyAutoFovForActivePreset();
-            if (activeMobileTab === "compose") {
-                syncMobileComposeTimelineWindow();
-            }
-            syncMobileMoonVisibilityInfo({ force: true });
         });
     }
 
@@ -4455,7 +4386,7 @@ export function bindMobileMissionCard() {
     setMobileViewsAutoFov(true);
     setActiveMobileTab("mission");
     syncMobilePanelCollapseButton();
-    syncMobileViewPresetState();
+    mobileViewPresetSync.syncState();
     syncMobileComposeControls();
     const initialScene = resolveActiveScene();
     if (initialScene?.camera?.fov) {
