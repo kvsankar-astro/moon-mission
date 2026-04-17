@@ -1,5 +1,18 @@
-import { planFrameStep } from "../core/plans/frame-plan.js";
+import { planSceneFrame } from "./scene-frame-plan.js";
 import { createTransientActiveEventTracker } from "./transient-active-event-tracker.js";
+
+function applySceneFrameEffects({
+    framePlan,
+    setSunLongitude,
+    frameRenderer,
+    frameUiUpdater,
+    render,
+}) {
+    setSunLongitude(framePlan.statePatchIntent.sunLongitude);
+    frameRenderer.applyRenderIntent(framePlan.renderIntent);
+    frameUiUpdater.applyUiIntent(framePlan.uiIntent);
+    render();
+}
 
 function createSceneFrameOrchestrationActions(deps) {
     const {
@@ -33,8 +46,10 @@ function createSceneFrameOrchestrationActions(deps) {
         frameRenderer,
         frameUiUpdater,
         render,
+        planSceneFrame: planSceneFrameImpl = planSceneFrame,
+        createTransientEventTracker = createTransientActiveEventTracker,
     } = deps;
-    const transientActiveEventTracker = createTransientActiveEventTracker({
+    const transientActiveEventTracker = createTransientEventTracker({
         eventDisplayWindowMs: 2000,
         eventDisplayMinStableUiMs: 2000,
     });
@@ -47,45 +62,18 @@ function createSceneFrameOrchestrationActions(deps) {
 
         const animTime = getAnimTime();
         const scene = getAnimationScene(config);
-        if (!scene) {
-            return;
-        }
-
-        const npzData = getNpzData();
-        const npzDataLoaded = getNpzDataLoaded();
-        const chebyshevData = getChebyshevData();
-        const chebyshevDataLoaded = getChebyshevDataLoaded();
-        const bodySources = getBodySources();
-        const activeEphemerisSource = getActiveEphemerisSource(config);
         const globalConfig = getGlobalConfig();
-        const computeSunLongitudeForFrame = (timeMs) =>
-            computeSunLongitude(timeMs, {
-                config,
-                chebyshevData,
-                chebyshevDataLoaded,
-                npzData,
-                npzDataLoaded,
-                bodySources,
-                defaultSpacecraftSource: activeEphemerisSource,
-                spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
-            });
-
-        const activeSceneCraftId =
-            scene?.activeCraftId ||
-            scene?.primaryCraftId ||
-            getCraftId();
-
         const eventInfos = getEventInfos();
-        const framePlan = planFrameStep({
+        const framePlan = planSceneFrameImpl({
             config,
             animTime,
             scene,
-            computeSunLongitude: computeSunLongitudeForFrame,
+            computeSunLongitude,
             computeSceneState,
-            chebyshevData,
-            chebyshevDataLoaded,
-            npzData,
-            npzDataLoaded,
+            chebyshevData: getChebyshevData(),
+            chebyshevDataLoaded: getChebyshevDataLoaded(),
+            npzData: getNpzData(),
+            npzDataLoaded: getNpzDataLoaded(),
             landingNpzData: getLandingNpzData(config),
             landingNpzLoaded: getLandingNpzLoaded(config),
             landingChebyshevData: getLandingChebyshevData(config),
@@ -96,9 +84,9 @@ function createSceneFrameOrchestrationActions(deps) {
             eventInfos,
             missionTimes: getMissionTimes(),
             frameMode: getFrameMode(),
-            bodySources,
-            ephemerisSource: activeEphemerisSource,
-            craftId: activeSceneCraftId,
+            bodySources: getBodySources(),
+            activeEphemerisSource: getActiveEphemerisSource(config),
+            craftId: getCraftId(),
             pixelsPerAU: getPixelsPerAU(),
             updateCraftScale,
             currentDimension: getCurrentDimension(),
@@ -115,11 +103,13 @@ function createSceneFrameOrchestrationActions(deps) {
             framePlan,
         });
 
-        setSunLongitude(framePlanWithTransientEvent.framePlan.statePatchIntent.sunLongitude);
-        frameRenderer.applyRenderIntent(framePlanWithTransientEvent.framePlan.renderIntent);
-        frameUiUpdater.applyUiIntent(framePlanWithTransientEvent.framePlan.uiIntent);
-
-        render();
+        applySceneFrameEffects({
+            framePlan: framePlanWithTransientEvent.framePlan,
+            setSunLongitude,
+            frameRenderer,
+            frameUiUpdater,
+            render,
+        });
     }
 
     return {
