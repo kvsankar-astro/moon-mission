@@ -1,3 +1,15 @@
+function flattenStatePortSlices(statePort = {}) {
+    return {
+        ...(statePort?.app || {}),
+        ...(statePort?.data || {}),
+        ...(statePort?.session || {}),
+        ...(statePort?.sceneView || {}),
+        ...(statePort?.sceneRuntime || {}),
+        ...(statePort?.interaction || {}),
+        ...(statePort?.viewTransform || {}),
+    };
+}
+
 function createMissionWiringContext(ports) {
     const {
         uiPort = {},
@@ -12,7 +24,7 @@ function createMissionWiringContext(ports) {
         ...renderPort,
         ...dataPort,
         ...clockPort,
-        ...statePort,
+        ...flattenStatePortSlices(statePort),
     };
 }
 

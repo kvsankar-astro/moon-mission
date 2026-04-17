@@ -1,27 +1,42 @@
 import { createRuntimeInitDeps, createRuntimeUiControlsDeps } from "./runtime-deps.js";
 
+function resolveRuntimeBootstrapStateSlices(statePort = {}) {
+    const fallbackSlice = statePort;
+
+    return {
+        app: statePort?.app || fallbackSlice,
+        data: statePort?.data || fallbackSlice,
+        session: statePort?.session || fallbackSlice,
+        sceneView: statePort?.sceneView || fallbackSlice,
+        sceneRuntime: statePort?.sceneRuntime || fallbackSlice,
+        interaction: statePort?.interaction || fallbackSlice,
+        viewTransform: statePort?.viewTransform || fallbackSlice,
+    };
+}
+
 function createRuntimeBootstrapAccessors({
     renderPort = {},
     statePort = {},
     clockPort = {},
 } = {}) {
-    const getConfig = statePort.getConfig;
+    const { app, viewTransform } = resolveRuntimeBootstrapStateSlices(statePort);
+    const getConfig = app.getConfig;
 
     return {
-        getPanX: typeof statePort.getPanX === "function"
-            ? statePort.getPanX
-            : () => statePort.getPanXState(getConfig()),
-        getPanY: typeof statePort.getPanY === "function"
-            ? statePort.getPanY
-            : () => statePort.getPanYState(getConfig()),
-        getZoomFactor: typeof statePort.getZoomFactor === "function"
-            ? statePort.getZoomFactor
-            : () => statePort.getZoomFactorState(getConfig()),
-        getZoomTimeoutMs: typeof statePort.getZoomTimeoutMs === "function"
-            ? statePort.getZoomTimeoutMs
+        getPanX: typeof viewTransform.getPanX === "function"
+            ? viewTransform.getPanX
+            : () => viewTransform.getPanXState(getConfig()),
+        getPanY: typeof viewTransform.getPanY === "function"
+            ? viewTransform.getPanY
+            : () => viewTransform.getPanYState(getConfig()),
+        getZoomFactor: typeof viewTransform.getZoomFactor === "function"
+            ? viewTransform.getZoomFactor
+            : () => viewTransform.getZoomFactorState(getConfig()),
+        getZoomTimeoutMs: typeof viewTransform.getZoomTimeoutMs === "function"
+            ? viewTransform.getZoomTimeoutMs
             : () => clockPort.UC.ZOOM_TIMEOUT,
-        getZoomScale: typeof statePort.getZoomScale === "function"
-            ? statePort.getZoomScale
+        getZoomScale: typeof viewTransform.getZoomScale === "function"
+            ? viewTransform.getZoomScale
             : () => clockPort.UC.ZOOM_SCALE,
         setDimension: (value) => {
             renderPort.setDimension(value);
@@ -34,25 +49,29 @@ function createRuntimeAnimationDeps({
     statePort = {},
     clockPort = {},
 } = {}) {
+    const { app, session, interaction } = resolveRuntimeBootstrapStateSlices(statePort);
+
     return {
         animationController: renderPort.animationController,
-        getAnimTime: statePort.getAnimTime,
-        getTimeTransLunarInjection: statePort.getTimeTransLunarInjection,
-        getTimeLunarOrbitInsertion: statePort.getTimeLunarOrbitInsertion,
-        setMissionStartCalled: statePort.setMissionStartCalled,
+        getAnimTime: session.getAnimTime,
+        getTimeTransLunarInjection: app.getTimeTransLunarInjection,
+        getTimeLunarOrbitInsertion: app.getTimeLunarOrbitInsertion,
+        setMissionStartCalled: interaction.setMissionStartCalled,
         clearLegacyTimeout: clockPort.clearLegacyTimeout,
     };
 }
 
 function createUpdateConfigFromMetadata({ statePort = {} } = {}) {
+    const { app } = resolveRuntimeBootstrapStateSlices(statePort);
+
     return function updateConfigFromMetadata() {
-        const cfg = statePort.getConfig();
-        const scene = statePort.getAnimationScenes()[cfg];
+        const cfg = app.getConfig();
+        const scene = app.getAnimationScenes()[cfg];
         if (scene?.metadata && scene.metadata.step_size_seconds) {
             const metadataStepSeconds = scene.metadata.step_size_seconds;
             scene.stepDurationInMilliSeconds = metadataStepSeconds * 1000;
-            statePort.setTimelineTotalSteps(
-                (statePort.getLatestEndTime() - statePort.getStartTime()) /
+            app.setTimelineTotalSteps(
+                (app.getLatestEndTime() - app.getStartTime()) /
                 scene.stepDurationInMilliSeconds,
             );
         }
@@ -72,33 +91,35 @@ function createOrbitProcessDeps(
         accessors,
     },
 ) {
+    const { app, session, interaction } = resolveRuntimeBootstrapStateSlices(statePort);
+
     return {
         d3: uiPort.d3,
         d3SelectAll: uiPort.d3SelectAll,
         hideElementById: uiPort.hideElementById,
         clearProgressLabel: uiPort.clearProgressLabel,
         updateConfigFromMetadata: createUpdateConfigFromMetadata({ statePort }),
-        getCurrentDimension: statePort.getCurrentDimension,
+        getCurrentDimension: app.getCurrentDimension,
         processOrbitVectorsData: dataPort.processOrbitVectorsData,
         sleep: clockPort.sleep,
-        getSvgWidth: statePort.getSvgWidth,
-        getSvgHeight: statePort.getSvgHeight,
-        setSvgRect: statePort.setSvgRect,
-        getOffsetX: statePort.getOffsetX,
-        getOffsetY: statePort.getOffsetY,
+        getSvgWidth: app.getSvgWidth,
+        getSvgHeight: app.getSvgHeight,
+        setSvgRect: app.setSvgRect,
+        getOffsetX: app.getOffsetX,
+        getOffsetY: app.getOffsetY,
         getPanX: accessors.getPanX,
         getPanY: accessors.getPanY,
         getZoomFactor: accessors.getZoomFactor,
         handleZoom: renderPort.handleZoom,
         zoomEnd: renderPort.zoomEnd,
-        getMissionStartCalled: statePort.getMissionStartCalled,
+        getMissionStartCalled: interaction.getMissionStartCalled,
         missionStart: animationActions.missionStart,
-        getAnimationRunning: statePort.getAnimationRunning,
+        getAnimationRunning: session.getAnimationRunning,
         updateAnimateButtonText: () => {
             uiPort.updateD3ElementText("#animate", "Play");
         },
         zoomChangeTransform: renderPort.zoomChangeTransform,
-        getConfig: statePort.getConfig,
+        getConfig: app.getConfig,
         orbitDataProcessed: dataPort.orbitDataProcessed,
     };
 }
@@ -115,6 +136,9 @@ function createRuntimeUiControlsDepsFromPorts(
         createMoonRenderProfileActions,
     },
 ) {
+    const { app, data, session, sceneView, interaction, viewTransform } =
+        resolveRuntimeBootstrapStateSlices(statePort);
+
     return createRuntimeUiControlsDeps({
         createNavigationActions: renderPort.createNavigationActions,
         createRepeatMouseDownHandlers: renderPort.createRepeatMouseDownHandlers,
@@ -123,13 +147,13 @@ function createRuntimeUiControlsDepsFromPorts(
         createModeActions: renderPort.createModeActions,
         createMoonRenderProfileActions,
         createBurnActions: renderPort.createBurnActions,
-        getConfig: statePort.getConfig,
-        getPanXState: statePort.getPanXState,
-        setPanXState: statePort.setPanXState,
-        getPanYState: statePort.getPanYState,
-        setPanYState: statePort.setPanYState,
-        getZoomFactorState: statePort.getZoomFactorState,
-        setZoomFactorState: statePort.setZoomFactorState,
+        getConfig: app.getConfig,
+        getPanXState: viewTransform.getPanXState,
+        setPanXState: viewTransform.setPanXState,
+        getPanYState: viewTransform.getPanYState,
+        setPanYState: viewTransform.setPanYState,
+        getZoomFactorState: viewTransform.getZoomFactorState,
+        setZoomFactorState: viewTransform.setZoomFactorState,
         zoomChange: renderPort.zoomChange,
         zoomEnd: renderPort.zoomEnd,
         render: renderPort.render,
@@ -144,10 +168,10 @@ function createRuntimeUiControlsDepsFromPorts(
         resetspeed: animationActions.resetspeed,
         faster: animationActions.faster,
         realtime: animationActions.realtime,
-        getMouseDownTimeout: statePort.getMouseDownTimeout,
-        setMouseDownTimeout: statePort.setMouseDownTimeout,
-        setTimeoutHandleZoom: statePort.setTimeoutHandleZoom,
-        animationScenes: statePort.getAnimationScenes(),
+        getMouseDownTimeout: interaction.getMouseDownTimeout,
+        setMouseDownTimeout: interaction.setMouseDownTimeout,
+        setTimeoutHandleZoom: interaction.setTimeoutHandleZoom,
+        animationScenes: app.getAnimationScenes(),
         setChecked: uiPort.setChecked,
         readCameraPositionMode: uiPort.readCameraPositionMode,
         readCameraLookMode: uiPort.readCameraLookMode,
@@ -155,17 +179,17 @@ function createRuntimeUiControlsDepsFromPorts(
         readPlaneSelection: uiPort.readPlaneSelection,
         setPlaneSelectionState: uiPort.setPlaneSelectionState,
         handlePlaneChange: renderPort.handlePlaneChange,
-        getViewSky: statePort.getViewSky,
-        getViewConstellationLines: statePort.getViewConstellationLines,
-        getGlobalConfig: statePort.getGlobalConfig,
+        getViewSky: sceneView.getViewSky,
+        getViewConstellationLines: sceneView.getViewConstellationLines,
+        getGlobalConfig: app.getGlobalConfig,
         updateCraftScale: renderPort.updateCraftScale,
-        getLandingFlag: statePort.getLandingFlag,
-        setLandingFlag: statePort.setLandingFlag,
-        getJoyRideFlag: statePort.getJoyRideFlag,
-        setJoyRideFlag: statePort.setJoyRideFlag,
+        getLandingFlag: session.getLandingFlag,
+        setLandingFlag: session.setLandingFlag,
+        getJoyRideFlag: session.getJoyRideFlag,
+        setJoyRideFlag: session.setJoyRideFlag,
         setView: renderPort.setView,
-        getEventInfos: statePort.getEventInfos,
-        setAnimTime: statePort.setAnimTime,
+        getEventInfos: data.getEventInfos,
+        setAnimTime: session.setAnimTime,
         missionSetTime: animationActions.missionSetTime,
         THREE: renderPort.THREE,
         loadSceneTextures: renderPort.loadSceneTextures,
@@ -206,11 +230,13 @@ function createRuntimeInitDepsFromPorts(
         accessors,
     },
 ) {
+    const { app, sceneRuntime, interaction } = resolveRuntimeBootstrapStateSlices(statePort);
+
     return createRuntimeInitDeps({
-        getConfig: statePort.getConfig,
-        getScene: (cfg) => statePort.getAnimationScenes()[cfg],
-        getSceneStateInitDone: statePort.getSceneStateInitDone,
-        setSceneState: statePort.setSceneState,
+        getConfig: app.getConfig,
+        getScene: (cfg) => app.getAnimationScenes()[cfg],
+        getSceneStateInitDone: sceneRuntime.getSceneStateInitDone,
+        setSceneState: sceneRuntime.setSceneState,
         resetViewTransformState: uiPort.resetViewTransformState,
         initRepeatButtons: uiPort.initRepeatButtons,
         d3SelectAll: uiPort.d3SelectAll,
@@ -218,16 +244,16 @@ function createRuntimeInitDepsFromPorts(
         bindRepeatButtons: uiPort.bindRepeatButtons,
         d3Select: uiPort.d3.select,
         getHandlersById: () => createRuntimeInitHandlersById(uiControlsActions),
-        getTimeoutHandleZoom: statePort.getTimeoutHandleZoom,
-        setTimeoutHandleZoom: statePort.setTimeoutHandleZoom,
-        setMousedownTimeout: statePort.setMouseDownTimeout,
-        setMouseDown: statePort.setMouseDown,
+        getTimeoutHandleZoom: interaction.getTimeoutHandleZoom,
+        setTimeoutHandleZoom: interaction.setTimeoutHandleZoom,
+        setMousedownTimeout: interaction.setMouseDownTimeout,
+        setMouseDown: interaction.setMouseDown,
         getZoomTimeoutMs: accessors.getZoomTimeoutMs,
         clearTimeoutFn: clockPort.clearTimeoutFn,
         zoomEnd: renderPort.zoomEnd,
         sleep: clockPort.sleep,
-        setAnimDate: statePort.setAnimDate,
-        getCurrentDimension: statePort.getCurrentDimension,
+        setAnimDate: app.setAnimDate,
+        getCurrentDimension: app.getCurrentDimension,
         initSVG: dataPort.initSVG,
         loadOrbitDataIfNeededAndProcess: dataPort.loadOrbitDataIfNeededAndProcess,
         loadLandingDataAndProcess: dataPort.loadLandingDataAndProcess,
@@ -249,16 +275,18 @@ function createInitOrchestrationDeps(
         accessors,
     },
 ) {
+    const { app, session } = resolveRuntimeBootstrapStateSlices(statePort);
+
     return {
         initConfig: renderPort.initConfig,
         init: runtimeInitActions.init,
-        getConfig: statePort.getConfig,
+        getConfig: app.getConfig,
         isOrbitDataProcessed: (cfg) => !!dataPort.orbitDataProcessed[cfg],
         missionStart: animationActions.missionStart,
         missionSetTime: animationActions.missionSetTime,
         setRealtimeSpeed: animationActions.realtime,
         playAnimation: animationActions.playAnimation,
-        setAnimTime: statePort.setAnimTime,
+        setAnimTime: session.setAnimTime,
         setLocation: renderPort.setLocation,
         setDimension: accessors.setDimension,
         getSetView: () => renderPort.setView,
@@ -269,9 +297,9 @@ function createInitOrchestrationDeps(
         render: renderPort.render,
         requestAnimationFrame: clockPort.requestAnimationFrame,
         animateLoop: renderPort.animateLoop,
-        getStartTime: statePort.getStartTime,
-        getLatestEndTime: statePort.getLatestEndTime,
-        animationScenes: statePort.getAnimationScenes(),
+        getStartTime: app.getStartTime,
+        getLatestEndTime: app.getLatestEndTime,
+        animationScenes: app.getAnimationScenes(),
     };
 }
 

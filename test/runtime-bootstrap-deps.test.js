@@ -9,34 +9,48 @@ import {
 } from "../src/platform/js/app/runtime-bootstrap-deps.js";
 
 describe("runtime bootstrap dependency builders", () => {
-    it("resolves state accessors with direct getters first and state fallbacks second", () => {
+    it("resolves transform accessors from explicit state slices", () => {
         const setDimension = vi.fn();
 
-        const direct = createRuntimeBootstrapAccessors({
+        const accessors = createRuntimeBootstrapAccessors({
             renderPort: { setDimension },
             statePort: {
-                getPanX: vi.fn(() => 1),
-                getPanY: vi.fn(() => 2),
-                getZoomFactor: vi.fn(() => 3),
-                getZoomTimeoutMs: vi.fn(() => 4),
-                getZoomScale: vi.fn(() => 5),
+                app: {
+                    getConfig: vi.fn(() => "geo"),
+                },
+                viewTransform: {
+                    getPanX: vi.fn(() => 1),
+                    getPanY: vi.fn(() => 2),
+                    getZoomFactor: vi.fn(() => 3),
+                    getZoomTimeoutMs: vi.fn(() => 4),
+                    getZoomScale: vi.fn(() => 5),
+                },
             },
             clockPort: { UC: { ZOOM_TIMEOUT: 9, ZOOM_SCALE: 10 } },
         });
 
-        expect(direct.getPanX()).toBe(1);
-        expect(direct.getPanY()).toBe(2);
-        expect(direct.getZoomFactor()).toBe(3);
-        expect(direct.getZoomTimeoutMs()).toBe(4);
-        expect(direct.getZoomScale()).toBe(5);
+        expect(accessors.getPanX()).toBe(1);
+        expect(accessors.getPanY()).toBe(2);
+        expect(accessors.getZoomFactor()).toBe(3);
+        expect(accessors.getZoomTimeoutMs()).toBe(4);
+        expect(accessors.getZoomScale()).toBe(5);
+        accessors.setDimension("3D");
+        expect(setDimension).toHaveBeenCalledWith("3D");
+    });
 
+    it("falls back to config-scoped transform state when direct transform getters are absent", () => {
+        const setDimension = vi.fn();
         const fallback = createRuntimeBootstrapAccessors({
             renderPort: { setDimension },
             statePort: {
-                getConfig: vi.fn(() => "geo"),
-                getPanXState: vi.fn(() => 11),
-                getPanYState: vi.fn(() => 12),
-                getZoomFactorState: vi.fn(() => 13),
+                app: {
+                    getConfig: vi.fn(() => "geo"),
+                },
+                viewTransform: {
+                    getPanXState: vi.fn(() => 11),
+                    getPanYState: vi.fn(() => 12),
+                    getZoomFactorState: vi.fn(() => 13),
+                },
             },
             clockPort: { UC: { ZOOM_TIMEOUT: 14, ZOOM_SCALE: 15 } },
         });
@@ -60,11 +74,13 @@ describe("runtime bootstrap dependency builders", () => {
 
         createUpdateConfigFromMetadata({
             statePort: {
-                getConfig: vi.fn(() => "geo"),
-                getAnimationScenes: vi.fn(() => ({ geo: scene })),
-                setTimelineTotalSteps,
-                getLatestEndTime: vi.fn(() => 10000),
-                getStartTime: vi.fn(() => 2000),
+                app: {
+                    getConfig: vi.fn(() => "geo"),
+                    getAnimationScenes: vi.fn(() => ({ geo: scene })),
+                    setTimelineTotalSteps,
+                    getLatestEndTime: vi.fn(() => 10000),
+                    getStartTime: vi.fn(() => 2000),
+                },
             },
         })();
 
@@ -108,26 +124,38 @@ describe("runtime bootstrap dependency builders", () => {
                     applyAndRefreshSceneTextures: vi.fn(),
                 },
                 statePort: {
-                    getConfig: vi.fn(() => "geo"),
-                    getPanXState: vi.fn(() => 21),
-                    setPanXState,
-                    getPanYState: vi.fn(() => 22),
-                    setPanYState,
-                    getZoomFactorState: vi.fn(() => 23),
-                    setZoomFactorState,
-                    getMouseDownTimeout: vi.fn(),
-                    setMouseDownTimeout: vi.fn(),
-                    setTimeoutHandleZoom: vi.fn(),
-                    getAnimationScenes: vi.fn(() => ({ geo: {} })),
-                    getViewSky: vi.fn(),
-                    getViewConstellationLines: vi.fn(),
-                    getGlobalConfig: vi.fn(),
-                    getLandingFlag: vi.fn(),
-                    setLandingFlag: vi.fn(),
-                    getJoyRideFlag: vi.fn(),
-                    setJoyRideFlag: vi.fn(),
-                    getEventInfos: vi.fn(),
-                    setAnimTime: vi.fn(),
+                    app: {
+                        getConfig: vi.fn(() => "geo"),
+                        getAnimationScenes: vi.fn(() => ({ geo: {} })),
+                        getGlobalConfig: vi.fn(),
+                    },
+                    data: {
+                        getEventInfos: vi.fn(),
+                    },
+                    session: {
+                        getLandingFlag: vi.fn(),
+                        setLandingFlag: vi.fn(),
+                        getJoyRideFlag: vi.fn(),
+                        setJoyRideFlag: vi.fn(),
+                        setAnimTime: vi.fn(),
+                    },
+                    sceneView: {
+                        getViewSky: vi.fn(),
+                        getViewConstellationLines: vi.fn(),
+                    },
+                    interaction: {
+                        getMouseDownTimeout: vi.fn(),
+                        setMouseDownTimeout: vi.fn(),
+                        setTimeoutHandleZoom: vi.fn(),
+                    },
+                    viewTransform: {
+                        getPanXState: vi.fn(() => 21),
+                        setPanXState,
+                        getPanYState: vi.fn(() => 22),
+                        setPanYState,
+                        getZoomFactorState: vi.fn(() => 23),
+                        setZoomFactorState,
+                    },
                 },
             },
             {
@@ -230,11 +258,15 @@ describe("runtime bootstrap dependency builders", () => {
                     requestAnimationFrame: vi.fn(),
                 },
                 statePort: {
-                    getConfig: vi.fn(() => "geo"),
-                    setAnimTime: vi.fn(),
-                    getStartTime: vi.fn(() => 1000),
-                    getLatestEndTime: vi.fn(() => 2000),
-                    getAnimationScenes: vi.fn(() => animationScenes),
+                    app: {
+                        getConfig: vi.fn(() => "geo"),
+                        getStartTime: vi.fn(() => 1000),
+                        getLatestEndTime: vi.fn(() => 2000),
+                        getAnimationScenes: vi.fn(() => animationScenes),
+                    },
+                    session: {
+                        setAnimTime: vi.fn(),
+                    },
                 },
             },
             {
@@ -292,19 +324,25 @@ describe("runtime bootstrap dependency builders", () => {
                     sleep: vi.fn(),
                 },
                 statePort: {
-                    getCurrentDimension: vi.fn(() => "2D"),
-                    getSvgWidth: vi.fn(() => 800),
-                    getSvgHeight: vi.fn(() => 600),
-                    setSvgRect: vi.fn(),
-                    getOffsetX: vi.fn(() => 0),
-                    getOffsetY: vi.fn(() => 0),
-                    getMissionStartCalled: vi.fn(() => false),
-                    getAnimationRunning: vi.fn(() => false),
-                    getConfig: vi.fn(() => "geo"),
-                    getAnimationScenes: vi.fn(() => ({ geo: {} })),
-                    setTimelineTotalSteps: vi.fn(),
-                    getLatestEndTime: vi.fn(() => 1000),
-                    getStartTime: vi.fn(() => 0),
+                    app: {
+                        getCurrentDimension: vi.fn(() => "2D"),
+                        getSvgWidth: vi.fn(() => 800),
+                        getSvgHeight: vi.fn(() => 600),
+                        setSvgRect: vi.fn(),
+                        getOffsetX: vi.fn(() => 0),
+                        getOffsetY: vi.fn(() => 0),
+                        getConfig: vi.fn(() => "geo"),
+                        getAnimationScenes: vi.fn(() => ({ geo: {} })),
+                        setTimelineTotalSteps: vi.fn(),
+                        getLatestEndTime: vi.fn(() => 1000),
+                        getStartTime: vi.fn(() => 0),
+                    },
+                    session: {
+                        getAnimationRunning: vi.fn(() => false),
+                    },
+                    interaction: {
+                        getMissionStartCalled: vi.fn(() => false),
+                    },
                 },
             },
             {

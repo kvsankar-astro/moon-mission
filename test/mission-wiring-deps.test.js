@@ -9,13 +9,17 @@ import {
 } from "../src/platform/js/app/mission-wiring-deps.js";
 
 describe("createMissionWiringContext", () => {
-    it("merges the explicit ports into a single wiring context", () => {
+    it("merges explicit ports and flattens structured state slices into one wiring context", () => {
         const ctx = createMissionWiringContext({
             uiPort: { fromUi: true, shared: "ui" },
             renderPort: { fromRender: true },
             dataPort: { fromData: true },
             clockPort: { fromClock: true },
-            statePort: { fromState: true, shared: "state" },
+            statePort: {
+                app: { fromState: true, shared: "state" },
+                session: { fromSession: true },
+                viewTransform: { fromTransform: true },
+            },
         });
 
         expect(ctx).toMatchObject({
@@ -24,6 +28,8 @@ describe("createMissionWiringContext", () => {
             fromData: true,
             fromClock: true,
             fromState: true,
+            fromSession: true,
+            fromTransform: true,
             shared: "state",
         });
     });

@@ -1,14 +1,3 @@
-function mergeStatePortSlices(statePorts) {
-    return {
-        ...(statePorts?.app || {}),
-        ...(statePorts?.data || {}),
-        ...(statePorts?.session || {}),
-        ...(statePorts?.sceneView || {}),
-        ...(statePorts?.sceneRuntime || {}),
-        ...(statePorts?.interaction || {}),
-    };
-}
-
 function buildUiPort(ctx) {
     const {
         d3,
@@ -279,13 +268,20 @@ function buildStatePort(ctx) {
     } = ctx;
 
     return {
-        ...mergeStatePortSlices(statePorts),
-        getPanXState,
-        getPanYState,
-        getZoomFactorState,
-        setZoomFactorState,
-        setPanXState,
-        setPanYState,
+        app: statePorts?.app || {},
+        data: statePorts?.data || {},
+        session: statePorts?.session || {},
+        sceneView: statePorts?.sceneView || {},
+        sceneRuntime: statePorts?.sceneRuntime || {},
+        interaction: statePorts?.interaction || {},
+        viewTransform: {
+            getPanXState,
+            getPanYState,
+            getZoomFactorState,
+            setZoomFactorState,
+            setPanXState,
+            setPanYState,
+        },
     };
 }
 
