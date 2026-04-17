@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    createMissionLocalStateCells,
     createMissionStateCells,
-    createMutableStateCell,
-    createReadonlyStateCell,
 } from "../src/platform/js/app/mission-state-access.js";
 
 const LOCAL_WRITABLE_KEYS = [
@@ -294,19 +293,21 @@ function createLocalState() {
 }
 
 function createLocalStateCells(localState) {
-    return {
-        ...Object.fromEntries(
+    return createMissionLocalStateCells({
+        mutableStateAccessors: Object.fromEntries(
             LOCAL_WRITABLE_KEYS.map((key) => [
                 key,
-                createMutableStateCell(
+                [
                     () => localState[key],
                     (value) => { localState[key] = value; },
-                ),
+                ],
             ]),
         ),
-        frameMode: createReadonlyStateCell(() => localState.frameMode),
-        craftId: createReadonlyStateCell(() => localState.craftId),
-    };
+        readonlyStateAccessors: {
+            frameMode: () => localState.frameMode,
+            craftId: () => localState.craftId,
+        },
+    });
 }
 
 describe("mission state access", () => {
@@ -386,5 +387,36 @@ describe("mission state access", () => {
         expect(viewState.viewOrbit).toBe(false);
         expect(interactionState.mouseDown).toBe(true);
         expect(localState.sunLongitude).toBe(270);
+    });
+
+    it("builds local mission state cells from mutable and readonly accessor buckets", () => {
+        const localState = createLocalState();
+        const cells = createMissionLocalStateCells({
+            mutableStateAccessors: {
+                globalConfig: [
+                    () => localState.globalConfig,
+                    (value) => { localState.globalConfig = value; },
+                ],
+                sunLongitude: [
+                    () => localState.sunLongitude,
+                    (value) => { localState.sunLongitude = value; },
+                ],
+            },
+            readonlyStateAccessors: {
+                frameMode: () => localState.frameMode,
+            },
+        });
+
+        expect(cells.globalConfig.get()).toEqual({ mission: "cy3" });
+        cells.globalConfig.set({ mission: "apollo17" });
+        expect(localState.globalConfig).toEqual({ mission: "apollo17" });
+
+        expect(cells.sunLongitude.get()).toBe(180);
+        cells.sunLongitude.set(42);
+        expect(localState.sunLongitude).toBe(42);
+
+        expect(cells.frameMode.get()).toBe("inertial");
+        cells.frameMode.set("relative");
+        expect(localState.frameMode).toBe("inertial");
     });
 });

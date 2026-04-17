@@ -8,6 +8,28 @@ function createReadonlyStateCell(get) {
     return { get, set: () => {} };
 }
 
+function createMissionLocalStateCells({
+    mutableStateAccessors = {},
+    readonlyStateAccessors = {},
+    createMutableStateCellImpl = createMutableStateCell,
+    createReadonlyStateCellImpl = createReadonlyStateCell,
+} = {}) {
+    return {
+        ...Object.fromEntries(
+            Object.entries(mutableStateAccessors).map(([key, accessors]) => {
+                const [get, set] = accessors;
+                return [key, createMutableStateCellImpl(get, set)];
+            }),
+        ),
+        ...Object.fromEntries(
+            Object.entries(readonlyStateAccessors).map(([key, get]) => [
+                key,
+                createReadonlyStateCellImpl(get),
+            ]),
+        ),
+    };
+}
+
 function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
     return {
         config: createMutableStateCell(
@@ -174,6 +196,7 @@ function createMissionStateAccess(ctx) {
 }
 
 export {
+    createMissionLocalStateCells,
     createMissionStateAccess,
     createMissionStateCells,
     createMutableStateCell,

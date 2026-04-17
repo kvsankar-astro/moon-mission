@@ -19,9 +19,7 @@ import {
 } from "./core/dom.js";
 import { generateCurveFromChebyshev } from "./chebyshev.js";
 import { SceneHelpers } from "./rendering/scene-helpers.js";
-import { AnimationController } from "./animation/animation-controller.js";
 import { bindSettingsPanel } from "./ui/event-handlers.js";
-import { createEventBus } from "./core/event-bus.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
@@ -42,9 +40,8 @@ import {
 } from "./app/mission-runtime-root.js";
 import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
 import {
+    createMissionLocalStateCells,
     createMissionStateCells,
-    createMutableStateCell,
-    createReadonlyStateCell,
 } from "./app/mission-state-access.js";
 import { createMissionViewEntry } from "./app/mission-view-entry.js";
 import {
@@ -58,10 +55,7 @@ import { createRuntimeInteractionState } from "./core/state/runtime-interaction-
 import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
-import {
-    createAnimationControllerCallbacks,
-    createMissionPlaybackUiShell,
-} from "./app/mission-playback-coordination.js";
+import { createMissionPlaybackRuntime } from "./app/mission-entry-composition.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -331,19 +325,18 @@ runtimeViewState.setViewFlags({
     trailTailBrightness3D: runtimeViewState.getTrailTailBrightness3D(),
 });
 
-const eventBus = createEventBus();
-let animationController = null;
 const {
+    eventBus,
+    animationController,
     syncTimelineDock,
     syncActiveCraftControl,
-    updateSpeedControlsUI,
-    updateTransportControlsUI,
-    dispatchAnimationPlayStateUpdated,
-    syncPlaybackStartup,
-} = createMissionPlaybackUiShell({
+} = createMissionPlaybackRuntime({
+    windowRef: window,
     documentRef: document,
     CustomEventClass: typeof CustomEvent === "function" ? CustomEvent : null,
-    getAnimationController: () => animationController,
+    runtimeSessionState,
+    bridgeActions,
+    updateD3ElementText,
     getSetView: () => setView,
     getAnimationScenes: () => animationScenes,
     getConfig: () => runtimeViewState.getConfig(),
@@ -356,30 +349,6 @@ const {
     maxTimelineStepMs: TC.ONE_SECOND_MS,
     updateEventInfo,
     clearEventInfo,
-});
-const animationControllerCallbacks = createAnimationControllerCallbacks({
-    runtimeSessionState,
-    bridgeActions,
-    syncTimelineDock,
-    syncActiveCraftControl,
-    updateD3ElementText,
-    updateTransportControlsUI,
-    dispatchAnimationPlayStateUpdated,
-    getSetView: () => setView,
-    updateSpeedControlsUI,
-    eventBus,
-});
-animationController = new AnimationController(animationControllerCallbacks);
-
-window.addEventListener("load", function () {
-    syncPlaybackStartup({
-        isRunning: animationController.getIsRunning(),
-        speedMultiplier: animationController.getSpeedMultiplier(),
-        isRealtimeSpeed: animationController.getIsRealtimeSpeed(),
-        goToNow: () => {
-            animationController.goToNow();
-        },
-    });
 });
 
 var globalConfig = null; // Store loaded config from config.json
@@ -476,81 +445,49 @@ function render() {
 }
 
 const missionStateCells = createMissionStateCells({
-    localStateCells: {
-        globalConfig: createMutableStateCell(() => globalConfig, (value) => { globalConfig = value; }),
-        svgContainer: createMutableStateCell(() => svgContainer, (value) => { svgContainer = value; }),
-        dataLoaded: createMutableStateCell(() => dataLoaded, (value) => { dataLoaded = value; }),
-        svgX: createMutableStateCell(() => svgX, (value) => { svgX = value; }),
-        svgY: createMutableStateCell(() => svgY, (value) => { svgY = value; }),
-        svgWidth: createMutableStateCell(() => svgWidth, (value) => { svgWidth = value; }),
-        svgHeight: createMutableStateCell(() => svgHeight, (value) => { svgHeight = value; }),
-        offsetx: createMutableStateCell(() => offsetx, (value) => { offsetx = value; }),
-        offsety: createMutableStateCell(() => offsety, (value) => { offsety = value; }),
-        landingDataLoaded: createMutableStateCell(
-            () => landingDataLoaded,
-            (value) => { landingDataLoaded = value; },
-        ),
-        epochJD: createMutableStateCell(() => epochJD, (value) => { epochJD = value; }),
-        epochDate: createMutableStateCell(() => epochDate, (value) => { epochDate = value; }),
-        startTime: createMutableStateCell(() => startTime, (value) => { startTime = value; }),
-        endTime: createMutableStateCell(() => endTime, (value) => { endTime = value; }),
-        endTimeSC: createMutableStateCell(() => endTimeSC, (value) => { endTimeSC = value; }),
-        latestEndTime: createMutableStateCell(
-            () => latestEndTime,
-            (value) => { latestEndTime = value; },
-        ),
-        timelineTotalSteps: createMutableStateCell(
-            () => timelineTotalSteps,
-            (value) => { timelineTotalSteps = value; },
-        ),
-        ticksPerAnimationStep: createMutableStateCell(
-            () => ticksPerAnimationStep,
-            (value) => { ticksPerAnimationStep = value; },
-        ),
-        PIXELS_PER_AU: createMutableStateCell(() => PIXELS_PER_AU, (value) => { PIXELS_PER_AU = value; }),
-        defaultCameraDistance: createMutableStateCell(
-            () => defaultCameraDistance,
-            (value) => { defaultCameraDistance = value; },
-        ),
-        trackWidth: createMutableStateCell(() => trackWidth, (value) => { trackWidth = value; }),
-        earthRadius: createMutableStateCell(() => earthRadius, (value) => { earthRadius = value; }),
-        moonRadius: createMutableStateCell(() => moonRadius, (value) => { moonRadius = value; }),
-        startLandingTime: createMutableStateCell(
-            () => startLandingTime,
-            (value) => { startLandingTime = value; },
-        ),
-        endLandingTime: createMutableStateCell(
-            () => endLandingTime,
-            (value) => { endLandingTime = value; },
-        ),
-        frameMode: createReadonlyStateCell(() => frameMode),
-        craftData: createMutableStateCell(() => craftData, (value) => { craftData = value; }),
-        eventInfos: createMutableStateCell(() => eventInfos, (value) => { eventInfos = value; }),
-        ephemerisSource: createMutableStateCell(
-            () => ephemerisSource,
-            (value) => { ephemerisSource = value; },
-        ),
-        bodyEphemerisSources: createMutableStateCell(
-            () => bodyEphemerisSources,
-            (value) => { bodyEphemerisSources = value; },
-        ),
-        timeTransLunarInjection: createMutableStateCell(
-            () => timeTransLunarInjection,
-            (value) => { timeTransLunarInjection = value; },
-        ),
-        timeLunarOrbitInsertion: createMutableStateCell(
-            () => timeLunarOrbitInsertion,
-            (value) => { timeLunarOrbitInsertion = value; },
-        ),
-        theSceneHandler: createMutableStateCell(
-            () => theSceneHandler,
-            (value) => { theSceneHandler = value; },
-        ),
-        animDate: createMutableStateCell(() => animDate, (value) => { animDate = value; }),
-        svgRect: createMutableStateCell(() => svgRect, (value) => { svgRect = value; }),
-        sunLongitude: createMutableStateCell(() => sunLongitude, (value) => { sunLongitude = value; }),
-        craftId: createReadonlyStateCell(() => craftId),
-    },
+    localStateCells: createMissionLocalStateCells({
+        mutableStateAccessors: {
+            globalConfig: [() => globalConfig, (value) => { globalConfig = value; }],
+            svgContainer: [() => svgContainer, (value) => { svgContainer = value; }],
+            dataLoaded: [() => dataLoaded, (value) => { dataLoaded = value; }],
+            svgX: [() => svgX, (value) => { svgX = value; }],
+            svgY: [() => svgY, (value) => { svgY = value; }],
+            svgWidth: [() => svgWidth, (value) => { svgWidth = value; }],
+            svgHeight: [() => svgHeight, (value) => { svgHeight = value; }],
+            offsetx: [() => offsetx, (value) => { offsetx = value; }],
+            offsety: [() => offsety, (value) => { offsety = value; }],
+            landingDataLoaded: [() => landingDataLoaded, (value) => { landingDataLoaded = value; }],
+            epochJD: [() => epochJD, (value) => { epochJD = value; }],
+            epochDate: [() => epochDate, (value) => { epochDate = value; }],
+            startTime: [() => startTime, (value) => { startTime = value; }],
+            endTime: [() => endTime, (value) => { endTime = value; }],
+            endTimeSC: [() => endTimeSC, (value) => { endTimeSC = value; }],
+            latestEndTime: [() => latestEndTime, (value) => { latestEndTime = value; }],
+            timelineTotalSteps: [() => timelineTotalSteps, (value) => { timelineTotalSteps = value; }],
+            ticksPerAnimationStep: [() => ticksPerAnimationStep, (value) => { ticksPerAnimationStep = value; }],
+            PIXELS_PER_AU: [() => PIXELS_PER_AU, (value) => { PIXELS_PER_AU = value; }],
+            defaultCameraDistance: [() => defaultCameraDistance, (value) => { defaultCameraDistance = value; }],
+            trackWidth: [() => trackWidth, (value) => { trackWidth = value; }],
+            earthRadius: [() => earthRadius, (value) => { earthRadius = value; }],
+            moonRadius: [() => moonRadius, (value) => { moonRadius = value; }],
+            startLandingTime: [() => startLandingTime, (value) => { startLandingTime = value; }],
+            endLandingTime: [() => endLandingTime, (value) => { endLandingTime = value; }],
+            craftData: [() => craftData, (value) => { craftData = value; }],
+            eventInfos: [() => eventInfos, (value) => { eventInfos = value; }],
+            ephemerisSource: [() => ephemerisSource, (value) => { ephemerisSource = value; }],
+            bodyEphemerisSources: [() => bodyEphemerisSources, (value) => { bodyEphemerisSources = value; }],
+            timeTransLunarInjection: [() => timeTransLunarInjection, (value) => { timeTransLunarInjection = value; }],
+            timeLunarOrbitInsertion: [() => timeLunarOrbitInsertion, (value) => { timeLunarOrbitInsertion = value; }],
+            theSceneHandler: [() => theSceneHandler, (value) => { theSceneHandler = value; }],
+            animDate: [() => animDate, (value) => { animDate = value; }],
+            svgRect: [() => svgRect, (value) => { svgRect = value; }],
+            sunLongitude: [() => sunLongitude, (value) => { sunLongitude = value; }],
+        },
+        readonlyStateAccessors: {
+            frameMode: () => frameMode,
+            craftId: () => craftId,
+        },
+    }),
     runtimeViewState,
     runtimeSessionState,
     runtimeInteractionState,
