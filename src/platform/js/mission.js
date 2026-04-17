@@ -1,12 +1,9 @@
 
 // Copyright (c) 2013-2024 Sankaranarayanan Viswanathan. All rights reserved.
 
-import { lunar_pole } from "./astro.js";
 import {
     CELESTIAL_BODIES as CB,
-    COLORS as COL,
     FORMAT_CONSTANTS as FC,
-    PHYSICS_CONSTANTS as PC,
     TIME_CONSTANTS as TC,
     UI_CONSTANTS as UC
 } from "./core/constants.js";
@@ -17,18 +14,11 @@ import {
     updateD3ElementText,
     updateFPSCounter,
 } from "./core/dom.js";
-import { generateCurveFromChebyshev } from "./chebyshev.js";
-import { SceneHelpers } from "./rendering/scene-helpers.js";
-import { bindSettingsPanel } from "./ui/event-handlers.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
-import { computeSceneCameraParameters } from "./app/camera-parameters-core.js";
 import {
-    generateBodyCurve,
-    getBodyEphemerisState,
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
-import { initSceneHandlerDom } from "./app/scene-handler-init.js";
 import {
     DEFAULT_VIEW_STATE,
 } from "./app/plane-view-state.js";
@@ -38,7 +28,10 @@ import {
     createMissionRuntimeRoot,
     publishMissionRuntimeGlobals,
 } from "./app/mission-runtime-root.js";
-import { createMissionSceneEntry } from "./app/mission-scene-entry.js";
+import {
+    createMissionSceneComposition,
+    createMissionSceneRender,
+} from "./app/mission-scene-composition.js";
 import {
     createMissionLocalStateCells,
     createMissionStateCells,
@@ -224,6 +217,12 @@ function getEffectiveOrbitStyle() {
     return runtimeSessionState.getAnimationRunning() ? "trail" : "classic";
 }
 
+const render = createMissionSceneRender({
+    getSceneHandler: () => theSceneHandler,
+    getAnimationScenes: () => animationScenes,
+    getConfig: () => runtimeViewState.getConfig(),
+});
+
 const {
     bridgeActions,
     sceneViewStateActions,
@@ -353,21 +352,16 @@ const {
 
 var globalConfig = null; // Store loaded config from config.json
 
-const { SceneHandler, AnimationScene } = createMissionSceneEntry({
+const {
+    SceneHandler,
+    AnimationScene,
+} = createMissionSceneComposition({
     d3,
     THREE,
     Astronomy,
-    lunar_pole,
-    COL,
-    PC,
     DEFAULT_VIEW_STATE,
-    SceneHelpers,
-    bindSettingsPanel,
-    initSceneHandlerDom,
-    computeSceneCameraParameters,
     isTestMode,
     frameMode,
-    generateCurveFromChebyshev,
     chebyshevDataLoaded,
     chebyshevData,
     npzData,
@@ -377,7 +371,6 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getActiveEphemerisSource,
     resolveBodySource,
     getBodyEphemerisSources: () => bodyEphemerisSources,
-    generateBodyCurve,
     getAnimationScenes: () => animationScenes,
     getStartTime: () => startTime,
     getLatestEndTime: () => latestEndTime,
@@ -398,7 +391,6 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getOrbitStyle: () => getEffectiveOrbitStyle(),
     getTrailTrackBrightness3D: () => runtimeViewState.getTrailTrackBrightness3D(),
     getTrailTailBrightness3D: () => runtimeViewState.getTrailTailBrightness3D(),
-    render,
     bridgeActions,
     clearEventInfo,
     getMissionRuntimeWireup: () => missionRuntimeWireup,
@@ -422,7 +414,6 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewCraters: () => runtimeViewState.getViewCraters(),
     getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
-    getBodyEphemerisState,
     getEphemerisSource: () => ephemerisSource,
     getViewSky: () => runtimeViewState.getViewSky(),
     getViewConstellationLines: () => runtimeViewState.getViewConstellationLines(),
@@ -435,14 +426,8 @@ const { SceneHandler, AnimationScene } = createMissionSceneEntry({
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
     getEventInfos: () => eventInfos,
+    render,
 });
-
-function render() {
-    if (!theSceneHandler) return;
-    var animationScene = animationScenes[runtimeViewState.getConfig()];
-    if (!animationScene) return;
-    theSceneHandler.render(animationScene);
-}
 
 const missionStateCells = createMissionStateCells({
     localStateCells: createMissionLocalStateCells({
