@@ -1,216 +1,259 @@
 # Target Architecture
 
-This document preserves the target-architecture guidance from the shelf branch
-`temp/refactor-audit-shelf-20260328`, adapted to the current `master`
-codebase.
+This document is the single source of truth for runtime architecture and
+refactor planning in `moon-mission`.
 
-It is meant to answer three questions clearly:
+It replaces the older split between `refactor-audit.md`, earlier revisions of
+this document, and the runtime-refactor sections that used to live in the
+orbit roadmap. It is grounded in the current codebase as of
+`2026-04-16`.
 
-1. What are the major runtime objects/modules we want?
-2. What does each one own?
-3. What dependencies are allowed between them?
+## Goals
 
-This target is intentionally conservative. It is designed to fit the current
-codebase and migrate toward better boundaries without requiring a full rewrite.
-
-## Design Goals
-
-- functional core where practical
-- imperative shell at the edges
+- functional core, imperative shell
+- clear separation of concerns
 - explicit state ownership
-- explicit rendering ownership
-- minimal legacy leakage into new modules
-- predictable test seams
+- explicit data, rendering, and UI boundaries
+- smaller composition surfaces instead of large context bags
+- preserve the current runtime behavior while improving refactorability
 
-## Architectural Layers
+## Principles
 
-### 1. Core Domain
+### Functional core
 
-Pure functions and pure data transforms.
+Pure modules should own:
 
-Examples that already fit this layer well:
+- mission config parsing and normalization
+- event-time resolution
+- camera and UI transition policy
+- asset and manifest resolution
+- frame planning
+- telemetry and timeline derivation
+- orbit-style math
+- scene-state math
+
+Pure modules should not own:
+
+- DOM reads or writes
+- D3 or Three.js mutation
+- timers or `requestAnimationFrame`
+- fetch, caching, or worker lifecycle
+- hidden access to globals
+
+### Imperative shell
+
+Effect modules should own:
+
+- DOM reads and writes
+- D3/SVG mutation
+- Three.js scene mutation
+- browser event listeners
+- `requestAnimationFrame`, timeouts, and intervals
+- fetch, cache, and worker orchestration
+- mission-specific UI surfaces such as auxiliary panels
+
+Effect modules should not own:
+
+- core business rules
+- reusable calculation logic
+- hidden state policy
+
+### Application services
+
+Application services sit between the two. They may compose state ports, domain
+logic, and effect ports, but they should prefer to:
+
+- translate user intent into state patches or render intents
+- coordinate startup and shutdown
+- bridge pure plans to shell adapters
+
+They should avoid becoming effect-heavy controller hubs.
+
+## Current Runtime Shape
+
+### Product surfaces
+
+- `mission.html` is the runtime page shell. It resolves the mission slug, sets
+  `window.missionConfig`, and injects the runtime module.
+- `src/platform/js/mission.js` is still the main browser bootstrap script for
+  the mission runtime.
+- `index.html` and `src/platform/js/index-landing.js` are the landing/catalog
+  path and are outside the main mission runtime.
+
+### Boot flow
+
+The current mission boot flow is:
+
+1. `mission.html` resolves the mission and loads `src/platform/js/mission.js`.
+2. `mission.js` creates legacy state, closure-based runtime stores, the event
+   bus, scene/view/runtime entries, and the large `missionStateCells` bridge.
+3. `app/mission-app.js` wires browser events and kicks off
+   `handlers.initAnimation({ reset: true })`.
+4. `app/mission-runtime-handlers-entry.js` delegates startup to
+   `app/init-orchestration.js`.
+5. `app/init-orchestration.js` and `app/runtime-init.js` initialize config,
+   scenes, controls, orbit data, and landing data, then start the RAF loop.
+6. Per-frame work flows through `app/scene-frame-orchestration-actions.js`,
+   which uses `core/plans/frame-plan.js` and then applies render and UI intents
+   through shell adapters.
+
+### Current layers
+
+| Layer | Current anchors | Notes |
+|---|---|---|
+| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap, event wiring, startup repair, panel/control behavior |
+| Composition and runtime assembly | `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js` | Useful separation exists, but there is still repeated remapping of large dependency sets |
+| Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js` | Strongest functional-core foundation in the repo |
+| State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` is still transitional because of legacy fallbacks |
+| Data and integration | `data/mission-data.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset resolution and fetch/cache/provider work is still mixed |
+| Render and UI effects | `shell/render/frame-renderer.js`, `shell/ui/frame-ui-updater.js`, `shell/ui/mission-ui-effects.js`, `shell/time/clock-effects.js`, `rendering/*`, `controllers/*` | Effect ownership is clearest here and should be preserved |
+
+## What Is Already Working Well
+
+These modules already fit the target style and should be treated as examples to
+preserve and extend.
+
+### Domain and planning core
 
 - `core/domain/mission-config.js`
+- `core/domain/camera-policy.js`
+- `core/domain/event-time-resolver.js`
 - `core/domain/origin-compat.js`
 - `core/domain/ui-transition-plan.js`
+- `core/domain/mission-asset-resolver.js`
+- `core/domain/ephemeris-manifest.js`
 - `core/plans/frame-plan.js`
 
-Target rule:
-
-- no DOM
-- no Three.js scene mutation
-- no D3 mutation
-- no timers
-- no direct global state access
-
-### 2. Core State
-
-Small closure-based stores that own a specific slice of state.
-
-Examples that already fit reasonably well:
+### Narrow state ports
 
 - `core/state/runtime-view-state.js`
 - `core/state/runtime-session-state.js`
+- `core/state/runtime-interaction-state.js`
 - `core/state/runtime-loop-state.js`
-- `core/state/runtime-interaction-state.js`
 
-Target rule:
+### Thin shell adapters
 
-- may hold mutable state
-- may expose getters/setters
-- should not mutate scenes or DOM directly
-- should not hide unrelated responsibilities behind one giant facade
+- `shell/render/frame-renderer.js`
+- `shell/ui/frame-ui-updater.js`
+- `shell/ui/mission-ui-effects.js`
+- `shell/time/clock-effects.js`
 
-### 3. Application Services
+### Strong transitional seam
 
-Application-level coordination that combines core state, domain logic, and
-ports, but still avoids direct DOM/scene mutation where possible.
+- `scene-state.js` is already written as a functional-core module, even though
+  it still depends on provider modules from `data/*`.
 
-This is where we want to place:
+## Current Boundary Leaks
 
-- state translation
-- intent handling
-- scene/view sync planning
-- timeline/orbit-style decision logic
+These are the main places where concerns are still mixed.
 
-### 4. Shell / Effects
+### `mission.js`
 
-Imperative boundary layer.
+`mission.js` is smaller in responsibility than the older docs implied, but it
+is still too central. It currently mixes:
 
-This is where direct effects belong:
+- legacy state creation
+- runtime store creation
+- state-cell bridging
+- timeline dock syncing
+- active craft control syncing
+- render entry
+- final top-level composition
 
-- DOM reads/writes
-- D3 mutation
-- Three.js scene mutation
-- worker scheduling
-- timers
-- browser event listeners
-- Playwright orchestration in tests
+It should converge toward page bootstrap and composition only.
 
-## Desired Runtime Objects
+### `core/state/mission-state-store.js`
 
-## A. Composition Root
+This is still the largest state-boundary leak in the runtime. It mixes:
 
-### `MissionAppBootstrap`
+- config and view state access
+- scene lookup and mutation
+- ephemeris and data access
+- runtime hook access
+- command bridging
+- view flag patching
 
-Responsibility:
+It behaves like an everything store instead of a set of explicit ports.
 
-- create the runtime
-- wire modules together
-- expose only the minimal app start hooks
+### `app/settings-actions.js`
 
-Owns:
+This module still crosses too many boundaries in one place. It:
 
-- top-level dependency construction
-- creation order
-- handoff to startup
+- reads UI state
+- updates runtime view state
+- mutates SVG orbit groups
+- mutates Three.js scene objects
+- applies sky settings
+- applies helper visibility
+- forces an immediate render
 
-Should not own:
+The desired split is:
 
-- timeline behavior
-- scene mutation logic
-- view patching logic
-- business rules
+- a settings intent layer that produces state changes
+- a view/render sync layer that owns direct effects
 
-Current likely home:
+### `app/scene-view-state.js`
 
-- extracted from `src/platform/js/mission.js`
+This is the right idea, but it still embeds legacy-global fallback for
+zoom/pan/plane state. That makes the true source of truth ambiguous.
 
-## B. State Ports
+### `app/scene-frame-orchestration-actions.js`
 
-These should replace the current oversized state facade.
+This file is a promising seam because it already uses `planFrameStep`, but it
+still combines:
 
-### `MissionSessionState`
+- transient event latching
+- frame-plan execution
+- state patch application
+- render effect dispatch
+- UI effect dispatch
+- final `render()` call
 
-Responsibility:
+The direction should be to keep planning pure and keep this module as a thin
+bridge from plan to effects.
 
-- animation time
-- play/pause
-- joy ride flag
-- landing flag
+### `app/scene-ui-update-actions.js`
 
-Current basis:
+This module currently mixes:
 
-- `core/state/runtime-session-state.js`
+- telemetry calculations
+- event resolution and display logic
+- angle calculations
+- ground-track panel coordination
+- DOM updates
 
-### `MissionViewState`
+The calculations should be extracted into pure helpers or view-model builders,
+leaving only DOM and panel mutation in the shell.
 
-Responsibility:
+### `data/mission-data.js`
 
-- current origin/config
-- dimension
-- view flags
-- orbit style choice
-- user-controlled trail settings
+This file mixes multiple concerns:
 
-Current basis:
+- fetch and cache
+- config profile overlay loading
+- manifest loading
+- config normalization and validation
+- runtime asset URL resolution
 
-- `core/state/runtime-view-state.js`
+The pure config and manifest logic is already moving into `core/domain/*`. The
+remaining fetch/cache concerns should follow that split more clearly.
 
-### `MissionInteractionState`
+### `ui/event-handlers.js`
 
-Responsibility:
+This is no longer just event binding. It also contains:
 
-- transient input state
-- mouse-down state
-- timeout handles
-- dimension transition markers
+- control synchronization logic
+- mobile layout behavior
+- timeline presentation logic
+- settings panel behavior
+- mission-specific UI affordances
 
-Current basis:
+It is a shell module, but it should be decomposed into smaller shell features
+instead of remaining a broad UI utility file.
 
-- `core/state/runtime-interaction-state.js`
+### Runtime composition chain
 
-### `MissionSceneViewState`
-
-Responsibility:
-
-- per-scene plane selection
-- per-scene zoom/pan
-- per-scene view transform state
-
-Should eventually own:
-
-- all plane/zoom/pan state currently leaking through legacy globals
-
-Current basis:
-
-- `app/scene-view-state.js`
-
-### `MissionDataState`
-
-Responsibility:
-
-- ephemeris source status
-- loaded Chebyshev/NPZ references
-- landing data references
-- body-source mapping
-
-This should be separate from user/session/view state.
-
-### `MissionSceneRegistry`
-
-Responsibility:
-
-- animation scenes by origin
-- scene lookup
-- controller lookup
-
-This is a runtime object registry, not a general state store.
-
-## C. Application Services
-
-## 1. Startup and Composition
-
-### `MissionRuntimeBuilder`
-
-Responsibility:
-
-- accept explicit ports/dependencies
-- produce the runtime services needed by the app
-
-This replaces the current mega-context remapping chain.
-
-Current sources to simplify:
+The chain through:
 
 - `mission-runtime-wireup-entry.js`
 - `mission-runtime-entry.js`
@@ -219,324 +262,300 @@ Current sources to simplify:
 - `mission-runtime-static-deps.js`
 - `mission-runtime-handlers-entry.js`
 - `mission-wiring-composition.js`
+- `runtime-bootstrap-actions.js`
 
-### `MissionStartupService`
+does create structure, but it still relies on repeated remapping of large
+dependency sets. The next stage should simplify ownership, not add more
+wrapper layers.
 
-Responsibility:
+## Target Architecture
 
-- initialize scenes
-- load initial data
-- apply initial mission state
-- start animation loop
+The target is intentionally conservative. It is meant to fit the current code
+and migrate in place rather than force a rewrite.
 
-Current likely extraction source:
+### 1. Domain and planners
 
-- `mission-runtime-bootstrap.js`
-- `mission-app.js`
-- `mission.js`
-
-## 2. View State and Settings
-
-### `MissionSettingsService`
-
-Responsibility:
-
-- translate UI intent into view-state changes
-- coordinate origin/dimension transitions
-- produce a desired view patch
-
-Should not:
-
-- mutate DOM directly
-- mutate Three.js scene objects directly
-
-Current likely extraction source:
-
-- `settings-actions.js`
-
-### `MissionViewSyncService`
-
-Responsibility:
-
-- apply current view state to scenes and DOM
+This layer should own pure value-in/value-out logic.
 
 Owns:
 
-- orbit visibility sync
-- helper visibility sync
-- sky visibility sync
-- trail style application
+- config parsing, normalization, validation, and mission craft resolution
+- camera rules
+- event time resolution
+- asset and manifest resolution
+- frame planning
+- orbit-style math
+- telemetry and event view-model calculations
+- scene-state calculations
 
-This is where imperative scene/DOM mutation belongs.
+Current anchors:
 
-The shelf branch prototyped this idea as `mission-view-sync-actions.js`, but
-that file should be treated as a sketch, not as a direct merge target.
-
-## 3. Timeline
-
-### `MissionTimelineService`
-
-Responsibility:
-
-- timeline event selection
-- current marker resolution
-- craft availability band data
-- current dock model
-
-Should produce:
-
-- a plain timeline view model
-
-### `TimelineDockEffects`
-
-Responsibility:
-
-- bind the dock
-- render the dock UI
-- dispatch seek/marker events
-
-Current likely anchor:
-
-- `timeline-dock-controller.js`
-
-This separates timeline computation from dock mutation.
-
-## 4. Orbit Style
-
-### `OrbitStyleResolver`
-
-Responsibility:
-
-- pure trail/classic style decisions
-- opacity composition rules
-- tail/head visual resolution
-- background opacity resolution from metadata
-
-Current basis:
-
-- pure parts of `orbit-trail-style.js`
-
-### `OrbitStyleMetadataService`
-
-Responsibility:
-
-- normalize and store authored style metadata
-- answer style metadata queries for a scene/body
-
-Should not:
-
-- directly mutate scene materials
-
-Current likely extraction source:
-
-- `orbit-style-meta-actions.js`
-
-### `OrbitOverlapService`
-
-Responsibility:
-
-- decide whether dynamic overlap refinement is needed
-- schedule worker jobs
-- manage stale job invalidation
-
-Should not:
-
-- decide final visual policy beyond returning dimming factors
-
-Current likely extraction source:
-
-- `orbit-overlap-manager.js`
-
-### `OrbitRenderSyncService`
-
-Responsibility:
-
-- take view state + style state + overlap factors
-- apply final orbit line/SVG properties
-
-This should be the only place where final orbit appearance is pushed into
-rendered scene objects.
-
-## 5. Craft Selection and Visibility
-
-### `MissionCraftVisibilityService`
-
-Responsibility:
-
-- canonical visible craft ids
-- active craft selection
-- primary craft fallback rules
-
-Should expose:
-
-- pure selection/visibility decisions
-
-Current likely extraction source:
-
-- pure parts of `scene-craft-helpers.js`
-
-### `MissionCraftRenderSyncService`
-
-Responsibility:
-
-- apply visible/active craft state to:
-  - 3D craft visibility
-  - orbit visibility
-  - attached cameras/drones
-  - 2D orbit visibility groups
-
-This separates craft policy from craft scene mutation.
-
-## D. Shell / Effect Modules
-
-These should stay explicitly imperative.
-
-### `MissionUiEffects`
-
-Responsibility:
-
-- DOM updates
-- panel visibility
-- info/status text
-
-### `MissionSceneEffects`
-
-Responsibility:
-
-- Three.js object mutation
-- D3 orbit group mutation
-- helper visibility mutation
-
-### `WorkerEffects`
-
-Responsibility:
-
-- worker creation
-- worker message transport
-
-### `ClockEffects`
-
-Responsibility:
-
-- timeouts
-- intervals
-- animation frame interactions
-
-Current likely anchor:
-
-- `src/platform/js/shell/time/clock-effects.js`
+- `core/domain/*.js`
+- `core/plans/frame-plan.js`
+- `scene-state.js`
+- pure parts of `app/orbit-trail-style.js`
+- future pure helpers extracted from `scene-ui-update-actions.js`
+
+Should not own:
+
+- DOM access
+- Three.js or D3 mutation
+- timers
+- fetch or cache
+- hidden access to global runtime state
+
+### 2. State ports
+
+This layer should own narrow mutable state and explicit lookup APIs.
+
+Owns:
+
+- session state
+- view state
+- interaction state
+- loop state
+- scene-scoped plane/zoom/pan state
+- data-source and load state
+- scene and controller registry
+
+Current anchors:
+
+- `core/state/runtime-view-state.js`
+- `core/state/runtime-session-state.js`
+- `core/state/runtime-interaction-state.js`
+- `core/state/runtime-loop-state.js`
+- `app/scene-view-state.js`
+
+Target split for `mission-state-store.js`:
+
+- `MissionSessionPort`
+- `MissionViewPort`
+- `MissionInteractionPort`
+- `MissionDataPort`
+- `MissionSceneRegistry`
+
+Should not own:
+
+- DOM mutation
+- scene mutation
+- runtime command wiring
+- unrelated cross-cutting responsibilities in one facade
+
+### 3. Application services
+
+This layer should translate between state ports, domain planners, and shell
+effects.
+
+Owns:
+
+- startup orchestration
+- settings intent handling
+- dimension and origin transitions
+- frame orchestration
+- timeline and event model coordination
+- orbit-style policy coordination
+- mission data coordination
+
+Current anchors:
+
+- `app/init-orchestration.js`
+- `app/runtime-init.js`
+- `app/settings-actions.js`
+- `app/scene-frame-orchestration-actions.js`
+- `app/mission-runtime-handlers-entry.js`
+- `app/mission-wiring-composition.js`
+
+Target direction:
+
+- application services may build intents and call explicit effect ports
+- application services should not become the new home for direct DOM/Three/D3
+  mutation
+
+### 4. Shell and effects
+
+This layer should own direct interaction with the browser and renderers.
+
+Owns:
+
+- page bootstrap
+- DOM state and layout
+- D3/SVG mutation
+- Three.js mutation
+- requestAnimationFrame and timeout scheduling
+- fetch and cache
+- worker lifecycle
+- mission-specific panels and feature shells
+
+Current anchors:
+
+- `mission.html`
+- `mission.js`
+- `app/mission-app.js`
+- `ui/event-handlers.js`
+- `ui/ui-state.js`
+- `shell/*`
+- `rendering/*`
+- `controllers/*`
+- mission-specific panel modules such as
+  `app/auxiliary-camera-views.js` and `app/ground-track-panel.js`
 
 ## Dependency Rules
 
-## Allowed
+### Allowed
 
-- core domain -> nothing below it
-- core state -> core domain
-- application services -> core domain + core state + shell ports
-- shell/effects -> browser, DOM, Three.js, D3, workers
+- domain and planners -> nothing below them
+- state ports -> domain helpers
+- application services -> domain helpers + state ports + explicit shell ports
+- shell/effects -> browser APIs, DOM, Three.js, D3, workers, fetch
 - composition root -> everything
 
-## Not Allowed
+### Not allowed
 
-- core domain -> shell/effects
-- core state -> DOM/scene mutation
-- settings intent service -> direct Three.js/D3 mutation
-- metadata services -> direct material mutation
+- domain or planner modules -> DOM, Three.js, D3, timers, fetch
+- state ports -> DOM or scene mutation
+- settings intent service -> direct renderer mutation
+- data normalization helpers -> fetch and cache
 - test helpers -> hidden production business logic
 
-## Desired Replacements For Current Hotspots
+## Concrete Refactor Slices
 
-### Replace `mission.js` with:
+These are ordered by leverage and safety, not by novelty.
 
-- `MissionAppBootstrap`
-- `MissionBootstrapState`
-- `MissionTimelineService`
-- startup wiring only
+### Slice 1: split the state facade
 
-### Replace `mission-state-store.js` with:
+Goals:
 
-- `MissionSessionState`
-- `MissionViewState`
-- `MissionInteractionState`
-- `MissionDataState`
-- `MissionSceneRegistry`
-- small explicit access ports where needed
-
-### Replace `settings-actions.js` ownership with:
-
-- `MissionSettingsService` for intent/state changes
-- `MissionViewSyncService` for scene/DOM application
-
-### Replace orbit-style blending spread with:
-
-- `OrbitStyleResolver`
-- `OrbitStyleMetadataService`
-- `OrbitOverlapService`
-- `OrbitRenderSyncService`
-
-## Concrete Responsibility Table
-
-| Module / Service | Owns | Does Not Own |
-|---|---|---|
-| `MissionAppBootstrap` | startup composition | business rules, scene sync |
-| `MissionSessionState` | playback/session flags and time | DOM, scene mutation |
-| `MissionViewState` | origin/dimension/view flags | DOM, scene mutation |
-| `MissionSceneViewState` | per-scene plane/zoom/pan | global DOM state |
-| `MissionDataState` | loaded ephemeris references/status | user view state |
-| `MissionSceneRegistry` | scene/controller lookup | scene policy logic |
-| `MissionSettingsService` | interpret UI intent into state changes | direct DOM/scene mutation |
-| `MissionViewSyncService` | apply view state to renderers | UI input interpretation |
-| `MissionTimelineService` | timeline model computation | dock DOM mutation |
-| `TimelineDockEffects` | dock DOM mutation | timeline policy |
-| `OrbitStyleResolver` | pure orbit style decisions | scene mutation |
-| `OrbitStyleMetadataService` | metadata normalization/query | material mutation |
-| `OrbitOverlapService` | overlap job lifecycle | final appearance policy |
-| `OrbitRenderSyncService` | apply final orbit appearance | user settings interpretation |
-| `MissionCraftVisibilityService` | craft visibility/active selection rules | scene mutation |
-| `MissionCraftRenderSyncService` | apply craft visibility to scene | visibility policy |
-
-## First Refactor Slice Against This Target
-
-The first slice should be structural and low risk.
-
-### Slice 1
-
-- extract `MissionBootstrapState` from `mission.js`
-- split `mission-state-store.js` into narrower ports
-- stop flattening state + UI + clock effects into one object in runtime entry
+- turn `mission-state-store.js` into explicit ports
+- stop flattening state, UI, and clock effects into one `stateAccess` object
+- make `mission.js` less responsible for state-cell exposure
 
 Expected result:
 
-- smaller composition root
-- explicit runtime boundaries
-- easier second slice for settings/orbit sync
+- clearer ownership
+- simpler runtime wiring
+- better seams for the settings and frame work
 
-### Slice 2
+### Slice 2: separate settings intent from effects
 
-- split `settings-actions.js` into:
-  - intent/state service
-  - view sync service
+Goals:
 
-### Slice 3
+- keep view-setting interpretation in a settings service
+- move SVG, Three.js, sky, helper, and orbit sync into effect modules
 
-- split orbit-style modules into:
-  - resolver
-  - metadata service
-  - overlap service
-  - render sync
+Likely source:
 
-## Migration Strategy
+- `app/settings-actions.js`
+
+Expected result:
+
+- settings become state-driven
+- rendering side effects become easier to test and change
+
+### Slice 3: finish the frame pipeline split
+
+Goals:
+
+- keep `frame-plan.js` pure
+- extract transient event, telemetry, and event text calculations into pure
+  helpers
+- keep `frameRenderer` and `frameUiUpdater` as the only direct effect adapters
+
+Likely sources:
+
+- `app/scene-frame-orchestration-actions.js`
+- `app/scene-ui-update-actions.js`
+
+Expected result:
+
+- cleaner per-frame reasoning
+- easier performance tuning
+- easier UI testing without full scene mutation
+
+### Slice 4: make scene view state truly scene-scoped
+
+Goals:
+
+- move legacy zoom/pan/plane fallback behind an explicit compatibility adapter
+- make scene-scoped state the real source of truth
+
+Likely source:
+
+- `app/scene-view-state.js`
+
+Expected result:
+
+- fewer hidden globals
+- cleaner origin and dimension switching
+
+### Slice 5: collapse redundant composition layers
+
+Goals:
+
+- simplify the runtime entry and wireup chain
+- reduce repeated remapping of large dependency bags
+- make ownership explicit across bootstrap, wiring, and runtime services
+
+Likely sources:
+
+- `mission.js`
+- `app/mission-runtime-wireup-entry.js`
+- `app/mission-runtime-entry.js`
+- `app/mission-runtime-wireup-config.js`
+- `app/mission-wiring-composition.js`
+- `app/runtime-bootstrap-actions.js`
+
+Expected result:
+
+- fewer indirection layers
+- composition root that is easier to understand and change
+
+### Slice 6: split data loading from data normalization
+
+Goals:
+
+- keep config and manifest logic in pure domain modules
+- make `mission-data.js` a smaller integration module focused on fetch/cache
+- keep URL resolution manifest-driven
+
+Expected result:
+
+- a cleaner app/data boundary
+- easier testing of config, manifest, and loader behavior independently
+
+### Slice 7: break up large shell modules
+
+Goals:
+
+- decompose `ui/event-handlers.js`
+- reduce `mission.js` to bootstrap and top-level coordination only
+- keep mission-specific UI features isolated from reusable shell code
+
+Expected result:
+
+- smaller UI change surface
+- less incidental coupling between controls, layout, and mission-specific
+  behavior
+
+## Guardrails
 
 - move code before rewriting behavior
-- preserve current runtime/test behavior first
-- keep legacy compatibility in explicit adapters
-- replace broad `ctx` objects with narrower ports gradually
+- preserve current visuals first, then simplify
+- prefer explicit ports over broader context objects
+- every new pure helper should take all of its inputs explicitly
+- mission-specific features should stay at the shell edge unless they expose a
+  clearly reusable policy
+- run unit tests after structural slices and run the UI/SSIM gate at natural
+  checkpoints
 
-## Relationship To The Audit
+## Working Rule
 
-See also:
+When there is a design choice to make, prefer the option that moves logic
+toward:
 
-- [refactor-audit.md](refactor-audit.md)
+1. pure planners and selectors
+2. narrow state ports
+3. explicit effect adapters
+4. smaller composition roots
 
-That document explains the current problems. This document defines the desired
-destination.
+If a change does not improve one of those four things, it is probably not
+moving the architecture in the right direction.

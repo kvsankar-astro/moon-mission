@@ -33,6 +33,7 @@ Design material now lives under `docs/design/`, grouped by purpose:
 
 - Core computations are isolated in pure/state-centric helpers where possible (`src/platform/js/core/*`).
 - Imperative orchestration (DOM, rendering, event wiring, playback loop) is handled in app/shell modules (`src/platform/js/app/*`, controllers, UI actions).
+- The canonical runtime/refactor reference is [Target Architecture](architecture/target-architecture.md).
 
 ### Main runtime layers
 
@@ -125,7 +126,6 @@ Example deep dive:
 - [Relative Mode](architecture/relative-mode.md)
 - [Chebyshev Format Spec](architecture/chebyshev-format-spec.md)
 - [Chandrayaan 1 Event Sourcing](architecture/chandrayaan1-event-sourcing.md)
-- [Refactor Audit](architecture/refactor-audit.md)
 - [Target Architecture](architecture/target-architecture.md)
 
 ### Feature specs
@@ -136,7 +136,7 @@ Example deep dive:
 ### Roadmaps and implementation plans
 
 - [Panel System V1 Implementation Plan](roadmap/panel-system-v1-implementation-plan.md)
-- [Orbit UX and Refactor Roadmap](roadmap/orbit-ux-and-refactor-roadmap.md)
+- [Orbit UX Roadmap](roadmap/orbit-ux-and-refactor-roadmap.md)
 - [Real-Size Craft Follow Backlog](roadmap/real-size-craft-follow-backlog.md)
 
 ### Research and experiments

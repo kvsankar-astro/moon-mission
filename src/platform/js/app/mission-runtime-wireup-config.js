@@ -1,16 +1,22 @@
-function buildMissionRuntimeWireupConfig(ctx) {
+function mergeStatePortSlices(statePorts) {
+    return {
+        ...(statePorts?.app || {}),
+        ...(statePorts?.data || {}),
+        ...(statePorts?.session || {}),
+        ...(statePorts?.sceneView || {}),
+        ...(statePorts?.sceneRuntime || {}),
+        ...(statePorts?.interaction || {}),
+    };
+}
+
+function buildUiPort(ctx) {
     const {
         d3,
         d3SelectAll,
-        THREE,
-        Astronomy,
         windowRef,
         documentRef,
         consoleRef,
         SwiperClass,
-        PC,
-        TC,
-        UC,
         formatMetric,
         updateEventInfo,
         clearEventInfo,
@@ -20,36 +26,8 @@ function buildMissionRuntimeWireupConfig(ctx) {
         ensureIndeterminateProgressBar,
         showElementById,
         hideElementById,
-        sleep,
-        loadChebyshev,
-        loadJson,
-        loadNpz,
-        processOrbitData,
-        resolveLandingNpzUrl,
-        resolveLandingChebyshevUrl,
-        createUTCTimestamp,
-        animationScenes,
-        animation3DControllers,
-        animation2DControllers,
-        orbitDataLoaded,
-        orbitDataProcessed,
-        chebyshevData,
-        chebyshevDataLoaded,
-        npzData,
-        npzDataLoaded,
-        ephemerisRecords,
-        ephemerisStatuses,
-        planetProperties,
-        animationController,
-        AnimationScene,
-        Animation3DController,
-        Animation2DController,
-        SceneHandlerClass,
-        resolveOrbitUrls,
-        resolveOrbitMetaUrl,
-        resolveOrbitNpzUrl,
-        resolveOrbitSunChebyshevUrl,
-        loadMissionConfig,
+        clearProgressLabel,
+        updateD3ElementText,
         bindInfoPanelControls,
         updateEphemerisPanel,
         applyMissionMetadata,
@@ -57,11 +35,6 @@ function buildMissionRuntimeWireupConfig(ctx) {
         updateSpacecraftMnemonic,
         updateMoonUIFromConfig,
         updateLandingUIFromConfig,
-        applyLandingTimesUpdate,
-        computeLandingTimesUpdate,
-        applyEventsUpdate,
-        computeEventsUpdate,
-        computeMissionEventTimes,
         bindBurnButtons,
         shouldSkipInitConfig,
         applyInitConfigAlreadyInitialized,
@@ -72,15 +45,77 @@ function buildMissionRuntimeWireupConfig(ctx) {
         readOriginMode,
         readViewSettings,
         setFPSCounterVisibility,
-        computeSunLongitude,
-        computeSceneState,
-        getBodyEphemerisRange,
-        getBodyEphemerisState,
-        generateBodyCurve,
+        readCameraPositionMode,
+        readCameraLookMode,
+        applyCameraFromTo,
+        readPlaneSelection,
+        toggleStatsVisibility,
+        bindRepeatButtons,
+        initRepeatButtons,
+        resetViewTransformState,
+        uiEffects,
+    } = ctx;
+
+    return {
+        d3,
+        d3SelectAll,
+        windowRef,
+        documentRef,
+        consoleRef,
+        SwiperClass,
+        formatMetric,
+        updateEventInfo,
+        clearEventInfo,
+        updateProgressLabel,
+        ensureDeterminateProgressBar,
+        setProgressBarValue,
+        ensureIndeterminateProgressBar,
+        showElementById,
+        hideElementById,
+        clearProgressLabel,
+        updateD3ElementText,
+        bindInfoPanelControls,
+        updateEphemerisPanel,
+        applyMissionMetadata,
+        updateMultipleElementsText,
+        updateSpacecraftMnemonic,
+        updateMoonUIFromConfig,
+        updateLandingUIFromConfig,
+        bindBurnButtons,
+        shouldSkipInitConfig,
+        applyInitConfigAlreadyInitialized,
+        normalizePlaneSelection,
+        syncPlaneSelectionControls,
+        setChecked,
+        setPlaneSelectionState,
+        readOriginMode,
+        readViewSettings,
+        setFPSCounterVisibility,
+        readCameraPositionMode,
+        readCameraLookMode,
+        applyCameraFromTo,
+        readPlaneSelection,
+        toggleStatsVisibility,
+        bindRepeatButtons,
+        initRepeatButtons,
+        resetViewTransformState,
+        ...(uiEffects || {}),
+    };
+}
+
+function buildRenderPort(ctx) {
+    const {
+        THREE,
+        Astronomy,
+        animationScenes,
+        animation3DControllers,
+        animation2DControllers,
+        animationController,
+        AnimationScene,
+        Animation3DController,
+        Animation2DController,
+        SceneHandlerClass,
         PIXELS_PER_AU,
-        setZoomFactorState,
-        setPanXState,
-        setPanYState,
         showPlanet,
         handleDimensionSwitch,
         setLocation,
@@ -91,9 +126,6 @@ function buildMissionRuntimeWireupConfig(ctx) {
         updateCraftScale,
         adjustCameraProjectionMatrixAndSkyAngle,
         render,
-        stateAccess,
-        clearProgressLabel,
-        updateD3ElementText,
         createNavigationActions,
         createRepeatMouseDownHandlers,
         createLockActions,
@@ -102,69 +134,11 @@ function buildMissionRuntimeWireupConfig(ctx) {
         createBurnActions,
         loadSceneTextures,
         applyAndRefreshSceneTextures,
-        readCameraPositionMode,
-        readCameraLookMode,
-        applyCameraFromTo,
-        readPlaneSelection,
-        toggleStatsVisibility,
-        requestAnimationFrame,
-        clearTimeoutFn,
-        bindRepeatButtons,
-        initRepeatButtons,
-        resetViewTransformState,
-        getPanXState,
-        getPanYState,
-        getZoomFactorState,
         animateLoop,
         isTestMode,
     } = ctx;
 
-    const uiPort = {
-        d3,
-        d3SelectAll,
-        windowRef,
-        documentRef,
-        consoleRef,
-        SwiperClass,
-        formatMetric,
-        updateEventInfo,
-        clearEventInfo,
-        updateProgressLabel,
-        ensureDeterminateProgressBar,
-        setProgressBarValue,
-        ensureIndeterminateProgressBar,
-        showElementById,
-        hideElementById,
-        clearProgressLabel,
-        updateD3ElementText,
-        bindInfoPanelControls,
-        updateEphemerisPanel,
-        applyMissionMetadata,
-        updateMultipleElementsText,
-        updateSpacecraftMnemonic,
-        updateMoonUIFromConfig,
-        updateLandingUIFromConfig,
-        bindBurnButtons,
-        shouldSkipInitConfig,
-        applyInitConfigAlreadyInitialized,
-        normalizePlaneSelection,
-        syncPlaneSelectionControls,
-        setChecked,
-        setPlaneSelectionState,
-        readOriginMode,
-        readViewSettings,
-        setFPSCounterVisibility,
-        readCameraPositionMode,
-        readCameraLookMode,
-        applyCameraFromTo,
-        readPlaneSelection,
-        toggleStatsVisibility,
-        bindRepeatButtons,
-        initRepeatButtons,
-        resetViewTransformState,
-    };
-
-    const renderPort = {
+    return {
         THREE,
         Astronomy,
         animationScenes,
@@ -197,8 +171,43 @@ function buildMissionRuntimeWireupConfig(ctx) {
         animateLoop,
         isTestMode,
     };
+}
 
-    const dataPort = {
+function buildDataPort(ctx) {
+    const {
+        loadChebyshev,
+        loadJson,
+        loadNpz,
+        processOrbitData,
+        resolveLandingNpzUrl,
+        resolveLandingChebyshevUrl,
+        orbitDataLoaded,
+        orbitDataProcessed,
+        chebyshevData,
+        chebyshevDataLoaded,
+        npzData,
+        npzDataLoaded,
+        ephemerisRecords,
+        ephemerisStatuses,
+        planetProperties,
+        resolveOrbitUrls,
+        resolveOrbitMetaUrl,
+        resolveOrbitNpzUrl,
+        resolveOrbitSunChebyshevUrl,
+        loadMissionConfig,
+        applyLandingTimesUpdate,
+        computeLandingTimesUpdate,
+        applyEventsUpdate,
+        computeEventsUpdate,
+        computeMissionEventTimes,
+        computeSunLongitude,
+        computeSceneState,
+        getBodyEphemerisRange,
+        getBodyEphemerisState,
+        generateBodyCurve,
+    } = ctx;
+
+    return {
         loadChebyshev,
         loadJson,
         loadNpz,
@@ -230,8 +239,10 @@ function buildMissionRuntimeWireupConfig(ctx) {
         getBodyEphemerisState,
         generateBodyCurve,
     };
+}
 
-    const clockPort = {
+function buildClockPort(ctx) {
+    const {
         sleep,
         createUTCTimestamp,
         requestAnimationFrame,
@@ -239,10 +250,34 @@ function buildMissionRuntimeWireupConfig(ctx) {
         PC,
         TC,
         UC,
-    };
+        clockEffects,
+    } = ctx;
 
-    const statePort = {
-        ...stateAccess,
+    return {
+        sleep,
+        createUTCTimestamp,
+        requestAnimationFrame,
+        clearTimeoutFn,
+        PC,
+        TC,
+        UC,
+        ...(clockEffects || {}),
+    };
+}
+
+function buildStatePort(ctx) {
+    const {
+        statePorts,
+        getPanXState,
+        getPanYState,
+        getZoomFactorState,
+        setZoomFactorState,
+        setPanXState,
+        setPanYState,
+    } = ctx;
+
+    return {
+        ...mergeStatePortSlices(statePorts),
         getPanXState,
         getPanYState,
         getZoomFactorState,
@@ -250,14 +285,20 @@ function buildMissionRuntimeWireupConfig(ctx) {
         setPanXState,
         setPanYState,
     };
+}
 
-    const sharedPorts = {
-        uiPort,
-        renderPort,
-        dataPort,
-        clockPort,
-        statePort,
+function buildMissionRuntimePorts(ctx) {
+    return {
+        uiPort: buildUiPort(ctx),
+        renderPort: buildRenderPort(ctx),
+        dataPort: buildDataPort(ctx),
+        clockPort: buildClockPort(ctx),
+        statePort: buildStatePort(ctx),
     };
+}
+
+function buildMissionRuntimeWireupConfig(ctx) {
+    const sharedPorts = buildMissionRuntimePorts(ctx);
 
     return {
         wiringPorts: {

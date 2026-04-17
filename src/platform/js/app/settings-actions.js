@@ -1,8 +1,6 @@
 import {
     applySceneOrbitVisibility,
-    getSceneMissionCraftIds,
     setSceneVisibleCraftIds,
-    shouldShowSceneCraft,
     syncSceneActiveCraft,
 } from "./scene-craft-helpers.js";
 import { refreshSceneOrbitStyleOpacities } from "./orbit-style-meta-actions.js";
@@ -14,8 +12,12 @@ import {
     resolveTailOpacity2D,
     resolveTailVisualStyle,
     resolveTrackOpacity2D,
-    resolveTrackOpacity3D,
 } from "./orbit-trail-style.js";
+import {
+    buildSceneViewPlan,
+    resolveEffectiveOrbitStyle,
+} from "./view-application-plan.js";
+import { applySceneViewPlanToScene } from "./scene-view-plan-application.js";
 
 export function createSettingsActions({
     getConfig,
@@ -33,38 +35,6 @@ export function createSettingsActions({
     setDimension,
     onConfigChanged,
 }) {
-    function extractSkyParameterPatch(viewSettings) {
-        if (!viewSettings || typeof viewSettings !== "object") {
-            return null;
-        }
-        const patch = {};
-        if (typeof viewSettings.atmosphere_enabled === "boolean") {
-            patch.atmosphere_enabled = viewSettings.atmosphere_enabled;
-        }
-        if (Number.isFinite(viewSettings.bloom_strength)) {
-            patch.bloom_strength = viewSettings.bloom_strength;
-        }
-        if (Number.isFinite(viewSettings.star_size_scale)) {
-            patch.star_size_scale = viewSettings.star_size_scale;
-        }
-        if (Number.isFinite(viewSettings.extinction_strength)) {
-            patch.extinction_strength = viewSettings.extinction_strength;
-        }
-        if (Number.isFinite(viewSettings.twinkle_strength)) {
-            patch.twinkle_strength = viewSettings.twinkle_strength;
-        }
-        if (Number.isFinite(viewSettings.observer_lat)) {
-            patch.observer_lat = viewSettings.observer_lat;
-        }
-        if (Number.isFinite(viewSettings.observer_lon)) {
-            patch.observer_lon = viewSettings.observer_lon;
-        }
-        if (Number.isFinite(viewSettings.sky_time_ms)) {
-            patch.sky_time_ms = viewSettings.sky_time_ms;
-        }
-        return Object.keys(patch).length ? patch : null;
-    }
-
     function syncLocatorsPillState(enabled) {
         if (typeof document === "undefined") return;
         const locatorsPill = document.getElementById("locators-pill");
@@ -76,10 +46,6 @@ export function createSettingsActions({
     function isRelativeOriginSelected() {
         if (typeof document === "undefined") return false;
         return !!document.getElementById("origin-relative")?.checked;
-    }
-
-    function resolveEffectiveOrbitStyle(orbitStyle) {
-        return "classic";
     }
 
     function applyOrbitSvgStyle(
@@ -250,137 +216,31 @@ export function createSettingsActions({
 
         setFPSCounterVisibility(requestedView.viewFPS);
         const globalConfig = getGlobalConfig();
+        const relativeOriginSelected = isRelativeOriginSelected();
 
         ["geo", "lunar"].forEach(function(cfg) {
             const scene = animationScenes[cfg];
-            const nextVisibleCraftIds = Array.isArray(requestedView.visibleCraftIds)
-                ? requestedView.visibleCraftIds
-                : requestedView.viewAdditionalCrafts === true
-                    ? getSceneMissionCraftIds(scene, globalConfig)
-                    : requestedView.viewAdditionalCrafts === false
-                        ? [requestedView.activeCraftId ?? scene?.activeCraftId ?? scene?.primaryCraftId].filter(Boolean)
-                        : scene?.visibleCraftIds;
-            const view = {
-                ...requestedView,
-                activeCraftId: requestedView.activeCraftId ?? scene?.activeCraftId ?? scene?.primaryCraftId ?? null,
-                viewAdditionalCrafts:
-                    requestedView.viewAdditionalCrafts ?? scene?.viewAdditionalCrafts ?? false,
-                visibleCraftIds: nextVisibleCraftIds,
-            };
-            const effectiveOrbitStyle = resolveEffectiveOrbitStyle(view.orbitStyle);
-            if (scene) {
-                scene.trailContextOpacity2D = resolveTrackOpacity2D(view.trailTrackBrightness2D);
-                scene.trailContextOpacity3D = resolveTrackOpacity3D(view.trailTrackBrightness3D);
-                scene.trailTailProminence2D = view.trailTailBrightness2D;
-                scene.trailTailProminence3D = view.trailTailBrightness3D;
-                const visibleCraftIds = setSceneVisibleCraftIds(
-                    scene,
-                    globalConfig,
-                    view.visibleCraftIds,
-                );
-                const nextActiveCraftId = visibleCraftIds.length === 1
-                    ? visibleCraftIds[0]
-                    : view.activeCraftId;
-                scene.viewAdditionalCrafts = visibleCraftIds.length > 1;
-                syncSceneActiveCraft(scene, globalConfig, nextActiveCraftId);
-                refreshSceneOrbitStyleOpacities(scene);
-                applySceneTailProminence(
-                    scene,
-                    view.trailTailBrightness2D,
-                    view.trailTailBrightness3D,
-                );
-            }
-            if (scene?.planetsForLocations) {
-                for (const bodyId of scene.planetsForLocations) {
-                    const orbitElement =
-                        typeof document !== "undefined"
-                            ? document.getElementById(`orbit-${bodyId}`)
-                            : null;
-                    if (!orbitElement) continue;
-                    const isSecondaryBodyOrbit =
-                        globalConfig?.is_lunar &&
-                        ((cfg === "geo" && bodyId === "MOON") || (cfg === "lunar" && bodyId === "EARTH"));
-                    const visible = isSecondaryBodyOrbit
-                        ? view.viewMoonOsculatingOrbit && !isRelativeOriginSelected()
-                        : view.viewOrbit && shouldShowSceneCraft({
-                            scene,
-                            globalConfig,
-                            bodyId,
-                        });
-                    applyOrbitSvgStyle(
-                        orbitElement,
-                        effectiveOrbitStyle,
-                        view.trailTrackBrightness2D,
-                        view.trailTailBrightness2D,
-                    );
-                    orbitElement.setAttribute("visibility", visible ? "visible" : "hidden");
-                }
-            }
-            if (scene && scene.initialized3D) {
-                applySceneOrbitVisibility(
-                    scene,
-                    globalConfig,
-                    view.viewOrbit,
-                    effectiveOrbitStyle,
-                    view.trailTrackBrightness3D,
-                    view.trailTailBrightness3D,
-                );
-                if (cfg === "lunar" && getGlobalConfig()?.landing?.enabled) {
-                    if (scene.landingOrbitLine) {
-                        scene.landingOrbitLine.visible = view.viewOrbitDescent;
-                    }
-                }
-
-                scene.locations.forEach((x) => { x.visible = view.viewCraters; });
-
-                if (scene.axesHelper) {
-                    scene.axesHelper.visible = view.viewXYZAxes;
-                }
-
-                scene.earthNorthPoleSphere.visible = view.viewPoles;
-                scene.earthSouthPoleSphere.visible = view.viewPoles;
-                if (scene.sceneHelpers?.setBodyHalosVisible) {
-                    scene.sceneHelpers.setBodyHalosVisible(view.viewBodyHalos);
-                }
-
-                if (globalConfig?.is_lunar) {
-                    scene.moonNorthPoleSphere.visible = view.viewPoles;
-                    scene.moonSouthPoleSphere.visible = view.viewPoles;
-                    scene.moonAxis.visible = view.viewPolarAxes;
-                    if (scene.moonSOISphere) {
-                        scene.moonSOISphere.visible = view.viewMoonSOI;
-                    }
-                    if (scene.moonHillSphere) {
-                        scene.moonHillSphere.visible = view.viewMoonHillSphere;
-                    }
-                    if (scene.moonOsculatingOrbitLine) {
-                        scene.moonOsculatingOrbitLine.visible =
-                            cfg !== "relative" &&
-                            view.viewMoonOsculatingOrbit &&
-                            !isRelativeOriginSelected();
-                    }
-                }
-
-                scene.earthAxis.visible = view.viewPolarAxes;
-
-                applySkyLayerVisibility(scene, {
-                    viewSky: view.viewSky,
-                    viewConstellationLines: view.viewConstellationLines,
-                });
-                const skyPatch = extractSkyParameterPatch(view);
-                if (skyPatch) {
-                    scene.skyRenderer?.setParameters?.(skyPatch);
-                    if (Number.isFinite(skyPatch.sky_time_ms)) {
-                        scene.skyRenderer?.setTime?.(skyPatch.sky_time_ms);
-                    }
-                }
-                scene.sceneHelpers?.setEclipticPlaneVisible?.(view.viewEclipticPlane);
-                scene.sceneHelpers?.setEquatorialPlaneVisible?.(view.viewEquatorialPlane);
-                if (scene.eclipticPlaneHelper) scene.eclipticPlaneHelper.visible = view.viewEclipticPlane;
-                if (scene.eclipticPolarGridHelper) scene.eclipticPolarGridHelper.visible = view.viewEclipticPlane;
-                if (scene.equatorialPlaneHelper) scene.equatorialPlaneHelper.visible = view.viewEquatorialPlane;
-                if (scene.equatorialPolarGridHelper) scene.equatorialPolarGridHelper.visible = view.viewEquatorialPlane;
-            }
+            const plan = buildSceneViewPlan({
+                configKey: cfg,
+                requestedView,
+                scene,
+                globalConfig,
+                isRelativeOriginSelected: relativeOriginSelected,
+            });
+            applySceneViewPlanToScene({
+                scene,
+                configKey: cfg,
+                plan,
+                globalConfig,
+                documentRef: typeof document !== "undefined" ? document : null,
+                applyOrbitSvgStyle,
+                applySceneTailProminence,
+                applySceneOrbitVisibility,
+                setSceneVisibleCraftIds,
+                syncSceneActiveCraft,
+                refreshSceneOrbitStyleOpacities,
+                applySkyLayerVisibility,
+            });
         });
 
         // Force an immediate redraw of the active scene.

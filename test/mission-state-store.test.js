@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { createMissionStateStore } from "../src/platform/js/core/state/mission-state-store.js";
+import {
+    createMissionStatePorts,
+    createMissionStateStore,
+} from "../src/platform/js/core/state/mission-state-store.js";
 
 function createCell(initialValue) {
     let value = initialValue;
@@ -163,6 +166,50 @@ function createStore(overrides = {}) {
             getRuntimeBootstrapActions: overrides.getRuntimeBootstrapActions || (() => runtimeBootstrapActions),
             getAnimationSceneInitDone: overrides.getAnimationSceneInitDone || (() => true),
             syncPlaneStateForConfig,
+        }),
+    };
+}
+
+function createPorts(overrides = {}) {
+    const storeContext = createStore(overrides);
+    return {
+        ...storeContext,
+        ports: createMissionStatePorts({
+            state: storeContext.state,
+            runtimeFlags: storeContext.runtimeFlags,
+            animationScenes: overrides.animationScenes || {
+                geo: { planetsForLocations: ["EARTH"] },
+                lunar: { planetsForLocations: ["MOON"] },
+            },
+            orbitDataProcessed: overrides.orbitDataProcessed || { geo: true, lunar: false },
+            chebyshevData: overrides.chebyshevData || {},
+            chebyshevDataLoaded: overrides.chebyshevDataLoaded || {},
+            npzData: overrides.npzData || {},
+            npzDataLoaded: overrides.npzDataLoaded || {},
+            landingNpzData: storeContext.landingNpzData,
+            landingNpzLoaded: storeContext.landingNpzLoaded,
+            landingChebyshevData: storeContext.landingChebyshevData,
+            landingChebyshevLoaded: storeContext.landingChebyshevLoaded,
+            planetProperties: overrides.planetProperties || {},
+            ephemerisStatuses: overrides.ephemerisStatuses || {},
+            resolveBodySource: overrides.resolveBodySource || (({ bodyId }) => bodyId),
+            getActiveEphemerisSource: overrides.getActiveEphemerisSource || (() => "chebyshev"),
+            getPlaneVariablesState: overrides.getPlaneVariablesState || (() => ({
+                xFactor: 1,
+                yFactor: 1,
+                xVariable: "x",
+                yVariable: "y",
+            })),
+            getZoomFactorState: overrides.getZoomFactorState || (() => 1),
+            getPanXState: overrides.getPanXState || (() => 0),
+            getPanYState: overrides.getPanYState || (() => 0),
+            getPlaneSelectionState: overrides.getPlaneSelectionState || (() => "DEFAULT"),
+            setPlaneVariablesState: overrides.setPlaneVariablesState || (() => {}),
+            getRuntimeBootstrapActions:
+                overrides.getRuntimeBootstrapActions ||
+                (() => storeContext.runtimeBootstrapActions),
+            getAnimationSceneInitDone: overrides.getAnimationSceneInitDone || (() => true),
+            syncPlaneStateForConfig: storeContext.syncPlaneStateForConfig,
         }),
     };
 }
@@ -342,6 +389,28 @@ describe("createMissionStateStore", () => {
         store.toggleLanding();
 
         expect(toggleLanding).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("createMissionStatePorts", () => {
+    it("exposes the split runtime ports without UI or timer side effects", () => {
+        const { ports } = createPorts();
+
+        expect(Object.keys(ports).sort()).toEqual([
+            "app",
+            "data",
+            "interaction",
+            "sceneRuntime",
+            "sceneView",
+            "session",
+        ]);
+        expect(ports.app.getConfig()).toBe("geo");
+        expect(ports.session.getJoyRideFlag()).toBe(false);
+        expect(ports.data.getEphemerisSource()).toBe("chebyshev");
+        expect(ports.sceneRuntime.getSceneHandler()).toBeNull();
+        expect(ports.interaction.getLegacyTimeoutHandle()).toBeNull();
+        expect(ports.app.setEventInfoText).toBeUndefined();
+        expect(ports.session.clearLegacyTimeout).toBeUndefined();
     });
 });
 

@@ -1,5 +1,20 @@
 import { createGroundTrackPanelActions } from "./ground-track-panel.js";
-import { buildEventInfoText, isBurnIndicatorVisibleAtTime } from "./burn-event-metadata.js";
+import {
+    planActiveEventUiState,
+    resolveActiveEventButtonMatchIndex,
+} from "../core/domain/active-event-ui-state.js";
+import {
+    buildTelemetryDisplayModel,
+    resolveTelemetryUnitLabels,
+    UNIT_MODE_KM,
+    UNIT_MODE_MILES,
+} from "../core/domain/telemetry-display-model.js";
+import { buildPhaseIndicatorModel } from "../core/domain/phase-indicator-state.js";
+import {
+    computeAngleDegreesBetweenVectors,
+    computeEarthCraftMoonAngleFromSceneState,
+    hasFiniteVector3,
+} from "../core/domain/earth-craft-moon-angle.js";
 
 function createSceneUiUpdateActions(deps) {
     const {
@@ -8,10 +23,6 @@ function createSceneUiUpdateActions(deps) {
         updateEventInfo,
         clearEventInfo,
     } = deps;
-    const KM_TO_MILES = 0.621371192237334;
-    const KMPS_TO_MPH = 2236.9362920544;
-    const UNIT_MODE_KM = "km";
-    const UNIT_MODE_MILES = "miles";
     const ACTIVE_EVENT_BUTTON_CLASS = "burnbutton--active-event";
     let highlightedEventButton = null;
     let activeEventVisible = false;
@@ -22,120 +33,10 @@ function createSceneUiUpdateActions(deps) {
     let sceneStateSnapshot = null;
     const groundTrackPanelActions = createGroundTrackPanelActions({ formatMetric });
 
-    function convertDistanceValue(valueKm) {
-        if (!Number.isFinite(valueKm)) return null;
-        if (metricUnitMode === UNIT_MODE_MILES) {
-            return valueKm * KM_TO_MILES;
-        }
-        return valueKm;
-    }
-
-    function convertVelocityValue(valueKmPerSec) {
-        if (!Number.isFinite(valueKmPerSec)) return null;
-        if (metricUnitMode === UNIT_MODE_MILES) {
-            return valueKmPerSec * KMPS_TO_MPH;
-        }
-        return valueKmPerSec;
-    }
-
-    function setMetricText(selector, value, metricType) {
-        if (!Number.isFinite(value)) {
-            d3.select(selector).text("");
-            return;
-        }
-        const converted =
-            metricType === "speed"
-                ? convertVelocityValue(value)
-                : convertDistanceValue(value);
-        d3.select(selector).text(Number.isFinite(converted) ? formatMetric(converted) : "");
-    }
-
-    function formatMetricWithUnit(value, metricType) {
-        if (!Number.isFinite(value)) return "--";
-        const converted =
-            metricType === "speed"
-                ? convertVelocityValue(value)
-                : convertDistanceValue(value);
-        if (!Number.isFinite(converted)) return "--";
-        const unitText =
-            metricType === "speed"
-                ? (metricUnitMode === UNIT_MODE_MILES ? "miles/h" : "km/s")
-                : (metricUnitMode === UNIT_MODE_MILES ? "miles" : "km");
-        return `${formatMetric(converted)} ${unitText}`;
-    }
-
     function setMobileText(id, text) {
         const node = document.getElementById(id);
         if (!node) return;
         node.textContent = text;
-    }
-
-    function hasFiniteVector3(vector) {
-        return !!vector &&
-            Number.isFinite(vector.x) &&
-            Number.isFinite(vector.y) &&
-            Number.isFinite(vector.z);
-    }
-
-    function resolveCraftPositionFromSceneState(sceneState) {
-        const bodies = sceneState?.bodies;
-        if (!bodies || typeof bodies !== "object") return null;
-
-        const telemetryBodyId = String(sceneState?.telemetryBodyId || "").toUpperCase();
-        if (telemetryBodyId && hasFiniteVector3(bodies[telemetryBodyId]?.position)) {
-            return bodies[telemetryBodyId].position;
-        }
-        if (hasFiniteVector3(bodies.SC?.position)) {
-            return bodies.SC.position;
-        }
-
-        for (const [bodyId, bodyState] of Object.entries(bodies)) {
-            const normalizedId = String(bodyId || "").toUpperCase();
-            if (normalizedId === "EARTH" || normalizedId === "MOON" || normalizedId === "SUN") {
-                continue;
-            }
-            if (hasFiniteVector3(bodyState?.position)) {
-                return bodyState.position;
-            }
-        }
-        return null;
-    }
-
-    function computeAngleDegreesBetweenVectors(fromVertexA, fromVertexB) {
-        if (!hasFiniteVector3(fromVertexA) || !hasFiniteVector3(fromVertexB)) return null;
-        const aMag = Math.hypot(fromVertexA.x, fromVertexA.y, fromVertexA.z);
-        const bMag = Math.hypot(fromVertexB.x, fromVertexB.y, fromVertexB.z);
-        if (!Number.isFinite(aMag) || !Number.isFinite(bMag) || aMag <= 1e-9 || bMag <= 1e-9) {
-            return null;
-        }
-        const dot = fromVertexA.x * fromVertexB.x + fromVertexA.y * fromVertexB.y + fromVertexA.z * fromVertexB.z;
-        const cosine = dot / (aMag * bMag);
-        if (!Number.isFinite(cosine)) return null;
-        const angleRadians = Math.acos(Math.max(-1, Math.min(1, cosine)));
-        if (!Number.isFinite(angleRadians)) return null;
-        return angleRadians * (180 / Math.PI);
-    }
-
-    function computeEarthCraftMoonAngleFromSceneState(sceneState) {
-        const scPos = resolveCraftPositionFromSceneState(sceneState);
-        const earthPos = sceneState?.bodies?.EARTH?.position;
-        const moonPos = sceneState?.bodies?.MOON?.position;
-        if (!hasFiniteVector3(scPos) || !hasFiniteVector3(earthPos) || !hasFiniteVector3(moonPos)) {
-            return null;
-        }
-
-        return computeAngleDegreesBetweenVectors(
-            {
-                x: earthPos.x - moonPos.x,
-                y: earthPos.y - moonPos.y,
-                z: earthPos.z - moonPos.z,
-            },
-            {
-                x: scPos.x - moonPos.x,
-                y: scPos.y - moonPos.y,
-                z: scPos.z - moonPos.z,
-            },
-        );
     }
 
     function resolveActiveSceneForAngle() {
@@ -199,27 +100,15 @@ function createSceneUiUpdateActions(deps) {
         return computeEarthCraftMoonAngleFromSceneGraph();
     }
 
-    function formatAngleMetric(angleDegrees) {
-        if (!Number.isFinite(angleDegrees)) return "--";
-        return `${angleDegrees.toFixed(1)}°`;
-    }
-
     function updateUnitLabels() {
-        const distanceUnitText =
-            metricUnitMode === UNIT_MODE_MILES
-                ? "miles"
-                : "km";
-        const speedUnitText =
-            metricUnitMode === UNIT_MODE_MILES
-                ? "miles/h"
-                : "km/s";
+        const unitLabels = resolveTelemetryUnitLabels(metricUnitMode);
         const distanceNodes = document.querySelectorAll(".stats-unit-distance");
         for (const node of distanceNodes) {
-            node.textContent = distanceUnitText;
+            node.textContent = unitLabels.distance;
         }
         const speedNodes = document.querySelectorAll(".stats-unit-speed");
         for (const node of speedNodes) {
-            node.textContent = speedUnitText;
+            node.textContent = unitLabels.speed;
         }
 
         const kmButton = document.getElementById("stats-unit-km");
@@ -249,79 +138,24 @@ function createSceneUiUpdateActions(deps) {
         }
     }
 
-    function updateMobileTelemetry(sceneState, primaryBody, tel) {
-        if (!tel) {
-            setMobileText("mobile-metric-earth", "--");
-            setMobileText("mobile-metric-moon", "--");
-            setMobileText("mobile-metric-speed", "--");
-            setMobileText("mobile-metric-angle", "--");
-            return;
-        }
-
-        const earthDistance = tel.distanceEarth !== undefined && tel.distanceEarth !== null
-            ? tel.distanceEarth
-            : (primaryBody === "EARTH" ? tel.distancePrimary : null);
-        const moonDistance = tel.distanceMoon !== undefined && tel.distanceMoon !== null
-            ? tel.distanceMoon
-            : (primaryBody === "MOON" ? tel.distancePrimary : null);
-
-        setMobileText("mobile-metric-earth", formatMetricWithUnit(earthDistance, "distance"));
-        setMobileText("mobile-metric-moon", formatMetricWithUnit(moonDistance, "distance"));
-        setMobileText("mobile-metric-speed", formatMetricWithUnit(tel.velocityPrimary, "speed"));
-        setMobileText("mobile-metric-angle", formatAngleMetric(computeEarthCraftMoonAngleDegrees(sceneState)));
-    }
-
     function renderTelemetry() {
-        const tel = telemetrySnapshot;
-        const primaryBody = telemetryPrimaryBody;
-        if (!tel) {
-            setMetricText("#distance-SC-EARTH", null, "distance");
-            setMetricText("#altitude-SC-EARTH", null, "distance");
-            setMetricText("#velocity-SC-EARTH", null, "speed");
-            setMetricText("#distance-SC-MOON", null, "distance");
-            setMetricText("#altitude-SC-MOON", null, "distance");
-            setMetricText("#velocity-SC-MOON", null, "speed");
-            updateMobileTelemetry(null, primaryBody, null);
-            return;
-        }
-
-        setMetricText(`#distance-SC-${primaryBody}`, tel.distancePrimary, "distance");
-        setMetricText(`#altitude-SC-${primaryBody}`, tel.altitudePrimary, "distance");
-        setMetricText(`#velocity-SC-${primaryBody}`, tel.velocityPrimary, "speed");
-
-        const hasMoonSecondary = tel.distanceMoon !== undefined && tel.distanceMoon !== null;
-        const hasEarthSecondary = tel.distanceEarth !== undefined && tel.distanceEarth !== null;
-
-        // Always write both panels each frame so stale values never linger.
-        if (hasMoonSecondary) {
-            setMetricText("#distance-SC-MOON", tel.distanceMoon, "distance");
-            setMetricText("#altitude-SC-MOON", tel.altitudeMoon, "distance");
-            setMetricText("#velocity-SC-MOON", tel.velocityMoon, "speed");
-        } else if (primaryBody === "MOON") {
-            setMetricText("#distance-SC-MOON", tel.distancePrimary, "distance");
-            setMetricText("#altitude-SC-MOON", tel.altitudePrimary, "distance");
-            setMetricText("#velocity-SC-MOON", tel.velocityPrimary, "speed");
-        } else {
-            setMetricText("#distance-SC-MOON", null, "distance");
-            setMetricText("#altitude-SC-MOON", null, "distance");
-            setMetricText("#velocity-SC-MOON", null, "speed");
-        }
-
-        if (hasEarthSecondary) {
-            setMetricText("#distance-SC-EARTH", tel.distanceEarth, "distance");
-            setMetricText("#altitude-SC-EARTH", tel.altitudeEarth, "distance");
-            setMetricText("#velocity-SC-EARTH", tel.velocityEarth, "speed");
-        } else if (primaryBody === "EARTH") {
-            setMetricText("#distance-SC-EARTH", tel.distancePrimary, "distance");
-            setMetricText("#altitude-SC-EARTH", tel.altitudePrimary, "distance");
-            setMetricText("#velocity-SC-EARTH", tel.velocityPrimary, "speed");
-        } else {
-            setMetricText("#distance-SC-EARTH", null, "distance");
-            setMetricText("#altitude-SC-EARTH", null, "distance");
-            setMetricText("#velocity-SC-EARTH", null, "speed");
-        }
-
-        updateMobileTelemetry(sceneStateSnapshot, primaryBody, tel);
+        const telemetryDisplayModel = buildTelemetryDisplayModel({
+            telemetry: telemetrySnapshot,
+            primaryBody: telemetryPrimaryBody,
+            angleDegrees: computeEarthCraftMoonAngleDegrees(sceneStateSnapshot),
+            unitMode: metricUnitMode,
+            formatMetric,
+        });
+        d3.select("#distance-SC-EARTH").text(telemetryDisplayModel.desktop.distanceEarth);
+        d3.select("#altitude-SC-EARTH").text(telemetryDisplayModel.desktop.altitudeEarth);
+        d3.select("#velocity-SC-EARTH").text(telemetryDisplayModel.desktop.velocityEarth);
+        d3.select("#distance-SC-MOON").text(telemetryDisplayModel.desktop.distanceMoon);
+        d3.select("#altitude-SC-MOON").text(telemetryDisplayModel.desktop.altitudeMoon);
+        d3.select("#velocity-SC-MOON").text(telemetryDisplayModel.desktop.velocityMoon);
+        setMobileText("mobile-metric-earth", telemetryDisplayModel.mobile.earth);
+        setMobileText("mobile-metric-moon", telemetryDisplayModel.mobile.moon);
+        setMobileText("mobile-metric-speed", telemetryDisplayModel.mobile.speed);
+        setMobileText("mobile-metric-angle", telemetryDisplayModel.mobile.angle);
     }
 
     function setMetricUnitMode(nextMode) {
@@ -382,36 +216,18 @@ function createSceneUiUpdateActions(deps) {
         }
     }
 
-    function normalizeText(value) {
-        return typeof value === "string" ? value.trim().toLowerCase() : "";
-    }
-
     function resolveButtonForActiveEvent(activeEvent) {
-        const eventKey = typeof activeEvent?.key === "string" ? activeEvent.key : "";
-        const buttons = document.querySelectorAll("#burnbuttons button[data-event-key]");
+        const buttons = Array.from(document.querySelectorAll("#burnbuttons button[data-event-key]"));
         if (!buttons.length) return null;
-
-        if (eventKey) {
-            for (const button of buttons) {
-                if (button?.dataset?.eventKey === eventKey) {
-                    return button;
-                }
-            }
-        }
-
-        const eventLabel = normalizeText(activeEvent?.label);
-        const eventHoverText = normalizeText(activeEvent?.hoverText || activeEvent?.infoText);
-        for (const button of buttons) {
-            const buttonLabel = normalizeText(button?.textContent);
-            const buttonTitle = normalizeText(button?.getAttribute("title"));
-            if (eventLabel && buttonLabel === eventLabel) {
-                return button;
-            }
-            if (eventHoverText && buttonTitle && buttonTitle === eventHoverText) {
-                return button;
-            }
-        }
-        return null;
+        const matchedIndex = resolveActiveEventButtonMatchIndex({
+            activeEvent,
+            buttonDescriptors: buttons.map((button) => ({
+                eventKey: button?.dataset?.eventKey || "",
+                label: button?.textContent || "",
+                title: button?.getAttribute("title") || "",
+            })),
+        });
+        return matchedIndex === null ? null : buttons[matchedIndex] || null;
     }
 
     function updateActiveEventButtonHighlight(activeEvent) {
@@ -459,50 +275,37 @@ function createSceneUiUpdateActions(deps) {
     }
 
     function updatePhaseIndicator(sceneState, globalConfig) {
-        const isLunarMission = !!(globalConfig && globalConfig.is_lunar);
-        if (isLunarMission) {
-            d3.select("#phase-1").html("Earth Bound Phase");
-            d3.select("#phase-2").html("Lunar Bound Phase");
-            d3.select("#phase-3").html("Lunar Orbit Phase");
-        }
+        const phaseIndicatorModel = buildPhaseIndicatorModel({
+            phase: sceneState?.phase,
+            isLunarMission: !!(globalConfig && globalConfig.is_lunar),
+        });
 
-        if (sceneState.phase === "earth-bound") {
-            if (isLunarMission) {
-                d3.select("#phase-1").html("<b><u>Earth Bound Phase</u></b>");
-            }
-            setMobileText("mobile-mission-phase", "Earth Bound");
-        } else if (sceneState.phase === "lunar-bound") {
-            if (isLunarMission) {
-                d3.select("#phase-2").html("<b><u>Lunar Bound Phase</u></b>");
-            }
-            setMobileText("mobile-mission-phase", "Lunar Bound");
-        } else if (sceneState.phase === "lunar-orbit") {
-            if (isLunarMission) {
-                d3.select("#phase-3").html("<b><u>Lunar Orbit Phase</u></b>");
-            }
-            setMobileText("mobile-mission-phase", "Lunar Orbit");
-        } else {
-            setMobileText("mobile-mission-phase", "--");
+        for (const phaseEntry of phaseIndicatorModel.desktopPhases) {
+            d3.select(`#${phaseEntry.id}`).html(
+                phaseEntry.isActive
+                    ? `<b><u>${phaseEntry.label}</u></b>`
+                    : phaseEntry.label,
+            );
         }
+        setMobileText("mobile-mission-phase", phaseIndicatorModel.mobilePhaseText);
     }
 
     function updateActiveEvent(sceneState) {
-        if (sceneState.activeEvent) {
-            const showBurnIndicator = isBurnIndicatorVisibleAtTime(
-                sceneState.activeEvent,
-                sceneState?.time,
-            );
-            if (showBurnIndicator && !activeEventVisible) {
+        const activeEventUiState = planActiveEventUiState({
+            activeEvent: sceneState.activeEvent,
+            currentTimeMs: sceneState?.time,
+        });
+        if (activeEventUiState.hasActiveEvent) {
+            if (activeEventUiState.showBurnIndicator && !activeEventVisible) {
                 d3.select("#burng").style("visibility", "visible");
                 activeEventVisible = true;
             }
-            if (!showBurnIndicator && activeEventVisible) {
+            if (!activeEventUiState.showBurnIndicator && activeEventVisible) {
                 d3.select("#burng").style("visibility", "hidden");
                 activeEventVisible = false;
             }
-            const eventText = buildEventInfoText(sceneState.activeEvent);
-            updateEventInfo(eventText);
-            setMobileText("mobile-mission-event", eventText || "No active event");
+            updateEventInfo(activeEventUiState.eventText);
+            setMobileText("mobile-mission-event", activeEventUiState.mobileEventText);
             updateActiveEventButtonHighlight(sceneState.activeEvent);
             return;
         }
