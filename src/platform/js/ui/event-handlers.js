@@ -8,13 +8,13 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { createMobileComposeControlsSync } from "./mobile-compose-controls-sync.js";
 import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
 import { createMobileComposeTimelineSync } from "./mobile-compose-timeline-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
-import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
 /**
  * UI Event Handlers
@@ -2296,20 +2296,8 @@ export function bindMobileMissionCard() {
     };
     const MISSION_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-mission-panel-collapsed:v1";
     const VIEWS_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-views-panel-collapsed:v1";
-    const EARTHSHINE_GAIN_STORAGE_KEY = "moon-mission:mobile-earthshine-gain:v1";
     const COMPOSE_TIMELINE_RESOLUTION = 1000;
     const COMPOSE_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
-    const EARTHSHINE_GAIN_MIN = 0;
-    const EARTHSHINE_GAIN_MAX = 2.4;
-    const EARTHSHINE_BASE_INTENSITY = Number.isFinite(LT.EARTHSHINE_INTENSITY)
-        ? LT.EARTHSHINE_INTENSITY
-        : 0.08;
-    const EARTHSHINE_BASE_MIN = Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
-        ? LT.EARTHSHINE_MIN_INTENSITY
-        : 0.015;
-    const EARTHSHINE_BASE_MAX = Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
-        ? LT.EARTHSHINE_MAX_INTENSITY
-        : 0.08;
     const COMPOSE_DEFAULT_FOV = 110;
     let activeMobileTab = "mission";
     let activeMobileViewPresetId = "moon";
@@ -2332,10 +2320,6 @@ export function bindMobileMissionCard() {
     let mobileMoonOverlayCtx = null;
     let mobileViewsPinchState = null;
     let mobileMoonVisibilitySignature = "";
-    let mobileEarthshineGain = 1;
-    let mobileComposeHiddenCraftState = null;
-    let mobileComposeRollRad = (250 * Math.PI) / 180;
-    let mobileComposeFreeStartupAligned = false;
     let mobileComposeDefaultFovApplied = false;
     let mobileMissionLocatorBaseline = null;
     const MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS = 180;
@@ -2440,7 +2424,7 @@ export function bindMobileMissionCard() {
             }
             stopMobileMoonVisibilityLoop();
             syncMobileMoonVisibilityInfo({ force: true });
-            syncMobileComposePresentation();
+            mobileComposeControlsSync?.syncPresentation?.();
         }
         applyMobileRenderViewportCentering();
     };
@@ -3372,7 +3356,7 @@ export function bindMobileMissionCard() {
                 mobileMoonOverlayLoopHandle = null;
                 return;
             }
-            syncMobileComposePresentation();
+            mobileComposeControlsSync?.syncPresentation?.();
             applyAutoFovForActivePreset();
             const scene = resolveActiveScene();
             if (
@@ -3508,210 +3492,6 @@ export function bindMobileMissionCard() {
         });
     };
 
-    const clampEarthshineGain = (value) => {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return 1;
-        return Math.min(EARTHSHINE_GAIN_MAX, Math.max(EARTHSHINE_GAIN_MIN, numeric));
-    };
-
-    const updateMobileComposeEarthshineDisplay = (value) => {
-        const gain = clampEarthshineGain(value);
-        if (mobileComposeEarthshineSlider) {
-            mobileComposeEarthshineSlider.value = String(gain.toFixed(2));
-        }
-        if (mobileComposeEarthshineValue) {
-            const text = `${gain.toFixed(2)}`;
-            mobileComposeEarthshineValue.value = text;
-            mobileComposeEarthshineValue.textContent = text;
-        }
-    };
-
-    const applyMobileComposeEarthshineGain = (value, { persist = true } = {}) => {
-        const gain = clampEarthshineGain(value);
-        mobileEarthshineGain = gain;
-        LT.EARTHSHINE_INTENSITY = EARTHSHINE_BASE_INTENSITY * gain;
-        LT.EARTHSHINE_MIN_INTENSITY = EARTHSHINE_BASE_MIN * gain;
-        LT.EARTHSHINE_MAX_INTENSITY = EARTHSHINE_BASE_MAX * gain;
-        updateMobileComposeEarthshineDisplay(gain);
-        if (persist) {
-            try {
-                window.localStorage?.setItem(EARTHSHINE_GAIN_STORAGE_KEY, String(gain));
-            } catch {
-                // Ignore localStorage write failures.
-            }
-        }
-    };
-
-    const normalizeComposeRoll = (value) => {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return 0;
-        const twoPi = Math.PI * 2;
-        return ((numeric % twoPi) + twoPi) % twoPi;
-    };
-
-    const formatComposeRollLabel = (degrees) => {
-        const normalized = ((Math.round(degrees) % 360) + 360) % 360;
-        if (normalized === 0) return `N ${normalized}\u00b0`;
-        if (normalized === 90) return `E ${normalized}\u00b0`;
-        if (normalized === 180) return `S ${normalized}\u00b0`;
-        if (normalized === 270) return `W ${normalized}\u00b0`;
-        return `${normalized}\u00b0`;
-    };
-
-    const syncMobileComposeRollSliderUi = () => {
-        if (!mobileComposeRollSlider) return;
-        mobileComposeRollRad = normalizeComposeRoll(mobileComposeRollRad);
-        const degreesNormalized = (((mobileComposeRollRad * 180) / Math.PI) % 360 + 360) % 360;
-        const rounded = Math.round(degreesNormalized) % 360;
-        mobileComposeRollSlider.value = String(rounded);
-        if (mobileComposeRollValue) {
-            const label = formatComposeRollLabel(rounded);
-            mobileComposeRollValue.value = label;
-            mobileComposeRollValue.textContent = label;
-        }
-    };
-
-    const resolveComposeLookTarget = (scene, controller) => {
-        const camera = scene?.camera;
-        if (!camera?.position?.clone) return null;
-        const lookMode = (controller?.lookMode || desktopLook?.value || "manual").trim();
-        if (lookMode === "earth" || lookMode === "moon" || lookMode === "spacecraft") {
-            const targetObject = resolveSceneObject(scene, lookMode);
-            if (targetObject?.getWorldPosition) {
-                const target = camera.position.clone();
-                targetObject.getWorldPosition(target);
-                return target;
-            }
-        }
-        if (controller?.controls?.target?.clone) {
-            return controller.controls.target.clone();
-        }
-        if (camera.getWorldDirection) {
-            const target = camera.position.clone();
-            const viewDir = camera.position.clone();
-            camera.getWorldDirection(viewDir);
-            return target.add(viewDir);
-        }
-        return null;
-    };
-
-    const applyMobileComposeRoll = () => {
-        if (!shouldUseEarthrisePresentation()) return;
-        const scene = resolveActiveScene();
-        const controller = scene?.cameraController;
-        controller?.setMountedManualRollRad?.(mobileComposeRollRad);
-        const camera = scene?.camera;
-        if (!camera?.position?.clone) return;
-
-        const lookTarget = resolveComposeLookTarget(scene, controller);
-        if (!lookTarget?.clone) return;
-
-        const viewDir = lookTarget.clone().sub(camera.position);
-        if (viewDir.lengthSq?.() <= 1e-12) return;
-        viewDir.normalize();
-
-        const baseUp = camera.position.clone().set(0, 0, 1);
-        baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
-        if (baseUp.lengthSq() <= 1e-10) {
-            baseUp.set(0, 1, 0);
-            baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
-        }
-        if (baseUp.lengthSq() <= 1e-10) {
-            baseUp.set(1, 0, 0);
-            baseUp.sub(viewDir.clone().multiplyScalar(baseUp.dot(viewDir)));
-        }
-        if (baseUp.lengthSq() <= 1e-10) return;
-
-        const rolledUp = baseUp.normalize().applyAxisAngle(viewDir, mobileComposeRollRad).normalize();
-        camera.up.copy(rolledUp);
-        camera.lookAt(lookTarget);
-        if (controller?.controls?.target?.copy) {
-            controller.controls.target.copy(lookTarget);
-        }
-    };
-
-    const shouldUseEarthrisePresentation = () => (
-        composeFeatureEnabled &&
-        isMobileViewport() &&
-        activeMobileTab === "compose"
-    );
-
-    const restoreComposeCraftVisibility = () => {
-        if (!mobileComposeHiddenCraftState?.craft) return;
-        try {
-            mobileComposeHiddenCraftState.craft.visible = mobileComposeHiddenCraftState.wasVisible;
-        } catch {
-            // Ignore stale object graph state.
-        }
-        mobileComposeHiddenCraftState = null;
-    };
-
-    const hideComposeCraft = () => {
-        const scene = resolveActiveScene();
-        const craft = resolveActiveCraft(scene);
-        if (!craft) {
-            restoreComposeCraftVisibility();
-            return;
-        }
-        const existingCraft = mobileComposeHiddenCraftState?.craft || null;
-        if (existingCraft && existingCraft !== craft) {
-            restoreComposeCraftVisibility();
-        }
-        if (!mobileComposeHiddenCraftState || mobileComposeHiddenCraftState.craft !== craft) {
-            mobileComposeHiddenCraftState = {
-                craft,
-                wasVisible: craft.visible !== false,
-            };
-        }
-        craft.visible = false;
-    };
-
-    const enforceComposeCameraAtCraftCenter = () => {
-        if (!shouldUseEarthrisePresentation()) return;
-        const scene = resolveActiveScene();
-        const controller = scene?.cameraController;
-        if (!controller?.mountOffset?.set) return;
-        if (controller.positionMode !== "spacecraft") return;
-        controller.mountOffset.set(0, 0, 0);
-    };
-
-    const alignMobileComposeFreeLookToEarth = () => {
-        if (!shouldUseEarthrisePresentation()) return false;
-        const scene = resolveActiveScene();
-        const controller = scene?.cameraController;
-        const camera = scene?.camera;
-        const earthObject = resolveSceneObject(scene, "earth");
-        if (!camera?.position?.clone || !camera.lookAt || !earthObject?.getWorldPosition) {
-            return false;
-        }
-        const target = camera.position.clone();
-        earthObject.getWorldPosition(target);
-        const view = target.clone().sub(camera.position);
-        if (view.lengthSq?.() <= 1e-12) {
-            return false;
-        }
-        camera.lookAt(target);
-        if (controller?.controls?.target?.copy) {
-            controller.controls.target.copy(target);
-        }
-        if (!controller?._freeFlyActive) {
-            controller?.controls?.update?.();
-            controller?.controls?.dispatchEvent?.({ type: "change" });
-        }
-        return true;
-    };
-
-    const syncMobileComposePresentation = () => {
-        if (!shouldUseEarthrisePresentation()) {
-            restoreComposeCraftVisibility();
-            return;
-        }
-        hideComposeCraft();
-        enforceComposeCameraAtCraftCenter();
-        applyMobileComposeRoll();
-        syncMobileComposeRollSliderUi();
-    };
-
     const timelineSlider = document.getElementById("timeline-slider");
     const burnButtonsHost = document.getElementById("burnbuttons");
     const mobileComposeTimelineSync = createMobileComposeTimelineSync({
@@ -3730,6 +3510,7 @@ export function bindMobileMissionCard() {
     });
     mobileComposeTimelineSync.bind();
 
+    let mobileComposeControlsSync = null;
     const mobileComposeLockSync = createMobileComposeLockSync({
         mobileComposeLockButtons,
         mobileComposePresetById,
@@ -3741,7 +3522,7 @@ export function bindMobileMissionCard() {
             activeMobileComposeLockPresetId = presetId;
         },
         onAfterApply: () => {
-            syncMobileComposePresentation();
+            mobileComposeControlsSync?.syncPresentation?.();
         },
         onAfterButtonClick: () => {
             mobileComposeTimelineSync.sync();
@@ -3749,30 +3530,34 @@ export function bindMobileMissionCard() {
     });
     mobileComposeLockSync.bind();
 
+    mobileComposeControlsSync = createMobileComposeControlsSync({
+        mobileComposeEarthshineSlider,
+        mobileComposeEarthshineValue,
+        mobileComposeRollSlider,
+        mobileComposeRollValue,
+        mobileComposeFovAuto,
+        desktopPosition,
+        desktopLook,
+        mobileComposePresetById,
+        mobileComposeLockSync,
+        mobileComposeTimelineSync,
+        resolveActiveScene,
+        resolveActiveCraft,
+        resolveSceneObject,
+        getActiveTab: () => activeMobileTab,
+        isMobileViewport,
+        getComposeFeatureEnabled: () => composeFeatureEnabled,
+        getActivePresetId: () => activeMobileComposeLockPresetId,
+        onComposeFovAutoToggle: () => {
+            setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
+            applyAutoFovForActivePreset();
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+    });
+    mobileComposeControlsSync.bind();
+
     const syncMobileComposeControls = () => {
-        if (shouldUseEarthrisePresentation() && desktopPosition && desktopLook) {
-            const desiredPreset = mobileComposePresetById.get(activeMobileComposeLockPresetId) || mobileComposePresetById.get("free");
-            if (
-                desiredPreset &&
-                (desktopPosition.value !== desiredPreset.positionMode || desktopLook.value !== desiredPreset.lookMode)
-            ) {
-                desktopPosition.value = desiredPreset.positionMode;
-                desktopLook.value = desiredPreset.lookMode;
-                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-        }
-        mobileComposeLockSync.syncState();
-        if (
-            shouldUseEarthrisePresentation() &&
-            !mobileComposeFreeStartupAligned &&
-            activeMobileComposeLockPresetId === "free"
-        ) {
-            mobileComposeFreeStartupAligned = alignMobileComposeFreeLookToEarth();
-        }
-        mobileComposeTimelineSync.sync();
-        updateMobileComposeEarthshineDisplay(mobileEarthshineGain);
-        syncMobileComposeRollSliderUi();
-        syncMobileComposePresentation();
+        mobileComposeControlsSync.syncControls();
     };
 
     const setCheckboxState = (id, checked) => {
@@ -3927,7 +3712,7 @@ export function bindMobileMissionCard() {
         } else if (previousTab === "compose" && mobileViewport) {
             syncMobileMoonVisibilityInfo({ force: true });
         }
-        syncMobileComposePresentation();
+        mobileComposeControlsSync?.syncPresentation?.();
         applyMobileRenderViewportCentering();
         syncMobilePanelCollapseButton();
     };
@@ -3958,7 +3743,7 @@ export function bindMobileMissionCard() {
         },
         onAfterDesktopChange: () => {
             mobileComposeLockSync.syncState();
-            syncMobileComposePresentation();
+            mobileComposeControlsSync?.syncPresentation?.();
             applyAutoFovForActivePreset();
             if (activeMobileTab === "compose") {
                 mobileComposeTimelineSync.sync();
@@ -3970,13 +3755,6 @@ export function bindMobileMissionCard() {
 
     if (mobileViewsFovAuto) {
         mobileViewsFovAuto.addEventListener("click", function () {
-            setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
-            applyAutoFovForActivePreset();
-            syncMobileMoonVisibilityInfo({ force: true });
-        });
-    }
-    if (mobileComposeFovAuto) {
-        mobileComposeFovAuto.addEventListener("click", function () {
             setMobileViewsAutoFov(!mobileViewsAutoFovEnabled);
             applyAutoFovForActivePreset();
             syncMobileMoonVisibilityInfo({ force: true });
@@ -3994,26 +3772,6 @@ export function bindMobileMissionCard() {
         mobileViewsFovSlider?.addEventListener("change", onManualFovChange);
         mobileComposeFovSlider?.addEventListener("input", onManualFovChange);
         mobileComposeFovSlider?.addEventListener("change", onManualFovChange);
-    }
-
-    if (mobileComposeEarthshineSlider) {
-        const onComposeEarthshineInput = () => {
-            applyMobileComposeEarthshineGain(mobileComposeEarthshineSlider.value, { persist: true });
-        };
-        mobileComposeEarthshineSlider.addEventListener("input", onComposeEarthshineInput, { passive: true });
-        mobileComposeEarthshineSlider.addEventListener("change", onComposeEarthshineInput);
-    }
-
-    if (mobileComposeRollSlider) {
-        const onComposeRollInput = () => {
-            const degrees = Number(mobileComposeRollSlider.value);
-            if (!Number.isFinite(degrees)) return;
-            mobileComposeRollRad = normalizeComposeRoll((degrees * Math.PI) / 180);
-            syncMobileComposeRollSliderUi();
-            applyMobileComposeRoll();
-        };
-        mobileComposeRollSlider.addEventListener("input", onComposeRollInput, { passive: true });
-        mobileComposeRollSlider.addEventListener("change", onComposeRollInput);
     }
 
     if (contentWrapper) {
@@ -4090,7 +3848,7 @@ export function bindMobileMissionCard() {
             const nextFov = clampFov(mobileViewsPinchState.baseFov / scale);
             applyMobileViewsFov(nextFov);
             if (activeMobileTab === "compose") {
-                syncMobileComposePresentation();
+                mobileComposeControlsSync?.syncPresentation?.();
             }
             syncMobileMoonVisibilityInfo();
             event.preventDefault();
@@ -4166,16 +3924,7 @@ export function bindMobileMissionCard() {
         });
     }
 
-    let initialEarthshineGain = 1;
-    try {
-        const storedGain = Number(window.localStorage?.getItem(EARTHSHINE_GAIN_STORAGE_KEY));
-        if (Number.isFinite(storedGain)) {
-            initialEarthshineGain = storedGain;
-        }
-    } catch {
-        initialEarthshineGain = 1;
-    }
-    applyMobileComposeEarthshineGain(initialEarthshineGain, { persist: false });
+    mobileComposeControlsSync.initialize();
 
     let initialMissionCollapsed = false;
     try {
