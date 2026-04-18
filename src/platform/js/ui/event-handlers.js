@@ -4,6 +4,7 @@ import {
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
+import { createSettingsPanelController } from "./settings-panel-controller.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
 
@@ -44,8 +45,6 @@ function getMissionDialogApi() {
 
 let keyboardShortcutsBound = false;
 let headerBlurbBehaviorBound = false;
-let settingsPanelResizeBound = false;
-let settingsOutsideClickBound = false;
 let shortcutPanelGlobalBound = false;
 let controlPanelResizeBound = false;
 let timelineDockHeightSyncBound = false;
@@ -53,21 +52,14 @@ let timelineCarouselDragBound = false;
 let desktopChromeAutohideBound = false;
 let timelineDockResizeObserver = null;
 let timelineDockMutationObserver = null;
-let settingsAutoCollapsedControls = false;
-let settingsPanelPresentationMode = "full";
-let settingsPanelLauncherId = null;
 let timelineCarouselWiggleTimeoutId = null;
 let headerPillStripManualCollapsed = false;
 let headerPillStripAutoCollapsed = false;
 let headerPillStripLastAutoRevealAt = 0;
-const mobileSettingsSectionState = new Map();
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
 const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
 const DESKTOP_CHROME_AUTO_HIDE_DELAY_MS = 10000;
 const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
-const SETTINGS_PANEL_FILTERED_CLASS = "settings-panel__filtered-hidden";
-const SETTINGS_PANEL_MODE_FULL = "full";
-const SETTINGS_PANEL_MODE_ADVANCED = "advanced";
 const MISSION_INTERACTIVE_REGION_SELECTOR = [
     "#header-pill-strip",
     "#settings-panel-button",
@@ -209,59 +201,6 @@ function positionShortcutPanel(panel, toggleButton) {
     }
 }
 
-function adjustSettingsPanelBodyOverflow() {
-    const panel = document.getElementById("settings-panel");
-    const body = document.getElementById("settings-panel-body");
-    if (!panel || !body) return;
-    body.style.maxHeight = "none";
-    body.style.overflowY = "visible";
-
-    const panelRect = panel.getBoundingClientRect();
-    const bottomGapPx = 14;
-    const minBodyHeightPx = isMobileViewport() ? 140 : 220;
-    let availableHeight = Math.max(
-        minBodyHeightPx,
-        Math.floor(window.innerHeight - panelRect.top - bottomGapPx),
-    );
-
-    // When the settings content is inside a constrained dialog wrapper, clamp
-    // body height to the wrapper's usable space so long sections can scroll.
-    const dialogApi = getMissionDialogApi();
-    const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-    if (wrapper) {
-        const wrapperRect = wrapper.getBoundingClientRect();
-        const bodyRect = body.getBoundingClientRect();
-        const wrapperAvailable = Math.floor(wrapperRect.bottom - bodyRect.top - 8);
-        if (Number.isFinite(wrapperAvailable) && wrapperAvailable > 0) {
-            availableHeight = Math.max(minBodyHeightPx, Math.min(availableHeight, wrapperAvailable));
-        }
-    }
-
-    const needsScroll = body.scrollHeight > availableHeight + 1;
-
-    body.style.maxHeight = `${availableHeight}px`;
-    body.style.overflowY = needsScroll ? "auto" : "hidden";
-}
-
-function applyMobileSettingsPanelLayout(wrapper) {
-    if (!wrapper || window.innerWidth > 600) return;
-    const header = document.getElementById("header");
-    const headerBottom = header?.getBoundingClientRect()?.bottom ?? 0;
-    const panelTop = Math.round(headerBottom + 5);
-    const panelLeft = 6;
-    const bottomInset = 10;
-    const viewportLimitedHeight = Math.floor(window.innerHeight - panelTop - bottomInset);
-    const targetHeight = Math.floor(window.innerHeight * 0.64);
-    const maxHeight = Math.max(240, Math.min(viewportLimitedHeight, targetHeight));
-    const maxWidth = Math.min(320, Math.floor(window.innerWidth - panelLeft * 2));
-
-    wrapper.style.top = `${panelTop}px`;
-    wrapper.style.left = `${panelLeft}px`;
-    wrapper.style.width = `${maxWidth}px`;
-    wrapper.style.maxWidth = `${maxWidth}px`;
-    wrapper.style.maxHeight = `${maxHeight}px`;
-}
-
 function isMobileViewport() {
     return window.innerWidth <= 600;
 }
@@ -278,14 +217,23 @@ function isElementLayoutVisible(element) {
     return !!rect && rect.width > 0 && rect.height > 0;
 }
 
-function isSettingsPanelOpen() {
-    const dialogApi = getMissionDialogApi();
-    const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-    if (wrapper) {
-        return isElementLayoutVisible(wrapper);
+let settingsPanelController = null;
+
+function getSettingsPanelController() {
+    if (!settingsPanelController) {
+        settingsPanelController = createSettingsPanelController({
+            onClick,
+            getMissionDialogApi,
+            isMobileViewport,
+            isElementLayoutVisible,
+            setControlPanelCollapsedState,
+        });
     }
-    const panel = document.getElementById("settings-panel");
-    return isElementLayoutVisible(panel);
+    return settingsPanelController;
+}
+
+function isSettingsPanelOpen() {
+    return getSettingsPanelController().isSettingsPanelOpen();
 }
 
 function resetHeaderPillStripScrollPosition() {
@@ -340,123 +288,6 @@ function setHeaderPillStripAutoCollapsedState(collapsed) {
     }
     headerPillStripAutoCollapsed = nextCollapsed;
     syncHeaderPillStripCollapseUi();
-}
-
-function setSettingsPanelLauncherState(buttonId, isOpen) {
-    const button = buttonId ? document.getElementById(buttonId) : null;
-    if (!button) return;
-    button.setAttribute("aria-expanded", String(!!isOpen));
-    button.classList.toggle("is-open", !!isOpen);
-}
-
-function syncSettingsPanelLauncherStates(openLauncherId = null) {
-    ["settings-panel-button", "advanced-controls-pill"].forEach((buttonId) => {
-        setSettingsPanelLauncherState(buttonId, buttonId === openLauncherId);
-    });
-}
-
-function setSettingsPanelFilteredHidden(element, hidden) {
-    if (!(element instanceof Element)) return;
-    element.classList.toggle(SETTINGS_PANEL_FILTERED_CLASS, !!hidden);
-}
-
-function resolveSettingsPanelAdvancedViewItems() {
-    const items = [];
-    const addClosestOption = (controlId) => {
-        const control = document.getElementById(controlId);
-        const option = control?.closest(".settings-option");
-        if (option) {
-            items.push(option);
-        }
-    };
-
-    addClosestOption("view-additional-crafts");
-    addClosestOption("view-aux-camera-panels");
-    addClosestOption("view-fps");
-
-    const activeCraftRow = document.getElementById("active-craft-row");
-    if (activeCraftRow) {
-        items.push(activeCraftRow);
-    }
-
-    const orbitStyleOption = document.querySelector(".settings-option--orbit-style");
-    if (orbitStyleOption) {
-        items.push(orbitStyleOption);
-    }
-
-    const trailControls = document.querySelector(".settings-row--trail-controls");
-    if (trailControls) {
-        items.push(trailControls);
-    }
-
-    return items;
-}
-
-function applySettingsPanelPresentation(mode = SETTINGS_PANEL_MODE_FULL) {
-    const panel = document.getElementById("settings-panel");
-    if (!panel) return;
-
-    const normalizedMode = mode === SETTINGS_PANEL_MODE_ADVANCED
-        ? SETTINGS_PANEL_MODE_ADVANCED
-        : SETTINGS_PANEL_MODE_FULL;
-    settingsPanelPresentationMode = normalizedMode;
-
-    panel.classList.toggle("settings-panel--advanced", normalizedMode === SETTINGS_PANEL_MODE_ADVANCED);
-
-    const title = panel.querySelector(".settings-panel__title");
-    if (title) {
-        title.textContent = normalizedMode === SETTINGS_PANEL_MODE_ADVANCED ? "Advanced" : "Settings";
-    }
-
-    const sections = panel.querySelectorAll(".settings-section");
-    sections.forEach((section) => setSettingsPanelFilteredHidden(section, false));
-
-    const viewSection = panel.querySelector(".settings-section--view");
-    const viewSectionTitle = viewSection?.querySelector(".settings-section__title");
-    if (viewSectionTitle) {
-        if (!viewSectionTitle.dataset.fullTitle) {
-            viewSectionTitle.dataset.fullTitle = viewSectionTitle.textContent || "View";
-        }
-        viewSectionTitle.textContent = normalizedMode === SETTINGS_PANEL_MODE_ADVANCED
-            ? "Craft / Display"
-            : viewSectionTitle.dataset.fullTitle;
-    }
-
-    const viewOptions = viewSection?.querySelector(".settings-options");
-    if (viewOptions) {
-        Array.from(viewOptions.children).forEach((child) => setSettingsPanelFilteredHidden(child, false));
-    }
-
-    if (normalizedMode !== SETTINGS_PANEL_MODE_ADVANCED) {
-        return;
-    }
-
-    sections.forEach((section) => {
-        const keepSection = section.classList.contains("settings-section--camera") ||
-            section.classList.contains("settings-section--view");
-        setSettingsPanelFilteredHidden(section, !keepSection);
-    });
-
-    if (viewOptions) {
-        Array.from(viewOptions.children).forEach((child) => setSettingsPanelFilteredHidden(child, true));
-        resolveSettingsPanelAdvancedViewItems().forEach((item) => {
-            setSettingsPanelFilteredHidden(item, false);
-        });
-    }
-}
-
-function resolveSettingsPanelAnchorSelector(options = {}) {
-    const launcherId = options.launcherId || settingsPanelLauncherId;
-    if (launcherId === "advanced-controls-pill") {
-        return "#advanced-controls-pill";
-    }
-
-    const sourceLine = document.querySelector("#blurb .desktoponly");
-    const sourceLineVisible = !!(sourceLine && sourceLine.getClientRects().length);
-    if (sourceLineVisible && window.innerWidth > 600) {
-        return "#blurb .desktoponly";
-    }
-    return "#settings-panel-button";
 }
 
 function bindHeaderBlurbBehavior() {
@@ -781,66 +612,6 @@ function bindDesktopChromeAutohideBehavior() {
     syncAnimationPlaying(readInitialPlayState());
 }
 
-function resolveDefaultMobileSectionCollapsed(sectionKey) {
-    return sectionKey === "camera" || sectionKey === "plane" || sectionKey === "view";
-}
-
-function setSettingsSectionCollapsed(section, collapsed) {
-    section.classList.toggle("settings-section--collapsed", collapsed);
-    const legend = section.querySelector(".settings-section__title");
-    if (!legend) return;
-    legend.setAttribute("aria-expanded", String(!collapsed));
-}
-
-function applyMobileSettingsSections() {
-    const sections = document.querySelectorAll("#settings-panel .settings-section");
-    if (!sections.length) return;
-
-    const mobile = isMobileViewport();
-
-    sections.forEach((section) => {
-        const legend = section.querySelector(".settings-section__title");
-        if (!legend) return;
-
-        section.classList.toggle("settings-section--mobile-collapsible", mobile);
-        if (!mobile) {
-            section.classList.remove("settings-section--collapsed");
-            legend.removeAttribute("role");
-            legend.removeAttribute("tabindex");
-            legend.removeAttribute("aria-expanded");
-            return;
-        }
-
-        const sectionKey = section.dataset.sectionKey || "";
-        const shouldCollapse = mobileSettingsSectionState.has(sectionKey)
-            ? mobileSettingsSectionState.get(sectionKey)
-            : resolveDefaultMobileSectionCollapsed(sectionKey);
-        setSettingsSectionCollapsed(section, shouldCollapse);
-
-        legend.setAttribute("role", "button");
-        legend.setAttribute("tabindex", "0");
-
-        if (!legend.dataset.mobileBound) {
-            legend.dataset.mobileBound = "true";
-            legend.addEventListener("click", function () {
-                if (!isMobileViewport()) return;
-                const nextCollapsed = !section.classList.contains("settings-section--collapsed");
-                setSettingsSectionCollapsed(section, nextCollapsed);
-                mobileSettingsSectionState.set(sectionKey, nextCollapsed);
-                adjustSettingsPanelBodyOverflow();
-                requestAnimationFrame(adjustSettingsPanelBodyOverflow);
-            });
-
-            legend.addEventListener("keydown", function (event) {
-                if (!isMobileViewport()) return;
-                if (event.key !== "Enter" && event.key !== " ") return;
-                event.preventDefault();
-                legend.click();
-            });
-        }
-    });
-}
-
 function syncControlPanelInfoOffset(panel = document.getElementById("control-panel")) {
     if (!panel) return;
     const root = document.documentElement;
@@ -1064,126 +835,7 @@ function setTimelineEventCarouselExpandedState(expanded, options = {}) {
  * Bind the Settings panel opener.
  */
 export function bindSettingsPanel() {
-    const settingsButton = document.getElementById("settings-panel-button");
-    const advancedButton = document.getElementById("advanced-controls-pill");
-    const closeSettingsPanel = (dialogApi) => {
-        dialogApi?.close?.("#settings-panel");
-        settingsPanelLauncherId = null;
-        applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
-        syncSettingsPanelLauncherStates(null);
-        if (settingsAutoCollapsedControls) {
-            setControlPanelCollapsedState(false);
-            settingsAutoCollapsedControls = false;
-        }
-    };
-
-    const openSettingsPanel = ({
-        launcherId,
-        mode = SETTINGS_PANEL_MODE_FULL,
-    }) => {
-        const dialogApi = getMissionDialogApi();
-        const isOpen = isSettingsPanelOpen();
-        if (isOpen && settingsPanelLauncherId === launcherId) {
-            closeSettingsPanel(dialogApi);
-            return;
-        }
-        if (isOpen) {
-            dialogApi?.close?.("#settings-panel");
-        }
-
-        settingsPanelLauncherId = launcherId;
-        applySettingsPanelPresentation(mode);
-
-        const options = {
-            dialogClass: "dialog settings-dialog",
-            modal: false,
-            position: {
-                my: "left top",
-                at: "left bottom",
-                of: resolveSettingsPanelAnchorSelector({ launcherId }),
-                collision: "fit flip"
-            },
-            title: mode === SETTINGS_PANEL_MODE_ADVANCED ? "Advanced" : "Settings",
-            closeOnEscape: false
-        };
-
-        // Route through the lightweight dialog shim (not jQuery UI).
-        dialogApi?.init?.("#settings-panel", options);
-        dialogApi?.open?.("#settings-panel");
-
-        // Keep the existing styling adjustments applied to the wrapper.
-        const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-        if (wrapper) {
-            wrapper.style.backgroundImage = "none";
-            wrapper.style.border = "0";
-            wrapper.style.maxWidth = window.innerWidth <= 600
-                ? "92vw"
-                : mode === SETTINGS_PANEL_MODE_ADVANCED
-                    ? "380px"
-                    : "80%";
-            wrapper.style.zIndex = "18";
-            const titleBar = wrapper.querySelector(".ui-dialog-titlebar");
-            if (titleBar) titleBar.style.display = "none";
-            applyMobileSettingsPanelLayout(wrapper);
-        }
-
-        applyMobileSettingsSections();
-
-        adjustSettingsPanelBodyOverflow();
-        requestAnimationFrame(adjustSettingsPanelBodyOverflow);
-
-        if (isMobileViewport()) {
-            const controlsPanel = document.getElementById("control-panel");
-            const controlsCollapsed = !!controlsPanel?.classList.contains("control-panel--collapsed");
-            settingsAutoCollapsedControls = !controlsCollapsed;
-            if (!controlsCollapsed) {
-                setControlPanelCollapsedState(true);
-            }
-        } else {
-            settingsAutoCollapsedControls = false;
-        }
-
-        if (!settingsPanelResizeBound) {
-            settingsPanelResizeBound = true;
-            window.addEventListener("resize", function () {
-                if (!isSettingsPanelOpen()) return;
-                adjustSettingsPanelBodyOverflow();
-                const dialogApi = getMissionDialogApi();
-                const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-                if (wrapper) applyMobileSettingsPanelLayout(wrapper);
-                applyMobileSettingsSections();
-            });
-        }
-
-        if (!settingsOutsideClickBound) {
-            settingsOutsideClickBound = true;
-            document.addEventListener("pointerdown", function (event) {
-                if (!isSettingsPanelOpen()) return;
-                if (!(event.target instanceof Node)) return;
-                const dialogWrapper = dialogApi?.widgetElement?.("#settings-panel");
-                if (dialogWrapper && dialogWrapper.contains(event.target)) return;
-                if (settingsButton && settingsButton.contains(event.target)) return;
-                if (advancedButton && advancedButton.contains(event.target)) return;
-                closeSettingsPanel(dialogApi);
-            });
-        }
-
-        syncSettingsPanelLauncherStates(launcherId);
-    };
-
-    onClick("settings-panel-button", function () {
-        openSettingsPanel({
-            launcherId: "settings-panel-button",
-            mode: SETTINGS_PANEL_MODE_FULL,
-        });
-    });
-
-    onClick("advanced-controls-pill", function () {
-        openSettingsPanel({
-            launcherId: "advanced-controls-pill",
-            mode: SETTINGS_PANEL_MODE_ADVANCED,
-        });
-    });
+    getSettingsPanelController().bind();
 }
 
 /**
@@ -2161,16 +1813,6 @@ export function bindMobileMissionCard() {
     bindMobileMissionCardSync({
         dispatchSyntheticPress,
         isMobileViewport,
-        resetSettingsPanelForMobileMode: () => {
-            const dialogApi = getMissionDialogApi();
-            dialogApi?.close?.("#settings-panel");
-            const settingsPanel = document.getElementById("settings-panel");
-            if (settingsPanel) {
-                settingsPanel.style.display = "none";
-            }
-            settingsPanelLauncherId = null;
-            applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
-            syncSettingsPanelLauncherStates(null);
-        },
+        resetSettingsPanelForMobileMode: () => getSettingsPanelController().resetForMobileMode(),
     });
 }
