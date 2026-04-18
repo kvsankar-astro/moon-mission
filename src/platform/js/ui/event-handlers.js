@@ -12,6 +12,7 @@ import { createMobileComposeControlsSync } from "./mobile-compose-controls-sync.
 import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
 import { createMobileComposeTimelineSync } from "./mobile-compose-timeline-sync.js";
 import { createMobileMoonVisibilitySync } from "./mobile-moon-visibility-sync.js";
+import { createMobileShellLayoutSync } from "./mobile-shell-layout-sync.js";
 import { createMobileShellTabSync } from "./mobile-shell-tab-sync.js";
 import { createMobileViewFovSync } from "./mobile-view-fov-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
@@ -2313,6 +2314,7 @@ export function bindMobileMissionCard() {
     let mobileMissionLocatorBaseline = null;
     let mobileViewFovSync = null;
     let mobileMoonVisibilitySync = null;
+    let mobileShellLayoutSync = null;
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
         "view-aux-camera-panels",
     ];
@@ -2330,29 +2332,6 @@ export function bindMobileMissionCard() {
         return activeMobileTab === "mission" || activeMobileTab === "views";
     };
 
-    const syncMobilePanelCollapseButton = () => {
-        if (!panelCollapseButton) return;
-        const tabKey = activeMobileTab;
-        let collapsed = false;
-        let label = "Collapse panel";
-        let hidden = false;
-        if (tabKey === "mission") {
-            collapsed = !!missionCard?.classList.contains("mobile-shell__card--collapsed");
-            label = collapsed ? "Expand mission panel" : "Collapse mission panel";
-        } else if (tabKey === "views") {
-            collapsed = !!viewsCard?.classList.contains("mobile-shell__card--collapsed");
-            label = collapsed ? "Expand views controls" : "Collapse views controls";
-        } else {
-            hidden = true;
-        }
-        panelCollapseButton.hidden = hidden;
-        if (hidden) return;
-        panelCollapseButton.textContent = collapsed ? "+" : "−";
-        panelCollapseButton.setAttribute("aria-expanded", collapsed ? "false" : "true");
-        panelCollapseButton.setAttribute("aria-label", label);
-        panelCollapseButton.title = label;
-    };
-
     if (!composeFeatureEnabled) {
         if (composeCard) {
             composeCard.hidden = true;
@@ -2362,154 +2341,6 @@ export function bindMobileMissionCard() {
             composeNavButton.disabled = true;
         }
     }
-
-    const syncMobileNavLayout = () => {
-        if (!mobileShellNav) return;
-        const visibleNavCount = Array.from(navButtons).reduce((count, button) => {
-            return button.hidden ? count : count + 1;
-        }, 0);
-        mobileShellNav.style.setProperty("--mobile-shell-tab-count", String(Math.max(1, visibleNavCount)));
-    };
-    syncMobileNavLayout();
-
-    const toggleMobileMode = () => {
-        const mobile = isMobileViewport();
-        document.body.classList.toggle("mobile-shell-enabled", mobile);
-        if (mobile) {
-            const bodyHaloToggle = document.getElementById("view-body-halos");
-            if (mobileMissionLocatorBaseline === null && bodyHaloToggle) {
-                mobileMissionLocatorBaseline = !!bodyHaloToggle.checked;
-            }
-            const dialogApi = getMissionDialogApi();
-            dialogApi?.close?.("#settings-panel");
-            const settingsPanel = document.getElementById("settings-panel");
-            if (settingsPanel) {
-                settingsPanel.style.display = "none";
-            }
-            settingsPanelLauncherId = null;
-            applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
-            syncSettingsPanelLauncherStates(null);
-            applyMobileAlwaysSuppressedViews();
-            if (isViewsVisualSimplificationTab(activeMobileTab)) {
-                applyViewsVisualSimplification();
-                mobileMoonVisibilitySync?.startLoop?.();
-            }
-            mobileMoonVisibilitySync?.sync?.({ force: true });
-            syncMobileComposeControls();
-        } else {
-            if (isViewsVisualSimplificationTab(activeMobileTab)) {
-                restoreViewsVisualSimplification();
-                if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                    desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
-                    desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
-                    desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-                    mobileSavedMissionCameraModes = null;
-                }
-            }
-            restoreMobileAlwaysSuppressedViews();
-            if (mobileMissionLocatorBaseline !== null) {
-                setCheckboxState("view-body-halos", mobileMissionLocatorBaseline);
-                mobileMissionLocatorBaseline = null;
-            }
-            mobileMoonVisibilitySync?.stopLoop?.();
-            mobileMoonVisibilitySync?.sync?.({ force: true });
-            mobileComposeControlsSync?.syncPresentation?.();
-        }
-        applyMobileRenderViewportCentering();
-    };
-
-    const setMissionCardCollapsed = (collapsed) => {
-        if (!missionCard || !missionCardBody) return;
-        missionCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
-        syncMobilePanelCollapseButton();
-        try {
-            window.localStorage?.setItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
-        } catch {
-            // Ignore localStorage failures.
-        }
-    };
-
-    const setViewsCardCollapsed = (collapsed) => {
-        if (!viewsCard || !viewsCardBody) return;
-        viewsCard.classList.toggle("mobile-shell__card--collapsed", !!collapsed);
-        syncMobilePanelCollapseButton();
-        try {
-            window.localStorage?.setItem(VIEWS_PANEL_COLLAPSE_STORAGE_KEY, collapsed ? "true" : "false");
-        } catch {
-            // Ignore localStorage failures.
-        }
-    };
-
-    const isLayoutVisible = (element) => {
-        if (!element || element.hidden) return false;
-        const style = window.getComputedStyle?.(element);
-        if (!style || style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
-            return false;
-        }
-        const rect = element.getBoundingClientRect?.();
-        return !!rect && rect.height > 0 && rect.width > 0;
-    };
-
-    const applyMobileRenderViewportCentering = () => {
-        if (!contentWrapper) return;
-        let shiftPx = 0;
-        const rootStyle = document.documentElement?.style;
-        const shouldCenterForTab =
-            activeMobileTab === "mission" ||
-            activeMobileTab === "views" ||
-            activeMobileTab === "compose";
-        let activeCardBottomPx = Number.NaN;
-        if (isMobileViewport() && shouldCenterForTab) {
-            const viewportHeight = Math.max(1, window.innerHeight || 1);
-            const activeCard = mobileTabCards[activeMobileTab] || null;
-            let topInset = 0;
-            if (isLayoutVisible(activeCard)) {
-                const rect = activeCard.getBoundingClientRect();
-                topInset = Math.max(0, Math.min(viewportHeight, rect.bottom));
-                activeCardBottomPx = rect.bottom;
-            }
-            const pillStrip = document.getElementById("header-pill-strip");
-            const pillStripExpanded = !!(
-                pillStrip &&
-                isLayoutVisible(pillStrip) &&
-                !pillStrip.classList.contains("header-pill-strip--collapsed")
-            );
-            if (pillStripExpanded) {
-                const stripRect = pillStrip.getBoundingClientRect();
-                const stripBottom = Math.max(0, Math.min(viewportHeight, stripRect.bottom));
-                topInset = Math.max(topInset, stripBottom);
-            }
-            let bottomInset = viewportHeight;
-            const bottomCandidates = [mobileShellNav, document.getElementById("timeline-dock")];
-            bottomCandidates.forEach((candidate) => {
-                if (!isLayoutVisible(candidate)) return;
-                const rect = candidate.getBoundingClientRect();
-                const top = Math.max(0, Math.min(viewportHeight, rect.top));
-                bottomInset = Math.min(bottomInset, top);
-            });
-            if (bottomInset > topInset + 24) {
-                shiftPx = Math.round(((topInset + bottomInset) * 0.5) - (viewportHeight * 0.5));
-            }
-        }
-        contentWrapper.style.setProperty("--mobile-render-shift-y", `${shiftPx}px`);
-        if (isMobileViewport() && document.body?.classList.contains("mobile-shell-enabled")) {
-            const headerBottomPx = (() => {
-                const header = document.getElementById("header");
-                if (!header) return Number.NaN;
-                const rect = header.getBoundingClientRect?.();
-                return rect ? rect.bottom : Number.NaN;
-            })();
-            const collapsedTopPx = Number.isFinite(headerBottomPx)
-                ? Math.round(headerBottomPx + 4)
-                : 56;
-            const topPx = Number.isFinite(activeCardBottomPx)
-                ? Math.max(48, Math.round(activeCardBottomPx + 4))
-                : Math.max(48, collapsedTopPx);
-            rootStyle?.setProperty("--mobile-pill-strip-top", `${topPx}px`);
-        } else {
-            rootStyle?.removeProperty("--mobile-pill-strip-top");
-        }
-    };
 
     const resolveActiveOriginConfig = () => {
         const selectedMode = document.querySelector('input[name="mode"]:checked');
@@ -2718,6 +2549,67 @@ export function bindMobileMissionCard() {
         mobileViewsSavedViewState = null;
     };
 
+    mobileShellLayoutSync = createMobileShellLayoutSync({
+        panelCollapseButton,
+        missionCard,
+        missionCardBody,
+        viewsCard,
+        viewsCardBody,
+        mobileShellNav,
+        navButtons,
+        contentWrapper,
+        mobileTabCards,
+        getActiveTab: () => activeMobileTab,
+        isMobileViewport,
+        missionPanelCollapseStorageKey: MISSION_PANEL_COLLAPSE_STORAGE_KEY,
+        viewsPanelCollapseStorageKey: VIEWS_PANEL_COLLAPSE_STORAGE_KEY,
+        windowRef: window,
+        documentRef: document,
+        localStorageRef: window.localStorage,
+        onEnterMobileMode: () => {
+            const bodyHaloToggle = document.getElementById("view-body-halos");
+            if (mobileMissionLocatorBaseline === null && bodyHaloToggle) {
+                mobileMissionLocatorBaseline = !!bodyHaloToggle.checked;
+            }
+            const dialogApi = getMissionDialogApi();
+            dialogApi?.close?.("#settings-panel");
+            const settingsPanel = document.getElementById("settings-panel");
+            if (settingsPanel) {
+                settingsPanel.style.display = "none";
+            }
+            settingsPanelLauncherId = null;
+            applySettingsPanelPresentation(SETTINGS_PANEL_MODE_FULL);
+            syncSettingsPanelLauncherStates(null);
+            applyMobileAlwaysSuppressedViews();
+            if (isViewsVisualSimplificationTab(activeMobileTab)) {
+                applyViewsVisualSimplification();
+                mobileMoonVisibilitySync?.startLoop?.();
+            }
+            mobileMoonVisibilitySync?.sync?.({ force: true });
+            mobileComposeControlsSync?.syncControls?.();
+        },
+        onExitMobileMode: () => {
+            if (isViewsVisualSimplificationTab(activeMobileTab)) {
+                restoreViewsVisualSimplification();
+                if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
+                    desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
+                    desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
+                    desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
+                    mobileSavedMissionCameraModes = null;
+                }
+            }
+            restoreMobileAlwaysSuppressedViews();
+            if (mobileMissionLocatorBaseline !== null) {
+                setCheckboxState("view-body-halos", mobileMissionLocatorBaseline);
+                mobileMissionLocatorBaseline = null;
+            }
+            mobileMoonVisibilitySync?.stopLoop?.();
+            mobileMoonVisibilitySync?.sync?.({ force: true });
+            mobileComposeControlsSync?.syncPresentation?.();
+        },
+    });
+    mobileShellLayoutSync.syncNavLayout();
+
     const mobileViewPresetSync = createMobileViewPresetSync({
         mobileViewButtons,
         mobileViewPresetById,
@@ -2820,8 +2712,8 @@ export function bindMobileMissionCard() {
         },
         onAfterTransition: () => {
             mobileComposeControlsSync?.syncPresentation?.();
-            applyMobileRenderViewportCentering();
-            syncMobilePanelCollapseButton();
+            mobileShellLayoutSync?.applyRenderViewportCentering?.();
+            mobileShellLayoutSync?.syncPanelCollapseButton?.();
         },
     });
 
@@ -2829,44 +2721,29 @@ export function bindMobileMissionCard() {
         panelCollapseButton.addEventListener("click", function () {
             if (activeMobileTab === "mission") {
                 const collapsed = missionCard?.classList.contains("mobile-shell__card--collapsed");
-                setMissionCardCollapsed(!collapsed);
+                mobileShellLayoutSync?.setMissionCardCollapsed?.(!collapsed);
             } else if (activeMobileTab === "views") {
                 const collapsed = viewsCard?.classList.contains("mobile-shell__card--collapsed");
-                setViewsCardCollapsed(!collapsed);
+                mobileShellLayoutSync?.setViewsCardCollapsed?.(!collapsed);
             }
-            applyMobileRenderViewportCentering();
+            mobileShellLayoutSync?.applyRenderViewportCentering?.();
         });
     }
 
     mobileComposeControlsSync.initialize();
-
-    let initialMissionCollapsed = false;
-    try {
-        initialMissionCollapsed = window.localStorage?.getItem(MISSION_PANEL_COLLAPSE_STORAGE_KEY) === "true";
-    } catch {
-        initialMissionCollapsed = false;
-    }
-    setMissionCardCollapsed(initialMissionCollapsed);
-
-    let initialViewsCollapsed = false;
-    try {
-        initialViewsCollapsed = window.localStorage?.getItem(VIEWS_PANEL_COLLAPSE_STORAGE_KEY) === "true";
-    } catch {
-        initialViewsCollapsed = false;
-    }
-    setViewsCardCollapsed(initialViewsCollapsed);
+    mobileShellLayoutSync.initializeCollapsedState();
 
     mobileViewFovSync.setAutoFovEnabled(true);
     mobileShellTabSync.setActiveTab("mission");
-    syncMobilePanelCollapseButton();
+    mobileShellLayoutSync.syncPanelCollapseButton();
     mobileViewPresetSync.syncState();
     syncMobileComposeControls();
     mobileViewFovSync.syncDisplayFromScene();
-    toggleMobileMode();
+    mobileShellLayoutSync.toggleMode();
     mobileMoonVisibilitySync.startLoop();
     mobileMoonVisibilitySync.sync({ force: true });
-    applyMobileRenderViewportCentering();
-    window.addEventListener("resize", toggleMobileMode);
+    mobileShellLayoutSync.applyRenderViewportCentering();
+    window.addEventListener("resize", () => mobileShellLayoutSync?.toggleMode?.());
 
     bindMobileTransportSync({
         mobileTransportSets,
