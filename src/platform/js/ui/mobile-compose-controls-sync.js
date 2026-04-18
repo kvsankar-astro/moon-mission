@@ -15,7 +15,6 @@ function createMobileComposeControlsSync(deps) {
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        mobileComposeFovAuto,
         desktopPosition,
         desktopLook,
         mobileComposePresetById,
@@ -28,7 +27,6 @@ function createMobileComposeControlsSync(deps) {
         isMobileViewport,
         getComposeFeatureEnabled,
         getActivePresetId,
-        onComposeFovAutoToggle = () => {},
         createChangeEvent = () => new Event("change", { bubbles: true }),
         storage = globalThis?.localStorage,
         lightSettings = LT,
@@ -285,12 +283,6 @@ function createMobileComposeControlsSync(deps) {
     }
 
     function bind() {
-        if (mobileComposeFovAuto) {
-            mobileComposeFovAuto.addEventListener("click", function () {
-                onComposeFovAutoToggle();
-            });
-        }
-
         if (mobileComposeEarthshineSlider) {
             const onComposeEarthshineInput = () => {
                 applyEarthshineGain(mobileComposeEarthshineSlider.value, { persist: true });

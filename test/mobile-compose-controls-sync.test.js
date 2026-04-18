@@ -74,7 +74,6 @@ function createHarness({
     const mobileComposeEarthshineValue = createOutputStub();
     const mobileComposeRollSlider = createSliderStub({ value: "90" });
     const mobileComposeRollValue = createOutputStub();
-    const mobileComposeFovAuto = createButtonStub();
     const desktopPosition = createSelectStub("manual");
     const desktopLook = createSelectStub("manual");
     const log = [];
@@ -140,7 +139,6 @@ function createHarness({
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        mobileComposeFovAuto,
         desktopPosition,
         desktopLook,
         mobileComposePresetById: new Map([
@@ -156,9 +154,6 @@ function createHarness({
         isMobileViewport: () => true,
         getComposeFeatureEnabled: () => state.composeFeatureEnabled,
         getActivePresetId: () => state.activePresetId,
-        onComposeFovAutoToggle: () => {
-            log.push("fov-auto");
-        },
         createChangeEvent: () => ({ type: "change" }),
         storage,
         lightSettings,
@@ -176,7 +171,6 @@ function createHarness({
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        mobileComposeFovAuto,
         mountOffsetCalls,
         mountedManualRollCalls,
         storageWrites,
@@ -195,17 +189,15 @@ describe("createMobileComposeControlsSync", () => {
         expect(harness.storageWrites).toEqual([]);
     });
 
-    it("binds compose control listeners for auto fov, earthshine, and roll", () => {
+    it("binds compose control listeners for earthshine and roll", () => {
         const harness = createHarness();
         harness.sync.bind();
 
-        harness.mobileComposeFovAuto.dispatch("click");
         harness.mobileComposeEarthshineSlider.value = "1.6";
         harness.mobileComposeEarthshineSlider.dispatch("input");
         harness.mobileComposeRollSlider.value = "90";
         harness.mobileComposeRollSlider.dispatch("input");
 
-        expect(harness.log).toContain("fov-auto");
         expect(harness.mobileComposeEarthshineValue.textContent).toBe("1.60");
         expect(harness.storageWrites).toContainEqual([
             "moon-mission:mobile-earthshine-gain:v1",
