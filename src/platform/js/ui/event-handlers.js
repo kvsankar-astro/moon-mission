@@ -11,6 +11,7 @@ import {
 import { createMobileComposeControlsSync } from "./mobile-compose-controls-sync.js";
 import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
 import { createMobileComposeTimelineSync } from "./mobile-compose-timeline-sync.js";
+import { createMobileMoonVisibilitySync } from "./mobile-moon-visibility-sync.js";
 import { createMobileShellTabSync } from "./mobile-shell-tab-sync.js";
 import { createMobileViewFovSync } from "./mobile-view-fov-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
@@ -2309,15 +2310,9 @@ export function bindMobileMissionCard() {
     let mobileAlwaysSuppressedViewState = null;
     let mobileSavedMissionCameraModes = null;
     let mobileViewPresetEnforceInProgress = false;
-    let mobileMoonFarOverlayEnabled = true;
-    let mobileMoonOverlayLastUpdateMs = -Infinity;
-    let mobileMoonOverlayLoopHandle = null;
-    let mobileMoonOverlayCtx = null;
-    let mobileMoonVisibilitySignature = "";
     let mobileMissionLocatorBaseline = null;
     let mobileViewFovSync = null;
-    const MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS = 180;
-    const moonVisibilitySamples = createFibonacciSphereSamples(240);
+    let mobileMoonVisibilitySync = null;
     const MOBILE_ALWAYS_SUPPRESSED_VIEW_IDS = [
         "view-aux-camera-panels",
     ];
@@ -2397,9 +2392,9 @@ export function bindMobileMissionCard() {
             applyMobileAlwaysSuppressedViews();
             if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 applyViewsVisualSimplification();
-                startMobileMoonVisibilityLoop();
+                mobileMoonVisibilitySync?.startLoop?.();
             }
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
             syncMobileComposeControls();
         } else {
             if (isViewsVisualSimplificationTab(activeMobileTab)) {
@@ -2416,8 +2411,8 @@ export function bindMobileMissionCard() {
                 setCheckboxState("view-body-halos", mobileMissionLocatorBaseline);
                 mobileMissionLocatorBaseline = null;
             }
-            stopMobileMoonVisibilityLoop();
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.stopLoop?.();
+            mobileMoonVisibilitySync?.sync?.({ force: true });
             mobileComposeControlsSync?.syncPresentation?.();
         }
         applyMobileRenderViewportCentering();
@@ -2542,690 +2537,6 @@ export function bindMobileMissionCard() {
         return null;
     };
 
-    function createFibonacciSphereSamples(count = 720) {
-        const sampleCount = Math.max(64, Math.floor(count));
-        const points = new Float32Array(sampleCount * 3);
-        const golden = Math.PI * (3 - Math.sqrt(5));
-        for (let i = 0; i < sampleCount; i += 1) {
-            const y = 1 - (2 * (i + 0.5)) / sampleCount;
-            const radius = Math.sqrt(Math.max(0, 1 - y * y));
-            const theta = golden * i;
-            points[i * 3] = Math.cos(theta) * radius;
-            points[i * 3 + 1] = y;
-            points[i * 3 + 2] = Math.sin(theta) * radius;
-        }
-        return points;
-    }
-
-    const normalizeVectorInPlace = (vector) => {
-        if (!vector) return false;
-        const length = Math.hypot(vector.x, vector.y, vector.z);
-        if (!Number.isFinite(length) || length <= 1e-12) return false;
-        vector.x /= length;
-        vector.y /= length;
-        vector.z /= length;
-        return true;
-    };
-
-    const roundPercentParts = (parts) => {
-        const floors = parts.map((value) => Math.floor(Math.max(0, value)));
-        let sum = floors.reduce((acc, value) => acc + value, 0);
-        let remaining = Math.max(0, 100 - sum);
-        const remainders = parts
-            .map((value, index) => ({ index, remainder: Math.max(0, value) - floors[index] }))
-            .sort((a, b) => b.remainder - a.remainder);
-        let cursor = 0;
-        while (remaining > 0 && remainders.length > 0) {
-            floors[remainders[cursor % remainders.length].index] += 1;
-            remaining -= 1;
-            cursor += 1;
-        }
-        sum = floors.reduce((acc, value) => acc + value, 0);
-        if (sum !== 100 && floors.length > 0) {
-            floors[0] += 100 - sum;
-        }
-        return floors;
-    };
-
-    const resolveMoonRenderMesh = (scene) => {
-        if (!scene) return null;
-        const directMoon = scene.moon;
-        if (directMoon?.isMesh && directMoon.geometry) {
-            return directMoon;
-        }
-        const container = scene.moonContainer;
-        if (container?.isMesh && container.geometry) {
-            return container;
-        }
-        let found = null;
-        container?.traverse?.((node) => {
-            if (found) return;
-            if (node?.isMesh && node.geometry) {
-                found = node;
-            }
-        });
-        return found;
-    };
-
-    const ensureMobileMoonFarSideOverlayMesh = (scene) => {
-        const existing = scene?.mobileMoonFarSideOverlayMesh;
-        if (existing?.mesh && existing?.material) {
-            return existing;
-        }
-        const THREE = scene?.THREE || window.THREE;
-        if (!THREE?.ShaderMaterial || !THREE?.Mesh || !THREE?.Vector3 || !THREE?.Vector4) {
-            return null;
-        }
-
-        const moonMesh = resolveMoonRenderMesh(scene);
-        if (!moonMesh?.geometry || typeof moonMesh.add !== "function") {
-            return null;
-        }
-
-        const material = new THREE.ShaderMaterial({
-            transparent: true,
-            depthTest: true,
-            depthWrite: false,
-            polygonOffset: true,
-            polygonOffsetFactor: -1,
-            polygonOffsetUnits: -2,
-            uniforms: {
-                uEarthDirWorld: { value: new THREE.Vector3(1, 0, 0) },
-                uSunDirWorld: { value: new THREE.Vector3(1, 0, 0) },
-                uOverlayColor: { value: new THREE.Vector4(0.56, 0.44, 0.98, 0.52) },
-            },
-            vertexShader: `
-                varying vec3 vWorldNormal;
-                void main() {
-                    vWorldNormal = normalize(mat3(modelMatrix) * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform vec3 uEarthDirWorld;
-                uniform vec3 uSunDirWorld;
-                uniform vec4 uOverlayColor;
-                varying vec3 vWorldNormal;
-                void main() {
-                    vec3 n = normalize(vWorldNormal);
-                    float farDot = dot(n, normalize(uEarthDirWorld));
-                    if (farDot >= 0.0) {
-                        discard;
-                    }
-                    float farMask = smoothstep(0.0, -0.035, farDot);
-                    float sunDot = dot(n, normalize(uSunDirWorld));
-                    float nightness = smoothstep(0.03, -0.18, sunDot);
-                    vec3 rgb = mix(uOverlayColor.rgb, vec3(0.72, 0.64, 0.98), 0.2 * nightness);
-                    float alpha = uOverlayColor.a * farMask * mix(0.62, 0.82, nightness);
-                    gl_FragColor = vec4(rgb, alpha);
-                }
-            `,
-        });
-
-        const mesh = new THREE.Mesh(moonMesh.geometry, material);
-        mesh.name = "mobile-moon-far-side-overlay";
-        mesh.renderOrder = (moonMesh.renderOrder || 0) + 1;
-        mesh.frustumCulled = false;
-        mesh.visible = false;
-        mesh.scale.setScalar(1.0015);
-        moonMesh.add(mesh);
-
-        const handle = { mesh, material };
-        scene.mobileMoonFarSideOverlayMesh = handle;
-        return handle;
-    };
-
-    const hideMobileMoonFarSideOverlayForScene = (scene) => {
-        const overlay = scene?.mobileMoonFarSideOverlayMesh;
-        if (overlay?.mesh) {
-            overlay.mesh.visible = false;
-        }
-    };
-
-    const hideAllMobileMoonFarSideOverlays = () => {
-        const scenes = window.animationScenes;
-        if (!scenes || typeof scenes !== "object") return;
-        Object.values(scenes).forEach((scene) => hideMobileMoonFarSideOverlayForScene(scene));
-    };
-
-    const resolveMoonVisibilitySunDirection = (scene, moonWorld) => {
-        const fromState = scene?.stateSunDirections?.moonCentered || scene?.stateSunDirection;
-        if (
-            fromState &&
-            Number.isFinite(fromState.x) &&
-            Number.isFinite(fromState.y) &&
-            Number.isFinite(fromState.z)
-        ) {
-            const vector = { x: fromState.x, y: fromState.y, z: fromState.z };
-            if (normalizeVectorInPlace(vector)) {
-                return vector;
-            }
-        }
-
-        const sunObject = scene?.sun;
-        if (sunObject?.getWorldPosition) {
-            const sunWorld = scene.camera.position.clone();
-            sunObject.getWorldPosition(sunWorld);
-            sunWorld.sub(moonWorld);
-            if (normalizeVectorInPlace(sunWorld)) {
-                return sunWorld;
-            }
-        }
-
-        return null;
-    };
-
-    const computeMobileMoonVisibilityInfo = (scene, activeCraft, earthObject, moonObject) => {
-        if (!scene?.camera || !activeCraft || !earthObject || !moonObject) {
-            return null;
-        }
-
-        const craftWorld = scene.camera.position.clone();
-        const earthWorld = scene.camera.position.clone();
-        const moonWorld = scene.camera.position.clone();
-        activeCraft.getWorldPosition?.(craftWorld);
-        earthObject.getWorldPosition?.(earthWorld);
-        moonObject.getWorldPosition?.(moonWorld);
-
-        const craftFromMoonDir = craftWorld.sub(moonWorld.clone());
-        const earthFromMoonDir = earthWorld.sub(moonWorld.clone());
-        if (!normalizeVectorInPlace(craftFromMoonDir) || !normalizeVectorInPlace(earthFromMoonDir)) {
-            return null;
-        }
-
-        const sunFromMoonDir = resolveMoonVisibilitySunDirection(scene, moonWorld);
-        if (!sunFromMoonDir) {
-            return null;
-        }
-
-        let visibleCount = 0;
-        let nearDay = 0;
-        let nearNight = 0;
-        let farDay = 0;
-        let farNight = 0;
-
-        for (let i = 0; i < moonVisibilitySamples.length; i += 3) {
-            const nx = moonVisibilitySamples[i];
-            const ny = moonVisibilitySamples[i + 1];
-            const nz = moonVisibilitySamples[i + 2];
-            const visibleDot = nx * craftFromMoonDir.x + ny * craftFromMoonDir.y + nz * craftFromMoonDir.z;
-            if (visibleDot <= 0) continue;
-            visibleCount += 1;
-
-            const near = (nx * earthFromMoonDir.x + ny * earthFromMoonDir.y + nz * earthFromMoonDir.z) >= 0;
-            const day = (nx * sunFromMoonDir.x + ny * sunFromMoonDir.y + nz * sunFromMoonDir.z) >= 0;
-
-            if (near) {
-                if (day) nearDay += 1;
-                else nearNight += 1;
-            } else if (day) {
-                farDay += 1;
-            } else {
-                farNight += 1;
-            }
-        }
-
-        if (visibleCount <= 0) {
-            return null;
-        }
-
-        const rawParts = [
-            (nearDay * 100) / visibleCount,
-            (nearNight * 100) / visibleCount,
-            (farDay * 100) / visibleCount,
-            (farNight * 100) / visibleCount,
-        ];
-        const [nearDayPct, nearNightPct, farDayPct, farNightPct] = roundPercentParts(rawParts);
-        const nearPct = nearDayPct + nearNightPct;
-        const farPct = farDayPct + farNightPct;
-
-        return {
-            nearPct,
-            farPct,
-            nearDayPct,
-            nearNightPct,
-            farDayPct,
-            farNightPct,
-            earthDirectionWorld: earthFromMoonDir,
-            moonWorld,
-        };
-    };
-
-    const computeMobileMoonOverlayState = (scene, earthObject, moonObject) => {
-        if (!scene?.camera) {
-            return null;
-        }
-        const resolveSunDirectionWorld = () => {
-            const fromState = scene?.stateSunDirections?.moonCentered || scene?.stateSunDirection;
-            if (
-                fromState &&
-                Number.isFinite(fromState.x) &&
-                Number.isFinite(fromState.y) &&
-                Number.isFinite(fromState.z)
-            ) {
-                const sunDir = { x: fromState.x, y: fromState.y, z: fromState.z };
-                if (normalizeVectorInPlace(sunDir)) {
-                    return sunDir;
-                }
-            }
-            const stateSun = scene?.latestSceneState?.sunDirections?.moonCentered || scene?.latestSceneState?.sunDirection;
-            if (
-                stateSun &&
-                Number.isFinite(stateSun.x) &&
-                Number.isFinite(stateSun.y) &&
-                Number.isFinite(stateSun.z)
-            ) {
-                const sunDir = { x: stateSun.x, y: stateSun.y, z: stateSun.z };
-                if (normalizeVectorInPlace(sunDir)) {
-                    return sunDir;
-                }
-            }
-            return null;
-        };
-        const sunDirectionWorld = resolveSunDirectionWorld();
-        if (!sunDirectionWorld) {
-            return null;
-        }
-
-        if (earthObject && moonObject) {
-            const earthWorld = scene.camera.position.clone();
-            const moonWorld = scene.camera.position.clone();
-            earthObject.getWorldPosition?.(earthWorld);
-            moonObject.getWorldPosition?.(moonWorld);
-
-            const earthFromMoonDir = earthWorld.sub(moonWorld.clone());
-            if (!normalizeVectorInPlace(earthFromMoonDir)) {
-                return null;
-            }
-
-            return {
-                earthDirectionWorld: earthFromMoonDir,
-                sunDirectionWorld,
-                moonWorld,
-            };
-        }
-
-        const stateEarth = resolveBodyPositionFromSceneState(scene?.latestSceneState, scene, "EARTH");
-        const stateMoon = resolveBodyPositionFromSceneState(scene?.latestSceneState, scene, "MOON");
-        if (!hasFinitePositionVector(stateEarth) || !hasFinitePositionVector(stateMoon)) {
-            return null;
-        }
-        const earthFromMoonDir = {
-            x: stateEarth.x - stateMoon.x,
-            y: stateEarth.y - stateMoon.y,
-            z: stateEarth.z - stateMoon.z,
-        };
-        if (!normalizeVectorInPlace(earthFromMoonDir)) {
-            return null;
-        }
-        const moonWorld = scene.camera.position.clone();
-        (scene.moonContainer || scene.moon)?.getWorldPosition?.(moonWorld);
-        return {
-            earthDirectionWorld: earthFromMoonDir,
-            sunDirectionWorld,
-            moonWorld,
-        };
-    };
-
-    const hasFinitePositionVector = (vector) =>
-        !!vector &&
-        Number.isFinite(vector.x) &&
-        Number.isFinite(vector.y) &&
-        Number.isFinite(vector.z);
-
-    const resolveCraftPositionFromSceneState = (sceneState, preferredCraftId = null) => {
-        const bodies = sceneState?.bodies;
-        if (!bodies || typeof bodies !== "object") return null;
-
-        const toPosition = (body) => {
-            const pos = body?.position;
-            return hasFinitePositionVector(pos)
-                ? { x: pos.x, y: pos.y, z: pos.z }
-                : null;
-        };
-
-        if (preferredCraftId) {
-            const preferred = toPosition(bodies[preferredCraftId]);
-            if (preferred) return preferred;
-        }
-
-        const fallbackSc = toPosition(bodies.SC);
-        if (fallbackSc) return fallbackSc;
-
-        for (const [bodyId, bodyState] of Object.entries(bodies)) {
-            const normalizedId = String(bodyId || "").toUpperCase();
-            if (normalizedId === "EARTH" || normalizedId === "MOON" || normalizedId === "SUN") {
-                continue;
-            }
-            const pos = toPosition(bodyState);
-            if (pos) return pos;
-        }
-
-        return null;
-    };
-
-    const resolveBodyPositionFromSceneState = (sceneState, scene, bodyId) => {
-        const bodies = sceneState?.bodies;
-        const direct = bodies?.[bodyId]?.position;
-        if (hasFinitePositionVector(direct)) {
-            return direct;
-        }
-
-        // Some frame representations omit the origin body entirely because it
-        // is implicitly at the coordinate origin in that frame.
-        const primaryBody = String(scene?.primaryBody || "").toUpperCase();
-        if (primaryBody === bodyId) {
-            return { x: 0, y: 0, z: 0 };
-        }
-
-        return null;
-    };
-
-    const computeMobileMoonVisibilityInfoFromSceneState = (
-        sceneState,
-        scene,
-        preferredCraftId = null,
-    ) => {
-        const bodies = sceneState?.bodies;
-        if (!bodies || typeof bodies !== "object") return null;
-
-        const earthPos = resolveBodyPositionFromSceneState(sceneState, scene, "EARTH");
-        const moonPos = resolveBodyPositionFromSceneState(sceneState, scene, "MOON");
-        const craftPos = resolveCraftPositionFromSceneState(sceneState, preferredCraftId);
-        if (!hasFinitePositionVector(earthPos) || !hasFinitePositionVector(moonPos) || !craftPos) {
-            return null;
-        }
-
-        const craftFromMoonDir = {
-            x: craftPos.x - moonPos.x,
-            y: craftPos.y - moonPos.y,
-            z: craftPos.z - moonPos.z,
-        };
-        const earthFromMoonDir = {
-            x: earthPos.x - moonPos.x,
-            y: earthPos.y - moonPos.y,
-            z: earthPos.z - moonPos.z,
-        };
-        if (!normalizeVectorInPlace(craftFromMoonDir) || !normalizeVectorInPlace(earthFromMoonDir)) {
-            return null;
-        }
-
-        const sunDirection = sceneState?.sunDirections?.moonCentered || sceneState?.sunDirection;
-        if (!hasFinitePositionVector(sunDirection)) {
-            return null;
-        }
-        const sunFromMoonDir = {
-            x: sunDirection.x,
-            y: sunDirection.y,
-            z: sunDirection.z,
-        };
-        if (!normalizeVectorInPlace(sunFromMoonDir)) {
-            return null;
-        }
-
-        let visibleCount = 0;
-        let nearDay = 0;
-        let nearNight = 0;
-        let farDay = 0;
-        let farNight = 0;
-
-        for (let i = 0; i < moonVisibilitySamples.length; i += 3) {
-            const nx = moonVisibilitySamples[i];
-            const ny = moonVisibilitySamples[i + 1];
-            const nz = moonVisibilitySamples[i + 2];
-            const visibleDot = nx * craftFromMoonDir.x + ny * craftFromMoonDir.y + nz * craftFromMoonDir.z;
-            if (visibleDot <= 0) continue;
-            visibleCount += 1;
-
-            const near = (nx * earthFromMoonDir.x + ny * earthFromMoonDir.y + nz * earthFromMoonDir.z) >= 0;
-            const day = (nx * sunFromMoonDir.x + ny * sunFromMoonDir.y + nz * sunFromMoonDir.z) >= 0;
-
-            if (near) {
-                if (day) nearDay += 1;
-                else nearNight += 1;
-            } else if (day) {
-                farDay += 1;
-            } else {
-                farNight += 1;
-            }
-        }
-
-        if (visibleCount <= 0) {
-            return null;
-        }
-
-        const rawParts = [
-            (nearDay * 100) / visibleCount,
-            (nearNight * 100) / visibleCount,
-            (farDay * 100) / visibleCount,
-            (farNight * 100) / visibleCount,
-        ];
-        const [nearDayPct, nearNightPct, farDayPct, farNightPct] = roundPercentParts(rawParts);
-
-        return {
-            nearPct: nearDayPct + nearNightPct,
-            farPct: farDayPct + farNightPct,
-            nearDayPct,
-            nearNightPct,
-            farDayPct,
-            farNightPct,
-        };
-    };
-
-    const ensureMobileMoonOverlayCanvasSize = () => {
-        if (!mobileMoonFarSideOverlay) return null;
-        const cssWidth = Math.max(1, Math.floor(window.innerWidth));
-        const cssHeight = Math.max(1, Math.floor(window.innerHeight));
-        const resized = (mobileMoonFarSideOverlay.width !== cssWidth) ||
-            (mobileMoonFarSideOverlay.height !== cssHeight);
-        if (resized) {
-            mobileMoonFarSideOverlay.width = cssWidth;
-            mobileMoonFarSideOverlay.height = cssHeight;
-            mobileMoonFarSideOverlay.style.width = `${cssWidth}px`;
-            mobileMoonFarSideOverlay.style.height = `${cssHeight}px`;
-        }
-        return { cssWidth, cssHeight };
-    };
-
-    const clearMobileMoonOverlay = () => {
-        if (!mobileMoonFarSideOverlay) return;
-        const ctx = mobileMoonOverlayCtx || mobileMoonFarSideOverlay.getContext("2d");
-        if (!ctx) return;
-        mobileMoonOverlayCtx = ctx;
-        const size = ensureMobileMoonOverlayCanvasSize();
-        if (!size) return;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, mobileMoonFarSideOverlay.width, mobileMoonFarSideOverlay.height);
-    };
-
-    const setMobileMoonOverlayActive = (active) => {
-        if (!mobileMoonFarSideOverlay) return;
-        mobileMoonFarSideOverlay.classList.toggle("is-active", !!active);
-        if (!active) {
-            clearMobileMoonOverlay();
-        }
-    };
-
-    const renderMobileMoonFarSideOverlay = (scene, visibility) => {
-        if (!scene?.camera || !visibility?.earthDirectionWorld || !visibility?.sunDirectionWorld) {
-            hideMobileMoonFarSideOverlayForScene(scene);
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-        const overlay = ensureMobileMoonFarSideOverlayMesh(scene);
-        const dir = visibility.earthDirectionWorld;
-        const sunDir = visibility.sunDirectionWorld;
-        if (!overlay?.mesh || !overlay?.material || !Number.isFinite(dir.x) || !Number.isFinite(dir.y) || !Number.isFinite(dir.z)) {
-            hideMobileMoonFarSideOverlayForScene(scene);
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-        const uniformDir = overlay.material.uniforms?.uEarthDirWorld?.value;
-        const uniformSunDir = overlay.material.uniforms?.uSunDirWorld?.value;
-        if (!uniformDir?.copy || !uniformSunDir?.copy) {
-            hideMobileMoonFarSideOverlayForScene(scene);
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-        uniformDir.copy(dir).normalize();
-        uniformSunDir.copy(sunDir).normalize();
-        overlay.mesh.visible = true;
-        setMobileMoonOverlayActive(true);
-    };
-
-    const setMobileMoonVisibilityInfoVisible = (visible) => {
-        if (mobileViewsMoonVisibility) {
-            mobileViewsMoonVisibility.hidden = !visible;
-        }
-        if (!visible) {
-            mobileMoonVisibilitySignature = "";
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-        }
-    };
-
-    const syncMobileMoonVisibilityInfo = ({ force = false } = {}) => {
-        const shouldShow =
-            isMobileViewport() &&
-            activeMobileTab === "views" &&
-            activeMobileViewPresetId === "moon";
-
-        if (!shouldShow) {
-            setMobileMoonVisibilityInfoVisible(false);
-            return;
-        }
-
-        const scene = resolveActiveScene();
-        const activeCraft = resolveActiveCraft(scene);
-        const earthObject = scene?.earthContainer || scene?.earth;
-        const moonObject = scene?.moonContainer || scene?.moon;
-        const hasSceneGraphVisibilityInputs = !!scene?.camera;
-        const sceneStateSnapshot = scene?.latestSceneState || null;
-        const preferredCraftId = scene?.activeCraftId || scene?.primaryCraftId || null;
-
-        const now = performance.now();
-        if (!force && (now - mobileMoonOverlayLastUpdateMs) < MOBILE_MOON_OVERLAY_UPDATE_INTERVAL_MS) {
-            return;
-        }
-        mobileMoonOverlayLastUpdateMs = now;
-        setMobileMoonVisibilityInfoVisible(true);
-
-        const panelVisibility = computeMobileMoonVisibilityInfoFromSceneState(
-            sceneStateSnapshot,
-            scene,
-            preferredCraftId,
-        );
-        if (!panelVisibility) {
-            if (mobileViewsMoonVisibilitySummary) {
-                if (mobileViewsMoonVisibilityHead && mobileViewsMoonVisibilityValues) {
-                    mobileViewsMoonVisibilityHead.hidden = true;
-                    mobileViewsMoonVisibilityValues.innerHTML = [
-                        "<span>--%</span>",
-                        "<span>--%</span>",
-                        "<span>--%</span>",
-                        "<span>--%</span>",
-                    ].join("");
-                } else {
-                    mobileViewsMoonVisibilitySummary.textContent = "Visible lunar surface: unavailable";
-                }
-            }
-            mobileMoonVisibilitySignature = "";
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-
-        if (mobileViewsMoonVisibilitySummary) {
-            if (mobileViewsMoonVisibilityHead && mobileViewsMoonVisibilityValues) {
-                const nextSignature = [
-                    panelVisibility.nearDayPct,
-                    panelVisibility.nearNightPct,
-                    panelVisibility.farDayPct,
-                    panelVisibility.farNightPct,
-                ].join("|");
-                mobileViewsMoonVisibilityHead.hidden = false;
-                if (mobileMoonVisibilitySignature !== nextSignature) {
-                    mobileViewsMoonVisibilityValues.innerHTML = [
-                        `<span>${panelVisibility.nearDayPct}%</span>`,
-                        `<span>${panelVisibility.nearNightPct}%</span>`,
-                        `<span>${panelVisibility.farDayPct}%</span>`,
-                        `<span>${panelVisibility.farNightPct}%</span>`,
-                    ].join("");
-                    mobileMoonVisibilitySignature = nextSignature;
-                }
-            } else {
-                mobileViewsMoonVisibilitySummary.textContent =
-                    `${panelVisibility.nearPct}% near (${panelVisibility.nearDayPct}% day; ${panelVisibility.nearNightPct}% night) ` +
-                    `${panelVisibility.farPct}% far (${panelVisibility.farDayPct}% day; ${panelVisibility.farNightPct}% night)`;
-            }
-        }
-
-        if (mobileViewsFarSideToggle) {
-            mobileViewsFarSideToggle.textContent = mobileMoonFarOverlayEnabled ? "Far Side: ON" : "Far Side: OFF";
-            mobileViewsFarSideToggle.classList.toggle("is-active", mobileMoonFarOverlayEnabled);
-            mobileViewsFarSideToggle.setAttribute("aria-pressed", mobileMoonFarOverlayEnabled ? "true" : "false");
-        }
-
-        if (!mobileMoonFarOverlayEnabled) {
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-
-        const isThreeD = !!document.getElementById("dimension-3D")?.checked;
-        if (!isThreeD) {
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-
-        if (!hasSceneGraphVisibilityInputs) {
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-
-        const overlayVisibility = computeMobileMoonOverlayState(scene, earthObject, moonObject);
-        if (!overlayVisibility) {
-            hideAllMobileMoonFarSideOverlays();
-            setMobileMoonOverlayActive(false);
-            return;
-        }
-
-        renderMobileMoonFarSideOverlay(scene, overlayVisibility);
-    };
-
-    const shouldRunMobileMoonVisibilityLoop = () => (
-        isMobileViewport() && activeMobileTab === "views"
-    );
-
-    const stopMobileMoonVisibilityLoop = () => {
-        if (mobileMoonOverlayLoopHandle == null) return;
-        window.cancelAnimationFrame?.(mobileMoonOverlayLoopHandle);
-        mobileMoonOverlayLoopHandle = null;
-        hideAllMobileMoonFarSideOverlays();
-        setMobileMoonOverlayActive(false);
-    };
-
-    const startMobileMoonVisibilityLoop = () => {
-        if (mobileMoonOverlayLoopHandle != null) return;
-        if (!shouldRunMobileMoonVisibilityLoop()) return;
-        const tick = () => {
-            syncMobileMoonVisibilityInfo();
-            if (!shouldRunMobileMoonVisibilityLoop()) {
-                mobileMoonOverlayLoopHandle = null;
-                return;
-            }
-            mobileComposeControlsSync?.syncPresentation?.();
-            mobileViewFovSync?.applyAutoFovForActivePreset?.();
-            if (activeMobileTab === "views" || activeMobileTab === "compose") {
-                mobileViewFovSync?.syncDisplayFromScene?.();
-            }
-            mobileMoonOverlayLoopHandle = window.requestAnimationFrame(tick);
-        };
-        mobileMoonOverlayLoopHandle = window.requestAnimationFrame(tick);
-    };
-
     const timelineSlider = document.getElementById("timeline-slider");
     const burnButtonsHost = document.getElementById("burnbuttons");
     const mobileComposeTimelineSync = createMobileComposeTimelineSync({
@@ -3307,7 +2618,7 @@ export function bindMobileMissionCard() {
             queueTransportSync();
         },
         onMoonVisibilityRefresh: (options = {}) => {
-            syncMobileMoonVisibilityInfo(options);
+            mobileMoonVisibilitySync?.sync?.(options);
         },
         onComposePresentationSync: () => {
             mobileComposeControlsSync?.syncPresentation?.();
@@ -3315,6 +2626,34 @@ export function bindMobileMissionCard() {
         composeDefaultFov: COMPOSE_DEFAULT_FOV,
     });
     mobileViewFovSync.bind();
+
+    mobileMoonVisibilitySync = createMobileMoonVisibilitySync({
+        mobileViewsMoonVisibility,
+        mobileViewsMoonVisibilitySummary,
+        mobileViewsMoonVisibilityHead,
+        mobileViewsMoonVisibilityValues,
+        mobileViewsFarSideToggle,
+        mobileMoonFarSideOverlay,
+        resolveActiveScene,
+        resolveSceneObject,
+        isMobileViewport,
+        getActiveTab: () => activeMobileTab,
+        getActiveViewPresetId: () => activeMobileViewPresetId,
+        getIsThreeD: () => !!document.getElementById("dimension-3D")?.checked,
+        onLoopFrame: () => {
+            mobileComposeControlsSync?.syncPresentation?.();
+            mobileViewFovSync?.applyAutoFovForActivePreset?.();
+            if (activeMobileTab === "views" || activeMobileTab === "compose") {
+                mobileViewFovSync?.syncDisplayFromScene?.();
+            }
+        },
+        requestSceneRender: () => {
+            mobileViewFovSync?.requestSceneRender?.();
+        },
+        windowRef: window,
+        performanceRef: performance,
+    });
+    mobileMoonVisibilitySync.bind();
 
     const syncMobileComposeControls = () => {
         mobileComposeControlsSync.syncControls();
@@ -3395,10 +2734,10 @@ export function bindMobileMissionCard() {
         isMobileViewport,
         getActiveTab: () => activeMobileTab,
         onAfterApply: () => {
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onAfterEnforcedSync: () => {
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onAfterButtonClick: () => {
             mobileViewFovSync?.applyAutoFovForActivePreset?.();
@@ -3410,7 +2749,7 @@ export function bindMobileMissionCard() {
             if (activeMobileTab === "compose") {
                 mobileComposeTimelineSync.sync();
             }
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
     });
     mobileViewPresetSync.bind();
@@ -3459,8 +2798,8 @@ export function bindMobileMissionCard() {
                 mobileViewFovSync.scheduleAutoFovRefresh();
             }
             mobileViewFovSync?.syncDisplayFromScene?.();
-            startMobileMoonVisibilityLoop();
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.startLoop?.();
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onEnterCompose: () => {
             mobileViewFovSync?.ensureComposeDefaultFov?.();
@@ -3470,14 +2809,14 @@ export function bindMobileMissionCard() {
                 mobileViewFovSync.scheduleAutoFovRefresh();
             }
             mobileViewFovSync?.syncDisplayFromScene?.();
-            stopMobileMoonVisibilityLoop();
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.stopLoop?.();
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onLeaveViews: () => {
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onLeaveCompose: () => {
-            syncMobileMoonVisibilityInfo({ force: true });
+            mobileMoonVisibilitySync?.sync?.({ force: true });
         },
         onAfterTransition: () => {
             mobileComposeControlsSync?.syncPresentation?.();
@@ -3485,25 +2824,6 @@ export function bindMobileMissionCard() {
             syncMobilePanelCollapseButton();
         },
     });
-
-    if (mobileViewsFarSideToggle) {
-        mobileViewsFarSideToggle.addEventListener("click", function () {
-            mobileMoonFarOverlayEnabled = !mobileMoonFarOverlayEnabled;
-            mobileViewsFarSideToggle.textContent = mobileMoonFarOverlayEnabled ? "Far Side: ON" : "Far Side: OFF";
-            mobileViewsFarSideToggle.classList.toggle("is-active", mobileMoonFarOverlayEnabled);
-            mobileViewsFarSideToggle.setAttribute("aria-pressed", mobileMoonFarOverlayEnabled ? "true" : "false");
-            if (!mobileMoonFarOverlayEnabled) {
-                hideAllMobileMoonFarSideOverlays();
-                setMobileMoonOverlayActive(false);
-            }
-            syncMobileMoonVisibilityInfo({ force: true });
-            mobileViewFovSync?.requestSceneRender?.();
-            window.requestAnimationFrame(() => {
-                syncMobileMoonVisibilityInfo({ force: true });
-                mobileViewFovSync?.requestSceneRender?.();
-            });
-        });
-    }
 
     if (panelCollapseButton) {
         panelCollapseButton.addEventListener("click", function () {
@@ -3543,8 +2863,8 @@ export function bindMobileMissionCard() {
     syncMobileComposeControls();
     mobileViewFovSync.syncDisplayFromScene();
     toggleMobileMode();
-    startMobileMoonVisibilityLoop();
-    syncMobileMoonVisibilityInfo({ force: true });
+    mobileMoonVisibilitySync.startLoop();
+    mobileMoonVisibilitySync.sync({ force: true });
     applyMobileRenderViewportCentering();
     window.addEventListener("resize", toggleMobileMode);
 
