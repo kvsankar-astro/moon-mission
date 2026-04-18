@@ -6,7 +6,7 @@ refactor planning in `moon-mission`.
 It replaces the older split between `refactor-audit.md`, earlier revisions of
 this document, and the runtime-refactor sections that used to live in the
 orbit roadmap. It is grounded in the current codebase as of
-`2026-04-17`.
+`2026-04-18`.
 
 ## Goals
 
@@ -115,7 +115,7 @@ The current mission boot flow is:
 
 | Layer | Current anchors | Notes |
 |---|---|---|
-| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is now much closer to a composition root than a controller hub |
+| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is much closer to a composition root than a controller hub, and `ui/event-handlers.js` is increasingly acting as a shell composition seam instead of one giant mobile utility file |
 | Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, playback and scene assembly moved out of `mission.js`, and runtime root glue is isolated, but `mission-state-store.js` and some runtime buckets still carry broad composition responsibility |
 | Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js` | Strongest functional-core foundation in the repo and the area with the clearest recent refactor wins |
 | State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` is still transitional because of legacy fallbacks |
@@ -139,6 +139,14 @@ preserve and extend.
 - `core/domain/transient-active-event.js`
 - `core/domain/phase-indicator-state.js`
 - `core/domain/earth-craft-moon-angle.js`
+- `core/domain/mobile-view-preset-state.js`
+- `core/domain/mobile-compose-lock-state.js`
+- `core/domain/mobile-compose-timeline-state.js`
+- `core/domain/mobile-compose-controls-state.js`
+- `core/domain/mobile-shell-tab-state.js`
+- `core/domain/mobile-view-fov-state.js`
+- `core/domain/mobile-moon-visibility-state.js`
+- `core/domain/mobile-shell-layout-state.js`
 - `core/plans/frame-plan.js`
 
 ### Pure application planners
@@ -163,6 +171,15 @@ preserve and extend.
 - `app/scene-telemetry-ui-actions.js`
 - `app/scene-phase-ui-actions.js`
 - `app/scene-active-event-ui-actions.js`
+- `ui/mobile-transport-sync.js`
+- `ui/mobile-view-preset-sync.js`
+- `ui/mobile-compose-lock-sync.js`
+- `ui/mobile-compose-timeline-sync.js`
+- `ui/mobile-compose-controls-sync.js`
+- `ui/mobile-shell-tab-sync.js`
+- `ui/mobile-view-fov-sync.js`
+- `ui/mobile-moon-visibility-sync.js`
+- `ui/mobile-shell-layout-sync.js`
 
 ### Healthier coordination seams
 
@@ -316,16 +333,32 @@ remaining fetch/cache concerns should follow that split more clearly.
 
 ### `ui/event-handlers.js`
 
-This is no longer just event binding. It also contains:
+This is still broader than simple event binding, but it is meaningfully
+healthier than it was a few batches ago.
 
-- control synchronization logic
-- mobile layout behavior
-- timeline presentation logic
-- settings panel behavior
+It now delegates most of the mobile shell surface into smaller adapters such
+as:
+
+- `ui/mobile-transport-sync.js`
+- `ui/mobile-view-preset-sync.js`
+- `ui/mobile-compose-lock-sync.js`
+- `ui/mobile-compose-timeline-sync.js`
+- `ui/mobile-compose-controls-sync.js`
+- `ui/mobile-shell-tab-sync.js`
+- `ui/mobile-view-fov-sync.js`
+- `ui/mobile-moon-visibility-sync.js`
+- `ui/mobile-shell-layout-sync.js`
+
+The remaining mixed concerns are now more concentrated:
+
+- settings-panel behavior
+- mobile session lifecycle and saved camera-mode bridging
+- mission-card and simplification lifecycle
 - mission-specific UI affordances
 
-It is a shell module, but it should be decomposed into smaller shell features
-instead of remaining a broad UI utility file.
+It is still a shell module, but it no longer needs a wholesale breakup. The
+remaining work is to keep shrinking the lifecycle and settings residue until it
+becomes a true feature-composition file.
 
 ### Runtime composition chain
 
@@ -352,7 +385,7 @@ more wrapper layers.
 
 ## Progress Snapshot
 
-As of `2026-04-17`, the repo is roughly `68-70%` of the way to the target
+As of `2026-04-18`, the repo is roughly `78-80%` of the way to the target
 architecture.
 
 What has improved materially:
@@ -388,26 +421,32 @@ What has improved materially:
   `app/scene-phase-ui-actions.js` and
   `app/scene-active-event-ui-actions.js`, leaving
   `app/scene-ui-update-actions.js` mostly as composition
+- the mobile shell surface is now split into dedicated adapters for transport,
+  presets, compose lock, compose timeline, compose controls, tab state, FoV,
+  moon visibility, and layout
+- the mobile shell now also has matching pure helpers for preset selection,
+  compose lock, compose timeline, compose controls, tab transitions, FoV,
+  moon visibility, and layout math
 
 What still dominates the remaining risk:
 
 - `core/state/mission-state-store.js`
-- `ui/event-handlers.js`
-- `app/scene-view-state.js`
 - `data/mission-data.js`
-- `mission.js`
+- `app/scene-view-state.js`
+- the remaining lifecycle and settings residue in `ui/event-handlers.js`
+- the final legacy/bootstrap residue in `mission.js`
 
 Progress by refactor slice:
 
 | Slice | Status | Notes |
 |---|---|---|
-| 1. split the state facade | in progress | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, but `mission-state-store.js` is still too broad |
+| 1. split the state facade | in progress | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, and `mission-state-store.js` is now a thinner compatibility wrapper, but the explicit port model is not finished |
 | 2. separate settings intent from effects | in progress | view planning/application split landed, but settings still fan out through wider runtime wiring |
 | 3. finish the frame pipeline split | close to done | `frame-plan.js`, transient event planning, `scene-frame-plan.js`, and the scene telemetry/phase/event UI split are all in place; the remaining work is mostly final composition cleanup rather than core logic extraction |
 | 4. make scene view state truly scene-scoped | lightly started | structure exists, but legacy fallback still obscures the true source of truth |
-| 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; `mission-state-store.js` and parts of runtime bootstrap still rebuild broad surfaces |
+| 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; the remaining broad surfaces are mostly in state access and a few legacy bootstrap bridges |
 | 6. split data loading from data normalization | partially prepared | domain helpers exist, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
-| 7. break up large shell modules | in progress | `mission.js` is shrinking meaningfully and the scene/UI shell is now decomposed, but `ui/event-handlers.js` remains the biggest shell monolith |
+| 7. break up large shell modules | well underway | `mission.js` is shrinking meaningfully, the scene/UI shell is decomposed, and most of the mobile shell has been extracted from `ui/event-handlers.js`; the remaining work is settings-panel and lifecycle cleanup rather than first-pass shell rescue |
 
 ## Target Architecture
 
@@ -695,11 +734,11 @@ Expected result:
 
 ### Slice 7: break up large shell modules
 
-Status: mostly pending
+Status: well underway
 
 Goals:
 
-- decompose `ui/event-handlers.js`
+- keep decomposing `ui/event-handlers.js`
 - reduce `mission.js` to bootstrap and top-level coordination only
 - keep mission-specific UI features isolated from reusable shell code
 
@@ -722,9 +761,10 @@ Primary target:
 
 Goal:
 
-- split settings-panel behavior, layout sync, timeline presentation, and other
-  mission-specific UI behaviors into smaller shell features
-- keep browser event binding separate from UI policy and presentation helpers
+- split the remaining settings-panel behavior and mobile lifecycle/session
+  bridging into smaller shell features
+- keep browser event binding separate from shell lifecycle policy and
+  mission-specific presentation helpers
 
 ### Batch B: keep pushing the state facade toward explicit ports
 
