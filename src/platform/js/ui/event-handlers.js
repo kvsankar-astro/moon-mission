@@ -11,6 +11,7 @@ import {
 import { createMobileComposeControlsSync } from "./mobile-compose-controls-sync.js";
 import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
 import { createMobileComposeTimelineSync } from "./mobile-compose-timeline-sync.js";
+import { createMobileShellTabSync } from "./mobile-shell-tab-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
@@ -3619,104 +3620,6 @@ export function bindMobileMissionCard() {
         mobileViewsSavedViewState = null;
     };
 
-    const setActiveMobileTab = (tabName) => {
-        const requestedTab = (tabName === "compose" && !composeFeatureEnabled) ? "mission" : tabName;
-        const nextTab = mobileTabCards[requestedTab] ? requestedTab : "mission";
-        const previousTab = activeMobileTab;
-        activeMobileTab = nextTab;
-        if (typeof document !== "undefined" && document.body) {
-            document.body.dataset.mobileActiveTab = nextTab;
-        }
-        const mobileViewport = isMobileViewport();
-        const previousNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(previousTab);
-        const nextNeedsSimplification = mobileViewport && isViewsVisualSimplificationTab(nextTab);
-
-        navButtons.forEach((button) => {
-            if (button.hidden) return;
-            const isActive = button.dataset.mobileTab === nextTab;
-            button.classList.toggle("is-active", isActive);
-            if (isActive) {
-                button.setAttribute("aria-current", "page");
-            } else {
-                button.removeAttribute("aria-current");
-            }
-        });
-
-        Object.entries(mobileTabCards).forEach(([tabKey, card]) => {
-            if (!card) return;
-            if (tabKey === "compose" && !composeFeatureEnabled) {
-                card.hidden = true;
-                return;
-            }
-            card.hidden = tabKey !== nextTab;
-        });
-
-        if (nextNeedsSimplification && !previousNeedsSimplification) {
-            applyViewsVisualSimplification();
-            if (!mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                mobileSavedMissionCameraModes = {
-                    positionMode: desktopPosition.value,
-                    lookMode: desktopLook.value,
-                };
-            }
-        } else if (!nextNeedsSimplification && previousNeedsSimplification) {
-            restoreViewsVisualSimplification();
-            if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
-                desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
-                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
-                mobileSavedMissionCameraModes = null;
-            }
-        }
-
-        if (mobileViewport && nextTab === "mission") {
-            setCheckboxState("view-body-halos", true);
-        }
-
-        if (nextTab === "views" && mobileViewport) {
-            if (!mobileViewsPresetInitialized || !mobileViewPresetById.has(activeMobileViewPresetId)) {
-                activeMobileViewPresetId = "moon";
-                mobileViewPresetSync.applyPreset(activeMobileViewPresetId);
-                mobileViewsPresetInitialized = true;
-            }
-            mobileViewPresetSync.syncState();
-            if (mobileViewsAutoFovEnabled) {
-                applyAutoFovForActivePreset();
-                scheduleAutoFovRefresh();
-            }
-            const scene = resolveActiveScene();
-            if (scene?.camera?.fov) {
-                updateMobileViewsFovDisplay(scene.camera.fov);
-            }
-            startMobileMoonVisibilityLoop();
-            syncMobileMoonVisibilityInfo({ force: true });
-        } else if (nextTab === "compose" && mobileViewport && composeFeatureEnabled) {
-            if (!mobileComposeDefaultFovApplied) {
-                setMobileViewsAutoFov(false);
-                applyMobileViewsFov(COMPOSE_DEFAULT_FOV);
-                mobileComposeDefaultFovApplied = true;
-            }
-            syncMobileComposeControls();
-            if (mobileViewsAutoFovEnabled) {
-                applyAutoFovForActivePreset();
-                scheduleAutoFovRefresh();
-            }
-            const scene = resolveActiveScene();
-            if (scene?.camera?.fov) {
-                updateMobileViewsFovDisplay(scene.camera.fov);
-            }
-            stopMobileMoonVisibilityLoop();
-            syncMobileMoonVisibilityInfo({ force: true });
-        } else if (previousTab === "views" && mobileViewport) {
-            syncMobileMoonVisibilityInfo({ force: true });
-        } else if (previousTab === "compose" && mobileViewport) {
-            syncMobileMoonVisibilityInfo({ force: true });
-        }
-        mobileComposeControlsSync?.syncPresentation?.();
-        applyMobileRenderViewportCentering();
-        syncMobilePanelCollapseButton();
-    };
-
     const mobileViewPresetSync = createMobileViewPresetSync({
         mobileViewButtons,
         mobileViewPresetById,
@@ -3752,6 +3655,87 @@ export function bindMobileMissionCard() {
         },
     });
     mobileViewPresetSync.bind();
+
+    const mobileShellTabSync = createMobileShellTabSync({
+        navButtons,
+        mobileTabCards,
+        getActiveTab: () => activeMobileTab,
+        setActiveTab: (tabName) => {
+            activeMobileTab = tabName;
+        },
+        isComposeFeatureEnabled: () => composeFeatureEnabled,
+        isMobileViewport,
+        isViewsVisualSimplificationTab,
+        setMissionEventMessage,
+        onEnterSimplifiedTab: () => {
+            applyViewsVisualSimplification();
+            if (!mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
+                mobileSavedMissionCameraModes = {
+                    positionMode: desktopPosition.value,
+                    lookMode: desktopLook.value,
+                };
+            }
+        },
+        onExitSimplifiedTab: () => {
+            restoreViewsVisualSimplification();
+            if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
+                desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
+                desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
+                desktopPosition.dispatchEvent(new Event("change", { bubbles: true }));
+                mobileSavedMissionCameraModes = null;
+            }
+        },
+        onEnterMission: () => {
+            setCheckboxState("view-body-halos", true);
+        },
+        onEnterViews: () => {
+            if (!mobileViewsPresetInitialized || !mobileViewPresetById.has(activeMobileViewPresetId)) {
+                activeMobileViewPresetId = "moon";
+                mobileViewPresetSync.applyPreset(activeMobileViewPresetId);
+                mobileViewsPresetInitialized = true;
+            }
+            mobileViewPresetSync.syncState();
+            if (mobileViewsAutoFovEnabled) {
+                applyAutoFovForActivePreset();
+                scheduleAutoFovRefresh();
+            }
+            const scene = resolveActiveScene();
+            if (scene?.camera?.fov) {
+                updateMobileViewsFovDisplay(scene.camera.fov);
+            }
+            startMobileMoonVisibilityLoop();
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onEnterCompose: () => {
+            if (!mobileComposeDefaultFovApplied) {
+                setMobileViewsAutoFov(false);
+                applyMobileViewsFov(COMPOSE_DEFAULT_FOV);
+                mobileComposeDefaultFovApplied = true;
+            }
+            syncMobileComposeControls();
+            if (mobileViewsAutoFovEnabled) {
+                applyAutoFovForActivePreset();
+                scheduleAutoFovRefresh();
+            }
+            const scene = resolveActiveScene();
+            if (scene?.camera?.fov) {
+                updateMobileViewsFovDisplay(scene.camera.fov);
+            }
+            stopMobileMoonVisibilityLoop();
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onLeaveViews: () => {
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onLeaveCompose: () => {
+            syncMobileMoonVisibilityInfo({ force: true });
+        },
+        onAfterTransition: () => {
+            mobileComposeControlsSync?.syncPresentation?.();
+            applyMobileRenderViewportCentering();
+            syncMobilePanelCollapseButton();
+        },
+    });
 
     if (mobileViewsFovAuto) {
         mobileViewsFovAuto.addEventListener("click", function () {
@@ -3943,7 +3927,7 @@ export function bindMobileMissionCard() {
     setViewsCardCollapsed(initialViewsCollapsed);
 
     setMobileViewsAutoFov(true);
-    setActiveMobileTab("mission");
+    mobileShellTabSync.setActiveTab("mission");
     syncMobilePanelCollapseButton();
     mobileViewPresetSync.syncState();
     syncMobileComposeControls();
@@ -3962,14 +3946,5 @@ export function bindMobileMissionCard() {
         dispatchSyntheticPress,
     });
 
-    navButtons.forEach((button) => {
-        button.addEventListener("click", function () {
-            if (button.disabled) {
-                setMissionEventMessage(`${button.textContent.trim()} card coming next`);
-                return;
-            }
-            setMissionEventMessage("");
-            setActiveMobileTab(button.dataset.mobileTab || "mission");
-        });
-    });
+    mobileShellTabSync.bind();
 }
