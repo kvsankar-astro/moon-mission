@@ -4,6 +4,7 @@ import {
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
+import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
@@ -43,9 +44,7 @@ function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
 
-let keyboardShortcutsBound = false;
 let headerBlurbBehaviorBound = false;
-let shortcutPanelGlobalBound = false;
 let controlPanelResizeBound = false;
 let timelineDockHeightSyncBound = false;
 let timelineCarouselDragBound = false;
@@ -90,23 +89,6 @@ const MEANINGFUL_ACTIVITY_KEYS = new Set([
     "Home",
     "End",
 ]);
-const REPEAT_PRESS_BUTTON_IDS = new Set([
-    "zoomin",
-    "zoomout",
-    "panleft",
-    "panright",
-    "panup",
-    "pandown",
-    "forward",
-    "fastforward",
-    "backward",
-    "fastbackward",
-    "slower",
-    "resetspeed",
-    "faster",
-    "realtime",
-]);
-
 function isInteractiveInputTarget(target) {
     if (!target) return false;
     const tag = target.tagName;
@@ -140,67 +122,6 @@ function dispatchSyntheticPress(target, pointerType = "mouse") {
     return true;
 }
 
-function clickControlButton(id) {
-    const button = document.getElementById(id);
-    if (!button || button.disabled) return false;
-    if (REPEAT_PRESS_BUTTON_IDS.has(id)) {
-        return dispatchSyntheticPress(button, "mouse");
-    }
-    button.click();
-    return true;
-}
-
-function toggleShortcutPanel(forceVisible) {
-    const panel = document.getElementById("shortcut-panel");
-    const toggleButton = document.getElementById("shortcut-help");
-    if (!panel) return;
-    const shouldShow = typeof forceVisible === "boolean"
-        ? forceVisible
-        : panel.classList.contains("shortcut-panel--hidden");
-    if (shouldShow) {
-        positionShortcutPanel(panel, toggleButton);
-        panel.classList.remove("shortcut-panel--hidden");
-        return;
-    }
-    panel.classList.add("shortcut-panel--hidden");
-}
-
-function positionShortcutPanel(panel, toggleButton) {
-    if (!panel || !toggleButton) return;
-
-    const wasHidden = panel.classList.contains("shortcut-panel--hidden");
-    if (wasHidden) {
-        panel.classList.remove("shortcut-panel--hidden");
-        panel.style.visibility = "hidden";
-    }
-
-    panel.style.position = "fixed";
-    panel.style.left = "0px";
-    panel.style.top = "0px";
-
-    const buttonRect = toggleButton.getBoundingClientRect();
-    const panelRect = panel.getBoundingClientRect();
-    const marginPx = 8;
-
-    const unclampedLeft = buttonRect.right - panelRect.width;
-    const maxLeft = Math.max(marginPx, window.innerWidth - panelRect.width - marginPx);
-    const left = Math.min(Math.max(unclampedLeft, marginPx), maxLeft);
-
-    let top = buttonRect.top - panelRect.height - marginPx;
-    if (top < marginPx) {
-        const maxTop = Math.max(marginPx, window.innerHeight - panelRect.height - marginPx);
-        top = Math.min(buttonRect.bottom + marginPx, maxTop);
-    }
-
-    panel.style.left = `${Math.round(left)}px`;
-    panel.style.top = `${Math.round(top)}px`;
-
-    if (wasHidden) {
-        panel.classList.add("shortcut-panel--hidden");
-        panel.style.visibility = "";
-    }
-}
-
 function isMobileViewport() {
     return window.innerWidth <= 600;
 }
@@ -218,6 +139,7 @@ function isElementLayoutVisible(element) {
 }
 
 let settingsPanelController = null;
+let keyboardShortcutsController = null;
 
 function getSettingsPanelController() {
     if (!settingsPanelController) {
@@ -230,6 +152,17 @@ function getSettingsPanelController() {
         });
     }
     return settingsPanelController;
+}
+
+function getKeyboardShortcutsController() {
+    if (!keyboardShortcutsController) {
+        keyboardShortcutsController = createKeyboardShortcutsController({
+            onClick,
+            isInteractiveInputTarget,
+            dispatchSyntheticPress,
+        });
+    }
+    return keyboardShortcutsController;
 }
 
 function isSettingsPanelOpen() {
@@ -1669,115 +1602,7 @@ export function bindMainControls(handlers) {
 }
 
 export function bindKeyboardShortcuts() {
-    if (keyboardShortcutsBound) return;
-    keyboardShortcutsBound = true;
-
-    onClick("shortcut-help", function () {
-        toggleShortcutPanel();
-    });
-
-    if (!shortcutPanelGlobalBound) {
-        shortcutPanelGlobalBound = true;
-        window.addEventListener("resize", function () {
-            const panel = document.getElementById("shortcut-panel");
-            const button = document.getElementById("shortcut-help");
-            if (!panel || !button || panel.classList.contains("shortcut-panel--hidden")) return;
-            positionShortcutPanel(panel, button);
-        });
-
-        document.addEventListener("pointerdown", function (event) {
-            const panel = document.getElementById("shortcut-panel");
-            const button = document.getElementById("shortcut-help");
-            if (!panel || panel.classList.contains("shortcut-panel--hidden")) return;
-            if (!(event.target instanceof Node)) return;
-            if (panel.contains(event.target)) return;
-            if (button && button.contains(event.target)) return;
-            toggleShortcutPanel(false);
-        });
-    }
-
-    document.addEventListener("keydown", function (event) {
-        if (event.defaultPrevented) return;
-        if (event.ctrlKey || event.metaKey || event.altKey) return;
-        if (isInteractiveInputTarget(event.target)) return;
-
-        const key = event.key;
-        const lowerKey = typeof key === "string" ? key.toLowerCase() : "";
-
-        if (key === "Escape") {
-            toggleShortcutPanel(false);
-            return;
-        }
-
-        if (key === "?" || key === "/") {
-            event.preventDefault();
-            toggleShortcutPanel();
-            return;
-        }
-
-        if (key === " " || lowerKey === "k") {
-            event.preventDefault();
-            clickControlButton("animate");
-            return;
-        }
-
-        if (key === "ArrowLeft") {
-            event.preventDefault();
-            clickControlButton(event.shiftKey ? "fastbackward" : "backward");
-            return;
-        }
-
-        if (key === "ArrowRight") {
-            event.preventDefault();
-            clickControlButton(event.shiftKey ? "fastforward" : "forward");
-            return;
-        }
-
-        if (lowerKey === "j") {
-            event.preventDefault();
-            clickControlButton("fastbackward");
-            return;
-        }
-
-        if (lowerKey === "l") {
-            event.preventDefault();
-            clickControlButton("fastforward");
-            return;
-        }
-
-        if (
-            key === "-" ||
-            key === "_" ||
-            event.code === "Minus" ||
-            event.code === "NumpadSubtract"
-        ) {
-            event.preventDefault();
-            clickControlButton("slower");
-            return;
-        }
-
-        if (
-            key === "+" ||
-            key === "=" ||
-            event.code === "Equal" ||
-            event.code === "NumpadAdd"
-        ) {
-            event.preventDefault();
-            clickControlButton("faster");
-            return;
-        }
-
-        if (lowerKey === "r") {
-            event.preventDefault();
-            clickControlButton("realtime");
-            return;
-        }
-
-        if (lowerKey === "n") {
-            event.preventDefault();
-            clickControlButton("missionnow");
-        }
-    });
+    getKeyboardShortcutsController().bind();
 }
 
 export function bindControlPanelToggle() {
