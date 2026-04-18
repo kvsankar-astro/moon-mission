@@ -9,6 +9,7 @@ import {
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
 import { createMobileComposeLockSync } from "./mobile-compose-lock-sync.js";
+import { createMobileComposeTimelineSync } from "./mobile-compose-timeline-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
@@ -2331,9 +2332,6 @@ export function bindMobileMissionCard() {
     let mobileMoonOverlayCtx = null;
     let mobileViewsPinchState = null;
     let mobileMoonVisibilitySignature = "";
-    let composeTimelineWindowStartMs = Number.NaN;
-    let composeTimelineWindowEndMs = Number.NaN;
-    let composeTimelineDragging = false;
     let mobileEarthshineGain = 1;
     let mobileComposeHiddenCraftState = null;
     let mobileComposeRollRad = (250 * Math.PI) / 180;
@@ -3544,71 +3542,6 @@ export function bindMobileMissionCard() {
         }
     };
 
-    const readMainTimelineState = () => {
-        const slider = document.getElementById("timeline-slider");
-        if (!(slider instanceof HTMLInputElement)) return null;
-        const min = Number(slider.min);
-        const max = Number(slider.max);
-        const value = Number(slider.value);
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) return null;
-        return {
-            slider,
-            min: Math.min(min, max),
-            max: Math.max(min, max),
-            value: Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max)),
-        };
-    };
-
-    const seekMainTimelineTime = (timeMs, finalize = false) => {
-        const timelineState = readMainTimelineState();
-        if (!timelineState) return;
-        const clamped = Math.min(Math.max(timeMs, timelineState.min), timelineState.max);
-        timelineState.slider.value = String(clamped);
-        timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
-        if (finalize) {
-            timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-    };
-
-    const resolveComposeTimelineRangeMs = (timelineState) => {
-        const eventInfos = extractTimelineEventMetadataFromButtons();
-        const flybyWindow = resolveLunarFlybyWindowMs(eventInfos);
-        if (
-            Number.isFinite(flybyWindow.startMs) &&
-            Number.isFinite(flybyWindow.endMs) &&
-            flybyWindow.endMs > flybyWindow.startMs
-        ) {
-            let startMs = Math.min(Math.max(flybyWindow.startMs, timelineState.min), timelineState.max);
-            let endMs = Math.min(Math.max(flybyWindow.endMs, timelineState.min), timelineState.max);
-            if (endMs <= startMs) {
-                endMs = Math.min(timelineState.max, startMs + 1);
-            }
-            return { startMs, endMs };
-        }
-
-        const flybyTimeMs = resolveLunarFlybyTimeMs(eventInfos);
-        const anchorMs = Number.isFinite(flybyTimeMs) ? flybyTimeMs : timelineState.value;
-        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
-        const windowSpan = Math.min(fullSpan, COMPOSE_TIMELINE_WINDOW_MS);
-        const halfSpan = windowSpan * 0.5;
-        let startMs = anchorMs - halfSpan;
-        let endMs = anchorMs + halfSpan;
-        if (startMs < timelineState.min) {
-            endMs += timelineState.min - startMs;
-            startMs = timelineState.min;
-        }
-        if (endMs > timelineState.max) {
-            startMs -= endMs - timelineState.max;
-            endMs = timelineState.max;
-        }
-        startMs = Math.max(timelineState.min, startMs);
-        endMs = Math.min(timelineState.max, endMs);
-        if (endMs <= startMs) {
-            endMs = Math.min(timelineState.max, startMs + 1);
-        }
-        return { startMs, endMs };
-    };
-
     const normalizeComposeRoll = (value) => {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return 0;
@@ -3779,6 +3712,24 @@ export function bindMobileMissionCard() {
         syncMobileComposeRollSliderUi();
     };
 
+    const timelineSlider = document.getElementById("timeline-slider");
+    const burnButtonsHost = document.getElementById("burnbuttons");
+    const mobileComposeTimelineSync = createMobileComposeTimelineSync({
+        mobileComposeTimelineSlider,
+        mobileComposeTimelineValue,
+        mobileComposeTimelineLocal,
+        timelineSlider,
+        burnButtonsHost,
+        composeTimelineResolution: COMPOSE_TIMELINE_RESOLUTION,
+        composeTimelineWindowMs: COMPOSE_TIMELINE_WINDOW_MS,
+        getActiveTab: () => activeMobileTab,
+        readEventInfos: extractTimelineEventMetadataFromButtons,
+        resolveFlybyWindowMs: resolveLunarFlybyWindowMs,
+        resolveFlybyTimeMs: resolveLunarFlybyTimeMs,
+        formatLocalDateTimeShort,
+    });
+    mobileComposeTimelineSync.bind();
+
     const mobileComposeLockSync = createMobileComposeLockSync({
         mobileComposeLockButtons,
         mobileComposePresetById,
@@ -3793,49 +3744,10 @@ export function bindMobileMissionCard() {
             syncMobileComposePresentation();
         },
         onAfterButtonClick: () => {
-            syncMobileComposeTimelineWindow();
+            mobileComposeTimelineSync.sync();
         },
     });
     mobileComposeLockSync.bind();
-
-    const syncMobileComposeTimelineWindow = ({ finalize = false } = {}) => {
-        const timelineState = readMainTimelineState();
-        if (!timelineState || !mobileComposeTimelineSlider) {
-            if (mobileComposeTimelineValue) {
-                mobileComposeTimelineValue.textContent = "--";
-                mobileComposeTimelineValue.value = "--";
-            }
-            if (mobileComposeTimelineLocal) {
-                mobileComposeTimelineLocal.textContent = "Local: --";
-            }
-            return;
-        }
-
-        const { startMs, endMs } = resolveComposeTimelineRangeMs(timelineState);
-        composeTimelineWindowStartMs = startMs;
-        composeTimelineWindowEndMs = endMs;
-
-        if (!composeTimelineDragging) {
-            const ratio = Math.min(
-                1,
-                Math.max(0, (timelineState.value - startMs) / Math.max(endMs - startMs, 1)),
-            );
-            mobileComposeTimelineSlider.value = String(Math.round(ratio * COMPOSE_TIMELINE_RESOLUTION));
-        }
-
-        if (mobileComposeTimelineValue) {
-            const utcText = new Date(timelineState.value).toUTCString();
-            mobileComposeTimelineValue.value = utcText;
-            mobileComposeTimelineValue.textContent = utcText;
-        }
-        if (mobileComposeTimelineLocal) {
-            mobileComposeTimelineLocal.textContent = `Local: ${formatLocalDateTimeShort(timelineState.value)}`;
-        }
-
-        if (finalize) {
-            seekMainTimelineTime(timelineState.value, true);
-        }
-    };
 
     const syncMobileComposeControls = () => {
         if (shouldUseEarthrisePresentation() && desktopPosition && desktopLook) {
@@ -3857,7 +3769,7 @@ export function bindMobileMissionCard() {
         ) {
             mobileComposeFreeStartupAligned = alignMobileComposeFreeLookToEarth();
         }
-        syncMobileComposeTimelineWindow();
+        mobileComposeTimelineSync.sync();
         updateMobileComposeEarthshineDisplay(mobileEarthshineGain);
         syncMobileComposeRollSliderUi();
         syncMobileComposePresentation();
@@ -4049,7 +3961,7 @@ export function bindMobileMissionCard() {
             syncMobileComposePresentation();
             applyAutoFovForActivePreset();
             if (activeMobileTab === "compose") {
-                syncMobileComposeTimelineWindow();
+                mobileComposeTimelineSync.sync();
             }
             syncMobileMoonVisibilityInfo({ force: true });
         },
@@ -4084,47 +3996,6 @@ export function bindMobileMissionCard() {
         mobileComposeFovSlider?.addEventListener("change", onManualFovChange);
     }
 
-    if (mobileComposeTimelineSlider) {
-        const onComposeTimelineInput = () => {
-            const startMs = composeTimelineWindowStartMs;
-            const endMs = composeTimelineWindowEndMs;
-            if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
-                return;
-            }
-            composeTimelineDragging = true;
-            const sliderValue = Number(mobileComposeTimelineSlider.value);
-            const ratio = Math.min(
-                1,
-                Math.max(0, sliderValue / COMPOSE_TIMELINE_RESOLUTION),
-            );
-            const nextTimeMs = startMs + (endMs - startMs) * ratio;
-            seekMainTimelineTime(nextTimeMs, false);
-            syncMobileComposeTimelineWindow();
-        };
-        const onComposeTimelineFinalize = () => {
-            composeTimelineDragging = false;
-            const startMs = composeTimelineWindowStartMs;
-            const endMs = composeTimelineWindowEndMs;
-            if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) {
-                return;
-            }
-            const sliderValue = Number(mobileComposeTimelineSlider.value);
-            const ratio = Math.min(
-                1,
-                Math.max(0, sliderValue / COMPOSE_TIMELINE_RESOLUTION),
-            );
-            const nextTimeMs = startMs + (endMs - startMs) * ratio;
-            seekMainTimelineTime(nextTimeMs, true);
-            syncMobileComposeTimelineWindow();
-        };
-        mobileComposeTimelineSlider.addEventListener("input", onComposeTimelineInput, { passive: true });
-        mobileComposeTimelineSlider.addEventListener("pointerdown", () => {
-            composeTimelineDragging = true;
-        });
-        mobileComposeTimelineSlider.addEventListener("pointerup", onComposeTimelineFinalize);
-        mobileComposeTimelineSlider.addEventListener("change", onComposeTimelineFinalize);
-    }
-
     if (mobileComposeEarthshineSlider) {
         const onComposeEarthshineInput = () => {
             applyMobileComposeEarthshineGain(mobileComposeEarthshineSlider.value, { persist: true });
@@ -4143,32 +4014,6 @@ export function bindMobileMissionCard() {
         };
         mobileComposeRollSlider.addEventListener("input", onComposeRollInput, { passive: true });
         mobileComposeRollSlider.addEventListener("change", onComposeRollInput);
-    }
-
-    const timelineSlider = document.getElementById("timeline-slider");
-    if (timelineSlider) {
-        const syncComposeFromTimeline = () => {
-            if (activeMobileTab === "compose") {
-                syncMobileComposeTimelineWindow();
-            }
-        };
-        timelineSlider.addEventListener("input", syncComposeFromTimeline);
-        timelineSlider.addEventListener("change", syncComposeFromTimeline);
-    }
-
-    const burnButtonsHost = document.getElementById("burnbuttons");
-    if (burnButtonsHost) {
-        const burnButtonsObserver = new MutationObserver(() => {
-            if (activeMobileTab === "compose") {
-                syncMobileComposeTimelineWindow();
-            }
-        });
-        burnButtonsObserver.observe(burnButtonsHost, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ["data-event-time-ms", "data-event-key", "title"],
-        });
     }
 
     if (contentWrapper) {
