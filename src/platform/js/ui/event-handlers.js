@@ -1,10 +1,7 @@
 import { invokeMissionPanelAction } from "../app/panel-registry.js";
-import {
-    resolveBodyOrbitCopy,
-    resolveCraftOrbitCopy,
-} from "./orbit-control-labels.js";
 import { createCameraPillController } from "./camera-pill-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
+import { createFocusPillController } from "./focus-pill-controller.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
@@ -12,7 +9,7 @@ import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controll
 import { createPlanePillController } from "./plane-pill-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
-import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
+import { createViewSettingsPillController } from "./view-settings-pill-controller.js";
 
 /**
  * UI Event Handlers
@@ -476,388 +473,29 @@ export function bindMainControls(handlers) {
     });
     const cameraPillController = createCameraPillController({ controlBackend });
     const planePillController = createPlanePillController({ controlBackend });
+    const viewSettingsPillController = createViewSettingsPillController({
+        controlBackend,
+        getMoonRenderProfile,
+        setMoonRenderProfile,
+    });
+    const focusPillController = createFocusPillController({
+        invokeMissionPanelAction,
+        setView,
+    });
     bindHeaderBlurbBehavior();
     cameraPillController.bind();
+    focusPillController.bind();
     planePillController.bind();
+    viewSettingsPillController.bind();
     getHeaderPillStripController().bind();
     bindDesktopChromeAutohideBehavior();
-    const bodyHaloToggle = typeof document !== "undefined"
-        ? document.getElementById("view-body-halos")
-        : null;
-    const auxiliaryPanelsToggle = typeof document !== "undefined"
-        ? document.getElementById("view-aux-camera-panels")
-        : null;
-    const locatorsPill = typeof document !== "undefined"
-        ? document.getElementById("locators-pill")
-        : null;
-    const flybyPill = typeof document !== "undefined"
-        ? document.getElementById("flyby-pill")
-        : null;
-    const splashdownFocusPill = typeof document !== "undefined"
-        ? document.getElementById("focus-pill-splashdown")
-        : null;
-    const flybyPillWrap = typeof document !== "undefined"
-        ? document.getElementById("flyby-pill-wrap")
-        : null;
-    const descentOrbitOption = typeof document !== "undefined"
-        ? document.getElementById("orbit-descent-option")
-        : null;
-    const landingToggle = typeof document !== "undefined"
-        ? document.getElementById("landing")
-        : null;
-    const moonSitesToggle = typeof document !== "undefined"
-        ? document.getElementById("view-craters")
-        : null;
-    const secondaryOrbitLabel = typeof document !== "undefined"
-        ? document.getElementById("label-secondary-body-orbit")
-        : null;
-    const orbitLabel = typeof document !== "undefined"
-        ? document.getElementById("label-orbit")
-        : null;
-    const orbitPill = typeof document !== "undefined"
-        ? document.getElementById("toggle-pill-orbit")
-        : null;
-    const secondaryOrbitPill = typeof document !== "undefined"
-        ? document.getElementById("toggle-pill-moon-orbit")
-        : null;
-    const landingPill = typeof document !== "undefined"
-        ? document.getElementById("toggle-pill-landing")
-        : null;
-    const landingOptionRow = landingToggle?.closest?.(".settings-option")
-        || landingToggle?.closest?.("label")
-        || null;
-    const originPillPairs = [
-        ["origin-pill-earth", "origin-earth", "geo"],
-        ["origin-pill-moon", "origin-moon", "lunar"],
-        ["origin-pill-relative", "origin-relative", "relative"],
-    ];
-    const dimensionPillPairs = [
-        ["dimension-pill-2d", "dimension-2D", "2D"],
-        ["dimension-pill-3d", "dimension-3D", "3D"],
-    ];
-    const moonProfilePillPairs = [
-        ["moon-profile-pill-fast", "fast"],
-        ["moon-profile-pill-quality", "quality"],
-    ];
-    const togglePillPairs = [
-        ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
-        ["toggle-pill-descent", "view-orbit-descent", "viewOrbitDescent"],
-        ["toggle-pill-sky", "view-sky", "viewSky"],
-        ["toggle-pill-craters", "view-craters", "viewCraters"],
-        ["toggle-pill-xyz", "view-xyz-axes", "viewXYZAxes"],
-        ["toggle-pill-poles", "view-poles", "viewPoles"],
-        ["toggle-pill-polar-axes", "view-polar-axes", "viewPolarAxes"],
-        ["toggle-pill-constellations", "view-constellation-lines", "viewConstellationLines"],
-        ["toggle-pill-moon-soi", "view-moonsoi", "viewMoonSOI"],
-        ["toggle-pill-moon-hill-sphere", "view-moon-hill-sphere", "viewMoonHillSphere"],
-        ["toggle-pill-moon-orbit", "view-moon-osculating-orbit", "viewMoonOsculatingOrbit"],
-        ["toggle-pill-ecliptic", "view-eclipticplane", "viewEclipticPlane"],
-        ["toggle-pill-equatorial", "view-equatorialplane", "viewEquatorialPlane"],
-    ];
-
-    const syncLocatorsPillState = () => {
-        if (!locatorsPill || !bodyHaloToggle) return;
-        locatorsPill.setAttribute("aria-pressed", bodyHaloToggle.checked ? "true" : "false");
-    };
-    const syncOriginPillState = () => {
-        originPillPairs.forEach(([pillId, inputId]) => {
-            const pill = document.getElementById(pillId);
-            const input = document.getElementById(inputId);
-            if (!pill || !input) return;
-            const isActive = input.checked === true;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
-    };
-    const syncDimensionPillState = () => {
-        dimensionPillPairs.forEach(([pillId, inputId]) => {
-            const pill = document.getElementById(pillId);
-            const input = document.getElementById(inputId);
-            if (!pill || !input) return;
-            const isActive = input.checked === true;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
-    };
-    const syncMoonRenderProfilePillState = () => {
-        const activeProfile = typeof getMoonRenderProfile === "function"
-            ? getMoonRenderProfile()
-            : resolveMoonRenderAssetProfile();
-        moonProfilePillPairs.forEach(([pillId, profile]) => {
-            const pill = document.getElementById(pillId);
-            if (!pill) return;
-            const isActive = activeProfile === profile;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
-    };
-    const isArtemis2Mission = () => {
-        if (typeof window === "undefined") return false;
-        try {
-            const params = new URLSearchParams(window.location.search || "");
-            const mission = String(params.get("mission") || "").trim().toLowerCase();
-            return mission === "artemis2";
-        } catch {
-            return false;
-        }
-    };
-    const resolveTimelineEventButtonByKeys = (keys) => {
-        if (!Array.isArray(keys) || keys.length === 0) return null;
-        const normalizedKeys = keys
-            .map((key) => String(key || "").trim())
-            .filter(Boolean);
-        if (normalizedKeys.length === 0) return null;
-        const buttons = document.querySelectorAll("#burnbuttons button[data-event-key]");
-        for (const button of buttons) {
-            const key = String(button?.dataset?.eventKey || "").trim();
-            if (normalizedKeys.includes(key)) {
-                return button;
-            }
-        }
-        return null;
-    };
-    const syncFocusPillVisibility = () => {
-        if (!flybyPillWrap) return;
-        const flybyVisible = isArtemis2Mission();
-        const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
-        if (flybyPill) {
-            flybyPill.hidden = !flybyVisible;
-        }
-        if (splashdownFocusPill) {
-            splashdownFocusPill.hidden = !splashdownVisible;
-        }
-        const visible = flybyVisible || splashdownVisible;
-        const flybyGroup = flybyPillWrap.closest(".header-pill-group");
-        if (flybyGroup) {
-            flybyGroup.hidden = !visible;
-        } else {
-            flybyPillWrap.hidden = !visible;
-        }
-        requestAnimationFrame(() => {
-            const tertiaryRow = document.getElementById("header-pill-strip-tertiary");
-            if (!tertiaryRow) return;
-            tertiaryRow.scrollLeft = 0;
-        });
-    };
-    const syncFlybyPillState = (isActive = false) => {
-        if (!flybyPill) return;
-        flybyPill.classList.toggle("is-active", !!isActive);
-        flybyPill.setAttribute("aria-pressed", isActive ? "true" : "false");
-    };
-    const syncSplashdownFocusPillState = (isActive = false) => {
-        if (!splashdownFocusPill) return;
-        splashdownFocusPill.classList.toggle("is-active", !!isActive);
-        splashdownFocusPill.setAttribute("aria-pressed", isActive ? "true" : "false");
-    };
-    const syncFocusPillState = () => {
-        const composerPanelVisible = !!document.querySelector(
-            "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
-        );
-        const groundTrackPanelVisible = !!document.querySelector(
-            "#ground-track-panel:not(.ground-track-panel--hidden)",
-        );
-        syncFlybyPillState(composerPanelVisible);
-        syncSplashdownFocusPillState(groundTrackPanelVisible);
-    };
-    const syncTogglePillState = () => {
-        togglePillPairs.forEach(([pillId, inputId]) => {
-            const pill = document.getElementById(pillId);
-            const input = document.getElementById(inputId);
-            if (!pill || !input) return;
-            const isActive = input.checked === true;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
-    };
-    const syncTogglePillVisibility = () => {
-        const isElementVisible = (element) => {
-            if (!element) return false;
-            if (element.classList?.contains("settings-option--hidden")) return false;
-            const style = window.getComputedStyle?.(element);
-            return style ? style.display !== "none" && style.visibility !== "hidden" : true;
-        };
-        const isRelativeOrigin = !!document.getElementById("origin-relative")?.checked;
-        const hasLanding = !!landingToggle
-            && !landingToggle.disabled
-            && isElementVisible(landingOptionRow);
-
-        if (landingPill) {
-            landingPill.hidden = !hasLanding;
-            landingPill.disabled = !hasLanding;
-            landingPill.setAttribute("aria-disabled", hasLanding ? "false" : "true");
-            if (!hasLanding) {
-                landingPill.classList.remove("is-active");
-                landingPill.setAttribute("aria-pressed", "false");
-            }
-        }
-
-        const descentPill = document.getElementById("toggle-pill-descent");
-        if (descentPill) {
-            const hasDescentOrbit = !!descentOrbitOption
-                && !descentOrbitOption.classList.contains("settings-option--hidden");
-            descentPill.hidden = !hasDescentOrbit;
-        }
-        const secondaryOrbitToggle = document.getElementById("view-moon-osculating-orbit");
-        const secondaryOrbitOption = secondaryOrbitToggle?.closest?.(".settings-option") || null;
-        if (secondaryOrbitToggle) {
-            secondaryOrbitToggle.disabled = isRelativeOrigin;
-            if (isRelativeOrigin) {
-                secondaryOrbitToggle.checked = false;
-            }
-        }
-        if (secondaryOrbitOption) {
-            secondaryOrbitOption.classList.toggle("settings-option--hidden", isRelativeOrigin);
-        }
-        if (secondaryOrbitPill) {
-            secondaryOrbitPill.hidden = isRelativeOrigin;
-            secondaryOrbitPill.disabled = isRelativeOrigin;
-            secondaryOrbitPill.setAttribute("aria-disabled", isRelativeOrigin ? "true" : "false");
-            if (isRelativeOrigin) {
-                secondaryOrbitPill.classList.remove("is-active");
-                secondaryOrbitPill.setAttribute("aria-pressed", "false");
-            }
-        }
-        const moonSitesPill = document.getElementById("toggle-pill-craters");
-        if (moonSitesPill) {
-            if (moonSitesToggle) {
-                moonSitesToggle.disabled = !hasLanding;
-                if (!hasLanding) {
-                    moonSitesToggle.checked = false;
-                }
-            }
-            moonSitesPill.disabled = !hasLanding;
-            moonSitesPill.setAttribute("aria-disabled", hasLanding ? "false" : "true");
-            if (!hasLanding) {
-                moonSitesPill.classList.remove("is-active");
-                moonSitesPill.setAttribute("aria-pressed", "false");
-                moonSitesPill.title = "Moon Sites available for landing missions";
-            } else {
-                moonSitesPill.title = "Toggle Moon Sites";
-            }
-        }
-    };
-    const syncLandingPillState = () => {
-        if (!landingPill || !landingToggle) return;
-        const isActive = landingToggle.checked === true;
-        landingPill.classList.toggle("is-active", isActive);
-        landingPill.setAttribute("aria-pressed", isActive ? "true" : "false");
-    };
-    let landingPillSyncScheduled = false;
-    const scheduleLandingPillSync = () => {
-        if (landingPillSyncScheduled) return;
-        landingPillSyncScheduled = true;
-        requestAnimationFrame(() => {
-            landingPillSyncScheduled = false;
-            syncTogglePillVisibility();
-            syncLandingPillState();
-        });
-    };
-    const bindLandingPillVisibilityObserver = () => {
-        if (!landingToggle || typeof MutationObserver === "undefined") return;
-        const observerTargets = [
-            landingOptionRow,
-            landingToggle,
-            document.getElementById("landingbutton"),
-        ].filter(Boolean);
-        if (!observerTargets.length) return;
-        const observer = new MutationObserver(() => {
-            scheduleLandingPillSync();
-        });
-        observerTargets.forEach((target) => {
-            observer.observe(target, {
-                attributes: true,
-                attributeFilter: ["class", "style", "hidden", "disabled", "aria-hidden"],
-            });
-        });
-    };
-    const syncOrbitLabels = () => {
-        const originMode = document.getElementById("origin-relative")?.checked
-            ? "relative"
-            : document.getElementById("origin-moon")?.checked
-                ? "lunar"
-                : "geo";
-        const craftOrbitCopy = resolveCraftOrbitCopy();
-        const bodyOrbitCopy = resolveBodyOrbitCopy(originMode);
-        if (orbitLabel) {
-            orbitLabel.title = craftOrbitCopy.title;
-        }
-        if (orbitPill) {
-            orbitPill.textContent = craftOrbitCopy.label;
-            orbitPill.title = craftOrbitCopy.title;
-        }
-        if (secondaryOrbitLabel) {
-            secondaryOrbitLabel.textContent = bodyOrbitCopy.label;
-            secondaryOrbitLabel.title = bodyOrbitCopy.title;
-        }
-        if (secondaryOrbitPill) {
-            secondaryOrbitPill.textContent = bodyOrbitCopy.label;
-            secondaryOrbitPill.title = bodyOrbitCopy.title;
-        }
-    };
-    const isMobileViewsOrComposeTab = () => {
-        if (typeof window === "undefined" || window.innerWidth > 600) return false;
-        const activeTab = document.body?.dataset?.mobileActiveTab || "";
-        return activeTab === "views" || activeTab === "compose";
-    };
-    const enforceMobileLocatorTabPolicy = () => {
-        if (!bodyHaloToggle) return;
-        // Mobile Views/Compose never show locators.
-        if (isMobileViewsOrComposeTab()) {
-            bodyHaloToggle.checked = false;
-        }
-    };
-    const commitOriginMode = (originMode) => {
-        controlBackend.commitOriginMode(originMode);
-        syncOriginPillState();
-        syncOrbitLabels();
-        syncTogglePillVisibility();
-    };
-    const commitDimensionSelection = (dimension) => {
-        controlBackend.commitDimensionSelection(dimension);
-        syncDimensionPillState();
-    };
-    const commitSharedViewSetting = (settingKey, value, options = {}) => {
-        controlBackend.commitViewSetting(settingKey, value, options);
-        syncTogglePillVisibility();
-        syncTogglePillState();
-        syncLocatorsPillState();
-    };
-    const commitBodyHaloSetting = (value, options = {}) => {
-        enforceMobileLocatorTabPolicy();
-        const nextValue = isMobileViewsOrComposeTab() ? false : !!value;
-        commitSharedViewSetting("viewBodyHalos", nextValue, options);
-    };
-    const toggleLandingMode = (options = {}) => {
-        controlBackend.toggleLandingMode(options);
-        syncTogglePillVisibility();
-        syncLandingPillState();
-    };
 
     onClick("reset", reset);
-
-    originPillPairs.forEach(([, inputId, originMode]) => {
-        onClick(inputId, function () {
-            commitOriginMode(originMode);
-        });
-    });
     onInput("desktop-main-fov-slider", changeDesktopMainFov);
     onClick("desktop-main-fov-auto", toggleDesktopMainFovAuto);
-
-    togglePillPairs.forEach(([, inputId, settingKey]) => {
-        onClick(inputId, function (event) {
-            commitSharedViewSetting(settingKey, !!event?.target?.checked, {
-                sourceId: inputId,
-            });
-        });
-    });
     onClick("view-additional-crafts", setView);
     onClick("view-aux-camera-panels", setView);
     onChange("active-craft-select", setView);
-    onClick("view-body-halos", function (event) {
-        commitBodyHaloSetting(!!event?.target?.checked, {
-            sourceId: "view-body-halos",
-        });
-    });
     onClick("view-fps", setView);
     onChange("orbit-style-classic", setView);
     onChange("orbit-style-trail", setView);
@@ -866,159 +504,18 @@ export function bindMainControls(handlers) {
     onInput("trail-tail-brightness-2d", setView);
     onInput("trail-tail-brightness-3d", setView);
 
-    dimensionPillPairs.forEach(([, inputId, dimension]) => {
-        onClick(inputId, function () {
-            commitDimensionSelection(dimension);
-        });
-    });
-
     const animateHandler = typeof toggleAnimation === "function" ? toggleAnimation : cy3Animate;
     if (typeof animateHandler === "function") {
         onClick("animate", animateHandler);
     }
     onClick("joyride", toggleJoyRide);
     onClick("joyridebutton", toggleJoyRide);
-    onClick("flyby-pill", function () {
-        if (
-            auxiliaryPanelsToggle instanceof HTMLInputElement &&
-            !auxiliaryPanelsToggle.checked &&
-            !auxiliaryPanelsToggle.disabled
-        ) {
-            auxiliaryPanelsToggle.checked = true;
-            setView();
-        }
-        const restored = invokeMissionPanelAction("aux:earth-rise-composer", "restore");
-        if (!restored) {
-            // Legacy fallback while the remaining aux panel code migrates to panel-registry actions.
-            const composerChip = document.querySelector(
-                "#aux-camera-views .aux-camera-chip--composer-tab",
-            ) || Array.from(
-                document.querySelectorAll("#aux-camera-views .aux-camera-chip"),
-            ).find((button) =>
-                button instanceof HTMLButtonElement &&
-                /^flyby\b/i.test((button.textContent || "").trim()),
-            );
-            if (composerChip instanceof HTMLButtonElement && !composerChip.hidden) {
-                composerChip.click();
-            }
-        }
-        requestAnimationFrame(() => syncFocusPillState());
-    });
-    onClick("focus-pill-splashdown", function () {
-        if (!isArtemis2Mission()) return;
-        document.dispatchEvent(new CustomEvent("ground-track-panel-open"));
-        syncFocusPillState();
-    });
-    onClick("landing", function () {
-        toggleLandingMode({ sourceId: "landing" });
-    });
     onClick("landingbutton", toggleLanding);
-    onClick("toggle-pill-landing", function () {
-        if (!landingToggle || landingToggle.disabled) return;
-        toggleLandingMode({ sourceId: "toggle-pill-landing" });
-    });
 
     onClick("info-button", toggleInfo);
-    onClick("locators-pill", function () {
-        if (!bodyHaloToggle) return;
-        commitBodyHaloSetting(!bodyHaloToggle.checked, {
-            sourceId: "locators-pill",
-        });
-    });
-    togglePillPairs.forEach(([pillId, inputId, settingKey]) => {
-        const pill = document.getElementById(pillId);
-        const input = document.getElementById(inputId);
-        if (!pill || !input) return;
-        pill.addEventListener("click", function () {
-            if (pill.disabled || pill.getAttribute("aria-disabled") === "true") return;
-            commitSharedViewSetting(settingKey, !input.checked, {
-                sourceId: pillId,
-            });
-        });
-        input.addEventListener("change", function () {
-            syncTogglePillVisibility();
-            syncTogglePillState();
-            syncLocatorsPillState();
-        });
-    });
-    originPillPairs.forEach(([pillId, inputId, originMode]) => {
-        const pill = document.getElementById(pillId);
-        const input = document.getElementById(inputId);
-        if (!pill || !input) return;
-        pill.addEventListener("click", function () {
-            commitOriginMode(originMode);
-        });
-        input.addEventListener("change", function () {
-            syncOriginPillState();
-            syncOrbitLabels();
-            syncTogglePillVisibility();
-        });
-    });
-    dimensionPillPairs.forEach(([pillId, inputId, dimension]) => {
-        const pill = document.getElementById(pillId);
-        const input = document.getElementById(inputId);
-        if (!pill || !input) return;
-        pill.addEventListener("click", function () {
-            commitDimensionSelection(dimension);
-        });
-        input.addEventListener("change", syncDimensionPillState);
-    });
-    moonProfilePillPairs.forEach(([pillId, profile]) => {
-        const pill = document.getElementById(pillId);
-        if (!pill) return;
-        pill.addEventListener("click", function () {
-            const currentProfile = typeof getMoonRenderProfile === "function"
-                ? getMoonRenderProfile()
-                : resolveMoonRenderAssetProfile();
-            if (currentProfile === profile) {
-                syncMoonRenderProfilePillState();
-                return;
-            }
-            pill.disabled = true;
-            Promise.resolve(
-                typeof setMoonRenderProfile === "function"
-                    ? setMoonRenderProfile(profile)
-                    : profile,
-            ).catch((error) => {
-                console.error("Failed to switch Moon render profile:", error);
-            }).finally(() => {
-                pill.disabled = false;
-                syncMoonRenderProfilePillState();
-            });
-        });
-    });
-    if (landingToggle) {
-        landingToggle.addEventListener("change", function () {
-            syncTogglePillVisibility();
-            syncLandingPillState();
-        });
-    }
-    bindLandingPillVisibilityObserver();
-    syncFocusPillVisibility();
-    syncFocusPillState();
-    syncOriginPillState();
-    syncLocatorsPillState();
-    syncOrbitLabels();
-    syncTogglePillVisibility();
-    syncTogglePillState();
-    syncLandingPillState();
-    syncDimensionPillState();
-    syncMoonRenderProfilePillState();
+    focusPillController.sync();
+    viewSettingsPillController.sync();
     getHeaderPillStripController().syncUi();
-    const burnButtonsHost = document.getElementById("burnbuttons");
-    if (burnButtonsHost && typeof MutationObserver !== "undefined") {
-        const focusPillObserver = new MutationObserver(() => {
-            syncFocusPillVisibility();
-            syncFocusPillState();
-        });
-        focusPillObserver.observe(burnButtonsHost, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ["class", "data-event-key", "data-event-time-ms", "title"],
-        });
-    }
-    document.addEventListener("ground-track-panel-visibilitychange", syncFocusPillState);
 }
 
 export function bindKeyboardShortcuts() {
