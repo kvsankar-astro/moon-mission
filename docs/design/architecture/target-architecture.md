@@ -115,11 +115,11 @@ The current mission boot flow is:
 
 | Layer | Current anchors | Notes |
 |---|---|---|
-| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is much closer to a composition root than a controller hub, and `ui/event-handlers.js` is now mostly a shell composition seam that delegates camera, plane, header, shortcut, settings, and most mobile behavior into dedicated controllers |
+| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is much closer to a composition root than a controller hub, and `ui/event-handlers.js` is now a thin composition/binding seam that delegates camera, plane, focus, shared view pills, header, shortcut, settings, and most mobile behavior into dedicated controllers |
 | Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, playback and scene assembly moved out of `mission.js`, and runtime root glue is isolated, but `mission-state-store.js` and some runtime buckets still carry broad composition responsibility |
 | Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js` | Strongest functional-core foundation in the repo and the area with the clearest recent refactor wins |
 | State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` is still transitional because of legacy fallbacks |
-| Data and integration | `data/mission-data.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset resolution and fetch/cache/provider work is still mixed |
+| Data and integration | `data/mission-data.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset/config resolution and fetch/cache/provider work is much better than before, but `mission-data.js` still mixes runtime loading concerns |
 | Render and UI effects | `shell/render/frame-renderer.js`, `shell/ui/frame-ui-updater.js`, `shell/ui/mission-ui-effects.js`, `shell/time/clock-effects.js`, `rendering/*`, `controllers/*` | Effect ownership is clearest here and should be preserved |
 
 ## What Is Already Working Well
@@ -178,6 +178,8 @@ preserve and extend.
 - `ui/header-pill-strip-controller.js`
 - `ui/camera-pill-controller.js`
 - `ui/plane-pill-controller.js`
+- `ui/view-settings-pill-controller.js`
+- `ui/focus-pill-controller.js`
 - `ui/mobile-transport-sync.js`
 - `ui/mobile-view-preset-sync.js`
 - `ui/mobile-compose-lock-sync.js`
@@ -335,13 +337,17 @@ This file mixes multiple concerns:
 - config normalization and validation
 - runtime asset URL resolution
 
-The pure config and manifest logic is already moving into `core/domain/*`. The
-remaining fetch/cache concerns should follow that split more clearly.
+The pure config profile/source rules now have an explicit home in
+`core/domain/mission-data-resolvers.js`, and asset-path resolution already
+leans on `core/domain/mission-asset-resolver.js`.
+
+The remaining work is to keep `mission-data.js` focused on runtime loading and
+cache orchestration instead of letting more data-policy logic drift back into
+it.
 
 ### `ui/event-handlers.js`
 
-This is still broader than simple event binding, but it is materially
-healthier than it was a few batches ago.
+This is no longer one of the main architecture blockers.
 
 It now delegates most of the shell surface into smaller adapters such as:
 
@@ -352,7 +358,8 @@ It now delegates most of the shell surface into smaller adapters such as:
 - `ui/header-pill-strip-controller.js`
 - `ui/camera-pill-controller.js`
 - `ui/plane-pill-controller.js`
-
+- `ui/view-settings-pill-controller.js`
+- `ui/focus-pill-controller.js`
 - `ui/mobile-transport-sync.js`
 - `ui/mobile-view-preset-sync.js`
 - `ui/mobile-compose-lock-sync.js`
@@ -365,16 +372,12 @@ It now delegates most of the shell surface into smaller adapters such as:
 
 The remaining mixed concerns are now more concentrated:
 
-- origin, dimension, and toggle pill orchestration
-- landing and locator visibility policy
-- orbit label sync and Moon render profile switching
-- mission-specific focus affordances such as flyby and splashdown pills
+- a few final top-level button bindings
 - timeline dock and control-panel shell binding that still sits alongside
-  main control wiring
+  bootstrap-level control wiring
 
-It is still a shell module, but it no longer needs a wholesale breakup. The
-remaining work is to keep shrinking the remaining control-shell clusters until
-it becomes a true feature-composition file.
+At this point it is acting like the composition file it was supposed to become.
+The remaining work is minor cleanup, not a major breakup campaign.
 
 ### Runtime composition chain
 
@@ -401,7 +404,7 @@ more wrapper layers.
 
 ## Progress Snapshot
 
-As of `2026-04-19`, the repo is roughly `84-85%` of the way to the target
+As of `2026-04-19`, the repo is roughly `92-93%` of the way to the target
 architecture.
 
 What has improved materially:
@@ -447,16 +450,23 @@ What has improved materially:
   autohide, the header blurb, and the pill strip
 - camera follow/view pill behavior and plane preset release behavior now live
   in dedicated controllers instead of the middle of `ui/event-handlers.js`
+- shared origin/dimension/toggle/landing/locator/orbit-label behavior now
+  lives in `ui/view-settings-pill-controller.js`
+- Artemis flyby/splashdown focus affordances now live in
+  `ui/focus-pill-controller.js`
+- mission config profile/source logic now has a dedicated pure seam in
+  `core/domain/mission-data-resolvers.js`, leaving `mission-data.js` more
+  clearly responsible for runtime loading and caches
 - `ui/event-handlers.js` is now acting much more like a composition file that
   binds together smaller shell features instead of directly owning most of
   their state machines
 
 What still dominates the remaining risk:
 
-- `core/state/mission-state-store.js`
 - `data/mission-data.js`
 - `app/scene-view-state.js`
-- the remaining origin/toggle/landing/focus/orbit residue in `ui/event-handlers.js`
+- `app/mission-state-access.js` and the remaining compatibility surface around
+  `core/state/mission-state-store.js`
 - the final legacy/bootstrap residue in `mission.js`
 
 Progress by refactor slice:
@@ -468,8 +478,8 @@ Progress by refactor slice:
 | 3. finish the frame pipeline split | close to done | `frame-plan.js`, transient event planning, `scene-frame-plan.js`, and the scene telemetry/phase/event UI split are all in place; the remaining work is mostly final composition cleanup rather than core logic extraction |
 | 4. make scene view state truly scene-scoped | lightly started | structure exists, but legacy fallback still obscures the true source of truth |
 | 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; the remaining broad surfaces are mostly in state access and a few legacy bootstrap bridges |
-| 6. split data loading from data normalization | partially prepared | domain helpers exist, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
-| 7. break up large shell modules | late-stage | `mission.js` is shrinking meaningfully, the scene/UI shell is decomposed, and `ui/event-handlers.js` now delegates mobile, settings, shortcut, header, camera, and plane behavior; the remaining work is the last control-shell cluster around origin/toggle/landing/focus/orbit behavior |
+| 6. split data loading from data normalization | in progress | pure config/source helpers now exist and asset resolution is already domain-led, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
+| 7. break up large shell modules | close to done | `mission.js` is shrinking meaningfully, the scene/UI shell is decomposed, and `ui/event-handlers.js` now behaves like a composition seam rather than a controller hub |
 
 ## Target Architecture
 
@@ -773,23 +783,10 @@ Expected result:
 
 ## Immediate Next Batches
 
-The next batches should stay focused on the highest-leverage seams that still
-collapse concerns back together.
+The remaining batches should stay focused on the few seams that still collapse
+concerns back together.
 
-### Batch A: finish the main control-shell breakup
-
-Primary target:
-
-- `ui/event-handlers.js`
-
-Goal:
-
-- split the remaining origin/toggle/landing/focus/orbit control cluster into
-  smaller controllers or grouped shell adapters
-- keep browser event binding separate from control-shell policy and
-  mission-specific focus affordances
-
-### Batch B: keep pushing the state facade toward explicit ports
+### Batch A: keep pushing the state facade toward explicit ports
 
 Primary target:
 
@@ -802,7 +799,7 @@ Goal:
 - keep shrinking the generic state-access bridge now that the composition layer
   is cleaner
 
-### Batch C: split mission data integration from pure data rules
+### Batch B: split mission data integration from pure data rules
 
 Primary target:
 
@@ -815,6 +812,19 @@ Goal:
   asset resolution
 - keep moving scene-scoped view state away from legacy fallback and toward a
   true source of truth
+
+### Batch C: final bootstrap cleanup
+
+Primary target:
+
+- `mission.js`
+- `app/runtime-ui-controls.js`
+
+Goal:
+
+- keep `mission.js` at page-bootstrap and top-level composition only
+- avoid rebuilding broad grouped control surfaces where narrower adapters now
+  exist
 
 ## Guardrails
 
