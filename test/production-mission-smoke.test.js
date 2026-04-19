@@ -32,9 +32,24 @@ const TIMEOUTS = {
 };
 
 const ORIGIN_CONFIGS = [
-  { key: 'earth', label: 'Earth', selector: '#origin-earth' },
-  { key: 'moon', label: 'Moon', selector: '#origin-moon' },
-  { key: 'relative', label: 'Relative', selector: '#origin-relative' },
+  {
+    key: 'earth',
+    label: 'Earth',
+    selector: '#origin-earth',
+    pillSelector: '#origin-pill-earth',
+  },
+  {
+    key: 'moon',
+    label: 'Moon',
+    selector: '#origin-moon',
+    pillSelector: '#origin-pill-moon',
+  },
+  {
+    key: 'relative',
+    label: 'Relative',
+    selector: '#origin-relative',
+    pillSelector: '#origin-pill-relative',
+  },
 ];
 
 const TEST_CONFIG = {
@@ -240,7 +255,32 @@ async function closeSettingsPanel(page) {
   }
 }
 
-async function forceOrigin3DMode(page, originSelector) {
+async function clickIfVisible(page, selector) {
+  const locator = page.locator(selector);
+  if (await locator.count() === 0) return false;
+  if (!await locator.first().isVisible()) return false;
+  await locator.first().click();
+  return true;
+}
+
+async function forceOrigin3DModeViaPills(page, originPillSelector) {
+  const clickedOriginPill = await clickIfVisible(page, originPillSelector);
+  const clickedDimensionPill = await clickIfVisible(page, '#dimension-pill-3d');
+
+  if (!clickedOriginPill && !clickedDimensionPill) {
+    return false;
+  }
+
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  return true;
+}
+
+async function forceOrigin3DModeViaSettings(page, originSelector) {
+  const settingsButton = page.locator('#settings-panel-button');
+  if (await settingsButton.count() === 0 || !await settingsButton.first().isVisible()) {
+    return false;
+  }
+
   await openSettingsPanel(page);
 
   if (!await page.isChecked(originSelector)) {
@@ -254,6 +294,24 @@ async function forceOrigin3DMode(page, originSelector) {
   }
 
   await closeSettingsPanel(page);
+  return true;
+}
+
+async function forceOrigin3DMode(page, originConfig) {
+  const usedPills = await forceOrigin3DModeViaPills(page, originConfig.pillSelector);
+  if (usedPills) {
+    return;
+  }
+
+  const usedSettings = await forceOrigin3DModeViaSettings(page, originConfig.selector);
+  if (usedSettings) {
+    return;
+  }
+
+  throw new Error(
+    `No usable origin/dimension control surface found for ${originConfig.key}. ` +
+    `Tried ${originConfig.pillSelector} and #settings-panel-button.`,
+  );
 }
 
 async function jumpToTimelineStart(page) {
@@ -381,7 +439,7 @@ describe('Production Mission Smoke Tests', () => {
 
           await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD, waitUntil: 'domcontentloaded' });
           await waitForSceneReady(page);
-          await forceOrigin3DMode(page, origin.selector);
+          await forceOrigin3DMode(page, origin);
           await waitForSceneReady(page);
           await jumpToTimelineStart(page);
           await normalizeSpeedToRealtime(page);
