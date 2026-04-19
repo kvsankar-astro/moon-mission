@@ -3,6 +3,7 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { createCameraPillController } from "./camera-pill-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
@@ -29,12 +30,6 @@ function onChange(id, handler) {
     const element = document.getElementById(id);
     if (!element) return;
     element.addEventListener("change", handler);
-}
-
-function onChangeAll(selector, handler) {
-    const elements = document.querySelectorAll(selector);
-    if (!elements.length) return;
-    elements.forEach((element) => element.addEventListener("change", handler));
 }
 
 function onInput(id, handler) {
@@ -478,7 +473,9 @@ export function bindMainControls(handlers) {
         setDimensionTop,
         toggleLanding,
     });
+    const cameraPillController = createCameraPillController({ controlBackend });
     bindHeaderBlurbBehavior();
+    cameraPillController.bind();
     getHeaderPillStripController().bind();
     bindDesktopChromeAutohideBehavior();
     const bodyHaloToggle = typeof document !== "undefined"
@@ -541,18 +538,6 @@ export function bindMainControls(handlers) {
         ["plane-pill-zx-minus", "checkbox-lock-zx-minus", "ZX-"],
     ];
     let planePresetReleasedByNavigation = false;
-    const followPillPairs = [
-        ["follow-pill-earth", "earth"],
-        ["follow-pill-moon", "moon"],
-        ["follow-pill-craft", "spacecraft"],
-    ];
-    const viewPillPairs = [
-        ["view-pill-free", "manual", "manual"],
-        ["view-pill-earth-moon", "earth", "moon"],
-        ["view-pill-moon-earth", "moon", "earth"],
-        ["view-pill-craft-moon", "spacecraft", "moon"],
-        ["view-pill-craft-earth", "spacecraft", "earth"],
-    ];
     const dimensionPillPairs = [
         ["dimension-pill-2d", "dimension-2D", "2D"],
         ["dimension-pill-3d", "dimension-3D", "3D"],
@@ -691,16 +676,6 @@ export function bindMainControls(handlers) {
         syncFlybyPillState(composerPanelVisible);
         syncSplashdownFocusPillState(groundTrackPanelVisible);
     };
-    const getSelectedCameraPillValue = (name) => {
-        if (name === "camera-position-pill") {
-            return document.getElementById("camera-position")?.value || "manual";
-        }
-        if (name === "camera-look-pill") {
-            return document.getElementById("camera-look")?.value || "manual";
-        }
-        const selected = document.querySelector(`input[name="${name}"]:checked`);
-        return selected?.value || "manual";
-    };
     const releasePlanePresetFromManualNavigation = () => {
         const activePlaneInput = planePillPairs
             .map(([, inputId]) => document.getElementById(inputId))
@@ -753,28 +728,6 @@ export function bindMainControls(handlers) {
         window.addEventListener("pointercancel", function (event) {
             resetDragState(event.pointerId);
         }, { passive: true });
-    };
-    const syncFollowPillState = () => {
-        const positionValue = getSelectedCameraPillValue("camera-position-pill");
-        const lookValue = getSelectedCameraPillValue("camera-look-pill");
-        followPillPairs.forEach(([pillId, value]) => {
-            const pill = document.getElementById(pillId);
-            if (!pill) return;
-            const isActive = positionValue === "manual" && lookValue === value;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
-    };
-    const syncViewPillState = () => {
-        const positionValue = getSelectedCameraPillValue("camera-position-pill");
-        const lookValue = getSelectedCameraPillValue("camera-look-pill");
-        viewPillPairs.forEach(([pillId, position, look]) => {
-            const pill = document.getElementById(pillId);
-            if (!pill) return;
-            const isActive = positionValue === position && lookValue === look;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
     };
     const syncTogglePillState = () => {
         togglePillPairs.forEach(([pillId, inputId]) => {
@@ -962,34 +915,6 @@ export function bindMainControls(handlers) {
             commitOriginMode(originMode);
         });
     });
-    onChange("camera-position", function (event) {
-        controlBackend.commitCameraPositionMode(event?.target?.value || "manual", {
-            sourceId: "camera-position",
-            sourceName: "camera-position",
-            preserveManualRelease: event?.detail?.preserveManualRelease === true,
-        });
-    });
-    onChange("camera-look", function (event) {
-        controlBackend.commitCameraLookMode(event?.target?.value || "manual", {
-            sourceId: "camera-look",
-            sourceName: "camera-look",
-            preserveManualRelease: event?.detail?.preserveManualRelease === true,
-        });
-    });
-    onChangeAll('input[name="camera-position-pill"]', function (event) {
-        controlBackend.commitCameraPositionMode(event?.target?.value || "manual", {
-            sourceId: "camera-position-pill",
-            sourceName: "camera-position-pill",
-            preserveManualRelease: event?.detail?.preserveManualRelease === true,
-        });
-    });
-    onChangeAll('input[name="camera-look-pill"]', function (event) {
-        controlBackend.commitCameraLookMode(event?.target?.value || "manual", {
-            sourceId: "camera-look-pill",
-            sourceName: "camera-look-pill",
-            preserveManualRelease: event?.detail?.preserveManualRelease === true,
-        });
-    });
     onInput("desktop-main-fov-slider", changeDesktopMainFov);
     onClick("desktop-main-fov-auto", toggleDesktopMainFovAuto);
 
@@ -1081,37 +1006,6 @@ export function bindMainControls(handlers) {
             sourceId: "locators-pill",
         });
     });
-    followPillPairs.forEach(([pillId, value]) => {
-        const pill = document.getElementById(pillId);
-        if (!pill) return;
-        pill.addEventListener("click", function () {
-            const positionValue = getSelectedCameraPillValue("camera-position-pill");
-            const lookValue = getSelectedCameraPillValue("camera-look-pill");
-            const isAlreadyActive = positionValue === "manual" && lookValue === value;
-            controlBackend.commitCameraPair(
-                "manual",
-                isAlreadyActive ? "manual" : value,
-                { preserveManualRelease: isAlreadyActive },
-            );
-            syncFollowPillState();
-            syncViewPillState();
-        });
-    });
-    viewPillPairs.forEach(([pillId, position, look]) => {
-        const pill = document.getElementById(pillId);
-        if (!pill) return;
-        pill.addEventListener("click", function () {
-            const positionValue = getSelectedCameraPillValue("camera-position-pill");
-            const lookValue = getSelectedCameraPillValue("camera-look-pill");
-            const isAlreadyActive = positionValue === position && lookValue === look;
-            const nextPosition = isAlreadyActive ? "manual" : position;
-            const nextLook = isAlreadyActive ? "manual" : look;
-            // Semantic source->target views should return to a clean free camera when released.
-            controlBackend.commitCameraPair(nextPosition, nextLook);
-            syncFollowPillState();
-            syncViewPillState();
-        });
-    });
     togglePillPairs.forEach(([pillId, inputId, settingKey]) => {
         const pill = document.getElementById(pillId);
         const input = document.getElementById(inputId);
@@ -1174,15 +1068,6 @@ export function bindMainControls(handlers) {
             });
         });
     });
-    document.querySelectorAll('input[name="camera-position-pill"], input[name="camera-look-pill"]')
-        .forEach((input) => input.addEventListener("change", function () {
-            syncFollowPillState();
-            syncViewPillState();
-        }));
-    document.addEventListener("camera-from-to-ui-updated", function () {
-        syncFollowPillState();
-        syncViewPillState();
-    });
     if (landingToggle) {
         landingToggle.addEventListener("change", function () {
             syncTogglePillVisibility();
@@ -1213,8 +1098,6 @@ export function bindMainControls(handlers) {
     syncOriginPillState();
     syncLocatorsPillState();
     syncOrbitLabels();
-    syncFollowPillState();
-    syncViewPillState();
     syncTogglePillVisibility();
     syncTogglePillState();
     syncLandingPillState();
