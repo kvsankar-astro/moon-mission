@@ -1,16 +1,16 @@
-import { invokeMissionPanelAction } from "../app/panel-registry.js";
-import { createCameraPillController } from "./camera-pill-controller.js";
 import { createControlPanelTimelineController } from "./control-panel-timeline-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
-import { createFocusPillController } from "./focus-pill-controller.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
 import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
-import { createPlanePillController } from "./plane-pill-controller.js";
+import {
+    bindMainControlControllerSet,
+    bindMainControlElements,
+    createMainControlControllers,
+    syncMainControlControllerSet,
+} from "./main-control-bindings.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
-import { createSharedControlBackend } from "./shared-control-backend.js";
-import { createViewSettingsPillController } from "./view-settings-pill-controller.js";
 
 /**
  * UI Event Handlers
@@ -251,7 +251,7 @@ export function bindMainControls(handlers) {
         setMoonRenderProfile,
         getMoonRenderProfile,
     } = handlers;
-    const controlBackend = createSharedControlBackend({
+    const controllers = createMainControlControllers({
         toggleMode,
         toggleRelativeMode,
         changeCameraFromTo,
@@ -259,52 +259,30 @@ export function bindMainControls(handlers) {
         setView,
         setDimensionTop,
         toggleLanding,
-    });
-    const cameraPillController = createCameraPillController({ controlBackend });
-    const planePillController = createPlanePillController({ controlBackend });
-    const viewSettingsPillController = createViewSettingsPillController({
-        controlBackend,
         getMoonRenderProfile,
         setMoonRenderProfile,
+        headerPillStripController: getHeaderPillStripController(),
     });
-    const focusPillController = createFocusPillController({
-        invokeMissionPanelAction,
+    bindMainControlControllerSet({
+        controllers,
+        bindHeaderBlurbBehavior,
+        bindDesktopChromeAutohideBehavior,
+    });
+    bindMainControlElements({
+        onClick,
+        onChange,
+        onInput,
+        reset,
+        changeDesktopMainFov,
+        toggleDesktopMainFovAuto,
         setView,
+        toggleAnimation,
+        cy3Animate,
+        toggleJoyRide,
+        toggleLanding,
+        toggleInfo,
     });
-    bindHeaderBlurbBehavior();
-    cameraPillController.bind();
-    focusPillController.bind();
-    planePillController.bind();
-    viewSettingsPillController.bind();
-    getHeaderPillStripController().bind();
-    bindDesktopChromeAutohideBehavior();
-
-    onClick("reset", reset);
-    onInput("desktop-main-fov-slider", changeDesktopMainFov);
-    onClick("desktop-main-fov-auto", toggleDesktopMainFovAuto);
-    onClick("view-additional-crafts", setView);
-    onClick("view-aux-camera-panels", setView);
-    onChange("active-craft-select", setView);
-    onClick("view-fps", setView);
-    onChange("orbit-style-classic", setView);
-    onChange("orbit-style-trail", setView);
-    onInput("trail-track-brightness-2d", setView);
-    onInput("trail-track-brightness-3d", setView);
-    onInput("trail-tail-brightness-2d", setView);
-    onInput("trail-tail-brightness-3d", setView);
-
-    const animateHandler = typeof toggleAnimation === "function" ? toggleAnimation : cy3Animate;
-    if (typeof animateHandler === "function") {
-        onClick("animate", animateHandler);
-    }
-    onClick("joyride", toggleJoyRide);
-    onClick("joyridebutton", toggleJoyRide);
-    onClick("landingbutton", toggleLanding);
-
-    onClick("info-button", toggleInfo);
-    focusPillController.sync();
-    viewSettingsPillController.sync();
-    getHeaderPillStripController().syncUi();
+    syncMainControlControllerSet(controllers);
 }
 
 export function bindKeyboardShortcuts() {
