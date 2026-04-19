@@ -10,14 +10,7 @@ Live pages:
 - Orbit data status: <https://sankara.net/astro/lunar-missions/orbit-data.html>
 - Assets status: <https://sankara.net/astro/lunar-missions/assets-status.html>
 
-Sample direct mission links:
-
-- **[Chandrayaan 3](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan3)** (2023)
-- **[Chandrayaan 2](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan2)** (2019)
-- **[Artemis 2](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis2)** (2026)
-- **[GRAIL](https://sankara.net/astro/lunar-missions/mission.html?mission=grail)** (2011-2012)
-- **[LRO](https://sankara.net/astro/lunar-missions/mission.html?mission=lro)** (2009-)
-- **[SLIM](https://sankara.net/astro/lunar-missions/mission.html?mission=slim)** (2024)
+The full mission list is in the `Mission Catalog` section later in this README.
 
 ![Mission Preview](images/social/chandrayaan3-landscape.png)
 
@@ -230,6 +223,76 @@ Quick CLI check:
 ```bash
 python scripts/show-deployed-version.py
 ```
+
+## Mission Catalog
+
+Current catalog missions are grouped below using the same broad families as the landing page.
+
+### Chandrayaan
+
+- **[Chandrayaan 1](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan1)** (India - 2008)
+- **[Chandrayaan 2](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan2)** (India - 2019)
+- **[Chandrayaan 3](https://sankara.net/astro/lunar-missions/mission.html?mission=chandrayaan3)** (India - 2023)
+
+### Artemis & Orion
+
+- **[Artemis 1](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis1)** (United States - 2022)
+- **[Artemis 2](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis2)** (United States - 2026)
+
+### Apollo Trailblazers
+
+- **[Apollo 8 S-IVB](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo8-sivb)** (United States - 1968)
+- **[Apollo 9 S-IVB](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo9-sivb)** (United States - 1969)
+- **[Apollo 10 LM Snoopy](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo10-lm)** (United States - 1969)
+- **[Apollo 10 S-IVB](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo10-sivb)** (United States - 1969)
+- **[Apollo 11 S-IVB](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo11-sivb)** (United States - 1969)
+- **[Apollo 12 S-IVB](https://sankara.net/astro/lunar-missions/mission.html?mission=apollo12-sivb)** (United States - 1969)
+
+### Moon Mapping & Science
+
+- **[Lunar Orbiter 1](https://sankara.net/astro/lunar-missions/mission.html?mission=lunarorbiter1)** (United States - 1966)
+- **[Clementine](https://sankara.net/astro/lunar-missions/mission.html?mission=clementine)** (United States - 1994)
+- **[Lunar Prospector](https://sankara.net/astro/lunar-missions/mission.html?mission=lunar-prospector)** (United States - 1998)
+- **[LRO](https://sankara.net/astro/lunar-missions/mission.html?mission=lro)** (United States - 2009)
+- **[LADEE](https://sankara.net/astro/lunar-missions/mission.html?mission=ladee)** (United States - 2014)
+- **[Lunar Trailblazer](https://sankara.net/astro/lunar-missions/mission.html?mission=lunar-trailblazer)** (United States - 2025)
+
+### New Cislunar Paths
+
+- **[CAPSTONE](https://sankara.net/astro/lunar-missions/mission.html?mission=capstone)** (United States - 2022)
+- **[THEMIS-ARTEMIS](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis)** (United States - 2007-2011)
+- **[THEMIS-ARTEMIS Overview](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis-overview)** (United States - 2007-2011)
+- **[THEMIS-ARTEMIS Lagrange Transfer](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis-lagrange)** (United States - 2010)
+- **[THEMIS-ARTEMIS Lunar Capture](https://sankara.net/astro/lunar-missions/mission.html?mission=artemis-lunar-capture)** (United States - 2011)
+- **[Lunar Flashlight](https://sankara.net/astro/lunar-missions/mission.html?mission=lunar-flashlight)** (United States - 2022)
+- **[SLIM](https://sankara.net/astro/lunar-missions/mission.html?mission=slim)** (Japan - 2023)
+
+### Global Lunar Ambitions
+
+- **[SMART-1](https://sankara.net/astro/lunar-missions/mission.html?mission=smart1)** (ESA - 2003)
+- **[SELENE / Kaguya](https://sankara.net/astro/lunar-missions/mission.html?mission=selene)** (Japan - 2007)
+- **[KPLO Danuri](https://sankara.net/astro/lunar-missions/mission.html?mission=kplo-danuri)** (South Korea - 2022)
+- **[Nozomi](https://sankara.net/astro/lunar-missions/mission.html?mission=nozomi)** (Japan - 1998)
+- **[JUICE](https://sankara.net/astro/lunar-missions/mission.html?mission=juice)** (ESA - 2023)
+
+### Swingbys & Observatories
+
+- **[ISEE-3 / ICE](https://sankara.net/astro/lunar-missions/mission.html?mission=isee3)** (United States - 1978)
+- **[Wind](https://sankara.net/astro/lunar-missions/mission.html?mission=wind)** (United States - 1994)
+- **[WMAP](https://sankara.net/astro/lunar-missions/mission.html?mission=wmap)** (United States - 2001)
+- **[STEREO](https://sankara.net/astro/lunar-missions/mission.html?mission=stereo)** (United States - 2006)
+- **[TESS](https://sankara.net/astro/lunar-missions/mission.html?mission=tess)** (United States - 2018)
+
+### Impact Paths & Companion Craft
+
+- **[GRAIL](https://sankara.net/astro/lunar-missions/mission.html?mission=grail)** (United States - 2012)
+- **[GRAIL SS Stage](https://sankara.net/astro/lunar-missions/mission.html?mission=grail-ss-stage)** (United States - 2011)
+- **[LCROSS Shepherd](https://sankara.net/astro/lunar-missions/mission.html?mission=lcross-shepherd)** (United States - 2009)
+- **[LCROSS Centaur](https://sankara.net/astro/lunar-missions/mission.html?mission=lcross-centaur)** (United States - 2009)
+
+### More Missions
+
+- **[HGS-1](https://sankara.net/astro/lunar-missions/mission.html?mission=hgs1)** (United States - 1997)
 
 ## Credits
 
