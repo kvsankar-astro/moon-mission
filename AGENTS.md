@@ -32,6 +32,7 @@
 - `npm run configs:lint` — verify config sync plus required `time_scale` annotations (matches current CI).
 - `npm run hooks:install` — set `core.hooksPath` to `.githooks` to enable local pre-commit checks.
 - `make test` — recommended UI test run (starts server on `8111`, runs Vitest, stops server).
+- `npm run test:prod:missions` — opt-in production smoke suite against `https://sankara.net/astro/lunar-missions` (supports `PROD_MISSION_FILTER` and `PROD_MISSION_LIMIT`).
 - `make baseline` — regenerate visual baselines (use only when changes are intentional).
 - `python scripts/build.py` — create a deployable static folder in `dist/`.
 
@@ -46,6 +47,7 @@
 
 - Frameworks: Vitest + Playwright; visual regression uses SSIM comparisons.
 - Baselines are tracked in `test/screenshots/baseline/`; `current/`, `diff/`, and latest-run SSIM output are git-ignored.
+- Production smoke automation should prefer the visible header pill strip on desktop; the Settings panel is a fallback control surface and may not be visibly present in all layouts.
 - If you change visuals intentionally, update baselines and explain why in the PR.
 
 ## Commit & Pull Request Guidelines

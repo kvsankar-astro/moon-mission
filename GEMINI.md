@@ -7,6 +7,7 @@ This file provides Gemini-oriented project context aligned with the current code
 - Workflow/conventions: `AGENTS.md`
 - Repo workflow/build/CI conventions: `docs/developer.md`
 - System design and architecture docs: `docs/design/design.md`
+- Canonical runtime architecture/refactor record: `docs/design/architecture/target-architecture.md`
 - Test strategy: `docs/guides/testing.md`
 
 ## Current code layout

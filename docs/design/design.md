@@ -35,6 +35,7 @@ Design material now lives under `docs/design/`, grouped by purpose:
 - Imperative orchestration (DOM, rendering, event wiring, playback loop) is handled in app/shell modules (`src/platform/js/app/*`, controllers, UI actions).
 - The canonical runtime/refactor reference is [Target Architecture](architecture/target-architecture.md).
 - That architecture document is now the live progress record as well; remaining work there is mostly optional follow-on cleanup rather than broad structural rescue.
+- Older modernization plans and refactor proposals remain in `docs/archived/` for history, but they are no longer the current architecture guide.
 
 ### Main runtime layers
 

@@ -10,6 +10,7 @@ Use the docs in this order when you are getting oriented:
 - Use [operations/repo-sync-playbook.md](operations/repo-sync-playbook.md) for the authoritative app/data boundary rules and no-loss sync procedure.
 - Use [operations/mission-data-current-state.md](operations/mission-data-current-state.md) for the current live boundary state and recent mission-data extraction status.
 - Use [design/design.md](design/design.md) for runtime architecture, product-surface structure, and deeper design notes.
+- Use [design/architecture/target-architecture.md](design/architecture/target-architecture.md) when you need the canonical runtime-architecture record; older refactor plans under [archived/](archived/) are historical only.
 
 ## Start Here
 
@@ -68,3 +69,5 @@ Focused issue investigations and one-off technical deep dives:
 Historical proposals and superseded planning material:
 
 - [archived/](archived/)
+
+Most refactor-era plans and architecture proposals now live only here. Keep them for context, but prefer the active docs above for current guidance.

@@ -308,11 +308,15 @@ Current catalog missions are grouped below using the same broad families as the 
 
 * Members of the Reddit r/isro (https://www.reddit.com/r/ISRO/) community for their valuable feedback
   
-## Roadmap
+## Planning Notes
 
-This project is undergoing incremental modernization (the earliest versions date back to 2013).
+Current planning/docs split:
 
-See [docs/archived/modernization-plan-2026.md](docs/archived/modernization-plan-2026.md) for historical roadmap and progress context.
+- Runtime architecture and the completed refactor record: [docs/design/architecture/target-architecture.md](docs/design/architecture/target-architecture.md)
+- Active product/backlog planning: [docs/design/roadmap/orbit-ux-and-refactor-roadmap.md](docs/design/roadmap/orbit-ux-and-refactor-roadmap.md)
+- Historical modernization/refactor plan: [docs/archived/modernization-plan-2026.md](docs/archived/modernization-plan-2026.md)
+
+The broad runtime rearchitecture is effectively complete, so the archived modernization plan is kept for history rather than as the current source of direction.
 
 ## AI assistance
 

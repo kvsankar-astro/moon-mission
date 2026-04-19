@@ -39,10 +39,19 @@ Do not use legacy paths like `assets/platform/js/*` in new changes.
   - `make test`
 - Unit tests:
   - `npm run test:unit`
+- Production smoke tests against sankara.net:
+  - `npm run test:prod:missions`
+  - Narrow to specific missions with `PROD_MISSION_FILTER='^(artemis2|chandrayaan3)$'`
 - Baseline regeneration:
   - `make baseline`
 
 SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
+
+## Mission controls UI
+
+- On desktop, the header pill strip is the primary quick-control surface for origin/dimension/view toggles.
+- The Settings panel remains a fallback/advanced surface and may be hidden in layouts where the pill strip is visible.
+- Production/browser automation should prefer the visible pill controls before assuming `#settings-panel-button` is interactable.
 
 ## Mission config workflow
 
