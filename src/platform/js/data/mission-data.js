@@ -1,6 +1,10 @@
 import { loadChebyshevData } from "../chebyshev.js";
 import { loadNpzEphemeris } from "./npz-ephemeris.js";
 import {
+    deepMergeObjects,
+    getMissionConfigProfileUrl,
+} from "../core/domain/mission-data-resolvers.js";
+import {
     formatMissionConfigDiagnostics,
     normalizeMissionConfig,
     parseMissionConfig,
@@ -51,33 +55,6 @@ function getMissionConfigProfileName() {
     }
 }
 
-function getMissionConfigProfileUrl(profileName) {
-    const dataPath = getMissionDataPath();
-    if (!dataPath || !profileName) return null;
-    const basePath = dataPath.endsWith("/") ? dataPath.slice(0, -1) : dataPath;
-    return `${basePath}/config.${profileName}.json`;
-}
-
-function isPlainObject(value) {
-    return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function deepMergeObjects(baseValue, patchValue) {
-    if (!isPlainObject(baseValue)) return patchValue;
-    if (!isPlainObject(patchValue)) return patchValue;
-
-    const merged = { ...baseValue };
-    for (const [key, patchChild] of Object.entries(patchValue)) {
-        const baseChild = merged[key];
-        if (isPlainObject(baseChild) && isPlainObject(patchChild)) {
-            merged[key] = deepMergeObjects(baseChild, patchChild);
-        } else {
-            merged[key] = patchChild;
-        }
-    }
-    return merged;
-}
-
 export function getMissionManifestUrl() {
     return resolveMissionManifestUrl(getMissionDataPath());
 }
@@ -103,7 +80,7 @@ export async function loadMissionConfig() {
             let rawConfig = await response.json();
             const configProfile = getMissionConfigProfileName();
             if (configProfile) {
-                const profileUrl = getMissionConfigProfileUrl(configProfile);
+                const profileUrl = getMissionConfigProfileUrl(getMissionDataPath(), configProfile);
                 if (profileUrl) {
                     try {
                         const profileResponse = await fetch(profileUrl, { cache: "no-store" });
@@ -311,10 +288,4 @@ export async function loadNpz(url) {
     return promise;
 }
 
-export function getEphemerisSource(configData) {
-    const source =
-        configData?.ephemeris_source ||
-        configData?.ephemeris?.source ||
-        "chebyshev";
-    return typeof source === "string" ? source.toLowerCase() : "chebyshev";
-}
+export { getEphemerisSource } from "../core/domain/mission-data-resolvers.js";
