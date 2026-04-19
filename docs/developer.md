@@ -48,10 +48,17 @@ Useful pages:
 - `mission.html` now exposes two synchronized control surfaces:
   - Header pill strip (`#header-pill-strip`) for quick controls.
   - Settings panel (`#settings-panel`) for full/advanced controls.
-- Pill interactions are wired as proxies to the existing settings inputs in `src/platform/js/ui/event-handlers.js` (`originPillPairs`, `planePillPairs`, `followPillPairs`, `viewPillPairs`, `dimensionPillPairs`, `togglePillPairs`).
+- Pill/control wiring is now split across dedicated controllers instead of living only in `src/platform/js/ui/event-handlers.js`.
+  - Top-level bind order and raw DOM hookup live in `src/platform/js/ui/main-control-bindings.js`.
+  - Shared origin/dimension/toggle/moon-surface behavior lives in `src/platform/js/ui/view-settings-pill-controller.js`.
+  - Follow/view camera behavior lives in `src/platform/js/ui/camera-pill-controller.js`.
+  - Plane behavior lives in `src/platform/js/ui/plane-pill-controller.js`.
+  - Mission-focus panel pills such as Artemis II `Flyby` and `Splashdown` live in `src/platform/js/ui/focus-pill-controller.js`.
 - When adding/removing a mission control:
   1. Update `mission.html` (pill button and/or settings input).
-  2. Update the corresponding pair mapping and sync behavior in `src/platform/js/ui/event-handlers.js`.
+  2. Update the relevant controller or binding module, not just `event-handlers.js`.
+     - Use `main-control-bindings.js` for generic hook-up/bind-order changes.
+     - Use the specific pill controller for sync/state behavior changes.
   3. Verify both surfaces stay synchronized in runtime and UI tests.
 
 ### Moon Render Asset Profiles
@@ -77,7 +84,7 @@ Useful pages:
   - DOM shell in `mission.html` (`#ground-track-panel`)
   - styling in `src/platform/css/mission-panels.css`
   - runtime/controller logic in `src/platform/js/app/ground-track-panel.js`
-  - pill launch wiring in `src/platform/js/ui/event-handlers.js`
+  - pill launch wiring in `src/platform/js/ui/focus-pill-controller.js`
 - Current `Splashdown in Spotlight` behavior:
   - auto-opens on Artemis II load for non-`relative` modes
   - reopens from the `Splashdown` focus pill

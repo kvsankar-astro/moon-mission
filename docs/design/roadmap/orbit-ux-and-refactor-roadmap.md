@@ -7,6 +7,11 @@ Runtime architecture and refactor guidance now lives in
 This file is intentionally limited to orbit UX and related product behavior so
 we only have one architecture document to maintain.
 
+Architecture status note:
+
+- The broad functional-core / imperative-shell refactor is now largely complete.
+- Future structural work in this area should be small, targeted follow-on cleanup tied to real product changes, not another open-ended breakup campaign.
+
 Branch recovery note:
 
 - The old shelf branch `temp/orbit-ux-shelf-20260328` contained additional branch-only product/runtime ideas that are not fully on `master`.
@@ -14,7 +19,7 @@ Branch recovery note:
 
 ## Current Guardrail
 
-Before starting broad refactor work, run the visual gate again:
+Before reopening broad structural work in orbit UX, run the visual gate again:
 
 - unit tests
 - UI/SSIM tests
@@ -24,7 +29,7 @@ Before starting broad refactor work, run the visual gate again:
 Reason:
 
 - recent work has included orbit-style, timeline, and mission-view UX changes
-- we want a clean visual checkpoint before larger architecture changes
+- we want a clean visual checkpoint before any new structural pass touches these surfaces
 
 ## Orbit UX Roadmap
 
@@ -184,7 +189,7 @@ Remaining cleanup, if needed:
 
 ## Notes
 
-- Do not start broad refactors while the visual baseline is uncertain.
+- Do not reopen broad structural changes while the visual baseline is uncertain.
 - Prefer small structural commits over one large “architecture cleanup” commit.
 - Keep multi-craft modeling generic: craft A, B, C, not orbiter/lander assumptions in reusable code.
 - Do not preserve shelf-branch HTML/layout/code blindly; preserve the spec intent and reapply it against current runtime structure.

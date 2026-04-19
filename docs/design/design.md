@@ -34,6 +34,7 @@ Design material now lives under `docs/design/`, grouped by purpose:
 - Core computations are isolated in pure/state-centric helpers where possible (`src/platform/js/core/*`).
 - Imperative orchestration (DOM, rendering, event wiring, playback loop) is handled in app/shell modules (`src/platform/js/app/*`, controllers, UI actions).
 - The canonical runtime/refactor reference is [Target Architecture](architecture/target-architecture.md).
+- That architecture document is now the live progress record as well; remaining work there is mostly optional follow-on cleanup rather than broad structural rescue.
 
 ### Main runtime layers
 
@@ -55,7 +56,10 @@ Design material now lives under `docs/design/`, grouped by purpose:
 ### UI control synchronization model
 
 - The header pill strip and settings panel are synchronized UI surfaces over shared runtime state.
-- `src/platform/js/ui/event-handlers.js` maps pill actions to canonical settings inputs and keeps active/pressed state synchronized both ways.
+- `src/platform/js/ui/event-handlers.js` now acts mainly as the top-level binding/composition seam for those controls.
+- `src/platform/js/ui/main-control-bindings.js` coordinates main-control controller creation, bind order, and the remaining raw DOM hookups.
+- Shared origin/dimension/toggle/moon-surface synchronization now lives in `src/platform/js/ui/view-settings-pill-controller.js`.
+- Follow/view and focus/panel pill behavior now live in `src/platform/js/ui/camera-pill-controller.js` and `src/platform/js/ui/focus-pill-controller.js`.
 - `src/platform/js/ui/ui-state.js` remains the source for reading/applying view setting values consumed by runtime actions.
 - Some pills launch mission-specific panels instead of only toggling settings state.
   - Artemis II `Flyby` restores the `Flyby in Focus` auxiliary composer panel.
