@@ -3,6 +3,7 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
 import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
@@ -48,7 +49,6 @@ let headerBlurbBehaviorBound = false;
 let controlPanelResizeBound = false;
 let timelineDockHeightSyncBound = false;
 let timelineCarouselDragBound = false;
-let desktopChromeAutohideBound = false;
 let timelineDockResizeObserver = null;
 let timelineDockMutationObserver = null;
 let timelineCarouselWiggleTimeoutId = null;
@@ -57,7 +57,6 @@ let headerPillStripAutoCollapsed = false;
 let headerPillStripLastAutoRevealAt = 0;
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
 const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
-const DESKTOP_CHROME_AUTO_HIDE_DELAY_MS = 10000;
 const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
 const MISSION_INTERACTIVE_REGION_SELECTOR = [
     "#header-pill-strip",
@@ -140,6 +139,7 @@ function isElementLayoutVisible(element) {
 
 let settingsPanelController = null;
 let keyboardShortcutsController = null;
+let desktopChromeAutohideController = null;
 
 function getSettingsPanelController() {
     if (!settingsPanelController) {
@@ -163,6 +163,23 @@ function getKeyboardShortcutsController() {
         });
     }
     return keyboardShortcutsController;
+}
+
+function getDesktopChromeAutohideController() {
+    if (!desktopChromeAutohideController) {
+        desktopChromeAutohideController = createDesktopChromeAutohideController({
+            getMissionDialogApi,
+            isElementLayoutVisible,
+            isInteractiveInputTarget,
+            isMobileViewport,
+            isSettingsPanelOpen,
+            meaningfulActivityKeys: MEANINGFUL_ACTIVITY_KEYS,
+            requestAnimationFrameImpl: requestAnimationFrame,
+            setControlPanelCollapsedState,
+            setHeaderPillStripAutoCollapsedState,
+        });
+    }
+    return desktopChromeAutohideController;
 }
 
 function isSettingsPanelOpen() {
@@ -358,191 +375,7 @@ function bindHeaderBlurbBehavior() {
 }
 
 function bindDesktopChromeAutohideBehavior() {
-    if (desktopChromeAutohideBound) return;
-    desktopChromeAutohideBound = true;
-
-    let autoHideEnabled = true;
-    let animationPlaying = false;
-    let autoHideTimerId = null;
-
-    const hoverSelectors = [
-        "#header-pill-strip",
-        "#control-panel",
-        "#timeline-dock",
-        "#zoom-panel",
-        "#info-panel",
-        "#shortcut-panel",
-        ".aux-camera-view",
-        "#ground-track-panel",
-        ".panel-manager-menu.is-open",
-    ];
-
-    const clearAutoHideTimer = () => {
-        if (autoHideTimerId === null) return;
-        window.clearTimeout(autoHideTimerId);
-        autoHideTimerId = null;
-    };
-
-    const isDesktopViewportActive = () => !isMobileViewport() &&
-        !document.body?.classList.contains("mobile-shell-enabled") &&
-        document.visibilityState !== "hidden";
-
-    const isAnySelectorHovered = (selector) => {
-        const elements = document.querySelectorAll(selector);
-        return Array.from(elements).some((element) => {
-            if (!(element instanceof Element)) return false;
-            if (!isElementLayoutVisible(element)) return false;
-            if (typeof element.matches === "function" && element.matches(":hover")) return true;
-            return !!element.querySelector?.(":hover");
-        });
-    };
-
-    const isSettingsPanelHovered = () => {
-        const dialogApi = getMissionDialogApi();
-        const wrapper = dialogApi?.widgetElement?.("#settings-panel");
-        if (wrapper && isElementLayoutVisible(wrapper)) {
-            if (wrapper.matches(":hover")) return true;
-            return !!wrapper.querySelector?.(":hover");
-        }
-        const panel = document.getElementById("settings-panel");
-        if (!isElementLayoutVisible(panel)) return false;
-        if (panel.matches(":hover")) return true;
-        return !!panel.querySelector?.(":hover");
-    };
-
-    const hasInteractiveFocus = () => {
-        const active = document.activeElement;
-        if (!(active instanceof Element)) return false;
-        if (isInteractiveInputTarget(active)) return true;
-        if (active.matches?.('[role="slider"]')) return true;
-        return !!active.closest("#settings-panel, #info-panel, #shortcut-panel, .panel-manager-menu");
-    };
-
-    const hasBlockingUiOpen = () => {
-        if (isSettingsPanelOpen()) return true;
-        const infoPanel = document.getElementById("info-panel");
-        if (infoPanel && !infoPanel.classList.contains("info-panel--hidden") && isElementLayoutVisible(infoPanel)) {
-            return true;
-        }
-        const shortcutPanel = document.getElementById("shortcut-panel");
-        if (
-            shortcutPanel &&
-            !shortcutPanel.classList.contains("shortcut-panel--hidden") &&
-            isElementLayoutVisible(shortcutPanel)
-        ) {
-            return true;
-        }
-        const panelMenu = document.querySelector(".panel-manager-menu.is-open");
-        if (panelMenu && isElementLayoutVisible(panelMenu)) {
-            return true;
-        }
-        return false;
-    };
-
-    const isChromeHovered = () => isSettingsPanelHovered() || hoverSelectors.some(isAnySelectorHovered);
-
-    const canAutoHideChrome = () => autoHideEnabled &&
-        animationPlaying &&
-        isDesktopViewportActive() &&
-        !hasBlockingUiOpen() &&
-        !hasInteractiveFocus() &&
-        !isChromeHovered();
-
-    const revealChrome = () => {
-        setHeaderPillStripAutoCollapsedState(false);
-        setControlPanelCollapsedState(false);
-    };
-
-    const scheduleAutoHide = () => {
-        clearAutoHideTimer();
-        if (!canAutoHideChrome()) return;
-        autoHideTimerId = window.setTimeout(() => {
-            if (!canAutoHideChrome()) {
-                revealChrome();
-                clearAutoHideTimer();
-                return;
-            }
-            setHeaderPillStripAutoCollapsedState(true);
-            setControlPanelCollapsedState(true);
-            clearAutoHideTimer();
-        }, DESKTOP_CHROME_AUTO_HIDE_DELAY_MS);
-    };
-
-    const syncChromeVisibility = () => {
-        clearAutoHideTimer();
-        if (!canAutoHideChrome()) {
-            revealChrome();
-            return;
-        }
-        revealChrome();
-        scheduleAutoHide();
-    };
-
-    const handleUserActivity = () => {
-        if (!isDesktopViewportActive()) {
-            clearAutoHideTimer();
-            revealChrome();
-            return;
-        }
-        revealChrome();
-        scheduleAutoHide();
-    };
-
-    const syncAnimationPlaying = (isPlaying) => {
-        animationPlaying = isPlaying === true;
-        syncChromeVisibility();
-    };
-
-    const readInitialPlayState = () => {
-        const button = document.getElementById("animate");
-        return ((button?.textContent || "").trim().toLowerCase() === "pause");
-    };
-
-    document.addEventListener("animation-play-state-updated", (event) => {
-        const customEvent = /** @type {CustomEvent | null} */ (event);
-        syncAnimationPlaying(customEvent?.detail?.isPlaying === true);
-    });
-
-    document.addEventListener("mission-ui-config-updated", (event) => {
-        const configEvent = /** @type {CustomEvent | null} */ (event);
-        autoHideEnabled = configEvent?.detail?.ui?.desktopChromeAutoHideEnabled !== false;
-        syncChromeVisibility();
-    });
-
-    document.addEventListener("pointermove", () => {
-        handleUserActivity();
-    }, { passive: true, capture: true });
-
-    document.addEventListener("pointerdown", () => {
-        requestAnimationFrame(handleUserActivity);
-    }, true);
-
-    document.addEventListener("wheel", () => {
-        handleUserActivity();
-    }, { passive: true, capture: true });
-
-    document.addEventListener("focusin", () => {
-        handleUserActivity();
-    }, true);
-
-    document.addEventListener("keydown", (event) => {
-        if (isInteractiveInputTarget(event.target)) {
-            handleUserActivity();
-            return;
-        }
-        if (!MEANINGFUL_ACTIVITY_KEYS.has(event.key)) return;
-        handleUserActivity();
-    }, true);
-
-    document.addEventListener("visibilitychange", () => {
-        syncChromeVisibility();
-    });
-
-    window.addEventListener("resize", () => {
-        syncChromeVisibility();
-    }, { passive: true });
-
-    syncAnimationPlaying(readInitialPlayState());
+    getDesktopChromeAutohideController().bind();
 }
 
 function syncControlPanelInfoOffset(panel = document.getElementById("control-panel")) {
