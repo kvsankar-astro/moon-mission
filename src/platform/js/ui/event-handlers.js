@@ -1,5 +1,6 @@
 import { invokeMissionPanelAction } from "../app/panel-registry.js";
 import { createCameraPillController } from "./camera-pill-controller.js";
+import { createControlPanelTimelineController } from "./control-panel-timeline-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { createFocusPillController } from "./focus-pill-controller.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
@@ -40,13 +41,6 @@ function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
 
-let controlPanelResizeBound = false;
-let timelineDockHeightSyncBound = false;
-let timelineCarouselDragBound = false;
-let timelineDockResizeObserver = null;
-let timelineDockMutationObserver = null;
-let timelineCarouselWiggleTimeoutId = null;
-const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
 const MEANINGFUL_ACTIVITY_KEYS = new Set([
     " ",
     "ArrowLeft",
@@ -109,9 +103,21 @@ function isElementLayoutVisible(element) {
 
 let settingsPanelController = null;
 let keyboardShortcutsController = null;
+let controlPanelTimelineController = null;
 let desktopChromeAutohideController = null;
 let headerBlurbController = null;
 let headerPillStripController = null;
+
+function getControlPanelTimelineController() {
+    if (!controlPanelTimelineController) {
+        controlPanelTimelineController = createControlPanelTimelineController({
+            documentRef: document,
+            windowRef: window,
+            requestAnimationFrameImpl: requestAnimationFrame,
+        });
+    }
+    return controlPanelTimelineController;
+}
 
 function getSettingsPanelController() {
     if (!settingsPanelController) {
@@ -120,7 +126,8 @@ function getSettingsPanelController() {
             getMissionDialogApi,
             isMobileViewport,
             isElementLayoutVisible,
-            setControlPanelCollapsedState,
+            setControlPanelCollapsedState: (collapsed) =>
+                getControlPanelTimelineController().setControlPanelCollapsedState(collapsed),
         });
     }
     return settingsPanelController;
@@ -147,7 +154,8 @@ function getDesktopChromeAutohideController() {
             isSettingsPanelOpen,
             meaningfulActivityKeys: MEANINGFUL_ACTIVITY_KEYS,
             requestAnimationFrameImpl: requestAnimationFrame,
-            setControlPanelCollapsedState,
+            setControlPanelCollapsedState: (collapsed) =>
+                getControlPanelTimelineController().setControlPanelCollapsedState(collapsed),
             setHeaderPillStripAutoCollapsedState: (collapsed) =>
                 getHeaderPillStripController().setAutoCollapsedState(collapsed),
         });
@@ -185,225 +193,6 @@ function bindHeaderBlurbBehavior() {
 
 function bindDesktopChromeAutohideBehavior() {
     getDesktopChromeAutohideController().bind();
-}
-
-function syncControlPanelInfoOffset(panel = document.getElementById("control-panel")) {
-    if (!panel) return;
-    const root = document.documentElement;
-    const collapsed = panel.classList.contains("control-panel--collapsed");
-    const height = collapsed ? 0 : Math.max(0, Math.round(panel.getBoundingClientRect().height));
-    root.style.setProperty("--control-panel-visual-height", `${height}px`);
-}
-
-function syncTimelineDockHeight(timelineDock = document.getElementById("timeline-dock")) {
-    if (!timelineDock) return;
-    const root = document.documentElement;
-    const height = Math.max(0, Math.round(timelineDock.getBoundingClientRect().height));
-    root.style.setProperty("--timeline-dock-height", `${height}px`);
-}
-
-function bindTimelineDockHeightSync(timelineDock = document.getElementById("timeline-dock")) {
-    if (!timelineDock || timelineDockHeightSyncBound) return;
-    timelineDockHeightSyncBound = true;
-
-    const scheduleSync = () => requestAnimationFrame(() => syncTimelineDockHeight(timelineDock));
-    scheduleSync();
-
-    // Initial content (event chips/fonts/layout) settles asynchronously on load.
-    [80, 180, 320, 520, 900].forEach((delayMs) => {
-        window.setTimeout(scheduleSync, delayMs);
-    });
-
-    if (typeof ResizeObserver === "function") {
-        timelineDockResizeObserver = new ResizeObserver(() => {
-            scheduleSync();
-        });
-        timelineDockResizeObserver.observe(timelineDock);
-    }
-
-    const burnButtons = document.getElementById("burnbuttons");
-    if (burnButtons && typeof MutationObserver === "function") {
-        timelineDockMutationObserver = new MutationObserver(() => {
-            scheduleSync();
-        });
-        timelineDockMutationObserver.observe(burnButtons, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-        });
-    }
-}
-
-function bindTimelineCarouselDragGesture() {
-    if (timelineCarouselDragBound) return;
-    const carousel = document.querySelector("#timeline-dock .timeline-dock__event-carousel");
-    if (!carousel) return;
-    timelineCarouselDragBound = true;
-
-    const dragState = {
-        pointerId: null,
-        startX: 0,
-        startScrollLeft: 0,
-        dragging: false,
-        suppressClickUntilMs: 0,
-    };
-    const DRAG_THRESHOLD_PX = 4;
-    const CLICK_SUPPRESS_MS = 220;
-
-    const clearDragState = () => {
-        dragState.pointerId = null;
-        dragState.dragging = false;
-        carousel.classList.remove("is-dragging");
-    };
-
-    const onPointerMoveWindow = (event) => {
-        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
-        const deltaX = event.clientX - dragState.startX;
-        if (!dragState.dragging && Math.abs(deltaX) >= DRAG_THRESHOLD_PX) {
-            dragState.dragging = true;
-            carousel.classList.add("is-dragging");
-        }
-        if (!dragState.dragging) return;
-        carousel.scrollLeft = dragState.startScrollLeft - deltaX;
-        event.preventDefault();
-    };
-
-    const endDragWindow = (event) => {
-        if (dragState.pointerId == null || event.pointerId !== dragState.pointerId) return;
-        if (dragState.dragging) {
-            dragState.suppressClickUntilMs = Date.now() + CLICK_SUPPRESS_MS;
-        }
-        clearDragState();
-    };
-
-    const onPointerDown = (event) => {
-        if (event.button !== 0) return;
-        if (event.pointerType !== "mouse") return;
-        dragState.pointerId = event.pointerId;
-        dragState.startX = event.clientX;
-        dragState.startScrollLeft = carousel.scrollLeft;
-        dragState.dragging = false;
-        carousel.classList.remove("is-dragging");
-    };
-
-    // Use capture phase so button targets inside chips cannot swallow drag-start.
-    carousel.addEventListener("pointerdown", onPointerDown, true);
-    window.addEventListener("pointermove", onPointerMoveWindow, true);
-    window.addEventListener("pointerup", endDragWindow, true);
-    window.addEventListener("pointercancel", endDragWindow, true);
-    window.addEventListener("blur", clearDragState);
-
-    carousel.addEventListener("click", (event) => {
-        if (Date.now() > dragState.suppressClickUntilMs) return;
-        event.preventDefault();
-        event.stopPropagation();
-    }, true);
-}
-
-function setControlPanelCollapsedState(collapsed) {
-    const panel = document.getElementById("control-panel");
-    if (!panel) return;
-    const nextCollapsed = !!collapsed;
-    if (panel.classList.contains("control-panel--collapsed") === nextCollapsed) return;
-    panel.classList.toggle("control-panel--collapsed", nextCollapsed);
-    requestAnimationFrame(() => syncControlPanelInfoOffset(panel));
-}
-
-function getTimelineCurrentTimeMs() {
-    const slider = document.getElementById("timeline-slider");
-    if (!slider) return Number.NaN;
-    const value = Number(slider.value);
-    return Number.isFinite(value) ? value : Number.NaN;
-}
-
-function resolveUpcomingTimelineEventButton() {
-    const buttons = document.querySelectorAll("#burnbuttons button[data-event-index]");
-    if (!buttons.length) return null;
-
-    const currentTimeMs = getTimelineCurrentTimeMs();
-    if (!Number.isFinite(currentTimeMs)) {
-        return buttons[0] || null;
-    }
-    let bestFutureButton = null;
-    let bestFutureDelta = Number.POSITIVE_INFINITY;
-    let bestNearestButton = null;
-    let bestNearestDelta = Number.POSITIVE_INFINITY;
-
-    for (const button of buttons) {
-        const rawTime = button?.dataset?.eventTimeMs;
-        const eventTimeMs = Number(rawTime);
-        if (!Number.isFinite(eventTimeMs)) continue;
-        const absoluteDelta = Math.abs(eventTimeMs - currentTimeMs);
-        if (absoluteDelta < bestNearestDelta) {
-            bestNearestDelta = absoluteDelta;
-            bestNearestButton = button;
-        }
-        const futureDelta = eventTimeMs - currentTimeMs;
-        if (futureDelta < 0) continue;
-        if (futureDelta < bestFutureDelta) {
-            bestFutureDelta = futureDelta;
-            bestFutureButton = button;
-        }
-    }
-
-    return bestFutureButton || bestNearestButton;
-}
-
-function scrollTimelineEventButtonIntoView(button) {
-    if (!button || typeof button.scrollIntoView !== "function") return;
-    button.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
-    });
-}
-
-function focusUpcomingTimelineEventButton() {
-    scrollTimelineEventButtonIntoView(resolveUpcomingTimelineEventButton());
-}
-
-function triggerTimelineCarouselWiggle() {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
-    const carousel = document.querySelector("#timeline-dock .timeline-dock__event-carousel");
-    if (!carousel) return;
-    carousel.classList.remove(TIMELINE_CAROUSEL_WIGGLE_CLASS);
-    void carousel.offsetWidth;
-    carousel.classList.add(TIMELINE_CAROUSEL_WIGGLE_CLASS);
-    if (timelineCarouselWiggleTimeoutId !== null) {
-        clearTimeout(timelineCarouselWiggleTimeoutId);
-    }
-    timelineCarouselWiggleTimeoutId = window.setTimeout(() => {
-        carousel.classList.remove(TIMELINE_CAROUSEL_WIGGLE_CLASS);
-        timelineCarouselWiggleTimeoutId = null;
-    }, 480);
-}
-
-function setTimelineEventCarouselExpandedState(expanded, options = {}) {
-    const timelineDock = document.getElementById("timeline-dock");
-    const button = document.getElementById("control-panel-toggle");
-    if (!timelineDock || !button) return;
-    const wasExpanded = !timelineDock.classList.contains("timeline-dock--events-collapsed");
-    timelineDock.classList.toggle("timeline-dock--events-collapsed", !expanded);
-    requestAnimationFrame(() => syncTimelineDockHeight(timelineDock));
-    button.setAttribute("aria-expanded", String(expanded));
-    button.setAttribute(
-        "aria-label",
-        expanded ? "Pull down events carousel" : "Pull up events carousel",
-    );
-    button.title = expanded ? "Pull down events carousel" : "Pull up events carousel";
-
-    const opened = expanded && !wasExpanded;
-    if (!opened) return;
-
-    const { focusUpcoming = true, wiggleCue = true } = options;
-    requestAnimationFrame(() => {
-        if (focusUpcoming) {
-            focusUpcomingTimelineEventButton();
-        }
-        if (wiggleCue) {
-            triggerTimelineCarouselWiggle();
-        }
-    });
 }
 
 /**
@@ -523,32 +312,7 @@ export function bindKeyboardShortcuts() {
 }
 
 export function bindControlPanelToggle() {
-    const panel = document.getElementById("control-panel");
-    const timelineDock = document.getElementById("timeline-dock");
-    const button = document.getElementById("control-panel-toggle");
-    if (!panel || !timelineDock || !button) return;
-    if (button.dataset.bound === "true") return;
-    button.dataset.bound = "true";
-    bindTimelineCarouselDragGesture();
-    bindTimelineDockHeightSync(timelineDock);
-    setControlPanelCollapsedState(false);
-    setTimelineEventCarouselExpandedState(true, { focusUpcoming: true, wiggleCue: false });
-    requestAnimationFrame(() => {
-        syncControlPanelInfoOffset(panel);
-        syncTimelineDockHeight(timelineDock);
-    });
-    button.addEventListener("click", function () {
-        const shouldExpand = timelineDock.classList.contains("timeline-dock--events-collapsed");
-        setTimelineEventCarouselExpandedState(shouldExpand);
-    });
-
-    if (!controlPanelResizeBound) {
-        controlPanelResizeBound = true;
-        window.addEventListener("resize", function () {
-            syncControlPanelInfoOffset();
-            syncTimelineDockHeight();
-        });
-    }
+    getControlPanelTimelineController().bind();
 }
 
 export function bindMobileMissionCard() {
