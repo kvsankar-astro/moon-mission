@@ -1,15 +1,7 @@
 import { loadChebyshevData } from "../chebyshev.js";
 import { loadNpzEphemeris } from "./npz-ephemeris.js";
-import {
-    deepMergeObjects,
-    getMissionConfigProfileUrl,
-} from "../core/domain/mission-data-resolvers.js";
-import {
-    formatMissionConfigDiagnostics,
-    normalizeMissionConfig,
-    parseMissionConfig,
-    validateMissionConfig,
-} from "../core/domain/mission-config.js";
+import { getMissionConfigProfileUrl } from "../core/domain/mission-data-resolvers.js";
+import { assembleMissionConfig } from "../core/domain/mission-config-assembly.js";
 import {
     extractEphemerisManifest,
     resolveLandingChebyshevAssetUrl,
@@ -77,16 +69,16 @@ export async function loadMissionConfig() {
                 return null;
             }
 
-            let rawConfig = await response.json();
+            const baseConfig = await response.json();
             const configProfile = getMissionConfigProfileName();
+            let profilePatch;
             if (configProfile) {
                 const profileUrl = getMissionConfigProfileUrl(getMissionDataPath(), configProfile);
                 if (profileUrl) {
                     try {
                         const profileResponse = await fetch(profileUrl, { cache: "no-store" });
                         if (profileResponse.ok) {
-                            const profilePatch = await profileResponse.json();
-                            rawConfig = deepMergeObjects(rawConfig, profilePatch);
+                            profilePatch = await profileResponse.json();
                             console.debug(`Applied mission config test profile '${configProfile}'`);
                         } else {
                             console.debug(
@@ -100,30 +92,26 @@ export async function loadMissionConfig() {
             }
 
             const manifestUrl = getMissionManifestUrl();
+            let manifestData;
             if (manifestUrl) {
                 try {
                     const manifestResponse = await fetch(manifestUrl, { cache: "no-store" });
                     if (manifestResponse.ok) {
-                        rawConfig.ephemeris_manifest = await manifestResponse.json();
+                        manifestData = await manifestResponse.json();
                     }
                 } catch (manifestError) {
                     console.debug("Could not load ephemeris-manifest.json:", manifestError);
                 }
             }
 
-            const parsedConfig = parseMissionConfig(rawConfig);
-            const diagnostics = validateMissionConfig(parsedConfig);
-            if (diagnostics.errors.length > 0) {
-                throw new Error(formatMissionConfigDiagnostics(diagnostics));
+            const { config, warnings } = assembleMissionConfig({
+                baseConfig,
+                profilePatch,
+                manifestData,
+            });
+            for (let i = 0; i < warnings.length; i += 1) {
+                console.warn(warnings[i]);
             }
-
-            if (diagnostics.warnings.length > 0) {
-                for (let i = 0; i < diagnostics.warnings.length; i++) {
-                    console.warn(diagnostics.warnings[i]);
-                }
-            }
-
-            const config = normalizeMissionConfig(parsedConfig);
             console.debug("Config loaded successfully:", config);
             return config;
         } catch (error) {
