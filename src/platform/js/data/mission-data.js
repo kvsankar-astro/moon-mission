@@ -1,5 +1,6 @@
 import { loadChebyshevData } from "../chebyshev.js";
 import { loadNpzEphemeris } from "./npz-ephemeris.js";
+import { createCachedResourceLoader } from "./cached-resource-loader.js";
 import { getMissionConfigProfileUrl } from "../core/domain/mission-data-resolvers.js";
 import { assembleMissionConfig } from "../core/domain/mission-config-assembly.js";
 import {
@@ -17,13 +18,6 @@ import {
 let missionConfigLoaded = false;
 let missionConfigValue = null;
 let missionConfigPromise = null;
-
-const jsonValueCache = new Map(); // url -> data
-const jsonPromiseCache = new Map(); // url -> Promise<data>
-const chebyshevValueCache = new Map(); // url -> data
-const chebyshevPromiseCache = new Map(); // url -> Promise<data>
-const npzValueCache = new Map(); // url -> body series map
-const npzPromiseCache = new Map(); // url -> Promise<data>
 
 export function getMissionDataPath() {
     const dataPath = window?.missionConfig?.dataPath;
@@ -198,82 +192,26 @@ export function resolveLandingNpzUrl(configData, cfgKey = null) {
     });
 }
 
-export async function loadChebyshev(url) {
-    if (!url) throw new Error("loadChebyshev(url) requires a URL");
+const loadChebyshev = createCachedResourceLoader({
+    label: "loadChebyshev",
+    load: (url) => loadChebyshevData(url),
+});
 
-    const cachedValue = chebyshevValueCache.get(url);
-    if (cachedValue) return cachedValue;
+const loadJson = createCachedResourceLoader({
+    label: "loadJson",
+    load: async (url) => {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`Failed to load JSON from ${url}: ${response.status}`);
+        }
+        return response.json();
+    },
+});
 
-    const cachedPromise = chebyshevPromiseCache.get(url);
-    if (cachedPromise) return cachedPromise;
-
-    const promise = loadChebyshevData(url)
-        .then((data) => {
-            chebyshevValueCache.set(url, data);
-            chebyshevPromiseCache.delete(url);
-            return data;
-        })
-        .catch((error) => {
-            chebyshevPromiseCache.delete(url);
-            throw error;
-        });
-
-    chebyshevPromiseCache.set(url, promise);
-    return promise;
-}
-
-export async function loadJson(url) {
-    if (!url) throw new Error("loadJson(url) requires a URL");
-
-    const cachedValue = jsonValueCache.get(url);
-    if (cachedValue) return cachedValue;
-
-    const cachedPromise = jsonPromiseCache.get(url);
-    if (cachedPromise) return cachedPromise;
-
-    const promise = fetch(url, { cache: "no-store" })
-        .then(async (response) => {
-            if (!response.ok) {
-                throw new Error(`Failed to load JSON from ${url}: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then((data) => {
-            jsonValueCache.set(url, data);
-            jsonPromiseCache.delete(url);
-            return data;
-        })
-        .catch((error) => {
-            jsonPromiseCache.delete(url);
-            throw error;
-        });
-
-    jsonPromiseCache.set(url, promise);
-    return promise;
-}
-
-export async function loadNpz(url) {
-    if (!url) throw new Error("loadNpz(url) requires a URL");
-
-    const cachedValue = npzValueCache.get(url);
-    if (cachedValue) return cachedValue;
-
-    const cachedPromise = npzPromiseCache.get(url);
-    if (cachedPromise) return cachedPromise;
-
-    const promise = loadNpzEphemeris(url)
-        .then((data) => {
-            npzValueCache.set(url, data);
-            npzPromiseCache.delete(url);
-            return data;
-        })
-        .catch((error) => {
-            npzPromiseCache.delete(url);
-            throw error;
-        });
-
-    npzPromiseCache.set(url, promise);
-    return promise;
-}
+const loadNpz = createCachedResourceLoader({
+    label: "loadNpz",
+    load: (url) => loadNpzEphemeris(url),
+});
 
 export { getEphemerisSource } from "../core/domain/mission-data-resolvers.js";
+export { loadChebyshev, loadJson, loadNpz };
