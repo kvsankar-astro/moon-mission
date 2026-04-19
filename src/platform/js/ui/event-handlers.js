@@ -9,6 +9,7 @@ import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
 import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
+import { createPlanePillController } from "./plane-pill-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
 import { createSharedControlBackend } from "./shared-control-backend.js";
 import { resolveMoonRenderAssetProfile } from "../app/moon-render-asset-profiles.js";
@@ -474,8 +475,10 @@ export function bindMainControls(handlers) {
         toggleLanding,
     });
     const cameraPillController = createCameraPillController({ controlBackend });
+    const planePillController = createPlanePillController({ controlBackend });
     bindHeaderBlurbBehavior();
     cameraPillController.bind();
+    planePillController.bind();
     getHeaderPillStripController().bind();
     bindDesktopChromeAutohideBehavior();
     const bodyHaloToggle = typeof document !== "undefined"
@@ -528,16 +531,6 @@ export function bindMainControls(handlers) {
         ["origin-pill-moon", "origin-moon", "lunar"],
         ["origin-pill-relative", "origin-relative", "relative"],
     ];
-    const planePillPairs = [
-        ["plane-pill-default", "checkbox-lock-default", "DEFAULT"],
-        ["plane-pill-xy", "checkbox-lock-xy", "XY"],
-        ["plane-pill-yz", "checkbox-lock-yz", "YZ"],
-        ["plane-pill-zx", "checkbox-lock-zx", "ZX"],
-        ["plane-pill-xy-minus", "checkbox-lock-xy-minus", "XY-"],
-        ["plane-pill-yz-minus", "checkbox-lock-yz-minus", "YZ-"],
-        ["plane-pill-zx-minus", "checkbox-lock-zx-minus", "ZX-"],
-    ];
-    let planePresetReleasedByNavigation = false;
     const dimensionPillPairs = [
         ["dimension-pill-2d", "dimension-2D", "2D"],
         ["dimension-pill-3d", "dimension-3D", "3D"],
@@ -565,16 +558,6 @@ export function bindMainControls(handlers) {
     const syncLocatorsPillState = () => {
         if (!locatorsPill || !bodyHaloToggle) return;
         locatorsPill.setAttribute("aria-pressed", bodyHaloToggle.checked ? "true" : "false");
-    };
-    const syncPlanePillState = () => {
-        planePillPairs.forEach(([pillId, inputId]) => {
-            const pill = document.getElementById(pillId);
-            const input = document.getElementById(inputId);
-            if (!pill || !input) return;
-            const isActive = !planePresetReleasedByNavigation && input.checked === true;
-            pill.classList.toggle("is-active", isActive);
-            pill.setAttribute("aria-pressed", isActive ? "true" : "false");
-        });
     };
     const syncOriginPillState = () => {
         originPillPairs.forEach(([pillId, inputId]) => {
@@ -675,59 +658,6 @@ export function bindMainControls(handlers) {
         );
         syncFlybyPillState(composerPanelVisible);
         syncSplashdownFocusPillState(groundTrackPanelVisible);
-    };
-    const releasePlanePresetFromManualNavigation = () => {
-        const activePlaneInput = planePillPairs
-            .map(([, inputId]) => document.getElementById(inputId))
-            .find((input) => input?.checked);
-        if (!activePlaneInput) return;
-        if (activePlaneInput.id === "checkbox-lock-default") return;
-        planePresetReleasedByNavigation = true;
-        syncPlanePillState();
-    };
-    const bindPlanePresetReleaseOnSceneDrag = () => {
-        const canvasWrapper = document.getElementById("canvas-wrapper");
-        if (!canvasWrapper) return;
-
-        let activePointerId = null;
-        let dragStartX = 0;
-        let dragStartY = 0;
-        let dragReleased = false;
-        const DRAG_RELEASE_THRESHOLD_PX = 4;
-        const DRAG_RELEASE_THRESHOLD_SQUARED = DRAG_RELEASE_THRESHOLD_PX * DRAG_RELEASE_THRESHOLD_PX;
-
-        const resetDragState = (pointerId = null) => {
-            if (pointerId !== null && activePointerId !== pointerId) return;
-            activePointerId = null;
-            dragStartX = 0;
-            dragStartY = 0;
-            dragReleased = false;
-        };
-
-        canvasWrapper.addEventListener("pointerdown", function (event) {
-            if (event.isPrimary === false) return;
-            activePointerId = event.pointerId;
-            dragStartX = Number.isFinite(event.clientX) ? event.clientX : 0;
-            dragStartY = Number.isFinite(event.clientY) ? event.clientY : 0;
-            dragReleased = false;
-        }, true);
-
-        window.addEventListener("pointermove", function (event) {
-            if (activePointerId === null || event.pointerId !== activePointerId || dragReleased) return;
-            const deltaX = (Number.isFinite(event.clientX) ? event.clientX : 0) - dragStartX;
-            const deltaY = (Number.isFinite(event.clientY) ? event.clientY : 0) - dragStartY;
-            if ((deltaX * deltaX) + (deltaY * deltaY) < DRAG_RELEASE_THRESHOLD_SQUARED) return;
-            dragReleased = true;
-            releasePlanePresetFromManualNavigation();
-        }, { passive: true });
-
-        window.addEventListener("pointerup", function (event) {
-            resetDragState(event.pointerId);
-        }, { passive: true });
-
-        window.addEventListener("pointercancel", function (event) {
-            resetDragState(event.pointerId);
-        }, { passive: true });
     };
     const syncTogglePillState = () => {
         togglePillPairs.forEach(([pillId, inputId]) => {
@@ -882,11 +812,6 @@ export function bindMainControls(handlers) {
         syncOrbitLabels();
         syncTogglePillVisibility();
     };
-    const commitPlaneSelection = (planeSelection) => {
-        planePresetReleasedByNavigation = false;
-        controlBackend.commitPlaneSelection(planeSelection);
-        syncPlanePillState();
-    };
     const commitDimensionSelection = (dimension) => {
         controlBackend.commitDimensionSelection(dimension);
         syncDimensionPillState();
@@ -917,12 +842,6 @@ export function bindMainControls(handlers) {
     });
     onInput("desktop-main-fov-slider", changeDesktopMainFov);
     onClick("desktop-main-fov-auto", toggleDesktopMainFovAuto);
-
-    planePillPairs.forEach(([, inputId, planeSelection]) => {
-        onClick(inputId, function () {
-            commitPlaneSelection(planeSelection);
-        });
-    });
 
     togglePillPairs.forEach(([, inputId, settingKey]) => {
         onClick(inputId, function (event) {
@@ -1075,24 +994,6 @@ export function bindMainControls(handlers) {
         });
     }
     bindLandingPillVisibilityObserver();
-    planePillPairs.forEach(([pillId, inputId, planeSelection]) => {
-        const pill = document.getElementById(pillId);
-        const input = document.getElementById(inputId);
-        if (pill && input) {
-            pill.addEventListener("click", function () {
-                commitPlaneSelection(planeSelection);
-            });
-            input.addEventListener("change", function () {
-                planePresetReleasedByNavigation = false;
-                syncPlanePillState();
-            });
-        }
-    });
-    ["panleft", "panright", "panup", "pandown"].forEach((id) => {
-        const button = document.getElementById(id);
-        button?.addEventListener("click", releasePlanePresetFromManualNavigation);
-    });
-    bindPlanePresetReleaseOnSceneDrag();
     syncFocusPillVisibility();
     syncFocusPillState();
     syncOriginPillState();
@@ -1103,7 +1004,6 @@ export function bindMainControls(handlers) {
     syncLandingPillState();
     syncDimensionPillState();
     syncMoonRenderProfilePillState();
-    syncPlanePillState();
     getHeaderPillStripController().syncUi();
     const burnButtonsHost = document.getElementById("burnbuttons");
     if (burnButtonsHost && typeof MutationObserver !== "undefined") {
