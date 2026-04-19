@@ -115,11 +115,11 @@ The current mission boot flow is:
 
 | Layer | Current anchors | Notes |
 |---|---|---|
-| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is much closer to a composition root than a controller hub, and `ui/event-handlers.js` is now a thin composition/binding seam that delegates camera, plane, focus, shared view pills, header, shortcut, settings, and most mobile behavior into dedicated controllers |
-| Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, playback and scene assembly moved out of `mission.js`, and runtime root glue is isolated, but `mission-state-store.js` and some runtime buckets still carry broad composition responsibility |
-| Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js` | Strongest functional-core foundation in the repo and the area with the clearest recent refactor wins |
-| State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` is still transitional because of legacy fallbacks |
-| Data and integration | `data/mission-data.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset/config resolution and fetch/cache/provider work is much better than before, but `mission-data.js` still mixes runtime loading concerns |
+| Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` | Browser bootstrap still starts here, but `mission.js` is much closer to a composition root than a controller hub, and `ui/event-handlers.js` now mostly binds together dedicated controllers for camera, plane, focus, shared view pills, header, shortcut, settings, control-panel/timeline, and mobile behavior |
+| Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-runtime-root-context.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js` | Clearer dependency builders now exist, playback and scene assembly moved out of `mission.js`, runtime root glue is isolated, and handler/wireup entry-context shaping has its own seam; the remaining broad composition pressure is mostly in compatibility/state access |
+| Domain and planning core | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js` | Strongest functional-core foundation in the repo and the area with the clearest recent refactor wins, now including scene-view transform resolution and control-panel/timeline presentation rules |
+| State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` | Small stores are good; `scene-view-state.js` now reads scene state first through core helpers, but mirrored legacy writes still make it a transitional compatibility bridge |
+| Data and integration | `data/mission-data.js`, `data/cached-resource-loader.js`, `data/ephemeris-provider.js`, `chebyshev.js` | Boundary between pure asset/config resolution and fetch/cache/provider work is much better than before, and generic cache mechanics now have their own seam, but `mission-data.js` still combines mission-specific loader entrypoints with runtime loading concerns |
 | Render and UI effects | `shell/render/frame-renderer.js`, `shell/ui/frame-ui-updater.js`, `shell/ui/mission-ui-effects.js`, `shell/time/clock-effects.js`, `rendering/*`, `controllers/*` | Effect ownership is clearest here and should be preserved |
 
 ## What Is Already Working Well
@@ -135,10 +135,13 @@ preserve and extend.
 - `core/domain/origin-compat.js`
 - `core/domain/ui-transition-plan.js`
 - `core/domain/mission-asset-resolver.js`
+- `core/domain/mission-config-assembly.js`
 - `core/domain/ephemeris-manifest.js`
 - `core/domain/transient-active-event.js`
 - `core/domain/phase-indicator-state.js`
 - `core/domain/earth-craft-moon-angle.js`
+- `core/domain/scene-view-state-core.js`
+- `core/domain/control-panel-timeline-state.js`
 - `core/domain/mobile-view-preset-state.js`
 - `core/domain/mobile-compose-lock-state.js`
 - `core/domain/mobile-compose-timeline-state.js`
@@ -180,6 +183,7 @@ preserve and extend.
 - `ui/plane-pill-controller.js`
 - `ui/view-settings-pill-controller.js`
 - `ui/focus-pill-controller.js`
+- `ui/control-panel-timeline-controller.js`
 - `ui/mobile-transport-sync.js`
 - `ui/mobile-view-preset-sync.js`
 - `ui/mobile-compose-lock-sync.js`
@@ -198,8 +202,13 @@ preserve and extend.
 ### Healthier composition seams
 
 - `app/mission-runtime-root.js`
+- `app/mission-runtime-root-context.js`
 - `app/mission-entry-composition.js`
 - `app/mission-scene-composition.js`
+
+### Focused integration helpers
+
+- `data/cached-resource-loader.js`
 
 ### Strong transitional seam
 
@@ -231,24 +240,23 @@ minimal composition only.
 
 ### `core/state/mission-state-store.js`
 
-This is still the largest state-boundary leak in the runtime. It mixes:
+This is no longer one of the main architecture risks.
 
-- config and view state access
-- scene lookup and mutation
-- ephemeris and data access
-- runtime hook access
-- command bridging
-- view flag patching
-
-It behaves like an everything store instead of a set of explicit ports.
+It is now a thin compatibility wrapper around explicit port builders and a
+legacy flattener. The remaining issue is not the file itself, but that some
+runtime consumers still depend on the flattened compatibility surface exposed
+through `app/mission-state-access.js`.
 
 ### `app/mission-state-access.js`
 
 This is a useful transitional seam because the legacy compatibility map no
 longer lives in `mission.js`.
 
-The remaining leak is that it still exposes a broad state-cell surface because
-runtime consumers still depend on the generic compatibility contract. The
+It is healthier than it used to be: local state-cell assembly lives here now,
+and the older dead shim layer is gone.
+
+The remaining leak is that it still exposes a broad compatibility surface
+because runtime consumers still depend on the generic state-cell contract. The
 target is to keep shrinking this bridge as explicit ports replace generic
 cells.
 
@@ -264,8 +272,14 @@ service surface.
 
 ### `app/scene-view-state.js`
 
-This is the right idea, but it still embeds legacy-global fallback for
-zoom/pan/plane state. That makes the true source of truth ambiguous.
+This is materially better than it was.
+
+Plane and transform reads now flow through `core/domain/scene-view-state-core.js`,
+and zoom/pan reads are scene-first instead of legacy-global-first.
+
+The remaining transitional behavior is that writes still mirror into legacy
+globals and plane compatibility paths still exist for older consumers. The
+true source of truth is much clearer now, but not completely isolated yet.
 
 ### `app/scene-frame-orchestration-actions.js`
 
@@ -332,18 +346,21 @@ broad controller hub.
 This file mixes multiple concerns:
 
 - fetch and cache
+- generic cached resource loading
 - config profile overlay loading
 - manifest loading
 - config normalization and validation
 - runtime asset URL resolution
 
 The pure config profile/source rules now have an explicit home in
-`core/domain/mission-data-resolvers.js`, and asset-path resolution already
-leans on `core/domain/mission-asset-resolver.js`.
+`core/domain/mission-data-resolvers.js`, config assembly now lives in
+`core/domain/mission-config-assembly.js`, generic cache mechanics now live in
+`data/cached-resource-loader.js`, and asset-path resolution already leans on
+`core/domain/mission-asset-resolver.js`.
 
 The remaining work is to keep `mission-data.js` focused on runtime loading and
-cache orchestration instead of letting more data-policy logic drift back into
-it.
+mission-specific entrypoints instead of letting more generic loader concerns or
+data-policy logic drift back into it.
 
 ### `ui/event-handlers.js`
 
@@ -373,8 +390,7 @@ It now delegates most of the shell surface into smaller adapters such as:
 The remaining mixed concerns are now more concentrated:
 
 - a few final top-level button bindings
-- timeline dock and control-panel shell binding that still sits alongside
-  bootstrap-level control wiring
+- some bootstrap-level control wiring around already-extracted controllers
 
 At this point it is acting like the composition file it was supposed to become.
 The remaining work is minor cleanup, not a major breakup campaign.
@@ -404,7 +420,7 @@ more wrapper layers.
 
 ## Progress Snapshot
 
-As of `2026-04-19`, the repo is roughly `92-93%` of the way to the target
+As of `2026-04-19`, the repo is roughly `95-96%` of the way to the target
 architecture.
 
 What has improved materially:
@@ -454,9 +470,23 @@ What has improved materially:
   lives in `ui/view-settings-pill-controller.js`
 - Artemis flyby/splashdown focus affordances now live in
   `ui/focus-pill-controller.js`
+- control-panel height, timeline-dock height, carousel presentation, and
+  upcoming-event selection policy now live in
+  `core/domain/control-panel-timeline-state.js`, with the shell binding in
+  `ui/control-panel-timeline-controller.js`
 - mission config profile/source logic now has a dedicated pure seam in
   `core/domain/mission-data-resolvers.js`, leaving `mission-data.js` more
   clearly responsible for runtime loading and caches
+- mission config profile/manifest assembly now lives in
+  `core/domain/mission-config-assembly.js`
+- generic cached mission-data loaders now share a dedicated helper in
+  `data/cached-resource-loader.js`
+- scene view transform reads now flow through
+  `core/domain/scene-view-state-core.js`, and `app/scene-view-state.js` now
+  reads scene state before falling back to legacy globals
+- runtime handler and wireup entry-context shaping now lives in
+  `app/mission-runtime-root-context.js` instead of being assembled inline in
+  `mission.js`
 - `ui/event-handlers.js` is now acting much more like a composition file that
   binds together smaller shell features instead of directly owning most of
   their state machines
@@ -464,21 +494,21 @@ What has improved materially:
 What still dominates the remaining risk:
 
 - `data/mission-data.js`
-- `app/scene-view-state.js`
-- `app/mission-state-access.js` and the remaining compatibility surface around
-  `core/state/mission-state-store.js`
+- `app/mission-state-access.js` and the remaining broad compatibility surface
 - the final legacy/bootstrap residue in `mission.js`
+- a few remaining composition/binding shims in `ui/event-handlers.js` and
+  `app/runtime-ui-controls.js`
 
 Progress by refactor slice:
 
 | Slice | Status | Notes |
 |---|---|---|
-| 1. split the state facade | in progress | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, and `mission-state-store.js` is now a thinner compatibility wrapper, but the explicit port model is not finished |
+| 1. split the state facade | close to done | narrow runtime stores exist, `mission-state-access.js` now owns compatibility and local cell assembly, and `mission-state-store.js` is now only a thin wrapper; the remaining work is shrinking the compatibility contract itself |
 | 2. separate settings intent from effects | in progress | view planning/application split landed, but settings still fan out through wider runtime wiring |
 | 3. finish the frame pipeline split | close to done | `frame-plan.js`, transient event planning, `scene-frame-plan.js`, and the scene telemetry/phase/event UI split are all in place; the remaining work is mostly final composition cleanup rather than core logic extraction |
-| 4. make scene view state truly scene-scoped | lightly started | structure exists, but legacy fallback still obscures the true source of truth |
-| 5. collapse redundant composition layers | in progress | runtime wiring, root assembly, playback bootstrap, scene composition, and state-access builders are all thinner; the remaining broad surfaces are mostly in state access and a few legacy bootstrap bridges |
-| 6. split data loading from data normalization | in progress | pure config/source helpers now exist and asset resolution is already domain-led, but `mission-data.js` still mixes fetch/cache/runtime overlay work |
+| 4. make scene view state truly scene-scoped | in progress | structure exists, transform reads are now scene-first, and the remaining work is mostly isolating mirrored legacy compatibility paths |
+| 5. collapse redundant composition layers | close to done | runtime wiring, root assembly, playback bootstrap, scene composition, state-access builders, and root-context shaping are all thinner; the remaining broad surfaces are mostly in state access and a few legacy bootstrap bridges |
+| 6. split data loading from data normalization | close to done | pure config/source helpers, config assembly, and generic cached loader mechanics now have explicit seams; the remaining work is deciding how far to separate the generic loader surface from the mission-specific facade |
 | 7. break up large shell modules | close to done | `mission.js` is shrinking meaningfully, the scene/UI shell is decomposed, and `ui/event-handlers.js` now behaves like a composition seam rather than a controller hub |
 
 ## Target Architecture
@@ -783,48 +813,46 @@ Expected result:
 
 ## Immediate Next Batches
 
-The remaining batches should stay focused on the few seams that still collapse
-concerns back together.
+The remaining batches are mostly polish work around transitional compatibility
+surfaces, not major structural rescues.
 
-### Batch A: keep pushing the state facade toward explicit ports
+### Batch A: keep shrinking the compatibility surface
 
 Primary target:
 
-- `core/state/mission-state-store.js`
 - `app/mission-state-access.js`
+- `mission.js`
 
 Goal:
 
-- turn the remaining broad compatibility facade into thinner explicit ports
-- keep shrinking the generic state-access bridge now that the composition layer
-  is cleaner
+- keep replacing broad state-cell consumers with narrower ports
+- keep `mission.js` at legacy bootstrap and top-level composition only
 
-### Batch B: split mission data integration from pure data rules
+### Batch B: decide whether to finish the final mission-data split
 
 Primary target:
 
 - `data/mission-data.js`
-- `app/scene-view-state.js`
+- `data/cached-resource-loader.js`
 
 Goal:
 
-- separate fetch/cache/runtime overlay loading from pure config, manifest, and
-  asset resolution
-- keep moving scene-scoped view state away from legacy fallback and toward a
-  true source of truth
+- keep `mission-data.js` as the mission-specific facade
+- leave generic cached loader behavior in dedicated helpers
+- avoid reintroducing data-policy logic into the integration layer
 
-### Batch C: final bootstrap cleanup
+### Batch C: optional final shell cleanup
 
 Primary target:
 
-- `mission.js`
+- `ui/event-handlers.js`
 - `app/runtime-ui-controls.js`
 
 Goal:
 
-- keep `mission.js` at page-bootstrap and top-level composition only
-- avoid rebuilding broad grouped control surfaces where narrower adapters now
-  exist
+- decide whether the remaining composition/binding helpers are worth extracting
+- avoid rebuilding broad grouped control surfaces where narrower adapters
+  already exist
 
 ## Guardrails
 
