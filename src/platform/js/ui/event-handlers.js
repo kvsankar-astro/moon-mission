@@ -5,6 +5,7 @@ import {
 } from "./orbit-control-labels.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
+import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
 import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
@@ -52,11 +53,7 @@ let timelineCarouselDragBound = false;
 let timelineDockResizeObserver = null;
 let timelineDockMutationObserver = null;
 let timelineCarouselWiggleTimeoutId = null;
-let headerPillStripManualCollapsed = false;
-let headerPillStripAutoCollapsed = false;
-let headerPillStripLastAutoRevealAt = 0;
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
-const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
 const MEANINGFUL_ACTIVITY_KEYS = new Set([
     " ",
     "ArrowLeft",
@@ -121,6 +118,7 @@ let settingsPanelController = null;
 let keyboardShortcutsController = null;
 let desktopChromeAutohideController = null;
 let headerBlurbController = null;
+let headerPillStripController = null;
 
 function getSettingsPanelController() {
     if (!settingsPanelController) {
@@ -157,7 +155,8 @@ function getDesktopChromeAutohideController() {
             meaningfulActivityKeys: MEANINGFUL_ACTIVITY_KEYS,
             requestAnimationFrameImpl: requestAnimationFrame,
             setControlPanelCollapsedState,
-            setHeaderPillStripAutoCollapsedState,
+            setHeaderPillStripAutoCollapsedState: (collapsed) =>
+                getHeaderPillStripController().setAutoCollapsedState(collapsed),
         });
     }
     return desktopChromeAutohideController;
@@ -174,62 +173,17 @@ function getHeaderBlurbController() {
     return headerBlurbController;
 }
 
+function getHeaderPillStripController() {
+    if (!headerPillStripController) {
+        headerPillStripController = createHeaderPillStripController({
+            requestAnimationFrameImpl: requestAnimationFrame,
+        });
+    }
+    return headerPillStripController;
+}
+
 function isSettingsPanelOpen() {
     return getSettingsPanelController().isSettingsPanelOpen();
-}
-
-function resetHeaderPillStripScrollPosition() {
-    const primaryRow = document.getElementById("header-pill-strip-primary");
-    const secondaryRow = document.getElementById("header-pill-strip-secondary");
-    const tertiaryRow = document.getElementById("header-pill-strip-tertiary");
-    if (primaryRow) primaryRow.scrollLeft = 0;
-    if (secondaryRow) secondaryRow.scrollLeft = 0;
-    if (tertiaryRow) tertiaryRow.scrollLeft = 0;
-}
-
-function isHeaderPillStripEffectivelyCollapsed() {
-    return headerPillStripManualCollapsed || headerPillStripAutoCollapsed;
-}
-
-function syncHeaderPillStripCollapseUi() {
-    const strip = document.getElementById("header-pill-strip");
-    const toggle = document.getElementById("header-pill-strip-toggle");
-    if (!strip || !toggle) return;
-    const collapsed = isHeaderPillStripEffectivelyCollapsed();
-    strip.classList.toggle("header-pill-strip--collapsed", collapsed);
-    toggle.textContent = collapsed ? "›" : "‹";
-    toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    toggle.setAttribute(
-        "aria-label",
-        collapsed ? "Expand mission controls" : "Collapse mission controls",
-    );
-    toggle.setAttribute(
-        "title",
-        collapsed ? "Expand mission controls" : "Collapse mission controls",
-    );
-    if (!collapsed) {
-        resetHeaderPillStripScrollPosition();
-    }
-}
-
-function setHeaderPillStripManualCollapsedState(collapsed) {
-    const nextCollapsed = !!collapsed;
-    if (headerPillStripManualCollapsed === nextCollapsed) return;
-    headerPillStripManualCollapsed = nextCollapsed;
-    syncHeaderPillStripCollapseUi();
-}
-
-function setHeaderPillStripAutoCollapsedState(collapsed) {
-    const nextCollapsed = !!collapsed;
-    if (headerPillStripAutoCollapsed === nextCollapsed) return;
-    if (headerPillStripAutoCollapsed && !nextCollapsed) {
-        headerPillStripLastAutoRevealAt = Date.now();
-    }
-    if (nextCollapsed) {
-        headerPillStripLastAutoRevealAt = 0;
-    }
-    headerPillStripAutoCollapsed = nextCollapsed;
-    syncHeaderPillStripCollapseUi();
 }
 
 function bindHeaderBlurbBehavior() {
@@ -525,6 +479,7 @@ export function bindMainControls(handlers) {
         toggleLanding,
     });
     bindHeaderBlurbBehavior();
+    getHeaderPillStripController().bind();
     bindDesktopChromeAutohideBehavior();
     const bodyHaloToggle = typeof document !== "undefined"
         ? document.getElementById("view-body-halos")
@@ -1235,17 +1190,6 @@ export function bindMainControls(handlers) {
         });
     }
     bindLandingPillVisibilityObserver();
-    onClick("header-pill-strip-toggle", function () {
-        const recentlyAutoRevealed = headerPillStripLastAutoRevealAt > 0 &&
-            (Date.now() - headerPillStripLastAutoRevealAt) <= HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS;
-        if (headerPillStripAutoCollapsed || recentlyAutoRevealed) {
-            headerPillStripLastAutoRevealAt = 0;
-            setHeaderPillStripManualCollapsedState(false);
-            setHeaderPillStripAutoCollapsedState(false);
-            return;
-        }
-        setHeaderPillStripManualCollapsedState(!isHeaderPillStripEffectivelyCollapsed());
-    });
     planePillPairs.forEach(([pillId, inputId, planeSelection]) => {
         const pill = document.getElementById(pillId);
         const input = document.getElementById(inputId);
@@ -1277,9 +1221,7 @@ export function bindMainControls(handlers) {
     syncDimensionPillState();
     syncMoonRenderProfilePillState();
     syncPlanePillState();
-    syncHeaderPillStripCollapseUi();
-    requestAnimationFrame(resetHeaderPillStripScrollPosition);
-    window.addEventListener("resize", resetHeaderPillStripScrollPosition);
+    getHeaderPillStripController().syncUi();
     const burnButtonsHost = document.getElementById("burnbuttons");
     if (burnButtonsHost && typeof MutationObserver !== "undefined") {
         const focusPillObserver = new MutationObserver(() => {
