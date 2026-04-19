@@ -4,6 +4,7 @@ import {
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
+import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { bindMobileMissionCardSync } from "./mobile-mission-card-sync.js";
 import { createKeyboardShortcutsController } from "./keyboard-shortcuts-controller.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
@@ -45,7 +46,6 @@ function getMissionDialogApi() {
     return window.MissionDialog || window.CY3Dialog || null;
 }
 
-let headerBlurbBehaviorBound = false;
 let controlPanelResizeBound = false;
 let timelineDockHeightSyncBound = false;
 let timelineCarouselDragBound = false;
@@ -56,27 +56,7 @@ let headerPillStripManualCollapsed = false;
 let headerPillStripAutoCollapsed = false;
 let headerPillStripLastAutoRevealAt = 0;
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
-const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
 const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
-const MISSION_INTERACTIVE_REGION_SELECTOR = [
-    "#header-pill-strip",
-    "#settings-panel-button",
-    "#advanced-controls-pill",
-    "#settings-panel",
-    "#control-panel",
-    "#zoom-panel",
-    "#timeline-dock",
-    "#canvas-wrapper",
-    "#svg-wrapper",
-    ".aux-camera-view",
-    "#ground-track-panel",
-    "#mobile-shell-nav",
-    ".mobile-shell__card",
-    "#mobile-views-collapse",
-    "#info-panel",
-    "#shortcut-panel",
-    ".panel-manager-menu",
-].join(", ");
 const MEANINGFUL_ACTIVITY_KEYS = new Set([
     " ",
     "ArrowLeft",
@@ -140,6 +120,7 @@ function isElementLayoutVisible(element) {
 let settingsPanelController = null;
 let keyboardShortcutsController = null;
 let desktopChromeAutohideController = null;
+let headerBlurbController = null;
 
 function getSettingsPanelController() {
     if (!settingsPanelController) {
@@ -180,6 +161,17 @@ function getDesktopChromeAutohideController() {
         });
     }
     return desktopChromeAutohideController;
+}
+
+function getHeaderBlurbController() {
+    if (!headerBlurbController) {
+        headerBlurbController = createHeaderBlurbController({
+            isInteractiveInputTarget,
+            isMobileViewport,
+            meaningfulActivityKeys: MEANINGFUL_ACTIVITY_KEYS,
+        });
+    }
+    return headerBlurbController;
 }
 
 function isSettingsPanelOpen() {
@@ -241,137 +233,7 @@ function setHeaderPillStripAutoCollapsedState(collapsed) {
 }
 
 function bindHeaderBlurbBehavior() {
-    if (headerBlurbBehaviorBound) return;
-    headerBlurbBehaviorBound = true;
-
-    const blurb = document.getElementById("blurb");
-    const toggle = document.getElementById("blurb-toggle");
-    if (!blurb || !toggle) return;
-
-    let compact = blurb.classList.contains("blurb--compact");
-    let manualPreference = false;
-    let autoCollapseTimerId = null;
-    let autoCollapseEnabled = true;
-
-    const syncUi = () => {
-        blurb.classList.toggle("blurb--compact", compact);
-        toggle.textContent = compact ? "About" : "Hide";
-        toggle.setAttribute("aria-expanded", compact ? "false" : "true");
-        toggle.setAttribute(
-            "aria-label",
-            compact ? "Show mission summary" : "Hide mission summary",
-        );
-        toggle.title = compact ? "Show mission summary" : "Hide mission summary";
-    };
-
-    const clearAutoCollapseTimer = () => {
-        if (autoCollapseTimerId === null) return;
-        window.clearTimeout(autoCollapseTimerId);
-        autoCollapseTimerId = null;
-    };
-
-    const canAutoCollapse = () => autoCollapseEnabled && !manualPreference && !compact && !isMobileViewport();
-
-    const setCompact = (nextCompact, { manual = false } = {}) => {
-        compact = !!nextCompact;
-        if (manual) {
-            manualPreference = true;
-        }
-        syncUi();
-        if (canAutoCollapse()) {
-            clearAutoCollapseTimer();
-            autoCollapseTimerId = window.setTimeout(() => {
-                if (!canAutoCollapse()) return;
-                compact = true;
-                syncUi();
-                clearAutoCollapseTimer();
-            }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
-            return;
-        }
-        clearAutoCollapseTimer();
-    };
-
-    const applyAutoCollapsePreference = (enabled) => {
-        autoCollapseEnabled = enabled !== false;
-        if (!manualPreference && !autoCollapseEnabled) {
-            setCompact(false);
-            return;
-        }
-        setCompact(compact);
-    };
-
-    const isMeaningfulInteractionTarget = (target) => {
-        if (!(target instanceof Element)) return false;
-        if (target.closest("#blurb")) return false;
-        if (target.closest(MISSION_INTERACTIVE_REGION_SELECTOR)) return true;
-        return !!target.closest(
-            'button, a, input, select, textarea, summary, label, [role="button"], [role="tab"], [role="slider"]',
-        );
-    };
-
-    const collapseFromInteraction = (target) => {
-        if (!canAutoCollapse()) return;
-        if (!isMeaningfulInteractionTarget(target)) return;
-        compact = true;
-        syncUi();
-        clearAutoCollapseTimer();
-    };
-
-    toggle.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setCompact(!compact, { manual: true });
-    });
-
-    document.addEventListener("pointerdown", (event) => {
-        collapseFromInteraction(event.target);
-    }, true);
-
-    document.addEventListener("input", (event) => {
-        collapseFromInteraction(event.target);
-    }, true);
-
-    document.addEventListener("wheel", (event) => {
-        collapseFromInteraction(event.target);
-    }, { passive: true, capture: true });
-
-    document.addEventListener("keydown", (event) => {
-        if (!canAutoCollapse()) return;
-        if (isInteractiveInputTarget(event.target)) return;
-        if (!MEANINGFUL_ACTIVITY_KEYS.has(event.key)) return;
-        collapseFromInteraction(document.getElementById("control-panel") || document.body);
-    }, true);
-
-    window.addEventListener("resize", () => {
-        syncUi();
-        if (canAutoCollapse()) {
-            clearAutoCollapseTimer();
-            autoCollapseTimerId = window.setTimeout(() => {
-                if (!canAutoCollapse()) return;
-                compact = true;
-                syncUi();
-                clearAutoCollapseTimer();
-            }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
-            return;
-        }
-        clearAutoCollapseTimer();
-    }, { passive: true });
-
-    document.addEventListener("mission-ui-config-updated", (event) => {
-        const configEvent = /** @type {CustomEvent | null} */ (event);
-        const enabled = configEvent?.detail?.ui?.headerBlurbAutoCollapseEnabled;
-        applyAutoCollapsePreference(enabled);
-    });
-
-    syncUi();
-    if (canAutoCollapse()) {
-        autoCollapseTimerId = window.setTimeout(() => {
-            if (!canAutoCollapse()) return;
-            compact = true;
-            syncUi();
-            clearAutoCollapseTimer();
-        }, HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS);
-    }
+    getHeaderBlurbController().bind();
 }
 
 function bindDesktopChromeAutohideBehavior() {
