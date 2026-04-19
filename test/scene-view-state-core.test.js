@@ -6,6 +6,7 @@ import {
     resolveEffectivePlaneSelection,
     resolvePlaneSelectionState,
     resolvePlaneVariablesState,
+    resolveViewTransformState,
 } from "../src/platform/js/core/domain/scene-view-state-core.js";
 
 const defaultViewState = {
@@ -153,5 +154,28 @@ describe("scene-view-state-core", () => {
             globalConfig: {},
             normalizePlaneSelection,
         })).toBe("XY");
+    });
+
+    it("resolves view transform values from scene state, then legacy fallback, then defaults", () => {
+        expect(resolveViewTransformState({
+            scene: { zoomFactor: 12 },
+            key: "zoomFactor",
+            defaultViewState,
+            legacyValue: 7,
+        })).toBe(12);
+
+        expect(resolveViewTransformState({
+            scene: null,
+            key: "panx",
+            defaultViewState,
+            legacyValue: 9,
+        })).toBe(9);
+
+        expect(resolveViewTransformState({
+            scene: null,
+            key: "pany",
+            defaultViewState,
+            legacyValue: Number.NaN,
+        })).toBe(6);
     });
 });

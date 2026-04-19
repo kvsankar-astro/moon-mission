@@ -3,6 +3,7 @@ import {
     resolveEffectivePlaneSelection,
     resolvePlaneSelectionState,
     resolvePlaneVariablesState,
+    resolveViewTransformState,
 } from "../core/domain/scene-view-state-core.js";
 
 function createSceneViewStateActions(deps) {
@@ -82,8 +83,12 @@ function createSceneViewStateActions(deps) {
     }
 
     function getZoomFactorState(cfg = getConfig()) {
-        // Keep legacy global zoom semantics to avoid visual drift across suites.
-        return getLegacyZoomFactor();
+        return resolveViewTransformState({
+            scene: getActiveSceneViewState(cfg),
+            key: "zoomFactor",
+            defaultViewState,
+            legacyValue: getLegacyZoomFactor(),
+        });
     }
 
     function setZoomFactorState(value, cfg = getConfig()) {
@@ -93,8 +98,12 @@ function createSceneViewStateActions(deps) {
     }
 
     function getPanXState(cfg = getConfig()) {
-        // Keep legacy global pan semantics to avoid visual drift across suites.
-        return getLegacyPanX();
+        return resolveViewTransformState({
+            scene: getActiveSceneViewState(cfg),
+            key: "panx",
+            defaultViewState,
+            legacyValue: getLegacyPanX(),
+        });
     }
 
     function setPanXState(value, cfg = getConfig()) {
@@ -104,8 +113,12 @@ function createSceneViewStateActions(deps) {
     }
 
     function getPanYState(cfg = getConfig()) {
-        // Keep legacy global pan semantics to avoid visual drift across suites.
-        return getLegacyPanY();
+        return resolveViewTransformState({
+            scene: getActiveSceneViewState(cfg),
+            key: "pany",
+            defaultViewState,
+            legacyValue: getLegacyPanY(),
+        });
     }
 
     function setPanYState(value, cfg = getConfig()) {

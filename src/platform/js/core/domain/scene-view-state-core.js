@@ -78,6 +78,21 @@ function resolvePlaneVariablesState({
     return buildDefaultPlaneVariables(defaultViewState);
 }
 
+function resolveViewTransformState({
+    scene,
+    key,
+    defaultViewState,
+    legacyValue = null,
+}) {
+    if (scene && Number.isFinite(scene[key])) {
+        return scene[key];
+    }
+    if (Number.isFinite(legacyValue)) {
+        return legacyValue;
+    }
+    return defaultViewState[key];
+}
+
 function resolveEffectivePlaneSelection({
     selection,
     isRelativeMode = false,
@@ -98,4 +113,5 @@ export {
     resolveEffectivePlaneSelection,
     resolvePlaneSelectionState,
     resolvePlaneVariablesState,
+    resolveViewTransformState,
 };
