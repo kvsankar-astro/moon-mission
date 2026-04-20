@@ -1,0 +1,219 @@
+name: Deploy to Hetzner VPS
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
+  MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Checkout mission data repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
+
+      - name: Stage mission data for tests
+        run: |
+          python scripts/stage-ephemeris-data.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --target-root .
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+  build-and-deploy:
+    name: Build and Deploy to Hetzner
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Checkout mission data repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.MISSION_DATA_REPO }}
+          ref: ${{ env.MISSION_DATA_REF }}
+          path: mission-data
+
+      - name: Regenerate data runtime asset manifest for current revisions
+        run: |
+          python scripts/generate-runtime-asset-manifest.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --output provenance/runtime-asset-manifest.json
+
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p dist-pages
+          # Copy HTML files
+          cp index.html mission.html orbit-data.html assets-status.html dist-pages/
+          if [ -d artemis2 ]; then
+            cp -r artemis2 dist-pages/
+          fi
+          if [ -f .htaccess ]; then
+            cp .htaccess dist-pages/
+          fi
+          # Copy mission assets/config and shared platform source
+          cp -r assets dist-pages/
+          cp -r src dist-pages/
+          APP_ASSET_REV="${GITHUB_SHA::12}"
+          mv dist-pages/src "dist-pages/src-${APP_ASSET_REV}"
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          app_rev = os.environ["GITHUB_SHA"][:12]
+          html_files = [
+              Path("dist-pages/index.html"),
+              Path("dist-pages/mission.html"),
+              Path("dist-pages/orbit-data.html"),
+              Path("dist-pages/assets-status.html"),
+              Path("dist-pages/artemis2/index.html"),
+          ]
+          for html_path in html_files:
+              if not html_path.exists():
+                  continue
+              text = html_path.read_text(encoding="utf-8")
+              text = text.replace("src/platform/", f"src-{app_rev}/platform/")
+              html_path.write_text(text, encoding="utf-8")
+              print(f"Rewrote {html_path.name} src path to src-{app_rev}/platform/")
+          PY
+
+      - name: Stage mission runtime data assets
+        run: |
+          python scripts/stage-ephemeris-data.py \
+            --app-root . \
+            --data-root ./mission-data \
+            --target-root ./dist-pages
+          if [ -d images ]; then
+            cp -r images dist-pages/
+          fi
+          if [ -d third-party ]; then
+            cp -r third-party dist-pages/
+          fi
+          if [ -d images/social ]; then
+            mkdir -p dist-pages/images/social
+            cp -r images/social/. dist-pages/images/social/
+          fi
+
+      - name: Write deployment version and manifest metadata
+        run: |
+          mkdir -p dist-pages/deployment
+          cp mission-data/provenance/runtime-asset-manifest.json dist-pages/deployment/runtime-asset-manifest.json
+          python scripts/write-deployment-metadata.py \
+            --output-root ./dist-pages \
+            --app-root . \
+            --data-root ./mission-data \
+            --site-url "https://sankara.net/astro/lunar-missions/"
+
+      - name: Verify staged runtime assets against manifest (existence + SHA)
+        run: |
+          python scripts/verify-staged-runtime-assets.py \
+            --staged-root ./dist-pages \
+            --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
+
+      - name: Verify build artifacts
+        run: |
+          echo "Build completed. Checking artifacts..."
+          ls -la dist-pages/
+          test -f dist-pages/index.html
+          test -f dist-pages/mission.html
+          test -f dist-pages/orbit-data.html
+          test -f dist-pages/assets-status.html
+          test -f dist-pages/artemis2/index.html
+          test -d dist-pages/assets
+          APP_ASSET_REV="${GITHUB_SHA::12}"
+          test -d "dist-pages/src-${APP_ASSET_REV}/platform"
+          test -d dist-pages/images
+          if [ -d dist-pages/third-party ]; then
+            echo "third-party assets present in build."
+          else
+            echo "third-party assets not present in data repo; continuing."
+          fi
+          test -f dist-pages/deployment/version.json
+          test -f dist-pages/deployment/file-manifest.json
+          test -f dist-pages/deployment/runtime-asset-manifest.json
+          find dist-pages/assets -name "*.npz" | sort
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy to Hetzner via rsync
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+            ./dist-pages/ \
+            ${{ secrets.HETZNER_USERNAME }}@${{ secrets.HETZNER_HOST }}:${{ secrets.HETZNER_REMOTE_PATH }}
+        timeout-minutes: 10
+
+      - name: Audit deployed parity (nothing more, nothing less)
+        run: |
+          set -euo pipefail
+          audit_output="$(rsync -rcz --delete --dry-run --itemize-changes --out-format='%i|%n' \
+            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+            ./dist-pages/ \
+            ${{ secrets.HETZNER_USERNAME }}@${{ secrets.HETZNER_HOST }}:${{ secrets.HETZNER_REMOTE_PATH }})"
+
+          if [ -n "$audit_output" ]; then
+            echo "Post-deploy rsync parity check output:"
+            echo "$audit_output"
+          fi
+
+          # Ignore directory timestamp lines (e.g. .d..t......|some-dir) and root dot entries.
+          drift_lines="$(printf '%s\n' "$audit_output" | awk -F'|' '
+            /^\*deleting / { print; next }
+            NF < 2 { next }
+            {
+              code=$1
+              if (code ~ /^\.d/ || code ~ /^cd/ || $2 == "." || $2 == "./") next
+              print
+            }
+          ')"
+
+          if [ -n "$drift_lines" ]; then
+            echo "ERROR: Deployment drift detected after publish:"
+            echo "$drift_lines"
+            exit 1
+          fi
+
+          echo "Post-deploy parity audit passed: remote matches dist-pages exactly."
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Deployment Summary
+        run: |
+          echo "Deployment completed successfully!"
+          echo "Site URL: https://sankara.net/astro/lunar-missions/"
+          echo "Deployed from: dist-pages/"
+          echo "Mission data: ${MISSION_DATA_REPO}@${MISSION_DATA_REF}"
+          echo "Version metadata: /deployment/version.json"
+          echo "Runtime data manifest: /deployment/runtime-asset-manifest.json"
+          echo "Remote path: ${{ secrets.HETZNER_REMOTE_PATH }}"
