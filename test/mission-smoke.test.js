@@ -317,6 +317,75 @@ async function runAnimation(page) {
   }
 }
 
+async function switchDimensionWithPill(page, dimension) {
+  const targetSelector = dimension === '2D' ? '#dimension-2D' : '#dimension-3D';
+  const pillSelector = dimension === '2D' ? '#dimension-pill-2d' : '#dimension-pill-3d';
+  const isCorrectDimension = await page.isChecked(targetSelector).catch(() => false);
+  if (isCorrectDimension) {
+    return;
+  }
+
+  await page.click(pillSelector);
+  await page.waitForTimeout(TIMEOUTS.MODE_SWITCH);
+}
+
+async function waitForCompareModeReady(page, compareMission) {
+  await page.waitForFunction((expectedCompareMission) => {
+    const params = new URLSearchParams(window.location.search);
+    const compareToggle = document.getElementById('compare-mode-toggle');
+    const compareMissionSelect = document.getElementById('compare-mission-select');
+    const currentLabel = document.getElementById('timeline-current-label');
+    const comparisonButtons = document.querySelectorAll('#burnbuttons .burnbutton--comparison');
+
+    return params.get('mode') === 'compare' &&
+      compareToggle?.checked === true &&
+      typeof compareMissionSelect?.value === 'string' &&
+      compareMissionSelect.value.length > 0 &&
+      comparisonButtons.length > 0 &&
+      /comparison elapsed/i.test(currentLabel?.textContent || '');
+  }, compareMission, { timeout: TIMEOUTS.SCENE_READY });
+}
+
+async function getCompareSceneSnapshot(page) {
+  return page.evaluate(() => {
+    const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
+    const visibleCraftIds = Array.isArray(scene?.visibleCraftIds)
+      ? scene.visibleCraftIds.filter(Boolean)
+      : [];
+    const curveKeys = Object.keys(scene?.curvesById || {});
+    const orbitLineKeys = Object.keys(scene?.orbitLinesByBodyId || {});
+    const orbitSvgKeys = Object.keys(scene?.orbitSvgPointsByBodyId || {});
+    const compareCraftId =
+      visibleCraftIds.find((bodyId) => /^CMP_/i.test(bodyId)) ||
+      curveKeys.find((bodyId) => /^CMP_/i.test(bodyId)) ||
+      orbitLineKeys.find((bodyId) => /^CMP_/i.test(bodyId)) ||
+      orbitSvgKeys.find((bodyId) => /^CMP_/i.test(bodyId)) ||
+      null;
+
+    return {
+      compareCraftId,
+      compareMissionValue: document.getElementById('compare-mission-select')?.value || '',
+      compareToggleChecked: !!document.getElementById('compare-mode-toggle')?.checked,
+      comparisonButtonCount: document.querySelectorAll('#burnbuttons .burnbutton--comparison').length,
+      curveKeys,
+      orbitGroupVisible: compareCraftId
+        ? (() => {
+            const orbitGroup = document.getElementById(`orbit-${compareCraftId}`);
+            if (!orbitGroup) return false;
+            const style = window.getComputedStyle(orbitGroup);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+          })()
+        : false,
+      orbitLineKeys,
+      orbitSvgKeys,
+      sceneName: scene?.name || null,
+      timelineCurrentLabel: document.getElementById('timeline-current-label')?.textContent || '',
+      urlMode: new URLSearchParams(window.location.search).get('mode'),
+      visibleCraftIds,
+    };
+  });
+}
+
 /**
  * Click all event buttons and verify no errors
  */
@@ -335,6 +404,148 @@ async function clickAllEvents(page) {
 
   return clickedEvents;
 }
+
+describe('Mission Compare Smoke Tests', () => {
+  let browser;
+
+  beforeAll(async () => {
+    const baseArgs = [
+      '--no-sandbox',
+      '--max-old-space-size=4096',
+      '--disable-dev-shm-usage',
+      '--enable-webgl',
+      '--ignore-gpu-blocklist',
+    ];
+
+    const headlessArgs = [
+      '--disable-gpu-sandbox',
+      '--use-angle=gl',
+      '--enable-unsafe-swiftshader',
+    ];
+
+    const headedArgs = [
+      '--enable-gpu-rasterization',
+      '--enable-zero-copy',
+    ];
+
+    const launchArgs = TEST_CONFIG.headless
+      ? [...baseArgs, ...headlessArgs]
+      : [...baseArgs, ...headedArgs];
+
+    browser = await chromium.launch({
+      headless: TEST_CONFIG.headless,
+      slowMo: TEST_CONFIG.slowMo,
+      args: launchArgs,
+    });
+  });
+
+  afterAll(async () => {
+    if (browser) {
+      await browser.close();
+    }
+  });
+
+  it('keeps both mission trajectories visible across compare-mode 3D and 2D', async () => {
+    const page = await browser.newPage();
+    const consoleErrors = [];
+    const pageErrors = [];
+
+    try {
+      page.on('console', msg => {
+        const text = msg.text();
+        const type = msg.type();
+        const locationUrl = msg.location()?.url || '';
+        const isOptionalOrbitStyleMetadata404 =
+          type === 'error' &&
+          /\/(?:[^/]+-)?style\.json$/i.test(locationUrl);
+        const isOptionalVersionCheck404 =
+          type === 'error' &&
+          /\/deployment\/version\.json(?:\?|$)/i.test(locationUrl);
+        if (type === 'error' && !isIgnoredError(text) && !isOptionalOrbitStyleMetadata404 && !isOptionalVersionCheck404) {
+          consoleErrors.push({ type, text });
+          console.log(`[compare/relative] Console error: ${text}`);
+        }
+      });
+
+      page.on('pageerror', error => {
+        const message = error.message;
+        if (!isIgnoredError(message)) {
+          pageErrors.push(message);
+          console.log(`[compare/relative] Page error: ${message}`);
+        }
+      });
+
+      const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&testMode=true`;
+      console.log(`[compare/relative] Loading: ${url}`);
+      await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
+
+      await waitForSceneReady(page, '3D');
+      await waitForCompareModeReady(page, 'artemis1');
+      await page.waitForFunction(() => {
+        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
+        const compareCraftId = Object.keys(scene?.curvesById || {})
+          .find((bodyId) => /^CMP_/i.test(bodyId));
+        if (!compareCraftId) return false;
+        return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
+      }, { timeout: TIMEOUTS.SCENE_READY });
+
+      const initialSnapshot = await getCompareSceneSnapshot(page);
+      expect(initialSnapshot.urlMode).toBe('compare');
+      expect(initialSnapshot.compareToggleChecked).toBe(true);
+      expect(initialSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
+      expect(initialSnapshot.comparisonButtonCount).toBeGreaterThan(0);
+      expect(initialSnapshot.timelineCurrentLabel).toMatch(/comparison elapsed/i);
+      expect(initialSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
+      expect(initialSnapshot.compareCraftId).toBeTruthy();
+      expect(initialSnapshot.curveKeys).toContain(initialSnapshot.compareCraftId);
+      expect(initialSnapshot.orbitLineKeys).toContain(initialSnapshot.compareCraftId);
+
+      const comparisonEventButtons = page.locator('#burnbuttons .burnbutton--comparison');
+      expect(await comparisonEventButtons.count()).toBeGreaterThan(0);
+      await comparisonEventButtons.first().click();
+      await page.waitForTimeout(750);
+
+      await switchDimensionWithPill(page, '2D');
+      await waitForSceneReady(page, '2D');
+      await page.waitForFunction(() => {
+        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
+        const compareCraftId = Object.keys(scene?.orbitSvgPointsByBodyId || {})
+          .find((bodyId) => /^CMP_/i.test(bodyId));
+        if (!compareCraftId) return false;
+        const orbitGroup = document.getElementById(`orbit-${compareCraftId}`);
+        if (!orbitGroup) return false;
+        const orbitPoints = scene?.orbitSvgPointsByBodyId?.[compareCraftId];
+        return Array.isArray(orbitPoints) && orbitPoints.length > 1;
+      }, { timeout: TIMEOUTS.SCENE_READY });
+
+      const twoDSnapshot = await getCompareSceneSnapshot(page);
+      expect(twoDSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
+      expect(twoDSnapshot.compareCraftId).toBeTruthy();
+      expect(twoDSnapshot.orbitSvgKeys).toContain(twoDSnapshot.compareCraftId);
+      expect(twoDSnapshot.orbitGroupVisible).toBe(true);
+
+      await switchDimensionWithPill(page, '3D');
+      await waitForSceneReady(page, '3D');
+      await page.waitForFunction(() => {
+        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
+        const compareCraftId = Object.keys(scene?.curvesById || {})
+          .find((bodyId) => /^CMP_/i.test(bodyId));
+        if (!compareCraftId) return false;
+        return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
+      }, { timeout: TIMEOUTS.SCENE_READY });
+
+      const finalSnapshot = await getCompareSceneSnapshot(page);
+      expect(finalSnapshot.compareCraftId).toBeTruthy();
+      expect(finalSnapshot.curveKeys).toContain(finalSnapshot.compareCraftId);
+      expect(finalSnapshot.orbitLineKeys).toContain(finalSnapshot.compareCraftId);
+
+      expect(consoleErrors, 'Console errors in compare mode smoke test').toHaveLength(0);
+      expect(pageErrors, 'Page errors in compare mode smoke test').toHaveLength(0);
+    } finally {
+      await page.close();
+    }
+  }, TIMEOUTS.TEST_CASE * 2);
+});
 
 // Missions to test for event clicking (non-CY2/CY3 missions)
 const EVENT_TEST_MISSIONS = [

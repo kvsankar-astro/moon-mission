@@ -371,6 +371,7 @@ Comparison mode should eventually include tests for:
 - [x] Normalize comparison overlay craft/orbits against the overlay mission Moon anchor so lunar loops stay centered on the shared compare-mode Moon
 - [x] Route 2D compare-mode craft orbit generation through sampled ephemeris so synthetic overlay craft ids render orbit paths
 - [x] Validate live compare-mode overlay orbit rendering in 2D and 3D
+- [x] Add a functional Playwright compare-mode regression that verifies dual craft/orbit rendering and interleaved comparison events across 3D and 2D
 
 ### In progress
 
