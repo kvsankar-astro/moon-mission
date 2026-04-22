@@ -1,6 +1,6 @@
 import {
     applySceneOrbitVisibility,
-    getSceneMissionCraftIds,
+    getSceneOrbitBuildOrder,
     getScenePrimaryCraftId,
 } from "./scene-craft-helpers.js";
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
@@ -272,7 +272,7 @@ export function createSpacecraftCurveActions({
         scene.leftOrbitPoints = 0;
 
         const globalConfig = getGlobalConfig();
-        const craftIds = getSceneMissionCraftIds(scene, globalConfig);
+        const craftIds = getSceneOrbitBuildOrder(scene, globalConfig);
         const primaryCraftId = getScenePrimaryCraftId(scene, globalConfig);
         scene.primaryCraftId = primaryCraftId;
 

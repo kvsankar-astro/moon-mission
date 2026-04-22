@@ -120,6 +120,42 @@ function getSceneVisibleCraftIds(scene, globalConfig, requestedVisibleCraftIds =
     return getSceneDefaultVisibleCraftIds(scene, globalConfig);
 }
 
+function getSceneOrbitBuildOrder(scene, globalConfig) {
+    const craftIds = getSceneMissionCraftIds(scene, globalConfig);
+    if (craftIds.length <= 1) {
+        return craftIds;
+    }
+
+    const visibleCraftIds = new Set(getSceneVisibleCraftIds(scene, globalConfig));
+    const activeCraftId = getSceneActiveCraftId(scene, globalConfig);
+    const primaryCraftId = getScenePrimaryCraftId(scene, globalConfig);
+
+    return craftIds
+        .map((bodyId, index) => {
+            const isVisible = visibleCraftIds.has(bodyId);
+            let priority = 3;
+            if (bodyId === activeCraftId) {
+                priority = 0;
+            } else if (bodyId === primaryCraftId) {
+                priority = isVisible ? 1 : 2;
+            } else if (isVisible) {
+                priority = 1;
+            }
+            return {
+                bodyId,
+                index,
+                priority,
+            };
+        })
+        .sort((left, right) => {
+            if (left.priority !== right.priority) {
+                return left.priority - right.priority;
+            }
+            return left.index - right.index;
+        })
+        .map((entry) => entry.bodyId);
+}
+
 function setSceneVisibleCraftIds(scene, globalConfig = null, requestedVisibleCraftIds = undefined) {
     if (!scene) return [];
     const nextVisibleCraftIds = getSceneVisibleCraftIds(
@@ -297,6 +333,7 @@ export {
     getSceneDefaultVisibleCraftIds,
     getSceneDroneObject,
     getSceneMissionCraftIds,
+    getSceneOrbitBuildOrder,
     getScenePrimaryCraftId,
     getSceneVisibleCraftIds,
     isSceneCraftBody,

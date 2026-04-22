@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     applySceneOrbitVisibility,
+    getSceneOrbitBuildOrder,
     getSceneVisibleCraftIds,
     setSceneVisibleCraftIds,
 } from "../src/platform/js/app/scene-craft-helpers.js";
@@ -68,6 +69,48 @@ describe("scene-craft-helpers orbit visibility", () => {
         expect(getSceneVisibleCraftIds(scene, compareGlobalConfig)).toEqual([
             "ORB",
             "CMP_ARTEMIS1_ORION",
+        ]);
+    });
+
+    it("prioritizes the active visible craft when building orbit lines", () => {
+        const scene = {
+            ...createScene(),
+            planetsForLocations: ["CH3O", "CH3L"],
+            primaryCraftId: "CH3L",
+            activeCraftId: "CH3L",
+            visibleCraftIds: ["CH3L"],
+        };
+        const multiCraftGlobalConfig = {
+            primaryCraftId: "CH3L",
+            crafts: [{ id: "CH3O" }, { id: "CH3L", primary: true }],
+        };
+
+        expect(getSceneOrbitBuildOrder(scene, multiCraftGlobalConfig)).toEqual([
+            "CH3L",
+            "CH3O",
+        ]);
+    });
+
+    it("builds compare mode's visible mission pair before hidden support craft", () => {
+        const scene = {
+            ...createScene(),
+            planetsForLocations: ["ORB", "LAND", "CMP_ARTEMIS1_ORION"],
+            primaryCraftId: "ORB",
+            activeCraftId: "ORB",
+            visibleCraftIds: ["ORB", "CMP_ARTEMIS1_ORION"],
+        };
+        const compareGlobalConfig = {
+            ...globalConfig,
+            crafts: [
+                ...globalConfig.crafts,
+                { id: "CMP_ARTEMIS1_ORION", primary: false },
+            ],
+        };
+
+        expect(getSceneOrbitBuildOrder(scene, compareGlobalConfig)).toEqual([
+            "ORB",
+            "CMP_ARTEMIS1_ORION",
+            "LAND",
         ]);
     });
 });
