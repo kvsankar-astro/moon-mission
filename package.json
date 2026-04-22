@@ -14,7 +14,7 @@
     "lint": "tsc --noEmit",
     "test": "vitest test/ui.test.js",
     "test:verbose": "vitest test/ui.test.js --reporter=verbose",
-    "test:unit": "vitest run --exclude=test/ui.test.js --exclude=test/mission-smoke.test.js --exclude=test/production-mission-smoke.test.js",
+    "test:unit": "vitest run --exclude=test/ui.test.js --exclude=test/mission-smoke.test.js --exclude=test/production-mission-smoke.test.js --exclude=test/index-landing-compare-smoke.test.js",
     "test:unit:coverage": "npm run test:unit -- --coverage",
     "configs:bootstrap": "node scripts/bootstrap-mission-config-json5.mjs",
     "configs:compile": "node scripts/compile-mission-configs.mjs",
