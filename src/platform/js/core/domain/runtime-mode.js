@@ -4,6 +4,33 @@ const DEFAULT_COMPARE_SUN_DIRECTION = Object.freeze({
     z: 0.39,
 });
 
+function unpackRuntimeModeArgs(modeOrOptions, maybeCompareOrigin = "") {
+    if (modeOrOptions && typeof modeOrOptions === "object") {
+        return {
+            mode: modeOrOptions.mode,
+            compareOrigin:
+                modeOrOptions.compareOrigin ||
+                modeOrOptions.origin ||
+                "",
+        };
+    }
+
+    return {
+        mode: modeOrOptions,
+        compareOrigin: maybeCompareOrigin,
+    };
+}
+
+function normalizeCompareOriginMode(value, fallback = "") {
+    const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+    if (normalized === "earth") return "geo";
+    if (normalized === "moon") return "lunar";
+    if (normalized === "geo" || normalized === "lunar" || normalized === "relative") {
+        return normalized;
+    }
+    return fallback;
+}
+
 function normalizeRuntimeMode(value) {
     const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
     if (normalized === "relative" || normalized === "compare") {
@@ -12,17 +39,31 @@ function normalizeRuntimeMode(value) {
     return "standard";
 }
 
-function isRelativeFrameRuntimeMode(mode) {
+function resolveCompareOriginMode(modeOrOptions, maybeCompareOrigin = "") {
+    const { mode, compareOrigin } = unpackRuntimeModeArgs(modeOrOptions, maybeCompareOrigin);
+    if (normalizeRuntimeMode(mode) !== "compare") {
+        return "";
+    }
+    return normalizeCompareOriginMode(compareOrigin, "relative");
+}
+
+function isRelativeFrameRuntimeMode(modeOrOptions, maybeCompareOrigin = "") {
+    const { mode, compareOrigin } = unpackRuntimeModeArgs(modeOrOptions, maybeCompareOrigin);
     const normalized = normalizeRuntimeMode(mode);
-    return normalized === "relative" || normalized === "compare";
+    if (normalized === "compare") {
+        return resolveCompareOriginMode({ mode, compareOrigin }) === "relative";
+    }
+    return normalized === "relative";
 }
 
 function isCompareRuntimeMode(mode) {
     return normalizeRuntimeMode(mode) === "compare";
 }
 
-function resolveFrameModeForRuntimeMode(mode) {
-    return isRelativeFrameRuntimeMode(mode) ? "relative" : "inertial";
+function resolveFrameModeForRuntimeMode(modeOrOptions, maybeCompareOrigin = "") {
+    return isRelativeFrameRuntimeMode(modeOrOptions, maybeCompareOrigin)
+        ? "relative"
+        : "inertial";
 }
 
 function normalizeDirectionCandidate(candidate, fallback = DEFAULT_COMPARE_SUN_DIRECTION) {
@@ -84,7 +125,9 @@ export {
     DEFAULT_COMPARE_SUN_DIRECTION,
     isCompareRuntimeMode,
     isRelativeFrameRuntimeMode,
+    normalizeCompareOriginMode,
     normalizeRuntimeMode,
+    resolveCompareOriginMode,
     resolveCompareDisplayProfile,
     resolveFrameModeForRuntimeMode,
 };

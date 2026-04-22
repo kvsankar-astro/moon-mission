@@ -17,6 +17,7 @@ import {
 import {
     isCompareRuntimeMode,
     isRelativeFrameRuntimeMode,
+    resolveCompareOriginMode,
     resolveFrameModeForRuntimeMode,
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
@@ -71,11 +72,22 @@ if (typeof window !== "undefined" && !window.THREE) {
 }
 
 // Check if running in test mode (for consistent visual regression testing)
-const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
-const urlMode = new URLSearchParams(window.location.search).get('mode');
+const startupParams = new URLSearchParams(window.location.search);
+const isTestMode = startupParams.get('testMode') === 'true';
+const urlMode = startupParams.get('mode');
+const compareOriginMode = resolveCompareOriginMode({
+    mode: urlMode,
+    origin: startupParams.get("origin"),
+});
 const isCompareMode = isCompareRuntimeMode(urlMode);
-const isRelativeMode = isRelativeFrameRuntimeMode(urlMode);
-const frameMode = resolveFrameModeForRuntimeMode(urlMode);
+const isRelativeMode = isRelativeFrameRuntimeMode({
+    mode: urlMode,
+    compareOrigin: compareOriginMode,
+});
+const frameMode = resolveFrameModeForRuntimeMode({
+    mode: urlMode,
+    compareOrigin: compareOriginMode,
+});
 
 let {
     craftSize,

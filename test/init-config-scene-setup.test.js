@@ -148,4 +148,49 @@ describe("init config scene setup", () => {
             stepsPerHop: 4,
         });
     });
+
+    it("keeps geo compare on the inertial geo orbit files instead of the relative override", () => {
+        const deps = buildSceneSetupDeps({
+            resolveOrbitUrls: vi.fn(() => ({
+                orbitsJson: "assets/primary/data/geo-SC.json",
+                orbitsCheb: "assets/primary/data/geo-SC-cheb.json",
+            })),
+        });
+        const actions = createInitConfigSceneSetupActions(deps);
+        const configData = {
+            spacecraft_mnemonic: "SC",
+            crafts: [
+                {
+                    id: "SC",
+                    mnemonic: "SC",
+                },
+            ],
+            geo: {
+                planets: ["EARTH", "MOON", "SC"],
+                step_size_in_seconds: 60,
+            },
+            relative: {
+                orbits_file: "relative-SC",
+            },
+            comparisonOverlay: {
+                compareCraftId: "CMP_TEST",
+                supportOrbitChebyshevUrlsByOrigin: {
+                    geo: "assets/compare/data/geo-cmp-cheb.json",
+                    relative: "assets/compare/data/relative-cmp-cheb.json",
+                },
+            },
+        };
+
+        actions.configureSceneForOrigin({
+            originKey: "geo",
+            configData,
+            isRelativeMode: false,
+        });
+
+        expect(deps.setRelativeOrbitUrls).not.toHaveBeenCalled();
+        expect(deps.animationScenes.geo.orbitsCheb).toBe("assets/primary/data/geo-SC-cheb.json");
+        expect(deps.animationScenes.geo.supportOrbitsChebByBodyId).toEqual({
+            CMP_TEST: "assets/compare/data/geo-cmp-cheb.json",
+        });
+    });
 });

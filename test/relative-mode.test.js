@@ -28,9 +28,11 @@ function createHarness({
     isCompareMode = false,
     originMode = "geo",
     currentAnimTime = 1234,
+    relativeSelected = false,
 } = {}) {
     const compareSelect = { value: compareMission };
     const history = { replaceState: vi.fn() };
+    const originRelative = { checked: !!relativeSelected };
 
     globalThis.window = {
         history,
@@ -40,6 +42,9 @@ function createHarness({
         getElementById(id) {
             if (id === "compare-mission-select") {
                 return compareSelect;
+            }
+            if (id === "origin-relative") {
+                return originRelative;
             }
             return null;
         },
@@ -62,6 +67,7 @@ function createHarness({
         actions,
         compareSelect,
         history,
+        originRelative,
     };
 }
 
@@ -82,8 +88,25 @@ describe("relative mode actions", () => {
         const nextUrl = new URL(globalThis.window.location.href);
         expect(nextUrl.searchParams.get("mode")).toBe("compare");
         expect(nextUrl.searchParams.get("compareMission")).toBe("artemis1");
+        expect(nextUrl.searchParams.get("origin")).toBe("geo");
         expect(globalThis.sessionStorage.getItem("mission.animTimeOverride")).toBe("1234");
         expect(globalThis.sessionStorage.getItem("cy3.animTimeOverride")).toBe("1234");
+    });
+
+    it("keeps compare mode when switching to the relative origin from geo compare", () => {
+        const { actions } = createHarness({
+            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1&origin=geo",
+            isCompareMode: true,
+            originMode: "geo",
+            relativeSelected: true,
+        });
+
+        actions.toggleRelativeMode();
+
+        const nextUrl = new URL(globalThis.window.location.href);
+        expect(nextUrl.searchParams.get("mode")).toBe("compare");
+        expect(nextUrl.searchParams.get("compareMission")).toBe("artemis1");
+        expect(nextUrl.searchParams.get("origin")).toBe(null);
     });
 
     it("updates the comparison mission in-place when compare mode is not active", () => {
@@ -99,10 +122,9 @@ describe("relative mode actions", () => {
         expect(nextUrl.searchParams.get("compareMission")).toBe("grail");
     });
 
-    it("exits compare mode through the URL-driven origin switch path", () => {
+    it("keeps compare mode active through the URL-driven origin switch path", () => {
         const { actions } = createHarness({
             href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1",
-            isRelativeMode: true,
             isCompareMode: true,
             originMode: "lunar",
         });
@@ -110,9 +132,23 @@ describe("relative mode actions", () => {
         actions.toggleModeGuarded();
 
         const nextUrl = new URL(globalThis.window.location.href);
+        expect(nextUrl.searchParams.get("mode")).toBe("compare");
+        expect(nextUrl.searchParams.get("compareMission")).toBe("artemis1");
+        expect(nextUrl.searchParams.get("origin")).toBe("lunar");
+    });
+
+    it("drops back to inertial geo when compare mode is disabled from geo compare", () => {
+        const { actions } = createHarness({
+            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1&origin=geo",
+            isCompareMode: true,
+            originMode: "geo",
+        });
+
+        actions.toggleCompareMode({ enabled: false });
+
+        const nextUrl = new URL(globalThis.window.location.href);
         expect(nextUrl.searchParams.get("mode")).toBe(null);
         expect(nextUrl.searchParams.get("compareMission")).toBe("artemis1");
-        expect(globalThis.sessionStorage.getItem("mission.originOverride")).toBe("lunar");
-        expect(globalThis.sessionStorage.getItem("cy3.originOverride")).toBe("lunar");
+        expect(nextUrl.searchParams.get("origin")).toBe("geo");
     });
 });

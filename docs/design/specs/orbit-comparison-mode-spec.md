@@ -53,8 +53,6 @@ The MVP scope is:
 
 These items are explicitly deferred:
 
-- full `geo` comparison mode
-- full `lunar` comparison mode
 - offline pre-normalized comparison Chebyshev assets
 - comparison between more than two missions
 - full telemetry parity for both missions everywhere in the UI
@@ -372,6 +370,8 @@ Comparison mode should eventually include tests for:
 - [x] Route 2D compare-mode craft orbit generation through sampled ephemeris so synthetic overlay craft ids render orbit paths
 - [x] Validate live compare-mode overlay orbit rendering in 2D and 3D
 - [x] Add a functional Playwright compare-mode regression that verifies dual craft/orbit rendering and interleaved comparison events across 3D and 2D
+- [x] Preserve compare mode while switching between relative, geo, and lunar origins through the existing origin controls
+- [x] Add functional Playwright compare-mode regressions for relative, geo, and lunar origin views
 
 ### In progress
 
@@ -390,6 +390,6 @@ Comparison mode should eventually include tests for:
 
 ### Deferred
 
-- [ ] Add `geo` comparison view
-- [ ] Add `lunar` comparison view
+- [x] Add `geo` comparison view
+- [x] Add `lunar` comparison view
 - [ ] Evaluate whether any comparison transforms should later be precomputed offline for performance

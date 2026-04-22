@@ -348,7 +348,10 @@ async function waitForCompareModeReady(page, compareMission) {
 
 async function getCompareSceneSnapshot(page) {
   return page.evaluate(() => {
-    const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
+    const useLunarScene = !!document.getElementById('origin-moon')?.checked;
+    const scene = useLunarScene
+      ? (window.animationScenes?.lunar || null)
+      : (window.animationScenes?.relative || window.animationScenes?.geo || null);
     const visibleCraftIds = Array.isArray(scene?.visibleCraftIds)
       ? scene.visibleCraftIds.filter(Boolean)
       : [];
@@ -368,6 +371,9 @@ async function getCompareSceneSnapshot(page) {
       compareToggleChecked: !!document.getElementById('compare-mode-toggle')?.checked,
       comparisonButtonCount: document.querySelectorAll('#burnbuttons .burnbutton--comparison').length,
       curveKeys,
+      originEarthChecked: !!document.getElementById('origin-earth')?.checked,
+      originMoonChecked: !!document.getElementById('origin-moon')?.checked,
+      originRelativeChecked: !!document.getElementById('origin-relative')?.checked,
       orbitGroupVisible: compareCraftId
         ? (() => {
             const orbitGroup = document.getElementById(`orbit-${compareCraftId}`);
@@ -380,10 +386,136 @@ async function getCompareSceneSnapshot(page) {
       orbitSvgKeys,
       sceneName: scene?.name || null,
       timelineCurrentLabel: document.getElementById('timeline-current-label')?.textContent || '',
+      urlOrigin: new URLSearchParams(window.location.search).get('origin'),
       urlMode: new URLSearchParams(window.location.search).get('mode'),
       visibleCraftIds,
     };
   });
+}
+
+async function runCompareModeSmokeCase(page, {
+  label,
+  url,
+  expectedOrigin,
+}) {
+  const consoleErrors = [];
+  const pageErrors = [];
+
+  page.on('console', msg => {
+    const text = msg.text();
+    const type = msg.type();
+    const locationUrl = msg.location()?.url || '';
+    const isOptionalOrbitStyleMetadata404 =
+      type === 'error' &&
+      /\/(?:[^/]+-)?style\.json$/i.test(locationUrl);
+    const isOptionalVersionCheck404 =
+      type === 'error' &&
+      /\/deployment\/version\.json(?:\?|$)/i.test(locationUrl);
+    if (type === 'error' && !isIgnoredError(text) && !isOptionalOrbitStyleMetadata404 && !isOptionalVersionCheck404) {
+      consoleErrors.push({ type, text });
+      console.log(`[${label}] Console error: ${text}`);
+    }
+  });
+
+  page.on('pageerror', error => {
+    const message = error.message;
+    if (!isIgnoredError(message)) {
+      pageErrors.push(message);
+      console.log(`[${label}] Page error: ${message}`);
+    }
+  });
+
+  console.log(`[${label}] Loading: ${url}`);
+  await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
+
+  await waitForSceneReady(page, '3D');
+  await waitForCompareModeReady(page, 'artemis1');
+  await page.waitForFunction(() => {
+    const useLunarScene = !!document.getElementById('origin-moon')?.checked;
+    const scene = useLunarScene
+      ? (window.animationScenes?.lunar || null)
+      : (window.animationScenes?.relative || window.animationScenes?.geo || null);
+    const compareCraftId = Object.keys(scene?.curvesById || {})
+      .find((bodyId) => /^CMP_/i.test(bodyId));
+    if (!compareCraftId) return false;
+    return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
+  }, { timeout: TIMEOUTS.SCENE_READY });
+
+  const initialSnapshot = await getCompareSceneSnapshot(page);
+  expect(initialSnapshot.urlMode).toBe('compare');
+  expect(initialSnapshot.compareToggleChecked).toBe(true);
+  expect(initialSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
+  expect(initialSnapshot.comparisonButtonCount).toBeGreaterThan(0);
+  expect(initialSnapshot.timelineCurrentLabel).toMatch(/comparison elapsed/i);
+  expect(initialSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
+  expect(initialSnapshot.compareCraftId).toBeTruthy();
+  expect(initialSnapshot.curveKeys).toContain(initialSnapshot.compareCraftId);
+  expect(initialSnapshot.orbitLineKeys).toContain(initialSnapshot.compareCraftId);
+
+  if (expectedOrigin === 'relative') {
+    expect(initialSnapshot.urlOrigin).toBe(null);
+    expect(initialSnapshot.originRelativeChecked).toBe(true);
+    expect(initialSnapshot.originEarthChecked).toBe(false);
+    expect(initialSnapshot.originMoonChecked).toBe(false);
+  } else if (expectedOrigin === 'geo') {
+    expect(initialSnapshot.urlOrigin).toBe('geo');
+    expect(initialSnapshot.originEarthChecked).toBe(true);
+    expect(initialSnapshot.originRelativeChecked).toBe(false);
+    expect(initialSnapshot.originMoonChecked).toBe(false);
+  } else if (expectedOrigin === 'lunar') {
+    expect(initialSnapshot.urlOrigin).toBe('lunar');
+    expect(initialSnapshot.originMoonChecked).toBe(true);
+    expect(initialSnapshot.originEarthChecked).toBe(false);
+    expect(initialSnapshot.originRelativeChecked).toBe(false);
+  }
+
+  const comparisonEventButtons = page.locator('#burnbuttons .burnbutton--comparison');
+  expect(await comparisonEventButtons.count()).toBeGreaterThan(0);
+  await comparisonEventButtons.first().click();
+  await page.waitForTimeout(750);
+
+  await switchDimensionWithPill(page, '2D');
+  await waitForSceneReady(page, '2D');
+  await page.waitForFunction(() => {
+    const useLunarScene = !!document.getElementById('origin-moon')?.checked;
+    const scene = useLunarScene
+      ? (window.animationScenes?.lunar || null)
+      : (window.animationScenes?.relative || window.animationScenes?.geo || null);
+    const compareCraftId = Object.keys(scene?.orbitSvgPointsByBodyId || {})
+      .find((bodyId) => /^CMP_/i.test(bodyId));
+    if (!compareCraftId) return false;
+    const orbitGroup = document.getElementById(`orbit-${compareCraftId}`);
+    if (!orbitGroup) return false;
+    const orbitPoints = scene?.orbitSvgPointsByBodyId?.[compareCraftId];
+    return Array.isArray(orbitPoints) && orbitPoints.length > 1;
+  }, { timeout: TIMEOUTS.SCENE_READY });
+
+  const twoDSnapshot = await getCompareSceneSnapshot(page);
+  expect(twoDSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
+  expect(twoDSnapshot.compareCraftId).toBeTruthy();
+  expect(twoDSnapshot.orbitSvgKeys).toContain(twoDSnapshot.compareCraftId);
+  expect(twoDSnapshot.orbitGroupVisible).toBe(true);
+
+  await switchDimensionWithPill(page, '3D');
+  await waitForSceneReady(page, '3D');
+  await page.waitForFunction(() => {
+    const useLunarScene = !!document.getElementById('origin-moon')?.checked;
+    const scene = useLunarScene
+      ? (window.animationScenes?.lunar || null)
+      : (window.animationScenes?.relative || window.animationScenes?.geo || null);
+    const compareCraftId = Object.keys(scene?.curvesById || {})
+      .find((bodyId) => /^CMP_/i.test(bodyId));
+    if (!compareCraftId) return false;
+    return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
+  }, { timeout: TIMEOUTS.SCENE_READY });
+
+  const finalSnapshot = await getCompareSceneSnapshot(page);
+  expect(finalSnapshot.compareCraftId).toBeTruthy();
+  expect(finalSnapshot.curveKeys).toContain(finalSnapshot.compareCraftId);
+  expect(finalSnapshot.orbitLineKeys).toContain(finalSnapshot.compareCraftId);
+
+  expect(consoleErrors, `Console errors in ${label}`).toHaveLength(0);
+  expect(pageErrors, `Page errors in ${label}`).toHaveLength(0);
 }
 
 /**
@@ -447,100 +579,40 @@ describe('Mission Compare Smoke Tests', () => {
 
   it('keeps both mission trajectories visible across compare-mode 3D and 2D', async () => {
     const page = await browser.newPage();
-    const consoleErrors = [];
-    const pageErrors = [];
+    try {
+      await runCompareModeSmokeCase(page, {
+        label: 'compare/relative',
+        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&testMode=true`,
+        expectedOrigin: 'relative',
+      });
+    } finally {
+      await page.close();
+    }
+  }, TIMEOUTS.TEST_CASE * 2);
+
+  it('keeps both mission trajectories visible across geo compare-mode 3D and 2D', async () => {
+    const page = await browser.newPage();
 
     try {
-      page.on('console', msg => {
-        const text = msg.text();
-        const type = msg.type();
-        const locationUrl = msg.location()?.url || '';
-        const isOptionalOrbitStyleMetadata404 =
-          type === 'error' &&
-          /\/(?:[^/]+-)?style\.json$/i.test(locationUrl);
-        const isOptionalVersionCheck404 =
-          type === 'error' &&
-          /\/deployment\/version\.json(?:\?|$)/i.test(locationUrl);
-        if (type === 'error' && !isIgnoredError(text) && !isOptionalOrbitStyleMetadata404 && !isOptionalVersionCheck404) {
-          consoleErrors.push({ type, text });
-          console.log(`[compare/relative] Console error: ${text}`);
-        }
+      await runCompareModeSmokeCase(page, {
+        label: 'compare/geo',
+        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&origin=geo&testMode=true`,
+        expectedOrigin: 'geo',
       });
+    } finally {
+      await page.close();
+    }
+  }, TIMEOUTS.TEST_CASE * 2);
 
-      page.on('pageerror', error => {
-        const message = error.message;
-        if (!isIgnoredError(message)) {
-          pageErrors.push(message);
-          console.log(`[compare/relative] Page error: ${message}`);
-        }
+  it('keeps both mission trajectories visible across lunar compare-mode 3D and 2D', async () => {
+    const page = await browser.newPage();
+
+    try {
+      await runCompareModeSmokeCase(page, {
+        label: 'compare/lunar',
+        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&origin=lunar&testMode=true`,
+        expectedOrigin: 'lunar',
       });
-
-      const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&testMode=true`;
-      console.log(`[compare/relative] Loading: ${url}`);
-      await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
-
-      await waitForSceneReady(page, '3D');
-      await waitForCompareModeReady(page, 'artemis1');
-      await page.waitForFunction(() => {
-        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
-        const compareCraftId = Object.keys(scene?.curvesById || {})
-          .find((bodyId) => /^CMP_/i.test(bodyId));
-        if (!compareCraftId) return false;
-        return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
-      }, { timeout: TIMEOUTS.SCENE_READY });
-
-      const initialSnapshot = await getCompareSceneSnapshot(page);
-      expect(initialSnapshot.urlMode).toBe('compare');
-      expect(initialSnapshot.compareToggleChecked).toBe(true);
-      expect(initialSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
-      expect(initialSnapshot.comparisonButtonCount).toBeGreaterThan(0);
-      expect(initialSnapshot.timelineCurrentLabel).toMatch(/comparison elapsed/i);
-      expect(initialSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
-      expect(initialSnapshot.compareCraftId).toBeTruthy();
-      expect(initialSnapshot.curveKeys).toContain(initialSnapshot.compareCraftId);
-      expect(initialSnapshot.orbitLineKeys).toContain(initialSnapshot.compareCraftId);
-
-      const comparisonEventButtons = page.locator('#burnbuttons .burnbutton--comparison');
-      expect(await comparisonEventButtons.count()).toBeGreaterThan(0);
-      await comparisonEventButtons.first().click();
-      await page.waitForTimeout(750);
-
-      await switchDimensionWithPill(page, '2D');
-      await waitForSceneReady(page, '2D');
-      await page.waitForFunction(() => {
-        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
-        const compareCraftId = Object.keys(scene?.orbitSvgPointsByBodyId || {})
-          .find((bodyId) => /^CMP_/i.test(bodyId));
-        if (!compareCraftId) return false;
-        const orbitGroup = document.getElementById(`orbit-${compareCraftId}`);
-        if (!orbitGroup) return false;
-        const orbitPoints = scene?.orbitSvgPointsByBodyId?.[compareCraftId];
-        return Array.isArray(orbitPoints) && orbitPoints.length > 1;
-      }, { timeout: TIMEOUTS.SCENE_READY });
-
-      const twoDSnapshot = await getCompareSceneSnapshot(page);
-      expect(twoDSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
-      expect(twoDSnapshot.compareCraftId).toBeTruthy();
-      expect(twoDSnapshot.orbitSvgKeys).toContain(twoDSnapshot.compareCraftId);
-      expect(twoDSnapshot.orbitGroupVisible).toBe(true);
-
-      await switchDimensionWithPill(page, '3D');
-      await waitForSceneReady(page, '3D');
-      await page.waitForFunction(() => {
-        const scene = window.animationScenes?.relative || window.animationScenes?.geo || null;
-        const compareCraftId = Object.keys(scene?.curvesById || {})
-          .find((bodyId) => /^CMP_/i.test(bodyId));
-        if (!compareCraftId) return false;
-        return Object.prototype.hasOwnProperty.call(scene?.orbitLinesByBodyId || {}, compareCraftId);
-      }, { timeout: TIMEOUTS.SCENE_READY });
-
-      const finalSnapshot = await getCompareSceneSnapshot(page);
-      expect(finalSnapshot.compareCraftId).toBeTruthy();
-      expect(finalSnapshot.curveKeys).toContain(finalSnapshot.compareCraftId);
-      expect(finalSnapshot.orbitLineKeys).toContain(finalSnapshot.compareCraftId);
-
-      expect(consoleErrors, 'Console errors in compare mode smoke test').toHaveLength(0);
-      expect(pageErrors, 'Page errors in compare mode smoke test').toHaveLength(0);
     } finally {
       await page.close();
     }

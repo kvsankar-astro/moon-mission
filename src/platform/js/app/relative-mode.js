@@ -50,10 +50,20 @@ function createRelativeModeActions(deps) {
             const url = new URL(window.location.href);
             const urlOrigin = (url.searchParams.get("origin") || "").toLowerCase();
             const override =
-                (urlOrigin === "lunar" || urlOrigin === "geo" ? urlOrigin : null) ??
+                (
+                    urlOrigin === "lunar" ||
+                    urlOrigin === "geo" ||
+                    urlOrigin === "relative"
+                        ? urlOrigin
+                        : null
+                ) ??
                 sessionStorage.getItem(ORIGIN_OVERRIDE_STORAGE_KEY) ??
                 sessionStorage.getItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
-            if (override === "lunar") {
+            if (override === "relative") {
+                setChecked("origin-relative", true);
+                setChecked("origin-earth", false);
+                setChecked("origin-moon", false);
+            } else if (override === "lunar") {
                 setChecked("origin-moon", true);
                 setChecked("origin-earth", false);
                 setChecked("origin-relative", false);
@@ -114,10 +124,36 @@ function createRelativeModeActions(deps) {
         return trimmed.length > 0 ? trimmed : "";
     }
 
+    function normalizeOriginModeParam(value) {
+        const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+        if (normalized === "earth") return "geo";
+        if (normalized === "moon") return "lunar";
+        if (normalized === "geo" || normalized === "lunar" || normalized === "relative") {
+            return normalized;
+        }
+        return "";
+    }
+
+    function getSelectedOriginMode() {
+        if (document.getElementById("origin-relative")?.checked) {
+            return "relative";
+        }
+        return readOriginMode() === "lunar" ? "lunar" : "geo";
+    }
+
     function getCompareMissionFromUrl() {
         try {
             const url = new URL(window.location.href);
             return normalizeCompareMissionParam(url.searchParams.get("compareMission"));
+        } catch {
+            return "";
+        }
+    }
+
+    function getOriginModeFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            return normalizeOriginModeParam(url.searchParams.get("origin"));
         } catch {
             return "";
         }
@@ -143,8 +179,34 @@ function createRelativeModeActions(deps) {
         }
     }
 
+    function applyOriginParamForNavigation(url, runtimeMode, originMode) {
+        const normalizedOriginMode = normalizeOriginModeParam(originMode);
+        if (runtimeMode === "compare") {
+            if (normalizedOriginMode && normalizedOriginMode !== "relative") {
+                url.searchParams.set("origin", normalizedOriginMode);
+            } else {
+                url.searchParams.delete("origin");
+            }
+            return;
+        }
+
+        if (runtimeMode === "relative") {
+            url.searchParams.delete("origin");
+            return;
+        }
+
+        if (normalizedOriginMode) {
+            url.searchParams.set("origin", normalizedOriginMode);
+        } else {
+            url.searchParams.delete("origin");
+        }
+    }
+
     function navigateWithRuntimeMode(runtimeMode, options = {}) {
         const compareMission = options.compareMission;
+        const originMode = normalizeOriginModeParam(
+            options.originMode !== undefined ? options.originMode : getOriginModeFromUrl(),
+        );
         const url = new URL(window.location.href);
         if (runtimeMode === "relative" || runtimeMode === "compare") {
             url.searchParams.set("mode", runtimeMode);
@@ -160,10 +222,21 @@ function createRelativeModeActions(deps) {
         } else {
             url.searchParams.delete("compareMission");
         }
+        applyOriginParamForNavigation(url, runtimeMode, originMode);
         window.location.href = url.toString();
     }
 
     function toggleRelativeMode() {
+        if (isCompareMode) {
+            persistAnimTimeOverrideToSession();
+            navigateWithRuntimeMode("compare", {
+                compareMission:
+                    getSelectedCompareMission() ||
+                    getCompareMissionFromUrl(),
+                originMode: "relative",
+            });
+            return;
+        }
         if (isRelativeMode) return;
         try {
             sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
@@ -190,6 +263,15 @@ function createRelativeModeActions(deps) {
             return;
         }
 
+        const originMode = normalizeOriginModeParam(
+            payload.originMode !== undefined ? payload.originMode : getSelectedOriginMode(),
+        );
+        const targetRuntimeMode = requestedEnabled
+            ? "compare"
+            : originMode === "relative"
+                ? "relative"
+                : null;
+
         try {
             sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
             sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
@@ -198,8 +280,9 @@ function createRelativeModeActions(deps) {
         }
 
         persistAnimTimeOverrideToSession();
-        navigateWithRuntimeMode(requestedEnabled ? "compare" : "relative", {
+        navigateWithRuntimeMode(targetRuntimeMode, {
             compareMission,
+            originMode,
         });
     }
 
@@ -211,7 +294,10 @@ function createRelativeModeActions(deps) {
 
         if (isCompareRuntimeMode(new URL(window.location.href).searchParams.get("mode"))) {
             persistAnimTimeOverrideToSession();
-            navigateWithRuntimeMode("compare", { compareMission });
+            navigateWithRuntimeMode("compare", {
+                compareMission,
+                originMode: getSelectedOriginMode() || getOriginModeFromUrl(),
+            });
             return;
         }
 
@@ -219,6 +305,18 @@ function createRelativeModeActions(deps) {
     }
 
     function toggleModeGuarded() {
+        if (isCompareMode) {
+            persistAnimTimeOverrideToSession();
+            navigateWithRuntimeMode("compare", {
+                compareMission:
+                    getSelectedCompareMission() ||
+                    getCompareMissionFromUrl(),
+                originMode: getSelectedOriginMode(),
+            });
+            syncOriginOptionAvailability();
+            return;
+        }
+
         if (!isRelativeMode) {
             const toggleMode = getToggleMode?.();
             if (typeof toggleMode === "function") {
