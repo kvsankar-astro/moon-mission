@@ -97,6 +97,7 @@ function createDataflowWiringDeps(ctx, { getStartAndEndTimes, loadProgress }) {
         TC: ctx.TC,
         getFrameMode: ctx.getFrameMode,
         getActiveEphemerisSource: ctx.getActiveEphemerisSource,
+        getIsCompareMode: () => Boolean(ctx.isCompareMode),
         resolveBodySourceFn: ctx.resolveBodySourceFn,
         getBodyEphemerisRange: ctx.getBodyEphemerisRange,
         getBodyEphemerisState: ctx.getBodyEphemerisState,

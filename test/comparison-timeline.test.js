@@ -104,4 +104,66 @@ describe("comparison timeline", () => {
         expect(resolveTimelineEventHoverText(timelineEventInfos[1])).toContain("Trans-lunar injection");
         expect(resolveTimelineEventInfoText(timelineEventInfos[2])).toContain("PM");
     });
+
+    it("uses a start-aligned offset merge and keeps primary events first on exact timeline ties", () => {
+        const primaryEventInfos = [
+            {
+                key: "launch",
+                label: "Launch",
+                startTime: new Date(1000),
+            },
+            {
+                key: "burn",
+                label: "Burn",
+                startTime: new Date(1500),
+            },
+        ];
+
+        const timelineEventInfos = buildTimelineEventInfos({
+            compareMode: true,
+            config: "geo",
+            primaryEventInfos,
+            globalConfig: {
+                mission_name: "Primary Mission",
+                mission_name_short: "PM",
+                comparisonOverlay: {
+                    missionName: "Compare Mission",
+                    missionShortLabel: "CM",
+                    missionKey: "compare-mission",
+                    compareCraftId: "CMP_MISSION_CM",
+                    displayTimeRangesByOrigin: {
+                        geo: { startMs: 1000, endMs: 4000 },
+                    },
+                    sourceTimeRangesByOrigin: {
+                        geo: { startMs: 3000, endMs: 7000 },
+                    },
+                    timelineSourceEventInfosByOrigin: {
+                        geo: [
+                            {
+                                key: "launch",
+                                label: "Launch",
+                                startTime: new Date(3000),
+                            },
+                            {
+                                key: "burn",
+                                label: "Burn",
+                                startTime: new Date(3500),
+                            },
+                        ],
+                    },
+                },
+            },
+        });
+
+        expect(timelineEventInfos.map((eventInfo) => [
+            resolveTimelineEventLabel(eventInfo),
+            eventInfo.startTime.getTime(),
+            eventInfo.timelineRole,
+        ])).toEqual([
+            ["PM: Launch", 1000, "primary"],
+            ["CM: Launch", 1000, "comparison"],
+            ["PM: Burn", 1500, "primary"],
+            ["CM: Burn", 1500, "comparison"],
+        ]);
+    });
 });

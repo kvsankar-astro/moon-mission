@@ -56,6 +56,18 @@ describe("mission wiring dependency builders", () => {
         expect(deps.loadProgress).toBe(loadProgress);
     });
 
+    it("threads compare-mode state into dataflow deps", () => {
+        const deps = createDataflowWiringDeps(
+            {
+                d3: {},
+                isCompareMode: true,
+            },
+            { getStartAndEndTimes: vi.fn(), loadProgress: null },
+        );
+
+        expect(deps.getIsCompareMode()).toBe(true);
+    });
+
     it("derives init-config helpers from the shared context", () => {
         const getStartAndEndTimes = vi.fn(() => [1000, 2000]);
         const loadProgress = { start: vi.fn() };

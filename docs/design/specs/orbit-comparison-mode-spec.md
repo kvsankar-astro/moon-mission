@@ -161,6 +161,19 @@ In other words:
 - `tau + 1 day` means each mission advances by one day of its own mission time
 - shorter missions end earlier on the shared comparison timeline rather than being stretched
 
+### Event interleaving rule
+
+Comparison timeline/event interleaving follows the same start-aligned offset policy:
+
+- for each mission event, compute `offset = eventTime - missionDisplayedStart`
+- place the event on the shared comparison timeline at `compareStart + offset`
+- merge all mission events into one list and sort by that shared comparison time
+- when two events land on the exact same comparison time, keep primary-mission events first
+- if two events still tie after that, sort by label for stability
+
+This is intentionally simple for MVP. It preserves native mission pacing and avoids stretching a
+40-day mission to fill the same comparison window as a 10-day mission.
+
 ### Future refinement
 
 After MVP, the preferred refinement is piecewise event-anchored mapping:
@@ -356,19 +369,21 @@ Comparison mode should eventually include tests for:
 - [x] Keep compare-mode startup UI synchronized so the comparison picker, default visible craft pair, and interleaved event strip stay aligned after load
 - [x] Override comparison-overlay craft colors so primary and comparison trajectories stay visually distinct
 - [x] Normalize comparison overlay craft/orbits against the overlay mission Moon anchor so lunar loops stay centered on the shared compare-mode Moon
+- [x] Route 2D compare-mode craft orbit generation through sampled ephemeris so synthetic overlay craft ids render orbit paths
+- [x] Validate live compare-mode overlay orbit rendering in 2D and 3D
 
 ### In progress
 
 - [x] Define comparison-mode routing and runtime state shape
 - [x] Define comparison mission loading contract
-- [ ] Define comparison event interleaving rules
+- [x] Define comparison event interleaving rules
 
 ### MVP next
 
 - [x] Add comparison mission selector UI
 - [x] Build normalized relative-frame transform in runtime
-- [ ] Render comparison mission craft/orbits in 3D
-- [ ] Render comparison mission craft/orbits in 2D
+- [x] Render comparison mission craft/orbits in 3D
+- [x] Render comparison mission craft/orbits in 2D
 - [x] Add interleaved comparison event strip
 - [x] Label comparison timeline as fictional/relative
 

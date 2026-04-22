@@ -30,12 +30,13 @@ function createLineBuilder() {
     return line;
 }
 
-function createActionsHarness() {
+function createActionsHarness(overrides = {}) {
     const svgContainer = createChain();
     const state = {
         startTimeMs: 0,
         endTimeMs: 60000,
         source: "chebyshev",
+        compareMode: false,
     };
     const scene = {
         planetsForLocations: ["SC"],
@@ -43,11 +44,21 @@ function createActionsHarness() {
         primaryBody: "EARTH",
         primaryBodyRadius: 1,
     };
+    const globalConfig = {
+        spacecraft_mnemonic: "SC",
+        crafts: [
+            { id: "SC", mnemonic: "SC", primary: true },
+        ],
+    };
 
     const generateBodyCurve = vi.fn(() => [
         { x: 1, y: 2, z: 3, vx: 0, vy: 0, vz: 0, timeMs: 0 },
         { x: 2, y: 3, z: 4, vx: 0, vy: 0, vz: 0, timeMs: 60000 },
     ]);
+
+    if (typeof overrides.beforeCreate === "function") {
+        overrides.beforeCreate({ state, scene, globalConfig, generateBodyCurve });
+    }
 
     const actions = createOrbitVectorsActions({
         d3: {
@@ -84,6 +95,8 @@ function createActionsHarness() {
             xVariable: "x",
             yVariable: "y",
         }),
+        getGlobalConfig: () => globalConfig,
+        getIsCompareMode: () => state.compareMode,
         planetStartTime: () => 0,
         PC: { KM_PER_AU: 1 },
         UC: {
@@ -94,9 +107,10 @@ function createActionsHarness() {
         getEpochJD: () => 2451545,
         getEpochDate: () => new Date("2000-01-01T12:00:00Z"),
         setEpochDisplay: () => {},
+        ...overrides.deps,
     });
 
-    return { actions, state, scene, generateBodyCurve };
+    return { actions, state, scene, globalConfig, generateBodyCurve };
 }
 
 describe("createOrbitVectorsActions", () => {
@@ -129,5 +143,48 @@ describe("createOrbitVectorsActions", () => {
             { x: 2, y: -3 },
         ]);
         expect(scene.orbitTimesByBodyId.SC).toEqual([0, 60000]);
+    });
+
+    it("samples compare-mode craft curves through generateBodyCurve in 2D so overlay orbits render", async () => {
+        const { actions, scene, state, generateBodyCurve } = createActionsHarness({
+            beforeCreate: ({ scene, state, globalConfig }) => {
+                state.compareMode = true;
+                scene.planetsForLocations = ["CMP_ARTEMIS1_SC"];
+                globalConfig.crafts = [
+                    { id: "SC", mnemonic: "SC", primary: true },
+                    { id: "CMP_ARTEMIS1_SC", mnemonic: "ORION" },
+                ];
+                globalConfig.comparisonOverlay = {
+                    compareCraftId: "CMP_ARTEMIS1_SC",
+                };
+            },
+            deps: {
+                chebyshevDataLoaded: { geo: true },
+                chebyshevData: { geo: {} },
+                planetProperties: {
+                    SC: { orbitcolor: "#fff", r: 1, color: "#fff", name: "SC" },
+                    CMP_ARTEMIS1_SC: {
+                        orbitcolor: "#22c55e",
+                        r: 1,
+                        color: "#d946ef",
+                        name: "Compare",
+                    },
+                    EARTH: { color: "#00f", name: "Earth" },
+                },
+            },
+        });
+
+        await actions.processOrbitVectorsData();
+
+        expect(generateBodyCurve).toHaveBeenCalledWith(
+            expect.objectContaining({
+                bodyId: "CMP_ARTEMIS1_SC",
+                spacecraftMnemonic: "ORION",
+            }),
+        );
+        expect(scene.orbitSvgPointsByBodyId.CMP_ARTEMIS1_SC).toEqual([
+            { x: 1, y: -2 },
+            { x: 2, y: -3 },
+        ]);
     });
 });

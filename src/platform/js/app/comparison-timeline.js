@@ -182,6 +182,20 @@ function sortTimelineEvents(a, b) {
     );
 }
 
+function mapComparisonEventTimelineTime({
+    sourceTimeMs,
+    displayRange,
+    sourceRange,
+}) {
+    // Compare-mode interleaving uses a shared fictional clock with native mission pace:
+    // timelineTime = primaryDisplayStart + (sourceEventTime - comparisonSourceStart)
+    return mapOffsetTimeRange({
+        timeMs: sourceTimeMs,
+        fromRange: sourceRange,
+        toRange: displayRange,
+    });
+}
+
 function buildPrimaryTimelineEventInfos({ globalConfig, eventInfos }) {
     const missionLabel = resolveTimelineMissionLabel({
         missionShortLabel: globalConfig?.mission_name_short,
@@ -252,10 +266,10 @@ function buildComparisonTimelineEventInfos({
                 return null;
             }
 
-            const timelineTimeMs = mapOffsetTimeRange({
-                timeMs: sourceTimeMs,
-                fromRange: sourceRange,
-                toRange: displayRange,
+            const timelineTimeMs = mapComparisonEventTimelineTime({
+                sourceTimeMs,
+                displayRange,
+                sourceRange,
             });
             return buildTimelineEventCopy({
                 eventInfo,

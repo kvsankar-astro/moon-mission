@@ -196,12 +196,15 @@ export function createOrbitVectorsActions({
         stepMs,
         resolvedSource,
         defaultSpacecraftSource,
+        compareMode = false,
     }) {
         const globalConfig = readGlobalConfig();
         const missionCraft = resolveMissionCraft(globalConfig, bodyId);
         const startTimeMs = getStartTime();
         const endTimeMs = getLatestEndTime();
-        const cacheKey = `${resolvedSource}|${startTimeMs}|${endTimeMs}|${stepMs}`;
+        const useSampledCurve = compareMode && !!missionCraft && typeof generateBodyCurve === "function";
+        const cacheKey =
+            `${resolvedSource}|${startTimeMs}|${endTimeMs}|${stepMs}|${useSampledCurve ? "sampled" : "series"}`;
 
         let configCache = curveCacheByConfig.get(config);
         if (!configCache) {
@@ -220,7 +223,23 @@ export function createOrbitVectorsActions({
             "SC";
         let vectors = [];
 
-        if (resolvedSource === "npz" && npzDataLoaded?.[config]) {
+        if (useSampledCurve) {
+            vectors = generateBodyCurve({
+                bodyId,
+                config,
+                startTimeMs,
+                endTimeMs,
+                stepMs,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                globalConfig,
+                resolvedSource,
+                spacecraftMnemonic,
+                defaultSpacecraftSource,
+            });
+        } else if (resolvedSource === "npz" && npzDataLoaded?.[config]) {
             const series = selectSeriesFromNpz(
                 npzData,
                 config,
@@ -326,6 +345,7 @@ export function createOrbitVectorsActions({
                     stepMs,
                     resolvedSource,
                     defaultSpacecraftSource,
+                    compareMode,
                 });
                 const vectors = normalizeComparisonCurveVectors({
                     compareMode,
