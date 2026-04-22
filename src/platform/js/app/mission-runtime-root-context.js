@@ -7,6 +7,7 @@ function createMissionRuntimeHandlersEntryContext({
     toggleRelativeMode,
     toggleCompareMode,
     changeCompareMission,
+    changeCompareAlignment,
     getStartupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval,
@@ -30,6 +31,7 @@ function createMissionRuntimeHandlersEntryContext({
         toggleRelativeMode,
         toggleCompareMode,
         changeCompareMission,
+        changeCompareAlignment,
         getStartupAnimTimeOverride,
         readLoopState: () => runtimeLoopState.getLoopState(),
         writeLoopState: (nextLoopState) => {

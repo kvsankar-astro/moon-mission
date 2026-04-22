@@ -12,6 +12,10 @@ function normalizeComparisonMissionParam(value) {
     return asTrimmedString(value).toLowerCase();
 }
 
+function normalizeComparisonAlignmentEventKey(value) {
+    return asTrimmedString(value).toLowerCase();
+}
+
 function sanitizeComparisonIdPart(value, fallback) {
     const normalized = normalizeBodyId(value)
         .replace(/[^A-Z0-9]+/g, "_")
@@ -89,9 +93,128 @@ function mapOffsetTimeRange({ timeMs, fromRange, toRange }) {
     return normalizedToRange.startMs + (timeMs - normalizedFromRange.startMs);
 }
 
+function resolveComparisonEventTimeMs(eventInfo) {
+    if (!eventInfo) return Number.NaN;
+    if (eventInfo.startTime instanceof Date) {
+        return eventInfo.startTime.getTime();
+    }
+    if (Number.isFinite(eventInfo.startTime)) {
+        return eventInfo.startTime;
+    }
+    const parsed = new Date(eventInfo.startTime).getTime();
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+}
+
 function resolveComparisonOverlay(globalConfig) {
     const overlay = globalConfig?.comparisonOverlay;
     return overlay && typeof overlay === "object" ? overlay : null;
+}
+
+function resolveComparisonTimelineEventsByOrigin(eventMap, config) {
+    if (!eventMap || typeof eventMap !== "object") {
+        return [];
+    }
+
+    const normalizedConfig = asTrimmedString(config).toLowerCase();
+    if (Array.isArray(eventMap[normalizedConfig])) {
+        return eventMap[normalizedConfig];
+    }
+
+    if (normalizedConfig === "relative") {
+        return eventMap.relative || eventMap.geo || [];
+    }
+
+    if (normalizedConfig === "geo") {
+        return eventMap.geo || eventMap.relative || [];
+    }
+
+    return eventMap.relative || eventMap.geo || [];
+}
+
+function isLaunchLikeComparisonEvent(eventInfo) {
+    const corpus = [
+        eventInfo?.key,
+        eventInfo?.label,
+        eventInfo?.infoText,
+        eventInfo?.hoverText,
+    ].map((value) => normalizeComparisonAlignmentEventKey(value)).join(" ");
+    return /launch|liftoff|lift\s*off/.test(corpus);
+}
+
+function resolveDefaultAlignmentEventInfo(eventInfos = []) {
+    const filteredEventInfos = (Array.isArray(eventInfos) ? eventInfos : [])
+        .filter((eventInfo) => normalizeComparisonAlignmentEventKey(eventInfo?.key) !== "now")
+        .filter((eventInfo) => Number.isFinite(resolveComparisonEventTimeMs(eventInfo)));
+    return filteredEventInfos.find(isLaunchLikeComparisonEvent) || null;
+}
+
+function resolveSelectedAlignmentEventInfo(eventInfos = [], selectedEventKey = "") {
+    const normalizedSelectedEventKey = normalizeComparisonAlignmentEventKey(selectedEventKey);
+    if (!normalizedSelectedEventKey) {
+        return resolveDefaultAlignmentEventInfo(eventInfos);
+    }
+
+    const matchedEvent = (Array.isArray(eventInfos) ? eventInfos : []).find(
+        (eventInfo) => normalizeComparisonAlignmentEventKey(eventInfo?.key) === normalizedSelectedEventKey,
+    );
+    if (matchedEvent) {
+        return matchedEvent;
+    }
+
+    return resolveDefaultAlignmentEventInfo(eventInfos);
+}
+
+function resolveComparisonAlignmentAnchorTimes({ globalConfig, bodyId, config }) {
+    if (!isComparisonOverlayMappedBody(globalConfig, bodyId)) {
+        return null;
+    }
+
+    const overlay = resolveComparisonOverlay(globalConfig);
+    const displayRange = resolveComparisonDisplayTimeRange({
+        globalConfig,
+        bodyId,
+        config,
+    });
+    const sourceRange = resolveComparisonSourceTimeRange({
+        globalConfig,
+        bodyId,
+        config,
+    });
+    if (!displayRange || !sourceRange) {
+        return null;
+    }
+
+    const primaryEventInfos = resolveComparisonTimelineEventsByOrigin(
+        overlay?.primaryTimelineEventInfosByOrigin,
+        config,
+    );
+    const comparisonEventInfos = resolveComparisonTimelineEventsByOrigin(
+        overlay?.timelineSourceEventInfosByOrigin,
+        config,
+    );
+
+    const primaryAnchorEvent = resolveSelectedAlignmentEventInfo(
+        primaryEventInfos,
+        overlay?.selectedPrimaryAlignmentEventKey,
+    );
+    const comparisonAnchorEvent = resolveSelectedAlignmentEventInfo(
+        comparisonEventInfos,
+        overlay?.selectedComparisonAlignmentEventKey,
+    );
+
+    const displayAnchorTimeMs = Number.isFinite(resolveComparisonEventTimeMs(primaryAnchorEvent))
+        ? resolveComparisonEventTimeMs(primaryAnchorEvent)
+        : displayRange.startMs;
+    const sourceAnchorTimeMs = Number.isFinite(resolveComparisonEventTimeMs(comparisonAnchorEvent))
+        ? resolveComparisonEventTimeMs(comparisonAnchorEvent)
+        : sourceRange.startMs;
+
+    return {
+        displayRange,
+        sourceRange,
+        displayAnchorTimeMs,
+        sourceAnchorTimeMs,
+    };
 }
 
 function resolveComparisonOverlayMappedBodyIds(globalConfig) {
@@ -211,26 +334,29 @@ function resolveComparisonSourceTimeRange({ globalConfig, bodyId, config }) {
 }
 
 function mapComparisonBodyTimeMs({ globalConfig, bodyId, config, timeMs }) {
-    const displayRange = resolveComparisonDisplayTimeRange({
+    const anchorTimes = resolveComparisonAlignmentAnchorTimes({
         globalConfig,
         bodyId,
         config,
     });
-    const sourceRange = resolveComparisonSourceTimeRange({
-        globalConfig,
-        bodyId,
-        config,
-    });
-
-    if (!displayRange || !sourceRange) {
+    if (!anchorTimes) {
         return timeMs;
     }
 
-    return mapOffsetTimeRange({
-        timeMs,
-        fromRange: displayRange,
-        toRange: sourceRange,
+    return Number(timeMs) + (anchorTimes.sourceAnchorTimeMs - anchorTimes.displayAnchorTimeMs);
+}
+
+function mapComparisonSourceTimeMsToDisplayTime({ globalConfig, bodyId, config, timeMs }) {
+    const anchorTimes = resolveComparisonAlignmentAnchorTimes({
+        globalConfig,
+        bodyId,
+        config,
     });
+    if (!anchorTimes) {
+        return timeMs;
+    }
+
+    return Number(timeMs) + (anchorTimes.displayAnchorTimeMs - anchorTimes.sourceAnchorTimeMs);
 }
 
 function resolveComparisonDisplayAvailabilityTimeRange({
@@ -238,26 +364,27 @@ function resolveComparisonDisplayAvailabilityTimeRange({
     bodyId,
     config,
 }) {
-    const displayRange = resolveComparisonDisplayTimeRange({
+    const anchorTimes = resolveComparisonAlignmentAnchorTimes({
         globalConfig,
         bodyId,
         config,
     });
-    const sourceRange = resolveComparisonSourceTimeRange({
-        globalConfig,
-        bodyId,
-        config,
-    });
-    if (!displayRange || !sourceRange) {
+    if (!anchorTimes) {
         return null;
     }
 
     return {
-        startMs: displayRange.startMs,
-        endMs: mapOffsetTimeRange({
-            timeMs: sourceRange.endMs,
-            fromRange: sourceRange,
-            toRange: displayRange,
+        startMs: mapComparisonSourceTimeMsToDisplayTime({
+            globalConfig,
+            bodyId,
+            config,
+            timeMs: anchorTimes.sourceRange.startMs,
+        }),
+        endMs: mapComparisonSourceTimeMsToDisplayTime({
+            globalConfig,
+            bodyId,
+            config,
+            timeMs: anchorTimes.sourceRange.endMs,
         }),
     };
 }
@@ -371,8 +498,11 @@ export {
     isComparisonOverlayBody,
     isComparisonOverlayMappedBody,
     mapComparisonBodyTimeMs,
+    mapComparisonSourceTimeMsToDisplayTime,
     mapOffsetTimeRange,
+    normalizeComparisonAlignmentEventKey,
     normalizeComparisonMissionParam,
+    resolveComparisonEventTimeMs,
     resolveComparisonDisplayAvailabilityTimeRange,
     resolveComparisonDefaultVisibleCraftIds,
     resolveComparisonDisplayTimeRange,
@@ -381,4 +511,5 @@ export {
     resolveComparisonOverlayNormalizationSupportBodyId,
     resolveComparisonOverlay,
     resolveComparisonSourceTimeRange,
+    resolveComparisonTimelineEventsByOrigin,
 };

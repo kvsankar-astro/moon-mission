@@ -336,6 +336,7 @@ const {
     toggleModeGuarded,
     toggleCompareMode,
     changeCompareMission,
+    changeCompareAlignment,
 } = initialMissionViewState;
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
@@ -591,6 +592,7 @@ const handlersEntryContext = createMissionRuntimeHandlersEntryContext({
     toggleRelativeMode,
     toggleCompareMode,
     changeCompareMission,
+    changeCompareAlignment,
     getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval: () => fpsUpdateInterval,

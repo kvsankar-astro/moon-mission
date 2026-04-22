@@ -5,6 +5,7 @@ const DEFAULT_HOVER_SELECTORS = [
     "#timeline-dock",
     "#zoom-panel",
     "#info-panel",
+    "#compare-panel",
     "#shortcut-panel",
     ".aux-camera-view",
     "#ground-track-panel",
@@ -28,6 +29,9 @@ export function createDesktopChromeAutohideController(deps = {}) {
         : () => false;
     const isSettingsPanelOpen = typeof deps.isSettingsPanelOpen === "function"
         ? deps.isSettingsPanelOpen
+        : () => false;
+    const isComparePanelOpen = typeof deps.isComparePanelOpen === "function"
+        ? deps.isComparePanelOpen
         : () => false;
     const setHeaderPillStripAutoCollapsedState =
         typeof deps.setHeaderPillStripAutoCollapsedState === "function"
@@ -97,11 +101,12 @@ export function createDesktopChromeAutohideController(deps = {}) {
         if (!isElementLike(active)) return false;
         if (isInteractiveInputTarget(active)) return true;
         if (active.matches?.('[role="slider"]')) return true;
-        return !!active.closest?.("#settings-panel, #info-panel, #shortcut-panel, .panel-manager-menu");
+        return !!active.closest?.("#settings-panel, #compare-panel, #info-panel, #shortcut-panel, .panel-manager-menu");
     }
 
     function hasBlockingUiOpen() {
         if (isSettingsPanelOpen()) return true;
+        if (isComparePanelOpen()) return true;
         const infoPanel = documentRef.getElementById("info-panel");
         if (
             infoPanel &&

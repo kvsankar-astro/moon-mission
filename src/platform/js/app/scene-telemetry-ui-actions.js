@@ -11,6 +11,7 @@ import {
     computeEarthCraftMoonAngleFromSceneState,
     hasFiniteVector3,
 } from "../core/domain/earth-craft-moon-angle.js";
+import { buildCompareModeUiModel } from "../core/domain/compare-mode-ui-model.js";
 
 function createSceneTelemetryUiActions(deps) {
     const {
@@ -25,7 +26,20 @@ function createSceneTelemetryUiActions(deps) {
     let telemetrySnapshot = null;
     let telemetryPrimaryBody = "EARTH";
     let sceneStateSnapshot = null;
+    let telemetryGlobalConfig = null;
     const groundTrackPanelActions = createGroundTrackPanelActions({ formatMetric });
+
+    function setText(id, text) {
+        const node = documentRef.getElementById(id);
+        if (!node) return;
+        node.textContent = text;
+    }
+
+    function setHidden(id, hidden) {
+        const node = documentRef.getElementById(id);
+        if (!node) return;
+        node.hidden = !!hidden;
+    }
 
     function resolveActiveSceneForAngle() {
         const selectedMode = documentRef.querySelector('input[name="mode"]:checked');
@@ -127,6 +141,48 @@ function createSceneTelemetryUiActions(deps) {
         setMobileText("mobile-metric-moon", telemetryDisplayModel.mobile.moon);
         setMobileText("mobile-metric-speed", telemetryDisplayModel.mobile.speed);
         setMobileText("mobile-metric-angle", telemetryDisplayModel.mobile.angle);
+
+        const compareModeUiModel = buildCompareModeUiModel({
+            sceneState: sceneStateSnapshot,
+            globalConfig: telemetryGlobalConfig,
+            primaryBody: telemetryPrimaryBody,
+            unitMode: metricUnitMode,
+            formatMetric,
+        });
+        const compareEnabled = compareModeUiModel.enabled && compareModeUiModel.entries.length >= 2;
+
+        setHidden("stats-single-wrapper", compareEnabled);
+        setHidden("stats-compare-wrapper", !compareEnabled);
+        setHidden("mobile-primary-metrics", compareEnabled);
+        setHidden("mobile-compare-metrics", !compareEnabled);
+        setText(
+            "mobile-mission-card-title",
+            compareEnabled ? compareModeUiModel.mobileTitle : "Mission Info",
+        );
+
+        if (!compareEnabled) {
+            return;
+        }
+
+        for (const entry of compareModeUiModel.entries) {
+            const key = entry.id === "primary" ? "primary" : "secondary";
+            setText(`stats-compare-${key}-role`, entry.roleLabel);
+            setText(`stats-compare-${key}-label`, entry.label);
+            setText(`stats-compare-${key}-phase`, entry.phaseText);
+            setText(`stats-compare-${key}-distance-earth`, entry.desktop.distanceEarth || "--");
+            setText(`stats-compare-${key}-altitude-earth`, entry.desktop.altitudeEarth || "--");
+            setText(`stats-compare-${key}-velocity-earth`, entry.desktop.velocityEarth || "--");
+            setText(`stats-compare-${key}-distance-moon`, entry.desktop.distanceMoon || "--");
+            setText(`stats-compare-${key}-altitude-moon`, entry.desktop.altitudeMoon || "--");
+            setText(`stats-compare-${key}-velocity-moon`, entry.desktop.velocityMoon || "--");
+
+            setText(`mobile-compare-${key}-role`, entry.roleLabel);
+            setText(`mobile-compare-${key}-label`, entry.label);
+            setText(`mobile-compare-${key}-phase`, entry.phaseText);
+            setText(`mobile-compare-${key}-earth`, entry.mobile.earth || "--");
+            setText(`mobile-compare-${key}-moon`, entry.mobile.moon || "--");
+            setText(`mobile-compare-${key}-speed`, entry.mobile.speed || "--");
+        }
     }
 
     function setMetricUnitMode(nextMode) {
@@ -177,11 +233,12 @@ function createSceneTelemetryUiActions(deps) {
         applyTelemetryUnitControlModel(buildTelemetryUnitControlModel(metricUnitMode));
     }
 
-    function updateTelemetry(sceneState, primaryBody, config = null, animTime = null) {
+    function updateTelemetry(sceneState, primaryBody, globalConfig = null, config = null, animTime = null) {
         ensureUnitControlsBound();
         telemetryPrimaryBody = primaryBody;
         telemetrySnapshot = sceneState?.telemetry || null;
         sceneStateSnapshot = sceneState || null;
+        telemetryGlobalConfig = globalConfig || null;
         if (config && windowRef.animationScenes?.[config]) {
             windowRef.animationScenes[config].latestSceneState = sceneState || null;
         }

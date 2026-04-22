@@ -60,6 +60,8 @@ function createInitConfigUiActions(deps) {
                 .attr("id", buttonId)
                 .attr("data-event-index", String(i))
                 .attr("data-event-key", eventInfo["key"] || "")
+                .attr("data-event-source-key", eventInfo?.timelineSourceKey || eventInfo["key"] || "")
+                .attr("data-timeline-role", eventInfo?.timelineRole || "")
                 .attr("data-event-time-ms", Number.isFinite(eventTimeMs) ? String(eventTimeMs) : "")
                 .attr("data-burn-flag", eventInfo?.burnFlag ? "true" : "false")
                 .attr("data-duration-seconds", String(eventInfo?.durationSeconds ?? 0))

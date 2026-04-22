@@ -34,8 +34,8 @@ function createSceneUiUpdateActions(deps) {
         setMobileText,
     });
 
-    function updateTelemetry(sceneState, primaryBody, config = null, animTime = null) {
-        sceneTelemetryUiActions.updateTelemetry(sceneState, primaryBody, config, animTime);
+    function updateTelemetry(sceneState, primaryBody, globalConfig = null, config = null, animTime = null) {
+        sceneTelemetryUiActions.updateTelemetry(sceneState, primaryBody, globalConfig, config, animTime);
     }
 
     function updatePhaseIndicator(sceneState, globalConfig) {

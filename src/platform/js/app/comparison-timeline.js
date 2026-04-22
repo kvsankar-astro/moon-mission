@@ -1,8 +1,7 @@
 import {
-    mapOffsetTimeRange,
-    resolveComparisonDisplayTimeRange,
+    mapComparisonSourceTimeMsToDisplayTime,
     resolveComparisonOverlay,
-    resolveComparisonSourceTimeRange,
+    resolveComparisonTimelineEventsByOrigin,
 } from "../core/domain/comparison-overlay.js";
 import { buildEventHoverText, buildEventInfoText } from "./burn-event-metadata.js";
 import { formatDateTimeUTC } from "../utils/time-utils.js";
@@ -131,6 +130,7 @@ function buildTimelineEventCopy({
         timelineRole,
         timelineMissionLabel: missionLabel,
         timelineMissionKey: asTrimmedString(missionKey, timelineRole),
+        timelineSourceKey: asTrimmedString(eventInfo?.key),
         timelineLabel: missionScopedLabel,
         timelineHoverText: prefixTimelineText(
             missionLabel,
@@ -142,27 +142,6 @@ function buildTimelineEventCopy({
         ),
         comparisonEvent: timelineRole === TIMELINE_ROLE_COMPARISON,
     };
-}
-
-function resolveComparisonTimelineSourceEventsByOrigin(eventMap, config) {
-    if (!eventMap || typeof eventMap !== "object") {
-        return [];
-    }
-
-    const normalizedConfig = asTrimmedString(config).toLowerCase();
-    if (Array.isArray(eventMap[normalizedConfig])) {
-        return eventMap[normalizedConfig];
-    }
-
-    if (normalizedConfig === "relative") {
-        return eventMap.relative || eventMap.geo || [];
-    }
-
-    if (normalizedConfig === "geo") {
-        return eventMap.geo || eventMap.relative || [];
-    }
-
-    return eventMap.relative || eventMap.geo || [];
 }
 
 function sortTimelineEvents(a, b) {
@@ -183,16 +162,16 @@ function sortTimelineEvents(a, b) {
 }
 
 function mapComparisonEventTimelineTime({
+    globalConfig,
+    bodyId,
+    config,
     sourceTimeMs,
-    displayRange,
-    sourceRange,
 }) {
-    // Compare-mode interleaving uses a shared fictional clock with native mission pace:
-    // timelineTime = primaryDisplayStart + (sourceEventTime - comparisonSourceStart)
-    return mapOffsetTimeRange({
+    return mapComparisonSourceTimeMsToDisplayTime({
+        globalConfig,
+        bodyId,
+        config,
         timeMs: sourceTimeMs,
-        fromRange: sourceRange,
-        toRange: displayRange,
     });
 }
 
@@ -229,25 +208,11 @@ function buildComparisonTimelineEventInfos({
         return [];
     }
 
-    const comparisonSourceEvents = resolveComparisonTimelineSourceEventsByOrigin(
+    const comparisonSourceEvents = resolveComparisonTimelineEventsByOrigin(
         overlay.timelineSourceEventInfosByOrigin,
         config,
     );
     if (!Array.isArray(comparisonSourceEvents) || comparisonSourceEvents.length === 0) {
-        return [];
-    }
-
-    const displayRange = resolveComparisonDisplayTimeRange({
-        globalConfig,
-        bodyId: overlay.compareCraftId,
-        config,
-    });
-    const sourceRange = resolveComparisonSourceTimeRange({
-        globalConfig,
-        bodyId: overlay.compareCraftId,
-        config,
-    });
-    if (!displayRange || !sourceRange) {
         return [];
     }
 
@@ -267,9 +232,10 @@ function buildComparisonTimelineEventInfos({
             }
 
             const timelineTimeMs = mapComparisonEventTimelineTime({
+                globalConfig,
+                bodyId: overlay.compareCraftId,
+                config,
                 sourceTimeMs,
-                displayRange,
-                sourceRange,
             });
             return buildTimelineEventCopy({
                 eventInfo,

@@ -2,8 +2,10 @@ const HEADER_BLURB_AUTO_COLLAPSE_DELAY_MS = 10000;
 const DEFAULT_MISSION_INTERACTIVE_REGION_SELECTOR = [
     "#header-pill-strip",
     "#settings-panel-button",
+    "#compare-pill-button",
     "#advanced-controls-pill",
     "#settings-panel",
+    "#compare-panel",
     "#control-panel",
     "#zoom-panel",
     "#timeline-dock",

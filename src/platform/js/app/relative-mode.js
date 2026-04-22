@@ -124,6 +124,22 @@ function createRelativeModeActions(deps) {
         return trimmed.length > 0 ? trimmed : "";
     }
 
+    function normalizeCompareAlignmentEventParam(value) {
+        const trimmed = typeof value === "string" ? value.trim().toLowerCase() : "";
+        return trimmed.length > 0 ? trimmed : "";
+    }
+
+    function resolveRequestedCompareAlignmentEventKey(payloadValue, selectedValue, urlValue) {
+        if (payloadValue !== undefined) {
+            return normalizeCompareAlignmentEventParam(payloadValue);
+        }
+
+        return (
+            normalizeCompareAlignmentEventParam(selectedValue) ||
+            normalizeCompareAlignmentEventParam(urlValue)
+        );
+    }
+
     function normalizeOriginModeParam(value) {
         const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
         if (normalized === "earth") return "geo";
@@ -162,6 +178,34 @@ function createRelativeModeActions(deps) {
     function getSelectedCompareMission() {
         const select = document.getElementById("compare-mission-select");
         return normalizeCompareMissionParam(select?.value);
+    }
+
+    function getSelectedComparePrimaryEventKey() {
+        const select = document.getElementById("compare-primary-event-select");
+        return normalizeCompareAlignmentEventParam(select?.value);
+    }
+
+    function getSelectedCompareSecondaryEventKey() {
+        const select = document.getElementById("compare-secondary-event-select");
+        return normalizeCompareAlignmentEventParam(select?.value);
+    }
+
+    function getComparePrimaryEventKeyFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            return normalizeCompareAlignmentEventParam(url.searchParams.get("comparePrimaryEvent"));
+        } catch {
+            return "";
+        }
+    }
+
+    function getCompareSecondaryEventKeyFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            return normalizeCompareAlignmentEventParam(url.searchParams.get("compareSecondaryEvent"));
+        } catch {
+            return "";
+        }
     }
 
     function replaceCompareMissionInUrl(compareMission) {
@@ -204,6 +248,16 @@ function createRelativeModeActions(deps) {
 
     function navigateWithRuntimeMode(runtimeMode, options = {}) {
         const compareMission = options.compareMission;
+        const primaryEventKey = normalizeCompareAlignmentEventParam(
+            options.primaryEventKey !== undefined
+                ? options.primaryEventKey
+                : getComparePrimaryEventKeyFromUrl(),
+        );
+        const secondaryEventKey = normalizeCompareAlignmentEventParam(
+            options.secondaryEventKey !== undefined
+                ? options.secondaryEventKey
+                : getCompareSecondaryEventKeyFromUrl(),
+        );
         const originMode = normalizeOriginModeParam(
             options.originMode !== undefined ? options.originMode : getOriginModeFromUrl(),
         );
@@ -222,6 +276,16 @@ function createRelativeModeActions(deps) {
         } else {
             url.searchParams.delete("compareMission");
         }
+        if (primaryEventKey) {
+            url.searchParams.set("comparePrimaryEvent", primaryEventKey);
+        } else {
+            url.searchParams.delete("comparePrimaryEvent");
+        }
+        if (secondaryEventKey) {
+            url.searchParams.set("compareSecondaryEvent", secondaryEventKey);
+        } else {
+            url.searchParams.delete("compareSecondaryEvent");
+        }
         applyOriginParamForNavigation(url, runtimeMode, originMode);
         window.location.href = url.toString();
     }
@@ -233,6 +297,12 @@ function createRelativeModeActions(deps) {
                 compareMission:
                     getSelectedCompareMission() ||
                     getCompareMissionFromUrl(),
+                primaryEventKey:
+                    getSelectedComparePrimaryEventKey() ||
+                    getComparePrimaryEventKeyFromUrl(),
+                secondaryEventKey:
+                    getSelectedCompareSecondaryEventKey() ||
+                    getCompareSecondaryEventKeyFromUrl(),
                 originMode: "relative",
             });
             return;
@@ -258,6 +328,16 @@ function createRelativeModeActions(deps) {
             normalizeCompareMissionParam(payload.compareMission) ||
             getSelectedCompareMission() ||
             getCompareMissionFromUrl();
+        const primaryEventKey = resolveRequestedCompareAlignmentEventKey(
+            payload.primaryEventKey,
+            getSelectedComparePrimaryEventKey(),
+            getComparePrimaryEventKeyFromUrl(),
+        );
+        const secondaryEventKey = resolveRequestedCompareAlignmentEventKey(
+            payload.secondaryEventKey,
+            getSelectedCompareSecondaryEventKey(),
+            getCompareSecondaryEventKeyFromUrl(),
+        );
 
         if (requestedEnabled && !compareMission) {
             return;
@@ -282,6 +362,8 @@ function createRelativeModeActions(deps) {
         persistAnimTimeOverrideToSession();
         navigateWithRuntimeMode(targetRuntimeMode, {
             compareMission,
+            primaryEventKey,
+            secondaryEventKey,
             originMode,
         });
     }
@@ -296,12 +378,65 @@ function createRelativeModeActions(deps) {
             persistAnimTimeOverrideToSession();
             navigateWithRuntimeMode("compare", {
                 compareMission,
+                primaryEventKey: resolveRequestedCompareAlignmentEventKey(
+                    payload.primaryEventKey,
+                    getSelectedComparePrimaryEventKey(),
+                    getComparePrimaryEventKeyFromUrl(),
+                ),
+                secondaryEventKey: resolveRequestedCompareAlignmentEventKey(
+                    payload.secondaryEventKey,
+                    getSelectedCompareSecondaryEventKey(),
+                    getCompareSecondaryEventKeyFromUrl(),
+                ),
                 originMode: getSelectedOriginMode() || getOriginModeFromUrl(),
             });
             return;
         }
 
         replaceCompareMissionInUrl(compareMission);
+    }
+
+    function changeCompareAlignment(payload = {}) {
+        const primaryEventKey = resolveRequestedCompareAlignmentEventKey(
+            payload.primaryEventKey,
+            getSelectedComparePrimaryEventKey(),
+            getComparePrimaryEventKeyFromUrl(),
+        );
+        const secondaryEventKey = resolveRequestedCompareAlignmentEventKey(
+            payload.secondaryEventKey,
+            getSelectedCompareSecondaryEventKey(),
+            getCompareSecondaryEventKeyFromUrl(),
+        );
+
+        if (isCompareRuntimeMode(new URL(window.location.href).searchParams.get("mode"))) {
+            persistAnimTimeOverrideToSession();
+            navigateWithRuntimeMode("compare", {
+                compareMission:
+                    getSelectedCompareMission() ||
+                    getCompareMissionFromUrl(),
+                primaryEventKey,
+                secondaryEventKey,
+                originMode: getSelectedOriginMode() || getOriginModeFromUrl(),
+            });
+            return;
+        }
+
+        try {
+            const url = new URL(window.location.href);
+            if (primaryEventKey) {
+                url.searchParams.set("comparePrimaryEvent", primaryEventKey);
+            } else {
+                url.searchParams.delete("comparePrimaryEvent");
+            }
+            if (secondaryEventKey) {
+                url.searchParams.set("compareSecondaryEvent", secondaryEventKey);
+            } else {
+                url.searchParams.delete("compareSecondaryEvent");
+            }
+            window.history?.replaceState?.(null, "", url.toString());
+        } catch {
+            // Ignore URL mutation errors
+        }
     }
 
     function toggleModeGuarded() {
@@ -311,6 +446,12 @@ function createRelativeModeActions(deps) {
                 compareMission:
                     getSelectedCompareMission() ||
                     getCompareMissionFromUrl(),
+                primaryEventKey:
+                    getSelectedComparePrimaryEventKey() ||
+                    getComparePrimaryEventKeyFromUrl(),
+                secondaryEventKey:
+                    getSelectedCompareSecondaryEventKey() ||
+                    getCompareSecondaryEventKeyFromUrl(),
                 originMode: getSelectedOriginMode(),
             });
             syncOriginOptionAvailability();
@@ -352,6 +493,7 @@ function createRelativeModeActions(deps) {
         toggleRelativeMode,
         toggleCompareMode,
         changeCompareMission,
+        changeCompareAlignment,
         toggleModeGuarded,
         syncOriginOptionAvailability,
     };

@@ -2373,6 +2373,98 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     outline-offset: -1px;
 }
 
+.stats__compare {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: min(520px, calc(100vw - 2 * var(--timeline-dock-offset)));
+}
+
+.stats__compare[hidden] {
+    display: none;
+}
+
+.stats__compare-card {
+    min-width: 220px;
+    flex: 1 1 220px;
+    padding: 6px 7px;
+    border-radius: 10px;
+    border: 1px solid rgba(121, 171, 255, 0.16);
+    background: rgba(11, 18, 31, 0.42);
+}
+
+.stats__compare-card--primary {
+    border-color: rgba(102, 165, 255, 0.2);
+}
+
+.stats__compare-card--secondary {
+    border-color: rgba(94, 224, 181, 0.2);
+}
+
+.stats__compare-head {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.stats__compare-role {
+    display: inline-flex;
+    align-items: center;
+    min-height: 16px;
+    padding: 0 6px;
+    border-radius: 999px;
+    border: 1px solid rgba(121, 171, 255, 0.24);
+    background: rgba(18, 30, 50, 0.72);
+    color: rgba(198, 220, 251, 0.9);
+    font-size: 8px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.stats__compare-card--secondary .stats__compare-role {
+    border-color: rgba(94, 224, 181, 0.28);
+    color: rgba(190, 246, 226, 0.92);
+}
+
+.stats__compare-label {
+    min-width: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(237, 244, 255, 0.95);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stats__compare-phase {
+    margin-bottom: 5px;
+    font-size: 9px;
+    color: rgba(255, 224, 143, 0.94);
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+}
+
+.stats__compare-table {
+    width: 100%;
+}
+
+.stats__compare-table thead th {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(182, 202, 234, 0.72);
+}
+
+.stats__compare-table tbody td:first-child {
+    text-align: left;
+    color: rgba(182, 202, 234, 0.8);
+}
+
+.stats__compare-table td {
+    min-width: 52px;
+}
+
 .date {
   color: grey;
   font-family: "Lucida Console", monospace;
@@ -2837,6 +2929,98 @@ table {
         font-size: 10px;
         color: rgba(239, 246, 255, 0.96);
         line-height: 1.1;
+        font-weight: 600;
+        text-align: right;
+        white-space: nowrap;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-metrics {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-metrics[hidden] {
+        display: none;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-card {
+        padding: 6px 7px;
+        border-radius: 9px;
+        border: 1px solid rgba(121, 171, 255, 0.16);
+        background: rgba(16, 27, 43, 0.56);
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-card--secondary {
+        border-color: rgba(94, 224, 181, 0.22);
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-head {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        margin-bottom: 3px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-role {
+        display: inline-flex;
+        align-items: center;
+        min-height: 15px;
+        padding: 0 5px;
+        border-radius: 999px;
+        border: 1px solid rgba(121, 171, 255, 0.24);
+        background: rgba(18, 31, 50, 0.74);
+        color: rgba(197, 220, 250, 0.88);
+        font-size: 7px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-card--secondary .mobile-shell__compare-role {
+        border-color: rgba(94, 224, 181, 0.28);
+        color: rgba(191, 246, 227, 0.92);
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-label {
+        min-width: 0;
+        font-size: 9px;
+        font-weight: 600;
+        color: rgba(239, 246, 255, 0.96);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-phase {
+        margin-bottom: 4px;
+        font-size: 8px;
+        color: rgba(255, 224, 143, 0.96);
+        letter-spacing: 0.03em;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-grid {
+        display: grid;
+        gap: 3px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-metric {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-key {
+        font-size: 8px;
+        color: rgba(176, 205, 249, 0.76);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body.mobile-shell-enabled .mobile-shell__compare-value {
+        font-size: 9px;
+        color: rgba(239, 246, 255, 0.96);
         font-weight: 600;
         text-align: right;
         white-space: nowrap;

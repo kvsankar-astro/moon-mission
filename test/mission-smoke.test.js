@@ -367,7 +367,16 @@ async function getCompareSceneSnapshot(page) {
 
     return {
       compareCraftId,
+      comparePanelOpen: !!document.getElementById('compare-panel-wrapper') &&
+        document.getElementById('compare-panel-wrapper')?.hidden === false &&
+        !document.getElementById('compare-panel')?.classList?.contains('compare-panel--hidden'),
       compareMissionValue: document.getElementById('compare-mission-select')?.value || '',
+      comparePillVisible: (() => {
+        const button = document.getElementById('compare-pill-button');
+        if (!button) return false;
+        const style = window.getComputedStyle(button);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      })(),
       compareToggleChecked: !!document.getElementById('compare-mode-toggle')?.checked,
       comparisonButtonCount: document.querySelectorAll('#burnbuttons .burnbutton--comparison').length,
       curveKeys,
@@ -385,10 +394,36 @@ async function getCompareSceneSnapshot(page) {
       orbitLineKeys,
       orbitSvgKeys,
       sceneName: scene?.name || null,
+      statsComparePrimaryLabel: document.getElementById('stats-compare-primary-label')?.textContent || '',
+      statsCompareSecondaryLabel: document.getElementById('stats-compare-secondary-label')?.textContent || '',
+      statsCompareVisible: document.getElementById('stats-compare-wrapper')?.hidden === false,
+      statsSingleHidden: !!document.getElementById('stats-single-wrapper')?.hidden,
       timelineCurrentLabel: document.getElementById('timeline-current-label')?.textContent || '',
       urlOrigin: new URLSearchParams(window.location.search).get('origin'),
       urlMode: new URLSearchParams(window.location.search).get('mode'),
       visibleCraftIds,
+    };
+  });
+}
+
+async function getSingleMissionTelemetrySnapshot(page) {
+  return page.evaluate(() => {
+    const compareWrapper = document.getElementById('stats-compare-wrapper');
+    const singleWrapper = document.getElementById('stats-single-wrapper');
+    const mobileCompare = document.getElementById('mobile-compare-metrics');
+    const mobilePrimary = document.getElementById('mobile-primary-metrics');
+
+    return {
+      compareWrapperHidden: !!compareWrapper?.hidden,
+      compareWrapperDisplay: compareWrapper ? window.getComputedStyle(compareWrapper).display : '',
+      singleWrapperHidden: !!singleWrapper?.hidden,
+      singleWrapperDisplay: singleWrapper ? window.getComputedStyle(singleWrapper).display : '',
+      mobileCompareHidden: !!mobileCompare?.hidden,
+      mobileCompareDisplay: mobileCompare ? window.getComputedStyle(mobileCompare).display : '',
+      mobilePrimaryHidden: !!mobilePrimary?.hidden,
+      mobilePrimaryDisplay: mobilePrimary ? window.getComputedStyle(mobilePrimary).display : '',
+      urlMode: new URLSearchParams(window.location.search).get('mode'),
+      hasComparisonOverlay: !!window.globalConfig?.comparisonOverlay,
     };
   });
 }
@@ -443,14 +478,36 @@ async function runCompareModeSmokeCase(page, {
 
   const initialSnapshot = await getCompareSceneSnapshot(page);
   expect(initialSnapshot.urlMode).toBe('compare');
+  expect(initialSnapshot.comparePillVisible).toBe(true);
   expect(initialSnapshot.compareToggleChecked).toBe(true);
   expect(initialSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
   expect(initialSnapshot.comparisonButtonCount).toBeGreaterThan(0);
   expect(initialSnapshot.timelineCurrentLabel).toMatch(/comparison elapsed/i);
   expect(initialSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
   expect(initialSnapshot.compareCraftId).toBeTruthy();
+  expect(initialSnapshot.statsCompareVisible).toBe(true);
+  expect(initialSnapshot.statsSingleHidden).toBe(true);
+  expect(initialSnapshot.statsComparePrimaryLabel).not.toBe('');
+  expect(initialSnapshot.statsCompareSecondaryLabel).not.toBe('');
   expect(initialSnapshot.curveKeys).toContain(initialSnapshot.compareCraftId);
   expect(initialSnapshot.orbitLineKeys).toContain(initialSnapshot.compareCraftId);
+
+  await page.click('#compare-pill-button');
+  await page.waitForFunction(() => {
+    const wrapper = document.getElementById('compare-panel-wrapper');
+    const panel = document.getElementById('compare-panel');
+    return wrapper?.hidden === false && !panel?.classList?.contains('compare-panel--hidden');
+  }, { timeout: TIMEOUTS.MODE_SWITCH });
+  const comparePanelSnapshot = await getCompareSceneSnapshot(page);
+  expect(comparePanelSnapshot.comparePanelOpen).toBe(true);
+  expect(comparePanelSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
+
+  await page.click('#compare-panel-close');
+  await page.waitForFunction(() => {
+    const wrapper = document.getElementById('compare-panel-wrapper');
+    const panel = document.getElementById('compare-panel');
+    return wrapper?.hidden === true && panel?.classList?.contains('compare-panel--hidden');
+  }, { timeout: TIMEOUTS.MODE_SWITCH });
 
   if (expectedOrigin === 'relative') {
     expect(initialSnapshot.urlOrigin).toBe(null);
@@ -617,6 +674,69 @@ describe('Mission Compare Smoke Tests', () => {
       await page.close();
     }
   }, TIMEOUTS.TEST_CASE * 2);
+});
+
+describe('Mission Telemetry Smoke Tests', () => {
+  let browser;
+
+  beforeAll(async () => {
+    const baseArgs = [
+      '--no-sandbox',
+      '--max-old-space-size=4096',
+      '--disable-dev-shm-usage',
+      '--enable-webgl',
+      '--ignore-gpu-blocklist',
+    ];
+
+    const headlessArgs = [
+      '--disable-gpu-sandbox',
+      '--use-angle=gl',
+      '--enable-unsafe-swiftshader',
+    ];
+
+    const headedArgs = [
+      '--enable-gpu-rasterization',
+      '--enable-zero-copy',
+    ];
+
+    const launchArgs = TEST_CONFIG.headless
+      ? [...baseArgs, ...headlessArgs]
+      : [...baseArgs, ...headedArgs];
+
+    browser = await chromium.launch({
+      headless: TEST_CONFIG.headless,
+      slowMo: TEST_CONFIG.slowMo,
+      args: launchArgs,
+    });
+  });
+
+  afterAll(async () => {
+    if (browser) {
+      await browser.close();
+    }
+  });
+
+  it('keeps compare telemetry hidden in plain single-mission mode', async () => {
+    const page = await browser.newPage();
+    try {
+      await page.goto(`${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&testMode=true`, {
+        timeout: TIMEOUTS.PAGE_LOAD,
+      });
+      await waitForSceneReady(page, '3D');
+      await page.waitForTimeout(1500);
+
+      const snapshot = await getSingleMissionTelemetrySnapshot(page);
+      expect(snapshot.urlMode).toBe(null);
+      expect(snapshot.hasComparisonOverlay).toBe(false);
+      expect(snapshot.compareWrapperHidden).toBe(true);
+      expect(snapshot.compareWrapperDisplay).toBe('none');
+      expect(snapshot.singleWrapperHidden).toBe(false);
+      expect(snapshot.mobileCompareHidden).toBe(true);
+      expect(snapshot.mobileCompareDisplay).toBe('none');
+    } finally {
+      await page.close();
+    }
+  }, TIMEOUTS.TEST_CASE);
 });
 
 // Missions to test for event clicking (non-CY2/CY3 missions)

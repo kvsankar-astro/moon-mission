@@ -1,5 +1,6 @@
 import { createControlPanelTimelineController } from "./control-panel-timeline-controller.js";
 import { createCompareModeController } from "./compare-mode-controller.js";
+import { createComparePanelController } from "./compare-panel-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
@@ -108,6 +109,7 @@ let controlPanelTimelineController = null;
 let desktopChromeAutohideController = null;
 let headerBlurbController = null;
 let headerPillStripController = null;
+let comparePanelController = null;
 
 function getControlPanelTimelineController() {
     if (!controlPanelTimelineController) {
@@ -149,6 +151,7 @@ function getDesktopChromeAutohideController() {
     if (!desktopChromeAutohideController) {
         desktopChromeAutohideController = createDesktopChromeAutohideController({
             getMissionDialogApi,
+            isComparePanelOpen: () => getComparePanelController().isComparePanelOpen(),
             isElementLayoutVisible,
             isInteractiveInputTarget,
             isMobileViewport,
@@ -162,6 +165,16 @@ function getDesktopChromeAutohideController() {
         });
     }
     return desktopChromeAutohideController;
+}
+
+function getComparePanelController() {
+    if (!comparePanelController) {
+        comparePanelController = createComparePanelController({
+            documentRef: document,
+            windowRef: window,
+        });
+    }
+    return comparePanelController;
 }
 
 function getHeaderBlurbController() {
@@ -239,6 +252,7 @@ export function bindMainControls(handlers) {
         toggleRelativeMode,
         toggleCompareMode,
         changeCompareMission,
+        changeCompareAlignment,
         changeCameraFromTo,
         changeDesktopMainFov,
         toggleDesktopMainFovAuto,
@@ -288,7 +302,9 @@ export function bindMainControls(handlers) {
     createCompareModeController({
         toggleCompareMode,
         changeCompareMission,
+        changeCompareAlignment,
     }).bind();
+    getComparePanelController().bind();
     syncMainControlControllerSet(controllers);
 }
 

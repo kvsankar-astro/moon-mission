@@ -163,7 +163,7 @@ describe("scene telemetry ui actions", () => {
             },
         };
 
-        actions.updateTelemetry(sceneState, "EARTH", "geo", 4321);
+        actions.updateTelemetry(sceneState, "EARTH", null, "geo", 4321);
 
         expect(distanceUnitDesktop.textContent).toBe("km");
         expect(distanceUnitMobile.textContent).toBe("km");
@@ -239,10 +239,169 @@ describe("scene telemetry ui actions", () => {
                 MOON: { position: { x: 0, y: 0, z: 0 } },
                 SC: { position: { x: 0, y: 1, z: 0 } },
             },
-        }, "EARTH");
+        }, "EARTH", null);
 
         expect(d3Nodes["#distance-SC-EARTH"].textContent).toBe("10.0");
         expect(ids["mobile-metric-earth"].textContent).toBe("10.0 km");
         expect(groundTrackUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it("switches to compare telemetry cards when a comparison overlay is active", () => {
+        const ids = {
+            "stats-unit-km": createElementStub(),
+            "stats-unit-miles": createElementStub(),
+            "mobile-unit-km": createElementStub(),
+            "mobile-unit-miles": createElementStub(),
+            "mobile-metric-earth": createElementStub(),
+            "mobile-metric-moon": createElementStub(),
+            "mobile-metric-speed": createElementStub(),
+            "mobile-metric-angle": createElementStub(),
+            "stats-single-wrapper": createElementStub({ hidden: false }),
+            "stats-compare-wrapper": createElementStub({ hidden: true }),
+            "mobile-primary-metrics": createElementStub({ hidden: false }),
+            "mobile-compare-metrics": createElementStub({ hidden: true }),
+            "mobile-mission-card-title": createElementStub(),
+            "stats-compare-primary-role": createElementStub(),
+            "stats-compare-primary-label": createElementStub(),
+            "stats-compare-primary-phase": createElementStub(),
+            "stats-compare-primary-distance-earth": createElementStub(),
+            "stats-compare-primary-altitude-earth": createElementStub(),
+            "stats-compare-primary-velocity-earth": createElementStub(),
+            "stats-compare-primary-distance-moon": createElementStub(),
+            "stats-compare-primary-altitude-moon": createElementStub(),
+            "stats-compare-primary-velocity-moon": createElementStub(),
+            "stats-compare-secondary-role": createElementStub(),
+            "stats-compare-secondary-label": createElementStub(),
+            "stats-compare-secondary-phase": createElementStub(),
+            "stats-compare-secondary-distance-earth": createElementStub(),
+            "stats-compare-secondary-altitude-earth": createElementStub(),
+            "stats-compare-secondary-velocity-earth": createElementStub(),
+            "stats-compare-secondary-distance-moon": createElementStub(),
+            "stats-compare-secondary-altitude-moon": createElementStub(),
+            "stats-compare-secondary-velocity-moon": createElementStub(),
+            "mobile-compare-primary-role": createElementStub(),
+            "mobile-compare-primary-label": createElementStub(),
+            "mobile-compare-primary-phase": createElementStub(),
+            "mobile-compare-primary-earth": createElementStub(),
+            "mobile-compare-primary-moon": createElementStub(),
+            "mobile-compare-primary-speed": createElementStub(),
+            "mobile-compare-secondary-role": createElementStub(),
+            "mobile-compare-secondary-label": createElementStub(),
+            "mobile-compare-secondary-phase": createElementStub(),
+            "mobile-compare-secondary-earth": createElementStub(),
+            "mobile-compare-secondary-moon": createElementStub(),
+            "mobile-compare-secondary-speed": createElementStub(),
+        };
+        const d3Nodes = {
+            "#distance-SC-EARTH": createElementStub(),
+            "#altitude-SC-EARTH": createElementStub(),
+            "#velocity-SC-EARTH": createElementStub(),
+            "#distance-SC-MOON": createElementStub(),
+            "#altitude-SC-MOON": createElementStub(),
+            "#velocity-SC-MOON": createElementStub(),
+        };
+
+        globalThis.document = createDocumentStub({
+            ids,
+            distanceNodes: [],
+            speedNodes: [],
+        });
+        globalThis.window = { animationScenes: { geo: {} } };
+
+        const actions = createSceneTelemetryUiActions({
+            d3: createD3Stub(d3Nodes),
+            formatMetric: (value) => Number(value).toFixed(1),
+            setMobileText(id, text) {
+                if (ids[id]) {
+                    ids[id].textContent = text;
+                }
+            },
+            documentRef: globalThis.document,
+            windowRef: globalThis.window,
+        });
+
+        actions.updateTelemetry({
+            time: 1500,
+            config: "geo",
+            phase: "earth-bound",
+            telemetryBodyId: "SC",
+            telemetry: {
+                distancePrimary: 8000,
+                altitudePrimary: 1622,
+                velocityPrimary: 2,
+                distanceMoon: 376400,
+                altitudeMoon: 374663,
+                velocityMoon: 2.5,
+            },
+            bodies: {
+                EARTH: {
+                    available: true,
+                    position: { x: 0, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                },
+                MOON: {
+                    available: true,
+                    position: { x: 384400, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                },
+                SC: {
+                    available: true,
+                    position: { x: 8000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 2, vz: 0 },
+                },
+                CMP_ART1_CM: {
+                    available: true,
+                    position: { x: 386400, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1.5, vz: 0 },
+                },
+            },
+        }, "EARTH", {
+            mission_name: "Chandrayaan 3",
+            mission_name_short: "CH3",
+            is_lunar: true,
+            primaryCraftId: "SC",
+            crafts: [
+                {
+                    id: "SC",
+                    mnemonic: "SC",
+                    viewLabel: "Vikram",
+                    primary: true,
+                },
+                {
+                    id: "CMP_ART1_CM",
+                    mnemonic: "CMP_ART1_CM",
+                    viewLabel: "ART1 Orion",
+                    primary: false,
+                },
+            ],
+            comparisonOverlay: {
+                missionName: "Artemis I",
+                missionShortLabel: "ART1",
+                compareCraftId: "CMP_ART1_CM",
+                isLunarMission: true,
+                missionEventTimes: {
+                    timeTransLunarInjection: 2100,
+                    timeLunarOrbitInsertion: 2600,
+                },
+                displayTimeRangesByOrigin: {
+                    geo: { startMs: 1000, endMs: 3000 },
+                },
+                sourceTimeRangesByOrigin: {
+                    geo: { startMs: 2000, endMs: 4000 },
+                },
+            },
+        }, "geo");
+
+        expect(ids["stats-single-wrapper"].hidden).toBe(true);
+        expect(ids["stats-compare-wrapper"].hidden).toBe(false);
+        expect(ids["mobile-primary-metrics"].hidden).toBe(true);
+        expect(ids["mobile-compare-metrics"].hidden).toBe(false);
+        expect(ids["mobile-mission-card-title"].textContent).toBe("Mission Compare");
+        expect(ids["stats-compare-primary-label"].textContent).toBe("CH3 Vikram");
+        expect(ids["stats-compare-primary-phase"].textContent).toBe("Earth Bound");
+        expect(ids["stats-compare-secondary-label"].textContent).toBe("ART1 Orion");
+        expect(ids["stats-compare-secondary-phase"].textContent).toBe("Lunar Bound");
+        expect(ids["stats-compare-secondary-distance-moon"].textContent).toBe("2000.0");
+        expect(ids["mobile-compare-secondary-earth"].textContent).toBe("386400.0 km");
     });
 });

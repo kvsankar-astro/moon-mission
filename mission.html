@@ -980,6 +980,18 @@
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
                     </div>
+                    <div id="compare-pill-wrap" class="header-pill-segment header-pill-segment--single">
+                        <button
+                            id="compare-pill-button"
+                            type="button"
+                            class="header-pill-segment__btn"
+                            aria-haspopup="dialog"
+                            aria-expanded="false"
+                            title="Open compare controls"
+                        >
+                            Compare
+                        </button>
+                    </div>
                     <div id="advanced-controls-pill-wrap" class="header-pill-segment header-pill-segment--single">
                         <button
                             id="advanced-controls-pill"
@@ -997,6 +1009,51 @@
                         <div id="desktop-main-fov" class="header-main-fov" hidden></div>
                     </div>
                 </div>
+            </div>
+
+            <div id="compare-panel-wrapper" class="compare-panel-wrapper" hidden>
+                <section
+                    id="compare-panel"
+                    class="compare-panel compare-panel--hidden"
+                    role="dialog"
+                    aria-labelledby="compare-panel-title"
+                    aria-modal="false"
+                >
+                    <div class="compare-panel__header">
+                        <div id="compare-panel-title" class="compare-panel__title">Compare</div>
+                        <button id="compare-panel-close" class="compare-panel__close" type="button" title="Close">×</button>
+                    </div>
+                    <div class="compare-panel__body">
+                        <section class="compare-panel__section">
+                            <label class="settings-option compare-panel__toggle" title="Overlay a second mission in fictional comparison time">
+                                <input id="compare-mode-toggle" type="checkbox">
+                                <span>Compare Mode</span>
+                            </label>
+                            <div class="compare-panel__field">
+                                <label class="compare-panel__field-label" for="compare-mission-select">Other Mission</label>
+                                <select id="compare-mission-select" aria-label="Comparison mission" disabled>
+                                    <option value="">Select mission</option>
+                                </select>
+                            </div>
+                            <div id="compare-alignment-row" class="compare-panel__alignment settings-row settings-row--hidden">
+                                <div class="compare-panel__field">
+                                    <label class="compare-panel__field-label" for="compare-primary-event-select">Primary Event</label>
+                                    <select id="compare-primary-event-select" aria-label="Primary mission alignment event" disabled>
+                                        <option value="">Launch / Start</option>
+                                    </select>
+                                </div>
+                                <div class="compare-panel__connector" aria-hidden="true">To</div>
+                                <div class="compare-panel__field">
+                                    <label class="compare-panel__field-label" for="compare-secondary-event-select">Other Event</label>
+                                    <select id="compare-secondary-event-select" aria-label="Comparison mission alignment event" disabled>
+                                        <option value="">Launch / Start</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <p class="compare-panel__note">Align one event pair only. Mission pacing stays native.</p>
+                        </section>
+                    </div>
+                </section>
             </div>
     
             <div id="settings-panel" class="settings-panel">
@@ -1020,16 +1077,6 @@
                                     <input id="origin-relative" type="radio" name="mode" value="relative" title="Earth–Moon axis fixed (mode=relative)">
                                     <span>Relative</span>
                                 </label>
-                            </div>
-                            <div id="compare-controls-row" class="settings-row">
-                                <label class="settings-option" title="Overlay a second mission in fictional comparison time">
-                                    <input id="compare-mode-toggle" type="checkbox">
-                                    <span>Compare Mode</span>
-                                </label>
-                                <span class="settings-subtitle">Other Mission</span>
-                                <select id="compare-mission-select" aria-label="Comparison mission" disabled>
-                                    <option value="">Select mission</option>
-                                </select>
                             </div>
                         </fieldset>
 
@@ -1409,7 +1456,7 @@
         <div id="info-panel-wrapper" class="info-panel-wrapper">
             <div id="info-panel" class="info-panel info-panel--hidden">
                 <div class="info-panel__header">
-                    <div class="info-panel__title">Mission Info</div>
+                    <div id="info-panel-title" class="info-panel__title">Mission Info</div>
                     <button id="info-panel-close" class="info-panel__close" type="button" title="Close">×</button>
                 </div>
                 <div id="info-panel-body" class="info-panel__body">
@@ -1553,7 +1600,7 @@
             <section id="mobile-card-mission" class="mobile-shell__card mobile-shell__card--mission" aria-label="Mission info card">
                 <div class="mobile-shell__card-head">
                     <div class="mobile-shell__card-head-main">
-                        <span class="mobile-shell__card-title">Mission Info</span>
+                        <span id="mobile-mission-card-title" class="mobile-shell__card-title">Mission Info</span>
                         <div class="mobile-shell__unit-pill" role="group" aria-label="Mobile telemetry units">
                             <button
                                 id="mobile-unit-km"
@@ -1577,7 +1624,7 @@
                     </div>
                 </div>
                 <div id="mobile-mission-body" class="mobile-shell__card-body">
-                    <div class="mobile-shell__metrics">
+                    <div id="mobile-primary-metrics" class="mobile-shell__metrics">
                         <div class="mobile-shell__metric">
                             <span class="mobile-shell__metric-label">Earth</span>
                             <span id="mobile-metric-earth" class="mobile-shell__metric-value">--</span>
@@ -1593,6 +1640,50 @@
                         <div class="mobile-shell__metric">
                             <span class="mobile-shell__metric-label" title="Craft-Moon-Earth Angle">Craft-Moon-Earth Angle</span>
                             <span id="mobile-metric-angle" class="mobile-shell__metric-value">--</span>
+                        </div>
+                    </div>
+                    <div id="mobile-compare-metrics" class="mobile-shell__compare-metrics" hidden>
+                        <div class="mobile-shell__compare-card mobile-shell__compare-card--primary">
+                            <div class="mobile-shell__compare-head">
+                                <span id="mobile-compare-primary-role" class="mobile-shell__compare-role">Primary</span>
+                                <span id="mobile-compare-primary-label" class="mobile-shell__compare-label">--</span>
+                            </div>
+                            <div id="mobile-compare-primary-phase" class="mobile-shell__compare-phase">--</div>
+                            <div class="mobile-shell__compare-grid">
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Earth</span>
+                                    <span id="mobile-compare-primary-earth" class="mobile-shell__compare-value">--</span>
+                                </div>
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Moon</span>
+                                    <span id="mobile-compare-primary-moon" class="mobile-shell__compare-value">--</span>
+                                </div>
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Speed</span>
+                                    <span id="mobile-compare-primary-speed" class="mobile-shell__compare-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-shell__compare-card mobile-shell__compare-card--secondary">
+                            <div class="mobile-shell__compare-head">
+                                <span id="mobile-compare-secondary-role" class="mobile-shell__compare-role">Additional</span>
+                                <span id="mobile-compare-secondary-label" class="mobile-shell__compare-label">--</span>
+                            </div>
+                            <div id="mobile-compare-secondary-phase" class="mobile-shell__compare-phase">--</div>
+                            <div class="mobile-shell__compare-grid">
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Earth</span>
+                                    <span id="mobile-compare-secondary-earth" class="mobile-shell__compare-value">--</span>
+                                </div>
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Moon</span>
+                                    <span id="mobile-compare-secondary-moon" class="mobile-shell__compare-value">--</span>
+                                </div>
+                                <div class="mobile-shell__compare-metric">
+                                    <span class="mobile-shell__compare-key">Speed</span>
+                                    <span id="mobile-compare-secondary-speed" class="mobile-shell__compare-value">--</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div id="mobile-mission-event" class="mobile-shell__event" aria-live="polite" hidden></div>
@@ -1936,7 +2027,7 @@
                     </div>
                 </div>
 
-                <div> <!-- extended statistics / Relative to Earth -->
+                <div id="stats-single-wrapper">
                     <table>
                     <tr>
                         <th colspan="2"><b>Relative to Earth</b></th>
@@ -1958,11 +2049,7 @@
                         <td><label id="velocity-SC-EARTH" class="sc"></label></td>
                     </tr>
                     </table>
-                </div>
-
-                <div class="vspace"></div>
-
-                <div> <!-- extended statistics / Relative to Moon -->
+                    <div class="vspace"></div>
                     <table>
                     <tr>
                         <th colspan="2"><b>Relative to Moon</b></th>
@@ -1984,6 +2071,75 @@
                         <td><label id="velocity-SC-MOON" class="sc"></label></td>
                     </tr>
                     </table>
+                </div>
+
+                <div id="stats-compare-wrapper" class="stats__compare" hidden>
+                    <section class="stats__compare-card stats__compare-card--primary" aria-label="Primary mission telemetry">
+                        <div class="stats__compare-head">
+                            <span id="stats-compare-primary-role" class="stats__compare-role">Primary</span>
+                            <span id="stats-compare-primary-label" class="stats__compare-label">--</span>
+                        </div>
+                        <div id="stats-compare-primary-phase" class="stats__compare-phase">--</div>
+                        <table class="stats__compare-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Earth</th>
+                                    <th>Moon</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Distance</td>
+                                    <td id="stats-compare-primary-distance-earth">--</td>
+                                    <td id="stats-compare-primary-distance-moon">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Altitude</td>
+                                    <td id="stats-compare-primary-altitude-earth">--</td>
+                                    <td id="stats-compare-primary-altitude-moon">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Velocity</td>
+                                    <td id="stats-compare-primary-velocity-earth">--</td>
+                                    <td id="stats-compare-primary-velocity-moon">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <section class="stats__compare-card stats__compare-card--secondary" aria-label="Comparison mission telemetry">
+                        <div class="stats__compare-head">
+                            <span id="stats-compare-secondary-role" class="stats__compare-role">Additional</span>
+                            <span id="stats-compare-secondary-label" class="stats__compare-label">--</span>
+                        </div>
+                        <div id="stats-compare-secondary-phase" class="stats__compare-phase">--</div>
+                        <table class="stats__compare-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Earth</th>
+                                    <th>Moon</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Distance</td>
+                                    <td id="stats-compare-secondary-distance-earth">--</td>
+                                    <td id="stats-compare-secondary-distance-moon">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Altitude</td>
+                                    <td id="stats-compare-secondary-altitude-earth">--</td>
+                                    <td id="stats-compare-secondary-altitude-moon">--</td>
+                                </tr>
+                                <tr>
+                                    <td>Velocity</td>
+                                    <td id="stats-compare-secondary-velocity-earth">--</td>
+                                    <td id="stats-compare-secondary-velocity-moon">--</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </section>
                 </div>
             </div> <!-- stats wrapper -->
             

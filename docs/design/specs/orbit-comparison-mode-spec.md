@@ -147,24 +147,24 @@ So:
 
 ### MVP policy
 
-MVP uses a simple start-aligned comparison clock mapping:
+MVP uses a single-anchor comparison clock mapping:
 
-- define a displayed comparison start for mission A
-- define a displayed comparison start for mission B
-- preserve each mission's native elapsed-time pace after that start
+- choose exactly one anchor pair `A_Ex` and `B_Ey`
+- by default, each side uses a launch-like event when available and falls back to mission start otherwise
+- preserve each mission's native elapsed-time pace after that anchor
 
 In other words:
 
-- `tau = 0` means both missions are at their displayed comparison start
+- `tau = 0` means the selected anchor pair is aligned on the shared comparison clock
 - `tau + 1 day` means each mission advances by one day of its own mission time
 - shorter missions end earlier on the shared comparison timeline rather than being stretched
 
 ### Event interleaving rule
 
-Comparison timeline/event interleaving follows the same start-aligned offset policy:
+Comparison timeline/event interleaving follows the same single-anchor offset policy:
 
-- for each mission event, compute `offset = eventTime - missionDisplayedStart`
-- place the event on the shared comparison timeline at `compareStart + offset`
+- for each mission event, compute `offset = eventTime - selectedAnchorTime`
+- place the event on the shared comparison timeline at `compareAnchor + offset`
 - merge all mission events into one list and sort by that shared comparison time
 - when two events land on the exact same comparison time, keep primary-mission events first
 - if two events still tie after that, sort by label for stability
@@ -174,13 +174,8 @@ This is intentionally simple for MVP. It preserves native mission pacing and avo
 
 ### Future refinement
 
-After MVP, the preferred refinement is piecewise event-anchored mapping:
-
-- launch -> TLI
-- TLI -> LOI
-- LOI -> landing or end-of-window
-
-That will allow better event interleaving when two missions have very different mission durations.
+After MVP, the preferred refinement is curated mission-pair presets that preselect useful anchor pairs
+without changing the no-stretch time policy.
 
 ## Rendering Policy
 
@@ -372,6 +367,9 @@ Comparison mode should eventually include tests for:
 - [x] Add a functional Playwright compare-mode regression that verifies dual craft/orbit rendering and interleaved comparison events across 3D and 2D
 - [x] Preserve compare mode while switching between relative, geo, and lunar origins through the existing origin controls
 - [x] Add functional Playwright compare-mode regressions for relative, geo, and lunar origin views
+- [x] Add compare-aware dual-mission telemetry cards so desktop and mobile readouts stop collapsing back to a single-mission display
+- [x] Extend the Mission Info panel with compare-specific mission pair metadata and comparison policy summaries
+- [x] Add compare-mode event-pair alignment controls and URL state, defaulting to launch/start when no explicit pair is selected
 
 ### In progress
 

@@ -21,6 +21,22 @@ function createInput(id, options = {}) {
     };
 }
 
+function createClassList(initialValues = []) {
+    const values = new Set(initialValues);
+    return {
+        toggle(value, enabled) {
+            if (enabled) {
+                values.add(value);
+                return;
+            }
+            values.delete(value);
+        },
+        contains(value) {
+            return values.has(value);
+        },
+    };
+}
+
 function createSelect(id) {
     const listeners = new Map();
     const options = [];
@@ -49,8 +65,42 @@ function createSelect(id) {
     return select;
 }
 
+function createRow(id) {
+    return {
+        id,
+        hidden: false,
+        classList: createClassList(),
+    };
+}
+
+function createBurnButton({
+    eventSourceKey,
+    timelineRole = "primary",
+    textContent,
+    comparison = timelineRole === "comparison",
+}) {
+    return {
+        dataset: {
+            eventSourceKey,
+            timelineRole,
+        },
+        textContent,
+        classList: createClassList(comparison ? ["burnbutton--comparison"] : []),
+        getAttribute(name) {
+            if (name === "data-event-source-key") {
+                return eventSourceKey;
+            }
+            if (name === "data-timeline-role") {
+                return timelineRole;
+            }
+            return "";
+        },
+    };
+}
+
 function createHarness({
     search = "?mission=chandrayaan3",
+    burnButtons = [],
     entries = [
         {
             folder: "chandrayaan3",
@@ -72,9 +122,17 @@ function createHarness({
 } = {}) {
     const compareToggle = createInput("compare-mode-toggle");
     const compareSelect = createSelect("compare-mission-select");
+    const compareAlignmentRow = createRow("compare-alignment-row");
+    const comparePrimaryEventSelect = createSelect("compare-primary-event-select");
+    const compareSecondaryEventSelect = createSelect("compare-secondary-event-select");
+    const burnButtonsHost = createRow("burnbuttons");
     const byId = new Map([
         ["compare-mode-toggle", compareToggle],
         ["compare-mission-select", compareSelect],
+        ["compare-alignment-row", compareAlignmentRow],
+        ["compare-primary-event-select", comparePrimaryEventSelect],
+        ["compare-secondary-event-select", compareSecondaryEventSelect],
+        ["burnbuttons", burnButtonsHost],
     ]);
 
     const documentRef = {
@@ -90,11 +148,18 @@ function createHarness({
         getElementById(id) {
             return byId.get(id) || null;
         },
+        querySelectorAll(selector) {
+            if (selector === "#burnbuttons button[data-event-source-key]") {
+                return burnButtons;
+            }
+            return [];
+        },
     };
     const windowRef = {
         location: {
             search,
         },
+        MutationObserver: undefined,
         missionConfig: {
             dataPath: "assets/chandrayaan3/data/",
         },
@@ -110,16 +175,22 @@ function createHarness({
 
     const toggleCompareMode = vi.fn();
     const changeCompareMission = vi.fn();
+    const changeCompareAlignment = vi.fn();
     const controller = createCompareModeController({
         documentRef,
         windowRef,
         toggleCompareMode,
         changeCompareMission,
+        changeCompareAlignment,
     });
 
     return {
+        changeCompareAlignment,
         changeCompareMission,
+        compareAlignmentRow,
+        comparePrimaryEventSelect,
         compareSelect,
+        compareSecondaryEventSelect,
         compareToggle,
         controller,
         toggleCompareMode,
@@ -141,6 +212,7 @@ describe("compare mode controller", () => {
             "grail",
         ]);
         expect(harness.compareSelect.value).toBe("grail");
+        expect(harness.compareAlignmentRow.hidden).toBe(true);
     });
 
     it("canonicalizes compare mission aliases from the URL", () => {
@@ -186,6 +258,8 @@ describe("compare mode controller", () => {
 
         expect(harness.toggleCompareMode).toHaveBeenCalledWith({
             compareMission: "artemis1",
+            primaryEventKey: undefined,
+            secondaryEventKey: undefined,
             enabled: true,
         });
     });
@@ -205,6 +279,85 @@ describe("compare mode controller", () => {
         expect(harness.changeCompareMission).toHaveBeenCalledWith({
             compareMission: "grail",
             compareEnabled: false,
+            primaryEventKey: undefined,
+            secondaryEventKey: undefined,
+        });
+    });
+
+    it("preserves URL-driven alignment when the compare selectors are not yet available", () => {
+        const harness = createHarness({
+            search: "?mission=chandrayaan3&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
+        });
+
+        harness.controller.bind();
+        harness.compareToggle.checked = true;
+        harness.compareToggle.dispatchEvent({
+            type: "change",
+            target: harness.compareToggle,
+        });
+
+        expect(harness.toggleCompareMode).toHaveBeenCalledWith({
+            compareMission: "artemis1",
+            primaryEventKey: undefined,
+            secondaryEventKey: undefined,
+            enabled: true,
+        });
+    });
+
+    it("populates alignment controls from burn buttons and dispatches alignment changes", () => {
+        const harness = createHarness({
+            burnButtons: [
+                createBurnButton({
+                    eventSourceKey: "launch",
+                    timelineRole: "primary",
+                    textContent: "CH3: Launch",
+                }),
+                createBurnButton({
+                    eventSourceKey: "tli",
+                    timelineRole: "primary",
+                    textContent: "CH3: TLI",
+                }),
+                createBurnButton({
+                    eventSourceKey: "launch",
+                    timelineRole: "comparison",
+                    textContent: "A1: Launch",
+                }),
+                createBurnButton({
+                    eventSourceKey: "loi",
+                    timelineRole: "comparison",
+                    textContent: "A1: LOI",
+                }),
+            ],
+            search: "?mission=chandrayaan3&mode=compare&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
+        });
+
+        harness.controller.bind();
+
+        expect(harness.compareAlignmentRow.hidden).toBe(false);
+        expect(harness.comparePrimaryEventSelect.options.map((option) => option.value)).toEqual([
+            "",
+            "launch",
+            "tli",
+        ]);
+        expect(harness.compareSecondaryEventSelect.options.map((option) => option.value)).toEqual([
+            "",
+            "launch",
+            "loi",
+        ]);
+        expect(harness.comparePrimaryEventSelect.value).toBe("tli");
+        expect(harness.compareSecondaryEventSelect.value).toBe("loi");
+
+        harness.comparePrimaryEventSelect.value = "";
+        harness.compareSecondaryEventSelect.value = "";
+        harness.compareSecondaryEventSelect.dispatchEvent({
+            type: "change",
+            target: harness.compareSecondaryEventSelect,
+        });
+
+        expect(harness.changeCompareAlignment).toHaveBeenCalledWith({
+            compareEnabled: true,
+            primaryEventKey: "",
+            secondaryEventKey: "",
         });
     });
 });

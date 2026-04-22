@@ -3,6 +3,7 @@ import {
     buildComparisonOverlayCraft,
     buildComparisonOverlayCraftId,
     buildComparisonOverlaySupportBodyId,
+    normalizeComparisonAlignmentEventKey,
     normalizeComparisonMissionParam,
 } from "../core/domain/comparison-overlay.js";
 import { isCompareRuntimeMode } from "../core/domain/runtime-mode.js";
@@ -15,6 +16,7 @@ import {
 } from "../core/domain/mission-asset-resolver.js";
 import { resolvePrimaryMissionCraft } from "../core/domain/mission-config.js";
 import { computeEventsUpdate } from "./config-events.js";
+import { computeMissionEventTimes } from "./config-times.js";
 import { resolveMissionBodyTimeRange } from "./start-end-times.js";
 
 function asTrimmedString(value, fallback = "") {
@@ -191,7 +193,7 @@ function buildComparisonOrbitUrlsByOrigin({ comparisonConfig, comparisonDataPath
 }
 
 function buildComparisonTimelineSourceEventsByOrigin({
-    comparisonConfig,
+    missionConfig,
     sourceTimeRangesByOrigin,
 }) {
     const eventInfosByOrigin = {};
@@ -199,7 +201,7 @@ function buildComparisonTimelineSourceEventsByOrigin({
 
     for (const [originKey, sourceRange] of Object.entries(sourceTimeRangesByOrigin || {})) {
         const eventsUpdate = computeEventsUpdate({
-            globalConfig: comparisonConfig,
+            globalConfig: missionConfig,
             config: originKey,
             nowDate,
             getDataEndTimeMs: () => sourceRange?.endMs,
@@ -211,6 +213,17 @@ function buildComparisonTimelineSourceEventsByOrigin({
     }
 
     return eventInfosByOrigin;
+}
+
+function resolveSelectedAlignmentEventKeys(params) {
+    return {
+        selectedPrimaryAlignmentEventKey: normalizeComparisonAlignmentEventKey(
+            params?.get("comparePrimaryEvent"),
+        ),
+        selectedComparisonAlignmentEventKey: normalizeComparisonAlignmentEventKey(
+            params?.get("compareSecondaryEvent"),
+        ),
+    };
 }
 
 async function loadComparisonMissionConfig({
@@ -333,10 +346,21 @@ async function loadComparisonOverlayConfig({
             comparisonConfig: comparisonMissionConfig.comparisonConfig,
             comparisonDataPath,
         });
+        const primaryTimelineEventInfosByOrigin = buildComparisonTimelineSourceEventsByOrigin({
+            missionConfig: baseConfig,
+            sourceTimeRangesByOrigin: displayTimeRangesByOrigin,
+        });
         const timelineSourceEventInfosByOrigin = buildComparisonTimelineSourceEventsByOrigin({
-            comparisonConfig: comparisonMissionConfig.comparisonConfig,
+            missionConfig: comparisonMissionConfig.comparisonConfig,
             sourceTimeRangesByOrigin,
         });
+        const comparisonMissionEventTimes = computeMissionEventTimes({
+            globalConfig: comparisonMissionConfig.comparisonConfig,
+        });
+        const {
+            selectedPrimaryAlignmentEventKey,
+            selectedComparisonAlignmentEventKey,
+        } = resolveSelectedAlignmentEventKeys(params);
 
         if (
             Object.keys(displayTimeRangesByOrigin).length === 0 ||
@@ -372,6 +396,8 @@ async function loadComparisonOverlayConfig({
                     comparisonMissionConfig.comparisonConfig?.mission_name_short ||
                     compareMission?.missionName ||
                     missionFolder,
+                isLunarMission: !!comparisonMissionConfig.comparisonConfig?.is_lunar,
+                missionEventTimes: comparisonMissionEventTimes,
                 compareCraftId,
                 sourceCraftId: comparisonPrimaryCraft.id,
                 sourceCraftMnemonic: comparisonPrimaryCraft.mnemonic,
@@ -379,7 +405,10 @@ async function loadComparisonOverlayConfig({
                 normalizationSupportBodyIdsByOrigin,
                 displayTimeRangesByOrigin,
                 sourceTimeRangesByOrigin,
+                primaryTimelineEventInfosByOrigin,
                 timelineSourceEventInfosByOrigin,
+                selectedPrimaryAlignmentEventKey,
+                selectedComparisonAlignmentEventKey,
                 supportOrbitChebyshevUrlsByOrigin,
                 defaultVisibleCraftIds: [primaryCraft.id, compareCraftId],
             },

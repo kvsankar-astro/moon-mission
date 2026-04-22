@@ -1,6 +1,24 @@
+import { resolveMissionCraft, resolvePrimaryMissionCraft } from "../core/domain/mission-config.js";
+
 const UI_FEATURE_FLAGS = {
     showMissionInfoPanel: true,
 };
+
+function asTrimmedString(value, fallback = "") {
+    if (typeof value !== "string") return fallback;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function resolveCraftDisplayLabel(craft, fallback = "Craft") {
+    return asTrimmedString(
+        craft?.viewLabel,
+        asTrimmedString(
+            craft?.name,
+            asTrimmedString(craft?.mnemonic, asTrimmedString(craft?.id, fallback)),
+        ),
+    );
+}
 
 function createEphemerisInfoPanelActions(deps) {
     const {
@@ -52,6 +70,7 @@ function createEphemerisInfoPanelActions(deps) {
     function updateEphemerisPanel() {
         const panel = document.getElementById("info-panel-body");
         if (!panel) return;
+        const titleNode = document.getElementById("info-panel-title");
 
         const globalConfig = getGlobalConfig();
         if (!globalConfig) {
@@ -65,6 +84,7 @@ function createEphemerisInfoPanelActions(deps) {
         const bodyEphemerisSources = getBodyEphemerisSources();
         const missionName = globalConfig?.mission_name || "Mission";
         const sc = globalConfig?.spacecraft_mnemonic || "SC";
+        const comparisonOverlay = globalConfig?.comparisonOverlay || null;
         const epSrc = ephemerisSource.toUpperCase();
         const origins = (globalConfig?.origins || []).filter(
             (originKey) => originKey !== "landing",
@@ -157,6 +177,62 @@ function createEphemerisInfoPanelActions(deps) {
         const landingDataCenters = landingOriginKeys
             .map((originKey) => globalConfig?.[originKey]?.center)
             .filter((centerName, index, arr) => centerName && arr.indexOf(centerName) === index);
+        const primaryCraft = resolvePrimaryMissionCraft(globalConfig);
+        const compareCraft = comparisonOverlay?.compareCraftId
+            ? resolveMissionCraft(globalConfig, comparisonOverlay.compareCraftId)
+            : null;
+        const comparisonOrigins = Object.keys(comparisonOverlay?.displayTimeRangesByOrigin || {});
+        const comparisonOverlaySection = comparisonOverlay
+            ? `
+        <section class="info-panel__section">
+            <div class="info-panel__section-title">Comparison Overlay</div>
+            <div class="info-panel__table-wrap">
+                <table class="info-panel__table">
+                    <thead>
+                        <tr>
+                            <th>Primary Mission</th>
+                            <th>Comparison Mission</th>
+                            <th>Primary Craft</th>
+                            <th>Comparison Craft</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${missionName}</td>
+                            <td>${comparisonOverlay.missionName || "—"}</td>
+                            <td>${resolveCraftDisplayLabel(primaryCraft, sc)}</td>
+                            <td>${resolveCraftDisplayLabel(compareCraft, comparisonOverlay.compareCraftId || "—")}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="info-panel__table-wrap">
+                <table class="info-panel__table">
+                    <thead>
+                        <tr>
+                            <th>Timeline Policy</th>
+                            <th>Normalization</th>
+                            <th>Origins</th>
+                            <th>Default Visible Pair</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Shared start, native elapsed pace</td>
+                            <td>Runtime display transform with fixed Earth-Moon span</td>
+                            <td>${comparisonOrigins.join(", ") || "—"}</td>
+                            <td>${(comparisonOverlay.defaultVisibleCraftIds || []).join(", ") || "—"}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `
+            : "";
+
+        if (titleNode) {
+            titleNode.textContent = comparisonOverlay ? "Mission & Compare Info" : "Mission Info";
+        }
 
         function getExpectedOrbitSources(originKey) {
             const originConfig = globalConfig?.[originKey] || {};
@@ -280,6 +356,7 @@ function createEphemerisInfoPanelActions(deps) {
                 </table>
             </div>
         </section>
+        ${comparisonOverlaySection}
         <section class="info-panel__section">
             <div class="info-panel__section-title">Body Sources</div>
             <div class="info-panel__table-wrap">

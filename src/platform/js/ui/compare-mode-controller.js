@@ -62,12 +62,14 @@ function resolveCanonicalMissionQueryValue(windowRef, missionKey) {
 }
 
 function createCompareModeController(deps = {}) {
-    const documentRef = deps.documentRef || document;
-    const windowRef = deps.windowRef || window;
+    const documentRef = deps.documentRef || globalThis.document;
+    const windowRef = deps.windowRef || globalThis.window;
     const toggleCompareMode = deps.toggleCompareMode;
     const changeCompareMission = deps.changeCompareMission;
+    const changeCompareAlignment = deps.changeCompareAlignment;
 
     let bound = false;
+    let burnButtonsObserver = null;
 
     function getElement(id) {
         return documentRef?.getElementById?.(id) || null;
@@ -136,9 +138,149 @@ function createCompareModeController(deps = {}) {
         return asTrimmedString(select?.value);
     }
 
+    function getSelectedAlignmentEventKey(selectId) {
+        const select = getElement(selectId);
+        return normalizeKey(select?.value);
+    }
+
+    function getRequestedAlignmentEventKey(selectId) {
+        const select = getElement(selectId);
+        if (!select || select.disabled) {
+            return undefined;
+        }
+        return normalizeKey(select.value);
+    }
+
+    function getAlignmentEventKeyFromUrl(paramName) {
+        const params = new URLSearchParams(windowRef?.location?.search || "");
+        return normalizeKey(params.get(paramName));
+    }
+
+    function collectAlignmentEventOptions(isComparisonRole) {
+        const buttons = Array.from(
+            documentRef?.querySelectorAll?.("#burnbuttons button[data-event-source-key]") || [],
+        );
+        const seen = new Set();
+        const options = [];
+
+        for (const button of buttons) {
+            const role = normalizeKey(
+                button?.dataset?.timelineRole ||
+                button?.getAttribute?.("data-timeline-role") ||
+                (button?.classList?.contains?.("burnbutton--comparison") ? "comparison" : "primary"),
+            );
+            const isComparisonButton = role === "comparison";
+            if (isComparisonRole !== isComparisonButton) {
+                continue;
+            }
+
+            const value = normalizeKey(
+                button?.dataset?.eventSourceKey ||
+                button?.getAttribute?.("data-event-source-key"),
+            );
+            if (!value || value === "now" || seen.has(value)) {
+                continue;
+            }
+            seen.add(value);
+            options.push({
+                value,
+                label: asTrimmedString(button?.textContent, value),
+            });
+        }
+
+        return options;
+    }
+
+    function resolveSelectedAlignmentOptionValue(options, requestedValue) {
+        if (!Array.isArray(options) || options.length === 0) {
+            return "";
+        }
+
+        const normalizedRequestedValue = normalizeKey(requestedValue);
+        if (normalizedRequestedValue && options.some((option) => option.value === normalizedRequestedValue)) {
+            return normalizedRequestedValue;
+        }
+        return "";
+    }
+
+    function setRowHidden(row, hidden) {
+        if (!row) return;
+        row.hidden = !!hidden;
+        row.classList?.toggle?.("settings-row--hidden", !!hidden);
+    }
+
+    function syncAlignmentControls(compareModeActive = isCompareRuntimeMode(new URLSearchParams(windowRef?.location?.search || "").get("mode"))) {
+        const alignmentRow = getElement("compare-alignment-row");
+        const primarySelect = getElement("compare-primary-event-select");
+        const secondarySelect = getElement("compare-secondary-event-select");
+        if (!alignmentRow || !primarySelect || !secondarySelect) {
+            return;
+        }
+
+        const primaryOptions = compareModeActive ? collectAlignmentEventOptions(false) : [];
+        const secondaryOptions = compareModeActive ? collectAlignmentEventOptions(true) : [];
+        const showAlignmentControls = compareModeActive && primaryOptions.length > 0 && secondaryOptions.length > 0;
+
+        setRowHidden(alignmentRow, !showAlignmentControls);
+        primarySelect.disabled = !showAlignmentControls;
+        secondarySelect.disabled = !showAlignmentControls;
+
+        replaceSelectOptions(
+            primarySelect,
+            [
+                createOption("", "Launch / Start"),
+                ...primaryOptions.map((option) => createOption(option.value, option.label)),
+            ],
+        );
+        replaceSelectOptions(
+            secondarySelect,
+            [
+                createOption("", "Launch / Start"),
+                ...secondaryOptions.map((option) => createOption(option.value, option.label)),
+            ],
+        );
+
+        if (!showAlignmentControls) {
+            primarySelect.value = "";
+            secondarySelect.value = "";
+            return;
+        }
+
+        primarySelect.value = resolveSelectedAlignmentOptionValue(
+            primaryOptions,
+            getAlignmentEventKeyFromUrl("comparePrimaryEvent"),
+        );
+        secondarySelect.value = resolveSelectedAlignmentOptionValue(
+            secondaryOptions,
+            getAlignmentEventKeyFromUrl("compareSecondaryEvent"),
+        );
+    }
+
+    function bindBurnButtonsObserver() {
+        if (burnButtonsObserver || typeof windowRef?.MutationObserver !== "function") {
+            return;
+        }
+
+        const burnButtonsHost = getElement("burnbuttons");
+        if (!burnButtonsHost) {
+            return;
+        }
+
+        burnButtonsObserver = new windowRef.MutationObserver(() => {
+            syncAlignmentControls(!!getElement("compare-mode-toggle")?.checked);
+        });
+        burnButtonsObserver.observe(burnButtonsHost, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ["class", "data-event-source-key", "data-timeline-role"],
+        });
+    }
+
     function sync() {
         const toggle = getElement("compare-mode-toggle");
         const select = getElement("compare-mission-select");
+        const comparePillButton = getElement("compare-pill-button");
         if (!toggle || !select) {
             return;
         }
@@ -171,6 +313,14 @@ function createCompareModeController(deps = {}) {
         toggle.title = entries.length === 0
             ? "No alternate missions available for comparison"
             : "Enable orbit comparison mode";
+        if (comparePillButton) {
+            comparePillButton.disabled = entries.length === 0;
+            comparePillButton.title = entries.length === 0
+                ? "No alternate missions available for comparison"
+                : "Open compare controls";
+            comparePillButton.classList?.toggle?.("is-active", compareModeActive);
+        }
+        syncAlignmentControls(compareModeActive);
     }
 
     function bind() {
@@ -179,12 +329,17 @@ function createCompareModeController(deps = {}) {
 
         const toggle = getElement("compare-mode-toggle");
         const select = getElement("compare-mission-select");
+        const primaryAlignmentSelect = getElement("compare-primary-event-select");
+        const secondaryAlignmentSelect = getElement("compare-secondary-event-select");
 
         sync();
+        bindBurnButtonsObserver();
 
         toggle?.addEventListener("change", function (event) {
             toggleCompareMode?.({
                 compareMission: getSelectedCompareMission(),
+                primaryEventKey: getRequestedAlignmentEventKey("compare-primary-event-select"),
+                secondaryEventKey: getRequestedAlignmentEventKey("compare-secondary-event-select"),
                 enabled: !!event?.target?.checked,
             });
         });
@@ -193,14 +348,27 @@ function createCompareModeController(deps = {}) {
             changeCompareMission?.({
                 compareMission: asTrimmedString(event?.target?.value),
                 compareEnabled: !!getElement("compare-mode-toggle")?.checked,
+                primaryEventKey: getRequestedAlignmentEventKey("compare-primary-event-select"),
+                secondaryEventKey: getRequestedAlignmentEventKey("compare-secondary-event-select"),
             });
         });
+
+        const onAlignmentChange = () => {
+            changeCompareAlignment?.({
+                compareEnabled: !!getElement("compare-mode-toggle")?.checked,
+                primaryEventKey: getSelectedAlignmentEventKey("compare-primary-event-select"),
+                secondaryEventKey: getSelectedAlignmentEventKey("compare-secondary-event-select"),
+            });
+        };
+        primaryAlignmentSelect?.addEventListener("change", onAlignmentChange);
+        secondaryAlignmentSelect?.addEventListener("change", onAlignmentChange);
     }
 
     return {
         bind,
         getMissionEntries,
         getSelectedCompareMission,
+        syncAlignmentControls,
         sync,
     };
 }

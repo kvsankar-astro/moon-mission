@@ -72,6 +72,7 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleRelativeMode: (event) => eventBus.emit("settings:relativeModeChanged", { event }),
         toggleCompareMode: handlers.toggleCompareMode,
         changeCompareMission: handlers.changeCompareMission,
+        changeCompareAlignment: handlers.changeCompareAlignment,
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
         changeDesktopMainFov: handlers.changeDesktopMainFov,
         toggleDesktopMainFovAuto: handlers.toggleDesktopMainFovAuto,

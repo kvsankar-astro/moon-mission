@@ -5,6 +5,7 @@ import {
 } from "../src/platform/js/app/comparison-overlay-loader.js";
 import {
     mapComparisonBodyTimeMs,
+    mapComparisonSourceTimeMsToDisplayTime,
     mapOffsetTimeRange,
     resolveComparisonOverlayNormalizationSupportBodyId,
     resolveComparisonDisplayAvailabilityTimeRange,
@@ -213,6 +214,77 @@ describe("comparison overlay", () => {
         })).toBe(1025);
     });
 
+    it("supports custom event-pair alignment without stretching the comparison mission timeline", () => {
+        const globalConfig = {
+            comparisonOverlay: {
+                compareCraftId: "CMP_ARTEMIS1_CM",
+                selectedPrimaryAlignmentEventKey: "tli",
+                selectedComparisonAlignmentEventKey: "loi",
+                primaryTimelineEventInfosByOrigin: {
+                    geo: [
+                        {
+                            key: "launch",
+                            label: "Launch",
+                            startTime: new Date(100),
+                        },
+                        {
+                            key: "tli",
+                            label: "TLI",
+                            startTime: new Date(400),
+                        },
+                    ],
+                },
+                timelineSourceEventInfosByOrigin: {
+                    geo: [
+                        {
+                            key: "launch",
+                            label: "Launch",
+                            startTime: new Date(1000),
+                        },
+                        {
+                            key: "loi",
+                            label: "LOI",
+                            startTime: new Date(1600),
+                        },
+                    ],
+                },
+                displayTimeRangesByOrigin: {
+                    geo: {
+                        startMs: 0,
+                        endMs: 2000,
+                    },
+                },
+                sourceTimeRangesByOrigin: {
+                    geo: {
+                        startMs: 1000,
+                        endMs: 3000,
+                    },
+                },
+            },
+        };
+
+        expect(mapComparisonBodyTimeMs({
+            globalConfig,
+            bodyId: "CMP_ARTEMIS1_CM",
+            config: "geo",
+            timeMs: 400,
+        })).toBe(1600);
+        expect(mapComparisonSourceTimeMsToDisplayTime({
+            globalConfig,
+            bodyId: "CMP_ARTEMIS1_CM",
+            config: "geo",
+            timeMs: 1600,
+        })).toBe(400);
+        expect(resolveComparisonDisplayAvailabilityTimeRange({
+            globalConfig,
+            bodyId: "CMP_ARTEMIS1_CM",
+            config: "geo",
+        })).toEqual({
+            startMs: -200,
+            endMs: 1800,
+        });
+    });
+
     it("loads and merges a comparison mission into compare mode runtime config", async () => {
         const fetchImpl = vi.fn(async (url) => {
             if (url === "assets/artemis1/data/config.json") {
@@ -234,7 +306,7 @@ describe("comparison overlay", () => {
             baseConfig: createBaseConfig(),
             windowRef: {
                 location: {
-                    search: "?mode=compare&compareMission=artemis1",
+                    search: "?mode=compare&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
                 },
                 missionConfig: {
                     dataPath: "assets/chandrayaan3/data/",
@@ -259,6 +331,8 @@ describe("comparison overlay", () => {
             "PM",
             "CMP_ARTEMIS1_CM",
         ]);
+        expect(mergedConfig.comparisonOverlay.selectedPrimaryAlignmentEventKey).toBe("tli");
+        expect(mergedConfig.comparisonOverlay.selectedComparisonAlignmentEventKey).toBe("loi");
         expect(mergedConfig.comparisonOverlay.normalizationSupportBodyIdsByOrigin).toEqual({
             geo: "CMP_ARTEMIS1_CM__MOON",
             relative: "CMP_ARTEMIS1_CM__MOON",
