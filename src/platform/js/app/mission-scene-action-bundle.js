@@ -66,6 +66,7 @@ function createMissionSceneActionBundle(deps) {
         getViewOrbitDescent,
         getViewOrbit,
         getOrbitStyle,
+        getIsCompareMode,
         getTrailTrackBrightness3D,
         getTrailTailBrightness3D,
         render,
@@ -209,6 +210,7 @@ function createMissionSceneActionBundle(deps) {
         getPixelsPerAU,
         getEphemerisSource,
         resolveBodySource,
+        getIsCompareMode,
         setOrbitPointsCount,
         setLandingPointsCount,
     });

@@ -7,6 +7,7 @@ function createHarness({
     planetsForLocations = ["MOON", "SC"],
     supportOrbitsChebByBodyId = {},
     orbitsMeta = null,
+    globalConfig = null,
 }) {
     const state = {
         config: "geo",
@@ -47,6 +48,14 @@ function createHarness({
             return {
                 CH3O: {
                     segments: [{ t_start: 0, t_end: 1, cx: [1], cy: [1], cz: [1] }],
+                },
+            };
+        }
+        if (url === "relative-ORION-cheb.json") {
+            return {
+                segments: [{ t_start: 0, t_end: 1, cx: [2], cy: [2], cz: [2] }],
+                MOON: {
+                    segments: [{ t_start: 0, t_end: 1, cx: [3], cy: [3], cz: [3] }],
                 },
             };
         }
@@ -91,7 +100,7 @@ function createHarness({
         getBodiesForConfig: () => animationScenes.geo.planetsForLocations,
         onEphemerisLoaded: () => {},
         onEphemerisStatus: () => {},
-        getGlobalConfig: () => null,
+        getGlobalConfig: () => globalConfig,
         getViewOrbit: () => true,
         getOrbitStyle: () => "trail",
         render: () => {},
@@ -204,5 +213,54 @@ describe("createOrbitLoadActions", () => {
         await actions.loadOrbitDataIfNeededAndProcess(callback);
 
         expect(chebyshevData.geo?.metadata?.sun_frame).toBe("relative");
+    });
+
+    it("merges synthetic comparison craft ids from single-series support files", async () => {
+        const { actions, callback, loadChebyshev, chebyshevData } = createHarness({
+            primaryChebData: {
+                segments: [{ t_start: 0, t_end: 1, cx: [0], cy: [0], cz: [0] }],
+            },
+            planetsForLocations: ["MOON", "CH3L", "CMP_ARTEMIS1_ORION"],
+            supportOrbitsChebByBodyId: {
+                CMP_ARTEMIS1_ORION: "relative-ORION-cheb.json",
+            },
+        });
+
+        await actions.loadOrbitDataIfNeededAndProcess(callback);
+
+        expect(loadChebyshev).toHaveBeenCalledWith("relative-ORION-cheb.json");
+        expect(chebyshevData.geo?.CMP_ARTEMIS1_ORION).toBeTruthy();
+        expect(chebyshevData.geo?.CMP_ARTEMIS1_ORION?.segments?.length).toBe(1);
+    });
+
+    it("preserves comparison moon support series under a compare-only alias", async () => {
+        const { actions, callback, chebyshevData } = createHarness({
+            primaryChebData: {
+                segments: [{ t_start: 0, t_end: 1, cx: [0], cy: [0], cz: [0] }],
+                MOON: {
+                    segments: [{ t_start: 0, t_end: 1, cx: [0], cy: [0], cz: [0] }],
+                },
+            },
+            planetsForLocations: ["MOON", "CH3L", "CMP_ARTEMIS1_ORION"],
+            supportOrbitsChebByBodyId: {
+                CMP_ARTEMIS1_ORION: "relative-ORION-cheb.json",
+            },
+            globalConfig: {
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_ORION",
+                    normalizationSourceBodyIdsByOrigin: {
+                        geo: "MOON",
+                    },
+                    normalizationSupportBodyIdsByOrigin: {
+                        geo: "CMP_ARTEMIS1_ORION__MOON",
+                    },
+                },
+            },
+        });
+
+        await actions.loadOrbitDataIfNeededAndProcess(callback);
+
+        expect(chebyshevData.geo?.MOON?.segments?.length).toBe(1);
+        expect(chebyshevData.geo?.CMP_ARTEMIS1_ORION__MOON?.segments?.length).toBe(1);
     });
 });

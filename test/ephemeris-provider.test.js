@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getHorizonsJulianDate } from "../src/platform/js/data/ephemeris-provider.js";
+import {
+    getBodyEphemerisRange,
+    getHorizonsJulianDate,
+} from "../src/platform/js/data/ephemeris-provider.js";
 
 // Chebyshev segment data uses JD in TDB.  getHorizonsJulianDate must return
 // JD_TDB = JD_UNIX_EPOCH + (timeMs + TDB_OFFSET_MS) / MS_PER_DAY
@@ -27,5 +30,43 @@ describe("ephemeris-provider", () => {
         const tdbJd = getHorizonsJulianDate(0);
         const offsetSeconds = (tdbJd - utcJd) * 86400;
         expect(offsetSeconds).toBeCloseTo(69.184, 2);
+    });
+
+    it("returns a compare craft availability range that preserves the source mission duration", () => {
+        const displayStartMs = Date.parse("2023-01-01T00:00:00Z");
+        const displayEndMs = Date.parse("2023-01-11T00:00:00Z");
+        const sourceEndMs = Date.parse("2022-01-06T00:00:00Z");
+        const range = getBodyEphemerisRange({
+            bodyId: "CMP_ARTEMIS1_ORION",
+            config: "geo",
+            npzData: {},
+            npzDataLoaded: {},
+            chebyshevData: {},
+            chebyshevDataLoaded: {},
+            globalConfig: {
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_ORION",
+                    displayTimeRangesByOrigin: {
+                        geo: {
+                            startMs: displayStartMs,
+                            endMs: displayEndMs,
+                        },
+                    },
+                    sourceTimeRangesByOrigin: {
+                        geo: {
+                            startMs: Date.parse("2022-01-01T00:00:00Z"),
+                            endMs: sourceEndMs,
+                        },
+                    },
+                },
+            },
+        });
+
+        expect(range).toEqual({
+            start: getHorizonsJulianDate(displayStartMs),
+            end: getHorizonsJulianDate(
+                displayStartMs + (sourceEndMs - Date.parse("2022-01-01T00:00:00Z")),
+            ),
+        });
     });
 });

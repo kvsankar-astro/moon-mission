@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     applySceneOrbitVisibility,
+    getSceneVisibleCraftIds,
     setSceneVisibleCraftIds,
 } from "../src/platform/js/app/scene-craft-helpers.js";
 
@@ -45,5 +46,28 @@ describe("scene-craft-helpers orbit visibility", () => {
         applySceneOrbitVisibility(scene, globalConfig, false);
 
         expect(scene.orbitLines.every((orbitLine) => orbitLine.visible === false)).toBe(true);
+    });
+
+    it("defaults to the comparison overlay craft pair when compare mode injects a second mission", () => {
+        const scene = {
+            ...createScene(),
+            planetsForLocations: ["ORB", "LAND", "CMP_ARTEMIS1_ORION"],
+            visibleCraftIds: null,
+        };
+        const compareGlobalConfig = {
+            ...globalConfig,
+            crafts: [
+                ...globalConfig.crafts,
+                { id: "CMP_ARTEMIS1_ORION", primary: false },
+            ],
+            comparisonOverlay: {
+                defaultVisibleCraftIds: ["ORB", "CMP_ARTEMIS1_ORION"],
+            },
+        };
+
+        expect(getSceneVisibleCraftIds(scene, compareGlobalConfig)).toEqual([
+            "ORB",
+            "CMP_ARTEMIS1_ORION",
+        ]);
     });
 });

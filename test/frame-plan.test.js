@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { planFrameStep } from "../src/platform/js/core/plans/frame-plan.js";
+import { COMPARISON_REFERENCE_DISTANCE_KM } from "../src/platform/js/core/domain/comparison-display.js";
 
 describe("planFrameStep", () => {
     it("returns non-running plan when scene is missing", () => {
@@ -153,5 +154,104 @@ describe("planFrameStep", () => {
         expect(plan.renderIntent.dimension).toBe("2D");
         expect(plan.renderIntent.shouldAdjustCameraProjection).toBe(false);
         expect(plan.renderIntent.renderOptions.landingFreezeTime).toBeNull();
+    });
+
+    it("adds compare-mode render overrides without changing scene-state inputs", () => {
+        const computeSceneState = vi.fn((time, config, options) => ({
+            time,
+            config,
+            phase: "compare",
+            activeEvent: null,
+            telemetry: null,
+            bodies: {
+                MOON: {
+                    available: true,
+                    position: {
+                        x: COMPARISON_REFERENCE_DISTANCE_KM / 2,
+                        y: 0,
+                        z: 0,
+                    },
+                    velocity: { vx: 1, vy: 0, vz: 0 },
+                },
+                SC: {
+                    available: true,
+                    position: {
+                        x: COMPARISON_REFERENCE_DISTANCE_KM / 4,
+                        y: 10,
+                        z: 0,
+                    },
+                    nextPosition: {
+                        x: COMPARISON_REFERENCE_DISTANCE_KM / 4 + 5,
+                        y: 20,
+                        z: 0,
+                    },
+                    velocity: { vx: 5, vy: 10, vz: 0 },
+                    nextVelocity: { vx: 5, vy: 10, vz: 0 },
+                },
+            },
+            sunLongitude: options.sunLongitude,
+        }));
+
+        const plan = planFrameStep({
+            config: "geo",
+            animTime: 999,
+            scene: {
+                primaryBody: "EARTH",
+                planetsForLocations: ["EARTH", "MOON"],
+                initialized3D: true,
+            },
+            computeSunLongitude: () => 0.25,
+            computeSceneState,
+            chebyshevData: {},
+            chebyshevDataLoaded: {},
+            npzData: {},
+            npzDataLoaded: {},
+            landingNpzData: {},
+            landingNpzLoaded: false,
+            landingChebyshevData: {},
+            landingChebyshevLoaded: false,
+            globalConfig: {},
+            startLandingTime: null,
+            endLandingTime: null,
+            eventInfos: [],
+            missionTimes: {},
+            frameMode: "relative",
+            bodySources: {},
+            ephemerisSource: "chebyshev",
+            compareMode: true,
+            craftId: "SC",
+            pixelsPerAU: 100,
+            updateCraftScale: () => {},
+            currentDimension: "3D",
+        });
+
+        expect(computeSceneState).toHaveBeenCalledWith(
+            999,
+            "geo",
+            expect.not.objectContaining({
+                compareMode: true,
+            }),
+        );
+        expect(plan.renderIntent.renderOptions).toEqual(
+            expect.objectContaining({
+                compareMode: true,
+                comparisonNormalizationScale: 2,
+                compareDisplayProfile: expect.objectContaining({
+                    freezeEarthRotation: true,
+                    freezeMoonRotation: true,
+                    freezeSkyOrientation: true,
+                    disableEarthshine: true,
+                }),
+            }),
+        );
+        expect(plan.uiIntent.sceneState.bodies.MOON.position.x).toBeCloseTo(
+            COMPARISON_REFERENCE_DISTANCE_KM / 2,
+            6,
+        );
+        expect(plan.renderIntent.sceneState.bodies.MOON.position.x).toBeCloseTo(
+            COMPARISON_REFERENCE_DISTANCE_KM,
+            6,
+        );
+        expect(plan.renderIntent.sceneState.bodies.SC.position.y).toBeCloseTo(20, 12);
     });
 });

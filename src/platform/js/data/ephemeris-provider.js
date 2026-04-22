@@ -1,6 +1,10 @@
 import { getMoonState, getEarthFromMoonState } from "../astronomy-bodies.js";
 import { getStateFromChebyshev } from "../chebyshev.js";
 import { TIME_CONSTANTS } from "../core/constants.js";
+import {
+    mapComparisonBodyTimeMs,
+    resolveComparisonDisplayAvailabilityTimeRange,
+} from "../core/domain/comparison-overlay.js";
 import { getStateFromNpzSeries } from "./npz-ephemeris.js";
 
 const DEFAULT_SOURCE_BY_BODY = {
@@ -284,6 +288,7 @@ function getLandingStateFromSource({
  *   defaultSpacecraftSource?: string,
  *   spacecraftMnemonic?: string,
  *   resolvedSource?: string,
+ *   globalConfig?: any,
  * }} params
  */
 export function getBodyEphemerisRange({
@@ -297,7 +302,20 @@ export function getBodyEphemerisRange({
     defaultSpacecraftSource,
     spacecraftMnemonic = "SC",
     resolvedSource,
+    globalConfig,
 }) {
+    const comparisonDisplayRange = resolveComparisonDisplayAvailabilityTimeRange({
+        globalConfig,
+        bodyId,
+        config,
+    });
+    if (comparisonDisplayRange) {
+        return {
+            start: getHorizonsJulianDate(comparisonDisplayRange.startMs),
+            end: getHorizonsJulianDate(comparisonDisplayRange.endMs),
+        };
+    }
+
     const source = normalizeSource(
         resolvedSource,
         resolveBodySource({
@@ -359,7 +377,13 @@ export function getBodyEphemerisState({
             defaultSpacecraftSource,
         }),
     );
-    const jd = getHorizonsJulianDate(timeMs);
+    const lookupTimeMs = mapComparisonBodyTimeMs({
+        globalConfig,
+        bodyId: normalizedBodyId,
+        config,
+        timeMs,
+    });
+    const jd = getHorizonsJulianDate(lookupTimeMs);
 
     if (normalizedBodyId === "SC") {
         const landingEnabled = !!globalConfig?.landing?.enabled;
@@ -490,6 +514,7 @@ export function getBodyEphemerisState({
  *   defaultSpacecraftSource?: string,
  *   spacecraftMnemonic?: string,
  *   resolvedSource?: string,
+ *   globalConfig?: any,
  * }} params
  */
 export function generateBodyCurve({
@@ -506,6 +531,7 @@ export function generateBodyCurve({
     defaultSpacecraftSource,
     spacecraftMnemonic = "SC",
     resolvedSource,
+    globalConfig,
 }) {
     const vectors = [];
     const step = Math.max(1, stepMs);
@@ -522,6 +548,7 @@ export function generateBodyCurve({
             defaultSpacecraftSource,
             spacecraftMnemonic,
             resolvedSource,
+            globalConfig,
         });
 
         if (!state.available) return;

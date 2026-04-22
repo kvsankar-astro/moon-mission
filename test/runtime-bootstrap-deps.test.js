@@ -131,6 +131,7 @@ describe("runtime bootstrap dependency builders", () => {
                     },
                     data: {
                         getEventInfos: vi.fn(),
+                        getTimelineEventInfos: vi.fn(() => [{ key: "timeline-burn-a" }]),
                     },
                     session: {
                         getLandingFlag: vi.fn(),
@@ -193,6 +194,7 @@ describe("runtime bootstrap dependency builders", () => {
         expect(deps.getZoomScale()).toBe(1.5);
         expect(deps.globalObject).toEqual({ windowOnly: true });
         expect(deps.THREE).toEqual({ threeOnly: true });
+        expect(deps.getTimelineEventInfos()).toEqual([{ key: "timeline-burn-a" }]);
     });
 
     it("maps runtime init handler ids to the repeat-button action surface", () => {

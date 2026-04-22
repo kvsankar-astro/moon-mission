@@ -1,5 +1,9 @@
 import { isMissionCraftBody } from "../core/domain/mission-config.js";
-import { getSceneMissionCraftIds, getSceneVisibleCraftIds } from "./scene-craft-helpers.js";
+import {
+    getSceneDefaultVisibleCraftIds,
+    getSceneMissionCraftIds,
+    getSceneVisibleCraftIds,
+} from "./scene-craft-helpers.js";
 import { resolveTrackOpacity2D, resolveTrackOpacity3D } from "./orbit-trail-style.js";
 
 function extractSkyParameterPatch(viewSettings) {
@@ -43,6 +47,10 @@ function resolveRequestedVisibleCraftIds(requestedView, scene, globalConfig, act
         return requestedView.visibleCraftIds;
     }
     if (requestedView.viewAdditionalCrafts === true) {
+        const comparisonDefaultVisibleCraftIds = getSceneDefaultVisibleCraftIds(scene, globalConfig);
+        if (comparisonDefaultVisibleCraftIds.length > 1) {
+            return comparisonDefaultVisibleCraftIds;
+        }
         return getSceneMissionCraftIds(scene, globalConfig);
     }
     if (requestedView.viewAdditionalCrafts === false) {

@@ -3,6 +3,7 @@ import {
     getSceneMissionCraftIds,
     getScenePrimaryCraftId,
 } from "./scene-craft-helpers.js";
+import { resolveMissionCraft } from "../core/domain/mission-config.js";
 import {
     mixColors,
     normalizeHexColor,
@@ -76,6 +77,26 @@ export function createSpacecraftCurveActions({
         geometry.setAttribute("position", attribute);
         geometry.setDrawRange(0, 0);
         return geometry;
+    }
+
+    function resolveCraftOrbitColor(globalConfig, craftId) {
+        const missionCraft = resolveMissionCraft(globalConfig, craftId);
+        const explicitProps =
+            planetProperties[missionCraft?.id] ||
+            planetProperties[missionCraft?.mnemonic] ||
+            planetProperties[craftId];
+        if (explicitProps?.orbitcolor || explicitProps?.color) {
+            return explicitProps.orbitcolor || explicitProps.color;
+        }
+
+        const fallbackProps = planetProperties.SC;
+        return (
+            missionCraft?.orbitcolor ||
+            missionCraft?.color ||
+            fallbackProps?.orbitcolor ||
+            fallbackProps?.color ||
+            "#6ccfff"
+        );
     }
 
     function createOrbitTrailBundle({ bodyId, curve, baseColor }) {
@@ -264,7 +285,7 @@ export function createSpacecraftCurveActions({
                     scene.orbitBackgroundBaseOpacitiesByBodyId[craftId] = [];
                     continue;
                 }
-                const craftOrbitColor = (planetProperties[craftId] || planetProperties.SC)?.orbitcolor;
+                const craftOrbitColor = resolveCraftOrbitColor(globalConfig, craftId);
                 await addCurve(scene, {
                     bodyId: craftId,
                     curve,

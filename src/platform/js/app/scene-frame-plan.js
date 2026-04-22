@@ -1,7 +1,19 @@
 import { planFrameStep } from "../core/plans/frame-plan.js";
+import { createNormalizedComparisonDisplayState } from "./comparison-normalization.js";
+import { resolveCompareDisplayProfile } from "../core/domain/runtime-mode.js";
 
 function resolveSceneFrameCraftId({ scene, fallbackCraftId }) {
     return scene?.activeCraftId || scene?.primaryCraftId || fallbackCraftId;
+}
+
+function resolveFixedCompareSunLongitude(globalConfig) {
+    const fixedSunDirection = resolveCompareDisplayProfile(globalConfig)?.fixedSunDirection;
+    const x = Number(fixedSunDirection?.x);
+    const y = Number(fixedSunDirection?.y);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        return 0;
+    }
+    return Math.atan2(y, x);
 }
 
 function createFrameSunLongitudeCalculator({
@@ -14,7 +26,13 @@ function createFrameSunLongitudeCalculator({
     bodySources,
     ephemerisSource,
     globalConfig,
+    compareMode = false,
 }) {
+    if (compareMode) {
+        const fixedSunLongitude = resolveFixedCompareSunLongitude(globalConfig);
+        return () => fixedSunLongitude;
+    }
+
     return (timeMs) =>
         computeSunLongitude(timeMs, {
             config,
@@ -51,10 +69,12 @@ function planSceneFrame(input) {
         frameMode,
         bodySources,
         activeEphemerisSource,
+        compareMode,
         craftId,
         pixelsPerAU,
         updateCraftScale,
         currentDimension,
+        createCompareDisplayState = createNormalizedComparisonDisplayState,
     } = input;
 
     const activeSceneCraftId = resolveSceneFrameCraftId({
@@ -71,6 +91,7 @@ function planSceneFrame(input) {
         bodySources,
         ephemerisSource: activeEphemerisSource,
         globalConfig,
+        compareMode,
     });
 
     return planFrameStep({
@@ -95,6 +116,8 @@ function planSceneFrame(input) {
         frameMode,
         bodySources,
         ephemerisSource: activeEphemerisSource,
+        compareMode,
+        createCompareDisplayState,
         craftId: activeSceneCraftId,
         pixelsPerAU,
         updateCraftScale,

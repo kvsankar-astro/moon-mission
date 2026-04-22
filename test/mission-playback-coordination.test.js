@@ -105,6 +105,12 @@ describe("mission playback coordination", () => {
         });
         expect(state.currentTime).toBe(2500);
         expect(state.events).toBe(eventInfos);
+        expect(state.presentation).toEqual({
+            compareMode: false,
+            label: "",
+            detail: "",
+            title: "",
+        });
         expect(state.crafts).toEqual([
             {
                 id: "SC",
@@ -136,6 +142,7 @@ describe("mission playback coordination", () => {
             showAdditionalCraftOption: true,
             showDescentOrbitOption: true,
             clearAdditionalCraftToggle: false,
+            additionalCraftsEnabled: true,
             showSelectorRow: true,
             options: [
                 { value: "SC", label: "Orbiter" },
@@ -166,6 +173,7 @@ describe("mission playback coordination", () => {
             showAdditionalCraftOption: false,
             showDescentOrbitOption: false,
             clearAdditionalCraftToggle: true,
+            additionalCraftsEnabled: false,
             showSelectorRow: false,
             options: [],
             optionSignature: "",
@@ -277,6 +285,7 @@ describe("mission playback coordination", () => {
         };
         const controller = {
             bind: vi.fn(),
+            setMode: vi.fn(),
             setRange: vi.fn(),
             setCurrentTime: vi.fn(),
             setEvents: vi.fn(),
@@ -284,6 +293,7 @@ describe("mission playback coordination", () => {
         };
         const createTimelineDockControllerImpl = vi.fn(() => controller);
         const goToNow = vi.fn();
+        const syncTimelineEventButtons = vi.fn();
         class TestCustomEvent {
             constructor(type, init) {
                 this.type = type;
@@ -314,6 +324,9 @@ describe("mission playback coordination", () => {
             getLatestEndTime: () => 5000,
             getAnimTime: () => 3000,
             getEventInfos: () => [{ key: "burn-a" }],
+            getTimelineEventInfos: () => [{ key: "timeline-burn-a" }],
+            getIsCompareMode: () => true,
+            syncTimelineEventButtons,
             defaultStepMs: 60000,
             maxTimelineStepMs: 1000,
             updateEventInfo: vi.fn(),
@@ -335,13 +348,19 @@ describe("mission playback coordination", () => {
 
         expect(createTimelineDockControllerImpl).toHaveBeenCalledTimes(1);
         expect(controller.bind).toHaveBeenCalledTimes(1);
+        expect(controller.setMode).toHaveBeenCalledWith({
+            compareMode: true,
+            label: "Comparison Time",
+            detail: "Fictional / relative",
+            title: "Comparing Primary and Comparison with preserved mission pacing on a shared elapsed-time timeline.",
+        });
         expect(controller.setRange).toHaveBeenCalledWith({
             startTimeMs: 1000,
             endTimeMs: 5000,
             stepMs: 1000,
         });
         expect(controller.setCurrentTime).toHaveBeenCalledWith(3000);
-        expect(controller.setEvents).toHaveBeenCalledWith([{ key: "burn-a" }]);
+        expect(controller.setEvents).toHaveBeenCalledWith([{ key: "timeline-burn-a" }]);
         expect(controller.setCrafts).toHaveBeenCalledWith([
             {
                 id: "SC",
@@ -366,10 +385,12 @@ describe("mission playback coordination", () => {
         });
         expect(selectOptions).toHaveLength(2);
         expect(select.value).toBe("LM");
+        expect(additionalCraftToggle.checked).toBe(true);
         expect(additionalCraftOption.classList.contains("settings-option--hidden")).toBe(false);
         expect(descentOrbitOption.classList.contains("settings-option--hidden")).toBe(false);
         expect(row.classList.contains("settings-row--hidden")).toBe(false);
         expect(nowButton.addEventListener).toHaveBeenCalledTimes(1);
+        expect(syncTimelineEventButtons).toHaveBeenCalledWith([{ key: "timeline-burn-a" }]);
 
         nowButton._listeners.click();
         expect(goToNow).toHaveBeenCalledTimes(1);

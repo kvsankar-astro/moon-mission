@@ -1,5 +1,6 @@
 import { PHYSICS_CONSTANTS as PC } from "../core/constants.js";
 import { resolveMissionCraft } from "../core/domain/mission-config.js";
+import { normalizeComparisonCurveVectors } from "./comparison-normalization.js";
 import { getSceneMissionCraftIds, getScenePrimaryCraftId } from "./scene-craft-helpers.js";
 import { buildCurveTimes } from "./orbit-trail-style.js";
 
@@ -19,6 +20,7 @@ export function createOrbitVectorProcessingActions({
     getPixelsPerAU,
     getEphemerisSource,
     resolveBodySource,
+    getIsCompareMode = () => false,
     setOrbitPointsCount,
     setLandingPointsCount,
 }) {
@@ -29,6 +31,9 @@ export function createOrbitVectorProcessingActions({
         const activeConfig = getConfig();
         const startTimeMs = getStartTime();
         const endTimeMs = getLatestEndTime();
+        const compareMode = typeof getIsCompareMode === "function"
+            ? !!getIsCompareMode()
+            : false;
 
         scene.primaryCraftId = primaryCraftId;
         scene.curvesById = {};
@@ -41,7 +46,7 @@ export function createOrbitVectorProcessingActions({
             const curveVelocities = [];
             const config = activeConfig;
             const missionCraft = resolveMissionCraft(globalConfig, craftId);
-            const vectors = generateBodyCurve({
+            const rawVectors = generateBodyCurve({
                 bodyId: craftId,
                 config,
                 startTimeMs,
@@ -51,6 +56,7 @@ export function createOrbitVectorProcessingActions({
                 npzDataLoaded,
                 chebyshevData,
                 chebyshevDataLoaded,
+                globalConfig,
                 resolvedSource:
                     typeof resolveBodySource === "function"
                         ? resolveBodySource(craftId)
@@ -61,6 +67,22 @@ export function createOrbitVectorProcessingActions({
                     missionCraft?.mnemonic ||
                     globalConfig?.spacecraft_mnemonic ||
                     "SC",
+                defaultSpacecraftSource:
+                    typeof getEphemerisSource === "function"
+                        ? getEphemerisSource()
+                        : "chebyshev",
+            });
+            const vectors = normalizeComparisonCurveVectors({
+                compareMode,
+                bodyId: craftId,
+                vectors: rawVectors,
+                config,
+                globalConfig,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                resolveBodySource,
                 defaultSpacecraftSource:
                     typeof getEphemerisSource === "function"
                         ? getEphemerisSource()

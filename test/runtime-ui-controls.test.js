@@ -192,6 +192,20 @@ describe("runtime ui controls composition", () => {
         expect(groups.burnActions.burnOnly).toBe(true);
     });
 
+    it("prefers compare-aware timeline events for burn button navigation when available", () => {
+        const deps = createBaseDeps({
+            getTimelineEventInfos: vi.fn(() => [{ key: "timeline-burn-a" }]),
+        });
+
+        createRuntimeUiControlGroups(deps);
+
+        expect(deps.createBurnActions).toHaveBeenCalledWith({
+            getEventInfos: deps.getTimelineEventInfos,
+            setAnimTime: deps.setAnimTime,
+            missionSetTime: deps.missionSetTime,
+        });
+    });
+
     it("merges all grouped actions into the runtime control surface", () => {
         const deps = createBaseDeps();
 

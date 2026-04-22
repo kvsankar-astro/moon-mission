@@ -69,6 +69,7 @@ function createMissionRuntimeWireupContext(
         ...ctx.sceneViewStateActions,
         ...createModeSwitchWireupActions(ctx.modeSwitchActions),
         isRelativeMode: ctx.isRelativeMode,
+        isCompareMode: ctx.isCompareMode,
         initAnimation: ctx.initAnimation,
         animateLoop: ctx.animateLoop,
         isTestMode: ctx.isTestMode,
@@ -145,6 +146,7 @@ function createMissionRuntimeEntryContext(ctx, { staticWireupDeps }) {
         animateLoop: ctx.animateLoop,
         initAnimation: ctx.initAnimation,
         isRelativeMode: ctx.isRelativeMode,
+        isCompareMode: ctx.isCompareMode,
         isTestMode: ctx.isTestMode,
     };
 }

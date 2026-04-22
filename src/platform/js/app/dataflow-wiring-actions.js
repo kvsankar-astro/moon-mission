@@ -78,6 +78,7 @@ function createDataflowWiringActions(deps) {
         TC,
         getFrameMode,
         getActiveEphemerisSource,
+        getIsCompareMode,
         resolveBodySourceFn,
         getBodyEphemerisRange,
         getBodyEphemerisState,
@@ -294,6 +295,7 @@ function createDataflowWiringActions(deps) {
         getEpochJD,
         getEpochDate,
         setEpochDisplay,
+        getIsCompareMode,
     });
 
     const { setLabelLocation, showGreenwichLongitude, adjustLabelLocations } = createLabelActions({

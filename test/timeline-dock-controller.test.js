@@ -16,6 +16,7 @@ class FakeElement {
         this.max = "0";
         this.step = "1";
         this._innerHTML = "";
+        this.hidden = false;
         this.classList = {
             add: (...names) => {
                 const set = new Set(this.className.split(/\s+/).filter(Boolean));
@@ -26,6 +27,13 @@ class FakeElement {
                 const set = new Set(this.className.split(/\s+/).filter(Boolean));
                 for (const name of names) set.delete(name);
                 this.className = Array.from(set).join(" ");
+            },
+            toggle: (name, enabled) => {
+                if (enabled) {
+                    this.classList.add(name);
+                    return;
+                }
+                this.classList.remove(name);
             },
             contains: (name) => this.className.split(/\s+/).filter(Boolean).includes(name),
         };
@@ -54,20 +62,24 @@ class FakeElement {
 
 describe("createTimelineDockController", () => {
     it("renders craft chips for multiple visible crafts", () => {
+        const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");
         const markers = new FakeElement("div");
         const startLabel = new FakeElement("span");
         const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
         const currentLabel = new FakeElement("div");
         const craftStrip = new FakeElement("div");
         craftStrip.className = "timeline-dock__craft-strip timeline-dock__craft-strip--hidden";
 
         global.document = {
             getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
                 if (id === "timeline-slider") return slider;
                 if (id === "timeline-markers") return markers;
                 if (id === "timeline-start-label") return startLabel;
                 if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
                 if (id === "timeline-current-label") return currentLabel;
                 if (id === "timeline-craft-strip") return craftStrip;
                 return null;
@@ -105,19 +117,23 @@ describe("createTimelineDockController", () => {
     });
 
     it("hides the craft strip when zero or one craft is visible", () => {
+        const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");
         const markers = new FakeElement("div");
         const startLabel = new FakeElement("span");
         const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
         const currentLabel = new FakeElement("div");
         const craftStrip = new FakeElement("div");
 
         global.document = {
             getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
                 if (id === "timeline-slider") return slider;
                 if (id === "timeline-markers") return markers;
                 if (id === "timeline-start-label") return startLabel;
                 if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
                 if (id === "timeline-current-label") return currentLabel;
                 if (id === "timeline-craft-strip") return craftStrip;
                 return null;
@@ -135,19 +151,23 @@ describe("createTimelineDockController", () => {
     });
 
     it("shows current time in inferred local timezone without UTC offset", () => {
+        const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");
         const markers = new FakeElement("div");
         const startLabel = new FakeElement("span");
         const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
         const currentLabel = new FakeElement("div");
         const craftStrip = new FakeElement("div");
 
         global.document = {
             getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
                 if (id === "timeline-slider") return slider;
                 if (id === "timeline-markers") return markers;
                 if (id === "timeline-start-label") return startLabel;
                 if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
                 if (id === "timeline-current-label") return currentLabel;
                 if (id === "timeline-craft-strip") return craftStrip;
                 return null;
@@ -169,5 +189,71 @@ describe("createTimelineDockController", () => {
         expect(currentLabel.textContent).not.toMatch(/UTC[+-]\d{2}:\d{2}$/);
         expect(slider.attributes["aria-valuetext"]).toBe(currentLabel.textContent);
         expect(startLabel.innerHTML).toMatch(/UTC[+-]\d{2}:\d{2}</);
+    });
+
+    it("switches to explicit compare-mode labels and styles comparison markers", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setMode({
+            compareMode: true,
+            label: "Comparison Time",
+            detail: "Fictional / relative",
+            title: "Aligned mission comparison",
+        });
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 3600000,
+            stepMs: 60000,
+        });
+        controller.setEvents([
+            {
+                key: "compare-burn",
+                startTime: new Date(900000),
+                timelineLabel: "CM: TLI",
+                timelineHoverText: "CM • Tue, Jan 01, 2024 • TLI",
+                comparisonEvent: true,
+                burnFlag: true,
+            },
+        ]);
+        controller.setCurrentTime(900000);
+
+        expect(dockRoot.classList.contains("timeline-dock--compare")).toBe(true);
+        expect(modeLabel.hidden).toBe(false);
+        expect(modeLabel.textContent).toContain("Comparison Time");
+        expect(currentLabel.textContent).toContain("Comparison Elapsed");
+        expect(currentLabel.textContent).toContain("T+15m");
+        expect(startLabel.innerHTML).toContain("Start");
+        expect(startLabel.innerHTML).toContain("T+0");
+        expect(endLabel.innerHTML).toContain("End");
+        expect(endLabel.innerHTML).toContain("T+1h");
+        expect(markers.children).toHaveLength(1);
+        expect(markers.children[0].className).toContain("timeline-dock__marker--comparison");
+        expect(markers.children[0].title).not.toContain(" - ");
+        expect(slider.attributes["aria-valuetext"]).toContain("Comparison elapsed time");
     });
 });

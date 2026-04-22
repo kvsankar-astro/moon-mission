@@ -1,4 +1,8 @@
 import { applyOrbitStyleMetadataToScene } from "./orbit-style-meta-actions.js";
+import {
+    resolveComparisonOverlayNormalizationSourceBodyId,
+    resolveComparisonOverlayNormalizationSupportBodyId,
+} from "../core/domain/comparison-overlay.js";
 
 /** @type {any} */
 let orbitStyleMetaHideTimer = null;
@@ -52,6 +56,9 @@ export function createOrbitLoadActions({
         if (bodyId !== "MOON" && bodyId !== "EARTH" && bodyId !== "SUN" && chebData.SC) {
             return chebData.SC;
         }
+        if (bodyId !== "MOON" && bodyId !== "EARTH" && bodyId !== "SUN" && chebData.segments) {
+            return chebData;
+        }
         if (bodyId === "SC" && chebData.segments) return chebData;
         return null;
     }
@@ -102,6 +109,45 @@ export function createOrbitLoadActions({
         }
 
         targetChebData[bodyId] = supportSeries;
+        return true;
+    }
+
+    function normalizeBodyId(bodyId) {
+        return typeof bodyId === "string" ? bodyId.toUpperCase() : "";
+    }
+
+    function mergeComparisonNormalizationSupportSeries({
+        targetChebData,
+        supportChebData,
+        bodyId,
+        config,
+        globalConfig,
+    }) {
+        const compareCraftId = normalizeBodyId(globalConfig?.comparisonOverlay?.compareCraftId);
+        if (!compareCraftId || normalizeBodyId(bodyId) !== compareCraftId) {
+            return false;
+        }
+
+        const aliasBodyId = resolveComparisonOverlayNormalizationSupportBodyId({
+            globalConfig,
+            bodyId,
+            config,
+        });
+        const sourceBodyId = resolveComparisonOverlayNormalizationSourceBodyId({
+            globalConfig,
+            bodyId,
+            config,
+        });
+        if (!aliasBodyId || !sourceBodyId || targetChebData?.[aliasBodyId]) {
+            return false;
+        }
+
+        const supportSeries = supportChebData?.[sourceBodyId];
+        if (!supportSeries || !Array.isArray(supportSeries.segments)) {
+            return false;
+        }
+
+        targetChebData[aliasBodyId] = supportSeries;
         return true;
     }
 
@@ -321,6 +367,9 @@ export function createOrbitLoadActions({
                     setStatus(config, "chebyshev", "loading");
                     const chebUrl = animationScenes[config].orbitsCheb;
                     const primaryCraftId = animationScenes[config].primaryCraftId || "SC";
+                    const globalConfig = typeof getGlobalConfig === "function"
+                        ? getGlobalConfig()
+                        : null;
                     if (!chebUrl) {
                         throw new Error(`Chebyshev ephemeris path not configured for ${config}`);
                     }
@@ -403,6 +452,19 @@ export function createOrbitLoadActions({
                         if (merged) {
                             console.log(
                                 `Merged support Chebyshev series for ${config}: ${bodyId}`,
+                            );
+                        }
+
+                        const mergedNormalizationSupport = mergeComparisonNormalizationSupportSeries({
+                            targetChebData: chebyshevData[config],
+                            supportChebData: supportChebDataCache.get(supportChebUrl),
+                            bodyId,
+                            config,
+                            globalConfig,
+                        });
+                        if (mergedNormalizationSupport) {
+                            console.log(
+                                `Merged comparison normalization support series for ${config}: ${bodyId}`,
                             );
                         }
                     }

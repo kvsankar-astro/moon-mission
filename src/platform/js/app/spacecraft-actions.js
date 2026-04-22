@@ -1,4 +1,5 @@
 import {
+    getSceneDefaultVisibleCraftIds,
     getSceneMissionCraftIds,
     getScenePrimaryCraftId,
     setSceneVisibleCraftIds,
@@ -50,6 +51,30 @@ function resolveCraftModelConfig(globalConfig, craftId) {
     };
 }
 
+function resolveCraftVisualProps(globalConfig, craftId, planetProperties) {
+    const missionCraft = resolveMissionCraft(globalConfig, craftId);
+    const explicitProps =
+        planetProperties[missionCraft?.id] ||
+        planetProperties[missionCraft?.mnemonic] ||
+        planetProperties[craftId];
+    if (explicitProps) {
+        return explicitProps;
+    }
+
+    const fallbackProps = planetProperties.SC;
+    if (!missionCraft || !fallbackProps) {
+        return fallbackProps || null;
+    }
+
+    return {
+        ...fallbackProps,
+        id: missionCraft.id || craftId,
+        name: missionCraft.viewLabel || missionCraft.name || missionCraft.mnemonic || craftId,
+        color: missionCraft.color || fallbackProps.color,
+        orbitcolor: missionCraft.orbitcolor || missionCraft.color || fallbackProps.orbitcolor,
+    };
+}
+
 export function createSpacecraftActions({
     SpacecraftRenderer,
     planetProperties,
@@ -61,7 +86,11 @@ export function createSpacecraftActions({
         const craftIds = getSceneMissionCraftIds(scene, globalConfig);
         scene.primaryCraftId = getScenePrimaryCraftId(scene, globalConfig);
         scene.activeCraftId = scene.primaryCraftId;
-        setSceneVisibleCraftIds(scene, globalConfig, [scene.primaryCraftId]);
+        setSceneVisibleCraftIds(
+            scene,
+            globalConfig,
+            getSceneDefaultVisibleCraftIds(scene, globalConfig),
+        );
         scene.spacecraftRenderersById = {};
         scene.craftsById = {};
         scene.craftInnersById = {};
@@ -70,7 +99,7 @@ export function createSpacecraftActions({
         scene.dronesById = {};
 
         for (const craftId of craftIds) {
-            const props = planetProperties[craftId] || planetProperties.SC;
+            const props = resolveCraftVisualProps(globalConfig, craftId, planetProperties);
             const renderer = new SpacecraftRenderer(
                 scene.motherContainer,
                 getCraftSize(),

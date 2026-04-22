@@ -113,6 +113,7 @@ function buildRenderPort(ctx) {
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         isRelativeMode,
+        isCompareMode,
         initAnimation,
         updateCraftScale,
         adjustCameraProjectionMatrixAndSkyAngle,
@@ -147,6 +148,7 @@ function buildRenderPort(ctx) {
         handleModeSwitchToGeo,
         handleModeSwitchToLunar,
         isRelativeMode,
+        isCompareMode,
         initAnimation,
         updateCraftScale,
         adjustCameraProjectionMatrixAndSkyAngle,
@@ -196,6 +198,7 @@ function buildDataPort(ctx) {
         getBodyEphemerisRange,
         getBodyEphemerisState,
         generateBodyCurve,
+        getTimelineEventInfos,
     } = ctx;
 
     return {
@@ -229,6 +232,7 @@ function buildDataPort(ctx) {
         getBodyEphemerisRange,
         getBodyEphemerisState,
         generateBodyCurve,
+        getTimelineEventInfos,
     };
 }
 

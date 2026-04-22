@@ -102,7 +102,7 @@ describe("createInitOrchestrationActions", () => {
         expect(playAnimation).not.toHaveBeenCalled();
     });
 
-    it("preserves startup override on reset when current time is outside the active data span", async () => {
+    it("clamps the startup override into the active data span when reset happens outside it", async () => {
         const missionStart = vi.fn();
         const missionSetTime = vi.fn();
         const setAnimTime = vi.fn();
@@ -145,7 +145,7 @@ describe("createInitOrchestrationActions", () => {
         }
 
         expect(missionStart).not.toHaveBeenCalled();
-        expect(setAnimTime).toHaveBeenCalledWith(startupOverrideMs);
+        expect(setAnimTime).toHaveBeenCalledWith(Date.UTC(2026, 0, 2));
         expect(missionSetTime).toHaveBeenCalled();
         expect(setRealtimeSpeed).not.toHaveBeenCalled();
         expect(playAnimation).not.toHaveBeenCalled();
@@ -279,7 +279,7 @@ describe("createInitOrchestrationActions", () => {
             nowSpy.mockRestore();
         }
 
-        expect(setAnimTime).toHaveBeenCalledWith(startupOverrideMs);
+        expect(setAnimTime).toHaveBeenCalledWith(Date.UTC(2026, 0, 2));
         expect(setLocation).toHaveBeenCalled();
     });
 

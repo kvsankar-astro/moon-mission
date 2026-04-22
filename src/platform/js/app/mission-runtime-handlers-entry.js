@@ -8,6 +8,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
         eventBus,
         toggleModeGuarded,
         toggleRelativeMode,
+        toggleCompareMode,
+        changeCompareMission,
         getSetView,
         getSetDimensionTop,
         getStartupAnimTimeOverride,
@@ -87,6 +89,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 reset: (event) => getMissionRuntimeWireup().runtimeBootstrapActions.reset(event),
                 toggleMode: (event) => toggleModeGuarded(event),
                 toggleRelativeMode: (event) => toggleRelativeMode(event),
+                toggleCompareMode: (payload) => toggleCompareMode?.(payload),
+                changeCompareMission: (payload) => changeCompareMission?.(payload),
                 changeCameraFromTo: (event) =>
                     getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(event),
                 changeDesktopMainFov: (event) =>

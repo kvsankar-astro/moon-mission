@@ -137,6 +137,7 @@ Example deep dive:
 
 - [Panel System V1 Spec](specs/panel-system-v1-spec.md)
 - [Camera State Transition Spec](specs/camera-state-transition-spec.md)
+- [Orbit Comparison Mode Spec](specs/orbit-comparison-mode-spec.md)
 
 ### Roadmaps and implementation plans
 

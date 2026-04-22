@@ -112,6 +112,40 @@ describe("view application plan", () => {
         expect(absolutePlan.orbitVisibilityByBodyId.PM).toBe(false);
     });
 
+    it("preserves the comparison default craft pair when additional crafts are enabled", () => {
+        const plan = buildSceneViewPlan({
+            configKey: "geo",
+            requestedView: createRequestedView({
+                viewAdditionalCrafts: true,
+            }),
+            scene: {
+                ...createScene(),
+                viewAdditionalCrafts: true,
+                visibleCraftIds: ["PM", "CMP_ARTEMIS1_SC"],
+                planetsForLocations: ["EARTH", "MOON", "PM", "VIKRAM", "CMP_ARTEMIS1_SC"],
+            },
+            globalConfig: {
+                ...createGlobalConfig(),
+                crafts: [
+                    ...createGlobalConfig().crafts,
+                    {
+                        id: "CMP_ARTEMIS1_SC",
+                        mnemonic: "CMP_ARTEMIS1_SC",
+                        primary: false,
+                    },
+                ],
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_SC",
+                    defaultVisibleCraftIds: ["PM", "CMP_ARTEMIS1_SC"],
+                },
+            },
+            isRelativeOriginSelected: false,
+        });
+
+        expect(plan.visibleCraftIds).toEqual(["PM", "CMP_ARTEMIS1_SC"]);
+        expect(plan.nextViewAdditionalCrafts).toBe(true);
+    });
+
     it("extracts only supported numeric and boolean sky parameters", () => {
         expect(extractSkyParameterPatch({
             atmosphere_enabled: true,

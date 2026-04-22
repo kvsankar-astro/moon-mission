@@ -100,13 +100,17 @@ describe("mission runtime root context", () => {
             pixelsPerAU: 42,
             render: vi.fn(),
             isRelativeMode: false,
+            isCompareMode: true,
             isTestMode: true,
+            getTimelineEventInfos: () => [{ key: "timeline-burn-a" }],
         });
 
         expect(context.pixelsPerAU).toBe(42);
+        expect(context.isCompareMode).toBe(true);
         expect(context.isTestMode).toBe(true);
         expect(context.getActiveEphemerisSource()).toBe("chebyshev");
         expect(context.getBodyEphemerisSources()).toEqual({ EARTH: "npz" });
+        expect(context.getTimelineEventInfos()).toEqual([{ key: "timeline-burn-a" }]);
 
         bodySources = { MOON: "chebyshev" };
         expect(context.getBodyEphemerisSources()).toEqual({ MOON: "chebyshev" });

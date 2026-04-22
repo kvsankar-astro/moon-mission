@@ -42,6 +42,7 @@ function createMissionSceneEntryContext(ctx, { render }) {
         initSceneHandlerDom,
         computeSceneCameraParameters,
         isTestMode: ctx.isTestMode,
+        isCompareMode: ctx.isCompareMode,
         frameMode: ctx.frameMode,
         generateCurveFromChebyshev,
         chebyshevDataLoaded: ctx.chebyshevDataLoaded,
@@ -107,6 +108,7 @@ function createMissionSceneEntryContext(ctx, { render }) {
         getViewEclipticPlane: ctx.getViewEclipticPlane,
         getViewEquatorialPlane: ctx.getViewEquatorialPlane,
         getEventInfos: ctx.getEventInfos,
+        getTimelineEventInfos: ctx.getTimelineEventInfos,
     };
 }
 

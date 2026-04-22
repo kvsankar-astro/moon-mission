@@ -51,6 +51,31 @@ describe("scene frame plan", () => {
         });
     });
 
+    it("uses the fixed compare Sun direction instead of ephemeris lookup in compare mode", () => {
+        const computeSunLongitude = vi.fn(() => 99);
+        const calculator = createFrameSunLongitudeCalculator({
+            computeSunLongitude,
+            config: "geo",
+            chebyshevData: { geo: true },
+            chebyshevDataLoaded: { geo: true },
+            npzData: { geo: false },
+            npzDataLoaded: { geo: false },
+            bodySources: {},
+            ephemerisSource: "chebyshev",
+            globalConfig: {
+                ui: {
+                    compareMode: {
+                        fixedSunDirection: { x: 0, y: 1, z: 0 },
+                    },
+                },
+            },
+            compareMode: true,
+        });
+
+        expect(calculator(123456)).toBeCloseTo(Math.PI / 2, 10);
+        expect(computeSunLongitude).not.toHaveBeenCalled();
+    });
+
     it("plans a frame with the active scene craft id and selected ephemeris source", () => {
         const computeSunLongitude = vi.fn(() => 2);
         const computeSceneState = vi.fn((time, config, options) => ({
@@ -112,5 +137,59 @@ describe("scene frame plan", () => {
         );
         expect(plan.renderIntent.renderOptions.craftId).toBe("ACTIVE");
         expect(plan.statePatchIntent.sunLongitude).toBe(2.5);
+    });
+
+    it("passes compare mode through to render planning while keeping the relative frame", () => {
+        const computeSceneState = vi.fn((time, config, options) => ({
+            sunLongitude: options.sunLongitude,
+            phase: "compare",
+            activeEvent: null,
+            telemetry: null,
+            bodies: {},
+        }));
+
+        const plan = planSceneFrame({
+            config: "geo",
+            animTime: 7000,
+            scene: {
+                activeCraftId: "ACTIVE",
+                primaryBody: "EARTH",
+                planetsForLocations: ["EARTH", "MOON"],
+                initialized3D: true,
+            },
+            computeSunLongitude: () => 1,
+            computeSceneState,
+            chebyshevData: {},
+            chebyshevDataLoaded: {},
+            npzData: {},
+            npzDataLoaded: {},
+            landingNpzData: {},
+            landingNpzLoaded: false,
+            landingChebyshevData: {},
+            landingChebyshevLoaded: false,
+            globalConfig: {},
+            startLandingTime: null,
+            endLandingTime: null,
+            eventInfos: [],
+            missionTimes: {},
+            frameMode: "relative",
+            bodySources: {},
+            activeEphemerisSource: "chebyshev",
+            compareMode: true,
+            craftId: "LEGACY",
+            pixelsPerAU: 120,
+            updateCraftScale: () => {},
+            currentDimension: "3D",
+        });
+
+        expect(computeSceneState).toHaveBeenCalledWith(
+            7000,
+            "geo",
+            expect.objectContaining({
+                craftId: "ACTIVE",
+                frameMode: "relative",
+            }),
+        );
+        expect(plan.renderIntent.renderOptions.compareMode).toBe(true);
     });
 });

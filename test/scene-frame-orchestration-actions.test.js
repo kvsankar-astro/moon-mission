@@ -26,6 +26,7 @@ function createBaseDeps(overrides = {}) {
         getFrameMode: () => "inertial",
         getBodySources: () => ({ SC: "npz" }),
         getActiveEphemerisSource: () => "npz",
+        getIsCompareMode: () => false,
         setSunLongitude: vi.fn(),
         getCraftId: () => "SC",
         getPixelsPerAU: () => 100,
@@ -107,6 +108,7 @@ describe("scene frame orchestration actions", () => {
                 config: "geo",
                 animTime: 12345,
                 activeEphemerisSource: "npz",
+                compareMode: false,
                 craftId: "SC",
                 eventInfos: [{ key: "burn-a", startTime: 12000, label: "Burn A" }],
             }),
@@ -141,6 +143,7 @@ describe("scene frame orchestration actions", () => {
         expect(planSceneFrame).toHaveBeenCalledWith(
             expect.objectContaining({
                 scene: null,
+                compareMode: false,
             }),
         );
         expect(applyToFramePlan).not.toHaveBeenCalled();
@@ -148,5 +151,26 @@ describe("scene frame orchestration actions", () => {
         expect(deps.frameRenderer.applyRenderIntent).not.toHaveBeenCalled();
         expect(deps.frameUiUpdater.applyUiIntent).not.toHaveBeenCalled();
         expect(deps.render).not.toHaveBeenCalled();
+    });
+
+    it("passes compare-mode state into the frame planner", () => {
+        const planSceneFrame = vi.fn(() => ({
+            shouldRun: false,
+            reason: "scene-missing",
+        }));
+        const deps = createBaseDeps({
+            getIsCompareMode: () => true,
+            planSceneFrame,
+            createTransientEventTracker: () => ({ applyToFramePlan: vi.fn() }),
+        });
+
+        const actions = createSceneFrameOrchestrationActions(deps);
+        actions.setLocation();
+
+        expect(planSceneFrame).toHaveBeenCalledWith(
+            expect.objectContaining({
+                compareMode: true,
+            }),
+        );
     });
 });

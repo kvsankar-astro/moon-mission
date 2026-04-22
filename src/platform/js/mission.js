@@ -14,6 +14,11 @@ import {
     updateD3ElementText,
     updateFPSCounter,
 } from "./core/dom.js";
+import {
+    isCompareRuntimeMode,
+    isRelativeFrameRuntimeMode,
+    resolveFrameModeForRuntimeMode,
+} from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import {
@@ -55,6 +60,7 @@ import { createRuntimeLoopState } from "./core/state/runtime-loop-state.js";
 import { createRuntimeSessionState } from "./core/state/runtime-session-state.js";
 import { createRuntimeViewState } from "./core/state/runtime-view-state.js";
 import { createMissionPlaybackRuntime } from "./app/mission-entry-composition.js";
+import { buildTimelineEventInfos } from "./app/comparison-timeline.js";
 
 import Swiper from 'swiper';
 import * as THREE from 'three';
@@ -67,8 +73,9 @@ if (typeof window !== "undefined" && !window.THREE) {
 // Check if running in test mode (for consistent visual regression testing)
 const isTestMode = new URLSearchParams(window.location.search).get('testMode') === 'true';
 const urlMode = new URLSearchParams(window.location.search).get('mode');
-const isRelativeMode = urlMode === "relative";
-const frameMode = isRelativeMode ? "relative" : "inertial";
+const isCompareMode = isCompareRuntimeMode(urlMode);
+const isRelativeMode = isRelativeFrameRuntimeMode(urlMode);
+const frameMode = resolveFrameModeForRuntimeMode(urlMode);
 
 let {
     craftSize,
@@ -188,6 +195,13 @@ const {
 });
 
 let missionRuntimeWireup = null;
+let timelineEventInfosCache = {
+    compareMode: null,
+    config: null,
+    globalConfig: null,
+    eventInfos: null,
+    result: [],
+};
 
 function getSceneForConfig(cfg = runtimeViewState.getConfig()) {
     return animationScenes[cfg];
@@ -299,12 +313,18 @@ const {
         pany = value;
     },
     isRelativeMode,
+    isCompareMode,
     getToggleMode: () => toggleMode,
     getCurrentAnimTime: () => runtimeSessionState.getAnimTime(),
     planeSelection,
 });
 
-const { toggleRelativeMode, toggleModeGuarded } = initialMissionViewState;
+const {
+    toggleRelativeMode,
+    toggleModeGuarded,
+    toggleCompareMode,
+    changeCompareMission,
+} = initialMissionViewState;
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
     viewAuxiliaryPanels: initialMissionViewState.viewAuxiliaryPanels,
@@ -330,6 +350,33 @@ runtimeViewState.setViewFlags({
     trailTailBrightness3D: runtimeViewState.getTrailTailBrightness3D(),
 });
 
+function getTimelineEventInfos() {
+    const currentConfig = runtimeViewState.getConfig();
+    if (
+        timelineEventInfosCache.compareMode === isCompareMode &&
+        timelineEventInfosCache.config === currentConfig &&
+        timelineEventInfosCache.globalConfig === globalConfig &&
+        timelineEventInfosCache.eventInfos === eventInfos
+    ) {
+        return timelineEventInfosCache.result;
+    }
+
+    const result = buildTimelineEventInfos({
+        compareMode: isCompareMode,
+        globalConfig,
+        config: currentConfig,
+        primaryEventInfos: eventInfos,
+    });
+    timelineEventInfosCache = {
+        compareMode: isCompareMode,
+        config: currentConfig,
+        globalConfig,
+        eventInfos,
+        result,
+    };
+    return result;
+}
+
 const {
     eventBus,
     animationController,
@@ -350,6 +397,11 @@ const {
     getLatestEndTime: () => latestEndTime,
     getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEventInfos: () => eventInfos,
+    getTimelineEventInfos,
+    getIsCompareMode: () => isCompareMode,
+    syncTimelineEventButtons: (timelineEventInfos) => {
+        missionRuntimeWireup?.initConfigUiActions?.syncBurnButtons?.(timelineEventInfos);
+    },
     defaultStepMs: TC.ONE_MINUTE_MS,
     maxTimelineStepMs: TC.ONE_SECOND_MS,
     updateEventInfo,
@@ -367,6 +419,7 @@ const {
     Astronomy,
     DEFAULT_VIEW_STATE,
     isTestMode,
+    isCompareMode,
     frameMode,
     chebyshevDataLoaded,
     chebyshevData,
@@ -432,6 +485,7 @@ const {
     getViewEclipticPlane: () => runtimeViewState.getViewEclipticPlane(),
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
     getEventInfos: () => eventInfos,
+    getTimelineEventInfos,
     render,
 });
 
@@ -523,6 +577,8 @@ const handlersEntryContext = createMissionRuntimeHandlersEntryContext({
     eventBus,
     toggleModeGuarded,
     toggleRelativeMode,
+    toggleCompareMode,
+    changeCompareMission,
     getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval: () => fpsUpdateInterval,
@@ -580,7 +636,9 @@ const wireupEntryContext = createMissionRuntimeWireupEntryContext({
     pixelsPerAU: PIXELS_PER_AU,
     render,
     isRelativeMode,
+    isCompareMode,
     isTestMode,
+    getTimelineEventInfos,
 });
 
 const {

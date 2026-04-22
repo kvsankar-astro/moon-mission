@@ -1,10 +1,15 @@
 import { formatDateTimeUTC } from "../utils/time-utils.js";
 import { buildEventHoverText } from "./burn-event-metadata.js";
+import {
+    resolveTimelineEventHoverText,
+    resolveTimelineEventLabel,
+} from "./comparison-timeline.js";
 
 function createInitConfigUiActions(deps) {
     const {
         d3,
         getEventInfos,
+        getTimelineEventInfos = getEventInfos,
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
@@ -25,7 +30,11 @@ function createInitConfigUiActions(deps) {
     }
 
     function getEventHoverText(eventInfo) {
-        const baseText = buildEventHoverText(eventInfo);
+        if (eventInfo?.timelineHoverText) {
+            return eventInfo.timelineHoverText;
+        }
+
+        const baseText = resolveTimelineEventHoverText(eventInfo, buildEventHoverText);
         const eventTimeMs = resolveEventTimeMs(eventInfo);
         if (!Number.isFinite(eventTimeMs)) {
             return baseText;
@@ -35,8 +44,7 @@ function createInitConfigUiActions(deps) {
         return baseText ? `${baseText} • ${when}` : when;
     }
 
-    function renderBurnButtons() {
-        const eventInfos = getEventInfos() || [];
+    function renderBurnButtonsWithEventInfos(eventInfos = []) {
         d3.select("#burnbuttons").html("");
         let numberedButtonIndex = 0;
 
@@ -63,10 +71,11 @@ function createInitConfigUiActions(deps) {
                         : "button burnbutton",
                 )
                 .classed("burnbutton--generated", !!eventInfo.generated)
+                .classed("burnbutton--comparison", !!eventInfo.comparisonEvent)
                 .attr("data-generated", eventInfo.generated ? "true" : "false")
                 .attr("aria-disabled", eventInfo.clickable === false ? "true" : "false")
                 .attr("title", getEventHoverText(eventInfo))
-                .html(eventInfo["label"]);
+                .html(resolveTimelineEventLabel(eventInfo));
 
             const node = button.node();
             if (!node) continue;
@@ -86,8 +95,17 @@ function createInitConfigUiActions(deps) {
         }
     }
 
-    function bindBurnEventButtons() {
-        bindBurnButtons((getEventInfos() || []).length, getBurnButtonHandler());
+    function renderBurnButtons() {
+        renderBurnButtonsWithEventInfos(getTimelineEventInfos() || []);
+    }
+
+    function bindBurnEventButtons(eventInfos = getTimelineEventInfos() || []) {
+        bindBurnButtons(eventInfos.length, getBurnButtonHandler());
+    }
+
+    function syncBurnButtons(eventInfos = getTimelineEventInfos() || []) {
+        renderBurnButtonsWithEventInfos(eventInfos);
+        bindBurnEventButtons(eventInfos);
     }
 
     function initializeSwipers() {
@@ -132,6 +150,7 @@ function createInitConfigUiActions(deps) {
         configureInitConfigControls,
         renderBurnButtons,
         bindBurnEventButtons,
+        syncBurnButtons,
         initializeSwipers,
     };
 }

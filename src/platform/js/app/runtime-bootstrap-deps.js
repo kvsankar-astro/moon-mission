@@ -189,6 +189,7 @@ function createRuntimeUiControlsDepsFromPorts(
         setJoyRideFlag: session.setJoyRideFlag,
         setView: renderPort.setView,
         getEventInfos: data.getEventInfos,
+        getTimelineEventInfos: data.getTimelineEventInfos,
         setAnimTime: session.setAnimTime,
         missionSetTime: animationActions.missionSetTime,
         THREE: renderPort.THREE,

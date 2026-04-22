@@ -5,6 +5,8 @@ function createMissionRuntimeHandlersEntryContext({
     eventBus,
     toggleModeGuarded,
     toggleRelativeMode,
+    toggleCompareMode,
+    changeCompareMission,
     getStartupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval,
@@ -26,6 +28,8 @@ function createMissionRuntimeHandlersEntryContext({
         eventBus,
         toggleModeGuarded,
         toggleRelativeMode,
+        toggleCompareMode,
+        changeCompareMission,
         getStartupAnimTimeOverride,
         readLoopState: () => runtimeLoopState.getLoopState(),
         writeLoopState: (nextLoopState) => {
@@ -86,7 +90,9 @@ function createMissionRuntimeWireupEntryContext({
     pixelsPerAU,
     render,
     isRelativeMode,
+    isCompareMode,
     isTestMode,
+    getTimelineEventInfos,
 }) {
     return {
         d3,
@@ -130,7 +136,9 @@ function createMissionRuntimeWireupEntryContext({
         pixelsPerAU,
         render,
         isRelativeMode,
+        isCompareMode,
         isTestMode,
+        getTimelineEventInfos,
     };
 }
 

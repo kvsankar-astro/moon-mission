@@ -9,6 +9,7 @@
  * - mission.js = imperative shell (applies state to DOM/3D)
  */
 import {
+    getBodyEphemerisRange,
     getBodyEphemerisState,
 } from "./data/ephemeris-provider.js";
 import { getRelativeFrameQuaternion } from "./data/relative-frame-provider.js";
@@ -20,6 +21,66 @@ import {
 
 const SPEED_OF_LIGHT_KM_PER_SEC = 299792.458;
 const MS_PER_SEC = 1000;
+const JD_UNIX_EPOCH = 2440587.5;
+const MS_PER_DAY = 86400000;
+
+function getApproximateUnixTimeFromHorizonsJulianDate(julianDate) {
+    const numericJulianDate = Number(julianDate);
+    if (!Number.isFinite(numericJulianDate)) {
+        return Number.NaN;
+    }
+    return ((numericJulianDate - JD_UNIX_EPOCH) * MS_PER_DAY) - TC.TDB_OFFSET_MS;
+}
+
+function clampTimeMsToEphemerisRange(timeMs, range) {
+    const numericTimeMs = Number(timeMs);
+    if (!Number.isFinite(numericTimeMs)) {
+        return numericTimeMs;
+    }
+
+    const startTimeMs = getApproximateUnixTimeFromHorizonsJulianDate(range?.start);
+    const endTimeMs = getApproximateUnixTimeFromHorizonsJulianDate(range?.end);
+    if (!Number.isFinite(startTimeMs) || !Number.isFinite(endTimeMs)) {
+        return numericTimeMs;
+    }
+    if (numericTimeMs < startTimeMs) {
+        return startTimeMs;
+    }
+    if (numericTimeMs > endTimeMs) {
+        return endTimeMs;
+    }
+    return numericTimeMs;
+}
+
+function getBodyEphemerisStateAtNearestAvailableTime(args) {
+    const state = getBodyEphemerisState(args);
+    if (state?.available) {
+        return state;
+    }
+
+    const range = getBodyEphemerisRange({
+        bodyId: args.bodyId,
+        config: args.config,
+        npzData: args.npzData,
+        npzDataLoaded: args.npzDataLoaded,
+        chebyshevData: args.chebyshevData,
+        chebyshevDataLoaded: args.chebyshevDataLoaded,
+        bodySources: args.bodySources,
+        defaultSpacecraftSource: args.defaultSpacecraftSource,
+        spacecraftMnemonic: args.spacecraftMnemonic,
+        resolvedSource: args.resolvedSource,
+        globalConfig: args.globalConfig,
+    });
+    const clampedTimeMs = clampTimeMsToEphemerisRange(args.timeMs, range);
+    if (!Number.isFinite(clampedTimeMs) || clampedTimeMs === args.timeMs) {
+        return state;
+    }
+
+    return getBodyEphemerisState({
+        ...args,
+        timeMs: clampedTimeMs,
+    });
+}
 
 // ============================================================================
 // Body State Computation
@@ -547,7 +608,7 @@ export function computeSceneState(time, config, options) {
 
     // In relative mode (geo), express fallback Sun direction in rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo" && !hasPrecomputedRelativeFrameData) {
-        relativeFrameMoonState = getBodyEphemerisState({
+        relativeFrameMoonState = getBodyEphemerisStateAtNearestAvailableTime({
             bodyId: "MOON",
             timeMs: time,
             config,
@@ -560,30 +621,29 @@ export function computeSceneState(time, config, options) {
             spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
         });
 
-        if (!relativeFrameMoonState.available) {
-            throw new Error("Moon state unavailable for relative frame");
+        if (relativeFrameMoonState?.available) {
+            const r = relativeFrameMoonState.position;
+            const v = {
+                x: relativeFrameMoonState.velocity.vx,
+                y: relativeFrameMoonState.velocity.vy,
+                z: relativeFrameMoonState.velocity.vz,
+            };
+
+            const xHat = normalize(r);
+            const zHat = normalize(cross(r, v));
+            const yHat = normalize(cross(zHat, xHat));
+
+            // Rotation matrix inertial->relative is [xHat yHat zHat]^T
+            const transform = (vec) => ({
+                x: xHat.x * vec.x + xHat.y * vec.y + xHat.z * vec.z,
+                y: yHat.x * vec.x + yHat.y * vec.y + yHat.z * vec.z,
+                z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
+            });
+
+            const relSun = transform(fallbackSunDirection);
+            const relNorm = normalize(relSun);
+            fallbackSunDirection = relNorm;
         }
-        const r = relativeFrameMoonState.position;
-        const v = {
-            x: relativeFrameMoonState.velocity.vx,
-            y: relativeFrameMoonState.velocity.vy,
-            z: relativeFrameMoonState.velocity.vz,
-        };
-
-        const xHat = normalize(r);
-        const zHat = normalize(cross(r, v));
-        const yHat = normalize(cross(zHat, xHat));
-
-        // Rotation matrix inertial->relative is [xHat yHat zHat]^T
-        const transform = (vec) => ({
-            x: xHat.x * vec.x + xHat.y * vec.y + xHat.z * vec.z,
-            y: yHat.x * vec.x + yHat.y * vec.y + yHat.z * vec.z,
-            z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
-        });
-
-        const relSun = transform(fallbackSunDirection);
-        const relNorm = normalize(relSun);
-        fallbackSunDirection = relNorm;
     }
 
     // 2. Body states
@@ -606,6 +666,7 @@ export function computeSceneState(time, config, options) {
         bodySources,
         includeNextState,
         precomputedBodyEphemeris: relativeFrameMoonState
+            ?.available
             ? { MOON: relativeFrameMoonState }
             : null,
     };

@@ -13,6 +13,7 @@ function buildDeps(overrides = {}) {
                 },
             },
         })),
+        loadComparisonOverlay: undefined,
         getGlobalConfig: vi.fn(() => globalConfig),
         setGlobalConfig: vi.fn((value) => {
             globalConfig = value;
@@ -106,6 +107,61 @@ describe("createInitConfigOrchestrationActions", () => {
         expect(deps.applyViewSettings).toHaveBeenCalledWith({
             viewBodyHalos: true,
             viewMoonOsculatingOrbit: true,
+        });
+    });
+
+    it("applies comparison overlay loading before publishing the global config", async () => {
+        const deps = buildDeps({
+            loadMissionConfig: vi.fn(async () => ({
+                mission_name: "Primary",
+                ui: {},
+            })),
+            loadComparisonOverlay: vi.fn(async (baseConfig) => ({
+                ...baseConfig,
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_ORION",
+                },
+            })),
+        });
+        const actions = createInitConfigOrchestrationActions(deps);
+
+        await actions.ensureGlobalConfigLoaded();
+
+        expect(deps.loadComparisonOverlay).toHaveBeenCalledWith({
+            mission_name: "Primary",
+            ui: {},
+        });
+        expect(deps.setGlobalConfig).toHaveBeenCalledWith({
+            mission_name: "Primary",
+            ui: {},
+            comparisonOverlay: {
+                compareCraftId: "CMP_ARTEMIS1_ORION",
+            },
+        });
+    });
+
+    it("enables additional crafts by default when comparison overlay supplies a visible pair", async () => {
+        const deps = buildDeps({
+            loadMissionConfig: vi.fn(async () => ({
+                ui: {},
+            })),
+            loadComparisonOverlay: vi.fn(async (baseConfig) => ({
+                ...baseConfig,
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_ORION",
+                    defaultVisibleCraftIds: ["SC", "CMP_ARTEMIS1_ORION"],
+                },
+            })),
+        });
+        const actions = createInitConfigOrchestrationActions(deps);
+
+        await actions.ensureGlobalConfigLoaded();
+
+        expect(deps.setViewFlags).toHaveBeenCalledWith({
+            viewAdditionalCrafts: true,
+        });
+        expect(deps.applyViewSettings).toHaveBeenCalledWith({
+            viewAdditionalCrafts: true,
         });
     });
 });

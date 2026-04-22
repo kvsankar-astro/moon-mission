@@ -1,4 +1,5 @@
 import { createControlPanelTimelineController } from "./control-panel-timeline-controller.js";
+import { createCompareModeController } from "./compare-mode-controller.js";
 import { createDesktopChromeAutohideController } from "./desktop-chrome-autohide.js";
 import { createHeaderBlurbController } from "./header-blurb-controller.js";
 import { createHeaderPillStripController } from "./header-pill-strip-controller.js";
@@ -236,6 +237,8 @@ export function bindMainControls(handlers) {
         reset,
         toggleMode,
         toggleRelativeMode,
+        toggleCompareMode,
+        changeCompareMission,
         changeCameraFromTo,
         changeDesktopMainFov,
         toggleDesktopMainFovAuto,
@@ -282,6 +285,10 @@ export function bindMainControls(handlers) {
         toggleLanding,
         toggleInfo,
     });
+    createCompareModeController({
+        toggleCompareMode,
+        changeCompareMission,
+    }).bind();
     syncMainControlControllerSet(controllers);
 }
 

@@ -19,6 +19,7 @@ import {
     resolveGeneratedCurvePoints,
     resolvePostHorizonExtension,
 } from "./post-horizons-extension.js";
+import { normalizeComparisonCurveVectors } from "./comparison-normalization.js";
 
 const GENERATED_ORBIT_SEGMENT_COLOR = "#ffb347";
 
@@ -53,6 +54,7 @@ export function createOrbitVectorsActions({
     getEpochJD,
     getEpochDate,
     setEpochDisplay,
+    getIsCompareMode = () => false,
 }) {
     const curveCacheByConfig = new Map();
     const readGlobalConfig =
@@ -259,6 +261,7 @@ export function createOrbitVectorsActions({
                 npzDataLoaded,
                 chebyshevData,
                 chebyshevDataLoaded,
+                globalConfig,
                 resolvedSource,
                 spacecraftMnemonic,
                 defaultSpacecraftSource,
@@ -289,6 +292,9 @@ export function createOrbitVectorsActions({
         scene.orbitTimesByBodyId = {};
         scene.orbitSvgGeneratedPointsByBodyId = {};
         const postHorizonExtension = resolvePostHorizonExtension(readGlobalConfig(), config);
+        const compareMode = typeof getIsCompareMode === "function"
+            ? !!getIsCompareMode()
+            : false;
 
         for (let i = 0; i < scene.planetsForLocations.length; ++i) {
             const planetKey = scene.planetsForLocations[i];
@@ -314,11 +320,24 @@ export function createOrbitVectorsActions({
                     typeof getEphemerisSource === "function"
                         ? getEphemerisSource()
                         : "chebyshev";
-                const vectors = resolveBodyOrbitVectors({
+                const rawVectors = resolveBodyOrbitVectors({
                     bodyId: planetKey,
                     config,
                     stepMs,
                     resolvedSource,
+                    defaultSpacecraftSource,
+                });
+                const vectors = normalizeComparisonCurveVectors({
+                    compareMode,
+                    bodyId: planetKey,
+                    vectors: rawVectors,
+                    config,
+                    globalConfig: readGlobalConfig(),
+                    npzData,
+                    npzDataLoaded,
+                    chebyshevData,
+                    chebyshevDataLoaded,
+                    resolveBodySource,
                     defaultSpacecraftSource,
                 });
 

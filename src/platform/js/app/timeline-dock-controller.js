@@ -1,9 +1,13 @@
 import {
     formatDateOnlyLocal,
     formatDateTimeLocal,
+    formatDuration,
     formatTimeOnlyLocal,
 } from "../utils/time-utils.js";
-import { buildEventHoverText } from "./burn-event-metadata.js";
+import {
+    resolveTimelineEventHoverText,
+    resolveTimelineEventLabel,
+} from "./comparison-timeline.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -37,9 +41,26 @@ function buildEventSignature(eventInfos) {
                 eventInfo?.burnTypeLabel || "",
                 String(eventInfo?.durationSeconds ?? ""),
                 eventInfo?.hoverText || "",
+                eventInfo?.timelineLabel || "",
+                eventInfo?.timelineHoverText || "",
+                eventInfo?.timelineRole || "",
             ].join("|");
         })
         .join(";");
+}
+
+function formatComparisonElapsedLabel(timeMs, rangeStartMs) {
+    const elapsedMs = Math.max(0, Number(timeMs) - Number(rangeStartMs || 0));
+    if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
+        return "T+0";
+    }
+    if (elapsedMs < 60000) {
+        return "T+<1m";
+    }
+    return `T+${formatDuration(elapsedMs, {
+        compact: true,
+        includeSeconds: false,
+    })}`;
 }
 
 function createTimelineDockController({
@@ -49,16 +70,19 @@ function createTimelineDockController({
     onMarkerLeave,
     onCraftSelect,
 }) {
+    const dockRoot = document.getElementById("timeline-dock");
     const slider = document.getElementById("timeline-slider");
     const markers = document.getElementById("timeline-markers");
     const startLabel = document.getElementById("timeline-start-label");
     const endLabel = document.getElementById("timeline-end-label");
+    const modeLabel = document.getElementById("timeline-mode-label");
     const currentLabel = document.getElementById("timeline-current-label");
     const craftStrip = document.getElementById("timeline-craft-strip");
 
     if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
         return {
             bind: () => {},
+            setMode: () => {},
             setRange: () => {},
             setCurrentTime: () => {},
             setEvents: () => {},
@@ -71,16 +95,67 @@ function createTimelineDockController({
     let lastRangeSignature = "";
     let lastEventSignature = "";
     let isBound = false;
+    let currentMode = {
+        compareMode: false,
+        label: "",
+        detail: "",
+        title: "",
+    };
 
     function updateCurrentLabel(timeMs) {
+        if (currentMode.compareMode) {
+            const elapsedLabel = formatComparisonElapsedLabel(timeMs, rangeMin);
+            const label = `Comparison Elapsed • ${elapsedLabel}`;
+            currentLabel.textContent = label;
+            slider.setAttribute(
+                "aria-valuetext",
+                `Comparison elapsed time ${elapsedLabel}`,
+            );
+            return;
+        }
+
         const label = formatDateTimeLocal(timeMs, { includeOffset: false });
         currentLabel.textContent = label;
         slider.setAttribute("aria-valuetext", label);
     }
 
-    function formatEdgeLabel(timeMs) {
+    function formatEdgeLabel(timeMs, edge) {
+        if (currentMode.compareMode) {
+            const edgeLabel = edge === "end" ? "End" : "Start";
+            const edgeElapsed = edge === "end"
+                ? formatComparisonElapsedLabel(timeMs, rangeMin)
+                : "T+0";
+            return `<span class="timeline-dock__edge-date">${edgeLabel}</span><span class="timeline-dock__edge-time">${edgeElapsed}</span>`;
+        }
         const includeOffset = typeof window === "undefined" ? true : window.innerWidth > 600;
         return `<span class="timeline-dock__edge-date">${formatDateOnlyLocal(timeMs)}</span><span class="timeline-dock__edge-time">${formatTimeOnlyLocal(timeMs, { includeOffset })}</span>`;
+    }
+
+    function setMode(modeState = {}) {
+        currentMode = {
+            compareMode: modeState.compareMode === true,
+            label: modeState.label || "",
+            detail: modeState.detail || "",
+            title: modeState.title || "",
+        };
+
+        dockRoot?.classList?.toggle?.("timeline-dock--compare", currentMode.compareMode);
+
+        if (modeLabel) {
+            const hidden = !currentMode.compareMode;
+            modeLabel.textContent = hidden
+                ? ""
+                : [currentMode.label, currentMode.detail].filter(Boolean).join(" • ");
+            modeLabel.title = hidden ? "" : currentMode.title;
+            modeLabel.hidden = hidden;
+            modeLabel.classList?.toggle?.("timeline-dock__mode--hidden", hidden);
+        }
+
+        if (lastRangeSignature) {
+            startLabel.innerHTML = formatEdgeLabel(rangeMin, "start");
+            endLabel.innerHTML = formatEdgeLabel(rangeMax, "end");
+        }
+        updateCurrentLabel(Number(slider.value));
     }
 
     function setRange({ startTimeMs, endTimeMs, stepMs }) {
@@ -102,8 +177,8 @@ function createTimelineDockController({
         slider.min = String(normalizedMin);
         slider.max = String(normalizedMax);
         slider.step = String(safeStep);
-        startLabel.innerHTML = formatEdgeLabel(normalizedMin);
-        endLabel.innerHTML = formatEdgeLabel(normalizedMax);
+        startLabel.innerHTML = formatEdgeLabel(normalizedMin, "start");
+        endLabel.innerHTML = formatEdgeLabel(normalizedMax, "end");
         slider.value = String(clamp(Number(slider.value), normalizedMin, normalizedMax));
     }
 
@@ -124,6 +199,9 @@ function createTimelineDockController({
         const marker = document.createElement("button");
         marker.type = "button";
         const markerClasses = ["timeline-dock__marker"];
+        if (eventInfo?.comparisonEvent || eventInfo?.timelineRole === "comparison") {
+            markerClasses.push("timeline-dock__marker--comparison");
+        }
         if (eventInfo?.burnFlag) {
             markerClasses.push("timeline-dock__marker--burn");
         }
@@ -136,11 +214,14 @@ function createTimelineDockController({
         }
         marker.className = markerClasses.join(" ");
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
-        const hoverText = buildEventHoverText(eventInfo) || "Event";
+        const markerLabel = resolveTimelineEventLabel(eventInfo);
+        const hoverText = resolveTimelineEventHoverText(eventInfo) || "Event";
         const generatedSuffix = eventInfo?.generatedLabel
             ? `\n${eventInfo.generatedLabel}`
             : "";
-        marker.title = `${eventInfo?.label || "Event"} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}${generatedSuffix}`;
+        marker.title = currentMode.compareMode
+            ? `${markerLabel}\n${hoverText}${generatedSuffix}`
+            : `${markerLabel} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}${generatedSuffix}`;
         marker.setAttribute("aria-label", marker.title);
         marker.addEventListener("mouseenter", () => {
             onMarkerHover?.(eventInfo, index);
@@ -241,6 +322,7 @@ function createTimelineDockController({
 
     return {
         bind,
+        setMode,
         setRange,
         setCurrentTime,
         setEvents,

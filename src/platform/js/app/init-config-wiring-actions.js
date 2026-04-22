@@ -1,6 +1,7 @@
 import { createInitConfigSceneSetupActions } from "./init-config-scene-setup.js";
 import { createInitConfigOrchestrationActions } from "./init-config-orchestration.js";
 import { createInitConfigUiActions } from "./init-config-ui-actions.js";
+import { loadComparisonOverlayConfig } from "./comparison-overlay-loader.js";
 
 function createInitConfigWiringActions(deps) {
     const {
@@ -77,6 +78,7 @@ function createInitConfigWiringActions(deps) {
         SceneHandlerClass,
         d3,
         getEventInfos,
+        getTimelineEventInfos,
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,
@@ -131,6 +133,12 @@ function createInitConfigWiringActions(deps) {
 
     const initConfigOrchestrationActions = createInitConfigOrchestrationActions({
         loadMissionConfig,
+        loadComparisonOverlay: (baseConfig) =>
+            loadComparisonOverlayConfig({
+                baseConfig,
+                windowRef,
+                createUTCTimestamp,
+            }),
         isTestMode,
         getGlobalConfig,
         setGlobalConfig,
@@ -172,6 +180,7 @@ function createInitConfigWiringActions(deps) {
     const initConfigUiActions = createInitConfigUiActions({
         d3,
         getEventInfos,
+        getTimelineEventInfos: getTimelineEventInfos || getEventInfos,
         bindBurnButtons,
         getBurnButtonHandler,
         SwiperClass,

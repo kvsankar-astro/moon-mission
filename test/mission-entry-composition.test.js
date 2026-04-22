@@ -57,6 +57,9 @@ describe("mission entry composition", () => {
             getLatestEndTime: vi.fn(),
             getAnimTime: vi.fn(),
             getEventInfos: vi.fn(),
+            getTimelineEventInfos: vi.fn(() => [{ key: "timeline-burn-a" }]),
+            getIsCompareMode: vi.fn(() => true),
+            syncTimelineEventButtons: vi.fn(),
             defaultStepMs: 60000,
             maxTimelineStepMs: 1000,
             updateEventInfo: vi.fn(),
@@ -86,6 +89,9 @@ describe("mission entry composition", () => {
         expect(runtime.syncTimelineDock).toBe(syncTimelineDock);
         expect(runtime.syncActiveCraftControl).toBe(syncActiveCraftControl);
         expect(captured.getAnimationController()).toBe(runtime.animationController);
+        expect(captured.playbackCtx.getTimelineEventInfos()).toEqual([{ key: "timeline-burn-a" }]);
+        expect(captured.playbackCtx.getIsCompareMode()).toBe(true);
+        expect(captured.playbackCtx.syncTimelineEventButtons).toBeTypeOf("function");
         expect(captured.callbackCtx.eventBus).toBe(eventBus);
         expect(captured.callbackCtx.syncTimelineDock).toBe(syncTimelineDock);
         expect(captured.callbackCtx.syncActiveCraftControl).toBe(syncActiveCraftControl);

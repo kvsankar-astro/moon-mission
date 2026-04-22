@@ -1,6 +1,9 @@
+import { resolveComparisonDefaultVisibleCraftIds } from "../core/domain/comparison-overlay.js";
+
 function createInitConfigOrchestrationActions(deps) {
     const {
         loadMissionConfig,
+        loadComparisonOverlay,
         getGlobalConfig,
         setGlobalConfig,
         setViewFlags,
@@ -48,12 +51,17 @@ function createInitConfigOrchestrationActions(deps) {
 
     function applyMissionViewDefaults(globalConfig) {
         const viewDefaults = globalConfig?.ui?.viewDefaults;
-        if (!viewDefaults || typeof viewDefaults !== "object") {
+        const comparisonDefaultVisibleCraftIds = resolveComparisonDefaultVisibleCraftIds(globalConfig);
+        const shouldEnableComparisonCraftsByDefault = comparisonDefaultVisibleCraftIds.length > 1;
+        if ((!viewDefaults || typeof viewDefaults !== "object") && !shouldEnableComparisonCraftsByDefault) {
             return;
         }
         const effectiveViewDefaults = {
-            ...viewDefaults,
+            ...(viewDefaults && typeof viewDefaults === "object" ? viewDefaults : {}),
         };
+        if (shouldEnableComparisonCraftsByDefault) {
+            effectiveViewDefaults.viewAdditionalCrafts = true;
+        }
         setViewFlags?.(effectiveViewDefaults);
         applyViewSettings?.(effectiveViewDefaults);
     }
@@ -79,7 +87,11 @@ function createInitConfigOrchestrationActions(deps) {
             return;
         }
 
-        const loadedGlobalConfig = await loadMissionConfig();
+        const loadedBaseConfig = await loadMissionConfig();
+        const loadedGlobalConfig =
+            typeof loadComparisonOverlay === "function"
+                ? await loadComparisonOverlay(loadedBaseConfig)
+                : loadedBaseConfig;
         setGlobalConfig(loadedGlobalConfig);
         applyMissionViewDefaults(loadedGlobalConfig);
         setEventInfos(loadedGlobalConfig?.eventInfos || []);

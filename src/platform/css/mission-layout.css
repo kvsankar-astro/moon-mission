@@ -1380,6 +1380,16 @@ canvas {
     background: rgba(255, 184, 92, 0.96);
 }
 
+.timeline-dock__marker--comparison::before {
+    background: rgba(110, 228, 189, 0.92);
+    box-shadow: 0 0 10px rgba(110, 228, 189, 0.28);
+}
+
+.timeline-dock__marker--comparison.timeline-dock__marker--burn::before {
+    background: rgba(84, 244, 204, 0.98);
+    box-shadow: 0 0 12px rgba(84, 244, 204, 0.36);
+}
+
 .timeline-dock__marker--generated::before {
     background: #ffb347;
     box-shadow: 0 0 10px rgba(255, 179, 71, 0.55);
@@ -1434,16 +1444,57 @@ canvas {
 }
 
 .timeline-dock__current {
-    margin-top: 3px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 18px;
+    padding: 2px 0 3px;
+    overflow: visible;
     text-align: center;
     font-size: 10px;
     font-weight: 600;
+    line-height: 1.4;
     color: rgba(211, 227, 252, 0.94);
     letter-spacing: 0.015em;
 }
 
+.timeline-dock__mode {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 16px;
+    padding: 2px 0 1px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(178, 237, 214, 0.94);
+}
+
+.timeline-dock__mode--hidden {
+    display: none;
+}
+
+.timeline-dock--compare .timeline-dock__current {
+    margin-top: 2px;
+    color: rgba(215, 246, 233, 0.96);
+}
+
+.timeline-dock--compare .timeline-dock__row {
+    margin-bottom: 1px;
+}
+
+.timeline-dock--compare .timeline-dock__mode {
+    min-height: 18px;
+    padding: 3px 0 1px;
+    line-height: 1.45;
+}
+
 .timeline-dock.timeline-dock--events-collapsed .timeline-dock__current {
-    margin-top: 1px;
+    margin-top: 2px;
 }
 
 .timeline-dock__craft-strip {
@@ -1451,8 +1502,10 @@ canvas {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
     gap: 4px;
     min-height: 14px;
+    padding: 1px 0 2px;
 }
 
 .timeline-dock__craft-strip--hidden {
@@ -1462,8 +1515,9 @@ canvas {
 .timeline-dock__craft-chip {
     display: inline-flex;
     align-items: center;
-    max-width: 110px;
-    padding: 1px 6px 2px;
+    max-width: 140px;
+    min-height: 18px;
+    padding: 2px 6px 3px;
     border-radius: 999px;
     border: 1px solid rgba(176, 196, 228, 0.3);
     background: rgba(18, 28, 48, 0.52);
@@ -1505,10 +1559,23 @@ canvas {
     color: rgba(183, 204, 236, 0.78);
     font-size: 8px;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.3;
     letter-spacing: 0.03em;
     text-transform: uppercase;
     flex: 0 0 auto;
+}
+
+.timeline-dock--compare {
+    padding-bottom: 8px;
+}
+
+.timeline-dock--compare .timeline-dock__craft-strip {
+    margin-top: 4px;
+    padding-bottom: 3px;
+}
+
+.timeline-dock--compare .timeline-dock__craft-chip {
+    max-width: min(280px, calc(50vw - 28px));
 }
 
 .timeline-dock__craft-chip--active {
@@ -1783,6 +1850,21 @@ a:hover { color: white; }
     background: #ffb347;
     box-shadow: 0 0 8px rgba(255, 179, 71, 0.55);
     pointer-events: none;
+}
+
+.burnbutton--comparison {
+    color: rgba(226, 252, 243, 0.96);
+    border-color: rgba(104, 221, 181, 0.48);
+    background: rgba(16, 55, 45, 0.52);
+    box-shadow:
+        inset 0 0 0 1px rgba(155, 236, 208, 0.1),
+        0 0 10px rgba(73, 193, 149, 0.1);
+}
+
+.burnbutton--comparison:hover,
+.burnbutton--comparison:focus-visible {
+    border-color: rgba(142, 239, 204, 0.72);
+    background: rgba(18, 70, 58, 0.72);
 }
 
 #burnbuttons .swiper-slide {
@@ -2458,7 +2540,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock__edge,
-    .timeline-dock__current {
+    .timeline-dock__current,
+    .timeline-dock__mode {
         font-size: 9px;
     }
 

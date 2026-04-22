@@ -93,7 +93,7 @@ function createRuntimeMoonRenderProfileControlActions(deps) {
 
 function createRuntimeBurnControlActions(deps) {
     return deps.createBurnActions({
-        getEventInfos: deps.getEventInfos,
+        getEventInfos: deps.getTimelineEventInfos || deps.getEventInfos,
         setAnimTime: deps.setAnimTime,
         missionSetTime: deps.missionSetTime,
     });

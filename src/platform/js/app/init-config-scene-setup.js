@@ -2,6 +2,7 @@ import {
     applyModeSwitchForOrigin,
     resolveOriginDescriptor,
 } from "../core/domain/origin-compat.js";
+import { resolveComparisonDisplayAvailabilityTimeRange } from "../core/domain/comparison-overlay.js";
 import { resolveDataPathUrl } from "../core/domain/mission-asset-resolver.js";
 import { resolvePrimaryMissionCraft } from "../core/domain/mission-config.js";
 
@@ -48,6 +49,135 @@ function resolveCraftSupportChebyshevUrls({
     }
 
     return supportUrls;
+}
+
+function appendUniqueBodyId(bodyIds, bodyId) {
+    const normalizedIds = Array.isArray(bodyIds) ? bodyIds.slice() : [];
+    if (!bodyId || normalizedIds.includes(bodyId)) {
+        return normalizedIds;
+    }
+    normalizedIds.push(bodyId);
+    return normalizedIds;
+}
+
+function resolveComparisonOverlaySupportChebyshevUrl({
+    comparisonOverlay,
+    originKey,
+    isRelativeMode,
+    allowRelativeOrbitOverride,
+}) {
+    const urlMap = comparisonOverlay?.supportOrbitChebyshevUrlsByOrigin;
+    if (!urlMap || typeof urlMap !== "object") {
+        return null;
+    }
+
+    if (isRelativeMode && allowRelativeOrbitOverride && typeof urlMap.relative === "string") {
+        return urlMap.relative;
+    }
+
+    const directUrl = urlMap[originKey];
+    if (typeof directUrl === "string" && directUrl.length > 0) {
+        return directUrl;
+    }
+
+    if (originKey === "geo" && typeof urlMap.relative === "string") {
+        return urlMap.relative;
+    }
+
+    return null;
+}
+
+function applyComparisonOverlayToScene({
+    scene,
+    configData,
+    sceneConfig,
+    isRelativeMode,
+    allowRelativeOrbitOverride,
+}) {
+    const comparisonOverlay = configData?.comparisonOverlay;
+    const compareCraftId = comparisonOverlay?.compareCraftId;
+    if (!compareCraftId) {
+        return;
+    }
+
+    const supportChebUrl = resolveComparisonOverlaySupportChebyshevUrl({
+        comparisonOverlay,
+        originKey: sceneConfig,
+        isRelativeMode,
+        allowRelativeOrbitOverride,
+    });
+    if (!supportChebUrl) {
+        return;
+    }
+
+    scene.planetsForOrbits = appendUniqueBodyId(scene.planetsForOrbits, compareCraftId);
+    scene.planetsForLocations = appendUniqueBodyId(scene.planetsForLocations, compareCraftId);
+    scene.supportOrbitsChebByBodyId = {
+        ...(scene.supportOrbitsChebByBodyId || {}),
+        [compareCraftId]: supportChebUrl,
+    };
+
+    const defaultVisibleCraftIds = Array.isArray(comparisonOverlay?.defaultVisibleCraftIds)
+        ? comparisonOverlay.defaultVisibleCraftIds.filter(Boolean)
+        : [];
+    const currentVisibleCraftIds = Array.isArray(scene.visibleCraftIds)
+        ? scene.visibleCraftIds.filter(Boolean)
+        : [];
+    const shouldApplyDefaultVisibleCraftIds =
+        currentVisibleCraftIds.length === 0 ||
+        (
+            currentVisibleCraftIds.length === 1 &&
+            currentVisibleCraftIds[0] === scene.primaryCraftId
+        );
+    if (shouldApplyDefaultVisibleCraftIds && defaultVisibleCraftIds.length > 0) {
+        scene.visibleCraftIds = [...new Set(defaultVisibleCraftIds)];
+        scene.viewAdditionalCrafts = scene.visibleCraftIds.length > 1;
+    }
+}
+
+function resolveScenePlaybackBounds({
+    configData,
+    sceneConfig,
+    spacecraftMnemonic,
+    getStartAndEndTimes,
+}) {
+    const earthRange = getStartAndEndTimes("EARTH");
+    const spacecraftRange = getStartAndEndTimes(spacecraftMnemonic);
+    const earthStartMs = Number(earthRange?.[0]);
+    const earthEndMs = Number(earthRange?.[1]);
+    const spacecraftStartMs = Number(spacecraftRange?.[0]);
+    const spacecraftEndMs = Number(spacecraftRange?.[1]);
+
+    const compareCraftId = configData?.comparisonOverlay?.compareCraftId;
+    const comparisonAvailabilityRange = compareCraftId
+        ? resolveComparisonDisplayAvailabilityTimeRange({
+            globalConfig: configData,
+            bodyId: compareCraftId,
+            config: sceneConfig,
+        })
+        : null;
+    const comparisonEndMs = Number(comparisonAvailabilityRange?.endMs);
+
+    const startMs = Number.isFinite(earthStartMs)
+        ? earthStartMs
+        : spacecraftStartMs;
+    const endMs = Number.isFinite(comparisonEndMs)
+        ? (
+            Number.isFinite(earthEndMs)
+                ? Math.max(earthEndMs, comparisonEndMs)
+                : comparisonEndMs
+        )
+        : earthEndMs;
+
+    return {
+        startMs,
+        endMs,
+        earthEndMs,
+        spacecraftEndMs,
+        comparisonEndMs: Number.isFinite(comparisonEndMs)
+            ? comparisonEndMs
+            : null,
+    };
 }
 
 function createInitConfigSceneSetupActions(deps) {
@@ -161,21 +291,28 @@ function createInitConfigSceneSetupActions(deps) {
         return spacecraftMnemonic;
     }
 
-    function applyTimelineConfig({ scene, spacecraftMnemonic }) {
-        const start = getStartAndEndTimes("EARTH")[0];
-        const end = getStartAndEndTimes("EARTH")[1];
-        const endSc = getStartAndEndTimes(spacecraftMnemonic)[1];
+    function applyTimelineConfig({ scene, spacecraftMnemonic, configData, sceneConfig }) {
+        const {
+            startMs,
+            endMs,
+            spacecraftEndMs,
+        } = resolveScenePlaybackBounds({
+            configData,
+            sceneConfig,
+            spacecraftMnemonic,
+            getStartAndEndTimes,
+        });
 
-        setStartTime(start);
-        setEndTime(end);
-        setEndTimeSC(endSc);
-        setLatestEndTime(end);
-        setTimelineTotalSteps((end - start) / scene.stepDurationInMilliSeconds);
+        setStartTime(startMs);
+        setEndTime(endMs);
+        setEndTimeSC(spacecraftEndMs);
+        setLatestEndTime(endMs);
+        setTimelineTotalSteps((endMs - startMs) / scene.stepDurationInMilliSeconds);
         setTicksPerAnimationStep(1);
 
         animationController.configure({
-            startTime: start,
-            endTime: end,
+            startTime: startMs,
+            endTime: endMs,
             stepDurationMs: scene.stepDurationInMilliSeconds,
             stepsPerHop: scene.stepsPerHop,
         });
@@ -233,9 +370,22 @@ function createInitConfigSceneSetupActions(deps) {
             }
         }
 
+        applyComparisonOverlayToScene({
+            scene,
+            configData,
+            sceneConfig: originKey,
+            isRelativeMode,
+            allowRelativeOrbitOverride: descriptor.allowRelativeOrbitOverride,
+        });
+
         scene.orbitsJsonFileSizeInBytes = descriptor.orbitFileSizeBytes;
         scene.stepsPerHop = descriptor.stepsPerHop;
-        applyTimelineConfig({ scene, spacecraftMnemonic });
+        applyTimelineConfig({
+            scene,
+            spacecraftMnemonic,
+            configData,
+            sceneConfig: originKey,
+        });
         applyModeSwitchForOrigin({
             originKey,
             globalConfig: configData,
@@ -250,3 +400,4 @@ function createInitConfigSceneSetupActions(deps) {
 }
 
 export { createInitConfigSceneSetupActions };
+export { resolveScenePlaybackBounds };

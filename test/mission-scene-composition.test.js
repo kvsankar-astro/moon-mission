@@ -85,6 +85,7 @@ function createSceneCompositionContext() {
         getViewEclipticPlane: vi.fn(() => false),
         getViewEquatorialPlane: vi.fn(() => false),
         getEventInfos: vi.fn(() => []),
+        getTimelineEventInfos: vi.fn(() => [{ key: "timeline-burn-a" }]),
         _animationScenes: animationScenes,
         _sceneHandler: sceneHandler,
     };
@@ -123,6 +124,7 @@ describe("mission scene composition", () => {
         expect(sceneEntryContext.resolveBodySource).toBe(ctx.resolveBodySource);
         expect(sceneEntryContext.bridgeActions).toBe(ctx.bridgeActions);
         expect(sceneEntryContext.clearEventInfo).toBe(ctx.clearEventInfo);
+        expect(sceneEntryContext.getTimelineEventInfos).toBe(ctx.getTimelineEventInfos);
         expect(sceneEntryContext.generateBodyCurve).toEqual(expect.any(Function));
         expect(sceneEntryContext.getBodyEphemerisState).toEqual(expect.any(Function));
         expect(sceneEntryContext.bindSettingsPanel).toEqual(expect.any(Function));

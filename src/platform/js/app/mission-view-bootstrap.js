@@ -2,6 +2,7 @@ import { createRelativeModeActions } from "./relative-mode.js";
 
 function initializeMissionViewState({
     isRelativeMode,
+    isCompareMode,
     setChecked,
     readOriginMode,
     syncPlaneSelectionControls,
@@ -16,8 +17,11 @@ function initializeMissionViewState({
         applyRelativeModeOriginSelection,
         toggleRelativeMode,
         toggleModeGuarded,
+        toggleCompareMode,
+        changeCompareMission,
     } = createRelativeModeActions({
         isRelativeMode,
+        isCompareMode,
         setChecked,
         readOriginMode,
         getToggleMode,
@@ -37,6 +41,8 @@ function initializeMissionViewState({
         ...readViewSettings(),
         toggleRelativeMode,
         toggleModeGuarded,
+        toggleCompareMode,
+        changeCompareMission,
     };
 }
 

@@ -3,6 +3,7 @@ import {
     resolveMissionCraft,
     resolvePrimaryMissionCraft,
 } from "../core/domain/mission-config.js";
+import { resolveComparisonDefaultVisibleCraftIds } from "../core/domain/comparison-overlay.js";
 import {
     ORBIT_TRAIL_STYLE,
     resolveOverlapAdjustedOpacity,
@@ -79,6 +80,19 @@ function filterSceneCraftIds(scene, globalConfig, bodyIds) {
     return filtered;
 }
 
+function getSceneDefaultVisibleCraftIds(scene, globalConfig) {
+    const comparisonVisibleCraftIds = filterSceneCraftIds(
+        scene,
+        globalConfig,
+        resolveComparisonDefaultVisibleCraftIds(globalConfig),
+    );
+    if (comparisonVisibleCraftIds.length > 0) {
+        return comparisonVisibleCraftIds;
+    }
+
+    return [getSceneActiveCraftId(scene, globalConfig)].filter(Boolean);
+}
+
 function getSceneVisibleCraftIds(scene, globalConfig, requestedVisibleCraftIds = undefined) {
     const craftIds = getSceneMissionCraftIds(scene, globalConfig);
     const explicitVisibleCraftIds = filterSceneCraftIds(
@@ -103,7 +117,7 @@ function getSceneVisibleCraftIds(scene, globalConfig, requestedVisibleCraftIds =
         return craftIds;
     }
 
-    return [getSceneActiveCraftId(scene, globalConfig)].filter(Boolean);
+    return getSceneDefaultVisibleCraftIds(scene, globalConfig);
 }
 
 function setSceneVisibleCraftIds(scene, globalConfig = null, requestedVisibleCraftIds = undefined) {
@@ -280,6 +294,7 @@ export {
     applySceneOrbitVisibility,
     getSceneActiveCraftId,
     getSceneCraftObject,
+    getSceneDefaultVisibleCraftIds,
     getSceneDroneObject,
     getSceneMissionCraftIds,
     getScenePrimaryCraftId,

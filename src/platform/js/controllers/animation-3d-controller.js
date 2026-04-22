@@ -15,6 +15,44 @@ import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
+function normalizeDirection(candidate) {
+    const x = Number(candidate?.x);
+    const y = Number(candidate?.y);
+    const z = Number(candidate?.z);
+    const norm = Math.hypot(x, y, z);
+    if (!Number.isFinite(norm) || norm <= 1e-12) {
+        return null;
+    }
+    return {
+        x: x / norm,
+        y: y / norm,
+        z: z / norm,
+    };
+}
+
+function cloneDirection(direction) {
+    return direction
+        ? {
+            x: direction.x,
+            y: direction.y,
+            z: direction.z,
+        }
+        : null;
+}
+
+function createFixedCompareSunDirections(compareDisplayProfile) {
+    const fixedDirection = normalizeDirection(compareDisplayProfile?.fixedSunDirection);
+    if (!fixedDirection) {
+        return null;
+    }
+    return {
+        earthCentered: cloneDirection(fixedDirection),
+        moonCentered: cloneDirection(fixedDirection),
+        craftCentered: cloneDirection(fixedDirection),
+        craftCenteredLightTime: cloneDirection(fixedDirection),
+    };
+}
+
 export class Animation3DController {
     /**
      * Create a 3D animation controller.
@@ -24,6 +62,7 @@ export class Animation3DController {
     constructor(config, animationScene) {
         this.config = config;
         this.scene = animationScene;
+        this._frozenNextScreenPosByCraftId = {};
     }
 
     /**
@@ -39,28 +78,46 @@ export class Animation3DController {
             return;
         }
 
-        /** @type {{ craftId?: string, pixelsPerAU?: number, updateCraftScale?: Function, landingFreezeTime?: number | null }} */
+        /** @type {{ craftId?: string, pixelsPerAU?: number, updateCraftScale?: Function, landingFreezeTime?: number | null, compareMode?: boolean, compareDisplayProfile?: Object | null }} */
         const renderOptions = options || {};
         const {
             craftId = "SC",
             pixelsPerAU = 250,
             updateCraftScale,
             landingFreezeTime = null,
+            compareMode = false,
+            compareDisplayProfile = null,
         } = renderOptions;
+        const fixedCompareSunDirections = compareMode
+            ? createFixedCompareSunDirections(compareDisplayProfile)
+            : null;
+        const effectiveSunDirections = fixedCompareSunDirections || state.sunDirections || null;
+        const effectiveSunDirection = effectiveSunDirections?.earthCentered || state.sunDirection;
         this.pixelsPerAU = pixelsPerAU;
         // Carry body-specific sun directions for lighting and craft optics.
-        this.scene.stateSunDirection = state.sunDirection;
-        this.scene.stateSunDirections = state.sunDirections || null;
+        this.scene.stateSunDirection = effectiveSunDirection;
+        this.scene.stateSunDirections = effectiveSunDirections;
         this.scene.stateTime = state.time;
         this.scene.latestSceneState = state;
-        this.scene.skyRenderer?.setTime?.(state.time, { realtimeFrame: true });
+        if (!(compareMode && compareDisplayProfile?.freezeSkyOrientation)) {
+            this.scene.skyRenderer?.setTime?.(state.time, { realtimeFrame: true });
+        }
 
         // 1. Update lighting from sun position
-        this.updateLighting(state.sunLongitude, state.bodies, state.sunDirections);
+        this.updateLighting(
+            state.sunLongitude,
+            state.bodies,
+            effectiveSunDirections,
+            compareMode ? compareDisplayProfile : null,
+        );
 
         // 2. Rotate Earth and Moon based on time
-        this.scene.rotateEarth(state.time);
-        this.scene.rotateMoon(state.time);
+        if (!(compareMode && compareDisplayProfile?.freezeEarthRotation)) {
+            this.scene.rotateEarth(state.time);
+        }
+        if (!(compareMode && compareDisplayProfile?.freezeMoonRotation)) {
+            this.scene.rotateMoon(state.time);
+        }
 
         // 3. Update body positions
         this.updateBodyPositions(state.bodies, craftId, state.time, landingFreezeTime);
@@ -81,7 +138,7 @@ export class Animation3DController {
      * Update light positions based on sun longitude.
      * @param {number} sunLongitude - Sun longitude in radians
      */
-    updateLighting(sunLongitude, bodies = null, sunDirections = null) {
+    updateLighting(sunLongitude, bodies = null, sunDirections = null, compareDisplayProfile = null) {
         if (!this.scene.light || !this.scene.light2) {
             return;
         }
@@ -219,6 +276,11 @@ export class Animation3DController {
             return;
         }
 
+        if (compareDisplayProfile?.disableEarthshine) {
+            this.scene.lightFill.intensity = 0.0;
+            return;
+        }
+
         if (suppressLunarFillLighting) {
             this.scene.lightFill.intensity = 0.0;
             return;
@@ -301,15 +363,15 @@ export class Animation3DController {
                     this.pixelsPerAU,
                     stateTime,
                 );
-            } else if (bodyId === craftId) {
-                // Spacecraft
+            } else if (this.scene?.craftsById?.[bodyId]) {
                 this.updateSpacecraftPosition(
                     bodyState,
                     screenPos,
                     bodies,
                     stateTime,
                     landingFreezeTime,
-                    craftId,
+                    bodyId,
+                    { isActiveCraft: bodyId === craftId },
                 );
             }
         }
@@ -431,41 +493,60 @@ export class Animation3DController {
      * @param {Object} screenPos - Current screen position
      * @param {Object} allBodies - All body states (for next position calculation)
      */
-    updateSpacecraftPosition(bodyState, screenPos, allBodies, stateTime, landingFreezeTime, craftId = "SC") {
-        if (!this.scene.craft) {
+    updateSpacecraftPosition(
+        bodyState,
+        screenPos,
+        allBodies,
+        stateTime,
+        landingFreezeTime,
+        craftId = "SC",
+        options = {},
+    ) {
+        const { isActiveCraft = false } = options || {};
+        const craftObject = isActiveCraft
+            ? (this.scene.craft || this.scene.craftsById?.[craftId] || null)
+            : (this.scene.craftsById?.[craftId] || null);
+        const droneObject = isActiveCraft
+            ? (this.scene.drone || this.scene.dronesById?.[craftId] || null)
+            : (this.scene.dronesById?.[craftId] || null);
+        const renderer = this.scene.spacecraftRenderersById?.[craftId] ||
+            (isActiveCraft ? this.scene.spacecraftRenderer : null);
+
+        if (!craftObject) {
             return;
         }
 
         // Set spacecraft position
-        this.scene.craft.position.set(screenPos.x, screenPos.y, screenPos.z);
+        craftObject.position.set(screenPos.x, screenPos.y, screenPos.z);
 
         // Calculate next position for orientation (prefer Chebyshev-derived next position from state)
         const shouldFreeze = typeof landingFreezeTime === "number" && stateTime >= landingFreezeTime;
+        this._frozenNextScreenPosByCraftId ||= {};
         if (!shouldFreeze) {
-            this._frozenNextScreenPos = null;
+            delete this._frozenNextScreenPosByCraftId[craftId];
         }
 
         let nextScreenPos;
         if (shouldFreeze) {
-            if (!this._frozenNextScreenPos) {
+            if (!this._frozenNextScreenPosByCraftId[craftId]) {
                 const nextPos = bodyState.nextPosition || this.calculateNextPosition(bodyState);
-                this._frozenNextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
+                this._frozenNextScreenPosByCraftId[craftId] = toScreenCoordinates(nextPos, this.pixelsPerAU);
             }
-            nextScreenPos = this._frozenNextScreenPos;
+            nextScreenPos = this._frozenNextScreenPosByCraftId[craftId];
         } else {
             const nextPos = bodyState.nextPosition || this.calculateNextPosition(bodyState);
             nextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
         }
 
         // Update drone position (follows spacecraft at offset)
-        if (this.scene.drone) {
+        if (droneObject) {
             const droneScale = 1.05;
             const delta = {
                 x: nextScreenPos.x - screenPos.x,
                 y: nextScreenPos.y - screenPos.y,
                 z: nextScreenPos.z - screenPos.z
             };
-            this.scene.drone.position.set(
+            droneObject.position.set(
                 droneScale * (screenPos.x - delta.x),
                 droneScale * (screenPos.y - delta.y),
                 droneScale * (screenPos.z - delta.z)
@@ -490,20 +571,19 @@ export class Animation3DController {
                 lookZ = screenPos.z + (velZ / speed) * velocityLookDistance;
             }
         }
-        this.scene.craft.up.set(0, 0, 1);
-        this.scene.craft.lookAt(lookX, lookY, lookZ);
+        craftObject.up.set(0, 0, 1);
+        craftObject.lookAt(lookX, lookY, lookZ);
 
         // Apply model-specific forward-axis correction after lookAt so the
         // physical body long axis aligns with velocity tangent.
-        const renderer = this.scene.spacecraftRenderersById?.[craftId] || this.scene.spacecraftRenderer;
         const attitudeOffset = renderer?.getAttitudeOffsetQuaternion?.();
         if (attitudeOffset) {
-            this.scene.craft.quaternion.multiply(attitudeOffset);
+            craftObject.quaternion.multiply(attitudeOffset);
         }
 
         // Orient drone to look back at spacecraft
-        if (this.scene.drone) {
-            this.scene.drone.lookAt(screenPos.x, screenPos.y, screenPos.z);
+        if (droneObject) {
+            droneObject.lookAt(screenPos.x, screenPos.y, screenPos.z);
         }
 
         // Keep only solar wings tracking the live sun direction (1-DOF tilt per wing).

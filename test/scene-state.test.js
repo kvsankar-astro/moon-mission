@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("../src/platform/js/data/ephemeris-provider.js", () => ({
+    getBodyEphemerisRange: vi.fn(),
     getBodyEphemerisState: vi.fn(),
 }));
 
@@ -8,7 +9,10 @@ vi.mock("../src/platform/js/data/relative-frame-provider.js", () => ({
     getRelativeFrameQuaternion: vi.fn(),
 }));
 
-import { getBodyEphemerisState } from "../src/platform/js/data/ephemeris-provider.js";
+import {
+    getBodyEphemerisRange,
+    getBodyEphemerisState,
+} from "../src/platform/js/data/ephemeris-provider.js";
 import { getRelativeFrameQuaternion } from "../src/platform/js/data/relative-frame-provider.js";
 import { computeBodyState, computeSceneState, findActiveEvent } from "../src/platform/js/scene-state.js";
 
@@ -59,9 +63,18 @@ function createSceneOptions(overrides = {}) {
     };
 }
 
+const JD_UNIX_EPOCH = 2440587.5;
+const MS_PER_DAY = 86400000;
+const TDB_OFFSET_MS = (37.000 + 32.184) * 1000;
+
+function toHorizonsJulianDate(timeMs) {
+    return JD_UNIX_EPOCH + (timeMs + TDB_OFFSET_MS) / MS_PER_DAY;
+}
+
 describe("computeBodyState", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        getBodyEphemerisRange.mockReturnValue(null);
         getRelativeFrameQuaternion.mockReturnValue(null);
     });
 
@@ -132,6 +145,7 @@ describe("computeBodyState", () => {
 describe("computeSceneState", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        getBodyEphemerisRange.mockReturnValue(null);
         getRelativeFrameQuaternion.mockReturnValue(null);
     });
 
@@ -172,6 +186,66 @@ describe("computeSceneState", () => {
         expect(
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(1);
+    });
+
+    it("clamps the relative-frame Moon basis lookup to the nearest available ephemeris time", () => {
+        getBodyEphemerisRange.mockImplementation(({ bodyId }) => (
+            bodyId === "MOON"
+                ? {
+                    start: toHorizonsJulianDate(1000),
+                    end: toHorizonsJulianDate(6000),
+                }
+                : null
+        ));
+        getBodyEphemerisState.mockImplementation(({ bodyId, timeMs }) => {
+            if (bodyId === "MOON" && timeMs === 12000) {
+                return {
+                    position: null,
+                    velocity: null,
+                    available: false,
+                };
+            }
+            if (bodyId === "MOON" && Math.abs(timeMs - 6000) < 2) {
+                return {
+                    position: { x: 1, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SC") {
+                return {
+                    position: { x: 0, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: null,
+                velocity: null,
+                available: false,
+            };
+        });
+
+        const sceneState = computeSceneState(
+            12000,
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC", "MOON"],
+            }),
+        );
+
+        expect(sceneState.bodies.MOON.available).toBe(true);
+        expect(
+            getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
+        ).toHaveLength(2);
+        expect(getBodyEphemerisState).toHaveBeenCalledWith(
+            expect.objectContaining({
+                bodyId: "MOON",
+                timeMs: expect.closeTo(6000, 1),
+            }),
+        );
     });
 
     it("skips Moon basis lookup when relative chebyshev data is already precomputed", () => {

@@ -1,3 +1,6 @@
+import { createComparisonDisplayState } from "../domain/comparison-display.js";
+import { resolveCompareDisplayProfile } from "../domain/runtime-mode.js";
+
 function buildSceneStateOptions({
     sunLongitude,
     chebyshevData,
@@ -52,6 +55,9 @@ function buildRenderOptions({
     updateCraftScale,
     startLandingTime,
     scene,
+    globalConfig,
+    compareMode = false,
+    comparisonNormalizationScale = 1,
 }) {
     return {
         craftId,
@@ -61,6 +67,9 @@ function buildRenderOptions({
         updateCraftScale,
         landingFreezeTime: startLandingTime ? (startLandingTime - 5000) : null,
         scene,
+        compareMode,
+        comparisonNormalizationScale,
+        compareDisplayProfile: compareMode ? resolveCompareDisplayProfile(globalConfig) : null,
     };
 }
 
@@ -87,6 +96,8 @@ function planFrameStep(input) {
         frameMode,
         bodySources,
         ephemerisSource,
+        compareMode = false,
+        createCompareDisplayState = createComparisonDisplayState,
         craftId,
         pixelsPerAU,
         updateCraftScale,
@@ -123,7 +134,19 @@ function planFrameStep(input) {
         includeNextState: currentDimension !== "2D",
         craftId,
     });
-    const sceneState = computeSceneState(animTime, config, sceneStateOptions);
+    const rawSceneState = computeSceneState(animTime, config, sceneStateOptions);
+    const renderSceneState = compareMode
+        ? createCompareDisplayState(rawSceneState, {
+            config,
+            globalConfig,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            defaultSpacecraftSource: ephemerisSource,
+        })
+        : rawSceneState;
     const primaryBody = scene.primaryBody;
     const renderOptions = buildRenderOptions({
         craftId,
@@ -133,17 +156,21 @@ function planFrameStep(input) {
         updateCraftScale,
         startLandingTime,
         scene,
+        globalConfig,
+        compareMode,
+        comparisonNormalizationScale:
+            renderSceneState?.comparisonNormalizationScale ?? 1,
     });
 
     return {
         shouldRun: true,
         statePatchIntent: {
-            sunLongitude: sceneState.sunLongitude,
+            sunLongitude: rawSceneState.sunLongitude,
         },
         renderIntent: {
             dimension: currentDimension,
             config,
-            sceneState,
+            sceneState: renderSceneState,
             renderOptions,
             shouldAdjustCameraProjection:
                 currentDimension === "3D" && !!scene.initialized3D,
@@ -151,7 +178,7 @@ function planFrameStep(input) {
         uiIntent: {
             config,
             animTime,
-            sceneState,
+            sceneState: rawSceneState,
             primaryBody,
             globalConfig,
         },

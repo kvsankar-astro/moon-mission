@@ -70,6 +70,8 @@ export function startMissionApp({ eventBus, handlers }) {
         reset: (event) => eventBus.emit("ui:reset", { event }),
         toggleMode: (event) => eventBus.emit("settings:originChanged", { event }),
         toggleRelativeMode: (event) => eventBus.emit("settings:relativeModeChanged", { event }),
+        toggleCompareMode: handlers.toggleCompareMode,
+        changeCompareMission: handlers.changeCompareMission,
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
         changeDesktopMainFov: handlers.changeDesktopMainFov,
         toggleDesktopMainFovAuto: handlers.toggleDesktopMainFovAuto,

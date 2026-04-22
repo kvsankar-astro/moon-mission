@@ -60,6 +60,7 @@ export function createBodyLocationActions({
                           npzDataLoaded,
                           chebyshevData,
                           chebyshevDataLoaded,
+                          globalConfig: getGlobalConfig(),
                           spacecraftMnemonic:
                               missionCraft?.mnemonic ||
                               getGlobalConfig()?.spacecraft_mnemonic ||

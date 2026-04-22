@@ -1,3 +1,5 @@
+import { isCompareRuntimeMode } from "../core/domain/runtime-mode.js";
+
 const ORIGIN_OVERRIDE_STORAGE_KEY = "mission.originOverride";
 const LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY = "cy3.originOverride";
 const ANIM_TIME_OVERRIDE_STORAGE_KEY = "mission.animTimeOverride";
@@ -6,6 +8,7 @@ const LEGACY_ANIM_TIME_OVERRIDE_STORAGE_KEY = "cy3.animTimeOverride";
 function createRelativeModeActions(deps) {
     const {
         isRelativeMode,
+        isCompareMode,
         setChecked,
         readOriginMode,
         getToggleMode,
@@ -106,12 +109,56 @@ function createRelativeModeActions(deps) {
         syncOriginOptionAvailability();
     }
 
-    function navigateWithRelativeMode(enabled) {
+    function normalizeCompareMissionParam(value) {
+        const trimmed = typeof value === "string" ? value.trim() : "";
+        return trimmed.length > 0 ? trimmed : "";
+    }
+
+    function getCompareMissionFromUrl() {
+        try {
+            const url = new URL(window.location.href);
+            return normalizeCompareMissionParam(url.searchParams.get("compareMission"));
+        } catch {
+            return "";
+        }
+    }
+
+    function getSelectedCompareMission() {
+        const select = document.getElementById("compare-mission-select");
+        return normalizeCompareMissionParam(select?.value);
+    }
+
+    function replaceCompareMissionInUrl(compareMission) {
+        try {
+            const url = new URL(window.location.href);
+            const normalizedCompareMission = normalizeCompareMissionParam(compareMission);
+            if (normalizedCompareMission) {
+                url.searchParams.set("compareMission", normalizedCompareMission);
+            } else {
+                url.searchParams.delete("compareMission");
+            }
+            window.history?.replaceState?.(null, "", url.toString());
+        } catch {
+            // Ignore URL mutation errors
+        }
+    }
+
+    function navigateWithRuntimeMode(runtimeMode, options = {}) {
+        const compareMission = options.compareMission;
         const url = new URL(window.location.href);
-        if (enabled) {
-            url.searchParams.set("mode", "relative");
+        if (runtimeMode === "relative" || runtimeMode === "compare") {
+            url.searchParams.set("mode", runtimeMode);
         } else {
             url.searchParams.delete("mode");
+        }
+
+        const normalizedCompareMission = normalizeCompareMissionParam(
+            compareMission !== undefined ? compareMission : getCompareMissionFromUrl(),
+        );
+        if (normalizedCompareMission) {
+            url.searchParams.set("compareMission", normalizedCompareMission);
+        } else {
+            url.searchParams.delete("compareMission");
         }
         window.location.href = url.toString();
     }
@@ -126,7 +173,49 @@ function createRelativeModeActions(deps) {
         }
 
         persistAnimTimeOverrideToSession();
-        navigateWithRelativeMode(true);
+        navigateWithRuntimeMode("relative");
+    }
+
+    function toggleCompareMode(payload = {}) {
+        const requestedEnabled =
+            typeof payload.enabled === "boolean"
+                ? payload.enabled
+                : !isCompareMode;
+        const compareMission =
+            normalizeCompareMissionParam(payload.compareMission) ||
+            getSelectedCompareMission() ||
+            getCompareMissionFromUrl();
+
+        if (requestedEnabled && !compareMission) {
+            return;
+        }
+
+        try {
+            sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+            sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
+        } catch {
+            // Ignore storage errors
+        }
+
+        persistAnimTimeOverrideToSession();
+        navigateWithRuntimeMode(requestedEnabled ? "compare" : "relative", {
+            compareMission,
+        });
+    }
+
+    function changeCompareMission(payload = {}) {
+        const compareMission = normalizeCompareMissionParam(payload.compareMission);
+        if (!compareMission) {
+            return;
+        }
+
+        if (isCompareRuntimeMode(new URL(window.location.href).searchParams.get("mode"))) {
+            persistAnimTimeOverrideToSession();
+            navigateWithRuntimeMode("compare", { compareMission });
+            return;
+        }
+
+        replaceCompareMissionInUrl(compareMission);
     }
 
     function toggleModeGuarded() {
@@ -154,15 +243,17 @@ function createRelativeModeActions(deps) {
         }
 
         persistAnimTimeOverrideToSession();
-        navigateWithRelativeMode(false);
+        navigateWithRuntimeMode(null);
     }
 
     return {
         consumeOriginOverrideFromSession,
         consumeAnimTimeOverrideFromSession,
         applyRelativeModeOriginSelection,
-        navigateWithRelativeMode,
+        navigateWithRuntimeMode,
         toggleRelativeMode,
+        toggleCompareMode,
+        changeCompareMission,
         toggleModeGuarded,
         syncOriginOptionAvailability,
     };

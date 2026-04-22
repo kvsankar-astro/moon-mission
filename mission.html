@@ -59,7 +59,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <link rel="stylesheet" href="src/platform/css/jquery-ui-compat.css">
-        <link rel="stylesheet" type="text/css" href="src/platform/css/mission.css">
+        <link rel="stylesheet" type="text/css" href="src/platform/css/mission.css?v=20260422c">
         <style>
             html:not([data-app-view]) #wrapper,
             html:not([data-app-view]) #mission-selector { display: none !important; }
@@ -1021,6 +1021,16 @@
                                     <span>Relative</span>
                                 </label>
                             </div>
+                            <div id="compare-controls-row" class="settings-row">
+                                <label class="settings-option" title="Overlay a second mission in fictional comparison time">
+                                    <input id="compare-mode-toggle" type="checkbox">
+                                    <span>Compare Mode</span>
+                                </label>
+                                <span class="settings-subtitle">Other Mission</span>
+                                <select id="compare-mission-select" aria-label="Comparison mission" disabled>
+                                    <option value="">Select mission</option>
+                                </select>
+                            </div>
                         </fieldset>
 
                         <fieldset autocomplete="off" class="settings-section settings-section--camera" data-section-key="camera">
@@ -1886,6 +1896,11 @@
                 </div>
                 <span id="timeline-end-label" class="timeline-dock__edge">--:--:--</span>
             </div>
+            <div
+                id="timeline-mode-label"
+                class="timeline-dock__mode timeline-dock__mode--hidden"
+                hidden
+            ></div>
             <div id="timeline-current-label" class="timeline-dock__current">--</div>
             <div
                 id="timeline-craft-strip"

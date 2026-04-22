@@ -64,6 +64,7 @@ function createMissionSceneEntry(ctx) {
         bindSettingsPanel,
         initSceneHandlerDom,
         isTestMode,
+        isCompareMode,
         getRuntimeFlags,
         ensureSceneViewState,
         computeSceneCameraParameters,
@@ -79,6 +80,7 @@ function createMissionSceneEntry(ctx) {
         getViewEclipticPlane,
         getViewEquatorialPlane,
         getEventInfos,
+        getTimelineEventInfos,
     } = ctx;
 
     return createMissionSceneRuntime({
@@ -121,6 +123,7 @@ function createMissionSceneEntry(ctx) {
             getViewOrbitDescent,
             getViewOrbit,
             getOrbitStyle,
+            getIsCompareMode: () => Boolean(isCompareMode),
             getTrailTrackBrightness3D,
             getTrailTailBrightness3D,
             render,
@@ -168,10 +171,14 @@ function createMissionSceneEntry(ctx) {
                     globalConfig: getGlobalConfig(),
                     joyRideFlag: runtimeFlags.joyRide,
                     landingFlag: runtimeFlags.landing,
+                    isCompareMode,
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
-                    timelineEventInfos: typeof getEventInfos === "function" ? getEventInfos() : null,
+                    timelineEventInfos:
+                        typeof getTimelineEventInfos === "function"
+                            ? getTimelineEventInfos()
+                            : (typeof getEventInfos === "function" ? getEventInfos() : null),
                 };
             },
             ensureSceneViewState,
@@ -183,6 +190,7 @@ function createMissionSceneEntry(ctx) {
             getAnimationSceneRuntimeState: () => ({
                 globalConfig: getGlobalConfig(),
                 frameMode,
+                isCompareMode,
                 config: getConfig(),
                 npzData,
                 npzDataLoaded,

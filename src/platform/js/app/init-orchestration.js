@@ -36,6 +36,26 @@ function createInitOrchestrationActions(deps) {
     let animationLoopStarted = false;
     let latestInitRunId = 0;
 
+    function clampTimeToMissionSpan(timeMs) {
+        const numericTimeMs = Number(timeMs);
+        if (!Number.isFinite(numericTimeMs)) {
+            return numericTimeMs;
+        }
+
+        const startTime = Number(getStartTime?.());
+        const latestEndTime = Number(getLatestEndTime?.());
+        if (!Number.isFinite(startTime) || !Number.isFinite(latestEndTime)) {
+            return numericTimeMs;
+        }
+        if (numericTimeMs < startTime) {
+            return startTime;
+        }
+        if (numericTimeMs > latestEndTime) {
+            return latestEndTime;
+        }
+        return numericTimeMs;
+    }
+
     function shouldWaitFor3DSceneReady() {
         if (typeof document === "undefined") return false;
         return !!document.getElementById("dimension-3D")?.checked;
@@ -132,7 +152,8 @@ function createInitOrchestrationActions(deps) {
     async function initAnimation(flags) {
         const runId = ++latestInitRunId;
         const applyTimeSetOrLocationRefresh = (timeMs) => {
-            setAnimTime?.(timeMs);
+            const clampedTimeMs = clampTimeToMissionSpan(timeMs);
+            setAnimTime?.(clampedTimeMs);
             if (typeof missionSetTime === "function") {
                 missionSetTime();
             } else {

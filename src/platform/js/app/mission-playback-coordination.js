@@ -5,6 +5,10 @@ import {
     getSceneVisibleCraftIds,
 } from "./scene-craft-helpers.js";
 import { buildEventHoverText } from "./burn-event-metadata.js";
+import {
+    resolveTimelineEventHoverText,
+    resolveTimelineMissionLabel,
+} from "./comparison-timeline.js";
 
 function resolveCraftLabel(craft, bodyId) {
     return (
@@ -36,6 +40,7 @@ function buildTimelineDockState({
     eventInfos,
     defaultStepMs,
     maxTimelineStepMs,
+    compareMode = false,
 }) {
     const stepDurationMs = Math.max(
         1,
@@ -57,6 +62,27 @@ function buildTimelineDockState({
         },
         currentTime: animTime,
         events: eventInfos || [],
+        presentation: compareMode
+            ? {
+                compareMode: true,
+                label: "Comparison Time",
+                detail: "Fictional / relative",
+                title: `Comparing ${resolveTimelineMissionLabel({
+                    missionShortLabel: globalConfig?.mission_name_short,
+                    missionName: globalConfig?.mission_name,
+                    fallback: "Primary",
+                })} and ${resolveTimelineMissionLabel({
+                    missionShortLabel: globalConfig?.comparisonOverlay?.missionShortLabel,
+                    missionName: globalConfig?.comparisonOverlay?.missionName,
+                    fallback: "Comparison",
+                })} with preserved mission pacing on a shared elapsed-time timeline.`,
+            }
+            : {
+                compareMode: false,
+                label: "",
+                detail: "",
+                title: "",
+            },
         crafts: Array.isArray(visibleCraftIds)
             ? visibleCraftIds.map((bodyId) =>
                 resolveCraftInfo(globalConfig, bodyId, bodyId === activeCraftId),
@@ -80,6 +106,7 @@ function buildActiveCraftControlState({
             showAdditionalCraftOption: false,
             showDescentOrbitOption: hasDescentOrbit,
             clearAdditionalCraftToggle: true,
+            additionalCraftsEnabled: false,
             showSelectorRow: false,
             options: [],
             optionSignature: "",
@@ -94,6 +121,7 @@ function buildActiveCraftControlState({
             showAdditionalCraftOption: true,
             showDescentOrbitOption: hasDescentOrbit,
             clearAdditionalCraftToggle: false,
+            additionalCraftsEnabled: false,
             showSelectorRow: false,
             options: [],
             optionSignature: "",
@@ -113,6 +141,7 @@ function buildActiveCraftControlState({
         showAdditionalCraftOption: true,
         showDescentOrbitOption: hasDescentOrbit,
         clearAdditionalCraftToggle: false,
+        additionalCraftsEnabled: true,
         showSelectorRow: true,
         options,
         optionSignature: options
@@ -213,6 +242,9 @@ function createMissionPlaybackUiShell({
     getLatestEndTime,
     getAnimTime,
     getEventInfos,
+    getTimelineEventInfos = getEventInfos,
+    getIsCompareMode = () => false,
+    syncTimelineEventButtons,
     defaultStepMs,
     maxTimelineStepMs,
     updateEventInfo,
@@ -233,7 +265,10 @@ function createMissionPlaybackUiShell({
                 getAnimationController()?.goToEvent(eventInfo.startTime.getTime());
             },
             onMarkerHover: (eventInfo) => {
-                const hoverText = buildEventHoverTextImpl(eventInfo);
+                const hoverText = resolveTimelineEventHoverText(
+                    eventInfo,
+                    buildEventHoverTextImpl,
+                );
                 if (hoverText) {
                     updateEventInfo(hoverText);
                 }
@@ -266,16 +301,19 @@ function createMissionPlaybackUiShell({
             startTime: getStartTime(),
             latestEndTime: getLatestEndTime(),
             animTime: getAnimTime(),
-            eventInfos: getEventInfos(),
+            eventInfos: getTimelineEventInfos(),
             defaultStepMs,
             maxTimelineStepMs,
+            compareMode: typeof getIsCompareMode === "function" && getIsCompareMode(),
         });
 
+        timelineDockController.setMode(state.presentation);
         timelineDockController.setRange(state.range);
         timelineDockController.setCurrentTime(state.currentTime);
 
         if (state.events !== lastTimelineEventsRef) {
             timelineDockController.setEvents(state.events);
+            syncTimelineEventButtons?.(state.events);
             lastTimelineEventsRef = state.events;
         }
 
@@ -300,8 +338,8 @@ function createMissionPlaybackUiShell({
             "settings-option--hidden",
             !state.showAdditionalCraftOption,
         );
-        if (state.clearAdditionalCraftToggle && additionalCraftToggle) {
-            additionalCraftToggle.checked = false;
+        if (additionalCraftToggle) {
+            additionalCraftToggle.checked = state.additionalCraftsEnabled;
         }
         toggleClass(
             descentOrbitOption,

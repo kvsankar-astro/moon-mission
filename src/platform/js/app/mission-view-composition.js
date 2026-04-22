@@ -44,6 +44,7 @@ function createMissionViewComposition(ctx) {
         getLegacyPanY,
         setLegacyPanY,
         isRelativeMode,
+        isCompareMode,
         readOriginMode,
         readViewSettings,
         getToggleMode,
@@ -104,6 +105,7 @@ function createMissionViewComposition(ctx) {
 
     const initialMissionViewState = initializeMissionViewState({
         isRelativeMode,
+        isCompareMode,
         setChecked,
         readOriginMode,
         syncPlaneSelectionControls,
