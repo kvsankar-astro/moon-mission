@@ -236,6 +236,7 @@ function createHarness(options = {}) {
         orbitLabel,
         orbitPill,
         originEarthPill,
+        originMoonPill,
         originMoonInput,
         originRelativeInput,
         qualityPill,
@@ -256,6 +257,21 @@ describe("createViewSettingsPillController", function () {
         expect(harness.orbitPill.textContent).toBe("Craft Orbit");
         expect(harness.secondaryOrbitLabel.textContent).toBe("Moon Orbit");
         expect(harness.locatorsPill["aria-pressed"]).toBe("true");
+    });
+
+    it("ignores disabled origin pills", function () {
+        const harness = createHarness();
+        harness.originMoonInput.disabled = true;
+        harness.originMoonPill.disabled = true;
+        harness.originMoonPill.setAttribute("aria-disabled", "true");
+
+        harness.controller.bind();
+        harness.originMoonPill.dispatchEvent({ type: "click", target: harness.originMoonPill });
+        harness.originMoonInput.checked = false;
+        harness.originMoonInput.dispatchEvent({ type: "click", target: harness.originMoonInput });
+        harness.originMoonInput.dispatchEvent({ type: "change", target: harness.originMoonInput });
+
+        expect(harness.controlBackend.commitOriginMode).not.toHaveBeenCalledWith("lunar");
     });
 
     it("commits relative origin changes and hides secondary orbit controls", function () {

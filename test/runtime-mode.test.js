@@ -19,16 +19,16 @@ describe("runtime mode", () => {
         expect(resolveFrameModeForRuntimeMode("bogus")).toBe("inertial");
     });
 
-    it("allows compare mode to target inertial geo and lunar origins", () => {
+    it("keeps compare mode pinned to relative regardless of requested origin", () => {
         expect(normalizeCompareOriginMode("earth")).toBe("geo");
         expect(normalizeCompareOriginMode("moon")).toBe("lunar");
-        expect(resolveCompareOriginMode({ mode: "compare", origin: "geo" })).toBe("geo");
-        expect(resolveCompareOriginMode({ mode: "compare", origin: "lunar" })).toBe("lunar");
+        expect(resolveCompareOriginMode({ mode: "compare", origin: "geo" })).toBe("relative");
+        expect(resolveCompareOriginMode({ mode: "compare", origin: "lunar" })).toBe("relative");
         expect(resolveCompareOriginMode({ mode: "compare", origin: "" })).toBe("relative");
-        expect(isRelativeFrameRuntimeMode({ mode: "compare", compareOrigin: "geo" })).toBe(false);
-        expect(isRelativeFrameRuntimeMode({ mode: "compare", compareOrigin: "lunar" })).toBe(false);
-        expect(resolveFrameModeForRuntimeMode({ mode: "compare", compareOrigin: "geo" })).toBe("inertial");
-        expect(resolveFrameModeForRuntimeMode({ mode: "compare", compareOrigin: "lunar" })).toBe("inertial");
+        expect(isRelativeFrameRuntimeMode({ mode: "compare", compareOrigin: "geo" })).toBe(true);
+        expect(isRelativeFrameRuntimeMode({ mode: "compare", compareOrigin: "lunar" })).toBe(true);
+        expect(resolveFrameModeForRuntimeMode({ mode: "compare", compareOrigin: "geo" })).toBe("relative");
+        expect(resolveFrameModeForRuntimeMode({ mode: "compare", compareOrigin: "lunar" })).toBe("relative");
     });
 
     it("builds a compare display profile with defaults and a normalized sun direction", () => {

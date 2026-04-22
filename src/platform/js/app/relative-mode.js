@@ -32,9 +32,34 @@ function createRelativeModeActions(deps) {
             label.style.display = "";
             label.style.opacity = disabled ? "0.65" : "";
         }
+
+        const pillId =
+            id === "origin-earth"
+                ? "origin-pill-earth"
+                : id === "origin-moon"
+                    ? "origin-pill-moon"
+                    : id === "origin-relative"
+                        ? "origin-pill-relative"
+                        : "";
+        const pill = pillId ? document.getElementById(pillId) : null;
+        if (pill) {
+            pill.disabled = !!disabled;
+            pill.setAttribute?.("aria-disabled", disabled ? "true" : "false");
+            pill.style.opacity = disabled ? "0.65" : "";
+        }
     }
 
     function syncOriginOptionAvailability() {
+        if (isCompareMode) {
+            setChecked("origin-relative", true);
+            setChecked("origin-earth", false);
+            setChecked("origin-moon", false);
+            setOriginOptionDisabled("origin-earth", true);
+            setOriginOptionDisabled("origin-moon", true);
+            setOriginOptionDisabled("origin-relative", false);
+            return;
+        }
+
         const isRelativeSelected = !!document.getElementById("origin-relative")?.checked;
         const selectedMode = isRelativeSelected
             ? "relative"
@@ -49,6 +74,19 @@ function createRelativeModeActions(deps) {
         try {
             const url = new URL(window.location.href);
             const urlOrigin = (url.searchParams.get("origin") || "").toLowerCase();
+            if (isCompareMode) {
+                if (urlOrigin) {
+                    url.searchParams.delete("origin");
+                    window.history?.replaceState?.(null, "", url.toString());
+                }
+                setChecked("origin-relative", true);
+                setChecked("origin-earth", false);
+                setChecked("origin-moon", false);
+                sessionStorage.removeItem(ORIGIN_OVERRIDE_STORAGE_KEY);
+                sessionStorage.removeItem(LEGACY_ORIGIN_OVERRIDE_STORAGE_KEY);
+                syncOriginOptionAvailability();
+                return;
+            }
             const override =
                 (
                     urlOrigin === "lunar" ||
@@ -151,6 +189,9 @@ function createRelativeModeActions(deps) {
     }
 
     function getSelectedOriginMode() {
+        if (isCompareMode) {
+            return "relative";
+        }
         if (document.getElementById("origin-relative")?.checked) {
             return "relative";
         }
@@ -226,11 +267,7 @@ function createRelativeModeActions(deps) {
     function applyOriginParamForNavigation(url, runtimeMode, originMode) {
         const normalizedOriginMode = normalizeOriginModeParam(originMode);
         if (runtimeMode === "compare") {
-            if (normalizedOriginMode && normalizedOriginMode !== "relative") {
-                url.searchParams.set("origin", normalizedOriginMode);
-            } else {
-                url.searchParams.delete("origin");
-            }
+            url.searchParams.delete("origin");
             return;
         }
 
@@ -344,7 +381,9 @@ function createRelativeModeActions(deps) {
         }
 
         const originMode = normalizeOriginModeParam(
-            payload.originMode !== undefined ? payload.originMode : getSelectedOriginMode(),
+            payload.originMode !== undefined
+                ? payload.originMode
+                : (requestedEnabled ? "relative" : getSelectedOriginMode()),
         );
         const targetRuntimeMode = requestedEnabled
             ? "compare"
@@ -388,7 +427,7 @@ function createRelativeModeActions(deps) {
                     getSelectedCompareSecondaryEventKey(),
                     getCompareSecondaryEventKeyFromUrl(),
                 ),
-                originMode: getSelectedOriginMode() || getOriginModeFromUrl(),
+                originMode: "relative",
             });
             return;
         }
@@ -416,7 +455,7 @@ function createRelativeModeActions(deps) {
                     getCompareMissionFromUrl(),
                 primaryEventKey,
                 secondaryEventKey,
-                originMode: getSelectedOriginMode() || getOriginModeFromUrl(),
+                originMode: "relative",
             });
             return;
         }
@@ -452,7 +491,7 @@ function createRelativeModeActions(deps) {
                 secondaryEventKey:
                     getSelectedCompareSecondaryEventKey() ||
                     getCompareSecondaryEventKeyFromUrl(),
-                originMode: getSelectedOriginMode(),
+                originMode: "relative",
             });
             syncOriginOptionAvailability();
             return;

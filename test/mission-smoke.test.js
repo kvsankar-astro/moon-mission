@@ -646,34 +646,6 @@ describe('Mission Compare Smoke Tests', () => {
       await page.close();
     }
   }, TIMEOUTS.TEST_CASE * 2);
-
-  it('keeps both mission trajectories visible across geo compare-mode 3D and 2D', async () => {
-    const page = await browser.newPage();
-
-    try {
-      await runCompareModeSmokeCase(page, {
-        label: 'compare/geo',
-        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&origin=geo&testMode=true`,
-        expectedOrigin: 'geo',
-      });
-    } finally {
-      await page.close();
-    }
-  }, TIMEOUTS.TEST_CASE * 2);
-
-  it('keeps both mission trajectories visible across lunar compare-mode 3D and 2D', async () => {
-    const page = await browser.newPage();
-
-    try {
-      await runCompareModeSmokeCase(page, {
-        label: 'compare/lunar',
-        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&origin=lunar&testMode=true`,
-        expectedOrigin: 'lunar',
-      });
-    } finally {
-      await page.close();
-    }
-  }, TIMEOUTS.TEST_CASE * 2);
 });
 
 describe('Mission Telemetry Smoke Tests', () => {

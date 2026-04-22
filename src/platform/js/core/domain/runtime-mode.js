@@ -44,14 +44,15 @@ function resolveCompareOriginMode(modeOrOptions, maybeCompareOrigin = "") {
     if (normalizeRuntimeMode(mode) !== "compare") {
         return "";
     }
-    return normalizeCompareOriginMode(compareOrigin, "relative");
+    void compareOrigin;
+    return "relative";
 }
 
 function isRelativeFrameRuntimeMode(modeOrOptions, maybeCompareOrigin = "") {
     const { mode, compareOrigin } = unpackRuntimeModeArgs(modeOrOptions, maybeCompareOrigin);
     const normalized = normalizeRuntimeMode(mode);
     if (normalized === "compare") {
-        return resolveCompareOriginMode({ mode, compareOrigin }) === "relative";
+        return true;
     }
     return normalized === "relative";
 }

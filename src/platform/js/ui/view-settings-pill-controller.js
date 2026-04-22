@@ -312,11 +312,15 @@ export function createViewSettingsPillController(deps = {}) {
             const input = getElement(inputId);
             if (pill) {
                 pill.addEventListener("click", function () {
+                    if (pill.disabled || input?.disabled || pill.getAttribute?.("aria-disabled") === "true") {
+                        return;
+                    }
                     commitOriginMode(originMode);
                 });
             }
             if (input) {
                 input.addEventListener("click", function () {
+                    if (input.disabled) return;
                     commitOriginMode(originMode);
                 });
                 input.addEventListener("change", function () {
