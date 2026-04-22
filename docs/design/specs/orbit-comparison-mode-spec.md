@@ -370,6 +370,7 @@ Comparison mode should eventually include tests for:
 - [x] Add compare-aware dual-mission telemetry cards so desktop and mobile readouts stop collapsing back to a single-mission display
 - [x] Extend the Mission Info panel with compare-specific mission pair metadata and comparison policy summaries
 - [x] Add compare-mode event-pair alignment controls and URL state, defaulting to launch/start when no explicit pair is selected
+- [x] Add a landing-page compare launcher that lets the user pick two missions and opens `mission.html` directly into compare mode with `relative` as the default origin
 
 ### In progress
 
@@ -390,4 +391,12 @@ Comparison mode should eventually include tests for:
 
 - [x] Add `geo` comparison view
 - [x] Add `lunar` comparison view
+- [ ] Add compare-panel usability shortcuts:
+  - preset alignment choices such as `Launch`, `TLI`, `LOI`, `Landing`, and `End`
+  - `Swap Missions` action for the primary/comparison pair
+- [ ] Expand browser-level regression coverage for compare-mode UI surfaces:
+  - compare pill panel open/close behavior
+  - compare telemetry visibility in single-mission vs compare mode
+  - compare mission picker and alignment selector interactions
+- [ ] Polish remaining compare-aware auxiliary UI surfaces that still inherit single-mission assumptions
 - [ ] Evaluate whether any comparison transforms should later be precomputed offline for performance

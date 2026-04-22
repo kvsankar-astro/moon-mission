@@ -1315,7 +1315,7 @@
         return launch;
     }
 
-    function createCard(row, onOpenBrief) {
+    function createCard(row, onOpenBrief, createCompareToggleButton) {
         var card = document.createElement("article");
         card.className = "landing-card";
         card.style.borderColor = row.accent + "66";
@@ -1370,7 +1370,11 @@
         launchBtn.addEventListener("click", function(event) {
             event.stopPropagation();
         });
+        var compareBtn = typeof createCompareToggleButton === "function"
+            ? createCompareToggleButton(row, { stopPropagation: true })
+            : null;
         actions.appendChild(briefBtn);
+        if (compareBtn) actions.appendChild(compareBtn);
         actions.appendChild(launchBtn);
 
         card.appendChild(t);
@@ -1460,6 +1464,11 @@
     document.addEventListener("DOMContentLoaded", function() {
         var viewRoot = document.getElementById("landing-view-root");
         var sortControls = document.getElementById("landing-sort-controls");
+        var compareTray = document.getElementById("landing-compare-tray");
+        var compareSummary = document.getElementById("landing-compare-summary");
+        var compareSelection = document.getElementById("landing-compare-selection");
+        var compareClearButton = document.getElementById("landing-compare-clear");
+        var compareOpenButton = document.getElementById("landing-compare-open");
         var filterCraft = document.getElementById("landing-filter-craft");
         var filterCrew = document.getElementById("landing-filter-crew");
         var resetControls = document.getElementById("landing-controls-reset");
@@ -1482,6 +1491,7 @@
         var activeBriefOrbitMode = "geo";
         var activeBriefOrbitPlane = "XY";
         var orbitCardPreviewStops = [];
+        var compareSelectionKeys = [];
         var currentTableSortField = "title";
         var currentTableSortOrder = "asc";
         var tableColumns = [
@@ -1513,6 +1523,185 @@
                 (row && row.title) ||
                 ""
             );
+        }
+
+        function getCompareSelectionKey(row) {
+            return normalizeKey(getMissionQueryValue(row) || rowIdentity(row));
+        }
+
+        function findRowByCompareSelectionKey(compareKey) {
+            return missionRows.find(function(row) {
+                return getCompareSelectionKey(row) === compareKey;
+            }) || null;
+        }
+
+        function pruneCompareSelections() {
+            compareSelectionKeys = compareSelectionKeys.filter(function(compareKey, index, allKeys) {
+                return (
+                    !!compareKey &&
+                    allKeys.indexOf(compareKey) === index &&
+                    !!findRowByCompareSelectionKey(compareKey)
+                );
+            }).slice(0, 2);
+        }
+
+        function getSelectedCompareRows() {
+            pruneCompareSelections();
+            return compareSelectionKeys
+                .map(findRowByCompareSelectionKey)
+                .filter(Boolean);
+        }
+
+        function isCompareSelected(row) {
+            var compareKey = getCompareSelectionKey(row);
+            return !!compareKey && compareSelectionKeys.indexOf(compareKey) >= 0;
+        }
+
+        function syncCompareToggleButton(button) {
+            if (!button) return;
+            var compareKey = normalizeKey(button.getAttribute("data-landing-compare-toggle"));
+            var buttonLabel = asTrimmedString(button.getAttribute("data-compare-label")) || "Compare";
+            var row = findRowByCompareSelectionKey(compareKey);
+            var selected = compareSelectionKeys.indexOf(compareKey) >= 0;
+            var atLimit = compareSelectionKeys.length >= 2 && !selected;
+            button.classList.toggle("is-selected", selected);
+            button.disabled = atLimit;
+            button.setAttribute("aria-pressed", selected ? "true" : "false");
+            button.textContent = selected ? "Selected" : buttonLabel;
+            if (selected) {
+                button.title = "Remove " + (row ? row.title : "mission") + " from compare";
+            } else if (atLimit) {
+                button.title = "Remove one selected mission before adding another";
+            } else {
+                button.title = "Add " + (row ? row.title : "mission") + " to compare";
+            }
+        }
+
+        function syncCompareToggleButtons() {
+            Array.from(document.querySelectorAll("[data-landing-compare-toggle]")).forEach(syncCompareToggleButton);
+        }
+
+        function renderCompareSelectionTray() {
+            var selectedRows = getSelectedCompareRows();
+            if (compareTray) {
+                compareTray.hidden = selectedRows.length === 0;
+            }
+            if (compareSelection) {
+                compareSelection.innerHTML = "";
+                if (!selectedRows.length) {
+                    var empty = document.createElement("span");
+                    empty.className = "landing-compare-tray__empty";
+                    empty.textContent = "No missions selected yet.";
+                    compareSelection.appendChild(empty);
+                } else {
+                    selectedRows.forEach(function(row, index) {
+                        var chip = document.createElement("div");
+                        chip.className = "landing-compare-chip";
+
+                        var role = document.createElement("span");
+                        role.className = "landing-compare-chip__role";
+                        role.textContent = index === 0 ? "Primary" : "Other";
+
+                        var title = document.createElement("span");
+                        title.className = "landing-compare-chip__title";
+                        title.textContent = row.title;
+                        title.title = row.title;
+
+                        var remove = document.createElement("button");
+                        remove.type = "button";
+                        remove.className = "landing-compare-chip__remove";
+                        remove.setAttribute("aria-label", "Remove " + row.title + " from compare");
+                        remove.title = "Remove " + row.title;
+                        remove.textContent = "×";
+                        remove.addEventListener("click", function() {
+                            toggleCompareSelection(row);
+                        });
+
+                        chip.appendChild(role);
+                        chip.appendChild(title);
+                        chip.appendChild(remove);
+                        compareSelection.appendChild(chip);
+                    });
+                }
+            }
+
+            if (compareSummary) {
+                if (selectedRows.length >= 2) {
+                    compareSummary.textContent =
+                        "Ready to compare " +
+                        selectedRows[0].title +
+                        " against " +
+                        selectedRows[1].title +
+                        " in Relative mode.";
+                } else if (selectedRows.length === 1) {
+                    compareSummary.textContent =
+                        selectedRows[0].title +
+                        " is set as the primary mission. Select one more mission to compare.";
+                } else {
+                    compareSummary.textContent =
+                        "Select up to two missions to launch a side-by-side comparison in Relative mode.";
+                }
+            }
+
+            if (compareClearButton) {
+                compareClearButton.disabled = selectedRows.length === 0;
+                compareClearButton.title = selectedRows.length ? "Clear selected missions" : "No missions selected";
+            }
+
+            if (compareOpenButton) {
+                compareOpenButton.disabled = selectedRows.length < 2;
+                compareOpenButton.title = selectedRows.length >= 2
+                    ? ("Open " + selectedRows[0].title + " and " + selectedRows[1].title + " in compare mode")
+                    : "Select two missions to launch compare mode";
+            }
+        }
+
+        function syncLandingCompareUi() {
+            renderCompareSelectionTray();
+            syncCompareToggleButtons();
+        }
+
+        function toggleCompareSelection(row) {
+            var compareKey = getCompareSelectionKey(row);
+            if (!compareKey) return;
+            var selectedIndex = compareSelectionKeys.indexOf(compareKey);
+            if (selectedIndex >= 0) {
+                compareSelectionKeys.splice(selectedIndex, 1);
+            } else if (compareSelectionKeys.length < 2) {
+                compareSelectionKeys.push(compareKey);
+            } else {
+                return;
+            }
+            syncLandingCompareUi();
+        }
+
+        function clearCompareSelection() {
+            compareSelectionKeys = [];
+            syncLandingCompareUi();
+        }
+
+        function launchSelectedCompare() {
+            var selectedRows = getSelectedCompareRows();
+            if (selectedRows.length < 2) return;
+            window.location.assign(buildMissionCompareHref(selectedRows[0], selectedRows[1]));
+        }
+
+        function createCompareToggleButton(row, options) {
+            var opts = options || {};
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = opts.className || "landing-card__btn landing-card__btn--compare";
+            button.setAttribute("data-landing-compare-toggle", getCompareSelectionKey(row));
+            button.setAttribute("data-compare-label", asTrimmedString(opts.label) || "Compare");
+            button.addEventListener("click", function(event) {
+                event.preventDefault();
+                if (opts.stopPropagation) {
+                    event.stopPropagation();
+                }
+                toggleCompareSelection(row);
+            });
+            syncCompareToggleButton(button);
+            return button;
         }
 
         function getBriefSequence() {
@@ -1648,7 +1837,7 @@
             return (a.index - b.index) * direction;
         }
 
-        function createOrbitCard(row, onOpenBrief, orbitStops) {
+        function createOrbitCard(row, onOpenBrief, orbitStops, createCompareToggleButton) {
             var card = document.createElement("article");
             card.className = "landing-card landing-card--orbit";
             card.style.borderColor = row.accent + "66";
@@ -1700,7 +1889,11 @@
                 onOpenBrief(row);
             });
             var launchBtn = createLaunchButton(row, "Launch", buildMissionLaunchHref(row, "geo"));
+            var compareBtn = typeof createCompareToggleButton === "function"
+                ? createCompareToggleButton(row)
+                : null;
             actions.appendChild(briefBtn);
+            if (compareBtn) actions.appendChild(compareBtn);
             actions.appendChild(launchBtn);
 
             card.appendChild(title);
@@ -1954,6 +2147,28 @@
             updateImage(0);
         }
 
+        function copyLandingRuntimeParams(url) {
+            if (!url || !url.searchParams) return url;
+            var currentParams = new URLSearchParams(window.location.search || "");
+            var testMode = asTrimmedString(currentParams.get("testMode"));
+            if (testMode) {
+                url.searchParams.set("testMode", testMode);
+            }
+            return url;
+        }
+
+        function getMissionQueryValue(row) {
+            return asTrimmedString(
+                row && row.entry && row.entry.queryValue
+            ) || asTrimmedString(
+                row && row.entry && row.entry.key
+            ) || asTrimmedString(
+                row && row.folder
+            ) || asTrimmedString(
+                row && row.entry && row.entry.folder
+            );
+        }
+
         function buildMissionLaunchHref(row, modeKey) {
             var href = asTrimmedString(row && row.href);
             var url = new URL(href || "mission.html", window.location.href);
@@ -1967,6 +2182,23 @@
                 url.searchParams.delete("mode");
                 url.searchParams.delete("origin");
             }
+            copyLandingRuntimeParams(url);
+            return url.toString();
+        }
+
+        function buildMissionCompareHref(primaryRow, secondaryRow) {
+            var primaryMission = getMissionQueryValue(primaryRow);
+            var secondaryMission = getMissionQueryValue(secondaryRow);
+            var url = new URL("mission.html", window.location.href);
+            if (primaryMission) {
+                url.searchParams.set("mission", primaryMission);
+            }
+            if (secondaryMission) {
+                url.searchParams.set("compareMission", secondaryMission);
+            }
+            url.searchParams.set("mode", "compare");
+            url.searchParams.set("origin", "relative");
+            copyLandingRuntimeParams(url);
             return url.toString();
         }
 
@@ -3174,21 +3406,21 @@
         function renderDefault(rows) {
             renderSummary(rows);
             renderCategorizedLanes(rows, function(row) {
-                return createCard(row, openMissionBrief);
+                return createCard(row, openMissionBrief, createCompareToggleButton);
             }, "landing-grid");
         }
 
         function renderOrbits(rows) {
             renderSummary(rows);
             renderCategorizedLanes(rows, function(row) {
-                return createOrbitCard(row, openMissionBrief, orbitCardPreviewStops);
+                return createOrbitCard(row, openMissionBrief, orbitCardPreviewStops, createCompareToggleButton);
             }, "landing-grid landing-grid--orbits");
         }
 
         function renderTiles(rows) {
             var grid = document.createElement("div");
             grid.className = "landing-grid";
-            rows.forEach(function(row) { grid.appendChild(createCard(row, openMissionBrief)); });
+            rows.forEach(function(row) { grid.appendChild(createCard(row, openMissionBrief, createCompareToggleButton)); });
             viewRoot.appendChild(grid);
         }
 
@@ -3287,9 +3519,14 @@
                         var briefBtn = createTableActionButton("Brief", function() {
                             openMissionBrief(row);
                         });
+                        var compareBtn = createCompareToggleButton(row, {
+                            className: "landing-table-action landing-card__btn--compare",
+                            label: "Compare",
+                        });
                         var openBtn = createTableActionButton("Launch", null, row.href);
                         openBtn.title = "Open animation for " + row.title;
                         missionActions.appendChild(briefBtn);
+                        missionActions.appendChild(compareBtn);
                         missionActions.appendChild(openBtn);
                         missionCell.appendChild(missionTitle);
                         missionCell.appendChild(missionActions);
@@ -3352,7 +3589,12 @@
                     chipLaunch.href = row.href;
                     chipLaunch.textContent = "Open";
                     chipLaunch.title = "Open animation for " + row.title;
+                    var chipCompare = createCompareToggleButton(row, {
+                        className: "landing-timeline-chip-launch landing-timeline-chip-compare",
+                        label: "Compare",
+                    });
                     chipWrap.appendChild(chip);
+                    chipWrap.appendChild(chipCompare);
                     chipWrap.appendChild(chipLaunch);
                     list.appendChild(chipWrap);
                 });
@@ -3460,11 +3702,18 @@
             clearOrbitCardPreviews();
             viewRoot.innerHTML = "";
             var rows = rowsForActiveView();
-            if (currentView === "orbits") return renderOrbits(rows);
-            if (currentView === "tiles") return renderTiles(rows);
-            if (currentView === "table") return renderTable(rows);
-            if (currentView === "timeline") return renderTimeline(rows);
-            return renderDefault(rows);
+            if (currentView === "orbits") {
+                renderOrbits(rows);
+            } else if (currentView === "tiles") {
+                renderTiles(rows);
+            } else if (currentView === "table") {
+                renderTable(rows);
+            } else if (currentView === "timeline") {
+                renderTimeline(rows);
+            } else {
+                renderDefault(rows);
+            }
+            syncLandingCompareUi();
         }
 
         function openBriefFromQueryIfPresent() {
@@ -3506,8 +3755,15 @@
                 render();
             });
         }
+        if (compareClearButton) {
+            compareClearButton.addEventListener("click", clearCompareSelection);
+        }
+        if (compareOpenButton) {
+            compareOpenButton.addEventListener("click", launchSelectedCompare);
+        }
 
         populateColumnSelector();
+        syncLandingCompareUi();
 
         loadCatalog()
             .then(function(entries) {

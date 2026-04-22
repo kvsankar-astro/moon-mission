@@ -153,6 +153,117 @@
             color: #eef4ff;
         }
 
+        .landing-compare-tray {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border: 1px solid #30406f;
+            border-radius: 14px;
+            background:
+                radial-gradient(circle at top left, rgba(73, 111, 188, 0.18), transparent 42%),
+                rgba(12, 20, 40, 0.94);
+            box-shadow: 0 12px 28px rgba(4, 9, 21, 0.28);
+        }
+
+        .landing-compare-tray[hidden] {
+            display: none;
+        }
+
+        .landing-compare-tray__copy {
+            min-width: 0;
+        }
+
+        .landing-compare-tray__eyebrow {
+            margin: 0 0 4px 0;
+            color: #86a5e6;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .landing-compare-tray__summary {
+            margin: 0;
+            color: #e5eeff;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .landing-compare-tray__hint {
+            margin: 4px 0 0 0;
+            color: #90a3cf;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        .landing-compare-tray__selection {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            min-height: 42px;
+        }
+
+        .landing-compare-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 100%;
+            padding: 7px 10px;
+            border: 1px solid #38508c;
+            border-radius: 999px;
+            background: rgba(16, 27, 53, 0.95);
+            color: #dce6ff;
+        }
+
+        .landing-compare-chip__role {
+            color: #93a9d7;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .landing-compare-chip__title {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .landing-compare-chip__remove {
+            border: 0;
+            background: transparent;
+            color: #aac2f5;
+            font-size: 15px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .landing-compare-chip__remove:hover {
+            color: #ffffff;
+        }
+
+        .landing-compare-tray__empty {
+            color: #90a3cf;
+            font-size: 12px;
+        }
+
+        .landing-compare-tray__actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
         .landing-column-selector {
             position: relative;
             display: none;
@@ -299,6 +410,7 @@
             margin-top: 10px;
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .landing-grid--orbits {
@@ -384,14 +496,41 @@
             cursor: pointer;
         }
 
+        .landing-card__btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .landing-table-action:disabled,
+        .landing-timeline-chip-compare:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
         .landing-card__btn--launch {
             background: rgba(22, 36, 66, 0.95);
             color: #d9e6ff;
             border-color: #456498;
         }
 
+        .landing-card__btn--compare {
+            background: rgba(13, 38, 43, 0.96);
+            border-color: #2d776f;
+            color: #c8fff5;
+        }
+
+        .landing-card__btn--compare.is-selected {
+            background: linear-gradient(135deg, rgba(51, 144, 134, 0.96), rgba(28, 93, 87, 0.96));
+            border-color: #71d7c8;
+            color: #051317;
+        }
+
         .landing-card__btn:hover {
             border-color: #5f7eb4;
+        }
+
+        .landing-card__btn--compare:hover {
+            border-color: #71d7c8;
         }
 
         .landing-summary {
@@ -629,6 +768,18 @@
             font-weight: 600;
             text-decoration: none;
             padding: 5px 8px;
+        }
+
+        .landing-timeline-chip-compare {
+            border-color: #2d776f;
+            background: rgba(11, 33, 37, 0.96);
+            color: #bdf3ea;
+        }
+
+        .landing-timeline-chip-compare.is-selected {
+            background: linear-gradient(135deg, rgba(51, 144, 134, 0.96), rgba(28, 93, 87, 0.96));
+            border-color: #71d7c8;
+            color: #051317;
         }
 
         .landing-brief-overlay {
@@ -1147,6 +1298,14 @@
                 width: 100%;
                 justify-content: flex-start;
             }
+
+            .landing-compare-tray {
+                grid-template-columns: 1fr;
+            }
+
+            .landing-compare-tray__actions {
+                justify-content: flex-start;
+            }
         }
 
         @media (max-width: 700px) {
@@ -1178,6 +1337,9 @@
             .landing-brief-panel {
                 width: 96vw;
                 max-height: 94vh;
+                padding: 12px;
+            }
+            .landing-compare-tray {
                 padding: 12px;
             }
             .landing-brief-title { font-size: 20px; }
@@ -1252,6 +1414,19 @@
                 </div>
             </details>
         </div>
+
+        <section id="landing-compare-tray" class="landing-compare-tray" aria-labelledby="landing-compare-summary" hidden>
+            <div class="landing-compare-tray__copy">
+                <p class="landing-compare-tray__eyebrow">Compare Missions</p>
+                <p id="landing-compare-summary" class="landing-compare-tray__summary">Select up to two missions to launch a side-by-side comparison in Relative mode.</p>
+                <p class="landing-compare-tray__hint">Pick missions from cards, orbit previews, table rows, or timeline chips.</p>
+            </div>
+            <div id="landing-compare-selection" class="landing-compare-tray__selection" aria-live="polite"></div>
+            <div class="landing-compare-tray__actions">
+                <button id="landing-compare-clear" type="button" class="landing-card__btn">Clear</button>
+                <button id="landing-compare-open" type="button" class="landing-card__btn landing-card__btn--launch">Open Relative Compare</button>
+            </div>
+        </section>
 
         <div id="landing-view-root"></div>
 
