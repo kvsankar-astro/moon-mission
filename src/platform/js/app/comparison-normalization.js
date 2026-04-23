@@ -43,6 +43,10 @@ function createComparisonNormalizationScaleResolver({
     const scaleByBodyAndTimeMs = new Map();
     const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
 
+    const defaultOverlayAliasBodyId = normalizeBodyId(
+        globalConfig?.comparisonOverlay?.normalizationSupportBodyIdsByOrigin?.[config],
+    );
+
     return ({ bodyId, timeMs }) => {
         const normalizationBodyId = resolveComparisonNormalizationAnchorBodyId({
             globalConfig,
@@ -57,7 +61,7 @@ function createComparisonNormalizationScaleResolver({
         const usesOverlaySupportAlias =
             normalizeBodyId(normalizationBodyId) !==
             normalizeBodyId(resolveComparisonNormalizationBodyId(config));
-        const bodyState = getBodyEphemerisState({
+        let bodyState = getBodyEphemerisState({
             bodyId: normalizationBodyId,
             timeMs,
             config,
@@ -77,6 +81,31 @@ function createComparisonNormalizationScaleResolver({
             defaultSpacecraftSource,
             spacecraftMnemonic,
         });
+        if (
+            !bodyState?.available &&
+            !usesOverlaySupportAlias &&
+            defaultOverlayAliasBodyId
+        ) {
+            // Past the primary mission's own Moon data end, fall back to the
+            // compare-craft's Moon alias (time-shifted by the alignment offset
+            // inside getBodyEphemerisState).  This keeps the scale anchored to
+            // the single mission whose data is still live, matching the body
+            // state fallback in scene-state.js.
+            bodyState = getBodyEphemerisState({
+                bodyId: defaultOverlayAliasBodyId,
+                timeMs,
+                config,
+                npzData,
+                npzDataLoaded,
+                chebyshevData,
+                chebyshevDataLoaded,
+                globalConfig,
+                bodySources,
+                resolvedSource: "chebyshev",
+                defaultSpacecraftSource,
+                spacecraftMnemonic,
+            });
+        }
         const distanceKm = bodyState?.available
             ? Math.hypot(
                 Number(bodyState.position?.x) || 0,

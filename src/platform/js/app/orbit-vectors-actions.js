@@ -402,11 +402,24 @@ export function createOrbitVectorsActions({
                     getStartTime(),
                     stepMs,
                 );
-                scene.orbitSvgGeneratedPointsByBodyId[planetKey] = resolveGeneratedCurvePoints(
-                    orbitPoints,
-                    scene.orbitTimesByBodyId[planetKey],
-                    postHorizonExtension?.sourceEndMs,
-                );
+                // Post-horizon extension belongs to the primary mission — e.g.
+                // Artemis 2's splashdown continuation past its HORIZONS data end.
+                // In compare mode the compare craft carries its own mission's
+                // real HORIZONS data (alignment-mapped into the display window),
+                // so skip the "generated" dashed overlay for it; otherwise the
+                // entire compare-craft trajectory past the primary's
+                // sourceEndMs gets flagged as generated and repainted as a
+                // dashed orange curve on top of its real orbit.
+                const comparisonOverlayCraftId = readGlobalConfig()?.comparisonOverlay?.compareCraftId;
+                const isComparisonCraft =
+                    !!comparisonOverlayCraftId && planetKey === comparisonOverlayCraftId;
+                scene.orbitSvgGeneratedPointsByBodyId[planetKey] = isComparisonCraft
+                    ? []
+                    : resolveGeneratedCurvePoints(
+                        orbitPoints,
+                        scene.orbitTimesByBodyId[planetKey],
+                        postHorizonExtension?.sourceEndMs,
+                    );
                 scene.orbitSvgBackgroundChunksByBodyId[planetKey] = chunkOrbitPoints(orbitPoints);
                 scene.orbitSvgBackgroundBaseOpacitiesByBodyId[planetKey] =
                     scene.orbitSvgBackgroundChunksByBodyId[planetKey].map(() =>

@@ -608,7 +608,12 @@ export function computeSceneState(time, config, options) {
 
     // In relative mode (geo), express fallback Sun direction in rotating Earth–Moon frame
     if (frameMode === "relative" && config === "geo" && !hasPrecomputedRelativeFrameData) {
-        relativeFrameMoonState = getBodyEphemerisStateAtNearestAvailableTime({
+        // In compare mode, if the primary mission's Moon has ended, prefer the
+        // compare-craft's own Moon series (via the overlay alias) over a clamp
+        // to the primary's last sample.  The alias stays live throughout the
+        // extended display window and keeps the scene Moon matched to the
+        // mission whose data is actually in use.
+        const moonArgs = {
             bodyId: "MOON",
             timeMs: time,
             config,
@@ -619,7 +624,22 @@ export function computeSceneState(time, config, options) {
             bodySources,
             defaultSpacecraftSource: ephemerisSource,
             spacecraftMnemonic: globalConfig?.spacecraft_mnemonic || "SC",
-        });
+            // globalConfig is required so mapComparisonBodyTimeMs can apply
+            // the alignment time shift when we look up the compare-craft
+            // Moon alias.  Without it, the alias query happens at display
+            // time and falls outside the secondary mission's data range.
+            globalConfig,
+        };
+        const overlayAliasBodyId =
+            globalConfig?.comparisonOverlay?.normalizationSupportBodyIdsByOrigin?.[config];
+        if (overlayAliasBodyId) {
+            const directMoonState = getBodyEphemerisState(moonArgs);
+            relativeFrameMoonState = directMoonState.available
+                ? directMoonState
+                : getBodyEphemerisState({ ...moonArgs, bodyId: overlayAliasBodyId });
+        } else {
+            relativeFrameMoonState = getBodyEphemerisStateAtNearestAvailableTime(moonArgs);
+        }
 
         if (relativeFrameMoonState?.available) {
             const r = relativeFrameMoonState.position;
