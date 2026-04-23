@@ -223,8 +223,8 @@ Principal files:
 | --- | --- |
 | `src/platform/js/app/comparison-overlay-loader.js` | Parses URL, loads secondary mission config and manifest, builds `globalConfig.comparisonOverlay` |
 | `src/platform/js/core/domain/comparison-overlay.js` | Pure helpers: compare-craft id builders, alignment anchor resolution, `mapComparisonBodyTimeMs` |
-| `src/platform/js/core/domain/comparison-display.js` | `createNormalizedComparisonDisplayState`, `resolveComparisonNormalizationScaleFromDistance`, `COMPARISON_REFERENCE_DISTANCE_KM` |
-| `src/platform/js/app/comparison-normalization.js` | Per-vector scale resolver for orbit curves |
+| `src/platform/js/core/domain/comparison-display.js` | Low-level comparison scaling primitives, `resolveComparisonNormalizationScaleFromDistance`, `COMPARISON_REFERENCE_DISTANCE_KM` |
+| `src/platform/js/app/comparison-normalization.js` | `createNormalizedComparisonDisplayState` plus the per-vector scale resolver for orbit curves |
 | `src/platform/js/app/orbit-load-actions.js` | Merges the secondary mission's `SC` / `MOON` series under compare aliases |
 | `src/platform/js/scene-state.js` | Uses the alias for the scene Moon when the primary Moon is past its data end |
 | `src/platform/js/ui/compare-mode-controller.js` | Compare-panel UI glue |

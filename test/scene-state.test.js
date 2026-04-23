@@ -248,6 +248,60 @@ describe("computeSceneState", () => {
         );
     });
 
+    it("uses the comparison moon alias for relative-frame Moon state when the primary Moon is unavailable", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "MOON") {
+                return {
+                    position: null,
+                    velocity: null,
+                    available: false,
+                };
+            }
+            if (bodyId === "CMP_ARTEMIS1_ORION__MOON") {
+                return {
+                    position: { x: 3, y: 4, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: null,
+                velocity: null,
+                available: false,
+            };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2026-04-20T00:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["MOON"],
+                globalConfig: {
+                    spacecraft_mnemonic: "ORION",
+                    landing: { enabled: false },
+                    is_lunar: false,
+                    comparisonOverlay: {
+                        compareCraftId: "CMP_ARTEMIS1_ORION",
+                        normalizationSupportBodyIdsByOrigin: {
+                            geo: "CMP_ARTEMIS1_ORION__MOON",
+                        },
+                    },
+                },
+            }),
+        );
+
+        expect(sceneState.bodies.MOON.available).toBe(true);
+        expect(sceneState.bodies.MOON.position).toEqual({ x: 5, y: 0, z: 0 });
+        expect(
+            getBodyEphemerisState.mock.calls.some(
+                ([args]) => args.bodyId === "CMP_ARTEMIS1_ORION__MOON",
+            ),
+        ).toBe(true);
+        expect(getBodyEphemerisRange).not.toHaveBeenCalled();
+    });
+
     it("skips Moon basis lookup when relative chebyshev data is already precomputed", () => {
         getBodyEphemerisState.mockReturnValue({
             position: { x: 1, y: 0, z: 0 },

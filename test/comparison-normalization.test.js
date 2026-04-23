@@ -222,4 +222,76 @@ describe("comparison normalization", () => {
             12,
         );
     });
+
+    it("falls back to the overlay moon alias when the primary moon anchor is unavailable", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "MOON") {
+                return {
+                    available: false,
+                    position: null,
+                    velocity: null,
+                };
+            }
+            if (bodyId === "CMP_ARTEMIS1_CM__MOON") {
+                return {
+                    available: true,
+                    position: {
+                        x: COMPARISON_REFERENCE_DISTANCE_KM / 3,
+                        y: 0,
+                        z: 0,
+                    },
+                };
+            }
+            return {
+                available: false,
+                position: null,
+                velocity: null,
+            };
+        });
+
+        const vectors = normalizeComparisonCurveVectors({
+            compareMode: true,
+            bodyId: "MOON",
+            vectors: [
+                {
+                    x: COMPARISON_REFERENCE_DISTANCE_KM / 3,
+                    y: 0,
+                    z: 0,
+                    vx: 0,
+                    vy: 0,
+                    vz: 0,
+                    timeMs: 1234,
+                },
+            ],
+            config: "geo",
+            globalConfig: {
+                comparisonOverlay: {
+                    compareCraftId: "CMP_ARTEMIS1_CM",
+                    normalizationSupportBodyIdsByOrigin: {
+                        geo: "CMP_ARTEMIS1_CM__MOON",
+                    },
+                },
+            },
+            npzData: {},
+            npzDataLoaded: {},
+            chebyshevData: {},
+            chebyshevDataLoaded: {},
+            defaultSpacecraftSource: "chebyshev",
+        });
+
+        expect(getBodyEphemerisState).toHaveBeenCalledWith(
+            expect.objectContaining({
+                bodyId: "MOON",
+                timeMs: 1234,
+            }),
+        );
+        expect(getBodyEphemerisState).toHaveBeenCalledWith(
+            expect.objectContaining({
+                bodyId: "CMP_ARTEMIS1_CM__MOON",
+                timeMs: 1234,
+                resolvedSource: "chebyshev",
+            }),
+        );
+        expect(vectors[0].x).toBeCloseTo(COMPARISON_REFERENCE_DISTANCE_KM, 6);
+    });
 });

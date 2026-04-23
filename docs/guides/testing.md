@@ -24,6 +24,7 @@ This repository uses Vitest + Playwright with three complementary suites.
 - **Compare-mode functional** (`test/compare-artemis-scaling.test.js`)
   - Exercises the compare-mode normalization pipeline against real Artemis 1 / Artemis 2 relative Chebyshev data in both orderings.
   - Asserts Moon/craft scaled positions stay anchored at `COMPARISON_REFERENCE_DISTANCE_KM` inside each mission's window and in the past-primary-end tail where only the secondary mission has live data.
+  - Skips automatically when the generated Artemis Chebyshev files have not been staged locally from `moon-mission-data`.
   - See [Orbit Comparison Mode](../design/architecture/orbit-comparison-mode.md) for the feature contract.
 
 - **Chebyshev accuracy** (`test/chebyshev-accuracy.test.js`)
