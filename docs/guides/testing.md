@@ -17,8 +17,14 @@ This repository uses Vitest + Playwright with three complementary suites.
 
 - **Cross-mission smoke** (`test/mission-smoke.test.js`)
   - Functional smoke checks for non-CH3 missions (`a10`, `a11`, `cy2`) across origin/dimension combinations.
+  - Includes the "Mission Compare Smoke Tests" block covering dual craft/orbit rendering across 2D/3D and interleaved comparison events.
   - Verifies load/runtime health and absence of console/page errors.
   - No screenshot baselines.
+
+- **Compare-mode functional** (`test/compare-artemis-scaling.test.js`)
+  - Exercises the compare-mode normalization pipeline against real Artemis 1 / Artemis 2 relative Chebyshev data in both orderings.
+  - Asserts Moon/craft scaled positions stay anchored at `COMPARISON_REFERENCE_DISTANCE_KM` inside each mission's window and in the past-primary-end tail where only the secondary mission has live data.
+  - See [Orbit Comparison Mode](../design/architecture/orbit-comparison-mode.md) for the feature contract.
 
 - **Chebyshev accuracy** (`test/chebyshev-accuracy.test.js`)
   - Validates Chebyshev position accuracy against NPZ source data at interval samples.

@@ -32,6 +32,7 @@ Do not use legacy paths like `assets/platform/js/*` in new changes.
 - Current mission configs are set to Chebyshev for `SC`, `MOON`, `EARTH`, and `SUN`.
 - Relative mode uses precomputed `relative-<ID>-cheb.json` and is enabled by URL `mode=relative`.
 - Multi-craft missions are supported via `crafts[]`, with CH3/CH2 as current examples.
+- Compare mode (`mode=compare&compareMission=<other>`) overlays two missions in a single relative-frame scene and injects a synthetic compare craft `CMP_<MISSION>_<CRAFT>` into the primary's runtime. Reference: `docs/design/architecture/orbit-comparison-mode.md`.
 
 ## Testing quick reference
 

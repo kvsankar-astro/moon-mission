@@ -32,6 +32,7 @@ I created this animation for educational purposes. It has the following features
 * Various animation controls for education - camera controls (pan, zoom, rotate), timeline controls, visibility controls
 * A Joy Ride feature which lets you fly along with the spacecraft
 * Relative-frame mode (`mode=relative`) to view Earth-Moon transfer geometry with Earth->Moon axis fixed
+* Mission comparison mode (`mode=compare`) to overlay two missions in a single animation with a shared comparison clock and normalized Earth-Moon distance — see [Orbit Comparison Mode](docs/design/architecture/orbit-comparison-mode.md)
 * Selectable orbit styles (`Trail` and `Classic`) with background-loaded style sidecars for authored missions such as CH3
 * On startup, if current wall-clock time is within mission data span, runtime can auto-seek to `Now`, switch to realtime speed, and start playback
 * Mission brief panels with authored Mission and HORIZONS Data text, programmatic timeline bars, a pilot orbit preview, and curated CC BY-SA image carousels
@@ -64,6 +65,7 @@ URL parameters:
 - `mission.html` - Mission selector + app shell (landing view shown when `mission` is omitted)
 - `mission.html?mission=<id>` - Open a mission directly (IDs come from `assets/mission-catalog.json`)
 - `mission.html?mission=<id>&mode=relative` - Relative-frame mode
+- `mission.html?mission=<id>&mode=compare&compareMission=<other>` - Mission comparison mode (see [Orbit Comparison Mode](docs/design/architecture/orbit-comparison-mode.md) for the full URL contract)
 - `mission.html?mission=<id>&testMode=true` - Test harness mode for deterministic test behavior
 
 ### Mission Controls UI
