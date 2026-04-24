@@ -51,6 +51,7 @@
     "validate:test": "node scripts/validate-test.js",
     "analyze:tests": "node scripts/analyze-test-categories.js",
     "bench:cheb-transport": "node scripts/bench-chebyshev-transport.js",
+    "bench:runtime-animation": "node scripts/bench-runtime-animation.js",
     "compress:cheb": "python scripts/compress-chebyshev-gzip.py",
     "audit:data-boundary": "python scripts/audit-data-repo-boundary.py --data-root ../moon-mission-data"
   },
