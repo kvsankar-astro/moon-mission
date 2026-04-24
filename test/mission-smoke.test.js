@@ -57,6 +57,40 @@ function isIgnoredError(message) {
   return IGNORED_ERROR_PATTERNS.some(pattern => pattern.test(message));
 }
 
+function isIgnoredConsoleError(msg) {
+  const text = msg.text();
+  if (msg.type() !== 'error' || isIgnoredError(text)) {
+    return true;
+  }
+
+  const locationUrl = msg.location()?.url || '';
+  return /\/(?:[^/]+-)?style\.json(?:\?|$)/i.test(locationUrl) ||
+    /\/deployment\/version\.json(?:\?|$)/i.test(locationUrl);
+}
+
+function captureConsoleError(consoleErrors, label, msg) {
+  if (isIgnoredConsoleError(msg)) {
+    return;
+  }
+
+  const text = msg.text();
+  consoleErrors.push({
+    type: msg.type(),
+    text,
+    locationUrl: msg.location()?.url || '',
+  });
+  console.log(`[${label}] Console error: ${text}`);
+}
+
+async function isActionableLocator(locator) {
+  if (await locator.count() === 0) {
+    return false;
+  }
+
+  const first = locator.first();
+  return await first.isVisible() && await first.isEnabled();
+}
+
 let browser;
 
 describe('Mission Smoke Tests', () => {
@@ -111,13 +145,7 @@ describe('Mission Smoke Tests', () => {
           try {
             // Set up console error collection
             page.on('console', msg => {
-              const text = msg.text();
-              const type = msg.type();
-
-              if (type === 'error' && !isIgnoredError(text)) {
-                consoleErrors.push({ type, text });
-                console.log(`[${mission.id}/${config.label}] Console error: ${text}`);
-              }
+              captureConsoleError(consoleErrors, `${mission.id}/${config.label}`, msg);
             });
 
             page.on('pageerror', error => {
@@ -269,17 +297,18 @@ async function runAnimation(page) {
   // Click play button and speed up significantly
   try {
     const playButton = page.locator('#animate');
-    if (await playButton.isVisible()) {
-      await playButton.click();
+    if (await isActionableLocator(playButton)) {
+      await playButton.first().click();
       await page.waitForTimeout(200);
 
       // Speed up animation by clicking Faster button many times (aim for ~5s playthrough)
       const fasterButton = page.locator('#faster');
-      if (await fasterButton.isVisible()) {
-        for (let i = 0; i < 10; i++) {
-          await fasterButton.click();
-          await page.waitForTimeout(50);
+      for (let i = 0; i < 10; i++) {
+        if (!await isActionableLocator(fasterButton)) {
+          break;
         }
+        await fasterButton.first().click();
+        await page.waitForTimeout(50);
       }
     }
   } catch {
@@ -301,8 +330,8 @@ async function runAnimation(page) {
 
       // Use >> button to fast-forward to end
       const ffButton = page.locator('#fastforward');
-      if (await ffButton.isVisible()) {
-        await ffButton.click();
+      if (await isActionableLocator(ffButton)) {
+        await ffButton.first().click();
         await page.waitForTimeout(500);
       }
 
@@ -437,19 +466,7 @@ async function runCompareModeSmokeCase(page, {
   const pageErrors = [];
 
   page.on('console', msg => {
-    const text = msg.text();
-    const type = msg.type();
-    const locationUrl = msg.location()?.url || '';
-    const isOptionalOrbitStyleMetadata404 =
-      type === 'error' &&
-      /\/(?:[^/]+-)?style\.json$/i.test(locationUrl);
-    const isOptionalVersionCheck404 =
-      type === 'error' &&
-      /\/deployment\/version\.json(?:\?|$)/i.test(locationUrl);
-    if (type === 'error' && !isIgnoredError(text) && !isOptionalOrbitStyleMetadata404 && !isOptionalVersionCheck404) {
-      consoleErrors.push({ type, text });
-      console.log(`[${label}] Console error: ${text}`);
-    }
+    captureConsoleError(consoleErrors, label, msg);
   });
 
   page.on('pageerror', error => {
@@ -768,12 +785,7 @@ describe('Mission Event Tests', () => {
         try {
           // Set up error collection
           page.on('console', msg => {
-            const text = msg.text();
-            const type = msg.type();
-            if (type === 'error' && !isIgnoredError(text)) {
-              consoleErrors.push({ type, text });
-              console.log(`[${mission.id}/Events] Console error: ${text}`);
-            }
+            captureConsoleError(consoleErrors, `${mission.id}/Events`, msg);
           });
 
           page.on('pageerror', error => {
@@ -815,12 +827,7 @@ describe('Mission Event Tests', () => {
         try {
           // Set up error collection
           page.on('console', msg => {
-            const text = msg.text();
-            const type = msg.type();
-            if (type === 'error' && !isIgnoredError(text)) {
-              consoleErrors.push({ type, text });
-              console.log(`[${mission.id}/Events/Moon] Console error: ${text}`);
-            }
+            captureConsoleError(consoleErrors, `${mission.id}/Events/Moon`, msg);
           });
 
           page.on('pageerror', error => {

@@ -1834,6 +1834,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await resetCameraToManual(page);
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
+      await waitForScene(page);
       
       // 3D Mode Screenshot
       let comparison = await compareScreenshots(
@@ -1852,6 +1853,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await closeSettingsPanel(page);
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+      await waitForScene(page);
       
       
       // 2D Mode Screenshot
@@ -1875,6 +1877,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       expect(await page.locator('canvas').count()).toBeGreaterThan(0);
       await closeSettingsPanel(page);
+      await waitForScene(page);
       
       // 3D Restored Screenshot
       comparison = await compareScreenshots(
@@ -2599,6 +2602,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       
       await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
       await closeSettingsPanel(page);
+      await waitForScene(page);
       
       // 3D Mode Screenshot
       let comparison = await compareScreenshots(
@@ -2617,6 +2621,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       await closeSettingsPanel(page);
       await page.click('#burn1');
       await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+      await waitForScene(page);
       
       
       // 2D Mode Screenshot
@@ -2640,6 +2645,7 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
       expect(await page.locator('#dimension-3D:checked').count()).toBe(1);
       expect(await page.locator('canvas').count()).toBeGreaterThan(0);
       await closeSettingsPanel(page);
+      await waitForScene(page);
       
       // 3D Restored Screenshot
       comparison = await compareScreenshots(
