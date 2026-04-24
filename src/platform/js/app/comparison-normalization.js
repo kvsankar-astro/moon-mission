@@ -1,35 +1,16 @@
 import { getBodyEphemerisState } from "../data/ephemeris-provider.js";
+import { resolveComparisonNormalizationBodyId } from "../core/domain/comparison-display.js";
 import {
-    COMPARISON_REFERENCE_DISTANCE_KM,
-    resolveComparisonNormalizationBodyId,
-    resolveComparisonNormalizationScaleFromDistance,
-    transformComparisonBodyState,
-    transformComparisonCurveVectors,
-} from "../core/domain/comparison-display.js";
-import { resolveComparisonOverlayNormalizationSupportBodyId } from "../core/domain/comparison-overlay.js";
+    createComparisonNormalizationScaleResolver,
+    createNormalizedComparisonDisplayStateWithScaleResolver,
+    normalizeComparisonCurveVectorsByScaleResolver,
+} from "../core/domain/comparison-normalization.js";
 
 function normalizeBodyId(value) {
     return typeof value === "string" ? value.toUpperCase() : "";
 }
 
-function resolveComparisonNormalizationAnchorBodyId({
-    globalConfig,
-    bodyId,
-    config,
-}) {
-    const overlaySupportBodyId = resolveComparisonOverlayNormalizationSupportBodyId({
-        globalConfig,
-        bodyId,
-        config,
-    });
-    if (overlaySupportBodyId) {
-        return overlaySupportBodyId;
-    }
-
-    return resolveComparisonNormalizationBodyId(config);
-}
-
-function createComparisonNormalizationScaleResolver({
+function createComparisonNormalizationDistanceResolver({
     config,
     globalConfig,
     npzData,
@@ -40,29 +21,14 @@ function createComparisonNormalizationScaleResolver({
     resolveBodySource,
     defaultSpacecraftSource,
 }) {
-    const scaleByBodyAndTimeMs = new Map();
     const spacecraftMnemonic = globalConfig?.spacecraft_mnemonic || "SC";
-
-    const defaultOverlayAliasBodyId = normalizeBodyId(
-        globalConfig?.comparisonOverlay?.normalizationSupportBodyIdsByOrigin?.[config],
-    );
+    const defaultNormalizationBodyId = resolveComparisonNormalizationBodyId(config);
 
     return ({ bodyId, timeMs }) => {
-        const normalizationBodyId = resolveComparisonNormalizationAnchorBodyId({
-            globalConfig,
-            bodyId,
-            config,
-        });
-        const cacheKey = `${normalizeBodyId(normalizationBodyId)}|${Number(timeMs)}`;
-        if (scaleByBodyAndTimeMs.has(cacheKey)) {
-            return scaleByBodyAndTimeMs.get(cacheKey);
-        }
-
         const usesOverlaySupportAlias =
-            normalizeBodyId(normalizationBodyId) !==
-            normalizeBodyId(resolveComparisonNormalizationBodyId(config));
-        let bodyState = getBodyEphemerisState({
-            bodyId: normalizationBodyId,
+            normalizeBodyId(bodyId) !== normalizeBodyId(defaultNormalizationBodyId);
+        const bodyState = getBodyEphemerisState({
+            bodyId,
             timeMs,
             config,
             npzData,
@@ -75,48 +41,51 @@ function createComparisonNormalizationScaleResolver({
                 ? "chebyshev"
                 : (
                     typeof resolveBodySource === "function"
-                        ? resolveBodySource(normalizationBodyId)
+                        ? resolveBodySource(bodyId)
                         : undefined
                 ),
             defaultSpacecraftSource,
             spacecraftMnemonic,
         });
-        if (
-            !bodyState?.available &&
-            !usesOverlaySupportAlias &&
-            defaultOverlayAliasBodyId
-        ) {
-            // Past the primary mission's own Moon data end, fall back to the
-            // compare-craft's Moon alias (time-shifted by the alignment offset
-            // inside getBodyEphemerisState).  This keeps the scale anchored to
-            // the single mission whose data is still live, matching the body
-            // state fallback in scene-state.js.
-            bodyState = getBodyEphemerisState({
-                bodyId: defaultOverlayAliasBodyId,
-                timeMs,
-                config,
-                npzData,
-                npzDataLoaded,
-                chebyshevData,
-                chebyshevDataLoaded,
-                globalConfig,
-                bodySources,
-                resolvedSource: "chebyshev",
-                defaultSpacecraftSource,
-                spacecraftMnemonic,
-            });
+
+        if (!bodyState?.available) {
+            return Number.NaN;
         }
-        const distanceKm = bodyState?.available
-            ? Math.hypot(
-                Number(bodyState.position?.x) || 0,
-                Number(bodyState.position?.y) || 0,
-                Number(bodyState.position?.z) || 0,
-            )
-            : Number.NaN;
-        const scale = resolveComparisonNormalizationScaleFromDistance(distanceKm);
-        scaleByBodyAndTimeMs.set(cacheKey, scale);
-        return scale;
+
+        return Math.hypot(
+            Number(bodyState.position?.x) || 0,
+            Number(bodyState.position?.y) || 0,
+            Number(bodyState.position?.z) || 0,
+        );
     };
+}
+
+function createAppComparisonNormalizationScaleResolver({
+    config,
+    globalConfig,
+    npzData,
+    npzDataLoaded,
+    chebyshevData,
+    chebyshevDataLoaded,
+    bodySources,
+    resolveBodySource,
+    defaultSpacecraftSource,
+}) {
+    return createComparisonNormalizationScaleResolver({
+        config,
+        globalConfig,
+        resolveBodyDistanceKm: createComparisonNormalizationDistanceResolver({
+            config,
+            globalConfig,
+            npzData,
+            npzDataLoaded,
+            chebyshevData,
+            chebyshevDataLoaded,
+            bodySources,
+            resolveBodySource,
+            defaultSpacecraftSource,
+        }),
+    });
 }
 
 function normalizeComparisonCurveVectors({
@@ -137,7 +106,7 @@ function normalizeComparisonCurveVectors({
         return vectors;
     }
 
-    const resolveScaleForBodyTime = createComparisonNormalizationScaleResolver({
+    const resolveScaleForBodyTime = createAppComparisonNormalizationScaleResolver({
         config,
         globalConfig,
         npzData,
@@ -149,13 +118,12 @@ function normalizeComparisonCurveVectors({
         defaultSpacecraftSource,
     });
 
-    return transformComparisonCurveVectors(
+    return normalizeComparisonCurveVectorsByScaleResolver({
+        compareMode,
+        bodyId,
         vectors,
-        (vector) => resolveScaleForBodyTime({
-            bodyId,
-            timeMs: vector?.timeMs,
-        }),
-    );
+        resolveScaleForBodyTime,
+    });
 }
 
 function createNormalizedComparisonDisplayState(
@@ -175,9 +143,8 @@ function createNormalizedComparisonDisplayState(
         return sceneState;
     }
 
-    const config = sceneState.config;
-    const resolveScaleForBodyTime = createComparisonNormalizationScaleResolver({
-        config,
+    const resolveScaleForBodyTime = createAppComparisonNormalizationScaleResolver({
+        config: sceneState.config,
         globalConfig,
         npzData,
         npzDataLoaded,
@@ -188,32 +155,10 @@ function createNormalizedComparisonDisplayState(
         defaultSpacecraftSource,
     });
 
-    const bodies = {};
-    const comparisonNormalizationScaleByBodyId = {};
-    for (const [bodyId, bodyState] of Object.entries(sceneState.bodies || {})) {
-        const scale = resolveScaleForBodyTime({
-            bodyId,
-            timeMs: sceneState.time,
-        });
-        comparisonNormalizationScaleByBodyId[bodyId] = scale;
-        bodies[bodyId] = transformComparisonBodyState(bodyState, scale);
-    }
-
-    const defaultNormalizationBodyId = resolveComparisonNormalizationBodyId(config);
-    const defaultScale =
-        comparisonNormalizationScaleByBodyId[defaultNormalizationBodyId] ??
-        resolveScaleForBodyTime({
-            bodyId: defaultNormalizationBodyId,
-            timeMs: sceneState.time,
-        });
-
-    return {
-        ...sceneState,
-        bodies,
-        comparisonNormalizationScale: defaultScale,
-        comparisonNormalizationScaleByBodyId,
-        comparisonReferenceDistanceKm: COMPARISON_REFERENCE_DISTANCE_KM,
-    };
+    return createNormalizedComparisonDisplayStateWithScaleResolver(
+        sceneState,
+        { resolveScaleForBodyTime },
+    );
 }
 
 export {

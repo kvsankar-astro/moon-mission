@@ -1,3 +1,4 @@
+import { buildCompareAlignmentOptions } from "../core/domain/compare-alignment-options.js";
 import { isCompareRuntimeMode } from "../core/domain/runtime-mode.js";
 
 function asTrimmedString(value, fallback = "") {
@@ -67,9 +68,9 @@ function createCompareModeController(deps = {}) {
     const toggleCompareMode = deps.toggleCompareMode;
     const changeCompareMission = deps.changeCompareMission;
     const changeCompareAlignment = deps.changeCompareAlignment;
+    const getTimelineEventInfos = deps.getTimelineEventInfos;
 
     let bound = false;
-    let burnButtonsObserver = null;
 
     function getElement(id) {
         return documentRef?.getElementById?.(id) || null;
@@ -156,39 +157,12 @@ function createCompareModeController(deps = {}) {
         return normalizeKey(params.get(paramName));
     }
 
-    function collectAlignmentEventOptions(isComparisonRole) {
-        const buttons = Array.from(
-            documentRef?.querySelectorAll?.("#burnbuttons button[data-event-source-key]") || [],
+    function getAlignmentOptions() {
+        return buildCompareAlignmentOptions(
+            typeof getTimelineEventInfos === "function"
+                ? getTimelineEventInfos()
+                : [],
         );
-        const seen = new Set();
-        const options = [];
-
-        for (const button of buttons) {
-            const role = normalizeKey(
-                button?.dataset?.timelineRole ||
-                button?.getAttribute?.("data-timeline-role") ||
-                (button?.classList?.contains?.("burnbutton--comparison") ? "comparison" : "primary"),
-            );
-            const isComparisonButton = role === "comparison";
-            if (isComparisonRole !== isComparisonButton) {
-                continue;
-            }
-
-            const value = normalizeKey(
-                button?.dataset?.eventSourceKey ||
-                button?.getAttribute?.("data-event-source-key"),
-            );
-            if (!value || value === "now" || seen.has(value)) {
-                continue;
-            }
-            seen.add(value);
-            options.push({
-                value,
-                label: asTrimmedString(button?.textContent, value),
-            });
-        }
-
-        return options;
     }
 
     function resolveSelectedAlignmentOptionValue(options, requestedValue) {
@@ -217,8 +191,12 @@ function createCompareModeController(deps = {}) {
             return;
         }
 
-        const primaryOptions = compareModeActive ? collectAlignmentEventOptions(false) : [];
-        const secondaryOptions = compareModeActive ? collectAlignmentEventOptions(true) : [];
+        const {
+            primaryOptions = [],
+            comparisonOptions: secondaryOptions = [],
+        } = compareModeActive
+            ? getAlignmentOptions()
+            : {};
         const showAlignmentControls = compareModeActive && primaryOptions.length > 0 && secondaryOptions.length > 0;
 
         setRowHidden(alignmentRow, !showAlignmentControls);
@@ -254,27 +232,6 @@ function createCompareModeController(deps = {}) {
             secondaryOptions,
             getAlignmentEventKeyFromUrl("compareSecondaryEvent"),
         );
-    }
-
-    function bindBurnButtonsObserver() {
-        if (burnButtonsObserver || typeof windowRef?.MutationObserver !== "function") {
-            return;
-        }
-
-        const burnButtonsHost = getElement("burnbuttons");
-        if (!burnButtonsHost) {
-            return;
-        }
-
-        burnButtonsObserver = new windowRef.MutationObserver(() => {
-            syncAlignmentControls(!!getElement("compare-mode-toggle")?.checked);
-        });
-        burnButtonsObserver.observe(burnButtonsHost, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ["class", "data-event-source-key", "data-timeline-role"],
-        });
     }
 
     function sync() {
@@ -333,7 +290,6 @@ function createCompareModeController(deps = {}) {
         const secondaryAlignmentSelect = getElement("compare-secondary-event-select");
 
         sync();
-        bindBurnButtonsObserver();
 
         toggle?.addEventListener("change", function (event) {
             toggleCompareMode?.({

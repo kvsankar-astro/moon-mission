@@ -110,6 +110,7 @@ let desktopChromeAutohideController = null;
 let headerBlurbController = null;
 let headerPillStripController = null;
 let comparePanelController = null;
+let compareModeController = null;
 
 function getControlPanelTimelineController() {
     if (!controlPanelTimelineController) {
@@ -175,6 +176,17 @@ function getComparePanelController() {
         });
     }
     return comparePanelController;
+}
+
+function getCompareModeController(deps = null) {
+    if (!compareModeController) {
+        compareModeController = createCompareModeController({
+            documentRef: document,
+            windowRef: window,
+            ...(deps || {}),
+        });
+    }
+    return compareModeController;
 }
 
 function getHeaderBlurbController() {
@@ -253,6 +265,7 @@ export function bindMainControls(handlers) {
         toggleCompareMode,
         changeCompareMission,
         changeCompareAlignment,
+        getTimelineEventInfos,
         changeCameraFromTo,
         changeDesktopMainFov,
         toggleDesktopMainFovAuto,
@@ -299,13 +312,18 @@ export function bindMainControls(handlers) {
         toggleLanding,
         toggleInfo,
     });
-    createCompareModeController({
+    getCompareModeController({
         toggleCompareMode,
         changeCompareMission,
         changeCompareAlignment,
+        getTimelineEventInfos,
     }).bind();
     getComparePanelController().bind();
     syncMainControlControllerSet(controllers);
+}
+
+export function syncCompareModeControls(compareModeActive) {
+    compareModeController?.syncAlignmentControls(compareModeActive);
 }
 
 export function bindKeyboardShortcuts() {

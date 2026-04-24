@@ -73,6 +73,7 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleCompareMode: handlers.toggleCompareMode,
         changeCompareMission: handlers.changeCompareMission,
         changeCompareAlignment: handlers.changeCompareAlignment,
+        getTimelineEventInfos: handlers.getTimelineEventInfos,
         changeCameraFromTo: (event) => eventBus.emit("camera:fromToChanged", { event }),
         changeDesktopMainFov: handlers.changeDesktopMainFov,
         toggleDesktopMainFovAuto: handlers.toggleDesktopMainFovAuto,
