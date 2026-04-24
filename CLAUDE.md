@@ -64,7 +64,7 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 
 - `.github/workflows/ci.yml`: `npm run configs:lint` + `npm run test:unit`
 - `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
-- `.github/workflows/deploy-hostgator.yml`: manual Hostgator deploy + parity audit
+- `.github/workflows/deploy-hetzner.yml`: manual Hetzner deploy + parity audit
 
 ## Landing brief quick reference
 

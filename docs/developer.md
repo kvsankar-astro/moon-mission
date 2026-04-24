@@ -192,13 +192,12 @@ CI:
 
 Manual deploy workflows:
 - `.github/workflows/deploy.yml` - GitHub Pages (app + staged mission data)
-- `.github/workflows/deploy-hostgator.yml` - sankara.net (app + staged mission data)
+- `.github/workflows/deploy-hetzner.yml` - sankara.net (app + staged mission data)
 - `.github/workflows/deploy-app-only.yml` - GitHub Pages app-only
-- `.github/workflows/deploy-hostgator-app-only.yml` - sankara.net app-only
 
 Notes:
 - Deploy workflows are manual (`workflow_dispatch`).
-- App-only deploys preserve runtime data on remote and publish app-shell changes only.
+- App-only deploys preserve runtime data on remote and publish app-shell changes only for GitHub Pages. Production (`sankara.net`) currently uses the Hetzner full deploy workflow.
 - Use full deploys when introducing new missions, new manifests, or new runtime assets that are not already present on the published site.
 - Local and CI Vitest discovery excludes nested `.tmp/**` scratch repos so temporary checkouts do not pollute test runs.
 

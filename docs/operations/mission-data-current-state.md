@@ -51,13 +51,12 @@ Data repo (`moon-mission-data`) tracks:
 
 Workflows stage mission data from the data repo before deploy:
 - `.github/workflows/deploy.yml`
-- `.github/workflows/deploy-hostgator.yml`
+- `.github/workflows/deploy-hetzner.yml`
 
 App-only deploy workflows keep existing runtime data on remote and only ship app-shell changes:
 - `.github/workflows/deploy-app-only.yml`
-- `.github/workflows/deploy-hostgator-app-only.yml`
 
-Use the full deploy workflows when a change introduces new missions, new manifests, or new runtime assets that are not already present on the published site. App-only deploys are for app-shell changes against an already-populated runtime-data set.
+Use the full deploy workflows when a change introduces new missions, new manifests, or new runtime assets that are not already present on the published site. GitHub Pages supports an app-only deploy path; production (`sankara.net`) currently deploys via the full Hetzner workflow.
 
 ## How to verify current state quickly
 

@@ -185,11 +185,10 @@ Current workflow behavior:
 
 - `.github/workflows/ci.yml` runs on push, pull request, and manual trigger.
 - `.github/workflows/deploy-app-only.yml` is manual-only (`workflow_dispatch`) for GitHub Pages app-only deploys.
-- `.github/workflows/deploy-hostgator-app-only.yml` is manual-only (`workflow_dispatch`) for sankara.net app-only deploys.
 - `.github/workflows/deploy.yml` is manual-only (`workflow_dispatch`) for GitHub Pages deploys.
-- `.github/workflows/deploy-hostgator.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
+- `.github/workflows/deploy-hetzner.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
 
-App-only deploys preserve the already-published runtime asset set and are meant for app-shell changes only. Use the full deploy workflows when adding new missions, manifests, or runtime assets.
+App-only deploys preserve the already-published runtime asset set and are meant for app-shell changes only. Use the full deploy workflows when adding new missions, manifests, or runtime assets. Production (`sankara.net`) currently deploys through the Hetzner workflow, not an app-only workflow.
 
 For development, you can use the Vite dev server:
 ```bash
@@ -218,7 +217,7 @@ For the production site this is available at:
 
 - `https://sankara.net/astro/lunar-missions/deployment/version.json`
 
-The Hostgator deploy workflow also runs a post-deploy parity audit (`rsync --dry-run --checksum --delete`) and fails if the remote tree differs from the staged deployment output.
+The Hetzner deploy workflow also runs a post-deploy parity audit (`rsync --dry-run --checksum --delete`) and fails if the remote tree differs from the staged deployment output.
 
 Quick CLI check:
 
@@ -328,5 +327,4 @@ See [docs/guides/ai-tools.md](docs/guides/ai-tools.md) for how AI tools are used
 * https://github.com/CoryG89/MoonDemo 
 * http://stuffin.space/ 
 * https://theskylive.com/3dsolarsystem 
-
 

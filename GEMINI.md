@@ -74,5 +74,5 @@ Mission config workflow:
 ## CI / deploy notes
 
 - `.github/workflows/ci.yml` runs `npm run configs:lint` and `npm run test:unit` on push, pull request, and manual dispatch.
-- `.github/workflows/deploy.yml` and `.github/workflows/deploy-hostgator.yml` are manual-only deploy workflows.
+- `.github/workflows/deploy.yml` and `.github/workflows/deploy-hetzner.yml` are manual-only deploy workflows.
 - Deploy/test staging pulls runtime data, including orbit-style sidecars, from `moon-mission-data`.
