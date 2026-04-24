@@ -34,6 +34,7 @@ describe("runtime-view-state", () => {
             },
         });
 
+        expect(state.getViewAuxiliaryPanels()).toBe(false);
         expect(state.getViewOrbit()).toBe(true);
         expect(state.getViewMoonSOI()).toBe(false);
         expect(state.getViewBodyHalos()).toBe(true);

@@ -19,7 +19,7 @@ const VIEW_FLAG_KEYS = [
 
 function buildDefaultViewFlags() {
     return {
-        viewAuxiliaryPanels: true,
+        viewAuxiliaryPanels: false,
         viewOrbit: true,
         viewOrbitDescent: true,
         viewCraters: true,

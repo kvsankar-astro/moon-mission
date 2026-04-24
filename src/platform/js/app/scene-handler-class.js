@@ -58,18 +58,29 @@ function createSceneHandlerClass(deps) {
                 this.desktopPanelManager = new DesktopPanelManager({
                     overlayHost,
                 });
-                this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
-                    THREE,
-                    overlayHost,
-                    requestRender: () => {
-                        if (this.lastAnimationScene) {
-                            this.render(this.lastAnimationScene);
-                        }
-                    },
-                });
             }
 
             this.initialized = true;
+        }
+
+        ensureAuxiliaryCameraViews() {
+            if (this.auxiliaryCameraViews || isTestMode || window.innerWidth <= 600) {
+                return this.auxiliaryCameraViews;
+            }
+
+            const overlayHost = document.getElementById("content-wrapper") ||
+                document.getElementById("wrapper") ||
+                document.body;
+            this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
+                THREE,
+                overlayHost,
+                requestRender: () => {
+                    if (this.lastAnimationScene) {
+                        this.render(this.lastAnimationScene);
+                    }
+                },
+            });
+            return this.auxiliaryCameraViews;
         }
 
         render(animationScene) {
@@ -158,6 +169,9 @@ function createSceneHandlerClass(deps) {
                 moonRadius,
                 timelineEventInfos,
             } = getRuntimeState();
+            const auxiliaryCameraViews = viewAuxiliaryPanels
+                ? this.ensureAuxiliaryCameraViews()
+                : this.auxiliaryCameraViews;
 
             updateCraftScale();
             const activeCraft =
@@ -172,7 +186,7 @@ function createSceneHandlerClass(deps) {
                 if (viewAuxiliaryPanels) {
                     animationScene.refreshBodyHalos?.({ suppress: true });
                 }
-                this.auxiliaryCameraViews?.render({
+                auxiliaryCameraViews?.render({
                     scene: animationScene.scene,
                     skyRenderer: animationScene.skyRenderer,
                     latestSceneState: animationScene.latestSceneState || null,
@@ -271,7 +285,7 @@ function createSceneHandlerClass(deps) {
             if (viewAuxiliaryPanels) {
                 animationScene.refreshBodyHalos?.({ suppress: true });
             }
-            this.auxiliaryCameraViews?.render({
+            auxiliaryCameraViews?.render({
                 scene: animationScene.scene,
                 skyRenderer: animationScene.skyRenderer,
                 latestSceneState: animationScene.latestSceneState || null,
