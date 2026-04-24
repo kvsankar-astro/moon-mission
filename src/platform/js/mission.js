@@ -22,6 +22,7 @@ import {
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
+import { syncCompareModeControls } from "./ui/event-handlers.js";
 import {
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
@@ -414,6 +415,7 @@ const {
     getIsCompareMode: () => isCompareMode,
     syncTimelineEventButtons: (timelineEventInfos) => {
         missionRuntimeWireup?.initConfigUiActions?.syncBurnButtons?.(timelineEventInfos);
+        syncCompareModeControls(isCompareMode);
     },
     defaultStepMs: TC.ONE_MINUTE_MS,
     maxTimelineStepMs: TC.ONE_SECOND_MS,
@@ -593,6 +595,7 @@ const handlersEntryContext = createMissionRuntimeHandlersEntryContext({
     toggleCompareMode,
     changeCompareMission,
     changeCompareAlignment,
+    getTimelineEventInfos,
     getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval: () => fpsUpdateInterval,

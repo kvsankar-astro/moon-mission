@@ -73,34 +73,9 @@ function createRow(id) {
     };
 }
 
-function createBurnButton({
-    eventSourceKey,
-    timelineRole = "primary",
-    textContent,
-    comparison = timelineRole === "comparison",
-}) {
-    return {
-        dataset: {
-            eventSourceKey,
-            timelineRole,
-        },
-        textContent,
-        classList: createClassList(comparison ? ["burnbutton--comparison"] : []),
-        getAttribute(name) {
-            if (name === "data-event-source-key") {
-                return eventSourceKey;
-            }
-            if (name === "data-timeline-role") {
-                return timelineRole;
-            }
-            return "";
-        },
-    };
-}
-
 function createHarness({
     search = "?mission=chandrayaan3",
-    burnButtons = [],
+    timelineEventInfos = [],
     entries = [
         {
             folder: "chandrayaan3",
@@ -125,14 +100,12 @@ function createHarness({
     const compareAlignmentRow = createRow("compare-alignment-row");
     const comparePrimaryEventSelect = createSelect("compare-primary-event-select");
     const compareSecondaryEventSelect = createSelect("compare-secondary-event-select");
-    const burnButtonsHost = createRow("burnbuttons");
     const byId = new Map([
         ["compare-mode-toggle", compareToggle],
         ["compare-mission-select", compareSelect],
         ["compare-alignment-row", compareAlignmentRow],
         ["compare-primary-event-select", comparePrimaryEventSelect],
         ["compare-secondary-event-select", compareSecondaryEventSelect],
-        ["burnbuttons", burnButtonsHost],
     ]);
 
     const documentRef = {
@@ -147,12 +120,6 @@ function createHarness({
         },
         getElementById(id) {
             return byId.get(id) || null;
-        },
-        querySelectorAll(selector) {
-            if (selector === "#burnbuttons button[data-event-source-key]") {
-                return burnButtons;
-            }
-            return [];
         },
     };
     const windowRef = {
@@ -182,6 +149,7 @@ function createHarness({
         toggleCompareMode,
         changeCompareMission,
         changeCompareAlignment,
+        getTimelineEventInfos: () => timelineEventInfos,
     });
 
     return {
@@ -304,29 +272,33 @@ describe("compare mode controller", () => {
         });
     });
 
-    it("populates alignment controls from burn buttons and dispatches alignment changes", () => {
+    it("populates alignment controls from timeline event infos and dispatches alignment changes", () => {
         const harness = createHarness({
-            burnButtons: [
-                createBurnButton({
-                    eventSourceKey: "launch",
+            timelineEventInfos: [
+                {
+                    key: "timeline:primary:launch",
                     timelineRole: "primary",
-                    textContent: "CH3: Launch",
-                }),
-                createBurnButton({
-                    eventSourceKey: "tli",
+                    timelineSourceKey: "launch",
+                    timelineLabel: "CH3: Launch",
+                },
+                {
+                    key: "timeline:primary:tli",
                     timelineRole: "primary",
-                    textContent: "CH3: TLI",
-                }),
-                createBurnButton({
-                    eventSourceKey: "launch",
+                    timelineSourceKey: "tli",
+                    timelineLabel: "CH3: TLI",
+                },
+                {
+                    key: "timeline:comparison:launch",
                     timelineRole: "comparison",
-                    textContent: "A1: Launch",
-                }),
-                createBurnButton({
-                    eventSourceKey: "loi",
+                    timelineSourceKey: "launch",
+                    timelineLabel: "A1: Launch",
+                },
+                {
+                    key: "timeline:comparison:loi",
                     timelineRole: "comparison",
-                    textContent: "A1: LOI",
-                }),
+                    timelineSourceKey: "loi",
+                    timelineLabel: "A1: LOI",
+                },
             ],
             search: "?mission=chandrayaan3&mode=compare&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
         });
