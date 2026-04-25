@@ -26,6 +26,13 @@ Assistant-facing notes for this repository.
 
 Do not use legacy paths like `assets/platform/js/*` in new changes.
 
+## Data repo boundary
+
+- Runtime app code, mission config, and UI assets are worked on in this repo.
+- Generated ephemeris artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and authored orbit-style sidecars like `geo-style.json` / `lunar-style.json` are tracked in the sibling repo `../moon-mission-data`, not here.
+- If you regenerate orbit/ephemeris files locally while working in `moon-mission`, sync and commit those generated files in `moon-mission-data`.
+- Do not assume a regenerated file under `assets/<mission>/data/` in this repo is tracked here; verify with `git ls-files` before committing.
+
 ## Runtime ephemeris behavior
 
 - Runtime supports `chebyshev`, `npz`, `astronomy` body sources.
@@ -65,6 +72,7 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 - `.github/workflows/ci.yml`: `npm run configs:lint` + `npm run test:unit`
 - `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
 - `.github/workflows/deploy-hetzner.yml`: manual Hetzner deploy + parity audit
+- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or `sankara.net` by itself.
 
 ## Production redirect rules
 
@@ -132,3 +140,8 @@ Deploy/test workflows stage runtime data from `kvsankar/moon-mission-data` (or r
 - `scripts/stage-ephemeris-data.py`
 
 Staged categories: orbit artifacts, orbit-style sidecars, shared images, mission screenshots, optional `third-party/`.
+
+## Security & configuration
+
+- Do not commit credentials or deployment config; `deploy-config.json` is intentionally git-ignored.
+- Do not commit generated artifacts such as `dist/`, `data-generated/`, `.test-server.*`, or `node_modules/`.

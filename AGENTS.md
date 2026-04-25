@@ -39,9 +39,23 @@
 ## Coding Style & Naming Conventions
 
 - JavaScript (ES modules) lives under `src/platform/js/` and `assets/<mission>/js/`.
+- Do not use legacy paths like `assets/platform/js/*` in new changes.
 - Keep diffs focused; avoid reformat-only changes unless necessary.
 - Prefer small, single-purpose modules and pure functions where practical.
 - Tests are `*.test.js` under `test/`.
+
+## Runtime Notes
+
+- Runtime supports `chebyshev`, `npz`, and `astronomy` body sources.
+- Relative mode uses precomputed `relative-<ID>-cheb.json` and is enabled by URL `mode=relative`.
+- Compare mode uses `mode=compare&compareMission=<other>` and overlays two missions in one relative-frame scene.
+- Multi-craft missions are supported via `crafts[]`; current examples include CH2/CH3-style missions.
+
+## Mission Controls UI
+
+- On desktop, the header pill strip is the primary quick-control surface for origin/dimension/view toggles.
+- The Settings panel remains a fallback/advanced surface and may be hidden in layouts where the pill strip is visible.
+- Production/browser automation should prefer the visible pill controls before assuming `#settings-panel-button` is interactable.
 
 ## Testing Guidelines
 
@@ -54,6 +68,47 @@
 
 - Commit messages in this repo are short and imperative; common patterns include `docs: ...`, `Add ...`, `Refactor ...`.
 - PRs should include: what changed, how to test (commands + URLs), and screenshots/gifs for UI changes (plus baseline update rationale if applicable).
+
+## Mission Config Workflow
+
+- Edit `assets/<mission>/data/config.json5`, then run `npm run configs:compile`.
+- Keep `config.json` in sync with `config.json5` (`npm run configs:check`).
+- CI enforces the stricter `npm run configs:lint` gate (config sync plus required `time_scale` annotations).
+
+## CI & Deploy Notes
+
+- `.github/workflows/ci.yml` runs `npm run configs:lint` and `npm run test:unit`.
+- `.github/workflows/deploy.yml` is the manual GitHub Pages deploy with staged data-repo assets.
+- `.github/workflows/deploy-hetzner.yml` is the manual Hetzner deploy plus parity audit.
+- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or `sankara.net` by itself.
+
+## Production Redirect Rules
+
+- Production `sankara.net` is served by nginx on the Hetzner VPS. nginx does not read `.htaccess`.
+- The repo `.htaccess` is production-inert and is kept only for cache-header behavior on Apache-like hosts.
+- The live legacy mission redirect from `/astro/lunar-missions/mission.html?mission=<slug>` to `/astro/lunar-missions/<slug>/` is implemented outside this repo in:
+  - `/etc/nginx/conf.d/sankara-mission-redirects.conf`
+  - `/etc/nginx/sites-available/sankara.net`
+- Current production behavior:
+  - allowlisted mission slugs return a real server-side `301`
+  - unknown slugs and bare `mission.html` stay `200`
+  - `mission.html` in this repo remains a `noindex,follow` compatibility shell as defense in depth
+- When adding or renaming a mission slug:
+  1. Update the repo mission slug source, usually `assets/mission-catalog.json`.
+  2. Update the nginx allowlist on the Hetzner host in `/etc/nginx/conf.d/sankara-mission-redirects.conf`.
+  3. Run `sudo nginx -t && sudo systemctl reload nginx`.
+- Verification commands:
+  - `curl -ILs "https://sankara.net/astro/lunar-missions/mission.html?mission=artemis2&view=relative&foo=1"`
+  - `curl -ILs "https://sankara.net/astro/lunar-missions/mission.html?mission=bogus-unknown-slug"`
+  - `curl -ILs "https://sankara.net/astro/lunar-missions/artemis2/"`
+
+## Landing Content & Data Staging
+
+- The mission selector/landing UI reads authored brief copy from `assets/mission-briefs.json`.
+- Curated CC BY-SA image carousel entries live in `assets/mission-images.json`.
+- The brief panel keeps the `Mission`, `HORIZONS Data`, and `Timelines` structure, with the image carousel displayed below the orbit preview.
+- Deploy/test workflows stage runtime data from `kvsankar/moon-mission-data` (or a repo-variable override) via `scripts/stage-ephemeris-data.py`.
+- Staged categories include orbit artifacts, orbit-style sidecars, shared images, mission screenshots, and optional `third-party/`.
 
 ## Security & Configuration Tips
 
