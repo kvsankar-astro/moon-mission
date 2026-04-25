@@ -196,6 +196,7 @@ function renderMissionPageHtml({
         "base-href",
     );
     html = replaceTagAttribute(html, "description", "content", description);
+    html = replaceTagAttribute(html, "robots", "content", "index,follow,max-image-preview:large");
     html = replaceTagAttribute(html, "canonical", "href", canonicalUrl);
     html = replaceTagAttribute(html, "og-url", "content", canonicalUrl);
     html = replaceTagAttribute(html, "og-title", "content", title);

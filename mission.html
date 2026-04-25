@@ -9,7 +9,7 @@
         <meta name="description" content="Moon Mission Orbit Animations by Sankar Viswanathan" data-mission-meta="description">
         <meta name="author" content="Sankaranarayanan Viswanathan">
         <meta name="keywords" content="moon mission, lunar missions, artemis, chandrayaan, orbit animation, astronomy, space">
-        <meta name="robots" content="index,follow,max-image-preview:large">
+        <meta name="robots" content="noindex,follow,max-image-preview:large" data-mission-meta="robots">
         <link rel="canonical" href="https://sankara.net/astro/lunar-missions/mission.html" data-mission-meta="canonical">
 
         <!-- Facebook Meta Tags -->
@@ -511,6 +511,11 @@
                     return candidate;
                 }
 
+                function isLegacyMissionHtmlUrl(pathname = window.location.pathname) {
+                    const normalizedPath = asTrimmedString(pathname).replace(/\\/g, "/");
+                    return /\/mission\.html$/i.test(normalizedPath);
+                }
+
                 function setHeadValue(selector, value, attributeName = "content") {
                     const nextValue = asTrimmedString(value);
                     if (!nextValue) return;
@@ -532,6 +537,9 @@
                         asTrimmedString(mission.card?.description) ||
                         `Interactive ${asTrimmedString(mission.card?.title) || humanizeFolderName(mission.folder)} lunar mission orbit visualization`
                     );
+                    const robotsContent = isLegacyMissionHtmlUrl()
+                        ? "noindex,follow,max-image-preview:large"
+                        : "index,follow,max-image-preview:large";
                     const socialPreview = {
                         artemis2: {
                             imageUrl: "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f",
@@ -541,6 +549,7 @@
                     }[mission.folder];
 
                     document.title = missionTitle;
+                    setHeadValue('meta[data-mission-meta="robots"]', robotsContent);
                     setHeadValue('meta[data-mission-meta="description"]', missionDescription);
                     setHeadValue('link[data-mission-meta="canonical"]', canonicalUrl, "href");
                     setHeadValue('meta[data-mission-meta="og-url"]', canonicalUrl);
@@ -730,8 +739,7 @@
                 }
 
                 function resolveLegacyMissionFolderFromQuery() {
-                    const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
-                    if (!/\/mission\.html$/i.test(pathname)) {
+                    if (!isLegacyMissionHtmlUrl()) {
                         return "";
                     }
                     try {
@@ -744,8 +752,7 @@
 
                 function redirectLegacyMissionUrl(mission) {
                     if (!mission?.folder) return false;
-                    const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
-                    if (!/\/mission\.html$/i.test(pathname)) {
+                    if (!isLegacyMissionHtmlUrl()) {
                         return false;
                     }
 
