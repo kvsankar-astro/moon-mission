@@ -198,6 +198,8 @@ Manual deploy workflows:
 Notes:
 - Deploy workflows are manual (`workflow_dispatch`).
 - App-only deploys preserve runtime data on remote and publish app-shell changes only for GitHub Pages. Production (`sankara.net`) currently uses the Hetzner full deploy workflow.
+- Production `sankara.net` is fronted by nginx only. Legacy `mission.html?mission=<slug>` redirects are implemented in VPS nginx config, not `.htaccess`.
+- The repo's `.htaccess` is cache-header-only and should not carry production redirect logic.
 - Use full deploys when introducing new missions, new manifests, or new runtime assets that are not already present on the published site.
 - Local and CI Vitest discovery excludes nested `.tmp/**` scratch repos so temporary checkouts do not pollute test runs.
 

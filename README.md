@@ -190,6 +190,11 @@ Current workflow behavior:
 
 App-only deploys preserve the already-published runtime asset set and are meant for app-shell changes only. Use the full deploy workflows when adding new missions, manifests, or runtime assets. Production (`sankara.net`) currently deploys through the Hetzner workflow, not an app-only workflow.
 
+Production note:
+- `sankara.net` is served by nginx, not Apache. The live legacy redirect from `mission.html?mission=<slug>` to `/<slug>/` is implemented in nginx config on the VPS, not in this repo's `.htaccess`.
+- The repo's `mission.html` remains a `noindex,follow` compatibility shell so legacy shared links still work even if a host ignores server-side rewrites.
+- `.htaccess` is kept only for cache-header behavior on Apache-like hosts; it is inert on production.
+
 For development, you can use the Vite dev server:
 ```bash
 npm run dev

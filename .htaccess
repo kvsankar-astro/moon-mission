@@ -1,18 +1,8 @@
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-
-  # Redirect legacy query-style mission URLs to the canonical folder URLs.
-  RewriteCond %{QUERY_STRING} ^mission=(chandrayaan1|chandrayaan2|chandrayaan3|artemis1|artemis2|apollo8-sivb|apollo9-sivb|apollo10-lm|apollo10-sivb|apollo11-sivb|apollo12-sivb|lunarorbiter1|clementine|isee3|wind|hgs1|lunar-prospector|nozomi|wmap|smart1|stereo|selene|artemis|artemis-overview|artemis-lagrange|artemis-lunar-capture|lro|lcross-shepherd|lcross-centaur|grail-ss-stage|grail|ladee|tess|capstone|lunar-flashlight|kplo-danuri|juice|slim|lunar-trailblazer)$ [NC]
-  RewriteRule ^mission\.html$ %1/ [R=301,L]
-  RewriteCond %{QUERY_STRING} ^mission=(chandrayaan1|chandrayaan2|chandrayaan3|artemis1|artemis2|apollo8-sivb|apollo9-sivb|apollo10-lm|apollo10-sivb|apollo11-sivb|apollo12-sivb|lunarorbiter1|clementine|isee3|wind|hgs1|lunar-prospector|nozomi|wmap|smart1|stereo|selene|artemis|artemis-overview|artemis-lagrange|artemis-lunar-capture|lro|lcross-shepherd|lcross-centaur|grail-ss-stage|grail|ladee|tess|capstone|lunar-flashlight|kplo-danuri|juice|slim|lunar-trailblazer)&(.+)$ [NC]
-  RewriteRule ^mission\.html$ %1/?%2 [R=301,L]
-  RewriteCond %{QUERY_STRING} ^(.+)&mission=(chandrayaan1|chandrayaan2|chandrayaan3|artemis1|artemis2|apollo8-sivb|apollo9-sivb|apollo10-lm|apollo10-sivb|apollo11-sivb|apollo12-sivb|lunarorbiter1|clementine|isee3|wind|hgs1|lunar-prospector|nozomi|wmap|smart1|stereo|selene|artemis|artemis-overview|artemis-lagrange|artemis-lunar-capture|lro|lcross-shepherd|lcross-centaur|grail-ss-stage|grail|ladee|tess|capstone|lunar-flashlight|kplo-danuri|juice|slim|lunar-trailblazer)$ [NC]
-  RewriteRule ^mission\.html$ %2/?%1 [R=301,L]
-  RewriteCond %{QUERY_STRING} ^(.+)&mission=(chandrayaan1|chandrayaan2|chandrayaan3|artemis1|artemis2|apollo8-sivb|apollo9-sivb|apollo10-lm|apollo10-sivb|apollo11-sivb|apollo12-sivb|lunarorbiter1|clementine|isee3|wind|hgs1|lunar-prospector|nozomi|wmap|smart1|stereo|selene|artemis|artemis-overview|artemis-lagrange|artemis-lunar-capture|lro|lcross-shepherd|lcross-centaur|grail-ss-stage|grail|ladee|tess|capstone|lunar-flashlight|kplo-danuri|juice|slim|lunar-trailblazer)&(.+)$ [NC]
-  RewriteRule ^mission\.html$ %2/?%1&%3 [R=301,L]
-</IfModule>
-
 <IfModule mod_headers.c>
+  # Production sankara.net runs behind nginx, so this file is not part of the
+  # live legacy mission redirect path there. Keep only cache header behavior
+  # here to avoid duplicating the mission-slug redirect list in repo config.
+
   # Always revalidate HTML so normal refresh picks up the latest app shell.
   <FilesMatch "\.(html)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
