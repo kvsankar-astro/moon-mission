@@ -1,4 +1,5 @@
 import { buildCompareAlignmentOptions } from "../core/domain/compare-alignment-options.js";
+import { resolveCurrentMissionKeys as resolveWindowMissionKeys } from "../core/domain/current-mission.js";
 import { isCompareRuntimeMode } from "../core/domain/runtime-mode.js";
 
 function asTrimmedString(value, fallback = "") {
@@ -11,55 +12,21 @@ function normalizeKey(value) {
     return asTrimmedString(value).toLowerCase();
 }
 
-function parseCurrentMissionFolder(dataPath) {
-    const normalizedDataPath = asTrimmedString(dataPath).replace(/\\/g, "/");
-    const match = normalizedDataPath.match(/assets\/([^/]+)\/data\/?$/i);
-    return normalizeKey(match?.[1]);
-}
-
 function resolveCurrentMissionKeys(windowRef) {
-    const params = new URLSearchParams(windowRef?.location?.search || "");
-    const currentMissionParam = normalizeKey(params.get("mission"));
-    const currentMissionFolder = parseCurrentMissionFolder(windowRef?.missionConfig?.dataPath);
-    return new Set(
-        [currentMissionParam, currentMissionFolder].filter(Boolean),
-    );
+    return resolveWindowMissionKeys(windowRef);
 }
 
-function resolveMissionQueryValue(entry) {
-    return normalizeKey(
-        entry?.queryValue ||
-        entry?.key ||
-        entry?.folder,
-    );
+function resolveMissionSlug(entry) {
+    return normalizeKey(entry?.folder);
 }
 
 function resolveMissionLabel(entry) {
     return asTrimmedString(
         entry?.card?.title ||
         entry?.missionName ||
-        entry?.folder ||
-        entry?.key,
+        entry?.folder,
         "Mission",
     );
-}
-
-function resolveCanonicalMissionQueryValue(windowRef, missionKey) {
-    const normalizedMissionKey = normalizeKey(missionKey);
-    if (!normalizedMissionKey) {
-        return "";
-    }
-
-    const catalog = windowRef?.missionCatalog;
-    if (catalog && typeof catalog.resolveMission === "function") {
-        const resolvedMission = catalog.resolveMission(normalizedMissionKey);
-        const canonicalQueryValue = resolveMissionQueryValue(resolvedMission);
-        if (canonicalQueryValue) {
-            return canonicalQueryValue;
-        }
-    }
-
-    return normalizedMissionKey;
 }
 
 function createCompareModeController(deps = {}) {
@@ -118,16 +85,16 @@ function createCompareModeController(deps = {}) {
         const entries = [];
 
         for (const entry of catalog.getEntries() || []) {
-            const queryValue = resolveMissionQueryValue(entry);
+            const missionSlug = resolveMissionSlug(entry);
             const folderKey = normalizeKey(entry?.folder);
-            if (!queryValue || seen.has(queryValue)) continue;
-            if (currentMissionKeys.has(queryValue) || currentMissionKeys.has(folderKey)) {
+            if (!missionSlug || seen.has(missionSlug)) continue;
+            if (currentMissionKeys.has(missionSlug) || currentMissionKeys.has(folderKey)) {
                 continue;
             }
-            seen.add(queryValue);
+            seen.add(missionSlug);
             entries.push({
                 label: resolveMissionLabel(entry),
-                value: queryValue,
+                value: missionSlug,
             });
         }
 
@@ -243,10 +210,7 @@ function createCompareModeController(deps = {}) {
         }
 
         const params = new URLSearchParams(windowRef?.location?.search || "");
-        const compareMissionParam = resolveCanonicalMissionQueryValue(
-            windowRef,
-            params.get("compareMission"),
-        );
+        const compareMissionParam = normalizeKey(params.get("compareMission"));
         const compareModeActive = isCompareRuntimeMode(params.get("mode"));
         const entries = getMissionEntries();
         const selectedMission =

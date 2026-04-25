@@ -74,26 +74,22 @@ function createRow(id) {
 }
 
 function createHarness({
-    search = "?mission=chandrayaan3",
+    search = "",
     timelineEventInfos = [],
     entries = [
         {
             folder: "chandrayaan3",
-            queryValue: "chandrayaan3",
             card: { title: "Chandrayaan 3" },
         },
         {
             folder: "artemis1",
-            queryValue: "artemis1",
             card: { title: "Artemis 1" },
         },
         {
             folder: "grail",
-            queryValue: "grail",
             card: { title: "GRAIL" },
         },
     ],
-    resolvedMissions = {},
 } = {}) {
     const compareToggle = createInput("compare-mode-toggle");
     const compareSelect = createSelect("compare-mission-select");
@@ -124,6 +120,7 @@ function createHarness({
     };
     const windowRef = {
         location: {
+            pathname: "/chandrayaan3/",
             search,
         },
         MutationObserver: undefined,
@@ -133,9 +130,6 @@ function createHarness({
         missionCatalog: {
             getEntries() {
                 return entries;
-            },
-            resolveMission(value) {
-                return resolvedMissions[String(value).toLowerCase()] || null;
             },
         },
     };
@@ -168,7 +162,7 @@ function createHarness({
 describe("compare mode controller", () => {
     it("populates alternate mission choices and syncs compare-mode URL state", () => {
         const harness = createHarness({
-            search: "?mission=chandrayaan3&mode=compare&compareMission=grail",
+            search: "?mode=compare&compareMission=grail",
         });
 
         harness.controller.bind();
@@ -183,28 +177,19 @@ describe("compare mode controller", () => {
         expect(harness.compareAlignmentRow.hidden).toBe(true);
     });
 
-    it("canonicalizes compare mission aliases from the URL", () => {
+    it("reads canonical compare mission slugs from the URL", () => {
         const harness = createHarness({
-            search: "?mission=chandrayaan3&mode=compare&compareMission=art1",
+            search: "?mode=compare&compareMission=artemis1",
             entries: [
                 {
                     folder: "chandrayaan3",
-                    queryValue: "chandrayaan3",
                     card: { title: "Chandrayaan 3" },
                 },
                 {
                     folder: "artemis1",
-                    queryValue: "artemis1",
                     card: { title: "Artemis 1" },
                 },
             ],
-            resolvedMissions: {
-                art1: {
-                    folder: "artemis1",
-                    queryValue: "artemis1",
-                    card: { title: "Artemis 1" },
-                },
-            },
         });
 
         harness.controller.bind();
@@ -214,7 +199,7 @@ describe("compare mode controller", () => {
 
     it("calls the compare-mode toggle handler with the selected mission", () => {
         const harness = createHarness({
-            search: "?mission=chandrayaan3&compareMission=artemis1",
+            search: "?compareMission=artemis1",
         });
 
         harness.controller.bind();
@@ -234,7 +219,7 @@ describe("compare mode controller", () => {
 
     it("calls the compare-mission change handler when the picker changes", () => {
         const harness = createHarness({
-            search: "?mission=chandrayaan3&compareMission=artemis1",
+            search: "?compareMission=artemis1",
         });
 
         harness.controller.bind();
@@ -254,7 +239,7 @@ describe("compare mode controller", () => {
 
     it("preserves URL-driven alignment when the compare selectors are not yet available", () => {
         const harness = createHarness({
-            search: "?mission=chandrayaan3&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
+            search: "?compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
         });
 
         harness.controller.bind();
@@ -300,7 +285,7 @@ describe("compare mode controller", () => {
                     timelineLabel: "A1: LOI",
                 },
             ],
-            search: "?mission=chandrayaan3&mode=compare&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
+            search: "?mode=compare&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
         });
 
         harness.controller.bind();

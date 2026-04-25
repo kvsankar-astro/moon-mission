@@ -142,8 +142,7 @@ describe('Landing Compare Smoke Tests', () => {
 
       await page.waitForURL((url) => {
         return (
-          url.pathname.endsWith('/mission.html') &&
-          url.searchParams.get('mission') === 'chandrayaan3' &&
+          url.pathname.endsWith('/chandrayaan3/') &&
           url.searchParams.get('mode') === 'compare' &&
           url.searchParams.get('compareMission') === 'artemis1' &&
           url.searchParams.get('origin') === 'relative' &&
@@ -164,7 +163,7 @@ describe('Landing Compare Smoke Tests', () => {
 
       expect(missionSnapshot.originRelativeChecked).toBe(true);
       expect(missionSnapshot.compareToggleChecked).toBe(true);
-      expect(['artemis1', 'art1']).toContain(missionSnapshot.compareMissionValue);
+      expect(missionSnapshot.compareMissionValue).toBe('artemis1');
 
       expect(consoleErrors).toHaveLength(0);
       expect(pageErrors).toHaveLength(0);

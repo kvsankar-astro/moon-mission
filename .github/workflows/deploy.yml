@@ -81,9 +81,10 @@ jobs:
         run: |
           mkdir -p dist-pages
           # Copy HTML files
-          cp index.html mission.html orbit-data.html assets-status.html dist-pages/
-          if [ -d artemis2 ]; then
-            cp -r artemis2 dist-pages/
+          cp index.html mission.html orbit-data.html assets-status.html moon-render-tuner.html sky-render-demo.html dist-pages/
+          node scripts/generate-mission-pages.mjs --app-root . --output-root ./dist-pages --site-url "https://kvsankar.github.io/moon-mission/"
+          if [ -f .htaccess ]; then
+            cp .htaccess ./dist-pages/.htaccess
           fi
           # Copy mission assets/config and shared platform source
           cp -r assets dist-pages/
@@ -95,20 +96,12 @@ jobs:
           from pathlib import Path
 
           app_rev = os.environ["GITHUB_SHA"][:12]
-          html_files = [
-              Path("dist-pages/index.html"),
-              Path("dist-pages/mission.html"),
-              Path("dist-pages/orbit-data.html"),
-              Path("dist-pages/assets-status.html"),
-              Path("dist-pages/artemis2/index.html"),
-          ]
+          html_files = sorted(Path("dist-pages").glob("**/*.html"))
           for html_path in html_files:
-              if not html_path.exists():
-                  continue
               text = html_path.read_text(encoding="utf-8")
               text = text.replace("src/platform/", f"src-{app_rev}/platform/")
               html_path.write_text(text, encoding="utf-8")
-              print(f"Rewrote {html_path.name} src path to src-{app_rev}/platform/")
+              print(f"Rewrote {html_path} src path to src-{app_rev}/platform/")
           PY
 
       - name: Stage mission runtime data assets

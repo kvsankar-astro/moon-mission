@@ -91,14 +91,7 @@
   },
   "missions": [
     {
-      "key": "ch1",
       "folder": "chandrayaan1",
-      "queryValue": "chandrayaan1",
-      "aliases": [
-        "chandrayaan1",
-        "ch1",
-        "cy1"
-      ],
       "title": "Chandrayaan 1",
       "subtitle": "India - 2008",
       "description": "India's first lunar mission with Moon Impact Probe timeline.",
@@ -114,14 +107,7 @@
       }
     },
     {
-      "key": "ch2",
       "folder": "chandrayaan2",
-      "queryValue": "chandrayaan2",
-      "aliases": [
-        "chandrayaan2",
-        "ch2",
-        "cy2"
-      ],
       "title": "Chandrayaan 2",
       "subtitle": "India - 2019",
       "description": "Orbiter and Vikram lander mission with descent timeline.",
@@ -137,14 +123,7 @@
       }
     },
     {
-      "key": "ch3",
       "folder": "chandrayaan3",
-      "queryValue": "chandrayaan3",
-      "aliases": [
-        "chandrayaan3",
-        "ch3",
-        "cy3"
-      ],
       "title": "Chandrayaan 3",
       "subtitle": "India - 2023",
       "description": "South-polar lunar landing mission with propulsion module and Vikram.",
@@ -160,13 +139,7 @@
       }
     },
     {
-      "key": "artemis1",
       "folder": "artemis1",
-      "queryValue": "artemis1",
-      "aliases": [
-        "artemis1",
-        "art1"
-      ],
       "title": "Artemis 1",
       "subtitle": "United States - 2022",
       "description": "Orion lunar test flight trajectory.",
@@ -182,13 +155,7 @@
       }
     },
     {
-      "key": "artemis2",
       "folder": "artemis2",
-      "queryValue": "artemis2",
-      "aliases": [
-        "artemis2",
-        "art2"
-      ],
       "title": "Artemis 2",
       "subtitle": "United States - 2026",
       "description": "First crewed Artemis Orion lunar flyby mission.",
@@ -204,13 +171,7 @@
       }
     },
     {
-      "key": "apollo8-sivb",
       "folder": "apollo8-sivb",
-      "queryValue": "apollo8-sivb",
-      "aliases": [
-        "apollo8-sivb",
-        "a8s"
-      ],
       "title": "Apollo 8 S-IVB",
       "subtitle": "United States - 1968",
       "description": "Saturn V third stage post-separation trajectory.",
@@ -226,13 +187,7 @@
       }
     },
     {
-      "key": "apollo9-sivb",
       "folder": "apollo9-sivb",
-      "queryValue": "apollo9-sivb",
-      "aliases": [
-        "apollo9-sivb",
-        "a9s"
-      ],
       "title": "Apollo 9 S-IVB",
       "subtitle": "United States - 1969",
       "description": "S-IVB translunar trajectory reconstruction.",
@@ -248,13 +203,7 @@
       }
     },
     {
-      "key": "apollo10-lm",
       "folder": "apollo10-lm",
-      "queryValue": "apollo10-lm",
-      "aliases": [
-        "apollo10-lm",
-        "a10"
-      ],
       "title": "Apollo 10 LM Snoopy",
       "subtitle": "United States - 1969",
       "description": "Lunar Module dress rehearsal descent profile.",
@@ -270,13 +219,7 @@
       }
     },
     {
-      "key": "apollo10-sivb",
       "folder": "apollo10-sivb",
-      "queryValue": "apollo10-sivb",
-      "aliases": [
-        "apollo10-sivb",
-        "a10s"
-      ],
       "title": "Apollo 10 S-IVB",
       "subtitle": "United States - 1969",
       "description": "S-IVB third-stage mission trajectory.",
@@ -292,13 +235,7 @@
       }
     },
     {
-      "key": "apollo11-sivb",
       "folder": "apollo11-sivb",
-      "queryValue": "apollo11-sivb",
-      "aliases": [
-        "apollo11-sivb",
-        "a11"
-      ],
       "title": "Apollo 11 S-IVB",
       "subtitle": "United States - 1969",
       "description": "Third-stage trajectory during first Moon landing mission.",
@@ -314,13 +251,7 @@
       }
     },
     {
-      "key": "apollo12-sivb",
       "folder": "apollo12-sivb",
-      "queryValue": "apollo12-sivb",
-      "aliases": [
-        "apollo12-sivb",
-        "a12s"
-      ],
       "title": "Apollo 12 S-IVB",
       "subtitle": "United States - 1969",
       "description": "S-IVB translunar and post-impact trajectory.",
@@ -336,14 +267,7 @@
       }
     },
     {
-      "key": "lunarorbiter1",
       "folder": "lunarorbiter1",
-      "queryValue": "lunarorbiter1",
-      "aliases": [
-        "lunarorbiter1",
-        "lo1",
-        "lunar-orbiter-1"
-      ],
       "title": "Lunar Orbiter 1",
       "subtitle": "United States - 1966",
       "description": "NASA reconnaissance orbiter used to scout Apollo landing sites.",
@@ -359,13 +283,7 @@
       }
     },
     {
-      "key": "clementine",
       "folder": "clementine",
-      "queryValue": "clementine",
-      "aliases": [
-        "clementine",
-        "clm"
-      ],
       "title": "Clementine",
       "subtitle": "United States - 1994",
       "description": "Lunar mapping mission arc.",
@@ -381,13 +299,7 @@
       }
     },
     {
-      "key": "isee3",
       "folder": "isee3",
-      "queryValue": "isee3",
-      "aliases": [
-        "isee3",
-        "ice"
-      ],
       "title": "ISEE-3 / ICE",
       "subtitle": "United States - 1978",
       "description": "Earth-return lunar encounter during the ICE recovery campaign.",
@@ -403,12 +315,7 @@
       }
     },
     {
-      "key": "wind",
       "folder": "wind",
-      "queryValue": "wind",
-      "aliases": [
-        "wind"
-      ],
       "title": "Wind",
       "subtitle": "United States - 1994",
       "description": "Double-lunar swingby phase of NASA's Wind observatory.",
@@ -424,14 +331,8 @@
       }
     },
     {
-      "key": "hgs1",
       "folder": "hgs1",
       "disabled": true,
-      "queryValue": "hgs1",
-      "aliases": [
-        "hgs1",
-        "asiasat3"
-      ],
       "title": "HGS-1",
       "subtitle": "United States - 1997",
       "description": "Commercial-satellite rescue trajectory with twin lunar flybys.",
@@ -447,13 +348,7 @@
       }
     },
     {
-      "key": "lunar-prospector",
       "folder": "lunar-prospector",
-      "queryValue": "lunar-prospector",
-      "aliases": [
-        "lunar-prospector",
-        "lpro"
-      ],
       "title": "Lunar Prospector",
       "subtitle": "United States - 1998",
       "description": "Lunar polar mapping and science mission.",
@@ -469,13 +364,7 @@
       }
     },
     {
-      "key": "nozomi",
       "folder": "nozomi",
-      "queryValue": "nozomi",
-      "aliases": [
-        "nozomi",
-        "planet-b"
-      ],
       "title": "Nozomi",
       "subtitle": "Japan - 1998",
       "description": "Replanned Earth-departure arc after two lunar swingbys.",
@@ -491,12 +380,7 @@
       }
     },
     {
-      "key": "wmap",
       "folder": "wmap",
-      "queryValue": "wmap",
-      "aliases": [
-        "wmap"
-      ],
       "title": "WMAP",
       "subtitle": "United States - 2001",
       "description": "Lunar swingby and transfer to the Earth-Moon-Sun L2 point.",
@@ -512,13 +396,7 @@
       }
     },
     {
-      "key": "smart1",
       "folder": "smart1",
-      "queryValue": "smart1",
-      "aliases": [
-        "smart1",
-        "smart-1"
-      ],
       "title": "SMART-1",
       "subtitle": "ESA - 2003",
       "description": "Solar-electric lunar orbiter with a long spiral transfer and low-altitude science orbit.",
@@ -534,12 +412,7 @@
       }
     },
     {
-      "key": "stereo",
       "folder": "stereo",
-      "queryValue": "stereo",
-      "aliases": [
-        "stereo"
-      ],
       "title": "STEREO",
       "subtitle": "United States - 2006",
       "description": "Twin heliophysics spacecraft during their lunar redirect flybys.",
@@ -555,13 +428,7 @@
       }
     },
     {
-      "key": "selene",
       "folder": "selene",
-      "queryValue": "selene",
-      "aliases": [
-        "selene",
-        "kaguya"
-      ],
       "title": "SELENE / Kaguya",
       "subtitle": "Japan - 2007",
       "description": "JAXA lunar mapping orbiter with long-duration polar science operations.",
@@ -577,16 +444,7 @@
       }
     },
     {
-      "key": "artemis-probes",
       "folder": "artemis",
-      "queryValue": "artemis",
-      "aliases": [
-        "artemis",
-        "themis-artemis",
-        "themis-artemis-probes",
-        "artemis-p1",
-        "artemis-p2"
-      ],
       "title": "THEMIS-ARTEMIS",
       "subtitle": "United States - 2007-2011",
       "description": "Twin former THEMIS probes retargeted through Earth-Moon L1/L2 operations into lunar orbit.",
@@ -602,15 +460,7 @@
       }
     },
     {
-      "key": "artemis-overview",
       "folder": "artemis-overview",
-      "queryValue": "artemis-overview",
-      "aliases": [
-        "artemis-overview",
-        "themis-artemis-overview",
-        "artemis-p1",
-        "artemis-p2"
-      ],
       "title": "THEMIS-ARTEMIS Overview",
       "subtitle": "United States - 2007-2011",
       "description": "Low-cadence full-arc view from THEMIS launch through the twin ARTEMIS lunar captures.",
@@ -626,14 +476,7 @@
       }
     },
     {
-      "key": "artemis-lagrange",
       "folder": "artemis-lagrange",
-      "queryValue": "artemis-lagrange",
-      "aliases": [
-        "artemis-lagrange",
-        "themis-artemis-lagrange",
-        "artemis-l1-l2"
-      ],
       "title": "THEMIS-ARTEMIS Lagrange Transfer",
       "subtitle": "United States - 2010",
       "description": "Focused Earth-Moon L1/L2 transfer window for the repurposed THEMIS probes.",
@@ -649,14 +492,7 @@
       }
     },
     {
-      "key": "artemis-lunar-capture",
       "folder": "artemis-lunar-capture",
-      "queryValue": "artemis-lunar-capture",
-      "aliases": [
-        "artemis-lunar-capture",
-        "themis-artemis-lunar-capture",
-        "artemis-lunar"
-      ],
       "title": "THEMIS-ARTEMIS Lunar Capture",
       "subtitle": "United States - 2011",
       "description": "Paired 2011 lunar-orbit capture window for ARTEMIS-P1 and ARTEMIS-P2.",
@@ -672,12 +508,7 @@
       }
     },
     {
-      "key": "lro",
       "folder": "lro",
-      "queryValue": "lro",
-      "aliases": [
-        "lro"
-      ],
       "title": "LRO",
       "subtitle": "United States - 2009",
       "description": "Lunar Reconnaissance Orbiter mission segment.",
@@ -693,13 +524,7 @@
       }
     },
     {
-      "key": "lcross-shepherd",
       "folder": "lcross-shepherd",
-      "queryValue": "lcross-shepherd",
-      "aliases": [
-        "lcross-shepherd",
-        "lcsh"
-      ],
       "title": "LCROSS Shepherd",
       "subtitle": "United States - 2009",
       "description": "Shepherding spacecraft impact sequence.",
@@ -715,13 +540,7 @@
       }
     },
     {
-      "key": "lcross-centaur",
       "folder": "lcross-centaur",
-      "queryValue": "lcross-centaur",
-      "aliases": [
-        "lcross-centaur",
-        "lccn"
-      ],
       "title": "LCROSS Centaur",
       "subtitle": "United States - 2009",
       "description": "Centaur upper-stage impact segment.",
@@ -737,13 +556,7 @@
       }
     },
     {
-      "key": "grail-ss-stage",
       "folder": "grail-ss-stage",
-      "queryValue": "grail-ss-stage",
-      "aliases": [
-        "grail-ss-stage",
-        "grss"
-      ],
       "title": "GRAIL SS Stage",
       "subtitle": "United States - 2011",
       "description": "GRAIL support-stage trajectory segment.",
@@ -759,12 +572,7 @@
       }
     },
     {
-      "key": "grail",
       "folder": "grail",
-      "queryValue": "grail",
-      "aliases": [
-        "grail"
-      ],
       "title": "GRAIL",
       "subtitle": "United States - 2012",
       "description": "Twin-spacecraft gravity mission with Ebb and Flow.",
@@ -780,13 +588,7 @@
       }
     },
     {
-      "key": "ladee",
       "folder": "ladee",
-      "queryValue": "ladee",
-      "aliases": [
-        "ladee",
-        "lad"
-      ],
       "title": "LADEE",
       "subtitle": "United States - 2014",
       "description": "Lunar atmosphere and dust environment mission.",
@@ -802,12 +604,7 @@
       }
     },
     {
-      "key": "tess",
       "folder": "tess",
-      "queryValue": "tess",
-      "aliases": [
-        "tess"
-      ],
       "title": "TESS",
       "subtitle": "United States - 2018",
       "description": "Lunar flyby and transfer into the stable 2:1 resonance science orbit.",
@@ -823,13 +620,7 @@
       }
     },
     {
-      "key": "capstone",
       "folder": "capstone",
-      "queryValue": "capstone",
-      "aliases": [
-        "capstone",
-        "caps"
-      ],
       "title": "CAPSTONE",
       "subtitle": "United States - 2022",
       "description": "Cislunar NRHO pathfinder mission.",
@@ -845,13 +636,7 @@
       }
     },
     {
-      "key": "lunar-flashlight",
       "folder": "lunar-flashlight",
-      "queryValue": "lunar-flashlight",
-      "aliases": [
-        "lunar-flashlight",
-        "lfl"
-      ],
       "title": "Lunar Flashlight",
       "subtitle": "United States - 2022",
       "description": "Smallsat mission targeting polar water-ice measurements.",
@@ -867,14 +652,7 @@
       }
     },
     {
-      "key": "kplo-danuri",
       "folder": "kplo-danuri",
-      "queryValue": "kplo-danuri",
-      "aliases": [
-        "kplo-danuri",
-        "kplo",
-        "danuri"
-      ],
       "title": "KPLO Danuri",
       "subtitle": "South Korea - 2022",
       "description": "Korea Pathfinder Lunar Orbiter mission segment.",
@@ -890,12 +668,7 @@
       }
     },
     {
-      "key": "juice",
       "folder": "juice",
-      "queryValue": "juice",
-      "aliases": [
-        "juice"
-      ],
       "title": "JUICE",
       "subtitle": "ESA - 2023",
       "description": "Earth-Moon gravity assist on the way to Jupiter and the Galilean moons.",
@@ -911,12 +684,7 @@
       }
     },
     {
-      "key": "slim",
       "folder": "slim",
-      "queryValue": "slim",
-      "aliases": [
-        "slim"
-      ],
       "title": "SLIM",
       "subtitle": "Japan - 2023",
       "description": "Smart Lander for Investigating Moon mission profile.",
@@ -932,13 +700,7 @@
       }
     },
     {
-      "key": "lunar-trailblazer",
       "folder": "lunar-trailblazer",
-      "queryValue": "lunar-trailblazer",
-      "aliases": [
-        "lunar-trailblazer",
-        "ltb"
-      ],
       "title": "Lunar Trailblazer",
       "subtitle": "United States - 2025",
       "description": "Lunar water mapping orbiter trajectory segment.",
@@ -951,28 +713,6 @@
         "missionType": "Orbiter",
         "craftClass": "Orbiter",
         "crewProfile": "Robotic"
-      }
-    },
-    {
-      "key": "artemis2",
-      "folder": "artemis2",
-      "queryValue": "artemis2",
-      "aliases": [
-        "artemis2",
-        "art2"
-      ],
-      "title": "Artemis II",
-      "subtitle": "United States - 2026",
-      "description": "Crewed Orion lunar flyby mission with pre-data launch events preserved.",
-      "accent": "#4a90d9",
-      "country": "United States",
-      "startYear": 2026,
-      "endYear": 2026,
-      "order": 262,
-      "dimensions": {
-        "missionType": "Crewed Capsule",
-        "craftClass": "Capsule",
-        "crewProfile": "Human Program"
       }
     }
   ]

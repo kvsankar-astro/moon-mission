@@ -1,3 +1,5 @@
+import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
+
 export function createFocusPillController(deps = {}) {
     const documentRef = deps.documentRef || document;
     const windowRef = deps.windowRef || window;
@@ -19,13 +21,7 @@ export function createFocusPillController(deps = {}) {
     }
 
     function isArtemis2Mission() {
-        try {
-            const params = new URLSearchParams(windowRef?.location?.search || "");
-            const mission = String(params.get("mission") || "").trim().toLowerCase();
-            return mission === "artemis2";
-        } catch {
-            return false;
-        }
+        return resolveCurrentMissionKey(windowRef) === "artemis2";
     }
 
     function resolveTimelineEventButtonByKeys(keys) {

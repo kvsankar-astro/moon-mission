@@ -33,10 +33,10 @@ const TEST_CONFIG = {
 
 // Missions to test (excluding cy3 which has its own comprehensive tests)
 const MISSIONS = [
-  { id: 'a10', name: 'Apollo 10 Snoopy' },
-  { id: 'a11', name: 'Apollo 11 S-IVB' },
+  { id: 'apollo10-lm', name: 'Apollo 10 Snoopy' },
+  { id: 'apollo11-sivb', name: 'Apollo 11 S-IVB' },
   { id: 'artemis2', name: 'Artemis 2' },
-  { id: 'cy2', name: 'Chandrayaan 2' },
+  { id: 'chandrayaan2', name: 'Chandrayaan 2' },
 ];
 
 // Test configurations: origin/dimension combinations
@@ -157,7 +157,7 @@ describe('Mission Smoke Tests', () => {
             });
 
             // Navigate to mission page
-            const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${mission.id}&testMode=true`;
+            const url = `${TEST_CONFIG.baseUrl}/${mission.id}/?testMode=true`;
             console.log(`[${mission.id}/${config.label}] Loading: ${url}`);
             await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
 
@@ -497,7 +497,7 @@ async function runCompareModeSmokeCase(page, {
   expect(initialSnapshot.urlMode).toBe('compare');
   expect(initialSnapshot.comparePillVisible).toBe(true);
   expect(initialSnapshot.compareToggleChecked).toBe(true);
-  expect(initialSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
+  expect(initialSnapshot.compareMissionValue).toBe('artemis1');
   expect(initialSnapshot.comparisonButtonCount).toBeGreaterThan(0);
   expect(initialSnapshot.timelineCurrentLabel).toMatch(/comparison elapsed/i);
   expect(initialSnapshot.visibleCraftIds.length).toBeGreaterThanOrEqual(2);
@@ -517,7 +517,7 @@ async function runCompareModeSmokeCase(page, {
   }, { timeout: TIMEOUTS.MODE_SWITCH });
   const comparePanelSnapshot = await getCompareSceneSnapshot(page);
   expect(comparePanelSnapshot.comparePanelOpen).toBe(true);
-  expect(comparePanelSnapshot.compareMissionValue).toMatch(/^(art1|artemis1)$/);
+  expect(comparePanelSnapshot.compareMissionValue).toBe('artemis1');
 
   await page.click('#compare-panel-close');
   await page.waitForFunction(() => {
@@ -656,7 +656,7 @@ describe('Mission Compare Smoke Tests', () => {
     try {
       await runCompareModeSmokeCase(page, {
         label: 'compare/relative',
-        url: `${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&mode=compare&compareMission=artemis1&testMode=true`,
+        url: `${TEST_CONFIG.baseUrl}/chandrayaan3/?mode=compare&compareMission=artemis1&testMode=true`,
         expectedOrigin: 'relative',
       });
     } finally {
@@ -708,7 +708,7 @@ describe('Mission Telemetry Smoke Tests', () => {
   it('keeps compare telemetry hidden in plain single-mission mode', async () => {
     const page = await browser.newPage();
     try {
-      await page.goto(`${TEST_CONFIG.baseUrl}/mission.html?mission=cy3&testMode=true`, {
+      await page.goto(`${TEST_CONFIG.baseUrl}/chandrayaan3/?testMode=true`, {
         timeout: TIMEOUTS.PAGE_LOAD,
       });
       await waitForSceneReady(page, '3D');
@@ -730,8 +730,8 @@ describe('Mission Telemetry Smoke Tests', () => {
 
 // Missions to test for event clicking (non-CY2/CY3 missions)
 const EVENT_TEST_MISSIONS = [
-  { id: 'a10', name: 'Apollo 10 Snoopy' },
-  { id: 'a11', name: 'Apollo 11 S-IVB' },
+  { id: 'apollo10-lm', name: 'Apollo 10 Snoopy' },
+  { id: 'apollo11-sivb', name: 'Apollo 11 S-IVB' },
 ];
 
 describe('Mission Event Tests', () => {
@@ -797,7 +797,7 @@ describe('Mission Event Tests', () => {
           });
 
           // Load mission
-          const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${mission.id}&testMode=true`;
+          const url = `${TEST_CONFIG.baseUrl}/${mission.id}/?testMode=true`;
           console.log(`[${mission.id}/Events] Loading: ${url}`);
           await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
 
@@ -839,7 +839,7 @@ describe('Mission Event Tests', () => {
           });
 
           // Load mission
-          const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${mission.id}&testMode=true`;
+          const url = `${TEST_CONFIG.baseUrl}/${mission.id}/?testMode=true`;
           console.log(`[${mission.id}/Events/Moon] Loading: ${url}`);
           await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD });
 

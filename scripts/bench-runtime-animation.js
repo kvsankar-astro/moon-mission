@@ -553,7 +553,7 @@ async function startAnimation(page) {
 
 async function configurePage(page, args) {
     await page.goto(
-        `${args.baseUrl.replace(/\/$/, "")}/mission.html?mission=${encodeURIComponent(args.mission)}`,
+        `${args.baseUrl.replace(/\/$/, "")}/${encodeURIComponent(args.mission)}/`,
         { waitUntil: "networkidle" },
     );
 

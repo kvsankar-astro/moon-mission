@@ -44,29 +44,6 @@ async function fetchJsonIfOk(url, fetchImpl) {
     }
 }
 
-function resolveComparisonMission(windowRef, compareMissionParam) {
-    const missionCatalog = windowRef?.missionCatalog;
-    const resolvedByCatalog =
-        missionCatalog && typeof missionCatalog.resolveMission === "function"
-            ? missionCatalog.resolveMission(compareMissionParam)
-            : null;
-    if (resolvedByCatalog) {
-        return resolvedByCatalog;
-    }
-
-    const normalizedMission = normalizeComparisonMissionParam(compareMissionParam);
-    if (!normalizedMission) {
-        return null;
-    }
-
-    return {
-        folder: normalizedMission,
-        key: normalizedMission,
-        queryValue: normalizedMission,
-        missionName: normalizedMission,
-    };
-}
-
 function resolveSelectedAlignmentEventKeys(params) {
     return {
         selectedPrimaryAlignmentEventKey: normalizeComparisonAlignmentEventKey(
@@ -124,7 +101,10 @@ async function loadComparisonOverlayConfig({
             return baseConfig;
         }
 
-        const compareMission = resolveComparisonMission(windowRef, normalizedCompareMission);
+        const compareMission = {
+            folder: normalizedCompareMission,
+            missionName: normalizedCompareMission,
+        };
         const comparisonDataPath = buildMissionDataPath(compareMission?.folder);
         if (!comparisonDataPath) {
             return baseConfig;

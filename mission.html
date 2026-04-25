@@ -6,15 +6,17 @@
     <head>
         <meta charset="UTF-8">
         
-        <meta name="description" content="Moon Mission Orbit Animations by Sankar Viswanathan">
+        <meta name="description" content="Moon Mission Orbit Animations by Sankar Viswanathan" data-mission-meta="description">
         <meta name="author" content="Sankaranarayanan Viswanathan">
         <meta name="keywords" content="moon mission, lunar missions, artemis, chandrayaan, orbit animation, astronomy, space">
+        <meta name="robots" content="index,follow,max-image-preview:large">
+        <link rel="canonical" href="https://sankara.net/astro/lunar-missions/mission.html" data-mission-meta="canonical">
 
         <!-- Facebook Meta Tags -->
-        <meta property="og:url" content="https://sankara.net/astro/lunar-missions/mission.html">
+        <meta property="og:url" content="https://sankara.net/astro/lunar-missions/mission.html" data-mission-meta="og-url">
         <meta property="og:type" content="website">
-        <meta property="og:title" content="Moon Mission Orbit Animations">
-        <meta property="og:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan">
+        <meta property="og:title" content="Moon Mission Orbit Animations" data-mission-meta="og-title">
+        <meta property="og:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan" data-mission-meta="og-description">
         <meta property="og:image" content="https://sankara.net/astro/lunar-missions/images/social/chandrayaan3-landscape.png?v=20260405f" data-social-meta="og-image">
         <meta property="og:image:width" content="1920" data-social-meta="og-image-width">
         <meta property="og:image:height" content="1080" data-social-meta="og-image-height">
@@ -22,36 +24,10 @@
         <!-- Twitter Meta Tags -->
         <meta name="twitter:card" content="summary_large_image">
         <meta property="twitter:domain" content="sankara.net">
-        <meta property="twitter:url" content="https://sankara.net/astro/lunar-missions/mission.html">
-        <meta name="twitter:title" content="Moon Mission Orbit Animations">
-        <meta name="twitter:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan">
+        <meta property="twitter:url" content="https://sankara.net/astro/lunar-missions/mission.html" data-mission-meta="twitter-url">
+        <meta name="twitter:title" content="Moon Mission Orbit Animations" data-mission-meta="twitter-title">
+        <meta name="twitter:description" content="Interactive 2D/3D lunar mission orbit visualizations by Sankar Viswanathan" data-mission-meta="twitter-description">
         <meta name="twitter:image" content="https://sankara.net/astro/lunar-missions/images/social/chandrayaan3-landscape.png?v=20260405f" data-social-meta="twitter-image">
-
-        <script>
-            (function applyMissionSocialPreviewByQuery() {
-                try {
-                    const params = new URLSearchParams(window.location.search || "");
-                    const mission = (params.get("mission") || "").trim().toLowerCase();
-                    const rawSearch = (window.location.search || "").toLowerCase();
-                    if (mission !== "artemis2" && !rawSearch.includes("artemis2")) return;
-                    const ogImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f";
-                    const twitterImageUrl = "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f";
-                    const imageWidth = "1920";
-                    const imageHeight = "1080";
-                    const setMeta = (selector, value) => {
-                        const node = document.querySelector(selector);
-                        if (!node) return;
-                        node.setAttribute("content", value);
-                    };
-                    setMeta('meta[data-social-meta="og-image"]', ogImageUrl);
-                    setMeta('meta[data-social-meta="twitter-image"]', twitterImageUrl);
-                    setMeta('meta[data-social-meta="og-image-width"]', imageWidth);
-                    setMeta('meta[data-social-meta="og-image-height"]', imageHeight);
-                } catch {
-                    // Keep default preview if query parsing fails.
-                }
-            })();
-        </script>
 
         <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -380,10 +356,10 @@
 
         <script type="module" src="src/platform/js/astro.js"></script>
         <script>
-            // Mission catalog + URL parameter support.
+            // Mission catalog + folder-based mission routing.
             (function() {
                 const MISSION_SELECTOR_SEED = {
-                    defaultMissionKey: "cy3",
+                    defaultMissionFolder: "chandrayaan3",
                     // Folder hints are used for runtime config metadata hydration.
                     // Add newly scaffolded mission folders here to auto-populate cards from config.json.
                     folderHints: [
@@ -428,9 +404,7 @@
                     ],
                     missions: [
                         {
-                            key: "cy1",
                             folder: "chandrayaan1",
-                            aliases: ["chandrayaan1"],
                             card: {
                                 title: "Chandrayaan 1",
                                 subtitle: "2008 - India's First Lunar Mission",
@@ -439,9 +413,7 @@
                             }
                         },
                         {
-                            key: "cy3",
                             folder: "chandrayaan3",
-                            aliases: ["chandrayaan3"],
                             card: {
                                 title: "Chandrayaan 3",
                                 subtitle: "2023 - Successful Landing",
@@ -450,9 +422,7 @@
                             }
                         },
                         {
-                            key: "cy2",
                             folder: "chandrayaan2",
-                            aliases: ["chandrayaan2"],
                             card: {
                                 title: "Chandrayaan 2",
                                 subtitle: "2019 - Soft Landing Attempt",
@@ -461,9 +431,7 @@
                             }
                         },
                         {
-                            key: "grail",
                             folder: "grail",
-                            aliases: ["grail"],
                             card: {
                                 title: "GRAIL",
                                 subtitle: "2012 - Twin Gravity Mission",
@@ -472,9 +440,7 @@
                             }
                         },
                         {
-                            key: "a11",
                             folder: "apollo11-sivb",
-                            aliases: ["apollo11-sivb"],
                             card: {
                                 title: "Apollo 11 S-IVB",
                                 subtitle: "1969 - First Moon Landing",
@@ -483,9 +449,7 @@
                             }
                         },
                         {
-                            key: "a10",
                             folder: "apollo10-lm",
-                            aliases: ["apollo10-lm"],
                             card: {
                                 title: "Apollo 10 \"Snoopy\"",
                                 subtitle: "1969 - Lunar Module",
@@ -494,9 +458,7 @@
                             }
                         },
                         {
-                            key: "art1",
                             folder: "artemis1",
-                            aliases: ["artemis1"],
                             card: {
                                 title: "Artemis 1",
                                 subtitle: "2022 - Orion Test Flight",
@@ -505,9 +467,7 @@
                             }
                         },
                         {
-                            key: "art2",
                             folder: "artemis2",
-                            aliases: ["artemis2"],
                             card: {
                                 title: "Artemis 2",
                                 subtitle: "2026 - Crewed Lunar Flyby",
@@ -525,6 +485,77 @@
 
                 function normalizeKey(value) {
                     return asTrimmedString(value).toLowerCase();
+                }
+
+                function ensureTrailingSentence(text) {
+                    const value = asTrimmedString(text);
+                    if (!value) return "";
+                    return /[.!?]$/.test(value) ? value : `${value}.`;
+                }
+
+                function resolveAppRootUrl() {
+                    try {
+                        return new URL(".", document.baseURI || window.location.href);
+                    } catch {
+                        return new URL(".", window.location.href);
+                    }
+                }
+
+                function resolveMissionPathCandidate() {
+                    const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
+                    if (!pathname) return "";
+                    const segments = pathname.split("/").filter(Boolean);
+                    if (segments.length === 0) return "";
+                    const candidate = normalizeKey(segments[segments.length - 1]);
+                    if (!candidate || candidate.includes(".")) return "";
+                    return candidate;
+                }
+
+                function setHeadValue(selector, value, attributeName = "content") {
+                    const nextValue = asTrimmedString(value);
+                    if (!nextValue) return;
+                    const node = document.querySelector(selector);
+                    if (!node) return;
+                    node.setAttribute(attributeName, nextValue);
+                }
+
+                function applyMissionSeoMeta(mission) {
+                    if (!mission) return;
+
+                    const preset = window.__MISSION_PAGE_PRESET || {};
+                    const canonicalUrl = asTrimmedString(preset.canonicalUrl) ||
+                        new URL(`${mission.folder}/`, resolveAppRootUrl()).toString();
+                    const missionTitle = asTrimmedString(preset.title) ||
+                        `${asTrimmedString(mission.card?.title) || humanizeFolderName(mission.folder)} Lunar Mission Orbit Animation`;
+                    const missionDescription = ensureTrailingSentence(
+                        asTrimmedString(preset.description) ||
+                        asTrimmedString(mission.card?.description) ||
+                        `Interactive ${asTrimmedString(mission.card?.title) || humanizeFolderName(mission.folder)} lunar mission orbit visualization`
+                    );
+                    const socialPreview = {
+                        artemis2: {
+                            imageUrl: "https://sankara.net/astro/lunar-missions/images/social/artemis2-landscape.png?v=20260405f",
+                            width: "1920",
+                            height: "1080",
+                        },
+                    }[mission.folder];
+
+                    document.title = missionTitle;
+                    setHeadValue('meta[data-mission-meta="description"]', missionDescription);
+                    setHeadValue('link[data-mission-meta="canonical"]', canonicalUrl, "href");
+                    setHeadValue('meta[data-mission-meta="og-url"]', canonicalUrl);
+                    setHeadValue('meta[data-mission-meta="og-title"]', missionTitle);
+                    setHeadValue('meta[data-mission-meta="og-description"]', missionDescription);
+                    setHeadValue('meta[data-mission-meta="twitter-url"]', canonicalUrl);
+                    setHeadValue('meta[data-mission-meta="twitter-title"]', missionTitle);
+                    setHeadValue('meta[data-mission-meta="twitter-description"]', missionDescription);
+
+                    if (socialPreview) {
+                        setHeadValue('meta[data-social-meta="og-image"]', socialPreview.imageUrl);
+                        setHeadValue('meta[data-social-meta="twitter-image"]', socialPreview.imageUrl);
+                        setHeadValue('meta[data-social-meta="og-image-width"]', socialPreview.width);
+                        setHeadValue('meta[data-social-meta="og-image-height"]', socialPreview.height);
+                    }
                 }
 
                 function humanizeFolderName(folderName) {
@@ -568,15 +599,11 @@
 
                 function getCatalogEntryFromSeed(seedEntry, order) {
                     const folder = normalizeKey(seedEntry.folder);
-                    const key = normalizeKey(seedEntry.key || folder);
                     const card = seedEntry.card || {};
                     return {
                         order: typeof seedEntry.order === "number" ? seedEntry.order : order,
-                        key: key,
                         folder: folder,
                         missionName: folder,
-                        queryValue: key || folder,
-                        aliases: uniqStrings([key, folder].concat(seedEntry.aliases || [])),
                         card: {
                             title: asTrimmedString(card.title) || humanizeFolderName(folder),
                             subtitle: asTrimmedString(card.subtitle) || "Moon Mission",
@@ -595,11 +622,8 @@
                     const title = humanizeFolderName(folder);
                     return {
                         order: order,
-                        key: folder,
                         folder: folder,
                         missionName: folder,
-                        queryValue: folder,
-                        aliases: uniqStrings([folder]),
                         card: {
                             title: title,
                             subtitle: "Moon Mission",
@@ -616,7 +640,6 @@
                 function mergeConfigMetadata(entry, config) {
                     const headerTitle = asTrimmedString(config && config.ui && config.ui.headerTitle);
                     const missionName = asTrimmedString(config && config.mission_name);
-                    const missionShort = asTrimmedString(config && config.mission_name_short);
                     const missionDescription = asTrimmedString(config && config.mission_description);
                     const year = getYearFromConfig(config);
                     const stopYear = getStopYearFromConfig(config);
@@ -624,19 +647,10 @@
                         ? year + " - " + entry.card.subtitle.replace(/^\d{4}\s*-\s*/, "")
                         : entry.card.subtitle;
 
-                    const aliases = entry.aliases.concat([
-                        missionShort,
-                        missionShort.replace(/\s+/g, ""),
-                        missionShort.replace(/[^a-z0-9]+/gi, "")
-                    ]);
-
                     return {
                         order: entry.order,
-                        key: entry.key,
                         folder: entry.folder,
                         missionName: entry.missionName,
-                        queryValue: entry.queryValue,
-                        aliases: uniqStrings(aliases),
                         card: {
                             title: headerTitle || missionName || entry.card.title,
                             subtitle: derivedSubtitle,
@@ -652,13 +666,12 @@
 
                 const catalogEntries = [];
                 const entryByFolder = new Map();
-                const missionMap = {};
 
                 function registerEntry(entry) {
+                    if (entryByFolder.has(entry.folder)) {
+                        return;
+                    }
                     entryByFolder.set(entry.folder, entry);
-                    entry.aliases.forEach(function(alias) {
-                        missionMap[alias] = entry;
-                    });
                     catalogEntries.push(entry);
                 }
 
@@ -681,7 +694,7 @@
                 async function hydrateMissionCatalogFromConfigs() {
                     const hydrated = await Promise.all(
                         catalogEntries.map(async function(entry) {
-                            const configUrl = "assets/" + entry.folder + "/data/config.json";
+                            const configUrl = new URL(`assets/${entry.folder}/data/config.json`, resolveAppRootUrl()).toString();
                             try {
                                 const response = await fetch(configUrl, { cache: "no-store" });
                                 if (!response.ok) return entry;
@@ -693,9 +706,6 @@
                         })
                     );
 
-                    Object.keys(missionMap).forEach(function(alias) {
-                        delete missionMap[alias];
-                    });
                     catalogEntries.length = 0;
                     entryByFolder.clear();
                     hydrated
@@ -713,15 +723,45 @@
                         .sort(function(a, b) { return a.order - b.order; });
                 }
 
-                function resolveMission(missionParam) {
-                    const normalizedParam = normalizeKey(missionParam);
-                    if (!normalizedParam) return null;
-                    return missionMap[normalizedParam] || null;
+                function resolveMissionByFolder(missionFolder) {
+                    const normalizedFolder = normalizeKey(missionFolder);
+                    if (!normalizedFolder) return null;
+                    return entryByFolder.get(normalizedFolder) || null;
+                }
+
+                function resolveLegacyMissionFolderFromQuery() {
+                    const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
+                    if (!/\/mission\.html$/i.test(pathname)) {
+                        return "";
+                    }
+                    try {
+                        const params = new URLSearchParams(window.location.search || "");
+                        return normalizeKey(params.get("mission"));
+                    } catch {
+                        return "";
+                    }
+                }
+
+                function redirectLegacyMissionUrl(mission) {
+                    if (!mission?.folder) return false;
+                    const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
+                    if (!/\/mission\.html$/i.test(pathname)) {
+                        return false;
+                    }
+
+                    const currentUrl = new URL(window.location.href);
+                    currentUrl.searchParams.delete("mission");
+                    const redirectUrl = new URL(`${mission.folder}/`, resolveAppRootUrl());
+                    const nextSearch = currentUrl.searchParams.toString();
+                    redirectUrl.search = nextSearch ? `?${nextSearch}` : "";
+                    redirectUrl.hash = currentUrl.hash;
+                    window.location.replace(redirectUrl.toString());
+                    return true;
                 }
 
                 function getDefaultMission() {
                     return (
-                        resolveMission(MISSION_SELECTOR_SEED.defaultMissionKey) ||
+                        resolveMissionByFolder(MISSION_SELECTOR_SEED.defaultMissionFolder) ||
                         getCatalogEntries()[0] ||
                         null
                     );
@@ -730,30 +770,38 @@
                 window.missionCatalog = {
                     getEntries: getCatalogEntries,
                     hydrateFromConfigs: hydrateMissionCatalogFromConfigs,
-                    resolveMission: resolveMission,
                     getDefaultMission: getDefaultMission
                 };
 
-                const params = new URLSearchParams(window.location.search);
-                const missionParam = params.get('mission');
-                const mission = missionParam ? resolveMission(missionParam) : null;
+                const presetMission = window.__MISSION_PAGE_PRESET || {};
+                const legacyMissionFolder = resolveLegacyMissionFolderFromQuery();
+                const legacyMission = legacyMissionFolder
+                    ? resolveMissionByFolder(legacyMissionFolder)
+                    : null;
+                if (legacyMission && redirectLegacyMissionUrl(legacyMission)) {
+                    return;
+                }
+                const missionFolder = presetMission.folder ||
+                    resolveMissionPathCandidate() ||
+                    legacyMissionFolder;
+                const mission = missionFolder ? resolveMissionByFolder(missionFolder) : null;
                 if (!mission) {
                     window.showMissionSelector = true;
                     document.documentElement.setAttribute("data-app-view", "selector");
 
                     const currentUrl = new URL(window.location.href);
-                    const redirectUrl = new URL("index.html", currentUrl);
-                    currentUrl.searchParams.delete("mission");
+                    const redirectUrl = new URL("index.html", resolveAppRootUrl());
                     const nextSearch = currentUrl.searchParams.toString();
                     redirectUrl.search = nextSearch ? `?${nextSearch}` : "";
                     redirectUrl.hash = currentUrl.hash;
                     window.location.replace(redirectUrl.toString());
                     return;
                 }
+                applyMissionSeoMeta(mission);
                 window.missionConfig = {
                     missionName: mission.missionName,
-                    dataPath: `assets/${mission.folder}/data/`,
-                    modelPath: `assets/${mission.folder}/models/`
+                    dataPath: new URL(`assets/${mission.folder}/data/`, resolveAppRootUrl()).toString(),
+                    modelPath: new URL(`assets/${mission.folder}/models/`, resolveAppRootUrl()).toString()
                 };
                 window.showMissionSelector = false;
                 document.documentElement.setAttribute("data-app-view", "app");
@@ -775,7 +823,7 @@
             }
         </script>
 
-        <title>Moon Mission - Orbit Animation</title>
+        <title data-mission-meta="title">Moon Mission - Orbit Animation</title>
     </head>
 
     <body>
@@ -2217,7 +2265,7 @@
             }
 
             function getMissionHref(mission) {
-                return '?mission=' + encodeURIComponent(mission.queryValue || mission.key || mission.folder);
+                return encodeURIComponent(mission.folder || '') + '/';
             }
 
             function toRow(mission, index) {

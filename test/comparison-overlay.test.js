@@ -311,14 +311,6 @@ describe("comparison overlay", () => {
                 missionConfig: {
                     dataPath: "assets/chandrayaan3/data/",
                 },
-                missionCatalog: {
-                    resolveMission: vi.fn(() => ({
-                        key: "artemis1",
-                        queryValue: "artemis1",
-                        folder: "artemis1",
-                        missionName: "Artemis 1",
-                    })),
-                },
             },
             fetchImpl,
             createUTCTimestamp: () => 0,
@@ -406,14 +398,6 @@ describe("comparison overlay", () => {
                 missionConfig: {
                     dataPath: "assets/chandrayaan3/data/",
                 },
-                missionCatalog: {
-                    resolveMission: vi.fn(() => ({
-                        key: "artemis1",
-                        queryValue: "artemis1",
-                        folder: "artemis1",
-                        missionName: "Artemis 1",
-                    })),
-                },
             },
             fetchImpl,
             createUTCTimestamp: () => 0,
@@ -452,14 +436,6 @@ describe("comparison overlay", () => {
                 },
                 missionConfig: {
                     dataPath: "assets/chandrayaan3/data/",
-                },
-                missionCatalog: {
-                    resolveMission: vi.fn(() => ({
-                        key: "artemis1",
-                        queryValue: "artemis1",
-                        folder: "artemis1",
-                        missionName: "Artemis 1",
-                    })),
                 },
             },
             fetchImpl,

@@ -275,10 +275,7 @@ function buildComparisonOverlayAugmentation({
         },
         comparisonOverlay: {
             missionFolder,
-            missionKey:
-                compareMission?.key ||
-                compareMission?.queryValue ||
-                missionFolder,
+            missionKey: missionFolder,
             missionName:
                 comparisonConfig?.mission_name ||
                 compareMission?.missionName ||

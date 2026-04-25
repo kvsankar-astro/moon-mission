@@ -7,40 +7,40 @@ function loadMissionCatalog() {
     return JSON.parse(readFileSync(catalogPath, "utf-8"));
 }
 
-function getMissionEntry(catalog, key) {
-    return (catalog.missions || []).find((entry) => entry.key === key);
+function getMissionEntry(catalog, folder) {
+    return (catalog.missions || []).find((entry) => entry.folder === folder);
 }
 
 describe("mission catalog combined multi-craft surfaces", () => {
-    it("describes Chandrayaan 2 and 3 as combined missions", () => {
+    it("describes Chandrayaan 2 and 3 as combined missions without legacy URL fields", () => {
         const catalog = loadMissionCatalog();
-        const ch2 = getMissionEntry(catalog, "ch2");
-        const ch3 = getMissionEntry(catalog, "ch3");
+        const ch2 = getMissionEntry(catalog, "chandrayaan2");
+        const ch3 = getMissionEntry(catalog, "chandrayaan3");
 
-        expect(ch2?.aliases).toEqual(expect.arrayContaining(["chandrayaan2", "ch2", "cy2"]));
-        expect(ch2?.aliases).not.toEqual(
-            expect.arrayContaining(["chandrayaan2-vikram", "c2v"]),
-        );
+        expect(ch2).not.toHaveProperty("key");
+        expect(ch2).not.toHaveProperty("queryValue");
+        expect(ch2).not.toHaveProperty("aliases");
         expect(ch2?.dimensions).toMatchObject({
             missionType: "Orbiter + Lander",
             craftClass: "Multi-Craft",
         });
 
-        expect(ch3?.aliases).toEqual(expect.arrayContaining(["chandrayaan3", "ch3", "cy3"]));
-        expect(ch3?.aliases).not.toEqual(
-            expect.arrayContaining(["chandrayaan3-vikram", "c3v"]),
-        );
+        expect(ch3).not.toHaveProperty("key");
+        expect(ch3).not.toHaveProperty("queryValue");
+        expect(ch3).not.toHaveProperty("aliases");
         expect(ch3?.dimensions).toMatchObject({
             missionType: "Lander + Propulsion Module",
             craftClass: "Multi-Craft",
         });
     });
 
-    it("describes GRAIL as the combined twin mission without legacy aliases", () => {
+    it("describes GRAIL as the combined twin mission with folder-only identity", () => {
         const catalog = loadMissionCatalog();
         const grail = getMissionEntry(catalog, "grail");
 
-        expect(grail?.aliases).toEqual(["grail"]);
+        expect(grail).not.toHaveProperty("key");
+        expect(grail).not.toHaveProperty("queryValue");
+        expect(grail).not.toHaveProperty("aliases");
         expect(grail?.dimensions).toMatchObject({
             missionType: "Twin Orbiters",
             craftClass: "Multi-Craft",

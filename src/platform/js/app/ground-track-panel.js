@@ -16,6 +16,7 @@ import {
     isMissionPanelEnabled,
     shouldMissionPanelAutoOpenBeforeEvent,
 } from "./panel-defaults.js";
+import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
 
 const VIEW_MODE_2D = "map2d";
 const VIEW_MODE_3D = "globe3d";
@@ -223,20 +224,12 @@ function deriveGeoOrbitChebUrl(url) {
     return url.replace(/(^|[\\/])(geo|lunar|relative)-/i, "$1geo-");
 }
 
-function resolveCurrentMissionQueryValue() {
-    if (typeof window === "undefined") return "";
-    try {
-        const params = new URLSearchParams(window.location.search || "");
-        return String(params.get("mission") || "").trim().toLowerCase();
-    } catch {
-        return "";
-    }
-}
-
 function isLegacySplashdownMissionMatch(configData = null) {
-    const missionQueryValue = resolveCurrentMissionQueryValue();
-    if (missionQueryValue) {
-        return missionQueryValue === "artemis2";
+    const currentMissionKey = resolveCurrentMissionKey(
+        typeof window !== "undefined" ? window : null,
+    );
+    if (currentMissionKey) {
+        return currentMissionKey === "artemis2";
     }
     const missionName = String(configData?.mission_name || configData?.mission_name_short || "")
         .trim()

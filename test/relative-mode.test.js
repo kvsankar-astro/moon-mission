@@ -22,7 +22,7 @@ function createSessionStorageMock() {
 }
 
 function createHarness({
-    href = "https://example.com/mission.html?mission=chandrayaan3",
+    href = "https://example.com/chandrayaan3/",
     compareMission = "artemis1",
     comparePrimaryEvent = "",
     compareSecondaryEvent = "",
@@ -92,7 +92,7 @@ afterEach(() => {
 describe("relative mode actions", () => {
     it("navigates into compare mode with the selected comparison mission and event-pair alignment", () => {
         const { actions } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3",
+            href: "https://example.com/chandrayaan3/",
             comparePrimaryEvent: "tli",
             compareSecondaryEvent: "loi",
         });
@@ -111,7 +111,7 @@ describe("relative mode actions", () => {
 
     it("keeps compare mode when switching to the relative origin from geo compare", () => {
         const { actions } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1&origin=geo",
+            href: "https://example.com/chandrayaan3/?mode=compare&compareMission=artemis1&origin=geo",
             isCompareMode: true,
             originMode: "geo",
             relativeSelected: true,
@@ -127,7 +127,7 @@ describe("relative mode actions", () => {
 
     it("sanitizes stale compare origin params during startup", () => {
         const { actions, history } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1&origin=geo",
+            href: "https://example.com/chandrayaan3/?mode=compare&compareMission=artemis1&origin=geo",
             isCompareMode: true,
             originMode: "geo",
         });
@@ -142,7 +142,7 @@ describe("relative mode actions", () => {
 
     it("updates the comparison mission in-place when compare mode is not active", () => {
         const { actions, history } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&compareMission=artemis1",
+            href: "https://example.com/chandrayaan3/?compareMission=artemis1",
         });
 
         actions.changeCompareMission({ compareMission: "grail" });
@@ -155,7 +155,7 @@ describe("relative mode actions", () => {
 
     it("clears alignment params when the user returns to launch/start alignment", () => {
         const { actions, history } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
+            href: "https://example.com/chandrayaan3/?compareMission=artemis1&comparePrimaryEvent=tli&compareSecondaryEvent=loi",
         });
 
         actions.changeCompareAlignment({
@@ -171,7 +171,7 @@ describe("relative mode actions", () => {
 
     it("keeps compare mode pinned to relative through the URL-driven origin switch path", () => {
         const { actions } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1",
+            href: "https://example.com/chandrayaan3/?mode=compare&compareMission=artemis1",
             isCompareMode: true,
             originMode: "lunar",
         });
@@ -186,7 +186,7 @@ describe("relative mode actions", () => {
 
     it("drops back to relative mode when compare mode is disabled", () => {
         const { actions } = createHarness({
-            href: "https://example.com/mission.html?mission=chandrayaan3&mode=compare&compareMission=artemis1&origin=geo",
+            href: "https://example.com/chandrayaan3/?mode=compare&compareMission=artemis1&origin=geo",
             isCompareMode: true,
             originMode: "geo",
         });

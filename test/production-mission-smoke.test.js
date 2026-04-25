@@ -106,8 +106,8 @@ function loadMissionCatalog(rootDir = process.cwd()) {
   let filtered = missions
     .filter((mission) => !mission?.disabled)
     .map((mission) => ({
-      id: mission.queryValue || mission.folder || mission.key,
-      title: mission.title || mission.queryValue || mission.folder || mission.key,
+      id: mission.folder,
+      title: mission.title || mission.folder,
     }))
     .filter((mission) => {
       if (!mission.id || seenIds.has(mission.id)) return false;
@@ -434,7 +434,7 @@ describe('Production Mission Smoke Tests', () => {
         const { consoleErrors, pageErrors, networkErrors } = createConsoleAndPageErrorCollectors(page, collectorId);
 
         try {
-          const url = `${TEST_CONFIG.baseUrl}/mission.html?mission=${encodeURIComponent(mission.id)}&testMode=true`;
+          const url = `${TEST_CONFIG.baseUrl}/${encodeURIComponent(mission.id)}/?testMode=true`;
           console.log(`[prod-smoke/${collectorId}] loading ${url}`);
 
           await page.goto(url, { timeout: TIMEOUTS.PAGE_LOAD, waitUntil: 'domcontentloaded' });

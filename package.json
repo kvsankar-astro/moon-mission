@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite --port 7274",
+    "mission-pages:generate": "node scripts/generate-mission-pages.mjs",
     "mcp-server": "playwright mcp",
     "typecheck": "tsc",
     "lint": "tsc --noEmit",

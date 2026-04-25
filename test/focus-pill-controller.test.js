@@ -146,7 +146,8 @@ function createHarness(options = {}) {
 
     const windowRef = {
         location: {
-            search: options.search || "?mission=artemis2",
+            pathname: options.pathname || "/artemis2/",
+            search: options.search || "",
         },
         requestAnimationFrame(callback) {
             rafQueue.push(callback);
@@ -241,7 +242,7 @@ describe("createFocusPillController", function () {
 
     it("dispatches the splashdown open event only for Artemis II", function () {
         const harness = createHarness({
-            search: "?mission=artemis2",
+            pathname: "/artemis2/",
         });
         const dispatchSpy = vi.spyOn(harness.documentRef, "dispatchEvent");
 

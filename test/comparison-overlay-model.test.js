@@ -93,8 +93,6 @@ describe("comparison overlay model", () => {
             comparisonConfig: createCompareMissionConfig(),
             comparisonDataPath: "assets/artemis1/data/",
             compareMission: {
-                key: "artemis1",
-                queryValue: "artemis1",
                 folder: "artemis1",
                 missionName: "Artemis 1",
             },

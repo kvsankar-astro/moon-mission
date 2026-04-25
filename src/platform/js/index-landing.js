@@ -1,12 +1,6 @@
 (function() {
     window.__landingCatalogV2 = true;
 
-    var params = new URLSearchParams(window.location.search);
-    if (params.has("mission")) {
-        window.location.replace("mission.html?" + params.toString());
-        return;
-    }
-
     var CATALOG_URL = "assets/mission-catalog.json";
     var catalogModel = { views: {}, missions: [] };
     var HORIZONS_METADATA_BY_FOLDER = {
@@ -578,18 +572,6 @@
         };
     }
 
-    function uniqStrings(values) {
-        var seen = new Set();
-        var result = [];
-        (values || []).forEach(function(value) {
-            var key = normalizeKey(value);
-            if (!key || seen.has(key)) return;
-            seen.add(key);
-            result.push(key);
-        });
-        return result;
-    }
-
     function parseYear(value) {
         var n = parseInt(value, 10);
         return Number.isFinite(n) ? n : null;
@@ -652,7 +634,7 @@
 
     function toCatalogEntry(raw, index) {
         var folder = normalizeKey(raw && raw.folder);
-        var key = normalizeKey((raw && raw.key) || folder);
+        if (!folder) return null;
         var dimensions = raw && raw.dimensions ? raw.dimensions : {};
         var missionType = asTrimmedString(dimensions.missionType || raw && raw.missionType) || "Unknown";
         var craftClass = asTrimmedString(dimensions.craftClass || missionType) || "Unknown";
@@ -660,11 +642,8 @@
         var isDisabled = !!(raw && (raw.disabled === true || raw.enabled === false));
         return {
             order: Number.isFinite(raw && raw.order) ? raw.order : index,
-            key: key || folder,
             folder: folder,
             disabled: isDisabled,
-            queryValue: asTrimmedString(raw && raw.queryValue) || folder,
-            aliases: uniqStrings([key, folder].concat(raw && raw.aliases ? raw.aliases : [])),
             card: {
                 title: asTrimmedString(raw && raw.title) || folder,
                 subtitle: asTrimmedString(raw && raw.subtitle) || "Moon Mission",
@@ -693,12 +672,21 @@
             })
             .then(function(raw) {
                 var missions = Array.isArray(raw && raw.missions) ? raw.missions : [];
+                var seenFolders = new Set();
                 catalogModel = {
                     defaultMissionFolder: normalizeKey(raw && raw.defaultMissionFolder),
                     views: raw && raw.views ? raw.views : {},
                     missions: missions
                         .map(toCatalogEntry)
+                        .filter(Boolean)
                         .filter(function(entry) { return !entry.disabled; })
+                        .filter(function(entry) {
+                            if (!entry.folder || seenFolders.has(entry.folder)) {
+                                return false;
+                            }
+                            seenFolders.add(entry.folder);
+                            return true;
+                        })
                         .sort(function(a, b) { return a.order - b.order; })
                 };
                 return catalogModel.missions;
@@ -831,9 +819,7 @@
             ? (endYear && endYear !== startYear ? (startYear + " - " + endYear) : String(startYear))
             : "Unknown";
         var folder = normalizeKey(entry.folder);
-        var href = folder === "artemis2"
-            ? "artemis2/"
-            : ("mission.html?mission=" + encodeURIComponent(entry.queryValue || entry.folder));
+        var href = folder ? (folder + "/") : "";
 
         return {
             index: index,
@@ -1519,14 +1505,13 @@
             return normalizeKey(
                 (row && row.folder) ||
                 (row && row.entry && row.entry.folder) ||
-                (row && row.entry && row.entry.key) ||
                 (row && row.title) ||
                 ""
             );
         }
 
         function getCompareSelectionKey(row) {
-            return normalizeKey(getMissionQueryValue(row) || rowIdentity(row));
+            return normalizeKey(getMissionSlug(row) || rowIdentity(row));
         }
 
         function findRowByCompareSelectionKey(compareKey) {
@@ -2157,12 +2142,8 @@
             return url;
         }
 
-        function getMissionQueryValue(row) {
+        function getMissionSlug(row) {
             return asTrimmedString(
-                row && row.entry && row.entry.queryValue
-            ) || asTrimmedString(
-                row && row.entry && row.entry.key
-            ) || asTrimmedString(
                 row && row.folder
             ) || asTrimmedString(
                 row && row.entry && row.entry.folder
@@ -2170,8 +2151,11 @@
         }
 
         function buildMissionLaunchHref(row, modeKey) {
-            var href = asTrimmedString(row && row.href);
-            var url = new URL(href || "mission.html", window.location.href);
+            var missionFolder = getMissionSlug(row);
+            var url = new URL(
+                missionFolder ? (encodeURIComponent(missionFolder) + "/") : "./",
+                window.location.href,
+            );
             if (modeKey === "relative") {
                 url.searchParams.set("mode", "relative");
                 url.searchParams.delete("origin");
@@ -2187,12 +2171,16 @@
         }
 
         function buildMissionCompareHref(primaryRow, secondaryRow) {
-            var primaryMission = getMissionQueryValue(primaryRow);
-            var secondaryMission = getMissionQueryValue(secondaryRow);
-            var url = new URL("mission.html", window.location.href);
-            if (primaryMission) {
-                url.searchParams.set("mission", primaryMission);
-            }
+            var secondaryMission = getMissionSlug(secondaryRow);
+            var primaryFolder = asTrimmedString(
+                primaryRow && primaryRow.entry && primaryRow.entry.folder
+            ) || asTrimmedString(
+                primaryRow && primaryRow.folder
+            );
+            var url = new URL(
+                primaryFolder ? (encodeURIComponent(primaryFolder) + "/") : "./",
+                window.location.href
+            );
             if (secondaryMission) {
                 url.searchParams.set("compareMission", secondaryMission);
             }
@@ -3722,14 +3710,7 @@
             var briefKey = normalizeKey(params.get("brief"));
             if (!briefKey) return;
             var row = missionRows.find(function(item) {
-                var folderKey = normalizeKey(item.folder || "");
-                var key = normalizeKey(item.entry && item.entry.key);
-                var aliases = Array.isArray(item.entry && item.entry.aliases) ? item.entry.aliases : [];
-                return (
-                    briefKey === folderKey ||
-                    briefKey === key ||
-                    aliases.some(function(alias) { return normalizeKey(alias) === briefKey; })
-                );
+                return briefKey === normalizeKey(item.folder || "");
             });
             if (row) {
                 openMissionBrief(row);

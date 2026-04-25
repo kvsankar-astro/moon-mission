@@ -206,7 +206,7 @@ function updateOpenMissionLink() {
     if (!openMissionLink) {
         return;
     }
-    openMissionLink.href = `mission.html?mission=chandrayaan3&moonRenderProfile=${encodeURIComponent(activeAssetProfile)}`;
+    openMissionLink.href = `chandrayaan3/?moonRenderProfile=${encodeURIComponent(activeAssetProfile)}`;
 }
 
 function syncDefaultsStateFromActiveProfile() {

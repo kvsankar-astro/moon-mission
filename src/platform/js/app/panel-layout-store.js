@@ -1,3 +1,5 @@
+import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
+
 const PANEL_LAYOUT_STORAGE_PREFIX = "moon-mission:panel-layout:v1";
 
 function sanitizeKeyPart(value) {
@@ -13,23 +15,9 @@ function resolveMissionKeyFromWindow() {
         return "unknown";
     }
 
-    try {
-        const params = new URLSearchParams(window.location.search || "");
-        const queryMission = sanitizeKeyPart(params.get("mission") || "");
-        if (queryMission) {
-            return queryMission;
-        }
-    } catch {
-        // Fall through to other mission identity sources.
-    }
-
-    const dataPath = String(window?.missionConfig?.dataPath || "");
-    const match = dataPath.match(/assets\/([^/]+)\/data\/?$/i);
-    if (match?.[1]) {
-        const missionKey = sanitizeKeyPart(match[1]);
-        if (missionKey) {
-            return missionKey;
-        }
+    const missionKey = sanitizeKeyPart(resolveCurrentMissionKey(window));
+    if (missionKey) {
+        return missionKey;
     }
 
     return "unknown";
