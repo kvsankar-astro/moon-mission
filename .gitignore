@@ -42,6 +42,8 @@ de421.bsp
 pyvenv.cfg
 bin/
 lib/
+!scripts/lib/
+!scripts/lib/mission-pages.mjs
 lib64/
 __pycache__/
 *.py[cod]
