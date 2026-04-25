@@ -66,6 +66,59 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 - `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
 - `.github/workflows/deploy-hetzner.yml`: manual Hetzner deploy + parity audit
 
+## Production redirect rules
+
+Production `sankara.net` is served by nginx on the Hetzner VPS. nginx does not
+read `.htaccess`, so repo `.htaccess` files are inert on production and are kept
+only for cache-header behavior on Apache-like hosts.
+
+The live legacy mission redirect from:
+
+- `/astro/lunar-missions/mission.html?mission=<slug>`
+
+to:
+
+- `/astro/lunar-missions/<slug>/`
+
+is implemented outside this repo in nginx config on the Hetzner host:
+
+- `/etc/nginx/conf.d/sankara-mission-redirects.conf`
+- `/etc/nginx/sites-available/sankara.net`
+
+Current production behavior:
+
+- allowlisted mission slugs return a real server-side `301`
+- unknown slugs and bare `mission.html` stay `200`
+- `mission.html` in this repo remains a `noindex,follow` compatibility shell as
+  defense in depth
+
+When adding or renaming a mission slug:
+
+1. Update the repo mission slug source, usually `assets/mission-catalog.json`.
+2. Update the nginx allowlist on the Hetzner host in
+   `/etc/nginx/conf.d/sankara-mission-redirects.conf`.
+3. Validate and reload nginx:
+   `sudo nginx -t && sudo systemctl reload nginx`
+
+Verification commands:
+
+```bash
+curl -ILs "https://sankara.net/astro/lunar-missions/mission.html?mission=artemis2&view=relative&foo=1"
+curl -ILs "https://sankara.net/astro/lunar-missions/mission.html?mission=bogus-unknown-slug"
+curl -ILs "https://sankara.net/astro/lunar-missions/artemis2/"
+```
+
+Expected results:
+
+- known legacy slug: `301` then `200`
+- unknown legacy slug: `200`
+- canonical clean URL: `200`
+
+Future cleanup:
+
+- generate the nginx slug map from repo mission data during deploy instead of
+  maintaining the server allowlist separately
+
 ## Landing brief quick reference
 
 - The mission selector/landing UI reads authored brief copy from `assets/mission-briefs.json`.
