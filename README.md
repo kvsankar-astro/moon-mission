@@ -1,6 +1,13 @@
 
 ## Moon Mission Orbit Animations
 
+[![Live Site](https://img.shields.io/website?url=https%3A%2F%2Fsankara.net%2Fastro%2Flunar-missions%2F&label=live%20site)](https://sankara.net/astro/lunar-missions/)
+[![CI](https://github.com/kvsankar/moon-mission/actions/workflows/ci.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/ci.yml)
+[![Deploy to GitHub Pages](https://github.com/kvsankar/moon-mission/actions/workflows/deploy.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy.yml)
+[![Deploy to GitHub Pages (App-only)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-app-only.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-app-only.yml)
+[![Deploy to Hetzner VPS](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-hetzner.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-hetzner.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
+
 Interactive 2D/3D lunar mission visualizations powered by NASA JPL HORIZONS data and curated runtime ephemeris artifacts.
 
 Live pages:
