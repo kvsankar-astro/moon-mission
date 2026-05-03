@@ -3,8 +3,6 @@
 
 [![Live Site](https://img.shields.io/website?url=https%3A%2F%2Fsankara.net%2Fastro%2Flunar-missions%2F&label=live%20site)](https://sankara.net/astro/lunar-missions/)
 [![CI](https://github.com/kvsankar/moon-mission/actions/workflows/ci.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/ci.yml)
-[![Deploy to GitHub Pages](https://github.com/kvsankar/moon-mission/actions/workflows/deploy.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy.yml)
-[![Deploy to GitHub Pages (App-only)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-app-only.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-app-only.yml)
 [![Deploy to Hetzner VPS](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-hetzner.yml/badge.svg)](https://github.com/kvsankar/moon-mission/actions/workflows/deploy-hetzner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
 
@@ -191,11 +189,9 @@ You can override these via GitHub repository variables with the same names. No e
 Current workflow behavior:
 
 - `.github/workflows/ci.yml` runs on push, pull request, and manual trigger.
-- `.github/workflows/deploy-app-only.yml` is manual-only (`workflow_dispatch`) for GitHub Pages app-only deploys.
-- `.github/workflows/deploy.yml` is manual-only (`workflow_dispatch`) for GitHub Pages deploys.
 - `.github/workflows/deploy-hetzner.yml` is manual-only (`workflow_dispatch`) for sankara.net deploys.
 
-App-only deploys preserve the already-published runtime asset set and are meant for app-shell changes only. Use the full deploy workflows when adding new missions, manifests, or runtime assets. Production (`sankara.net`) currently deploys through the Hetzner workflow, not an app-only workflow.
+The Hetzner workflow stages mission data and publishes the full app plus runtime asset set to `sankara.net`. Use it when shipping app-shell changes, new missions, new manifests, or updated runtime assets.
 
 Production note:
 - `sankara.net` is served by nginx, not Apache. The live legacy redirect from `mission.html?mission=<slug>` to `/<slug>/` is implemented in nginx config on the VPS, not in this repo's `.htaccess`.

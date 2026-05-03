@@ -78,9 +78,8 @@
 ## CI & Deploy Notes
 
 - `.github/workflows/ci.yml` runs `npm run configs:lint` and `npm run test:unit`.
-- `.github/workflows/deploy.yml` is the manual GitHub Pages deploy with staged data-repo assets.
 - `.github/workflows/deploy-hetzner.yml` is the manual Hetzner deploy plus parity audit.
-- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or `sankara.net` by itself.
+- Deploy workflows are manual-only; pushing does not publish to `sankara.net` by itself.
 
 ## Production Redirect Rules
 
@@ -114,4 +113,4 @@
 
 - Don’t commit credentials or deployment config: `deploy-config.json` is intentionally git-ignored.
 - Don’t commit generated artifacts: `dist/`, `data-generated/`, `.test-server.*`, and `node_modules/` are ignored by design.
-- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or sankara.net by itself.
+- Deploy workflows are manual-only; pushing does not publish to sankara.net by itself.

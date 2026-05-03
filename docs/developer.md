@@ -191,16 +191,14 @@ CI:
 - CI also enforces config sync plus explicit `time_scale` annotations via `npm run configs:lint`.
 
 Manual deploy workflows:
-- `.github/workflows/deploy.yml` - GitHub Pages (app + staged mission data)
 - `.github/workflows/deploy-hetzner.yml` - sankara.net (app + staged mission data)
-- `.github/workflows/deploy-app-only.yml` - GitHub Pages app-only
 
 Notes:
 - Deploy workflows are manual (`workflow_dispatch`).
-- App-only deploys preserve runtime data on remote and publish app-shell changes only for GitHub Pages. Production (`sankara.net`) currently uses the Hetzner full deploy workflow.
+- Production (`sankara.net`) publishes through the Hetzner deploy workflow.
 - Production `sankara.net` is fronted by nginx only. Legacy `mission.html?mission=<slug>` redirects are implemented in VPS nginx config, not `.htaccess`.
 - The repo's `.htaccess` is cache-header-only and should not carry production redirect logic.
-- Use full deploys when introducing new missions, new manifests, or new runtime assets that are not already present on the published site.
+- Use the Hetzner deploy when introducing app-shell changes, new missions, new manifests, or runtime assets that need to be published.
 - Local and CI Vitest discovery excludes nested `.tmp/**` scratch repos so temporary checkouts do not pollute test runs.
 
 ## 9) Pre-Commit Checklist

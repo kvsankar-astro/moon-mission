@@ -50,13 +50,9 @@ Data repo (`moon-mission-data`) tracks:
 ## Deployment/staging reality
 
 Workflows stage mission data from the data repo before deploy:
-- `.github/workflows/deploy.yml`
 - `.github/workflows/deploy-hetzner.yml`
 
-App-only deploy workflows keep existing runtime data on remote and only ship app-shell changes:
-- `.github/workflows/deploy-app-only.yml`
-
-Use the full deploy workflows when a change introduces new missions, new manifests, or new runtime assets that are not already present on the published site. GitHub Pages supports an app-only deploy path; production (`sankara.net`) currently deploys via the full Hetzner workflow.
+Use the Hetzner deploy workflow when a change introduces app-shell updates, new missions, new manifests, or new runtime assets that need to be published to `sankara.net`.
 
 ## How to verify current state quickly
 

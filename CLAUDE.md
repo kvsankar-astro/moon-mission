@@ -70,9 +70,8 @@ SSIM thresholds and visual assertions are defined in `test/ui.test.js`.
 ## CI quick reference
 
 - `.github/workflows/ci.yml`: `npm run configs:lint` + `npm run test:unit`
-- `.github/workflows/deploy.yml`: manual GitHub Pages deploy with staged data repo assets
 - `.github/workflows/deploy-hetzner.yml`: manual Hetzner deploy + parity audit
-- Deploy workflows are manual-only; pushing does not publish to GitHub Pages or `sankara.net` by itself.
+- Deploy workflows are manual-only; pushing does not publish to `sankara.net` by itself.
 
 ## Production redirect rules
 
