@@ -4,6 +4,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
   MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
 
@@ -31,7 +32,7 @@ jobs:
             --target-root .
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm

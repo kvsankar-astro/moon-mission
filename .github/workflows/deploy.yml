@@ -4,6 +4,7 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
   MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
 
@@ -45,7 +46,7 @@ jobs:
             --target-root .
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -138,10 +139,10 @@ jobs:
             --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
 
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './dist-pages'
 
@@ -154,4 +155,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
