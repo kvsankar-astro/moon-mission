@@ -366,8 +366,10 @@ describe("bindMobileMissionCardSync", () => {
         expect(harness.instances.layout.toggleMode).toHaveBeenCalledWith({ disableTransition: true });
 
         harness.instances.layout.toggleMode.mockClear();
+        harness.instances.viewFov.scheduleAutoFovRefresh.mockClear();
         harness.dispatchWindowEvent("resize");
 
         expect(harness.instances.layout.toggleMode).toHaveBeenCalledWith({ disableTransition: true });
+        expect(harness.instances.viewFov.scheduleAutoFovRefresh).toHaveBeenCalledTimes(1);
     });
 });

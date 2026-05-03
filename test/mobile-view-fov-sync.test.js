@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { computeMobileAutoFovDegrees } from "../src/platform/js/core/domain/mobile-view-fov-state.js";
+import {
+    computeMobileAutoFovDegrees,
+    shouldSkipMobileAutoFovUpdate,
+} from "../src/platform/js/core/domain/mobile-view-fov-state.js";
 import { createMobileViewFovSync } from "../src/platform/js/ui/mobile-view-fov-sync.js";
 
 function createClassList() {
@@ -242,6 +245,17 @@ function createHarness({
 }
 
 describe("createMobileViewFovSync", () => {
+    it("skips sub-tenth-degree auto FoV churn from minor mobile viewport jitter", () => {
+        expect(shouldSkipMobileAutoFovUpdate({
+            currentFov: 25,
+            nextFov: 25.05,
+        })).toBe(true);
+        expect(shouldSkipMobileAutoFovUpdate({
+            currentFov: 25,
+            nextFov: 25.15,
+        })).toBe(false);
+    });
+
     it("updates auto-FoV button state and applies manual slider changes", () => {
         const harness = createHarness();
         harness.sync.bind();
@@ -271,6 +285,19 @@ describe("createMobileViewFovSync", () => {
         expect(harness.scene.camera.fov).toBeCloseTo(expectedAutoFov, 4);
         expect(harness.mobileViewsFovValue.textContent).toBe(`${Math.round(expectedAutoFov)}°`);
         expect(harness.mobileComposeFovSlider.value).toBe(String(Math.round(expectedAutoFov)));
+    });
+
+    it("ignores tiny auto FoV updates once the mounted view is already settled", () => {
+        const harness = createHarness({
+            cameraFov: 25.31,
+        });
+        harness.scene.camera.aspect = 390 / 845;
+
+        const changed = harness.sync.applyAutoFovForActivePreset();
+
+        expect(changed).toBe(false);
+        expect(harness.scene.camera.fov).toBe(25.31);
+        expect(harness.mobileViewsFovValue.textContent).toBe("25°");
     });
 
     it("applies the compose default FoV only once and disables auto mode", () => {

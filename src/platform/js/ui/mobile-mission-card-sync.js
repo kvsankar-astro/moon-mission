@@ -655,9 +655,15 @@ function bindMobileMissionCardSync(deps = {}) {
     mobileMoonVisibilitySync.startLoop();
     mobileMoonVisibilitySync.sync({ force: true });
     mobileShellLayoutSync.applyRenderViewportCentering();
-    windowRef.addEventListener?.("resize", () => mobileShellLayoutSync?.toggleMode?.({
-        disableTransition: true,
-    }));
+
+    function handleViewportResize() {
+        mobileShellLayoutSync?.toggleMode?.({
+            disableTransition: true,
+        });
+        mobileViewFovSync?.scheduleAutoFovRefresh?.();
+    }
+
+    windowRef.addEventListener?.("resize", handleViewportResize);
 
     transportSync = bindMobileTransportSyncImpl({
         mobileTransportSets,

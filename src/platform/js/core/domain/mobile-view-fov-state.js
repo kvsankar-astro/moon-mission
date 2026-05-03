@@ -2,7 +2,11 @@ const DEFAULT_COMPOSE_FOV = 110;
 const DEFAULT_MIN_FOV = 1;
 const DEFAULT_MAX_FOV = 179;
 const DEFAULT_AUTO_FOV_MARGIN_SCALE = 1.03;
-const DEFAULT_AUTO_FOV_EPSILON_DEGREES = 1e-4;
+// Real mobile browsers can oscillate the effective viewport by 1-2 px while
+// browser chrome settles. A tiny epsilon makes AutoFoV "breathe" visibly in
+// mounted views even though the change is beneath our displayed 1-degree UI
+// granularity, so keep a modest deadband here.
+const DEFAULT_AUTO_FOV_EPSILON_DEGREES = 0.1;
 
 function clampMobileViewFov(value, {
     fallback = DEFAULT_COMPOSE_FOV,
