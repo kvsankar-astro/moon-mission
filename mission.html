@@ -1992,7 +1992,7 @@
             </div>
         </div>
 
-        <div id="timeline-dock" class="timeline-dock" role="group" aria-label="Mission timeline">
+        <div id="timeline-dock" class="timeline-dock timeline-dock--events-collapsed" role="group" aria-label="Mission timeline">
             <div class="timeline-dock__event-carousel swiper swiper2" aria-label="Mission events">
                 <div id="burnbuttons" class="swiper-wrapper">
                     <!-- burn buttons will get added here dynamically -->
@@ -2003,9 +2003,9 @@
                     id="control-panel-toggle"
                     class="timeline-dock__panel-toggle"
                     type="button"
-                    aria-expanded="true"
-                    aria-label="Pull down events carousel"
-                    title="Pull down events carousel"
+                    aria-expanded="false"
+                    aria-label="Pull up events carousel"
+                    title="Pull up events carousel"
                 >
                     <svg
                         class="timeline-dock__panel-toggle-glyph"
@@ -2038,7 +2038,7 @@
                         value="0"
                         aria-label="Mission timeline slider"
                     >
-                    <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true"></div>
+                    <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true" hidden></div>
                 </div>
                 <span id="timeline-end-label" class="timeline-dock__edge">--:--:--</span>
             </div>

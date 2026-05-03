@@ -93,6 +93,7 @@ function createHarness() {
     });
     const toggleButton = createElement();
     const slider = createElement({ value: "2600" });
+    const markers = createElement();
     const burnButtons = createElement();
     const carousel = createElement({ classNames: ["timeline-dock__event-carousel"] });
     const eventButtons = [
@@ -119,6 +120,7 @@ function createHarness() {
                 "timeline-dock": timelineDock,
                 "control-panel-toggle": toggleButton,
                 "timeline-slider": slider,
+                "timeline-markers": markers,
                 burnbuttons: burnButtons,
             };
             return mapping[id] || null;
@@ -199,6 +201,7 @@ function createHarness() {
         rootStyleValues,
         timeouts,
         timelineDock,
+        markers,
         toggleButton,
     };
 }
@@ -210,8 +213,10 @@ describe("createControlPanelTimelineController", () => {
         harness.controller.bind();
 
         expect(harness.toggleButton.dataset.bound).toBe("true");
-        expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("true");
-        expect(harness.toggleButton.getAttribute("aria-label")).toBe("Pull down events carousel");
+        expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(true);
+        expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("false");
+        expect(harness.toggleButton.getAttribute("aria-label")).toBe("Pull up events carousel");
+        expect(harness.markers.hidden).toBe(true);
         expect(harness.rootStyleValues.get("--control-panel-visual-height")).toBe("60px");
         expect(harness.rootStyleValues.get("--timeline-dock-height")).toBe("90px");
         expect(harness.resizeObservers).toHaveLength(1);
@@ -235,9 +240,10 @@ describe("createControlPanelTimelineController", () => {
         harness.controller.bind();
         harness.toggleButton.dispatch("click");
 
-        expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(true);
-        expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("false");
-        expect(harness.toggleButton.title).toBe("Pull up events carousel");
+        expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(false);
+        expect(harness.markers.hidden).toBe(false);
+        expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("true");
+        expect(harness.toggleButton.title).toBe("Pull down events carousel");
     });
 
     it("focuses the next future event when opening a collapsed carousel", () => {
@@ -251,5 +257,6 @@ describe("createControlPanelTimelineController", () => {
 
         expect(harness.eventButtons[2].scrollIntoViewOptions?.inline).toBe("center");
         expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(false);
+        expect(harness.markers.hidden).toBe(false);
     });
 });

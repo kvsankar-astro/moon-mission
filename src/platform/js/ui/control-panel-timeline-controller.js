@@ -44,6 +44,10 @@ function createControlPanelTimelineController(deps = {}) {
         return documentRef?.getElementById?.("control-panel-toggle") || null;
     }
 
+    function getTimelineMarkers() {
+        return documentRef?.getElementById?.("timeline-markers") || null;
+    }
+
     function getRootStyle() {
         return documentRef?.documentElement?.style || null;
     }
@@ -136,10 +140,14 @@ function createControlPanelTimelineController(deps = {}) {
     function setTimelineEventCarouselExpandedState(expanded, options = {}) {
         const timelineDock = getTimelineDock();
         const button = getControlPanelToggleButton();
+        const markers = getTimelineMarkers();
         if (!timelineDock || !button) return;
         const nextExpanded = !!expanded;
         const wasExpanded = !timelineDock.classList?.contains?.("timeline-dock--events-collapsed");
         timelineDock.classList?.toggle?.("timeline-dock--events-collapsed", !nextExpanded);
+        if (markers) {
+            markers.hidden = !nextExpanded;
+        }
         requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
 
         const uiState = resolveTimelineEventCarouselPresentation(nextExpanded);
@@ -267,7 +275,7 @@ function createControlPanelTimelineController(deps = {}) {
         bindTimelineCarouselDragGesture();
         bindTimelineDockHeightSync(timelineDock);
         setControlPanelCollapsedState(false);
-        setTimelineEventCarouselExpandedState(true, { focusUpcoming: true, wiggleCue: false });
+        setTimelineEventCarouselExpandedState(false, { focusUpcoming: false, wiggleCue: false });
         requestAnimationFrameImpl(() => {
             syncControlPanelInfoOffset(panel);
             syncTimelineDockHeight(timelineDock);
