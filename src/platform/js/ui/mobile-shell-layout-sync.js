@@ -26,6 +26,7 @@ function createMobileShellLayoutSync(deps) {
         viewsPanelCollapseStorageKey = "",
     } = deps;
 
+    const MOBILE_RENDER_SHIFT_NO_TRANSITION_CLASS = "content-wrapper--mobile-render-shift-no-transition";
     const buttons = Array.from(navButtons);
     let mobileModeActive = null;
 
@@ -84,8 +85,9 @@ function createMobileShellLayoutSync(deps) {
         }
     }
 
-    function applyRenderViewportCentering() {
+    function applyRenderViewportCentering({ disableTransition = false } = {}) {
         if (!contentWrapper) return;
+        contentWrapper.classList?.toggle?.(MOBILE_RENDER_SHIFT_NO_TRANSITION_CLASS, !!disableTransition);
         const viewportHeight = Math.max(1, windowRef?.innerHeight || 1);
         const activeTab = getActiveTab();
         const activeCard = mobileTabCards[activeTab] || null;
@@ -134,7 +136,7 @@ function createMobileShellLayoutSync(deps) {
         rootStyle?.setProperty?.("--mobile-pill-strip-top", `${layout.pillStripTopPx}px`);
     }
 
-    function toggleMode() {
+    function toggleMode({ disableTransition = false } = {}) {
         const mobile = isMobileViewport();
         const modeChanged = mobileModeActive !== mobile;
         documentRef?.body?.classList.toggle("mobile-shell-enabled", mobile);
@@ -146,7 +148,7 @@ function createMobileShellLayoutSync(deps) {
                 onExitMobileMode();
             }
         }
-        applyRenderViewportCentering();
+        applyRenderViewportCentering({ disableTransition });
     }
 
     function initializeCollapsedState() {

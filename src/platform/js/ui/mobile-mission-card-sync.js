@@ -651,11 +651,13 @@ function bindMobileMissionCardSync(deps = {}) {
     mobileViewPresetSync.syncState();
     syncMobileComposeControls();
     mobileViewFovSync.syncDisplayFromScene();
-    mobileShellLayoutSync.toggleMode();
+    mobileShellLayoutSync.toggleMode({ disableTransition: true });
     mobileMoonVisibilitySync.startLoop();
     mobileMoonVisibilitySync.sync({ force: true });
     mobileShellLayoutSync.applyRenderViewportCentering();
-    windowRef.addEventListener?.("resize", () => mobileShellLayoutSync?.toggleMode?.());
+    windowRef.addEventListener?.("resize", () => mobileShellLayoutSync?.toggleMode?.({
+        disableTransition: true,
+    }));
 
     transportSync = bindMobileTransportSyncImpl({
         mobileTransportSets,

@@ -143,6 +143,7 @@ function createHarness() {
     };
 
     const rafQueue = [];
+    const windowListeners = new Map();
     const windowRef = {
         missionConfig: { dataPath: "/missions/chandrayaan3/data" },
         animationScenes: {
@@ -156,7 +157,11 @@ function createHarness() {
             rafQueue.push(callback);
             return rafQueue.length;
         },
-        addEventListener: vi.fn(),
+        addEventListener: vi.fn((type, handler) => {
+            const handlers = windowListeners.get(type) || [];
+            handlers.push(handler);
+            windowListeners.set(type, handlers);
+        }),
     };
 
     const documentRef = {
@@ -293,6 +298,11 @@ function createHarness() {
         }
     }
 
+    function dispatchWindowEvent(type) {
+        const handlers = windowListeners.get(type) || [];
+        handlers.forEach((handler) => handler());
+    }
+
     return {
         elements,
         instances,
@@ -301,6 +311,7 @@ function createHarness() {
         setHeaderPillStripAutoCollapsedState,
         result,
         flushAnimationFrames,
+        dispatchWindowEvent,
     };
 }
 
@@ -347,5 +358,16 @@ describe("bindMobileMissionCardSync", () => {
 
         harness.flushAnimationFrames();
         expect(harness.instances.transport.syncTransportState).toHaveBeenCalledTimes(1);
+    });
+
+    it("suppresses render recenter animation during startup and window resizes", () => {
+        const harness = createHarness();
+
+        expect(harness.instances.layout.toggleMode).toHaveBeenCalledWith({ disableTransition: true });
+
+        harness.instances.layout.toggleMode.mockClear();
+        harness.dispatchWindowEvent("resize");
+
+        expect(harness.instances.layout.toggleMode).toHaveBeenCalledWith({ disableTransition: true });
     });
 });

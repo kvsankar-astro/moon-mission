@@ -222,10 +222,11 @@ describe("createMobileShellLayoutSync", () => {
     it("toggles mobile shell mode and delegates enter/exit behavior", () => {
         const harness = createHarness();
 
-        harness.sync.toggleMode();
+        harness.sync.toggleMode({ disableTransition: true });
         expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(true);
         expect(harness.enteredMobile).toBe(1);
         expect(harness.exitedMobile).toBe(0);
+        expect(harness.contentWrapper.classList.contains("content-wrapper--mobile-render-shift-no-transition")).toBe(true);
 
         harness.sync.toggleMode();
         expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(true);
@@ -242,5 +243,17 @@ describe("createMobileShellLayoutSync", () => {
         expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(false);
         expect(harness.enteredMobile).toBe(1);
         expect(harness.exitedMobile).toBe(1);
+    });
+
+    it("re-enables animated recentering for non-resize layout updates", () => {
+        const harness = createHarness({
+            activeTab: "views",
+        });
+
+        harness.sync.toggleMode({ disableTransition: true });
+        expect(harness.contentWrapper.classList.contains("content-wrapper--mobile-render-shift-no-transition")).toBe(true);
+
+        harness.sync.applyRenderViewportCentering();
+        expect(harness.contentWrapper.classList.contains("content-wrapper--mobile-render-shift-no-transition")).toBe(false);
     });
 });
