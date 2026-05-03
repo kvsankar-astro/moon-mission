@@ -227,7 +227,17 @@ describe("createMobileShellLayoutSync", () => {
         expect(harness.enteredMobile).toBe(1);
         expect(harness.exitedMobile).toBe(0);
 
+        harness.sync.toggleMode();
+        expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(true);
+        expect(harness.enteredMobile).toBe(1);
+        expect(harness.exitedMobile).toBe(0);
+
         harness.state.isMobile = false;
+        harness.sync.toggleMode();
+        expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(false);
+        expect(harness.enteredMobile).toBe(1);
+        expect(harness.exitedMobile).toBe(1);
+
         harness.sync.toggleMode();
         expect(harness.documentRef.body.classList.contains("mobile-shell-enabled")).toBe(false);
         expect(harness.enteredMobile).toBe(1);

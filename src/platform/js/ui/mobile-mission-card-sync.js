@@ -78,6 +78,7 @@ function bindMobileMissionCardSync(deps = {}) {
         dispatchSyntheticPress,
         isMobileViewport = () => false,
         resetSettingsPanelForMobileMode = () => {},
+        setHeaderPillStripAutoCollapsedState = () => {},
         changeCameraFromTo = () => {},
         auxiliaryViewCameraPresets = AUXILIARY_VIEW_CAMERA_PRESETS,
         readTimelineEventMetadata = () => extractTimelineEventMetadataFromButtons(documentRef),
@@ -481,6 +482,7 @@ function bindMobileMissionCardSync(deps = {}) {
         documentRef,
         localStorageRef,
         onEnterMobileMode: () => {
+            setHeaderPillStripAutoCollapsedState(true);
             const bodyHaloToggle = documentRef.getElementById("view-body-halos");
             if (mobileMissionLocatorBaseline === null && bodyHaloToggle) {
                 mobileMissionLocatorBaseline = !!bodyHaloToggle.checked;
@@ -495,6 +497,7 @@ function bindMobileMissionCardSync(deps = {}) {
             mobileComposeControlsSync?.syncControls?.();
         },
         onExitMobileMode: () => {
+            setHeaderPillStripAutoCollapsedState(false);
             if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 restoreViewsVisualSimplification();
                 if (mobileSavedMissionCameraModes) {

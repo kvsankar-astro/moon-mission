@@ -254,4 +254,18 @@ describe("createDesktopChromeAutohideController", function () {
         expect(harness.headerStates).toEqual([false, false]);
         expect(harness.controlStates).toEqual([false, false]);
     });
+
+    it("does not override header strip state on mobile viewports", function () {
+        const harness = createHarness({
+            mobileViewport: true,
+        });
+
+        harness.controller.bind();
+        harness.flushTimers();
+        harness.documentRef.dispatchEvent({ type: "pointermove" });
+        harness.windowRef.dispatchEvent({ type: "resize" });
+
+        expect(harness.headerStates).toEqual([]);
+        expect(harness.controlStates).toEqual([false, false, false]);
+    });
 });

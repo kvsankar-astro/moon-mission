@@ -27,6 +27,7 @@ function createMobileShellLayoutSync(deps) {
     } = deps;
 
     const buttons = Array.from(navButtons);
+    let mobileModeActive = null;
 
     function isLayoutVisible(element) {
         if (!element || element.hidden) return false;
@@ -135,11 +136,15 @@ function createMobileShellLayoutSync(deps) {
 
     function toggleMode() {
         const mobile = isMobileViewport();
+        const modeChanged = mobileModeActive !== mobile;
         documentRef?.body?.classList.toggle("mobile-shell-enabled", mobile);
-        if (mobile) {
-            onEnterMobileMode();
-        } else {
-            onExitMobileMode();
+        if (modeChanged) {
+            mobileModeActive = mobile;
+            if (mobile) {
+                onEnterMobileMode();
+            } else {
+                onExitMobileMode();
+            }
         }
         applyRenderViewportCentering();
     }

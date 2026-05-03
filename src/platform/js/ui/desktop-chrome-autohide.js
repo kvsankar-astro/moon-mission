@@ -143,8 +143,12 @@ export function createDesktopChromeAutohideController(deps = {}) {
             !isChromeHovered();
     }
 
-    function revealChrome() {
+    function revealDesktopChrome() {
         setHeaderPillStripAutoCollapsedState(false);
+        setControlPanelCollapsedState(false);
+    }
+
+    function revealNonDesktopChrome() {
         setControlPanelCollapsedState(false);
     }
 
@@ -153,8 +157,7 @@ export function createDesktopChromeAutohideController(deps = {}) {
         if (!canAutoHideChrome()) return;
         autoHideTimerId = windowRef.setTimeout(() => {
             if (!canAutoHideChrome()) {
-                revealChrome();
-                clearAutoHideTimer();
+                syncChromeVisibility();
                 return;
             }
             setHeaderPillStripAutoCollapsedState(true);
@@ -165,21 +168,25 @@ export function createDesktopChromeAutohideController(deps = {}) {
 
     function syncChromeVisibility() {
         clearAutoHideTimer();
-        if (!canAutoHideChrome()) {
-            revealChrome();
+        if (!isDesktopViewportActive()) {
+            revealNonDesktopChrome();
             return;
         }
-        revealChrome();
+        if (!canAutoHideChrome()) {
+            revealDesktopChrome();
+            return;
+        }
+        revealDesktopChrome();
         scheduleAutoHide();
     }
 
     function handleUserActivity() {
         if (!isDesktopViewportActive()) {
             clearAutoHideTimer();
-            revealChrome();
+            revealNonDesktopChrome();
             return;
         }
-        revealChrome();
+        revealDesktopChrome();
         scheduleAutoHide();
     }
 

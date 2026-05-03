@@ -340,5 +340,7 @@ export function bindMobileMissionCard({ changeCameraFromTo } = {}) {
         dispatchSyntheticPress,
         isMobileViewport,
         resetSettingsPanelForMobileMode: () => getSettingsPanelController().resetForMobileMode(),
+        setHeaderPillStripAutoCollapsedState: (collapsed) =>
+            getHeaderPillStripController().setAutoCollapsedState(collapsed),
     });
 }

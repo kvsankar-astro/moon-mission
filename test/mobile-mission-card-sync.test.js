@@ -213,6 +213,7 @@ function createHarness() {
     };
 
     const resetSettingsPanelForMobileMode = vi.fn();
+    const setHeaderPillStripAutoCollapsedState = vi.fn();
 
     const result = bindMobileMissionCardSync({
         documentRef,
@@ -222,6 +223,7 @@ function createHarness() {
         dispatchSyntheticPress: vi.fn(),
         isMobileViewport: () => true,
         resetSettingsPanelForMobileMode,
+        setHeaderPillStripAutoCollapsedState,
         createSharedControlBackendImpl: () => ({
             commitCameraPair(positionMode, lookMode) {
                 committedCameraPairs.push([positionMode, lookMode]);
@@ -296,6 +298,7 @@ function createHarness() {
         instances,
         committedCameraPairs,
         resetSettingsPanelForMobileMode,
+        setHeaderPillStripAutoCollapsedState,
         result,
         flushAnimationFrames,
     };
@@ -317,11 +320,13 @@ describe("bindMobileMissionCardSync", () => {
 
         harness.result.mobileShellLayoutSync.__deps.onEnterMobileMode();
         expect(harness.resetSettingsPanelForMobileMode).toHaveBeenCalledTimes(1);
+        expect(harness.setHeaderPillStripAutoCollapsedState).toHaveBeenLastCalledWith(true);
         expect(harness.elements.auxPanels.checked).toBe(false);
         expect(harness.instances.moonVisibility.startLoop).toHaveBeenCalledTimes(1);
         expect(harness.instances.composeControls.syncControls).toHaveBeenCalledTimes(1);
 
         harness.result.mobileShellLayoutSync.__deps.onExitMobileMode();
+        expect(harness.setHeaderPillStripAutoCollapsedState).toHaveBeenLastCalledWith(false);
         expect(harness.elements.auxPanels.checked).toBe(true);
         expect(harness.elements.bodyHalos.checked).toBe(true);
         expect(harness.elements.cameraPosition.value).toBe("spacecraft");
