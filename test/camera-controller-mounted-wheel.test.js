@@ -80,6 +80,42 @@ describe("CameraController mounted wheel FoV behavior", () => {
         expect(controller.camera.position.distanceTo(spacecraft.position)).toBeCloseTo(5, 8);
     });
 
+    it("re-centers spacecraft-to-moon views when a stale mounted offset is present", () => {
+        const controller = createController();
+        const spacecraft = new THREE.Object3D();
+        const moon = new THREE.Object3D();
+        spacecraft.position.set(3, 2, 1);
+        moon.position.set(100, -20, 15);
+        spacecraft.updateMatrixWorld(true);
+        moon.updateMatrixWorld(true);
+
+        controller.setFromToModes(CAMERA_POSITION_MODE.SPACECRAFT, CAMERA_LOOK_MODE.MOON);
+        controller.setMountOffset(new THREE.Vector3(9, -4, 2));
+        controller.updateFromTo({ spacecraft, moon });
+
+        expect(controller.mountOffset.toArray()).toEqual([0, 0, 0]);
+        expect(controller.camera.position.toArray()).toEqual(spacecraft.position.toArray());
+        expect(controller.controls.target.toArray()).toEqual(moon.position.toArray());
+    });
+
+    it("re-centers earth-to-moon views when entering from an offset camera", () => {
+        const controller = createController();
+        const earth = new THREE.Object3D();
+        const moon = new THREE.Object3D();
+        earth.position.set(-12, 8, 4);
+        moon.position.set(380, 40, 22);
+        earth.updateMatrixWorld(true);
+        moon.updateMatrixWorld(true);
+        controller.camera.position.set(40, 16, 9);
+
+        controller.setFromToModes(CAMERA_POSITION_MODE.EARTH, CAMERA_LOOK_MODE.MOON);
+        controller.updateFromTo({ earth, moon });
+
+        expect(controller.mountOffset.toArray()).toEqual([0, 0, 0]);
+        expect(controller.camera.position.toArray()).toEqual(earth.position.toArray());
+        expect(controller.controls.target.toArray()).toEqual(moon.position.toArray());
+    });
+
     it("preserves full camera offset in follow mode as the target moves", () => {
         const controller = createController();
         const moon = new THREE.Object3D();

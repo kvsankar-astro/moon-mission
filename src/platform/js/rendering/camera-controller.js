@@ -355,6 +355,10 @@ export class CameraController {
 
         const hasPositionMount = this.positionMode !== CAMERA_POSITION_MODE.MANUAL;
         const hasForcedLook = this.lookMode !== CAMERA_LOOK_MODE.MANUAL;
+        const isSemanticMountedCrossBodyView =
+            hasPositionMount &&
+            hasForcedLook &&
+            this.positionMode !== this.lookMode;
         // Use TrackballControls even in mounted+manual-aim modes to retain intuitive zoom/pan.
         const wantsFreeFly = false;
         this._targets = { earth: earth ?? null, moon: moon ?? null, spacecraft: spacecraft ?? null };
@@ -378,6 +382,11 @@ export class CameraController {
                 if (this._pendingMountOffsetInit) {
                     this.mountOffset.copy(this.camera.position).sub(mountPos);
                     this._pendingMountOffsetInit = false;
+                }
+                if (isSemanticMountedCrossBodyView) {
+                    // Semantic "source -> target" views should stay physically anchored
+                    // to the source body instead of preserving any stale camera standoff.
+                    this.mountOffset.set(0, 0, 0);
                 }
 
                 if (this.controls) {
@@ -440,11 +449,8 @@ export class CameraController {
 
                 const allowOrbitAroundTarget =
                     (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
-                const isMountedCrossBodyView =
-                    hasPositionMount &&
-                    this.lookMode !== CAMERA_LOOK_MODE.MANUAL &&
-                    this.positionMode !== this.lookMode;
-                const shouldUseGlobalUp = allowOrbitAroundTarget || isMountedCrossBodyView || hasPositionMount;
+                const shouldUseGlobalUp =
+                    allowOrbitAroundTarget || isSemanticMountedCrossBodyView || hasPositionMount;
 
                 if (shouldUseGlobalUp) {
                     this._applyEclipticNorthUp(lookPos);

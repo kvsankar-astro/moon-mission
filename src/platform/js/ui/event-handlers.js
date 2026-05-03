@@ -334,8 +334,9 @@ export function bindControlPanelToggle() {
     getControlPanelTimelineController().bind();
 }
 
-export function bindMobileMissionCard() {
+export function bindMobileMissionCard({ changeCameraFromTo } = {}) {
     bindMobileMissionCardSync({
+        changeCameraFromTo,
         dispatchSyntheticPress,
         isMobileViewport,
         resetSettingsPanelForMobileMode: () => getSettingsPanelController().resetForMobileMode(),

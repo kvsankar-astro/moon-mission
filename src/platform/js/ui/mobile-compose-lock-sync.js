@@ -2,14 +2,15 @@ import { resolveMobileComposeLockState } from "../core/domain/mobile-compose-loc
 
 function createMobileComposeLockSync(deps) {
     const {
+        documentRef = globalThis?.document,
         mobileComposeLockButtons = [],
         mobileComposePresetById,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode = () => "manual",
+        readCameraLookMode = () => "manual",
+        commitCameraPair = () => {},
         resolveActiveScene,
         getActivePresetId,
         setActivePresetId,
-        createChangeEvent = () => new Event("change", { bubbles: true }),
         onAfterApply = () => {},
         onAfterButtonClick = () => {},
     } = deps;
@@ -32,28 +33,25 @@ function createMobileComposeLockSync(deps) {
     }
 
     function syncState() {
-        if (!desktopPosition || !desktopLook || !buttons.length) return;
+        if (!buttons.length) return;
         const composeLockState = resolveMobileComposeLockState({
             buttonPresetIds: readButtonPresetIds(),
             presetById: mobileComposePresetById,
             activePresetId: getActivePresetId(),
-            positionMode: (desktopPosition.value || "").trim(),
-            lookMode: (desktopLook.value || "").trim(),
+            positionMode: String(readCameraPositionMode() || "").trim(),
+            lookMode: String(readCameraLookMode() || "").trim(),
         });
         setActivePresetId(composeLockState.selectedPresetId);
         renderButtonState(composeLockState);
     }
 
     function applyPreset(presetId) {
-        if (!desktopPosition || !desktopLook) return;
         const preset = mobileComposePresetById.get(presetId);
         if (!preset) return;
         const scene = resolveActiveScene();
         scene?.cameraController?.mountOffset?.set?.(0, 0, 0);
         setActivePresetId(presetId);
-        desktopPosition.value = preset.positionMode;
-        desktopLook.value = preset.lookMode;
-        desktopPosition.dispatchEvent(createChangeEvent());
+        commitCameraPair(preset.positionMode, preset.lookMode);
         syncState();
         onAfterApply();
     }
@@ -66,6 +64,8 @@ function createMobileComposeLockSync(deps) {
                 onAfterButtonClick();
             });
         });
+
+        documentRef?.addEventListener?.("camera-from-to-ui-updated", syncState);
     }
 
     return {

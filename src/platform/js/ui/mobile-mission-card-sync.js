@@ -11,6 +11,7 @@ import { createMobileShellLayoutSync } from "./mobile-shell-layout-sync.js";
 import { createMobileShellTabSync } from "./mobile-shell-tab-sync.js";
 import { createMobileViewFovSync } from "./mobile-view-fov-sync.js";
 import { createMobileViewPresetSync } from "./mobile-view-preset-sync.js";
+import { createSharedControlBackend } from "./shared-control-backend.js";
 import { bindMobileTransportSync } from "./mobile-transport-sync.js";
 
 const MISSION_PANEL_COLLAPSE_STORAGE_KEY = "moon-mission:mobile-mission-panel-collapsed:v1";
@@ -77,16 +78,13 @@ function bindMobileMissionCardSync(deps = {}) {
         dispatchSyntheticPress,
         isMobileViewport = () => false,
         resetSettingsPanelForMobileMode = () => {},
-        createChangeEvent = () => (
-            typeof Event === "function"
-                ? new Event("change", { bubbles: true })
-                : { type: "change", bubbles: true }
-        ),
+        changeCameraFromTo = () => {},
         auxiliaryViewCameraPresets = AUXILIARY_VIEW_CAMERA_PRESETS,
         readTimelineEventMetadata = () => extractTimelineEventMetadataFromButtons(documentRef),
         formatLocalDateTimeShortImpl = formatLocalDateTimeShort,
         resolveFlybyWindowMsImpl = resolveLunarFlybyWindowMs,
         resolveFlybyTimeMsImpl = resolveLunarFlybyTimeMs,
+        createSharedControlBackendImpl = createSharedControlBackend,
         createMobileComposeControlsSyncImpl = createMobileComposeControlsSync,
         createMobileComposeLockSyncImpl = createMobileComposeLockSync,
         createMobileComposeTimelineSyncImpl = createMobileComposeTimelineSync,
@@ -161,8 +159,6 @@ function bindMobileMissionCardSync(deps = {}) {
     const navButtons = Array.from(documentRef.querySelectorAll?.(".mobile-shell__nav-btn") || []);
     const composeNavButton =
         shell.querySelector?.('.mobile-shell__nav-btn[data-mobile-tab="compose"]') || null;
-    const desktopPosition = documentRef.getElementById("camera-position");
-    const desktopLook = documentRef.getElementById("camera-look");
 
     const mobileViewPresetById = new Map(
         auxiliaryViewCameraPresets.map((preset) => [preset.id, preset]),
@@ -190,6 +186,21 @@ function bindMobileMissionCardSync(deps = {}) {
     let mobileViewFovSync = null;
     let mobileMoonVisibilitySync = null;
     let mobileShellLayoutSync = null;
+    const cameraControlBackend = createSharedControlBackendImpl({
+        changeCameraFromTo,
+    });
+
+    function readCurrentCameraPositionMode() {
+        return String(documentRef.getElementById("camera-position")?.value || "manual").trim();
+    }
+
+    function readCurrentCameraLookMode() {
+        return String(documentRef.getElementById("camera-look")?.value || "manual").trim();
+    }
+
+    function commitCameraPair(positionMode, lookMode, options = {}) {
+        cameraControlBackend.commitCameraPair?.(positionMode, lookMode, options);
+    }
 
     const composeFeatureEnabled = (() => {
         if (!MOBILE_EARTHRISE_ENABLED) return false;
@@ -305,11 +316,6 @@ function bindMobileMissionCardSync(deps = {}) {
         mobileViewsSavedViewState = null;
     }
 
-    function dispatchDesktopCameraModeChange() {
-        if (!desktopPosition?.dispatchEvent) return;
-        desktopPosition.dispatchEvent(createChangeEvent());
-    }
-
     function proxyDesktopClick(id) {
         const target = documentRef.getElementById(id);
         if (!target || target.disabled) return;
@@ -351,10 +357,12 @@ function bindMobileMissionCardSync(deps = {}) {
 
     let mobileComposeControlsSync = null;
     const mobileComposeLockSync = createMobileComposeLockSyncImpl({
+        documentRef,
         mobileComposeLockButtons,
         mobileComposePresetById,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: readCurrentCameraPositionMode,
+        readCameraLookMode: readCurrentCameraLookMode,
+        commitCameraPair,
         resolveActiveScene,
         getActivePresetId: () => activeMobileComposeLockPresetId,
         setActivePresetId: (presetId) => {
@@ -374,8 +382,9 @@ function bindMobileMissionCardSync(deps = {}) {
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: readCurrentCameraPositionMode,
+        readCameraLookMode: readCurrentCameraLookMode,
+        commitCameraPair,
         mobileComposePresetById,
         mobileComposeLockSync,
         mobileComposeTimelineSync,
@@ -488,10 +497,11 @@ function bindMobileMissionCardSync(deps = {}) {
         onExitMobileMode: () => {
             if (isViewsVisualSimplificationTab(activeMobileTab)) {
                 restoreViewsVisualSimplification();
-                if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                    desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
-                    desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
-                    dispatchDesktopCameraModeChange();
+                if (mobileSavedMissionCameraModes) {
+                    commitCameraPair(
+                        mobileSavedMissionCameraModes.positionMode || "manual",
+                        mobileSavedMissionCameraModes.lookMode || "manual",
+                    );
                     mobileSavedMissionCameraModes = null;
                 }
             }
@@ -508,10 +518,12 @@ function bindMobileMissionCardSync(deps = {}) {
     mobileShellLayoutSync.syncNavLayout();
 
     const mobileViewPresetSync = createMobileViewPresetSyncImpl({
+        documentRef,
         mobileViewButtons,
         mobileViewPresetById,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: readCurrentCameraPositionMode,
+        readCameraLookMode: readCurrentCameraLookMode,
+        commitCameraPair,
         getActivePresetId: () => activeMobileViewPresetId,
         setActivePresetId: (presetId) => {
             activeMobileViewPresetId = presetId;
@@ -532,7 +544,6 @@ function bindMobileMissionCardSync(deps = {}) {
             mobileViewFovSync?.applyAutoFovForActivePreset?.();
         },
         onAfterDesktopChange: () => {
-            mobileComposeLockSync.syncState();
             mobileComposeControlsSync?.syncPresentation?.();
             mobileViewFovSync?.applyAutoFovForActivePreset?.();
             if (activeMobileTab === "compose") {
@@ -556,19 +567,20 @@ function bindMobileMissionCardSync(deps = {}) {
         setMissionEventMessage,
         onEnterSimplifiedTab: () => {
             applyViewsVisualSimplification();
-            if (!mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
+            if (!mobileSavedMissionCameraModes) {
                 mobileSavedMissionCameraModes = {
-                    positionMode: desktopPosition.value,
-                    lookMode: desktopLook.value,
+                    positionMode: readCurrentCameraPositionMode(),
+                    lookMode: readCurrentCameraLookMode(),
                 };
             }
         },
         onExitSimplifiedTab: () => {
             restoreViewsVisualSimplification();
-            if (mobileSavedMissionCameraModes && desktopPosition && desktopLook) {
-                desktopPosition.value = mobileSavedMissionCameraModes.positionMode || "manual";
-                desktopLook.value = mobileSavedMissionCameraModes.lookMode || "manual";
-                dispatchDesktopCameraModeChange();
+            if (mobileSavedMissionCameraModes) {
+                commitCameraPair(
+                    mobileSavedMissionCameraModes.positionMode || "manual",
+                    mobileSavedMissionCameraModes.lookMode || "manual",
+                );
                 mobileSavedMissionCameraModes = null;
             }
         },

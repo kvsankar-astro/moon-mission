@@ -205,6 +205,7 @@ function createHarness() {
     };
 
     const instances = {};
+    const committedCameraPairs = [];
     const createSync = (name, api) => (deps) => {
         const instance = { ...api, __deps: deps };
         instances[name] = instance;
@@ -221,7 +222,13 @@ function createHarness() {
         dispatchSyntheticPress: vi.fn(),
         isMobileViewport: () => true,
         resetSettingsPanelForMobileMode,
-        createChangeEvent: () => ({ type: "change", bubbles: true }),
+        createSharedControlBackendImpl: () => ({
+            commitCameraPair(positionMode, lookMode) {
+                committedCameraPairs.push([positionMode, lookMode]);
+                elements.cameraPosition.value = positionMode;
+                elements.cameraLook.value = lookMode;
+            },
+        }),
         createMobileComposeTimelineSyncImpl: createSync("timeline", {
             bind: vi.fn(),
             sync: vi.fn(),
@@ -287,6 +294,7 @@ function createHarness() {
     return {
         elements,
         instances,
+        committedCameraPairs,
         resetSettingsPanelForMobileMode,
         result,
         flushAnimationFrames,
@@ -318,7 +326,7 @@ describe("bindMobileMissionCardSync", () => {
         expect(harness.elements.bodyHalos.checked).toBe(true);
         expect(harness.elements.cameraPosition.value).toBe("spacecraft");
         expect(harness.elements.cameraLook.value).toBe("moon");
-        expect(harness.elements.cameraPosition.dispatchedEvents).toContain("change");
+        expect(harness.committedCameraPairs).toContainEqual(["spacecraft", "moon"]);
         expect(harness.instances.moonVisibility.stopLoop).toHaveBeenCalledTimes(1);
         expect(harness.instances.composeControls.syncPresentation).toHaveBeenCalledTimes(1);
     });

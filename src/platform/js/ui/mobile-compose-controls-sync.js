@@ -15,8 +15,9 @@ function createMobileComposeControlsSync(deps) {
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode = () => "manual",
+        readCameraLookMode = () => "manual",
+        commitCameraPair = () => {},
         mobileComposePresetById,
         mobileComposeLockSync,
         mobileComposeTimelineSync,
@@ -27,7 +28,6 @@ function createMobileComposeControlsSync(deps) {
         isMobileViewport,
         getComposeFeatureEnabled,
         getActivePresetId,
-        createChangeEvent = () => new Event("change", { bubbles: true }),
         storage = globalThis?.localStorage,
         lightSettings = LT,
         earthshineStorageKey = DEFAULT_EARTHSHINE_STORAGE_KEY,
@@ -110,7 +110,7 @@ function createMobileComposeControlsSync(deps) {
     function resolveComposeLookTarget(scene, controller) {
         const camera = scene?.camera;
         if (!camera?.position?.clone) return null;
-        const lookMode = (controller?.lookMode || desktopLook?.value || "manual").trim();
+        const lookMode = String(controller?.lookMode || readCameraLookMode() || "manual").trim();
         if (lookMode === "earth" || lookMode === "moon" || lookMode === "spacecraft") {
             const targetObject = resolveSceneObject?.(scene, lookMode);
             if (targetObject?.getWorldPosition) {
@@ -243,16 +243,17 @@ function createMobileComposeControlsSync(deps) {
     }
 
     function syncControls() {
-        if (shouldUseEarthrisePresentation() && desktopPosition && desktopLook) {
+        if (shouldUseEarthrisePresentation()) {
             const desiredPreset = mobileComposePresetById?.get(getActivePresetId?.()) ||
                 mobileComposePresetById?.get("free");
             if (
                 desiredPreset &&
-                (desktopPosition.value !== desiredPreset.positionMode || desktopLook.value !== desiredPreset.lookMode)
+                (
+                    String(readCameraPositionMode() || "").trim() !== desiredPreset.positionMode ||
+                    String(readCameraLookMode() || "").trim() !== desiredPreset.lookMode
+                )
             ) {
-                desktopPosition.value = desiredPreset.positionMode;
-                desktopLook.value = desiredPreset.lookMode;
-                desktopPosition.dispatchEvent(createChangeEvent());
+                commitCameraPair(desiredPreset.positionMode, desiredPreset.lookMode);
             }
         }
         mobileComposeLockSync?.syncState?.();

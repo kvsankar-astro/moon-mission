@@ -224,6 +224,7 @@ const TEST_CONFIG = {
     return `${this.baseUrl}/chandrayaan3/?testMode=true&testProfile=ssim`;
   }
 };
+const MOBILE_VIEWPORT = { width: 390, height: 844 };
 
 const LOCAL_ASTRONOMY_BROWSER_FILE = join(
   process.cwd(),
@@ -416,6 +417,111 @@ async function compareScreenshots(page, currentName, baselineName, testName, thr
   };
 }
 
+function ensureCurrentScreenshotDir() {
+  const currentDir = join(process.cwd(), 'test', 'screenshots', 'current');
+  if (!existsSync(currentDir)) {
+    mkdirSync(currentDir, { recursive: true });
+  }
+  return currentDir;
+}
+
+async function captureSceneOnlyScreenshot(page, fileName) {
+  const screenshotPath = join(ensureCurrentScreenshotDir(), fileName);
+  const hiddenState = await page.evaluate(() => {
+    const haloToggle = document.querySelector('#view-body-halos');
+    if (haloToggle instanceof HTMLInputElement && haloToggle.checked) {
+      haloToggle.checked = false;
+      haloToggle.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const selectors = [
+      '#header',
+      '#header-pill-strip',
+      '#control-panel',
+      '#timeline-dock',
+      '#orbit-status-stack',
+      '#info-panel-wrapper',
+      '#fps-counter',
+      '#test-id-display',
+      '#settings-panel',
+      '#mobile-shell',
+    ];
+
+    return selectors.map((selector) => {
+      const element = document.querySelector(selector);
+      if (!element) {
+        return { selector, present: false };
+      }
+
+      const previousVisibility = element.style.visibility;
+      const previousOpacity = element.style.opacity;
+      const previousPointerEvents = element.style.pointerEvents;
+
+      element.style.visibility = 'hidden';
+      element.style.opacity = '0';
+      element.style.pointerEvents = 'none';
+
+      return {
+        selector,
+        present: true,
+        previousVisibility,
+        previousOpacity,
+        previousPointerEvents,
+      };
+    });
+  });
+
+  try {
+    await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+    await page.locator('#canvas-wrapper canvas').first().screenshot({ path: screenshotPath });
+  } finally {
+    await page.evaluate((state) => {
+      (state || []).forEach((entry) => {
+        if (!entry?.present) {
+          return;
+        }
+        const element = document.querySelector(entry.selector);
+        if (!element) {
+          return;
+        }
+        element.style.visibility = entry.previousVisibility || '';
+        element.style.opacity = entry.previousOpacity || '';
+        element.style.pointerEvents = entry.previousPointerEvents || '';
+      });
+    }, hiddenState);
+  }
+
+  return screenshotPath;
+}
+
+function compareScreenshotFiles(referencePath, candidatePath, testName, threshold = TOLERANCE.APPROX_MATCH) {
+  const reference = PNG.sync.read(readFileSync(referencePath));
+  const candidate = PNG.sync.read(readFileSync(candidatePath));
+
+  if (reference.width !== candidate.width || reference.height !== candidate.height) {
+    return {
+      isMatch: false,
+      message: `Dimension mismatch: reference ${reference.width}x${reference.height} vs candidate ${candidate.width}x${candidate.height}`,
+      ssimScore: 0,
+      pixelDifference: reference.width * reference.height,
+    };
+  }
+
+  const referenceData = { data: reference.data, width: reference.width, height: reference.height };
+  const candidateData = { data: candidate.data, width: candidate.width, height: candidate.height };
+  const { mssim } = ssim(referenceData, candidateData);
+  const isMatch = mssim >= threshold;
+  const status = isMatch ? 'PASS' : 'FAIL';
+  console.log(`[${status}] ${testName}: SSIM=${mssim.toFixed(4)} (threshold=${threshold.toFixed(2)})`);
+
+  return {
+    isMatch,
+    message: isMatch ? 'Screenshots match' : `SSIM ${mssim.toFixed(4)} below threshold ${threshold}`,
+    ssimScore: mssim,
+    pixelDifference: 0,
+  };
+}
+
 // Simplified helper functions
 async function openSettingsPanel(page) {
   await page.waitForFunction(() => {
@@ -536,6 +642,89 @@ async function ensureSettingsPanelClosed(page) {
   if (isOpen) {
     await closeSettingsPanel(page);
   }
+}
+
+async function waitForMobileShell(page) {
+  await page.waitForFunction(() => document.body.classList.contains('mobile-shell-enabled'), {
+    timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
+  });
+}
+
+async function openMobileTab(page, tab) {
+  const selector = `.mobile-shell__nav-btn[data-mobile-tab="${tab}"]`;
+  await page.locator(selector).first().click();
+  await page.waitForFunction((targetTab) => {
+    const button = document.querySelector(`.mobile-shell__nav-btn[data-mobile-tab="${targetTab}"]`);
+    if (!(button instanceof HTMLElement)) {
+      return false;
+    }
+
+    const cardId = targetTab === 'mission'
+      ? 'mobile-card-mission'
+      : targetTab === 'views'
+        ? 'mobile-card-views'
+        : 'mobile-card-compose';
+    const card = document.getElementById(cardId);
+    return button.classList.contains('is-active') &&
+      button.getAttribute('aria-current') === 'page' &&
+      !!card &&
+      !card.hidden;
+  }, tab, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
+async function selectMobileViewPreset(page, preset) {
+  const selector = `.mobile-shell__view-btn[data-mobile-view-preset="${preset}"]`;
+  await page.locator(selector).first().click();
+  await page.waitForFunction((targetSelector) => {
+    const button = document.querySelector(targetSelector);
+    return button instanceof HTMLElement && button.getAttribute('aria-selected') === 'true';
+  }, selector, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
+}
+
+async function waitForCameraPair(page, positionMode, lookMode) {
+  await page.waitForFunction(({ nextPositionMode, nextLookMode }) => {
+    const position = document.getElementById('camera-position');
+    const look = document.getElementById('camera-look');
+    return position?.value === nextPositionMode && look?.value === nextLookMode;
+  }, { nextPositionMode: positionMode, nextLookMode: lookMode }, { timeout: TIMEOUTS.UI_RESPONSE_TIMEOUT });
+}
+
+async function readMountedCameraInvariantSnapshot(page) {
+  return await page.evaluate(() => {
+    const origin = document.querySelector('#origin-relative:checked')
+      ? 'relative'
+      : document.querySelector('#origin-moon:checked')
+        ? 'lunar'
+        : 'geo';
+    const scene = window.animationScenes?.[origin];
+    const controller = scene?.cameraController;
+    const mountPos = controller?._resolveTargetWorld?.('spacecraft', controller._mountWorld) ?? null;
+    const lookPos = controller?._resolveTargetWorld?.('moon', controller._lookWorld) ?? null;
+    const camera = scene?.camera ?? null;
+    const target = controller?.controls?.target ?? null;
+
+    return {
+      origin,
+      positionMode: document.getElementById('camera-position')?.value || null,
+      lookMode: document.getElementById('camera-look')?.value || null,
+      cameraFov: camera?.fov ?? null,
+      timelineLabel: document.getElementById('date')?.textContent || null,
+      timelineSliderValue: document.getElementById('timeline-slider')?.value || null,
+      mountOffsetLength: controller?.mountOffset?.length?.() ?? null,
+      cameraToMountDistance: mountPos && camera?.position?.distanceTo
+        ? camera.position.distanceTo(mountPos)
+        : null,
+      cameraToLookDistance: lookPos && camera?.position?.distanceTo
+        ? camera.position.distanceTo(lookPos)
+        : null,
+      targetToLookDistance: lookPos && target?.distanceTo
+        ? target.distanceTo(lookPos)
+        : null,
+      noRotate: controller?.controls?.noRotate ?? null,
+      noPan: controller?.controls?.noPan ?? null,
+    };
+  });
 }
 
 async function setCameraPair(page, pairValue = 'manual__manual') {
@@ -711,10 +900,60 @@ async function waitForRelativePageLoadOrbitStabilized(page) {
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
 
+async function waitForCurrentSceneOrbitVisibility(page, {
+  orbitVisible = true,
+  landingOrbitVisible = null,
+} = {}) {
+  await page.waitForFunction(({ orbitVisible: expectedOrbitVisible, landingOrbitVisible: expectedLandingOrbitVisible }) => {
+    const isLunarMode = !!document.querySelector('#origin-moon')?.checked;
+    const scene = window.animationScenes?.[isLunarMode ? 'lunar' : 'geo'];
+    if (!scene?.initialized3D) {
+      return false;
+    }
+
+    const primaryCraftId = scene.primaryCraftId || 'SC';
+    const orbitLines = Array.isArray(scene.orbitLinesByBodyId?.[primaryCraftId])
+      ? scene.orbitLinesByBodyId[primaryCraftId]
+      : [];
+    const generatedOrbitLine = scene.generatedOrbitLinesByBodyId?.[primaryCraftId] || null;
+
+    if (orbitLines.length === 0 && !generatedOrbitLine) {
+      return false;
+    }
+
+    const hasVisiblePrimaryOrbit = orbitLines.some((orbitLine) => {
+      const opacity = orbitLine?.material?.opacity;
+      return orbitLine?.visible === true && (!Number.isFinite(opacity) || opacity > 0.01);
+    }) || (
+      generatedOrbitLine?.visible === true &&
+      (!Number.isFinite(generatedOrbitLine?.material?.opacity) || generatedOrbitLine.material.opacity > 0.01)
+    );
+
+    if (hasVisiblePrimaryOrbit !== expectedOrbitVisible) {
+      return false;
+    }
+
+    if (typeof expectedLandingOrbitVisible === 'boolean' && scene.landingOrbitLine) {
+      if (scene.landingOrbitLine.visible !== expectedLandingOrbitVisible) {
+        return false;
+      }
+    }
+
+    return true;
+  }, { orbitVisible, landingOrbitVisible }, { timeout: TIMEOUTS.ORBIT_RENDER_TIMEOUT });
+
+  await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
 // Wait for scene to be ready
 async function waitForScene(page) {
   try {
-    await page.waitForSelector('#animate', { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+    // The desktop transport button is hidden in the mobile shell, but its backing
+    // control still exists and remains a reliable app-init marker.
+    await page.waitForSelector('#animate', {
+      timeout: TIMEOUTS.SCENE_READY_TIMEOUT,
+      state: 'attached',
+    });
     const renderCanvasSelector = '#canvas-wrapper canvas';
 
     // Check if we're in 2D mode - canvas might not be immediately visible
@@ -1218,6 +1457,7 @@ async function ensureHeaderPillStripCollapsed(page) {
 async function prepareRelativeLandingFovView(page, cameraPair) {
   await setTimeline(page, 'vikramLanding');
   await ensureOriginMode(page, 'relative');
+  await waitForScene(page);
   await ensureAnimationPaused(page);
 
   await openSettingsPanel(page);
@@ -1256,6 +1496,10 @@ async function prepareRelativeLandingFovView(page, cameraPair) {
   await ensureFovOneDegree(page, true);
   await closeSettingsPanel(page);
   await waitForScene(page);
+  await waitForCurrentSceneOrbitVisibility(page, {
+    orbitVisible: false,
+    landingOrbitVisible: false,
+  });
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
 
@@ -4083,9 +4327,95 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
     }, TIMEOUTS.CLEANUP_TIMEOUT * 2);
   });
 
+  describe('Test Suite 8: Artemis II Mobile Regression', () => {
+    it('Craft to Moon view remains stable after Mission and Views tab churn', async () => {
+      const testId = 'artemis2-mobile-craft-moon-tab-churn';
+      const artemisUrl = `${TEST_CONFIG.baseUrl}/artemis2/?testMode=true&testProfile=ssim`;
+      const tabChurnSettleBudgetMs = 3 * 2 * TIMEOUTS.QUICK_DELAY;
+      // Renderer output is not pixel-identical after tab churn even when camera/time
+      // invariants match exactly, so we keep state assertions strict and use a
+      // coarse same-run SSIM sentinel only for catastrophic visual drift.
+      const visualSentinelThreshold = 0.90;
+      await displayTestId(page, testId);
+
+      await page.setViewportSize(MOBILE_VIEWPORT);
+      await page.goto(artemisUrl, { waitUntil: 'networkidle' });
+      await waitForScene(page);
+      await waitForMobileShell(page);
+      await ensureAnimationPaused(page);
+      await ensureHeaderPillStripCollapsed(page);
+      await enforceSsimUiChromeDefaults(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+
+      await openSettingsPanel(page);
+      await ensureCheckboxState(page, '#view-sky', false);
+      await ensureCheckboxState(page, '#view-body-halos', false);
+      const auxiliaryPanelsToggle = page.locator('#view-aux-camera-panels');
+      if (await auxiliaryPanelsToggle.count() > 0) {
+        await ensureCheckboxState(page, '#view-aux-camera-panels', false);
+      }
+      await closeSettingsPanel(page);
+
+      await setTimeline(page, 'closestApproach');
+      await waitForScene(page);
+      await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+
+      await openMobileTab(page, 'views');
+      await selectMobileViewPreset(page, 'moon');
+      await waitForCameraPair(page, 'spacecraft', 'moon');
+      await waitForScene(page);
+      await ensureAnimationPaused(page);
+      await page.waitForTimeout(TIMEOUTS.VISUAL_STABILIZATION_TIMEOUT);
+      await page.waitForTimeout(tabChurnSettleBudgetMs);
+
+      const referenceState = await readMountedCameraInvariantSnapshot(page);
+      expect(referenceState.positionMode).toBe('spacecraft');
+      expect(referenceState.lookMode).toBe('moon');
+      expect(referenceState.mountOffsetLength).toBeLessThan(1e-9);
+      expect(referenceState.cameraToMountDistance).toBeLessThan(1e-9);
+      expect(referenceState.targetToLookDistance).toBeLessThan(1e-9);
+      expect(referenceState.noRotate).toBe(true);
+      expect(referenceState.noPan).toBe(true);
+
+      const referencePath = await captureSceneOnlyScreenshot(page, `${testId}-reference.png`);
+
+      for (let i = 0; i < 3; i += 1) {
+        await openMobileTab(page, 'mission');
+        await openMobileTab(page, 'views');
+      }
+
+      await waitForCameraPair(page, 'spacecraft', 'moon');
+      await waitForScene(page);
+      await ensureAnimationPaused(page);
+      await page.waitForTimeout(TIMEOUTS.VISUAL_STABILIZATION_TIMEOUT);
+
+      const churnedState = await readMountedCameraInvariantSnapshot(page);
+      expect(churnedState.positionMode).toBe('spacecraft');
+      expect(churnedState.lookMode).toBe('moon');
+      expect(churnedState.cameraFov).toBeCloseTo(referenceState.cameraFov, 8);
+      expect(churnedState.timelineLabel).toBe(referenceState.timelineLabel);
+      expect(churnedState.timelineSliderValue).toBe(referenceState.timelineSliderValue);
+      expect(churnedState.cameraToLookDistance).toBeCloseTo(referenceState.cameraToLookDistance, 8);
+      expect(churnedState.mountOffsetLength).toBeLessThan(1e-9);
+      expect(churnedState.cameraToMountDistance).toBeLessThan(1e-9);
+      expect(churnedState.targetToLookDistance).toBeLessThan(1e-9);
+      expect(churnedState.noRotate).toBe(true);
+      expect(churnedState.noPan).toBe(true);
+
+      const churnedPath = await captureSceneOnlyScreenshot(page, `${testId}-after-tabs.png`);
+      const comparison = compareScreenshotFiles(
+        referencePath,
+        churnedPath,
+        testId,
+        visualSentinelThreshold,
+      );
+      expect(comparison.isMatch).toBe(true);
+    }, TIMEOUTS.CLEANUP_TIMEOUT);
+  });
+
   // SSIM Regression Detection Test
   // This test runs last and compares current SSIM scores against the committed baseline
-  describe('Test Suite 8: SSIM Regression Detection', () => {
+  describe('Test Suite 9: SSIM Regression Detection', () => {
     it('SSIM scores should not regress from previous run', async () => {
       await displayTestId(page, 'ssim-regression-check');
 

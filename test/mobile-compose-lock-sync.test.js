@@ -49,10 +49,9 @@ function createPresetButton(presetId) {
     };
 }
 
-function createSelectStub(initialValue) {
+function createDocumentStub() {
     const listeners = new Map();
     return {
-        value: initialValue,
         addEventListener(type, handler) {
             const handlers = listeners.get(type) || [];
             handlers.push(handler);
@@ -81,24 +80,29 @@ function createHarness({
 } = {}) {
     const state = {
         activePresetId,
+        positionMode,
+        lookMode,
     };
+    const documentRef = createDocumentStub();
     const mobileComposeLockButtons = [
         createPresetButton("free"),
         createPresetButton("earth"),
         createPresetButton("moon"),
     ];
-    const desktopPosition = createSelectStub(positionMode);
-    const desktopLook = createSelectStub(lookMode);
     const log = [];
     const mountOffsetCalls = [];
-    desktopPosition.addEventListener("change", () => {
-        log.push("desktop-change");
-    });
     const sync = createMobileComposeLockSync({
+        documentRef,
         mobileComposeLockButtons,
         mobileComposePresetById: createPresetMap(),
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: () => state.positionMode,
+        readCameraLookMode: () => state.lookMode,
+        commitCameraPair: (nextPositionMode, nextLookMode) => {
+            state.positionMode = nextPositionMode;
+            state.lookMode = nextLookMode;
+            documentRef.dispatchEvent({ type: "camera-from-to-ui-updated" });
+            log.push("camera-commit");
+        },
         resolveActiveScene: () => ({
             cameraController: {
                 mountOffset: {
@@ -112,7 +116,6 @@ function createHarness({
         setActivePresetId: (presetId) => {
             state.activePresetId = presetId;
         },
-        createChangeEvent: () => ({ type: "change" }),
         onAfterApply: () => {
             log.push("after-apply");
         },
@@ -127,8 +130,6 @@ function createHarness({
         log,
         mountOffsetCalls,
         mobileComposeLockButtons,
-        desktopPosition,
-        desktopLook,
     };
 }
 
@@ -148,7 +149,7 @@ describe("createMobileComposeLockSync", () => {
         expect(harness.mobileComposeLockButtons[1].getAttribute("aria-selected")).toBe("true");
     });
 
-    it("falls back to the active preset or free when selectors do not match a preset", () => {
+    it("falls back to the active preset or free when camera modes do not match a preset", () => {
         const harness = createHarness({
             positionMode: "manual",
             lookMode: "manual",
@@ -169,7 +170,7 @@ describe("createMobileComposeLockSync", () => {
         expect(fallbackHarness.mobileComposeLockButtons[0].classList.contains("is-active")).toBe(true);
     });
 
-    it("clicking a compose lock preset clears mount offset, updates the selectors, and keeps callback order", () => {
+    it("clicking a compose lock preset clears mount offset, commits the pair, and keeps callback order", () => {
         const harness = createHarness({
             positionMode: "spacecraft",
             lookMode: "manual",
@@ -181,11 +182,11 @@ describe("createMobileComposeLockSync", () => {
 
         expect(harness.mountOffsetCalls).toEqual([[0, 0, 0]]);
         expect(harness.state.activePresetId).toBe("moon");
-        expect(harness.desktopPosition.value).toBe("spacecraft");
-        expect(harness.desktopLook.value).toBe("moon");
+        expect(harness.state.positionMode).toBe("spacecraft");
+        expect(harness.state.lookMode).toBe("moon");
         expect(harness.mobileComposeLockButtons[2].classList.contains("is-active")).toBe(true);
         expect(harness.log).toEqual([
-            "desktop-change",
+            "camera-commit",
             "after-apply",
             "button-click",
         ]);

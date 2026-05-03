@@ -5,17 +5,18 @@ import {
 
 function createMobileViewPresetSync(deps) {
     const {
+        documentRef = globalThis?.document,
         mobileViewButtons = [],
         mobileViewPresetById,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode = () => "manual",
+        readCameraLookMode = () => "manual",
+        commitCameraPair = () => {},
         getActivePresetId,
         setActivePresetId,
         getEnforceInProgress = () => false,
         setEnforceInProgress = () => {},
         isMobileViewport = () => false,
         getActiveTab = () => "",
-        createChangeEvent = () => new Event("change", { bubbles: true }),
         onAfterApply = () => {},
         onAfterEnforcedSync = () => {},
         onAfterButtonClick = () => {},
@@ -40,22 +41,19 @@ function createMobileViewPresetSync(deps) {
     }
 
     function applyPreset(presetId) {
-        if (!desktopPosition || !desktopLook) return;
         const preset = mobileViewPresetById.get(presetId);
         if (!preset) return;
 
         setActivePresetId(presetId);
-        desktopPosition.value = preset.positionMode;
-        desktopLook.value = preset.lookMode;
-        desktopPosition.dispatchEvent(createChangeEvent());
+        commitCameraPair(preset.positionMode, preset.lookMode);
         onAfterApply();
     }
 
     function syncState() {
-        if (!desktopPosition || !desktopLook || !buttons.length) return;
+        if (!buttons.length) return;
 
-        const positionMode = (desktopPosition.value || "").trim();
-        const lookMode = (desktopLook.value || "").trim();
+        const positionMode = String(readCameraPositionMode() || "").trim();
+        const lookMode = String(readCameraLookMode() || "").trim();
         const viewPresetState = resolveMobileViewPresetState({
             buttonPresetIds: readButtonPresetIds(),
             presetById: mobileViewPresetById,
@@ -98,18 +96,10 @@ function createMobileViewPresetSync(deps) {
             });
         });
 
-        if (desktopPosition) {
-            desktopPosition.addEventListener("change", () => {
-                syncState();
-                onAfterDesktopChange();
-            });
-        }
-        if (desktopLook) {
-            desktopLook.addEventListener("change", () => {
-                syncState();
-                onAfterDesktopChange();
-            });
-        }
+        documentRef?.addEventListener?.("camera-from-to-ui-updated", () => {
+            syncState();
+            onAfterDesktopChange();
+        });
     }
 
     return {

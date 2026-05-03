@@ -43,23 +43,6 @@ function createButtonStub() {
     };
 }
 
-function createSelectStub(initialValue) {
-    const listeners = new Map();
-    return {
-        value: initialValue,
-        addEventListener(type, handler) {
-            const handlers = listeners.get(type) || [];
-            handlers.push(handler);
-            listeners.set(type, handlers);
-        },
-        dispatchEvent(event) {
-            const handlers = listeners.get(event.type) || [];
-            handlers.forEach((handler) => handler.call(this, event));
-            return true;
-        },
-    };
-}
-
 function createHarness({
     activeTab = "compose",
     activePresetId = "earth",
@@ -69,17 +52,14 @@ function createHarness({
         activeTab,
         activePresetId,
         composeFeatureEnabled: true,
+        positionMode: "manual",
+        lookMode: "manual",
     };
     const mobileComposeEarthshineSlider = createSliderStub({ value: "1.2" });
     const mobileComposeEarthshineValue = createOutputStub();
     const mobileComposeRollSlider = createSliderStub({ value: "90" });
     const mobileComposeRollValue = createOutputStub();
-    const desktopPosition = createSelectStub("manual");
-    const desktopLook = createSelectStub("manual");
     const log = [];
-    desktopPosition.addEventListener("change", () => {
-        log.push("desktop-change");
-    });
     const craft = { visible: true };
     const mountOffsetCalls = [];
     const mountedManualRollCalls = [];
@@ -139,8 +119,13 @@ function createHarness({
         mobileComposeEarthshineValue,
         mobileComposeRollSlider,
         mobileComposeRollValue,
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: () => state.positionMode,
+        readCameraLookMode: () => state.lookMode,
+        commitCameraPair: (positionMode, lookMode) => {
+            state.positionMode = positionMode;
+            state.lookMode = lookMode;
+            log.push("camera-commit");
+        },
         mobileComposePresetById: new Map([
             ["free", { positionMode: "spacecraft", lookMode: "manual" }],
             ["earth", { positionMode: "spacecraft", lookMode: "earth" }],
@@ -154,7 +139,6 @@ function createHarness({
         isMobileViewport: () => true,
         getComposeFeatureEnabled: () => state.composeFeatureEnabled,
         getActivePresetId: () => state.activePresetId,
-        createChangeEvent: () => ({ type: "change" }),
         storage,
         lightSettings,
     });
@@ -163,8 +147,6 @@ function createHarness({
         state,
         sync,
         craft,
-        desktopPosition,
-        desktopLook,
         lightSettings,
         log,
         mobileComposeEarthshineSlider,
@@ -212,10 +194,10 @@ describe("createMobileComposeControlsSync", () => {
 
         harness.sync.syncControls();
 
-        expect(harness.desktopPosition.value).toBe("spacecraft");
-        expect(harness.desktopLook.value).toBe("earth");
+        expect(harness.state.positionMode).toBe("spacecraft");
+        expect(harness.state.lookMode).toBe("earth");
         expect(harness.log).toEqual([
-            "desktop-change",
+            "camera-commit",
             "lock-sync",
             "timeline-sync",
         ]);

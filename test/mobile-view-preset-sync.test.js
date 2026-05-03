@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createMobileViewPresetSync } from "../src/platform/js/ui/mobile-view-preset-sync.js";
 
@@ -49,10 +49,9 @@ function createPresetButton(presetId) {
     };
 }
 
-function createSelectStub(initialValue) {
+function createDocumentStub() {
     const listeners = new Map();
     return {
-        value: initialValue,
         addEventListener(type, handler) {
             const handlers = listeners.get(type) || [];
             handlers.push(handler);
@@ -84,16 +83,23 @@ function createSyncHarness({
         activePresetId,
         enforceInProgress: false,
         activeTab,
+        positionMode,
+        lookMode,
     };
+    const documentRef = createDocumentStub();
     const mobileViewButtons = [createPresetButton("earth"), createPresetButton("moon")];
-    const desktopPosition = createSelectStub(positionMode);
-    const desktopLook = createSelectStub(lookMode);
     const log = [];
     const sync = createMobileViewPresetSync({
+        documentRef,
         mobileViewButtons,
         mobileViewPresetById: createPresetMap(),
-        desktopPosition,
-        desktopLook,
+        readCameraPositionMode: () => state.positionMode,
+        readCameraLookMode: () => state.lookMode,
+        commitCameraPair: (nextPositionMode, nextLookMode) => {
+            state.positionMode = nextPositionMode;
+            state.lookMode = nextLookMode;
+            documentRef.dispatchEvent({ type: "camera-from-to-ui-updated" });
+        },
         getActivePresetId: () => state.activePresetId,
         setActivePresetId: (presetId) => {
             state.activePresetId = presetId;
@@ -104,7 +110,6 @@ function createSyncHarness({
         },
         isMobileViewport: () => mobileViewport,
         getActiveTab: () => state.activeTab,
-        createChangeEvent: () => ({ type: "change" }),
         onAfterApply: () => {
             log.push("after-apply");
         },
@@ -124,8 +129,6 @@ function createSyncHarness({
         sync,
         log,
         mobileViewButtons,
-        desktopPosition,
-        desktopLook,
     };
 }
 
@@ -160,8 +163,8 @@ describe("createMobileViewPresetSync", () => {
         harness.sync.syncState();
 
         expect(harness.state.activePresetId).toBe("moon");
-        expect(harness.desktopPosition.value).toBe("spacecraft");
-        expect(harness.desktopLook.value).toBe("moon");
+        expect(harness.state.positionMode).toBe("spacecraft");
+        expect(harness.state.lookMode).toBe("moon");
         expect(harness.state.enforceInProgress).toBe(false);
         expect(harness.mobileViewButtons[1].classList.contains("is-active")).toBe(true);
         expect(harness.log).toEqual([
@@ -183,12 +186,12 @@ describe("createMobileViewPresetSync", () => {
         harness.sync.syncState();
 
         expect(harness.state.activePresetId).toBe("moon");
-        expect(harness.desktopPosition.value).toBe("manual");
-        expect(harness.desktopLook.value).toBe("manual");
+        expect(harness.state.positionMode).toBe("manual");
+        expect(harness.state.lookMode).toBe("manual");
         expect(harness.log).toEqual([]);
     });
 
-    it("updates desktop selectors and preserves the click-change callback order", () => {
+    it("commits camera pairs and preserves the click-change callback order", () => {
         const harness = createSyncHarness({
             positionMode: "spacecraft",
             lookMode: "moon",
@@ -200,8 +203,8 @@ describe("createMobileViewPresetSync", () => {
         harness.mobileViewButtons[0].dispatch("click");
 
         expect(harness.state.activePresetId).toBe("earth");
-        expect(harness.desktopPosition.value).toBe("spacecraft");
-        expect(harness.desktopLook.value).toBe("earth");
+        expect(harness.state.positionMode).toBe("spacecraft");
+        expect(harness.state.lookMode).toBe("earth");
         expect(harness.mobileViewButtons[0].classList.contains("is-active")).toBe(true);
         expect(harness.mobileViewButtons[1].classList.contains("is-active")).toBe(false);
         expect(harness.log).toEqual([
