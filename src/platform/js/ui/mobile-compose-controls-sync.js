@@ -273,9 +273,12 @@ function createMobileComposeControlsSync(deps) {
     function initialize() {
         let initialEarthshineGain = 1;
         try {
-            const storedGain = Number(storage?.getItem?.(earthshineStorageKey));
-            if (Number.isFinite(storedGain)) {
-                initialEarthshineGain = storedGain;
+            const storedRaw = storage?.getItem?.(earthshineStorageKey);
+            if (storedRaw != null && String(storedRaw).trim() !== "") {
+                const storedGain = Number(storedRaw);
+                if (Number.isFinite(storedGain)) {
+                    initialEarthshineGain = storedGain;
+                }
             }
         } catch {
             initialEarthshineGain = 1;

@@ -1,26 +1,11 @@
 import {
     MOON_RENDER_ASSET_PATHS_STORAGE_KEY,
     MOON_RENDER_ASSET_PROFILE_STORAGE_KEY,
+    resolveMoonRenderAssetProfile,
 } from "./moon-render-asset-profiles.js";
 
 function normalizeProfile(value) {
     return String(value || "").trim().toLowerCase() === "quality" ? "quality" : "fast";
-}
-
-function readStoredProfile(globalObject) {
-    const storage = safeGetStorage(globalObject);
-    const storedProfile = storage?.getItem?.(MOON_RENDER_ASSET_PROFILE_STORAGE_KEY);
-    return storedProfile ? normalizeProfile(storedProfile) : null;
-}
-
-function readQueryProfile(globalObject) {
-    try {
-        const params = new URLSearchParams(String(globalObject?.location?.search || ""));
-        const raw = params.get("moonRenderProfile") || params.get("moonProfile");
-        return raw ? normalizeProfile(raw) : null;
-    } catch {
-        return null;
-    }
 }
 
 function safeGetStorage(globalObject) {
@@ -75,7 +60,7 @@ export function createMoonRenderProfileActions({
         if (globalValue) {
             return normalizeProfile(globalValue);
         }
-        return readQueryProfile(globalObject) || readStoredProfile(globalObject) || "fast";
+        return resolveMoonRenderAssetProfile({ globalObject });
     }
 
     function resetMoonRenderAssetPathOverrides() {

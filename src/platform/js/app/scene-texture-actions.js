@@ -13,7 +13,7 @@ export function applySceneTextures(scene, textures) {
 
 function syncLunarMoonFillLights(scene) {
     const renderSettings = scene?.moonRenderSettings || null;
-    const suppressLunarFillLighting =
+    const suppressLunarAmbientWash =
         (
             (Number.isFinite(Number(renderSettings?.terminatorIndirectOcclusion)) &&
                 Number(renderSettings?.terminatorIndirectOcclusion) >= 0.9) ||
@@ -23,14 +23,12 @@ function syncLunarMoonFillLights(scene) {
 
     const bodyAmbientLight = scene?.lightManager?.bodyAmbientLight || null;
     if (bodyAmbientLight) {
-        bodyAmbientLight.intensity = suppressLunarFillLighting
+        bodyAmbientLight.intensity = suppressLunarAmbientWash
             ? 0.0
             : (Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0.01);
     }
     if (scene?.lightFill) {
-        if (suppressLunarFillLighting) {
-            scene.lightFill.intensity = 0.0;
-        } else if (!Number.isFinite(scene.lightFill.intensity) || scene.lightFill.intensity <= 0) {
+        if (!Number.isFinite(scene.lightFill.intensity) || scene.lightFill.intensity <= 0) {
             scene.lightFill.intensity = Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02;
         }
     }

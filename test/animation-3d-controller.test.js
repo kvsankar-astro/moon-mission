@@ -26,6 +26,54 @@ function createTrailLine() {
 }
 
 describe("Animation3DController", () => {
+    it("keeps directional Earthshine active for detailed lunar shading profiles", () => {
+        const scene = {
+            initialized3D: true,
+            light: {
+                position: { set: vi.fn() },
+                target: { position: { set: vi.fn() }, updateMatrixWorld: vi.fn() },
+                shadow: { camera: { updateProjectionMatrix: vi.fn() } },
+            },
+            light2: { position: { set: vi.fn() } },
+            lightFill: {
+                position: { set: vi.fn() },
+                intensity: 0,
+            },
+            lightManager: {
+                bodyAmbientLight: { intensity: 0.5 },
+            },
+            sunRenderer: {
+                setDirection: vi.fn(),
+                updateAppearance: vi.fn(),
+            },
+            moonRenderSettings: {
+                terminatorIndirectOcclusion: 1.0,
+                terminatorShadowFloor: 0.0,
+            },
+            secondaryBodyRadius: 1,
+        };
+
+        const controller = new Animation3DController("geo", scene);
+        controller.pixelsPerAU = 1;
+        controller.updateLighting(
+            0,
+            {
+                EARTH: createCraftBodyState(0, 0, 0),
+                MOON: createCraftBodyState(1, 0, 0),
+            },
+            {
+                earthCentered: { x: -1, y: 0, z: 0 },
+                moonCentered: { x: -1, y: 0, z: 0 },
+                craftCenteredLightTime: { x: -1, y: 0, z: 0 },
+            },
+            null,
+        );
+
+        expect(scene.lightManager.bodyAmbientLight.intensity).toBe(0);
+        expect(scene.lightFill.position.set).toHaveBeenCalledWith(-1, 0, 0);
+        expect(scene.lightFill.intensity).toBeGreaterThan(0);
+    });
+
     it("updates positions for every craft body present in the scene state", () => {
         const primaryCraft = {
             position: { set: vi.fn() },

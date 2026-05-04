@@ -1,0 +1,143 @@
+import * as THREE from "three";
+
+export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
+    normalMapMaxWidth: 5760,
+    normalMapStrength: 2.48,
+    normalDetailBoost: 2.75,
+    normalDetailRadius: 3,
+});
+
+function resolveNormalMapSetting(value, fallback) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+export function buildMoonNormalMapFromHeightTexture(
+    heightTexture,
+    renderSettings = DEFAULT_MOON_NORMAL_MAP_SETTINGS,
+) {
+    const image = heightTexture?.image;
+    if (!image || typeof document === "undefined") {
+        return null;
+    }
+
+    const sourceWidth = Number(image.width) || 0;
+    const sourceHeight = Number(image.height) || 0;
+    if (sourceWidth < 2 || sourceHeight < 2) {
+        return null;
+    }
+
+    let width = sourceWidth;
+    let height = sourceHeight;
+    const maxWidth = Math.max(
+        512,
+        Math.round(
+            resolveNormalMapSetting(
+                renderSettings?.normalMapMaxWidth,
+                DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalMapMaxWidth,
+            ),
+        ),
+    );
+    if (width > maxWidth) {
+        const scale = maxWidth / width;
+        width = maxWidth;
+        height = Math.max(2, Math.round(height * scale));
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+        return null;
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    const sourceData = context.getImageData(0, 0, width, height).data;
+    const grayscale = new Float32Array(width * height);
+    let minHeight = Infinity;
+    let maxHeight = -Infinity;
+    for (let index = 0, pixel = 0; index < sourceData.length; index += 4, pixel += 1) {
+        const r = sourceData[index] / 255;
+        const g = sourceData[index + 1] / 255;
+        const b = sourceData[index + 2] / 255;
+        const heightValue = 0.299 * r + 0.587 * g + 0.114 * b;
+        grayscale[pixel] = heightValue;
+        if (heightValue < minHeight) {
+            minHeight = heightValue;
+        }
+        if (heightValue > maxHeight) {
+            maxHeight = heightValue;
+        }
+    }
+
+    const invHeightRange = 1 / Math.max(1e-5, maxHeight - minHeight);
+    const normalData = new Uint8Array(width * height * 4);
+    const detailBoost = resolveNormalMapSetting(
+        renderSettings?.normalDetailBoost,
+        DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalDetailBoost,
+    );
+    const detailRadius = Math.max(
+        2,
+        Math.round(
+            resolveNormalMapSetting(
+                renderSettings?.normalDetailRadius,
+                DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalDetailRadius,
+            ),
+        ),
+    );
+    const normalStrength = resolveNormalMapSetting(
+        renderSettings?.normalMapStrength,
+        DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalMapStrength,
+    );
+
+    const sampleHeight = (x, y) => {
+        const clampedX = Math.max(0, Math.min(width - 1, x));
+        const clampedY = Math.max(0, Math.min(height - 1, y));
+        const sample = grayscale[clampedY * width + clampedX];
+        return (sample - minHeight) * invHeightRange;
+    };
+
+    for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+            const hL = sampleHeight(x - 1, y);
+            const hR = sampleHeight(x + 1, y);
+            const hU = sampleHeight(x, y - 1);
+            const hD = sampleHeight(x, y + 1);
+            const hLWide = sampleHeight(x - detailRadius, y);
+            const hRWide = sampleHeight(x + detailRadius, y);
+            const hUWide = sampleHeight(x, y - detailRadius);
+            const hDWide = sampleHeight(x, y + detailRadius);
+            const gradientXFine = hR - hL;
+            const gradientYFine = hD - hU;
+            const gradientXWide = (hRWide - hLWide) / detailRadius;
+            const gradientYWide = (hDWide - hUWide) / detailRadius;
+            const gradientX = gradientXWide + (gradientXFine - gradientXWide) * detailBoost;
+            const gradientY = gradientYWide + (gradientYFine - gradientYWide) * detailBoost;
+
+            let nx = -1 * gradientX * normalStrength;
+            let ny = -1 * gradientY * normalStrength;
+            let nz = 1.0;
+            const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
+            nx *= invLen;
+            ny *= invLen;
+            nz *= invLen;
+
+            const outIndex = (y * width + x) * 4;
+            normalData[outIndex] = Math.round((nx * 0.5 + 0.5) * 255);
+            normalData[outIndex + 1] = Math.round((ny * 0.5 + 0.5) * 255);
+            normalData[outIndex + 2] = Math.round((nz * 0.5 + 0.5) * 255);
+            normalData[outIndex + 3] = 255;
+        }
+    }
+
+    const normalTexture = new THREE.DataTexture(normalData, width, height, THREE.RGBAFormat);
+    normalTexture.wrapS = heightTexture.wrapS;
+    normalTexture.wrapT = heightTexture.wrapT;
+    normalTexture.magFilter = THREE.LinearFilter;
+    normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
+    normalTexture.generateMipmaps = true;
+    normalTexture.flipY = heightTexture?.flipY !== false;
+    normalTexture.needsUpdate = true;
+    return normalTexture;
+}

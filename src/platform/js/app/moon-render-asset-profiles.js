@@ -4,29 +4,29 @@ const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
 });
 
 const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
-    normalMapMaxWidth: 4096,
-    normalMapStrength: 1.08,
-    normalDetailBoost: 1.0,
-    normalDetailRadius: 2,
-    normalScale: 0.92,
-    displacementScale: 0.0092,
-    displacementBias: -0.0041,
-    roughness: 0.965,
+    normalMapMaxWidth: 5760,
+    normalMapStrength: 2.16,
+    normalDetailBoost: 2.45,
+    normalDetailRadius: 3,
+    normalScale: 1.42,
+    displacementScale: 0.0118,
+    displacementBias: -0.0046,
+    roughness: 0.958,
     metalness: 0.0,
-    lommelSeeligerBlend: 0.18,
-    lsClampMin: 0.82,
-    lsClampMax: 1.12,
-    oppositionStrength: 0.0020,
+    lommelSeeligerBlend: 0.20,
+    lsClampMin: 0.76,
+    lsClampMax: 1.14,
+    oppositionStrength: 0.0022,
     shadowLift: 0.0,
-    highlightBoost: 1.015,
-    shadowWeightExponent: 1.56,
+    highlightBoost: 1.03,
+    shadowWeightExponent: 1.9,
     highlightWeightExponent: 1.0,
-    terminatorContrast: 1.78,
-    terminatorReliefStrength: 1.0,
-    terminatorShadowFloor: 0.35,
-    terminatorIndirectOcclusion: 0.55,
-    shadowNormalBias: 0.0012,
-    shadowBias: -0.00001,
+    terminatorContrast: 2.62,
+    terminatorReliefStrength: 6.2,
+    terminatorShadowFloor: 0.04,
+    terminatorIndirectOcclusion: 0.96,
+    shadowNormalBias: 0.00022,
+    shadowBias: -0.000004,
 });
 
 const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
@@ -90,6 +90,42 @@ function normalizeProfileName(value) {
     }
     if (normalized === "fast") {
         return "fast";
+    }
+    return null;
+}
+
+function resolveMissionSlug({ searchText = "", pathname = "" } = {}) {
+    try {
+        const params = new URLSearchParams(searchText);
+        const missionFromQuery = String(params.get("mission") || "").trim().toLowerCase();
+        if (missionFromQuery) {
+            return missionFromQuery;
+        }
+    } catch {
+        // Ignore malformed query strings.
+    }
+
+    const segments = String(pathname || "")
+        .split("/")
+        .map((segment) => segment.trim().toLowerCase())
+        .filter(Boolean);
+    if (segments.length === 0) {
+        return "";
+    }
+    const lastSegment = segments[segments.length - 1];
+    if (lastSegment && lastSegment !== "mission.html" && lastSegment !== "index.html") {
+        return lastSegment;
+    }
+    return "";
+}
+
+function resolveMissionDefaultMoonRenderProfile({
+    searchText = "",
+    pathname = "",
+} = {}) {
+    const missionSlug = resolveMissionSlug({ searchText, pathname });
+    if (missionSlug === "artemis2") {
+        return "quality";
     }
     return null;
 }
@@ -297,6 +333,7 @@ export function resolveMoonRenderAssetProfile({
     const searchText = search == null
         ? String(globalObject?.location?.search || "")
         : String(search || "");
+    const pathname = String(globalObject?.location?.pathname || "");
     const params = new URLSearchParams(searchText);
     const queryProfile = normalizeProfileName(
         params.get("moonRenderProfile") || params.get("moonProfile"),
@@ -308,6 +345,14 @@ export function resolveMoonRenderAssetProfile({
     const globalProfile = normalizeProfileName(globalObject?.MOON_RENDER_ASSET_PROFILE);
     if (globalProfile) {
         return globalProfile;
+    }
+
+    const missionDefaultProfile = resolveMissionDefaultMoonRenderProfile({
+        searchText,
+        pathname,
+    });
+    if (missionDefaultProfile) {
+        return missionDefaultProfile;
     }
 
     const storage = safeGetStorage(globalObject);

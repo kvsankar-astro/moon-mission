@@ -160,6 +160,18 @@ function createHarness({
 }
 
 describe("createMobileComposeControlsSync", () => {
+    it("defaults earthshine gain to 1 when storage has no saved value", () => {
+        const harness = createHarness({ storedEarthshineGain: null });
+
+        harness.sync.initialize();
+
+        expect(harness.mobileComposeEarthshineSlider.value).toBe("1.00");
+        expect(harness.mobileComposeEarthshineValue.textContent).toBe("1.00");
+        expect(harness.lightSettings.EARTHSHINE_INTENSITY).toBeCloseTo(0.08);
+        expect(harness.lightSettings.EARTHSHINE_MIN_INTENSITY).toBeCloseTo(0.015);
+        expect(harness.lightSettings.EARTHSHINE_MAX_INTENSITY).toBeCloseTo(0.08);
+    });
+
     it("initializes earthshine gain from storage without writing it back", () => {
         const harness = createHarness();
 

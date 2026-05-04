@@ -10,6 +10,7 @@ import {
     resolveMoonRenderAssetSelection,
     resolveMoonRenderProfileSettings,
 } from "./app/moon-render-asset-profiles.js";
+import { buildMoonNormalMapFromHeightTexture } from "./rendering/moon-normal-map.js";
 
 /** @type {Record<string, number>} */
 const TUNER_VIEW_DEFAULTS = Object.freeze({
@@ -316,97 +317,13 @@ function updateCamera() {
     camera.lookAt(0, 0, 0);
 }
 
-function buildNormalMapFromHeightTexture(heightTex, strength, maxWidth, detailBoost = 1.0, detailRadius = 2) {
-    const image = heightTex?.image;
-    if (!image || typeof document === "undefined") return null;
-
-    const sourceWidth = Number(image.width) || 0;
-    const sourceHeight = Number(image.height) || 0;
-    if (sourceWidth < 2 || sourceHeight < 2) return null;
-
-    let width = sourceWidth;
-    let height = sourceHeight;
-    if (width > maxWidth) {
-        const scale = maxWidth / width;
-        width = maxWidth;
-        height = Math.max(2, Math.round(height * scale));
-    }
-
-    const canvasEl = document.createElement("canvas");
-    canvasEl.width = width;
-    canvasEl.height = height;
-    const context = canvasEl.getContext("2d", { willReadFrequently: true });
-    if (!context) return null;
-
-    context.drawImage(image, 0, 0, width, height);
-    const sourceData = context.getImageData(0, 0, width, height).data;
-    const grayscale = new Float32Array(width * height);
-    let minHeight = Infinity;
-    let maxHeight = -Infinity;
-    for (let index = 0, pixel = 0; index < sourceData.length; index += 4, pixel += 1) {
-        const r = sourceData[index] / 255;
-        const g = sourceData[index + 1] / 255;
-        const b = sourceData[index + 2] / 255;
-        const heightValue = 0.299 * r + 0.587 * g + 0.114 * b;
-        grayscale[pixel] = heightValue;
-        if (heightValue < minHeight) minHeight = heightValue;
-        if (heightValue > maxHeight) maxHeight = heightValue;
-    }
-    const invHeightRange = 1 / Math.max(1e-5, maxHeight - minHeight);
-    const normalData = new Uint8Array(width * height * 4);
-    const resolvedDetailBoost = Number.isFinite(Number(detailBoost)) ? Number(detailBoost) : 1.0;
-    const resolvedDetailRadius = Math.max(2, Math.round(Number.isFinite(Number(detailRadius)) ? Number(detailRadius) : 2));
-
-    const sampleHeight = (x, y) => {
-        const cx = Math.max(0, Math.min(width - 1, x));
-        const cy = Math.max(0, Math.min(height - 1, y));
-        const sample = grayscale[cy * width + cx];
-        return (sample - minHeight) * invHeightRange;
-    };
-
-    for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width; x += 1) {
-            const hL = sampleHeight(x - 1, y);
-            const hR = sampleHeight(x + 1, y);
-            const hU = sampleHeight(x, y - 1);
-            const hD = sampleHeight(x, y + 1);
-            const hLWide = sampleHeight(x - resolvedDetailRadius, y);
-            const hRWide = sampleHeight(x + resolvedDetailRadius, y);
-            const hUWide = sampleHeight(x, y - resolvedDetailRadius);
-            const hDWide = sampleHeight(x, y + resolvedDetailRadius);
-            const gradientXFine = hR - hL;
-            const gradientYFine = hD - hU;
-            const gradientXWide = (hRWide - hLWide) / resolvedDetailRadius;
-            const gradientYWide = (hDWide - hUWide) / resolvedDetailRadius;
-            const gradientX = gradientXWide + (gradientXFine - gradientXWide) * resolvedDetailBoost;
-            const gradientY = gradientYWide + (gradientYFine - gradientYWide) * resolvedDetailBoost;
-
-            let nx = -1 * gradientX * strength;
-            let ny = -1 * gradientY * strength;
-            let nz = 1.0;
-            const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
-            nx *= invLen;
-            ny *= invLen;
-            nz *= invLen;
-
-            const outIndex = (y * width + x) * 4;
-            normalData[outIndex] = Math.round((nx * 0.5 + 0.5) * 255);
-            normalData[outIndex + 1] = Math.round((ny * 0.5 + 0.5) * 255);
-            normalData[outIndex + 2] = Math.round((nz * 0.5 + 0.5) * 255);
-            normalData[outIndex + 3] = 255;
-        }
-    }
-
-    const normalTexture = new THREE.DataTexture(normalData, width, height, THREE.RGBAFormat);
-    normalTexture.wrapS = heightTex.wrapS;
-    normalTexture.wrapT = heightTex.wrapT;
-    normalTexture.magFilter = THREE.LinearFilter;
-    normalTexture.minFilter = THREE.LinearMipmapLinearFilter;
-    normalTexture.generateMipmaps = true;
-    // DataTexture uploads should not rely on legacy pixel-store flip flags.
-    normalTexture.flipY = false;
-    normalTexture.needsUpdate = true;
-    return normalTexture;
+function buildTunerNormalMap(heightTex) {
+    return buildMoonNormalMapFromHeightTexture(heightTex, {
+        normalMapStrength: state.normalMapStrength,
+        normalMapMaxWidth: Math.max(512, Math.round(state.normalMapMaxWidth)),
+        normalDetailBoost: state.normalDetailBoost,
+        normalDetailRadius: state.normalDetailRadius,
+    });
 }
 
 function applyPhotometricShader(material) {
@@ -555,13 +472,7 @@ function scheduleNormalMapRebuild() {
     }
     normalMapRegenTimer = window.setTimeout(() => {
         normalMapRegenTimer = null;
-        const rebuilt = buildNormalMapFromHeightTexture(
-            heightTexture,
-            state.normalMapStrength,
-            Math.max(512, Math.round(state.normalMapMaxWidth)),
-            state.normalDetailBoost,
-            state.normalDetailRadius,
-        );
+        const rebuilt = buildTunerNormalMap(heightTexture);
         if (!rebuilt) return;
         if (generatedNormalMap) generatedNormalMap.dispose();
         generatedNormalMap = rebuilt;
@@ -904,13 +815,7 @@ async function reloadMoonAssets() {
         ]);
         configureLoadedMoonTextures(nextBaseTexture, nextHeightTexture);
 
-        const nextNormalTexture = buildNormalMapFromHeightTexture(
-            nextHeightTexture,
-            state.normalMapStrength,
-            Math.max(512, Math.round(state.normalMapMaxWidth)),
-            state.normalDetailBoost,
-            state.normalDetailRadius,
-        );
+        const nextNormalTexture = buildTunerNormalMap(nextHeightTexture);
 
         baseTexture = nextBaseTexture;
         heightTexture = nextHeightTexture;
@@ -958,13 +863,7 @@ async function initScene() {
     ]);
     configureLoadedMoonTextures(baseTexture, heightTexture);
 
-    generatedNormalMap = buildNormalMapFromHeightTexture(
-        heightTexture,
-        state.normalMapStrength,
-        Math.max(512, Math.round(state.normalMapMaxWidth)),
-        state.normalDetailBoost,
-        state.normalDetailRadius,
-    );
+    generatedNormalMap = buildTunerNormalMap(heightTexture);
     createMoon();
     applyRendererSettings();
     updateLightSettings();

@@ -144,7 +144,7 @@ export class Animation3DController {
         }
         const bodyAmbientLight = this.scene.lightManager?.bodyAmbientLight || null;
         const renderSettings = this.scene.moonRenderSettings || null;
-        const suppressLunarFillLighting =
+        const suppressLunarAmbientWash =
             (
                 (Number.isFinite(Number(renderSettings?.terminatorIndirectOcclusion)) &&
                     Number(renderSettings?.terminatorIndirectOcclusion) >= 0.9) ||
@@ -152,7 +152,7 @@ export class Animation3DController {
                     Number(renderSettings?.terminatorShadowFloor) <= 0.05)
             );
         if (bodyAmbientLight) {
-            bodyAmbientLight.intensity = suppressLunarFillLighting
+            bodyAmbientLight.intensity = suppressLunarAmbientWash
                 ? 0.0
                 : (Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0.01);
         }
@@ -277,11 +277,6 @@ export class Animation3DController {
         }
 
         if (compareDisplayProfile?.disableEarthshine) {
-            this.scene.lightFill.intensity = 0.0;
-            return;
-        }
-
-        if (suppressLunarFillLighting) {
             this.scene.lightFill.intensity = 0.0;
             return;
         }

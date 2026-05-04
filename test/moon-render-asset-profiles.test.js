@@ -29,6 +29,19 @@ describe("moon-render-asset-profiles", () => {
         ).toBe("quality");
     });
 
+    it("defaults Artemis II to the quality profile when no explicit override is present", () => {
+        expect(
+            resolveMoonRenderAssetProfile({
+                search: "?mission=artemis2",
+                globalObject: {
+                    location: {
+                        pathname: "/astro/lunar-missions/mission.html",
+                    },
+                },
+            }),
+        ).toBe("quality");
+    });
+
     it("merges global profile path overrides", () => {
         const profiles = resolveMoonRenderAssetProfiles({
             globalObject: {

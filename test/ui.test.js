@@ -1212,7 +1212,12 @@ async function setTimeline(page, target = '#burn1') {
   try {
     await ensureSettingsPanelClosed(page);
     const burnButton = await resolveTimelineTarget(page, target);
-    await page.click(burnButton);
+    await page.evaluate((selector) => {
+      const button = document.querySelector(selector);
+      if (button instanceof HTMLElement) {
+        button.click();
+      }
+    }, burnButton);
     await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
   } catch (e) {
     console.warn(`Could not set timeline to ${target}:`, e.message);
@@ -1271,11 +1276,15 @@ async function ensureOriginMode(page, mode) {
 }
 
 async function ensureFovOneDegree(page, enabled = true) {
+  await setFovDegrees(page, enabled ? 1 : 50);
+}
+
+async function setFovDegrees(page, degrees = 50) {
   const sliderValue = Math.round(
-    fovDegreesToZoomSliderValue(enabled ? 1 : 50, {
+    fovDegreesToZoomSliderValue(degrees, {
       minDegrees: 0.1,
       maxDegrees: 179,
-      fallbackDegrees: enabled ? 1 : 50,
+      fallbackDegrees: degrees,
     })
   );
   await page.evaluate((nextSliderValue) => {
@@ -1290,6 +1299,45 @@ async function ensureFovOneDegree(page, enabled = true) {
     slider.dispatchEvent(new Event('input', { bubbles: true }));
   }, sliderValue);
   await page.waitForTimeout(TIMEOUTS.QUICK_DELAY);
+}
+
+async function ensureMoonRenderProfile(page, profile = 'fast') {
+  const normalizedProfile = String(profile || '').trim().toLowerCase() === 'quality' ? 'quality' : 'fast';
+  await page.evaluate((nextProfile) => {
+    const buttonId = nextProfile === 'quality'
+      ? 'moon-profile-pill-quality'
+      : 'moon-profile-pill-fast';
+    const button = document.getElementById(buttonId);
+    if (button instanceof HTMLElement) {
+      button.click();
+    }
+  }, normalizedProfile);
+
+  await page.waitForFunction((nextProfile) => {
+    const activeProfile = String(window.MOON_RENDER_ASSET_PROFILE || '').trim().toLowerCase();
+    const button = document.getElementById(
+      nextProfile === 'quality'
+        ? 'moon-profile-pill-quality'
+        : 'moon-profile-pill-fast',
+    );
+    const pressed = button?.getAttribute('aria-pressed') === 'true';
+    return pressed && (
+      activeProfile === nextProfile ||
+      (nextProfile === 'fast' && !activeProfile)
+    );
+  }, normalizedProfile, { timeout: TIMEOUTS.SCENE_READY_TIMEOUT });
+
+  await waitForScene(page);
+  await page.waitForFunction((nextProfile) => {
+    const currentOrigin = document.querySelector('#origin-relative:checked')
+      ? 'relative'
+      : document.querySelector('#origin-moon:checked')
+        ? 'lunar'
+        : 'geo';
+    const sceneProfile = window.animationScenes?.[currentOrigin]?.moonRenderProfile || null;
+    return !sceneProfile || sceneProfile === nextProfile;
+  }, normalizedProfile, { timeout: TIMEOUTS.CLEANUP_TIMEOUT });
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
 
 async function ensureAnimationPaused(page) {
@@ -1532,6 +1580,41 @@ async function prepareRelativePageLoadView(page) {
       controls.update();
     }
   });
+  await waitForScene(page);
+  await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+}
+
+async function prepareMoonReliefRegressionView(page, {
+  origin = 'earth',
+  profile = 'fast',
+} = {}) {
+  await ensureAnimationPaused(page);
+  await setTimeline(page, 'cy3DataEnd');
+  await ensureOriginMode(page, origin);
+  await waitForScene(page);
+
+  await openSettingsPanel(page);
+  if (!await page.isChecked('#dimension-3D')) {
+    await page.click('#dimension-3D');
+    await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
+  }
+  await ensureCheckboxState(page, '#view-orbit', false);
+  await ensureCheckboxState(page, '#view-orbit-descent', false);
+  await ensureCheckboxState(page, '#view-sky', false);
+  await ensureCheckboxState(page, '#view-body-halos', false);
+  await ensureCheckboxState(page, '#view-xyz-axes', false);
+  await ensureCheckboxState(page, '#view-poles', false);
+  await ensureCheckboxState(page, '#view-polar-axes', false);
+  const moonSoiToggle = page.locator('#view-moonsoi');
+  if (await moonSoiToggle.count() > 0) {
+    await ensureCheckboxState(page, '#view-moonsoi', false);
+  }
+  await setCameraPair(page, 'spacecraft__moon');
+  await closeSettingsPanel(page);
+
+  await waitForScene(page);
+  await setFovDegrees(page, 6);
+  await ensureMoonRenderProfile(page, profile);
   await waitForScene(page);
   await page.waitForTimeout(TIMEOUTS.STANDARD_DELAY);
 }
@@ -3915,6 +3998,73 @@ describe('Chandrayaan-3 UI Tests - Simplified', () => {
 
       expect(comparison.isMatch).toBe(true);
     });
+  });
+
+  describe('Test Suite 6b: Moon Relief Regression Guards', () => {
+    afterEach(async () => {
+      await ensureAnimationPaused(page);
+      await ensureMoonRenderProfile(page, 'fast');
+      await openSettingsPanel(page);
+      await setCameraPair(page, 'manual__manual');
+      await ensureFovOneDegree(page, false);
+      await ensureCheckboxState(page, '#view-orbit', true);
+      await ensureCheckboxState(page, '#view-orbit-descent', true);
+      await ensureCheckboxState(page, '#view-sky', true);
+      await ensureCheckboxState(page, '#view-xyz-axes', false);
+      await ensureCheckboxState(page, '#view-poles', false);
+      await ensureCheckboxState(page, '#view-polar-axes', false);
+      await closeSettingsPanel(page);
+      await ensureOriginMode(page, 'earth');
+      await setTimeline(page, '#burn1');
+    }, TIMEOUTS.CLEANUP_TIMEOUT);
+
+    it('Earth Origin Moon Relief uses Standard profile consistently', async () => {
+      const testId = 'earth-3d-moon-relief-standard';
+      await startTest(page, testId);
+      await prepareMoonReliefRegressionView(page, { origin: 'earth', profile: 'fast' });
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH,
+      );
+
+      expect(comparison.isMatch).toBe(true);
+    }, TIMEOUTS.CLEANUP_TIMEOUT);
+
+    it('Earth Origin Moon Relief uses Detailed profile consistently', async () => {
+      const testId = 'earth-3d-moon-relief-detailed';
+      await startTest(page, testId);
+      await prepareMoonReliefRegressionView(page, { origin: 'earth', profile: 'quality' });
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH,
+      );
+
+      expect(comparison.isMatch).toBe(true);
+    }, TIMEOUTS.CLEANUP_TIMEOUT);
+
+    it('Moon Origin Moon Relief uses Detailed profile consistently', async () => {
+      const testId = 'moon-3d-moon-relief-detailed';
+      await startTest(page, testId);
+      await prepareMoonReliefRegressionView(page, { origin: 'moon', profile: 'quality' });
+
+      const comparison = await compareScreenshots(
+        page,
+        `${testId}.png`,
+        `${testId}.png`,
+        testId,
+        TOLERANCE.APPROX_MATCH,
+      );
+
+      expect(comparison.isMatch).toBe(true);
+    }, TIMEOUTS.CLEANUP_TIMEOUT);
   });
 
   // Helper functions for Test Suite 7
