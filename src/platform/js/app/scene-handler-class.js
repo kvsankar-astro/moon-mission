@@ -23,6 +23,7 @@ function createSceneHandlerClass(deps) {
             this.renderer = null;
             this.canvasNode = null;
             this.auxiliaryCameraViews = null;
+            this.auxiliaryCameraViewsInitializing = false;
             this.desktopPanelManager = null;
             this.initialized = false;
             this.lastAnimationScene = null;
@@ -64,23 +65,37 @@ function createSceneHandlerClass(deps) {
         }
 
         ensureAuxiliaryCameraViews() {
-            if (this.auxiliaryCameraViews || isTestMode || window.innerWidth <= 600) {
+            if (this.auxiliaryCameraViews || this.auxiliaryCameraViewsInitializing || isTestMode || window.innerWidth <= 600) {
                 return this.auxiliaryCameraViews;
             }
 
             const overlayHost = document.getElementById("content-wrapper") ||
                 document.getElementById("wrapper") ||
                 document.body;
-            this.auxiliaryCameraViews = new AuxiliaryCameraViewsManager({
-                THREE,
-                overlayHost,
-                requestRender: () => {
-                    if (this.lastAnimationScene) {
-                        this.render(this.lastAnimationScene);
-                    }
-                },
-            });
-            return this.auxiliaryCameraViews;
+            const pendingManager = {
+                render() {},
+                dispose() {},
+            };
+            this.auxiliaryCameraViewsInitializing = true;
+            this.auxiliaryCameraViews = pendingManager;
+            try {
+                const manager = new AuxiliaryCameraViewsManager({
+                    THREE,
+                    overlayHost,
+                    requestRender: () => {
+                        if (this.lastAnimationScene) {
+                            this.render(this.lastAnimationScene);
+                        }
+                    },
+                });
+                this.auxiliaryCameraViews = manager;
+                return manager;
+            } finally {
+                this.auxiliaryCameraViewsInitializing = false;
+                if (this.auxiliaryCameraViews === pendingManager) {
+                    this.auxiliaryCameraViews = null;
+                }
+            }
         }
 
         render(animationScene) {
