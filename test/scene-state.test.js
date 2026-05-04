@@ -162,7 +162,10 @@ describe("computeSceneState", () => {
             createSceneOptions({ includeNextState: false }),
         );
 
-        expect(getBodyEphemerisState).toHaveBeenCalledTimes(1);
+        expect(getBodyEphemerisState).toHaveBeenCalledTimes(2);
+        expect(
+            getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "SC"),
+        ).toHaveLength(1);
     });
 
     it("reuses relative-frame Moon state instead of querying Moon twice", () => {
