@@ -49,6 +49,11 @@ function getMissionPanelDefaultState(missionConfig, panelId, { fallbackState = "
     return normalizeMissionPanelState(panelConfig?.defaultState, fallbackState);
 }
 
+function getMissionPanelLayoutPresetVersion(missionConfig, panelId) {
+    const panelConfig = getMissionPanelDefaultConfig(missionConfig, panelId);
+    return String(panelConfig?.layoutPresetVersion || "").trim();
+}
+
 function shouldMissionPanelAutoOpenBeforeEvent(missionConfig, panelId, { fallback = false } = {}) {
     const panelConfig = getMissionPanelDefaultConfig(missionConfig, panelId);
     if (typeof panelConfig?.autoOpenBeforeEvent === "boolean") {
@@ -60,6 +65,7 @@ function shouldMissionPanelAutoOpenBeforeEvent(missionConfig, panelId, { fallbac
 export {
     getMissionPanelDefaultConfig,
     getMissionPanelDefaultState,
+    getMissionPanelLayoutPresetVersion,
     isMissionPanelEnabled,
     normalizeMissionPanelState,
     shouldMissionPanelAutoOpenBeforeEvent,

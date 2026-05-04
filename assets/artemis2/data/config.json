@@ -105,19 +105,23 @@
       "defaults": {
         "aux:earth": {
           "enabled": true,
-          "defaultState": "open"
+          "defaultState": "open",
+          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
         },
         "aux:moon": {
           "enabled": true,
-          "defaultState": "minimized"
+          "defaultState": "open",
+          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
         },
         "aux:earth-to-moon": {
           "enabled": true,
-          "defaultState": "minimized"
+          "defaultState": "open",
+          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
         },
         "aux:earth-rise-composer": {
           "enabled": true,
-          "defaultState": "minimized"
+          "defaultState": "minimized",
+          "layoutPresetVersion": "artemis2-flyby-focus-windowed-v1"
         },
         "workflow:splashdown": {
           "enabled": true,
@@ -127,6 +131,7 @@
       }
     },
     "viewDefaults": {
+      "viewAuxiliaryPanels": true,
       "viewXYZAxes": false,
       "viewPoles": false,
       "viewPolarAxes": false,

@@ -11,6 +11,7 @@ import {
 } from "./panel-layout-store.js";
 import {
     getMissionPanelDefaultState,
+    getMissionPanelLayoutPresetVersion,
     isMissionPanelEnabled,
     normalizeMissionPanelState,
 } from "./panel-defaults.js";
@@ -74,9 +75,9 @@ const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
-const PANEL_SIDE_RATIO_DEFAULT = 0.27;
+const PANEL_DEFAULT_HEIGHT_RATIO = 0.20;
 const PANEL_SIDE_RATIO_COMPOSER = 0.52;
-const PANEL_MIN_SIDE_DEFAULT = 160;
+const PANEL_MIN_SIDE_DEFAULT = 120;
 const PANEL_MIN_SIDE_COMPOSER = 300;
 const STARTUP_MINIMIZED_PANEL_IDS = new Set(["moon", "earth-to-moon"]);
 const COMPOSER_DEFAULT_ASPECT_RATIO = 16 / 9;
@@ -180,6 +181,13 @@ function safeParseJson(text, fallbackValue) {
     }
 }
 
+function asTrimmedString(value) {
+    if (typeof value !== "string") {
+        return "";
+    }
+    return value.trim();
+}
+
 function isDesktopViewport() {
     return window.innerWidth > 600;
 }
@@ -198,14 +206,18 @@ function shouldEnableEarthriseComposer(missionConfig) {
 
 function shouldEnableAuxiliaryPanels(missionConfig) {
     const ui = missionConfig?.ui;
-    if (!ui || typeof ui !== "object") {
-        return false;
+    if (ui && typeof ui === "object" && typeof ui.auxiliaryPanelsEnabled === "boolean") {
+        return ui.auxiliaryPanelsEnabled;
     }
-    if (ui.auxiliaryPanelsEnabled === true) {
+    const features = ui?.features;
+    if (features && typeof features === "object" && typeof features.auxiliaryPanels === "boolean") {
+        return features.auxiliaryPanels;
+    }
+    if (missionConfig?.is_lunar === true) {
         return true;
     }
-    const features = ui.features;
-    return !!(features && typeof features === "object" && features.auxiliaryPanels === true);
+    const origins = Array.isArray(missionConfig?.origins) ? missionConfig.origins : [];
+    return origins.includes("lunar");
 }
 
 function getAuxiliaryPanelFallbackState(spec) {
@@ -561,6 +573,7 @@ class AuxiliaryCameraViewsManager {
                 height: Math.round(panelState.panel.offsetHeight || panelState.height || 0),
                 state: this.getPanelRegistryState(panelState),
                 maximized: panelState.maximized === true,
+                layoutPresetVersion: asTrimmedString(panelState.layoutPresetVersion),
                 restoreFrame: panelState.restoreFrame && typeof panelState.restoreFrame === "object"
                     ? {
                         x: Math.round(Number(panelState.restoreFrame.x) || 0),
@@ -923,8 +936,9 @@ class AuxiliaryCameraViewsManager {
             .filter((panelState) => panelState.defaultLayoutManaged !== false)
             .map((panelState) => {
             const isComposer = panelState.mode === "composer";
-            const ratio = isComposer ? PANEL_SIDE_RATIO_COMPOSER : PANEL_SIDE_RATIO_DEFAULT;
-            const sideFromFormula = ratio * h;
+            const sideFromFormula = isComposer
+                ? (PANEL_SIDE_RATIO_COMPOSER * h)
+                : (PANEL_DEFAULT_HEIGHT_RATIO * viewportHeight);
             const minSideTarget = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
             const minSide = Math.min(minSideTarget, maxSideFromWidth);
             let width = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
@@ -1159,12 +1173,7 @@ class AuxiliaryCameraViewsManager {
             persist: true,
             requestRender: false,
         });
-        if (wasHidden && panelState.mode === "composer") {
-            this.setPanelMaximized(panelState, true, {
-                persist: false,
-                requestRender: false,
-            });
-        } else if (wasHidden && panelState.defaultLayoutManaged !== false) {
+        if (wasHidden && panelState.defaultLayoutManaged !== false) {
             this.scheduleDefaultPanelLayout();
         }
         this.bringPanelToFront(panelState);
@@ -1905,6 +1914,7 @@ class AuxiliaryCameraViewsManager {
         const persistedLayout = readMissionPanelState(panelRegistryId);
         const persistedState = normalizeMissionPanelState(persistedLayout?.state, "");
         const hasPersistedVisibilityState = persistedState.length > 0;
+        const persistedLayoutPresetVersion = asTrimmedString(persistedLayout?.layoutPresetVersion);
         const persistedX = Number(persistedLayout?.x);
         const persistedY = Number(persistedLayout?.y);
         const persistedWidth = Number(persistedLayout?.width);
@@ -2053,15 +2063,13 @@ class AuxiliaryCameraViewsManager {
             minimized: false,
             closed: false,
             deleted: false,
-            maximized: persistedLayout?.maximized === true || (
-                hasPersistedVisibilityState !== true &&
-                panelMode === "composer"
-            ),
+            maximized: persistedLayout?.maximized === true,
             restoreFrame: this.normalizePanelRestoreFrame(persistedLayout?.restoreFrame, null),
             panelRegistryId,
             sortOrder: index,
             fallbackDefaultState: getAuxiliaryPanelFallbackState(spec),
             hasPersistedVisibilityState,
+            layoutPresetVersion: persistedLayoutPresetVersion,
             defaultLayoutManaged: hasPersistedFrame !== true,
             defaultStateApplied: hasPersistedVisibilityState,
             composerOnboarded: true,
@@ -3014,6 +3022,23 @@ class AuxiliaryCameraViewsManager {
         this.composerEnabled = nextComposerEnabled;
         this.lastMissionConfig = missionConfig;
         for (const panelState of this.panels) {
+            const configuredLayoutPresetVersion = getMissionPanelLayoutPresetVersion(
+                missionConfig,
+                panelState.panelRegistryId,
+            );
+            if (
+                configuredLayoutPresetVersion &&
+                configuredLayoutPresetVersion !== panelState.layoutPresetVersion
+            ) {
+                panelState.layoutPresetVersion = configuredLayoutPresetVersion;
+                panelState.hasPersistedVisibilityState = false;
+                panelState.defaultStateApplied = false;
+                panelState.defaultLayoutManaged = true;
+                panelState.restoreFrame = null;
+                panelState.maximized = false;
+                panelState.panel.classList.toggle("is-maximized", panelState.maximized === true);
+                this.syncPanelExpandButton(panelState);
+            }
             if (
                 missionConfig &&
                 typeof missionConfig === "object" &&
@@ -6053,4 +6078,5 @@ export {
     AUXILIARY_VIEW_CAMERA_PRESETS,
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
+    shouldEnableAuxiliaryPanels,
 };
