@@ -162,7 +162,10 @@ describe("computeSceneState", () => {
             createSceneOptions({ includeNextState: false }),
         );
 
-        expect(getBodyEphemerisState).toHaveBeenCalledTimes(1);
+        expect(getBodyEphemerisState).toHaveBeenCalledTimes(2);
+        expect(
+            getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "SC"),
+        ).toHaveLength(1);
     });
 
     it("reuses relative-frame Moon state instead of querying Moon twice", () => {
@@ -335,6 +338,118 @@ describe("computeSceneState", () => {
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(0);
         expect(getRelativeFrameQuaternion).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses the SUN ephemeris even when SUN is not part of the displayed body list", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "EARTH") {
+                return {
+                    position: { x: 0, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "MOON") {
+                return {
+                    position: { x: 1, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SC") {
+                return {
+                    position: { x: 0, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SUN") {
+                return {
+                    position: { x: 0, y: 10, z: 10 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: null,
+                velocity: null,
+                available: false,
+            };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                sunLongitude: 0,
+                planetsForLocations: ["MOON", "SC"],
+                globalConfig: {
+                    spacecraft_mnemonic: "SC",
+                    landing: { enabled: false },
+                    is_lunar: true,
+                },
+            }),
+        );
+
+        expect(
+            getBodyEphemerisState.mock.calls.some(([args]) => args.bodyId === "SUN"),
+        ).toBe(true);
+        expect(sceneState.sunDirection.x).toBeCloseTo(0, 12);
+        expect(sceneState.sunDirection.y).toBeCloseTo(Math.SQRT1_2, 12);
+        expect(sceneState.sunDirection.z).toBeCloseTo(Math.SQRT1_2, 12);
+        expect(sceneState.sunDirections.earthCentered.z).toBeCloseTo(Math.SQRT1_2, 12);
+        expect(sceneState.sunDirections.moonCentered.z).toBeGreaterThan(0.7);
+    });
+
+    it("uses the implicit Moon-at-origin state for lunar scene lighting", () => {
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "EARTH") {
+                return {
+                    position: { x: 1, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SC") {
+                return {
+                    position: { x: 0, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SUN") {
+                return {
+                    position: { x: 0, y: 10, z: 10 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            return {
+                position: null,
+                velocity: null,
+                available: false,
+            };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "lunar",
+            createSceneOptions({
+                includeNextState: false,
+                sunLongitude: 0,
+                planetsForLocations: ["EARTH", "SC"],
+                globalConfig: {
+                    spacecraft_mnemonic: "SC",
+                    landing: { enabled: false },
+                    is_lunar: true,
+                },
+            }),
+        );
+
+        expect(sceneState.sunDirections.moonCentered.x).toBeCloseTo(0, 12);
+        expect(sceneState.sunDirections.moonCentered.y).toBeCloseTo(Math.SQRT1_2, 12);
+        expect(sceneState.sunDirections.moonCentered.z).toBeCloseTo(Math.SQRT1_2, 12);
     });
 
     it("rotates sun direction with precomputed relative frame data", () => {

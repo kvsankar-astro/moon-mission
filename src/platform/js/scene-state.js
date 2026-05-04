@@ -380,6 +380,52 @@ function resolveBodyStateById(bodies, bodyId) {
     return null;
 }
 
+function createOriginBodyState(source = "origin-frame") {
+    return {
+        position: { x: 0, y: 0, z: 0 },
+        velocity: { vx: 0, vy: 0, vz: 0 },
+        available: true,
+        source,
+    };
+}
+
+function resolveImplicitOriginBodyState(config, bodyId) {
+    const normalizedBodyId = normalizeBodyId(bodyId);
+    if (normalizedBodyId === "EARTH" && (config === "geo" || config === "relative")) {
+        return createOriginBodyState();
+    }
+    if (normalizedBodyId === "MOON" && config === "lunar") {
+        return createOriginBodyState();
+    }
+    return null;
+}
+
+function resolveLightingReferenceBodyState(displayBodies, config, bodyId) {
+    const resolvedState = resolveBodyStateById(displayBodies, bodyId);
+    if (resolvedState?.available) {
+        return resolvedState;
+    }
+    return resolveImplicitOriginBodyState(config, bodyId);
+}
+
+function resolveLightingSunState({
+    displayBodies,
+    time,
+    frameMode,
+    sunFrameMode,
+    resolveSunStateAtTime,
+}) {
+    const resolvedState = resolveBodyStateById(displayBodies, "SUN");
+    if (resolvedState?.available) {
+        return resolvedState;
+    }
+    if (frameMode === "relative" && sunFrameMode !== "relative") {
+        return null;
+    }
+    const ephemerisState = resolveSunStateAtTime(time);
+    return ephemerisState?.available ? ephemerisState : null;
+}
+
 // ============================================================================
 // Telemetry Computation
 // ============================================================================
@@ -667,7 +713,7 @@ export function computeSceneState(time, config, options) {
     }
 
     // 2. Body states
-    const bodies = {};
+    const displayBodies = {};
     /** @type {any} */
     const dataForBodies = {
         chebyshevData,
@@ -692,7 +738,7 @@ export function computeSceneState(time, config, options) {
     };
 
     for (const bodyId of planetsForLocations) {
-        bodies[bodyId] = computeBodyState(bodyId, time, config, dataForBodies);
+        displayBodies[bodyId] = computeBodyState(bodyId, time, config, dataForBodies);
     }
 
     const resolveSunStateAtTime = (timeMs) =>
@@ -718,7 +764,7 @@ export function computeSceneState(time, config, options) {
     let telemetryBodyId = null;
     let telemetryBodyState = null;
     for (const preferredCraftId of preferredCraftIds) {
-        const state = resolveBodyStateById(bodies, preferredCraftId);
+        const state = resolveBodyStateById(displayBodies, preferredCraftId);
         if (state?.available) {
             telemetryBodyId = preferredCraftId;
             telemetryBodyState = state;
@@ -726,9 +772,16 @@ export function computeSceneState(time, config, options) {
         }
     }
 
-    const earthState = resolveBodyStateById(bodies, "EARTH");
-    const moonState = resolveBodyStateById(bodies, "MOON");
-    let sunState = resolveBodyStateById(bodies, "SUN");
+    const sunFrameMode = chebyshevData?.[config]?.metadata?.sun_frame || "inertial";
+    const earthState = resolveLightingReferenceBodyState(displayBodies, config, "EARTH");
+    const moonState = resolveLightingReferenceBodyState(displayBodies, config, "MOON");
+    const sunState = resolveLightingSunState({
+        displayBodies,
+        time,
+        frameMode,
+        sunFrameMode,
+        resolveSunStateAtTime,
+    });
 
     const earthCenteredSunDirection = (
         sunState?.available && earthState?.available
@@ -781,7 +834,7 @@ export function computeSceneState(time, config, options) {
     };
 
     const telemetry = telemetryBodyState
-        ? computeTelemetry(telemetryBodyState, config, bodies.MOON, bodies.EARTH)
+        ? computeTelemetry(telemetryBodyState, config, moonState, earthState)
         : null;
 
     // 4. Mission phase (only for lunar missions)
@@ -799,7 +852,7 @@ export function computeSceneState(time, config, options) {
         // Backward compatibility: keep top-level sunDirection as Earth-centered.
         sunDirection: earthCenteredSunDirection,
         sunDirections,
-        bodies,
+        bodies: displayBodies,
         telemetryBodyId,
         telemetry,
         phase,
