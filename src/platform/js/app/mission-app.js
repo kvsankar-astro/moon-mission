@@ -89,6 +89,8 @@ export function startMissionApp({ eventBus, handlers }) {
         toggleInfo: (event) => eventBus.emit("ui:infoToggle", { event }),
         setMoonRenderProfile: handlers.setMoonRenderProfile,
         getMoonRenderProfile: handlers.getMoonRenderProfile,
+        setPhotoMode: handlers.setPhotoMode,
+        getPhotoMode: handlers.getPhotoMode,
     });
     bindKeyboardShortcuts();
     bindControlPanelToggle();

@@ -39,6 +39,10 @@ describe("Animation3DController", () => {
                 position: { set: vi.fn() },
                 intensity: 0,
             },
+            lightMoonshine: {
+                position: { set: vi.fn() },
+                intensity: 0,
+            },
             lightManager: {
                 bodyAmbientLight: { intensity: 0.5 },
             },
@@ -72,6 +76,8 @@ describe("Animation3DController", () => {
         expect(scene.lightManager.bodyAmbientLight.intensity).toBe(0);
         expect(scene.lightFill.position.set).toHaveBeenCalledWith(-1, 0, 0);
         expect(scene.lightFill.intensity).toBeGreaterThan(0);
+        expect(scene.lightMoonshine.position.set).toHaveBeenCalledWith(1, 0, 0);
+        expect(scene.lightMoonshine.intensity).toBeGreaterThan(0);
     });
 
     it("updates positions for every craft body present in the scene state", () => {
@@ -209,6 +215,10 @@ describe("Animation3DController", () => {
                 position: { set: vi.fn() },
                 intensity: 0.25,
             },
+            lightMoonshine: {
+                position: { set: vi.fn() },
+                intensity: 0.1,
+            },
             sunRenderer: {
                 setDirection: vi.fn(),
                 updateAppearance: vi.fn(),
@@ -267,5 +277,6 @@ describe("Animation3DController", () => {
         expect(scene.light2.position.set).toHaveBeenCalledWith(0, 1, 0);
         expect(updateSolarArrayTracking).toHaveBeenCalledWith(fixedSunDirection);
         expect(scene.lightFill.intensity).toBe(0);
+        expect(scene.lightMoonshine.intensity).toBe(0);
     });
 });

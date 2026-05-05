@@ -47,4 +47,21 @@ describe("MoonRenderer", () => {
 
         moonRenderer.dispose();
     });
+
+    it("initializes lunar photometric presentation defaults on the Moon material", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.025, 4);
+        expect(material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 4);
+        expect(material.userData.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 4);
+
+        moonRenderer.dispose();
+    });
 });

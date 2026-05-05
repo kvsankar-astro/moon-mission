@@ -303,6 +303,7 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setPlaneVariablesState(planeConfig, getState("config"));
         },
         setViewFlags: (view = {}) => {
+            setBooleanStateIfDefined("viewPhotoMode", view.viewPhotoMode);
             setBooleanStateIfDefined("viewAuxiliaryPanels", view.viewAuxiliaryPanels);
             setBooleanStateIfDefined("viewOrbit", view.viewOrbit);
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);

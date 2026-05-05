@@ -15,6 +15,8 @@ function createMainControlControllers({
     toggleLanding,
     getMoonRenderProfile,
     setMoonRenderProfile,
+    getPhotoMode,
+    setPhotoMode,
     headerPillStripController,
     createSharedControlBackendImpl = createSharedControlBackend,
     createCameraPillControllerImpl = createCameraPillController,
@@ -40,6 +42,8 @@ function createMainControlControllers({
             controlBackend,
             getMoonRenderProfile,
             setMoonRenderProfile,
+            getPhotoMode,
+            setPhotoMode,
         }),
         focusPillController: createFocusPillControllerImpl({
             invokeMissionPanelAction: invokeMissionPanelActionImpl,

@@ -24,6 +24,10 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getDimensionChanged(),
             (value) => { runtimeViewState.setDimensionChanged(value); },
         ),
+        viewPhotoMode: createMutableStateCell(
+            () => runtimeViewState.getViewPhotoMode(),
+            (value) => { runtimeViewState.setViewPhotoMode(value); },
+        ),
         viewAuxiliaryPanels: createMutableStateCell(
             () => runtimeViewState.getViewAuxiliaryPanels(),
             (value) => { runtimeViewState.setViewAuxiliaryPanels(value); },

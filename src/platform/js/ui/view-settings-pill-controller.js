@@ -19,6 +19,7 @@ export const DEFAULT_MOON_PROFILE_PILL_PAIRS = [
     ["moon-profile-pill-fast", "fast"],
     ["moon-profile-pill-quality", "quality"],
 ];
+export const DEFAULT_PHOTO_MODE_PILL_ID = "photo-mode-pill";
 
 export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
@@ -48,11 +49,18 @@ export function createViewSettingsPillController(deps = {}) {
     const originPillPairs = deps.originPillPairs || DEFAULT_ORIGIN_PILL_PAIRS;
     const dimensionPillPairs = deps.dimensionPillPairs || DEFAULT_DIMENSION_PILL_PAIRS;
     const moonProfilePillPairs = deps.moonProfilePillPairs || DEFAULT_MOON_PROFILE_PILL_PAIRS;
+    const photoModePillId = deps.photoModePillId || DEFAULT_PHOTO_MODE_PILL_ID;
     const togglePillPairs = deps.togglePillPairs || DEFAULT_TOGGLE_PILL_PAIRS;
     const getMoonRenderProfile = typeof deps.getMoonRenderProfile === "function"
         ? deps.getMoonRenderProfile
         : resolveMoonRenderAssetProfile;
     const setMoonRenderProfile = deps.setMoonRenderProfile;
+    const getPhotoMode = typeof deps.getPhotoMode === "function"
+        ? deps.getPhotoMode
+        : (() => false);
+    const setPhotoMode = typeof deps.setPhotoMode === "function"
+        ? deps.setPhotoMode
+        : null;
     const resolveCraftOrbitCopyImpl = deps.resolveCraftOrbitCopyImpl || resolveCraftOrbitCopy;
     const resolveBodyOrbitCopyImpl = deps.resolveBodyOrbitCopyImpl || resolveBodyOrbitCopy;
 
@@ -113,6 +121,10 @@ export function createViewSettingsPillController(deps = {}) {
         moonProfilePillPairs.forEach(([pillId, profile]) => {
             syncPressedState(getElement(pillId), activeProfile === profile);
         });
+    }
+
+    function syncPhotoModePillState() {
+        syncPressedState(getElement(photoModePillId), !!getPhotoMode());
     }
 
     function syncTogglePillState() {
@@ -414,6 +426,24 @@ export function createViewSettingsPillController(deps = {}) {
             });
         });
 
+        const photoModePill = getElement(photoModePillId);
+        if (photoModePill) {
+            photoModePill.addEventListener("click", function () {
+                const nextValue = !getPhotoMode();
+                photoModePill.disabled = true;
+                Promise.resolve(
+                    typeof setPhotoMode === "function"
+                        ? setPhotoMode(nextValue)
+                        : nextValue,
+                ).catch((error) => {
+                    console.error("Failed to toggle photo mode:", error);
+                }).finally(() => {
+                    photoModePill.disabled = false;
+                    syncPhotoModePillState();
+                });
+            });
+        }
+
         const landingToggle = getElement("landing");
         if (landingToggle) {
             landingToggle.addEventListener("change", function () {
@@ -446,6 +476,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncLandingPillState();
         syncDimensionPillState();
         syncMoonRenderProfilePillState();
+        syncPhotoModePillState();
     }
 
     return {
@@ -460,6 +491,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncLandingPillState,
         syncLocatorsPillState,
         syncMoonRenderProfilePillState,
+        syncPhotoModePillState,
         syncOrbitLabels,
         syncOriginPillState,
         syncTogglePillState,

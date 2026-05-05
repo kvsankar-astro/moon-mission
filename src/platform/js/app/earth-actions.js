@@ -2,7 +2,7 @@ export function createEarthActions({ EarthRenderer, render }) {
     function addEarth(scene, { earthRadius, viewPolarAxes, viewPoles }) {
         // Create Earth renderer
         scene.earthRenderer = new EarthRenderer(earthRadius);
-        scene.earthRenderer.setTextures(scene.earthTexture, scene.earthSpecularTexture);
+        scene.earthRenderer.setTextures(scene.earthTexture, scene.earthSpecularTexture, scene.earthNightTexture);
         scene.earthRenderer.create(viewPolarAxes, viewPoles);
 
         // Backward-compatible property references
@@ -29,6 +29,7 @@ export function createEarthActions({ EarthRenderer, render }) {
         scene.earthContainer = null;
         scene.earthTexture = null;
         scene.earthSpecularTexture = null;
+        scene.earthNightTexture = null;
     }
 
     return { addEarth, disposeEarth };

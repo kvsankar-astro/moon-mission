@@ -1,6 +1,16 @@
 import { getSceneCraftObject } from "./scene-craft-helpers.js";
 import { AuxiliaryCameraViewsManager } from "./auxiliary-camera-views.js";
 import { DesktopPanelManager } from "./panel-manager.js";
+import {
+    configureBodyRenderLayers,
+    configureCraftRenderLayers,
+    configureSkyRenderLayers,
+} from "./scene-render-layers.js";
+import {
+    applyPhotoModeBodyPresentation,
+    applyPhotoModeExposure,
+    resolvePhotoModeLightingPresentation,
+} from "./photo-mode-render-presentation.js";
 
 function createSceneHandlerClass(deps) {
     const {
@@ -30,6 +40,9 @@ function createSceneHandlerClass(deps) {
             this.lookAtWorldTarget = new THREE.Vector3();
             this.skyWorldPosition = new THREE.Vector3();
             this.sunWorldPosition = new THREE.Vector3();
+            this.mainCameraWorldPosition = new THREE.Vector3();
+            this.earthWorldPosition = new THREE.Vector3();
+            this.moonWorldPosition = new THREE.Vector3();
 
             this.init();
         }
@@ -130,7 +143,7 @@ function createSceneHandlerClass(deps) {
                 const renderSkyLayer = animationScene.skyContainer?.visible !== false;
                 if (renderSkyLayer) {
                     this.renderer.autoClear = true;
-                    camera.layers.set(2);
+                    configureSkyRenderLayers(camera);
                     this.renderer.render(animationScene.scene, camera);
                     this.renderer.autoClear = false;
                     this.renderer.clearDepth();
@@ -138,11 +151,11 @@ function createSceneHandlerClass(deps) {
                     this.renderer.autoClear = true;
                 }
 
-                camera.layers.set(0);
+                configureBodyRenderLayers(camera);
                 this.renderer.render(animationScene.scene, camera);
 
                 this.renderer.autoClear = false;
-                camera.layers.set(1);
+                configureCraftRenderLayers(camera);
                 this.renderer.render(animationScene.scene, camera);
             };
             const setSunDirectionForView = (mode = "earth") => {
@@ -179,6 +192,7 @@ function createSceneHandlerClass(deps) {
                 globalConfig,
                 joyRideFlag,
                 landingFlag,
+                viewPhotoMode,
                 viewAuxiliaryPanels,
                 earthRadius,
                 moonRadius,
@@ -187,6 +201,37 @@ function createSceneHandlerClass(deps) {
             const auxiliaryCameraViews = viewAuxiliaryPanels
                 ? this.ensureAuxiliaryCameraViews()
                 : this.auxiliaryCameraViews;
+            const renderSceneCamera = (camera) => {
+                if (!camera) {
+                    return;
+                }
+                this.mainCameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+                animationScene.earthContainer?.getWorldPosition?.(this.earthWorldPosition);
+                animationScene.moonContainer?.getWorldPosition?.(this.moonWorldPosition);
+                const photoModePresentation = resolvePhotoModeLightingPresentation({
+                    enabled: viewPhotoMode,
+                    cameraPosition: this.mainCameraWorldPosition,
+                    earthPosition: this.earthWorldPosition,
+                    earthRadius,
+                    moonPosition: this.moonWorldPosition,
+                    moonRadius,
+                });
+                const restorePhotoModeBodyPresentation = applyPhotoModeBodyPresentation({
+                    earth: animationScene.earthContainer,
+                    moon: animationScene.moonContainer,
+                    presentation: photoModePresentation,
+                });
+                const restorePhotoModeExposure = applyPhotoModeExposure({
+                    renderer: this.renderer,
+                    presentation: photoModePresentation,
+                });
+                try {
+                    renderWithCamera(camera);
+                } finally {
+                    restorePhotoModeExposure();
+                    restorePhotoModeBodyPresentation();
+                }
+            };
 
             updateCraftScale();
             const activeCraft =
@@ -197,7 +242,7 @@ function createSceneHandlerClass(deps) {
             if (!activeCraft) {
                 animationScene.refreshBodyHalos?.({ suppress: false });
                 setSunDirectionForView("earth");
-                renderWithCamera(animationScene.camera);
+                renderSceneCamera(animationScene.camera);
                 if (viewAuxiliaryPanels) {
                     animationScene.refreshBodyHalos?.({ suppress: true });
                 }
@@ -221,6 +266,7 @@ function createSceneHandlerClass(deps) {
                     referenceCamera: animationScene.camera,
                     panelsVisible: viewAuxiliaryPanels,
                     missionConfig: globalConfig,
+                    photoModeEnabled: viewPhotoMode,
                 });
                 if (viewAuxiliaryPanels) {
                     animationScene.refreshBodyHalos?.({ suppress: false });
@@ -287,14 +333,14 @@ function createSceneHandlerClass(deps) {
                 const specialCamera = joyRideFlag ? animationScene.craftCamera : animationScene.droneCamera;
                 if (specialCamera) {
                     setSunDirectionForView(joyRideFlag ? "craft" : "earth");
-                    renderWithCamera(specialCamera);
+                    renderSceneCamera(specialCamera);
                 } else {
                     setSunDirectionForView("earth");
-                    renderWithCamera(animationScene.camera);
+                    renderSceneCamera(animationScene.camera);
                 }
             } else {
                 setSunDirectionForView("earth");
-                renderWithCamera(animationScene.camera);
+                renderSceneCamera(animationScene.camera);
             }
 
             if (viewAuxiliaryPanels) {
@@ -320,6 +366,7 @@ function createSceneHandlerClass(deps) {
                 referenceCamera: animationScene.camera,
                 panelsVisible: viewAuxiliaryPanels,
                 missionConfig: globalConfig,
+                photoModeEnabled: viewPhotoMode,
             });
             if (viewAuxiliaryPanels) {
                 animationScene.refreshBodyHalos?.({ suppress: false });

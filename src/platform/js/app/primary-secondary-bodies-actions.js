@@ -1,3 +1,14 @@
+import { LIGHT_SETTINGS as LT } from "../core/constants.js";
+
+function enableLayerRecursively(root, layer) {
+    if (!root?.traverse || !Number.isInteger(layer)) {
+        return;
+    }
+    root.traverse((node) => {
+        node?.layers?.enable?.(layer);
+    });
+}
+
 export function computePrimarySecondaryBodies({ config, isLunarMission }) {
     if (config === "geo") {
         return {
@@ -61,6 +72,9 @@ export function createPrimarySecondaryBodiesActions({ getConfig, getGlobalConfig
             scene.earthContainer.add(scene.earthSouthPoleSphere);
         }
 
+        enableLayerRecursively(scene.earthContainer, LT.EARTH_REFLECTED_LIGHT_LAYER);
+        enableLayerRecursively(scene.moonContainer, LT.MOON_REFLECTED_LIGHT_LAYER);
+
         scene.motherContainer.add(scene.primaryBody3D);
         if (scene.secondaryBody3D) {
             scene.motherContainer.add(scene.secondaryBody3D);
@@ -69,4 +83,3 @@ export function createPrimarySecondaryBodiesActions({ getConfig, getGlobalConfig
 
     return { setPrimaryAndSecondaryBodies };
 }
-

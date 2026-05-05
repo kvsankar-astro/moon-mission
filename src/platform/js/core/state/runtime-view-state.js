@@ -1,4 +1,5 @@
 const VIEW_FLAG_KEYS = [
+    "viewPhotoMode",
     "viewAuxiliaryPanels",
     "viewOrbit",
     "viewOrbitDescent",
@@ -19,6 +20,7 @@ const VIEW_FLAG_KEYS = [
 
 function buildDefaultViewFlags() {
     return {
+        viewPhotoMode: false,
         viewAuxiliaryPanels: false,
         viewOrbit: true,
         viewOrbitDescent: true,
@@ -105,6 +107,10 @@ function createRuntimeViewState({
         getViewOrbit: () => viewFlags.viewOrbit,
         setViewOrbit: (value) => {
             viewFlags.viewOrbit = Boolean(value);
+        },
+        getViewPhotoMode: () => viewFlags.viewPhotoMode,
+        setViewPhotoMode: (value) => {
+            viewFlags.viewPhotoMode = Boolean(value);
         },
         getViewAuxiliaryPanels: () => viewFlags.viewAuxiliaryPanels,
         setViewAuxiliaryPanels: (value) => {

@@ -11,6 +11,7 @@ describe("scene-texture-actions", () => {
                 primaryLight: null,
             },
             lightFill: { intensity: 0 },
+            lightMoonshine: { intensity: 0 },
             moonRenderSettings: null,
             earthTexture: null,
             earthSpecularTexture: null,
@@ -36,5 +37,6 @@ describe("scene-texture-actions", () => {
 
         expect(scene.lightManager.bodyAmbientLight.intensity).toBe(0);
         expect(scene.lightFill.intensity).toBe(LT.EARTHSHINE_INTENSITY);
+        expect(scene.lightMoonshine.intensity).toBe(LT.MOONSHINE_INTENSITY);
     });
 });

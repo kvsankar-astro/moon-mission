@@ -12,6 +12,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
         changeCompareMission,
         changeCompareAlignment,
         getTimelineEventInfos,
+        getPhotoMode,
+        setPhotoMode,
         getSetView,
         getSetDimensionTop,
         getStartupAnimTimeOverride,
@@ -95,6 +97,8 @@ function createMissionRuntimeHandlersEntry(ctx) {
                 changeCompareMission: (payload) => changeCompareMission?.(payload),
                 changeCompareAlignment: (payload) => changeCompareAlignment?.(payload),
                 getTimelineEventInfos,
+                getPhotoMode,
+                setPhotoMode,
                 changeCameraFromTo: (event) =>
                     getMissionRuntimeWireup().runtimeBootstrapActions.changeCameraFromTo(event),
                 changeDesktopMainFov: (event) =>

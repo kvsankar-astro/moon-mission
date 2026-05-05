@@ -3,6 +3,7 @@ import { DEFAULT_MOON_RENDER_ASSET_PROFILES, resolveMoonRenderAssetSelection } f
 export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthTexture: "images/earth/2_no_clouds_8k.jpg",
     earthSpecularTexture: "images/earth/earthspec1k.jpg",
+    earthNightTexture: "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg",
     moonMap: DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap,
     moonDisplacementMap: DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonDisplacementMap,
     // Primary sky background is treated as Milky Way + diffuse background layer.
@@ -14,6 +15,7 @@ export const DEFAULT_SCENE_TEXTURE_FILES = {
 const PLACEHOLDER_COLORS = Object.freeze({
     earthTexture: 0x2f6fe0,
     earthSpecularTexture: 0x111111,
+    earthNightTexture: 0x000000,
     moonMap: 0x8f8f8f,
     moonDisplacementMap: 0x808080,
     skyMilkyWayTexture: 0x081325,
@@ -72,6 +74,7 @@ function applyTextureDefaults({
 
     // Color textures should be sampled in sRGB space.
     setColorTextureSpace(THREE, texturesByKey.earthTexture);
+    setColorTextureSpace(THREE, texturesByKey.earthNightTexture);
     setColorTextureSpace(THREE, texturesByKey.moonMap);
     setColorTextureSpace(THREE, texturesByKey.skyMilkyWayTexture);
     setColorTextureSpace(THREE, texturesByKey.skyTexture);
@@ -99,6 +102,7 @@ export function createPlaceholderSceneTextures({
     const byKey = {
         earthTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthTexture),
         earthSpecularTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthSpecularTexture),
+        earthNightTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthNightTexture),
         moonMap: createSolidTexture(THREE, PLACEHOLDER_COLORS.moonMap),
         moonDisplacementMap: createSolidTexture(THREE, PLACEHOLDER_COLORS.moonDisplacementMap),
         skyMilkyWayTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.skyMilkyWayTexture),

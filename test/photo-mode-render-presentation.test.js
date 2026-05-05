@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+
+import {
+    applyPhotoModeBodyPresentation,
+    applyPhotoModeExposure,
+    resolvePhotoModeLightingPresentation,
+} from "../src/platform/js/app/photo-mode-render-presentation.js";
+
+function createBodyWithMaterial(userData) {
+    const material = {
+        userData: { ...userData },
+    };
+    return {
+        material,
+        traverse(callback) {
+            callback({
+                isMesh: true,
+                material,
+            });
+        },
+    };
+}
+
+describe("photo-mode-render-presentation", () => {
+    it("resolves no presentation when photo mode is disabled", () => {
+        const presentation = resolvePhotoModeLightingPresentation({
+            enabled: false,
+            cameraPosition: { x: 0, y: 0, z: 0 },
+            earthPosition: { x: 10, y: 0, z: 0 },
+            earthRadius: 1,
+            moonPosition: { x: 5, y: 0, z: 0 },
+            moonRadius: 1,
+        });
+
+        expect(presentation).toBe(null);
+    });
+
+    it("applies and restores Earth and Moon presentation overrides", () => {
+        const earth = createBodyWithMaterial({
+            earthNightMapIntensity: 0.08,
+            earthNightMapExponent: 2.25,
+            earthDayGain: 1.0,
+            earthDaySaturation: 1.0,
+            earthAtmosphereRimStrength: 0.0,
+        });
+        const moon = createBodyWithMaterial({
+            moonShadowLift: 0.015,
+            moonTerminatorContrast: 2.78,
+            moonTerminatorShadowFloor: 0.0,
+            moonTerminatorIndirectOcclusion: 1.0,
+            moonHighlightBoost: 1.025,
+        });
+        const presentation = resolvePhotoModeLightingPresentation({
+            enabled: true,
+            cameraPosition: { x: 0, y: 0, z: 0 },
+            earthPosition: { x: 380000, y: 0, z: 0 },
+            earthRadius: 6371,
+            moonPosition: { x: 9000, y: 0, z: 0 },
+            moonRadius: 1737.4,
+        });
+
+        const restore = applyPhotoModeBodyPresentation({
+            earth,
+            moon,
+            presentation,
+        });
+
+        expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
+        expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
+        expect(moon.material.userData.moonShadowLift).toBeGreaterThan(0.15);
+        expect(moon.material.userData.moonShadowWeightExponent).toBeLessThan(0.9);
+        expect(moon.material.userData.moonTerminatorReliefStrength).toBeGreaterThan(10.0);
+        expect(moon.material.userData.moonTerminatorShadowFloor).toBeGreaterThan(0.2);
+
+        restore();
+
+        expect(earth.material.userData.earthNightMapIntensity).toBe(0.08);
+        expect(earth.material.userData.earthDaySaturation).toBe(1.0);
+        expect(moon.material.userData.moonShadowLift).toBe(0.015);
+        expect(moon.material.userData.moonShadowWeightExponent).toBeUndefined();
+        expect(moon.material.userData.moonTerminatorReliefStrength).toBeUndefined();
+        expect(moon.material.userData.moonTerminatorShadowFloor).toBe(0.0);
+    });
+
+    it("applies and restores renderer exposure bias", () => {
+        const renderer = { toneMappingExposure: 1.14 };
+        const presentation = { exposureBias: 1.42 };
+
+        const restore = applyPhotoModeExposure({
+            renderer,
+            presentation,
+        });
+
+        expect(renderer.toneMappingExposure).toBeCloseTo(1.6188, 4);
+
+        restore();
+
+        expect(renderer.toneMappingExposure).toBeCloseTo(1.14, 6);
+    });
+});

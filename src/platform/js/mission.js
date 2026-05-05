@@ -215,6 +215,12 @@ let timelineEventInfosCache = {
     eventInfos: null,
     result: [],
 };
+let timelineMediaMarkers = [];
+
+function setTimelineMediaMarkers(nextMarkers) {
+    timelineMediaMarkers = Array.isArray(nextMarkers) ? nextMarkers : [];
+    syncTimelineDock?.();
+}
 
 function getSceneForConfig(cfg = runtimeViewState.getConfig()) {
     return animationScenes[cfg];
@@ -341,6 +347,7 @@ const {
 } = initialMissionViewState;
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
+    viewPhotoMode: runtimeViewState.getViewPhotoMode(),
     viewAuxiliaryPanels: initialMissionViewState.viewAuxiliaryPanels,
     viewOrbit: initialMissionViewState.viewOrbit,
     viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
@@ -412,6 +419,7 @@ const {
     getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEventInfos: () => eventInfos,
     getTimelineEventInfos,
+    getTimelineMediaMarkers: () => timelineMediaMarkers,
     getIsCompareMode: () => isCompareMode,
     syncTimelineEventButtons: (timelineEventInfos) => {
         missionRuntimeWireup?.initConfigUiActions?.syncBurnButtons?.(timelineEventInfos);
@@ -486,6 +494,7 @@ const {
     getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEarthRadius: () => earthRadius,
     getViewCraters: () => runtimeViewState.getViewCraters(),
+    getViewPhotoMode: () => runtimeViewState.getViewPhotoMode(),
     getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
     getEphemerisSource: () => ephemerisSource,
@@ -585,6 +594,16 @@ const missionStateCells = createMissionLegacyStateCells({
     getEffectiveOrbitStyle,
 });
 
+function getPhotoMode() {
+    return runtimeViewState.getViewPhotoMode();
+}
+
+function setPhotoMode(value) {
+    runtimeViewState.setViewPhotoMode(value);
+    render();
+    return runtimeViewState.getViewPhotoMode();
+}
+
 const handlersEntryContext = createMissionRuntimeHandlersEntryContext({
     performanceRef: performance,
     requestAnimationFrameRef: requestAnimationFrame,
@@ -596,6 +615,8 @@ const handlersEntryContext = createMissionRuntimeHandlersEntryContext({
     changeCompareMission,
     changeCompareAlignment,
     getTimelineEventInfos,
+    getPhotoMode,
+    setPhotoMode,
     getStartupAnimTimeOverride: () => initialMissionViewState.startupAnimTimeOverride,
     runtimeLoopState,
     getFpsUpdateInterval: () => fpsUpdateInterval,
@@ -656,6 +677,7 @@ const wireupEntryContext = createMissionRuntimeWireupEntryContext({
     isCompareMode,
     isTestMode,
     getTimelineEventInfos,
+    setTimelineMediaMarkers,
 });
 
 const {
@@ -685,6 +707,40 @@ publishMissionRuntimeGlobals({
     AnimationScene,
     main,
 });
+
+let runtimeCleanupRegistered = false;
+let runtimeCleanupComplete = false;
+
+function disposeMissionRuntimeResources() {
+    if (runtimeCleanupComplete) {
+        return;
+    }
+    runtimeCleanupComplete = true;
+    missionRuntimeWireup?.sceneUiUpdateActions?.dispose?.();
+    Object.values(animationScenes || {}).forEach((scene) => {
+        scene?.dispose?.();
+    });
+    theSceneHandler?.dispose?.();
+    theSceneHandler = null;
+}
+
+function registerMissionRuntimeCleanup() {
+    if (runtimeCleanupRegistered || typeof window === "undefined") {
+        return;
+    }
+    runtimeCleanupRegistered = true;
+    window.addEventListener("pagehide", (event) => {
+        if (event?.persisted === true) {
+            return;
+        }
+        disposeMissionRuntimeResources();
+    }, { once: true });
+    window.addEventListener("beforeunload", () => {
+        disposeMissionRuntimeResources();
+    }, { once: true });
+}
+
+registerMissionRuntimeCleanup();
 
 // end of file
 

@@ -1035,6 +1035,20 @@
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
                     </div>
+                    <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Render presentation mode">
+                        <span class="header-pill-group__label">Render</span>
+                        <div class="header-pill-segment" role="group" aria-label="Render presentation options">
+                            <button
+                                id="photo-mode-pill"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Apply photographic presentation across 3D views"
+                            >
+                                Photo
+                            </button>
+                        </div>
+                    </div>
                     <div id="compare-pill-wrap" class="header-pill-segment header-pill-segment--single">
                         <button
                             id="compare-pill-button"
@@ -1517,6 +1531,84 @@
                 <div id="info-panel-body" class="info-panel__body">
                     Loading mission info...
                 </div>
+            </div>
+        </div>
+
+        <div id="media-browser-panel-wrapper" class="media-browser-panel-wrapper" hidden>
+            <div id="media-browser-panel" class="media-browser-panel mission-panel-shell media-browser-panel--hidden">
+                <div class="media-browser-panel__header mission-panel-shell__header">
+                    <div class="media-browser-panel__title mission-panel-shell__title">Mission Media</div>
+                    <div class="media-browser-panel__header-controls mission-panel-shell__header-controls">
+                        <button
+                            id="media-browser-panel-expand"
+                            class="media-browser-panel__icon-button media-browser-panel__expand mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Expand"
+                            aria-pressed="false"
+                            data-icon="expand"
+                        ></button>
+                        <button
+                            id="media-browser-panel-close"
+                            class="media-browser-panel__icon-button media-browser-panel__close mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Close"
+                            data-icon="close"
+                        ></button>
+                    </div>
+                </div>
+                <div class="media-browser-panel__toolbar">
+                    <div
+                        id="media-browser-audience-filters"
+                        class="media-browser-panel__filter-group"
+                        role="group"
+                        aria-label="Media filters"
+                    ></div>
+                    <label class="media-browser-panel__camera-filter-wrap" for="media-browser-camera-filter">
+                        Camera
+                        <select id="media-browser-camera-filter" class="media-browser-panel__camera-filter">
+                            <option value="all">All Cameras</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="media-browser-panel__body">
+                    <div class="media-browser-panel__stage">
+                        <img id="media-browser-image" class="media-browser-panel__image" alt="" hidden>
+                        <div id="media-browser-stage-empty" class="media-browser-panel__stage-empty">
+                            Waiting for media manifest...
+                        </div>
+                        <div id="media-browser-stage-badge" class="media-browser-panel__stage-badge" hidden></div>
+                    </div>
+                    <div class="media-browser-panel__details">
+                        <div id="media-browser-time" class="media-browser-panel__time">--</div>
+                        <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
+                        <div class="media-browser-panel__meta-grid">
+                            <div class="media-browser-panel__meta-cell">
+                                <div class="media-browser-panel__meta-key">Camera</div>
+                                <div id="media-browser-camera" class="media-browser-panel__meta-value">--</div>
+                            </div>
+                            <div class="media-browser-panel__meta-cell">
+                                <div class="media-browser-panel__meta-key">Photographer</div>
+                                <div id="media-browser-photographer" class="media-browser-panel__meta-value">--</div>
+                            </div>
+                            <div class="media-browser-panel__meta-cell">
+                                <div class="media-browser-panel__meta-key">Location</div>
+                                <div id="media-browser-location" class="media-browser-panel__meta-value">--</div>
+                            </div>
+                            <div class="media-browser-panel__meta-cell">
+                                <div class="media-browser-panel__meta-key">Source</div>
+                                <div id="media-browser-source" class="media-browser-panel__meta-value">--</div>
+                            </div>
+                        </div>
+                        <p id="media-browser-description" class="media-browser-panel__description">--</p>
+                        <div id="media-browser-timing-note" class="media-browser-panel__timing-note" hidden></div>
+                        <div id="media-browser-seed-note" class="media-browser-panel__seed-note" hidden></div>
+                    </div>
+                </div>
+                <div class="media-browser-panel__nearby">
+                    <div class="media-browser-panel__nearby-title">Nearby</div>
+                    <div id="media-browser-nearby-list" class="media-browser-panel__nearby-list" role="group" aria-label="Nearby mission media"></div>
+                </div>
+                <div id="media-browser-status" class="media-browser-panel__status">Waiting for media manifest...</div>
             </div>
         </div>
 
@@ -2039,6 +2131,12 @@
                         aria-label="Mission timeline slider"
                     >
                     <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true" hidden></div>
+                    <div
+                        id="timeline-media-markers"
+                        class="timeline-dock__markers timeline-dock__markers--media"
+                        aria-hidden="true"
+                        hidden
+                    ></div>
                 </div>
                 <span id="timeline-end-label" class="timeline-dock__edge">--:--:--</span>
             </div>

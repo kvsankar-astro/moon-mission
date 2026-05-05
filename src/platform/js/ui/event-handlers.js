@@ -280,6 +280,8 @@ export function bindMainControls(handlers) {
         toggleInfo,
         setMoonRenderProfile,
         getMoonRenderProfile,
+        setPhotoMode,
+        getPhotoMode,
     } = handlers;
     const controllers = createMainControlControllers({
         toggleMode,
@@ -291,6 +293,8 @@ export function bindMainControls(handlers) {
         toggleLanding,
         getMoonRenderProfile,
         setMoonRenderProfile,
+        getPhotoMode,
+        setPhotoMode,
         headerPillStripController: getHeaderPillStripController(),
     });
     bindMainControlControllerSet({

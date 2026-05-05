@@ -3,6 +3,7 @@ import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 export function applySceneTextures(scene, textures) {
     scene.earthTexture = textures.earthTexture;
     scene.earthSpecularTexture = textures.earthSpecularTexture;
+    scene.earthNightTexture = textures.earthNightTexture;
     scene.moonMap = textures.moonMap;
     scene.moonDisplacementMap = textures.moonDisplacementMap;
     scene.moonRenderProfile = textures.moonRenderProfile || scene.moonRenderProfile || "fast";
@@ -12,24 +13,20 @@ export function applySceneTextures(scene, textures) {
 }
 
 function syncLunarMoonFillLights(scene) {
-    const renderSettings = scene?.moonRenderSettings || null;
-    const suppressLunarAmbientWash =
-        (
-            (Number.isFinite(Number(renderSettings?.terminatorIndirectOcclusion)) &&
-                Number(renderSettings?.terminatorIndirectOcclusion) >= 0.9) ||
-            (Number.isFinite(Number(renderSettings?.terminatorShadowFloor)) &&
-                Number(renderSettings?.terminatorShadowFloor) <= 0.05)
-        );
-
     const bodyAmbientLight = scene?.lightManager?.bodyAmbientLight || null;
     if (bodyAmbientLight) {
-        bodyAmbientLight.intensity = suppressLunarAmbientWash
-            ? 0.0
-            : (Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0.01);
+        bodyAmbientLight.intensity = Number.isFinite(LT.AMBIENT_INTENSITY)
+            ? LT.AMBIENT_INTENSITY
+            : 0;
     }
     if (scene?.lightFill) {
         if (!Number.isFinite(scene.lightFill.intensity) || scene.lightFill.intensity <= 0) {
             scene.lightFill.intensity = Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02;
+        }
+    }
+    if (scene?.lightMoonshine) {
+        if (!Number.isFinite(scene.lightMoonshine.intensity) || scene.lightMoonshine.intensity <= 0) {
+            scene.lightMoonshine.intensity = Number.isFinite(LT.MOONSHINE_INTENSITY) ? LT.MOONSHINE_INTENSITY : 0.0004;
         }
     }
 }
@@ -63,6 +60,7 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
         earthSpecularTexture: scene.earthSpecularTexture || null,
+        earthNightTexture: scene.earthNightTexture || null,
         moonMap: scene.moonMap || null,
         moonDisplacementMap: scene.moonDisplacementMap || null,
         skyTexture: scene.skyTexture || null,
@@ -78,6 +76,7 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
         scene.earthRenderer.updateTextures(
             scene.earthTexture,
             scene.earthSpecularTexture,
+            scene.earthNightTexture,
             { disposePrevious },
         );
         earthHandled = true;
@@ -112,6 +111,7 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
         if (!earthHandled) {
             disposeTextureIfReplaced(previousTextures.earthTexture, scene.earthTexture);
             disposeTextureIfReplaced(previousTextures.earthSpecularTexture, scene.earthSpecularTexture);
+            disposeTextureIfReplaced(previousTextures.earthNightTexture, scene.earthNightTexture);
         }
         if (!moonHandled) {
             disposeTextureIfReplaced(previousTextures.moonMap, scene.moonMap);

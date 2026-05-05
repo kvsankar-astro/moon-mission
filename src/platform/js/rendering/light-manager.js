@@ -20,6 +20,7 @@ export class LightManager {
         // Primary lights
         this.primaryLight = null;
         this.earthshineLight = null;
+        this.moonshineLight = null;
         this.craftLight = null;
         this.bodyAmbientLight = null;
         this.craftAmbientLight = null;
@@ -52,7 +53,15 @@ export class LightManager {
             LT.EARTHSHINE_COLOR,
             LT.EARTHSHINE_INTENSITY,
         );
+        this.earthshineLight.layers.set(LT.MOON_REFLECTED_LIGHT_LAYER);
         this.parentContainer.add(this.earthshineLight);
+
+        this.moonshineLight = new THREE.DirectionalLight(
+            LT.MOONSHINE_COLOR,
+            LT.MOONSHINE_INTENSITY,
+        );
+        this.moonshineLight.layers.set(LT.EARTH_REFLECTED_LIGHT_LAYER);
+        this.parentContainer.add(this.moonshineLight);
 
         // Secondary directional light for spacecraft (on layer 1)
         this.craftLight = new THREE.DirectionalLight(LT.CRAFT_PRIMARY_COLOR, LT.CRAFT_PRIMARY_INTENSITY);
@@ -88,6 +97,12 @@ export class LightManager {
             this.parentContainer.remove(this.earthshineLight);
             this.earthshineLight.dispose();
             this.earthshineLight = null;
+        }
+
+        if (this.moonshineLight) {
+            this.parentContainer.remove(this.moonshineLight);
+            this.moonshineLight.dispose();
+            this.moonshineLight = null;
         }
 
         if (this.craftLight) {

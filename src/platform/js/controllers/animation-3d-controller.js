@@ -12,6 +12,10 @@
 import { PHYSICS_CONSTANTS as PC, LIGHT_SETTINGS as LT } from "../core/constants.js";
 import { toScreenCoordinates } from "../scene-state.js";
 import { resolveTrailLayerWindow, resolveTrailWindow } from "../app/orbit-trail-style.js";
+import {
+    computeEarthshineLightState,
+    computeMoonshineLightState,
+} from "../core/domain/reflected-lighting.js";
 
 // PIXELS_PER_AU is passed as a render option since it varies by config
 
@@ -144,17 +148,10 @@ export class Animation3DController {
         }
         const bodyAmbientLight = this.scene.lightManager?.bodyAmbientLight || null;
         const renderSettings = this.scene.moonRenderSettings || null;
-        const suppressLunarAmbientWash =
-            (
-                (Number.isFinite(Number(renderSettings?.terminatorIndirectOcclusion)) &&
-                    Number(renderSettings?.terminatorIndirectOcclusion) >= 0.9) ||
-                (Number.isFinite(Number(renderSettings?.terminatorShadowFloor)) &&
-                    Number(renderSettings?.terminatorShadowFloor) <= 0.05)
-            );
         if (bodyAmbientLight) {
-            bodyAmbientLight.intensity = suppressLunarAmbientWash
-                ? 0.0
-                : (Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0.01);
+            bodyAmbientLight.intensity = Number.isFinite(LT.AMBIENT_INTENSITY)
+                ? LT.AMBIENT_INTENSITY
+                : 0;
         }
         const shadowNormalBias = Number(renderSettings?.shadowNormalBias);
         if (Number.isFinite(shadowNormalBias) && this.scene.light?.shadow) {
@@ -272,68 +269,72 @@ export class Animation3DController {
             }
         }
 
-        if (!this.scene.lightFill) {
-            return;
-        }
-
-        if (compareDisplayProfile?.disableEarthshine) {
-            this.scene.lightFill.intensity = 0.0;
-            return;
-        }
-
-        const clamp01 = (value) => Math.max(0, Math.min(1, value));
-        const minEarthshine = Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
-            ? LT.EARTHSHINE_MIN_INTENSITY
-            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02);
-        const maxEarthshine = Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
-            ? LT.EARTHSHINE_MAX_INTENSITY
-            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.08);
-        const earthshinePhaseExponent = Number.isFinite(LT.EARTHSHINE_PHASE_EXPONENT)
-            ? LT.EARTHSHINE_PHASE_EXPONENT
-            : 1.35;
-
-        const applyEarthshineDirection = (dx, dy, dz) => {
-            const norm = Math.hypot(dx, dy, dz);
-            if (!Number.isFinite(norm) || norm <= 1e-12) {
-                return false;
+        if (this.scene.lightFill) {
+            if (compareDisplayProfile?.disableEarthshine) {
+                this.scene.lightFill.intensity = 0.0;
+            } else {
+                const earthshineState = computeEarthshineLightState({
+                    earthPosition: earthState?.available ? earthState.position : { x: 0, y: 0, z: 0 },
+                    moonPosition: moonState?.available ? moonState.position : { x: 0, y: 0, z: 0 },
+                    moonSunDirection: moonSunDir,
+                    minIntensity: Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
+                        ? LT.EARTHSHINE_MIN_INTENSITY
+                        : 0,
+                    maxIntensity: Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
+                        ? LT.EARTHSHINE_MAX_INTENSITY
+                        : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02),
+                    phaseExponent: Number.isFinite(LT.EARTHSHINE_PHASE_EXPONENT)
+                        ? LT.EARTHSHINE_PHASE_EXPONENT
+                        : 1.8,
+                });
+                if (earthshineState) {
+                    this.scene.lightFill.position.set(
+                        earthshineState.direction.x,
+                        earthshineState.direction.y,
+                        earthshineState.direction.z,
+                    );
+                    this.scene.lightFill.intensity = earthshineState.intensity;
+                } else {
+                    this.scene.lightFill.position.set(-moonSunDir.x, -moonSunDir.y, -moonSunDir.z);
+                    this.scene.lightFill.intensity = 0.0;
+                }
             }
-            const nx = dx / norm;
-            const ny = dy / norm;
-            const nz = dz / norm;
-            this.scene.lightFill.position.set(nx, ny, nz);
+        }
 
-            // Earthshine phase: full Earth at the Moon when Sun and Earth are
-            // in similar directions from the Moon's viewpoint.
-            const sunEarthAlignment = clamp01((1 + (moonSunDir.x * nx + moonSunDir.y * ny + moonSunDir.z * nz)) * 0.5);
-            const phasedEarthshine = Math.pow(sunEarthAlignment, earthshinePhaseExponent);
-            this.scene.lightFill.intensity =
-                minEarthshine + (maxEarthshine - minEarthshine) * phasedEarthshine;
-            return true;
-        };
-
-        // Earthshine direction should come from Earth->Moon geometry, not from
-        // simply inverting Sun direction.
-        if (earthState?.available && moonState?.available) {
-            const dx = earthState.position.x - moonState.position.x;
-            const dy = earthState.position.y - moonState.position.y;
-            const dz = earthState.position.z - moonState.position.z;
-            if (applyEarthshineDirection(dx, dy, dz)) {
+        if (this.scene.lightMoonshine) {
+            if (compareDisplayProfile?.disableEarthshine) {
+                this.scene.lightMoonshine.intensity = 0.0;
                 return;
             }
-        }
-
-        if (moonState?.available) {
-            const dx = -moonState.position.x;
-            const dy = -moonState.position.y;
-            const dz = -moonState.position.z;
-            if (applyEarthshineDirection(dx, dy, dz)) {
-                return;
+            const moonshineState = computeMoonshineLightState({
+                earthPosition: earthState?.available ? earthState.position : { x: 0, y: 0, z: 0 },
+                moonPosition: moonState?.available ? moonState.position : { x: 0, y: 0, z: 0 },
+                earthSunDirection: earthSunDir,
+                minIntensity: Number.isFinite(LT.MOONSHINE_MIN_INTENSITY)
+                    ? LT.MOONSHINE_MIN_INTENSITY
+                    : 0,
+                maxIntensity: Number.isFinite(LT.MOONSHINE_MAX_INTENSITY)
+                    ? LT.MOONSHINE_MAX_INTENSITY
+                    : (Number.isFinite(LT.MOONSHINE_INTENSITY) ? LT.MOONSHINE_INTENSITY : 0.0004),
+                phaseExponent: Number.isFinite(LT.MOONSHINE_PHASE_EXPONENT)
+                    ? LT.MOONSHINE_PHASE_EXPONENT
+                    : 1.45,
+                distanceWeight: Number.isFinite(LT.MOONSHINE_DISTANCE_WEIGHT)
+                    ? LT.MOONSHINE_DISTANCE_WEIGHT
+                    : 0.24,
+            });
+            if (moonshineState) {
+                this.scene.lightMoonshine.position.set(
+                    moonshineState.direction.x,
+                    moonshineState.direction.y,
+                    moonshineState.direction.z,
+                );
+                this.scene.lightMoonshine.intensity = moonshineState.intensity;
+            } else {
+                this.scene.lightMoonshine.position.set(earthSunDir.x, earthSunDir.y, earthSunDir.z);
+                this.scene.lightMoonshine.intensity = 0.0;
             }
         }
-
-        // Final fallback: opposite sun direction.
-        this.scene.lightFill.position.set(-moonSunDir.x, -moonSunDir.y, -moonSunDir.z);
-        this.scene.lightFill.intensity = minEarthshine;
     }
 
     /**

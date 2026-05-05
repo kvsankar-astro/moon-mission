@@ -76,6 +76,7 @@ function createHarness(options = {}) {
     const rafQueue = [];
     const observerInstances = [];
     let moonProfile = options.moonProfile || "fast";
+    let photoMode = options.photoMode === true;
 
     class FakeMutationObserver {
         constructor(callback) {
@@ -119,6 +120,7 @@ function createHarness(options = {}) {
     const secondaryOrbitLabel = createElement("label-secondary-body-orbit");
     const fastPill = createElement("moon-profile-pill-fast");
     const qualityPill = createElement("moon-profile-pill-quality");
+    const photoModePill = createElement("photo-mode-pill");
 
     const byId = new Map([
         ["origin-earth", originEarthInput],
@@ -148,6 +150,7 @@ function createHarness(options = {}) {
         ["label-secondary-body-orbit", secondaryOrbitLabel],
         ["moon-profile-pill-fast", fastPill],
         ["moon-profile-pill-quality", qualityPill],
+        ["photo-mode-pill", photoModePill],
     ]);
 
     const documentRef = {
@@ -193,6 +196,13 @@ function createHarness(options = {}) {
             moonProfile = profile;
             return Promise.resolve(profile);
         },
+        getPhotoMode() {
+            return photoMode;
+        },
+        setPhotoMode(value) {
+            photoMode = value === true;
+            return Promise.resolve(photoMode);
+        },
         originPillPairs: [
             ["origin-pill-earth", "origin-earth", "geo"],
             ["origin-pill-moon", "origin-moon", "lunar"],
@@ -235,6 +245,7 @@ function createHarness(options = {}) {
         observerInstances,
         orbitLabel,
         orbitPill,
+        photoModePill,
         originEarthPill,
         originMoonPill,
         originMoonInput,
@@ -316,6 +327,20 @@ describe("createViewSettingsPillController", function () {
         expect(harness.qualityPill.disabled).toBe(false);
         expect(harness.qualityPill.classList.contains("is-active")).toBe(true);
         expect(harness.fastPill.classList.contains("is-active")).toBe(false);
+    });
+
+    it("toggles the photo mode pill through the async setter", async function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        expect(harness.photoModePill.classList.contains("is-active")).toBe(false);
+
+        harness.photoModePill.dispatchEvent({ type: "click" });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(harness.photoModePill.classList.contains("is-active")).toBe(true);
+        expect(harness.photoModePill["aria-pressed"]).toBe("true");
     });
 
     it("re-syncs landing pill visibility from the mutation observer", function () {
