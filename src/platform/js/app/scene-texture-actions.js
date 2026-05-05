@@ -2,6 +2,7 @@ import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 
 export function applySceneTextures(scene, textures) {
     scene.earthTexture = textures.earthTexture;
+    scene.earthPhotoTexture = textures.earthPhotoTexture || textures.earthTexture || null;
     scene.earthSpecularTexture = textures.earthSpecularTexture;
     scene.earthNightTexture = textures.earthNightTexture;
     scene.moonMap = textures.moonMap;
@@ -49,8 +50,11 @@ function syncMoonShadowTuning(scene) {
     }
 }
 
-function disposeTextureIfReplaced(previousTexture, nextTexture) {
+function disposeTextureIfReplaced(previousTexture, nextTexture, sharedTextures = []) {
     if (!previousTexture || previousTexture === nextTexture) {
+        return;
+    }
+    if (sharedTextures.some((texture) => texture && texture === previousTexture)) {
         return;
     }
     previousTexture.dispose?.();
@@ -59,6 +63,7 @@ function disposeTextureIfReplaced(previousTexture, nextTexture) {
 export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious = false } = {}) {
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
+        earthPhotoTexture: scene.earthPhotoTexture || null,
         earthSpecularTexture: scene.earthSpecularTexture || null,
         earthNightTexture: scene.earthNightTexture || null,
         moonMap: scene.moonMap || null,
@@ -108,6 +113,11 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
 
     // Fallback disposal for pre-init swaps (renderers not created yet).
     if (disposePrevious) {
+        disposeTextureIfReplaced(previousTextures.earthPhotoTexture, scene.earthPhotoTexture, [
+            scene.earthTexture,
+            scene.earthSpecularTexture,
+            scene.earthNightTexture,
+        ]);
         if (!earthHandled) {
             disposeTextureIfReplaced(previousTextures.earthTexture, scene.earthTexture);
             disposeTextureIfReplaced(previousTextures.earthSpecularTexture, scene.earthSpecularTexture);

@@ -220,6 +220,7 @@ function createSceneHandlerClass(deps) {
                     earth: animationScene.earthContainer,
                     moon: animationScene.moonContainer,
                     presentation: photoModePresentation,
+                    earthDayTexture: animationScene.earthPhotoTexture || null,
                 });
                 const restorePhotoModeExposure = applyPhotoModeExposure({
                     renderer: this.renderer,
@@ -267,6 +268,7 @@ function createSceneHandlerClass(deps) {
                     panelsVisible: viewAuxiliaryPanels,
                     missionConfig: globalConfig,
                     photoModeEnabled: viewPhotoMode,
+                    earthPhotoTexture: animationScene.earthPhotoTexture || null,
                 });
                 if (viewAuxiliaryPanels) {
                     animationScene.refreshBodyHalos?.({ suppress: false });
@@ -367,6 +369,7 @@ function createSceneHandlerClass(deps) {
                 panelsVisible: viewAuxiliaryPanels,
                 missionConfig: globalConfig,
                 photoModeEnabled: viewPhotoMode,
+                earthPhotoTexture: animationScene.earthPhotoTexture || null,
             });
             if (viewAuxiliaryPanels) {
                 animationScene.refreshBodyHalos?.({ suppress: false });

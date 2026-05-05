@@ -2,6 +2,8 @@ import { DEFAULT_MOON_RENDER_ASSET_PROFILES, resolveMoonRenderAssetSelection } f
 
 export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthTexture: "images/earth/2_no_clouds_8k.jpg",
+    // Mirrored from NASA's Blue Marble cloud composite to keep Photo Mode CORS-safe.
+    earthPhotoTexture: "images/earth/nasa_blue_marble_clouds_2048.jpg",
     earthSpecularTexture: "images/earth/earthspec1k.jpg",
     earthNightTexture: "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_01deg.jpg",
     moonMap: DEFAULT_MOON_RENDER_ASSET_PROFILES.fast.moonMap,
@@ -14,6 +16,7 @@ export const DEFAULT_SCENE_TEXTURE_FILES = {
 
 const PLACEHOLDER_COLORS = Object.freeze({
     earthTexture: 0x2f6fe0,
+    earthPhotoTexture: 0x6b89c9,
     earthSpecularTexture: 0x111111,
     earthNightTexture: 0x000000,
     moonMap: 0x8f8f8f,
@@ -74,6 +77,7 @@ function applyTextureDefaults({
 
     // Color textures should be sampled in sRGB space.
     setColorTextureSpace(THREE, texturesByKey.earthTexture);
+    setColorTextureSpace(THREE, texturesByKey.earthPhotoTexture);
     setColorTextureSpace(THREE, texturesByKey.earthNightTexture);
     setColorTextureSpace(THREE, texturesByKey.moonMap);
     setColorTextureSpace(THREE, texturesByKey.skyMilkyWayTexture);
@@ -101,6 +105,7 @@ export function createPlaceholderSceneTextures({
     const moonAssets = resolveMoonRenderAssetSelection({ search, globalObject });
     const byKey = {
         earthTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthTexture),
+        earthPhotoTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthPhotoTexture),
         earthSpecularTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthSpecularTexture),
         earthNightTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthNightTexture),
         moonMap: createSolidTexture(THREE, PLACEHOLDER_COLORS.moonMap),

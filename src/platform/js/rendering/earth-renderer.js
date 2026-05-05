@@ -18,6 +18,7 @@ const EARTH_DAY_SATURATION = 1.0;
 const EARTH_ATMOSPHERE_RIM_STRENGTH = 0.0;
 const EARTH_NIGHT_MAP_INTENSITY = 0.08;
 const EARTH_NIGHT_MAP_EXPONENT = 2.25;
+const EARTH_PHOTO_BLEND = 0.0;
 
 function applyEarthNightsideLiftShader(material) {
     material.userData = material.userData || {};
@@ -42,6 +43,12 @@ function applyEarthNightsideLiftShader(material) {
     if (!Number.isFinite(material.userData.earthNightMapExponent)) {
         material.userData.earthNightMapExponent = EARTH_NIGHT_MAP_EXPONENT;
     }
+    if (!Number.isFinite(material.userData.earthPhotoBlend)) {
+        material.userData.earthPhotoBlend = EARTH_PHOTO_BLEND;
+    }
+    if (!material.userData.earthPhotoTexture) {
+        material.userData.earthPhotoTexture = material.map || null;
+    }
     material.onBeforeCompile = (shader) => {
         shader.uniforms.uEarthNightsideLift = { value: material.userData.earthNightsideLift };
         shader.uniforms.uEarthNightsideExponent = { value: material.userData.earthNightsideExponent };
@@ -50,6 +57,8 @@ function applyEarthNightsideLiftShader(material) {
         shader.uniforms.uEarthAtmosphereRimStrength = { value: material.userData.earthAtmosphereRimStrength };
         shader.uniforms.uEarthNightMapIntensity = { value: material.userData.earthNightMapIntensity };
         shader.uniforms.uEarthNightMapExponent = { value: material.userData.earthNightMapExponent };
+        shader.uniforms.uEarthPhotoBlend = { value: material.userData.earthPhotoBlend };
+        shader.uniforms.uEarthPhotoMap = { value: material.userData.earthPhotoTexture || material.map || null };
         material.userData.earthNightsideShader = shader;
 
         shader.fragmentShader = shader.fragmentShader
@@ -62,7 +71,20 @@ uniform float uEarthDayGain;
 uniform float uEarthDaySaturation;
 uniform float uEarthAtmosphereRimStrength;
 uniform float uEarthNightMapIntensity;
-uniform float uEarthNightMapExponent;`,
+uniform float uEarthNightMapExponent;
+uniform float uEarthPhotoBlend;
+uniform sampler2D uEarthPhotoMap;`,
+            )
+            .replace(
+                "#include <map_fragment>",
+                `#include <map_fragment>
+#ifdef USE_MAP
+    float earthPhotoBlend = clamp( uEarthPhotoBlend, 0.0, 1.0 );
+    if ( earthPhotoBlend > 0.0 ) {
+        vec4 earthPhotoTexel = texture2D( uEarthPhotoMap, vMapUv );
+        diffuseColor.rgb = mix( diffuseColor.rgb, earthPhotoTexel.rgb, earthPhotoBlend );
+    }
+#endif`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
@@ -97,6 +119,8 @@ uniform float uEarthNightMapExponent;`,
         const atmosphereRimStrength = Number(material.userData.earthAtmosphereRimStrength);
         const nightMapIntensity = Number(material.userData.earthNightMapIntensity);
         const nightMapExponent = Number(material.userData.earthNightMapExponent);
+        const photoBlend = Number(material.userData.earthPhotoBlend);
+        const photoTexture = material.userData.earthPhotoTexture || material.map || null;
         if (Number.isFinite(lift) && shader.uniforms.uEarthNightsideLift) {
             shader.uniforms.uEarthNightsideLift.value = lift;
         }
@@ -118,9 +142,15 @@ uniform float uEarthNightMapExponent;`,
         if (Number.isFinite(nightMapExponent) && shader.uniforms.uEarthNightMapExponent) {
             shader.uniforms.uEarthNightMapExponent.value = nightMapExponent;
         }
+        if (Number.isFinite(photoBlend) && shader.uniforms.uEarthPhotoBlend) {
+            shader.uniforms.uEarthPhotoBlend.value = photoBlend;
+        }
+        if (shader.uniforms.uEarthPhotoMap) {
+            shader.uniforms.uEarthPhotoMap.value = photoTexture;
+        }
     };
     material.customProgramCacheKey = () =>
-        `earth-day-night-v4-${EARTH_NIGHTSIDE_LIFT}-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}`;
+        `earth-day-night-v5-${EARTH_NIGHTSIDE_LIFT}-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}-${EARTH_PHOTO_BLEND}`;
 }
 
 export class EarthRenderer {
@@ -176,6 +206,12 @@ export class EarthRenderer {
             material.specularMap = this.specularTexture || null;
             material.emissiveMap = this.nightTexture || null;
             material.emissiveIntensity = this.nightTexture ? 1.0 : 0.0;
+            if (
+                !material.userData.earthPhotoTexture ||
+                material.userData.earthPhotoTexture === previousTexture
+            ) {
+                material.userData.earthPhotoTexture = this.texture || null;
+            }
             material.needsUpdate = true;
         }
 

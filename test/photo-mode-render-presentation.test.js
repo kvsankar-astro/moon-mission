@@ -6,9 +6,10 @@ import {
     resolvePhotoModeLightingPresentation,
 } from "../src/platform/js/app/photo-mode-render-presentation.js";
 
-function createBodyWithMaterial(userData) {
+function createBodyWithMaterial(userData, extras = {}) {
     const material = {
         userData: { ...userData },
+        map: extras.map || null,
     };
     return {
         material,
@@ -36,13 +37,15 @@ describe("photo-mode-render-presentation", () => {
     });
 
     it("applies and restores Earth and Moon presentation overrides", () => {
+        const originalEarthTexture = { name: "earth-base" };
+        const photoEarthTexture = { name: "earth-photo" };
         const earth = createBodyWithMaterial({
             earthNightMapIntensity: 0.08,
             earthNightMapExponent: 2.25,
             earthDayGain: 1.0,
             earthDaySaturation: 1.0,
             earthAtmosphereRimStrength: 0.0,
-        });
+        }, { map: originalEarthTexture });
         const moon = createBodyWithMaterial({
             moonShadowLift: 0.015,
             moonTerminatorContrast: 2.78,
@@ -63,8 +66,12 @@ describe("photo-mode-render-presentation", () => {
             earth,
             moon,
             presentation,
+            earthDayTexture: photoEarthTexture,
         });
 
+        expect(earth.material.map).toBe(originalEarthTexture);
+        expect(earth.material.userData.earthPhotoTexture).toBe(photoEarthTexture);
+        expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.38, 4);
         expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
         expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
         expect(moon.material.userData.moonShadowLift).toBeGreaterThan(0.15);
@@ -74,6 +81,8 @@ describe("photo-mode-render-presentation", () => {
 
         restore();
 
+        expect(earth.material.map).toBe(originalEarthTexture);
+        expect(earth.material.userData.earthPhotoTexture).toBe(originalEarthTexture);
         expect(earth.material.userData.earthNightMapIntensity).toBe(0.08);
         expect(earth.material.userData.earthDaySaturation).toBe(1.0);
         expect(moon.material.userData.moonShadowLift).toBe(0.015);

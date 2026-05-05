@@ -28,6 +28,7 @@ export function createEarthActions({ EarthRenderer, render }) {
         scene.earthSouthPoleSphere = null;
         scene.earthContainer = null;
         scene.earthTexture = null;
+        scene.earthPhotoTexture = null;
         scene.earthSpecularTexture = null;
         scene.earthNightTexture = null;
     }

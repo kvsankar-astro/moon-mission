@@ -1,5 +1,7 @@
 import { computePhotoModeLightingPresentation } from "../core/domain/flyby-lighting-presentation.js";
 
+const PHOTO_MODE_EARTH_CLOUD_BLEND = 0.38;
+
 function clamp(value, minValue, maxValue) {
     if (!Number.isFinite(value)) {
         return minValue;
@@ -83,6 +85,7 @@ export function applyPhotoModeBodyPresentation({
     earth = null,
     moon = null,
     presentation = null,
+    earthDayTexture = null,
 } = {}) {
     if (!presentation) {
         return () => {};
@@ -96,12 +99,18 @@ export function applyPhotoModeBodyPresentation({
                 const record = {
                     kind: "earth",
                     material,
+                    earthPhotoTexture: material.userData.earthPhotoTexture || material.map || null,
+                    earthPhotoBlend: material.userData.earthPhotoBlend,
                     earthNightMapIntensity: material.userData.earthNightMapIntensity,
                     earthNightMapExponent: material.userData.earthNightMapExponent,
                     earthDayGain: material.userData.earthDayGain,
                     earthDaySaturation: material.userData.earthDaySaturation,
                     earthAtmosphereRimStrength: material.userData.earthAtmosphereRimStrength,
                 };
+                if (earthDayTexture) {
+                    material.userData.earthPhotoTexture = earthDayTexture;
+                    material.userData.earthPhotoBlend = PHOTO_MODE_EARTH_CLOUD_BLEND;
+                }
                 material.userData.earthNightMapIntensity = presentation.earthNightLightsGain;
                 material.userData.earthNightMapExponent = presentation.earthNightMapExponent;
                 material.userData.earthDayGain = presentation.earthDayGain;
@@ -142,6 +151,8 @@ export function applyPhotoModeBodyPresentation({
     return () => {
         for (const record of restoreRecords) {
             if (record.kind === "earth") {
+                record.material.userData.earthPhotoTexture = record.earthPhotoTexture;
+                record.material.userData.earthPhotoBlend = record.earthPhotoBlend;
                 record.material.userData.earthNightMapIntensity = record.earthNightMapIntensity;
                 record.material.userData.earthNightMapExponent = record.earthNightMapExponent;
                 record.material.userData.earthDayGain = record.earthDayGain;

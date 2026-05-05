@@ -15,6 +15,26 @@ describe("EarthRenderer", () => {
         expect(material.userData.earthAtmosphereRimStrength).toBe(0);
         expect(material.userData.earthNightMapIntensity).toBeCloseTo(0.08, 4);
         expect(material.userData.earthNightMapExponent).toBeCloseTo(2.25, 4);
+        expect(material.userData.earthPhotoBlend).toBe(0);
+        expect(material.userData.earthPhotoTexture).toBe(material.map);
+
+        renderer.dispose();
+    });
+
+    it("keeps the photo texture aligned with the base map when Earth textures are refreshed", () => {
+        const baseTexture = new THREE.Texture();
+        const replacementTexture = new THREE.Texture();
+        const renderer = new EarthRenderer(1);
+        renderer.setTextures(baseTexture, new THREE.Texture(), new THREE.Texture());
+        renderer.create();
+
+        renderer.updateTextures(replacementTexture, new THREE.Texture(), new THREE.Texture(), {
+            disposePrevious: false,
+        });
+
+        const material = renderer.mesh.material;
+        expect(material.map).toBe(replacementTexture);
+        expect(material.userData.earthPhotoTexture).toBe(replacementTexture);
 
         renderer.dispose();
     });

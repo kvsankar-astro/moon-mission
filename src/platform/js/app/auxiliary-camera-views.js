@@ -3773,6 +3773,7 @@ class AuxiliaryCameraViewsManager {
         earthRadius = Number.NaN,
         distanceToMoon = Number.NaN,
         moonRadius = Number.NaN,
+        earthDayTexture = null,
     }) {
         const presentation = computePhotoModeLightingPresentation({
             distanceToEarth,
@@ -3784,6 +3785,7 @@ class AuxiliaryCameraViewsManager {
             earth,
             moon,
             presentation,
+            earthDayTexture,
         });
     }
 
@@ -5570,6 +5572,7 @@ class AuxiliaryCameraViewsManager {
         hasSkyContainer,
         skyContainer,
         photoModeEnabled = false,
+        earthDayTexture = null,
     }) {
         if (!activeCraft || !earth || !moon) {
             this.setPanelVisible(panelState, false);
@@ -5719,6 +5722,7 @@ class AuxiliaryCameraViewsManager {
                 earthRadius: composerEarthRadius,
                 distanceToMoon: panelState.camera.position.distanceTo(this.moonWorld),
                 moonRadius: composerMoonRadius,
+                earthDayTexture,
             })
             : (() => {});
         const restoreComposerEarthshineGain = this.applyComposerEarthshineGain(panelState, scene);
@@ -5772,6 +5776,7 @@ class AuxiliaryCameraViewsManager {
         panelsVisible = true,
         missionConfig = null,
         photoModeEnabled = false,
+        earthPhotoTexture = null,
     }) {
         if (!this.root) {
             return;
@@ -5880,6 +5885,7 @@ class AuxiliaryCameraViewsManager {
                         hasSkyContainer,
                         skyContainer,
                         photoModeEnabled,
+                        earthDayTexture: earthPhotoTexture,
                     });
                     if (rendered) {
                         visiblePanels += 1;
@@ -5995,6 +6001,7 @@ class AuxiliaryCameraViewsManager {
                     earth,
                     moon,
                     presentation: photoModePresentation,
+                    earthDayTexture: earthPhotoTexture,
                 });
                 const restorePhotoModeExposure = applyPhotoModeExposure({
                     renderer: panelState.renderer,
