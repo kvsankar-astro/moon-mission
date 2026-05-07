@@ -106,22 +106,27 @@
         "aux:earth": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
+          "layoutPresetVersion": "artemis2-aux-right-grid-v3"
         },
         "aux:moon": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
+          "layoutPresetVersion": "artemis2-aux-right-grid-v3"
         },
         "aux:earth-to-moon": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-stack-v1"
+          "layoutPresetVersion": "artemis2-aux-right-grid-v3"
+        },
+        "aux:earth-origin-orbit-xy": {
+          "enabled": true,
+          "defaultState": "open",
+          "layoutPresetVersion": "artemis2-aux-right-grid-v3"
         },
         "aux:earth-rise-composer": {
           "enabled": true,
           "defaultState": "minimized",
-          "layoutPresetVersion": "artemis2-flyby-focus-windowed-v1"
+          "layoutPresetVersion": "artemis2-frame-shoot-windowed-v2"
         },
         "workflow:splashdown": {
           "enabled": true,
@@ -579,6 +584,43 @@
       "body": "SC",
       "requiresEphemeris": true
     }
+  },
+  "timelinePhases": {
+    "intervalSemantics": "closed-open",
+    "finalPhaseIncludesEnd": true,
+    "items": [
+      {
+        "id": "earth-orbit",
+        "label": "Launch & Earth Orbit",
+        "startEvent": "missionStart",
+        "endEvent": "tli"
+      },
+      {
+        "id": "outbound-coast",
+        "label": "Outbound Translunar Coast",
+        "startEvent": "tli",
+        "endEvent": "lunarSoiEntry"
+      },
+      {
+        "id": "lunar-flyby",
+        "label": "Lunar Flyby",
+        "startEvent": "lunarSoiEntry",
+        "endEvent": "lunarSoiExit"
+      },
+      {
+        "id": "return-coast",
+        "label": "Return Coast",
+        "startEvent": "lunarSoiExit",
+        "endEvent": "serviceModuleSeparation"
+      },
+      {
+        "id": "entry-recovery",
+        "label": "Entry & Recovery",
+        "startEvent": "serviceModuleSeparation",
+        "endEvent": "finalPowerDown",
+        "includeEnd": true
+      }
+    ]
   },
   "eventConfigs": {
     "geo": [

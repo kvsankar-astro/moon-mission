@@ -96,6 +96,7 @@ describe("mission-config pipeline", () => {
             "apollo10-lm",
             "apollo11-sivb",
             "artemis1",
+            "artemis2",
             "chandrayaan2",
             "chandrayaan3",
         ];

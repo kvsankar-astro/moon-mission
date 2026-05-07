@@ -28,6 +28,11 @@ import {
 import { computePhotoModeLightingPresentation } from "../core/domain/flyby-lighting-presentation.js";
 import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 import {
+    buildTimelinePhases,
+    resolveActiveTimelinePhaseIndex,
+    resolveTimelinePhaseSeekTimeMs,
+} from "../core/domain/timeline-phases.js";
+import {
     selectSkyLabelCandidates,
 } from "../core/domain/sky-label-selection.js";
 import {
@@ -38,6 +43,21 @@ import {
     applyPhotoModeExposure,
     resolvePhotoModeLightingPresentation,
 } from "./photo-mode-render-presentation.js";
+
+function isDomElement(value) {
+    const elementCtor = value?.ownerDocument?.defaultView?.Element || globalThis.Element || null;
+    return typeof elementCtor === "function" && value instanceof elementCtor;
+}
+
+function isDomInstance(value, ctorName) {
+    const ctor = value?.ownerDocument?.defaultView?.[ctorName] || globalThis[ctorName] || null;
+    return typeof ctor === "function" && value instanceof ctor;
+}
+
+function isDomEventInstance(event, ctorName) {
+    const ctor = event?.view?.[ctorName] || globalThis[ctorName] || null;
+    return typeof ctor === "function" && event instanceof ctor;
+}
 
 const PANEL_SPECS = Object.freeze([
     {
@@ -68,9 +88,19 @@ const PANEL_SPECS = Object.freeze([
         defaultFov: 45,
     },
     {
+        id: "earth-origin-orbit-xy",
+        title: "Earth Orbit XY",
+        chipLabel: "Earth Orbit XY",
+        anchorKey: "earth",
+        targetKey: "craft",
+        infoMode: "orbit-xy",
+        mode: "orbit-xy",
+        defaultFov: 45,
+    },
+    {
         id: "earth-rise-composer",
-        title: "Flyby in Focus",
-        chipLabel: "Flyby",
+        title: "Frame and Shoot",
+        chipLabel: "Frame and Shoot",
         anchorKey: "craft",
         targetKey: "moon",
         infoMode: "none",
@@ -82,7 +112,7 @@ const PANEL_SPECS = Object.freeze([
 
 const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
     PANEL_SPECS
-        .filter((spec) => spec.mode !== "composer")
+        .filter((spec) => !spec.mode)
         .map((spec) => ({
             id: spec.id,
             label: spec.title,
@@ -94,8 +124,8 @@ const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
-const PANEL_DEFAULT_HEIGHT_RATIO = 0.20;
-const PANEL_SIDE_RATIO_COMPOSER = 0.52;
+const PANEL_DEFAULT_HEIGHT_RATIO = 0.32;
+const PANEL_SIDE_RATIO_COMPOSER = 0.364;
 const PANEL_MIN_SIDE_DEFAULT = 120;
 const PANEL_MIN_SIDE_COMPOSER = 300;
 const STARTUP_MINIMIZED_PANEL_IDS = new Set(["moon", "earth-to-moon"]);
@@ -104,7 +134,9 @@ const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 1;
 const AUTO_FOV_MAX_DEGREES = 179;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
-const COMPOSER_DRAG_SENSITIVITY = 0.004;
+const COMPOSER_DRAG_SENSITIVITY = 0.00055;
+const COMPOSER_WHEEL_ZOOM_SENSITIVITY = 0.00022;
+const ORBIT_XY_WHEEL_ZOOM_SENSITIVITY = 0.001;
 const COMPOSER_MAX_PITCH_RAD = (Math.PI * 0.5) - 0.02;
 const COMPOSER_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const COMPOSER_FLYBY_WINDOW_PADDING_MS = 5 * 60 * 1000;
@@ -123,8 +155,8 @@ const COMPOSER_MOON_SHADOW_LIFT_SCALE = 0.18;
 const COMPOSER_MOONSHINE_LIFT_SCALE = 0.65;
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
-const COMPOSER_DEFAULT_ROLL_RAD = Math.PI * 1.5;
-const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.75;
+const COMPOSER_DEFAULT_ROLL_RAD = 0;
+const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.525;
 const COMPOSER_DEFAULT_OPEN_TIME_MS = Date.UTC(2026, 3, 6, 23, 27, 0);
 const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
@@ -198,6 +230,31 @@ const FLYBY_EVENT_PILL_SPECS = Object.freeze([
         matchLabels: ["lunar soi out", "lunar soi exit", "moon soi out", "moon soi exit"],
     },
 ]);
+
+function normalizeComposerRollRad(rollRad) {
+    if (!Number.isFinite(rollRad)) {
+        return 0;
+    }
+    return ((rollRad % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+}
+
+function rollRadFromDialPointer({ pointerX, pointerY, centerX, centerY }) {
+    const dx = pointerX - centerX;
+    const dy = pointerY - centerY;
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || (Math.abs(dx) + Math.abs(dy)) <= 1e-6) {
+        return 0;
+    }
+    return normalizeComposerRollRad(Math.atan2(dx, -dy));
+}
+
+function composerRollDialKnobOffset(rollRad, radiusPx) {
+    const roll = normalizeComposerRollRad(rollRad);
+    const radius = Math.max(0, Number(radiusPx) || 0);
+    return {
+        x: Math.sin(roll) * radius,
+        y: -Math.cos(roll) * radius,
+    };
+}
 
 function safeParseJson(text, fallbackValue) {
     try {
@@ -519,6 +576,8 @@ class AuxiliaryCameraViewsManager {
         this.panelCameraWorldPosition = new THREE.Vector3();
         this.panelSkyLocalPosition = new THREE.Vector3();
         this.panelSunLocalPosition = new THREE.Vector3();
+        this.orbitPlaneCenterWorld = new THREE.Vector3();
+        this.orbitPlaneCameraPosition = new THREE.Vector3();
         this.moonElongationPrevious = null;
         this.moonElongationTrend = 1;
         this.moonVisibilitySamples = this.createFibonacciSphereSamples(720);
@@ -529,6 +588,9 @@ class AuxiliaryCameraViewsManager {
         this.composerFlybyWindowStartMs = Number.NaN;
         this.composerFlybyWindowEndMs = Number.NaN;
         this.composerFlybyEvents = [];
+        this.composerTimelinePhases = [];
+        this.composerActivePhaseIndex = -1;
+        this.composerSelectedPhaseIndex = -1;
         this.visiblePanelsRefreshRaf = null;
         this.composerBrightStarCatalogRef = null;
         this.composerBrightStarMagnitudeLimit = Number.NaN;
@@ -599,8 +661,11 @@ class AuxiliaryCameraViewsManager {
         const payload = {};
         const layoutPayload = {};
         for (const panelState of this.panels) {
+            const persistedFov = panelState.camera?.isOrthographicCamera
+                ? panelState.orbitZoomFovDegrees
+                : panelState.camera?.fov;
             payload[panelState.id] = {
-                fov: Number.isFinite(panelState.camera?.fov) ? Number(panelState.camera.fov) : null,
+                fov: Number.isFinite(persistedFov) ? Number(persistedFov) : null,
                 autoFovEnabled: panelState.autoFovEnabled === true,
             };
             layoutPayload[panelState.panelRegistryId] = {
@@ -1023,22 +1088,64 @@ class AuxiliaryCameraViewsManager {
                     }
                 }
 
-                // Ensure controls column fits without vertical scroll whenever viewport allows.
+                // The controls column scrolls; don't let controls force the shooting frame huge.
                 panelState.panel.style.width = `${width}px`;
-                const requiredHeight = this.resolveComposerRequiredPanelHeight(panelState);
-                if (Number.isFinite(requiredHeight) && requiredHeight > 0 && requiredHeight > height) {
-                    height = Math.min(maxPanelHeight, Math.ceil(requiredHeight));
-                    width = Math.round(height * COMPOSER_DEFAULT_ASPECT_RATIO);
-                    if (width > maxPanelWidth) {
-                        width = maxPanelWidth;
-                        height = Math.round(width / COMPOSER_DEFAULT_ASPECT_RATIO);
-                    }
-                }
             }
             panelState.panel.style.width = `${width}px`;
             panelState.panel.style.height = `${height}px`;
             return { panelState, width, height };
             });
+
+        const composerRects = panelRects.filter((item) => item.panelState.mode === "composer");
+        for (const item of composerRects) {
+            const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
+            const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
+            this.applyPanelPosition(item.panelState, x, y);
+        }
+
+        const rightPanelOrder = new Map([
+            ["moon", 0],
+            ["earth", 1],
+            ["earth-to-moon", 2],
+            ["earth-origin-orbit-xy", 3],
+        ]);
+        const rightPanelRects = panelRects
+            .filter((item) => item.panelState.mode !== "composer" && item.panelState.side !== "left")
+            .sort((a, b) => {
+                const aOrder = rightPanelOrder.get(a.panelState.id) ?? Number.MAX_SAFE_INTEGER;
+                const bOrder = rightPanelOrder.get(b.panelState.id) ?? Number.MAX_SAFE_INTEGER;
+                return aOrder - bOrder;
+            });
+        if (rightPanelRects.length === 4) {
+            const columns = 2;
+            const rows = 2;
+            const preferredSide = Math.min(...rightPanelRects.map((item) => Math.min(item.width, item.height)));
+            const maxSideFromHeight = Math.floor((bounds.height - ((rows - 1) * PANEL_GAP_PX)) / rows);
+            const maxSideFromWidth = Math.floor((bounds.width - ((columns - 1) * PANEL_GAP_PX)) / columns);
+            const gridSide = Math.max(
+                PANEL_MIN_SIDE_DEFAULT,
+                Math.min(preferredSide, maxSideFromHeight, maxSideFromWidth),
+            );
+            const gridWidth = (columns * gridSide) + ((columns - 1) * PANEL_GAP_PX);
+            const gridHeight = (rows * gridSide) + ((rows - 1) * PANEL_GAP_PX);
+            const gridLeft = Math.round(bounds.right - gridWidth);
+            const gridTop = Math.round(bounds.top + Math.max(0, (bounds.height - gridHeight) * 0.5));
+
+            rightPanelRects.forEach((item, index) => {
+                item.width = gridSide;
+                item.height = gridSide;
+                item.panelState.panel.style.width = `${gridSide}px`;
+                item.panelState.panel.style.height = `${gridSide}px`;
+                const col = index % columns;
+                const row = Math.floor(index / columns);
+                this.applyPanelPosition(
+                    item.panelState,
+                    gridLeft + (col * (gridSide + PANEL_GAP_PX)),
+                    gridTop + (row * (gridSide + PANEL_GAP_PX)),
+                );
+            });
+            return;
+        }
 
         let rightColumnEdge = bounds.right;
         let rightColumnWidth = 0;
@@ -1244,7 +1351,7 @@ class AuxiliaryCameraViewsManager {
         chip.classList.remove("aux-camera-chip--composer-teaser");
         chip.classList.add("aux-camera-chip--composer-tab");
         chip.replaceChildren();
-        chip.textContent = "Flyby";
+        chip.textContent = "Frame and Shoot";
         chip.setAttribute("aria-label", `Open ${panelState.title}`);
     }
 
@@ -1283,7 +1390,7 @@ class AuxiliaryCameraViewsManager {
 
     shouldStartDrag(event) {
         if (event.button !== 0) return false;
-        if (!(event.target instanceof Element)) return false;
+        if (!isDomElement(event.target)) return false;
         return !event.target.closest("input, button, select, option, label, output");
     }
 
@@ -1335,6 +1442,111 @@ class AuxiliaryCameraViewsManager {
         panelState.onPointerMove = onPointerMove;
         panelState.onPointerUp = releaseDrag;
         panelState.onPointerCancel = releaseDrag;
+    }
+
+    applyPanelSize(panelState, width, height) {
+        if (!panelState?.panel) {
+            return;
+        }
+        const bounds = this.resolvePanelViewportBounds();
+        const isComposer = panelState.mode === "composer";
+        const minSize = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
+        const maxWidth = Math.max(minSize, bounds.width - Math.max(0, panelState.x - bounds.left));
+        const maxHeight = Math.max(minSize, bounds.height - Math.max(0, panelState.y - bounds.top));
+        const nextWidth = Math.round(this.THREE.MathUtils.clamp(width, minSize, maxWidth));
+        const nextHeight = Math.round(this.THREE.MathUtils.clamp(height, minSize, maxHeight));
+        panelState.panel.style.width = `${nextWidth}px`;
+        panelState.panel.style.height = `${isComposer ? nextHeight : nextWidth}px`;
+        this.syncPanelSize(panelState);
+    }
+
+    bindPanelResizing(panelState, resizeGrip) {
+        if (!panelState?.panel || !resizeGrip) {
+            return;
+        }
+        const RESIZE_HIT_PX = 28;
+
+        const isInResizeCorner = (event) => {
+            const rect = panelState.panel.getBoundingClientRect();
+            return event.clientX >= rect.right - RESIZE_HIT_PX &&
+                event.clientX <= rect.right + 2 &&
+                event.clientY >= rect.bottom - RESIZE_HIT_PX &&
+                event.clientY <= rect.bottom + 2;
+        };
+
+        const startResize = (event, captureTarget) => {
+            panelState.defaultLayoutManaged = false;
+            this.bringPanelToFront(panelState);
+            this.resizeState = {
+                panelState,
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                width: panelState.panel.offsetWidth || panelState.width || 0,
+                height: panelState.panel.offsetHeight || panelState.height || 0,
+                captureTarget,
+            };
+            captureTarget.setPointerCapture(event.pointerId);
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        const onPointerDown = (event) => {
+            if (event.button !== 0 || panelState.maximized === true) {
+                return;
+            }
+            startResize(event, resizeGrip);
+        };
+
+        const onPanelPointerDown = (event) => {
+            if (event.button !== 0 || panelState.maximized === true || !isInResizeCorner(event)) {
+                return;
+            }
+            startResize(event, panelState.panel);
+        };
+
+        const onPointerMove = (event) => {
+            if (!this.resizeState || this.resizeState.pointerId !== event.pointerId) {
+                return;
+            }
+            const dx = event.clientX - this.resizeState.startX;
+            const dy = event.clientY - this.resizeState.startY;
+            this.applyPanelSize(
+                this.resizeState.panelState,
+                this.resizeState.width + dx,
+                this.resizeState.height + dy,
+            );
+            this.requestRender?.();
+            event.preventDefault();
+        };
+
+        const releaseResize = (event) => {
+            if (!this.resizeState || this.resizeState.pointerId !== event.pointerId) {
+                return;
+            }
+            const captureTarget = this.resizeState.captureTarget || resizeGrip;
+            if (captureTarget.hasPointerCapture(event.pointerId)) {
+                captureTarget.releasePointerCapture(event.pointerId);
+            }
+            this.resizeState = null;
+            this.queuePersistPanelState();
+            event.preventDefault();
+        };
+
+        panelState.panel.addEventListener("pointerdown", onPanelPointerDown, true);
+        panelState.panel.addEventListener("pointermove", onPointerMove);
+        panelState.panel.addEventListener("pointerup", releaseResize);
+        panelState.panel.addEventListener("pointercancel", releaseResize);
+        resizeGrip.addEventListener("pointerdown", onPointerDown);
+        resizeGrip.addEventListener("pointermove", onPointerMove);
+        resizeGrip.addEventListener("pointerup", releaseResize);
+        resizeGrip.addEventListener("pointercancel", releaseResize);
+        panelState.resizeGrip = resizeGrip;
+        panelState.onResizePointerDown = onPointerDown;
+        panelState.onPanelResizePointerDown = onPanelPointerDown;
+        panelState.onResizePointerMove = onPointerMove;
+        panelState.onResizePointerUp = releaseResize;
+        panelState.onResizePointerCancel = releaseResize;
     }
 
     createPanel(spec, index) {
@@ -1448,11 +1660,16 @@ class AuxiliaryCameraViewsManager {
         let composerTimelineWrap = null;
         let composerTransportRow = null;
         let composerTransportPlayButton = null;
+        let composerTransportMinusSecondButton = null;
         let composerTransportMinusMinuteButton = null;
         let composerTransportPlusMinuteButton = null;
+        let composerTransportPlusSecondButton = null;
         let composerTransportSlowerButton = null;
         let composerTransportSpeedButton = null;
         let composerTransportFasterButton = null;
+        let composerPhasePrevButton = null;
+        let composerPhaseSelect = null;
+        let composerPhaseNextButton = null;
         let composerTimelineSlider = null;
         let composerTimelineLabel = null;
         let composerTimelineLocalValue = null;
@@ -1470,6 +1687,7 @@ class AuxiliaryCameraViewsManager {
         let composerMoonOutlineCheckbox = null;
         let composerOpticsWrap = null;
         let composerOpticsBody = null;
+        let composerOpticsToggleButton = null;
         let composerOpticsPhysicalButton = null;
         let composerOpticsCameraButton = null;
         let composerOpticsStrengthSlider = null;
@@ -1484,6 +1702,9 @@ class AuxiliaryCameraViewsManager {
         let composerRollWrap = null;
         let composerRollSlider = null;
         let composerRollValue = null;
+        let composerRollDial = null;
+        let composerRollDialKnob = null;
+        let composerRollDialValue = null;
         let composerInfoOverlayWrap = null;
         let composerInfoOverlayCheckbox = null;
         let composerRaDecGridWrap = null;
@@ -1491,6 +1712,9 @@ class AuxiliaryCameraViewsManager {
         let composerSkyLabelsWrap = null;
         let composerSkyLabelsCheckbox = null;
         let composerCloudsButton = null;
+        let composerStarMagnitudeSlider = null;
+        let composerStarMagnitudeValue = null;
+        let composerHint = null;
         let composerMetricsStrip = null;
         let composerMetricFovHValue = null;
         let composerMetricFovVValue = null;
@@ -1535,35 +1759,46 @@ class AuxiliaryCameraViewsManager {
             composerInfoOverlayWrap.appendChild(composerInfoOverlayText);
             composerInfoToggles.appendChild(composerInfoOverlayWrap);
 
-            composerRaDecGridWrap = document.createElement("label");
-            composerRaDecGridWrap.className = "aux-camera-view__composer-grid-toggle";
-            composerRaDecGridCheckbox = document.createElement("input");
-            composerRaDecGridCheckbox.type = "checkbox";
-            composerRaDecGridCheckbox.setAttribute("aria-label", "Toggle composer RA/Dec overlay");
-            const composerRaDecGridText = document.createElement("span");
-            composerRaDecGridText.textContent = "Ra/Dec";
-            composerRaDecGridWrap.appendChild(composerRaDecGridCheckbox);
-            composerRaDecGridWrap.appendChild(composerRaDecGridText);
-            composerInfoToggles.appendChild(composerRaDecGridWrap);
-
             composerSkyLabelsWrap = document.createElement("label");
             composerSkyLabelsWrap.className = "aux-camera-view__composer-grid-toggle";
             composerSkyLabelsCheckbox = document.createElement("input");
             composerSkyLabelsCheckbox.type = "checkbox";
             composerSkyLabelsCheckbox.setAttribute("aria-label", "Toggle composer bright star and planet labels");
+            composerSkyLabelsCheckbox.dataset.proofId = "sky-labels-toggle";
             const composerSkyLabelsText = document.createElement("span");
             composerSkyLabelsText.textContent = "Sky Labels";
             composerSkyLabelsWrap.appendChild(composerSkyLabelsCheckbox);
             composerSkyLabelsWrap.appendChild(composerSkyLabelsText);
             composerInfoToggles.appendChild(composerSkyLabelsWrap);
-
             composerCloudsButton = document.createElement("button");
             composerCloudsButton.type = "button";
-            composerCloudsButton.className = "aux-camera-view__composer-button";
+            composerCloudsButton.className = "aux-camera-view__composer-pill";
             composerCloudsButton.setAttribute("aria-label", "Toggle Earth cloud cover");
             composerCloudsButton.dataset.proofId = "clouds-toggle";
             composerInfoToggles.appendChild(composerCloudsButton);
             composerInfoRow.appendChild(composerInfoToggles);
+
+            const composerStarMagnitudeRow = document.createElement("div");
+            composerStarMagnitudeRow.className = "aux-camera-view__composer-optics-row";
+            const composerStarMagnitudeLabel = document.createElement("span");
+            composerStarMagnitudeLabel.className = "aux-camera-view__composer-label";
+            composerStarMagnitudeLabel.textContent = "Star Mag";
+            composerStarMagnitudeRow.appendChild(composerStarMagnitudeLabel);
+            composerStarMagnitudeSlider = document.createElement("input");
+            composerStarMagnitudeSlider.type = "range";
+            composerStarMagnitudeSlider.className = "aux-camera-view__composer-ambient-slider";
+            composerStarMagnitudeSlider.min = String(COMPOSER_STAR_MAGNITUDE_MIN);
+            composerStarMagnitudeSlider.max = String(COMPOSER_STAR_MAGNITUDE_MAX);
+            composerStarMagnitudeSlider.step = "0.1";
+            composerStarMagnitudeSlider.value = String(COMPOSER_STAR_MAGNITUDE_DEFAULT);
+            composerStarMagnitudeSlider.setAttribute("aria-label", "Frame and Shoot star limiting magnitude");
+            composerStarMagnitudeSlider.dataset.proofId = "star-mag-slider";
+            composerStarMagnitudeRow.appendChild(composerStarMagnitudeSlider);
+            composerStarMagnitudeValue = document.createElement("output");
+            composerStarMagnitudeValue.className = "aux-camera-view__composer-ambient-value";
+            composerStarMagnitudeValue.value = COMPOSER_STAR_MAGNITUDE_DEFAULT.toFixed(1);
+            composerStarMagnitudeValue.textContent = composerStarMagnitudeValue.value;
+            composerStarMagnitudeRow.appendChild(composerStarMagnitudeValue);
 
             composerPresetWrap = document.createElement("div");
             composerPresetWrap.className = "aux-camera-view__composer-presets";
@@ -1587,6 +1822,7 @@ class AuxiliaryCameraViewsManager {
             composerLookEarthButton.className = "aux-camera-view__composer-button";
             composerLookEarthButton.textContent = "Earth";
             composerLookEarthButton.setAttribute("aria-label", "Flyby Planner lock to Earth");
+            composerLookEarthButton.dataset.proofId = "lock-earth";
             lockButtonStrip.appendChild(composerLookEarthButton);
 
             composerLookMoonButton = document.createElement("button");
@@ -1594,6 +1830,7 @@ class AuxiliaryCameraViewsManager {
             composerLookMoonButton.className = "aux-camera-view__composer-button";
             composerLookMoonButton.textContent = "Moon";
             composerLookMoonButton.setAttribute("aria-label", "Flyby Planner lock to Moon");
+            composerLookMoonButton.dataset.proofId = "lock-moon";
             lockButtonStrip.appendChild(composerLookMoonButton);
             composerPresetWrap.appendChild(lockButtonStrip);
 
@@ -1621,6 +1858,13 @@ class AuxiliaryCameraViewsManager {
             composerTransportPlayButton.setAttribute("aria-label", "Play or pause animation");
             composerPlaybackGroup.appendChild(composerTransportPlayButton);
 
+            composerTransportMinusSecondButton = document.createElement("button");
+            composerTransportMinusSecondButton.type = "button";
+            composerTransportMinusSecondButton.className = "button";
+            composerTransportMinusSecondButton.textContent = "-1s";
+            composerTransportMinusSecondButton.setAttribute("aria-label", "Step phase timeline backward by one second");
+            composerPlaybackGroup.appendChild(composerTransportMinusSecondButton);
+
             composerTransportMinusMinuteButton = document.createElement("button");
             composerTransportMinusMinuteButton.type = "button";
             composerTransportMinusMinuteButton.className = "button";
@@ -1634,6 +1878,13 @@ class AuxiliaryCameraViewsManager {
             composerTransportPlusMinuteButton.textContent = "+1m";
             composerTransportPlusMinuteButton.setAttribute("aria-label", "Step timeline forward by one minute");
             composerPlaybackGroup.appendChild(composerTransportPlusMinuteButton);
+
+            composerTransportPlusSecondButton = document.createElement("button");
+            composerTransportPlusSecondButton.type = "button";
+            composerTransportPlusSecondButton.className = "button";
+            composerTransportPlusSecondButton.textContent = "+1s";
+            composerTransportPlusSecondButton.setAttribute("aria-label", "Step phase timeline forward by one second");
+            composerPlaybackGroup.appendChild(composerTransportPlusSecondButton);
 
             composerTransportCluster.appendChild(composerPlaybackGroup);
             composerTransportRow.appendChild(composerTransportCluster);
@@ -1664,6 +1915,37 @@ class AuxiliaryCameraViewsManager {
 
             composerTransportRow.appendChild(composerSpeedCluster);
             composerTimelineWrap.appendChild(composerTransportRow);
+
+            const composerPhaseLabel = document.createElement("span");
+            composerPhaseLabel.className = "aux-camera-view__composer-label aux-camera-view__composer-row-label";
+            composerPhaseLabel.textContent = "Phase";
+            composerTimelineWrap.appendChild(composerPhaseLabel);
+
+            const composerPhasePicker = document.createElement("div");
+            composerPhasePicker.className = "aux-camera-view__composer-phase-picker";
+            composerPhasePrevButton = document.createElement("button");
+            composerPhasePrevButton.type = "button";
+            composerPhasePrevButton.className = "aux-camera-view__composer-phase-step";
+            composerPhasePrevButton.textContent = "◂";
+            composerPhasePrevButton.setAttribute("aria-label", "Previous mission phase");
+            composerPhasePicker.appendChild(composerPhasePrevButton);
+
+            composerPhaseSelect = document.createElement("select");
+            composerPhaseSelect.className = "aux-camera-view__composer-phase-select";
+            composerPhaseSelect.setAttribute("aria-label", "Mission phase");
+            composerPhasePicker.appendChild(composerPhaseSelect);
+
+            composerPhaseNextButton = document.createElement("button");
+            composerPhaseNextButton.type = "button";
+            composerPhaseNextButton.className = "aux-camera-view__composer-phase-step";
+            composerPhaseNextButton.textContent = "▸";
+            composerPhaseNextButton.setAttribute("aria-label", "Next mission phase");
+            composerPhasePicker.appendChild(composerPhaseNextButton);
+            composerTimelineWrap.appendChild(composerPhasePicker);
+
+            const composerPhaseValue = document.createElement("span");
+            composerPhaseValue.className = "aux-camera-view__composer-value-slot";
+            composerTimelineWrap.appendChild(composerPhaseValue);
 
             composerTimelineLabel = document.createElement("span");
             composerTimelineLabel.className = "aux-camera-view__composer-label aux-camera-view__composer-row-label";
@@ -1751,6 +2033,7 @@ class AuxiliaryCameraViewsManager {
                 "Moon Ambient",
                 "Flyby Planner Moon night-side ambient",
                 COMPOSER_DEFAULT_MOON_AMBIENT,
+                { proofId: "moon-ambient-slider" },
             ));
             ({
                 slider: composerEarthshineSlider,
@@ -1762,6 +2045,7 @@ class AuxiliaryCameraViewsManager {
                 {
                     min: COMPOSER_MIN_EARTHSHINE_GAIN,
                     max: COMPOSER_MAX_EARTHSHINE_GAIN,
+                    proofId: "earthshine-slider",
                 },
             ));
             ({
@@ -1806,14 +2090,26 @@ class AuxiliaryCameraViewsManager {
 
             const composerOpticsToggleRow = document.createElement("div");
             composerOpticsToggleRow.className = "aux-camera-view__composer-optics-toggle-row";
+            composerOpticsToggleButton = document.createElement("button");
+            composerOpticsToggleButton.type = "button";
+            composerOpticsToggleButton.className = "aux-camera-view__composer-disclosure";
+            composerOpticsToggleButton.setAttribute("aria-expanded", "false");
+            composerOpticsToggleButton.setAttribute("aria-label", "Show Sun related controls");
+            const composerOpticsDisclosureIcon = document.createElement("span");
+            composerOpticsDisclosureIcon.className = "aux-camera-view__composer-disclosure-icon";
+            composerOpticsDisclosureIcon.setAttribute("aria-hidden", "true");
+            composerOpticsDisclosureIcon.textContent = "\u25b8";
             const composerOpticsToggleLabel = document.createElement("span");
             composerOpticsToggleLabel.className = "aux-camera-view__composer-label";
-            composerOpticsToggleLabel.textContent = "Sun";
-            composerOpticsToggleRow.appendChild(composerOpticsToggleLabel);
+            composerOpticsToggleLabel.textContent = "Sun Related";
+            composerOpticsToggleButton.appendChild(composerOpticsDisclosureIcon);
+            composerOpticsToggleButton.appendChild(composerOpticsToggleLabel);
+            composerOpticsToggleRow.appendChild(composerOpticsToggleButton);
             composerOpticsWrap.appendChild(composerOpticsToggleRow);
 
             composerOpticsBody = document.createElement("div");
             composerOpticsBody.className = "aux-camera-view__composer-optics-body";
+            composerOpticsBody.hidden = true;
 
             const composerOpticsHeader = document.createElement("div");
             composerOpticsHeader.className = "aux-camera-view__composer-optics-header";
@@ -1915,11 +2211,10 @@ class AuxiliaryCameraViewsManager {
             composerControlMatrix.replaceChildren(
                 basicSectionLabel,
                 composerInfoRow,
+                composerStarMagnitudeRow,
                 composerPresetWrap,
                 composerControlsWrap,
                 composerFovWrap,
-                composerRollWrap,
-                sunSectionLabel,
                 composerOpticsWrap,
                 timelineSectionLabel,
                 composerTimelineWrap,
@@ -1956,6 +2251,11 @@ class AuxiliaryCameraViewsManager {
             composerDisabledOverlay.hidden = true;
             viewport.appendChild(composerDisabledOverlay);
 
+            composerHint = document.createElement("div");
+            composerHint.className = "aux-camera-view__composer-hint";
+            composerHint.hidden = true;
+            viewport.appendChild(composerHint);
+
             composerMetricsStrip = document.createElement("div");
             composerMetricsStrip.className = "aux-camera-view__composer-metrics-strip";
             composerMetricsStrip.setAttribute("aria-hidden", "true");
@@ -1980,6 +2280,19 @@ class AuxiliaryCameraViewsManager {
             composerMetricDistanceMoonValue = createMetricCell("Distance To Moon");
             composerMetricAngleValue = createMetricCell("Angle");
             viewport.appendChild(composerMetricsStrip);
+
+            composerRollDial = document.createElement("button");
+            composerRollDial.type = "button";
+            composerRollDial.className = "aux-camera-view__composer-roll-dial";
+            composerRollDial.setAttribute("aria-label", "Adjust frame rotation");
+            composerRollDialKnob = document.createElement("span");
+            composerRollDialKnob.className = "aux-camera-view__composer-roll-dial-knob";
+            composerRollDialValue = document.createElement("span");
+            composerRollDialValue.className = "aux-camera-view__composer-roll-dial-value";
+            composerRollDialValue.textContent = "0°";
+            composerRollDial.appendChild(composerRollDialKnob);
+            composerRollDial.appendChild(composerRollDialValue);
+            viewport.appendChild(composerRollDial);
         }
 
         let renderer = null;
@@ -2018,6 +2331,11 @@ class AuxiliaryCameraViewsManager {
         viewport.appendChild(overlayCanvas);
         const overlayCtx = overlayCanvas.getContext("2d");
 
+        const resizeGrip = document.createElement("div");
+        resizeGrip.className = "aux-camera-view__resize-grip";
+        resizeGrip.setAttribute("aria-hidden", "true");
+        panel.appendChild(resizeGrip);
+
         const chipButton = document.createElement("button");
         chipButton.className = "aux-camera-chip";
         chipButton.type = "button";
@@ -2027,7 +2345,9 @@ class AuxiliaryCameraViewsManager {
         const chipDock = panelSide === "left" ? this.chipDockLeft : this.chipDockRight;
         chipDock?.appendChild(chipButton);
 
-        const camera = new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
+        const camera = spec.mode === "orbit-xy"
+            ? new this.THREE.OrthographicCamera(-1, 1, 1, -1, 0.0001, 100000)
+            : new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
         const panelRegistryId = `aux:${spec.id}`;
         const persistedLayout = readMissionPanelState(panelRegistryId);
@@ -2069,11 +2389,16 @@ class AuxiliaryCameraViewsManager {
             composerTimelineWrap,
             composerTransportRow,
             composerTransportPlayButton,
+            composerTransportMinusSecondButton,
             composerTransportMinusMinuteButton,
             composerTransportPlusMinuteButton,
+            composerTransportPlusSecondButton,
             composerTransportSlowerButton,
             composerTransportSpeedButton,
             composerTransportFasterButton,
+            composerPhasePrevButton,
+            composerPhaseSelect,
+            composerPhaseNextButton,
             composerTimelineSlider,
             composerTimelineLabel,
             composerTimelineLocalValue,
@@ -2091,6 +2416,7 @@ class AuxiliaryCameraViewsManager {
             composerMoonOutlineCheckbox,
             composerOpticsWrap,
             composerOpticsBody,
+            composerOpticsToggleButton,
             composerOpticsPhysicalButton,
             composerOpticsCameraButton,
             composerOpticsStrengthSlider,
@@ -2104,6 +2430,9 @@ class AuxiliaryCameraViewsManager {
             composerOpticsFlareValue,
             composerRollSlider,
             composerRollValue,
+            composerRollDial,
+            composerRollDialKnob,
+            composerRollDialValue,
             composerInfoOverlayWrap,
             composerInfoOverlayCheckbox,
             composerRaDecGridWrap,
@@ -2111,6 +2440,9 @@ class AuxiliaryCameraViewsManager {
             composerSkyLabelsWrap,
             composerSkyLabelsCheckbox,
             composerCloudsButton,
+            composerStarMagnitudeSlider,
+            composerStarMagnitudeValue,
+            composerHint,
             composerMetricsStrip,
             composerMetricFovHValue,
             composerMetricFovVValue,
@@ -2130,15 +2462,21 @@ class AuxiliaryCameraViewsManager {
             fovValue,
             fovMinDegrees: AUTO_FOV_MIN_DEGREES,
             fovMaxDegrees: AUTO_FOV_MAX_DEGREES,
+            orthographicHalfHeight: 1,
+            orbitZoomFovDegrees: spec.defaultFov,
+            orbitPanOffsetX: 0,
+            orbitPanOffsetY: 0,
+            orbitViewportPointer: null,
             autoToggle,
             infoButton,
             minimizeButton,
             expandButton,
             closeButton,
             deleteButton,
+            resizeGrip,
             panelControls,
             chipButton,
-            autoFovEnabled: true,
+            autoFovEnabled: panelMode !== "orbit-xy",
             onAutoToggleClick: null,
             onInfoClick: null,
             onMinimizeClick: null,
@@ -2157,6 +2495,7 @@ class AuxiliaryCameraViewsManager {
             onComposerMoonOutlineToggle: null,
             onComposerOpticsPhysicalClick: null,
             onComposerOpticsCameraClick: null,
+            onComposerOpticsToggleClick: null,
             onComposerOpticsStrengthInput: null,
             onComposerOpticsHaloInput: null,
             onComposerOpticsStarburstInput: null,
@@ -2164,17 +2503,26 @@ class AuxiliaryCameraViewsManager {
             onComposerTimelineInput: null,
             onComposerTimelinePointerDown: null,
             onComposerTimelinePointerUp: null,
+            onComposerPhaseSelectChange: null,
+            onComposerPhasePrevClick: null,
+            onComposerPhaseNextClick: null,
             onComposerTransportPlayClick: null,
+            onComposerTransportMinusSecondClick: null,
             onComposerTransportMinusMinuteClick: null,
             onComposerTransportPlusMinuteClick: null,
+            onComposerTransportPlusSecondClick: null,
             onComposerTransportSlowerClick: null,
             onComposerTransportSpeedClick: null,
             onComposerTransportFasterClick: null,
             onComposerInfoOverlayToggle: null,
+            onComposerCloudsClick: null,
             onComposerRollInput: null,
+            onComposerRollDialPointerDown: null,
+            onComposerRollDialPointerMove: null,
+            onComposerRollDialPointerUp: null,
             onComposerRaDecGridToggle: null,
             onComposerSkyLabelsToggle: null,
-            onComposerCloudsClick: null,
+            onComposerStarMagnitudeInput: null,
             onComposerViewportWheel: null,
             onComposerViewportPointerDown: null,
             onComposerViewportPointerMove: null,
@@ -2184,6 +2532,10 @@ class AuxiliaryCameraViewsManager {
             onPointerMove: null,
             onPointerUp: null,
             onPointerCancel: null,
+            onResizePointerDown: null,
+            onResizePointerMove: null,
+            onResizePointerUp: null,
+            onResizePointerCancel: null,
             x: 0,
             y: 0,
             onPanelPointerDown: null,
@@ -2212,6 +2564,7 @@ class AuxiliaryCameraViewsManager {
             composerEarthshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_EARTHSHINE_GAIN : 1,
             composerMoonshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_MOONSHINE_GAIN : 1,
             composerMoonOutlineEnabled: false,
+            composerOpticsExpanded: false,
             composerSunProfile: "camera",
             composerSunStrength: COMPOSER_OPTICS_STRENGTH_DEFAULT,
             composerSunHaloGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
@@ -2224,12 +2577,20 @@ class AuxiliaryCameraViewsManager {
             composerFlybyEventsSignature: "",
             composerFlybyEventNodes: [],
             composerFlybySelectedEventTimeMs: Number.NaN,
+            composerPhaseSelectSignature: "",
             composerInteractionEnabled: true,
             composerInfoOverlayEnabled: true,
             composerRaDecGridEnabled: false,
             composerSkyLabelsEnabled: false,
             composerEarthCloudsEnabled: true,
+            composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
+            onOrbitViewportWheel: null,
+            onOrbitViewportPointerDown: null,
+            onOrbitViewportPointerMove: null,
+            onOrbitViewportPointerUp: null,
+            composerHintTimer: null,
             composerViewportPointer: null,
+            composerRollDialPointerId: null,
             missionEnabled: panelMode === "composer"
                 ? this.composerEnabled
                 : this.missionPanelsEnabled,
@@ -2239,20 +2600,26 @@ class AuxiliaryCameraViewsManager {
             const enabled = panelState.autoFovEnabled === true;
             panelState.fovControl?.setAutoEnabled(enabled);
             panelState.fovControl?.setDisabledState({
-                autoButtonDisabled: autoToggle.disabled,
+                autoButtonDisabled: panelState.mode === "orbit-xy" || autoToggle.disabled,
                 sliderDisabled: enabled,
                 valueDisabled: false,
             });
         };
 
         const onFovInput = () => {
-            const fov = panelState.fovControl?.readSliderFovDegrees(panelState.camera.fov)
-                ?? panelState.camera.fov;
+            const fallbackFov = panelState.camera?.isOrthographicCamera
+                ? (panelState.orbitZoomFovDegrees || 45)
+                : panelState.camera.fov;
+            const fov = panelState.fovControl?.readSliderFovDegrees(fallbackFov)
+                ?? fallbackFov;
             this.setPanelFov(panelState, fov);
             this.requestRender?.();
             this.queuePersistPanelState();
         };
         const onAutoToggleClick = () => {
+            if (panelState.mode === "orbit-xy") {
+                return;
+            }
             panelState.autoFovEnabled = !panelState.autoFovEnabled;
             syncAutoToggleUi();
             if (panelState.autoFovEnabled) {
@@ -2283,9 +2650,8 @@ class AuxiliaryCameraViewsManager {
             if (panelState.mode === "composer") {
                 panelState.composerLockTarget = "moon";
                 syncComposerLockUi?.();
-                panelState.autoFovEnabled = false;
+                panelState.autoFovEnabled = true;
                 syncAutoToggleUi();
-                this.setPanelFov(panelState, 50);
                 this.seekMainTimelineTime(COMPOSER_DEFAULT_OPEN_TIME_MS, true);
             }
             this.setPanelMinimized(panelState, false);
@@ -2312,6 +2678,13 @@ class AuxiliaryCameraViewsManager {
         panelState.onChipClick = onChipClick;
 
         if (panelState.mode === "composer") {
+            const activateComposerForControl = () => {
+                if (panelState.composerInteractionEnabled === true) {
+                    return false;
+                }
+                this.activateComposerWindow(panelState, { finalize: true });
+                return true;
+            };
             const requestComposerControlRender = () => {
                 this.requestRender?.();
                 this.scheduleVisiblePanelsRefresh();
@@ -2356,6 +2729,23 @@ class AuxiliaryCameraViewsManager {
                     panelState.composerMoonOutlineCheckbox.checked = panelState.composerMoonOutlineEnabled === true;
                 }
             };
+            const syncComposerStarMagnitudeUi = () => {
+                if (!panelState.composerStarMagnitudeSlider || !panelState.composerStarMagnitudeValue) {
+                    return;
+                }
+                const magnitude = this.THREE.MathUtils.clamp(
+                    Number(panelState.composerStarMagnitudeLimit),
+                    COMPOSER_STAR_MAGNITUDE_MIN,
+                    COMPOSER_STAR_MAGNITUDE_MAX,
+                );
+                panelState.composerStarMagnitudeLimit = Number.isFinite(magnitude)
+                    ? magnitude
+                    : COMPOSER_STAR_MAGNITUDE_DEFAULT;
+                const text = panelState.composerStarMagnitudeLimit.toFixed(1);
+                panelState.composerStarMagnitudeSlider.value = text;
+                panelState.composerStarMagnitudeValue.value = text;
+                panelState.composerStarMagnitudeValue.textContent = text;
+            };
             syncComposerCloudsUi = () => {
                 if (!panelState.composerCloudsButton) {
                     return;
@@ -2370,6 +2760,21 @@ class AuxiliaryCameraViewsManager {
                     : "Show Earth cloud cover in all Earth renders";
             };
             const syncComposerOpticsUi = () => {
+                const expanded = panelState.composerOpticsExpanded === true;
+                if (panelState.composerOpticsBody) {
+                    panelState.composerOpticsBody.hidden = !expanded;
+                }
+                if (panelState.composerOpticsToggleButton) {
+                    panelState.composerOpticsToggleButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+                    panelState.composerOpticsToggleButton.setAttribute(
+                        "aria-label",
+                        expanded ? "Hide Sun related controls" : "Show Sun related controls",
+                    );
+                    const icon = panelState.composerOpticsToggleButton.querySelector(".aux-camera-view__composer-disclosure-icon");
+                    if (icon) {
+                        icon.textContent = expanded ? "\u25be" : "\u25b8";
+                    }
+                }
                 const profile = panelState.composerSunProfile === "physical" ? "physical" : "camera";
                 panelState.composerOpticsPhysicalButton?.classList.toggle("is-active", profile === "physical");
                 panelState.composerOpticsCameraButton?.classList.toggle("is-active", profile === "camera");
@@ -2396,7 +2801,12 @@ class AuxiliaryCameraViewsManager {
             const setComposerOpticsProfile = (nextProfile) => {
                 panelState.composerSunProfile = nextProfile === "physical" ? "physical" : "camera";
                 syncComposerOpticsUi();
-                this.requestRender?.();
+                requestComposerControlRender();
+            };
+            const onComposerOpticsToggleClick = () => {
+                panelState.composerOpticsExpanded = panelState.composerOpticsExpanded !== true;
+                syncComposerOpticsUi();
+                requestComposerControlRender();
             };
             const setComposerOpticsStrength = (nextStrength) => {
                 const bounded = this.THREE.MathUtils.clamp(
@@ -2409,7 +2819,7 @@ class AuxiliaryCameraViewsManager {
                 }
                 panelState.composerSunStrength = bounded;
                 syncComposerOpticsUi();
-                this.requestRender?.();
+                requestComposerControlRender();
             };
             const setComposerOpticsGain = (key, nextValue) => {
                 const bounded = this.THREE.MathUtils.clamp(
@@ -2422,7 +2832,7 @@ class AuxiliaryCameraViewsManager {
                 }
                 panelState[key] = bounded;
                 syncComposerOpticsUi();
-                this.requestRender?.();
+                requestComposerControlRender();
             };
             const setComposerAmbient = (ambientKey, nextAmbient, { persist = false } = {}) => {
                 const bounded = this.THREE.MathUtils.clamp(
@@ -2454,7 +2864,7 @@ class AuxiliaryCameraViewsManager {
                 if (persist) {
                     this.queuePersistPanelState();
                 }
-                this.requestRender?.();
+                requestComposerControlRender();
             };
             const setComposerMoonshineGain = (nextGain, { persist = false } = {}) => {
                 const bounded = this.THREE.MathUtils.clamp(
@@ -2472,23 +2882,53 @@ class AuxiliaryCameraViewsManager {
                 }
                 requestComposerControlRender();
             };
-            const syncComposerRollUi = () => {
-                if (!panelState.composerRollSlider || !panelState.composerRollValue) {
+            const setComposerStarMagnitudeLimit = (nextMagnitude, { persist = false } = {}) => {
+                const bounded = this.THREE.MathUtils.clamp(
+                    Number(nextMagnitude),
+                    COMPOSER_STAR_MAGNITUDE_MIN,
+                    COMPOSER_STAR_MAGNITUDE_MAX,
+                );
+                if (!Number.isFinite(bounded)) {
                     return;
                 }
-                const normalizedRoll = ((panelState.composerRollRad % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+                panelState.composerStarMagnitudeLimit = bounded;
+                syncComposerStarMagnitudeUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
+                requestComposerControlRender();
+            };
+            const onComposerCloudsClick = () => {
+                activateComposerForControl();
+                const nextEnabled = this.getEarthCloudsEnabled() === false;
+                panelState.composerEarthCloudsEnabled = nextEnabled;
+                this.setEarthCloudsEnabled?.(nextEnabled);
+                syncComposerCloudsUi();
+                requestComposerControlRender();
+                this.queuePersistPanelState();
+            };
+            const syncComposerRollUi = () => {
+                const normalizedRoll = normalizeComposerRollRad(panelState.composerRollRad);
                 panelState.composerRollRad = normalizedRoll;
                 const degrees = Math.round(this.THREE.MathUtils.radToDeg(normalizedRoll)) % 360;
-                panelState.composerRollSlider.value = String(degrees);
                 const text = `${degrees}°`;
-                panelState.composerRollValue.value = text;
-                panelState.composerRollValue.textContent = text;
+                if (panelState.composerRollSlider) {
+                    panelState.composerRollSlider.value = String(degrees);
+                }
+                if (panelState.composerRollValue) {
+                    panelState.composerRollValue.value = text;
+                    panelState.composerRollValue.textContent = text;
+                }
+                if (panelState.composerRollDialValue) {
+                    panelState.composerRollDialValue.textContent = text;
+                }
+                if (panelState.composerRollDialKnob) {
+                    const offset = composerRollDialKnobOffset(normalizedRoll, 18);
+                    panelState.composerRollDialKnob.style.transform = `translate(calc(-50% + ${offset.x.toFixed(2)}px), calc(-50% + ${offset.y.toFixed(2)}px))`;
+                }
             };
             const onComposerRollInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 if (!panelState.composerRollSlider) {
                     return;
                 }
@@ -2500,35 +2940,62 @@ class AuxiliaryCameraViewsManager {
                 syncComposerRollUi();
                 this.requestRender?.();
             };
-            const onComposerRaDecGridToggle = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
+            const setComposerRollFromDialPointer = (event) => {
+                if (!panelState.composerRollDial) {
                     return;
                 }
+                const rect = panelState.composerRollDial.getBoundingClientRect();
+                panelState.composerRollRad = rollRadFromDialPointer({
+                    pointerX: event.clientX,
+                    pointerY: event.clientY,
+                    centerX: rect.left + rect.width * 0.5,
+                    centerY: rect.top + rect.height * 0.5,
+                });
+                syncComposerRollUi();
+                this.requestRender?.();
+            };
+            const onComposerRollDialPointerDown = (event) => {
+                if (event.button !== 0) {
+                    return;
+                }
+                activateComposerForControl();
+                panelState.composerRollDialPointerId = event.pointerId;
+                panelState.composerRollDial?.classList.add("is-active");
+                panelState.composerRollDial?.setPointerCapture(event.pointerId);
+                setComposerRollFromDialPointer(event);
+                event.preventDefault();
+                event.stopPropagation();
+            };
+            const onComposerRollDialPointerMove = (event) => {
+                if (panelState.composerRollDialPointerId !== event.pointerId) {
+                    return;
+                }
+                setComposerRollFromDialPointer(event);
+                event.preventDefault();
+                event.stopPropagation();
+            };
+            const releaseComposerRollDial = (event) => {
+                if (panelState.composerRollDialPointerId !== event.pointerId) {
+                    return;
+                }
+                if (panelState.composerRollDial?.hasPointerCapture(event.pointerId)) {
+                    panelState.composerRollDial.releasePointerCapture(event.pointerId);
+                }
+                panelState.composerRollDialPointerId = null;
+                panelState.composerRollDial?.classList.remove("is-active");
+                this.queuePersistPanelState();
+            };
+            const onComposerRaDecGridToggle = () => {
+                activateComposerForControl();
                 panelState.composerRaDecGridEnabled = !!panelState.composerRaDecGridCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
             };
             const onComposerSkyLabelsToggle = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 panelState.composerSkyLabelsEnabled = !!panelState.composerSkyLabelsCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
-            };
-            const onComposerCloudsClick = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
-                const nextEnabled = this.getEarthCloudsEnabled() === false;
-                panelState.composerEarthCloudsEnabled = nextEnabled;
-                this.setEarthCloudsEnabled?.(nextEnabled);
-                syncComposerCloudsUi?.();
-                requestComposerControlRender();
-                this.queuePersistPanelState();
             };
             const setComposerLockTarget = (target) => {
                 if (!panelState.composerInteractionEnabled) {
@@ -2549,98 +3016,63 @@ class AuxiliaryCameraViewsManager {
                 setComposerLockTarget("moon");
             };
             const onComposerEarthAmbientInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbientSlider?.value, { persist: true });
             };
             const onComposerMoonAmbientInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerAmbient("composerMoonAmbient", panelState.composerMoonAmbientSlider?.value, { persist: true });
             };
             const onComposerEarthshineInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerEarthshineGain(panelState.composerEarthshineSlider?.value, { persist: true });
             };
             const onComposerMoonshineInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerMoonshineGain(panelState.composerMoonshineSlider?.value, { persist: true });
             };
             const onComposerMoonOutlineToggle = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 panelState.composerMoonOutlineEnabled = !!panelState.composerMoonOutlineCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
             };
             const onComposerOpticsPhysicalClick = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsProfile("physical");
             };
             const onComposerOpticsCameraClick = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsProfile("camera");
             };
             const onComposerOpticsStrengthInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsStrength(panelState.composerOpticsStrengthSlider?.value);
             };
             const onComposerOpticsHaloInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsGain("composerSunHaloGain", panelState.composerOpticsHaloSlider?.value);
             };
             const onComposerOpticsStarburstInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsGain("composerSunStarburstGain", panelState.composerOpticsStarburstSlider?.value);
             };
             const onComposerOpticsFlareInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 setComposerOpticsGain("composerSunFlareGain", panelState.composerOpticsFlareSlider?.value);
             };
+            const onComposerStarMagnitudeInput = () => {
+                activateComposerForControl();
+                setComposerStarMagnitudeLimit(panelState.composerStarMagnitudeSlider?.value, { persist: true });
+            };
             const onComposerInfoOverlayToggle = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 panelState.composerInfoOverlayEnabled = !!panelState.composerInfoOverlayCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
             };
             const onComposerTimelineInput = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 if (!panelState.composerTimelineSlider) {
                     return;
                 }
@@ -2659,17 +3091,11 @@ class AuxiliaryCameraViewsManager {
                 this.seekMainTimelineTime(targetMs, false);
             };
             const onComposerTimelinePointerDown = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 panelState.composerTimelineDragging = true;
             };
             const onComposerTimelinePointerUp = () => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 panelState.composerTimelineDragging = false;
                 if (!panelState.composerTimelineSlider) {
                     return;
@@ -2688,9 +3114,22 @@ class AuxiliaryCameraViewsManager {
                 const targetMs = localMin + ((localMax - localMin) * ratio);
                 this.seekMainTimelineTime(targetMs, true);
             };
+            const onComposerPhaseSelectChange = () => {
+                const select = panelState.composerPhaseSelect;
+                if (!isDomInstance(select, "HTMLSelectElement")) {
+                    return;
+                }
+                this.selectComposerTimelinePhase(panelState, select.selectedIndex);
+            };
+            const onComposerPhasePrevClick = () => {
+                this.selectComposerTimelinePhase(panelState, this.composerActivePhaseIndex - 1);
+            };
+            const onComposerPhaseNextClick = () => {
+                this.selectComposerTimelinePhase(panelState, this.composerActivePhaseIndex + 1);
+            };
             const REPEAT_PRESS_BUTTON_IDS = new Set(["slower", "faster", "realtime"]);
             const dispatchSyntheticPress = (target) => {
-                if (!(target instanceof HTMLButtonElement) || target.disabled) {
+                if (!isDomInstance(target, "HTMLButtonElement") || target.disabled) {
                     return false;
                 }
                 if (typeof window !== "undefined" && typeof window.PointerEvent === "function") {
@@ -2718,7 +3157,7 @@ class AuxiliaryCameraViewsManager {
             };
             const clickMainControlButton = (id) => {
                 const button = document.getElementById(id);
-                if (!(button instanceof HTMLButtonElement)) {
+                if (!isDomInstance(button, "HTMLButtonElement")) {
                     return false;
                 }
                 if (button.disabled || button.getAttribute("aria-disabled") === "true") {
@@ -2733,19 +3172,35 @@ class AuxiliaryCameraViewsManager {
             const onComposerTransportPlayClick = () => {
                 clickMainControlButton("animate");
             };
-            const onComposerTransportMinusMinuteClick = () => {
+            const seekComposerTimelineBy = (deltaMs) => {
                 const timelineState = this.readMainTimelineState();
                 if (!timelineState) {
                     return;
                 }
-                this.seekMainTimelineTime(timelineState.value - 60000, true);
+                const localMin = Number.isFinite(panelState.composerTimelineStartMs)
+                    ? panelState.composerTimelineStartMs
+                    : timelineState.min;
+                const localMax = Number.isFinite(panelState.composerTimelineEndMs)
+                    ? panelState.composerTimelineEndMs
+                    : timelineState.max;
+                const bounded = this.THREE.MathUtils.clamp(
+                    timelineState.value + deltaMs,
+                    Math.min(localMin, localMax),
+                    Math.max(localMin, localMax),
+                );
+                this.seekMainTimelineTime(bounded, true);
+            };
+            const onComposerTransportMinusSecondClick = () => {
+                seekComposerTimelineBy(-1000);
+            };
+            const onComposerTransportMinusMinuteClick = () => {
+                seekComposerTimelineBy(-60000);
             };
             const onComposerTransportPlusMinuteClick = () => {
-                const timelineState = this.readMainTimelineState();
-                if (!timelineState) {
-                    return;
-                }
-                this.seekMainTimelineTime(timelineState.value + 60000, true);
+                seekComposerTimelineBy(60000);
+            };
+            const onComposerTransportPlusSecondClick = () => {
+                seekComposerTimelineBy(1000);
             };
             const onComposerTransportSlowerClick = () => {
                 clickMainControlButton("slower");
@@ -2757,19 +3212,16 @@ class AuxiliaryCameraViewsManager {
                 clickMainControlButton("faster");
             };
             const onComposerViewportWheel = (event) => {
-                if (!(event instanceof WheelEvent)) {
+                if (!isDomEventInstance(event, "WheelEvent")) {
                     return;
                 }
                 event.preventDefault();
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                    return;
-                }
+                activateComposerForControl();
                 if (panelState.autoFovEnabled) {
                     panelState.autoFovEnabled = false;
                     syncAutoToggleUi();
                 }
-                const zoomScale = Math.exp(event.deltaY * 0.0015);
+                const zoomScale = Math.exp(event.deltaY * COMPOSER_WHEEL_ZOOM_SENSITIVITY);
                 const nextFov = this.THREE.MathUtils.clamp(
                     panelState.camera.fov * zoomScale,
                     AUTO_FOV_MIN_DEGREES,
@@ -2783,8 +3235,16 @@ class AuxiliaryCameraViewsManager {
                 if (event.button !== 0) {
                     return;
                 }
+                if (isDomElement(event.target) && event.target.closest(".aux-camera-view__composer-roll-dial")) {
+                    return;
+                }
                 if (!panelState.composerInteractionEnabled) {
                     this.activateComposerWindow(panelState, { finalize: true });
+                    event.preventDefault();
+                    return;
+                }
+                if ((panelState.composerLockTarget || "none") !== "none") {
+                    this.showComposerHint(panelState, "Switch to Free to change perspective.");
                     event.preventDefault();
                     return;
                 }
@@ -2794,8 +3254,6 @@ class AuxiliaryCameraViewsManager {
                     clientY: event.clientY,
                 };
                 this.setComposerOrientationReference(panelState, "world");
-                panelState.composerLockTarget = "none";
-                syncComposerLockUi();
                 panelState.viewport.setPointerCapture(event.pointerId);
                 event.preventDefault();
             };
@@ -2842,13 +3300,16 @@ class AuxiliaryCameraViewsManager {
                 if (panelState.composerInteractionEnabled) {
                     return;
                 }
-                if (!(event.target instanceof Element)) {
+                if (!isDomElement(event.target)) {
                     return;
                 }
                 if (event.target.closest(".aux-camera-view__composer-button")) {
                     return;
                 }
                 if (event.target.closest(".aux-camera-view__header")) {
+                    return;
+                }
+                if (event.target.closest(".aux-camera-view__resize-grip")) {
                     return;
                 }
                 const jumped = this.activateComposerWindow(panelState, { finalize: true });
@@ -2866,27 +3327,38 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEarthshineSlider?.addEventListener("input", onComposerEarthshineInput, { passive: true });
             panelState.composerMoonshineSlider?.addEventListener("input", onComposerMoonshineInput, { passive: true });
             panelState.composerMoonOutlineCheckbox?.addEventListener("change", onComposerMoonOutlineToggle);
+            panelState.composerOpticsToggleButton?.addEventListener("click", onComposerOpticsToggleClick);
             panelState.composerOpticsPhysicalButton?.addEventListener("click", onComposerOpticsPhysicalClick);
             panelState.composerOpticsCameraButton?.addEventListener("click", onComposerOpticsCameraClick);
             panelState.composerOpticsStrengthSlider?.addEventListener("input", onComposerOpticsStrengthInput, { passive: true });
             panelState.composerOpticsHaloSlider?.addEventListener("input", onComposerOpticsHaloInput, { passive: true });
             panelState.composerOpticsStarburstSlider?.addEventListener("input", onComposerOpticsStarburstInput, { passive: true });
             panelState.composerOpticsFlareSlider?.addEventListener("input", onComposerOpticsFlareInput, { passive: true });
+            panelState.composerStarMagnitudeSlider?.addEventListener("input", onComposerStarMagnitudeInput, { passive: true });
+            panelState.composerCloudsButton?.addEventListener("click", onComposerCloudsClick);
             panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
             panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
             panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
             panelState.composerTimelineSlider?.addEventListener("change", onComposerTimelinePointerUp);
+            panelState.composerPhaseSelect?.addEventListener("change", onComposerPhaseSelectChange);
+            panelState.composerPhasePrevButton?.addEventListener("click", onComposerPhasePrevClick);
+            panelState.composerPhaseNextButton?.addEventListener("click", onComposerPhaseNextClick);
             panelState.composerTransportPlayButton?.addEventListener("click", onComposerTransportPlayClick);
+            panelState.composerTransportMinusSecondButton?.addEventListener("click", onComposerTransportMinusSecondClick);
             panelState.composerTransportMinusMinuteButton?.addEventListener("click", onComposerTransportMinusMinuteClick);
             panelState.composerTransportPlusMinuteButton?.addEventListener("click", onComposerTransportPlusMinuteClick);
+            panelState.composerTransportPlusSecondButton?.addEventListener("click", onComposerTransportPlusSecondClick);
             panelState.composerTransportSlowerButton?.addEventListener("click", onComposerTransportSlowerClick);
             panelState.composerTransportSpeedButton?.addEventListener("click", onComposerTransportSpeedClick);
             panelState.composerTransportFasterButton?.addEventListener("click", onComposerTransportFasterClick);
             panelState.composerInfoOverlayCheckbox?.addEventListener("change", onComposerInfoOverlayToggle);
             panelState.composerRollSlider?.addEventListener("input", onComposerRollInput, { passive: true });
+            panelState.composerRollDial?.addEventListener("pointerdown", onComposerRollDialPointerDown);
+            panelState.composerRollDial?.addEventListener("pointermove", onComposerRollDialPointerMove);
+            panelState.composerRollDial?.addEventListener("pointerup", releaseComposerRollDial);
+            panelState.composerRollDial?.addEventListener("pointercancel", releaseComposerRollDial);
             panelState.composerRaDecGridCheckbox?.addEventListener("change", onComposerRaDecGridToggle);
             panelState.composerSkyLabelsCheckbox?.addEventListener("change", onComposerSkyLabelsToggle);
-            panelState.composerCloudsButton?.addEventListener("click", onComposerCloudsClick);
             panelState.viewport.addEventListener("wheel", onComposerViewportWheel, { passive: false });
             panelState.viewport.addEventListener("pointerdown", onComposerViewportPointerDown);
             panelState.viewport.addEventListener("pointermove", onComposerViewportPointerMove);
@@ -2902,26 +3374,36 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerEarthshineInput = onComposerEarthshineInput;
             panelState.onComposerMoonshineInput = onComposerMoonshineInput;
             panelState.onComposerMoonOutlineToggle = onComposerMoonOutlineToggle;
+            panelState.onComposerOpticsToggleClick = onComposerOpticsToggleClick;
             panelState.onComposerOpticsPhysicalClick = onComposerOpticsPhysicalClick;
             panelState.onComposerOpticsCameraClick = onComposerOpticsCameraClick;
             panelState.onComposerOpticsStrengthInput = onComposerOpticsStrengthInput;
             panelState.onComposerOpticsHaloInput = onComposerOpticsHaloInput;
             panelState.onComposerOpticsStarburstInput = onComposerOpticsStarburstInput;
             panelState.onComposerOpticsFlareInput = onComposerOpticsFlareInput;
+            panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
+            panelState.onComposerCloudsClick = onComposerCloudsClick;
             panelState.onComposerTimelineInput = onComposerTimelineInput;
             panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
             panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
+            panelState.onComposerPhaseSelectChange = onComposerPhaseSelectChange;
+            panelState.onComposerPhasePrevClick = onComposerPhasePrevClick;
+            panelState.onComposerPhaseNextClick = onComposerPhaseNextClick;
             panelState.onComposerTransportPlayClick = onComposerTransportPlayClick;
+            panelState.onComposerTransportMinusSecondClick = onComposerTransportMinusSecondClick;
             panelState.onComposerTransportMinusMinuteClick = onComposerTransportMinusMinuteClick;
             panelState.onComposerTransportPlusMinuteClick = onComposerTransportPlusMinuteClick;
+            panelState.onComposerTransportPlusSecondClick = onComposerTransportPlusSecondClick;
             panelState.onComposerTransportSlowerClick = onComposerTransportSlowerClick;
             panelState.onComposerTransportSpeedClick = onComposerTransportSpeedClick;
             panelState.onComposerTransportFasterClick = onComposerTransportFasterClick;
             panelState.onComposerInfoOverlayToggle = onComposerInfoOverlayToggle;
             panelState.onComposerRollInput = onComposerRollInput;
+            panelState.onComposerRollDialPointerDown = onComposerRollDialPointerDown;
+            panelState.onComposerRollDialPointerMove = onComposerRollDialPointerMove;
+            panelState.onComposerRollDialPointerUp = releaseComposerRollDial;
             panelState.onComposerRaDecGridToggle = onComposerRaDecGridToggle;
             panelState.onComposerSkyLabelsToggle = onComposerSkyLabelsToggle;
-            panelState.onComposerCloudsClick = onComposerCloudsClick;
             panelState.onComposerViewportWheel = onComposerViewportWheel;
             panelState.onComposerViewportPointerDown = onComposerViewportPointerDown;
             panelState.onComposerViewportPointerMove = onComposerViewportPointerMove;
@@ -2937,8 +3419,87 @@ class AuxiliaryCameraViewsManager {
             setComposerMoonshineGain(panelState.composerMoonshineGain, { persist: false });
             syncComposerLockUi();
             syncComposerOpticsUi();
+            syncComposerStarMagnitudeUi();
             syncComposerCloudsUi?.();
             syncComposerRollUi();
+        }
+        if (panelState.mode === "orbit-xy") {
+            const zoomOrbitPanelBy = (deltaY) => {
+                const currentFov = Number.isFinite(panelState.orbitZoomFovDegrees)
+                    ? panelState.orbitZoomFovDegrees
+                    : spec.defaultFov;
+                const nextFov = this.THREE.MathUtils.clamp(
+                    currentFov * Math.exp(deltaY * ORBIT_XY_WHEEL_ZOOM_SENSITIVITY),
+                    AUTO_FOV_MIN_DEGREES,
+                    AUTO_FOV_MAX_DEGREES,
+                );
+                this.setPanelFov(panelState, nextFov);
+                this.requestRender?.();
+                this.queuePersistPanelState();
+            };
+            const onOrbitViewportWheel = (event) => {
+                if (!isDomEventInstance(event, "WheelEvent")) {
+                    return;
+                }
+                event.preventDefault();
+                zoomOrbitPanelBy(event.deltaY);
+            };
+            const onOrbitViewportPointerDown = (event) => {
+                if (event.button !== 0) {
+                    return;
+                }
+                panelState.orbitViewportPointer = {
+                    pointerId: event.pointerId,
+                    clientX: event.clientX,
+                    clientY: event.clientY,
+                };
+                panelState.viewport.setPointerCapture(event.pointerId);
+                event.preventDefault();
+            };
+            const onOrbitViewportPointerMove = (event) => {
+                const drag = panelState.orbitViewportPointer;
+                if (!drag || drag.pointerId !== event.pointerId) {
+                    return;
+                }
+                const dx = event.clientX - drag.clientX;
+                const dy = event.clientY - drag.clientY;
+                drag.clientX = event.clientX;
+                drag.clientY = event.clientY;
+                const width = Math.max(1, panelState.overlayCanvas?.width || panelState.width || 1);
+                const height = Math.max(1, panelState.overlayCanvas?.height || panelState.height || 1);
+                const project = this.createOrbitPlaneProjector({
+                    width,
+                    height,
+                    earthWorld: this.earthWorld,
+                    halfHeight: panelState.orthographicHalfHeight,
+                    panOffsetX: panelState.orbitPanOffsetX,
+                    panOffsetY: panelState.orbitPanOffsetY,
+                });
+                panelState.orbitPanOffsetX -= dx / Math.max(project.scaleX || 1, 1e-9);
+                panelState.orbitPanOffsetY += dy / Math.max(project.scaleY || 1, 1e-9);
+                this.requestRender?.();
+                event.preventDefault();
+            };
+            const releaseOrbitViewport = (event) => {
+                const drag = panelState.orbitViewportPointer;
+                if (!drag || drag.pointerId !== event.pointerId) {
+                    return;
+                }
+                if (panelState.viewport.hasPointerCapture(event.pointerId)) {
+                    panelState.viewport.releasePointerCapture(event.pointerId);
+                }
+                panelState.orbitViewportPointer = null;
+                this.queuePersistPanelState();
+            };
+            panelState.viewport.addEventListener("wheel", onOrbitViewportWheel, { passive: false });
+            panelState.viewport.addEventListener("pointerdown", onOrbitViewportPointerDown);
+            panelState.viewport.addEventListener("pointermove", onOrbitViewportPointerMove);
+            panelState.viewport.addEventListener("pointerup", releaseOrbitViewport);
+            panelState.viewport.addEventListener("pointercancel", releaseOrbitViewport);
+            panelState.onOrbitViewportWheel = onOrbitViewportWheel;
+            panelState.onOrbitViewportPointerDown = onOrbitViewportPointerDown;
+            panelState.onOrbitViewportPointerMove = onOrbitViewportPointerMove;
+            panelState.onOrbitViewportPointerUp = releaseOrbitViewport;
         }
 
         const persisted = this.persistedPanelState?.[spec.id];
@@ -2959,7 +3520,7 @@ class AuxiliaryCameraViewsManager {
             }
         }
         if (panelState.mode === "composer") {
-            panelState.autoFovEnabled = false;
+            panelState.autoFovEnabled = true;
             this.setPanelFov(panelState, spec.defaultFov);
             panelState.composerEarthAmbient = COMPOSER_DEFAULT_EARTH_AMBIENT;
             panelState.composerMoonAmbient = COMPOSER_DEFAULT_MOON_AMBIENT;
@@ -2974,6 +3535,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
             panelState.composerSkyLabelsEnabled = false;
+            panelState.composerStarMagnitudeLimit = COMPOSER_STAR_MAGNITUDE_DEFAULT;
             panelState.composerEarthCloudsEnabled = this.getEarthCloudsEnabled() !== false;
             if (panelState.composerInfoOverlayCheckbox) {
                 panelState.composerInfoOverlayCheckbox.checked = true;
@@ -3011,6 +3573,12 @@ class AuxiliaryCameraViewsManager {
             if (panelState.composerSkyLabelsCheckbox) {
                 panelState.composerSkyLabelsCheckbox.checked = false;
             }
+            if (panelState.composerStarMagnitudeSlider && panelState.composerStarMagnitudeValue) {
+                const magnitudeText = panelState.composerStarMagnitudeLimit.toFixed(1);
+                panelState.composerStarMagnitudeSlider.value = magnitudeText;
+                panelState.composerStarMagnitudeValue.value = magnitudeText;
+                panelState.composerStarMagnitudeValue.textContent = magnitudeText;
+            }
             syncComposerCloudsUi?.();
         }
         syncAutoToggleUi();
@@ -3034,6 +3602,7 @@ class AuxiliaryCameraViewsManager {
         this.root.appendChild(panel);
         this.panels.push(panelState);
         this.bindPanelDragging(panelState, header);
+        this.bindPanelResizing(panelState, resizeGrip);
         panelState.onPanelPointerDown = () => {
             this.bringPanelToFront(panelState);
         };
@@ -3209,18 +3778,26 @@ class AuxiliaryCameraViewsManager {
         panelState.composerEarthshineSlider && (panelState.composerEarthshineSlider.disabled = disableControls);
         panelState.composerMoonshineSlider && (panelState.composerMoonshineSlider.disabled = disableControls);
         panelState.composerMoonOutlineCheckbox && (panelState.composerMoonOutlineCheckbox.disabled = disableControls);
+        panelState.composerCloudsButton && (panelState.composerCloudsButton.disabled = disableControls);
+        panelState.composerOpticsToggleButton && (panelState.composerOpticsToggleButton.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
         panelState.composerOpticsStrengthSlider && (panelState.composerOpticsStrengthSlider.disabled = disableControls);
         panelState.composerOpticsHaloSlider && (panelState.composerOpticsHaloSlider.disabled = disableControls);
         panelState.composerOpticsStarburstSlider && (panelState.composerOpticsStarburstSlider.disabled = disableControls);
         panelState.composerOpticsFlareSlider && (panelState.composerOpticsFlareSlider.disabled = disableControls);
+        panelState.composerStarMagnitudeSlider && (panelState.composerStarMagnitudeSlider.disabled = disableControls);
         panelState.composerRollSlider && (panelState.composerRollSlider.disabled = disableControls);
+        panelState.composerRollDial && (panelState.composerRollDial.disabled = disableControls);
         panelState.composerRaDecGridCheckbox && (panelState.composerRaDecGridCheckbox.disabled = disableControls);
         panelState.composerSkyLabelsCheckbox && (panelState.composerSkyLabelsCheckbox.disabled = disableControls);
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
         }
+        panelState.composerTransportMinusSecondButton && (panelState.composerTransportMinusSecondButton.disabled = disableControls);
+        panelState.composerTransportMinusMinuteButton && (panelState.composerTransportMinusMinuteButton.disabled = disableControls);
+        panelState.composerTransportPlusMinuteButton && (panelState.composerTransportPlusMinuteButton.disabled = disableControls);
+        panelState.composerTransportPlusSecondButton && (panelState.composerTransportPlusSecondButton.disabled = disableControls);
         if (panelState.composerDisabledOverlay) {
             panelState.composerDisabledOverlay.hidden = isEnabled;
         }
@@ -3339,7 +3916,7 @@ class AuxiliaryCameraViewsManager {
 
     readMainTimelineState() {
         const slider = document.getElementById("timeline-slider");
-        if (!(slider instanceof HTMLInputElement)) {
+        if (!isDomInstance(slider, "HTMLInputElement")) {
             return null;
         }
         const min = Number(slider.min);
@@ -3426,7 +4003,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         const mainPlayButton = document.getElementById("animate");
-        if (mainPlayButton instanceof HTMLButtonElement) {
+        if (isDomInstance(mainPlayButton, "HTMLButtonElement")) {
             playButton.textContent = mainPlayButton.textContent || "Play";
             playButton.disabled = mainPlayButton.disabled || mainPlayButton.getAttribute("aria-disabled") === "true";
             const mainPlayTitle = mainPlayButton.getAttribute("title");
@@ -3439,7 +4016,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         const mainSlowerButton = document.getElementById("slower");
-        if (mainSlowerButton instanceof HTMLButtonElement) {
+        if (isDomInstance(mainSlowerButton, "HTMLButtonElement")) {
             slowerButton.disabled =
                 mainSlowerButton.disabled || mainSlowerButton.getAttribute("aria-disabled") === "true";
         } else {
@@ -3447,7 +4024,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         const mainSpeedButton = document.getElementById("realtime");
-        if (mainSpeedButton instanceof HTMLButtonElement) {
+        if (isDomInstance(mainSpeedButton, "HTMLButtonElement")) {
             speedButton.textContent = (mainSpeedButton.textContent || "1 sec/sec").trim();
             speedButton.disabled =
                 mainSpeedButton.disabled || mainSpeedButton.getAttribute("aria-disabled") === "true";
@@ -3461,7 +4038,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         const mainFasterButton = document.getElementById("faster");
-        if (mainFasterButton instanceof HTMLButtonElement) {
+        if (isDomInstance(mainFasterButton, "HTMLButtonElement")) {
             fasterButton.disabled =
                 mainFasterButton.disabled || mainFasterButton.getAttribute("aria-disabled") === "true";
         } else {
@@ -3478,13 +4055,67 @@ class AuxiliaryCameraViewsManager {
         plusMinuteButton.disabled = activeTimelineState.value >= activeTimelineState.max;
     }
 
+    selectComposerTimelinePhase(panelState, phaseIndex) {
+        const phases = Array.isArray(this.composerTimelinePhases) ? this.composerTimelinePhases : [];
+        const boundedPhaseIndex = Math.max(0, Math.min(phases.length - 1, Number(phaseIndex)));
+        const phase = phases[boundedPhaseIndex];
+        if (!phase || !Number.isFinite(phase.startMs)) {
+            return false;
+        }
+        const timelineState = this.readMainTimelineState();
+        const targetMs = resolveTimelinePhaseSeekTimeMs({
+            phase,
+            timelineMinMs: timelineState?.min,
+            timelineMaxMs: timelineState?.max,
+            stepMs: timelineState?.stepMs,
+        });
+        this.composerActivePhaseIndex = boundedPhaseIndex;
+        this.composerSelectedPhaseIndex = boundedPhaseIndex;
+        this.seekMainTimelineTime(Number.isFinite(targetMs) ? targetMs : phase.startMs, true);
+        this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: boundedPhaseIndex });
+        this.requestRender?.();
+        return true;
+    }
+
+    syncComposerPhaseSelect(panelState, activePhaseIndex) {
+        const select = panelState?.composerPhaseSelect;
+        if (!isDomInstance(select, "HTMLSelectElement")) {
+            return;
+        }
+        const phases = Array.isArray(this.composerTimelinePhases) ? this.composerTimelinePhases : [];
+        const signature = phases
+            .map((phase) => `${phase.id}:${phase.startMs}:${phase.endMs}:${phase.events?.length || 0}`)
+            .join("|");
+        if (panelState.composerPhaseSelectSignature !== signature) {
+            select.replaceChildren();
+            for (let i = 0; i < phases.length; i += 1) {
+                const phase = phases[i];
+                const option = document.createElement("option");
+                option.value = String(i);
+                option.textContent = phase.label || phase.id || `Phase ${i + 1}`;
+                select.appendChild(option);
+            }
+            panelState.composerPhaseSelectSignature = signature;
+        }
+        select.disabled = phases.length <= 1;
+        if (panelState.composerPhasePrevButton) {
+            panelState.composerPhasePrevButton.disabled = phases.length <= 1 || activePhaseIndex <= 0;
+        }
+        if (panelState.composerPhaseNextButton) {
+            panelState.composerPhaseNextButton.disabled = phases.length <= 1 || activePhaseIndex >= phases.length - 1;
+        }
+        if (activePhaseIndex >= 0 && activePhaseIndex < phases.length) {
+            select.value = String(activePhaseIndex);
+        }
+    }
+
     syncComposerFlybyEventPills(panelState, currentTimeMs) {
         const wrap = panelState?.composerFlybyEventsWrap;
         if (!wrap) {
             return;
         }
         const flybyEvents = Array.isArray(this.composerFlybyEvents) ? this.composerFlybyEvents : [];
-        const signature = flybyEvents.map((eventInfo) => `${eventInfo.id}:${eventInfo.timeMs}`).join("|");
+        const signature = flybyEvents.map((eventInfo) => `${eventInfo.key || eventInfo.id || ""}:${eventInfo.timeMs}`).join("|");
         if (panelState.composerFlybyEventsSignature !== signature) {
             wrap.replaceChildren();
             panelState.composerFlybyEventNodes = [];
@@ -3494,10 +4125,11 @@ class AuxiliaryCameraViewsManager {
                 const pill = document.createElement("button");
                 pill.type = "button";
                 pill.className = "aux-camera-view__composer-event-pill";
-                pill.setAttribute("aria-label", `Jump timeline to ${eventInfo.title}`);
+                const eventTitle = eventInfo.title || eventInfo.label || eventInfo.sourceLabel || "Event";
+                pill.setAttribute("aria-label", `Jump timeline to ${eventTitle}`);
                 const title = document.createElement("span");
                 title.className = "aux-camera-view__composer-event-pill-title";
-                title.textContent = eventInfo.title || eventInfo.sourceLabel || "Event";
+                title.textContent = eventTitle;
                 const time = document.createElement("span");
                 time.className = "aux-camera-view__composer-event-pill-time";
                 time.textContent = this.formatLocalDateTime(eventInfo.timeMs);
@@ -3505,14 +4137,18 @@ class AuxiliaryCameraViewsManager {
                 pill.appendChild(time);
                 pill.addEventListener("click", () => {
                     panelState.composerFlybySelectedEventTimeMs = eventInfo.timeMs;
+                    if (this.composerActivePhaseIndex >= 0) {
+                        this.composerSelectedPhaseIndex = this.composerActivePhaseIndex;
+                    }
                     this.seekMainTimelineTime(eventInfo.timeMs, true);
+                    this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: this.composerActivePhaseIndex });
                     this.syncComposerFlybyEventPills(panelState, eventInfo.timeMs);
                     this.requestRender?.();
                 });
                 wrap.appendChild(pill);
                 panelState.composerFlybyEventNodes.push({
                     element: pill,
-                    id: eventInfo.id,
+                    id: eventInfo.key || eventInfo.id || "",
                     timeMs: eventInfo.timeMs,
                 });
             }
@@ -3590,7 +4226,7 @@ class AuxiliaryCameraViewsManager {
         return this.setComposerLookFromDirection(panelState, this.tmpVectorA);
     }
 
-    syncComposerTimelineUi(panelState) {
+    syncComposerTimelineUi(panelState, { preferredPhaseIndex = -1 } = {}) {
         const slider = panelState.composerTimelineSlider;
         if (!slider) {
             return;
@@ -3600,54 +4236,50 @@ class AuxiliaryCameraViewsManager {
         if (!timelineState) {
             panelState.composerTimelineLabel.textContent = "Time unavailable";
             this.setComposerTimelineLocalText(panelState, Number.NaN);
+            this.syncComposerPhaseSelect(panelState, -1);
             this.syncComposerFlybyEventPills(panelState, Number.NaN);
             this.setComposerInteractionEnabled(panelState, false);
             return;
         }
-        const fullSpan = Math.max(0, timelineState.max - timelineState.min);
-        const hasFlybyWindow =
-            Number.isFinite(this.composerFlybyWindowStartMs) &&
-            Number.isFinite(this.composerFlybyWindowEndMs) &&
-            this.composerFlybyWindowEndMs > this.composerFlybyWindowStartMs;
-        let startMs;
-        let endMs;
-        if (hasFlybyWindow) {
-            startMs = this.THREE.MathUtils.clamp(
-                this.composerFlybyWindowStartMs,
-                timelineState.min,
-                timelineState.max,
-            );
-            endMs = this.THREE.MathUtils.clamp(
-                this.composerFlybyWindowEndMs,
-                timelineState.min,
-                timelineState.max,
-            );
-        } else {
-            const hasFlybyAnchor = Number.isFinite(this.composerFlybyTimeMs);
-            const anchorMs = hasFlybyAnchor ? this.composerFlybyTimeMs : timelineState.value;
-            const windowSpan = Math.min(fullSpan, panelState.composerTimelineWindowMs);
-            const halfSpan = windowSpan * 0.5;
-            startMs = anchorMs - halfSpan;
-            endMs = anchorMs + halfSpan;
-            if (startMs < timelineState.min) {
-                endMs += timelineState.min - startMs;
-                startMs = timelineState.min;
-            }
-            if (endMs > timelineState.max) {
-                startMs -= endMs - timelineState.max;
-                endMs = timelineState.max;
-            }
-            startMs = Math.max(timelineState.min, startMs);
-            endMs = Math.min(timelineState.max, endMs);
+        const phases = Array.isArray(this.composerTimelinePhases) ? this.composerTimelinePhases : [];
+        if (this.composerSelectedPhaseIndex >= phases.length) {
+            this.composerSelectedPhaseIndex = -1;
         }
+        const boundedPreferredPhaseIndex = Number.isInteger(preferredPhaseIndex) &&
+            preferredPhaseIndex >= 0 &&
+            preferredPhaseIndex < phases.length
+            ? preferredPhaseIndex
+            : -1;
+        let activePhaseIndex = boundedPreferredPhaseIndex;
+        if (activePhaseIndex < 0 && this.composerSelectedPhaseIndex >= 0) {
+            activePhaseIndex = this.composerSelectedPhaseIndex;
+        }
+        if (activePhaseIndex < 0) {
+            activePhaseIndex = resolveActiveTimelinePhaseIndex(phases, timelineState.value);
+        }
+        if (activePhaseIndex < 0) {
+            activePhaseIndex = 0;
+        }
+        this.composerActivePhaseIndex = activePhaseIndex;
+        if (this.composerSelectedPhaseIndex < 0 && phases[activePhaseIndex]) {
+            this.composerSelectedPhaseIndex = activePhaseIndex;
+        }
+        const activePhase = phases[activePhaseIndex] || null;
+        let startMs = activePhase
+            ? this.THREE.MathUtils.clamp(activePhase.startMs, timelineState.min, timelineState.max)
+            : timelineState.min;
+        let endMs = activePhase
+            ? this.THREE.MathUtils.clamp(activePhase.endMs, timelineState.min, timelineState.max)
+            : timelineState.max;
         if (endMs <= startMs) {
             endMs = Math.min(timelineState.max, startMs + 1);
         }
 
         panelState.composerTimelineStartMs = startMs;
         panelState.composerTimelineEndMs = endMs;
-        const inFlybyWindow = timelineState.value >= startMs && timelineState.value <= endMs;
-        this.setComposerInteractionEnabled(panelState, inFlybyWindow);
+        this.composerFlybyEvents = Array.isArray(activePhase?.events) ? activePhase.events : [];
+        this.syncComposerPhaseSelect(panelState, activePhaseIndex);
+        this.setComposerInteractionEnabled(panelState, true);
         panelState.composerTimelineLabel.textContent = "Time";
         this.setComposerTimelineLocalText(panelState, timelineState.value);
         this.syncComposerFlybyEventPills(panelState, timelineState.value);
@@ -3677,17 +4309,30 @@ class AuxiliaryCameraViewsManager {
     updateComposerRollUi(panelState) {
         const slider = panelState?.composerRollSlider;
         const valueNode = panelState?.composerRollValue;
-        if (!slider || !valueNode) {
+        const dialKnob = panelState?.composerRollDialKnob;
+        const dialValue = panelState?.composerRollDialValue;
+        if (!slider && !valueNode && !dialKnob && !dialValue) {
             return;
         }
         const rawRoll = Number.isFinite(panelState.composerRollRad) ? panelState.composerRollRad : 0;
-        const roll = ((rawRoll % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+        const roll = normalizeComposerRollRad(rawRoll);
         panelState.composerRollRad = roll;
         const degrees = Math.round(this.THREE.MathUtils.radToDeg(roll)) % 360;
-        slider.value = String(degrees);
+        if (slider) {
+            slider.value = String(degrees);
+        }
         const text = `${degrees}°`;
-        valueNode.value = text;
-        valueNode.textContent = text;
+        if (valueNode) {
+            valueNode.value = text;
+            valueNode.textContent = text;
+        }
+        if (dialValue) {
+            dialValue.textContent = text;
+        }
+        if (dialKnob) {
+            const offset = composerRollDialKnobOffset(roll, 18);
+            dialKnob.style.transform = `translate(calc(-50% + ${offset.x.toFixed(2)}px), calc(-50% + ${offset.y.toFixed(2)}px))`;
+        }
     }
 
     getComposerReferenceUpVector(panelState) {
@@ -3822,7 +4467,6 @@ class AuxiliaryCameraViewsManager {
             0,
             0.95,
         );
-
         const touchedMaterials = new Set();
         const restoreRecords = [];
         const refreshBodyMaterialUniforms = (material) => {
@@ -3921,6 +4565,10 @@ class AuxiliaryCameraViewsManager {
                     restoreRecords.push({
                         material,
                         moonShadowLift: material.userData.moonShadowLift,
+                        emissiveIntensity: material.emissive && Number.isFinite(material.emissiveIntensity)
+                            ? material.emissiveIntensity
+                            : null,
+                        emissiveHex: material.emissive?.getHex ? material.emissive.getHex() : null,
                     });
                     material.userData.moonShadowLift = shadowLiftValue;
                     refreshBodyMaterialUniforms(material);
@@ -3960,6 +4608,10 @@ class AuxiliaryCameraViewsManager {
                 }
                 if (Object.prototype.hasOwnProperty.call(record, "moonShadowLift")) {
                     record.material.userData.moonShadowLift = record.moonShadowLift;
+                    if (record.emissiveIntensity !== null && record.material.emissive) {
+                        record.material.emissiveIntensity = record.emissiveIntensity;
+                        record.material.emissive.setHex(record.emissiveHex);
+                    }
                     refreshBodyMaterialUniforms(record.material);
                     continue;
                 }
@@ -4026,15 +4678,18 @@ class AuxiliaryCameraViewsManager {
             return () => {};
         }
         const previousIntensity = Number(lightFill.intensity);
+        const baseIntensity = Number.isFinite(previousIntensity) && previousIntensity > 1e-8
+            ? previousIntensity
+            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02);
         const gain = this.THREE.MathUtils.clamp(
             Number(panelState?.composerEarthshineGain),
             COMPOSER_MIN_EARTHSHINE_GAIN,
             COMPOSER_MAX_EARTHSHINE_GAIN,
         );
-        if (!Number.isFinite(previousIntensity) || !Number.isFinite(gain)) {
+        if (!Number.isFinite(previousIntensity) || !Number.isFinite(baseIntensity) || !Number.isFinite(gain)) {
             return () => {};
         }
-        lightFill.intensity = previousIntensity * gain;
+        lightFill.intensity = baseIntensity * gain;
         return () => {
             lightFill.intensity = previousIntensity;
         };
@@ -4140,6 +4795,16 @@ class AuxiliaryCameraViewsManager {
                 panelState.overlayCanvas.height = height;
             }
             panelState.camera.aspect = width / height;
+            if (panelState.camera.isOrthographicCamera) {
+                const aspect = Math.max(width / Math.max(1, height), 1e-6);
+                const halfHeight = Number.isFinite(panelState.orthographicHalfHeight) && panelState.orthographicHalfHeight > 0
+                    ? panelState.orthographicHalfHeight
+                    : 1;
+                panelState.camera.left = -halfHeight * aspect;
+                panelState.camera.right = halfHeight * aspect;
+                panelState.camera.top = halfHeight;
+                panelState.camera.bottom = -halfHeight;
+            }
             panelState.camera.updateProjectionMatrix();
             panelState.overlayDirty = true;
         }
@@ -4234,7 +4899,7 @@ class AuxiliaryCameraViewsManager {
         };
     }
 
-    applyComposerExposureProfile(scene, panelState, sunRenderer, { exposureBias = 1 } = {}) {
+    applyComposerExposureProfile(scene, panelState, sunRenderer, { exposureBias = 1, skyRenderer = null } = {}) {
         if (panelState?.mode !== "composer") {
             return () => {};
         }
@@ -4247,10 +4912,22 @@ class AuxiliaryCameraViewsManager {
             0.5,
             1.5,
         );
-        renderer.toneMappingExposure = profile.exposure * (Number.isFinite(boundedExposureBias) ? boundedExposureBias : 1);
+        const earthshineGain = this.THREE.MathUtils.clamp(
+            Number(panelState?.composerEarthshineGain),
+            COMPOSER_MIN_EARTHSHINE_GAIN,
+            COMPOSER_MAX_EARTHSHINE_GAIN,
+        );
+        const earthshineExposureLift = Number.isFinite(earthshineGain)
+            ? (1 + (earthshineGain * 0.08))
+            : 1;
+        renderer.toneMappingExposure = profile.exposure *
+            (Number.isFinite(boundedExposureBias) ? boundedExposureBias : 1) *
+            earthshineExposureLift;
 
-        const skyMaterial = scene?.skyRenderer?.skyMesh?.material || null;
-        const constellationMaterial = scene?.skyRenderer?.constellationMesh?.material || null;
+        const activeSkyRenderer = skyRenderer || scene?.skyRenderer || null;
+        const skyMaterial = activeSkyRenderer?.skyMesh?.material || null;
+        const constellationMaterial = activeSkyRenderer?.constellationMesh?.material || null;
+        const starUniforms = activeSkyRenderer?.starRenderer?.uniforms || null;
         const originalSunVisualState = sunRenderer?.getVisualState?.() || null;
 
         const originalSkyOpacity = Number.isFinite(skyMaterial?.opacity)
@@ -4259,6 +4936,26 @@ class AuxiliaryCameraViewsManager {
         const originalConstellationOpacity = Number.isFinite(constellationMaterial?.opacity)
             ? constellationMaterial.opacity
             : null;
+        const originalStarPhotometricScale = Number.isFinite(starUniforms?.uPhotometricScale?.value)
+            ? starUniforms.uPhotometricScale.value
+            : null;
+        const originalStarSizeScale = Number.isFinite(starUniforms?.uStarSizeScale?.value)
+            ? starUniforms.uStarSizeScale.value
+            : null;
+        const originalStarMinPointSize = Number.isFinite(starUniforms?.uMinPointSize?.value)
+            ? starUniforms.uMinPointSize.value
+            : null;
+        const originalStarMaxPointSize = Number.isFinite(starUniforms?.uMaxPointSize?.value)
+            ? starUniforms.uMaxPointSize.value
+            : null;
+        const originalStarMagnitudeLimit = Number.isFinite(starUniforms?.uMagnitudeLimit?.value)
+            ? starUniforms.uMagnitudeLimit.value
+            : null;
+        const starMagnitudeLimit = this.THREE.MathUtils.clamp(
+            Number(panelState?.composerStarMagnitudeLimit),
+            COMPOSER_STAR_MAGNITUDE_MIN,
+            COMPOSER_STAR_MAGNITUDE_MAX,
+        );
 
         if (originalSkyOpacity != null) {
             skyMaterial.opacity = Math.min(originalSkyOpacity, profile.skyStarmapOpacityCap);
@@ -4272,6 +4969,25 @@ class AuxiliaryCameraViewsManager {
         if (sunRenderer?.setVisualState) {
             sunRenderer.setVisualState(profile.sunVisualState);
         }
+        if (starUniforms && Number.isFinite(starMagnitudeLimit)) {
+            const lift = Math.max(0, starMagnitudeLimit - 3);
+            const visibilityGain = Math.pow(2.512, lift * 0.7);
+            if (originalStarPhotometricScale != null && starUniforms.uPhotometricScale) {
+                starUniforms.uPhotometricScale.value = originalStarPhotometricScale * visibilityGain;
+            }
+            if (originalStarSizeScale != null && starUniforms.uStarSizeScale) {
+                starUniforms.uStarSizeScale.value = originalStarSizeScale * (0.8 + (0.08 * starMagnitudeLimit));
+            }
+            if (originalStarMinPointSize != null && starUniforms.uMinPointSize) {
+                starUniforms.uMinPointSize.value = Math.max(originalStarMinPointSize, 0.85 + (0.08 * starMagnitudeLimit));
+            }
+            if (originalStarMaxPointSize != null && starUniforms.uMaxPointSize) {
+                starUniforms.uMaxPointSize.value = Math.max(originalStarMaxPointSize, 5.5 + (0.7 * starMagnitudeLimit));
+            }
+            if (starUniforms.uMagnitudeLimit) {
+                starUniforms.uMagnitudeLimit.value = starMagnitudeLimit;
+            }
+        }
 
         return () => {
             renderer.toneMappingExposure = originalExposure;
@@ -4283,6 +4999,23 @@ class AuxiliaryCameraViewsManager {
             }
             if (sunRenderer?.setVisualState && originalSunVisualState) {
                 sunRenderer.setVisualState(originalSunVisualState);
+            }
+            if (starUniforms) {
+                if (originalStarPhotometricScale != null && starUniforms.uPhotometricScale) {
+                    starUniforms.uPhotometricScale.value = originalStarPhotometricScale;
+                }
+                if (originalStarSizeScale != null && starUniforms.uStarSizeScale) {
+                    starUniforms.uStarSizeScale.value = originalStarSizeScale;
+                }
+                if (originalStarMinPointSize != null && starUniforms.uMinPointSize) {
+                    starUniforms.uMinPointSize.value = originalStarMinPointSize;
+                }
+                if (originalStarMaxPointSize != null && starUniforms.uMaxPointSize) {
+                    starUniforms.uMaxPointSize.value = originalStarMaxPointSize;
+                }
+                if (originalStarMagnitudeLimit != null && starUniforms.uMagnitudeLimit) {
+                    starUniforms.uMagnitudeLimit.value = originalStarMagnitudeLimit;
+                }
             }
         };
     }
@@ -5134,7 +5867,6 @@ class AuxiliaryCameraViewsManager {
             }
             return false;
         };
-
         const planetPositionAttr = planetRenderer?.geometry?.getAttribute?.("position") || null;
         const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
         const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
@@ -5387,7 +6119,7 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const strip = panelState?.composerMetricsStrip;
-        if (!(strip instanceof HTMLElement)) {
+        if (!isDomInstance(strip, "HTMLElement")) {
             return;
         }
         strip.hidden = panelState.composerInfoOverlayEnabled !== true;
@@ -5633,6 +6365,296 @@ class AuxiliaryCameraViewsManager {
         return this.sunDirectionEarthWorld;
     }
 
+    computeOrbitPlaneHalfHeight({ scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius }) {
+        let maxRadius = Math.max(
+            Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius * 6 : 1,
+            Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1,
+        );
+
+        const includeWorldPoint = (point, radius = 0) => {
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                return;
+            }
+            const dx = point.x - earthWorld.x;
+            const dy = point.y - earthWorld.y;
+            const distance = Math.hypot(dx, dy) + Math.max(0, radius);
+            if (Number.isFinite(distance)) {
+                maxRadius = Math.max(maxRadius, distance);
+            }
+        };
+
+        includeWorldPoint(moonWorld, moonRadius);
+        includeWorldPoint(craftWorld, 0);
+
+        scene?.traverse?.((object) => {
+            if (!object?.visible || (!object.isLine && !object.isLineLoop && !object.isLineSegments)) {
+                return;
+            }
+            const geometry = object.geometry;
+            if (!geometry) {
+                return;
+            }
+            geometry.computeBoundingSphere?.();
+            const sphere = geometry.boundingSphere;
+            if (!sphere || !Number.isFinite(sphere.radius)) {
+                return;
+            }
+            this.tmpVectorA.copy(sphere.center);
+            object.localToWorld?.(this.tmpVectorA);
+            const scale = object.getWorldScale ? object.getWorldScale(this.tmpVectorB) : this.tmpVectorB.set(1, 1, 1);
+            const worldRadius = sphere.radius * Math.max(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z), 1e-6);
+            includeWorldPoint(this.tmpVectorA, worldRadius);
+        });
+
+        return Math.max(maxRadius * 1.12, 1);
+    }
+
+    createOrbitPlaneProjector({ width, height, earthWorld, halfHeight, panOffsetX = 0, panOffsetY = 0 }) {
+        const safeWidth = Math.max(1, width);
+        const safeHeight = Math.max(1, height);
+        const safeHalfHeight = Math.max(1e-9, halfHeight);
+        const aspect = safeWidth / safeHeight;
+        const halfWidth = safeHalfHeight * aspect;
+        const scaleX = safeWidth / (halfWidth * 2);
+        const scaleY = safeHeight / (safeHalfHeight * 2);
+        const centerX = earthWorld.x + (Number(panOffsetX) || 0);
+        const centerY = earthWorld.y + (Number(panOffsetY) || 0);
+        const project = (worldPoint) => ({
+            x: (safeWidth * 0.5) + ((worldPoint.x - centerX) * scaleX),
+            y: (safeHeight * 0.5) - ((worldPoint.y - centerY) * scaleY),
+        });
+        project.scaleX = scaleX;
+        project.scaleY = scaleY;
+        project.centerX = centerX;
+        project.centerY = centerY;
+        return project;
+    }
+
+    drawOrbitPlaneMarker(ctx, project, worldPoint, {
+        radiusPx,
+        fill,
+        stroke = "rgba(218, 235, 255, 0.85)",
+        label = "",
+        labelOffsetX = 8,
+        labelOffsetY = -8,
+    }) {
+        if (!worldPoint || !Number.isFinite(worldPoint.x) || !Number.isFinite(worldPoint.y)) {
+            return;
+        }
+        const point = project(worldPoint);
+        if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+            return;
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radiusPx, 0, Math.PI * 2);
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+        if (label) {
+            ctx.font = "700 10px sans-serif";
+            ctx.fillStyle = "rgba(220, 235, 255, 0.88)";
+            ctx.textBaseline = "middle";
+            ctx.fillText(label, point.x + labelOffsetX, point.y + labelOffsetY);
+        }
+        ctx.restore();
+    }
+
+    drawOrbitPlaneLineObject(ctx, object, project) {
+        const geometry = object?.geometry;
+        const position = geometry?.getAttribute?.("position");
+        if (!position || position.count < 2) {
+            return;
+        }
+        const color = object.material?.color;
+        const opacity = Number.isFinite(object.material?.opacity) ? object.material.opacity : 1;
+        const strokeColor = color
+            ? `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${Math.max(0.18, Math.min(0.72, opacity))})`
+            : "rgba(117, 176, 255, 0.46)";
+        const drawVertex = (index) => {
+            this.tmpVectorA.fromBufferAttribute(position, index);
+            object.localToWorld?.(this.tmpVectorA);
+            return project(this.tmpVectorA);
+        };
+        const drawPolyline = () => {
+            ctx.beginPath();
+            let moved = false;
+            for (let i = 0; i < position.count; i += 1) {
+                const point = drawVertex(i);
+                if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                    continue;
+                }
+                if (!moved) {
+                    ctx.moveTo(point.x, point.y);
+                    moved = true;
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            }
+            if (object.isLineLoop && moved) {
+                ctx.closePath();
+            }
+            if (moved) {
+                ctx.stroke();
+            }
+        };
+
+        ctx.save();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = object.isLineSegments ? 1 : 1.35;
+        ctx.setLineDash(object.isLineSegments ? [3, 4] : []);
+        if (object.isLineSegments) {
+            for (let i = 0; i + 1 < position.count; i += 2) {
+                const a = drawVertex(i);
+                const b = drawVertex(i + 1);
+                if (
+                    Number.isFinite(a.x) &&
+                    Number.isFinite(a.y) &&
+                    Number.isFinite(b.x) &&
+                    Number.isFinite(b.y)
+                ) {
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.stroke();
+                }
+            }
+        } else {
+            drawPolyline();
+        }
+        ctx.restore();
+    }
+
+    renderOrbitPlane2DOverlay(panelState, { scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius, halfHeight }) {
+        const canvas = panelState?.overlayCanvas;
+        const ctx = panelState?.overlayCtx;
+        if (!canvas || !ctx) {
+            return;
+        }
+        const width = Math.max(1, canvas.width);
+        const height = Math.max(1, canvas.height);
+        const project = this.createOrbitPlaneProjector({
+            width,
+            height,
+            earthWorld,
+            halfHeight,
+            panOffsetX: panelState.orbitPanOffsetX,
+            panOffsetY: panelState.orbitPanOffsetY,
+        });
+
+        ctx.save();
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "rgba(4, 10, 19, 0.96)";
+        ctx.fillRect(0, 0, width, height);
+
+        const gridStep = Math.max(1, halfHeight / 4);
+        const aspect = width / Math.max(1, height);
+        const halfWidth = halfHeight * aspect;
+        ctx.strokeStyle = "rgba(120, 166, 232, 0.12)";
+        ctx.lineWidth = 1;
+        for (let x = -Math.floor(halfWidth / gridStep) * gridStep; x <= halfWidth; x += gridStep) {
+            const screenX = project({ x: earthWorld.x + x, y: earthWorld.y }).x;
+            ctx.beginPath();
+            ctx.moveTo(screenX, 0);
+            ctx.lineTo(screenX, height);
+            ctx.stroke();
+        }
+        for (let y = -Math.floor(halfHeight / gridStep) * gridStep; y <= halfHeight; y += gridStep) {
+            const screenY = project({ x: earthWorld.x, y: earthWorld.y + y }).y;
+            ctx.beginPath();
+            ctx.moveTo(0, screenY);
+            ctx.lineTo(width, screenY);
+            ctx.stroke();
+        }
+
+        ctx.strokeStyle = "rgba(162, 200, 255, 0.28)";
+        ctx.lineWidth = 1.25;
+        const origin = project(earthWorld);
+        ctx.beginPath();
+        ctx.moveTo(0, origin.y);
+        ctx.lineTo(width, origin.y);
+        ctx.moveTo(origin.x, 0);
+        ctx.lineTo(origin.x, height);
+        ctx.stroke();
+
+        scene?.traverse?.((object) => {
+            if (!object?.visible || (!object.isLine && !object.isLineLoop && !object.isLineSegments)) {
+                return;
+            }
+            this.drawOrbitPlaneLineObject(ctx, object, project);
+        });
+
+        const earthRadiusPx = Math.max(4, Math.min(16, (earthRadius / Math.max(1e-9, halfHeight)) * (height * 0.5)));
+        const moonRadiusPx = Math.max(3, Math.min(10, (moonRadius / Math.max(1e-9, halfHeight)) * (height * 0.5)));
+        this.drawOrbitPlaneMarker(ctx, project, earthWorld, {
+            radiusPx: earthRadiusPx,
+            fill: "rgba(59, 141, 231, 0.9)",
+            stroke: "rgba(180, 220, 255, 0.92)",
+            label: "Earth",
+        });
+        this.drawOrbitPlaneMarker(ctx, project, moonWorld, {
+            radiusPx: moonRadiusPx,
+            fill: "rgba(190, 198, 210, 0.88)",
+            stroke: "rgba(240, 246, 255, 0.86)",
+            label: "Moon",
+        });
+        this.drawOrbitPlaneMarker(ctx, project, craftWorld, {
+            radiusPx: 4,
+            fill: "rgba(255, 207, 101, 0.96)",
+            stroke: "rgba(255, 238, 180, 0.94)",
+            label: "Orion",
+            labelOffsetY: 10,
+        });
+        ctx.restore();
+    }
+
+    renderOrbitPlanePanel(panelState, { scene, activeCraft, earth, moon, earthRadius, moonRadius }) {
+        if (!panelState?.camera?.isOrthographicCamera || !earth || !activeCraft) {
+            this.setPanelVisible(panelState, false);
+            return false;
+        }
+        if (!this.getObjectWorldPosition(earth, this.earthWorld) || !this.getObjectWorldPosition(activeCraft, this.craftWorld)) {
+            this.setPanelVisible(panelState, false);
+            return false;
+        }
+        if (moon) {
+            this.getObjectWorldPosition(moon, this.moonWorld);
+        }
+
+        this.setPanelVisible(panelState, true);
+        this.syncPanelSize(panelState);
+
+        const halfHeight = this.computeOrbitPlaneHalfHeight({
+            scene,
+            earthWorld: this.earthWorld,
+            moonWorld: this.moonWorld,
+            craftWorld: this.craftWorld,
+            earthRadius,
+            moonRadius,
+        });
+        const zoomFov = clampFovDegrees(panelState.orbitZoomFovDegrees, {
+            minDegrees: panelState.fovMinDegrees ?? AUTO_FOV_MIN_DEGREES,
+            maxDegrees: panelState.fovMaxDegrees ?? AUTO_FOV_MAX_DEGREES,
+            fallbackDegrees: 45,
+        });
+        const zoomScale = this.THREE.MathUtils.clamp(zoomFov / 45, 0.08, 4);
+        panelState.orthographicHalfHeight = halfHeight * zoomScale;
+        panelState.renderer.clear(true, true, true);
+        this.renderOrbitPlane2DOverlay(panelState, {
+            scene,
+            earthWorld: this.earthWorld,
+            moonWorld: this.moonWorld,
+            craftWorld: this.craftWorld,
+            earthRadius: Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 1,
+            moonRadius: Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1,
+            halfHeight: panelState.orthographicHalfHeight,
+        });
+        this.setPanelInfo(panelState, "Earth-origin XY plane", "2D projection");
+        return true;
+    }
+
     computeMoonPhaseInfo({ earth, moon, sun }) {
         if (!earth || !moon) {
             return null;
@@ -5808,6 +6830,16 @@ class AuxiliaryCameraViewsManager {
     }
 
     setPanelFov(panelState, requestedDegrees) {
+        if (panelState?.camera?.isOrthographicCamera) {
+            const fovDegrees = clampFovDegrees(requestedDegrees, {
+                minDegrees: panelState.fovMinDegrees ?? AUTO_FOV_MIN_DEGREES,
+                maxDegrees: panelState.fovMaxDegrees ?? AUTO_FOV_MAX_DEGREES,
+                fallbackDegrees: panelState.orbitZoomFovDegrees || panelState.camera.fov || 45,
+            });
+            panelState.orbitZoomFovDegrees = fovDegrees;
+            panelState.fovControl?.setFovDegrees(fovDegrees, fovDegrees);
+            return;
+        }
         if (!Number.isFinite(requestedDegrees)) {
             return;
         }
@@ -5833,6 +6865,26 @@ class AuxiliaryCameraViewsManager {
         panelState.fovControl?.setFovDegrees(fovDegrees, panelState.camera.fov);
     }
 
+    showComposerHint(panelState, message, durationMs = 1800) {
+        if (!panelState?.composerHint) {
+            return;
+        }
+
+        if (panelState.composerHintTimer != null) {
+            clearTimeout(panelState.composerHintTimer);
+            panelState.composerHintTimer = null;
+        }
+
+        panelState.composerHint.textContent = message;
+        panelState.composerHint.hidden = false;
+        panelState.composerHint.dataset.visible = "true";
+        panelState.composerHintTimer = setTimeout(() => {
+            panelState.composerHint.dataset.visible = "false";
+            panelState.composerHint.hidden = true;
+            panelState.composerHintTimer = null;
+        }, Math.max(0, durationMs));
+    }
+
     renderComposerPanel(panelState, {
         scene,
         latestSceneState = null,
@@ -5847,7 +6899,6 @@ class AuxiliaryCameraViewsManager {
         referenceCamera,
         hasSkyContainer,
         skyContainer,
-        photoModeEnabled = false,
         earthCloudsEnabled = true,
         earthDayTexture = null,
     }) {
@@ -5980,30 +7031,32 @@ class AuxiliaryCameraViewsManager {
                 );
             }
         }
-        const composerLightingPresentation = photoModeEnabled
-            ? computePhotoModeLightingPresentation({
-                distanceToEarth: panelState.camera.position.distanceTo(this.earthWorld),
-                earthRadius: composerEarthRadius,
-                distanceToMoon: panelState.camera.position.distanceTo(this.moonWorld),
-                moonRadius: composerMoonRadius,
-            })
-            : null;
+        const composerLightingPresentation = computePhotoModeLightingPresentation({
+            distanceToEarth: panelState.camera.position.distanceTo(this.earthWorld),
+            earthRadius: composerEarthRadius,
+            distanceToMoon: panelState.camera.position.distanceTo(this.moonWorld),
+            moonRadius: composerMoonRadius,
+        });
+        const restoreComposerBodyPresentation = this.applyComposerBodyLightingPresentation({
+            earth,
+            moon,
+            distanceToEarth: panelState.camera.position.distanceTo(this.earthWorld),
+            earthRadius: composerEarthRadius,
+            distanceToMoon: panelState.camera.position.distanceTo(this.moonWorld),
+            moonRadius: composerMoonRadius,
+            earthDayTexture: earthCloudsEnabled !== false ? earthDayTexture : null,
+            earthDayTextureBlend: earthCloudsEnabled !== false ? null : 0,
+        });
         const restoreComposerBodyAmbient = this.applyComposerBodyAmbientLighting({
             panelState,
             earth,
             moon,
         });
-        const restoreComposerBodyPresentation = applyPhotoModeBodyPresentation({
-            earth,
-            moon,
-            presentation: composerLightingPresentation,
-            earthDayTexture: earthCloudsEnabled !== false ? earthDayTexture : null,
-            earthDayTextureBlend: earthCloudsEnabled !== false ? null : 0,
-        });
         const restoreComposerEarthshineGain = this.applyComposerEarthshineGain(panelState, scene);
         const restoreComposerMoonshineGain = this.applyComposerMoonshineGain(panelState, scene);
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer, {
             exposureBias: composerLightingPresentation?.exposureBias ?? 1,
+            skyRenderer,
         });
         try {
             this.renderLayers(panelState.renderer, scene, panelState.camera, {
@@ -6013,11 +7066,10 @@ class AuxiliaryCameraViewsManager {
             restoreComposerExposureProfile();
             restoreComposerMoonshineGain();
             restoreComposerEarthshineGain();
-            restoreComposerBodyPresentation();
             restoreComposerBodyAmbient();
+            restoreComposerBodyPresentation();
         }
         this.clearPanelOverlay(panelState);
-        this.renderComposerRaDecGridOverlay(panelState);
         this.renderComposerSkyLabelOverlay(panelState, { scene, skyContainer, skyRenderer });
         this.renderComposerMoonOutlineOverlay(panelState, {
             moonWorld: this.moonWorld,
@@ -6077,6 +7129,10 @@ class AuxiliaryCameraViewsManager {
         const flybyWindow = resolveLunarFlybyWindowMs(timelineEventInfos);
         this.composerFlybyWindowStartMs = flybyWindow.startMs;
         this.composerFlybyWindowEndMs = flybyWindow.endMs;
+        this.composerTimelinePhases = buildTimelinePhases({
+            phaseConfig: missionConfig?.timelinePhases || null,
+            eventInfos: timelineEventInfos,
+        });
         this.composerFlybyEvents = resolveFlybyPlannerEvents(timelineEventInfos);
         activeCraft.getWorldPosition(this.craftWorld);
         const normalizeSunDirection = (target, candidate) => {
@@ -6117,8 +7173,32 @@ class AuxiliaryCameraViewsManager {
         const standoffDistance = 0;
 
         let visiblePanels = 0;
-        const suppressedLines = this.suppressLinePrimitives(scene);
-        const suppressedCrafts = this.suppressCraftVisuals({ activeCraft, craftsById, dronesById });
+        let suppressedLines = null;
+        const ensureLinesSuppressed = () => {
+            if (!suppressedLines) {
+                suppressedLines = this.suppressLinePrimitives(scene);
+            }
+        };
+        const ensureLinesVisible = () => {
+            if (suppressedLines) {
+                this.restoreVisibility(suppressedLines);
+                suppressedLines = null;
+            }
+        };
+        ensureLinesSuppressed();
+        let suppressedCrafts = null;
+        const ensureCraftsSuppressed = () => {
+            if (!suppressedCrafts) {
+                suppressedCrafts = this.suppressCraftVisuals({ activeCraft, craftsById, dronesById });
+            }
+        };
+        const ensureCraftsVisible = () => {
+            if (suppressedCrafts) {
+                this.restoreVisibility(suppressedCrafts);
+                suppressedCrafts = null;
+            }
+        };
+        ensureCraftsSuppressed();
         const hasSkyContainer = !!skyContainer?.position;
         if (hasSkyContainer) {
             this.originalSkyPosition.copy(skyContainer.position);
@@ -6139,7 +7219,35 @@ class AuxiliaryCameraViewsManager {
                     continue;
                 }
                 const context = { activeCraft, earth, moon, sun };
+                if (panelState.mode === "orbit-xy") {
+                    if (panelState.deleted === true || panelState.closed === true) {
+                        this.setPanelVisible(panelState, false);
+                        continue;
+                    }
+                    if (panelState.minimized === true) {
+                        this.setPanelVisible(panelState, false);
+                        continue;
+                    }
+                    ensureLinesVisible();
+                    ensureCraftsVisible();
+                    const rendered = this.renderOrbitPlanePanel(panelState, {
+                        scene,
+                        activeCraft,
+                        earth,
+                        moon,
+                        earthRadius,
+                        moonRadius,
+                    });
+                    if (rendered) {
+                        visiblePanels += 1;
+                    }
+                    ensureLinesSuppressed();
+                    ensureCraftsSuppressed();
+                    continue;
+                }
                 if (panelState.mode === "composer") {
+                    ensureLinesSuppressed();
+                    ensureCraftsSuppressed();
                     if (panelState.deleted === true || panelState.closed === true) {
                         this.setPanelVisible(panelState, false);
                         continue;
@@ -6175,6 +7283,8 @@ class AuxiliaryCameraViewsManager {
                     }
                     continue;
                 }
+                ensureLinesSuppressed();
+                ensureCraftsSuppressed();
                 const hasAnchor = this.resolvePositionForKey(panelState.anchorKey, context, this.anchorWorld);
                 const targetObject = panelState.targetKey === "earth"
                     ? earth
@@ -6370,8 +7480,12 @@ class AuxiliaryCameraViewsManager {
                     this.sunDirectionEarthWorld.z,
                 );
             }
-            this.restoreVisibility(suppressedCrafts);
-            this.restoreVisibility(suppressedLines);
+            if (suppressedCrafts) {
+                this.restoreVisibility(suppressedCrafts);
+            }
+            if (suppressedLines) {
+                this.restoreVisibility(suppressedLines);
+            }
         }
 
         this.root.hidden = visiblePanels === 0;
@@ -6394,6 +7508,10 @@ class AuxiliaryCameraViewsManager {
         if (this.defaultLayoutRaf != null) {
             cancelAnimationFrame(this.defaultLayoutRaf);
             this.defaultLayoutRaf = null;
+        }
+        if (this.visiblePanelsRefreshRaf != null) {
+            cancelAnimationFrame(this.visiblePanelsRefreshRaf);
+            this.visiblePanelsRefreshRaf = null;
         }
         if (this.persistStateTimeout != null) {
             clearTimeout(this.persistStateTimeout);
@@ -6445,6 +7563,9 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerMoonOutlineToggle) {
                 panelState.composerMoonOutlineCheckbox?.removeEventListener("change", panelState.onComposerMoonOutlineToggle);
             }
+            if (panelState.onComposerOpticsToggleClick) {
+                panelState.composerOpticsToggleButton?.removeEventListener("click", panelState.onComposerOpticsToggleClick);
+            }
             if (panelState.onComposerOpticsPhysicalClick) {
                 panelState.composerOpticsPhysicalButton?.removeEventListener("click", panelState.onComposerOpticsPhysicalClick);
             }
@@ -6463,6 +7584,12 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerOpticsFlareInput) {
                 panelState.composerOpticsFlareSlider?.removeEventListener("input", panelState.onComposerOpticsFlareInput);
             }
+            if (panelState.onComposerStarMagnitudeInput) {
+                panelState.composerStarMagnitudeSlider?.removeEventListener("input", panelState.onComposerStarMagnitudeInput);
+            }
+            if (panelState.onComposerCloudsClick) {
+                panelState.composerCloudsButton?.removeEventListener("click", panelState.onComposerCloudsClick);
+            }
             if (panelState.onComposerTimelinePointerDown) {
                 panelState.composerTimelineSlider?.removeEventListener("pointerdown", panelState.onComposerTimelinePointerDown);
             }
@@ -6470,14 +7597,29 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerTimelineSlider?.removeEventListener("pointerup", panelState.onComposerTimelinePointerUp);
                 panelState.composerTimelineSlider?.removeEventListener("change", panelState.onComposerTimelinePointerUp);
             }
+            if (panelState.onComposerPhaseSelectChange) {
+                panelState.composerPhaseSelect?.removeEventListener("change", panelState.onComposerPhaseSelectChange);
+            }
+            if (panelState.onComposerPhasePrevClick) {
+                panelState.composerPhasePrevButton?.removeEventListener("click", panelState.onComposerPhasePrevClick);
+            }
+            if (panelState.onComposerPhaseNextClick) {
+                panelState.composerPhaseNextButton?.removeEventListener("click", panelState.onComposerPhaseNextClick);
+            }
             if (panelState.onComposerTransportPlayClick) {
                 panelState.composerTransportPlayButton?.removeEventListener("click", panelState.onComposerTransportPlayClick);
+            }
+            if (panelState.onComposerTransportMinusSecondClick) {
+                panelState.composerTransportMinusSecondButton?.removeEventListener("click", panelState.onComposerTransportMinusSecondClick);
             }
             if (panelState.onComposerTransportMinusMinuteClick) {
                 panelState.composerTransportMinusMinuteButton?.removeEventListener("click", panelState.onComposerTransportMinusMinuteClick);
             }
             if (panelState.onComposerTransportPlusMinuteClick) {
                 panelState.composerTransportPlusMinuteButton?.removeEventListener("click", panelState.onComposerTransportPlusMinuteClick);
+            }
+            if (panelState.onComposerTransportPlusSecondClick) {
+                panelState.composerTransportPlusSecondButton?.removeEventListener("click", panelState.onComposerTransportPlusSecondClick);
             }
             if (panelState.onComposerTransportSlowerClick) {
                 panelState.composerTransportSlowerButton?.removeEventListener("click", panelState.onComposerTransportSlowerClick);
@@ -6494,14 +7636,21 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerRollInput) {
                 panelState.composerRollSlider?.removeEventListener("input", panelState.onComposerRollInput);
             }
+            if (panelState.onComposerRollDialPointerDown) {
+                panelState.composerRollDial?.removeEventListener("pointerdown", panelState.onComposerRollDialPointerDown);
+            }
+            if (panelState.onComposerRollDialPointerMove) {
+                panelState.composerRollDial?.removeEventListener("pointermove", panelState.onComposerRollDialPointerMove);
+            }
+            if (panelState.onComposerRollDialPointerUp) {
+                panelState.composerRollDial?.removeEventListener("pointerup", panelState.onComposerRollDialPointerUp);
+                panelState.composerRollDial?.removeEventListener("pointercancel", panelState.onComposerRollDialPointerUp);
+            }
             if (panelState.onComposerRaDecGridToggle) {
                 panelState.composerRaDecGridCheckbox?.removeEventListener("change", panelState.onComposerRaDecGridToggle);
             }
             if (panelState.onComposerSkyLabelsToggle) {
                 panelState.composerSkyLabelsCheckbox?.removeEventListener("change", panelState.onComposerSkyLabelsToggle);
-            }
-            if (panelState.onComposerCloudsClick) {
-                panelState.composerCloudsButton?.removeEventListener("click", panelState.onComposerCloudsClick);
             }
             if (panelState.onComposerViewportPointerDown) {
                 panelState.viewport.removeEventListener("pointerdown", panelState.onComposerViewportPointerDown);
@@ -6516,8 +7665,25 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerViewportWheel) {
                 panelState.viewport.removeEventListener("wheel", panelState.onComposerViewportWheel);
             }
+            if (panelState.onOrbitViewportPointerDown) {
+                panelState.viewport.removeEventListener("pointerdown", panelState.onOrbitViewportPointerDown);
+            }
+            if (panelState.onOrbitViewportPointerMove) {
+                panelState.viewport.removeEventListener("pointermove", panelState.onOrbitViewportPointerMove);
+            }
+            if (panelState.onOrbitViewportPointerUp) {
+                panelState.viewport.removeEventListener("pointerup", panelState.onOrbitViewportPointerUp);
+                panelState.viewport.removeEventListener("pointercancel", panelState.onOrbitViewportPointerUp);
+            }
+            if (panelState.onOrbitViewportWheel) {
+                panelState.viewport.removeEventListener("wheel", panelState.onOrbitViewportWheel);
+            }
             if (panelState.onComposerPanelGatePointerDown) {
                 panelState.panel.removeEventListener("pointerdown", panelState.onComposerPanelGatePointerDown, true);
+            }
+            if (panelState.composerHintTimer != null) {
+                clearTimeout(panelState.composerHintTimer);
+                panelState.composerHintTimer = null;
             }
             const header = panelState.panel.querySelector(".aux-camera-view__header");
             if (header) {
@@ -6532,6 +7698,26 @@ class AuxiliaryCameraViewsManager {
                 }
                 if (panelState.onPointerCancel) {
                     header.removeEventListener("pointercancel", panelState.onPointerCancel);
+                }
+            }
+            if (panelState.resizeGrip) {
+                if (panelState.onPanelResizePointerDown) {
+                    panelState.panel.removeEventListener("pointerdown", panelState.onPanelResizePointerDown, true);
+                    panelState.panel.removeEventListener("pointermove", panelState.onResizePointerMove);
+                    panelState.panel.removeEventListener("pointerup", panelState.onResizePointerUp);
+                    panelState.panel.removeEventListener("pointercancel", panelState.onResizePointerCancel);
+                }
+                if (panelState.onResizePointerDown) {
+                    panelState.resizeGrip.removeEventListener("pointerdown", panelState.onResizePointerDown);
+                }
+                if (panelState.onResizePointerMove) {
+                    panelState.resizeGrip.removeEventListener("pointermove", panelState.onResizePointerMove);
+                }
+                if (panelState.onResizePointerUp) {
+                    panelState.resizeGrip.removeEventListener("pointerup", panelState.onResizePointerUp);
+                }
+                if (panelState.onResizePointerCancel) {
+                    panelState.resizeGrip.removeEventListener("pointercancel", panelState.onResizePointerCancel);
                 }
             }
             if (panelState.onPanelPointerDown) {
@@ -6552,7 +7738,11 @@ class AuxiliaryCameraViewsManager {
 export {
     AuxiliaryCameraViewsManager,
     AUXILIARY_VIEW_CAMERA_PRESETS,
+    composerRollDialKnobOffset,
+    normalizeComposerRollRad,
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
+    rollRadFromDialPointer,
+    selectSkyLabelCandidates as selectComposerSkyLabelCandidates,
     shouldEnableAuxiliaryPanels,
 };

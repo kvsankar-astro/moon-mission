@@ -53,6 +53,7 @@ function deriveOriginKeys(rawConfig) {
         "is_lunar",
         "events",
         "eventConfigs",
+        "timelinePhases",
         "landingSites",
         "missionTimes",
         "origins",
@@ -119,6 +120,35 @@ function validateMissionConfig(parsedConfig) {
 
     if (parsedConfig?.eventConfigs !== undefined && !isPlainObject(parsedConfig.eventConfigs)) {
         errors.push("`eventConfigs` must be an object keyed by phase.");
+    }
+
+    if (parsedConfig?.timelinePhases !== undefined) {
+        const timelinePhases = parsedConfig.timelinePhases;
+        if (!isPlainObject(timelinePhases)) {
+            errors.push("`timelinePhases` must be an object when provided.");
+        } else if (!Array.isArray(timelinePhases.items)) {
+            errors.push("`timelinePhases.items` must be an array when timeline phases are provided.");
+        } else if (isPlainObject(parsedConfig?.events)) {
+            for (let i = 0; i < timelinePhases.items.length; i += 1) {
+                const phase = timelinePhases.items[i];
+                if (!isPlainObject(phase)) {
+                    errors.push(`timelinePhases.items[${i}] must be an object.`);
+                    continue;
+                }
+                const startEvent = asTrimmedString(phase.startEvent);
+                const endEvent = asTrimmedString(phase.endEvent);
+                if (!startEvent || !endEvent) {
+                    errors.push(`timelinePhases.items[${i}] must define startEvent and endEvent.`);
+                    continue;
+                }
+                if (!parsedConfig.events[startEvent]) {
+                    warnings.push(`timelinePhases.items[${i}] references missing startEvent '${startEvent}'.`);
+                }
+                if (!parsedConfig.events[endEvent]) {
+                    warnings.push(`timelinePhases.items[${i}] references missing endEvent '${endEvent}'.`);
+                }
+            }
+        }
     }
 
     if (isPlainObject(parsedConfig?.events) && isPlainObject(parsedConfig?.eventConfigs)) {

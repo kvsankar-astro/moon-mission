@@ -98,8 +98,31 @@ canvas {
     border-radius: var(--ui-radius-sm);
     background: rgba(10, 17, 29, 0.74);
     box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
-    resize: both;
+    resize: none;
     overflow: hidden;
+}
+
+.aux-camera-view__resize-grip {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 8;
+    width: 30px;
+    height: 30px;
+    cursor: nwse-resize;
+    touch-action: none;
+}
+
+.aux-camera-view__resize-grip::before {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 12px;
+    height: 12px;
+    border-right: 1px solid rgba(173, 208, 255, 0.74);
+    border-bottom: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: 4px 4px 0 -3px rgba(173, 208, 255, 0.46);
 }
 
 .aux-camera-view[hidden] {
@@ -318,8 +341,8 @@ canvas {
 
 .aux-camera-view--composer {
     grid-template-rows: auto 1fr;
-    grid-template-columns: minmax(220px, 34%) minmax(0, 1fr);
-    min-width: 600px;
+    grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
+    min-width: 760px;
     min-height: 320px;
     aspect-ratio: auto;
 }
@@ -441,6 +464,14 @@ html[data-app-view="selector"] .mission-loading-overlay,
     grid-column: 2;
 }
 
+.aux-camera-view[data-mode="orbit-xy"] > .aux-camera-view__viewport {
+    cursor: grab;
+}
+
+.aux-camera-view[data-mode="orbit-xy"] > .aux-camera-view__viewport:active {
+    cursor: grabbing;
+}
+
 .aux-camera-view--composer .aux-camera-view__header {
     gap: 6px;
     padding: 3px 6px;
@@ -544,6 +575,25 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(240, 247, 255, 0.97);
 }
 
+.aux-camera-view__composer-pill {
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 999px;
+    background: rgba(14, 24, 41, 0.72);
+    color: rgba(211, 226, 248, 0.92);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 4px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-pill.is-active {
+    background: rgba(68, 130, 223, 0.42);
+    border-color: rgba(132, 183, 255, 0.72);
+    color: rgba(240, 247, 255, 0.97);
+}
+
 .aux-camera-view__composer-control-matrix {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -562,7 +612,60 @@ html[data-app-view="selector"] .mission-loading-overlay,
     grid-template-columns: 72px minmax(0, 1fr) 42px;
     align-items: center;
     column-gap: 8px;
+    row-gap: 4px;
     min-width: 0;
+}
+
+.aux-camera-view__composer-phase-select {
+    width: 100%;
+    min-width: 0;
+    border: 1px solid rgba(121, 171, 255, 0.35);
+    border-radius: 6px;
+    background: rgba(14, 24, 41, 0.82);
+    color: rgba(226, 238, 255, 0.95);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.2;
+    padding: 4px 8px;
+}
+
+.aux-camera-view__composer-phase-picker {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) 24px;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-phase-step {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: 7px;
+    background: rgba(14, 24, 41, 0.82);
+    color: rgba(226, 238, 255, 0.92);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.aux-camera-view__composer-phase-step:disabled {
+    opacity: 0.42;
+    cursor: default;
+}
+
+.aux-camera-view__composer-phase-step:not(:disabled):hover {
+    border-color: rgba(154, 196, 255, 0.62);
+    background: rgba(30, 55, 92, 0.86);
+}
+
+.aux-camera-view__composer-phase-select:focus-visible {
+    outline: 1px solid rgba(170, 208, 255, 0.8);
+    outline-offset: 1px;
 }
 
 .aux-camera-view__composer-controls {
@@ -638,9 +741,45 @@ html[data-app-view="selector"] .mission-loading-overlay,
     gap: 8px;
 }
 
+.aux-camera-view__composer-disclosure {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: rgba(190, 211, 244, 0.96);
+    cursor: pointer;
+    text-align: left;
+}
+
+.aux-camera-view__composer-disclosure:disabled {
+    cursor: default;
+    opacity: 0.52;
+}
+
+.aux-camera-view__composer-disclosure:focus-visible {
+    outline: 1px solid rgba(170, 208, 255, 0.82);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.aux-camera-view__composer-disclosure-icon {
+    width: 10px;
+    flex: 0 0 10px;
+    color: rgba(128, 182, 255, 0.96);
+    font-size: 10px;
+    line-height: 1;
+}
+
 .aux-camera-view__composer-optics-body {
     display: grid;
     row-gap: 6px;
+}
+
+.aux-camera-view__composer-optics-body[hidden] {
+    display: none !important;
 }
 
 .aux-camera-view__composer-optics-header {
@@ -793,17 +932,17 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-view__composer-event-pill {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 168px;
+    grid-template-columns: minmax(0, 1fr) max-content;
     align-items: center;
-    column-gap: 10px;
+    column-gap: 8px;
     border: 1px solid rgba(122, 174, 255, 0.38);
     border-radius: 999px;
     background: rgba(18, 33, 58, 0.72);
     color: rgba(222, 236, 255, 0.92);
     font-size: 10px;
     line-height: 1;
-    padding: 4px 10px;
-    width: min(100%, 360px);
+    padding: 3px 9px;
+    width: 100%;
     text-align: left;
     cursor: pointer;
     outline: none;
@@ -811,8 +950,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-event-pill-title {
-    font-weight: 700;
-    letter-spacing: 0.015em;
+    font-weight: 400;
+    letter-spacing: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -820,7 +959,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-view__composer-event-pill-time {
     color: rgba(196, 215, 244, 0.9);
-    font-weight: 600;
+    font-weight: 400;
+    letter-spacing: 0;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-align: right;
@@ -869,6 +1009,83 @@ html[data-app-view="selector"] .mission-loading-overlay,
     font-weight: 600;
     text-align: right;
     font-variant-numeric: tabular-nums;
+}
+
+.aux-camera-view__composer-roll-dial {
+    position: absolute;
+    right: 14px;
+    bottom: 54px;
+    z-index: 5;
+    width: 54px;
+    height: 54px;
+    padding: 0;
+    border: 1px solid rgba(134, 177, 234, 0.34);
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(122, 169, 229, 0.10), rgba(7, 14, 25, 0.52) 66%),
+        rgba(5, 11, 20, 0.42);
+    color: rgba(211, 229, 252, 0.74);
+    opacity: 0;
+    appearance: none;
+    pointer-events: none;
+    cursor: grab;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    transition: opacity 140ms ease-out, border-color 140ms ease-out, background 140ms ease-out;
+}
+
+.aux-camera-view__viewport:hover .aux-camera-view__composer-roll-dial,
+.aux-camera-view__composer-roll-dial.is-active,
+.aux-camera-view__composer-roll-dial:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.aux-camera-view__composer-roll-dial:active {
+    cursor: grabbing;
+}
+
+.aux-camera-view__composer-roll-dial:focus-visible {
+    outline: 1px solid rgba(174, 213, 255, 0.74);
+    outline-offset: 2px;
+}
+
+.aux-camera-view__composer-roll-dial:disabled {
+    cursor: default;
+    opacity: 0;
+}
+
+.aux-camera-view__composer-roll-dial::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(170, 207, 255, 0.22);
+    border-radius: inherit;
+}
+
+.aux-camera-view__composer-roll-dial-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    border: 1px solid rgba(227, 242, 255, 0.82);
+    border-radius: 999px;
+    background: rgba(170, 211, 255, 0.82);
+    box-shadow: 0 0 12px rgba(89, 157, 255, 0.38);
+    pointer-events: none;
+}
+
+.aux-camera-view__composer-roll-dial-value {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    color: rgba(218, 234, 255, 0.58);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    user-select: none;
 }
 
 .aux-camera-view__composer-dial-cardinal {
@@ -926,6 +1143,37 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-view__composer-disabled-overlay[hidden] {
     display: none;
+}
+
+.aux-camera-view__composer-hint {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    z-index: 4;
+    max-width: min(320px, calc(100% - 28px));
+    padding: 5px 10px;
+    border: 1px solid rgba(132, 178, 247, 0.42);
+    border-radius: 999px;
+    background: rgba(6, 15, 28, 0.78);
+    color: rgba(218, 233, 255, 0.92);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    text-align: center;
+    transform: translateX(-50%);
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    transition: opacity 140ms ease-out;
+}
+
+.aux-camera-view__composer-hint[data-visible="true"] {
+    opacity: 1;
+}
+
+.aux-camera-view__composer-hint[hidden] {
+    display: none !important;
 }
 
 .aux-camera-view--composer-disabled .aux-camera-view__composer-presets,
