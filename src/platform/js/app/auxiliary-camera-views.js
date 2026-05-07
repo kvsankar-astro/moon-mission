@@ -1,4 +1,5 @@
-import { STAR_CATALOG_BRIGHT as CROSS_INDEX_BRIGHT_STARS } from "../rendering/star-catalog-bright.js";
+import { HIPPARCOS_VMAG6_CATALOG as COMPOSER_STAR_LABEL_CATALOG } from "../rendering/star-catalog-hipparcos.js";
+import { STAR_NAME_CROSS_INDEX } from "../rendering/star-name-cross-index.js";
 import {
     registerMissionPanel,
     unregisterMissionPanel,
@@ -25,6 +26,12 @@ import {
     configureSkyRenderLayers,
 } from "./scene-render-layers.js";
 import { computePhotoModeLightingPresentation } from "../core/domain/flyby-lighting-presentation.js";
+import {
+    selectSkyLabelCandidates,
+} from "../core/domain/sky-label-selection.js";
+import {
+    resolveStarDisplayName,
+} from "../core/domain/star-display-names.js";
 import {
     applyPhotoModeBodyPresentation,
     applyPhotoModeExposure,
@@ -127,9 +134,12 @@ const COMPOSER_OPTICS_STRENGTH_DEFAULT = 1.0;
 const COMPOSER_OPTICS_ADVANCED_MIN = 0;
 const COMPOSER_OPTICS_ADVANCED_MAX = 2.5;
 const COMPOSER_OPTICS_ADVANCED_DEFAULT = 1.0;
+const COMPOSER_STAR_MAGNITUDE_MIN = 3;
+const COMPOSER_STAR_MAGNITUDE_MAX = 6;
+const COMPOSER_STAR_MAGNITUDE_DEFAULT = 6;
 const COMPOSER_RA_DEC_GRID_RA_STEP_DEG = 30;
 const COMPOSER_RA_DEC_GRID_DEC_STEP_DEG = 15;
-const COMPOSER_BRIGHT_STAR_LABEL_MAX_MAGNITUDE = 2.0;
+const COMPOSER_SKY_LABEL_VISIBLE_FRACTION = 0.2;
 const COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT = 36;
 const COMPOSER_SKY_LABEL_EDGE_MARGIN_PX = 10;
 const COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION = 0.5;
@@ -510,6 +520,7 @@ class AuxiliaryCameraViewsManager {
         this.composerFlybyWindowEndMs = Number.NaN;
         this.composerFlybyEvents = [];
         this.composerBrightStarCatalogRef = null;
+        this.composerBrightStarMagnitudeLimit = Number.NaN;
         this.composerBrightStarLabelDescriptors = [];
 
         if (!isDesktopViewport()) {
@@ -708,14 +719,25 @@ class AuxiliaryCameraViewsManager {
         return true;
     }
 
-    resolveComposerBrightStarLabelDescriptors() {
-        const catalog = Array.isArray(CROSS_INDEX_BRIGHT_STARS) ? CROSS_INDEX_BRIGHT_STARS : null;
+    resolveComposerBrightStarLabelDescriptors(maxMagnitude = COMPOSER_STAR_MAGNITUDE_DEFAULT) {
+        const catalog = Array.isArray(COMPOSER_STAR_LABEL_CATALOG)
+            ? COMPOSER_STAR_LABEL_CATALOG
+            : null;
+        const boundedMaxMagnitude = this.THREE.MathUtils.clamp(
+            Number(maxMagnitude),
+            COMPOSER_STAR_MAGNITUDE_MIN,
+            COMPOSER_STAR_MAGNITUDE_MAX,
+        );
         if (!catalog || catalog.length === 0) {
             this.composerBrightStarCatalogRef = null;
             this.composerBrightStarLabelDescriptors = [];
             return this.composerBrightStarLabelDescriptors;
         }
-        if (this.composerBrightStarCatalogRef === catalog && this.composerBrightStarLabelDescriptors.length > 0) {
+        if (
+            this.composerBrightStarCatalogRef === catalog &&
+            this.composerBrightStarMagnitudeLimit === boundedMaxMagnitude &&
+            this.composerBrightStarLabelDescriptors.length > 0
+        ) {
             return this.composerBrightStarLabelDescriptors;
         }
 
@@ -724,13 +746,16 @@ class AuxiliaryCameraViewsManager {
         for (let i = 0; i < catalog.length; i += 1) {
             const star = catalog[i];
             const magnitude = Number(star?.vmag);
-            const label = String(star?.name || "").trim();
             const raDeg = Number(star?.raDeg);
             const decDeg = Number(star?.decDeg);
-            if (!Number.isFinite(magnitude) || magnitude > COMPOSER_BRIGHT_STAR_LABEL_MAX_MAGNITUDE) {
+            if (!Number.isFinite(magnitude) || magnitude > boundedMaxMagnitude) {
                 continue;
             }
-            if (!label || !Number.isFinite(raDeg) || !Number.isFinite(decDeg)) {
+            if (!Number.isFinite(raDeg) || !Number.isFinite(decDeg)) {
+                continue;
+            }
+            const label = resolveStarDisplayName(star, STAR_NAME_CROSS_INDEX);
+            if (!label) {
                 continue;
             }
             const dedupeKey = label.toLowerCase();
@@ -753,7 +778,8 @@ class AuxiliaryCameraViewsManager {
         }
         descriptors.sort((a, b) => (a.magnitude - b.magnitude) || a.text.localeCompare(b.text));
         this.composerBrightStarCatalogRef = catalog;
-        this.composerBrightStarLabelDescriptors = descriptors.slice(0, COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT);
+        this.composerBrightStarMagnitudeLimit = boundedMaxMagnitude;
+        this.composerBrightStarLabelDescriptors = descriptors;
         return this.composerBrightStarLabelDescriptors;
     }
 
@@ -4757,6 +4783,9 @@ class AuxiliaryCameraViewsManager {
         const resolvedSkyRenderer = skyRenderer || scene?.skyRenderer || null;
         const activeSkyContainer = skyContainer || scene?.skyContainer || resolvedSkyRenderer?.container || null;
         const planetRenderer = resolvedSkyRenderer?.planetRenderer || null;
+        const skyRadius = Number.isFinite(Number(resolvedSkyRenderer?.radius))
+            ? Number(resolvedSkyRenderer.radius)
+            : 1300000;
         if (!activeSkyContainer?.getWorldQuaternion) {
             return;
         }
@@ -4916,22 +4945,41 @@ class AuxiliaryCameraViewsManager {
             }
         }
 
-        const brightStarDescriptors = this.resolveComposerBrightStarLabelDescriptors();
+        const brightStarDescriptors = this.resolveComposerBrightStarLabelDescriptors(panelState.composerStarMagnitudeLimit);
         if (brightStarDescriptors.length > 0) {
+            const visibleStarCandidates = [];
             for (const descriptor of brightStarDescriptors) {
                 const localDirection = descriptor?.localDirection;
                 if (!localDirection) {
                     continue;
                 }
                 const point = projectSkyPointFromLocal(
-                    Number(localDirection.x),
-                    Number(localDirection.y),
-                    Number(localDirection.z),
+                    Number(localDirection.x) * skyRadius,
+                    Number(localDirection.y) * skyRadius,
+                    Number(localDirection.z) * skyRadius,
                 );
                 if (!point) {
                     continue;
                 }
-                drawLabel(descriptor.text, point, "star");
+                if (
+                    point.x < 0 ||
+                    point.x > width ||
+                    point.y < 0 ||
+                    point.y > height
+                ) {
+                    continue;
+                }
+                visibleStarCandidates.push({
+                    ...descriptor,
+                    point,
+                });
+            }
+            const visibleStarLabels = selectSkyLabelCandidates(visibleStarCandidates, {
+                visibleFraction: COMPOSER_SKY_LABEL_VISIBLE_FRACTION,
+                maxCount: COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT,
+            });
+            for (const descriptor of visibleStarLabels) {
+                drawLabel(descriptor.text, descriptor.point, "star");
             }
         }
     }
