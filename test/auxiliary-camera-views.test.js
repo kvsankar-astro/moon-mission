@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
     AuxiliaryCameraViewsManager,
     AUXILIARY_VIEW_CAMERA_PRESETS,
+    computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
     normalizeComposerRollRad,
     resolveLunarFlybyWindowMs,
@@ -101,6 +102,79 @@ describe("Frame and Shoot roll dial math", () => {
         expect(composerRollDialKnobOffset(0, 18)).toEqual({ x: 0, y: -18 });
         expect(composerRollDialKnobOffset(Math.PI / 2, 18).x).toBeCloseTo(18);
         expect(composerRollDialKnobOffset(Math.PI / 2, 18).y).toBeCloseTo(0);
+    });
+});
+
+describe("Frame and Shoot drag sensitivity math", () => {
+    it("keeps default FoV drag at the existing sensitivity", () => {
+        expect(computeComposerDragSensitivityScale(50)).toBeCloseTo(1, 8);
+    });
+
+    it("reduces drag sensitivity at narrow FoV values", () => {
+        const scaleAtOneDegree = computeComposerDragSensitivityScale(1);
+        const expectedScale = Math.tan((1 * Math.PI / 180) * 0.5) /
+            Math.tan((50 * Math.PI / 180) * 0.5);
+
+        expect(scaleAtOneDegree).toBeCloseTo(expectedScale, 8);
+        expect(scaleAtOneDegree).toBeLessThan(0.02);
+    });
+
+    it("continues tapering drag sensitivity for crater-scale FoV values", () => {
+        const scaleAtTenthDegree = computeComposerDragSensitivityScale(0.1);
+        const expectedScale = Math.tan((0.1 * Math.PI / 180) * 0.5) /
+            Math.tan((50 * Math.PI / 180) * 0.5);
+
+        expect(scaleAtTenthDegree).toBeCloseTo(expectedScale, 8);
+        expect(scaleAtTenthDegree).toBeLessThan(0.002);
+    });
+
+    it("does not increase drag sensitivity beyond the legacy wide-FoV feel", () => {
+        expect(computeComposerDragSensitivityScale(120)).toBe(1);
+        expect(computeComposerDragSensitivityScale(Number.NaN)).toBe(1);
+    });
+});
+
+describe("Frame and Shoot FoV bounds", () => {
+    it("allows manual crater-scale FoV down to a tenth of a degree", () => {
+        const updates = [];
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            camera: {
+                fov: 50,
+                updateProjectionMatrix: vi.fn(() => updates.push("projection")),
+            },
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+            overlayDirty: false,
+        };
+
+        manager.setPanelFov(panelState, 0.1);
+
+        expect(panelState.camera.fov).toBe(0.1);
+        expect(panelState.camera.updateProjectionMatrix).toHaveBeenCalledTimes(1);
+        expect(panelState.overlayDirty).toBe(true);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(0.1, 0.1);
+        expect(updates).toEqual(["projection"]);
+    });
+
+    it("clamps Frame and Shoot FoV below a tenth of a degree", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            camera: {
+                fov: 50,
+                updateProjectionMatrix: vi.fn(),
+            },
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+            overlayDirty: false,
+        };
+
+        manager.setPanelFov(panelState, 0.01);
+
+        expect(panelState.camera.fov).toBe(0.1);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(0.1, 0.1);
     });
 });
 
@@ -357,6 +431,99 @@ describe("Frame and Shoot reflected-light gain controls", () => {
         restore();
 
         expect(scene.lightMoonshine.intensity).toBe(0);
+    });
+});
+
+describe("Frame and Shoot timeline phase tracking", () => {
+    const phases = [
+        {
+            id: "launch",
+            label: "Launch & Earth Orbit",
+            startMs: 0,
+            endMs: 100,
+            events: [{ key: "launch" }, { key: "solarArrays" }],
+        },
+        {
+            id: "lunar",
+            label: "Lunar Flyby",
+            startMs: 100,
+            endMs: 200,
+            events: [{ key: "lunarSoiEntry" }, { key: "closestApproach" }],
+        },
+    ];
+
+    function createTimelineHarness() {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+            composerTimelinePhases: phases,
+            composerSelectedPhaseIndex: -1,
+            composerActivePhaseIndex: -1,
+            composerFlybyEvents: [],
+            readMainTimelineState: vi.fn(),
+            syncComposerTransportUi: vi.fn(),
+            syncComposerPhaseSelect: vi.fn(),
+            setComposerInteractionEnabled: vi.fn(),
+            setComposerTimelineLocalText: vi.fn(),
+            syncComposerFlybyEventPills: vi.fn(),
+        });
+        const panelState = {
+            composerTimelineSlider: { value: "" },
+            composerTimelineLabel: { textContent: "" },
+            composerTimelineDragging: false,
+        };
+        return { manager, panelState };
+    }
+
+    it("does not permanently pin the first rendered phase before the composer seek lands", () => {
+        const { manager, panelState } = createTimelineHarness();
+        manager.readMainTimelineState.mockReturnValue({
+            min: 0,
+            max: 200,
+            value: 50,
+            stepMs: 1,
+        });
+
+        manager.syncComposerTimelineUi(panelState);
+
+        expect(manager.composerActivePhaseIndex).toBe(0);
+        expect(manager.composerSelectedPhaseIndex).toBe(-1);
+
+        manager.readMainTimelineState.mockReturnValue({
+            min: 0,
+            max: 200,
+            value: 150,
+            stepMs: 1,
+        });
+        manager.syncComposerTimelineUi(panelState);
+
+        expect(manager.composerActivePhaseIndex).toBe(1);
+        expect(manager.composerSelectedPhaseIndex).toBe(-1);
+        expect(manager.composerFlybyEvents.map((eventInfo) => eventInfo.key)).toEqual([
+            "lunarSoiEntry",
+            "closestApproach",
+        ]);
+    });
+
+    it("clears an explicit phase selection after the timeline moves outside it", () => {
+        const { manager, panelState } = createTimelineHarness();
+        manager.composerSelectedPhaseIndex = 0;
+        manager.readMainTimelineState.mockReturnValue({
+            min: 0,
+            max: 200,
+            value: 150,
+            stepMs: 1,
+        });
+
+        manager.syncComposerTimelineUi(panelState);
+
+        expect(manager.composerSelectedPhaseIndex).toBe(-1);
+        expect(manager.composerActivePhaseIndex).toBe(1);
     });
 });
 

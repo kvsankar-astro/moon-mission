@@ -1,8 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createInitOrchestrationActions } from "../src/platform/js/app/init-orchestration.js";
 
 describe("createInitOrchestrationActions", () => {
+    beforeEach(() => {
+        vi.stubGlobal("document", undefined);
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
     it("starts at Now and enables realtime when current time is inside the active data span", async () => {
         const setAnimTime = vi.fn();
         const missionSetTime = vi.fn();

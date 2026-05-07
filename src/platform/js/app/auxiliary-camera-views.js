@@ -121,10 +121,11 @@ const PANEL_MIN_SIDE_COMPOSER = 300;
 const STARTUP_MINIMIZED_PANEL_IDS = new Set(["moon", "earth-to-moon"]);
 const COMPOSER_DEFAULT_ASPECT_RATIO = 16 / 9;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
-const AUTO_FOV_MIN_DEGREES = 1;
+const AUTO_FOV_MIN_DEGREES = 0.1;
 const AUTO_FOV_MAX_DEGREES = 179;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
 const COMPOSER_DRAG_SENSITIVITY = 0.00055;
+const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
 const COMPOSER_WHEEL_ZOOM_SENSITIVITY = 0.00022;
 const ORBIT_XY_WHEEL_ZOOM_SENSITIVITY = 0.001;
 const COMPOSER_MAX_PITCH_RAD = (Math.PI * 0.5) - 0.02;
@@ -245,6 +246,19 @@ function composerRollDialKnobOffset(rollRad, radiusPx) {
         x: Math.sin(roll) * radius,
         y: -Math.cos(roll) * radius,
     };
+}
+
+function computeComposerDragSensitivityScale(fovDegrees) {
+    const fov = Number.isFinite(Number(fovDegrees))
+        ? Number(fovDegrees)
+        : COMPOSER_DRAG_REFERENCE_FOV_DEGREES;
+    const boundedFov = Math.min(Math.max(fov, 0.001), AUTO_FOV_MAX_DEGREES);
+    const referenceHalfTan = Math.tan((COMPOSER_DRAG_REFERENCE_FOV_DEGREES * Math.PI / 180) * 0.5);
+    const currentHalfTan = Math.tan((boundedFov * Math.PI / 180) * 0.5);
+    if (!Number.isFinite(currentHalfTan) || !Number.isFinite(referenceHalfTan) || referenceHalfTan <= 1e-12) {
+        return 1;
+    }
+    return Math.min(Math.max(currentHalfTan / referenceHalfTan, 0), 1);
 }
 
 function safeParseJson(text, fallbackValue) {
@@ -488,6 +502,18 @@ function resolveFlybyPlannerEvents(eventInfos) {
         });
     }
     return resolved;
+}
+
+function timelinePhaseContainsTime(phase, timeMs) {
+    if (!phase || !Number.isFinite(timeMs)) {
+        return false;
+    }
+    const startMs = Number(phase.startMs);
+    const endMs = Number(phase.endMs);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+        return false;
+    }
+    return timeMs >= startMs && (timeMs < endMs || (phase.includeEnd === true && timeMs <= endMs));
 }
 
 class AuxiliaryCameraViewsManager {
@@ -3259,7 +3285,9 @@ class AuxiliaryCameraViewsManager {
                 drag.clientY = event.clientY;
                 const look = this.tmpVectorE.copy(this.getComposerLookDirection(panelState));
                 const up = this.tmpVectorF.copy(this.getComposerCameraUp(panelState, look));
-                const yawAngle = dx * COMPOSER_DRAG_SENSITIVITY;
+                const dragSensitivity = COMPOSER_DRAG_SENSITIVITY *
+                    computeComposerDragSensitivityScale(panelState.camera?.fov);
+                const yawAngle = dx * dragSensitivity;
                 this.tmpQuatA.setFromAxisAngle(up, yawAngle);
                 look.applyQuaternion(this.tmpQuatA);
                 up.applyQuaternion(this.tmpQuatA);
@@ -3267,7 +3295,7 @@ class AuxiliaryCameraViewsManager {
                 const right = this.tmpVectorD.copy(look).cross(up);
                 if (right.lengthSq() > 1e-12) {
                     right.normalize();
-                    const pitchAngle = dy * COMPOSER_DRAG_SENSITIVITY;
+                    const pitchAngle = dy * dragSensitivity;
                     this.tmpQuatB.setFromAxisAngle(right, pitchAngle);
                     look.applyQuaternion(this.tmpQuatB);
                     up.applyQuaternion(this.tmpQuatB);
@@ -4236,6 +4264,12 @@ class AuxiliaryCameraViewsManager {
         if (this.composerSelectedPhaseIndex >= phases.length) {
             this.composerSelectedPhaseIndex = -1;
         }
+        if (
+            this.composerSelectedPhaseIndex >= 0 &&
+            !timelinePhaseContainsTime(phases[this.composerSelectedPhaseIndex], timelineState.value)
+        ) {
+            this.composerSelectedPhaseIndex = -1;
+        }
         const boundedPreferredPhaseIndex = Number.isInteger(preferredPhaseIndex) &&
             preferredPhaseIndex >= 0 &&
             preferredPhaseIndex < phases.length
@@ -4252,9 +4286,6 @@ class AuxiliaryCameraViewsManager {
             activePhaseIndex = 0;
         }
         this.composerActivePhaseIndex = activePhaseIndex;
-        if (this.composerSelectedPhaseIndex < 0 && phases[activePhaseIndex]) {
-            this.composerSelectedPhaseIndex = activePhaseIndex;
-        }
         const activePhase = phases[activePhaseIndex] || null;
         let startMs = activePhase
             ? this.THREE.MathUtils.clamp(activePhase.startMs, timelineState.min, timelineState.max)
@@ -7729,6 +7760,7 @@ class AuxiliaryCameraViewsManager {
 export {
     AuxiliaryCameraViewsManager,
     AUXILIARY_VIEW_CAMERA_PRESETS,
+    computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
     normalizeComposerRollRad,
     resolveLunarFlybyTimeMs,
