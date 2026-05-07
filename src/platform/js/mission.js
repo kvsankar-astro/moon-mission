@@ -348,6 +348,7 @@ const {
 runtimeViewState.setConfig(initialMissionViewState.config);
 runtimeViewState.setViewFlags({
     viewPhotoMode: runtimeViewState.getViewPhotoMode(),
+    viewEarthClouds: runtimeViewState.getViewEarthClouds(),
     viewAuxiliaryPanels: initialMissionViewState.viewAuxiliaryPanels,
     viewOrbit: initialMissionViewState.viewOrbit,
     viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
@@ -495,6 +496,12 @@ const {
     getEarthRadius: () => earthRadius,
     getViewCraters: () => runtimeViewState.getViewCraters(),
     getViewPhotoMode: () => runtimeViewState.getViewPhotoMode(),
+    getViewEarthClouds: () => runtimeViewState.getViewEarthClouds(),
+    setViewEarthClouds: (value) => {
+        runtimeViewState.setViewEarthClouds(value);
+        render();
+        return runtimeViewState.getViewEarthClouds();
+    },
     getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,
     getEphemerisSource: () => ephemerisSource,

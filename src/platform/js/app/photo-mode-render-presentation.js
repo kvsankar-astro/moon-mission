@@ -1,6 +1,6 @@
 import { computePhotoModeLightingPresentation } from "../core/domain/flyby-lighting-presentation.js";
 
-const PHOTO_MODE_EARTH_CLOUD_BLEND = 0.38;
+const PHOTO_MODE_EARTH_CLOUD_BLEND = 0.56;
 
 function clamp(value, minValue, maxValue) {
     if (!Number.isFinite(value)) {
@@ -86,8 +86,10 @@ export function applyPhotoModeBodyPresentation({
     moon = null,
     presentation = null,
     earthDayTexture = null,
+    earthDayTextureBlend = null,
 } = {}) {
-    if (!presentation) {
+    const hasEarthTextureOverride = !!earthDayTexture || Number.isFinite(earthDayTextureBlend);
+    if (!presentation && !hasEarthTextureOverride) {
         return () => {};
     }
 
@@ -109,43 +111,51 @@ export function applyPhotoModeBodyPresentation({
                 };
                 if (earthDayTexture) {
                     material.userData.earthPhotoTexture = earthDayTexture;
+                }
+                if (Number.isFinite(earthDayTextureBlend)) {
+                    material.userData.earthPhotoBlend = clamp(earthDayTextureBlend, 0, 1);
+                } else if (earthDayTexture) {
                     material.userData.earthPhotoBlend = PHOTO_MODE_EARTH_CLOUD_BLEND;
                 }
-                material.userData.earthNightMapIntensity = presentation.earthNightLightsGain;
-                material.userData.earthNightMapExponent = presentation.earthNightMapExponent;
-                material.userData.earthDayGain = presentation.earthDayGain;
-                material.userData.earthDaySaturation = presentation.earthDaySaturation;
-                material.userData.earthAtmosphereRimStrength = presentation.earthAtmosphereRimStrength;
+                if (presentation) {
+                    material.userData.earthNightMapIntensity = presentation.earthNightLightsGain;
+                    material.userData.earthNightMapExponent = presentation.earthNightMapExponent;
+                    material.userData.earthDayGain = presentation.earthDayGain;
+                    material.userData.earthDaySaturation = presentation.earthDaySaturation;
+                    material.userData.earthAtmosphereRimStrength = presentation.earthAtmosphereRimStrength;
+                }
                 return record;
             },
         ),
-        ...applyBodyMaterialOverride(
-            moon,
-            (material) => Object.prototype.hasOwnProperty.call(material.userData, "moonTerminatorShadowFloor"),
-            (material) => {
-                const record = {
-                    kind: "moon",
-                    material,
-                    moonShadowLift: material.userData.moonShadowLift,
-                    moonShadowWeightExponent: material.userData.moonShadowWeightExponent,
-                    moonHighlightWeightExponent: material.userData.moonHighlightWeightExponent,
-                    moonTerminatorContrast: material.userData.moonTerminatorContrast,
-                    moonTerminatorReliefStrength: material.userData.moonTerminatorReliefStrength,
-                    moonTerminatorShadowFloor: material.userData.moonTerminatorShadowFloor,
-                    moonTerminatorIndirectOcclusion: material.userData.moonTerminatorIndirectOcclusion,
-                    moonHighlightBoost: material.userData.moonHighlightBoost,
-                };
-                material.userData.moonShadowLift = presentation.moonShadowLift;
-                material.userData.moonShadowWeightExponent = presentation.moonShadowWeightExponent;
-                material.userData.moonHighlightWeightExponent = presentation.moonHighlightWeightExponent;
-                material.userData.moonTerminatorContrast = presentation.moonTerminatorContrast;
-                material.userData.moonTerminatorReliefStrength = presentation.moonTerminatorReliefStrength;
-                material.userData.moonTerminatorShadowFloor = presentation.moonTerminatorShadowFloor;
-                material.userData.moonTerminatorIndirectOcclusion = presentation.moonTerminatorIndirectOcclusion;
-                material.userData.moonHighlightBoost = presentation.moonHighlightBoost;
-                return record;
-            },
-        ),
+        ...(presentation
+            ? applyBodyMaterialOverride(
+                moon,
+                (material) => Object.prototype.hasOwnProperty.call(material.userData, "moonTerminatorShadowFloor"),
+                (material) => {
+                    const record = {
+                        kind: "moon",
+                        material,
+                        moonShadowLift: material.userData.moonShadowLift,
+                        moonShadowWeightExponent: material.userData.moonShadowWeightExponent,
+                        moonHighlightWeightExponent: material.userData.moonHighlightWeightExponent,
+                        moonTerminatorContrast: material.userData.moonTerminatorContrast,
+                        moonTerminatorReliefStrength: material.userData.moonTerminatorReliefStrength,
+                        moonTerminatorShadowFloor: material.userData.moonTerminatorShadowFloor,
+                        moonTerminatorIndirectOcclusion: material.userData.moonTerminatorIndirectOcclusion,
+                        moonHighlightBoost: material.userData.moonHighlightBoost,
+                    };
+                    material.userData.moonShadowLift = presentation.moonShadowLift;
+                    material.userData.moonShadowWeightExponent = presentation.moonShadowWeightExponent;
+                    material.userData.moonHighlightWeightExponent = presentation.moonHighlightWeightExponent;
+                    material.userData.moonTerminatorContrast = presentation.moonTerminatorContrast;
+                    material.userData.moonTerminatorReliefStrength = presentation.moonTerminatorReliefStrength;
+                    material.userData.moonTerminatorShadowFloor = presentation.moonTerminatorShadowFloor;
+                    material.userData.moonTerminatorIndirectOcclusion = presentation.moonTerminatorIndirectOcclusion;
+                    material.userData.moonHighlightBoost = presentation.moonHighlightBoost;
+                    return record;
+                },
+            )
+            : []),
     ];
 
     return () => {

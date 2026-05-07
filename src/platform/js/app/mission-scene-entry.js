@@ -59,6 +59,8 @@ function createMissionSceneEntry(ctx) {
         getEarthRadius,
         getViewCraters,
         getViewPhotoMode,
+        getViewEarthClouds,
+        setViewEarthClouds,
         SceneHelpers,
         d3,
         DEFAULT_VIEW_STATE,
@@ -83,6 +85,12 @@ function createMissionSceneEntry(ctx) {
         getEventInfos,
         getTimelineEventInfos,
     } = ctx;
+    const readViewEarthClouds = typeof getViewEarthClouds === "function"
+        ? getViewEarthClouds
+        : () => true;
+    const writeViewEarthClouds = typeof setViewEarthClouds === "function"
+        ? setViewEarthClouds
+        : null;
 
     return createMissionSceneRuntime({
         sceneActionDeps: {
@@ -174,6 +182,7 @@ function createMissionSceneEntry(ctx) {
                     landingFlag: runtimeFlags.landing,
                     isCompareMode,
                     viewPhotoMode: getViewPhotoMode(),
+                    viewEarthClouds: readViewEarthClouds(),
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
@@ -183,6 +192,8 @@ function createMissionSceneEntry(ctx) {
                             : (typeof getEventInfos === "function" ? getEventInfos() : null),
                 };
             },
+            getViewEarthClouds: readViewEarthClouds,
+            setViewEarthClouds: writeViewEarthClouds,
             ensureSceneViewState,
             computeSceneCameraParameters,
             adjustCameraProjectionMatrixAndSkyAngle: bridgeActions.adjustCameraProjectionMatrixAndSkyAngle,

@@ -36,6 +36,7 @@ describe("runtime-view-state", () => {
 
         expect(state.getViewAuxiliaryPanels()).toBe(false);
         expect(state.getViewPhotoMode()).toBe(false);
+        expect(state.getViewEarthClouds()).toBe(true);
         expect(state.getViewOrbit()).toBe(true);
         expect(state.getViewMoonSOI()).toBe(false);
         expect(state.getViewBodyHalos()).toBe(true);
@@ -44,6 +45,7 @@ describe("runtime-view-state", () => {
 
         state.setViewFlags({
             viewPhotoMode: true,
+            viewEarthClouds: false,
             viewOrbit: false,
             viewMoonSOI: true,
             viewBodyHalos: false,
@@ -53,6 +55,7 @@ describe("runtime-view-state", () => {
         });
 
         expect(state.getViewPhotoMode()).toBe(true);
+        expect(state.getViewEarthClouds()).toBe(false);
         expect(state.getViewOrbit()).toBe(false);
         expect(state.getViewMoonSOI()).toBe(true);
         expect(state.getViewBodyHalos()).toBe(false);
@@ -61,9 +64,11 @@ describe("runtime-view-state", () => {
         expect(state.getViewConstellationLines()).toBe(false);
 
         state.setViewEquatorialPlane(true);
+        state.setViewEarthClouds(true);
         state.setViewFPS(false);
 
         const flags = state.getViewFlags();
+        expect(flags.viewEarthClouds).toBe(true);
         expect(flags.viewEquatorialPlane).toBe(true);
         expect(flags.viewFPS).toBe(false);
     });

@@ -13,6 +13,8 @@ import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 
 const EARTH_NIGHTSIDE_LIFT = 0.0;
 const EARTH_NIGHTSIDE_EXPONENT = 1.45;
+const EARTH_NIGHTSIDE_DIFFUSE_SCALE = 0.085;
+const EARTH_NIGHTSIDE_EMISSIVE_SCALE = 0.018;
 const EARTH_DAY_GAIN = 1.0;
 const EARTH_DAY_SATURATION = 1.0;
 const EARTH_ATMOSPHERE_RIM_STRENGTH = 0.0;
@@ -49,6 +51,9 @@ function applyEarthNightsideLiftShader(material) {
     if (!material.userData.earthPhotoTexture) {
         material.userData.earthPhotoTexture = material.map || null;
     }
+    if (!(material.userData.earthNightsideShaders instanceof Set)) {
+        material.userData.earthNightsideShaders = new Set();
+    }
     material.onBeforeCompile = (shader) => {
         shader.uniforms.uEarthNightsideLift = { value: material.userData.earthNightsideLift };
         shader.uniforms.uEarthNightsideExponent = { value: material.userData.earthNightsideExponent };
@@ -60,6 +65,7 @@ function applyEarthNightsideLiftShader(material) {
         shader.uniforms.uEarthPhotoBlend = { value: material.userData.earthPhotoBlend };
         shader.uniforms.uEarthPhotoMap = { value: material.userData.earthPhotoTexture || material.map || null };
         material.userData.earthNightsideShader = shader;
+        material.userData.earthNightsideShaders.add(shader);
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
@@ -78,6 +84,7 @@ uniform sampler2D uEarthPhotoMap;`,
             .replace(
                 "#include <map_fragment>",
                 `#include <map_fragment>
+vec3 earthAmbientSurfaceColor = diffuseColor.rgb;
 #ifdef USE_MAP
     float earthPhotoBlend = clamp( uEarthPhotoBlend, 0.0, 1.0 );
     if ( earthPhotoBlend > 0.0 ) {
@@ -89,9 +96,10 @@ uniform sampler2D uEarthPhotoMap;`,
             .replace(
                 "#include <lights_fragment_begin>",
                 `#include <lights_fragment_begin>
-#if NUM_DIR_LIGHTS > 0
     float earthLuma = dot( diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722) );
     diffuseColor.rgb = mix( vec3(earthLuma), diffuseColor.rgb, clamp(uEarthDaySaturation, 0.0, 1.0) );
+    float earthNightWeight = 1.0;
+#if NUM_DIR_LIGHTS > 0
     reflectedLight.directDiffuse *= uEarthDayGain;
     vec3 earthNormal = normalize( geometryNormal );
     vec3 earthViewDir = normalize( vViewPosition );
@@ -100,16 +108,34 @@ uniform sampler2D uEarthPhotoMap;`,
     float earthRimWeight = pow( clamp( 1.0 - max( dot( earthNormal, earthViewDir ), 0.0 ), 0.0, 1.0 ), 2.2 );
     float earthSunlitRim = earthRimWeight * pow( max( earthNdotL, 0.0 ), 0.35 );
     reflectedLight.directDiffuse += vec3(0.62, 0.78, 1.0) * (uEarthAtmosphereRimStrength * earthSunlitRim);
-    float earthNightWeight = pow( 1.0 - earthNdotL, max(0.2, uEarthNightsideExponent) );
+    earthNightWeight = pow( 1.0 - earthNdotL, max(0.2, uEarthNightsideExponent) );
     float earthNightMapWeight = pow( clamp( 1.0 - earthNdotL, 0.0, 1.0 ), max(0.2, uEarthNightMapExponent) );
     totalEmissiveRadiance *= (uEarthNightMapIntensity * earthNightMapWeight);
-    reflectedLight.indirectDiffuse += diffuseColor.rgb * (uEarthNightsideLift * earthNightWeight);
-#endif`,
+#else
+    totalEmissiveRadiance *= uEarthNightMapIntensity;
+#endif
+    vec3 earthNightsideFillColor = max(
+        earthAmbientSurfaceColor * vec3(0.72, 0.84, 1.0),
+        vec3(0.006, 0.010, 0.018)
+    );
+    float earthNightsideLift = uEarthNightsideLift * earthNightWeight;
+    reflectedLight.indirectDiffuse += earthNightsideFillColor * (earthNightsideLift * ${EARTH_NIGHTSIDE_DIFFUSE_SCALE.toFixed(3)});
+    totalEmissiveRadiance += earthNightsideFillColor * (earthNightsideLift * ${EARTH_NIGHTSIDE_EMISSIVE_SCALE.toFixed(3)});
+`,
             );
     };
-    material.onBeforeRender = () => {
-        const shader = material.userData?.earthNightsideShader;
-        if (!shader?.uniforms) {
+    material.userData.refreshEarthShaderUniforms = () => {
+        const shaderSet = material.userData?.earthNightsideShaders;
+        const shaders = new Set();
+        if (shaderSet instanceof Set) {
+            for (const shader of shaderSet) {
+                shaders.add(shader);
+            }
+        }
+        if (material.userData?.earthNightsideShader) {
+            shaders.add(material.userData.earthNightsideShader);
+        }
+        if (shaders.size === 0) {
             return;
         }
         const lift = Number(material.userData.earthNightsideLift);
@@ -121,36 +147,41 @@ uniform sampler2D uEarthPhotoMap;`,
         const nightMapExponent = Number(material.userData.earthNightMapExponent);
         const photoBlend = Number(material.userData.earthPhotoBlend);
         const photoTexture = material.userData.earthPhotoTexture || material.map || null;
-        if (Number.isFinite(lift) && shader.uniforms.uEarthNightsideLift) {
-            shader.uniforms.uEarthNightsideLift.value = lift;
-        }
-        if (Number.isFinite(exponent) && shader.uniforms.uEarthNightsideExponent) {
-            shader.uniforms.uEarthNightsideExponent.value = exponent;
-        }
-        if (Number.isFinite(dayGain) && shader.uniforms.uEarthDayGain) {
-            shader.uniforms.uEarthDayGain.value = dayGain;
-        }
-        if (Number.isFinite(daySaturation) && shader.uniforms.uEarthDaySaturation) {
-            shader.uniforms.uEarthDaySaturation.value = daySaturation;
-        }
-        if (Number.isFinite(atmosphereRimStrength) && shader.uniforms.uEarthAtmosphereRimStrength) {
-            shader.uniforms.uEarthAtmosphereRimStrength.value = atmosphereRimStrength;
-        }
-        if (Number.isFinite(nightMapIntensity) && shader.uniforms.uEarthNightMapIntensity) {
-            shader.uniforms.uEarthNightMapIntensity.value = nightMapIntensity;
-        }
-        if (Number.isFinite(nightMapExponent) && shader.uniforms.uEarthNightMapExponent) {
-            shader.uniforms.uEarthNightMapExponent.value = nightMapExponent;
-        }
-        if (Number.isFinite(photoBlend) && shader.uniforms.uEarthPhotoBlend) {
-            shader.uniforms.uEarthPhotoBlend.value = photoBlend;
-        }
-        if (shader.uniforms.uEarthPhotoMap) {
-            shader.uniforms.uEarthPhotoMap.value = photoTexture;
+        for (const shader of shaders) {
+            if (!shader?.uniforms) {
+                continue;
+            }
+            if (Number.isFinite(lift) && shader.uniforms.uEarthNightsideLift) {
+                shader.uniforms.uEarthNightsideLift.value = lift;
+            }
+            if (Number.isFinite(exponent) && shader.uniforms.uEarthNightsideExponent) {
+                shader.uniforms.uEarthNightsideExponent.value = exponent;
+            }
+            if (Number.isFinite(dayGain) && shader.uniforms.uEarthDayGain) {
+                shader.uniforms.uEarthDayGain.value = dayGain;
+            }
+            if (Number.isFinite(daySaturation) && shader.uniforms.uEarthDaySaturation) {
+                shader.uniforms.uEarthDaySaturation.value = daySaturation;
+            }
+            if (Number.isFinite(atmosphereRimStrength) && shader.uniforms.uEarthAtmosphereRimStrength) {
+                shader.uniforms.uEarthAtmosphereRimStrength.value = atmosphereRimStrength;
+            }
+            if (Number.isFinite(nightMapIntensity) && shader.uniforms.uEarthNightMapIntensity) {
+                shader.uniforms.uEarthNightMapIntensity.value = nightMapIntensity;
+            }
+            if (Number.isFinite(nightMapExponent) && shader.uniforms.uEarthNightMapExponent) {
+                shader.uniforms.uEarthNightMapExponent.value = nightMapExponent;
+            }
+            if (Number.isFinite(photoBlend) && shader.uniforms.uEarthPhotoBlend) {
+                shader.uniforms.uEarthPhotoBlend.value = photoBlend;
+            }
+            if (shader.uniforms.uEarthPhotoMap) {
+                shader.uniforms.uEarthPhotoMap.value = photoTexture;
+            }
         }
     };
     material.customProgramCacheKey = () =>
-        `earth-day-night-v5-${EARTH_NIGHTSIDE_LIFT}-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}-${EARTH_PHOTO_BLEND}`;
+        `earth-day-night-v10-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_NIGHTSIDE_DIFFUSE_SCALE}-${EARTH_NIGHTSIDE_EMISSIVE_SCALE}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}-${EARTH_PHOTO_BLEND}`;
 }
 
 export class EarthRenderer {
@@ -214,7 +245,6 @@ export class EarthRenderer {
             }
             material.needsUpdate = true;
         }
-
         if (disposePrevious) {
             if (previousTexture && previousTexture !== this.texture) {
                 previousTexture.dispose?.();
@@ -264,6 +294,9 @@ export class EarthRenderer {
         applyEarthNightsideLiftShader(material);
 
         this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.onBeforeRender = () => {
+            material.userData?.refreshEarthShaderUniforms?.();
+        };
         this.mesh.receiveShadow = false;
         this.mesh.castShadow = false;
         this.mesh.frustumCulled = false;

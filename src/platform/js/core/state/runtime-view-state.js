@@ -1,5 +1,6 @@
 const VIEW_FLAG_KEYS = [
     "viewPhotoMode",
+    "viewEarthClouds",
     "viewAuxiliaryPanels",
     "viewOrbit",
     "viewOrbitDescent",
@@ -21,6 +22,7 @@ const VIEW_FLAG_KEYS = [
 function buildDefaultViewFlags() {
     return {
         viewPhotoMode: false,
+        viewEarthClouds: true,
         viewAuxiliaryPanels: false,
         viewOrbit: true,
         viewOrbitDescent: true,
@@ -111,6 +113,10 @@ function createRuntimeViewState({
         getViewPhotoMode: () => viewFlags.viewPhotoMode,
         setViewPhotoMode: (value) => {
             viewFlags.viewPhotoMode = Boolean(value);
+        },
+        getViewEarthClouds: () => viewFlags.viewEarthClouds,
+        setViewEarthClouds: (value) => {
+            viewFlags.viewEarthClouds = Boolean(value);
         },
         getViewAuxiliaryPanels: () => viewFlags.viewAuxiliaryPanels,
         setViewAuxiliaryPanels: (value) => {

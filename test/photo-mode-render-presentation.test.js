@@ -71,7 +71,7 @@ describe("photo-mode-render-presentation", () => {
 
         expect(earth.material.map).toBe(originalEarthTexture);
         expect(earth.material.userData.earthPhotoTexture).toBe(photoEarthTexture);
-        expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.38, 4);
+        expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.56, 4);
         expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
         expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
         expect(moon.material.userData.moonShadowLift).toBeGreaterThan(0.15);
@@ -89,6 +89,71 @@ describe("photo-mode-render-presentation", () => {
         expect(moon.material.userData.moonShadowWeightExponent).toBeUndefined();
         expect(moon.material.userData.moonTerminatorReliefStrength).toBeUndefined();
         expect(moon.material.userData.moonTerminatorShadowFloor).toBe(0.0);
+    });
+
+    it("allows callers to explicitly disable Earth cloud/photo blending", () => {
+        const originalEarthTexture = { name: "earth-base" };
+        const photoEarthTexture = { name: "earth-photo" };
+        const earth = createBodyWithMaterial({
+            earthPhotoTexture: photoEarthTexture,
+            earthPhotoBlend: 0.56,
+            earthNightMapIntensity: 0.08,
+            earthNightMapExponent: 2.25,
+            earthDayGain: 1.0,
+            earthDaySaturation: 1.0,
+            earthAtmosphereRimStrength: 0.0,
+        }, { map: originalEarthTexture });
+        const presentation = resolvePhotoModeLightingPresentation({
+            enabled: true,
+            cameraPosition: { x: 0, y: 0, z: 0 },
+            earthPosition: { x: 380000, y: 0, z: 0 },
+            earthRadius: 6371,
+            moonPosition: { x: 9000, y: 0, z: 0 },
+            moonRadius: 1737.4,
+        });
+
+        const restore = applyPhotoModeBodyPresentation({
+            earth,
+            presentation,
+            earthDayTextureBlend: 0,
+        });
+
+        expect(earth.material.userData.earthPhotoTexture).toBe(photoEarthTexture);
+        expect(earth.material.userData.earthPhotoBlend).toBe(0);
+
+        restore();
+
+        expect(earth.material.userData.earthPhotoTexture).toBe(photoEarthTexture);
+        expect(earth.material.userData.earthPhotoBlend).toBe(0.56);
+    });
+
+    it("applies Earth cloud/photo blending even when photo lighting presentation is disabled", () => {
+        const originalEarthTexture = { name: "earth-base" };
+        const photoEarthTexture = { name: "earth-photo" };
+        const earth = createBodyWithMaterial({
+            earthPhotoTexture: originalEarthTexture,
+            earthPhotoBlend: 0,
+            earthNightMapIntensity: 0.08,
+            earthNightMapExponent: 2.25,
+            earthDayGain: 1.0,
+            earthDaySaturation: 1.0,
+            earthAtmosphereRimStrength: 0.0,
+        }, { map: originalEarthTexture });
+
+        const restore = applyPhotoModeBodyPresentation({
+            earth,
+            presentation: null,
+            earthDayTexture: photoEarthTexture,
+        });
+
+        expect(earth.material.userData.earthPhotoTexture).toBe(photoEarthTexture);
+        expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.56, 4);
+        expect(earth.material.userData.earthNightMapIntensity).toBe(0.08);
+
+        restore();
+
+        expect(earth.material.userData.earthPhotoTexture).toBe(originalEarthTexture);
+        expect(earth.material.userData.earthPhotoBlend).toBe(0);
     });
 
     it("applies and restores renderer exposure bias", () => {

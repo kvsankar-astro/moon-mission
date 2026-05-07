@@ -94,6 +94,8 @@ function createMissionSceneEntryContext(ctx, { render }) {
         getEarthRadius: ctx.getEarthRadius,
         getViewCraters: ctx.getViewCraters,
         getViewPhotoMode: ctx.getViewPhotoMode,
+        getViewEarthClouds: ctx.getViewEarthClouds,
+        setViewEarthClouds: ctx.setViewEarthClouds,
         getRuntimeFlags: ctx.getRuntimeFlags,
         ensureSceneViewState: ctx.ensureSceneViewState,
         getBodyEphemerisState,

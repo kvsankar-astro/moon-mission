@@ -28,6 +28,10 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getViewPhotoMode(),
             (value) => { runtimeViewState.setViewPhotoMode(value); },
         ),
+        viewEarthClouds: createMutableStateCell(
+            () => runtimeViewState.getViewEarthClouds(),
+            (value) => { runtimeViewState.setViewEarthClouds(value); },
+        ),
         viewAuxiliaryPanels: createMutableStateCell(
             () => runtimeViewState.getViewAuxiliaryPanels(),
             (value) => { runtimeViewState.setViewAuxiliaryPanels(value); },

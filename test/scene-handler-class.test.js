@@ -9,9 +9,12 @@ const {
     return {
         auxiliaryManagerInstances: instances,
         auxiliaryManagerConstructor: vi.fn((options) => {
+            const restoreSharedComposerBodyAmbientLighting = vi.fn();
             const instance = {
                 render: vi.fn(),
                 dispose: vi.fn(),
+                restoreSharedComposerBodyAmbientLighting,
+                applySharedComposerBodyAmbientLighting: vi.fn(() => restoreSharedComposerBodyAmbientLighting),
             };
             instances.push(instance);
             options?.requestRender?.();
@@ -80,11 +83,10 @@ describe("SceneHandler auxiliary panels", () => {
         const handler = new SceneHandler();
         handler.lastAnimationScene = {
             initialized3D: true,
-            scene: {},
-            camera: {
-                updateMatrixWorld: vi.fn(),
-                layers: { set: vi.fn() },
-            },
+            scene: new THREE.Scene(),
+            camera: new THREE.PerspectiveCamera(),
+            earthContainer: new THREE.Object3D(),
+            moonContainer: new THREE.Object3D(),
             refreshBodyHalos: vi.fn(),
             stateSunDirection: null,
             stateSunDirections: null,
@@ -95,5 +97,69 @@ describe("SceneHandler auxiliary panels", () => {
         expect(auxiliaryManagerConstructor).toHaveBeenCalledTimes(1);
         expect(manager).toBe(auxiliaryManagerInstances[0]);
         expect(handler.auxiliaryCameraViews).toBe(auxiliaryManagerInstances[0]);
+    });
+
+    it("applies Frame and Shoot ambient while rendering the main camera", () => {
+        const renderer = {
+            autoClear: true,
+            render: vi.fn(),
+            clearDepth: vi.fn(),
+        };
+        const earthContainer = new THREE.Object3D();
+        const moonContainer = new THREE.Object3D();
+        const camera = new THREE.PerspectiveCamera();
+
+        const SceneHandler = createSceneHandlerClass({
+            THREE,
+            d3: {},
+            bindSettingsPanel: vi.fn(),
+            initSceneHandlerDom: vi.fn(() => ({
+                renderer,
+                canvasNode: {},
+            })),
+            computeSVGDimensions: vi.fn(),
+            getSvgWidth: vi.fn(() => 100),
+            getSvgHeight: vi.fn(() => 100),
+            isTestMode: false,
+            onWindowResize: vi.fn(),
+            updateCraftScale: vi.fn(),
+            getRuntimeState: vi.fn(() => ({
+                globalConfig: null,
+                joyRideFlag: false,
+                landingFlag: false,
+                viewPhotoMode: false,
+                viewAuxiliaryPanels: true,
+                earthRadius: 1,
+                moonRadius: 1,
+                timelineEventInfos: [],
+            })),
+        });
+
+        const handler = new SceneHandler();
+        const manager = handler.ensureAuxiliaryCameraViews();
+        manager.applySharedComposerBodyAmbientLighting.mockClear();
+        manager.restoreSharedComposerBodyAmbientLighting.mockClear();
+        renderer.render.mockClear();
+
+        handler.render({
+            initialized3D: true,
+            scene: new THREE.Scene(),
+            camera,
+            earthContainer,
+            moonContainer,
+            refreshBodyHalos: vi.fn(),
+            stateSunDirection: null,
+            stateSunDirections: null,
+        });
+
+        expect(manager.applySharedComposerBodyAmbientLighting).toHaveBeenCalledWith({
+            earth: earthContainer,
+            moon: moonContainer,
+        });
+        expect(manager.restoreSharedComposerBodyAmbientLighting).toHaveBeenCalledTimes(1);
+        expect(manager.applySharedComposerBodyAmbientLighting.mock.invocationCallOrder[0])
+            .toBeLessThan(renderer.render.mock.invocationCallOrder[0]);
+        expect(manager.restoreSharedComposerBodyAmbientLighting.mock.invocationCallOrder[0])
+            .toBeGreaterThan(renderer.render.mock.invocationCallOrder.at(-1));
     });
 });

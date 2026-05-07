@@ -25,6 +25,8 @@ function createSceneHandlerClass(deps) {
         onWindowResize,
         updateCraftScale,
         getRuntimeState,
+        getViewEarthClouds = null,
+        setViewEarthClouds = null,
     } = deps;
 
     return class SceneHandler {
@@ -43,6 +45,7 @@ function createSceneHandlerClass(deps) {
             this.mainCameraWorldPosition = new THREE.Vector3();
             this.earthWorldPosition = new THREE.Vector3();
             this.moonWorldPosition = new THREE.Vector3();
+            this.earthCloudsEnabled = true;
 
             this.init();
         }
@@ -95,6 +98,23 @@ function createSceneHandlerClass(deps) {
                 const manager = new AuxiliaryCameraViewsManager({
                     THREE,
                     overlayHost,
+                    getEarthCloudsEnabled: () => {
+                        if (typeof getViewEarthClouds === "function") {
+                            return getViewEarthClouds();
+                        }
+                        const runtimeClouds = getRuntimeState?.().viewEarthClouds;
+                        return runtimeClouds === false ? false : this.earthCloudsEnabled !== false;
+                    },
+                    setEarthCloudsEnabled: (value) => {
+                        this.earthCloudsEnabled = value !== false;
+                        if (typeof setViewEarthClouds === "function") {
+                            return setViewEarthClouds(value);
+                        }
+                        if (this.lastAnimationScene) {
+                            this.render(this.lastAnimationScene);
+                        }
+                        return this.earthCloudsEnabled;
+                    },
                     requestRender: () => {
                         if (this.lastAnimationScene) {
                             this.render(this.lastAnimationScene);
@@ -193,6 +213,7 @@ function createSceneHandlerClass(deps) {
                 joyRideFlag,
                 landingFlag,
                 viewPhotoMode,
+                viewEarthClouds,
                 viewAuxiliaryPanels,
                 earthRadius,
                 moonRadius,
@@ -201,6 +222,9 @@ function createSceneHandlerClass(deps) {
             const auxiliaryCameraViews = viewAuxiliaryPanels
                 ? this.ensureAuxiliaryCameraViews()
                 : this.auxiliaryCameraViews;
+            const effectiveEarthClouds = typeof getViewEarthClouds === "function"
+                ? getViewEarthClouds() !== false
+                : (viewEarthClouds === false ? false : this.earthCloudsEnabled !== false);
             const renderSceneCamera = (camera) => {
                 if (!camera) {
                     return;
@@ -221,7 +245,14 @@ function createSceneHandlerClass(deps) {
                     moon: animationScene.moonContainer,
                     presentation: photoModePresentation,
                     earthDayTexture: animationScene.earthPhotoTexture || null,
+                    earthDayTextureBlend: effectiveEarthClouds ? null : 0,
                 });
+                const restoreSharedBodyAmbient = auxiliaryCameraViews
+                    ?.applySharedComposerBodyAmbientLighting
+                    ?.({
+                        earth: animationScene.earthContainer,
+                        moon: animationScene.moonContainer,
+                    }) || (() => {});
                 const restorePhotoModeExposure = applyPhotoModeExposure({
                     renderer: this.renderer,
                     presentation: photoModePresentation,
@@ -230,6 +261,7 @@ function createSceneHandlerClass(deps) {
                     renderWithCamera(camera);
                 } finally {
                     restorePhotoModeExposure();
+                    restoreSharedBodyAmbient();
                     restorePhotoModeBodyPresentation();
                 }
             };
@@ -268,6 +300,7 @@ function createSceneHandlerClass(deps) {
                     panelsVisible: viewAuxiliaryPanels,
                     missionConfig: globalConfig,
                     photoModeEnabled: viewPhotoMode,
+                    earthCloudsEnabled: effectiveEarthClouds,
                     earthPhotoTexture: animationScene.earthPhotoTexture || null,
                 });
                 if (viewAuxiliaryPanels) {
@@ -369,6 +402,7 @@ function createSceneHandlerClass(deps) {
                 panelsVisible: viewAuxiliaryPanels,
                 missionConfig: globalConfig,
                 photoModeEnabled: viewPhotoMode,
+                earthCloudsEnabled: effectiveEarthClouds,
                 earthPhotoTexture: animationScene.earthPhotoTexture || null,
             });
             if (viewAuxiliaryPanels) {

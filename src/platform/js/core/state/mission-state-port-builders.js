@@ -304,6 +304,7 @@ function createMissionSceneViewStatePort(ctx, helpers) {
         },
         setViewFlags: (view = {}) => {
             setBooleanStateIfDefined("viewPhotoMode", view.viewPhotoMode);
+            setBooleanStateIfDefined("viewEarthClouds", view.viewEarthClouds);
             setBooleanStateIfDefined("viewAuxiliaryPanels", view.viewAuxiliaryPanels);
             setBooleanStateIfDefined("viewOrbit", view.viewOrbit);
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
