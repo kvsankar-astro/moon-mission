@@ -12,6 +12,12 @@ import { STAR_CATALOG_BRIGHT } from './star-catalog-hipparcos.js';
 const MIN_MAGNITUDE = -2.5;
 const MAX_MAGNITUDE = 8.0;
 
+export function isStarVisibleForMagnitudeLimit(vmag, magnitudeLimit) {
+  const magnitude = Number(vmag);
+  const limit = Number(magnitudeLimit);
+  return Number.isFinite(magnitude) && Number.isFinite(limit) && magnitude <= (limit + 0.0001);
+}
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -113,6 +119,7 @@ uniform float uMinPointSize;
 uniform float uMaxPointSize;
 uniform float uSkyRadius;
 uniform float uPhotometricScale;
+uniform float uMagnitudeLimit;
 uniform float uAtmosphereEnabled;
 uniform float uExtinctionStrength;
 uniform float uTwinkleStrength;
@@ -137,6 +144,7 @@ float hash11(float x) {
 
 void main() {
   vec3 eq = normalize(aDirection);
+  float magnitudeVisible = 1.0 - step(uMagnitudeLimit + 0.0001, aMagnitude);
   float sinLat = sin(uObserverLat);
   float cosLat = cos(uObserverLat);
   float sinLst = sin(uSiderealAngle);
@@ -195,18 +203,19 @@ void main() {
   // Keep point-size driven by photometric sprite size + viewport scaling.
   float viewportScale = max(0.9, uPointScale / 500.0);
   float pointSizePx = spriteSize * viewportScale;
-  gl_PointSize = clamp(pointSizePx, uMinPointSize, uMaxPointSize);
+  gl_PointSize = clamp(pointSizePx, uMinPointSize, uMaxPointSize) * magnitudeVisible;
   vPointSize = gl_PointSize;
 
   float apparentIntensity = baseIntensity * extinction * twinkle;
   vIntensity = apparentIntensity;
   vIntensity *= uPhotometricScale;
+  vIntensity *= magnitudeVisible;
   vColor = aColor;
   vAtmosphereEnabled = atmosphere;
 
   float haloByMagnitude = smoothstep(2.6, -1.1, aMagnitude);
   float haloByAltitude = mix(0.35, 1.0, horizonTwinkleBoost);
-  vHalo = uHaloStrength * haloByMagnitude * haloByAltitude;
+  vHalo = uHaloStrength * haloByMagnitude * haloByAltitude * magnitudeVisible;
 
   gl_Position = projectionMatrix * mvPosition;
 }
@@ -352,6 +361,7 @@ export class StarRenderer {
       uMaxPointSize: { value: Number.isFinite(options.maxPointSize) ? options.maxPointSize : 7.2 },
       uSkyRadius: { value: this.radius },
       uPhotometricScale: { value: 85.0 },
+      uMagnitudeLimit: { value: Number.isFinite(options.magnitudeLimit) ? options.magnitudeLimit : MAX_MAGNITUDE },
       uAtmosphereEnabled: { value: options.atmosphereEnabled ? 1 : 0 },
       uExtinctionStrength: { value: Number.isFinite(options.extinctionStrength) ? options.extinctionStrength : 0.2 },
       uTwinkleStrength: { value: Number.isFinite(options.twinkleStrength) ? options.twinkleStrength : 1.0 },
@@ -547,6 +557,7 @@ export class StarRenderer {
    *   minPointSize?: number,
    *   maxPointSize?: number,
    *   photometricScale?: number,
+   *   magnitudeLimit?: number,
    * }} patch
    */
   setParams(patch = {}) {
@@ -576,6 +587,9 @@ export class StarRenderer {
     }
     if (Number.isFinite(patch.photometricScale)) {
       this.uniforms.uPhotometricScale.value = patch.photometricScale;
+    }
+    if (Number.isFinite(patch.magnitudeLimit)) {
+      this.uniforms.uMagnitudeLimit.value = clamp(patch.magnitudeLimit, MIN_MAGNITUDE, MAX_MAGNITUDE);
     }
   }
 
@@ -624,6 +638,9 @@ export class StarRenderer {
       photometricScale: Number.isFinite(Number(patch.star_intensity_scale))
         ? Number(patch.star_intensity_scale)
         : Number(patch.starIntensityScale),
+      magnitudeLimit: Number.isFinite(Number(patch.magnitude_limit))
+        ? Number(patch.magnitude_limit)
+        : Number(patch.magnitudeLimit),
     };
     this.setParams(resolved);
   }

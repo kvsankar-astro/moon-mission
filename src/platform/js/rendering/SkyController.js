@@ -10,6 +10,8 @@ import { STAR_CATALOG_BRIGHT } from "./star-catalog-hipparcos.js";
 const SKY_LAYER = 2;
 const SKY_STARMAP_OPACITY = 0.18;
 const SKY_CONSTELLATION_OPACITY = 0.06;
+const SKY_MIN_LIMITING_MAGNITUDE = -2.5;
+const SKY_MAX_LIMITING_MAGNITUDE = 8.0;
 
 const ATMOSPHERE_VERTEX_SHADER = `
     varying vec3 vViewDir;
@@ -55,6 +57,7 @@ const DEFAULT_SKY_PARAMETERS = Object.freeze({
     bloom_strength: 0.65,
     star_size_scale: 0.92,
     star_intensity_scale: 120.0,
+    magnitude_limit: SKY_MAX_LIMITING_MAGNITUDE,
     extinction_strength: 0.18,
     twinkle_strength: 0.45,
     observer_lat: 28.6139,
@@ -120,6 +123,20 @@ function resolveSkyParameters(current, patch) {
             toFiniteNumber(patch.star_intensity_scale, next.star_intensity_scale),
             0.5,
             4000,
+        );
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "magnitude_limit")) {
+        next.magnitude_limit = clamp(
+            toFiniteNumber(patch.magnitude_limit, next.magnitude_limit),
+            SKY_MIN_LIMITING_MAGNITUDE,
+            SKY_MAX_LIMITING_MAGNITUDE,
+        );
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "magnitudeLimit")) {
+        next.magnitude_limit = clamp(
+            toFiniteNumber(patch.magnitudeLimit, next.magnitude_limit),
+            SKY_MIN_LIMITING_MAGNITUDE,
+            SKY_MAX_LIMITING_MAGNITUDE,
         );
     }
     if (Object.prototype.hasOwnProperty.call(patch, "extinction_strength")) {
@@ -194,6 +211,7 @@ function createStarRendererCompat({
         atmosphereEnabled: parameters.atmosphere_enabled,
         starSizeScale: parameters.star_size_scale,
         starIntensityScale: parameters.star_intensity_scale,
+        magnitudeLimit: parameters.magnitude_limit,
         extinctionStrength: parameters.extinction_strength,
         twinkleStrength: parameters.twinkle_strength,
         haloStrength: 0.10 + (parameters.bloom_strength * 0.18),
