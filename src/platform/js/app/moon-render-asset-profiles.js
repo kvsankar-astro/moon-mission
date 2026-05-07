@@ -368,16 +368,18 @@ export function resolveMoonRenderAssetProfile({
 
 export function resolveMoonRenderAssetSelection({
     search = null,
+    profile = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 } = {}) {
     const profiles = resolveMoonRenderAssetProfiles({ globalObject });
     const settingsProfiles = resolveMoonRenderProfileSettings({ globalObject });
-    const profile = resolveMoonRenderAssetProfile({ search, globalObject });
-    const active = profiles[profile] || profiles.fast;
-    const activeRenderSettings = settingsProfiles[profile] || settingsProfiles.fast;
+    const resolvedProfile = normalizeProfileName(profile) ||
+        resolveMoonRenderAssetProfile({ search, globalObject });
+    const active = profiles[resolvedProfile] || profiles.fast;
+    const activeRenderSettings = settingsProfiles[resolvedProfile] || settingsProfiles.fast;
 
     return {
-        profile,
+        profile: resolvedProfile,
         active,
         fallback: profiles.fast,
         activeRenderSettings,

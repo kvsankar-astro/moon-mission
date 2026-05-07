@@ -127,4 +127,15 @@ describe("moon-render-asset-profiles", () => {
         expect(selection.activeRenderSettings).toEqual(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.quality);
         expect(selection.fallbackRenderSettings).toEqual(DEFAULT_MOON_RENDER_PROFILE_SETTINGS.fast);
     });
+
+    it("allows callers to request a specific profile without mutating URL or global state", () => {
+        const selection = resolveMoonRenderAssetSelection({
+            profile: "fast",
+            search: "?moonProfile=quality",
+            globalObject: {},
+        });
+
+        expect(selection.profile).toBe("fast");
+        expect(selection.active).toEqual(DEFAULT_MOON_RENDER_ASSET_PROFILES.fast);
+    });
 });

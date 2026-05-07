@@ -110,6 +110,7 @@ function createRuntimeUiControlsDeps(deps) {
         missionSetTime,
         THREE,
         loadSceneTextures,
+        loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures,
         globalObject,
     } = deps;
@@ -177,6 +178,7 @@ function createRuntimeUiControlsDeps(deps) {
         missionSetTime,
         THREE,
         loadSceneTextures,
+        loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures,
         globalObject,
     };

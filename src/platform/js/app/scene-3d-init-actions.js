@@ -4,14 +4,55 @@ export function createScene3dInitActions({
     THREE,
     createPlaceholderSceneTextures,
     loadSceneTextures,
+    loadMoonRenderProfileTextures = null,
     applyAndRefreshSceneTextures,
     render,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
+    const loadMoonTextures = typeof loadMoonRenderProfileTextures === "function"
+        ? loadMoonRenderProfileTextures
+        : loadSceneTextures;
+
     function markTextureLoadDone(scene, state) {
         scene.textureLoadState = state;
         scene.textureLoadPending = false;
         scene.textureLoadPromise = null;
+    }
+
+    function resolveRequestedMoonProfile() {
+        return resolveMoonRenderAssetProfile({ globalObject });
+    }
+
+    function refreshMoonProfileInBackground(scene, requestedProfile, applyTextures) {
+        if (!scene || !requestedProfile || requestedProfile === (scene.moonRenderProfile || "fast")) {
+            return null;
+        }
+
+        scene.moonTextureLoadState = "loading";
+        scene.moonTextureLoadPending = true;
+        scene.moonTextureLoadPromise = loadMoonTextures({
+            THREE,
+            minFilter: THREE.LinearFilter,
+            moonRenderProfile: requestedProfile,
+            globalObject,
+        }).then(
+            (textures) => {
+                if (resolveRequestedMoonProfile() !== requestedProfile) {
+                    scene.moonTextureLoadState = "stale";
+                    return;
+                }
+                applyTextures(textures);
+                scene.moonTextureLoadState = "ready";
+            },
+            (error) => {
+                console.warn("Moon profile refresh after scene init failed:", error);
+                scene.moonTextureLoadState = "error";
+            },
+        ).finally(() => {
+            scene.moonTextureLoadPending = false;
+            scene.moonTextureLoadPromise = null;
+        });
+        return scene.moonTextureLoadPromise;
     }
 
     function beginTextureLoad(scene) {
@@ -21,9 +62,11 @@ export function createScene3dInitActions({
 
         scene.textureLoadState = "loading";
         scene.textureLoadPending = true;
+        const requestedProfile = resolveRequestedMoonProfile();
         scene.textureLoadPromise = loadSceneTextures({
             THREE,
             minFilter: THREE.LinearFilter,
+            moonRenderProfile: requestedProfile,
             globalObject,
         }).then(
             (textures) => {
@@ -33,26 +76,17 @@ export function createScene3dInitActions({
                 };
                 applyTextures(textures);
 
-                const requestedProfile = resolveMoonRenderAssetProfile({ globalObject });
-                if ((textures?.moonRenderProfile || "fast") === requestedProfile) {
-                    markTextureLoadDone(scene, "ready");
-                    return;
+                const latestRequestedProfile = resolveRequestedMoonProfile();
+                if ((textures?.moonRenderProfile || "fast") !== latestRequestedProfile) {
+                    return refreshMoonProfileInBackground(
+                        scene,
+                        latestRequestedProfile,
+                        applyTextures,
+                    ).finally(() => {
+                        markTextureLoadDone(scene, "ready");
+                    });
                 }
-
-                return loadSceneTextures({
-                    THREE,
-                    minFilter: THREE.LinearFilter,
-                    globalObject,
-                }).then(
-                    (latestTextures) => {
-                        applyTextures(latestTextures);
-                        markTextureLoadDone(scene, "ready");
-                    },
-                    (error) => {
-                        console.warn("Moon profile refresh after scene init failed:", error);
-                        markTextureLoadDone(scene, "ready");
-                    },
-                );
+                markTextureLoadDone(scene, "ready");
             },
             (error) => {
                 console.error("Error: couldn't load textures. Using placeholders:", error);

@@ -194,6 +194,7 @@ function createRuntimeUiControlsDepsFromPorts(
         missionSetTime: animationActions.missionSetTime,
         THREE: renderPort.THREE,
         loadSceneTextures: renderPort.loadSceneTextures,
+        loadMoonRenderProfileTextures: renderPort.loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures: renderPort.applyAndRefreshSceneTextures,
         globalObject: uiPort.windowRef,
     });

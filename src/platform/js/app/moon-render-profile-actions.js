@@ -28,12 +28,20 @@ export function createMoonRenderProfileActions({
     THREE,
     animationScenes,
     loadSceneTextures,
+    loadMoonRenderProfileTextures = null,
     applyAndRefreshSceneTextures,
     render,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
+    const loadMoonTextures = typeof loadMoonRenderProfileTextures === "function"
+        ? loadMoonRenderProfileTextures
+        : loadSceneTextures;
+    let latestProfileLoadId = 0;
+
     async function setMoonRenderProfile(profile) {
         const normalized = persistActiveProfile(globalObject, profile);
+        latestProfileLoadId += 1;
+        const profileLoadId = latestProfileLoadId;
         const sceneMap = animationScenes || {};
         const initializedScenes = Object.values(sceneMap).filter((scene) => !!scene?.initialized3D);
 
@@ -41,13 +49,19 @@ export function createMoonRenderProfileActions({
             return normalized;
         }
 
-        const textures = await loadSceneTextures({
+        const textures = await loadMoonTextures({
             THREE,
             minFilter: THREE.LinearFilter,
+            moonRenderProfile: normalized,
             globalObject,
         });
 
-        initializedScenes.forEach((scene) => {
+        const activeProfile = getMoonRenderProfile();
+        if (profileLoadId !== latestProfileLoadId || activeProfile !== normalized) {
+            return activeProfile;
+        }
+
+        Object.values(sceneMap).filter((scene) => !!scene?.initialized3D).forEach((scene) => {
             applyAndRefreshSceneTextures(scene, textures, { disposePrevious: true });
         });
 

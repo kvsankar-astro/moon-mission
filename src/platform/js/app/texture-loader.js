@@ -26,6 +26,12 @@ const PLACEHOLDER_COLORS = Object.freeze({
     skyConstellationTexture: 0x000000,
 });
 
+const MOON_TEXTURE_KEYS = new Set(["moonMap", "moonDisplacementMap"]);
+const SHAREABLE_TEXTURE_KEY_GROUPS = Object.freeze({
+    skyMilkyWayTexture: "skyBackground",
+    skyTexture: "skyBackground",
+});
+
 function loadTexture(loader, fileName) {
     return new Promise((resolve, reject) => {
         loader.load(
@@ -35,6 +41,10 @@ function loadTexture(loader, fileName) {
             (error) => reject(error),
         );
     });
+}
+
+function normalizeTextureFileName(fileName) {
+    return String(fileName || "").trim();
 }
 
 async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName, { logLabel = "" } = {}) {
@@ -51,6 +61,25 @@ async function loadTextureWithFallback(loader, primaryFileName, fallbackFileName
         );
         return loadTexture(loader, fallbackFileName);
     }
+}
+
+function loadTextureEntries(loader, entries, loadEntryTexture, { getCacheKey = null } = {}) {
+    const promisesByCacheKey = new Map();
+
+    return Promise.all(entries.map(([key, fileName]) => {
+        const normalizedFileName = normalizeTextureFileName(fileName);
+        if (!normalizedFileName) {
+            return Promise.resolve(null);
+        }
+
+        const cacheKey = typeof getCacheKey === "function"
+            ? getCacheKey(key, normalizedFileName)
+            : normalizedFileName;
+        if (!promisesByCacheKey.has(cacheKey)) {
+            promisesByCacheKey.set(cacheKey, loadEntryTexture(key, normalizedFileName));
+        }
+        return promisesByCacheKey.get(cacheKey);
+    }));
 }
 
 function setColorTextureSpace(THREE, texture) {
@@ -100,9 +129,14 @@ export function createPlaceholderSceneTextures({
     THREE,
     minFilter = null,
     search = null,
+    moonRenderProfile = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
-    const moonAssets = resolveMoonRenderAssetSelection({ search, globalObject });
+    const moonAssets = resolveMoonRenderAssetSelection({
+        search,
+        profile: moonRenderProfile,
+        globalObject,
+    });
     const byKey = {
         earthTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthTexture),
         earthPhotoTexture: createSolidTexture(THREE, PLACEHOLDER_COLORS.earthPhotoTexture),
@@ -132,10 +166,15 @@ export function loadSceneTextures({
     files = DEFAULT_SCENE_TEXTURE_FILES,
     minFilter = null,
     search = null,
+    moonRenderProfile = null,
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
     const loader = new THREE.TextureLoader();
-    const moonAssets = resolveMoonRenderAssetSelection({ search, globalObject });
+    const moonAssets = resolveMoonRenderAssetSelection({
+        search,
+        profile: moonRenderProfile,
+        globalObject,
+    });
     const resolvedFiles = {
         ...files,
         moonMap: moonAssets.active.moonMap || files.moonMap,
@@ -143,8 +182,8 @@ export function loadSceneTextures({
     };
 
     const entries = Object.entries(resolvedFiles);
-    const promises = entries.map(([key, fileName]) => {
-        if (key === "moonMap" || key === "moonDisplacementMap") {
+    const texturePromise = loadTextureEntries(loader, entries, (key, fileName) => {
+        if (MOON_TEXTURE_KEYS.has(key)) {
             return loadTextureWithFallback(
                 loader,
                 fileName,
@@ -153,9 +192,15 @@ export function loadSceneTextures({
             );
         }
         return loadTexture(loader, fileName);
+    }, {
+        getCacheKey: (key, fileName) => (
+            MOON_TEXTURE_KEYS.has(key)
+                ? `${key}\u0000${fileName}\u0000${normalizeTextureFileName(moonAssets.fallback[key])}`
+                : `${SHAREABLE_TEXTURE_KEY_GROUPS[key] || key}\u0000${fileName}`
+        ),
     });
 
-    return Promise.all(promises).then((textures) => {
+    return texturePromise.then((textures) => {
         const byKey = {};
         for (let i = 0; i < entries.length; i += 1) {
             const [key] = entries[i];
@@ -163,6 +208,56 @@ export function loadSceneTextures({
         }
         if (!byKey.skyTexture && byKey.skyMilkyWayTexture) {
             byKey.skyTexture = byKey.skyMilkyWayTexture;
+        }
+
+        applyTextureDefaults({
+            THREE,
+            texturesByKey: byKey,
+            minFilter,
+        });
+
+        byKey.moonRenderProfile = moonAssets.profile;
+        byKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
+
+        return byKey;
+    });
+}
+
+export function loadMoonRenderProfileTextures({
+    THREE,
+    minFilter = null,
+    search = null,
+    moonRenderProfile = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+}) {
+    const loader = new THREE.TextureLoader();
+    const moonAssets = resolveMoonRenderAssetSelection({
+        search,
+        profile: moonRenderProfile,
+        globalObject,
+    });
+    const entries = [
+        ["moonMap", moonAssets.active.moonMap],
+        ["moonDisplacementMap", moonAssets.active.moonDisplacementMap],
+    ];
+    const texturePromise = loadTextureEntries(loader, entries, (key, fileName) => (
+        loadTextureWithFallback(
+            loader,
+            fileName,
+            moonAssets.fallback[key],
+            { logLabel: `${moonAssets.profile}.${key}` },
+        )
+    ), {
+        getCacheKey: (key, fileName) => (
+            `${key}\u0000${fileName}\u0000${normalizeTextureFileName(moonAssets.fallback[key])}`
+        ),
+    });
+
+    return texturePromise.then((textures) => {
+        const byKey = {};
+        for (let i = 0; i < entries.length; i += 1) {
+            const [key] = entries[i];
+            byKey[key] = textures[i];
         }
 
         applyTextureDefaults({

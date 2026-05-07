@@ -69,7 +69,7 @@ import { createCameraActions } from "./camera-actions.js";
 import { createLockActions } from "./lock-actions.js";
 import { applyMissionMetadata } from "./mission-metadata.js";
 import { createModeActions } from "./mode-actions.js";
-import { loadSceneTextures } from "./texture-loader.js";
+import { loadMoonRenderProfileTextures, loadSceneTextures } from "./texture-loader.js";
 import { applyAndRefreshSceneTextures } from "./scene-texture-actions.js";
 import {
     normalizePlaneSelection,
@@ -199,6 +199,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         createModeActions,
         createBurnActions,
         loadSceneTextures,
+        loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures,
         readCameraPositionMode,
         readCameraLookMode,

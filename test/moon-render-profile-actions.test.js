@@ -42,4 +42,47 @@ describe("moon-render-profile-actions", () => {
 
         expect(actions.getMoonRenderProfile()).toBe("fast");
     });
+
+    it("does not apply an older profile load after a newer choice wins", async () => {
+        const scene = { initialized3D: true };
+        const pendingLoads = [];
+        const applyAndRefreshSceneTextures = vi.fn();
+        const actions = createMoonRenderProfileActions({
+            THREE: { LinearFilter: "LinearFilter" },
+            animationScenes: { geo: scene },
+            loadSceneTextures: vi.fn(),
+            loadMoonRenderProfileTextures: vi.fn(({ moonRenderProfile }) => new Promise((resolve) => {
+                pendingLoads.push({ moonRenderProfile, resolve });
+            })),
+            applyAndRefreshSceneTextures,
+            render: vi.fn(),
+            globalObject: {},
+        });
+
+        const fastPromise = actions.setMoonRenderProfile("fast");
+        const qualityPromise = actions.setMoonRenderProfile("quality");
+
+        pendingLoads.find((load) => load.moonRenderProfile === "quality").resolve({
+            moonMap: "quality-map",
+            moonDisplacementMap: "quality-height",
+            moonRenderProfile: "quality",
+            moonRenderSettings: {},
+        });
+        await qualityPromise;
+
+        pendingLoads.find((load) => load.moonRenderProfile === "fast").resolve({
+            moonMap: "fast-map",
+            moonDisplacementMap: "fast-height",
+            moonRenderProfile: "fast",
+            moonRenderSettings: {},
+        });
+        await expect(fastPromise).resolves.toBe("quality");
+
+        expect(applyAndRefreshSceneTextures).toHaveBeenCalledTimes(1);
+        expect(applyAndRefreshSceneTextures).toHaveBeenCalledWith(
+            scene,
+            expect.objectContaining({ moonRenderProfile: "quality" }),
+            { disposePrevious: true },
+        );
+    });
 });

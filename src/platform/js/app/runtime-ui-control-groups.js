@@ -85,6 +85,7 @@ function createRuntimeMoonRenderProfileControlActions(deps) {
         THREE: deps.THREE,
         animationScenes: deps.animationScenes,
         loadSceneTextures: deps.loadSceneTextures,
+        loadMoonRenderProfileTextures: deps.loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures: deps.applyAndRefreshSceneTextures,
         render: deps.render,
         globalObject: deps.globalObject,

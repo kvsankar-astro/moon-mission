@@ -11,7 +11,11 @@ import { createBodyRotationActions } from "./body-rotation-actions.js";
 import { createLocationActions } from "./location-actions.js";
 import { createSpacecraftCurveActions } from "./spacecraft-curve-actions.js";
 import { createPrimarySecondaryBodiesActions } from "./primary-secondary-bodies-actions.js";
-import { createPlaceholderSceneTextures, loadSceneTextures } from "./texture-loader.js";
+import {
+    createPlaceholderSceneTextures,
+    loadMoonRenderProfileTextures,
+    loadSceneTextures,
+} from "./texture-loader.js";
 import { createSceneInitActions } from "./scene-init-actions.js";
 import { createSceneDisposeActions } from "./scene-dispose-actions.js";
 import { createDimensionsActions } from "./dimensions-actions.js";
@@ -182,6 +186,7 @@ function createMissionSceneActionBundle(deps) {
         THREE,
         createPlaceholderSceneTextures,
         loadSceneTextures,
+        loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures,
         render,
         globalObject: typeof window !== "undefined" ? window : globalThis,
