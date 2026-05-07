@@ -193,6 +193,7 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     float moonHighlightTone = mix( 1.0, moonHighlightTarget, moonHighlightWeight );
     vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
     reflectedLight.directDiffuse *= moonToneMultiplier;
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );
 #endif`,
             )
             .replace(
@@ -229,7 +230,7 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
         ].join("-");
     };
 
-    material.onBeforeRender = () => {
+    material.userData.refreshMoonShaderUniforms = () => {
         const shader = material.userData?.moonPhotometricShader;
         if (!shader?.uniforms) {
             return;
@@ -476,6 +477,9 @@ export class MoonRenderer {
         applyMoonPhotometricShader(material);
 
         this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.onBeforeRender = () => {
+            material.userData?.refreshMoonShaderUniforms?.();
+        };
         this.mesh.receiveShadow = true;
         this.mesh.castShadow = true;
         this.mesh.frustumCulled = false;

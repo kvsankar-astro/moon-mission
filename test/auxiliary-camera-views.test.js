@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+    AuxiliaryCameraViewsManager,
     AUXILIARY_VIEW_CAMERA_PRESETS,
     resolveLunarFlybyWindowMs,
 } from "../src/platform/js/app/auxiliary-camera-views.js";
@@ -68,5 +69,62 @@ describe("resolveLunarFlybyWindowMs", () => {
 
         expect(Number.isNaN(window.startMs)).toBe(true);
         expect(Number.isNaN(window.endMs)).toBe(true);
+    });
+});
+
+
+describe("Frame and Shoot Moon Ambient control", () => {
+    function createManagerForAmbientTests() {
+        return Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+        });
+    }
+
+    function createBodyWithMaterial(material) {
+        return {
+            traverse(callback) {
+                callback({
+                    isMesh: true,
+                    material,
+                });
+            },
+        };
+    }
+
+    it("keeps artificial Moon ambient at zero when the slider is zero", () => {
+        const manager = createManagerForAmbientTests();
+        const material = {
+            map: {},
+            userData: {
+                moonShadowLift: 0.42,
+            },
+        };
+        const uniform = { value: 0.42 };
+        material.userData.refreshMoonShaderUniforms = () => {
+            uniform.value = material.userData.moonShadowLift;
+        };
+
+        const restore = manager.applyComposerBodyAmbientLighting({
+            panelState: {
+                composerEarthAmbient: 0,
+                composerMoonAmbient: 0,
+                composerEarthshineGain: 2.4,
+            },
+            moon: createBodyWithMaterial(material),
+        });
+
+        expect(material.userData.moonShadowLift).toBe(0);
+        expect(uniform.value).toBe(0);
+
+        restore();
+
+        expect(material.userData.moonShadowLift).toBeCloseTo(0.42, 6);
+        expect(uniform.value).toBeCloseTo(0.42, 6);
     });
 });

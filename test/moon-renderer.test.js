@@ -64,4 +64,32 @@ describe("MoonRenderer", () => {
 
         moonRenderer.dispose();
     });
+
+    it("refreshes Moon shader uniforms from mesh onBeforeRender after userData changes", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        material.userData.moonPhotometricShader = {
+            uniforms: {
+                uMoonShadowLift: { value: 0 },
+                uMoonTerminatorShadowFloor: { value: 0 },
+            },
+        };
+        material.userData.moonShadowLift = 0.37;
+        material.userData.moonTerminatorShadowFloor = 0.22;
+
+        moonRenderer.mesh.onBeforeRender();
+
+        expect(material.userData.moonPhotometricShader.uniforms.uMoonShadowLift.value).toBe(0.37);
+        expect(material.userData.moonPhotometricShader.uniforms.uMoonTerminatorShadowFloor.value).toBe(0.22);
+
+        moonRenderer.dispose();
+    });
+
 });

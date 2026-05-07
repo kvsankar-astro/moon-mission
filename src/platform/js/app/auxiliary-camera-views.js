@@ -115,7 +115,6 @@ const COMPOSER_MIN_AMBIENT = 0;
 const COMPOSER_MAX_AMBIENT = 2.4;
 const COMPOSER_MIN_EARTHSHINE_GAIN = 0;
 const COMPOSER_MAX_EARTHSHINE_GAIN = 2.4;
-const COMPOSER_MOON_SHADOW_LIFT_BASE = 0.015;
 const COMPOSER_MOON_SHADOW_LIFT_SCALE = 0.18;
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
@@ -3673,13 +3672,16 @@ class AuxiliaryCameraViewsManager {
         );
         const earthNightsideLift = Number.isFinite(earthAmbient) ? earthAmbient : 0;
         const moonShadowLift = this.THREE.MathUtils.clamp(
-            COMPOSER_MOON_SHADOW_LIFT_BASE + ((Number.isFinite(moonAmbient) ? moonAmbient : 0) * COMPOSER_MOON_SHADOW_LIFT_SCALE),
+            (Number.isFinite(moonAmbient) ? moonAmbient : 0) * COMPOSER_MOON_SHADOW_LIFT_SCALE,
             0,
             0.95,
         );
 
         const touchedMaterials = new Set();
         const restoreRecords = [];
+        const refreshMoonMaterialUniforms = (material) => {
+            material?.userData?.refreshMoonShaderUniforms?.();
+        };
         const applyToBodyEmissive = (bodyObject, intensity, emissiveHex) => {
             if (!bodyObject || !Number.isFinite(intensity) || intensity <= 1e-6) {
                 return;
@@ -3758,6 +3760,7 @@ class AuxiliaryCameraViewsManager {
                         moonShadowLift: material.userData.moonShadowLift,
                     });
                     material.userData.moonShadowLift = shadowLiftValue;
+                    refreshMoonMaterialUniforms(material);
                     applied = true;
                 }
             });
@@ -3784,6 +3787,7 @@ class AuxiliaryCameraViewsManager {
                 }
                 if (Object.prototype.hasOwnProperty.call(record, "moonShadowLift")) {
                     record.material.userData.moonShadowLift = record.moonShadowLift;
+                    refreshMoonMaterialUniforms(record.material);
                     continue;
                 }
                 record.material.emissiveIntensity = record.emissiveIntensity;
