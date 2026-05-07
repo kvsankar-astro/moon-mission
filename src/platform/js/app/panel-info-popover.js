@@ -1,4 +1,5 @@
 import { getMissionPanelDetails } from "./panel-registry.js";
+import { isDomElement } from "../ui/dom-helpers.js";
 
 let root = null;
 let activePanelId = "";
@@ -54,7 +55,7 @@ function renderInfoMarkup(panel) {
 }
 
 function positionPopover(anchorEl) {
-    if (!root || !(anchorEl instanceof Element)) {
+    if (!root || !isDomElement(anchorEl)) {
         return;
     }
     const rect = anchorEl.getBoundingClientRect();
@@ -85,7 +86,7 @@ function ensureGlobalDismissHandlers() {
             if (!root || root.hidden) {
                 return;
             }
-            if (event.target instanceof Element && (root.contains(event.target) || event.target.closest("[data-panel-info-trigger='true']"))) {
+            if (isDomElement(event.target) && (root.contains(event.target) || event.target.closest("[data-panel-info-trigger='true']"))) {
                 return;
             }
             hideMissionPanelInfo();

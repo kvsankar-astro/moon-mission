@@ -8,7 +8,7 @@
     function resolveNode(target) {
         if (!target) return null;
         if (typeof target === "string") return document.querySelector(target);
-        if (target instanceof Element) return target;
+        if (window.MissionDomHelpers?.isDomElement?.(target, window)) return target;
         return null;
     }
 

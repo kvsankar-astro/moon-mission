@@ -43,21 +43,11 @@ import {
     applyPhotoModeExposure,
     resolvePhotoModeLightingPresentation,
 } from "./photo-mode-render-presentation.js";
-
-function isDomElement(value) {
-    const elementCtor = value?.ownerDocument?.defaultView?.Element || globalThis.Element || null;
-    return typeof elementCtor === "function" && value instanceof elementCtor;
-}
-
-function isDomInstance(value, ctorName) {
-    const ctor = value?.ownerDocument?.defaultView?.[ctorName] || globalThis[ctorName] || null;
-    return typeof ctor === "function" && value instanceof ctor;
-}
-
-function isDomEventInstance(event, ctorName) {
-    const ctor = event?.view?.[ctorName] || globalThis[ctorName] || null;
-    return typeof ctor === "function" && event instanceof ctor;
-}
+import {
+    isDomElement,
+    isDomEventInstance,
+    isDomInstance,
+} from "../ui/dom-helpers.js";
 
 const PANEL_SPECS = Object.freeze([
     {

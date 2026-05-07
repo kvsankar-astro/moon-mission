@@ -3,6 +3,7 @@ import {
     subscribeMissionPanels,
 } from "./panel-registry.js";
 import { showMissionPanelInfo } from "./panel-info-popover.js";
+import { isDomElement } from "../ui/dom-helpers.js";
 
 function isDesktopViewport() {
     return typeof window !== "undefined" && window.innerWidth > 600;
@@ -133,7 +134,7 @@ class DesktopPanelManager {
             document.getElementById("header-pill-strip-primary") ||
             document.getElementById("header-pill-strip") ||
             document.getElementById("header");
-        if (headerRow instanceof HTMLElement) {
+        if (isDomElement(headerRow)) {
             headerRow.appendChild(this.launcherSlot);
         } else {
             this.root.appendChild(this.launcherSlot);
@@ -146,7 +147,7 @@ class DesktopPanelManager {
         if (!this.menuOpen) {
             return;
         }
-        if (!(event.target instanceof Element)) {
+        if (!isDomElement(event.target)) {
             return;
         }
         if (this.menu?.contains(event.target) || this.launcher?.contains(event.target)) {

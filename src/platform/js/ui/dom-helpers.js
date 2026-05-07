@@ -5,6 +5,42 @@
  * These are intentionally tiny and side-effectful, to keep mission logic cleaner.
  */
 
+function getSharedDomHelpers() {
+    return globalThis?.MissionDomHelpers || globalThis?.window?.MissionDomHelpers || null;
+}
+
+export function isDomInstance(value, ctorName, fallbackRoot = globalThis) {
+    const shared = getSharedDomHelpers();
+    if (typeof shared?.isDomInstance === "function") {
+        return shared.isDomInstance(value, ctorName, fallbackRoot);
+    }
+    const ctor = value?.ownerDocument?.defaultView?.[ctorName] ||
+        fallbackRoot?.[ctorName] ||
+        globalThis?.[ctorName] ||
+        null;
+    return typeof ctor === "function" && value instanceof ctor;
+}
+
+export function isDomElement(value, fallbackRoot = globalThis) {
+    const shared = getSharedDomHelpers();
+    if (typeof shared?.isDomElement === "function") {
+        return shared.isDomElement(value, fallbackRoot);
+    }
+    return isDomInstance(value, "Element", fallbackRoot);
+}
+
+export function isDomEventInstance(event, ctorName, fallbackRoot = globalThis) {
+    const shared = getSharedDomHelpers();
+    if (typeof shared?.isDomEventInstance === "function") {
+        return shared.isDomEventInstance(event, ctorName, fallbackRoot);
+    }
+    const ctor = event?.view?.[ctorName] ||
+        fallbackRoot?.[ctorName] ||
+        globalThis?.[ctorName] ||
+        null;
+    return typeof ctor === "function" && event instanceof ctor;
+}
+
 export function readCheckedRadioValue(name, fallback = "") {
     const node = document.querySelector(`input[name="${name}"]:checked`);
     return node?.value ?? fallback;

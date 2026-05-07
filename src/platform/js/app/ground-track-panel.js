@@ -17,6 +17,7 @@ import {
     shouldMissionPanelAutoOpenBeforeEvent,
 } from "./panel-defaults.js";
 import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
+import { isDomElement, isDomInstance } from "../ui/dom-helpers.js";
 
 const VIEW_MODE_2D = "map2d";
 const VIEW_MODE_3D = "globe3d";
@@ -664,7 +665,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function persistPanelLayoutState(panel = getNode("ground-track-panel")) {
-        if (!(panel instanceof HTMLElement)) {
+        if (!isDomInstance(panel, "HTMLElement")) {
             return;
         }
         writeMissionPanelState(GROUND_TRACK_PANEL_REGISTRY_ID, {
@@ -686,7 +687,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function capturePanelFrame(panel = getNode("ground-track-panel")) {
-        if (!(panel instanceof HTMLElement)) {
+        if (!isDomInstance(panel, "HTMLElement")) {
             return null;
         }
         return {
@@ -719,7 +720,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function applyExpandedPanelRect(panel = getNode("ground-track-panel")) {
-        if (!(panel instanceof HTMLElement)) {
+        if (!isDomInstance(panel, "HTMLElement")) {
             return;
         }
         const rect = resolveExpandedPanelRect();
@@ -729,7 +730,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function syncExpandButton(button = getNode("ground-track-panel-expand")) {
-        if (!(button instanceof HTMLElement)) {
+        if (!isDomInstance(button, "HTMLElement")) {
             return;
         }
         button.dataset.icon = panelExpanded === true ? "restore" : "expand";
@@ -740,7 +741,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function resetExpandedPanelForDelete(panel = getNode("ground-track-panel")) {
-        if (!(panel instanceof HTMLElement) || panelExpanded !== true) {
+        if (!isDomInstance(panel, "HTMLElement") || panelExpanded !== true) {
             return;
         }
         panelExpanded = false;
@@ -856,7 +857,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function setProvenanceNote({ visible, badgeText, text, active = false }) {
         const note = getNode("ground-track-provenance-note");
-        if (!(note instanceof HTMLElement)) return;
+        if (!isDomInstance(note, "HTMLElement")) return;
         note.hidden = !visible;
         note.classList.toggle("is-active", !!active);
         const badge = getNode("ground-track-provenance-badge");
@@ -882,11 +883,11 @@ function createGroundTrackPanelActions(options = {}) {
 
     function syncPanelAvailability(enabled) {
         const wrapper = getNode("ground-track-panel-wrapper");
-        if (wrapper instanceof HTMLElement) {
+        if (isDomInstance(wrapper, "HTMLElement")) {
             wrapper.hidden = !enabled;
         }
         const panel = getNode("ground-track-panel");
-        if (!(panel instanceof HTMLElement) || enabled) return;
+        if (!isDomInstance(panel, "HTMLElement") || enabled) return;
         panelVisibilityState = "closed";
         if (!panel.classList.contains("ground-track-panel--hidden")) {
             panel.classList.add("ground-track-panel--hidden");
@@ -1673,7 +1674,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function resolveComposerPanelRect() {
         const composerPanel = document.querySelector(".aux-camera-view--composer");
-        if (!(composerPanel instanceof HTMLElement)) return null;
+        if (!isDomInstance(composerPanel, "HTMLElement")) return null;
         const rect = composerPanel.getBoundingClientRect();
         if (!Number.isFinite(rect.left) || !Number.isFinite(rect.top) || rect.width <= 0 || rect.height <= 0) {
             return null;
@@ -1752,7 +1753,7 @@ function createGroundTrackPanelActions(options = {}) {
 
     function shouldStartDrag(event) {
         if (event.button !== 0) return false;
-        if (!(event.target instanceof Element)) return false;
+        if (!isDomElement(event.target)) return false;
         return !event.target.closest("button, input, select, option, label, output, a");
     }
 
@@ -1833,7 +1834,7 @@ function createGroundTrackPanelActions(options = {}) {
     }
 
     function setPanelExpanded(expanded, panel = getNode("ground-track-panel")) {
-        if (!(panel instanceof HTMLElement)) {
+        if (!isDomInstance(panel, "HTMLElement")) {
             return;
         }
         const nextExpanded = expanded === true;
@@ -1961,7 +1962,7 @@ function createGroundTrackPanelActions(options = {}) {
         let infoButton = getNode("ground-track-panel-info");
         let deleteButton = getNode("ground-track-panel-delete");
 
-        if (panel instanceof HTMLElement) {
+        if (isDomInstance(panel, "HTMLElement")) {
             const persistedWidth = Number(restoredPanelLayout?.width);
             const persistedHeight = Number(restoredPanelLayout?.height);
             if (Number.isFinite(persistedWidth) && persistedWidth > 0) {
@@ -1987,7 +1988,7 @@ function createGroundTrackPanelActions(options = {}) {
             panel.classList.toggle("is-maximized", panelExpanded === true);
         }
 
-        if (!infoButton && headerControls instanceof HTMLElement) {
+        if (!infoButton && isDomInstance(headerControls, "HTMLElement")) {
             infoButton = document.createElement("button");
             infoButton.id = "ground-track-panel-info";
             infoButton.className = "ground-track-panel__icon-button ground-track-panel__info mission-panel-shell__button mission-panel-shell__button--icon";
@@ -2000,7 +2001,7 @@ function createGroundTrackPanelActions(options = {}) {
             headerControls.insertBefore(infoButton, closeButton || null);
         }
 
-        if (!minimizeButton && headerControls instanceof HTMLElement) {
+        if (!minimizeButton && isDomInstance(headerControls, "HTMLElement")) {
             minimizeButton = document.createElement("button");
             minimizeButton.id = "ground-track-panel-minimize";
             minimizeButton.className = "ground-track-panel__icon-button ground-track-panel__minimize mission-panel-shell__button mission-panel-shell__button--icon";
@@ -2009,28 +2010,28 @@ function createGroundTrackPanelActions(options = {}) {
             minimizeButton.setAttribute("aria-label", "Minimize");
             minimizeButton.dataset.icon = "minimize";
             minimizeButton.textContent = "";
-            if (closeButton instanceof HTMLElement) {
+            if (isDomInstance(closeButton, "HTMLElement")) {
                 headerControls.insertBefore(minimizeButton, closeButton);
             } else {
                 headerControls.appendChild(minimizeButton);
             }
         }
 
-        if (!expandButton && headerControls instanceof HTMLElement) {
+        if (!expandButton && isDomInstance(headerControls, "HTMLElement")) {
             expandButton = document.createElement("button");
             expandButton.id = "ground-track-panel-expand";
             expandButton.className = "ground-track-panel__icon-button ground-track-panel__expand mission-panel-shell__button mission-panel-shell__button--icon";
             expandButton.type = "button";
             expandButton.dataset.icon = "expand";
             expandButton.textContent = "";
-            if (closeButton instanceof HTMLElement) {
+            if (isDomInstance(closeButton, "HTMLElement")) {
                 headerControls.insertBefore(expandButton, closeButton);
             } else {
                 headerControls.appendChild(expandButton);
             }
         }
 
-        if (!deleteButton && headerControls instanceof HTMLElement) {
+        if (!deleteButton && isDomInstance(headerControls, "HTMLElement")) {
             deleteButton = document.createElement("button");
             deleteButton.id = "ground-track-panel-delete";
             deleteButton.className = "ground-track-panel__delete mission-panel-shell__button mission-panel-shell__button--icon mission-panel-shell__button--danger";

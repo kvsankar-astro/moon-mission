@@ -13,6 +13,7 @@ import {
     syncMainControlControllerSet,
 } from "./main-control-bindings.js";
 import { createSettingsPanelController } from "./settings-panel-controller.js";
+import { isDomElement } from "./dom-helpers.js";
 
 /**
  * UI Event Handlers
@@ -92,7 +93,7 @@ function isMobileViewport() {
 }
 
 function isElementLayoutVisible(element) {
-    if (!(element instanceof Element)) return false;
+    if (!isDomElement(element)) return false;
     if (element.hasAttribute("hidden")) return false;
     const style = window.getComputedStyle?.(element);
     if (!style) return false;
