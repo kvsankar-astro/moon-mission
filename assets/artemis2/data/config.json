@@ -417,12 +417,12 @@
       "requiresEphemeris": true
     },
     "earthSet": {
-      "startTime": "2026-04-06T22:45:00Z",
+      "startTime": "2026-04-06T22:41:00Z",
       "durationSeconds": 0,
       "label": "Earthset",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 22:45 UTC - Earth sets behind the lunar limb from Orion's flyby perspective",
-      "hoverText": "NASA's public flyby timeline marks Earthset at 6:45 p.m. Eastern; this is a NASA media milestone, not a HORIZONS major event.",
+      "infoText": "6th Apr 2026, 22:41 UTC - Earth sets behind the lunar limb from Orion's flyby perspective",
+      "hoverText": "NASA's public flyby timeline marks Earthset at 6:41 p.m. Eastern; this is a NASA media milestone, not a HORIZONS major event.",
       "body": "SC",
       "requiresEphemeris": true
     },
@@ -447,12 +447,12 @@
       "requiresEphemeris": true
     },
     "earthRise": {
-      "startTime": "2026-04-06T23:25:00Z",
+      "startTime": "2026-04-06T23:22:00Z",
       "durationSeconds": 0,
       "label": "Earthrise",
       "burnFlag": false,
-      "infoText": "6th Apr 2026, 23:25 UTC - Earth rises over the lunar horizon from Orion's flyby perspective",
-      "hoverText": "NASA's public flyby timeline marks Earthrise at 7:25 p.m. Eastern; this is a NASA media milestone, not a HORIZONS major event.",
+      "infoText": "6th Apr 2026, 23:22 UTC - Earth rises over the lunar horizon from Orion's flyby perspective",
+      "hoverText": "NASA's public flyby timeline marks Earthrise at 7:22 p.m. Eastern; this is a NASA media milestone, not a HORIZONS major event.",
       "body": "SC",
       "requiresEphemeris": true
     },

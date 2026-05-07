@@ -89,4 +89,86 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
             await page.close();
         }
     }, TEST_TIMEOUT_MS);
+
+    it("refits the selected body after switching locks from a crater-scale FoV", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            const setManualMinimumFov = async () => {
+                await page.evaluate(() => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    const autoButton = panel.querySelector(".aux-camera-view__auto-toggle");
+                    const slider = panel.querySelector(".aux-camera-view__fov-slider");
+                    if (autoButton.classList.contains("is-active")) {
+                        autoButton.click();
+                    }
+                    slider.value = slider.min;
+                    slider.dispatchEvent(new Event("input", { bubbles: true }));
+                });
+                await page.waitForFunction(
+                    () => {
+                        const panel = document.querySelector(".aux-camera-view--composer");
+                        return panel?.querySelector(".aux-camera-view__fov-value")?.textContent?.trim() === "0.1°";
+                    },
+                    { timeout: 5000 },
+                );
+            };
+
+            const clickLock = async (label) => {
+                await page.evaluate((targetLabel) => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    const button = [...panel.querySelectorAll(".aux-camera-view__composer-button")]
+                        .find((candidate) => candidate.textContent.trim() === targetLabel);
+                    button?.click();
+                }, label);
+            };
+
+            const waitForRefit = async (label) => page.waitForFunction(
+                (targetLabel) => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    const activeLock = [...panel.querySelectorAll(".aux-camera-view__composer-button.is-active")]
+                        .find((button) => ["Free", "Earth", "Moon"].includes(button.textContent.trim()));
+                    const autoButton = panel.querySelector(".aux-camera-view__auto-toggle");
+                    const valueText = panel.querySelector(".aux-camera-view__fov-value")?.textContent?.trim() || "";
+                    const numericFov = Number.parseFloat(valueText);
+                    return activeLock?.textContent.trim() === targetLabel &&
+                        autoButton?.classList.contains("is-active") &&
+                        Number.isFinite(numericFov) &&
+                        numericFov > 0.1;
+                },
+                label,
+                { timeout: 10000 },
+            );
+
+            await setManualMinimumFov();
+            await clickLock("Earth");
+            await waitForRefit("Earth");
+
+            await setManualMinimumFov();
+            await clickLock("Moon");
+            await waitForRefit("Moon");
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
 });

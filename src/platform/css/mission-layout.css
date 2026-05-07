@@ -679,32 +679,45 @@ html[data-app-view="selector"] .mission-loading-overlay,
     grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
     min-width: 0;
     margin-bottom: 2px;
 }
 
 .aux-camera-view__composer-transport-row .controls-cluster {
     padding: 2px;
-    gap: 4px;
+    gap: 2px;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
-.aux-camera-view__composer-transport-row .controls-subgroup {
-    gap: 4px;
+.aux-camera-view__composer-transport-row .controls-cluster--transport {
+    flex: 0 0 auto;
 }
 
 .aux-camera-view__composer-transport-row .button {
     min-height: 22px;
-    font-size: 10px;
+    padding: 0 4px;
+    font-size: 9px;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-transport-row .button--icon {
+    width: 20px;
+    min-width: 20px;
 }
 
 .aux-camera-view__composer-transport-row .button--primary {
-    min-width: 56px;
+    min-width: 42px;
 }
 
 .aux-camera-view__composer-transport-row .button--realtime {
-    min-width: 92px;
+    min-width: 60px;
+    max-width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .aux-camera-view__composer-fov .aux-camera-view__fov-controls {

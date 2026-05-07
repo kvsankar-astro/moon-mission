@@ -1865,49 +1865,45 @@ class AuxiliaryCameraViewsManager {
             const composerTransportCluster = document.createElement("div");
             composerTransportCluster.className = "controls-cluster controls-cluster--transport";
 
-            const composerPlaybackGroup = document.createElement("div");
-            composerPlaybackGroup.className = "controls-subgroup controls-subgroup--playback";
-
-            composerTransportPlayButton = document.createElement("button");
-            composerTransportPlayButton.type = "button";
-            composerTransportPlayButton.className = "button button--primary";
-            composerTransportPlayButton.textContent = "Play";
-            composerTransportPlayButton.setAttribute("aria-label", "Play or pause animation");
-            composerPlaybackGroup.appendChild(composerTransportPlayButton);
+            composerTransportMinusMinuteButton = document.createElement("button");
+            composerTransportMinusMinuteButton.type = "button";
+            composerTransportMinusMinuteButton.className = "button";
+            composerTransportMinusMinuteButton.textContent = "-1m";
+            composerTransportMinusMinuteButton.setAttribute("aria-label", "Step timeline backward by one minute");
+            composerTransportCluster.appendChild(composerTransportMinusMinuteButton);
 
             composerTransportMinusSecondButton = document.createElement("button");
             composerTransportMinusSecondButton.type = "button";
             composerTransportMinusSecondButton.className = "button";
             composerTransportMinusSecondButton.textContent = "-1s";
             composerTransportMinusSecondButton.setAttribute("aria-label", "Step phase timeline backward by one second");
-            composerPlaybackGroup.appendChild(composerTransportMinusSecondButton);
-
-            composerTransportMinusMinuteButton = document.createElement("button");
-            composerTransportMinusMinuteButton.type = "button";
-            composerTransportMinusMinuteButton.className = "button";
-            composerTransportMinusMinuteButton.textContent = "-1m";
-            composerTransportMinusMinuteButton.setAttribute("aria-label", "Step timeline backward by one minute");
-            composerPlaybackGroup.appendChild(composerTransportMinusMinuteButton);
-
-            composerTransportPlusMinuteButton = document.createElement("button");
-            composerTransportPlusMinuteButton.type = "button";
-            composerTransportPlusMinuteButton.className = "button";
-            composerTransportPlusMinuteButton.textContent = "+1m";
-            composerTransportPlusMinuteButton.setAttribute("aria-label", "Step timeline forward by one minute");
-            composerPlaybackGroup.appendChild(composerTransportPlusMinuteButton);
+            composerTransportCluster.appendChild(composerTransportMinusSecondButton);
 
             composerTransportPlusSecondButton = document.createElement("button");
             composerTransportPlusSecondButton.type = "button";
             composerTransportPlusSecondButton.className = "button";
             composerTransportPlusSecondButton.textContent = "+1s";
             composerTransportPlusSecondButton.setAttribute("aria-label", "Step phase timeline forward by one second");
-            composerPlaybackGroup.appendChild(composerTransportPlusSecondButton);
+            composerTransportCluster.appendChild(composerTransportPlusSecondButton);
 
-            composerTransportCluster.appendChild(composerPlaybackGroup);
+            composerTransportPlusMinuteButton = document.createElement("button");
+            composerTransportPlusMinuteButton.type = "button";
+            composerTransportPlusMinuteButton.className = "button";
+            composerTransportPlusMinuteButton.textContent = "+1m";
+            composerTransportPlusMinuteButton.setAttribute("aria-label", "Step timeline forward by one minute");
+            composerTransportCluster.appendChild(composerTransportPlusMinuteButton);
+
             composerTransportRow.appendChild(composerTransportCluster);
 
             const composerSpeedCluster = document.createElement("div");
             composerSpeedCluster.className = "controls-cluster controls-cluster--speed";
+
+            composerTransportPlayButton = document.createElement("button");
+            composerTransportPlayButton.type = "button";
+            composerTransportPlayButton.className = "button button--primary";
+            composerTransportPlayButton.textContent = "Play";
+            composerTransportPlayButton.setAttribute("aria-label", "Play or pause animation");
+            composerSpeedCluster.appendChild(composerTransportPlayButton);
 
             composerTransportSlowerButton = document.createElement("button");
             composerTransportSlowerButton.type = "button";
@@ -3015,12 +3011,10 @@ class AuxiliaryCameraViewsManager {
                 this.requestRender?.();
             };
             const setComposerLockTarget = (target) => {
-                if (!panelState.composerInteractionEnabled) {
-                    this.activateComposerWindow(panelState, { finalize: true });
-                }
-                panelState.composerLockTarget = target;
-                syncComposerLockUi();
-                this.requestRender?.();
+                this.setComposerLockTarget(panelState, target, {
+                    syncComposerLockUi,
+                    syncAutoToggleUi,
+                });
             };
             const onComposerLookFreeClick = () => {
                 this.setComposerOrientationReference(panelState, "world");
@@ -3993,6 +3987,7 @@ class AuxiliaryCameraViewsManager {
             const timePart = new Intl.DateTimeFormat(undefined, {
                 hour: "2-digit",
                 minute: "2-digit",
+                second: "2-digit",
                 hour12: false,
                 timeZoneName: "short",
             }).format(timeMs);
@@ -6885,6 +6880,37 @@ class AuxiliaryCameraViewsManager {
         }
 
         panelState.fovControl?.setFovDegrees(fovDegrees, panelState.camera.fov);
+    }
+
+    setComposerLockTarget(panelState, target, {
+        syncComposerLockUi = null,
+        syncAutoToggleUi = null,
+        persist = true,
+    } = {}) {
+        if (!panelState || panelState.mode !== "composer") {
+            return false;
+        }
+        const nextTarget = target === "earth" || target === "moon" ? target : "none";
+        const previousTarget = panelState.composerLockTarget || "none";
+        if (panelState.composerInteractionEnabled !== true) {
+            this.activateComposerWindow(panelState, { finalize: true });
+        }
+
+        panelState.composerLockTarget = nextTarget;
+        if (nextTarget !== "none" && nextTarget !== previousTarget) {
+            panelState.autoFovEnabled = true;
+            if (typeof syncAutoToggleUi === "function") {
+                syncAutoToggleUi();
+            }
+        }
+        if (typeof syncComposerLockUi === "function") {
+            syncComposerLockUi();
+        }
+        this.requestRender?.();
+        if (persist) {
+            this.queuePersistPanelState?.();
+        }
+        return true;
     }
 
     showComposerHint(panelState, message, durationMs = 1800) {

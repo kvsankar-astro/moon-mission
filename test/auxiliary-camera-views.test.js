@@ -178,6 +178,82 @@ describe("Frame and Shoot FoV bounds", () => {
     });
 });
 
+describe("Frame and Shoot lock target FoV behavior", () => {
+    function createLockTargetHarness({ lockTarget = "moon", autoFovEnabled = false } = {}) {
+        const panelState = {
+            mode: "composer",
+            composerInteractionEnabled: true,
+            composerLockTarget: lockTarget,
+            autoFovEnabled,
+        };
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            activateComposerWindow: vi.fn(),
+            queuePersistPanelState: vi.fn(),
+            requestRender: vi.fn(),
+        });
+        const syncComposerLockUi = vi.fn();
+        const syncAutoToggleUi = vi.fn();
+        return {
+            manager,
+            panelState,
+            syncComposerLockUi,
+            syncAutoToggleUi,
+        };
+    }
+
+    it("re-enables auto FoV when switching between Earth and Moon locks", () => {
+        const {
+            manager,
+            panelState,
+            syncComposerLockUi,
+            syncAutoToggleUi,
+        } = createLockTargetHarness({
+            lockTarget: "moon",
+            autoFovEnabled: false,
+        });
+
+        manager.setComposerLockTarget(panelState, "earth", {
+            syncComposerLockUi,
+            syncAutoToggleUi,
+        });
+
+        expect(panelState.composerLockTarget).toBe("earth");
+        expect(panelState.autoFovEnabled).toBe(true);
+        expect(syncAutoToggleUi).toHaveBeenCalledTimes(1);
+        expect(syncComposerLockUi).toHaveBeenCalledTimes(1);
+        expect(manager.requestRender).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not discard a manual crater-scale FoV when re-clicking the same body lock", () => {
+        const {
+            manager,
+            panelState,
+            syncAutoToggleUi,
+        } = createLockTargetHarness({
+            lockTarget: "moon",
+            autoFovEnabled: false,
+        });
+
+        manager.setComposerLockTarget(panelState, "moon", {
+            syncAutoToggleUi,
+        });
+
+        expect(panelState.composerLockTarget).toBe("moon");
+        expect(panelState.autoFovEnabled).toBe(false);
+        expect(syncAutoToggleUi).not.toHaveBeenCalled();
+    });
+});
+
+describe("Frame and Shoot local event time formatting", () => {
+    it("shows available event precision down to seconds", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+
+        const formatted = manager.formatLocalDateTime(Date.UTC(2026, 3, 1, 12, 34, 56));
+
+        expect(formatted).toMatch(/\d{2}:\d{2}:56/);
+    });
+});
+
 describe("selectComposerSkyLabelCandidates", () => {
     it("selects the brightest 20 percent of projected in-view stars", () => {
         const candidates = [
