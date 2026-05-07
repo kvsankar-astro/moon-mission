@@ -26,6 +26,7 @@ import {
     configureSkyRenderLayers,
 } from "./scene-render-layers.js";
 import { computePhotoModeLightingPresentation } from "../core/domain/flyby-lighting-presentation.js";
+import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 import {
     selectSkyLabelCandidates,
 } from "../core/domain/sky-label-selection.js";
@@ -111,11 +112,15 @@ const COMPOSER_TIMELINE_RESOLUTION = 1000;
 const COMPOSER_DEFAULT_EARTH_AMBIENT = 0.0;
 const COMPOSER_DEFAULT_MOON_AMBIENT = 0.0;
 const COMPOSER_DEFAULT_EARTHSHINE_GAIN = 1.0;
+const COMPOSER_DEFAULT_MOONSHINE_GAIN = 1.0;
 const COMPOSER_MIN_AMBIENT = 0;
 const COMPOSER_MAX_AMBIENT = 2.4;
 const COMPOSER_MIN_EARTHSHINE_GAIN = 0;
 const COMPOSER_MAX_EARTHSHINE_GAIN = 2.4;
+const COMPOSER_MIN_MOONSHINE_GAIN = 0;
+const COMPOSER_MAX_MOONSHINE_GAIN = 2.4;
 const COMPOSER_MOON_SHADOW_LIFT_SCALE = 0.18;
+const COMPOSER_MOONSHINE_LIFT_SCALE = 0.65;
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
 const COMPOSER_DEFAULT_ROLL_RAD = Math.PI * 1.5;
@@ -1459,6 +1464,8 @@ class AuxiliaryCameraViewsManager {
         let composerMoonAmbientValue = null;
         let composerEarthshineSlider = null;
         let composerEarthshineValue = null;
+        let composerMoonshineSlider = null;
+        let composerMoonshineValue = null;
         let composerMoonOutlineWrap = null;
         let composerMoonOutlineCheckbox = null;
         let composerOpticsWrap = null;
@@ -1755,6 +1762,19 @@ class AuxiliaryCameraViewsManager {
                 {
                     min: COMPOSER_MIN_EARTHSHINE_GAIN,
                     max: COMPOSER_MAX_EARTHSHINE_GAIN,
+                },
+            ));
+            ({
+                slider: composerMoonshineSlider,
+                value: composerMoonshineValue,
+            } = buildComposerSliderRow(
+                "Moonshine",
+                "Flyby Planner Moonshine gain",
+                COMPOSER_DEFAULT_MOONSHINE_GAIN,
+                {
+                    min: COMPOSER_MIN_MOONSHINE_GAIN,
+                    max: COMPOSER_MAX_MOONSHINE_GAIN,
+                    proofId: "moonshine-slider",
                 },
             ));
 
@@ -2065,6 +2085,8 @@ class AuxiliaryCameraViewsManager {
             composerMoonAmbientValue,
             composerEarthshineSlider,
             composerEarthshineValue,
+            composerMoonshineSlider,
+            composerMoonshineValue,
             composerMoonOutlineWrap,
             composerMoonOutlineCheckbox,
             composerOpticsWrap,
@@ -2131,6 +2153,7 @@ class AuxiliaryCameraViewsManager {
             onComposerEarthAmbientInput: null,
             onComposerMoonAmbientInput: null,
             onComposerEarthshineInput: null,
+            onComposerMoonshineInput: null,
             onComposerMoonOutlineToggle: null,
             onComposerOpticsPhysicalClick: null,
             onComposerOpticsCameraClick: null,
@@ -2187,6 +2210,7 @@ class AuxiliaryCameraViewsManager {
             composerEarthAmbient: panelMode === "composer" ? COMPOSER_DEFAULT_EARTH_AMBIENT : 0,
             composerMoonAmbient: panelMode === "composer" ? COMPOSER_DEFAULT_MOON_AMBIENT : 0,
             composerEarthshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_EARTHSHINE_GAIN : 1,
+            composerMoonshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_MOONSHINE_GAIN : 1,
             composerMoonOutlineEnabled: false,
             composerSunProfile: "camera",
             composerSunStrength: COMPOSER_OPTICS_STRENGTH_DEFAULT,
@@ -2323,6 +2347,11 @@ class AuxiliaryCameraViewsManager {
                     panelState.composerEarthshineValue,
                     panelState.composerEarthshineGain,
                 );
+                syncOne(
+                    panelState.composerMoonshineSlider,
+                    panelState.composerMoonshineValue,
+                    panelState.composerMoonshineGain,
+                );
                 if (panelState.composerMoonOutlineCheckbox) {
                     panelState.composerMoonOutlineCheckbox.checked = panelState.composerMoonOutlineEnabled === true;
                 }
@@ -2427,6 +2456,22 @@ class AuxiliaryCameraViewsManager {
                 }
                 this.requestRender?.();
             };
+            const setComposerMoonshineGain = (nextGain, { persist = false } = {}) => {
+                const bounded = this.THREE.MathUtils.clamp(
+                    Number(nextGain),
+                    COMPOSER_MIN_MOONSHINE_GAIN,
+                    COMPOSER_MAX_MOONSHINE_GAIN,
+                );
+                if (!Number.isFinite(bounded)) {
+                    return;
+                }
+                panelState.composerMoonshineGain = bounded;
+                syncComposerAmbientUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
+                requestComposerControlRender();
+            };
             const syncComposerRollUi = () => {
                 if (!panelState.composerRollSlider || !panelState.composerRollValue) {
                     return;
@@ -2523,6 +2568,13 @@ class AuxiliaryCameraViewsManager {
                     return;
                 }
                 setComposerEarthshineGain(panelState.composerEarthshineSlider?.value, { persist: true });
+            };
+            const onComposerMoonshineInput = () => {
+                if (!panelState.composerInteractionEnabled) {
+                    this.activateComposerWindow(panelState, { finalize: true });
+                    return;
+                }
+                setComposerMoonshineGain(panelState.composerMoonshineSlider?.value, { persist: true });
             };
             const onComposerMoonOutlineToggle = () => {
                 if (!panelState.composerInteractionEnabled) {
@@ -2812,6 +2864,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEarthAmbientSlider?.addEventListener("input", onComposerEarthAmbientInput, { passive: true });
             panelState.composerMoonAmbientSlider?.addEventListener("input", onComposerMoonAmbientInput, { passive: true });
             panelState.composerEarthshineSlider?.addEventListener("input", onComposerEarthshineInput, { passive: true });
+            panelState.composerMoonshineSlider?.addEventListener("input", onComposerMoonshineInput, { passive: true });
             panelState.composerMoonOutlineCheckbox?.addEventListener("change", onComposerMoonOutlineToggle);
             panelState.composerOpticsPhysicalButton?.addEventListener("click", onComposerOpticsPhysicalClick);
             panelState.composerOpticsCameraButton?.addEventListener("click", onComposerOpticsCameraClick);
@@ -2847,6 +2900,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerEarthAmbientInput = onComposerEarthAmbientInput;
             panelState.onComposerMoonAmbientInput = onComposerMoonAmbientInput;
             panelState.onComposerEarthshineInput = onComposerEarthshineInput;
+            panelState.onComposerMoonshineInput = onComposerMoonshineInput;
             panelState.onComposerMoonOutlineToggle = onComposerMoonOutlineToggle;
             panelState.onComposerOpticsPhysicalClick = onComposerOpticsPhysicalClick;
             panelState.onComposerOpticsCameraClick = onComposerOpticsCameraClick;
@@ -2880,6 +2934,7 @@ class AuxiliaryCameraViewsManager {
             setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbient, { persist: false });
             setComposerAmbient("composerMoonAmbient", panelState.composerMoonAmbient, { persist: false });
             setComposerEarthshineGain(panelState.composerEarthshineGain, { persist: false });
+            setComposerMoonshineGain(panelState.composerMoonshineGain, { persist: false });
             syncComposerLockUi();
             syncComposerOpticsUi();
             syncComposerCloudsUi?.();
@@ -2909,6 +2964,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEarthAmbient = COMPOSER_DEFAULT_EARTH_AMBIENT;
             panelState.composerMoonAmbient = COMPOSER_DEFAULT_MOON_AMBIENT;
             panelState.composerEarthshineGain = COMPOSER_DEFAULT_EARTHSHINE_GAIN;
+            panelState.composerMoonshineGain = COMPOSER_DEFAULT_MOONSHINE_GAIN;
             panelState.composerMoonOutlineEnabled = false;
             panelState.composerSunProfile = "camera";
             panelState.composerSunStrength = COMPOSER_OPTICS_STRENGTH_DEFAULT;
@@ -2939,6 +2995,12 @@ class AuxiliaryCameraViewsManager {
                 const gainText = panelState.composerEarthshineGain.toFixed(2);
                 panelState.composerEarthshineValue.value = gainText;
                 panelState.composerEarthshineValue.textContent = gainText;
+            }
+            if (panelState.composerMoonshineSlider && panelState.composerMoonshineValue) {
+                panelState.composerMoonshineSlider.value = String(panelState.composerMoonshineGain);
+                const gainText = panelState.composerMoonshineGain.toFixed(2);
+                panelState.composerMoonshineValue.value = gainText;
+                panelState.composerMoonshineValue.textContent = gainText;
             }
             if (panelState.composerMoonOutlineCheckbox) {
                 panelState.composerMoonOutlineCheckbox.checked = panelState.composerMoonOutlineEnabled;
@@ -3145,6 +3207,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerEarthAmbientSlider && (panelState.composerEarthAmbientSlider.disabled = disableControls);
         panelState.composerMoonAmbientSlider && (panelState.composerMoonAmbientSlider.disabled = disableControls);
         panelState.composerEarthshineSlider && (panelState.composerEarthshineSlider.disabled = disableControls);
+        panelState.composerMoonshineSlider && (panelState.composerMoonshineSlider.disabled = disableControls);
         panelState.composerMoonOutlineCheckbox && (panelState.composerMoonOutlineCheckbox.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
@@ -3745,7 +3808,15 @@ class AuxiliaryCameraViewsManager {
             COMPOSER_MIN_AMBIENT,
             COMPOSER_MAX_AMBIENT,
         );
+        const moonshineGain = this.THREE.MathUtils.clamp(
+            Number(panelState?.composerMoonshineGain),
+            COMPOSER_MIN_MOONSHINE_GAIN,
+            COMPOSER_MAX_MOONSHINE_GAIN,
+        );
         const earthNightsideLift = Number.isFinite(earthAmbient) ? earthAmbient : 0;
+        const earthMoonshineLift = Number.isFinite(moonshineGain)
+            ? moonshineGain * COMPOSER_MOONSHINE_LIFT_SCALE
+            : 0;
         const moonShadowLift = this.THREE.MathUtils.clamp(
             (Number.isFinite(moonAmbient) ? moonAmbient : 0) * COMPOSER_MOON_SHADOW_LIFT_SCALE,
             0,
@@ -3786,8 +3857,8 @@ class AuxiliaryCameraViewsManager {
                 }
             });
         };
-        const applyEarthNightsideLift = (bodyObject, liftValue) => {
-            if (!bodyObject || !Number.isFinite(liftValue)) {
+        const applyEarthNightsideControls = (bodyObject, liftValue, moonshineLiftValue) => {
+            if (!bodyObject || (!Number.isFinite(liftValue) && !Number.isFinite(moonshineLiftValue))) {
                 return false;
             }
             let applied = false;
@@ -3800,15 +3871,29 @@ class AuxiliaryCameraViewsManager {
                     if (!material || touchedMaterials.has(material) || !material.map) {
                         continue;
                     }
-                    if (!material.userData || !Object.prototype.hasOwnProperty.call(material.userData, "earthNightsideLift")) {
+                    if (!material.userData) {
                         continue;
                     }
+                    const hasNightsideLift = Object.prototype.hasOwnProperty.call(material.userData, "earthNightsideLift");
+                    const hasMoonshineLift = Object.prototype.hasOwnProperty.call(material.userData, "earthMoonshineLift");
+                    if (!hasNightsideLift && !hasMoonshineLift) {
+                        continue;
+                    }
+                    const record = { material };
+                    if (hasNightsideLift) {
+                        record.earthNightsideLift = material.userData.earthNightsideLift;
+                    }
+                    if (hasMoonshineLift) {
+                        record.earthMoonshineLift = material.userData.earthMoonshineLift;
+                    }
                     touchedMaterials.add(material);
-                    restoreRecords.push({
-                        material,
-                        earthNightsideLift: material.userData.earthNightsideLift,
-                    });
-                    material.userData.earthNightsideLift = liftValue;
+                    restoreRecords.push(record);
+                    if (hasNightsideLift && Number.isFinite(liftValue)) {
+                        material.userData.earthNightsideLift = liftValue;
+                    }
+                    if (hasMoonshineLift && Number.isFinite(moonshineLiftValue)) {
+                        material.userData.earthMoonshineLift = moonshineLiftValue;
+                    }
                     refreshBodyMaterialUniforms(material);
                     applied = true;
                 }
@@ -3846,9 +3931,10 @@ class AuxiliaryCameraViewsManager {
         };
 
         // Earth Ambient is an explicit artificial lift for Earth's night side.
-        const earthLiftApplied = applyEarthNightsideLift(earth, earthNightsideLift);
+        // Moonshine uses a separate Earth shader lift so it remains visible on the night side.
+        const earthLiftApplied = applyEarthNightsideControls(earth, earthNightsideLift, earthMoonshineLift);
         if (!earthLiftApplied) {
-            applyToBodyEmissive(earth, earthNightsideLift, 0x6c86a6);
+            applyToBodyEmissive(earth, earthNightsideLift + (earthMoonshineLift * 0.35), 0x6c86a6);
         }
         // Moon Ambient is independent of Earthshine; zero must mean no artificial Moon fill.
         const moonLiftApplied = applyMoonShadowLift(moon, moonShadowLift);
@@ -3861,6 +3947,14 @@ class AuxiliaryCameraViewsManager {
             for (const record of restoreRecords) {
                 if (Object.prototype.hasOwnProperty.call(record, "earthNightsideLift")) {
                     record.material.userData.earthNightsideLift = record.earthNightsideLift;
+                }
+                if (Object.prototype.hasOwnProperty.call(record, "earthMoonshineLift")) {
+                    record.material.userData.earthMoonshineLift = record.earthMoonshineLift;
+                }
+                if (
+                    Object.prototype.hasOwnProperty.call(record, "earthNightsideLift") ||
+                    Object.prototype.hasOwnProperty.call(record, "earthMoonshineLift")
+                ) {
                     refreshBodyMaterialUniforms(record.material);
                     continue;
                 }
@@ -3886,6 +3980,7 @@ class AuxiliaryCameraViewsManager {
         return {
             composerEarthAmbient: composerPanel.composerEarthAmbient,
             composerMoonAmbient: composerPanel.composerMoonAmbient,
+            composerMoonshineGain: composerPanel.composerMoonshineGain,
         };
     }
 
@@ -3942,6 +4037,29 @@ class AuxiliaryCameraViewsManager {
         lightFill.intensity = previousIntensity * gain;
         return () => {
             lightFill.intensity = previousIntensity;
+        };
+    }
+
+    applyComposerMoonshineGain(panelState, scene) {
+        const lightMoonshine = scene?.lightMoonshine || null;
+        if (!lightMoonshine) {
+            return () => {};
+        }
+        const previousIntensity = Number(lightMoonshine.intensity);
+        const baseIntensity = Number.isFinite(previousIntensity) && previousIntensity > 1e-8
+            ? previousIntensity
+            : (Number.isFinite(LT.MOONSHINE_INTENSITY) ? LT.MOONSHINE_INTENSITY : 0.0004);
+        const gain = this.THREE.MathUtils.clamp(
+            Number(panelState?.composerMoonshineGain),
+            COMPOSER_MIN_MOONSHINE_GAIN,
+            COMPOSER_MAX_MOONSHINE_GAIN,
+        );
+        if (!Number.isFinite(previousIntensity) || !Number.isFinite(baseIntensity) || !Number.isFinite(gain)) {
+            return () => {};
+        }
+        lightMoonshine.intensity = baseIntensity * gain;
+        return () => {
+            lightMoonshine.intensity = previousIntensity;
         };
     }
 
@@ -5883,6 +6001,7 @@ class AuxiliaryCameraViewsManager {
             earthDayTextureBlend: earthCloudsEnabled !== false ? null : 0,
         });
         const restoreComposerEarthshineGain = this.applyComposerEarthshineGain(panelState, scene);
+        const restoreComposerMoonshineGain = this.applyComposerMoonshineGain(panelState, scene);
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer, {
             exposureBias: composerLightingPresentation?.exposureBias ?? 1,
         });
@@ -5892,6 +6011,7 @@ class AuxiliaryCameraViewsManager {
             });
         } finally {
             restoreComposerExposureProfile();
+            restoreComposerMoonshineGain();
             restoreComposerEarthshineGain();
             restoreComposerBodyPresentation();
             restoreComposerBodyAmbient();
@@ -6318,6 +6438,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerEarthshineInput) {
                 panelState.composerEarthshineSlider?.removeEventListener("input", panelState.onComposerEarthshineInput);
+            }
+            if (panelState.onComposerMoonshineInput) {
+                panelState.composerMoonshineSlider?.removeEventListener("input", panelState.onComposerMoonshineInput);
             }
             if (panelState.onComposerMoonOutlineToggle) {
                 panelState.composerMoonOutlineCheckbox?.removeEventListener("change", panelState.onComposerMoonOutlineToggle);

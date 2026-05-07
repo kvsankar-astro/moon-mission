@@ -12,9 +12,12 @@ import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
 
 const EARTH_NIGHTSIDE_LIFT = 0.0;
+const EARTH_MOONSHINE_LIFT = 0.0;
 const EARTH_NIGHTSIDE_EXPONENT = 1.45;
 const EARTH_NIGHTSIDE_DIFFUSE_SCALE = 0.085;
 const EARTH_NIGHTSIDE_EMISSIVE_SCALE = 0.018;
+const EARTH_MOONSHINE_DIFFUSE_SCALE = 0.115;
+const EARTH_MOONSHINE_EMISSIVE_SCALE = 0.010;
 const EARTH_DAY_GAIN = 1.0;
 const EARTH_DAY_SATURATION = 1.0;
 const EARTH_ATMOSPHERE_RIM_STRENGTH = 0.0;
@@ -26,6 +29,9 @@ function applyEarthNightsideLiftShader(material) {
     material.userData = material.userData || {};
     if (!Number.isFinite(material.userData.earthNightsideLift)) {
         material.userData.earthNightsideLift = EARTH_NIGHTSIDE_LIFT;
+    }
+    if (!Number.isFinite(material.userData.earthMoonshineLift)) {
+        material.userData.earthMoonshineLift = EARTH_MOONSHINE_LIFT;
     }
     if (!Number.isFinite(material.userData.earthNightsideExponent)) {
         material.userData.earthNightsideExponent = EARTH_NIGHTSIDE_EXPONENT;
@@ -56,6 +62,7 @@ function applyEarthNightsideLiftShader(material) {
     }
     material.onBeforeCompile = (shader) => {
         shader.uniforms.uEarthNightsideLift = { value: material.userData.earthNightsideLift };
+        shader.uniforms.uEarthMoonshineLift = { value: material.userData.earthMoonshineLift };
         shader.uniforms.uEarthNightsideExponent = { value: material.userData.earthNightsideExponent };
         shader.uniforms.uEarthDayGain = { value: material.userData.earthDayGain };
         shader.uniforms.uEarthDaySaturation = { value: material.userData.earthDaySaturation };
@@ -72,6 +79,7 @@ function applyEarthNightsideLiftShader(material) {
                 "#include <common>",
                 `#include <common>
 uniform float uEarthNightsideLift;
+uniform float uEarthMoonshineLift;
 uniform float uEarthNightsideExponent;
 uniform float uEarthDayGain;
 uniform float uEarthDaySaturation;
@@ -121,6 +129,13 @@ vec3 earthAmbientSurfaceColor = diffuseColor.rgb;
     float earthNightsideLift = uEarthNightsideLift * earthNightWeight;
     reflectedLight.indirectDiffuse += earthNightsideFillColor * (earthNightsideLift * ${EARTH_NIGHTSIDE_DIFFUSE_SCALE.toFixed(3)});
     totalEmissiveRadiance += earthNightsideFillColor * (earthNightsideLift * ${EARTH_NIGHTSIDE_EMISSIVE_SCALE.toFixed(3)});
+    vec3 earthMoonshineFillColor = max(
+        earthAmbientSurfaceColor * vec3(0.58, 0.64, 0.74),
+        vec3(0.005, 0.006, 0.008)
+    );
+    float earthMoonshineLift = uEarthMoonshineLift * earthNightWeight;
+    reflectedLight.indirectDiffuse += earthMoonshineFillColor * (earthMoonshineLift * ${EARTH_MOONSHINE_DIFFUSE_SCALE.toFixed(3)});
+    totalEmissiveRadiance += earthMoonshineFillColor * (earthMoonshineLift * ${EARTH_MOONSHINE_EMISSIVE_SCALE.toFixed(3)});
 `,
             );
     };
@@ -139,6 +154,7 @@ vec3 earthAmbientSurfaceColor = diffuseColor.rgb;
             return;
         }
         const lift = Number(material.userData.earthNightsideLift);
+        const moonshineLift = Number(material.userData.earthMoonshineLift);
         const exponent = Number(material.userData.earthNightsideExponent);
         const dayGain = Number(material.userData.earthDayGain);
         const daySaturation = Number(material.userData.earthDaySaturation);
@@ -153,6 +169,9 @@ vec3 earthAmbientSurfaceColor = diffuseColor.rgb;
             }
             if (Number.isFinite(lift) && shader.uniforms.uEarthNightsideLift) {
                 shader.uniforms.uEarthNightsideLift.value = lift;
+            }
+            if (Number.isFinite(moonshineLift) && shader.uniforms.uEarthMoonshineLift) {
+                shader.uniforms.uEarthMoonshineLift.value = moonshineLift;
             }
             if (Number.isFinite(exponent) && shader.uniforms.uEarthNightsideExponent) {
                 shader.uniforms.uEarthNightsideExponent.value = exponent;
@@ -181,7 +200,7 @@ vec3 earthAmbientSurfaceColor = diffuseColor.rgb;
         }
     };
     material.customProgramCacheKey = () =>
-        `earth-day-night-v10-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_NIGHTSIDE_DIFFUSE_SCALE}-${EARTH_NIGHTSIDE_EMISSIVE_SCALE}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}-${EARTH_PHOTO_BLEND}`;
+        `earth-day-night-v11-${EARTH_NIGHTSIDE_EXPONENT}-${EARTH_NIGHTSIDE_DIFFUSE_SCALE}-${EARTH_NIGHTSIDE_EMISSIVE_SCALE}-${EARTH_MOONSHINE_DIFFUSE_SCALE}-${EARTH_MOONSHINE_EMISSIVE_SCALE}-${EARTH_DAY_GAIN}-${EARTH_DAY_SATURATION}-${EARTH_ATMOSPHERE_RIM_STRENGTH}-${EARTH_NIGHT_MAP_INTENSITY}-${EARTH_NIGHT_MAP_EXPONENT}-${EARTH_PHOTO_BLEND}`;
 }
 
 export class EarthRenderer {

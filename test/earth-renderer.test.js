@@ -13,6 +13,7 @@ describe("EarthRenderer", () => {
         expect(material.userData.earthDayGain).toBe(1);
         expect(material.userData.earthDaySaturation).toBe(1);
         expect(material.userData.earthNightsideLift).toBe(0);
+        expect(material.userData.earthMoonshineLift).toBe(0);
         expect(material.userData.earthAtmosphereRimStrength).toBe(0);
         expect(material.userData.earthNightMapIntensity).toBeCloseTo(0.08, 4);
         expect(material.userData.earthNightMapExponent).toBeCloseTo(2.25, 4);
@@ -51,17 +52,20 @@ describe("EarthRenderer", () => {
         material.userData.earthNightsideShader = {
             uniforms: {
                 uEarthNightsideLift: { value: 0 },
+                uEarthMoonshineLift: { value: 0 },
                 uEarthPhotoBlend: { value: 0 },
                 uEarthPhotoMap: { value: baseTexture },
             },
         };
         material.userData.earthNightsideLift = 0.42;
+        material.userData.earthMoonshineLift = 0.33;
         material.userData.earthPhotoBlend = 1;
         material.userData.earthPhotoTexture = cloudTexture;
 
         renderer.mesh.onBeforeRender();
 
         expect(material.userData.earthNightsideShader.uniforms.uEarthNightsideLift.value).toBe(0.42);
+        expect(material.userData.earthNightsideShader.uniforms.uEarthMoonshineLift.value).toBe(0.33);
         expect(material.userData.earthNightsideShader.uniforms.uEarthPhotoBlend.value).toBe(1);
         expect(material.userData.earthNightsideShader.uniforms.uEarthPhotoMap.value).toBe(cloudTexture);
 
@@ -88,10 +92,13 @@ describe("EarthRenderer", () => {
         material.onBeforeCompile(secondShader);
 
         material.userData.earthNightsideLift = 1.2;
+        material.userData.earthMoonshineLift = 0.8;
         renderer.mesh.onBeforeRender();
 
         expect(firstShader.uniforms.uEarthNightsideLift.value).toBeCloseTo(1.2, 6);
         expect(secondShader.uniforms.uEarthNightsideLift.value).toBeCloseTo(1.2, 6);
+        expect(firstShader.uniforms.uEarthMoonshineLift.value).toBeCloseTo(0.8, 6);
+        expect(secondShader.uniforms.uEarthMoonshineLift.value).toBeCloseTo(0.8, 6);
 
         renderer.dispose();
     });
@@ -119,6 +126,9 @@ describe("EarthRenderer", () => {
         expect(shader.fragmentShader).toContain("float earthNightsideLift = uEarthNightsideLift * earthNightWeight");
         expect(shader.fragmentShader).toContain("reflectedLight.indirectDiffuse += earthNightsideFillColor");
         expect(shader.fragmentShader).toContain("totalEmissiveRadiance += earthNightsideFillColor");
+        expect(shader.fragmentShader).toContain("float earthMoonshineLift = uEarthMoonshineLift * earthNightWeight");
+        expect(shader.fragmentShader).toContain("reflectedLight.indirectDiffuse += earthMoonshineFillColor");
+        expect(shader.fragmentShader).toContain("totalEmissiveRadiance += earthMoonshineFillColor");
 
         renderer.dispose();
     });

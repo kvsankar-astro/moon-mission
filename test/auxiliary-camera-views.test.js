@@ -97,6 +97,49 @@ describe("Frame and Shoot Moon Ambient control", () => {
         };
     }
 
+    it("applies Moonshine gain to the Earth night-side shader as shared panel lighting", () => {
+        const manager = createManagerForAmbientTests();
+        manager.panels = [
+            {
+                mode: "composer",
+                composerEarthAmbient: 0,
+                composerMoonAmbient: 0,
+                composerMoonshineGain: 2,
+            },
+        ];
+        const material = {
+            map: {},
+            userData: {
+                earthNightsideLift: 0,
+                earthMoonshineLift: 0,
+            },
+        };
+        const uniforms = {
+            ambient: 0,
+            moonshine: 0,
+        };
+        material.userData.refreshEarthShaderUniforms = () => {
+            uniforms.ambient = material.userData.earthNightsideLift;
+            uniforms.moonshine = material.userData.earthMoonshineLift;
+        };
+
+        const restore = manager.applySharedComposerBodyAmbientLighting({
+            earth: createBodyWithMaterial(material),
+        });
+
+        expect(material.userData.earthNightsideLift).toBe(0);
+        expect(material.userData.earthMoonshineLift).toBeCloseTo(1.3, 6);
+        expect(uniforms.ambient).toBe(0);
+        expect(uniforms.moonshine).toBeCloseTo(1.3, 6);
+
+        restore();
+
+        expect(material.userData.earthNightsideLift).toBe(0);
+        expect(material.userData.earthMoonshineLift).toBe(0);
+        expect(uniforms.ambient).toBe(0);
+        expect(uniforms.moonshine).toBe(0);
+    });
+
     it("keeps artificial Moon ambient at zero when the slider is zero", () => {
         const manager = createManagerForAmbientTests();
         const material = {
@@ -126,5 +169,58 @@ describe("Frame and Shoot Moon Ambient control", () => {
 
         expect(material.userData.moonShadowLift).toBeCloseTo(0.42, 6);
         expect(uniform.value).toBeCloseTo(0.42, 6);
+    });
+});
+
+
+describe("Frame and Shoot reflected-light gain controls", () => {
+    function createManagerForLightTests() {
+        return Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+        });
+    }
+
+    it("scales Moonshine reflected light during composer renders and restores it", () => {
+        const manager = createManagerForLightTests();
+        const scene = {
+            lightMoonshine: {
+                intensity: 0.0005,
+            },
+        };
+
+        const restore = manager.applyComposerMoonshineGain({
+            composerMoonshineGain: 2.4,
+        }, scene);
+
+        expect(scene.lightMoonshine.intensity).toBeCloseTo(0.0012, 8);
+
+        restore();
+
+        expect(scene.lightMoonshine.intensity).toBeCloseTo(0.0005, 8);
+    });
+
+    it("falls back to the reference Moonshine intensity when the phase light is dark", () => {
+        const manager = createManagerForLightTests();
+        const scene = {
+            lightMoonshine: {
+                intensity: 0,
+            },
+        };
+
+        const restore = manager.applyComposerMoonshineGain({
+            composerMoonshineGain: 1,
+        }, scene);
+
+        expect(scene.lightMoonshine.intensity).toBeGreaterThan(0);
+
+        restore();
+
+        expect(scene.lightMoonshine.intensity).toBe(0);
     });
 });
