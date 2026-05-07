@@ -9,6 +9,7 @@ import {
     rollRadFromDialPointer,
     selectComposerSkyLabelCandidates,
 } from "../src/platform/js/app/auxiliary-camera-views.js";
+import { LIGHT_SETTINGS as LT } from "../src/platform/js/core/constants.js";
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -262,9 +263,10 @@ describe("Frame and Shoot body ambient controls", () => {
         });
 
         expect(material.userData.earthNightsideLift).toBe(0);
-        expect(material.userData.earthMoonshineLift).toBeCloseTo(1.3, 6);
+        const expectedMoonshineLift = 2 * 0.65 * LT.MOONSHINE_TO_EARTHSHINE_INTENSITY_RATIO;
+        expect(material.userData.earthMoonshineLift).toBeCloseTo(expectedMoonshineLift, 6);
         expect(uniforms.ambient).toBe(0);
-        expect(uniforms.moonshine).toBeCloseTo(1.3, 6);
+        expect(uniforms.moonshine).toBeCloseTo(expectedMoonshineLift, 6);
 
         restore();
 
