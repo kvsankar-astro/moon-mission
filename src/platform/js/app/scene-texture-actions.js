@@ -96,9 +96,18 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
             {
                 disposePrevious,
                 renderSettings: scene.moonRenderSettings,
+                deferGeneratedNormalMap: disposePrevious === true,
             },
         );
         moonHandled = true;
+        if (disposePrevious === true && scene.moonRenderer?.refreshGeneratedNormalMap) {
+            const scheduleNormalMapRefresh =
+                globalThis?.requestIdleCallback ||
+                ((callback) => globalThis?.setTimeout?.(() => callback({ timeRemaining: () => 0 }), 1200));
+            scheduleNormalMapRefresh(() => {
+                scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+            });
+        }
     }
 
     let skyHandled = false;

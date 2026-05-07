@@ -153,6 +153,7 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
             .replace(
                 "#include <lights_fragment_begin>",
                 `#include <lights_fragment_begin>
+float moonShadowWeight = 1.0;
 #if NUM_DIR_LIGHTS > 0
     vec3 moonNormal = normalize( geometryNormal );
     vec3 moonViewDir = normalize( geometryViewDir );
@@ -183,7 +184,7 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
     float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
     float moonTerminatorBand = 1.0 - smoothstep( 0.06, moonTerminatorOuter, moonNdotL );
-    float moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
+    moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
     float moonHighlightWeight = pow( moonNdotL, max(0.2, uMoonHighlightWeightExponent) );
     float moonShadowCrush = mix( 0.18, 0.24, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
     float moonHighlightLift = mix( 0.04, 0.055, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
@@ -193,8 +194,8 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     float moonHighlightTone = mix( 1.0, moonHighlightTarget, moonHighlightWeight );
     vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
     reflectedLight.directDiffuse *= moonToneMultiplier;
-    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );
-#endif`,
+#endif
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );`,
             )
             .replace(
                 "#include <lights_fragment_end>",
@@ -214,7 +215,7 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v5",
+            "moon-photometric-v6",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
@@ -380,7 +381,7 @@ export class MoonRenderer {
         texture,
         displacementMap,
         normalMap = null,
-        { disposePrevious = true, renderSettings = null } = {},
+        { disposePrevious = true, renderSettings = null, deferGeneratedNormalMap = false } = {},
     ) {
         const previousTexture = this.texture;
         const previousDisplacementMap = this.displacementMap;
@@ -395,7 +396,9 @@ export class MoonRenderer {
         this.displacementMap = displacementMap;
         this.normalMap = normalMap;
 
-        const resolvedNormalMap = this._refreshGeneratedNormalMap({ disposePrevious: false });
+        const resolvedNormalMap = deferGeneratedNormalMap
+            ? (this.normalMap || null)
+            : this._refreshGeneratedNormalMap({ disposePrevious: false });
 
         const material = this.mesh?.material;
         if (material) {
@@ -437,6 +440,19 @@ export class MoonRenderer {
                 previousGeneratedNormalMap.dispose?.();
             }
         }
+    }
+
+    refreshGeneratedNormalMap({ disposePrevious = true } = {}) {
+        const resolvedNormalMap = this._refreshGeneratedNormalMap({ disposePrevious });
+        const material = this.mesh?.material;
+        if (!material) {
+            return resolvedNormalMap;
+        }
+        material.normalMap = resolvedNormalMap;
+        material.bumpMap = resolvedNormalMap ? null : (this.displacementMap || null);
+        material.bumpScale = resolvedNormalMap ? 0.0 : 0.0045;
+        this._applyRenderSettingsToMaterial();
+        return resolvedNormalMap;
     }
 
     /**

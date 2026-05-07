@@ -53,8 +53,9 @@ describe("MoonRenderer", () => {
         const colorTexture = new THREE.Texture();
         const displacementTexture = new THREE.Texture();
         displacementTexture.image = { width: 2, height: 2 };
+        const normalTexture = new THREE.Texture();
 
-        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.setTextures(colorTexture, displacementTexture, normalTexture);
         moonRenderer.create();
 
         const material = moonRenderer.mesh.material;
@@ -70,8 +71,9 @@ describe("MoonRenderer", () => {
         const colorTexture = new THREE.Texture();
         const displacementTexture = new THREE.Texture();
         displacementTexture.image = { width: 2, height: 2 };
+        const normalTexture = new THREE.Texture();
 
-        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.setTextures(colorTexture, displacementTexture, normalTexture);
         moonRenderer.create();
 
         const material = moonRenderer.mesh.material;
@@ -92,4 +94,31 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("injects Moon artificial ambient outside the directional-light guard", () => {
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+        const normalTexture = new THREE.Texture();
+
+        moonRenderer.setTextures(colorTexture, displacementTexture, normalTexture);
+        moonRenderer.create();
+
+        const material = moonRenderer.mesh.material;
+        const shader = {
+            uniforms: {},
+            fragmentShader: [
+                "#include <common>",
+                "#include <lights_fragment_begin>",
+                "#include <lights_fragment_end>",
+            ].join("\n"),
+        };
+
+        material.onBeforeCompile(shader);
+
+        expect(shader.fragmentShader).toContain("float moonShadowWeight = 1.0");
+        expect(shader.fragmentShader).toContain("#endif\n    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );");
+
+        moonRenderer.dispose();
+    });
 });
