@@ -5,6 +5,7 @@ function createRuntimeInteractionState({
     initialMouseDownTimeout = 0,
     initialTimeoutHandleZoom = undefined,
     initialLegacyTimeoutHandle = undefined,
+    initialLastInputActivityMs = -Infinity,
 } = {}) {
     let missionStartCalled = Boolean(initialMissionStartCalled);
     let startLandingFlag = Boolean(initialStartLandingFlag);
@@ -12,6 +13,13 @@ function createRuntimeInteractionState({
     let mouseDownTimeout = initialMouseDownTimeout;
     let timeoutHandleZoom = initialTimeoutHandleZoom;
     let legacyTimeoutHandle = initialLegacyTimeoutHandle;
+    let lastInputActivityMs = Number.isFinite(initialLastInputActivityMs)
+        ? initialLastInputActivityMs
+        : -Infinity;
+
+    function getNowMs() {
+        return Date.now();
+    }
 
     return {
         getMissionStartCalled: () => missionStartCalled,
@@ -37,6 +45,27 @@ function createRuntimeInteractionState({
         getLegacyTimeoutHandle: () => legacyTimeoutHandle,
         setLegacyTimeoutHandle: (value) => {
             legacyTimeoutHandle = value;
+        },
+        markInputActivity: (timeMs = getNowMs()) => {
+            const numericTimeMs = Number(timeMs);
+            if (Number.isFinite(numericTimeMs)) {
+                lastInputActivityMs = numericTimeMs;
+            }
+            return lastInputActivityMs;
+        },
+        getLastInputActivityMs: () => lastInputActivityMs,
+        getInputIdleMs: (timeMs = getNowMs()) => {
+            const numericTimeMs = Number(timeMs);
+            if (!Number.isFinite(numericTimeMs) || !Number.isFinite(lastInputActivityMs)) {
+                return Infinity;
+            }
+            return Math.max(0, numericTimeMs - lastInputActivityMs);
+        },
+        isInputRecentlyActive: (graceMs, timeMs = getNowMs()) => {
+            const numericGraceMs = Math.max(0, Number(graceMs) || 0);
+            return Number.isFinite(lastInputActivityMs) &&
+                Number.isFinite(Number(timeMs)) &&
+                timeMs - lastInputActivityMs < numericGraceMs;
         },
     };
 }

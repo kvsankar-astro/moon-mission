@@ -157,6 +157,10 @@ function createMissionInteractionStateCells(runtimeInteractionState) {
         timeoutHandle: createReadonlyStateCell(
             () => runtimeInteractionState.getLegacyTimeoutHandle(),
         ),
+        lastInputActivityMs: createMutableStateCell(
+            () => runtimeInteractionState.getLastInputActivityMs(),
+            (value) => { runtimeInteractionState.markInputActivity(value); },
+        ),
     };
 }
 

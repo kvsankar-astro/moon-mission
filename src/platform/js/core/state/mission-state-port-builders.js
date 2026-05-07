@@ -402,6 +402,27 @@ function createMissionInteractionStatePort(_ctx, helpers) {
         },
         getMissionStartCalled: () => getState("missionStartCalled"),
         getLegacyTimeoutHandle: () => getState("timeoutHandle"),
+        markInputActivity: (timeMs = Date.now()) => {
+            setState("lastInputActivityMs", timeMs);
+            return getState("lastInputActivityMs");
+        },
+        getLastInputActivityMs: () => getState("lastInputActivityMs"),
+        getInputIdleMs: (timeMs = Date.now()) => {
+            const lastInputActivityMs = Number(getState("lastInputActivityMs"));
+            const numericTimeMs = Number(timeMs);
+            if (!Number.isFinite(lastInputActivityMs) || !Number.isFinite(numericTimeMs)) {
+                return Infinity;
+            }
+            return Math.max(0, numericTimeMs - lastInputActivityMs);
+        },
+        isInputRecentlyActive: (graceMs, timeMs = Date.now()) => {
+            const lastInputActivityMs = Number(getState("lastInputActivityMs"));
+            const numericGraceMs = Math.max(0, Number(graceMs) || 0);
+            const numericTimeMs = Number(timeMs);
+            return Number.isFinite(lastInputActivityMs) &&
+                Number.isFinite(numericTimeMs) &&
+                numericTimeMs - lastInputActivityMs < numericGraceMs;
+        },
     };
 }
 

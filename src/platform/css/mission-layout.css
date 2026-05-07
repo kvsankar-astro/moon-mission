@@ -329,6 +329,104 @@ canvas {
     grid-column: 1 / -1;
 }
 
+.mission-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(40, 85, 150, 0.28), transparent 42%),
+        rgba(2, 8, 18, 0.72);
+    color: rgba(231, 240, 255, 0.96);
+    pointer-events: auto;
+    backdrop-filter: blur(3px);
+}
+
+.mission-loading-overlay[data-blocking="false"] {
+    inset: auto 18px 18px auto;
+    width: min(360px, calc(100vw - 36px));
+    padding: 0;
+    background: transparent;
+    pointer-events: none;
+    backdrop-filter: none;
+    place-items: end;
+}
+
+html[data-app-view="selector"] .mission-loading-overlay,
+.mission-loading-overlay[hidden] {
+    display: none !important;
+}
+
+.mission-loading-overlay__card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    max-width: min(420px, calc(100vw - 48px));
+    padding: 16px 18px;
+    border: 1px solid rgba(134, 184, 255, 0.38);
+    border-radius: 16px;
+    background: rgba(7, 17, 32, 0.88);
+    box-shadow: 0 18px 56px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.mission-loading-overlay[data-blocking="false"] .mission-loading-overlay__card {
+    max-width: 100%;
+    padding: 12px 14px;
+    border-color: rgba(134, 184, 255, 0.28);
+    background: rgba(7, 17, 32, 0.76);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.mission-loading-overlay__spinner {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    border: 3px solid rgba(120, 174, 255, 0.25);
+    border-top-color: rgba(210, 232, 255, 0.96);
+    border-radius: 999px;
+    animation: mission-loading-spin 0.85s linear infinite;
+}
+
+.mission-loading-overlay[data-blocking="false"] .mission-loading-overlay__spinner {
+    width: 24px;
+    height: 24px;
+    border-width: 2px;
+}
+
+.mission-loading-overlay[data-state="error"] .mission-loading-overlay__spinner {
+    animation: none;
+    border-color: rgba(255, 128, 128, 0.62);
+}
+
+.mission-loading-overlay__copy {
+    min-width: 0;
+}
+
+.mission-loading-overlay__message {
+    font-size: 15px;
+    font-weight: 750;
+    letter-spacing: 0.01em;
+}
+
+.mission-loading-overlay[data-blocking="false"] .mission-loading-overlay__message {
+    font-size: 13px;
+}
+
+.mission-loading-overlay__hint {
+    margin-top: 3px;
+    color: rgba(178, 202, 236, 0.82);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+@keyframes mission-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .aux-camera-view--composer > .aux-camera-view__composer-control-matrix {
     grid-row: 2;
     grid-column: 1;

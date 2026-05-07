@@ -276,7 +276,7 @@ function createInitOrchestrationDeps(
         accessors,
     },
 ) {
-    const { app, session } = resolveRuntimeBootstrapStateSlices(statePort);
+    const { app, session, interaction } = resolveRuntimeBootstrapStateSlices(statePort);
 
     return {
         initConfig: renderPort.initConfig,
@@ -301,6 +301,8 @@ function createInitOrchestrationDeps(
         getStartTime: app.getStartTime,
         getLatestEndTime: app.getLatestEndTime,
         animationScenes: app.getAnimationScenes(),
+        markInputActivity: interaction.markInputActivity,
+        getLastInputActivityMs: interaction.getLastInputActivityMs,
     };
 }
 

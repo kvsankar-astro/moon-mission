@@ -23,6 +23,7 @@ import {
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
 import { syncCompareModeControls } from "./ui/event-handlers.js";
+import { bindRuntimeInteractionActivity } from "./ui/runtime-interaction-activity.js";
 import {
     resolveBodySource,
 } from "./data/ephemeris-provider.js";
@@ -246,6 +247,10 @@ const runtimeInteractionState = createRuntimeInteractionState({
     initialMouseDownTimeout,
     initialTimeoutHandleZoom,
     initialLegacyTimeoutHandle,
+});
+bindRuntimeInteractionActivity({
+    documentRef: document,
+    markInputActivity: runtimeInteractionState.markInputActivity,
 });
 
 function getEffectiveOrbitStyle() {

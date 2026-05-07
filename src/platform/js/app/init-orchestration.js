@@ -3,6 +3,17 @@ import {
     planStartupViewReapply,
     resolveStartupAnimationMode,
 } from "./startup-animation-plan.js";
+import {
+    failMissionLoadingOverlay,
+    hideMissionLoadingOverlay,
+    setMissionLoadingOverlayBlocking,
+    setMissionLoadingMessage,
+    showMissionLoadingOverlay,
+} from "../ui/mission-loading-overlay.js";
+import {
+    resolveDelayUntilInputIdle,
+    shouldDeferForRecentInput,
+} from "../core/domain/interaction-idle-policy.js";
 
 function createInitOrchestrationActions(deps) {
     const {
@@ -29,12 +40,18 @@ function createInitOrchestrationActions(deps) {
         getLatestEndTime,
         animationScenes,
         scheduleTimeout = setTimeout,
+        markInputActivity = () => {},
+        getLastInputActivityMs = () => -Infinity,
         resolveStartupAnimationMode: resolveStartupAnimationModeImpl = resolveStartupAnimationMode,
         planStartupViewReapply: planStartupViewReapplyImpl = planStartupViewReapply,
         isStartupViewSceneReady: isStartupViewSceneReadyImpl = isStartupViewSceneReady,
     } = deps;
     let animationLoopStarted = false;
     let latestInitRunId = 0;
+
+    function getNowMs() {
+        return Date.now();
+    }
 
     function clampTimeToMissionSpan(timeMs) {
         const numericTimeMs = Number(timeMs);
@@ -101,6 +118,173 @@ function createInitOrchestrationActions(deps) {
         }, pollIntervalMs);
     }
 
+    function isStartupCoreInteractive() {
+        const cfg = getConfig();
+        const scene = animationScenes?.[cfg];
+        if (!scene) return false;
+        if (scene.cameraControlsEnabled === false) return false;
+        return isStartupViewSceneReadyImpl({
+            needs3DReady: shouldWaitFor3DSceneReady(),
+            scene,
+            isSceneOrbitRenderable,
+        });
+    }
+
+    function hideLoadingOverlayAfterResponsiveFrames({
+        requiredStableFrames = 3,
+        maxFrameGapMs = 140,
+        maxWaitMs = 5000,
+    } = {}) {
+        if (typeof requestAnimationFrame !== "function") {
+            scheduleTimeout(() => hideMissionLoadingOverlay(), 0);
+            return;
+        }
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            hideMissionLoadingOverlay();
+        };
+        scheduleTimeout(finish, maxWaitMs);
+        let stableFrames = 0;
+        let previousFrameMs = 0;
+        let startMs = 0;
+        const step = (frameMs) => {
+            if (done) return;
+            if (!Number.isFinite(startMs) || startMs <= 0) {
+                startMs = frameMs;
+            }
+            if (Number.isFinite(previousFrameMs) && previousFrameMs > 0) {
+                const deltaMs = frameMs - previousFrameMs;
+                stableFrames = deltaMs <= maxFrameGapMs ? stableFrames + 1 : 0;
+            }
+            previousFrameMs = frameMs;
+            if (stableFrames >= requiredStableFrames || frameMs - startMs >= maxWaitMs) {
+                finish();
+                return;
+            }
+            requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+    }
+
+    function beginDeferredTextureLoad(scene) {
+        if (scene?.textureLoadState !== "deferred" || typeof scene.beginTextureLoad !== "function") {
+            return false;
+        }
+        scene.beginTextureLoad();
+        return true;
+    }
+
+    function scheduleTextureLoadStart(callback) {
+        const idleCallback = globalThis?.requestIdleCallback;
+        if (typeof idleCallback === "function") {
+            idleCallback(callback, { timeout: 15000 });
+            return;
+        }
+        if (typeof requestAnimationFrame === "function") {
+            requestAnimationFrame(() => scheduleTimeout(callback, 0));
+            return;
+        }
+        scheduleTimeout(callback, 0);
+    }
+
+    function startTextureLoadAfterInteractionWindow(scene, runId, delayMs = 5000, idleMs = 1800) {
+        if (!scene || runId !== latestInitRunId) {
+            return;
+        }
+        setMissionLoadingMessage("Controls ready. Loading high-resolution textures...");
+        scheduleTimeout(() => {
+            if (runId !== latestInitRunId) {
+                return;
+            }
+            const nowMs = getNowMs();
+            if (shouldDeferForRecentInput({
+                nowMs,
+                lastInputActivityMs: getLastInputActivityMs(),
+                minIdleMs: idleMs,
+            })) {
+                startTextureLoadAfterInteractionWindow(
+                    scene,
+                    runId,
+                    resolveDelayUntilInputIdle({
+                        nowMs,
+                        lastInputActivityMs: getLastInputActivityMs(),
+                        minIdleMs: idleMs,
+                    }),
+                    idleMs,
+                );
+                return;
+            }
+            scheduleTextureLoadStart(() => {
+                if (runId !== latestInitRunId) {
+                    return;
+                }
+                if (shouldDeferForRecentInput({
+                    nowMs: getNowMs(),
+                    lastInputActivityMs: getLastInputActivityMs(),
+                    minIdleMs: idleMs,
+                })) {
+                    startTextureLoadAfterInteractionWindow(scene, runId, idleMs, idleMs);
+                    return;
+                }
+                beginDeferredTextureLoad(scene);
+                waitForTextureLoadThenHideOverlay(runId);
+            });
+        }, delayMs);
+    }
+
+    function waitForTextureLoadThenHideOverlay(runId, maxAttempts = 240, pollIntervalMs = 50) {
+        if (typeof document === "undefined") {
+            return;
+        }
+        if (runId !== latestInitRunId) {
+            return;
+        }
+        const scene = animationScenes?.[getConfig()];
+        if (scene?.textureLoadState === "deferred") {
+            startTextureLoadAfterInteractionWindow(scene, runId, 0);
+            return;
+        }
+        if (scene?.textureLoadPending === true && maxAttempts > 0) {
+            setMissionLoadingMessage("Loading high-resolution textures...");
+            scheduleTimeout(() => {
+                waitForTextureLoadThenHideOverlay(runId, maxAttempts - 1, pollIntervalMs);
+            }, pollIntervalMs);
+            return;
+        }
+        setMissionLoadingMessage("Finalizing controls...");
+        hideLoadingOverlayAfterResponsiveFrames();
+    }
+
+    function settleLoadingOverlayWhenInteractive(runId, maxAttempts = 120, pollIntervalMs = 50) {
+        if (typeof document === "undefined") {
+            return;
+        }
+        if (runId !== latestInitRunId) {
+            return;
+        }
+        const scene = animationScenes?.[getConfig()];
+        if (isStartupCoreInteractive() || maxAttempts <= 0) {
+            setMissionLoadingOverlayBlocking(false);
+            if (scene?.textureLoadState === "deferred") {
+                startTextureLoadAfterInteractionWindow(scene, runId);
+                return;
+            }
+            if (scene?.textureLoadPending === true) {
+                waitForTextureLoadThenHideOverlay(runId);
+                return;
+            }
+            setMissionLoadingMessage("Finalizing controls...");
+            hideLoadingOverlayAfterResponsiveFrames();
+            return;
+        }
+        setMissionLoadingMessage("Finalizing controls...");
+        scheduleTimeout(() => {
+            settleLoadingOverlayWhenInteractive(runId, maxAttempts - 1, pollIntervalMs);
+        }, pollIntervalMs);
+    }
+
     function releaseStartupButtonDisable() {
         if (typeof document === "undefined") {
             d3SelectAll("button").attr("disabled", null);
@@ -151,6 +335,8 @@ function createInitOrchestrationActions(deps) {
 
     async function initAnimation(flags) {
         const runId = ++latestInitRunId;
+        markInputActivity();
+        showMissionLoadingOverlay("Loading mission data...");
         const applyTimeSetOrLocationRefresh = (timeMs) => {
             const clampedTimeMs = clampTimeToMissionSpan(timeMs);
             setAnimTime?.(clampedTimeMs);
@@ -182,7 +368,9 @@ function createInitOrchestrationActions(deps) {
             }
         };
         try {
+            setMissionLoadingMessage("Loading mission configuration...");
             await initConfig();
+            setMissionLoadingMessage("Preparing orbit data...");
             await init(() => {});
 
             await waitUntilOrbitDataProcessed({
@@ -225,10 +413,12 @@ function createInitOrchestrationActions(deps) {
                     // don't re-enter the orbit-processing unlock path) can leave
                     // controls disabled. Always release the startup blanket-disable.
                     releaseStartupButtonDisable();
+                    settleLoadingOverlayWhenInteractive(runId);
                 },
             });
         } catch (error) {
-            d3.select("#eventinfo").text("Failed to load the aninmation. Please restart the browser and try again.");
+            d3.select("#eventinfo").text("Failed to load the animation. Please restart the browser and try again.");
+            failMissionLoadingOverlay("Mission failed to load. Please refresh and try again.");
             console.error("Error: exception in initAnimation(): " + error);
             d3SelectAll("button").attr("disabled", true);
             return;
