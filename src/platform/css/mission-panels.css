@@ -565,6 +565,21 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h4'/%3E%3Cpath d='M3.5 5h9'/%3E%3Cpath d='M5.2 5l.5 7h4.6l.5-7'/%3E%3Cpath d='M6.8 6.6v4.1M9.2 6.6v4.1'/%3E%3C/svg%3E");
 }
 
+.mission-panel-shell__button--icon[data-icon="zoom-in"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7' cy='7' r='4.4'/%3E%3Cpath d='M10.4 10.4L13 13'/%3E%3Cpath d='M7 4.9v4.2M4.9 7h4.2'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7' cy='7' r='4.4'/%3E%3Cpath d='M10.4 10.4L13 13'/%3E%3Cpath d='M7 4.9v4.2M4.9 7h4.2'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="zoom-out"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7' cy='7' r='4.4'/%3E%3Cpath d='M10.4 10.4L13 13'/%3E%3Cpath d='M4.9 7h4.2'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='7' cy='7' r='4.4'/%3E%3Cpath d='M10.4 10.4L13 13'/%3E%3Cpath d='M4.9 7h4.2'/%3E%3C/svg%3E");
+}
+
+.mission-panel-shell__button--icon[data-icon="reset"]::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.55' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.4 5.2A4.9 4.9 0 1 0 13 8'/%3E%3Cpath d='M12.4 2.9v2.3h-2.3'/%3E%3Cpath d='M6.1 8h3.8M8 6.1v3.8'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='black' stroke-width='1.55' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12.4 5.2A4.9 4.9 0 1 0 13 8'/%3E%3Cpath d='M12.4 2.9v2.3h-2.3'/%3E%3Cpath d='M6.1 8h3.8M8 6.1v3.8'/%3E%3C/svg%3E");
+}
+
 .mission-panel-shell__button--danger {
     border-color: rgba(229, 118, 118, 0.3);
     color: rgba(255, 211, 211, 0.95);
@@ -698,7 +713,17 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     padding: 12px;
+    touch-action: none;
+}
+
+.media-browser-panel__stage.is-pan-enabled {
+    cursor: grab;
+}
+
+.media-browser-panel__stage.is-panning {
+    cursor: grabbing;
 }
 
 .media-browser-panel__image {
@@ -707,6 +732,51 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     height: 100%;
     object-fit: contain;
     object-position: center center;
+    pointer-events: none;
+    transform-origin: center center;
+    transition: transform 0.12s ease-out;
+    user-select: none;
+    will-change: transform;
+}
+
+.media-browser-panel__image-controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px;
+    border: 1px solid rgba(121, 171, 255, 0.2);
+    border-radius: 999px;
+    background: rgba(7, 12, 21, 0.68);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(8px);
+}
+
+.media-browser-panel__image-controls[hidden] {
+    display: none;
+}
+
+.media-browser-panel__image-control {
+    width: 24px;
+    height: 24px;
+}
+
+.media-browser-panel__image-control:disabled {
+    opacity: 0.42;
+    cursor: default;
+    box-shadow: none;
+}
+
+.media-browser-panel__image-zoom-label {
+    min-width: 42px;
+    color: rgba(220, 234, 254, 0.9);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
 }
 
 .media-browser-panel__stage-empty {

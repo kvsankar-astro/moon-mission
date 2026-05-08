@@ -1593,10 +1593,47 @@
                     </details>
                 </div>
                 <div class="media-browser-panel__body">
-                    <div class="media-browser-panel__stage">
+                    <div id="media-browser-stage" class="media-browser-panel__stage">
                         <img id="media-browser-image" class="media-browser-panel__image" alt="" hidden>
                         <div id="media-browser-stage-empty" class="media-browser-panel__stage-empty">
                             Waiting for media manifest...
+                        </div>
+                        <div
+                            id="media-browser-image-controls"
+                            class="media-browser-panel__image-controls"
+                            role="group"
+                            aria-label="Image view controls"
+                            hidden
+                        >
+                            <button
+                                id="media-browser-image-zoom-out"
+                                class="media-browser-panel__image-control mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                title="Zoom out"
+                                aria-label="Zoom out"
+                                data-icon="zoom-out"
+                            ></button>
+                            <output
+                                id="media-browser-image-zoom-label"
+                                class="media-browser-panel__image-zoom-label"
+                                aria-live="polite"
+                            >100%</output>
+                            <button
+                                id="media-browser-image-zoom-in"
+                                class="media-browser-panel__image-control mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                title="Zoom in"
+                                aria-label="Zoom in"
+                                data-icon="zoom-in"
+                            ></button>
+                            <button
+                                id="media-browser-image-reset"
+                                class="media-browser-panel__image-control mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                title="Reset image view"
+                                aria-label="Reset image view"
+                                data-icon="reset"
+                            ></button>
                         </div>
                         <div id="media-browser-stage-badge" class="media-browser-panel__stage-badge" hidden></div>
                     </div>

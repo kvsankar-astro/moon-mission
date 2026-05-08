@@ -19,9 +19,65 @@ const PANEL_DEFAULT_LEFT_PX = 22;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
 const PANEL_DEFAULT_WIDTH_PX = 560;
 const PANEL_DEFAULT_HEIGHT_PX = 420;
+const MEDIA_IMAGE_MIN_ZOOM = 1;
+const MEDIA_IMAGE_MAX_ZOOM = 6;
+const MEDIA_IMAGE_ZOOM_STEP = 1.25;
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+}
+
+function createDefaultMediaImageViewState() {
+    return {
+        zoom: MEDIA_IMAGE_MIN_ZOOM,
+        panX: 0,
+        panY: 0,
+    };
+}
+
+function normalizeMediaImageViewState(state = {}) {
+    const zoom = clamp(
+        Number.isFinite(Number(state.zoom)) ? Number(state.zoom) : MEDIA_IMAGE_MIN_ZOOM,
+        MEDIA_IMAGE_MIN_ZOOM,
+        MEDIA_IMAGE_MAX_ZOOM,
+    );
+    return {
+        zoom,
+        panX: Number.isFinite(Number(state.panX)) ? Number(state.panX) : 0,
+        panY: Number.isFinite(Number(state.panY)) ? Number(state.panY) : 0,
+    };
+}
+
+function clampMediaImagePan(state = {}, stageSize = {}) {
+    const normalized = normalizeMediaImageViewState(state);
+    if (normalized.zoom <= MEDIA_IMAGE_MIN_ZOOM) {
+        return createDefaultMediaImageViewState();
+    }
+
+    const width = Number(stageSize.width);
+    const height = Number(stageSize.height);
+    const maxPanX = Number.isFinite(width) && width > 0
+        ? (width * (normalized.zoom - 1)) / 2
+        : 0;
+    const maxPanY = Number.isFinite(height) && height > 0
+        ? (height * (normalized.zoom - 1)) / 2
+        : 0;
+    return {
+        zoom: normalized.zoom,
+        panX: clamp(normalized.panX, -maxPanX, maxPanX),
+        panY: clamp(normalized.panY, -maxPanY, maxPanY),
+    };
+}
+
+function zoomMediaImageViewState(state = {}, zoomMultiplier = 1, stageSize = {}) {
+    const normalized = normalizeMediaImageViewState(state);
+    const multiplier = Number.isFinite(Number(zoomMultiplier)) && Number(zoomMultiplier) > 0
+        ? Number(zoomMultiplier)
+        : 1;
+    return clampMediaImagePan({
+        ...normalized,
+        zoom: normalized.zoom * multiplier,
+    }, stageSize);
 }
 
 function getDocumentRef() {
@@ -84,6 +140,9 @@ function createMediaBrowserPanelActions({
     let panelVisibilityState = "closed";
     let panelPosition = null;
     let dragState = null;
+    let imageViewState = createDefaultMediaImageViewState();
+    let imagePanDragState = null;
+    let imageViewAssetUrl = "";
     let filterSignature = "";
     let nearbySignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
@@ -105,6 +164,15 @@ function createMediaBrowserPanelActions({
 
     function getNode(id) {
         return getDocumentRef()?.getElementById?.(id) || null;
+    }
+
+    function getImageStageSize() {
+        const stage = getNode("media-browser-stage");
+        const rect = stage?.getBoundingClientRect?.() || null;
+        return {
+            width: Number(rect?.width) || stage?.clientWidth || 0,
+            height: Number(rect?.height) || stage?.clientHeight || 0,
+        };
     }
 
     function getPanelRegistryState() {
@@ -242,6 +310,137 @@ function createMediaBrowserPanelActions({
         button.title = panelExpanded === true ? "Restore" : "Expand";
         button.setAttribute("aria-label", button.title);
         button.setAttribute("aria-pressed", panelExpanded === true ? "true" : "false");
+    }
+
+    function isImageViewAvailable() {
+        const image = getNode("media-browser-image");
+        return isImageLike(image) && image.hidden !== true && !!imageViewAssetUrl;
+    }
+
+    function syncImageViewControls() {
+        const stage = getNode("media-browser-stage");
+        const controls = getNode("media-browser-image-controls");
+        const zoomOutButton = getNode("media-browser-image-zoom-out");
+        const zoomInButton = getNode("media-browser-image-zoom-in");
+        const resetButton = getNode("media-browser-image-reset");
+        const zoomLabel = getNode("media-browser-image-zoom-label");
+        const available = isImageViewAvailable();
+        const isZoomed = imageViewState.zoom > MEDIA_IMAGE_MIN_ZOOM;
+
+        if (controls) {
+            controls.hidden = !available;
+        }
+        if (zoomLabel) {
+            zoomLabel.textContent = `${Math.round(imageViewState.zoom * 100)}%`;
+        }
+        if (zoomOutButton) {
+            zoomOutButton.disabled = !available || imageViewState.zoom <= MEDIA_IMAGE_MIN_ZOOM;
+        }
+        if (zoomInButton) {
+            zoomInButton.disabled = !available || imageViewState.zoom >= MEDIA_IMAGE_MAX_ZOOM;
+        }
+        if (resetButton) {
+            resetButton.disabled = !available || (
+                !isZoomed
+                && imageViewState.panX === 0
+                && imageViewState.panY === 0
+            );
+        }
+        if (isElementLike(stage)) {
+            stage.classList.toggle("is-pan-enabled", available && isZoomed);
+            stage.classList.toggle("is-panning", imagePanDragState != null);
+        }
+    }
+
+    function applyImageViewState(nextState, {
+        animate = true,
+    } = {}) {
+        imageViewState = clampMediaImagePan(nextState, getImageStageSize());
+        const image = getNode("media-browser-image");
+        if (isImageLike(image)) {
+            image.style.transition = animate ? "" : "none";
+            image.style.transform = `translate3d(${imageViewState.panX}px, ${imageViewState.panY}px, 0) scale(${imageViewState.zoom})`;
+            if (!animate && imagePanDragState == null) {
+                getWindowRef()?.requestAnimationFrame?.(() => {
+                    image.style.transition = "";
+                });
+            }
+        }
+        syncImageViewControls();
+    }
+
+    function resetImageView(options = {}) {
+        imagePanDragState = null;
+        applyImageViewState(createDefaultMediaImageViewState(), options);
+    }
+
+    function zoomImageView(zoomMultiplier) {
+        if (!isImageViewAvailable()) return;
+        applyImageViewState(zoomMediaImageViewState(
+            imageViewState,
+            zoomMultiplier,
+            getImageStageSize(),
+        ));
+    }
+
+    function shouldIgnoreImageGesture(event) {
+        if (!isObjectLike(event?.target)) return false;
+        if (typeof event.target.closest !== "function") return false;
+        return !!event.target.closest("button, input, select, option, label, output, a, summary, details");
+    }
+
+    function bindImageViewControls() {
+        const stage = getNode("media-browser-stage");
+        const zoomOutButton = getNode("media-browser-image-zoom-out");
+        const zoomInButton = getNode("media-browser-image-zoom-in");
+        const resetButton = getNode("media-browser-image-reset");
+
+        zoomOutButton?.addEventListener?.("click", () => zoomImageView(1 / MEDIA_IMAGE_ZOOM_STEP));
+        zoomInButton?.addEventListener?.("click", () => zoomImageView(MEDIA_IMAGE_ZOOM_STEP));
+        resetButton?.addEventListener?.("click", () => resetImageView());
+
+        stage?.addEventListener?.("wheel", (event) => {
+            if (!isImageViewAvailable()) return;
+            const deltaY = Number(event.deltaY);
+            if (!Number.isFinite(deltaY) || deltaY === 0) return;
+            event.preventDefault();
+            zoomImageView(deltaY < 0 ? MEDIA_IMAGE_ZOOM_STEP : 1 / MEDIA_IMAGE_ZOOM_STEP);
+        }, { passive: false });
+
+        stage?.addEventListener?.("pointerdown", (event) => {
+            if (!isImageViewAvailable() || imageViewState.zoom <= MEDIA_IMAGE_MIN_ZOOM) return;
+            if (event.button !== 0 || shouldIgnoreImageGesture(event)) return;
+            imagePanDragState = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                panX: imageViewState.panX,
+                panY: imageViewState.panY,
+            };
+            stage.setPointerCapture?.(event.pointerId);
+            syncImageViewControls();
+            event.preventDefault();
+        });
+
+        stage?.addEventListener?.("pointermove", (event) => {
+            if (!imagePanDragState || imagePanDragState.pointerId !== event.pointerId) return;
+            applyImageViewState({
+                zoom: imageViewState.zoom,
+                panX: imagePanDragState.panX + (event.clientX - imagePanDragState.startX),
+                panY: imagePanDragState.panY + (event.clientY - imagePanDragState.startY),
+            }, { animate: false });
+        });
+
+        const releasePan = (event) => {
+            if (!imagePanDragState || imagePanDragState.pointerId !== event.pointerId) return;
+            stage.releasePointerCapture?.(event.pointerId);
+            imagePanDragState = null;
+            applyImageViewState(imageViewState, { animate: false });
+        };
+
+        stage?.addEventListener?.("pointerup", releasePan);
+        stage?.addEventListener?.("pointercancel", releasePan);
+        syncImageViewControls();
     }
 
     function syncDrilldownFlyoutPlacement() {
@@ -595,17 +794,28 @@ function createMediaBrowserPanelActions({
         const image = getNode("media-browser-image");
         if (isImageLike(image)) {
             if (viewModel.activeItem?.assetUrl) {
-                image.src = viewModel.activeItem.assetUrl;
+                const nextAssetUrl = viewModel.activeItem.assetUrl;
+                if (image.getAttribute?.("src") !== nextAssetUrl) {
+                    image.src = nextAssetUrl;
+                }
                 image.alt = viewModel.activeItem.title || "Mission media";
                 image.hidden = false;
+                if (imageViewAssetUrl !== nextAssetUrl) {
+                    imageViewAssetUrl = nextAssetUrl;
+                    resetImageView({ animate: false });
+                } else {
+                    applyImageViewState(imageViewState, { animate: false });
+                }
                 if (stageEmpty) {
                     stageEmpty.textContent = "";
                     stageEmpty.hidden = true;
                 }
             } else {
+                imageViewAssetUrl = "";
                 image.removeAttribute("src");
                 image.alt = "";
                 image.hidden = true;
+                resetImageView({ animate: false });
                 if (stageEmpty) {
                     stageEmpty.textContent =
                         viewModel.stageEmptyText
@@ -705,6 +915,7 @@ function createMediaBrowserPanelActions({
         }
 
         bindPanelDragging(panel, header);
+        bindImageViewControls();
         if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
@@ -746,6 +957,7 @@ function createMediaBrowserPanelActions({
                     clampPanelPosition(panel);
                 }
                 syncDrilldownFlyoutPlacement();
+                applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             });
             resizeObserver.observe(panel);
@@ -760,6 +972,7 @@ function createMediaBrowserPanelActions({
                     clampPanelPosition(panel);
                 }
                 syncDrilldownFlyoutPlacement();
+                applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             }
         });
@@ -808,4 +1021,7 @@ function createMediaBrowserPanelActions({
 export {
     MEDIA_BROWSER_PANEL_ID,
     createMediaBrowserPanelActions,
+    clampMediaImagePan,
+    createDefaultMediaImageViewState,
+    zoomMediaImageViewState,
 };
