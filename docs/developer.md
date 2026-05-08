@@ -102,6 +102,7 @@ Useful pages:
   - media domain helpers under `src/platform/js/core/domain/media-*.js`
 - The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
 - The current Artemis II media implementation keeps media files remote in the public Artemis Timeline R2 bucket and stores only mirrored metadata locally. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
+- Playable Mission Media items are synchronized with the mission clock: selecting a video or audio clip seeks the mission time, switches animation playback to realtime, starts both media and animation, and pauses animation when the media pauses or ends. Plain animation playback does not auto-start media.
 - `Flyby in Focus` / `Frame and Shoot` now treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft. Its sky controls include `Star Mag` from `-3` to `6`, `Sky Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox.
 
 ## 3) Core Commands

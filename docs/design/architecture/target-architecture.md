@@ -344,7 +344,10 @@ target shape: `data/mission-media.js` loads the optional manifest,
 state, `core/state/runtime-media-state.js` stores mutable media intent,
 `app/media-timeline-coordination.js` coordinates timeline markers and
 panel updates, and `app/media-browser-panel.js` owns DOM/lifecycle
-effects. Keep future audio/video stream work on this same split.
+effects. Discrete video/audio playback is coordinated through the same
+mission-clock owner: selected clips start realtime animation, media
+timeupdates seek the mission timeline, and media pause/end pauses the
+animation. Keep future long-form stream work on this same split.
 
 **`ui/event-handlers.js`** — now mostly delegates to dedicated
 controllers (settings panel, keyboard shortcuts, desktop autohide,

@@ -130,7 +130,8 @@ Example deep dive:
   - `Mission Media`
     - implemented by `src/platform/js/app/media-timeline-coordination.js` and `src/platform/js/app/media-browser-panel.js`
     - gated by `ui.panels.defaults["workflow:media-browser"].enabled`
-    - loads `assets/artemis2/data/media-manifest.json`, renders timeline media markers, and shows a progressive photo panel with filters, nearby media, and details drilldown
+    - loads `assets/artemis2/data/media-manifest.json`, renders timeline media markers, and shows a progressive media panel with filters, nearby media, and details drilldown
+    - supports image pan/zoom plus selected video/audio playback synchronized with realtime mission animation
     - disabled in compare mode because media uses real mission chronology
 
 ## 5) Design Document Map

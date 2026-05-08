@@ -38,15 +38,16 @@ Shipped pieces:
 Current product behavior:
 
 - The panel shows a large current/nearest media preview with minimal visible metadata by default.
-- Filters cover all media, crew captures, exterior media, and camera.
+- Filters cover all media, crew captures, exterior media, cameras, videos, and audio availability.
 - Details are tucked into a drilldown instead of taking permanent horizontal space.
 - Nearby media stays vertically compact.
 - Selecting a reachable media item seeks the mission timeline; out-of-range media can still be selected in panel state.
+- Images support pan/zoom/reset in the panel.
+- Selecting a playable video or audio clip starts that media, switches mission animation to realtime, and keeps the mission clock aligned from media timeupdates. Media pause/end pauses animation. Playing animation alone does not auto-start media; paused playable media exposes start/alignment controls.
 
 Still deferred:
 
 - A full ArtemisLive-style horizontal media scroller inside the panel.
-- Inline audio/video playback in the media browser.
 - Separate synchronized stream panels driven by `mediaStreams[]`.
 - Per-item license/source URL enrichment beyond the currently mirrored upstream metadata.
 
@@ -56,7 +57,8 @@ Asset/provenance details live in
 ## Product Goal
 
 For Artemis II in normal mission mode, the shipped MVP now covers the first
-four goals below. The stream goal remains future work.
+four goals below plus discrete clip playback. The separate stream goal remains
+future work.
 
 1. The runtime can load an authored mission-media manifest.
 2. The timeline can show dense media markers without turning media into
@@ -64,7 +66,8 @@ four goals below. The stream goal remains future work.
 3. A dedicated media workflow panel can show the current or nearby photo at the
    current mission time, plus filters and metadata.
 4. Selecting a media item can seek the mission clock when the target time is
-   inside the animation range.
+   inside the animation range; playable videos/audio also start realtime
+   animation and pause it when media pauses or ends.
 5. Later, one or more built-in video stream panels can play synchronized
    streams in separate panels, all driven by the same mission clock.
 
@@ -399,15 +402,14 @@ Exit condition met:
 - Artemis II can be scrubbed through a synchronized photo experience inside the
   existing mission runtime.
 
-### Phase 3: Richer Discrete Media - partial foundation only
+### Phase 3: Richer Discrete Media - shipped for discrete clips
 
 Goal: widen the manifest and panel model without changing the core shape.
 
-1. Add short `videoClip` and `audioClip` support to `mediaItems`. (Manifest normalization exists; playback is not shipped.)
-2. Extend filter and marker derivation for kind-specific rendering. (Basic kind fields exist; richer rendering remains future.)
-3. Add poster/thumbnail handling and optional inline clip playback inside the
-   media browser panel.
-4. Keep playback coordination mission-clock-aware, even for short clips.
+1. Add short `videoClip` and `audioClip` support to the normalized manifest model. (Shipped.)
+2. Extend filter and marker derivation for kind-specific rendering. (Shipped for discrete images, videos, and audio markers.)
+3. Add poster/thumbnail handling, image pan/zoom/reset, and inline clip playback inside the media browser panel. (Shipped for discrete clips.)
+4. Keep playback coordination mission-clock-aware, even for short clips. (Shipped: selected clips drive realtime animation and pause the clock when media pauses/ends.)
 
 Exit condition:
 
@@ -464,17 +466,19 @@ Deferred stream/playback candidates:
 - targeted UI tests for:
   - media marker rendering (shipped at unit/component level)
   - photo selection (shipped at unit/component level)
+  - video/audio pause/play/seek synchronization (shipped at unit level)
   - pre-ephemeris media behavior
-  - video pause/play/seek synchronization (future)
 
 ## First Slice Status
 
-The recommended first implementation slice has landed:
+The recommended first implementation slice has landed and has been extended to
+cover mixed discrete media:
 
 1. land the media manifest format
 2. ship the pure media core
-3. add a single `workflow:media-browser` photo panel
+3. add a single `workflow:media-browser` media panel
 4. add a separate media marker rail to the existing timeline
+5. add discrete image pan/zoom and video/audio playback synchronized to mission time
 
 That gives us a real Artemis II feature while preserving a clean path to later
-mixed discrete media and synchronized multi-panel video.
+synchronized multi-panel video streams.

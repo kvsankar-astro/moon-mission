@@ -10,6 +10,8 @@ This note documents the current Artemis II media browser asset model. Use it whe
 - Runtime consumes the compiled `assets/artemis2/data/media-manifest.json`.
 - The media browser is enabled by the mission panel config key `workflow:media-browser`.
 - Image and clip preview assets are loaded directly from the public Artemis Timeline R2 bucket recorded in the manifest `mediaBase`.
+- Videos use the upstream `web/*.mp4` asset as the playable source and, when present, a derived `web/<mp4-basename>-poster.jpg` poster.
+- Audio clips use direct remote audio paths from the manifest. Selecting a playable video or audio item aligns the mission timeline to that item, starts realtime animation, and pauses animation when the media pauses or ends.
 - Compare mode intentionally disables the media browser because media timestamps are real mission chronology, not compare-mode aligned time.
 
 ## Source Chain
