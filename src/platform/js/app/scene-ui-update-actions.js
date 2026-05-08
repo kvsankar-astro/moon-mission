@@ -46,10 +46,15 @@ function createSceneUiUpdateActions(deps) {
         sceneActiveEventUiActions.updateActiveEvent(sceneState);
     }
 
+    function dispose() {
+        sceneTelemetryUiActions.dispose?.();
+    }
+
     return {
         updateTelemetry,
         updatePhaseIndicator,
         updateActiveEvent,
+        dispose,
     };
 }
 

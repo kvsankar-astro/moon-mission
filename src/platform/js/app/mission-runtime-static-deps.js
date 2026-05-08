@@ -110,6 +110,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         PIXELS_PER_AU,
         render,
         processOrbitData,
+        setTimelineMediaMarkers,
     } = ctx;
 
     return {
@@ -209,6 +210,7 @@ function buildMissionRuntimeStaticDeps(ctx) {
         clearTimeoutFn: clearTimeout,
         bindRepeatButtons,
         initRepeatButtons,
+        setTimelineMediaMarkers,
     };
 }
 

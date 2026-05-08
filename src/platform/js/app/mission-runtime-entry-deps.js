@@ -112,6 +112,7 @@ function createMissionRuntimeStaticDepsContext(ctx) {
         PIXELS_PER_AU: ctx.pixelsPerAU,
         render: ctx.render,
         processOrbitData: ctx.processOrbitData,
+        setTimelineMediaMarkers: ctx.setTimelineMediaMarkers,
     };
 }
 

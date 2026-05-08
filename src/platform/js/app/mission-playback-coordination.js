@@ -38,6 +38,7 @@ function buildTimelineDockState({
     latestEndTime,
     animTime,
     eventInfos,
+    mediaMarkers = [],
     defaultStepMs,
     maxTimelineStepMs,
     compareMode = false,
@@ -62,6 +63,7 @@ function buildTimelineDockState({
         },
         currentTime: animTime,
         events: eventInfos || [],
+        mediaMarkers: mediaMarkers || [],
         presentation: compareMode
             ? {
                 compareMode: true,
@@ -243,6 +245,7 @@ function createMissionPlaybackUiShell({
     getAnimTime,
     getEventInfos,
     getTimelineEventInfos = getEventInfos,
+    getTimelineMediaMarkers = () => [],
     getIsCompareMode = () => false,
     syncTimelineEventButtons,
     defaultStepMs,
@@ -302,6 +305,7 @@ function createMissionPlaybackUiShell({
             latestEndTime: getLatestEndTime(),
             animTime: getAnimTime(),
             eventInfos: getTimelineEventInfos(),
+            mediaMarkers: getTimelineMediaMarkers(),
             defaultStepMs,
             maxTimelineStepMs,
             compareMode: typeof getIsCompareMode === "function" && getIsCompareMode(),
@@ -316,6 +320,8 @@ function createMissionPlaybackUiShell({
             syncTimelineEventButtons?.(state.events);
             lastTimelineEventsRef = state.events;
         }
+
+        timelineDockController.setMediaMarkers?.(state.mediaMarkers);
 
         timelineDockController.setCrafts(state.crafts);
     }

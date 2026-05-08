@@ -35,6 +35,10 @@ function resolveMissionManifestUrl(dataPath) {
     return resolveDataPathUrl(dataPath, "ephemeris-manifest.json");
 }
 
+function resolveMissionMediaManifestUrl(dataPath) {
+    return resolveDataPathUrl(dataPath, "media-manifest.json");
+}
+
 function extractEphemerisManifest(configData) {
     return configData?.ephemeris_manifest || configData?.ephemerisManifest || null;
 }
@@ -206,6 +210,7 @@ export {
     resolveLandingNpzAssetUrl,
     resolveManifestPhaseArtifactUrl,
     resolveMissionConfigUrl,
+    resolveMissionMediaManifestUrl,
     resolveMissionManifestUrl,
     resolveOrbitMetaAssetUrl,
     resolveOrbitAssetUrls,

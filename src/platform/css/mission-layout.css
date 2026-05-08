@@ -1658,7 +1658,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__track-wrap {
     position: relative;
     min-width: 0;
-    height: 24px;
+    height: 30px;
     display: flex;
     align-items: center;
     touch-action: none;
@@ -1732,6 +1732,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
     position: absolute;
     inset: 0 0 0 0;
     pointer-events: none;
+}
+
+.timeline-dock__markers--media {
+    top: 13px;
 }
 
 .timeline-dock__marker {
@@ -1823,6 +1827,73 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__marker--inactive:focus-visible::before {
     height: 9px;
     background: rgba(137, 151, 176, 0.62);
+}
+
+.timeline-dock__media-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 8px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    cursor: pointer;
+    pointer-events: all;
+}
+
+.timeline-dock__media-marker::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(105, 193, 255, 0.82);
+    box-shadow: 0 0 8px rgba(74, 154, 255, 0.3);
+}
+
+.timeline-dock__media-marker--selected::before {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 215, 115, 0.96);
+    box-shadow: 0 0 12px rgba(255, 191, 74, 0.44);
+}
+
+.timeline-dock__media-marker--videoClip::before {
+    background: rgba(122, 238, 189, 0.88);
+    box-shadow: 0 0 9px rgba(83, 224, 169, 0.34);
+}
+
+.timeline-dock__media-marker--audioClip::before {
+    background: rgba(232, 146, 255, 0.88);
+    box-shadow: 0 0 9px rgba(203, 107, 242, 0.32);
+}
+
+.timeline-dock__media-marker--out-of-range::before {
+    background: rgba(255, 196, 119, 0.88);
+    box-shadow: 0 0 9px rgba(255, 169, 55, 0.34);
+}
+
+.timeline-dock__media-marker:hover::before,
+.timeline-dock__media-marker:focus-visible::before {
+    transform: translateX(-50%) scale(1.2);
+}
+
+.timeline-dock__media-marker:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 1px;
+}
+
+.timeline-dock__media-marker--inactive {
+    cursor: default;
+}
+
+.timeline-dock__media-marker--inactive::before {
+    background: rgba(137, 151, 176, 0.52);
+    box-shadow: none;
 }
 
 .timeline-dock__edge {

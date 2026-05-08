@@ -48,6 +48,10 @@ function createControlPanelTimelineController(deps = {}) {
         return documentRef?.getElementById?.("timeline-markers") || null;
     }
 
+    function getTimelineMediaMarkers() {
+        return documentRef?.getElementById?.("timeline-media-markers") || null;
+    }
+
     function getRootStyle() {
         return documentRef?.documentElement?.style || null;
     }
@@ -141,12 +145,16 @@ function createControlPanelTimelineController(deps = {}) {
         const timelineDock = getTimelineDock();
         const button = getControlPanelToggleButton();
         const markers = getTimelineMarkers();
+        const mediaMarkers = getTimelineMediaMarkers();
         if (!timelineDock || !button) return;
         const nextExpanded = !!expanded;
         const wasExpanded = !timelineDock.classList?.contains?.("timeline-dock--events-collapsed");
         timelineDock.classList?.toggle?.("timeline-dock--events-collapsed", !nextExpanded);
         if (markers) {
             markers.hidden = !nextExpanded;
+        }
+        if (mediaMarkers) {
+            mediaMarkers.hidden = !nextExpanded;
         }
         requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
 

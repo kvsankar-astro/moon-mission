@@ -1,4 +1,5 @@
 import { createGroundTrackPanelActions } from "./ground-track-panel.js";
+import { createMediaTimelineCoordination } from "./media-timeline-coordination.js";
 import {
     buildSceneTelemetryUiState,
     buildTelemetryUnitControlModel,
@@ -18,6 +19,11 @@ function createSceneTelemetryUiActions(deps) {
         d3,
         formatMetric,
         setMobileText,
+        getStartTime = () => Number.NaN,
+        getLatestEndTime = () => Number.NaN,
+        getAnimationRunning = () => false,
+        getIsCompareMode = () => false,
+        setTimelineMediaMarkers = () => {},
         documentRef = document,
         windowRef = window,
     } = deps;
@@ -28,6 +34,13 @@ function createSceneTelemetryUiActions(deps) {
     let sceneStateSnapshot = null;
     let telemetryGlobalConfig = null;
     const groundTrackPanelActions = createGroundTrackPanelActions({ formatMetric });
+    const mediaTimelineCoordination = createMediaTimelineCoordination({
+        getStartTime,
+        getLatestEndTime,
+        getAnimationRunning,
+        getIsCompareMode,
+        setTimelineMediaMarkers,
+    });
 
     function setText(id, text) {
         const node = documentRef.getElementById(id);
@@ -247,11 +260,22 @@ function createSceneTelemetryUiActions(deps) {
             config,
             animTime: Number.isFinite(animTime) ? animTime : Date.now(),
         });
+        mediaTimelineCoordination.update({
+            globalConfig,
+            config,
+            animTime: Number.isFinite(animTime) ? animTime : Date.now(),
+        });
         renderTelemetry();
+    }
+
+    function dispose() {
+        groundTrackPanelActions.dispose?.();
+        mediaTimelineCoordination.dispose?.();
     }
 
     return {
         updateTelemetry,
+        dispose,
     };
 }
 

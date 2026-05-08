@@ -12,6 +12,7 @@ const DEFAULT_MISSION_INTERACTIVE_REGION_SELECTOR = [
     "#canvas-wrapper",
     "#svg-wrapper",
     ".aux-camera-view",
+    "#media-browser-panel",
     "#ground-track-panel",
     "#mobile-shell-nav",
     ".mobile-shell__card",

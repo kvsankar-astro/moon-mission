@@ -45,9 +45,23 @@ function rel(filePath) {
     return path.relative(repoRoot, filePath).replaceAll(path.sep, "/");
 }
 
-function compileMissionConfig(dataDir) {
-    const sourcePath = path.join(dataDir, "config.json5");
-    const targetPath = path.join(dataDir, "config.json");
+const JSON5_SOURCE_TARGETS = [
+    {
+        sourceFileName: "config.json5",
+        targetFileName: "config.json",
+    },
+    {
+        sourceFileName: "media-manifest.json5",
+        targetFileName: "media-manifest.json",
+    },
+];
+
+function compileJson5Artifact(dataDir, {
+    sourceFileName,
+    targetFileName,
+}) {
+    const sourcePath = path.join(dataDir, sourceFileName);
+    const targetPath = path.join(dataDir, targetFileName);
     if (!fs.existsSync(sourcePath)) {
         return {
             status: "skip",
@@ -145,32 +159,34 @@ function main() {
     let checkedCount = 0;
 
     for (const dataDir of dataDirs) {
-        const result = compileMissionConfig(dataDir);
-        if (result.status === "skip") continue;
-        checkedCount += 1;
-        if (result.status === "drift") {
-            driftCount += 1;
-            console.error(`DRIFT: ${result.message}`);
-            continue;
+        for (const artifact of JSON5_SOURCE_TARGETS) {
+            const result = compileJson5Artifact(dataDir, artifact);
+            if (result.status === "skip") continue;
+            checkedCount += 1;
+            if (result.status === "drift") {
+                driftCount += 1;
+                console.error(`DRIFT: ${result.message}`);
+                continue;
+            }
+            if (result.status === "write") {
+                writeCount += 1;
+                console.log(`WRITE: ${result.message}`);
+                continue;
+            }
+            console.log(`OK: ${result.message}`);
         }
-        if (result.status === "write") {
-            writeCount += 1;
-            console.log(`WRITE: ${result.message}`);
-            continue;
-        }
-        console.log(`OK: ${result.message}`);
     }
 
     if (checkOnly) {
-        console.log(`Checked mission configs: ${checkedCount}`);
+        console.log(`Checked JSON5 mission artifacts: ${checkedCount}`);
         if (driftCount > 0) {
-            console.error(`Out-of-sync configs: ${driftCount}`);
+            console.error(`Out-of-sync mission artifacts: ${driftCount}`);
             process.exit(1);
         }
-        console.log("All config.json files are in sync with config.json5 sources.");
+        console.log("All compiled mission artifacts are in sync with their JSON5 sources.");
     } else {
-        console.log(`Checked mission configs: ${checkedCount}`);
-        console.log(`Updated config.json files: ${writeCount}`);
+        console.log(`Checked JSON5 mission artifacts: ${checkedCount}`);
+        console.log(`Updated compiled mission artifacts: ${writeCount}`);
     }
 
     if (lintTimeScale) {

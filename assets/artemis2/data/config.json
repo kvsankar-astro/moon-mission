@@ -128,6 +128,10 @@
           "defaultState": "minimized",
           "layoutPresetVersion": "artemis2-frame-shoot-windowed-v2"
         },
+        "workflow:media-browser": {
+          "enabled": true,
+          "defaultState": "closed"
+        },
         "workflow:splashdown": {
           "enabled": true,
           "defaultState": "closed",

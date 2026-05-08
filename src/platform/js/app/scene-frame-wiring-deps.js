@@ -4,6 +4,11 @@ function createSceneUiUpdateDeps(deps) {
         formatMetric,
         updateEventInfo,
         clearEventInfo,
+        getStartTime,
+        getLatestEndTime,
+        getAnimationRunning,
+        getIsCompareMode,
+        setTimelineMediaMarkers,
     } = deps;
 
     return {
@@ -11,6 +16,11 @@ function createSceneUiUpdateDeps(deps) {
         formatMetric,
         updateEventInfo,
         clearEventInfo,
+        getStartTime,
+        getLatestEndTime,
+        getAnimationRunning,
+        getIsCompareMode,
+        setTimelineMediaMarkers,
     };
 }
 

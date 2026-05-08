@@ -1586,6 +1586,11 @@
                             <option value="all">All Cameras</option>
                         </select>
                     </label>
+                    <details id="media-browser-drilldown" class="media-browser-panel__drilldown">
+                        <summary class="media-browser-panel__drilldown-summary" aria-controls="media-browser-drilldown-body">
+                            <span>Details</span>
+                        </summary>
+                    </details>
                 </div>
                 <div class="media-browser-panel__body">
                     <div class="media-browser-panel__stage">
@@ -1595,37 +1600,45 @@
                         </div>
                         <div id="media-browser-stage-badge" class="media-browser-panel__stage-badge" hidden></div>
                     </div>
-                    <div class="media-browser-panel__details">
+                    <div class="media-browser-panel__summary-card">
                         <div id="media-browser-time" class="media-browser-panel__time">--</div>
                         <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
-                        <div class="media-browser-panel__meta-grid">
-                            <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__primary-meta">
+                            <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--primary">
                                 <div class="media-browser-panel__meta-key">Camera</div>
                                 <div id="media-browser-camera" class="media-browser-panel__meta-value">--</div>
                             </div>
-                            <div class="media-browser-panel__meta-cell">
-                                <div class="media-browser-panel__meta-key">Photographer</div>
-                                <div id="media-browser-photographer" class="media-browser-panel__meta-value">--</div>
-                            </div>
-                            <div class="media-browser-panel__meta-cell">
-                                <div class="media-browser-panel__meta-key">Location</div>
-                                <div id="media-browser-location" class="media-browser-panel__meta-value">--</div>
-                            </div>
-                            <div class="media-browser-panel__meta-cell">
-                                <div class="media-browser-panel__meta-key">Source</div>
-                                <div id="media-browser-source" class="media-browser-panel__meta-value">--</div>
-                            </div>
                         </div>
-                        <p id="media-browser-description" class="media-browser-panel__description">--</p>
-                        <div id="media-browser-timing-note" class="media-browser-panel__timing-note" hidden></div>
-                        <div id="media-browser-seed-note" class="media-browser-panel__seed-note" hidden></div>
                     </div>
                 </div>
-                <div class="media-browser-panel__nearby">
-                    <div class="media-browser-panel__nearby-title">Nearby</div>
+                <details class="media-browser-panel__nearby">
+                    <summary class="media-browser-panel__nearby-title">Nearby</summary>
                     <div id="media-browser-nearby-list" class="media-browser-panel__nearby-list" role="group" aria-label="Nearby mission media"></div>
-                </div>
+                </details>
                 <div id="media-browser-status" class="media-browser-panel__status">Waiting for media manifest...</div>
+            </div>
+            <div id="media-browser-drilldown-body" class="media-browser-panel__drilldown-body" hidden>
+                <div class="media-browser-panel__meta-grid">
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">Timeline</div>
+                        <div id="media-browser-full-time" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">Photographer</div>
+                        <div id="media-browser-photographer" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">Location</div>
+                        <div id="media-browser-location" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">Source</div>
+                        <div id="media-browser-source" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                </div>
+                <p id="media-browser-description" class="media-browser-panel__description">--</p>
+                <div id="media-browser-timing-note" class="media-browser-panel__timing-note" hidden></div>
+                <div id="media-browser-seed-note" class="media-browser-panel__seed-note" hidden></div>
             </div>
         </div>
 

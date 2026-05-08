@@ -372,4 +372,58 @@ describe("createTimelineDockController", () => {
         expect(markers.children[0].className).toContain("timeline-dock__marker--current-event");
         expect(markers.children[0].className).not.toContain("timeline-dock__marker--time-boundary");
     });
+
+    it("renders media markers on a separate rail", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const mediaMarkers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-media-markers") return mediaMarkers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            dispatchEvent() {},
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 100,
+        });
+        controller.setMediaMarkers([
+            {
+                id: "earthrise",
+                startTimeMs: 500,
+                label: "Earthrise",
+                hoverText: "Earthrise • Crew iPhone",
+                mediaKind: "image",
+                selected: true,
+                clickable: true,
+            },
+        ]);
+
+        expect(mediaMarkers.children).toHaveLength(1);
+        expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker");
+        expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker--selected");
+        expect(mediaMarkers.children[0].title).toBe("Earthrise • Crew iPhone");
+    });
 });

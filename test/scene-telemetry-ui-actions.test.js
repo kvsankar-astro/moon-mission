@@ -1,10 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const groundTrackUpdate = vi.fn();
+const groundTrackDispose = vi.fn();
+const mediaTimelineUpdate = vi.fn();
+const mediaTimelineDispose = vi.fn();
 
 vi.mock("../src/platform/js/app/ground-track-panel.js", () => ({
     createGroundTrackPanelActions: vi.fn(() => ({
         update: groundTrackUpdate,
+        dispose: groundTrackDispose,
+    })),
+}));
+
+vi.mock("../src/platform/js/app/media-timeline-coordination.js", () => ({
+    createMediaTimelineCoordination: vi.fn(() => ({
+        update: mediaTimelineUpdate,
+        dispose: mediaTimelineDispose,
     })),
 }));
 
@@ -88,6 +99,9 @@ describe("scene telemetry ui actions", () => {
         originalDocument = globalThis.document;
         originalWindow = globalThis.window;
         groundTrackUpdate.mockReset();
+        groundTrackDispose.mockReset();
+        mediaTimelineUpdate.mockReset();
+        mediaTimelineDispose.mockReset();
     });
 
     afterEach(() => {
@@ -244,6 +258,28 @@ describe("scene telemetry ui actions", () => {
         expect(d3Nodes["#distance-SC-EARTH"].textContent).toBe("10.0");
         expect(ids["mobile-metric-earth"].textContent).toBe("10.0 km");
         expect(groundTrackUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it("disposes ground-track and media coordination helpers", () => {
+        globalThis.document = createDocumentStub({
+            ids: {},
+            distanceNodes: [],
+            speedNodes: [],
+        });
+        globalThis.window = { animationScenes: {} };
+
+        const actions = createSceneTelemetryUiActions({
+            d3: createD3Stub({}),
+            formatMetric: (value) => String(value),
+            setMobileText() {},
+            documentRef: globalThis.document,
+            windowRef: globalThis.window,
+        });
+
+        actions.dispose();
+
+        expect(groundTrackDispose).toHaveBeenCalledTimes(1);
+        expect(mediaTimelineDispose).toHaveBeenCalledTimes(1);
     });
 
     it("switches to compare telemetry cards when a comparison overlay is active", () => {

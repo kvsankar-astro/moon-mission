@@ -8,6 +8,7 @@ const DEFAULT_HOVER_SELECTORS = [
     "#compare-panel",
     "#shortcut-panel",
     ".aux-camera-view",
+    "#media-browser-panel",
     "#ground-track-panel",
     ".panel-manager-menu.is-open",
 ];

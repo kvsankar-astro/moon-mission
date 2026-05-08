@@ -50,6 +50,40 @@ function buildEventSignature(eventInfos) {
         .join(";");
 }
 
+function buildMediaSignature(mediaMarkers) {
+    if (!Array.isArray(mediaMarkers) || mediaMarkers.length === 0) return "";
+    return mediaMarkers
+        .map((marker) => {
+            const timeMs = marker?.startTime instanceof Date
+                ? marker.startTime.getTime()
+                : Number(marker?.startTimeMs);
+            return [
+                marker?.id || "",
+                Number.isFinite(timeMs) ? String(timeMs) : "NaN",
+                marker?.label || "",
+                marker?.hoverText || "",
+                marker?.mediaKind || "",
+                marker?.selected ? "1" : "0",
+                marker?.clickable === false ? "0" : "1",
+                marker?.preEphemeris ? "1" : "0",
+                marker?.postEphemeris ? "1" : "0",
+            ].join("|");
+        })
+        .join(";");
+}
+
+function dispatchDocumentCustomEvent(type, detail) {
+    if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") {
+        return;
+    }
+    if (typeof CustomEvent === "function") {
+        document.dispatchEvent(new CustomEvent(type, { detail }));
+        return;
+    }
+    const event = { type, detail };
+    document.dispatchEvent(event);
+}
+
 function formatComparisonElapsedLabel(timeMs, rangeStartMs) {
     const elapsedMs = Math.max(0, Number(timeMs) - Number(rangeStartMs || 0));
     if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) {
@@ -74,6 +108,7 @@ function createTimelineDockController({
     const dockRoot = document.getElementById("timeline-dock");
     const slider = document.getElementById("timeline-slider");
     const markers = document.getElementById("timeline-markers");
+    const mediaMarkers = document.getElementById("timeline-media-markers");
     const startLabel = document.getElementById("timeline-start-label");
     const endLabel = document.getElementById("timeline-end-label");
     const modeLabel = document.getElementById("timeline-mode-label");
@@ -87,6 +122,7 @@ function createTimelineDockController({
             setRange: () => {},
             setCurrentTime: () => {},
             setEvents: () => {},
+            setMediaMarkers: () => {},
             setCrafts: () => {},
         };
     }
@@ -96,6 +132,7 @@ function createTimelineDockController({
     let lastRangeSignature = "";
     let lastEventSignature = "";
     let currentTimeMs = Number.NaN;
+    let lastMediaSignature = "";
     let isBound = false;
     let currentMode = {
         compareMode: false,
@@ -282,6 +319,46 @@ function createTimelineDockController({
         return marker;
     }
 
+    function renderMediaMarker(markerInfo, index) {
+        const markerTimeMs = markerInfo?.startTime instanceof Date
+            ? markerInfo.startTime.getTime()
+            : Number(markerInfo?.startTimeMs);
+        if (!Number.isFinite(markerTimeMs)) return null;
+
+        const clampedTime = clamp(markerTimeMs, rangeMin, rangeMax);
+        const marker = document.createElement("button");
+        marker.type = "button";
+        const markerClasses = ["timeline-dock__media-marker"];
+        if (markerInfo?.selected) {
+            markerClasses.push("timeline-dock__media-marker--selected");
+        }
+        const mediaKind = String(markerInfo?.mediaKind || "").trim();
+        if (mediaKind) {
+            markerClasses.push(`timeline-dock__media-marker--${mediaKind}`);
+        }
+        if (markerInfo?.preEphemeris || markerInfo?.postEphemeris) {
+            markerClasses.push("timeline-dock__media-marker--out-of-range");
+        }
+        if (markerInfo?.clickable === false) {
+            markerClasses.push("timeline-dock__media-marker--inactive");
+            marker.setAttribute("aria-disabled", "true");
+        }
+        marker.className = markerClasses.join(" ");
+        marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
+        const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
+        marker.title = markerTitle;
+        marker.setAttribute("aria-label", markerTitle);
+        if (markerInfo?.clickable !== false) {
+            marker.addEventListener("click", () => {
+                dispatchDocumentCustomEvent("mission-media-marker-select", {
+                    marker: markerInfo,
+                    index,
+                });
+            });
+        }
+        return marker;
+    }
+
     function setEvents(eventInfos) {
         const normalizedEvents = Array.isArray(eventInfos) ? eventInfos : [];
         const signature = buildEventSignature(normalizedEvents);
@@ -297,6 +374,23 @@ function createTimelineDockController({
             if (marker) markers.appendChild(marker);
         }
         syncMarkerHighlights();
+    }
+
+    function setMediaMarkersFn(nextMediaMarkers) {
+        if (!mediaMarkers) return;
+        const normalizedMediaMarkers = Array.isArray(nextMediaMarkers) ? nextMediaMarkers : [];
+        const signature = buildMediaSignature(normalizedMediaMarkers);
+        if (signature === lastMediaSignature) {
+            return;
+        }
+
+        lastMediaSignature = signature;
+        mediaMarkers.innerHTML = "";
+
+        for (let i = 0; i < normalizedMediaMarkers.length; i += 1) {
+            const marker = renderMediaMarker(normalizedMediaMarkers[i], i);
+            if (marker) mediaMarkers.appendChild(marker);
+        }
     }
 
     function setCrafts(craftInfos) {
@@ -382,6 +476,7 @@ function createTimelineDockController({
         setRange,
         setCurrentTime,
         setEvents,
+        setMediaMarkers: setMediaMarkersFn,
         setCrafts,
     };
 }
