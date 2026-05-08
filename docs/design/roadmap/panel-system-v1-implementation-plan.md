@@ -11,9 +11,10 @@ The following pieces are now in the codebase:
 3. Auxiliary view panels and workflow panels registered into the same lifecycle model.
 4. Shared shell vocabulary across auxiliary panels and `Splashdown in Spotlight`.
 5. Mission-config-driven default built-in panel state via `ui.panels.defaults`.
-6. Workflow panels opening maximized by default on a clean mission layout.
+6. Workflow panels using panel-specific default geometry, including maximized focus workflows and compact resizable workflows.
 7. Default auxiliary panel placement aligned on the right side of the viewport without overlap.
 8. Shared nonlinear `Zoom` / FoV control semantics across the main semantic view and panel views.
+9. Config-gated workflow panels can stay dormant until enabled, as used by Artemis II `Mission Media`.
 
 ## Current Gaps
 
@@ -39,6 +40,7 @@ These are still outstanding:
 - `panel-manager.js` is now effectively a launcher/menu controller, despite the legacy filename.
 - Auxiliary panels and workflow panels still own some content-specific rendering logic, but their shell lifecycle is aligned.
 - Mission defaults currently cover built-in panel availability and default state, not yet arbitrary user-defined panel instances.
+- `Mission Media` is a workflow panel, but its manifest loading and timeline marker coordination are intentionally owned outside the shared panel shell.
 
 ## Verification Approach
 

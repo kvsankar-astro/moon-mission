@@ -5,7 +5,7 @@ refactor planning in `moon-mission`.  It replaces the older split between
 `refactor-audit.md`, earlier revisions of this document, and the
 runtime-refactor sections that used to live in the orbit roadmap.
 
-Grounded in the codebase as of `2026-04-23`.
+Grounded in the codebase as of `2026-05-08`.
 
 The document is in three parts:
 
@@ -44,6 +44,7 @@ Owns:
 - event-time resolution
 - camera and UI transition policy
 - asset and manifest resolution
+- mission media manifest normalization, filtering, selection, and marker derivation
 - frame planning
 - telemetry, phase, and event view-model calculations
 - orbit-style math
@@ -85,6 +86,7 @@ Owns:
 - dimension and origin transitions
 - frame orchestration
 - timeline and event model coordination
+- mission media timeline and workflow-panel coordination
 - orbit-style policy coordination
 - mission data coordination
 
@@ -183,10 +185,10 @@ Not allowed:
 | Page shell | `mission.html`, `mission.js`, `app/mission-app.js`, `ui/event-handlers.js` |
 | Composition and runtime assembly | `app/mission-runtime-root.js`, `app/mission-runtime-root-context.js`, `app/mission-entry-composition.js`, `app/mission-scene-composition.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-runtime-wireup-entry.js`, `app/mission-runtime-entry.js`, `app/mission-runtime-wireup-deps.js`, `app/mission-runtime-entry-deps.js`, `app/mission-wiring-composition.js`, `app/runtime-bootstrap-actions.js`, `app/runtime-bootstrap-deps.js`, `app/mission-state-access.js`, `app/mission-state-cell-groups.js`, `app/mission-legacy-state-bindings.js` |
 | Functional core / planners | `core/domain/*.js`, `core/plans/frame-plan.js`, `scene-state.js`, `data/relative-frame-provider.js`, `app/view-application-plan.js`, `app/scene-frame-plan.js`, `app/startup-animation-plan.js`, pure parts of `app/orbit-trail-style.js` |
-| State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `app/scene-view-state.js` |
-| Application services | `app/init-orchestration.js`, `app/runtime-init.js`, `app/settings-actions.js`, `app/scene-frame-orchestration-actions.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-wiring-composition.js` |
-| Data and integration | `data/mission-data.js`, `data/cached-resource-loader.js`, `data/ephemeris-provider.js`, `chebyshev.js` |
-| Render and UI effects | `shell/render/frame-renderer.js`, `shell/ui/frame-ui-updater.js`, `shell/ui/mission-ui-effects.js`, `shell/time/clock-effects.js`, `rendering/*`, `controllers/*`, mission-specific panels such as `app/auxiliary-camera-views.js` and `app/ground-track-panel.js` |
+| State ports | `core/state/runtime-view-state.js`, `runtime-session-state.js`, `runtime-interaction-state.js`, `runtime-loop-state.js`, `runtime-media-state.js`, `app/scene-view-state.js` |
+| Application services | `app/init-orchestration.js`, `app/runtime-init.js`, `app/settings-actions.js`, `app/scene-frame-orchestration-actions.js`, `app/mission-runtime-handlers-entry.js`, `app/mission-wiring-composition.js`, `app/media-timeline-coordination.js` |
+| Data and integration | `data/mission-data.js`, `data/mission-media.js`, `data/cached-resource-loader.js`, `data/ephemeris-provider.js`, `chebyshev.js` |
+| Render and UI effects | `shell/render/frame-renderer.js`, `shell/ui/frame-ui-updater.js`, `shell/ui/mission-ui-effects.js`, `shell/time/clock-effects.js`, `rendering/*`, `controllers/*`, mission-specific panels such as `app/auxiliary-camera-views.js`, `app/ground-track-panel.js`, and `app/media-browser-panel.js` |
 
 ### Modules that already fit the target style
 
@@ -208,6 +210,9 @@ Treat these as reference examples when extending the codebase.
 - `core/domain/scene-view-state-core.js`
 - `core/domain/scene-telemetry-ui-state.js`
 - `core/domain/control-panel-timeline-state.js`
+- mission media helpers: `media-manifest.js`, `media-filter-state.js`,
+  `media-selection-state.js`, `media-shot-view.js`,
+  `media-stream-sync.js`, `media-timeline-state.js`
 - mobile view-model helpers: `mobile-view-preset-state.js`,
   `mobile-compose-lock-state.js`, `mobile-compose-timeline-state.js`,
   `mobile-compose-controls-state.js`, `mobile-shell-tab-state.js`,
@@ -227,6 +232,7 @@ Treat these as reference examples when extending the codebase.
 - `core/state/runtime-session-state.js`
 - `core/state/runtime-interaction-state.js`
 - `core/state/runtime-loop-state.js`
+- `core/state/runtime-media-state.js`
 
 **Thin shell adapters:**
 
@@ -251,6 +257,7 @@ Treat these as reference examples when extending the codebase.
 - `app/mission-runtime-root.js`, `mission-runtime-root-context.js`
 - `app/mission-entry-composition.js`, `mission-scene-composition.js`
 - `app/mission-legacy-state-bindings.js`
+- `app/media-timeline-coordination.js`
 
 **Focused integration helpers:**
 
@@ -330,6 +337,14 @@ adapters with narrower consumers, not a rebuilt broad controller hub.
 `core/domain/mission-asset-resolver.js`.  Remaining work: keep this file
 focused on runtime loading and mission-specific entrypoints, not a
 landing place for generic loader concerns or data-policy logic.
+
+**Mission Media workflow** — the current implementation follows the
+target shape: `data/mission-media.js` loads the optional manifest,
+`core/domain/media-*.js` normalizes and derives selection/filter/marker
+state, `core/state/runtime-media-state.js` stores mutable media intent,
+`app/media-timeline-coordination.js` coordinates timeline markers and
+panel updates, and `app/media-browser-panel.js` owns DOM/lifecycle
+effects. Keep future audio/video stream work on this same split.
 
 **`ui/event-handlers.js`** — now mostly delegates to dedicated
 controllers (settings panel, keyboard shortcuts, desktop autohide,

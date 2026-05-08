@@ -21,6 +21,7 @@ Design material now lives under `docs/design/`, grouped by purpose:
   - Mission-specific overlay panels where needed. Artemis II currently adds:
     - `Flyby in Focus`
     - `Splashdown in Spotlight`
+    - `Mission Media`
 - `orbit-data.html`: data-source coverage/audit view.
 - `assets-status.html`: runtime asset-size/status view.
 - Supporting standalone pages for focused renderer work:
@@ -65,6 +66,7 @@ Design material now lives under `docs/design/`, grouped by purpose:
 - Some pills launch mission-specific panels instead of only toggling settings state.
   - Artemis II `Flyby` restores the `Flyby in Focus` auxiliary composer panel.
   - Artemis II `Splashdown` opens `Splashdown in Spotlight`.
+  - Artemis II `Mission Media` is available only when `workflow:media-browser` is enabled in mission config.
 - Desktop mission panels are managed through a shared registry, a header `Panels` launcher, and mission-scoped persisted layout state.
 
 ## 3) Core Runtime Concepts
@@ -115,14 +117,21 @@ Example deep dive:
   - `Trail` (track + tail controls and style sidecars)
 - Optional auxiliary camera panels for desktop multi-view workflows.
 - Desktop panels share a common shell language, lifecycle actions, and mission-scoped layout persistence.
-- Artemis II extends that panel system with two higher-level mission workflows:
+- Artemis II extends that panel system with three higher-level mission workflows:
   - `Flyby in Focus`
     - implemented in `src/platform/js/app/auxiliary-camera-views.js`
     - uses the composer-style panel shell and flyby-specific timeline window
+    - keeps the composer camera anchored at Orion; wheel zoom changes FoV only
+    - supports `Star Mag` from `-3` to `6`, sky labels, constellation lines, constellation labels, and default-on clouds
   - `Splashdown in Spotlight`
     - implemented in `src/platform/js/app/ground-track-panel.js`
     - combines a left-hand timeline/event sidebar with either a Leaflet `2D` map or a Three.js `3D` globe
     - highlights the app-generated post-HORIZONS splashdown continuation separately from the public JPL segment
+  - `Mission Media`
+    - implemented by `src/platform/js/app/media-timeline-coordination.js` and `src/platform/js/app/media-browser-panel.js`
+    - gated by `ui.panels.defaults["workflow:media-browser"].enabled`
+    - loads `assets/artemis2/data/media-manifest.json`, renders timeline media markers, and shows a progressive photo panel with filters, nearby media, and details drilldown
+    - disabled in compare mode because media uses real mission chronology
 
 ## 5) Design Document Map
 
@@ -142,6 +151,7 @@ Example deep dive:
 ### Roadmaps and implementation plans
 
 - [Panel System V1 Implementation Plan](roadmap/panel-system-v1-implementation-plan.md)
+- [Artemis II Media Timeline Plan](roadmap/artemis2-media-timeline-plan.md)
 - [Orbit UX Roadmap](roadmap/orbit-ux-and-refactor-roadmap.md)
 - [Real-Size Craft Follow Backlog](roadmap/real-size-craft-follow-backlog.md)
 
@@ -156,10 +166,12 @@ Example deep dive:
 ## 6) Data Boundary Design
 
 App repo (`moon-mission`):
-- runtime code, mission config, UI assets
+- runtime code, mission config, optional media manifests, UI assets
 
 Data repo (`moon-mission-data`):
 - generated orbit artifacts and staged runtime media
+
+Remote third-party media may also be referenced directly by app-owned manifests. Artemis II Mission Media currently uses the public Artemis Timeline R2 bucket rather than committing those photo/video files to either repo.
 
 Design intent: keep runtime code evolution independent from heavy generated asset churn.
 

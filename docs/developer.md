@@ -22,7 +22,7 @@ For the overall docs map, use [docs/README.md](README.md). For system/architectu
 Key paths in this repo:
 - `mission.html`, `index.html`, `orbit-data.html`, `assets-status.html`
 - `src/platform/js/*`, `src/platform/css/*`
-- `assets/*/data/config.json5` (maintainer source) + `assets/*/data/config.json` (runtime compiled), `assets/*/data/ephemeris-manifest.json`
+- `assets/*/data/config.json5` (maintainer source) + `assets/*/data/config.json` (runtime compiled), optional `assets/*/data/media-manifest.json5` + `media-manifest.json`, `assets/*/data/ephemeris-manifest.json`
 - `test/*`
 - `scripts/*`
 
@@ -74,9 +74,10 @@ Useful pages:
 
 ### Artemis II Mission-Specific Panels
 
-- Artemis II currently adds two mission-specific panel surfaces beyond the generic settings/info shell:
+- Artemis II currently adds three mission-specific panel surfaces beyond the generic settings/info shell:
   - `Flyby in Focus`
   - `Splashdown in Spotlight`
+  - `Mission Media`
 - `Flyby in Focus` is implemented as the composer-mode auxiliary panel in `src/platform/js/app/auxiliary-camera-views.js` (`PANEL_SPECS` entry `earth-rise-composer`).
   - It is exposed from the `Flyby` focus pill and the auxiliary panel chip strip.
   - It uses the composer timeline/camera stack tied to the Artemis II lunar flyby window rather than the simpler generic camera panel flow.
@@ -92,7 +93,16 @@ Useful pages:
   - supports `2D` map and `3D` globe modes
   - shows RTC-3-through-splashdown return events and a metrics strip for distance, velocity, altitude, and location
   - marks the post-HORIZONS descent segment as app-generated when the modeled continuation is in view
-- When changing either Artemis II panel, update the panel DOM, panel runtime module, and pill/launcher wiring together. These features are mission-specific enough that code and docs drift easily if only one layer changes.
+- When changing any Artemis II panel, update the panel DOM, panel runtime module, and pill/launcher wiring together. These features are mission-specific enough that code and docs drift easily if only one layer changes.
+- `Mission Media` is a config-gated workflow panel (`workflow:media-browser`) implemented by:
+  - authored metadata in `assets/artemis2/data/media-manifest.json5`
+  - compiled runtime metadata in `assets/artemis2/data/media-manifest.json`
+  - coordination in `src/platform/js/app/media-timeline-coordination.js`
+  - panel rendering/lifecycle in `src/platform/js/app/media-browser-panel.js`
+  - media domain helpers under `src/platform/js/core/domain/media-*.js`
+- The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
+- The current Artemis II media implementation keeps media files remote in the public Artemis Timeline R2 bucket and stores only mirrored metadata locally. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
+- `Flyby in Focus` / `Frame and Shoot` now treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft. Its sky controls include `Star Mag` from `-3` to `6`, `Sky Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox.
 
 ## 3) Core Commands
 
@@ -108,14 +118,15 @@ Useful pages:
 ### Mission config JSON5 workflow
 
 - `npm run configs:bootstrap` - one-time/backfill helper to create `config.json5` from existing `config.json`
-- `npm run configs:compile` - compile all `config.json5` files into runtime `config.json`
-- `npm run configs:check` - sync-only check that compiled `config.json` is in sync with `config.json5`
+- `npm run configs:compile` - compile mission JSON5 artifacts into runtime JSON (`config.json5` -> `config.json`, and optional `media-manifest.json5` -> `media-manifest.json`)
+- `npm run configs:check` - sync-only check that compiled mission JSON artifacts are in sync with their JSON5 sources
 - `npm run configs:lint` - stricter CI/local gate for config sync plus required `time_scale` annotations
 - `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
 
 Pre-commit behavior (when hooks are installed):
 - runs `configs:compile`
 - stages updated `assets/*/data/config.json`
+- does not currently auto-stage compiled `media-manifest.json`; stage media manifest source and compiled output intentionally when media metadata changes
 
 ### Build / Packaging
 
@@ -139,6 +150,8 @@ These belong in `../moon-mission-data`.
 Maintainer/source files that stay in this repo:
 - `assets/*/data/config.json5` - maintainer-edited source with comments
 - `assets/*/data/config.json` - compiled runtime JSON
+- `assets/*/data/media-manifest.json5` - optional maintainer-edited mission media metadata
+- `assets/*/data/media-manifest.json` - optional compiled runtime media metadata
 - `assets/*/data/ephemeris-manifest.json` - mirrored boundary file shared with the data repo
 
 Boundary audit workflow:

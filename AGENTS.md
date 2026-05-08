@@ -9,7 +9,7 @@
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.
 - Mission content: `assets/<mission>/`
-  - `data/` (`config.json5` source + compiled `config.json`, `ephemeris-manifest.json`; staged runtime data may also include `*-cheb.json`, `*-meta.json`, `*-style.json`)
+  - `data/` (`config.json5` source + compiled `config.json`, optional `media-manifest.json5` + compiled `media-manifest.json`, `ephemeris-manifest.json`; staged runtime data may also include `*-cheb.json`, `*-meta.json`, `*-style.json`)
   - `models/`, `images/`, optional `js/`, `html/`
 - Shared media: `images/` (Earth/Moon/sky textures), `third-party/` (vendored libs).
 - Tooling: `scripts/` (Python data/build/deploy utilities).
@@ -17,7 +17,7 @@
 
 ## Data Repo Boundary
 
-- Runtime app code, mission config, and UI assets are worked on in this repo.
+- Runtime app code, mission config, optional mission media manifests, and UI assets are worked on in this repo.
 - Generated ephemeris artifacts such as `*-cheb.json`, `*-cheb.json.gz`, `*.npz`, `*-meta.json`, and authored orbit-style sidecars like `geo-style.json` / `lunar-style.json` are tracked in the sibling repo `../moon-mission-data`, not here.
 - If you regenerate orbit/ephemeris files locally while working in `moon-mission`, sync and commit those generated files in `moon-mission-data`.
 - Do not assume a regenerated file under `assets/<mission>/data/` in this repo is tracked here; verify with `git ls-files` before committing.
@@ -27,8 +27,8 @@
 - `npm install` — install JS dependencies.
 - `npm run dev` — run Vite dev server (default `http://localhost:7274/`).
 - `npm run configs:bootstrap` — create `assets/*/data/config.json5` from existing `config.json` (one-time/backfill utility).
-- `npm run configs:compile` — compile all `config.json5` files into runtime `config.json`.
-- `npm run configs:check` — verify `config.json` files are in sync with `config.json5` (sync-only check).
+- `npm run configs:compile` — compile mission JSON5 artifacts into runtime JSON (`config.json5` and optional `media-manifest.json5`).
+- `npm run configs:check` — verify compiled mission JSON artifacts are in sync with their JSON5 sources (sync-only check).
 - `npm run configs:lint` — verify config sync plus required `time_scale` annotations (matches current CI).
 - `npm run hooks:install` — set `core.hooksPath` to `.githooks` to enable local pre-commit checks.
 - `make test` — recommended UI test run (starts server on `8111`, runs Vitest, stops server).
@@ -72,7 +72,8 @@
 ## Mission Config Workflow
 
 - Edit `assets/<mission>/data/config.json5`, then run `npm run configs:compile`.
-- Keep `config.json` in sync with `config.json5` (`npm run configs:check`).
+- For mission media metadata, edit `assets/<mission>/data/media-manifest.json5`, then run `npm run configs:compile`.
+- Keep compiled runtime JSON in sync with JSON5 sources (`npm run configs:check`).
 - CI enforces the stricter `npm run configs:lint` gate (config sync plus required `time_scale` annotations).
 
 ## CI & Deploy Notes

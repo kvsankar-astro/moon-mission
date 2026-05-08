@@ -54,8 +54,9 @@ These items are still design targets, not current shipped behavior:
 - Current examples:
   - `Flyby in Focus`
   - `Splashdown in Spotlight`
+  - `Mission Media`
 - These use the shared shell, but own specialized internal UI and behavior.
-- On a clean mission layout, workflow panels open maximized by default.
+- Workflow panels may define panel-specific default geometry. High-focus workflows can open maximized, while `Mission Media` defaults closed and opens as a compact resizable panel.
 
 ### 3. `Panels` launcher
 
@@ -130,6 +131,10 @@ Current shape:
           "enabled": true,
           "defaultState": "closed",
           "autoOpenBeforeEvent": true
+        },
+        "workflow:media-browser": {
+          "enabled": true,
+          "defaultState": "closed"
         }
       }
     }
@@ -143,6 +148,7 @@ Rules:
 - If a saved mission layout exists, it wins over config defaults.
 - If no saved layout exists, built-in panel visibility initializes from mission config.
 - Built-in panel availability remains mission-owned rather than hardcoded in generic UI.
+- Config-gated workflow panels should stay dormant when absent or disabled. For example, `workflow:media-browser` should not load a media manifest or render timeline media markers unless enabled.
 
 ## Current Lifecycle Semantics
 
@@ -172,7 +178,7 @@ Rules:
 
 - Panel expands into the usable desktop viewport band.
 - Restoring exits to the previous saved frame.
-- Workflow panels default to this state on a clean layout.
+- Some workflow panels default to this state on a clean layout; others use a panel-specific compact frame.
 
 ## Shared Shell Requirements
 
@@ -267,7 +273,7 @@ On a clean mission load with no saved panel layout:
 - built-in panel lifecycle state comes from mission config
 - auxiliary view panels are placed in a right-aligned, non-overlapping stack
 - if the viewport is too short for a single column, auxiliary defaults wrap into additional columns to the left
-- workflow panels open maximized by default
+- workflow panel geometry follows the mission config plus the panel's preset
 
 Saved layouts override these clean-load defaults.
 
@@ -289,7 +295,8 @@ For current built-in panels, this is enough to identify the panel instance. Futu
 - A mission can define default built-in panel states in config.
 - On first desktop load, built-in panels appear with consistent shared shell styling and behavior.
 - Auxiliary view panels are right-aligned by default without overlap.
-- Workflow panels participate in the same shell model and default to maximized on a clean layout.
+- Workflow panels participate in the same shell model while keeping panel-specific default geometry.
+- Config-gated workflow panels such as `Mission Media` can remain closed by default while still being available from the `Panels` launcher.
 - The user can drag, resize, minimize, expand, close, delete, and restore the currently supported desktop panels consistently.
 - The `Panels` launcher can inspect and reopen the current mission's panels.
 - The app restores the same desktop panel layout when reloading the same mission.

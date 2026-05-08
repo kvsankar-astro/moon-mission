@@ -1,7 +1,8 @@
 {
   "mission_data_root_glob": "assets/*/data/*",
   "app_only_names": [
-    "config.json"
+    "config.json",
+    "media-manifest.json"
   ],
   "app_only_globs": [
     "README*.md"

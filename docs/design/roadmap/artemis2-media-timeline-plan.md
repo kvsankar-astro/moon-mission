@@ -1,6 +1,6 @@
 # Artemis II Media Timeline Plan
 
-> Status: proposed implementation plan for Artemis II mission media features.
+> Status: foundation and photo-browser MVP shipped. This document now records the implemented shape plus the remaining media roadmap.
 
 ## Purpose
 
@@ -21,9 +21,42 @@ That site is an excellent reference for product shape, but this repo already
 has a richer mission-runtime architecture, so the right move is to add a media
 layer that plugs into our existing time, event, and panel seams.
 
+## Implementation Snapshot
+
+Shipped pieces:
+
+- Artemis II declares `workflow:media-browser` in mission config, defaulting to `closed`.
+- The workflow is config-gated and stays dormant unless enabled. Compare mode disables it even when the config enables it.
+- Authored metadata lives in `assets/artemis2/data/media-manifest.json5` and compiles to `assets/artemis2/data/media-manifest.json`.
+- The runtime loads and normalizes the manifest through `src/platform/js/data/mission-media.js` and `src/platform/js/core/domain/media-manifest.js`.
+- Media filters, active/nearby selection, shot view models, stream sync planning, and timeline marker derivation live under `src/platform/js/core/domain/media-*.js`.
+- Mutable media intent lives in `src/platform/js/core/state/runtime-media-state.js`.
+- `src/platform/js/app/media-timeline-coordination.js` coordinates manifest loading, timeline markers, panel rendering, filter changes, and item-selection seeks.
+- `src/platform/js/app/media-browser-panel.js` owns the panel DOM, lifecycle, persisted layout, resizing, filters, nearby strip, compact summary, and details drilldown.
+- `src/platform/js/app/timeline-dock-controller.js` renders a distinct media-marker layer and emits `mission-media-marker-select` when a marker is selected.
+
+Current product behavior:
+
+- The panel shows a large current/nearest media preview with minimal visible metadata by default.
+- Filters cover all media, crew captures, exterior media, and camera.
+- Details are tucked into a drilldown instead of taking permanent horizontal space.
+- Nearby media stays vertically compact.
+- Selecting a reachable media item seeks the mission timeline; out-of-range media can still be selected in panel state.
+
+Still deferred:
+
+- A full ArtemisLive-style horizontal media scroller inside the panel.
+- Inline audio/video playback in the media browser.
+- Separate synchronized stream panels driven by `mediaStreams[]`.
+- Per-item license/source URL enrichment beyond the currently mirrored upstream metadata.
+
+Asset/provenance details live in
+[Artemis II Media Assets](../../operations/artemis2-media-assets.md).
+
 ## Product Goal
 
-For Artemis II in normal mission mode:
+For Artemis II in normal mission mode, the shipped MVP now covers the first
+four goals below. The stream goal remains future work.
 
 1. The runtime can load an authored mission-media manifest.
 2. The timeline can show dense media markers without turning media into
@@ -91,7 +124,7 @@ The shell should own:
 
 ### Mission-authored source files
 
-Add an authored source file in the app repo:
+Use the authored source file in the app repo:
 
 `assets/artemis2/data/media-manifest.json5`
 
@@ -100,7 +133,10 @@ Compile it to:
 `assets/artemis2/data/media-manifest.json`
 
 This matches the existing config workflow and keeps authored metadata in the
-app repo. Large runtime assets should remain staged from `moon-mission-data`.
+app repo. The current Artemis II implementation references remote R2 media
+directly rather than staging the photo/video payload from `moon-mission-data`.
+Large self-hosted runtime assets should still remain staged from
+`moon-mission-data` if we choose to mirror or transform them later.
 
 Recommended staged asset buckets in the data repo:
 
@@ -170,7 +206,7 @@ Recommended fields:
 
 ### Functional core
 
-Add pure modules for normalization and time-based derivation, for example:
+Pure modules for normalization and time-based derivation now include:
 
 - `src/platform/js/core/domain/media-manifest.js`
 - `src/platform/js/core/domain/media-filter-state.js`
@@ -193,7 +229,7 @@ Core responsibilities:
 
 ### State ports
 
-Add a narrow runtime media state port, for example:
+The narrow runtime media state port is:
 
 - `src/platform/js/core/state/runtime-media-state.js`
 
@@ -210,9 +246,12 @@ This state port should not mutate the DOM or media elements directly.
 
 ### Application services
 
-Add a coordination layer, for example:
+Implemented coordination layer:
 
 - `src/platform/js/app/media-timeline-coordination.js`
+
+Deferred stream-oriented service candidates:
+
 - `src/platform/js/app/media-panel-coordination.js`
 - `src/platform/js/app/media-stream-panel-coordination.js`
 
@@ -226,7 +265,11 @@ Service responsibilities:
 
 ### Shell and effects
 
-Add effect-heavy modules for browser work, for example:
+Current browser work lives in:
+
+- `src/platform/js/app/media-browser-panel.js`
+
+Future stream/playback work may add effect-heavy modules such as:
 
 - `src/platform/js/shell/ui/media-panel-effects.js`
 - `src/platform/js/shell/media/media-element-effects.js`
@@ -248,13 +291,14 @@ Introduce one Artemis II workflow panel:
 
 - `workflow:media-browser`
 
-This panel should be built on the shared panel shell and show:
+This panel is built on the shared panel shell and shows:
 
 - current or nearest media item
 - metadata
 - filter controls
-- thumbnail strip or nearby-item list
-- explicit provenance when media time is outside trajectory coverage
+- compact nearby-item list
+- details drilldown for metadata that should not occupy the default layout
+- provenance and seed notes from the manifest where available
 
 ### Later stream panels
 
@@ -278,11 +322,11 @@ Keep the current mission event UI semantics intact:
 - event carousel remains for sparse mission events
 - timeline markers remain the primary semantic event anchors
 
-Add media as a separate dense layer:
+Media is now rendered as a separate dense layer:
 
-- a marker rail, density rail, or clustered strip tied to the same mission time
-- filter-aware coloring or glyphs by media type
-- hover/selection logic routed through media services, not event services
+- a marker rail tied to the same mission time
+- filter-aware marker derivation based on visible media items
+- selection logic routed through media services, not event services
 
 This keeps mission operations readable while still supporting media-heavy
 moments like lunar flyby photography bursts.
@@ -306,7 +350,7 @@ instant.
 
 ## Compare-Mode Scope
 
-Initial media work should be **out of scope** for compare mode.
+Media is currently **out of scope** for compare mode.
 
 Rationale:
 
@@ -314,7 +358,7 @@ Rationale:
 - mission media is tied to a real mission clock and real source chronology
 - forcing media into compare mode would create confusing semantics early
 
-Recommended first rule:
+Current rule:
 
 - media timeline and stream panels are enabled only in standard single-mission
   Artemis II runtime modes
@@ -322,7 +366,7 @@ Recommended first rule:
 
 ## Staged Implementation Plan
 
-### Phase 1: Foundation
+### Phase 1: Foundation - shipped
 
 Goal: land data and derivation seams without large UI risk.
 
@@ -332,12 +376,11 @@ Goal: land data and derivation seams without large UI risk.
 4. Add unit tests for normalization, filtering, availability, and active-item
    resolution.
 
-Exit condition:
+Exit condition met:
 
-- Artemis II can load a normalized media manifest in runtime code without yet
-  rendering a shipped media panel.
+- Artemis II can load a normalized media manifest in runtime code.
 
-### Phase 2: Photo Timeline MVP
+### Phase 2: Photo Timeline MVP - shipped
 
 Goal: ship the first useful user-facing feature with photos only.
 
@@ -351,17 +394,17 @@ Goal: ship the first useful user-facing feature with photos only.
    - camera
 5. Allow photo selection to seek mission time when in range.
 
-Exit condition:
+Exit condition met:
 
 - Artemis II can be scrubbed through a synchronized photo experience inside the
   existing mission runtime.
 
-### Phase 3: Richer Discrete Media
+### Phase 3: Richer Discrete Media - partial foundation only
 
 Goal: widen the manifest and panel model without changing the core shape.
 
-1. Add short `videoClip` and `audioClip` support to `mediaItems`.
-2. Extend filter and marker derivation for kind-specific rendering.
+1. Add short `videoClip` and `audioClip` support to `mediaItems`. (Manifest normalization exists; playback is not shipped.)
+2. Extend filter and marker derivation for kind-specific rendering. (Basic kind fields exist; richer rendering remains future.)
 3. Add poster/thumbnail handling and optional inline clip playback inside the
    media browser panel.
 4. Keep playback coordination mission-clock-aware, even for short clips.
@@ -371,7 +414,7 @@ Exit condition:
 - the media browser can represent mixed discrete media types while still using
   one normalized item model.
 
-### Phase 4: Time-Synced Video Stream Panels
+### Phase 4: Time-Synced Video Stream Panels - future
 
 Goal: add one or more separate synchronized video panels.
 
@@ -390,9 +433,9 @@ Exit condition:
 - two or more Artemis II video streams can run in separate panels and remain
   synchronized to the mission timeline.
 
-## Suggested File/Module Map
+## File/Module Map
 
-Likely additions:
+Implemented additions:
 
 - `assets/artemis2/data/media-manifest.json5`
 - `assets/artemis2/data/media-manifest.json`
@@ -405,30 +448,33 @@ Likely additions:
 - `src/platform/js/data/mission-media.js`
 - `src/platform/js/app/media-timeline-coordination.js`
 - `src/platform/js/app/media-browser-panel.js`
+
+Deferred stream/playback candidates:
+
 - `src/platform/js/app/media-stream-panel.js`
 - `src/platform/js/shell/media/media-element-effects.js`
 - `src/platform/js/shell/media/media-prefetch-effects.js`
 
 ## Verification Plan
 
-- unit tests for core media normalization and filtering
-- unit tests for stream sync planning and drift correction decisions
+- unit tests for core media normalization and filtering (shipped)
+- unit tests for stream sync planning and drift correction decisions (foundation shipped)
 - browser smoke checks on `mission.html?mission=artemis2`
 - panel-state regression checks for open/minimized/closed behavior
 - targeted UI tests for:
-  - media marker rendering
-  - photo selection
+  - media marker rendering (shipped at unit/component level)
+  - photo selection (shipped at unit/component level)
   - pre-ephemeris media behavior
-  - video pause/play/seek synchronization
+  - video pause/play/seek synchronization (future)
 
-## Recommended First Slice
+## First Slice Status
 
-The best first implementation slice is:
+The recommended first implementation slice has landed:
 
 1. land the media manifest format
 2. ship the pure media core
 3. add a single `workflow:media-browser` photo panel
 4. add a separate media marker rail to the existing timeline
 
-That gives us a real Artemis II feature quickly while preserving a clean path
-to later mixed discrete media and synchronized multi-panel video.
+That gives us a real Artemis II feature while preserving a clean path to later
+mixed discrete media and synchronized multi-panel video.

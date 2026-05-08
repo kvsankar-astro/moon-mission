@@ -1,6 +1,6 @@
 # Mission Data Current State
 
-Last updated: 2026-04-16
+Last updated: 2026-05-08
 
 This document captures the **current boundary and operating model** between app code and runtime mission data.
 
@@ -27,6 +27,8 @@ Do not use this document as the step-by-step sync procedure; the playbook is the
 App repo (`moon-mission`) tracks:
 - `assets/*/data/config.json5`
 - `assets/*/data/config.json`
+- optional mission media manifests such as `assets/artemis2/data/media-manifest.json5`
+- compiled mission media manifests such as `assets/artemis2/data/media-manifest.json`
 - `assets/*/data/ephemeris-manifest.json`
 - shared authored content (`assets/mission-briefs.json`, `assets/mission-images.json`)
 - tracked Moon runtime profile images under `images/moon/`
@@ -40,6 +42,11 @@ Data repo (`moon-mission-data`) tracks:
 - `*-meta.json`
 - authored style sidecars (for example `geo-style.json`, `lunar-style.json`)
 - staged runtime media (`images/`, mission screenshots, optional `third-party/`)
+
+Current Artemis II media note:
+- The Mission Media browser stores only metadata in this app repo.
+- The referenced photo/video assets remain remote in the public Artemis Timeline R2 bucket.
+- Source and maintenance details live in [artemis2-media-assets.md](artemis2-media-assets.md).
 
 ## Runtime cadence policy
 
@@ -77,8 +84,9 @@ python scripts/generate-assets-status.py
 
 - This file intentionally avoids static mission-by-mission “done/pending” tables because they drift quickly.
 - Use the status pages and manifests as the live operational view, and keep this document focused on current-state summary rather than detailed procedure.
-- The repo-boundary audit currently treats `config.json5` and a few other maintainer-source files under `assets/*/data/*` as `unknown` for manual review rather than auto-classifying them as app-only. That is expected with the current rules file; review them, but do not treat them as generated-data drift by default.
+- The repo-boundary audit currently treats `config.json5`, `media-manifest.json5`, and a few other maintainer-source files under `assets/*/data/*` as `unknown` for manual review rather than auto-classifying them as app-only. That is expected with the current rules file; review them, but do not treat them as generated-data drift by default.
 - Current CI also runs `npm run configs:lint`, so mission configs now need both compiled-sync correctness and explicit `time_scale` annotations on phase/span/events blocks.
+- `npm run configs:compile` / `configs:check` now cover all supported mission JSON5 artifacts, including optional `media-manifest.json5` files.
 
 ## Slice Extraction Status
 

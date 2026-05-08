@@ -31,7 +31,7 @@ In short:
 - generated runtime artifacts come from `moon-mission-data`
 - `moon-mission` and `moon-mission-data` should stay boundary-clean and manifest-aligned
 
-**Last updated:** 2026-04-15
+**Last updated:** 2026-05-08
 
 ## Ownership Model
 
@@ -42,6 +42,7 @@ Within `assets/<mission>/data/`, files fall into three categories.
 These belong in `moon-mission` and should not be committed to `moon-mission-data`:
 
 - `config.json`
+- `media-manifest.json`
 - `README*.md`
 
 ### Review-needed maintainer source
@@ -49,6 +50,7 @@ These belong in `moon-mission` and should not be committed to `moon-mission-data
 These also belong in `moon-mission`, but the current boundary-audit rules intentionally leave them in the `unknown` bucket so they are reviewed explicitly instead of being auto-classified:
 
 - `config.json5`
+- `media-manifest.json5`
 - `config.ssim.json`
 
 ### Mirrored
@@ -68,6 +70,12 @@ These belong in `moon-mission-data` and should not be tracked in `moon-mission`:
 - `*-style.json`
 - `geo-style.json`
 - `lunar-style.json`
+
+Remote media note:
+
+- The current Artemis II `media-manifest.json` references remote media in the public Artemis Timeline R2 bucket.
+- Those remote photo/video files are not data-repo artifacts unless we intentionally decide to self-host or transform them.
+- See [artemis2-media-assets.md](artemis2-media-assets.md) before mirroring any Artemis II media payload.
 
 ## No-Loss Sync Policy
 
@@ -149,8 +157,9 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
 ### When app code changes but orbit data does not
 
 1. Update `config.json`, mission docs, UI, tests, or catalog files in `moon-mission`.
-2. Re-run the audit.
-3. Confirm there are no new `data-only` files in `moon-mission`.
+2. If media metadata changed, update `media-manifest.json5` and run `npm run configs:compile`.
+3. Re-run the audit.
+4. Confirm there are no new `data-only` files in `moon-mission`.
 
 ### When orbit generation changes
 
@@ -169,6 +178,7 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
    - mission `config.json`
    - mission `config.json5`
    - `ephemeris-manifest.json`
+   - optional `media-manifest.json5` and compiled `media-manifest.json`
    - event and timeline semantics
    - mission-family folder structure
    - landing-page/catalog metadata
@@ -186,9 +196,9 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
 
 ## Current Precise Sync Plan
 
-As of 2026-04-15, use the audit output to work through the boundary in this order:
+As of 2026-05-08, use the audit output to work through the boundary in this order:
 
-1. Treat `config.json5` and `config.json` as app-owned truth in `moon-mission`.
+1. Treat `config.json5`, `config.json`, `media-manifest.json5`, and `media-manifest.json` as app-owned truth in `moon-mission`.
 2. Treat generated orbit payloads, compressed Chebyshev files, NPZ files, metadata, and style sidecars as data-owned truth in `moon-mission-data`.
 3. Keep `ephemeris-manifest.json` mirrored and byte-identical between repos.
 4. Require `geo`, `lunar`, and `relative` compressed coverage for active missions, plus `relative-*.npz`.
