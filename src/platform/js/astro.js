@@ -65,14 +65,17 @@ Date.prototype.getMJD_TDB = function() {
  * Get Julian centuries since J2000 in TDB.
  * Used for astronomical calculations where "T" represents centuries from J2000.
  *
- * Note: Uses 35625.0 to match legacy behavior. Mathematically correct value
- * would be 36525.0 (365.25 days/year × 100 years), but changing it would
- * require recalibrating the lunar pole calculations.
+ * 36525.0 is the standard Julian century (365.25 days/year × 100 years).
+ * The IAU lunar pole formula coefficients (e.g. 0.0031 deg/century for alpha,
+ * 0.0130 for delta — JPL D-32296) assume this convention. The previous
+ * implementation used 35625.0, which made T 2.46% too large; visual impact
+ * was sub-arcsecond on alpha/delta secular drift terms (W is unaffected as
+ * it uses days, not centuries).
  *
  * @returns {number} Julian centuries since J2000 (TDB)
  */
 Date.prototype.getT_TDB = function() {
-    return this.getMJD_TDB() / 35625.0;
+    return this.getMJD_TDB() / 36525.0;
 }
 
 
