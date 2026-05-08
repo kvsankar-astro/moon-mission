@@ -411,16 +411,18 @@ function resolveLightingReferenceBodyState(displayBodies, config, bodyId) {
 function resolveLightingSunState({
     displayBodies,
     time,
-    frameMode,
-    sunFrameMode,
     resolveSunStateAtTime,
 }) {
+    // Returns SUN state in whatever frame the upstream produced (typically
+    // inertial geocentric km from the ephemeris). Frame conversion to a
+    // rotating relative frame is the *caller's* responsibility — see the
+    // post-resolve rotation in computeSceneState. Returning a raw inertial
+    // sunState in relative mode is safe because the caller either rotates it
+    // or drops it; that lets us also use this state for downstream lighting
+    // logic (light-time correction, etc.) once the rotation is applied.
     const resolvedState = resolveBodyStateById(displayBodies, "SUN");
     if (resolvedState?.available) {
         return resolvedState;
-    }
-    if (frameMode === "relative" && sunFrameMode !== "relative") {
-        return null;
     }
     const ephemerisState = resolveSunStateAtTime(time);
     return ephemerisState?.available ? ephemerisState : null;
@@ -648,6 +650,37 @@ export function computeSceneState(time, config, options) {
         config === "geo" &&
         chebyshevData?.[config]?.metadata?.sun_frame === "relative";
 
+    // Frame-conversion helper for inertial vectors -> rotating relative frame.
+    // Returns null when no rotation is possible (no precomputed quaternion AND
+    // the rotating-frame moon state hasn't been derived yet). Lives at this
+    // outer scope so resolveLightingSunState can use it after relativeFrameMoonState
+    // has been populated below.
+    const buildRelativeFrameTransform = () => {
+        if (frameMode !== "relative" || config !== "geo" || sunAlreadyRelative) {
+            return null;
+        }
+        if (frameQuat) {
+            return (vec) => rotateVectorByQuaternion(vec, frameQuat);
+        }
+        if (relativeFrameMoonState?.available) {
+            const r = relativeFrameMoonState.position;
+            const v = {
+                x: relativeFrameMoonState.velocity.vx,
+                y: relativeFrameMoonState.velocity.vy,
+                z: relativeFrameMoonState.velocity.vz,
+            };
+            const xHat = normalize(r);
+            const zHat = normalize(cross(r, v));
+            const yHat = normalize(cross(zHat, xHat));
+            return (vec) => ({
+                x: xHat.x * vec.x + xHat.y * vec.y + xHat.z * vec.z,
+                y: yHat.x * vec.x + yHat.y * vec.y + yHat.z * vec.z,
+                z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
+            });
+        }
+        return null;
+    };
+
     if (frameQuat && !sunAlreadyRelative) {
         fallbackSunDirection = normalize(rotateVectorByQuaternion(fallbackSunDirection, frameQuat));
     }
@@ -687,28 +720,9 @@ export function computeSceneState(time, config, options) {
             relativeFrameMoonState = getBodyEphemerisStateAtNearestAvailableTime(moonArgs);
         }
 
-        if (relativeFrameMoonState?.available) {
-            const r = relativeFrameMoonState.position;
-            const v = {
-                x: relativeFrameMoonState.velocity.vx,
-                y: relativeFrameMoonState.velocity.vy,
-                z: relativeFrameMoonState.velocity.vz,
-            };
-
-            const xHat = normalize(r);
-            const zHat = normalize(cross(r, v));
-            const yHat = normalize(cross(zHat, xHat));
-
-            // Rotation matrix inertial->relative is [xHat yHat zHat]^T
-            const transform = (vec) => ({
-                x: xHat.x * vec.x + xHat.y * vec.y + xHat.z * vec.z,
-                y: yHat.x * vec.x + yHat.y * vec.y + yHat.z * vec.z,
-                z: zHat.x * vec.x + zHat.y * vec.y + zHat.z * vec.z,
-            });
-
-            const relSun = transform(fallbackSunDirection);
-            const relNorm = normalize(relSun);
-            fallbackSunDirection = relNorm;
+        const transform = buildRelativeFrameTransform();
+        if (transform) {
+            fallbackSunDirection = normalize(transform(fallbackSunDirection));
         }
     }
 
@@ -772,16 +786,36 @@ export function computeSceneState(time, config, options) {
         }
     }
 
-    const sunFrameMode = chebyshevData?.[config]?.metadata?.sun_frame || "inertial";
     const earthState = resolveLightingReferenceBodyState(displayBodies, config, "EARTH");
     const moonState = resolveLightingReferenceBodyState(displayBodies, config, "MOON");
-    const sunState = resolveLightingSunState({
+    let sunState = resolveLightingSunState({
         displayBodies,
         time,
-        frameMode,
-        sunFrameMode,
         resolveSunStateAtTime,
     });
+
+    // In relative+geo mode, moonState/earthState positions live in the rotating
+    // Earth-Moon frame, but sunState.position from raw ephemeris lives in the
+    // inertial geocentric frame. Mixing them in directionFromTo() would produce
+    // a hybrid-frame "sun direction" — invalid for lighting the moon material.
+    // Rotate sunState.position through the same relative-frame transform that
+    // fallbackSunDirection went through, unless the sun ephemeris already
+    // declares itself relative-frame (sunAlreadyRelative).
+    if (sunState?.available && frameMode === "relative" && config === "geo" && !sunAlreadyRelative) {
+        const transform = buildRelativeFrameTransform();
+        if (transform) {
+            sunState = {
+                ...sunState,
+                position: transform(sunState.position),
+            };
+        } else {
+            // No rotation available (no frameQuat AND no rotating-frame moon
+            // state). Cannot safely express SUN in the relative frame, so drop
+            // it and let earth/moon centered directions fall back to the
+            // already-rotated fallbackSunDirection below.
+            sunState = null;
+        }
+    }
 
     const earthCenteredSunDirection = (
         sunState?.available && earthState?.available

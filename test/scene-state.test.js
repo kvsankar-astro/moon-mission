@@ -185,7 +185,10 @@ describe("computeSceneState", () => {
             }),
         );
 
-        expect(getBodyEphemerisState).toHaveBeenCalledTimes(2);
+        // SC + MOON (relative-frame basis) + SUN (now fetched in relative mode
+        // for lighting after the resolveLightingSunState gate was removed; the
+        // caller rotates SUN into the rotating frame).
+        expect(getBodyEphemerisState).toHaveBeenCalledTimes(3);
         expect(
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(1);
@@ -333,7 +336,9 @@ describe("computeSceneState", () => {
             }),
         );
 
-        expect(getBodyEphemerisState).toHaveBeenCalledTimes(1);
+        // SC + SUN (now fetched in relative mode for lighting). MOON basis
+        // lookup is skipped because we have precomputed relative-frame data.
+        expect(getBodyEphemerisState).toHaveBeenCalledTimes(2);
         expect(
             getBodyEphemerisState.mock.calls.filter(([args]) => args.bodyId === "MOON"),
         ).toHaveLength(0);
@@ -484,6 +489,55 @@ describe("computeSceneState", () => {
         expect(sceneState.sunDirection.x).toBeCloseTo(0, 12);
         expect(sceneState.sunDirection.y).toBeCloseTo(1, 12);
         expect(sceneState.sunDirection.z).toBeCloseTo(0, 12);
+    });
+
+    it("rotates SUN ephemeris into the relative frame for moonCentered lighting direction", () => {
+        // Regression: previously resolveLightingSunState gated SUN ephemeris
+        // out of relative mode entirely, which masked a latent bug where SUN's
+        // inertial ephemeris position would be paired with the rotating-frame
+        // moonState to produce a hybrid-frame moonCenteredSunDirection. Now
+        // SUN is fetched and rotated into the relative frame so direction
+        // computations stay frame-consistent end-to-end.
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "MOON") {
+                return {
+                    position: { x: 384400, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SUN") {
+                // Inertial-frame Sun position rotated 90deg from the
+                // Earth-Moon axis: y-axis. After the rotating-frame transform
+                // this should map to the +y axis of the relative frame too,
+                // since the Moon is along +x and velocity along +y, making
+                // xHat=(1,0,0), zHat=(0,0,1), yHat=(0,1,0).
+                return {
+                    position: { x: 0, y: 149600000, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            return { position: null, velocity: null, available: false };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC", "MOON"],
+                sunLongitude: 0,
+            }),
+        );
+
+        // moonState in the rotating frame is at +X. SUN rotated to +Y. So
+        // direction from moon to sun in relative frame should point roughly
+        // toward (-1, +1, 0) normalized, i.e. negative x, positive y, zero z.
+        expect(sceneState.sunDirections.moonCentered.x).toBeLessThan(0);
+        expect(sceneState.sunDirections.moonCentered.y).toBeGreaterThan(0);
+        expect(Math.abs(sceneState.sunDirections.moonCentered.z)).toBeLessThan(1e-9);
     });
 
     it("does not rotate sun direction again when relative sun data is already in frame", () => {
