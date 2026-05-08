@@ -96,12 +96,20 @@ function isElementLike(value) {
     return isObjectLike(value) && isObjectLike(value.classList);
 }
 
-function isSelectLike(value) {
-    return isElementLike(value) && typeof value.addEventListener === "function" && "value" in value;
-}
-
 function isImageLike(value) {
     return isElementLike(value) && ("src" in value || typeof value.removeAttribute === "function");
+}
+
+function isVideoLike(value) {
+    return isElementLike(value) && ("src" in value || typeof value.removeAttribute === "function");
+}
+
+function callMediaMethod(mediaElement, methodName) {
+    try {
+        mediaElement?.[methodName]?.();
+    } catch {
+        // jsdom and some browsers can reject media operations before metadata is available.
+    }
 }
 
 function createElement(tagName) {
@@ -143,6 +151,7 @@ function createMediaBrowserPanelActions({
     let imageViewState = createDefaultMediaImageViewState();
     let imagePanDragState = null;
     let imageViewAssetUrl = "";
+    let videoViewAssetUrl = "";
     let filterSignature = "";
     let nearbySignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
@@ -675,10 +684,44 @@ function createMediaBrowserPanelActions({
         persistPanelLayoutState(panel);
     }
 
-    function renderAudienceFilters(filterModel) {
-        const host = getNode("media-browser-audience-filters");
+    function appendFilterSeparator(host) {
+        const separator = createElement("span");
+        if (!separator) return;
+        separator.className = "media-browser-panel__filter-separator";
+        separator.textContent = "|";
+        separator.setAttribute("aria-hidden", "true");
+        host.appendChild(separator);
+    }
+
+    function appendFilterButton(host, option, intentType) {
+        const button = createElement("button");
+        if (!button) return;
+        const count = Number(option?.count);
+        button.type = "button";
+        button.className = option?.active
+            ? "media-browser-panel__filter-button is-active"
+            : "media-browser-panel__filter-button";
+        button.textContent = option?.label || option?.id || "Filter";
+        button.disabled = Number.isFinite(count) && count <= 0 && option?.id !== "all";
+        button.setAttribute("aria-pressed", option?.active ? "true" : "false");
+        button.title = [
+            option?.title,
+            Number.isFinite(count) ? `${count} matching items` : "",
+        ].filter(Boolean).join(" - ");
+        button.addEventListener("click", () => {
+            onIntent?.({ type: intentType, value: option?.id });
+        });
+        host.appendChild(button);
+    }
+
+    function renderMediaFilterControls(filterModel) {
+        const host = getNode("media-browser-filter-bar");
         if (!host) return;
-        const nextSignature = JSON.stringify(filterModel?.audienceOptions || []);
+        const nextSignature = JSON.stringify({
+            quickOptions: filterModel?.quickOptions || [],
+            cameraButtonOptions: filterModel?.cameraButtonOptions || [],
+            videoOption: filterModel?.videoOption || null,
+        });
         if (nextSignature === filterSignature) {
             return;
         }
@@ -689,38 +732,56 @@ function createMediaBrowserPanelActions({
             host.innerHTML = "";
         }
 
-        for (const option of filterModel?.audienceOptions || []) {
-            const button = createElement("button");
-            if (!button) return;
-            button.type = "button";
-            button.className = option.active
-                ? "media-browser-panel__filter-button is-active"
-                : "media-browser-panel__filter-button";
-            button.textContent = `${option.label} (${option.count})`;
-            button.setAttribute("aria-pressed", option.active ? "true" : "false");
-            button.addEventListener("click", () => {
-                onIntent?.({ type: "setAudienceFilter", value: option.id });
-            });
-            host.appendChild(button);
+        const quickOptions = filterModel?.quickOptions || [];
+        quickOptions.forEach((option) => appendFilterButton(host, option, "setQuickFilter"));
+
+        const cameraOptions = filterModel?.cameraButtonOptions || [];
+        if (cameraOptions.length > 0) {
+            appendFilterSeparator(host);
+            cameraOptions.forEach((option) => appendFilterButton(host, option, "toggleCameraFilter"));
+        }
+
+        if (filterModel?.videoOption) {
+            appendFilterSeparator(host);
+            appendFilterButton(host, filterModel.videoOption, "setQuickFilter");
         }
     }
 
-    function renderCameraFilter(filterModel) {
-        const select = getNode("media-browser-camera-filter");
-        if (!isSelectLike(select)) return;
-        const optionSignature = JSON.stringify(filterModel?.cameraOptions || []);
-        if (select.dataset.optionSignature !== optionSignature) {
-            select.innerHTML = "";
-            for (const option of filterModel?.cameraOptions || []) {
-                const element = createElement("option");
-                if (!element) return;
-                element.value = option.id;
-                element.textContent = `${option.label} (${option.count})`;
-                select.appendChild(element);
-            }
-            select.dataset.optionSignature = optionSignature;
+    function syncAudioControls(audioModel = {}) {
+        const button = getNode("media-browser-audio-toggle");
+        const now = getNode("media-browser-audio-now");
+        const available = audioModel.available === true;
+        const enabled = available && audioModel.enabled === true;
+        if (isElementLike(button)) {
+            button.disabled = !available;
+            button.classList.toggle("is-active", enabled);
+            button.setAttribute("aria-pressed", enabled ? "true" : "false");
+            button.title = available
+                ? (enabled ? "Pause mission audio" : "Play mission audio")
+                : "No mission audio clips are available";
         }
-        select.value = filterModel?.cameraId || "all";
+        if (now) {
+            now.textContent = enabled ? String(audioModel.nowLabel || "") : "";
+            now.title = now.textContent;
+        }
+    }
+
+    function syncPlaybackActions(playbackModel = {}) {
+        const actions = getNode("media-browser-playback-actions");
+        const startButton = getNode("media-browser-playback-start");
+        const restartButton = getNode("media-browser-playback-restart");
+        const show = playbackModel.showStartOptions === true;
+        if (actions) {
+            actions.hidden = !show;
+        }
+        if (startButton) {
+            startButton.disabled = !show;
+            startButton.title = playbackModel.startTitle || "Start media from the current mission time";
+        }
+        if (restartButton) {
+            restartButton.disabled = !show;
+            restartButton.title = playbackModel.restartTitle || "Start media from its beginning";
+        }
     }
 
     function renderNearbyItems(nearbyItems) {
@@ -791,14 +852,51 @@ function createMediaBrowserPanelActions({
         setHidden("media-browser-stage-badge", !viewModel.activeItem?.stageBadge);
 
         const stageEmpty = getNode("media-browser-stage-empty");
+        const video = getNode("media-browser-video");
         const image = getNode("media-browser-image");
+        const activeItem = viewModel.activeItem || null;
+        const hasVideo = activeItem?.kind === "videoClip" && !!activeItem.videoAssetUrl;
+        const hasImage = !hasVideo && !!activeItem?.assetUrl;
+
+        if (isVideoLike(video)) {
+            if (hasVideo) {
+                const nextVideoUrl = activeItem.videoAssetUrl;
+                if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
+                    videoViewAssetUrl = nextVideoUrl;
+                    video.src = nextVideoUrl;
+                    callMediaMethod(video, "load");
+                }
+                if (activeItem.posterAssetUrl) {
+                    video.poster = activeItem.posterAssetUrl;
+                } else {
+                    video.removeAttribute?.("poster");
+                }
+                if (video.dataset) {
+                    video.dataset.mediaItemId = activeItem.id || "";
+                }
+                video.hidden = false;
+            } else {
+                if (videoViewAssetUrl) {
+                    callMediaMethod(video, "pause");
+                    video.removeAttribute?.("src");
+                    video.removeAttribute?.("poster");
+                    callMediaMethod(video, "load");
+                }
+                videoViewAssetUrl = "";
+                if (video.dataset) {
+                    video.dataset.mediaItemId = "";
+                }
+                video.hidden = true;
+            }
+        }
+
         if (isImageLike(image)) {
-            if (viewModel.activeItem?.assetUrl) {
-                const nextAssetUrl = viewModel.activeItem.assetUrl;
+            if (hasImage) {
+                const nextAssetUrl = activeItem.assetUrl;
                 if (image.getAttribute?.("src") !== nextAssetUrl) {
                     image.src = nextAssetUrl;
                 }
-                image.alt = viewModel.activeItem.title || "Mission media";
+                image.alt = activeItem.title || "Mission media";
                 image.hidden = false;
                 if (imageViewAssetUrl !== nextAssetUrl) {
                     imageViewAssetUrl = nextAssetUrl;
@@ -806,28 +904,31 @@ function createMediaBrowserPanelActions({
                 } else {
                     applyImageViewState(imageViewState, { animate: false });
                 }
-                if (stageEmpty) {
-                    stageEmpty.textContent = "";
-                    stageEmpty.hidden = true;
-                }
             } else {
                 imageViewAssetUrl = "";
                 image.removeAttribute("src");
                 image.alt = "";
                 image.hidden = true;
                 resetImageView({ animate: false });
-                if (stageEmpty) {
-                    stageEmpty.textContent =
-                        viewModel.stageEmptyText
-                        || viewModel.emptyText
-                        || "No media preview available.";
-                    stageEmpty.hidden = false;
-                }
             }
         }
 
-        renderAudienceFilters(viewModel.filterModel || {});
-        renderCameraFilter(viewModel.filterModel || {});
+        if (stageEmpty) {
+            if (hasVideo || hasImage) {
+                stageEmpty.textContent = "";
+                stageEmpty.hidden = true;
+            } else {
+                stageEmpty.textContent =
+                    viewModel.stageEmptyText
+                    || viewModel.emptyText
+                    || "No media preview available.";
+                stageEmpty.hidden = false;
+            }
+        }
+
+        renderMediaFilterControls(viewModel.filterModel || {});
+        syncAudioControls(viewModel.audioModel || {});
+        syncPlaybackActions(viewModel.playbackModel || {});
         renderNearbyItems(viewModel.nearbyItems || []);
         syncDrilldownFlyoutPlacement();
         syncPanelRegistry();
@@ -933,12 +1034,38 @@ function createMediaBrowserPanelActions({
         closeButton?.addEventListener("click", () => setPanelState("closed"));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());
 
-        const cameraFilter = getNode("media-browser-camera-filter");
-        if (isSelectLike(cameraFilter)) {
-            cameraFilter.addEventListener("change", () => {
-                onIntent?.({ type: "setCameraFilter", value: cameraFilter.value });
+        getNode("media-browser-audio-toggle")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "toggleAudio" });
+        });
+
+        getNode("media-browser-playback-start")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "startActiveMedia" });
+        });
+
+        getNode("media-browser-playback-restart")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "startActiveMediaFromBeginning" });
+        });
+
+        const video = getNode("media-browser-video");
+        const getVideoItemId = () => String(video?.dataset?.mediaItemId || "").trim();
+        video?.addEventListener?.("play", () => {
+            onIntent?.({ type: "mediaPlaybackStarted", value: getVideoItemId(), mediaKind: "videoClip" });
+        });
+        video?.addEventListener?.("pause", () => {
+            if (video?.ended === true) return;
+            onIntent?.({ type: "mediaPlaybackPaused", value: getVideoItemId(), mediaKind: "videoClip" });
+        });
+        video?.addEventListener?.("ended", () => {
+            onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip" });
+        });
+        video?.addEventListener?.("timeupdate", () => {
+            onIntent?.({
+                type: "mediaPlaybackTimeUpdate",
+                value: getVideoItemId(),
+                mediaKind: "videoClip",
+                currentTime: Number(video?.currentTime),
             });
-        }
+        });
 
         const drilldown = getNode("media-browser-drilldown");
         drilldown?.addEventListener?.("toggle", () => {

@@ -8,6 +8,9 @@ function createSceneUiUpdateDeps(deps) {
         getLatestEndTime,
         getAnimationRunning,
         getIsCompareMode,
+        playAnimation,
+        pauseAnimation,
+        setRealtimeSpeed,
         setTimelineMediaMarkers,
     } = deps;
 
@@ -20,6 +23,9 @@ function createSceneUiUpdateDeps(deps) {
         getLatestEndTime,
         getAnimationRunning,
         getIsCompareMode,
+        playAnimation,
+        pauseAnimation,
+        setRealtimeSpeed,
         setTimelineMediaMarkers,
     };
 }

@@ -1575,28 +1575,61 @@
                 </div>
                 <div class="media-browser-panel__toolbar">
                     <div
-                        id="media-browser-audience-filters"
+                        id="media-browser-filter-bar"
                         class="media-browser-panel__filter-group"
                         role="group"
                         aria-label="Media filters"
                     ></div>
-                    <label class="media-browser-panel__camera-filter-wrap" for="media-browser-camera-filter">
-                        Camera
-                        <select id="media-browser-camera-filter" class="media-browser-panel__camera-filter">
-                            <option value="all">All Cameras</option>
-                        </select>
-                    </label>
-                    <details id="media-browser-drilldown" class="media-browser-panel__drilldown">
-                        <summary class="media-browser-panel__drilldown-summary" aria-controls="media-browser-drilldown-body">
-                            <span>Details</span>
-                        </summary>
-                    </details>
+                    <div class="media-browser-panel__toolbar-actions">
+                        <button
+                            id="media-browser-audio-toggle"
+                            class="media-browser-panel__filter-button media-browser-panel__audio-toggle"
+                            type="button"
+                            aria-pressed="false"
+                            title="Play mission audio"
+                        >
+                            <span class="media-browser-panel__audio-checkbox" aria-hidden="true"></span>
+                            <span>Play Audio</span>
+                        </button>
+                        <span id="media-browser-audio-now" class="media-browser-panel__audio-now"></span>
+                        <details id="media-browser-drilldown" class="media-browser-panel__drilldown">
+                            <summary class="media-browser-panel__drilldown-summary" aria-controls="media-browser-drilldown-body">
+                                <span>Details</span>
+                            </summary>
+                        </details>
+                    </div>
                 </div>
                 <div class="media-browser-panel__body">
                     <div id="media-browser-stage" class="media-browser-panel__stage">
+                        <video
+                            id="media-browser-video"
+                            class="media-browser-panel__video"
+                            controls
+                            playsinline
+                            preload="metadata"
+                            hidden
+                        ></video>
                         <img id="media-browser-image" class="media-browser-panel__image" alt="" hidden>
                         <div id="media-browser-stage-empty" class="media-browser-panel__stage-empty">
                             Waiting for media manifest...
+                        </div>
+                        <div
+                            id="media-browser-playback-actions"
+                            class="media-browser-panel__playback-actions"
+                            role="group"
+                            aria-label="Media playback alignment"
+                            hidden
+                        >
+                            <button
+                                id="media-browser-playback-start"
+                                class="media-browser-panel__playback-button"
+                                type="button"
+                            >Start</button>
+                            <button
+                                id="media-browser-playback-restart"
+                                class="media-browser-panel__playback-button"
+                                type="button"
+                            >From Beginning</button>
                         </div>
                         <div
                             id="media-browser-image-controls"

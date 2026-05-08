@@ -638,12 +638,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__toolbar {
     position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    align-items: center;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 8px;
     box-sizing: border-box;
-    min-height: 50px;
-    padding: 9px 12px;
+    min-height: 44px;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(152, 186, 236, 0.14);
     background: rgba(11, 19, 31, 0.48);
     overflow: visible;
@@ -659,41 +659,87 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__filter-button {
     border: 1px solid rgba(120, 166, 231, 0.22);
-    border-radius: 999px;
+    border-radius: 4px;
     background: rgba(18, 29, 45, 0.7);
     color: rgba(220, 233, 251, 0.86);
-    font-size: 11px;
+    min-height: 22px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.03em;
-    padding: 6px 10px;
+    line-height: 1;
+    padding: 0 9px;
     cursor: pointer;
+    text-transform: none;
 }
 
 .media-browser-panel__filter-button.is-active {
-    background: linear-gradient(135deg, rgba(95, 170, 255, 0.24), rgba(73, 232, 219, 0.18));
+    background: rgba(57, 78, 190, 0.62);
     border-color: rgba(112, 190, 255, 0.55);
     color: rgba(240, 247, 255, 0.98);
 }
 
-.media-browser-panel__camera-filter-wrap {
+.media-browser-panel__filter-button:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.media-browser-panel__filter-separator {
+    color: rgba(132, 151, 183, 0.42);
+    font-size: 10px;
+    line-height: 22px;
+    margin: 0 4px;
+    user-select: none;
+}
+
+.media-browser-panel__toolbar-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: rgba(187, 208, 238, 0.82);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    justify-content: flex-end;
+    gap: 7px;
+    min-width: 0;
+}
+
+.media-browser-panel__audio-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
     text-transform: uppercase;
 }
 
-.media-browser-panel__camera-filter {
-    border: 1px solid rgba(122, 166, 232, 0.26);
-    border-radius: 8px;
-    background: rgba(14, 22, 36, 0.86);
-    color: rgba(231, 239, 252, 0.96);
-    padding: 6px 10px;
-    font-size: 12px;
-    min-width: 160px;
+.media-browser-panel__audio-checkbox {
+    position: relative;
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(180, 204, 238, 0.62);
+    border-radius: 2px;
+    background: rgba(4, 9, 18, 0.6);
+}
+
+.media-browser-panel__audio-toggle.is-active .media-browser-panel__audio-checkbox::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 0;
+    width: 3px;
+    height: 6px;
+    border-right: 2px solid rgba(242, 249, 255, 0.98);
+    border-bottom: 2px solid rgba(242, 249, 255, 0.98);
+    transform: rotate(45deg);
+}
+
+.media-browser-panel__audio-now {
+    display: block;
+    max-width: 160px;
+    min-width: 0;
+    color: rgba(183, 199, 224, 0.76);
+    font-size: 10px;
+    font-style: italic;
+    line-height: 22px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .media-browser-panel__body {
@@ -737,6 +783,19 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     transition: transform 0.12s ease-out;
     user-select: none;
     will-change: transform;
+}
+
+.media-browser-panel__video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    background: #000;
+}
+
+.media-browser-panel__video[hidden] {
+    display: none;
 }
 
 .media-browser-panel__image-controls {
@@ -785,6 +844,44 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     font-size: 13px;
     line-height: 1.45;
     text-align: center;
+}
+
+.media-browser-panel__playback-actions {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px;
+    border: 1px solid rgba(121, 171, 255, 0.2);
+    border-radius: 999px;
+    background: rgba(7, 12, 21, 0.72);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(8px);
+}
+
+.media-browser-panel__playback-actions[hidden] {
+    display: none;
+}
+
+.media-browser-panel__playback-button {
+    border: 1px solid rgba(120, 166, 231, 0.24);
+    border-radius: 999px;
+    background: rgba(18, 29, 45, 0.82);
+    color: rgba(235, 244, 255, 0.94);
+    min-height: 24px;
+    padding: 0 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+}
+
+.media-browser-panel__playback-button:hover {
+    border-color: rgba(112, 190, 255, 0.58);
+    background: rgba(34, 54, 82, 0.9);
 }
 
 .media-browser-panel__stage-badge {

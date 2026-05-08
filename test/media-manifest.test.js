@@ -90,6 +90,14 @@ describe("normalizeMissionMediaManifest", () => {
                     enabled: true,
                 },
             ],
+            audio: [
+                {
+                    time: "2026-04-06 18:58:45",
+                    file: "audio/artemis-ii-closest-point-to-moon.wav",
+                    desc: "Closest approach to Moon",
+                    enabled: true,
+                },
+            ],
         }, {
             dataPath: "assets/artemis2/data",
         });
@@ -108,6 +116,13 @@ describe("normalizeMissionMediaManifest", () => {
         expect(manifest.mediaItems[1].crewCaptured).toBe(true);
         expect(manifest.mediaItems[1].posterAssetUrl).toBe(
             "https://pub-example.r2.dev/web/ig-earthset-wiseman-poster.jpg",
+        );
+        expect(manifest.mediaItems[1].batch).toBe(0);
+
+        expect(manifest.audioItems).toHaveLength(1);
+        expect(manifest.audioItems[0].startTimeMs).toBe(Date.parse("2026-04-06T22:58:45Z"));
+        expect(manifest.audioItems[0].assetUrl).toBe(
+            "https://pub-example.r2.dev/audio/artemis-ii-closest-point-to-moon.wav",
         );
     });
 });

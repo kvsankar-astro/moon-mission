@@ -23,6 +23,9 @@ function createSceneTelemetryUiActions(deps) {
         getLatestEndTime = () => Number.NaN,
         getAnimationRunning = () => false,
         getIsCompareMode = () => false,
+        playAnimation = () => {},
+        pauseAnimation = () => {},
+        setRealtimeSpeed = () => {},
         setTimelineMediaMarkers = () => {},
         documentRef = document,
         windowRef = window,
@@ -39,6 +42,9 @@ function createSceneTelemetryUiActions(deps) {
         getLatestEndTime,
         getAnimationRunning,
         getIsCompareMode,
+        playAnimation,
+        pauseAnimation,
+        setRealtimeSpeed,
         setTimelineMediaMarkers,
     });
 

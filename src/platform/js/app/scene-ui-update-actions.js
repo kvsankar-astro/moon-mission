@@ -8,6 +8,14 @@ function createSceneUiUpdateActions(deps) {
         formatMetric,
         updateEventInfo,
         clearEventInfo,
+        getStartTime,
+        getLatestEndTime,
+        getAnimationRunning,
+        getIsCompareMode,
+        playAnimation,
+        pauseAnimation,
+        setRealtimeSpeed,
+        setTimelineMediaMarkers,
     } = deps;
 
     function setMobileText(id, text) {
@@ -20,6 +28,14 @@ function createSceneUiUpdateActions(deps) {
         d3,
         formatMetric,
         setMobileText,
+        getStartTime,
+        getLatestEndTime,
+        getAnimationRunning,
+        getIsCompareMode,
+        playAnimation,
+        pauseAnimation,
+        setRealtimeSpeed,
+        setTimelineMediaMarkers,
     });
 
     const scenePhaseUiActions = createScenePhaseUiActions({
