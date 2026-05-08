@@ -21,6 +21,9 @@ describe("StarRenderer", () => {
         renderer.setParams({ magnitudeLimit: 4.2 });
         expect(renderer.uniforms.uMagnitudeLimit.value).toBeCloseTo(4.2);
 
+        renderer.setParams({ magnitudeLimit: -3 });
+        expect(renderer.uniforms.uMagnitudeLimit.value).toBe(-3);
+
         renderer.setParameters({ magnitude_limit: 99 });
         expect(renderer.uniforms.uMagnitudeLimit.value).toBe(8);
     });

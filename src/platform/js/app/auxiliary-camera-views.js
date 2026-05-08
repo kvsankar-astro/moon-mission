@@ -157,13 +157,14 @@ const COMPOSER_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
 const COMPOSER_CAMERA_EXPOSURE = 0.98;
 const COMPOSER_CAMERA_SKY_STARMAP_OPACITY_CAP = 0.03;
 const COMPOSER_CAMERA_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
+const COMPOSER_CONSTELLATION_LINES_OPACITY_CAP = 0.06;
 const COMPOSER_OPTICS_STRENGTH_MIN = 0;
 const COMPOSER_OPTICS_STRENGTH_MAX = 2.4;
 const COMPOSER_OPTICS_STRENGTH_DEFAULT = 1.0;
 const COMPOSER_OPTICS_ADVANCED_MIN = 0;
 const COMPOSER_OPTICS_ADVANCED_MAX = 2.5;
 const COMPOSER_OPTICS_ADVANCED_DEFAULT = 1.0;
-const COMPOSER_STAR_MAGNITUDE_MIN = 3;
+const COMPOSER_STAR_MAGNITUDE_MIN = -3;
 const COMPOSER_STAR_MAGNITUDE_MAX = 6;
 const COMPOSER_STAR_MAGNITUDE_DEFAULT = 6;
 const COMPOSER_RA_DEC_GRID_RA_STEP_DEG = 30;
@@ -171,6 +172,45 @@ const COMPOSER_RA_DEC_GRID_DEC_STEP_DEG = 15;
 const COMPOSER_SKY_LABEL_VISIBLE_FRACTION = 0.2;
 const COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT = 36;
 const COMPOSER_SKY_LABEL_EDGE_MARGIN_PX = 10;
+const COMPOSER_CONSTELLATION_LABELS = Object.freeze([
+    { name: "Andromeda", raDeg: 10.5, decDeg: 37 },
+    { name: "Aquila", raDeg: 295.5, decDeg: 5 },
+    { name: "Aquarius", raDeg: 336, decDeg: -10 },
+    { name: "Aries", raDeg: 37.5, decDeg: 20 },
+    { name: "Auriga", raDeg: 87, decDeg: 40 },
+    { name: "Bootes", raDeg: 217.5, decDeg: 30 },
+    { name: "Cancer", raDeg: 130.5, decDeg: 20 },
+    { name: "Canis Major", raDeg: 101.25, decDeg: -25 },
+    { name: "Canis Minor", raDeg: 112.5, decDeg: 5 },
+    { name: "Capricornus", raDeg: 315, decDeg: -20 },
+    { name: "Carina", raDeg: 130.5, decDeg: -60 },
+    { name: "Cassiopeia", raDeg: 15, decDeg: 60 },
+    { name: "Centaurus", raDeg: 198.75, decDeg: -47 },
+    { name: "Corona Borealis", raDeg: 237, decDeg: 30 },
+    { name: "Corvus", raDeg: 186, decDeg: -18 },
+    { name: "Crater", raDeg: 171, decDeg: -15 },
+    { name: "Crux", raDeg: 187.5, decDeg: -60 },
+    { name: "Cygnus", raDeg: 307.5, decDeg: 40 },
+    { name: "Draco", raDeg: 262.5, decDeg: 65 },
+    { name: "Gemini", raDeg: 105, decDeg: 25 },
+    { name: "Hydra", raDeg: 157.5, decDeg: -20 },
+    { name: "Leo", raDeg: 157.5, decDeg: 15 },
+    { name: "Libra", raDeg: 228, decDeg: -15 },
+    { name: "Lyra", raDeg: 282, decDeg: 35 },
+    { name: "Ophiuchus", raDeg: 258, decDeg: -5 },
+    { name: "Orion", raDeg: 84, decDeg: 0 },
+    { name: "Pegasus", raDeg: 337.5, decDeg: 20 },
+    { name: "Perseus", raDeg: 49.5, decDeg: 45 },
+    { name: "Pisces", raDeg: 7.5, decDeg: 10 },
+    { name: "Sagittarius", raDeg: 285, decDeg: -25 },
+    { name: "Scorpius", raDeg: 247.5, decDeg: -30 },
+    { name: "Taurus", raDeg: 67.5, decDeg: 18 },
+    { name: "Triangulum", raDeg: 30, decDeg: 30 },
+    { name: "Ursa Major", raDeg: 165, decDeg: 55 },
+    { name: "Ursa Minor", raDeg: 225, decDeg: 75 },
+    { name: "Vela", raDeg: 142.5, decDeg: -45 },
+    { name: "Virgo", raDeg: 198, decDeg: 0 },
+]);
 const COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION = 0.5;
 const KM_TO_MILES = 0.621371192237334;
 const FLYBY_EVENT_PILL_SPECS = Object.freeze([
@@ -1729,7 +1769,12 @@ class AuxiliaryCameraViewsManager {
         let composerRaDecGridCheckbox = null;
         let composerSkyLabelsWrap = null;
         let composerSkyLabelsCheckbox = null;
-        let composerCloudsButton = null;
+        let composerConstellationLinesWrap = null;
+        let composerConstellationLinesCheckbox = null;
+        let composerConstellationLabelsWrap = null;
+        let composerConstellationLabelsCheckbox = null;
+        let composerCloudsWrap = null;
+        let composerCloudsCheckbox = null;
         let composerStarMagnitudeSlider = null;
         let composerStarMagnitudeValue = null;
         let composerHint = null;
@@ -1788,12 +1833,43 @@ class AuxiliaryCameraViewsManager {
             composerSkyLabelsWrap.appendChild(composerSkyLabelsCheckbox);
             composerSkyLabelsWrap.appendChild(composerSkyLabelsText);
             composerInfoToggles.appendChild(composerSkyLabelsWrap);
-            composerCloudsButton = document.createElement("button");
-            composerCloudsButton.type = "button";
-            composerCloudsButton.className = "aux-camera-view__composer-pill";
-            composerCloudsButton.setAttribute("aria-label", "Toggle Earth cloud cover");
-            composerCloudsButton.dataset.proofId = "clouds-toggle";
-            composerInfoToggles.appendChild(composerCloudsButton);
+
+            composerConstellationLinesWrap = document.createElement("label");
+            composerConstellationLinesWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerConstellationLinesCheckbox = document.createElement("input");
+            composerConstellationLinesCheckbox.type = "checkbox";
+            composerConstellationLinesCheckbox.setAttribute("aria-label", "Toggle composer constellation lines");
+            composerConstellationLinesCheckbox.dataset.proofId = "constellation-lines-toggle";
+            const composerConstellationLinesText = document.createElement("span");
+            composerConstellationLinesText.textContent = "Constellations";
+            composerConstellationLinesWrap.appendChild(composerConstellationLinesCheckbox);
+            composerConstellationLinesWrap.appendChild(composerConstellationLinesText);
+            composerInfoToggles.appendChild(composerConstellationLinesWrap);
+
+            composerConstellationLabelsWrap = document.createElement("label");
+            composerConstellationLabelsWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerConstellationLabelsCheckbox = document.createElement("input");
+            composerConstellationLabelsCheckbox.type = "checkbox";
+            composerConstellationLabelsCheckbox.setAttribute("aria-label", "Toggle composer constellation labels");
+            composerConstellationLabelsCheckbox.dataset.proofId = "constellation-labels-toggle";
+            const composerConstellationLabelsText = document.createElement("span");
+            composerConstellationLabelsText.textContent = "Const Labels";
+            composerConstellationLabelsWrap.appendChild(composerConstellationLabelsCheckbox);
+            composerConstellationLabelsWrap.appendChild(composerConstellationLabelsText);
+            composerInfoToggles.appendChild(composerConstellationLabelsWrap);
+
+            composerCloudsWrap = document.createElement("label");
+            composerCloudsWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerCloudsCheckbox = document.createElement("input");
+            composerCloudsCheckbox.type = "checkbox";
+            composerCloudsCheckbox.checked = true;
+            composerCloudsCheckbox.setAttribute("aria-label", "Toggle Earth cloud cover");
+            composerCloudsCheckbox.dataset.proofId = "clouds-toggle";
+            const composerCloudsText = document.createElement("span");
+            composerCloudsText.textContent = "Clouds";
+            composerCloudsWrap.appendChild(composerCloudsCheckbox);
+            composerCloudsWrap.appendChild(composerCloudsText);
+            composerInfoToggles.appendChild(composerCloudsWrap);
             composerInfoRow.appendChild(composerInfoToggles);
 
             const composerStarMagnitudeRow = document.createElement("div");
@@ -2453,7 +2529,12 @@ class AuxiliaryCameraViewsManager {
             composerRaDecGridCheckbox,
             composerSkyLabelsWrap,
             composerSkyLabelsCheckbox,
-            composerCloudsButton,
+            composerConstellationLinesWrap,
+            composerConstellationLinesCheckbox,
+            composerConstellationLabelsWrap,
+            composerConstellationLabelsCheckbox,
+            composerCloudsWrap,
+            composerCloudsCheckbox,
             composerStarMagnitudeSlider,
             composerStarMagnitudeValue,
             composerHint,
@@ -2529,13 +2610,15 @@ class AuxiliaryCameraViewsManager {
             onComposerTransportSpeedClick: null,
             onComposerTransportFasterClick: null,
             onComposerInfoOverlayToggle: null,
-            onComposerCloudsClick: null,
+            onComposerCloudsChange: null,
             onComposerRollInput: null,
             onComposerRollDialPointerDown: null,
             onComposerRollDialPointerMove: null,
             onComposerRollDialPointerUp: null,
             onComposerRaDecGridToggle: null,
             onComposerSkyLabelsToggle: null,
+            onComposerConstellationLinesToggle: null,
+            onComposerConstellationLabelsToggle: null,
             onComposerStarMagnitudeInput: null,
             onComposerViewportWheel: null,
             onComposerViewportPointerDown: null,
@@ -2596,6 +2679,8 @@ class AuxiliaryCameraViewsManager {
             composerInfoOverlayEnabled: true,
             composerRaDecGridEnabled: false,
             composerSkyLabelsEnabled: false,
+            composerConstellationLinesEnabled: false,
+            composerConstellationLabelsEnabled: false,
             composerEarthCloudsEnabled: true,
             composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
             onOrbitViewportWheel: null,
@@ -2761,17 +2846,17 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerStarMagnitudeValue.textContent = text;
             };
             syncComposerCloudsUi = () => {
-                if (!panelState.composerCloudsButton) {
+                if (!panelState.composerCloudsCheckbox) {
                     return;
                 }
                 const enabled = this.getEarthCloudsEnabled() !== false;
                 panelState.composerEarthCloudsEnabled = enabled;
-                panelState.composerCloudsButton.textContent = enabled ? "Clouds On" : "Clouds Off";
-                panelState.composerCloudsButton.classList.toggle("is-active", enabled);
-                panelState.composerCloudsButton.setAttribute("aria-pressed", enabled ? "true" : "false");
-                panelState.composerCloudsButton.title = enabled
+                panelState.composerCloudsCheckbox.checked = enabled;
+                const title = enabled
                     ? "Hide Earth cloud cover in all Earth renders"
                     : "Show Earth cloud cover in all Earth renders";
+                panelState.composerCloudsWrap?.classList.toggle("is-active", enabled);
+                panelState.composerCloudsWrap?.setAttribute("title", title);
             };
             const syncComposerOpticsUi = () => {
                 const expanded = panelState.composerOpticsExpanded === true;
@@ -2912,9 +2997,9 @@ class AuxiliaryCameraViewsManager {
                 }
                 requestComposerControlRender();
             };
-            const onComposerCloudsClick = () => {
+            const onComposerCloudsChange = () => {
                 activateComposerForControl();
-                const nextEnabled = this.getEarthCloudsEnabled() === false;
+                const nextEnabled = panelState.composerCloudsCheckbox?.checked !== false;
                 panelState.composerEarthCloudsEnabled = nextEnabled;
                 this.setEarthCloudsEnabled?.(nextEnabled);
                 syncComposerCloudsUi();
@@ -3010,6 +3095,21 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerSkyLabelsEnabled = !!panelState.composerSkyLabelsCheckbox?.checked;
                 panelState.overlayDirty = true;
                 this.requestRender?.();
+            };
+            const onComposerConstellationLinesToggle = () => {
+                activateComposerForControl();
+                panelState.composerConstellationLinesEnabled =
+                    !!panelState.composerConstellationLinesCheckbox?.checked;
+                this.requestRender?.();
+                this.queuePersistPanelState();
+            };
+            const onComposerConstellationLabelsToggle = () => {
+                activateComposerForControl();
+                panelState.composerConstellationLabelsEnabled =
+                    !!panelState.composerConstellationLabelsCheckbox?.checked;
+                panelState.overlayDirty = true;
+                this.requestRender?.();
+                this.queuePersistPanelState();
             };
             const setComposerLockTarget = (target) => {
                 this.setComposerLockTarget(panelState, target, {
@@ -3233,6 +3333,7 @@ class AuxiliaryCameraViewsManager {
                     panelState.autoFovEnabled = false;
                     syncAutoToggleUi();
                 }
+                // Optical zoom only: Frame and Shoot is always anchored at the craft.
                 const zoomScale = Math.exp(event.deltaY * COMPOSER_WHEEL_ZOOM_SENSITIVITY);
                 const nextFov = this.THREE.MathUtils.clamp(
                     panelState.camera.fov * zoomScale,
@@ -3349,7 +3450,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerOpticsStarburstSlider?.addEventListener("input", onComposerOpticsStarburstInput, { passive: true });
             panelState.composerOpticsFlareSlider?.addEventListener("input", onComposerOpticsFlareInput, { passive: true });
             panelState.composerStarMagnitudeSlider?.addEventListener("input", onComposerStarMagnitudeInput, { passive: true });
-            panelState.composerCloudsButton?.addEventListener("click", onComposerCloudsClick);
+            panelState.composerCloudsCheckbox?.addEventListener("change", onComposerCloudsChange);
             panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
             panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
             panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
@@ -3373,6 +3474,8 @@ class AuxiliaryCameraViewsManager {
             panelState.composerRollDial?.addEventListener("pointercancel", releaseComposerRollDial);
             panelState.composerRaDecGridCheckbox?.addEventListener("change", onComposerRaDecGridToggle);
             panelState.composerSkyLabelsCheckbox?.addEventListener("change", onComposerSkyLabelsToggle);
+            panelState.composerConstellationLinesCheckbox?.addEventListener("change", onComposerConstellationLinesToggle);
+            panelState.composerConstellationLabelsCheckbox?.addEventListener("change", onComposerConstellationLabelsToggle);
             panelState.viewport.addEventListener("wheel", onComposerViewportWheel, { passive: false });
             panelState.viewport.addEventListener("pointerdown", onComposerViewportPointerDown);
             panelState.viewport.addEventListener("pointermove", onComposerViewportPointerMove);
@@ -3396,7 +3499,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerOpticsStarburstInput = onComposerOpticsStarburstInput;
             panelState.onComposerOpticsFlareInput = onComposerOpticsFlareInput;
             panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
-            panelState.onComposerCloudsClick = onComposerCloudsClick;
+            panelState.onComposerCloudsChange = onComposerCloudsChange;
             panelState.onComposerTimelineInput = onComposerTimelineInput;
             panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
             panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
@@ -3418,6 +3521,8 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerRollDialPointerUp = releaseComposerRollDial;
             panelState.onComposerRaDecGridToggle = onComposerRaDecGridToggle;
             panelState.onComposerSkyLabelsToggle = onComposerSkyLabelsToggle;
+            panelState.onComposerConstellationLinesToggle = onComposerConstellationLinesToggle;
+            panelState.onComposerConstellationLabelsToggle = onComposerConstellationLabelsToggle;
             panelState.onComposerViewportWheel = onComposerViewportWheel;
             panelState.onComposerViewportPointerDown = onComposerViewportPointerDown;
             panelState.onComposerViewportPointerMove = onComposerViewportPointerMove;
@@ -3549,6 +3654,8 @@ class AuxiliaryCameraViewsManager {
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
             panelState.composerSkyLabelsEnabled = false;
+            panelState.composerConstellationLinesEnabled = false;
+            panelState.composerConstellationLabelsEnabled = false;
             panelState.composerStarMagnitudeLimit = COMPOSER_STAR_MAGNITUDE_DEFAULT;
             panelState.composerEarthCloudsEnabled = this.getEarthCloudsEnabled() !== false;
             if (panelState.composerInfoOverlayCheckbox) {
@@ -3586,6 +3693,12 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.composerSkyLabelsCheckbox) {
                 panelState.composerSkyLabelsCheckbox.checked = false;
+            }
+            if (panelState.composerConstellationLinesCheckbox) {
+                panelState.composerConstellationLinesCheckbox.checked = false;
+            }
+            if (panelState.composerConstellationLabelsCheckbox) {
+                panelState.composerConstellationLabelsCheckbox.checked = false;
             }
             if (panelState.composerStarMagnitudeSlider && panelState.composerStarMagnitudeValue) {
                 const magnitudeText = panelState.composerStarMagnitudeLimit.toFixed(1);
@@ -3792,7 +3905,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerEarthshineSlider && (panelState.composerEarthshineSlider.disabled = disableControls);
         panelState.composerMoonshineSlider && (panelState.composerMoonshineSlider.disabled = disableControls);
         panelState.composerMoonOutlineCheckbox && (panelState.composerMoonOutlineCheckbox.disabled = disableControls);
-        panelState.composerCloudsButton && (panelState.composerCloudsButton.disabled = disableControls);
+        panelState.composerCloudsCheckbox && (panelState.composerCloudsCheckbox.disabled = disableControls);
         panelState.composerOpticsToggleButton && (panelState.composerOpticsToggleButton.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
@@ -3805,6 +3918,10 @@ class AuxiliaryCameraViewsManager {
         panelState.composerRollDial && (panelState.composerRollDial.disabled = disableControls);
         panelState.composerRaDecGridCheckbox && (panelState.composerRaDecGridCheckbox.disabled = disableControls);
         panelState.composerSkyLabelsCheckbox && (panelState.composerSkyLabelsCheckbox.disabled = disableControls);
+        panelState.composerConstellationLinesCheckbox &&
+            (panelState.composerConstellationLinesCheckbox.disabled = disableControls);
+        panelState.composerConstellationLabelsCheckbox &&
+            (panelState.composerConstellationLabelsCheckbox.disabled = disableControls);
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
         }
@@ -4934,15 +5051,24 @@ class AuxiliaryCameraViewsManager {
 
         const activeSkyRenderer = skyRenderer || scene?.skyRenderer || null;
         const skyMaterial = activeSkyRenderer?.skyMesh?.material || null;
-        const constellationMaterial = activeSkyRenderer?.constellationMesh?.material || null;
+        const constellationMesh = activeSkyRenderer?.constellationMesh || null;
+        const constellationMaterial = constellationMesh?.material || null;
+        const skyContainer = activeSkyRenderer?.container || null;
         const starUniforms = activeSkyRenderer?.starRenderer?.uniforms || null;
         const originalSunVisualState = sunRenderer?.getVisualState?.() || null;
+        const constellationLinesEnabled = panelState?.composerConstellationLinesEnabled === true;
 
         const originalSkyOpacity = Number.isFinite(skyMaterial?.opacity)
             ? skyMaterial.opacity
             : null;
         const originalConstellationOpacity = Number.isFinite(constellationMaterial?.opacity)
             ? constellationMaterial.opacity
+            : null;
+        const originalConstellationVisible = typeof constellationMesh?.visible === "boolean"
+            ? constellationMesh.visible
+            : null;
+        const originalSkyContainerVisible = typeof skyContainer?.visible === "boolean"
+            ? skyContainer.visible
             : null;
         const originalStarPhotometricScale = Number.isFinite(starUniforms?.uPhotometricScale?.value)
             ? starUniforms.uPhotometricScale.value
@@ -4971,8 +5097,16 @@ class AuxiliaryCameraViewsManager {
         if (originalConstellationOpacity != null) {
             constellationMaterial.opacity = Math.min(
                 originalConstellationOpacity,
-                profile.skyConstellationOpacityCap,
+                constellationLinesEnabled
+                    ? COMPOSER_CONSTELLATION_LINES_OPACITY_CAP
+                    : profile.skyConstellationOpacityCap,
             );
+        }
+        if (originalConstellationVisible != null) {
+            constellationMesh.visible = constellationLinesEnabled;
+        }
+        if (originalSkyContainerVisible != null && constellationLinesEnabled) {
+            skyContainer.visible = true;
         }
         if (sunRenderer?.setVisualState) {
             sunRenderer.setVisualState(profile.sunVisualState);
@@ -5004,6 +5138,12 @@ class AuxiliaryCameraViewsManager {
             }
             if (originalConstellationOpacity != null && constellationMaterial) {
                 constellationMaterial.opacity = originalConstellationOpacity;
+            }
+            if (originalConstellationVisible != null && constellationMesh) {
+                constellationMesh.visible = originalConstellationVisible;
+            }
+            if (originalSkyContainerVisible != null && skyContainer) {
+                skyContainer.visible = originalSkyContainerVisible;
             }
             if (sunRenderer?.setVisualState && originalSunVisualState) {
                 sunRenderer.setVisualState(originalSunVisualState);
@@ -5737,7 +5877,9 @@ class AuxiliaryCameraViewsManager {
         if (!panelState?.overlayCtx || !panelState?.overlayCanvas) {
             return;
         }
-        if (panelState.composerSkyLabelsEnabled !== true) {
+        const skyLabelsEnabled = panelState.composerSkyLabelsEnabled === true;
+        const constellationLabelsEnabled = panelState.composerConstellationLabelsEnabled === true;
+        if (!skyLabelsEnabled && !constellationLabelsEnabled) {
             return;
         }
 
@@ -5797,13 +5939,15 @@ class AuxiliaryCameraViewsManager {
             if (!text || !point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
                 return false;
             }
-            const font = "600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
+            const font = style === "constellation"
+                ? "700 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+                : "600 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
             ctx.save();
             ctx.font = font;
             const textWidth = ctx.measureText(text).width;
             ctx.restore();
 
-            const textHeight = 11;
+            const textHeight = style === "constellation" ? 12 : 11;
             const padX = 4;
             const padY = 3;
             const preferLeft = point.x < (width * 0.5);
@@ -5862,11 +6006,15 @@ class AuxiliaryCameraViewsManager {
                 ctx.textAlign = candidate.align;
                 ctx.textBaseline = "middle";
                 ctx.lineJoin = "round";
-                ctx.lineWidth = 2.4;
-                ctx.strokeStyle = "rgba(7, 14, 24, 0.74)";
+                ctx.lineWidth = style === "constellation" ? 3.2 : 2.4;
+                ctx.strokeStyle = style === "constellation"
+                    ? "rgba(3, 9, 18, 0.78)"
+                    : "rgba(7, 14, 24, 0.74)";
                 ctx.fillStyle = style === "planet"
                     ? "rgba(226, 238, 255, 0.92)"
-                    : "rgba(205, 220, 242, 0.86)";
+                    : style === "constellation"
+                        ? "rgba(143, 183, 238, 0.66)"
+                        : "rgba(205, 220, 242, 0.86)";
                 ctx.strokeText(text, x, y);
                 ctx.fillText(text, x, y);
                 ctx.restore();
@@ -5875,6 +6023,36 @@ class AuxiliaryCameraViewsManager {
             }
             return false;
         };
+
+        if (constellationLabelsEnabled) {
+            for (const label of COMPOSER_CONSTELLATION_LABELS) {
+                const raRad = this.THREE.MathUtils.degToRad(label.raDeg);
+                const decRad = this.THREE.MathUtils.degToRad(label.decDeg);
+                const cosDec = Math.cos(decRad);
+                const point = projectSkyPointFromLocal(
+                    cosDec * Math.cos(raRad) * skyRadius,
+                    -cosDec * Math.sin(raRad) * skyRadius,
+                    Math.sin(decRad) * skyRadius,
+                );
+                if (!point) {
+                    continue;
+                }
+                if (
+                    point.x < 0 ||
+                    point.x > width ||
+                    point.y < 0 ||
+                    point.y > height
+                ) {
+                    continue;
+                }
+                drawLabel(label.name, point, "constellation");
+            }
+        }
+
+        if (!skyLabelsEnabled) {
+            return;
+        }
+
         const planetPositionAttr = planetRenderer?.geometry?.getAttribute?.("position") || null;
         const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
         const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
@@ -7626,8 +7804,8 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerStarMagnitudeInput) {
                 panelState.composerStarMagnitudeSlider?.removeEventListener("input", panelState.onComposerStarMagnitudeInput);
             }
-            if (panelState.onComposerCloudsClick) {
-                panelState.composerCloudsButton?.removeEventListener("click", panelState.onComposerCloudsClick);
+            if (panelState.onComposerCloudsChange) {
+                panelState.composerCloudsCheckbox?.removeEventListener("change", panelState.onComposerCloudsChange);
             }
             if (panelState.onComposerTimelinePointerDown) {
                 panelState.composerTimelineSlider?.removeEventListener("pointerdown", panelState.onComposerTimelinePointerDown);
@@ -7690,6 +7868,18 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerSkyLabelsToggle) {
                 panelState.composerSkyLabelsCheckbox?.removeEventListener("change", panelState.onComposerSkyLabelsToggle);
+            }
+            if (panelState.onComposerConstellationLinesToggle) {
+                panelState.composerConstellationLinesCheckbox?.removeEventListener(
+                    "change",
+                    panelState.onComposerConstellationLinesToggle,
+                );
+            }
+            if (panelState.onComposerConstellationLabelsToggle) {
+                panelState.composerConstellationLabelsCheckbox?.removeEventListener(
+                    "change",
+                    panelState.onComposerConstellationLabelsToggle,
+                );
             }
             if (panelState.onComposerViewportPointerDown) {
                 panelState.viewport.removeEventListener("pointerdown", panelState.onComposerViewportPointerDown);

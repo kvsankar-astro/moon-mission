@@ -137,10 +137,12 @@ describe("Frame and Shoot drag sensitivity math", () => {
 describe("Frame and Shoot FoV bounds", () => {
     it("allows manual crater-scale FoV down to a tenth of a degree", () => {
         const updates = [];
+        const position = { x: 12, y: 34, z: 56 };
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
             camera: {
                 fov: 50,
+                position,
                 updateProjectionMatrix: vi.fn(() => updates.push("projection")),
             },
             fovControl: {
@@ -155,6 +157,8 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(panelState.camera.updateProjectionMatrix).toHaveBeenCalledTimes(1);
         expect(panelState.overlayDirty).toBe(true);
         expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(0.1, 0.1);
+        expect(panelState.camera.position).toBe(position);
+        expect(panelState.camera.position).toEqual({ x: 12, y: 34, z: 56 });
         expect(updates).toEqual(["projection"]);
     });
 
@@ -455,6 +459,56 @@ describe("Frame and Shoot body ambient controls", () => {
 
         expect(material.userData.moonShadowLift).toBeCloseTo(0.42, 6);
         expect(uniform.value).toBeCloseTo(0.42, 6);
+    });
+});
+
+describe("Frame and Shoot constellation line rendering", () => {
+    function createManagerForExposureTests() {
+        return Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+        });
+    }
+
+    it("temporarily enables the sky constellation layer only when the composer checkbox is on", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: true,
+        };
+        const skyRenderer = {
+            container: { visible: false },
+            skyMesh: { material: { opacity: 0.18 } },
+            constellationMesh: {
+                visible: false,
+                material: { opacity: 0.06 },
+            },
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, null, { skyRenderer });
+
+        expect(skyRenderer.container.visible).toBe(true);
+        expect(skyRenderer.constellationMesh.visible).toBe(true);
+        expect(skyRenderer.constellationMesh.material.opacity).toBeCloseTo(0.06);
+
+        restore();
+
+        expect(skyRenderer.container.visible).toBe(false);
+        expect(skyRenderer.constellationMesh.visible).toBe(false);
+        expect(skyRenderer.constellationMesh.material.opacity).toBeCloseTo(0.06);
     });
 });
 

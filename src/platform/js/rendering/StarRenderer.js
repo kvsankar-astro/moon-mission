@@ -9,7 +9,7 @@ import {
 } from './sky-math.js';
 import { STAR_CATALOG_BRIGHT } from './star-catalog-hipparcos.js';
 
-const MIN_MAGNITUDE = -2.5;
+const MIN_MAGNITUDE = -3.0;
 const MAX_MAGNITUDE = 8.0;
 
 export function isStarVisibleForMagnitudeLimit(vmag, magnitudeLimit) {
