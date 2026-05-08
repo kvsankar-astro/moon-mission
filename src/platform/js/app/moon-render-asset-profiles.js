@@ -5,10 +5,10 @@ const DEFAULT_FAST_MOON_RENDER_ASSET_PATHS = Object.freeze({
 
 const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
-    normalMapStrength: 2.16,
-    normalDetailBoost: 2.45,
+    normalMapStrength: 2.2,
+    normalDetailBoost: 2.3,
     normalDetailRadius: 3,
-    normalScale: 1.42,
+    normalScale: 1.45,
     displacementScale: 0.0118,
     displacementBias: -0.0046,
     roughness: 0.958,
@@ -21,20 +21,23 @@ const DEFAULT_FAST_MOON_RENDER_SETTINGS = Object.freeze({
     highlightBoost: 1.03,
     shadowWeightExponent: 1.9,
     highlightWeightExponent: 1.0,
-    terminatorContrast: 2.62,
-    terminatorReliefStrength: 6.2,
+    terminatorContrast: 2.55,
+    terminatorReliefStrength: 7.0,
     terminatorShadowFloor: 0.04,
     terminatorIndirectOcclusion: 0.96,
+    terrainShadowStrength: 1.8,
+    terrainShadowTexelStride: 6.0,
+    terrainShadowSlopeBias: 0.0014,
     shadowNormalBias: 0.00022,
     shadowBias: -0.000004,
 });
 
 const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
-    normalMapStrength: 2.48,
-    normalDetailBoost: 2.75,
+    normalMapStrength: 2.4,
+    normalDetailBoost: 2.5,
     normalDetailRadius: 3,
-    normalScale: 1.52,
+    normalScale: 1.55,
     displacementScale: 0.0128,
     displacementBias: -0.0048,
     roughness: 0.955,
@@ -47,10 +50,13 @@ const DEFAULT_QUALITY_MOON_RENDER_SETTINGS = Object.freeze({
     highlightBoost: 1.025,
     shadowWeightExponent: 1.92,
     highlightWeightExponent: 1.0,
-    terminatorContrast: 2.78,
+    terminatorContrast: 2.6,
     terminatorReliefStrength: 7.5,
     terminatorShadowFloor: 0.0,
     terminatorIndirectOcclusion: 1.0,
+    terrainShadowStrength: 2.2,
+    terrainShadowTexelStride: 7.0,
+    terrainShadowSlopeBias: 0.0014,
     shadowNormalBias: 0.00018,
     shadowBias: -0.000003,
 });
@@ -229,6 +235,18 @@ function mergeRenderSettings(defaultSettings, overrides) {
         terminatorIndirectOcclusion: normalizeFiniteNumber(
             overrides.terminatorIndirectOcclusion,
             defaultSettings.terminatorIndirectOcclusion,
+        ),
+        terrainShadowStrength: normalizeFiniteNumber(
+            overrides.terrainShadowStrength,
+            defaultSettings.terrainShadowStrength,
+        ),
+        terrainShadowTexelStride: normalizeFiniteNumber(
+            overrides.terrainShadowTexelStride,
+            defaultSettings.terrainShadowTexelStride,
+        ),
+        terrainShadowSlopeBias: normalizeFiniteNumber(
+            overrides.terrainShadowSlopeBias,
+            defaultSettings.terrainShadowSlopeBias,
         ),
         shadowNormalBias: normalizeFiniteNumber(
             overrides.shadowNormalBias,

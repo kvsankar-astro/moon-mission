@@ -2,8 +2,8 @@ import * as THREE from "three";
 
 export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
-    normalMapStrength: 2.48,
-    normalDetailBoost: 2.75,
+    normalMapStrength: 2.4,
+    normalDetailBoost: 2.5,
     normalDetailRadius: 3,
 });
 

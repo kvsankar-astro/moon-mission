@@ -34,14 +34,18 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.earthDayGain).toBeGreaterThan(1.14);
         expect(presentation.earthDaySaturation).toBeLessThan(0.55);
         expect(presentation.earthAtmosphereRimStrength).toBeGreaterThan(0.34);
-        expect(presentation.moonShadowLift).toBeGreaterThan(0.15);
-        expect(presentation.moonShadowWeightExponent).toBeLessThan(0.9);
-        expect(presentation.moonHighlightWeightExponent).toBeLessThan(0.9);
-        expect(presentation.moonTerminatorContrast).toBeGreaterThan(3.6);
-        expect(presentation.moonTerminatorReliefStrength).toBeGreaterThan(10.0);
-        expect(presentation.moonTerminatorShadowFloor).toBeGreaterThan(0.2);
-        expect(presentation.moonTerminatorIndirectOcclusion).toBeLessThan(0.45);
-        expect(presentation.moonHighlightBoost).toBeGreaterThan(1.14);
+        // Moon-dominant overrides now stay close to global defaults; the lunar
+        // photometric shader carries crater drama via its terrain self-shadow
+        // path, so terminator contrast and shadow floor no longer need to be
+        // inflated.
+        expect(presentation.moonShadowLift).toBeCloseTo(0.05, 2);
+        expect(presentation.moonShadowWeightExponent).toBeCloseTo(1.6, 2);
+        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(0.95, 2);
+        expect(presentation.moonTerminatorContrast).toBeCloseTo(2.6, 2);
+        expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 2);
+        expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 2);
+        expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(0.85, 2);
+        expect(presentation.moonHighlightBoost).toBeCloseTo(1.05, 2);
     });
 
     it("allows somewhat more Earth night-light visibility when Earth dominates the frame", () => {

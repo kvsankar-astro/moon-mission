@@ -84,6 +84,20 @@ function disposeTextureIfReplaced(previousTexture, nextTexture, sharedTextures =
     previousTexture.dispose?.();
 }
 
+function scheduleGeneratedMoonNormalMapRefresh(callback) {
+    if (typeof callback !== "function") {
+        return;
+    }
+    if (typeof globalThis?.requestIdleCallback === "function") {
+        globalThis.requestIdleCallback(callback, { timeout: 1500 });
+        return;
+    }
+    globalThis?.setTimeout?.(() => callback({
+        didTimeout: false,
+        timeRemaining: () => 0,
+    }), 1200);
+}
+
 export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious = false } = {}) {
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
@@ -137,13 +151,7 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
         );
         moonHandled = true;
         if (disposePrevious === true && scene.moonRenderer?.refreshGeneratedNormalMap) {
-            const scheduleNormalMapRefresh =
-                globalThis?.requestIdleCallback ||
-                ((callback) => globalThis?.setTimeout?.(() => callback({
-                    didTimeout: false,
-                    timeRemaining: () => 0,
-                }), 1200));
-            scheduleNormalMapRefresh(() => {
+            scheduleGeneratedMoonNormalMapRefresh(() => {
                 scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
             });
         }

@@ -51,6 +51,9 @@ function createTunerStateFromRenderSettings(renderSettings) {
         terminatorReliefStrength: normalized.terminatorReliefStrength,
         terminatorShadowFloor: normalized.terminatorShadowFloor,
         terminatorIndirectOcclusion: normalized.terminatorIndirectOcclusion,
+        terrainShadowStrength: normalized.terrainShadowStrength,
+        terrainShadowTexelStride: normalized.terrainShadowTexelStride,
+        terrainShadowSlopeBias: normalized.terrainShadowSlopeBias,
         ...TUNER_VIEW_DEFAULTS,
     };
 }
@@ -83,6 +86,9 @@ const CONTROL_GROUPS = [
             { key: "shadowWeightExponent", label: "Shadow Exponent", min: 0.2, max: 3.0, step: 0.01 },
             { key: "highlightWeightExponent", label: "Highlight Exponent", min: 0.2, max: 3.0, step: 0.01 },
             { key: "terminatorContrast", label: "Terminator Contrast", min: 1.0, max: 3.0, step: 0.01 },
+            { key: "terrainShadowStrength", label: "Terrain Shadow", min: 0.0, max: 7.0, step: 0.01 },
+            { key: "terrainShadowTexelStride", label: "Shadow Step", min: 0.5, max: 10.0, step: 0.1 },
+            { key: "terrainShadowSlopeBias", label: "Shadow Slope Bias", min: 0.0, max: 0.02, step: 0.0001 },
         ],
     },
     {
@@ -219,6 +225,9 @@ function applyActiveProfilePreset() {
     state.terminatorReliefStrength = defaultsState.terminatorReliefStrength;
     state.terminatorShadowFloor = defaultsState.terminatorShadowFloor;
     state.terminatorIndirectOcclusion = defaultsState.terminatorIndirectOcclusion;
+    state.terrainShadowStrength = defaultsState.terrainShadowStrength;
+    state.terrainShadowTexelStride = defaultsState.terrainShadowTexelStride;
+    state.terrainShadowSlopeBias = defaultsState.terrainShadowSlopeBias;
     applyPreset(defaultsState);
 }
 
@@ -326,6 +335,15 @@ function buildTunerNormalMap(heightTex) {
     });
 }
 
+function resolveHeightTexelSize() {
+    const width = Number(heightTexture?.image?.width);
+    const height = Number(heightTexture?.image?.height);
+    return new THREE.Vector2(
+        1 / Math.max(1, Number.isFinite(width) ? width : state.normalMapMaxWidth),
+        1 / Math.max(1, Number.isFinite(height) ? height : Math.round(state.normalMapMaxWidth / 2)),
+    );
+}
+
 function applyPhotometricShader(material) {
     material.onBeforeCompile = (shader) => {
         shaderRef = shader;
@@ -341,6 +359,11 @@ function applyPhotometricShader(material) {
         shader.uniforms.uMoonTerminatorReliefStrength = { value: state.terminatorReliefStrength };
         shader.uniforms.uMoonTerminatorShadowFloor = { value: state.terminatorShadowFloor };
         shader.uniforms.uMoonTerminatorIndirectOcclusion = { value: state.terminatorIndirectOcclusion };
+        shader.uniforms.uMoonHeightMap = { value: heightTexture || material.displacementMap || null };
+        shader.uniforms.uMoonHeightTexelSize = { value: resolveHeightTexelSize() };
+        shader.uniforms.uMoonTerrainShadowStrength = { value: state.terrainShadowStrength };
+        shader.uniforms.uMoonTerrainShadowTexelStride = { value: state.terrainShadowTexelStride };
+        shader.uniforms.uMoonTerrainShadowSlopeBias = { value: state.terrainShadowSlopeBias };
 
         shader.fragmentShader = shader.fragmentShader
             .replace(
@@ -357,11 +380,17 @@ uniform float uMoonHighlightWeightExponent;
 uniform float uMoonTerminatorContrast;
 uniform float uMoonTerminatorReliefStrength;
 uniform float uMoonTerminatorShadowFloor;
-uniform float uMoonTerminatorIndirectOcclusion;`,
+uniform float uMoonTerminatorIndirectOcclusion;
+uniform sampler2D uMoonHeightMap;
+uniform vec2 uMoonHeightTexelSize;
+uniform float uMoonTerrainShadowStrength;
+uniform float uMoonTerrainShadowTexelStride;
+uniform float uMoonTerrainShadowSlopeBias;`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
                 `#include <lights_fragment_begin>
+float moonFinalCavityDarken = 0.0;
 #if NUM_DIR_LIGHTS > 0
     vec3 moonNormal = normalize( geometryNormal );
     vec3 moonViewDir = normalize( geometryViewDir );
@@ -386,10 +415,12 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     float moonTerminatorScale = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
     reflectedLight.directDiffuse *= moonTerminatorScale;
 
+    float moonSmoothNdotL = clamp( dot( normalize( nonPerturbedNormal ), moonLightDir ), 0.0, 1.0 );
     float moonTerminatorReliefBoost = max( 0.0, uMoonTerminatorContrast - 1.0 ) * max( 0.0, uMoonTerminatorReliefStrength );
     float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
     float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
     float moonTerminatorBand = 1.0 - smoothstep( 0.06, moonTerminatorOuter, moonNdotL );
+    float moonTerrainReliefBand = 1.0 - smoothstep( 0.025, max( moonTerminatorOuter, 0.20 ), moonSmoothNdotL );
     float moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
     float moonHighlightWeight = pow( moonNdotL, max(0.2, uMoonHighlightWeightExponent) );
     float moonShadowCrush = mix( 0.18, 0.24, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
@@ -400,6 +431,89 @@ uniform float uMoonTerminatorIndirectOcclusion;`,
     float moonHighlightTone = mix(1.0, moonHighlightTarget, moonHighlightWeight);
     vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
     reflectedLight.directDiffuse *= moonToneMultiplier;
+
+    float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL;
+    float moonLocalReliefTone = 1.0 + moonTerrainReliefBand
+        * uMoonTerrainShadowStrength
+        * clamp( moonLocalReliefDelta * 3.6, -0.34, 0.0 );
+    reflectedLight.directDiffuse *= clamp( moonLocalReliefTone, 0.48, 1.0 );
+
+#if defined( USE_DISPLACEMENTMAP ) || defined( USE_NORMALMAP )
+    #if defined( USE_DISPLACEMENTMAP )
+        vec2 moonHeightUv = vDisplacementMapUv;
+    #else
+        vec2 moonHeightUv = vNormalMapUv;
+    #endif
+    vec2 moonCavityStep = uMoonHeightTexelSize * max( 1.0, uMoonTerrainShadowTexelStride * 1.6 );
+    float moonCenterHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
+    float moonAxisHeightAverage = (
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, 0.0 ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - vec2( moonCavityStep.x, 0.0 ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( 0.0, moonCavityStep.y ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - vec2( 0.0, moonCavityStep.y ) ).r
+    ) * 0.25;
+    float moonDiagonalHeightAverage = (
+        texture2D( uMoonHeightMap, moonHeightUv + moonCavityStep ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - moonCavityStep ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, -moonCavityStep.y ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( -moonCavityStep.x, moonCavityStep.y ) ).r
+    ) * 0.25;
+    float moonNeighborHeightAverage = mix( moonAxisHeightAverage, moonDiagonalHeightAverage, 0.45 );
+    float moonCavityBand = smoothstep( 0.018, 0.10, moonSmoothNdotL )
+        * ( 1.0 - smoothstep( 0.24, 0.42, moonSmoothNdotL ) );
+    float moonTerrainCavity = max( 0.0, moonNeighborHeightAverage - moonCenterHeight );
+    float moonCavityOcclusion = smoothstep( 0.0015, 0.0085, moonTerrainCavity )
+        * moonCavityBand
+        * uMoonTerrainShadowStrength;
+    float moonCavityDarken = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
+    moonFinalCavityDarken = moonCavityDarken;
+    reflectedLight.directDiffuse *= 1.0 - moonCavityDarken;
+    reflectedLight.indirectDiffuse *= 1.0 - moonCavityDarken * 0.50;
+#endif
+
+#if defined( USE_NORMALMAP_TANGENTSPACE )
+    vec3 moonLightTangent = vec3(
+        dot( moonLightDir, tbn[0] ),
+        dot( moonLightDir, tbn[1] ),
+        dot( moonLightDir, tbn[2] )
+    );
+    float moonLightTangentPlanarLength = length( moonLightTangent.xy );
+    float moonTerrainSelfShadow = 0.0;
+    if ( uMoonTerrainShadowStrength > 0.0 && moonLightTangentPlanarLength > 1e-4 && moonLightTangent.z > 0.0 ) {
+        vec2 moonLightUvStep = ( moonLightTangent.xy / moonLightTangentPlanarLength )
+            * uMoonHeightTexelSize
+            * max( 0.5, uMoonTerrainShadowTexelStride );
+        float moonBaseHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
+        float moonSlopeAllowance = max( moonLightTangent.z, 0.025 ) * max( 0.0, uMoonTerrainShadowSlopeBias );
+        float moonHorizonRise = 0.0;
+        for ( int moonSampleIndex = 1; moonSampleIndex <= 8; moonSampleIndex += 1 ) {
+            float moonSampleDistance = float( moonSampleIndex );
+            float moonSampleHeight = texture2D( uMoonHeightMap, moonHeightUv + moonLightUvStep * moonSampleDistance ).r;
+            moonHorizonRise = max(
+                moonHorizonRise,
+                moonSampleHeight - moonBaseHeight - moonSlopeAllowance * moonSampleDistance
+            );
+        }
+        moonTerrainSelfShadow = smoothstep( 0.00015, 0.0014, moonHorizonRise );
+    }
+    float moonTerrainShadowBand = moonTerrainReliefBand
+        * pow( 1.0 - moonSmoothNdotL, 1.4 );
+    float moonTerrainShadow = clamp(
+        moonTerrainSelfShadow * moonTerrainShadowBand * uMoonTerrainShadowStrength,
+        0.0,
+        0.78
+    );
+    reflectedLight.directDiffuse *= 1.0 - moonTerrainShadow;
+#endif
+#endif`,
+            )
+            .replace(
+                "vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;",
+                `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
+#if NUM_DIR_LIGHTS > 0
+    float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
+    float moonFinalShadowCrush = mix( 0.55, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
+    outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 #endif`,
             )
             .replace(
@@ -438,6 +552,21 @@ function updateShaderUniforms() {
     }
     if (shaderRef.uniforms.uMoonTerminatorIndirectOcclusion) {
         shaderRef.uniforms.uMoonTerminatorIndirectOcclusion.value = state.terminatorIndirectOcclusion;
+    }
+    if (shaderRef.uniforms.uMoonHeightMap) {
+        shaderRef.uniforms.uMoonHeightMap.value = heightTexture || moonMaterial?.displacementMap || null;
+    }
+    if (shaderRef.uniforms.uMoonHeightTexelSize) {
+        shaderRef.uniforms.uMoonHeightTexelSize.value.copy(resolveHeightTexelSize());
+    }
+    if (shaderRef.uniforms.uMoonTerrainShadowStrength) {
+        shaderRef.uniforms.uMoonTerrainShadowStrength.value = state.terrainShadowStrength;
+    }
+    if (shaderRef.uniforms.uMoonTerrainShadowTexelStride) {
+        shaderRef.uniforms.uMoonTerrainShadowTexelStride.value = state.terrainShadowTexelStride;
+    }
+    if (shaderRef.uniforms.uMoonTerrainShadowSlopeBias) {
+        shaderRef.uniforms.uMoonTerrainShadowSlopeBias.value = state.terrainShadowSlopeBias;
     }
 }
 
