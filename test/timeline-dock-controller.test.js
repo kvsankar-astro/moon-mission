@@ -8,6 +8,7 @@ class FakeElement {
         this.children = [];
         this.className = "";
         this.style = {};
+        this.dataset = {};
         this.attributes = {};
         this.textContent = "";
         this.title = "";
@@ -17,6 +18,7 @@ class FakeElement {
         this.step = "1";
         this._innerHTML = "";
         this.hidden = false;
+        this.listeners = new Map();
         this.classList = {
             add: (...names) => {
                 const set = new Set(this.className.split(/\s+/).filter(Boolean));
@@ -44,7 +46,16 @@ class FakeElement {
         return child;
     }
 
-    addEventListener() {}
+    addEventListener(type, handler) {
+        const handlers = this.listeners.get(type) || [];
+        handlers.push(handler);
+        this.listeners.set(type, handlers);
+    }
+
+    dispatchEvent(event) {
+        const handlers = this.listeners.get(event.type) || [];
+        handlers.forEach((handler) => handler.call(this, event));
+    }
 
     setAttribute(name, value) {
         this.attributes[name] = value;
@@ -255,5 +266,110 @@ describe("createTimelineDockController", () => {
         expect(markers.children[0].className).toContain("timeline-dock__marker--comparison");
         expect(markers.children[0].title).not.toContain(" - ");
         expect(slider.attributes["aria-valuetext"]).toContain("Comparison elapsed time");
+    });
+
+    it("marks bracketing event markers as dashed boundaries between events", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 3000,
+            stepMs: 1,
+        });
+        controller.setEvents([
+            { key: "e1", startTime: new Date(1000), label: "E1" },
+            { key: "e2", startTime: new Date(2000), label: "E2" },
+        ]);
+        controller.setCurrentTime(1500);
+
+        expect(markers.children[0].className).toContain("timeline-dock__marker--time-boundary");
+        expect(markers.children[1].className).toContain("timeline-dock__marker--time-boundary");
+        expect(markers.children[0].className).not.toContain("timeline-dock__marker--current-event");
+        expect(markers.children[1].className).not.toContain("timeline-dock__marker--current-event");
+
+        controller.setCurrentTime(1000);
+
+        expect(markers.children[0].className).toContain("timeline-dock__marker--current-event");
+        expect(markers.children[0].className).not.toContain("timeline-dock__marker--time-boundary");
+        expect(markers.children[1].className).not.toContain("timeline-dock__marker--time-boundary");
+    });
+
+    it("uses programmatic seek precision when range input values snap to the step grid", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const seekTimes = [];
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({
+            onSeekTime(timeMs) {
+                seekTimes.push(timeMs);
+            },
+        });
+        controller.setRange({
+            startTimeMs: 1000,
+            endTimeMs: 3000,
+            stepMs: 100,
+        });
+        controller.setEvents([
+            { key: "e1", startTime: new Date(1234), label: "E1" },
+            { key: "e2", startTime: new Date(2000), label: "E2" },
+        ]);
+        controller.bind();
+
+        slider.value = "1200";
+        slider.dataset.programmaticSeekTimeMs = "1234";
+        slider.dispatchEvent({ type: "input" });
+
+        expect(seekTimes).toEqual([1234]);
+        expect(slider.dataset.currentTimeMs).toBe("1234");
+        expect(markers.children[0].className).toContain("timeline-dock__marker--current-event");
+        expect(markers.children[0].className).not.toContain("timeline-dock__marker--time-boundary");
     });
 });

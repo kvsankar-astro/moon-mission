@@ -32,6 +32,7 @@ import {
     resolveActiveTimelinePhaseIndex,
     resolveTimelinePhaseSeekTimeMs,
 } from "../core/domain/timeline-phases.js";
+import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
 import {
     selectSkyLabelCandidates,
 } from "../core/domain/sky-label-selection.js";
@@ -3934,7 +3935,8 @@ class AuxiliaryCameraViewsManager {
         }
         const min = Number(slider.min);
         const max = Number(slider.max);
-        const value = Number(slider.value);
+        const preciseValue = Number(slider.dataset?.currentTimeMs);
+        const value = Number.isFinite(preciseValue) ? preciseValue : Number(slider.value);
         const step = Number(slider.step);
         if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) {
             return null;
@@ -3955,8 +3957,12 @@ class AuxiliaryCameraViewsManager {
         }
         const clamped = this.THREE.MathUtils.clamp(timeMs, timelineState.min, timelineState.max);
         timelineState.slider.value = String(clamped);
+        const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
+        dataset.currentTimeMs = String(clamped);
+        dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
         if (finalize) {
+            dataset.programmaticSeekTimeMs = String(clamped);
             timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
         }
     }
@@ -4173,39 +4179,24 @@ class AuxiliaryCameraViewsManager {
         if (eventNodes.length === 0) {
             return;
         }
-        let activeIndex = -1;
+
+        const highlightState = resolveTimelineEventHighlightState({
+            events: eventNodes,
+            currentTimeMs,
+        });
+        const currentIndexes = new Set(highlightState.currentIndexes);
+        const boundaryIndexes = new Set(highlightState.boundaryIndexes);
         const selectedEventTimeMs = panelState.composerFlybySelectedEventTimeMs;
-        const selectedEventIndex = Number.isFinite(selectedEventTimeMs)
-            ? eventNodes.findIndex((eventNode) => eventNode.timeMs === selectedEventTimeMs)
-            : -1;
-        if (selectedEventIndex >= 0 && Number.isFinite(currentTimeMs)) {
-            const timelineStepMs = Math.max(
-                1,
-                Math.round(this.readMainTimelineState()?.stepMs || 1),
-            );
-            const selectionToleranceMs = Math.max(1000, timelineStepMs + 1);
-            if (Math.abs(currentTimeMs - selectedEventTimeMs) <= selectionToleranceMs) {
-                activeIndex = selectedEventIndex;
-            } else {
+        if (Number.isFinite(selectedEventTimeMs)) {
+            const selectedEventIndex = eventNodes.findIndex((eventNode) => eventNode.timeMs === selectedEventTimeMs);
+            if (!currentIndexes.has(selectedEventIndex)) {
                 panelState.composerFlybySelectedEventTimeMs = Number.NaN;
             }
         }
-        if (Number.isFinite(currentTimeMs)) {
-            if (activeIndex < 0) {
-                for (let i = 0; i < eventNodes.length; i += 1) {
-                    if (currentTimeMs >= eventNodes[i].timeMs) {
-                        activeIndex = i;
-                    } else {
-                        break;
-                    }
-                }
-            }
-            if (activeIndex < 0) {
-                activeIndex = 0;
-            }
-        }
         for (let i = 0; i < eventNodes.length; i += 1) {
-            eventNodes[i].element.classList.toggle("is-active", i === activeIndex);
+            const isCurrent = currentIndexes.has(i);
+            eventNodes[i].element.classList.toggle("is-active", isCurrent);
+            eventNodes[i].element.classList.toggle("is-boundary", !isCurrent && boundaryIndexes.has(i));
         }
     }
 

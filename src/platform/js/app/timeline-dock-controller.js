@@ -8,6 +8,7 @@ import {
     resolveTimelineEventHoverText,
     resolveTimelineEventLabel,
 } from "./comparison-timeline.js";
+import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -94,6 +95,7 @@ function createTimelineDockController({
     let rangeMax = 0;
     let lastRangeSignature = "";
     let lastEventSignature = "";
+    let currentTimeMs = Number.NaN;
     let isBound = false;
     let currentMode = {
         compareMode: false,
@@ -185,8 +187,44 @@ function createTimelineDockController({
     function setCurrentTime(timeMs) {
         if (!Number.isFinite(rangeMin) || !Number.isFinite(rangeMax)) return;
         const clamped = clamp(timeMs, rangeMin, rangeMax);
+        currentTimeMs = clamped;
         slider.value = String(clamped);
+        slider.dataset.currentTimeMs = String(clamped);
         updateCurrentLabel(clamped);
+        syncMarkerHighlights();
+    }
+
+    function setElementClass(element, className, enabled) {
+        if (!element?.classList) return;
+        if (enabled) {
+            element.classList.add(className);
+        } else {
+            element.classList.remove(className);
+        }
+    }
+
+    function syncMarkerHighlights() {
+        const markerNodes = Array.from(markers.children || []);
+        if (markerNodes.length === 0) return;
+
+        const highlightState = resolveTimelineEventHighlightState({
+            events: markerNodes.map((marker) => ({
+                timeMs: Number(marker?.dataset?.eventTimeMs),
+            })),
+            currentTimeMs,
+        });
+        const currentIndexes = new Set(highlightState.currentIndexes);
+        const boundaryIndexes = new Set(highlightState.boundaryIndexes);
+        for (let index = 0; index < markerNodes.length; index += 1) {
+            const marker = markerNodes[index];
+            const isCurrent = currentIndexes.has(index);
+            setElementClass(marker, "timeline-dock__marker--current-event", isCurrent);
+            setElementClass(
+                marker,
+                "timeline-dock__marker--time-boundary",
+                !isCurrent && boundaryIndexes.has(index),
+            );
+        }
     }
 
     function renderMarker(eventInfo, index) {
@@ -213,6 +251,7 @@ function createTimelineDockController({
             marker.setAttribute("aria-disabled", "true");
         }
         marker.className = markerClasses.join(" ");
+        marker.dataset.eventTimeMs = String(eventTimeMs);
         marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
         const markerLabel = resolveTimelineEventLabel(eventInfo);
         const hoverText = resolveTimelineEventHoverText(eventInfo) || "Event";
@@ -257,6 +296,7 @@ function createTimelineDockController({
             const marker = renderMarker(normalizedEvents[i], i);
             if (marker) markers.appendChild(marker);
         }
+        syncMarkerHighlights();
     }
 
     function setCrafts(craftInfos) {
@@ -306,17 +346,33 @@ function createTimelineDockController({
         if (isBound) return;
         isBound = true;
 
+        const readSliderEventTime = () => {
+            const programmaticTimeMs = Number(slider.dataset.programmaticSeekTimeMs);
+            delete slider.dataset.programmaticSeekTimeMs;
+            if (Number.isFinite(programmaticTimeMs)) {
+                return programmaticTimeMs;
+            }
+            return Number(slider.value);
+        };
+
         slider.addEventListener("input", () => {
-            const timeMs = Number(slider.value);
+            const timeMs = readSliderEventTime();
             if (!Number.isFinite(timeMs)) return;
-            updateCurrentLabel(timeMs);
-            onSeekTime?.(timeMs, false);
+            currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
+            slider.dataset.currentTimeMs = String(currentTimeMs);
+            updateCurrentLabel(currentTimeMs);
+            syncMarkerHighlights();
+            onSeekTime?.(currentTimeMs, false);
         });
 
         slider.addEventListener("change", () => {
-            const timeMs = Number(slider.value);
+            const timeMs = readSliderEventTime();
             if (!Number.isFinite(timeMs)) return;
-            onSeekTime?.(timeMs, true);
+            currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
+            slider.dataset.currentTimeMs = String(currentTimeMs);
+            updateCurrentLabel(currentTimeMs);
+            syncMarkerHighlights();
+            onSeekTime?.(currentTimeMs, true);
         });
     }
 

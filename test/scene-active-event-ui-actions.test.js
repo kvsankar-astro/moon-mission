@@ -11,10 +11,10 @@ function createClassList(initialValues = []) {
     };
 }
 
-function createButtonStub({ eventKey = "", textContent = "", title = "" } = {}) {
+function createButtonStub({ eventKey = "", eventTimeMs = "", textContent = "", title = "" } = {}) {
     const attributes = { title };
     return {
-        dataset: { eventKey },
+        dataset: { eventKey, eventTimeMs },
         textContent,
         classList: createClassList(),
         getAttribute: vi.fn((name) => attributes[name] || ""),
@@ -40,6 +40,7 @@ describe("scene active event ui actions", () => {
         const styleCalls = [];
         const burnButton = createButtonStub({
             eventKey: "tli-burn",
+            eventTimeMs: "1000",
             textContent: "TLI Burn",
             title: "Trans-lunar injection",
         });
@@ -62,7 +63,7 @@ describe("scene active event ui actions", () => {
         });
 
         actions.updateActiveEvent({
-            time: 1005,
+            time: 1000,
             activeEvent: {
                 key: "tli-burn",
                 label: "TLI",
@@ -85,13 +86,56 @@ describe("scene active event ui actions", () => {
         expect(clearEventInfo).not.toHaveBeenCalled();
         expect(mobileText["mobile-mission-event"]).toContain("Trans-lunar injection");
         expect(burnButton.classList.contains("burnbutton--active-event")).toBe(true);
+        expect(burnButton.classList.contains("burnbutton--time-boundary")).toBe(false);
         expect(burnButton.scrollIntoView).toHaveBeenCalledTimes(1);
+    });
+
+    it("marks the previous and next event buttons as dashed boundaries between events", () => {
+        const styleCalls = [];
+        const firstButton = createButtonStub({
+            eventKey: "earthset",
+            eventTimeMs: "1000",
+            textContent: "Earthset",
+        });
+        const secondButton = createButtonStub({
+            eventKey: "earthrise",
+            eventTimeMs: "2000",
+            textContent: "Earthrise",
+        });
+        const updateEventInfo = vi.fn();
+        const clearEventInfo = vi.fn();
+        const actions = createSceneActiveEventUiActions({
+            d3: createD3Stub(styleCalls),
+            updateEventInfo,
+            clearEventInfo,
+            setMobileText() {},
+            documentRef: {
+                querySelectorAll(selector) {
+                    return selector === "#burnbuttons button[data-event-key]"
+                        ? [firstButton, secondButton]
+                        : [];
+                },
+            },
+        });
+
+        actions.updateActiveEvent({
+            time: 1500,
+            activeEvent: null,
+        });
+
+        expect(firstButton.classList.contains("burnbutton--time-boundary")).toBe(true);
+        expect(secondButton.classList.contains("burnbutton--time-boundary")).toBe(true);
+        expect(firstButton.classList.contains("burnbutton--active-event")).toBe(false);
+        expect(secondButton.classList.contains("burnbutton--active-event")).toBe(false);
+        expect(firstButton.scrollIntoView).not.toHaveBeenCalled();
+        expect(secondButton.scrollIntoView).not.toHaveBeenCalled();
     });
 
     it("clears the active event shell when no event is present after a highlighted event", () => {
         const styleCalls = [];
         const burnButton = createButtonStub({
             eventKey: "loi-burn",
+            eventTimeMs: "2000",
             textContent: "LOI Burn",
             title: "Lunar orbit insertion",
         });
@@ -114,7 +158,7 @@ describe("scene active event ui actions", () => {
         });
 
         actions.updateActiveEvent({
-            time: 2005,
+            time: 2000,
             activeEvent: {
                 key: "loi-burn",
                 label: "LOI",

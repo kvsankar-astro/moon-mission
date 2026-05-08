@@ -9,6 +9,7 @@ function createSliderStub({ min = "0", max = "1000", value = "0" } = {}) {
         min,
         max,
         value,
+        dataset: {},
         dispatchedEvents,
         addEventListener(type, handler) {
             const handlers = listeners.get(type) || [];
@@ -115,10 +116,14 @@ describe("createMobileComposeTimelineSync", () => {
         harness.mobileComposeTimelineSlider.value = "750";
         harness.mobileComposeTimelineSlider.dispatchEvent({ type: "input" });
         expect(harness.timelineSlider.value).toBe("550");
+        expect(harness.timelineSlider.dataset.currentTimeMs).toBe("550");
+        expect(harness.timelineSlider.dataset.programmaticSeekTimeMs).toBe("550");
         expect(harness.timelineSlider.dispatchedEvents).toContain("input");
 
         harness.mobileComposeTimelineSlider.dispatchEvent({ type: "change" });
         expect(harness.timelineSlider.value).toBe("550");
+        expect(harness.timelineSlider.dataset.currentTimeMs).toBe("550");
+        expect(harness.timelineSlider.dataset.programmaticSeekTimeMs).toBe("550");
         expect(harness.timelineSlider.dispatchedEvents).toContain("change");
     });
 

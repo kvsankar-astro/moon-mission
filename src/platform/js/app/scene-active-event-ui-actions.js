@@ -1,7 +1,7 @@
 import {
     planActiveEventUiState,
-    resolveActiveEventButtonMatchIndex,
 } from "../core/domain/active-event-ui-state.js";
+import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
 
 function createSceneActiveEventUiActions(deps) {
     const {
@@ -13,7 +13,8 @@ function createSceneActiveEventUiActions(deps) {
         getNowWallTimeMs = () => Date.now(),
     } = deps;
     const ACTIVE_EVENT_BUTTON_CLASS = "burnbutton--active-event";
-    let highlightedEventButton = null;
+    const BOUNDARY_EVENT_BUTTON_CLASS = "burnbutton--time-boundary";
+    let lastScrolledCurrentEventSignature = "";
     let activeEventVisible = false;
 
     function setBurnIndicatorVisible(isVisible) {
@@ -24,63 +25,73 @@ function createSceneActiveEventUiActions(deps) {
         activeEventVisible = isVisible;
     }
 
-    function clearActiveEventButtonHighlight() {
-        if (highlightedEventButton) {
-            highlightedEventButton.classList.remove(ACTIVE_EVENT_BUTTON_CLASS);
-            highlightedEventButton = null;
+    function setElementClass(element, className, enabled) {
+        if (!element?.classList) return;
+        if (enabled) {
+            element.classList.add(className);
+        } else {
+            element.classList.remove(className);
         }
     }
 
-    function resolveButtonForActiveEvent(activeEvent) {
+    function resolveTimelineEventButtons() {
         const buttons = Array.from(documentRef.querySelectorAll("#burnbuttons button[data-event-key]"));
-        if (!buttons.length) return null;
-        const matchedIndex = resolveActiveEventButtonMatchIndex({
-            activeEvent,
-            buttonDescriptors: buttons.map((button) => ({
-                eventKey: button?.dataset?.eventKey || "",
-                label: button?.textContent || "",
-                title: button?.getAttribute("title") || "",
-            })),
-        });
-        return matchedIndex === null ? null : buttons[matchedIndex] || null;
+        return buttons.map((button) => ({
+            button,
+            eventKey: button?.dataset?.eventKey || "",
+            timeMs: Number(button?.dataset?.eventTimeMs),
+        }));
     }
 
-    function updateActiveEventButtonHighlight(activeEvent) {
-        if (!activeEvent) {
-            clearActiveEventButtonHighlight();
+    function updateTimelineEventButtonHighlights(currentTimeMs) {
+        const descriptors = resolveTimelineEventButtons();
+        if (descriptors.length === 0) {
+            lastScrolledCurrentEventSignature = "";
             return;
         }
 
-        const button = resolveButtonForActiveEvent(activeEvent);
-        if (!button) {
-            clearActiveEventButtonHighlight();
-            return;
+        const highlightState = resolveTimelineEventHighlightState({
+            events: descriptors,
+            currentTimeMs,
+        });
+        const currentIndexes = new Set(highlightState.currentIndexes);
+        const boundaryIndexes = new Set(highlightState.boundaryIndexes);
+
+        for (let index = 0; index < descriptors.length; index += 1) {
+            const descriptor = descriptors[index];
+            const isCurrent = currentIndexes.has(index);
+            setElementClass(descriptor.button, ACTIVE_EVENT_BUTTON_CLASS, isCurrent);
+            setElementClass(
+                descriptor.button,
+                BOUNDARY_EVENT_BUTTON_CLASS,
+                !isCurrent && boundaryIndexes.has(index),
+            );
         }
 
-        if (button === highlightedEventButton) {
-            return;
+        const currentSignature = highlightState.currentIndexes
+            .map((index) => descriptors[index]?.eventKey || String(index))
+            .join("|");
+        if (currentSignature && currentSignature !== lastScrolledCurrentEventSignature) {
+            const firstCurrent = descriptors[highlightState.currentIndexes[0]]?.button;
+            if (typeof firstCurrent?.scrollIntoView === "function") {
+                firstCurrent.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "center",
+                });
+            }
         }
-
-        clearActiveEventButtonHighlight();
-        button.classList.add(ACTIVE_EVENT_BUTTON_CLASS);
-        highlightedEventButton = button;
-        if (typeof button.scrollIntoView === "function") {
-            button.scrollIntoView({
-                behavior: "smooth",
-                block: "nearest",
-                inline: "center",
-            });
-        }
+        lastScrolledCurrentEventSignature = currentSignature;
     }
 
     function clearActiveEventUi() {
         setBurnIndicatorVisible(false);
         clearEventInfo();
         setMobileText("mobile-mission-event", "No active event");
-        clearActiveEventButtonHighlight();
     }
 
     function updateActiveEvent(sceneState) {
+        updateTimelineEventButtonHighlights(sceneState?.time);
         const activeEventUiState = planActiveEventUiState({
             activeEvent: sceneState?.activeEvent,
             currentTimeMs: sceneState?.time,
@@ -90,7 +101,6 @@ function createSceneActiveEventUiActions(deps) {
             setBurnIndicatorVisible(activeEventUiState.showBurnIndicator);
             updateEventInfo(activeEventUiState.eventText);
             setMobileText("mobile-mission-event", activeEventUiState.mobileEventText);
-            updateActiveEventButtonHighlight(sceneState.activeEvent);
             return;
         }
 

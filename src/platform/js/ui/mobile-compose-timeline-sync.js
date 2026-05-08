@@ -38,7 +38,8 @@ function createMobileComposeTimelineSync(deps) {
         }
         const min = Number(timelineSlider.min);
         const max = Number(timelineSlider.max);
-        const value = Number(timelineSlider.value);
+        const preciseValue = Number(timelineSlider.dataset?.currentTimeMs);
+        const value = Number.isFinite(preciseValue) ? preciseValue : Number(timelineSlider.value);
         if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) {
             return null;
         }
@@ -55,8 +56,12 @@ function createMobileComposeTimelineSync(deps) {
         if (!timelineState) return;
         const clamped = Math.min(Math.max(timeMs, timelineState.min), timelineState.max);
         timelineState.slider.value = String(clamped);
+        const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
+        dataset.currentTimeMs = String(clamped);
+        dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(createInputEvent());
         if (finalize) {
+            dataset.programmaticSeekTimeMs = String(clamped);
             timelineState.slider.dispatchEvent(createChangeEvent());
         }
     }

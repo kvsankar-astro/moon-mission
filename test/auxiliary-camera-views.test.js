@@ -603,6 +603,109 @@ describe("Frame and Shoot timeline phase tracking", () => {
     });
 });
 
+describe("Frame and Shoot event pill highlighting", () => {
+    class FakeElement {
+        constructor(tagName = "div") {
+            this.tagName = tagName;
+            this.children = [];
+            this.className = "";
+            this.textContent = "";
+            this.attributes = {};
+            this.listeners = new Map();
+            this.classList = {
+                add: (...names) => {
+                    const values = new Set(this.className.split(/\s+/).filter(Boolean));
+                    for (const name of names) values.add(name);
+                    this.className = Array.from(values).join(" ");
+                },
+                remove: (...names) => {
+                    const values = new Set(this.className.split(/\s+/).filter(Boolean));
+                    for (const name of names) values.delete(name);
+                    this.className = Array.from(values).join(" ");
+                },
+                contains: (name) => this.className.split(/\s+/).filter(Boolean).includes(name),
+                toggle: (name, enabled) => {
+                    if (enabled) {
+                        this.classList.add(name);
+                        return true;
+                    }
+                    this.classList.remove(name);
+                    return false;
+                },
+            };
+        }
+
+        appendChild(child) {
+            this.children.push(child);
+            return child;
+        }
+
+        replaceChildren(...children) {
+            this.children = children;
+        }
+
+        setAttribute(name, value) {
+            this.attributes[name] = String(value);
+        }
+
+        addEventListener(type, handler) {
+            const handlers = this.listeners.get(type) || [];
+            handlers.push(handler);
+            this.listeners.set(type, handlers);
+        }
+    }
+
+    function createHarness() {
+        vi.stubGlobal("document", {
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        });
+
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            composerActivePhaseIndex: -1,
+            composerSelectedPhaseIndex: -1,
+            composerFlybyEvents: [
+                { key: "e1", title: "Event 1", timeMs: 1000 },
+                { key: "e2", title: "Event 2", timeMs: 2000 },
+            ],
+            formatLocalDateTime: (timeMs) => String(timeMs),
+            seekMainTimelineTime: vi.fn(),
+            syncComposerTimelineUi: vi.fn(),
+            requestRender: vi.fn(),
+        });
+        const panelState = {
+            composerFlybyEventsWrap: new FakeElement(),
+            composerFlybyEventsSignature: "",
+            composerFlybyEventNodes: [],
+            composerFlybySelectedEventTimeMs: Number.NaN,
+        };
+        return { manager, panelState };
+    }
+
+    it("shows dashed boundaries for the two surrounding events between event times", () => {
+        const { manager, panelState } = createHarness();
+
+        manager.syncComposerFlybyEventPills(panelState, 1500);
+
+        expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-boundary")).toBe(true);
+        expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-boundary")).toBe(true);
+        expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-active")).toBe(false);
+        expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-active")).toBe(false);
+    });
+
+    it("uses the solid active pill only on an exact event time", () => {
+        const { manager, panelState } = createHarness();
+
+        manager.syncComposerFlybyEventPills(panelState, 1000);
+
+        expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-active")).toBe(true);
+        expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-boundary")).toBe(false);
+        expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-active")).toBe(false);
+        expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-boundary")).toBe(false);
+    });
+});
+
 describe("Auxiliary visible panel refresh scheduling", () => {
     it("refreshes all visible panels after shared composer controls change", () => {
         let rafCallback = null;
