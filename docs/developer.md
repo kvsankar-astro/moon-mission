@@ -101,7 +101,7 @@ Useful pages:
   - panel rendering/lifecycle in `src/platform/js/app/media-browser-panel.js`
   - media domain helpers under `src/platform/js/core/domain/media-*.js`
 - The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
-- The current Artemis II media implementation keeps media files remote in the public Artemis Timeline R2 bucket and stores only mirrored metadata locally. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
+- The current Artemis II media implementation keeps full media files remote in the public Artemis Timeline R2 bucket, stores mirrored metadata locally, and stages generated thumbnail derivatives from `../moon-mission-data`. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
 - Playable Mission Media items are synchronized with the mission clock: selecting a video or audio clip seeks the mission time, switches animation playback to realtime, starts both media and animation, and pauses animation when the media pauses or ends. Plain animation playback does not auto-start media.
 - `Flyby in Focus` / `Frame and Shoot` treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft.
 - Its sky controls include `Star Mag` from `-3` to `6`, `Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox. Body labels are suppressed when their anchor point is hidden behind the projected Earth or Moon disk.
@@ -127,6 +127,7 @@ Useful pages:
 - `npm run configs:compile` - compile mission JSON5 artifacts into runtime JSON (`config.json5` -> `config.json`, and optional `media-manifest.json5` -> `media-manifest.json`)
 - `npm run configs:check` - sync-only check that compiled mission JSON artifacts are in sync with their JSON5 sources
 - `npm run configs:lint` - stricter CI/local gate for config sync plus required `time_scale` annotations
+- `node scripts/generate-media-thumbnails.mjs --mission artemis2 --data-root ../moon-mission-data --kind all` - generate Mission Media thumbnails into the data repo
 - `npm run hooks:install` - installs local pre-commit hook path (`.githooks`)
 
 Pre-commit behavior (when hooks are installed):

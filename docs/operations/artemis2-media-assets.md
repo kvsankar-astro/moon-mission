@@ -1,6 +1,6 @@
 # Artemis II Media Assets
 
-Last updated: 2026-05-08
+Last updated: 2026-05-09
 
 This note documents the current Artemis II media browser asset model. Use it when updating the Mission Media panel, refreshing metadata, or deciding whether media files should be mirrored into a repo.
 
@@ -9,8 +9,9 @@ This note documents the current Artemis II media browser asset model. Use it whe
 - The app stores media metadata locally in `assets/artemis2/data/media-manifest.json5`.
 - Runtime consumes the compiled `assets/artemis2/data/media-manifest.json`.
 - The media browser is enabled by the mission panel config key `workflow:media-browser`.
-- Image and clip preview assets are loaded directly from the public Artemis Timeline R2 bucket recorded in the manifest `mediaBase`.
-- Videos use the upstream `web/*.mp4` asset as the playable source and, when present, a derived `web/<mp4-basename>-poster.jpg` poster.
+- Full image and playable clip assets are loaded directly from the public Artemis Timeline R2 bucket recorded in the manifest `mediaBase`.
+- Thumbnail cards use generated derivatives declared by the manifest `thumbnails` block. Runtime falls back to the full remote image or video poster if a generated thumbnail is missing.
+- Videos use the upstream `web/*.mp4` asset as the playable source and generated `assets/artemis2/media/thumbnails/videos/*.webp` thumbnails in the picker.
 - Audio clips use direct remote audio paths from the manifest. Selecting a playable video or audio item aligns the mission timeline to that item, starts realtime animation, and pauses animation when the media pauses or ends.
 - Compare mode intentionally disables the media browser because media timestamps are real mission chronology, not compare-mode aligned time.
 
@@ -35,16 +36,36 @@ In this repo:
 
 In `../moon-mission-data`:
 
-- Do not mirror the Artemis Timeline R2 bucket by default.
-- Only add hosted media files if we deliberately decide to self-host, compress, or replace a source asset.
+- Store generated thumbnail derivatives under `assets/artemis2/media/thumbnails/`, including image/video thumbnail WebPs and the shared audio waveform SVG.
+- Do not mirror the Artemis Timeline R2 bucket originals by default.
+- Only add hosted original media files if we deliberately decide to self-host, compress, or replace a source asset.
 - If we self-host later, document the source URL, transform, license/provenance check, and CORS behavior before committing the asset.
+
+## Generated Thumbnails
+
+The Artemis II manifest declares:
+
+```json5
+"thumbnails": {
+  "basePath": "../media/thumbnails",
+  "imagePattern": "images/{key}.webp",
+  "videoPattern": "videos/{key}.webp",
+  "audioFallbackAsset": "audio/waveform.svg"
+}
+```
+
+- Generate thumbnails with `node scripts/generate-media-thumbnails.mjs --mission artemis2 --data-root ../moon-mission-data --kind all`.
+- Image and video thumbnails are `320x180` WebP derivatives created with `ffmpeg`.
+- Audio uses one shared waveform symbol at `assets/artemis2/media/thumbnails/audio/waveform.svg`.
+- Stage generated thumbnail derivatives into local/dev/deploy targets with `python scripts/stage-ephemeris-data.py --data-root ../moon-mission-data --target-root <target>`.
+- Local staged `assets/*/media/` files are ignored in this app repo and should be committed from `../moon-mission-data`.
 
 ## Known Import Notes
 
 - The current import stores upstream metadata and remote asset references; it does not store original Flickr URLs.
 - Many image filenames look like public NASA/Flickr/DVIDS-derived file identifiers, but the manifest should not be treated as a license ledger.
-- During the import review, no separate photo thumbnails were identified in the remote bucket. The browser currently uses the main photo asset for image previews.
-- Video clips can use poster images derived as `web/<mp4-basename>-poster.jpg`.
+- During the import review, no separate photo thumbnails were identified in the remote bucket, so local thumbnail derivatives are generated from the remote assets.
+- Video clips may still use remote poster images as runtime fallback when a generated derivative is missing.
 - The referenced R2 media set was roughly 206 MiB at import time. Recalculate before making cache, hosting, or deploy-size decisions.
 - Some audio references from the upstream project were unavailable during import review; do not assume all upstream media paths are live without checking.
 

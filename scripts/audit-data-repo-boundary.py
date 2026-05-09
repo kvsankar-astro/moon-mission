@@ -49,6 +49,7 @@ ORIGIN_REQUIREMENTS = {
         "require_relative_npz": True,
     },
 }
+DEFAULT_THUMBNAIL_BASE_PATH = "../media/thumbnails"
 
 
 def sha256(path: Path) -> str:
@@ -112,6 +113,14 @@ def git_tracked_paths(repo_root: Path) -> set[str]:
         for line in result.stdout.splitlines()
         if line.strip()
     }
+
+
+def is_path_within(child_path: Path, parent_path: Path) -> bool:
+    try:
+        child_path.relative_to(parent_path)
+        return True
+    except ValueError:
+        return False
 
 
 def scan_mission_data_paths(repo_root: Path) -> list[str]:
@@ -290,6 +299,86 @@ def audit_origin_artifact_integrity(app_root: Path, data_root: Path) -> dict[str
     }
 
 
+def audit_media_thumbnail_derivatives(
+    app_root: Path,
+    data_root: Path,
+    data_tracked: set[str],
+) -> dict[str, Any]:
+    active_missions = load_active_mission_folders(app_root)
+    issues: list[dict[str, Any]] = []
+
+    for mission in sorted(active_missions):
+        manifest_path = app_root / "assets" / mission / "data" / "media-manifest.json"
+        if not manifest_path.exists():
+            continue
+        manifest = load_json(manifest_path)
+        thumbnails = manifest.get("thumbnails") if isinstance(manifest, dict) else None
+        if not isinstance(thumbnails, dict):
+            continue
+
+        base_path = thumbnails.get("basePath")
+        if not isinstance(base_path, str) or not base_path.strip():
+            base_path = DEFAULT_THUMBNAIL_BASE_PATH
+
+        mission_root = (data_root / "assets" / mission).resolve()
+        thumbnail_root = (mission_root / "data" / base_path).resolve()
+        if not is_path_within(thumbnail_root, mission_root):
+            issues.append(
+                {
+                    "mission": mission,
+                    "kind": "thumbnail-path-escapes-mission",
+                    "path": base_path,
+                    "detail": "Thumbnail basePath resolves outside the mission folder",
+                }
+            )
+            continue
+
+        rel_root = thumbnail_root.relative_to(data_root).as_posix()
+        if not thumbnail_root.exists():
+            issues.append(
+                {
+                    "mission": mission,
+                    "kind": "missing-thumbnail-root",
+                    "path": rel_root,
+                    "detail": "Manifest declares generated thumbnails but the data repo has no thumbnail directory",
+                }
+            )
+            continue
+
+        thumbnail_files = sorted(path for path in thumbnail_root.rglob("*") if path.is_file())
+        if not thumbnail_files:
+            issues.append(
+                {
+                    "mission": mission,
+                    "kind": "empty-thumbnail-root",
+                    "path": rel_root,
+                    "detail": "Manifest declares generated thumbnails but the thumbnail directory is empty",
+                }
+            )
+            continue
+
+        untracked = [
+            path.relative_to(data_root).as_posix()
+            for path in thumbnail_files
+            if path.relative_to(data_root).as_posix() not in data_tracked
+        ]
+        if untracked:
+            issues.append(
+                {
+                    "mission": mission,
+                    "kind": "untracked-media-thumbnails",
+                    "path": rel_root,
+                    "detail": f"{len(untracked)} thumbnail file(s) are not tracked in the data repo",
+                    "samples": untracked[:5],
+                }
+            )
+
+    return {
+        "missions_checked": len(active_missions),
+        "issues": issues,
+    }
+
+
 def classify_path(rel_path: str, rules: dict[str, Any], tracked: bool) -> ClassifiedPath:
     path = Path(rel_path)
     mission = path.parts[1] if len(path.parts) >= 3 else ""
@@ -447,6 +536,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
     artifact_gaps = required_artifact_gaps(app_root, data_root, stage_script)
     mirrored = compare_mirrored_files(app_root, data_root, app_entries, data_entries)
     origin_integrity = audit_origin_artifact_integrity(app_root, data_root)
+    media_thumbnails = audit_media_thumbnail_derivatives(app_root, data_root, data_tracked)
 
     return {
         "app_root": app_root.as_posix(),
@@ -473,6 +563,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
             "mirrored_mismatches": len(mirrored["mismatches"]),
             "missing_required_artifacts": len(artifact_gaps["required"]),
             "origin_integrity_issues": len(origin_integrity["issues"]),
+            "media_thumbnail_issues": len(media_thumbnails["issues"]),
         },
         "app_repo": {
             "data_only_files": serialize([entry for entry in app_entries if entry.category == "data_only"]),
@@ -495,6 +586,7 @@ def build_report(app_root: Path, data_root: Path, rules_path: Path) -> dict[str,
         "mirrored_files": mirrored,
         "required_artifacts": artifact_gaps,
         "origin_integrity": origin_integrity,
+        "media_thumbnails": media_thumbnails,
     }
 
 
@@ -547,6 +639,18 @@ def print_text_report(report: dict[str, Any]) -> None:
                 )
             }
             for item in report["origin_integrity"]["issues"]
+        ],
+    )
+    print_paths(
+        "Media thumbnail derivative issues",
+        [
+            {
+                "path": (
+                    f"{item['mission']} {item['kind']}: "
+                    f"{item.get('path', '')} ({item.get('detail', '')})"
+                )
+            }
+            for item in report["media_thumbnails"]["issues"]
         ],
     )
 
@@ -602,6 +706,7 @@ def has_drift(report: dict[str, Any]) -> bool:
             report["summary"]["mirrored_mismatches"] > 0,
             report["summary"]["missing_required_artifacts"] > 0,
             report["summary"]["origin_integrity_issues"] > 0,
+            report["summary"]["media_thumbnail_issues"] > 0,
         )
     )
 

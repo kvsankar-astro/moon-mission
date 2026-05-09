@@ -171,4 +171,27 @@ describe("audit-data-repo-boundary origin integrity checks", () => {
         expect(issueKinds).toContain("missing-relative-npz");
         expect(issueKinds).toContain("missing-frame-rot");
     });
+
+    it("flags untracked media thumbnails declared by media manifests", () => {
+        const { appRoot, dataRoot } = setupFixture();
+        writeJson(join(appRoot, "assets", "sample", "data", "media-manifest.json"), {
+            thumbnails: {
+                basePath: "../media/thumbnails",
+            },
+        });
+        writeText(
+            join(dataRoot, "assets", "sample", "media", "thumbnails", "images", "sample.webp"),
+            "thumbnail",
+        );
+
+        const report = runAudit(appRoot, dataRoot);
+
+        expect(report.summary.media_thumbnail_issues).toBe(1);
+        expect(report.media_thumbnails.issues).toEqual([
+            expect.objectContaining({
+                mission: "sample",
+                kind: "untracked-media-thumbnails",
+            }),
+        ]);
+    });
 });

@@ -141,6 +141,7 @@ assets/*/data/*-meta.json
 assets/*/data/*-style.json
 
 # Runtime media and vendored assets are staged locally from moon-mission-data.
+assets/*/media/
 assets/*/images/
 images/*
 !images/moon/
