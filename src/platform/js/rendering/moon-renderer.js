@@ -21,9 +21,9 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
     normalDetailBoost: 2.0,
-    normalDetailRadius: 5,
+    normalDetailRadius: 4,
     normalScale: 2.2,
-    displacementScale: 0.018,
+    displacementScale: 0.013,
     displacementBias: -0.0048,
     roughness: 0.955,
     metalness: 0.0,
@@ -331,12 +331,13 @@ float moonFinalCavityDarken = 0.0;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
     // Dark-side base crush, gated by moonSmoothNdotL — only fires close to the
-    // terminator and into the unlit hemisphere. Smoothstep upper pulled from
-    // 0.48 down to 0.22 so the crush no longer eats into mid-NdotL terrain
-    // (60-80 deg from sub-solar) where crater detail should still be readable.
-    // The lower-limb darkness in real spacecraft photos comes from cos(angle)
-    // falloff alone, not an extra crush curve, so keep this band tight.
-    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
+    // terminator and into the unlit hemisphere (smoothNdotL < 0.22). The
+    // lit-side mid-tones are NOT affected; the smoothstep saturates at 1.0 by
+    // smoothNdotL=0.22 so anything in the lit hemisphere passes through. Bottom
+    // pulled from 0.32 to 0.18 to push the unlit hemisphere closer to true
+    // black — Moon Ambient / earthshine can still partially fill it when
+    // explicitly dialed up, just on a darker base.
+    float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 #endif`,
             )
@@ -358,7 +359,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v18",
+            "moon-photometric-v19",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

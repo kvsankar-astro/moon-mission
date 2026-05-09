@@ -1,13 +1,15 @@
 import * as THREE from "three";
+import { DataUtils } from "three";
 
 export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
     normalDetailBoost: 2.0,
-    // Wider detail-radius (sample 5px out instead of 3px) suppresses the
-    // single-pixel LDEM noise that gets amplified at any meaningful boost
-    // setting; rim-scale features (~2-3 px in 16k LDEM) are preserved.
-    normalDetailRadius: 5,
+    // detailRadius=4 is a compromise: wide enough that the boost doesn't
+    // amplify single-pixel LDEM noise, narrow enough that micro-features in
+    // smooth maria don't get smeared out (which read as "JPEG"-like blocky
+    // artifacts at radius=5).
+    normalDetailRadius: 4,
 });
 
 function resolveNormalMapSetting(value, fallback) {
@@ -75,7 +77,15 @@ export function buildMoonNormalMapFromHeightTexture(
     }
 
     const invHeightRange = 1 / Math.max(1e-5, maxHeight - minHeight);
-    const normalData = new Uint8Array(width * height * 4);
+    // Half-float (16-bit) output instead of Uint8 (8-bit). With normalScale up
+    // around 2.0+, 8-bit-per-channel quantization is visible as banding /
+    // "JPEG"-look artifacts in flat regions where the gradient is small. Half
+    // float gives ~10 bits of mantissa precision, eliminating the banding
+    // without paying the 4x memory cost of Float32. Storage is still in the
+    // 0..1 range (with the *0.5+0.5 encoding) so three.js's MeshStandardMaterial
+    // normal-map unpacking (n*2-1) keeps working unchanged.
+    const normalData = new Uint16Array(width * height * 4);
+    const halfOne = DataUtils.toHalfFloat(1.0);
     const detailBoost = resolveNormalMapSetting(
         renderSettings?.normalDetailBoost,
         DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalDetailBoost,
@@ -138,14 +148,20 @@ export function buildMoonNormalMapFromHeightTexture(
             nz *= invLen;
 
             const outIndex = (y * width + x) * 4;
-            normalData[outIndex] = Math.round((nx * 0.5 + 0.5) * 255);
-            normalData[outIndex + 1] = Math.round((ny * 0.5 + 0.5) * 255);
-            normalData[outIndex + 2] = Math.round((nz * 0.5 + 0.5) * 255);
-            normalData[outIndex + 3] = 255;
+            normalData[outIndex] = DataUtils.toHalfFloat(nx * 0.5 + 0.5);
+            normalData[outIndex + 1] = DataUtils.toHalfFloat(ny * 0.5 + 0.5);
+            normalData[outIndex + 2] = DataUtils.toHalfFloat(nz * 0.5 + 0.5);
+            normalData[outIndex + 3] = halfOne;
         }
     }
 
-    const normalTexture = new THREE.DataTexture(normalData, width, height, THREE.RGBAFormat);
+    const normalTexture = new THREE.DataTexture(
+        normalData,
+        width,
+        height,
+        THREE.RGBAFormat,
+        THREE.HalfFloatType,
+    );
     normalTexture.wrapS = heightTexture.wrapS;
     normalTexture.wrapT = heightTexture.wrapT;
     normalTexture.magFilter = THREE.LinearFilter;
