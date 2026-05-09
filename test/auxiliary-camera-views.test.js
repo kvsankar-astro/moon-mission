@@ -207,6 +207,25 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(70);
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
+
+    it("clamps stale or manual Frame and Shoot FoV above composition bounds", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "composer",
+            camera: {
+                fov: 50,
+                updateProjectionMatrix: vi.fn(),
+            },
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+        };
+
+        manager.setPanelFov(panelState, 143.5);
+
+        expect(panelState.camera.fov).toBe(70);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(70, 70);
+    });
 });
 
 describe("Frame and Shoot lock target FoV behavior", () => {

@@ -1908,6 +1908,8 @@ class AuxiliaryCameraViewsManager {
         headerControls.className = "aux-camera-view__header-controls mission-panel-shell__header-controls";
         let panelControls = null;
 
+        const isComposerPanel = spec.mode === "composer";
+        const maxFovDegrees = isComposerPanel ? COMPOSER_AUTO_FOV_MAX_DEGREES : AUTO_FOV_MAX_DEGREES;
         const fovControls = document.createElement("div");
         fovControls.className = "aux-camera-view__fov-controls";
         const fovControl = mountMissionFovControl(fovControls, {
@@ -1917,7 +1919,7 @@ class AuxiliaryCameraViewsManager {
             valueAriaLabel: `${spec.title} field of view value`,
             initialFovDegrees: spec.defaultFov,
             minDegrees: AUTO_FOV_MIN_DEGREES,
-            maxDegrees: AUTO_FOV_MAX_DEGREES,
+            maxDegrees: maxFovDegrees,
             classNames: {
                 label: ["aux-camera-view__fov-label"],
                 autoButton: ["aux-camera-view__auto-toggle"],
@@ -2909,7 +2911,7 @@ class AuxiliaryCameraViewsManager {
             fovSlider,
             fovValue,
             fovMinDegrees: AUTO_FOV_MIN_DEGREES,
-            fovMaxDegrees: AUTO_FOV_MAX_DEGREES,
+            fovMaxDegrees: maxFovDegrees,
             orthographicHalfHeight: 1,
             orbitZoomFovDegrees: spec.defaultFov,
             orbitPanOffsetX: 0,
@@ -7807,9 +7809,12 @@ class AuxiliaryCameraViewsManager {
         const minDegrees = Number.isFinite(panelState.fovMinDegrees)
             ? panelState.fovMinDegrees
             : AUTO_FOV_MIN_DEGREES;
+        const defaultMaxDegrees = panelState.mode === "composer"
+            ? COMPOSER_AUTO_FOV_MAX_DEGREES
+            : AUTO_FOV_MAX_DEGREES;
         const maxDegrees = Number.isFinite(panelState.fovMaxDegrees)
             ? panelState.fovMaxDegrees
-            : AUTO_FOV_MAX_DEGREES;
+            : defaultMaxDegrees;
         const fovDegrees = clampFovDegrees(requestedDegrees, {
             minDegrees,
             maxDegrees,
@@ -7918,6 +7923,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerEarthCloudsEnabled = earthCloudsEnabled !== false;
         panelState.syncComposerCloudsUi?.();
         this.syncPanelSize(panelState);
+        this.setPanelFov(panelState, panelState.camera.fov);
         this.syncComposerTimelineUi(panelState);
 
         if (referenceCamera) {
