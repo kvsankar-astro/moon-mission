@@ -2077,6 +2077,48 @@ html[data-app-view="selector"] .mission-loading-overlay,
     cursor: grabbing;
 }
 
+.timeline-dock__overview {
+    position: absolute;
+    top: 3px;
+    right: 0;
+    width: min(132px, 22vw);
+    height: 12px;
+    border: 1px solid rgba(128, 178, 255, 0.2);
+    border-radius: 999px;
+    background:
+        linear-gradient(90deg, rgba(77, 141, 255, 0.34), rgba(186, 213, 255, 0.16));
+    box-shadow: inset 0 0 10px rgba(4, 9, 18, 0.38);
+    opacity: 0.86;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.timeline-dock__overview[hidden] {
+    display: none;
+}
+
+.timeline-dock__overview-window {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    min-width: 5px;
+    border: 1px solid rgba(246, 250, 255, 0.9);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 0 8px rgba(125, 191, 255, 0.28);
+}
+
+.timeline-dock__overview-current {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    width: 2px;
+    border-radius: 999px;
+    background: rgba(255, 108, 176, 0.95);
+    box-shadow: 0 0 8px rgba(255, 108, 176, 0.46);
+    transform: translateX(-50%);
+}
+
 .timeline-dock__slider::-webkit-slider-runnable-track {
     height: 3px;
     border-radius: 999px;
@@ -3666,6 +3708,10 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
     .timeline-dock__track-wrap {
         height: 38px;
+    }
+
+    .timeline-dock__overview {
+        display: none;
     }
 
     .timeline-dock__edge,

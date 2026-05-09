@@ -128,6 +128,9 @@ function createTimelineDockController({
     const markers = document.getElementById("timeline-markers");
     const mediaMarkers = document.getElementById("timeline-media-markers");
     const timeLabels = document.getElementById("timeline-time-labels");
+    const overview = document.getElementById("timeline-overview");
+    const overviewWindow = overview?.querySelector?.(".timeline-dock__overview-window") || null;
+    const overviewCurrent = overview?.querySelector?.(".timeline-dock__overview-current") || null;
     const panLeftButton = document.getElementById("timeline-pan-left");
     const scaleContractButton = document.getElementById("timeline-scale-contract");
     const scaleResetButton = document.getElementById("timeline-scale-reset");
@@ -285,9 +288,33 @@ function createTimelineDockController({
         setScaleButtonDisabled(panRightButton, !zoomed || viewMax >= rangeMax);
     }
 
+    function syncTimelineOverview() {
+        if (!overview || !overviewWindow) return;
+        const fullSpanMs = getFullSpanMs();
+        const zoomed = isTimelineZoomed() && fullSpanMs > 0;
+        overview.hidden = !zoomed;
+        if (!zoomed) return;
+
+        const leftPercent = clamp(computePercent(viewMin, rangeMin, rangeMax), 0, 100);
+        const rightPercent = clamp(computePercent(viewMax, rangeMin, rangeMax), 0, 100);
+        overviewWindow.style.left = `${leftPercent}%`;
+        overviewWindow.style.width = `${Math.max(0, rightPercent - leftPercent)}%`;
+
+        if (!overviewCurrent) return;
+        const currentPercent = clamp(computePercent(currentTimeMs, rangeMin, rangeMax), 0, 100);
+        const showCurrent = Number.isFinite(currentTimeMs)
+            && currentTimeMs >= rangeMin
+            && currentTimeMs <= rangeMax;
+        overviewCurrent.hidden = !showCurrent;
+        if (showCurrent) {
+            overviewCurrent.style.left = `${currentPercent}%`;
+        }
+    }
+
     function renderTimeLabels() {
         if (!timeLabels) {
             syncScaleButtons();
+            syncTimelineOverview();
             return;
         }
         const labels = buildTimelineTimeLabels({
@@ -308,6 +335,7 @@ function createTimelineDockController({
             timeLabels.appendChild(label);
         }
         syncScaleButtons();
+        syncTimelineOverview();
     }
 
     function updateEdgeLabels() {
@@ -349,6 +377,7 @@ function createTimelineDockController({
         renderEventMarkersFromCache();
         renderMediaMarkersFromCache();
         dockRoot?.classList?.toggle?.("timeline-dock--zoomed", isTimelineZoomed());
+        syncTimelineOverview();
     }
 
     function setViewWindow(nextMin, nextMax) {
@@ -440,6 +469,7 @@ function createTimelineDockController({
         slider.dataset.currentTimeMs = String(currentTimeMs);
         updateCurrentLabel(currentTimeMs);
         syncMarkerHighlights();
+        syncTimelineOverview();
         onSeekTime?.(currentTimeMs, commit === true);
     }
 
@@ -606,6 +636,7 @@ function createTimelineDockController({
         slider.dataset.currentTimeMs = String(clamped);
         updateCurrentLabel(clamped);
         syncMarkerHighlights();
+        syncTimelineOverview();
     }
 
     function setElementClass(element, className, enabled) {
