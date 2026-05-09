@@ -512,7 +512,7 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
+    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 #endif`,
             )

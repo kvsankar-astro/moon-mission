@@ -29,13 +29,13 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     metalness: 0.0,
     lommelSeeligerBlend: 0.20,
     lsClampMin: 0.74,
-    lsClampMax: 1.14,
+    lsClampMax: 1.04,
     oppositionStrength: 0.0023,
     shadowLift: 0.0,
     highlightBoost: 1.6,
     shadowWeightExponent: 1.92,
-    highlightWeightExponent: 0.7,
-    terminatorContrast: 2.1,
+    highlightWeightExponent: 1.2,
+    terminatorContrast: 1.5,
     terminatorReliefStrength: 7.5,
     terminatorShadowFloor: 0.0,
     terminatorIndirectOcclusion: 1.0,
@@ -330,12 +330,13 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    // Dark-side base crush, gated by moonSmoothNdotL — only fires inside the
-    // terminator band and into the unlit hemisphere (smoothNdotL < 0.48).
-    // Lit-side crater shadows (which come from the perturbed normal) are NOT
-    // touched here. Bottom 0.32 keeps the dark hemisphere readably dark while
-    // still letting Moon Ambient / earthshine fill it when explicitly dialed.
-    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
+    // Dark-side base crush, gated by moonSmoothNdotL — only fires close to the
+    // terminator and into the unlit hemisphere. Smoothstep upper pulled from
+    // 0.48 down to 0.22 so the crush no longer eats into mid-NdotL terrain
+    // (60-80 deg from sub-solar) where crater detail should still be readable.
+    // The lower-limb darkness in real spacecraft photos comes from cos(angle)
+    // falloff alone, not an extra crush curve, so keep this band tight.
+    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 #endif`,
             )
@@ -357,7 +358,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v16",
+            "moon-photometric-v17",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
