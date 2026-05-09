@@ -51,7 +51,7 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 3);
         expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 3);
         expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 3);
-        expect(presentation.moonHighlightBoost).toBeCloseTo(1.35, 3);
+        expect(presentation.moonHighlightBoost).toBeCloseTo(1.20, 3);
     });
 
     it("allows somewhat more Earth night-light visibility when Earth dominates the frame", () => {
@@ -78,6 +78,6 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 3);
         expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 3);
         expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 3);
-        expect(presentation.moonHighlightBoost).toBeCloseTo(1.35, 3);
+        expect(presentation.moonHighlightBoost).toBeCloseTo(1.20, 3);
     });
 });

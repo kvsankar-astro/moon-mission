@@ -83,7 +83,7 @@ export function computePhotoModeLightingPresentation({
         moonTerminatorReliefStrength: 7.5,
         moonTerminatorShadowFloor: 0.0,
         moonTerminatorIndirectOcclusion: 1.0,
-        moonHighlightBoost: 1.35,
+        moonHighlightBoost: 1.20,
     };
 }
 
