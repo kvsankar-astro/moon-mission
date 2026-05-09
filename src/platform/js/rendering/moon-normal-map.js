@@ -115,8 +115,19 @@ export function buildMoonNormalMapFromHeightTexture(
             const gradientX = gradientXWide + (gradientXFine - gradientXWide) * detailBoost;
             const gradientY = gradientYWide + (gradientYFine - gradientYWide) * detailBoost;
 
+            // Image-space gradient -> tangent-space normal:
+            //   image X axis runs +east  (matches +U / +tangent), so nx = -dh/du = -gradientX
+            //   image Y axis runs +south (OPPOSITE of +V / +bitangent, because the texture
+            //                             is uploaded with flipY=true, mapping image-row 0
+            //                             to V=1 / north pole). So a height gradient in
+            //                             image-Y direction has *opposite* sign to dh/dv.
+            //                             ny = -dh/dv = -(-gradientY) = +gradientY.
+            // Previously this used -1 * gradientY, encoding the bitangent direction
+            // flipped, which mirrored the perturbed normal across the tangent-normal
+            // plane and produced shadow plumes pointing 90deg off the sun direction
+            // when the moon was viewed obliquely.
             let nx = -1 * gradientX * normalStrength;
-            let ny = -1 * gradientY * normalStrength;
+            let ny = +1 * gradientY * normalStrength;
             let nz = 1.0;
             const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
             nx *= invLen;
