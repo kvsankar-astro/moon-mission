@@ -18,7 +18,14 @@ const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 22;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
 const PANEL_DEFAULT_WIDTH_PX = 560;
-const PANEL_DEFAULT_HEIGHT_PX = 420;
+const PANEL_DEFAULT_HEIGHT_PX = 500;
+const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = 148;
+const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
+const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
+const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 140;
+const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
+const THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX = 36;
+const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
 const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
@@ -152,6 +159,9 @@ function createMediaBrowserPanelActions({
     let panelVisibilityState = "closed";
     let panelPosition = null;
     let dragState = null;
+    let thumbnailResizeDragState = null;
+    let thumbnailScrollerDragState = null;
+    let suppressThumbnailClick = false;
     let imageViewState = createDefaultMediaImageViewState();
     let imagePanDragState = null;
     let imageViewAssetUrl = "";
@@ -163,6 +173,10 @@ function createMediaBrowserPanelActions({
         restoredPanelLayout = null;
     }
     let hasRestoredPanelLayout = !!restoredPanelLayout;
+    let thumbnailStripHeight = Number.isFinite(Number(restoredPanelLayout?.thumbnailStripHeight))
+        && Number(restoredPanelLayout.thumbnailStripHeight) > 0
+        ? Math.round(Number(restoredPanelLayout.thumbnailStripHeight))
+        : THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX;
     let panelExpanded = restoredPanelLayout?.maximized === true;
     let restorePanelFrame = restoredPanelLayout?.restoreFrame && typeof restoredPanelLayout.restoreFrame === "object"
         ? {
@@ -299,6 +313,7 @@ function createMediaBrowserPanelActions({
             state: panelVisibilityState,
             maximized: panelExpanded === true,
             layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
+            thumbnailStripHeight: Math.round(thumbnailStripHeight),
             restoreFrame: restorePanelFrame && typeof restorePanelFrame === "object"
                 ? {
                     x: Math.round(Number(restorePanelFrame.x) || 0),
@@ -308,6 +323,215 @@ function createMediaBrowserPanelActions({
                 }
                 : null,
         });
+    }
+
+    function getElementHeight(node) {
+        const rect = node?.getBoundingClientRect?.() || null;
+        const rectHeight = Number(rect?.height);
+        if (Number.isFinite(rectHeight) && rectHeight > 0) return rectHeight;
+        const offsetHeight = Number(node?.offsetHeight);
+        return Number.isFinite(offsetHeight) ? offsetHeight : 0;
+    }
+
+    function resolveThumbnailStripConstraints(panel = getNode("media-browser-panel")) {
+        const panelHeight = getElementHeight(panel);
+        if (!panelHeight) {
+            return {
+                min: THUMBNAIL_STRIP_MIN_HEIGHT_PX,
+                max: THUMBNAIL_STRIP_MAX_HEIGHT_PX,
+            };
+        }
+
+        const headerHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__header"));
+        const toolbarHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__toolbar"));
+        const statusHeight = getElementHeight(getNode("media-browser-status"));
+        const resizerHeight = getElementHeight(getNode("media-browser-thumbnail-resizer")) || 8;
+        const availableHeight = panelHeight
+            - headerHeight
+            - toolbarHeight
+            - statusHeight
+            - resizerHeight
+            - THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX;
+        return {
+            min: THUMBNAIL_STRIP_MIN_HEIGHT_PX,
+            max: Math.max(
+                THUMBNAIL_STRIP_MIN_HEIGHT_PX,
+                Math.min(THUMBNAIL_STRIP_MAX_HEIGHT_PX, Math.round(availableHeight)),
+            ),
+        };
+    }
+
+    function applyThumbnailStripHeight(nextHeight = thumbnailStripHeight, {
+        persist = false,
+    } = {}) {
+        const panel = getNode("media-browser-panel");
+        if (!isElementLike(panel)) return;
+        const constraints = resolveThumbnailStripConstraints(panel);
+        const normalizedHeight = Number(nextHeight);
+        thumbnailStripHeight = clamp(
+            Math.round(Number.isFinite(normalizedHeight) ? normalizedHeight : THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX),
+            constraints.min,
+            constraints.max,
+        );
+        const cssValue = `${thumbnailStripHeight}px`;
+        if (panel.style.getPropertyValue("--media-browser-thumbnail-strip-height") !== cssValue) {
+            panel.style.setProperty("--media-browser-thumbnail-strip-height", cssValue);
+        }
+
+        const strip = panel.querySelector?.(".media-browser-panel__thumbnail-strip");
+        strip?.classList?.toggle("is-compact", thumbnailStripHeight <= 118);
+        strip?.classList?.toggle("is-minimal", thumbnailStripHeight <= 96);
+
+        const resizer = getNode("media-browser-thumbnail-resizer");
+        if (resizer?.setAttribute) {
+            resizer.setAttribute("aria-valuemin", String(Math.round(constraints.min)));
+            resizer.setAttribute("aria-valuemax", String(Math.round(constraints.max)));
+            resizer.setAttribute("aria-valuenow", String(Math.round(thumbnailStripHeight)));
+        }
+        if (persist) {
+            persistPanelLayoutState(panel);
+        }
+    }
+
+    function stopThumbnailStripResize(event, panel, resizer) {
+        if (
+            !thumbnailResizeDragState
+            || (event?.pointerId != null && thumbnailResizeDragState.pointerId !== event.pointerId)
+        ) {
+            return;
+        }
+        const pointerId = thumbnailResizeDragState.pointerId;
+        thumbnailResizeDragState = null;
+        panel?.classList?.remove("is-resizing-thumbnails");
+        if (typeof resizer?.hasPointerCapture !== "function" || resizer.hasPointerCapture(pointerId)) {
+            resizer?.releasePointerCapture?.(pointerId);
+        }
+        applyThumbnailStripHeight(thumbnailStripHeight, { persist: true });
+    }
+
+    function bindThumbnailStripResizer() {
+        const panel = getNode("media-browser-panel");
+        const resizer = getNode("media-browser-thumbnail-resizer");
+        if (!isElementLike(panel) || !isElementLike(resizer)) return;
+
+        resizer.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            thumbnailResizeDragState = {
+                pointerId: event.pointerId,
+                startY: event.clientY,
+                startHeight: thumbnailStripHeight,
+            };
+            panel.classList.add("is-resizing-thumbnails");
+            resizer.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+        });
+
+        resizer.addEventListener("pointermove", (event) => {
+            if (!thumbnailResizeDragState || thumbnailResizeDragState.pointerId !== event.pointerId) return;
+            applyThumbnailStripHeight(
+                thumbnailResizeDragState.startHeight - (event.clientY - thumbnailResizeDragState.startY),
+                { persist: false },
+            );
+        });
+
+        resizer.addEventListener("pointerup", (event) => stopThumbnailStripResize(event, panel, resizer));
+        resizer.addEventListener("pointercancel", (event) => stopThumbnailStripResize(event, panel, resizer));
+
+        resizer.addEventListener("keydown", (event) => {
+            const constraints = resolveThumbnailStripConstraints(panel);
+            const step = event.shiftKey ? THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX : THUMBNAIL_STRIP_KEYBOARD_STEP_PX;
+            let nextHeight = null;
+            if (event.key === "ArrowDown") {
+                nextHeight = thumbnailStripHeight - step;
+            } else if (event.key === "ArrowUp") {
+                nextHeight = thumbnailStripHeight + step;
+            } else if (event.key === "PageDown") {
+                nextHeight = thumbnailStripHeight - THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX;
+            } else if (event.key === "PageUp") {
+                nextHeight = thumbnailStripHeight + THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX;
+            } else if (event.key === "Home") {
+                nextHeight = constraints.min;
+            } else if (event.key === "End") {
+                nextHeight = constraints.max;
+            }
+            if (nextHeight == null) return;
+            event.preventDefault();
+            applyThumbnailStripHeight(nextHeight, { persist: true });
+        });
+
+        applyThumbnailStripHeight(thumbnailStripHeight);
+    }
+
+    function stopThumbnailScrollerDrag(event, host) {
+        if (
+            !thumbnailScrollerDragState
+            || (event?.pointerId != null && thumbnailScrollerDragState.pointerId !== event.pointerId)
+        ) {
+            return;
+        }
+        const didDrag = thumbnailScrollerDragState.didDrag === true;
+        const pointerId = thumbnailScrollerDragState.pointerId;
+        thumbnailScrollerDragState = null;
+        host?.classList?.remove("is-drag-ready", "is-dragging");
+        if (typeof host?.hasPointerCapture !== "function" || host.hasPointerCapture(pointerId)) {
+            host?.releasePointerCapture?.(pointerId);
+        }
+        if (didDrag) {
+            suppressThumbnailClick = true;
+            event?.preventDefault?.();
+            getWindowRef()?.setTimeout?.(() => {
+                suppressThumbnailClick = false;
+            }, 120);
+        }
+    }
+
+    function bindThumbnailStripDragging() {
+        const host = getNode("media-browser-thumbnail-list");
+        if (!isElementLike(host)) return;
+        const documentRef = getDocumentRef();
+
+        host.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0) return;
+            if (Number(host.scrollWidth) <= Number(host.clientWidth)) return;
+            thumbnailScrollerDragState = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                scrollLeft: Number(host.scrollLeft) || 0,
+                didDrag: false,
+            };
+            host.classList.add("is-drag-ready");
+        });
+
+        const handlePointerMove = (event) => {
+            if (!thumbnailScrollerDragState || thumbnailScrollerDragState.pointerId !== event.pointerId) return;
+            const deltaX = event.clientX - thumbnailScrollerDragState.startX;
+            const deltaY = event.clientY - thumbnailScrollerDragState.startY;
+            if (
+                thumbnailScrollerDragState.didDrag !== true
+                && Math.hypot(deltaX, deltaY) < THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX
+            ) {
+                return;
+            }
+            if (thumbnailScrollerDragState.didDrag !== true) {
+                thumbnailScrollerDragState.didDrag = true;
+                host.classList.add("is-dragging");
+                host.setPointerCapture?.(event.pointerId);
+            }
+            host.scrollLeft = thumbnailScrollerDragState.scrollLeft - deltaX;
+            event.preventDefault();
+        };
+
+        documentRef?.addEventListener?.("pointermove", handlePointerMove, true);
+        documentRef?.addEventListener?.("pointerup", (event) => stopThumbnailScrollerDrag(event, host), true);
+        documentRef?.addEventListener?.("pointercancel", (event) => stopThumbnailScrollerDrag(event, host), true);
+        host.addEventListener("lostpointercapture", (event) => stopThumbnailScrollerDrag(event, host));
+        host.addEventListener("click", (event) => {
+            if (suppressThumbnailClick !== true) return;
+            suppressThumbnailClick = false;
+            event.preventDefault();
+            event.stopPropagation();
+        }, true);
     }
 
     function resolveExpandedPanelRect() {
@@ -674,6 +898,7 @@ function createMediaBrowserPanelActions({
         }
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
+        applyThumbnailStripHeight(thumbnailStripHeight);
         persistPanelLayoutState(panel);
     }
 
@@ -707,6 +932,7 @@ function createMediaBrowserPanelActions({
         }
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
+        applyThumbnailStripHeight(thumbnailStripHeight);
         persistPanelLayoutState(panel);
     }
 
@@ -864,6 +1090,7 @@ function createMediaBrowserPanelActions({
         svg.setAttribute("viewBox", "0 0 280 72");
         svg.setAttribute("focusable", "false");
         svg.setAttribute("aria-hidden", "true");
+        svg.addEventListener("dragstart", (event) => event.preventDefault());
         glow.classList.add("media-browser-panel__thumbnail-waveform-glow");
         glow.setAttribute("d", path);
         line.classList.add("media-browser-panel__thumbnail-waveform-line");
@@ -881,6 +1108,7 @@ function createMediaBrowserPanelActions({
         if (!fallback) return null;
         fallback.className = "media-browser-panel__thumbnail-fallback";
         fallback.textContent = kind === "videoClip" ? "Video" : "Image";
+        fallback.addEventListener("dragstart", (event) => event.preventDefault());
         return fallback;
     }
 
@@ -916,13 +1144,17 @@ function createMediaBrowserPanelActions({
             if (item.active) {
                 button.setAttribute("aria-current", "true");
             }
+            button.draggable = false;
             button.title = [item.title, item.meta].filter(Boolean).join(" - ");
             media.className = "media-browser-panel__thumbnail-media";
+            media.addEventListener("dragstart", (event) => event.preventDefault());
             if (image && item.thumbnailAssetUrl) {
                 image.alt = "";
                 image.loading = "lazy";
                 image.decoding = "async";
+                image.draggable = false;
                 image.src = item.thumbnailAssetUrl;
+                image.addEventListener("dragstart", (event) => event.preventDefault());
                 if (item.fallbackAssetUrl && item.fallbackAssetUrl !== item.thumbnailAssetUrl) {
                     image.dataset.fallbackSrc = item.fallbackAssetUrl;
                 }
@@ -1187,11 +1419,14 @@ function createMediaBrowserPanelActions({
 
         bindPanelDragging(panel, header);
         bindImageViewControls();
+        bindThumbnailStripResizer();
+        bindThumbnailStripDragging();
         if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
             clampPanelPosition(panel);
         }
+        applyThumbnailStripHeight(thumbnailStripHeight);
         panel?.classList.toggle("media-browser-panel--hidden", panelVisibilityState !== "open");
         syncExpandButton(expandButton);
 
@@ -1262,6 +1497,7 @@ function createMediaBrowserPanelActions({
                     clampPanelPosition(panel);
                 }
                 syncDrilldownFlyoutPlacement();
+                applyThumbnailStripHeight(thumbnailStripHeight);
                 applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             });
@@ -1277,6 +1513,7 @@ function createMediaBrowserPanelActions({
                     clampPanelPosition(panel);
                 }
                 syncDrilldownFlyoutPlacement();
+                applyThumbnailStripHeight(thumbnailStripHeight);
                 applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             }

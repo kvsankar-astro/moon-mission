@@ -599,11 +599,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel {
+    --media-browser-thumbnail-strip-height: 148px;
     position: absolute;
     width: min(560px, calc(100vw - 20px));
     height: 500px;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto minmax(0, 1fr) 8px minmax(0, var(--media-browser-thumbnail-strip-height)) auto;
     pointer-events: all;
     resize: both;
     min-width: 360px;
@@ -861,6 +862,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     will-change: transform;
 }
 
+.media-browser-panel__image[hidden] {
+    display: none;
+}
+
 .media-browser-panel__video {
     display: block;
     width: 100%;
@@ -875,10 +880,16 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__audio-placeholder {
+    position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
     width: min(72%, 360px);
-    height: min(42%, 190px);
+    max-width: calc(100% - 48px);
+    max-height: min(190px, calc(100% - 96px));
+    aspect-ratio: 16 / 9;
     min-height: 110px;
     border: 1px solid rgba(245, 190, 103, 0.2);
     border-radius: 8px;
@@ -886,6 +897,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
         radial-gradient(circle at 50% 42%, rgba(245, 190, 103, 0.13), transparent 62%),
         linear-gradient(180deg, rgba(16, 24, 38, 0.82), rgba(8, 13, 22, 0.9));
     box-shadow: inset 0 0 40px rgba(245, 190, 103, 0.06);
+    contain: paint;
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .media-browser-panel__audio-placeholder[hidden] {
@@ -893,9 +907,13 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__audio-waveform {
+    display: block;
     width: min(84%, 320px);
+    max-width: calc(100% - 28px);
+    max-height: calc(100% - 28px);
     height: auto;
-    overflow: visible;
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .media-browser-panel__audio-waveform-glow,
@@ -1281,13 +1299,49 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     padding: 10px 12px;
 }
 
+.media-browser-panel__thumbnail-resizer {
+    position: relative;
+    min-height: 8px;
+    background: rgba(8, 14, 24, 0.72);
+    border-top: 1px solid rgba(152, 186, 236, 0.14);
+    cursor: row-resize;
+    touch-action: none;
+}
+
+.media-browser-panel__thumbnail-resizer::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 52px;
+    height: 2px;
+    border-radius: 999px;
+    background: rgba(156, 184, 224, 0.32);
+    transform: translate(-50%, -50%);
+    transition: background-color 120ms ease, width 120ms ease;
+}
+
+.media-browser-panel__thumbnail-resizer:hover::before,
+.media-browser-panel__thumbnail-resizer:focus-visible::before,
+.media-browser-panel.is-resizing-thumbnails .media-browser-panel__thumbnail-resizer::before {
+    width: 74px;
+    background: rgba(156, 206, 255, 0.68);
+}
+
+.media-browser-panel__thumbnail-resizer:focus-visible {
+    outline: 1px solid rgba(170, 208, 255, 0.82);
+    outline-offset: -2px;
+}
+
 .media-browser-panel__thumbnail-strip {
     display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     gap: 7px;
+    min-height: 0;
     padding: 8px 12px 10px;
-    border-top: 1px solid rgba(152, 186, 236, 0.12);
     background: rgba(8, 14, 24, 0.58);
+    overflow: hidden;
 }
 
 .media-browser-panel__thumbnail-strip-title {
@@ -1303,8 +1357,14 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     display: flex;
     gap: 8px;
     min-width: 0;
+    min-height: 0;
     overflow-x: auto;
-    padding-bottom: 2px;
+    overflow-y: hidden;
+    padding-bottom: 0;
+    cursor: grab;
+    scrollbar-width: none;
+    touch-action: pan-y;
+    user-select: none;
 }
 
 .media-browser-panel__thumbnail-list:empty {
@@ -1312,12 +1372,18 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 }
 
 .media-browser-panel__thumbnail-list::-webkit-scrollbar {
-    height: 8px;
+    display: none;
+}
+
+.media-browser-panel__thumbnail-list.is-dragging,
+.media-browser-panel__thumbnail-list.is-dragging .media-browser-panel__thumbnail-card {
+    cursor: grabbing;
 }
 
 .media-browser-panel__thumbnail-card {
-    flex: 0 0 132px;
+    flex: 0 0 clamp(86px, calc((var(--media-browser-thumbnail-strip-height) - 34px) * 1.14), 132px);
     box-sizing: border-box;
+    align-self: stretch;
     min-width: 0;
     border: 1px solid rgba(122, 166, 232, 0.2);
     border-radius: 8px;
@@ -1325,7 +1391,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     color: rgba(230, 238, 251, 0.92);
     padding: 6px;
     text-align: left;
-    cursor: pointer;
+    cursor: grab;
+    overflow: hidden;
 }
 
 .media-browser-panel__thumbnail-card.is-active {
@@ -1344,6 +1411,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
         radial-gradient(circle at 50% 40%, rgba(121, 171, 255, 0.16), transparent 64%),
         linear-gradient(180deg, rgba(9, 16, 28, 0.96), rgba(3, 7, 14, 0.98));
     overflow: hidden;
+    user-select: none;
 }
 
 .media-browser-panel__thumbnail-media img {
@@ -1351,6 +1419,9 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .media-browser-panel__thumbnail-fallback {
@@ -1359,12 +1430,15 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
 }
 
 .media-browser-panel__thumbnail-waveform {
     width: 78%;
     height: auto;
     overflow: visible;
+    pointer-events: none;
 }
 
 .media-browser-panel__thumbnail-waveform-glow,
@@ -1396,6 +1470,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     line-height: 1;
     padding: 4px 5px;
     text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
 }
 
 .media-browser-panel__thumbnail-card--audioClip .media-browser-panel__thumbnail-kind {
@@ -1428,6 +1504,37 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-card {
+    padding: 5px;
+}
+
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-title {
+    height: 15px;
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.2;
+    -webkit-line-clamp: 1;
+}
+
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-meta {
+    display: none;
+}
+
+.media-browser-panel__thumbnail-strip.is-minimal {
+    gap: 0;
+    padding-top: 6px;
+}
+
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-strip-title,
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-title,
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-meta {
+    display: none;
+}
+
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-card {
+    padding: 4px;
 }
 
 .media-browser-panel__status {
