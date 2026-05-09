@@ -6185,45 +6185,6 @@
       "enabled": true
     },
     {
-      "time": "2026-04-02 00:30:00",
-      "file": "ART002-E-179.JPG",
-      "photographer": "Artemis II Crew",
-      "location": "Orion Spacecraft",
-      "camera": "Pixelink Navigation Camera",
-      "settings": "",
-      "spacecraft": true,
-      "batch": 2,
-      "title": "",
-      "flickr_desc": "",
-      "enabled": true
-    },
-    {
-      "time": "2026-04-02 00:35:00",
-      "file": "ART002-E-241.JPG",
-      "photographer": "Artemis II Crew",
-      "location": "Orion Spacecraft",
-      "camera": "Pixelink Navigation Camera",
-      "settings": "",
-      "spacecraft": true,
-      "batch": 2,
-      "title": "",
-      "flickr_desc": "",
-      "enabled": true
-    },
-    {
-      "time": "2026-04-02 00:40:00",
-      "file": "ART002-E-253.JPG",
-      "photographer": "Artemis II Crew",
-      "location": "Orion Spacecraft",
-      "camera": "Pixelink Navigation Camera",
-      "settings": "",
-      "spacecraft": true,
-      "batch": 2,
-      "title": "",
-      "flickr_desc": "",
-      "enabled": true
-    },
-    {
       "time": "2026-04-02 08:21:19",
       "file": "ART002-E-23107.JPG",
       "photographer": "Artemis II Crew",
