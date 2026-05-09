@@ -171,6 +171,10 @@ const COMPOSER_OPTICS_STRENGTH_DEFAULT = 1.0;
 const COMPOSER_OPTICS_ADVANCED_MIN = 0;
 const COMPOSER_OPTICS_ADVANCED_MAX = 2.5;
 const COMPOSER_OPTICS_ADVANCED_DEFAULT = 1.0;
+const COMPOSER_ECLIPSE_CORONA_MIN = 0;
+const COMPOSER_ECLIPSE_CORONA_MAX = 2.5;
+const COMPOSER_ECLIPSE_CORONA_DEFAULT = 1.0;
+const COMPOSER_SOLAR_ANGULAR_RADIUS_RAD = (0.533 * Math.PI / 180) * 0.5;
 const COMPOSER_STAR_MAGNITUDE_MIN = -3;
 const COMPOSER_STAR_MAGNITUDE_MAX = 6;
 const COMPOSER_STAR_MAGNITUDE_DEFAULT = 6;
@@ -179,6 +183,7 @@ const COMPOSER_RA_DEC_GRID_DEC_STEP_DEG = 15;
 const COMPOSER_SKY_LABEL_VISIBLE_FRACTION = 0.2;
 const COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT = 36;
 const COMPOSER_SKY_LABEL_EDGE_MARGIN_PX = 10;
+const COMPOSER_SKY_LABEL_OCCLUSION_PADDING_PX = 2;
 const COMPOSER_CONSTELLATION_LABELS = Object.freeze([
     { name: "Andromeda", raDeg: 10.5, decDeg: 37 },
     { name: "Aquila", raDeg: 295.5, decDeg: 5 },
@@ -276,6 +281,121 @@ function normalizeComposerRollRad(rollRad) {
         return 0;
     }
     return ((rollRad % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2);
+}
+
+function isFiniteScreenPoint(point) {
+    return Number.isFinite(Number(point?.x)) && Number.isFinite(Number(point?.y));
+}
+
+function isComposerSkyLabelPointOccluded(point, occluders = []) {
+    if (!isFiniteScreenPoint(point) || !Array.isArray(occluders) || occluders.length === 0) {
+        return false;
+    }
+    const pointX = Number(point.x);
+    const pointY = Number(point.y);
+    return occluders.some((occluder) => {
+        const x = Number(occluder?.x);
+        const y = Number(occluder?.y);
+        const radiusPx = Number(occluder?.radiusPx);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radiusPx) || radiusPx <= 0) {
+            return false;
+        }
+        const dx = pointX - x;
+        const dy = pointY - y;
+        return ((dx * dx) + (dy * dy)) <= (radiusPx * radiusPx);
+    });
+}
+
+/**
+ * @param {{
+ *   THREE?: any,
+ *   camera?: any,
+ *   width?: number,
+ *   height?: number,
+ *   bodies?: any[],
+ *   paddingPx?: number
+ * }} [options]
+ * @returns {Array<{ bodyId: string, x: number, y: number, radiusPx: number }>}
+ */
+function resolveComposerSkyLabelOccluders({
+    THREE,
+    camera,
+    width,
+    height,
+    bodies = [],
+    paddingPx = COMPOSER_SKY_LABEL_OCCLUSION_PADDING_PX,
+} = {}) {
+    const Vector3 = THREE?.Vector3;
+    const canvasWidth = Number(width);
+    const canvasHeight = Number(height);
+    const fovDeg = Number(camera?.fov);
+    if (
+        !Vector3 ||
+        !camera?.getWorldPosition ||
+        !Number.isFinite(canvasWidth) ||
+        !Number.isFinite(canvasHeight) ||
+        canvasWidth <= 0 ||
+        canvasHeight <= 0 ||
+        !Number.isFinite(fovDeg) ||
+        fovDeg <= 0 ||
+        !Array.isArray(bodies)
+    ) {
+        return [];
+    }
+
+    const cameraWorld = new Vector3();
+    const centerWorld = new Vector3();
+    const projectedCenter = new Vector3();
+    camera.getWorldPosition(cameraWorld);
+    const tanHalfVerticalFov = Math.tan((fovDeg * Math.PI / 180) * 0.5);
+    if (!Number.isFinite(tanHalfVerticalFov) || tanHalfVerticalFov <= 0) {
+        return [];
+    }
+
+    const occluders = [];
+    for (const body of bodies) {
+        const source = body?.centerWorld || body?.center || body;
+        const radius = Number(body?.radius);
+        const x = Number(source?.x);
+        const y = Number(source?.y);
+        const z = Number(source?.z);
+        if (
+            !Number.isFinite(x) ||
+            !Number.isFinite(y) ||
+            !Number.isFinite(z) ||
+            !Number.isFinite(radius) ||
+            radius <= 0
+        ) {
+            continue;
+        }
+        centerWorld.set(x, y, z);
+        const distance = cameraWorld.distanceTo(centerWorld);
+        if (!Number.isFinite(distance) || distance <= radius) {
+            continue;
+        }
+        projectedCenter.copy(centerWorld).project(camera);
+        if (
+            !Number.isFinite(projectedCenter.x) ||
+            !Number.isFinite(projectedCenter.y) ||
+            !Number.isFinite(projectedCenter.z) ||
+            projectedCenter.z < -1 ||
+            projectedCenter.z > 1
+        ) {
+            continue;
+        }
+        const angularRadius = Math.asin(Math.min(Math.max(radius / distance, 0), 0.999999));
+        const radiusPx = (Math.tan(angularRadius) / tanHalfVerticalFov) * (canvasHeight * 0.5);
+        if (!Number.isFinite(radiusPx) || radiusPx <= 0) {
+            continue;
+        }
+        occluders.push({
+            bodyId: body?.bodyId || body?.id || "",
+            x: ((projectedCenter.x * 0.5) + 0.5) * canvasWidth,
+            y: (1 - ((projectedCenter.y * 0.5) + 0.5)) * canvasHeight,
+            radiusPx: radiusPx + Math.max(0, Number(paddingPx) || 0),
+        });
+    }
+    return occluders;
 }
 
 function rollRadFromDialPointer({ pointerX, pointerY, centerX, centerY }) {
@@ -588,6 +708,7 @@ class AuxiliaryCameraViewsManager {
         this.panelStateByElement = new WeakMap();
         this.pendingResizePanelStates = new Set();
         this.pendingResizeRaf = null;
+        this.composerCoronaAnimationRaf = null;
         this.defaultLayoutRaf = null;
         this.handlePanelResizeEntriesBound = this.handlePanelResizeEntries.bind(this);
         this.persistedPanelState = this.readPersistedPanelState();
@@ -1927,6 +2048,13 @@ class AuxiliaryCameraViewsManager {
         let composerOpticsStarburstValue = null;
         let composerOpticsFlareSlider = null;
         let composerOpticsFlareValue = null;
+        let composerEclipseCoronaPanel = null;
+        let composerEclipseCoronaIntensitySlider = null;
+        let composerEclipseCoronaIntensityValue = null;
+        let composerEclipseCoronaMotionSlider = null;
+        let composerEclipseCoronaMotionValue = null;
+        let composerEclipseCoronaStructureSlider = null;
+        let composerEclipseCoronaStructureValue = null;
         let composerRollWrap = null;
         let composerRollSlider = null;
         let composerRollValue = null;
@@ -1994,10 +2122,10 @@ class AuxiliaryCameraViewsManager {
             composerSkyLabelsWrap.className = "aux-camera-view__composer-grid-toggle";
             composerSkyLabelsCheckbox = document.createElement("input");
             composerSkyLabelsCheckbox.type = "checkbox";
-            composerSkyLabelsCheckbox.setAttribute("aria-label", "Toggle composer bright star and planet labels");
+            composerSkyLabelsCheckbox.setAttribute("aria-label", "Toggle composer sky labels");
             composerSkyLabelsCheckbox.dataset.proofId = "sky-labels-toggle";
             const composerSkyLabelsText = document.createElement("span");
-            composerSkyLabelsText.textContent = "Stars";
+            composerSkyLabelsText.textContent = "Labels";
             composerSkyLabelsWrap.appendChild(composerSkyLabelsCheckbox);
             composerSkyLabelsWrap.appendChild(composerSkyLabelsText);
             composerInfoToggles.appendChild(composerSkyLabelsWrap);
@@ -2009,7 +2137,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLinesCheckbox.setAttribute("aria-label", "Toggle composer constellation lines");
             composerConstellationLinesCheckbox.dataset.proofId = "constellation-lines-toggle";
             const composerConstellationLinesText = document.createElement("span");
-            composerConstellationLinesText.textContent = "Lines";
+            composerConstellationLinesText.textContent = "Constellations";
             composerConstellationLinesWrap.appendChild(composerConstellationLinesCheckbox);
             composerConstellationLinesWrap.appendChild(composerConstellationLinesText);
             composerInfoToggles.appendChild(composerConstellationLinesWrap);
@@ -2021,7 +2149,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLabelsCheckbox.setAttribute("aria-label", "Toggle composer constellation labels");
             composerConstellationLabelsCheckbox.dataset.proofId = "constellation-labels-toggle";
             const composerConstellationLabelsText = document.createElement("span");
-            composerConstellationLabelsText.textContent = "Names";
+            composerConstellationLabelsText.textContent = "Const Labels";
             composerConstellationLabelsWrap.appendChild(composerConstellationLabelsCheckbox);
             composerConstellationLabelsWrap.appendChild(composerConstellationLabelsText);
             composerInfoToggles.appendChild(composerConstellationLabelsWrap);
@@ -2348,13 +2476,12 @@ class AuxiliaryCameraViewsManager {
             composerOpticsBody = document.createElement("div");
             composerOpticsBody.className = "aux-camera-view__composer-optics-body";
             composerOpticsBody.hidden = false;
-            composerOpticsBody.appendChild(composerControlsWrap);
 
             const composerOpticsHeader = document.createElement("div");
             composerOpticsHeader.className = "aux-camera-view__composer-optics-header";
             const composerOpticsLabel = document.createElement("span");
             composerOpticsLabel.className = "aux-camera-view__composer-label aux-camera-view__composer-row-label";
-            composerOpticsLabel.textContent = "Optics";
+            composerOpticsLabel.textContent = "Sun";
             composerOpticsHeader.appendChild(composerOpticsLabel);
 
             composerOpticsPhysicalButton = document.createElement("button");
@@ -2398,7 +2525,17 @@ class AuxiliaryCameraViewsManager {
             composerOpticsAdvancedPanel.className = "aux-camera-view__composer-optics-advanced";
             composerOpticsAdvancedPanel.hidden = false;
 
-            const buildAdvancedRow = (labelText) => {
+            const buildAdvancedRow = (
+                labelText,
+                {
+                    container = composerOpticsAdvancedPanel,
+                    min = COMPOSER_OPTICS_ADVANCED_MIN,
+                    max = COMPOSER_OPTICS_ADVANCED_MAX,
+                    defaultValue = COMPOSER_OPTICS_ADVANCED_DEFAULT,
+                    ariaLabel = "",
+                    proofId = "",
+                } = {},
+            ) => {
                 const row = document.createElement("div");
                 row.className = "aux-camera-view__composer-optics-row";
                 const label = document.createElement("span");
@@ -2408,23 +2545,71 @@ class AuxiliaryCameraViewsManager {
                 const slider = document.createElement("input");
                 slider.type = "range";
                 slider.className = "aux-camera-view__composer-ambient-slider";
-                slider.min = String(COMPOSER_OPTICS_ADVANCED_MIN);
-                slider.max = String(COMPOSER_OPTICS_ADVANCED_MAX);
+                slider.min = String(min);
+                slider.max = String(max);
                 slider.step = "0.01";
-                slider.value = String(COMPOSER_OPTICS_ADVANCED_DEFAULT);
+                slider.value = String(defaultValue);
+                if (ariaLabel) {
+                    slider.setAttribute("aria-label", ariaLabel);
+                }
+                if (proofId) {
+                    slider.dataset.proofId = proofId;
+                }
                 row.appendChild(slider);
                 const value = document.createElement("output");
                 value.className = "aux-camera-view__composer-ambient-value";
-                value.value = `${COMPOSER_OPTICS_ADVANCED_DEFAULT.toFixed(2)}`;
+                value.value = `${defaultValue.toFixed(2)}`;
                 value.textContent = value.value;
                 row.appendChild(value);
-                composerOpticsAdvancedPanel.appendChild(row);
+                container.appendChild(row);
                 return { slider, value };
             };
             ({ slider: composerOpticsHaloSlider, value: composerOpticsHaloValue } = buildAdvancedRow("Halo"));
             ({ slider: composerOpticsStarburstSlider, value: composerOpticsStarburstValue } = buildAdvancedRow("Star"));
             ({ slider: composerOpticsFlareSlider, value: composerOpticsFlareValue } = buildAdvancedRow("Flare"));
+
+            composerEclipseCoronaPanel = document.createElement("div");
+            composerEclipseCoronaPanel.className = "aux-camera-view__composer-optics-advanced aux-camera-view__composer-eclipse-corona";
+            const composerEclipseCoronaLabel = document.createElement("span");
+            composerEclipseCoronaLabel.className = "aux-camera-view__composer-section-label aux-camera-view__composer-eclipse-corona-label";
+            composerEclipseCoronaLabel.textContent = "Eclipse Corona";
+            composerEclipseCoronaPanel.appendChild(composerEclipseCoronaLabel);
+            ({
+                slider: composerEclipseCoronaIntensitySlider,
+                value: composerEclipseCoronaIntensityValue,
+            } = buildAdvancedRow("Intensity", {
+                container: composerEclipseCoronaPanel,
+                min: COMPOSER_ECLIPSE_CORONA_MIN,
+                max: COMPOSER_ECLIPSE_CORONA_MAX,
+                defaultValue: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+                ariaLabel: "Frame and Shoot eclipse corona intensity",
+                proofId: "eclipse-corona-intensity-slider",
+            }));
+            ({
+                slider: composerEclipseCoronaMotionSlider,
+                value: composerEclipseCoronaMotionValue,
+            } = buildAdvancedRow("Motion", {
+                container: composerEclipseCoronaPanel,
+                min: COMPOSER_ECLIPSE_CORONA_MIN,
+                max: COMPOSER_ECLIPSE_CORONA_MAX,
+                defaultValue: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+                ariaLabel: "Frame and Shoot eclipse corona motion",
+                proofId: "eclipse-corona-motion-slider",
+            }));
+            ({
+                slider: composerEclipseCoronaStructureSlider,
+                value: composerEclipseCoronaStructureValue,
+            } = buildAdvancedRow("Detail", {
+                container: composerEclipseCoronaPanel,
+                min: COMPOSER_ECLIPSE_CORONA_MIN,
+                max: COMPOSER_ECLIPSE_CORONA_MAX,
+                defaultValue: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+                ariaLabel: "Frame and Shoot eclipse corona detail",
+                proofId: "eclipse-corona-detail-slider",
+            }));
             composerOpticsBody.appendChild(composerOpticsAdvancedPanel);
+            composerOpticsBody.appendChild(composerEclipseCoronaPanel);
+            composerOpticsWrap.appendChild(composerControlsWrap);
             composerOpticsWrap.appendChild(composerOpticsBody);
 
             composerControlMatrix.appendChild(composerOpticsWrap);
@@ -2673,6 +2858,13 @@ class AuxiliaryCameraViewsManager {
             composerOpticsStarburstValue,
             composerOpticsFlareSlider,
             composerOpticsFlareValue,
+            composerEclipseCoronaPanel,
+            composerEclipseCoronaIntensitySlider,
+            composerEclipseCoronaIntensityValue,
+            composerEclipseCoronaMotionSlider,
+            composerEclipseCoronaMotionValue,
+            composerEclipseCoronaStructureSlider,
+            composerEclipseCoronaStructureValue,
             composerRollSlider,
             composerRollValue,
             composerRollDial,
@@ -2753,6 +2945,9 @@ class AuxiliaryCameraViewsManager {
             onComposerOpticsHaloInput: null,
             onComposerOpticsStarburstInput: null,
             onComposerOpticsFlareInput: null,
+            onComposerEclipseCoronaIntensityInput: null,
+            onComposerEclipseCoronaMotionInput: null,
+            onComposerEclipseCoronaStructureInput: null,
             onComposerTimelineInput: null,
             onComposerTimelinePointerDown: null,
             onComposerTimelinePointerUp: null,
@@ -2825,6 +3020,10 @@ class AuxiliaryCameraViewsManager {
             composerSunHaloGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
             composerSunStarburstGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
             composerSunFlareGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
+            composerEclipseCoronaIntensity: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+            composerEclipseCoronaMotion: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+            composerEclipseCoronaStructure: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+            composerSolarEclipseActive: false,
             composerTimelineDragging: false,
             composerTimelineWindowMs: COMPOSER_TIMELINE_WINDOW_MS,
             composerTimelineStartMs: Number.NaN,
@@ -3069,6 +3268,21 @@ class AuxiliaryCameraViewsManager {
                 syncGain(panelState.composerOpticsHaloSlider, panelState.composerOpticsHaloValue, panelState.composerSunHaloGain);
                 syncGain(panelState.composerOpticsStarburstSlider, panelState.composerOpticsStarburstValue, panelState.composerSunStarburstGain);
                 syncGain(panelState.composerOpticsFlareSlider, panelState.composerOpticsFlareValue, panelState.composerSunFlareGain);
+                syncGain(
+                    panelState.composerEclipseCoronaIntensitySlider,
+                    panelState.composerEclipseCoronaIntensityValue,
+                    panelState.composerEclipseCoronaIntensity,
+                );
+                syncGain(
+                    panelState.composerEclipseCoronaMotionSlider,
+                    panelState.composerEclipseCoronaMotionValue,
+                    panelState.composerEclipseCoronaMotion,
+                );
+                syncGain(
+                    panelState.composerEclipseCoronaStructureSlider,
+                    panelState.composerEclipseCoronaStructureValue,
+                    panelState.composerEclipseCoronaStructure,
+                );
             };
             const setComposerOpticsProfile = (nextProfile) => {
                 panelState.composerSunProfile = nextProfile === "physical" ? "physical" : "camera";
@@ -3098,6 +3312,19 @@ class AuxiliaryCameraViewsManager {
                     Number(nextValue),
                     COMPOSER_OPTICS_ADVANCED_MIN,
                     COMPOSER_OPTICS_ADVANCED_MAX,
+                );
+                if (!Number.isFinite(bounded)) {
+                    return;
+                }
+                panelState[key] = bounded;
+                syncComposerOpticsUi();
+                requestComposerControlRender();
+            };
+            const setComposerEclipseCoronaGain = (key, nextValue) => {
+                const bounded = this.THREE.MathUtils.clamp(
+                    Number(nextValue),
+                    COMPOSER_ECLIPSE_CORONA_MIN,
+                    COMPOSER_ECLIPSE_CORONA_MAX,
                 );
                 if (!Number.isFinite(bounded)) {
                     return;
@@ -3345,6 +3572,27 @@ class AuxiliaryCameraViewsManager {
             const onComposerOpticsFlareInput = () => {
                 activateComposerForControl();
                 setComposerOpticsGain("composerSunFlareGain", panelState.composerOpticsFlareSlider?.value);
+            };
+            const onComposerEclipseCoronaIntensityInput = () => {
+                activateComposerForControl();
+                setComposerEclipseCoronaGain(
+                    "composerEclipseCoronaIntensity",
+                    panelState.composerEclipseCoronaIntensitySlider?.value,
+                );
+            };
+            const onComposerEclipseCoronaMotionInput = () => {
+                activateComposerForControl();
+                setComposerEclipseCoronaGain(
+                    "composerEclipseCoronaMotion",
+                    panelState.composerEclipseCoronaMotionSlider?.value,
+                );
+            };
+            const onComposerEclipseCoronaStructureInput = () => {
+                activateComposerForControl();
+                setComposerEclipseCoronaGain(
+                    "composerEclipseCoronaStructure",
+                    panelState.composerEclipseCoronaStructureSlider?.value,
+                );
             };
             const onComposerStarMagnitudeInput = () => {
                 activateComposerForControl();
@@ -3630,6 +3878,9 @@ class AuxiliaryCameraViewsManager {
             panelState.composerOpticsHaloSlider?.addEventListener("input", onComposerOpticsHaloInput, { passive: true });
             panelState.composerOpticsStarburstSlider?.addEventListener("input", onComposerOpticsStarburstInput, { passive: true });
             panelState.composerOpticsFlareSlider?.addEventListener("input", onComposerOpticsFlareInput, { passive: true });
+            panelState.composerEclipseCoronaIntensitySlider?.addEventListener("input", onComposerEclipseCoronaIntensityInput, { passive: true });
+            panelState.composerEclipseCoronaMotionSlider?.addEventListener("input", onComposerEclipseCoronaMotionInput, { passive: true });
+            panelState.composerEclipseCoronaStructureSlider?.addEventListener("input", onComposerEclipseCoronaStructureInput, { passive: true });
             panelState.composerStarMagnitudeSlider?.addEventListener("input", onComposerStarMagnitudeInput, { passive: true });
             panelState.composerCloudsCheckbox?.addEventListener("change", onComposerCloudsChange);
             panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
@@ -3679,6 +3930,9 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerOpticsHaloInput = onComposerOpticsHaloInput;
             panelState.onComposerOpticsStarburstInput = onComposerOpticsStarburstInput;
             panelState.onComposerOpticsFlareInput = onComposerOpticsFlareInput;
+            panelState.onComposerEclipseCoronaIntensityInput = onComposerEclipseCoronaIntensityInput;
+            panelState.onComposerEclipseCoronaMotionInput = onComposerEclipseCoronaMotionInput;
+            panelState.onComposerEclipseCoronaStructureInput = onComposerEclipseCoronaStructureInput;
             panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
             panelState.onComposerCloudsChange = onComposerCloudsChange;
             panelState.onComposerTimelineInput = onComposerTimelineInput;
@@ -3849,6 +4103,10 @@ class AuxiliaryCameraViewsManager {
             panelState.composerSunHaloGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
             panelState.composerSunStarburstGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
             panelState.composerSunFlareGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
+            panelState.composerEclipseCoronaIntensity = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+            panelState.composerEclipseCoronaMotion = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+            panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+            panelState.composerSolarEclipseActive = false;
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
             panelState.composerSkyLabelsEnabled = false;
@@ -4150,6 +4408,12 @@ class AuxiliaryCameraViewsManager {
         panelState.composerOpticsHaloSlider && (panelState.composerOpticsHaloSlider.disabled = disableControls);
         panelState.composerOpticsStarburstSlider && (panelState.composerOpticsStarburstSlider.disabled = disableControls);
         panelState.composerOpticsFlareSlider && (panelState.composerOpticsFlareSlider.disabled = disableControls);
+        panelState.composerEclipseCoronaIntensitySlider &&
+            (panelState.composerEclipseCoronaIntensitySlider.disabled = disableControls);
+        panelState.composerEclipseCoronaMotionSlider &&
+            (panelState.composerEclipseCoronaMotionSlider.disabled = disableControls);
+        panelState.composerEclipseCoronaStructureSlider &&
+            (panelState.composerEclipseCoronaStructureSlider.disabled = disableControls);
         panelState.composerStarMagnitudeSlider && (panelState.composerStarMagnitudeSlider.disabled = disableControls);
         panelState.composerRollSlider && (panelState.composerRollSlider.disabled = disableControls);
         panelState.composerRollDial && (panelState.composerRollDial.disabled = disableControls);
@@ -5243,8 +5507,166 @@ class AuxiliaryCameraViewsManager {
         renderer.render(scene, camera);
     }
 
-    resolveComposerSunOpticsProfile(panelState) {
+    requestComposerCoronaAnimationFrame() {
+        if (this.composerCoronaAnimationRaf != null || !this.requestRender) {
+            return;
+        }
+        this.composerCoronaAnimationRaf = requestAnimationFrame(() => {
+            this.composerCoronaAnimationRaf = null;
+            this.requestRender?.();
+        });
+    }
+
+    /**
+     * @param {{
+     *   craftWorld?: { x: number, y: number, z: number },
+     *   earthWorld?: { x: number, y: number, z: number },
+     *   moonWorld?: { x: number, y: number, z: number },
+     *   earthRadius?: number,
+     *   moonRadius?: number,
+     * }} [options]
+     */
+    resolveComposerSolarEclipseState({
+        craftWorld,
+        earthWorld,
+        moonWorld,
+        earthRadius,
+        moonRadius,
+    } = {}) {
+        const sunDirection = this.sunDirectionCraftWorld;
+        const sunLen = Number.isFinite(sunDirection?.length?.())
+            ? sunDirection.length()
+            : Math.hypot(
+                Number(sunDirection?.x),
+                Number(sunDirection?.y),
+                Number(sunDirection?.z),
+            );
+        if (
+            !craftWorld ||
+            !Number.isFinite(craftWorld.x) ||
+            !Number.isFinite(craftWorld.y) ||
+            !Number.isFinite(craftWorld.z) ||
+            !Number.isFinite(sunLen) ||
+            sunLen <= 1e-12
+        ) {
+            return { active: false, occluder: null, coverage: 0 };
+        }
+
+        const clamp = this.THREE.MathUtils.clamp;
+        const sunX = sunDirection.x / sunLen;
+        const sunY = sunDirection.y / sunLen;
+        const sunZ = sunDirection.z / sunLen;
+        const evaluateBody = (id, bodyWorld, radius) => {
+            const bodyRadius = Number(radius);
+            if (
+                !bodyWorld ||
+                !Number.isFinite(bodyWorld.x) ||
+                !Number.isFinite(bodyWorld.y) ||
+                !Number.isFinite(bodyWorld.z) ||
+                !Number.isFinite(bodyRadius) ||
+                bodyRadius <= 0
+            ) {
+                return null;
+            }
+            const dx = bodyWorld.x - craftWorld.x;
+            const dy = bodyWorld.y - craftWorld.y;
+            const dz = bodyWorld.z - craftWorld.z;
+            const distance = Math.hypot(dx, dy, dz);
+            if (!Number.isFinite(distance) || distance <= bodyRadius) {
+                return null;
+            }
+            const dot = clamp(((dx * sunX) + (dy * sunY) + (dz * sunZ)) / distance, -1, 1);
+            if (dot <= 0) {
+                return null;
+            }
+            const separationRad = Math.acos(dot);
+            const bodyAngularRadiusRad = Math.asin(clamp(bodyRadius / distance, 0, 0.999999));
+            const contactRad = bodyAngularRadiusRad + COMPOSER_SOLAR_ANGULAR_RADIUS_RAD;
+            const coverage = clamp(
+                (contactRad - separationRad) / Math.max(COMPOSER_SOLAR_ANGULAR_RADIUS_RAD * 2, 1e-9),
+                0,
+                1,
+            );
+            return {
+                active: coverage > 0,
+                occluder: id,
+                coverage,
+                separationRad,
+                bodyAngularRadiusRad,
+            };
+        };
+
+        const moonOcclusion = evaluateBody("moon", moonWorld, moonRadius);
+        const earthOcclusion = evaluateBody("earth", earthWorld, earthRadius);
+        const best = [moonOcclusion, earthOcclusion]
+            .filter(Boolean)
+            .sort((a, b) => b.coverage - a.coverage)[0] || null;
+
+        return best?.active === true
+            ? best
+            : { active: false, occluder: null, coverage: 0 };
+    }
+
+    resolveComposerEclipseCoronaVisualState(panelState) {
+        const clamp = this.THREE.MathUtils.clamp;
+        const intensity = clamp(
+            Number(panelState?.composerEclipseCoronaIntensity),
+            COMPOSER_ECLIPSE_CORONA_MIN,
+            COMPOSER_ECLIPSE_CORONA_MAX,
+        );
+        const motion = clamp(
+            Number(panelState?.composerEclipseCoronaMotion),
+            COMPOSER_ECLIPSE_CORONA_MIN,
+            COMPOSER_ECLIPSE_CORONA_MAX,
+        );
+        const structure = clamp(
+            Number(panelState?.composerEclipseCoronaStructure),
+            COMPOSER_ECLIPSE_CORONA_MIN,
+            COMPOSER_ECLIPSE_CORONA_MAX,
+        );
+        const coronaIntensity = Number.isFinite(intensity)
+            ? intensity
+            : COMPOSER_ECLIPSE_CORONA_DEFAULT;
+        const coronaMotion = Number.isFinite(motion)
+            ? motion
+            : COMPOSER_ECLIPSE_CORONA_DEFAULT;
+        const coronaStructure = Number.isFinite(structure)
+            ? structure
+            : COMPOSER_ECLIPSE_CORONA_DEFAULT;
+
+        return {
+            coreOpacity: 1.0,
+            coreScaleMul: 1.0,
+            haloOpacity: 0.0,
+            haloScaleMul: 4.8,
+            coronaOpacity: clamp(0.80 * coronaIntensity, 0, 1),
+            coronaScaleMul: 90.0,
+            coronaFlowOpacity: clamp(0.18 * coronaIntensity * coronaStructure, 0, 0.60),
+            coronaFlowScaleMul: 84.0 + (4.0 * coronaIntensity),
+            coronaMotionMul: coronaMotion,
+            starburstOpacity: 0.0,
+            starburstScaleMul: 16.0,
+            flareOpacity: 0.0,
+            flareScaleXMul: 26.0,
+            flareScaleYMul: 2.4,
+        };
+    }
+
+    resolveComposerSunOpticsProfile(panelState, { eclipseActive = panelState?.composerSolarEclipseActive === true } = {}) {
         const profile = panelState?.composerSunProfile === "physical" ? "physical" : "camera";
+        if (eclipseActive === true) {
+            const isPhysical = profile === "physical";
+            return {
+                exposure: isPhysical ? COMPOSER_RENDER_EXPOSURE : COMPOSER_CAMERA_EXPOSURE,
+                skyStarmapOpacityCap: isPhysical
+                    ? COMPOSER_SKY_STARMAP_OPACITY_CAP
+                    : COMPOSER_CAMERA_SKY_STARMAP_OPACITY_CAP,
+                skyConstellationOpacityCap: isPhysical
+                    ? COMPOSER_SKY_CONSTELLATION_OPACITY_CAP
+                    : COMPOSER_CAMERA_SKY_CONSTELLATION_OPACITY_CAP,
+                sunVisualState: this.resolveComposerEclipseCoronaVisualState(panelState),
+            };
+        }
         if (profile === "physical") {
             return {
                 exposure: COMPOSER_RENDER_EXPOSURE,
@@ -5255,6 +5677,11 @@ class AuxiliaryCameraViewsManager {
                     coreScaleMul: 1.0,
                     haloOpacity: 0.36,
                     haloScaleMul: 4.8,
+                    coronaOpacity: 0.0,
+                    coronaScaleMul: 90.0,
+                    coronaFlowOpacity: 0.0,
+                    coronaFlowScaleMul: 84.0,
+                    coronaMotionMul: 0.0,
                     starburstOpacity: 0.0,
                     starburstScaleMul: 16.0,
                     flareOpacity: 0.0,
@@ -5303,6 +5730,11 @@ class AuxiliaryCameraViewsManager {
                 coreScaleMul: 1.0,
                 haloOpacity,
                 haloScaleMul,
+                coronaOpacity: 0.0,
+                coronaScaleMul: 90.0,
+                coronaFlowOpacity: 0.0,
+                coronaFlowScaleMul: 84.0,
+                coronaMotionMul: 0.0,
                 starburstOpacity,
                 starburstScaleMul,
                 flareOpacity,
@@ -5312,12 +5744,17 @@ class AuxiliaryCameraViewsManager {
         };
     }
 
-    applyComposerExposureProfile(scene, panelState, sunRenderer, { exposureBias = 1, skyRenderer = null } = {}) {
+    applyComposerExposureProfile(
+        scene,
+        panelState,
+        sunRenderer,
+        { exposureBias = 1, skyRenderer = null, eclipseActive = panelState?.composerSolarEclipseActive === true } = {},
+    ) {
         if (panelState?.mode !== "composer") {
             return () => {};
         }
 
-        const profile = this.resolveComposerSunOpticsProfile(panelState);
+        const profile = this.resolveComposerSunOpticsProfile(panelState, { eclipseActive });
         const renderer = panelState.renderer;
         const originalExposure = renderer.toneMappingExposure;
         const boundedExposureBias = this.THREE.MathUtils.clamp(
@@ -5398,6 +5835,7 @@ class AuxiliaryCameraViewsManager {
         }
         if (sunRenderer?.setVisualState) {
             sunRenderer.setVisualState(profile.sunVisualState);
+            sunRenderer.updateAppearance?.();
         }
         if (starUniforms && Number.isFinite(starMagnitudeLimit)) {
             const lift = Math.max(0, starMagnitudeLimit - 3);
@@ -6161,7 +6599,18 @@ class AuxiliaryCameraViewsManager {
         drawFovReadout();
     }
 
-    renderComposerSkyLabelOverlay(panelState, { scene = null, skyContainer = null, skyRenderer = null } = {}) {
+    renderComposerSkyLabelOverlay(
+        panelState,
+        {
+            scene = null,
+            skyContainer = null,
+            skyRenderer = null,
+            earthWorld = null,
+            moonWorld = null,
+            earthRadius = null,
+            moonRadius = null,
+        } = {},
+    ) {
         if (!panelState?.overlayCtx || !panelState?.overlayCanvas) {
             return;
         }
@@ -6191,6 +6640,17 @@ class AuxiliaryCameraViewsManager {
 
         const occupied = [];
         const edge = COMPOSER_SKY_LABEL_EDGE_MARGIN_PX;
+        const labelOccluders = resolveComposerSkyLabelOccluders({
+            THREE: this.THREE,
+            camera: panelState.camera,
+            width,
+            height,
+            bodies: [
+                { bodyId: "earth", centerWorld: earthWorld || this.earthWorld, radius: earthRadius },
+                { bodyId: "moon", centerWorld: moonWorld || this.moonWorld, radius: moonRadius },
+            ],
+        });
+        const isLabelOccluded = (point) => isComposerSkyLabelPointOccluded(point, labelOccluders);
         activeSkyContainer.getWorldQuaternion(this.tmpQuatA);
         const projectSkyPointFromLocal = (x, y, z) => {
             this.tmpVectorB.set(x, y, z);
@@ -6333,6 +6793,9 @@ class AuxiliaryCameraViewsManager {
                 ) {
                     continue;
                 }
+                if (isLabelOccluded(point)) {
+                    continue;
+                }
                 drawLabel(label.name, point, "constellation");
             }
         }
@@ -6375,6 +6838,9 @@ class AuxiliaryCameraViewsManager {
                 if (!point) {
                     continue;
                 }
+                if (isLabelOccluded(point)) {
+                    continue;
+                }
                 drawLabel(label, point, "planet");
             }
         }
@@ -6401,6 +6867,9 @@ class AuxiliaryCameraViewsManager {
                     point.y < 0 ||
                     point.y > height
                 ) {
+                    continue;
+                }
+                if (isLabelOccluded(point)) {
                     continue;
                 }
                 visibleStarCandidates.push({
@@ -7568,9 +8037,18 @@ class AuxiliaryCameraViewsManager {
         });
         const restoreComposerEarthshineGain = this.applyComposerEarthshineGain(panelState, scene);
         const restoreComposerMoonshineGain = this.applyComposerMoonshineGain(panelState, scene);
+        const composerSolarEclipseState = this.resolveComposerSolarEclipseState({
+            craftWorld: this.craftWorld,
+            earthWorld: this.earthWorld,
+            moonWorld: this.moonWorld,
+            earthRadius: composerEarthRadius,
+            moonRadius: composerMoonRadius,
+        });
+        panelState.composerSolarEclipseActive = composerSolarEclipseState.active === true;
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer, {
             exposureBias: composerLightingPresentation?.exposureBias ?? 1,
             skyRenderer,
+            eclipseActive: panelState.composerSolarEclipseActive,
         });
         try {
             this.renderLayers(panelState.renderer, scene, panelState.camera, {
@@ -7584,7 +8062,15 @@ class AuxiliaryCameraViewsManager {
             restoreComposerBodyPresentation();
         }
         this.clearPanelOverlay(panelState);
-        this.renderComposerSkyLabelOverlay(panelState, { scene, skyContainer, skyRenderer });
+        this.renderComposerSkyLabelOverlay(panelState, {
+            scene,
+            skyContainer,
+            skyRenderer,
+            earthWorld: this.earthWorld,
+            moonWorld: this.moonWorld,
+            earthRadius: composerEarthRadius,
+            moonRadius: composerMoonRadius,
+        });
         this.renderComposerMoonOutlineOverlay(panelState, {
             moonWorld: this.moonWorld,
             moonRadius: composerMoonRadius,
@@ -7687,6 +8173,7 @@ class AuxiliaryCameraViewsManager {
         const standoffDistance = 0;
 
         let visiblePanels = 0;
+        let animatedComposerCoronaPanels = 0;
         let suppressedLines = null;
         const ensureLinesSuppressed = () => {
             if (!suppressedLines) {
@@ -7788,12 +8275,14 @@ class AuxiliaryCameraViewsManager {
                         referenceCamera,
                         hasSkyContainer,
                         skyContainer,
-                        photoModeEnabled,
                         earthCloudsEnabled,
                         earthDayTexture: earthPhotoTexture,
                     });
                     if (rendered) {
                         visiblePanels += 1;
+                        if (panelState.composerSolarEclipseActive === true) {
+                            animatedComposerCoronaPanels += 1;
+                        }
                     }
                     continue;
                 }
@@ -8003,6 +8492,9 @@ class AuxiliaryCameraViewsManager {
         }
 
         this.root.hidden = visiblePanels === 0;
+        if (animatedComposerCoronaPanels > 0) {
+            this.requestComposerCoronaAnimationFrame();
+        }
     }
 
     dispose() {
@@ -8019,6 +8511,10 @@ class AuxiliaryCameraViewsManager {
         if (this.pendingResizeRaf != null) {
             cancelAnimationFrame(this.pendingResizeRaf);
             this.pendingResizeRaf = null;
+        }
+        if (this.composerCoronaAnimationRaf != null) {
+            cancelAnimationFrame(this.composerCoronaAnimationRaf);
+            this.composerCoronaAnimationRaf = null;
         }
         if (this.defaultLayoutRaf != null) {
             cancelAnimationFrame(this.defaultLayoutRaf);
@@ -8101,6 +8597,24 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerOpticsFlareInput) {
                 panelState.composerOpticsFlareSlider?.removeEventListener("input", panelState.onComposerOpticsFlareInput);
+            }
+            if (panelState.onComposerEclipseCoronaIntensityInput) {
+                panelState.composerEclipseCoronaIntensitySlider?.removeEventListener(
+                    "input",
+                    panelState.onComposerEclipseCoronaIntensityInput,
+                );
+            }
+            if (panelState.onComposerEclipseCoronaMotionInput) {
+                panelState.composerEclipseCoronaMotionSlider?.removeEventListener(
+                    "input",
+                    panelState.onComposerEclipseCoronaMotionInput,
+                );
+            }
+            if (panelState.onComposerEclipseCoronaStructureInput) {
+                panelState.composerEclipseCoronaStructureSlider?.removeEventListener(
+                    "input",
+                    panelState.onComposerEclipseCoronaStructureInput,
+                );
             }
             if (panelState.onComposerStarMagnitudeInput) {
                 panelState.composerStarMagnitudeSlider?.removeEventListener("input", panelState.onComposerStarMagnitudeInput);
@@ -8270,7 +8784,9 @@ export {
     AUXILIARY_VIEW_CAMERA_PRESETS,
     computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
+    isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
+    resolveComposerSkyLabelOccluders,
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,
     rollRadFromDialPointer,

@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import * as THREE from "three";
 
 import {
     AuxiliaryCameraViewsManager,
     AUXILIARY_VIEW_CAMERA_PRESETS,
     computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
+    isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
+    resolveComposerSkyLabelOccluders,
     resolveLunarFlybyWindowMs,
     rollRadFromDialPointer,
     selectComposerSkyLabelCandidates,
@@ -423,6 +426,41 @@ describe("selectComposerSkyLabelCandidates", () => {
     });
 });
 
+describe("Frame and Shoot sky label occlusion", () => {
+    it("treats label anchors inside a foreground body disk as occluded", () => {
+        const occluders = [{ x: 100, y: 120, radiusPx: 24 }];
+
+        expect(isComposerSkyLabelPointOccluded({ x: 110, y: 130 }, occluders)).toBe(true);
+        expect(isComposerSkyLabelPointOccluded({ x: 140, y: 120 }, occluders)).toBe(false);
+    });
+
+    it("projects Earth and Moon world positions into screen-space label occluders", () => {
+        const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            bodies: [
+                { bodyId: "earth", centerWorld: new THREE.Vector3(0, 0, -10), radius: 1 },
+                { bodyId: "behind-camera", centerWorld: new THREE.Vector3(0, 0, 10), radius: 1 },
+            ],
+            paddingPx: 0,
+        });
+
+        expect(occluders).toHaveLength(1);
+        expect(occluders[0].bodyId).toBe("earth");
+        expect(occluders[0].x).toBeCloseTo(500, 6);
+        expect(occluders[0].y).toBeCloseTo(250, 6);
+        expect(occluders[0].radiusPx).toBeGreaterThan(40);
+    });
+});
+
 describe("Frame and Shoot body ambient controls", () => {
     function createManagerForAmbientTests() {
         return Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
@@ -635,6 +673,211 @@ describe("Frame and Shoot constellation line rendering", () => {
         expect(skyRenderer.container.visible).toBe(false);
         expect(skyRenderer.constellationMesh.visible).toBe(false);
         expect(skyRenderer.constellationMesh.material.opacity).toBeCloseTo(0.06);
+    });
+
+    it("keeps regular Sun optics controls active outside eclipse", () => {
+        const manager = createManagerForExposureTests();
+
+        const profile = manager.resolveComposerSunOpticsProfile({
+            mode: "composer",
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+        });
+
+        expect(profile.sunVisualState.haloOpacity).toBeGreaterThan(0.3);
+        expect(profile.sunVisualState.haloScaleMul).toBeLessThan(12);
+        expect(profile.sunVisualState.starburstOpacity).toBeGreaterThan(0);
+        expect(profile.sunVisualState.flareOpacity).toBeGreaterThan(0);
+        expect(profile.sunVisualState.coronaOpacity).toBe(0);
+        expect(profile.sunVisualState.coronaFlowOpacity).toBe(0);
+    });
+
+    it("ignores regular Sun optics controls during eclipse and uses corona controls instead", () => {
+        const manager = createManagerForExposureTests();
+
+        const lowRegularOptics = manager.resolveComposerSunOpticsProfile({
+            mode: "composer",
+            composerSunProfile: "camera",
+            composerSunStrength: 0,
+            composerSunHaloGain: 0,
+            composerSunStarburstGain: 0,
+            composerSunFlareGain: 0,
+            composerEclipseCoronaIntensity: 1.3,
+            composerEclipseCoronaMotion: 0.8,
+            composerEclipseCoronaStructure: 1.4,
+        }, { eclipseActive: true });
+        const highRegularOptics = manager.resolveComposerSunOpticsProfile({
+            mode: "composer",
+            composerSunProfile: "camera",
+            composerSunStrength: 2.4,
+            composerSunHaloGain: 2.5,
+            composerSunStarburstGain: 2.5,
+            composerSunFlareGain: 2.5,
+            composerEclipseCoronaIntensity: 1.3,
+            composerEclipseCoronaMotion: 0.8,
+            composerEclipseCoronaStructure: 1.4,
+        }, { eclipseActive: true });
+
+        expect(lowRegularOptics.sunVisualState).toMatchObject(highRegularOptics.sunVisualState);
+        expect(lowRegularOptics.sunVisualState.haloOpacity).toBe(0);
+        expect(lowRegularOptics.sunVisualState.starburstOpacity).toBe(0);
+        expect(lowRegularOptics.sunVisualState.flareOpacity).toBe(0);
+        expect(lowRegularOptics.sunVisualState.coronaOpacity).toBeGreaterThan(0.9);
+        expect(lowRegularOptics.sunVisualState.coronaFlowOpacity).toBeGreaterThan(0.25);
+        expect(lowRegularOptics.sunVisualState.coronaMotionMul).toBeCloseTo(0.8);
+    });
+
+    it("scales eclipse corona intensity and motion from separate controls", () => {
+        const manager = createManagerForExposureTests();
+
+        const dim = manager.resolveComposerSunOpticsProfile({
+            mode: "composer",
+            composerSunProfile: "camera",
+            composerEclipseCoronaIntensity: 0.5,
+            composerEclipseCoronaMotion: 0.25,
+            composerEclipseCoronaStructure: 0.5,
+        }, { eclipseActive: true });
+        const bright = manager.resolveComposerSunOpticsProfile({
+            mode: "composer",
+            composerSunProfile: "camera",
+            composerEclipseCoronaIntensity: 1.5,
+            composerEclipseCoronaMotion: 1.75,
+            composerEclipseCoronaStructure: 1.5,
+        }, { eclipseActive: true });
+
+        expect(bright.sunVisualState.coronaOpacity).toBeGreaterThan(dim.sunVisualState.coronaOpacity);
+        expect(bright.sunVisualState.coronaFlowOpacity).toBeGreaterThan(dim.sunVisualState.coronaFlowOpacity);
+        expect(bright.sunVisualState.coronaMotionMul).toBeCloseTo(1.75);
+        expect(dim.sunVisualState.coronaMotionMul).toBeCloseTo(0.25);
+    });
+
+    it("detects craft-view solar eclipse geometry from Earth or Moon occultation", () => {
+        const manager = Object.assign(createManagerForExposureTests(), {
+            sunDirectionCraftWorld: {
+                x: 1,
+                y: 0,
+                z: 0,
+                length: () => 1,
+            },
+        });
+
+        const eclipsed = manager.resolveComposerSolarEclipseState({
+            craftWorld: { x: 0, y: 0, z: 0 },
+            moonWorld: { x: 100, y: 0, z: 0 },
+            moonRadius: 4,
+            earthWorld: { x: 0, y: 100, z: 0 },
+            earthRadius: 10,
+        });
+        const clear = manager.resolveComposerSolarEclipseState({
+            craftWorld: { x: 0, y: 0, z: 0 },
+            moonWorld: { x: 100, y: 30, z: 0 },
+            moonRadius: 4,
+            earthWorld: { x: 0, y: 100, z: 0 },
+            earthRadius: 10,
+        });
+
+        expect(eclipsed.active).toBe(true);
+        expect(eclipsed.occluder).toBe("moon");
+        expect(clear.active).toBe(false);
+    });
+
+    it("updates animated corona appearance when applying eclipse Sun state", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerEclipseCoronaIntensity: 1,
+            composerEclipseCoronaMotion: 1,
+            composerEclipseCoronaStructure: 1,
+            composerSolarEclipseActive: true,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: false,
+        };
+        const sunRenderer = {
+            getVisualState: vi.fn(() => ({ haloOpacity: 0.36, coronaOpacity: 0, starburstOpacity: 0, flareOpacity: 0 })),
+            setVisualState: vi.fn(),
+            updateAppearance: vi.fn(),
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, sunRenderer, { eclipseActive: true });
+        const appliedState = sunRenderer.setVisualState.mock.calls[0][0];
+
+        expect(appliedState.haloOpacity).toBe(0);
+        expect(appliedState.starburstOpacity).toBe(0);
+        expect(appliedState.flareOpacity).toBe(0);
+        expect(appliedState.coronaFlowOpacity).toBeGreaterThan(0.15);
+        expect(sunRenderer.updateAppearance).toHaveBeenCalledTimes(1);
+
+        restore();
+    });
+
+    it("applies regular Sun optics when applying non-eclipse Sun state", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerEclipseCoronaIntensity: 1,
+            composerEclipseCoronaMotion: 1,
+            composerEclipseCoronaStructure: 1,
+            composerSolarEclipseActive: false,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: false,
+        };
+        const sunRenderer = {
+            getVisualState: vi.fn(() => ({ haloOpacity: 0.36, coronaOpacity: 0, starburstOpacity: 0, flareOpacity: 0 })),
+            setVisualState: vi.fn(),
+            updateAppearance: vi.fn(),
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, sunRenderer, { eclipseActive: false });
+        const appliedState = sunRenderer.setVisualState.mock.calls[0][0];
+
+        expect(appliedState.starburstOpacity).toBeGreaterThan(0);
+        expect(appliedState.flareOpacity).toBeGreaterThan(0);
+        expect(appliedState.coronaFlowOpacity).toBe(0);
+        expect(sunRenderer.updateAppearance).toHaveBeenCalledTimes(1);
+
+        restore();
+    });
+
+    it("schedules one follow-up render frame for animated composer corona", () => {
+        let queuedCallback = null;
+        const requestRender = vi.fn();
+        const requestAnimationFrameMock = vi.fn((callback) => {
+            queuedCallback = callback;
+            return 42;
+        });
+        vi.stubGlobal("requestAnimationFrame", requestAnimationFrameMock);
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            requestRender,
+            composerCoronaAnimationRaf: null,
+        });
+
+        manager.requestComposerCoronaAnimationFrame();
+        manager.requestComposerCoronaAnimationFrame();
+
+        expect(requestAnimationFrameMock).toHaveBeenCalledTimes(1);
+        expect(manager.composerCoronaAnimationRaf).toBe(42);
+
+        queuedCallback();
+
+        expect(manager.composerCoronaAnimationRaf).toBeNull();
+        expect(requestRender).toHaveBeenCalledTimes(1);
     });
 });
 

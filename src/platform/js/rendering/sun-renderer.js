@@ -2,8 +2,16 @@ import * as THREE from "three";
 
 const SKY_RADIUS_MULTIPLIER = 200;
 const SUN_ANGULAR_DIAMETER_DEGREES = 0.533;
+const SUN_CORONA_TEXTURE_SIZE = 1024;
+const SUN_CORONA_MODEL_EXTENT_SOLAR_RADII = 90;
 const SUN_HALO_SCALE = 4.8;
 const SUN_HALO_OPACITY = 0.36;
+const SUN_CORONA_SCALE = SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
+const SUN_CORONA_OPACITY = 0.0;
+const SUN_CORONA_FLOW_SCALE = 84;
+const SUN_CORONA_FLOW_OPACITY = 0.0;
+const SUN_CORONA_BASE_ROTATION_AMPLITUDE = 0.018;
+const SUN_CORONA_FLOW_ROTATION_SPEED = 0.022;
 const SUN_STARBURST_SCALE = 16.0;
 const SUN_STARBURST_OPACITY = 0.0;
 const SUN_FLARE_SCALE_X = 26.0;
@@ -11,6 +19,133 @@ const SUN_FLARE_SCALE_Y = 2.4;
 const SUN_FLARE_OPACITY = 0.0;
 const SUN_SAFE_DISTANCE_FACTOR = 0.985;
 const SUN_FALLBACK_DISTANCE_MULTIPLIER = 180;
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+function clamp01(value) {
+    return clamp(value, 0, 1);
+}
+
+function smoothstep(edge0, edge1, value) {
+    const t = clamp01((value - edge0) / Math.max(edge1 - edge0, 1e-9));
+    return t * t * (3 - (2 * t));
+}
+
+function angularDistance(a, b) {
+    const twoPi = Math.PI * 2;
+    let delta = ((a - b + Math.PI) % twoPi + twoPi) % twoPi - Math.PI;
+    if (delta < -Math.PI) {
+        delta += twoPi;
+    }
+    return Math.abs(delta);
+}
+
+function gaussianAngle(theta, center, width) {
+    const distance = angularDistance(theta, center);
+    const safeWidth = Math.max(width, 1e-5);
+    return Math.exp(-0.5 * (distance / safeWidth) ** 2);
+}
+
+function baumbachAllenDensityTerm(radiusSolar) {
+    const r = Math.max(Number(radiusSolar), 1.05);
+    return (
+        (2.99 * (r ** -16)) +
+        (1.55 * (r ** -6)) +
+        (0.036 * (r ** -1.5))
+    );
+}
+
+function deterministicCoronaGrain(x, y) {
+    const value = Math.sin((x * 12.9898) + (y * 78.233)) * 43758.5453;
+    return value - Math.floor(value);
+}
+
+export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
+    eclipticTiltRad = -0.16,
+    fCoronaPower = 1.28,
+    fCoronaFlattening = 0.56,
+    kCoronaStrength = 1,
+    fCoronaStrength = 1,
+    streamerPhaseRad = 0,
+    streamerStrengthMul = 1,
+    streamerWidthMul = 1,
+    polarStrengthMul = 1,
+    weavePhaseRad = 0,
+} = {}) {
+    const radius = Math.max(Number(radiusSolar), 0);
+    const r = Math.max(radius, 1.0);
+    const theta = Number.isFinite(thetaRad) ? thetaRad : 0;
+    const eclipticAngle = theta - eclipticTiltRad;
+    const equatorial = Math.abs(Math.cos(eclipticAngle));
+    const polar = Math.abs(Math.sin(eclipticAngle));
+
+    // K-corona: electron-scattered photospheric light. The density term uses
+    // the classic Baumbach-Allen radial family, normalized near the limb.
+    const baumbachNormalized = baumbachAllenDensityTerm(r) / baumbachAllenDensityTerm(1.05);
+    const kCorona = kCoronaStrength *
+        (baumbachNormalized ** 0.72) *
+        (0.84 + (0.18 * (equatorial ** 1.6)));
+
+    // F-corona: dust-scattered inner zodiacal light, broader and flatter along
+    // the ecliptic, with a shallower falloff to match wide-field lunar-flyby imagery.
+    const fFlatten = (1 - (fCoronaFlattening * 0.38)) + (fCoronaFlattening * 0.92 * (equatorial ** 2.2));
+    const fCorona = 0.115 * fCoronaStrength * (Math.max(r, 1.0) ** -fCoronaPower) * fFlatten;
+
+    const streamerCenters = [
+        eclipticTiltRad - 0.08,
+        eclipticTiltRad + Math.PI + 0.10,
+        eclipticTiltRad + 0.42,
+        eclipticTiltRad + Math.PI - 0.48,
+        eclipticTiltRad - 0.72,
+        eclipticTiltRad + Math.PI + 0.68,
+    ];
+    const streamerEnvelope = smoothstep(0.92, 1.28, r) * (1 - smoothstep(42, 86, r));
+    let streamers = 0;
+    for (let i = 0; i < streamerCenters.length; i += 1) {
+        const width = (0.13 + (0.038 * (i % 3))) * Math.max(0.2, streamerWidthMul);
+        const length = 11 + (6 * (i % 2)) + (i === 1 ? 12 : 0);
+        const strength = 0.16 - (0.014 * i);
+        streamers += strength *
+            gaussianAngle(theta, streamerCenters[i] + streamerPhaseRad, width) *
+            Math.exp(-(Math.max(r, 1.0) - 1) / length);
+    }
+    streamers *= streamerEnvelope * Math.max(0, streamerStrengthMul);
+
+    const plumeComb = 0.5 + (0.5 * Math.cos((theta - eclipticTiltRad) * 24));
+    const polarPlumes = 0.10 *
+        Math.max(0, polarStrengthMul) *
+        (polar ** 5.5) *
+        (0.65 + (0.35 * plumeComb)) *
+        Math.exp(-(Math.max(r, 1.0) - 1) / 9) *
+        smoothstep(0.96, 1.15, r);
+
+    const rawSignal = kCorona + fCorona + streamers + polarPlumes;
+    const angularWeave = 1 +
+        (0.045 * Math.sin((theta * 5.0) + (r * 0.12) + weavePhaseRad)) +
+        (0.030 * Math.sin((theta * 9.0) - (r * 0.055) - (weavePhaseRad * 1.7)));
+    const radialWeave = 1 + (0.026 * Math.sin((r * 0.62) + (theta * 3.0) + (weavePhaseRad * 0.8)));
+    const signal = Math.max(0, rawSignal * clamp(angularWeave * radialWeave, 0.88, 1.14));
+    const alpha = clamp01(0.88 * (signal ** 0.58));
+    const fFraction = rawSignal > 1e-9 ? clamp01(fCorona / rawSignal) : 0;
+    const kFraction = rawSignal > 1e-9 ? clamp01((kCorona + streamers + polarPlumes) / rawSignal) : 0;
+
+    return {
+        alpha,
+        signal,
+        kCorona,
+        fCorona,
+        streamers,
+        polarPlumes,
+        fFraction,
+        color: {
+            r: clamp01(1.0 - (0.025 * kFraction) + (0.018 * fFraction)),
+            g: clamp01(0.965 + (0.02 * kFraction) + (0.018 * fFraction)),
+            b: clamp01(0.91 + (0.07 * kFraction) + (0.035 * fFraction)),
+        },
+    };
+}
 
 /**
  * Sun Renderer - Physically constrained visual Sun disk.
@@ -34,6 +169,8 @@ export class SunRenderer {
         this.group = null;
         this.coreSprite = null;
         this.haloSprite = null;
+        this.coronaSprite = null;
+        this.coronaFlowSprite = null;
         this.starburstSprite = null;
         this.flareSprite = null;
         this._dynamicTextures = [];
@@ -46,6 +183,11 @@ export class SunRenderer {
             coreScaleMul: 1.0,
             haloOpacity: SUN_HALO_OPACITY,
             haloScaleMul: SUN_HALO_SCALE,
+            coronaOpacity: SUN_CORONA_OPACITY,
+            coronaScaleMul: SUN_CORONA_SCALE,
+            coronaFlowOpacity: SUN_CORONA_FLOW_OPACITY,
+            coronaFlowScaleMul: SUN_CORONA_FLOW_SCALE,
+            coronaMotionMul: 1.0,
             starburstOpacity: SUN_STARBURST_OPACITY,
             starburstScaleMul: SUN_STARBURST_SCALE,
             flareOpacity: SUN_FLARE_OPACITY,
@@ -77,6 +219,16 @@ export class SunRenderer {
 
         const discTexture = this._createSunDiscTexture();
         const haloTexture = this._createHaloTexture();
+        const coronaTexture = this._createCoronaTexture();
+        const coronaFlowTexture = this._createCoronaTexture({
+            kCoronaStrength: 0.72,
+            fCoronaStrength: 0.72,
+            streamerPhaseRad: 0.63,
+            streamerStrengthMul: 0.65,
+            streamerWidthMul: 2.8,
+            polarStrengthMul: 0.85,
+            weavePhaseRad: 1.9,
+        });
         const starburstTexture = this._createStarburstTexture();
         const flareTexture = this._createFlareTexture();
 
@@ -110,6 +262,36 @@ export class SunRenderer {
         );
         this.haloSprite.renderOrder = -19;
         this.group.add(this.haloSprite);
+
+        this.coronaSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: coronaTexture,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+                depthTest: true,
+                toneMapped: false,
+                blending: THREE.AdditiveBlending,
+            }),
+        );
+        this.coronaSprite.renderOrder = -18.95;
+        this.group.add(this.coronaSprite);
+
+        this.coronaFlowSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: coronaFlowTexture,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+                depthTest: true,
+                toneMapped: false,
+                blending: THREE.AdditiveBlending,
+            }),
+        );
+        this.coronaFlowSprite.renderOrder = -18.9;
+        this.group.add(this.coronaFlowSprite);
 
         this.starburstSprite = new THREE.Sprite(
             new THREE.SpriteMaterial({
@@ -216,11 +398,43 @@ export class SunRenderer {
     }
 
     /**
-     * Keep appearance stable (no stylized pulsing).
-     * @param {number} _timeMs
+     * Animate the corona slowly with layered, deterministic drift.
+     * @param {number} timeMs
      */
-    updateAppearance(_timeMs) {
-        // Intentionally stable for physically constrained baseline rendering.
+    updateAppearance(timeMs) {
+        const browserClockMs = typeof window !== "undefined" && typeof window.performance?.now === "function"
+            ? window.performance.now()
+            : null;
+        const animationMs = Number.isFinite(browserClockMs)
+            ? browserClockMs
+            : (Number.isFinite(Number(timeMs)) ? Number(timeMs) : 0);
+        const seconds = animationMs / 1000;
+        const motionMul = THREE.MathUtils.clamp(Number(this._visualState.coronaMotionMul), 0, 2.5);
+        const baseRotation =
+            (SUN_CORONA_BASE_ROTATION_AMPLITUDE * Math.sin(seconds * 0.035 * motionMul)) +
+            (0.010 * Math.sin(1.7 + (seconds * 0.052 * motionMul)));
+
+        if (this.coronaSprite?.material) {
+            this.coronaSprite.material.rotation = baseRotation;
+        }
+
+        if (this.coronaFlowSprite?.material) {
+            const flowOpacity = THREE.MathUtils.clamp(Number(this._visualState.coronaFlowOpacity), 0, 1);
+            const slowPulse =
+                0.84 +
+                (0.14 * Math.sin(0.8 + (seconds * 0.24 * motionMul))) +
+                (0.08 * Math.sin(2.4 + (seconds * 0.37 * motionMul)));
+            this.coronaFlowSprite.material.rotation =
+                0.38 + (seconds * SUN_CORONA_FLOW_ROTATION_SPEED * motionMul) +
+                (0.060 * Math.sin(1.1 + (seconds * 0.13 * motionMul)));
+            this.coronaFlowSprite.material.opacity = THREE.MathUtils.clamp(flowOpacity * slowPulse, 0, 1);
+            const scaleMul = Number(this._visualState.coronaFlowScaleMul);
+            if (Number.isFinite(scaleMul) && scaleMul > 0) {
+                const scalePulse = 1 + (0.030 * Math.sin(0.35 + (seconds * 0.18 * motionMul)));
+                this.coronaFlowSprite.scale.setScalar(this.radius * 2 * scaleMul * scalePulse);
+            }
+            this.coronaFlowSprite.visible = flowOpacity > 1e-4 && Number(motionMul) > 1e-4;
+        }
     }
 
     /**
@@ -268,6 +482,20 @@ export class SunRenderer {
             const scaleMul = safeScale(this._visualState.haloScaleMul, SUN_HALO_SCALE);
             this.haloSprite.scale.setScalar(base * scaleMul);
             this.haloSprite.visible = opacity > 1e-4;
+        }
+        if (this.coronaSprite?.material) {
+            const opacity = clampOpacity(this._visualState.coronaOpacity);
+            this.coronaSprite.material.opacity = opacity;
+            const scaleMul = safeScale(this._visualState.coronaScaleMul, SUN_CORONA_SCALE);
+            this.coronaSprite.scale.setScalar(base * scaleMul);
+            this.coronaSprite.visible = opacity > 1e-4;
+        }
+        if (this.coronaFlowSprite?.material) {
+            const opacity = clampOpacity(this._visualState.coronaFlowOpacity);
+            this.coronaFlowSprite.material.opacity = opacity;
+            const scaleMul = safeScale(this._visualState.coronaFlowScaleMul, SUN_CORONA_FLOW_SCALE);
+            this.coronaFlowSprite.scale.setScalar(base * scaleMul);
+            this.coronaFlowSprite.visible = opacity > 1e-4;
         }
         if (this.starburstSprite?.material) {
             const opacity = clampOpacity(this._visualState.starburstOpacity);
@@ -317,6 +545,12 @@ export class SunRenderer {
 
         disposeSprite(this.haloSprite);
         this.haloSprite = null;
+
+        disposeSprite(this.coronaSprite);
+        this.coronaSprite = null;
+
+        disposeSprite(this.coronaFlowSprite);
+        this.coronaFlowSprite = null;
 
         disposeSprite(this.starburstSprite);
         this.starburstSprite = null;
@@ -398,6 +632,59 @@ export class SunRenderer {
         gradient.addColorStop(1.00, "rgba(255,180,120,0.00)");
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, size, size);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        this._dynamicTextures.push(texture);
+        return texture;
+    }
+
+    _createCoronaTexture(modelOptions = {}) {
+        const size = SUN_CORONA_TEXTURE_SIZE;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            return null;
+        }
+
+        ctx.clearRect(0, 0, size, size);
+        const imageData = ctx.createImageData(size, size);
+        const data = imageData.data;
+        const center = (size - 1) * 0.5;
+        const invCenter = 1 / Math.max(center, 1);
+
+        for (let y = 0; y < size; y += 1) {
+            const ny = (y - center) * invCenter;
+            for (let x = 0; x < size; x += 1) {
+                const nx = (x - center) * invCenter;
+                const radial = Math.hypot(nx, ny);
+                if (radial >= 1) {
+                    continue;
+                }
+                const radiusSolar = radial * SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
+                const theta = Math.atan2(ny, nx);
+                const sample = sampleSolarCoronaModel(radiusSolar, theta, modelOptions);
+                const edgeFade = 1 - smoothstep(0.88, 1.0, radial);
+                const centerFade = smoothstep(0.002, 0.02, radial);
+                const grain = 0.965 + (0.07 * deterministicCoronaGrain(x, y));
+                const alpha = clamp01(sample.alpha * edgeFade * centerFade * grain);
+                if (alpha <= 0.0005) {
+                    continue;
+                }
+
+                const idx = ((y * size) + x) * 4;
+                data[idx] = Math.round(sample.color.r * 255);
+                data[idx + 1] = Math.round(sample.color.g * 255);
+                data[idx + 2] = Math.round(sample.color.b * 255);
+                data[idx + 3] = Math.round(alpha * 255);
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
 
         const texture = new THREE.CanvasTexture(canvas);
         texture.colorSpace = THREE.SRGBColorSpace;

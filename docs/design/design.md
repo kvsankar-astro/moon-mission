@@ -122,7 +122,8 @@ Example deep dive:
     - implemented in `src/platform/js/app/auxiliary-camera-views.js`
     - uses the composer-style panel shell and flyby-specific timeline window
     - keeps the composer camera anchored at Orion; wheel zoom changes FoV only
-    - supports `Star Mag` from `-3` to `6`, sky labels, constellation lines, constellation labels, and default-on clouds
+    - supports `Star Mag` from `-3` to `6`, `Labels`, `Constellations`, `Const Labels`, and default-on clouds; body labels are hidden when Earth or Moon obscures them
+    - keeps normal Sun optics (`Strength`, `Halo`, `Star`, `Flare`) active outside eclipse, while craft-view eclipse rendering uses separate `Eclipse Corona` controls (`Intensity`, `Motion`, `Detail`)
   - `Splashdown in Spotlight`
     - implemented in `src/platform/js/app/ground-track-panel.js`
     - combines a left-hand timeline/event sidebar with either a Leaflet `2D` map or a Three.js `3D` globe
