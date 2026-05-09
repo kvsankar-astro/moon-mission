@@ -1,3 +1,18 @@
+function scheduleDeferredNormalMapUpgrade(scene) {
+    const upgrade = () => {
+        if (!scene.moonRenderer) {
+            return;
+        }
+        scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+    };
+    const idle = globalThis?.requestIdleCallback;
+    if (typeof idle === "function") {
+        idle(upgrade, { timeout: 1500 });
+        return;
+    }
+    globalThis?.setTimeout?.(upgrade, 0);
+}
+
 export function createMoonActions({
     MoonRenderer,
     getMoonRadius,
@@ -20,7 +35,18 @@ export function createMoonActions({
         scene.moonRenderer = new MoonRenderer(getMoonRadius());
         scene.moonRenderer.setTextures(scene.moonMap, scene.moonDisplacementMap);
         scene.moonRenderer.setRenderSettings(scene.moonRenderSettings);
-        scene.moonRenderer.create(getViewPolarAxes(), getViewPoles());
+        // Defer the synchronous generated-normal-map build off the first-frame
+        // critical path. The Moon renders with three.js's runtime bumpMap
+        // fallback (driven by the displacement texture) until the higher-
+        // fidelity pre-computed normal map is ready, then upgrades. On the
+        // 5760-wide "quality" profile (Artemis II default) the synchronous
+        // build was costing ~300-500ms of main-thread time on initial load.
+        scene.moonRenderer.create(
+            getViewPolarAxes(),
+            getViewPoles(),
+            { deferGeneratedNormalMap: true },
+        );
+        scheduleDeferredNormalMapUpgrade(scene);
 
         scene.moonContainer = scene.moonRenderer.container;
         scene.moon = scene.moonRenderer.mesh;

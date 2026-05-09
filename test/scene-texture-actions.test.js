@@ -1,9 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { applyAndRefreshSceneTextures } from "../src/platform/js/app/scene-texture-actions.js";
 import { LIGHT_SETTINGS as LT } from "../src/platform/js/core/constants.js";
 
 describe("scene-texture-actions", () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
     it("keeps Earthshine fill available for detailed lunar render profiles", () => {
         const scene = {
             lightManager: {
@@ -127,5 +131,56 @@ describe("scene-texture-actions", () => {
         expect(scene.moonRenderProfile).toBe("quality");
         expect(scene.earthRenderer.updateTextures).not.toHaveBeenCalled();
         expect(scene.skyRenderer.updateTextures).not.toHaveBeenCalled();
+    });
+
+    it("bounds deferred Moon normal-map refresh with an idle timeout", () => {
+        const requestIdleCallback = vi.fn();
+        vi.stubGlobal("requestIdleCallback", requestIdleCallback);
+        const moonMap = { name: "moon-quality" };
+        const moonDisplacementMap = { name: "moon-height-quality" };
+        const scene = {
+            lightManager: {
+                bodyAmbientLight: { intensity: 0.5 },
+                primaryLight: null,
+            },
+            lightFill: { intensity: 0 },
+            lightMoonshine: { intensity: 0 },
+            moonRenderSettings: { displacementScale: 0.0128 },
+            earthTexture: null,
+            earthPhotoTexture: null,
+            earthSpecularTexture: null,
+            earthNightTexture: null,
+            moonMap: null,
+            moonDisplacementMap: null,
+            skyTexture: null,
+            skyConstellationTexture: null,
+            moonRenderer: {
+                updateTextures: vi.fn(),
+                refreshGeneratedNormalMap: vi.fn(),
+            },
+        };
+
+        applyAndRefreshSceneTextures(scene, {
+            moonMap,
+            moonDisplacementMap,
+            moonRenderProfile: "quality",
+            moonRenderSettings: scene.moonRenderSettings,
+        }, { disposePrevious: true });
+
+        expect(scene.moonRenderer.updateTextures).toHaveBeenCalledWith(
+            moonMap,
+            moonDisplacementMap,
+            null,
+            expect.objectContaining({
+                deferGeneratedNormalMap: true,
+                disposePrevious: true,
+                renderSettings: scene.moonRenderSettings,
+            }),
+        );
+        expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), { timeout: 1500 });
+
+        requestIdleCallback.mock.calls[0][0]();
+
+        expect(scene.moonRenderer.refreshGeneratedNormalMap).toHaveBeenCalledWith({ disposePrevious: true });
     });
 });

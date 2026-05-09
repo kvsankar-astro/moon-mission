@@ -74,10 +74,10 @@ describe("photo-mode-render-presentation", () => {
         expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.56, 4);
         expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
         expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
-        expect(moon.material.userData.moonShadowLift).toBeGreaterThan(0.15);
-        expect(moon.material.userData.moonShadowWeightExponent).toBeLessThan(0.9);
-        expect(moon.material.userData.moonTerminatorReliefStrength).toBeGreaterThan(10.0);
-        expect(moon.material.userData.moonTerminatorShadowFloor).toBeGreaterThan(0.2);
+        expect(moon.material.userData.moonShadowLift).toBeCloseTo(0.05, 2);
+        expect(moon.material.userData.moonShadowWeightExponent).toBeCloseTo(1.6, 2);
+        expect(moon.material.userData.moonTerminatorReliefStrength).toBeCloseTo(7.5, 2);
+        expect(moon.material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 2);
 
         restore();
 

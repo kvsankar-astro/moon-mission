@@ -34,14 +34,19 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.earthDayGain).toBeGreaterThan(1.14);
         expect(presentation.earthDaySaturation).toBeLessThan(0.55);
         expect(presentation.earthAtmosphereRimStrength).toBeGreaterThan(0.34);
-        expect(presentation.moonShadowLift).toBeGreaterThan(0.15);
-        expect(presentation.moonShadowWeightExponent).toBeLessThan(0.9);
-        expect(presentation.moonHighlightWeightExponent).toBeLessThan(0.9);
-        expect(presentation.moonTerminatorContrast).toBeGreaterThan(3.6);
-        expect(presentation.moonTerminatorReliefStrength).toBeGreaterThan(10.0);
-        expect(presentation.moonTerminatorShadowFloor).toBeGreaterThan(0.2);
-        expect(presentation.moonTerminatorIndirectOcclusion).toBeLessThan(0.45);
-        expect(presentation.moonHighlightBoost).toBeGreaterThan(1.14);
+        // Moon-dominant overrides push highlightBoost to mimic photographic
+        // exposure compensation for the lunar disc; without this the lit side
+        // reads as flat mid-gray instead of the bright surface real photos
+        // capture. terminatorContrast stays moderate so lit terrain doesn't
+        // darken too quickly into the terminator.
+        expect(presentation.moonShadowLift).toBeCloseTo(0.05, 2);
+        expect(presentation.moonShadowWeightExponent).toBeCloseTo(1.6, 2);
+        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(0.7, 2);
+        expect(presentation.moonTerminatorContrast).toBeCloseTo(2.05, 2);
+        expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 2);
+        expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 2);
+        expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(0.85, 2);
+        expect(presentation.moonHighlightBoost).toBeCloseTo(1.7, 2);
     });
 
     it("allows somewhat more Earth night-light visibility when Earth dominates the frame", () => {
@@ -61,11 +66,11 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.earthAtmosphereRimStrength).toBeLessThan(0.18);
         expect(presentation.moonShadowLift).toBeCloseTo(0.02, 3);
         expect(presentation.moonShadowWeightExponent).toBeCloseTo(1.92, 3);
-        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(1.0, 3);
-        expect(presentation.moonTerminatorContrast).toBeLessThan(2.82);
+        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(0.95, 2);
+        expect(presentation.moonTerminatorContrast).toBeLessThan(2.5);
         expect(presentation.moonTerminatorReliefStrength).toBeGreaterThan(7.4);
         expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 3);
         expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 3);
-        expect(presentation.moonHighlightBoost).toBeGreaterThan(1.02);
+        expect(presentation.moonHighlightBoost).toBeGreaterThan(1.35);
     });
 });
