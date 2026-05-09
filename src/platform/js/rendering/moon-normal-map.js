@@ -3,8 +3,11 @@ import * as THREE from "three";
 export const DEFAULT_MOON_NORMAL_MAP_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
-    normalDetailBoost: 1.4,
-    normalDetailRadius: 3,
+    normalDetailBoost: 2.0,
+    // Wider detail-radius (sample 5px out instead of 3px) suppresses the
+    // single-pixel LDEM noise that gets amplified at any meaningful boost
+    // setting; rim-scale features (~2-3 px in 16k LDEM) are preserved.
+    normalDetailRadius: 5,
 });
 
 function resolveNormalMapSetting(value, fallback) {

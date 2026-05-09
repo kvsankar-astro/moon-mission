@@ -20,9 +20,9 @@ const MOON_GEOMETRY_HEIGHT_SEGMENTS = 512;
 const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
-    normalDetailBoost: 1.4,
-    normalDetailRadius: 3,
-    normalScale: 1.55,
+    normalDetailBoost: 2.0,
+    normalDetailRadius: 5,
+    normalScale: 1.8,
     displacementScale: 0.0128,
     displacementBias: -0.0048,
     roughness: 0.955,
