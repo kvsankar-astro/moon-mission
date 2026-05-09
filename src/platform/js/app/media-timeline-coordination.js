@@ -5,7 +5,10 @@ import {
     MEDIA_KIND_FILTER_IDS,
     MEDIA_SUBJECT_FILTER_IDS,
 } from "../core/domain/media-filter-state.js";
-import { resolveMediaSelectionState } from "../core/domain/media-selection-state.js";
+import {
+    resolveMediaSelectionState,
+    resolveNearestMediaIndex,
+} from "../core/domain/media-selection-state.js";
 import { buildMediaTimelineMarkers } from "../core/domain/media-timeline-state.js";
 import { createRuntimeMediaState } from "../core/state/runtime-media-state.js";
 import { getMissionDataPath } from "../data/mission-data.js";
@@ -21,10 +24,17 @@ import {
 } from "./media-browser-panel.js";
 import { isMissionPanelEnabled } from "./panel-defaults.js";
 
+const MAX_THUMBNAIL_RENDER_ITEMS = 64;
+const THUMBNAIL_WINDOW_EDGE_MARGIN = 8;
+
 function formatSignedDuration(seconds) {
     if (!Number.isFinite(seconds) || seconds === 0) return "0s";
     const sign = seconds > 0 ? "+" : "-";
     return `${sign}${formatDuration(Math.abs(seconds) * 1000, { compact: true })}`;
+}
+
+function formatMediaEntryCount(count) {
+    return `${count} media ${count === 1 ? "entry" : "entries"}`;
 }
 
 function buildStageBadge(item) {
@@ -57,6 +67,19 @@ function resolvePreviewAssetUrl(item) {
         return item.posterAssetUrl || item.thumbnailAssetUrl || "";
     }
     return item.assetUrl || item.thumbnailAssetUrl || item.posterAssetUrl || "";
+}
+
+function resolveThumbnailAssetUrl(item) {
+    if (!item) return "";
+    return item.thumbnailAssetUrl || item.posterAssetUrl || (item.kind === "audioClip" ? "" : item.assetUrl) || "";
+}
+
+function resolveThumbnailFallbackAssetUrl(item) {
+    if (!item || item.kind === "audioClip") return "";
+    if (item.kind === "videoClip") {
+        return item.posterAssetUrl || "";
+    }
+    return item.assetUrl || item.posterAssetUrl || "";
 }
 
 function resolvePlayableAssetUrl(item) {
@@ -117,6 +140,152 @@ function findManifestMediaItemById(manifest, itemId) {
         ...(manifest.mediaItems || []),
         ...(manifest.audioItems || []),
     ].find((item) => item?.id === normalizedId) || null;
+}
+
+function findMediaItemById(items, itemId) {
+    const normalizedId = String(itemId || "").trim();
+    if (!normalizedId) return null;
+    return (Array.isArray(items) ? items : []).find((item) => item?.id === normalizedId) || null;
+}
+
+function buildNearbyMediaItems(items, activeIndex, nearbyRadius = 3) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    if (activeIndex < 0 || activeIndex >= normalizedItems.length) return [];
+    const radius = Math.max(0, nearbyRadius);
+    const startIndex = Math.max(0, activeIndex - radius);
+    const endIndex = Math.min(normalizedItems.length, activeIndex + radius + 1);
+    return normalizedItems.slice(startIndex, endIndex);
+}
+
+function buildExplicitMediaSelectionState({
+    items,
+    activeItemId,
+    timeMs,
+    nearbyRadius = 3,
+} = {}) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    const activeItem = findMediaItemById(normalizedItems, activeItemId);
+    const activeIndex = activeItem
+        ? normalizedItems.findIndex((item) => item?.id === activeItem.id)
+        : -1;
+
+    if (!activeItem || activeIndex < 0) {
+        const nearestSelection = resolveMediaSelectionState({
+            items: normalizedItems,
+            timeMs,
+            nearbyRadius,
+        });
+        return {
+            hasItems: normalizedItems.length > 0,
+            activeIndex: -1,
+            activeItem: null,
+            previousItem: null,
+            nextItem: null,
+            nearbyItems: nearestSelection.nearbyItems,
+            activeDeltaMs: Number.NaN,
+        };
+    }
+
+    return {
+        hasItems: normalizedItems.length > 0,
+        activeIndex,
+        activeItem,
+        previousItem: activeIndex > 0 ? normalizedItems[activeIndex - 1] : null,
+        nextItem: activeIndex < (normalizedItems.length - 1) ? normalizedItems[activeIndex + 1] : null,
+        nearbyItems: buildNearbyMediaItems(normalizedItems, activeIndex, nearbyRadius),
+        activeDeltaMs: Number.isFinite(timeMs) ? timeMs - activeItem.startTimeMs : Number.NaN,
+    };
+}
+
+function clampIndex(index, maxIndex) {
+    return Math.max(0, Math.min(maxIndex, index));
+}
+
+function buildMediaNavigationModel(items, selection = {}) {
+    const count = Array.isArray(items) ? items.length : 0;
+    const activeIndex = Number(selection.activeIndex);
+    if (count <= 0) {
+        return {
+            available: false,
+            previousEnabled: false,
+            nextEnabled: false,
+            positionLabel: "No media selected",
+        };
+    }
+    if (!Number.isInteger(activeIndex) || activeIndex < 0) {
+        return {
+            available: true,
+            previousEnabled: false,
+            nextEnabled: true,
+            positionLabel: `${count} filtered - none selected`,
+            previousTitle: "Select a filtered media item first",
+            nextTitle: "Select nearest filtered media",
+        };
+    }
+    return {
+        available: true,
+        previousEnabled: activeIndex > 0,
+        nextEnabled: activeIndex < (count - 1),
+        positionLabel: `${activeIndex + 1} of ${count}`,
+        previousTitle: "Previous filtered media",
+        nextTitle: "Next filtered media",
+    };
+}
+
+function buildThumbnailViewItem(item, activeItem) {
+    return {
+        id: item.id,
+        kind: item.kind,
+        active: item.id === activeItem?.id,
+        title: item.title,
+        thumbnailAssetUrl: resolveThumbnailAssetUrl(item),
+        fallbackAssetUrl: resolveThumbnailFallbackAssetUrl(item),
+        badge: item.kind === "videoClip"
+            ? "Video"
+            : (item.kind === "audioClip" ? "Audio" : "Image"),
+        meta: [
+            formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
+            item.cameraLabel || (item.kind === "audioClip" ? "Audio" : ""),
+        ].filter(Boolean).join(" • "),
+    };
+}
+
+function resolveThumbnailWindowStart(items, selection = {}, timeMs = Number.NaN, previousStartIndex = 0) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    if (normalizedItems.length <= MAX_THUMBNAIL_RENDER_ITEMS) {
+        return 0;
+    }
+
+    const activeIndex = Number(selection.activeIndex);
+    const targetIndex = Number.isInteger(activeIndex) && activeIndex >= 0
+        ? activeIndex
+        : resolveNearestMediaIndex(normalizedItems, Number(timeMs));
+    const clampedTargetIndex = clampIndex(
+        Number.isInteger(targetIndex) ? targetIndex : 0,
+        normalizedItems.length - 1,
+    );
+    const maxStartIndex = normalizedItems.length - MAX_THUMBNAIL_RENDER_ITEMS;
+    const currentStartIndex = clampIndex(Number(previousStartIndex) || 0, maxStartIndex);
+    const safeStartIndex = currentStartIndex + THUMBNAIL_WINDOW_EDGE_MARGIN;
+    const safeEndIndex = currentStartIndex + MAX_THUMBNAIL_RENDER_ITEMS - THUMBNAIL_WINDOW_EDGE_MARGIN - 1;
+    if (clampedTargetIndex >= safeStartIndex && clampedTargetIndex <= safeEndIndex) {
+        return currentStartIndex;
+    }
+
+    const halfWindow = Math.floor(MAX_THUMBNAIL_RENDER_ITEMS / 2);
+    return clampIndex(clampedTargetIndex - halfWindow, maxStartIndex);
+}
+
+function buildThumbnailViewItems(items, selection = {}, startIndex = 0) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    const clampedStartIndex = normalizedItems.length > MAX_THUMBNAIL_RENDER_ITEMS
+        ? clampIndex(Number(startIndex) || 0, normalizedItems.length - MAX_THUMBNAIL_RENDER_ITEMS)
+        : 0;
+    const windowItems = normalizedItems.slice(
+        clampedStartIndex,
+        clampedStartIndex + MAX_THUMBNAIL_RENDER_ITEMS,
+    );
+    return windowItems.map((item) => buildThumbnailViewItem(item, selection.activeItem));
 }
 
 function clampMediaCurrentTimeSeconds(item, currentTimeSeconds) {
@@ -190,6 +359,7 @@ function createMediaTimelineCoordination({
     let audioEnabled = false;
     let currentAudio = null;
     let currentAudioClipId = "";
+    let thumbnailWindowStartIndex = 0;
     let mediaPlaybackState = {
         itemId: "",
         kind: "",
@@ -375,6 +545,7 @@ function createMediaTimelineCoordination({
             : alignedCurrentTimeMs;
 
         stopPlayableMedia({ pauseClock: false });
+        runtimeMediaState.setActiveItemId(item.id);
         mediaPlaybackState = {
             itemId: item.id,
             kind: item.kind,
@@ -496,6 +667,36 @@ function createMediaTimelineCoordination({
     function rerender() {
         if (!lastRenderContext) return;
         update(lastRenderContext);
+    }
+
+    function getFilteredSelectableItems() {
+        const manifest = runtimeMediaState.getManifest();
+        if (!manifest) return [];
+        const filters = runtimeMediaState.getFilters();
+        return buildSelectableMediaItems(
+            filterMediaItems(manifest.mediaItems || [], filters),
+            filterMediaItems(manifest.audioItems || [], filters),
+        );
+    }
+
+    function previewMediaItem(item, {
+        seekTimeline = true,
+    } = {}) {
+        if (!item) return false;
+        dispatchDocumentCustomEvent("mission-media-item-select", {
+            item,
+        });
+        stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        runtimeMediaState.setActiveItemId(item.id);
+        if (!seekTimeline) {
+            rerender();
+            return true;
+        }
+        const seekSucceeded = seekMissionTimelineTime(item.startTimeMs, true);
+        if (!seekSucceeded) {
+            rerender();
+        }
+        return true;
     }
 
     function handlePanelIntent(intent) {
@@ -629,27 +830,42 @@ function createMediaTimelineCoordination({
             return;
         }
         if (type === "selectItem") {
-            const manifest = runtimeMediaState.getManifest();
-            const filteredItems = filterMediaItems(manifest?.mediaItems || [], runtimeMediaState.getFilters());
-            const selectableItems = buildSelectableMediaItems(filteredItems, manifest?.audioItems || []);
+            const selectableItems = getFilteredSelectableItems();
             const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
             if (!selectedItem) return;
-            dispatchDocumentCustomEvent("mission-media-item-select", {
-                item: selectedItem,
-            });
             if (isPlayableMediaItem(selectedItem)) {
+                dispatchDocumentCustomEvent("mission-media-item-select", {
+                    item: selectedItem,
+                });
                 startPlayableMediaItem(selectedItem, {
                     fromBeginning: true,
                     seekTimeline: true,
                 });
                 return;
             }
-            stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
-            const seekSucceeded = seekMissionTimelineTime(selectedItem.startTimeMs, true);
-            if (!seekSucceeded) {
-                runtimeMediaState.setActiveItemId(selectedItem.id);
+            previewMediaItem(selectedItem);
+            return;
+        }
+        if (type === "selectAdjacentItem") {
+            const direction = String(intent.value || "").trim() === "previous" ? -1 : 1;
+            const selectableItems = getFilteredSelectableItems();
+            if (selectableItems.length === 0) {
+                runtimeMediaState.setActiveItemId("");
                 rerender();
+                return;
             }
+            const currentId = runtimeMediaState.getActiveItemId();
+            const currentIndex = selectableItems.findIndex((item) => item?.id === currentId);
+            const targetIndex = currentIndex >= 0
+                ? clampIndex(currentIndex + direction, selectableItems.length - 1)
+                : resolveNearestMediaIndex(selectableItems, Number(lastRenderContext?.animTime));
+            previewMediaItem(selectableItems[targetIndex] || selectableItems[0]);
+            return;
+        }
+        if (type === "previewItem") {
+            const selectableItems = getFilteredSelectableItems();
+            const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
+            previewMediaItem(selectedItem);
             return;
         }
         if (type === "startActiveMedia" || type === "startActiveMediaFromBeginning") {
@@ -694,28 +910,27 @@ function createMediaTimelineCoordination({
         );
         const seedNote = String(manifest?.ui?.seedNote || "").trim();
         const audioClip = resolveAudioClipForTime(manifest.audioItems || [], timeMs);
-        const nearbySourceItems = [...(selection.nearbyItems || [])];
-        if (
-            audioEnabled === true
-            && audioClip
-            && !nearbySourceItems.some((item) => item.id === audioClip.id)
-        ) {
-            nearbySourceItems.push(audioClip);
-            nearbySourceItems.sort((a, b) => a.startTimeMs - b.startTimeMs);
-        }
+        const navigationModel = buildMediaNavigationModel(selectionItems, selection);
+        thumbnailWindowStartIndex = resolveThumbnailWindowStart(
+            selectionItems,
+            selection,
+            timeMs,
+            thumbnailWindowStartIndex,
+        );
+        const noSelectionStatusText = `Filtered to ${formatMediaEntryCount(selectionItems.length)}. Select one to preview.`;
         const statusText = items.length === 0
             ? "No media matches the current filters."
-            : (getAnimationRunning() === true
-                ? `Following mission time through ${selectionItems.length} media items.`
-                : `Paused on the nearest item within ${selectionItems.length} filtered media entries.`);
+            : (activeItem
+                ? `Selected ${navigationModel.positionLabel} filtered media entries.`
+                : noSelectionStatusText);
         const activePlayable = isPlayableMediaItem(activeItem);
         const activePlaybackSelected = activeItem?.id === mediaPlaybackState.itemId;
         const activePlaybackPlaying = activePlaybackSelected && mediaPlaybackState.playing === true;
         const stageEmptyText = items.length === 0
             ? "No media matches the current filters."
-            : (activeItem?.kind === "audioClip"
-                ? "Audio clip selected."
-                : "No preview available for this media item.");
+            : (activeItem
+                ? "No preview available for this media item."
+                : "Select a filtered media item to preview.");
 
         return {
             panelTitle: String(manifest?.ui?.panelTitle || manifest?.title || "Mission Media").trim(),
@@ -739,6 +954,7 @@ function createMediaTimelineCoordination({
                 startTitle: "Start this media from the current mission time",
                 restartTitle: "Start this media from its beginning",
             },
+            navigationModel,
             activeItem: activeItem
                 ? {
                     id: activeItem.id,
@@ -758,15 +974,7 @@ function createMediaTimelineCoordination({
                     timingNote: buildTimingNote(activeItem, selection.activeDeltaMs),
                 }
                 : null,
-            nearbyItems: nearbySourceItems.map((item) => ({
-                id: item.id,
-                active: item.id === activeItem?.id,
-                title: item.title,
-                    meta: [
-                        formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
-                        item.cameraLabel || (item.kind === "audioClip" ? "Audio" : ""),
-                    ].filter(Boolean).join(" • "),
-            })),
+            thumbnailItems: buildThumbnailViewItems(selectionItems, selection, thumbnailWindowStartIndex),
             currentTimeMs: timeMs,
         };
     }
@@ -774,6 +982,7 @@ function createMediaTimelineCoordination({
     function clearUi(globalConfig, {
         statusText = "No media manifest is available for this mission yet.",
     } = {}) {
+        thumbnailWindowStartIndex = 0;
         releaseTimelineEventBinding();
         stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
         setTimelineMediaMarkers([]);
@@ -796,7 +1005,7 @@ function createMediaTimelineCoordination({
                 enabled: false,
                 nowLabel: "",
             },
-            nearbyItems: [],
+            thumbnailItems: [],
         });
     }
 
@@ -856,7 +1065,7 @@ function createMediaTimelineCoordination({
                     enabled: audioEnabled === true,
                     nowLabel: "",
                 },
-                nearbyItems: [],
+                thumbnailItems: [],
             });
             return;
         }
@@ -877,26 +1086,18 @@ function createMediaTimelineCoordination({
             filteredItems,
             filteredAudioItems,
         );
-        let selection = resolveMediaSelectionState({
+        const requestedActiveItemId = mediaPlaybackState.itemId || runtimeMediaState.getActiveItemId();
+        const selection = buildExplicitMediaSelectionState({
             items: selectableItems,
+            activeItemId: requestedActiveItemId,
             timeMs,
             nearbyRadius: 3,
         });
-        const pinnedPlaybackItem = mediaPlaybackState.itemId
-            ? selectableItems.find((item) => item.id === mediaPlaybackState.itemId)
-            : null;
-        if (pinnedPlaybackItem) {
-            const nearbyItems = selection.nearbyItems.some((item) => item.id === pinnedPlaybackItem.id)
-                ? selection.nearbyItems
-                : [...selection.nearbyItems, pinnedPlaybackItem].sort((a, b) => a.startTimeMs - b.startTimeMs);
-            selection = {
-                ...selection,
-                activeItem: pinnedPlaybackItem,
-                nearbyItems,
-                activeDeltaMs: Number.isFinite(timeMs) ? timeMs - pinnedPlaybackItem.startTimeMs : Number.NaN,
-            };
+        if (requestedActiveItemId && !selection.activeItem) {
+            runtimeMediaState.setActiveItemId("");
+        } else if (selection.activeItem) {
+            runtimeMediaState.setActiveItemId(selection.activeItem.id);
         }
-        runtimeMediaState.setActiveItemId(selection.activeItem?.id || "");
 
         setTimelineMediaMarkers(buildMediaTimelineMarkers({
             items: selectableItems,

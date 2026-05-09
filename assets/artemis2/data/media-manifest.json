@@ -12,6 +12,12 @@
     "mirroredAt": "2026-05-08"
   },
   "mediaBase": "https://pub-6f67061aecce4413aa83975cba06595d.r2.dev/",
+  "thumbnails": {
+    "basePath": "../media/thumbnails",
+    "imagePattern": "images/{key}.webp",
+    "videoPattern": "videos/{key}.webp",
+    "audioFallbackAsset": "audio/waveform.svg"
+  },
   "timelineTimezoneOffset": "-04:00",
   "cameraProfiles": {
     "d5a": {

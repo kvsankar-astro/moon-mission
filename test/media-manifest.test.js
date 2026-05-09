@@ -128,4 +128,50 @@ describe("normalizeMissionMediaManifest", () => {
             "https://pub-example.r2.dev/audio/artemis-ii-closest-point-to-moon.wav",
         );
     });
+
+    it("derives generated thumbnail URLs from manifest conventions", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaBase: "https://pub-example.r2.dev/",
+            timelineTimezoneOffset: "-04:00",
+            thumbnails: {
+                basePath: "../media/thumbnails",
+                imagePattern: "images/{key}.webp",
+                videoPattern: "videos/{key}.webp",
+                audioFallbackAsset: "audio/waveform.svg",
+            },
+            photos: [
+                {
+                    time: "2026-04-01 13:35:39",
+                    file: "KSC-20260401-PH-KLS01_0198.jpg",
+                    enabled: true,
+                },
+                {
+                    time: "2026-04-06 18:45:00",
+                    file: "ig-earthset-wiseman.mp4",
+                    video: true,
+                    enabled: true,
+                },
+            ],
+            audio: [
+                {
+                    time: "2026-04-06 18:58:45",
+                    file: "audio/artemis-ii-closest-point-to-moon.wav",
+                    desc: "Closest approach to Moon",
+                    enabled: true,
+                },
+            ],
+        }, {
+            dataPath: "assets/artemis2/data",
+        });
+
+        expect(manifest.mediaItems[0].thumbnailAssetUrl).toBe(
+            "assets/artemis2/data/../media/thumbnails/images/KSC-20260401-PH-KLS01_0198.webp",
+        );
+        expect(manifest.mediaItems[1].thumbnailAssetUrl).toBe(
+            "assets/artemis2/data/../media/thumbnails/videos/ig-earthset-wiseman.webp",
+        );
+        expect(manifest.audioItems[0].thumbnailAssetUrl).toBe(
+            "assets/artemis2/data/../media/thumbnails/audio/waveform.svg",
+        );
+    });
 });

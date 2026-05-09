@@ -1617,8 +1617,56 @@
                             hidden
                         ></video>
                         <img id="media-browser-image" class="media-browser-panel__image" alt="" hidden>
+                        <div
+                            id="media-browser-audio-placeholder"
+                            class="media-browser-panel__audio-placeholder"
+                            aria-hidden="true"
+                            hidden
+                        >
+                            <svg
+                                class="media-browser-panel__audio-waveform"
+                                viewBox="0 0 320 120"
+                                focusable="false"
+                                aria-hidden="true"
+                            >
+                                <path
+                                    class="media-browser-panel__audio-waveform-glow"
+                                    d="M12 60 C30 36 46 36 64 60 S98 84 116 60 S144 28 162 60 S196 92 216 60 S250 38 270 60 S298 82 308 60"
+                                ></path>
+                                <path
+                                    class="media-browser-panel__audio-waveform-line"
+                                    d="M12 60 C30 36 46 36 64 60 S98 84 116 60 S144 28 162 60 S196 92 216 60 S250 38 270 60 S298 82 308 60"
+                                ></path>
+                            </svg>
+                        </div>
                         <div id="media-browser-stage-empty" class="media-browser-panel__stage-empty">
                             Waiting for media manifest...
+                        </div>
+                        <div
+                            id="media-browser-filter-scroller"
+                            class="media-browser-panel__stage-nav"
+                            role="group"
+                            aria-label="Filtered media navigation"
+                        >
+                            <button
+                                id="media-browser-filter-prev"
+                                class="media-browser-panel__stage-nav-button media-browser-panel__stage-nav-button--previous"
+                                type="button"
+                                title="Previous filtered media"
+                                aria-label="Previous filtered media"
+                            >&lt;</button>
+                            <span
+                                id="media-browser-filter-position"
+                                class="media-browser-panel__stage-count"
+                                aria-live="polite"
+                            >No media selected</span>
+                            <button
+                                id="media-browser-filter-next"
+                                class="media-browser-panel__stage-nav-button media-browser-panel__stage-nav-button--next"
+                                type="button"
+                                title="Next filtered media"
+                                aria-label="Next filtered media"
+                            >&gt;</button>
                         </div>
                         <div
                             id="media-browser-playback-actions"
@@ -1676,22 +1724,24 @@
                             ></button>
                         </div>
                         <div id="media-browser-stage-badge" class="media-browser-panel__stage-badge" hidden></div>
-                    </div>
-                    <div class="media-browser-panel__summary-card">
-                        <div id="media-browser-time" class="media-browser-panel__time">--</div>
-                        <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
-                        <div class="media-browser-panel__primary-meta">
-                            <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--primary">
-                                <div class="media-browser-panel__meta-key">Camera</div>
-                                <div id="media-browser-camera" class="media-browser-panel__meta-value">--</div>
+                        <div class="media-browser-panel__summary-card">
+                            <div class="media-browser-panel__caption-meta">
+                                <span id="media-browser-time" class="media-browser-panel__time">--</span>
+                                <span id="media-browser-camera" class="media-browser-panel__caption-camera">--</span>
                             </div>
+                            <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
                         </div>
                     </div>
                 </div>
-                <details class="media-browser-panel__nearby">
-                    <summary class="media-browser-panel__nearby-title">Nearby</summary>
-                    <div id="media-browser-nearby-list" class="media-browser-panel__nearby-list" role="group" aria-label="Nearby mission media"></div>
-                </details>
+                <div class="media-browser-panel__thumbnail-strip">
+                    <div class="media-browser-panel__thumbnail-strip-title">Filtered Media</div>
+                    <div
+                        id="media-browser-thumbnail-list"
+                        class="media-browser-panel__thumbnail-list"
+                        role="group"
+                        aria-label="Filtered mission media"
+                    ></div>
+                </div>
                 <div id="media-browser-status" class="media-browser-panel__status">Waiting for media manifest...</div>
             </div>
             <div id="media-browser-drilldown-body" class="media-browser-panel__drilldown-body" hidden>

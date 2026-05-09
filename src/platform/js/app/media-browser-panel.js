@@ -116,6 +116,10 @@ function createElement(tagName) {
     return getDocumentRef()?.createElement?.(tagName) || null;
 }
 
+function createSvgElement(tagName) {
+    return getDocumentRef()?.createElementNS?.("http://www.w3.org/2000/svg", tagName) || null;
+}
+
 function getViewportWidth() {
     const width = Number(getWindowRef()?.innerWidth);
     return Number.isFinite(width) && width > 0 ? width : 1440;
@@ -153,7 +157,7 @@ function createMediaBrowserPanelActions({
     let imageViewAssetUrl = "";
     let videoViewAssetUrl = "";
     let filterSignature = "";
-    let nearbySignature = "";
+    let thumbnailSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
     if (String(restoredPanelLayout?.layoutPresetVersion || "").trim() !== MEDIA_BROWSER_LAYOUT_PRESET_VERSION) {
         restoredPanelLayout = null;
@@ -819,39 +823,161 @@ function createMediaBrowserPanelActions({
         }
     }
 
-    function renderNearbyItems(nearbyItems) {
-        const host = getNode("media-browser-nearby-list");
+    function syncFilterNavigation(navigationModel = {}) {
+        const scroller = getNode("media-browser-filter-scroller");
+        const previousButton = getNode("media-browser-filter-prev");
+        const nextButton = getNode("media-browser-filter-next");
+        const position = getNode("media-browser-filter-position");
+        const available = navigationModel.available === true;
+        if (scroller) {
+            scroller.hidden = !available;
+        }
+        if (previousButton) {
+            previousButton.disabled = !available || navigationModel.previousEnabled !== true;
+            previousButton.title = navigationModel.previousTitle || "Previous filtered media";
+            previousButton.setAttribute(
+                "aria-label",
+                navigationModel.previousTitle || "Previous filtered media",
+            );
+        }
+        if (nextButton) {
+            nextButton.disabled = !available || navigationModel.nextEnabled !== true;
+            nextButton.title = navigationModel.nextTitle || "Next filtered media";
+            nextButton.setAttribute(
+                "aria-label",
+                navigationModel.nextTitle || "Next filtered media",
+            );
+        }
+        if (position) {
+            position.textContent = navigationModel.positionLabel || "No media selected";
+            position.title = position.textContent;
+        }
+    }
+
+    function createAudioWaveformThumbnail() {
+        const svg = createSvgElement("svg");
+        const glow = createSvgElement("path");
+        const line = createSvgElement("path");
+        if (!svg || !glow || !line) return null;
+        const path = "M12 36 C24 18 38 18 52 36 S78 54 92 36 S118 12 134 36 S166 60 182 36 S210 20 226 36 S252 52 268 36";
+        svg.classList.add("media-browser-panel__thumbnail-waveform");
+        svg.setAttribute("viewBox", "0 0 280 72");
+        svg.setAttribute("focusable", "false");
+        svg.setAttribute("aria-hidden", "true");
+        glow.classList.add("media-browser-panel__thumbnail-waveform-glow");
+        glow.setAttribute("d", path);
+        line.classList.add("media-browser-panel__thumbnail-waveform-line");
+        line.setAttribute("d", path);
+        svg.appendChild(glow);
+        svg.appendChild(line);
+        return svg;
+    }
+
+    function createThumbnailFallback(kind) {
+        if (kind === "audioClip") {
+            return createAudioWaveformThumbnail();
+        }
+        const fallback = createElement("span");
+        if (!fallback) return null;
+        fallback.className = "media-browser-panel__thumbnail-fallback";
+        fallback.textContent = kind === "videoClip" ? "Video" : "Image";
+        return fallback;
+    }
+
+    function renderThumbnailItems(thumbnailItems) {
+        const host = getNode("media-browser-thumbnail-list");
         if (!host) return;
-        const nextSignature = JSON.stringify(nearbyItems || []);
-        if (nextSignature === nearbySignature) {
+        const nextSignature = JSON.stringify(thumbnailItems || []);
+        if (nextSignature === thumbnailSignature) {
             return;
         }
-        nearbySignature = nextSignature;
+        thumbnailSignature = nextSignature;
         if (typeof host.replaceChildren === "function") {
             host.replaceChildren();
         } else {
             host.innerHTML = "";
         }
 
-        for (const item of nearbyItems || []) {
+        for (const item of thumbnailItems || []) {
             const button = createElement("button");
+            const media = createElement("span");
+            const image = createElement("img");
+            const fallback = createThumbnailFallback(item.kind);
+            const badge = createElement("span");
             const title = createElement("span");
             const meta = createElement("span");
-            if (!button || !title || !meta) return;
+            if (!button || !media || !badge || !title || !meta) return;
             button.type = "button";
-            button.className = item.active
-                ? "media-browser-panel__nearby-item is-active"
-                : "media-browser-panel__nearby-item";
-            title.className = "media-browser-panel__nearby-item-title";
+            button.className = [
+                "media-browser-panel__thumbnail-card",
+                item.kind ? `media-browser-panel__thumbnail-card--${item.kind}` : "",
+                item.active ? "is-active" : "",
+            ].filter(Boolean).join(" ");
+            if (item.active) {
+                button.setAttribute("aria-current", "true");
+            }
+            button.title = [item.title, item.meta].filter(Boolean).join(" - ");
+            media.className = "media-browser-panel__thumbnail-media";
+            if (image && item.thumbnailAssetUrl) {
+                image.alt = "";
+                image.loading = "lazy";
+                image.decoding = "async";
+                image.src = item.thumbnailAssetUrl;
+                if (item.fallbackAssetUrl && item.fallbackAssetUrl !== item.thumbnailAssetUrl) {
+                    image.dataset.fallbackSrc = item.fallbackAssetUrl;
+                }
+                image.addEventListener("error", () => {
+                    const fallbackSrc = image.dataset?.fallbackSrc || "";
+                    if (fallbackSrc && image.src !== fallbackSrc) {
+                        image.removeAttribute("data-fallback-src");
+                        image.src = fallbackSrc;
+                        return;
+                    }
+                    image.hidden = true;
+                    fallback?.removeAttribute?.("hidden");
+                });
+                media.appendChild(image);
+                if (fallback) {
+                    fallback.setAttribute("hidden", "");
+                    media.appendChild(fallback);
+                }
+            } else if (fallback) {
+                media.appendChild(fallback);
+            }
+            badge.className = "media-browser-panel__thumbnail-kind";
+            badge.textContent = item.badge || "Media";
+            media.appendChild(badge);
+            title.className = "media-browser-panel__thumbnail-title";
             title.textContent = item.title;
-            meta.className = "media-browser-panel__nearby-item-meta";
+            meta.className = "media-browser-panel__thumbnail-meta";
             meta.textContent = item.meta;
+            button.appendChild(media);
             button.appendChild(title);
             button.appendChild(meta);
             button.addEventListener("click", () => {
-                onIntent?.({ type: "selectItem", value: item.id });
+                onIntent?.({ type: "previewItem", value: item.id });
             });
             host.appendChild(button);
+        }
+
+        const activeButton = host.querySelector?.(".media-browser-panel__thumbnail-card.is-active");
+        if (!activeButton || typeof activeButton.getBoundingClientRect !== "function") return;
+        if (typeof host.getBoundingClientRect !== "function") return;
+        const hostRect = host.getBoundingClientRect();
+        const activeRect = activeButton.getBoundingClientRect();
+        const edgePadding = Math.min(120, Math.max(48, hostRect.width * 0.18));
+        const isNearEdge = activeRect.left < (hostRect.left + edgePadding)
+            || activeRect.right > (hostRect.right - edgePadding);
+        if (!isNearEdge) return;
+        const prefersReducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+        try {
+            activeButton.scrollIntoView?.({
+                block: "nearest",
+                inline: "center",
+                behavior: prefersReducedMotion ? "auto" : "smooth",
+            });
+        } catch {
+            activeButton.scrollIntoView?.();
         }
     }
 
@@ -869,6 +995,7 @@ function createMediaBrowserPanelActions({
         }
         setText("media-browser-item-title", viewModel.activeItem?.title || panelTitle);
         setText("media-browser-camera", viewModel.activeItem?.cameraLabel || "--");
+        setHidden("media-browser-camera", !viewModel.activeItem?.cameraLabel);
         setText("media-browser-photographer", viewModel.activeItem?.photographer || "--");
         setText("media-browser-location", viewModel.activeItem?.location || "--");
         setText("media-browser-source", viewModel.activeItem?.sourceLabel || "--");
@@ -889,9 +1016,11 @@ function createMediaBrowserPanelActions({
         const stageEmpty = getNode("media-browser-stage-empty");
         const video = getNode("media-browser-video");
         const image = getNode("media-browser-image");
+        const audioPlaceholder = getNode("media-browser-audio-placeholder");
         const activeItem = viewModel.activeItem || null;
         const hasVideo = activeItem?.kind === "videoClip" && !!activeItem.videoAssetUrl;
-        const hasImage = !hasVideo && !!activeItem?.assetUrl;
+        const hasAudio = activeItem?.kind === "audioClip";
+        const hasImage = !hasVideo && !hasAudio && !!activeItem?.assetUrl;
 
         if (isVideoLike(video)) {
             if (hasVideo) {
@@ -948,8 +1077,12 @@ function createMediaBrowserPanelActions({
             }
         }
 
+        if (audioPlaceholder) {
+            audioPlaceholder.hidden = !hasAudio;
+        }
+
         if (stageEmpty) {
-            if (hasVideo || hasImage) {
+            if (hasVideo || hasImage || hasAudio) {
                 stageEmpty.textContent = "";
                 stageEmpty.hidden = true;
             } else {
@@ -965,7 +1098,8 @@ function createMediaBrowserPanelActions({
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
         syncAudioControls(viewModel.audioModel || {});
         syncPlaybackActions(viewModel.playbackModel || {});
-        renderNearbyItems(viewModel.nearbyItems || []);
+        syncFilterNavigation(viewModel.navigationModel || {});
+        renderThumbnailItems(viewModel.thumbnailItems || []);
         syncDrilldownFlyoutPlacement();
         syncPanelRegistry();
     }
@@ -1072,6 +1206,14 @@ function createMediaBrowserPanelActions({
 
         getNode("media-browser-audio-toggle")?.addEventListener?.("click", () => {
             onIntent?.({ type: "toggleAudio" });
+        });
+
+        getNode("media-browser-filter-prev")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "selectAdjacentItem", value: "previous" });
+        });
+
+        getNode("media-browser-filter-next")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "selectAdjacentItem", value: "next" });
         });
 
         getNode("media-browser-playback-start")?.addEventListener?.("click", () => {
