@@ -31,7 +31,8 @@ try {
     const page = await ctx.newPage();
     page.on("pageerror", (e) => console.error("PAGE ERROR:", e.message));
 
-    await page.goto("http://127.0.0.1:7275/mission.html?mission=artemis2", { waitUntil: "networkidle" });
+    const baseUrl = process.env.MOON_TUNE_BASE_URL || "http://127.0.0.1:7275";
+    await page.goto(`${baseUrl}/mission.html?mission=artemis2`, { waitUntil: "networkidle" });
     // Wait for scene init.
     await page.waitForTimeout(7000);
 

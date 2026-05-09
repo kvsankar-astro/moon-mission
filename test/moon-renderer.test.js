@@ -59,7 +59,7 @@ describe("MoonRenderer", () => {
         moonRenderer.create();
 
         const material = moonRenderer.mesh.material;
-        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.025, 4);
+        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.6, 4);
         expect(material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 4);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 4);
         expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(2.2, 4);

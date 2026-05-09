@@ -63,19 +63,21 @@ export function computePhotoModeLightingPresentation({
         // more atmospheric rim so the presentation feels more photographic.
         earthDaySaturation: mix(0.48, 0.86, earthDominance),
         earthAtmosphereRimStrength: mix(0.38, 0.16, earthDominance),
-        // The lunar photometric shader now derives most crater-rim drama from
-        // its terrain self-shadow + cavity-occlusion path, so Moon-dominant
-        // shots no longer need the old inflated terminator contrast / shadow
-        // floor combo. Keep the overrides close to the global defaults and let
-        // the geometry-based shadowing carry the look.
+        // The lunar photometric shader derives crater-rim drama from its
+        // terrain self-shadow + cavity-occlusion path, but the lit-side has
+        // to read substantially brighter than the raw albedo*NdotL would
+        // produce — real photos compensate exposure for the lunar disc, and
+        // we mirror that here by pushing highlightBoost on Moon-dominant
+        // frames. Keep terminatorContrast moderate so the lit hemisphere
+        // doesn't darken too quickly into the terminator.
         moonShadowLift: mix(0.05, 0.02, earthDominance),
         moonShadowWeightExponent: mix(1.6, 1.92, earthDominance),
-        moonHighlightWeightExponent: mix(0.95, 1.0, earthDominance),
-        moonTerminatorContrast: mix(2.6, 2.78, earthDominance),
+        moonHighlightWeightExponent: mix(0.7, 0.95, earthDominance),
+        moonTerminatorContrast: mix(2.05, 2.4, earthDominance),
         moonTerminatorReliefStrength: mix(7.5, 7.5, earthDominance),
         moonTerminatorShadowFloor: mix(0.0, 0.0, earthDominance),
         moonTerminatorIndirectOcclusion: mix(0.85, 1.0, earthDominance),
-        moonHighlightBoost: mix(1.05, 1.025, earthDominance),
+        moonHighlightBoost: mix(1.7, 1.4, earthDominance),
     };
 }
 
