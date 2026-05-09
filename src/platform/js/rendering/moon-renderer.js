@@ -330,19 +330,13 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    // Dark-side base crush. Pulled from 0.55 down to 0.32 so the unlit hemisphere
-    // and deep crater shadows read closer to true black; not 0 so that Moon
-    // Ambient (uMoonShadowLift) and earthshine can still partially fill the dark
-    // side when explicitly requested by the user.
+    // Dark-side base crush, gated by moonSmoothNdotL — only fires inside the
+    // terminator band and into the unlit hemisphere (smoothNdotL < 0.48).
+    // Lit-side crater shadows (which come from the perturbed normal) are NOT
+    // touched here. Bottom 0.32 keeps the dark hemisphere readably dark while
+    // still letting Moon Ambient / earthshine fill it when explicitly dialed.
     float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
-    // Photographic shadow toe: anything still in the very-dark-grey range after
-    // the lighting pipeline gets pushed toward true black. Smooth so it doesn't
-    // posterize. Only the bottom 18% of the tone range is affected — mid-tones
-    // and highlights pass through unchanged.
-    float moonOutgoingPeak = max( max( outgoingLight.r, outgoingLight.g ), outgoingLight.b );
-    float moonShadowToeMul = smoothstep( 0.0, 0.18, moonOutgoingPeak );
-    outgoingLight *= moonShadowToeMul;
 #endif`,
             )
             .replace(
@@ -363,7 +357,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v15",
+            "moon-photometric-v16",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

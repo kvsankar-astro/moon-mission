@@ -514,9 +514,6 @@ float moonFinalCavityDarken = 0.0;
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
     float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
-    float moonOutgoingPeak = max( max( outgoingLight.r, outgoingLight.g ), outgoingLight.b );
-    float moonShadowToeMul = smoothstep( 0.0, 0.18, moonOutgoingPeak );
-    outgoingLight *= moonShadowToeMul;
 #endif`,
             )
             .replace(
