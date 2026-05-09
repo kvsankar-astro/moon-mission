@@ -62,7 +62,15 @@ export function createMoonRenderProfileActions({
         }
 
         Object.values(sceneMap).filter((scene) => !!scene?.initialized3D).forEach((scene) => {
-            applyAndRefreshSceneTextures(scene, textures, { disposePrevious: true });
+            // Pass `render` so that when the deferred normal-map rebuild
+            // completes (asynchronously, via requestIdleCallback), it can
+            // trigger a redraw. Without this the new textures wouldn't show
+            // up until the next user interaction woke the on-demand render
+            // loop — visible to the user as the profile switch "hanging."
+            applyAndRefreshSceneTextures(scene, textures, {
+                disposePrevious: true,
+                requestRender: render,
+            });
         });
 
         render?.();

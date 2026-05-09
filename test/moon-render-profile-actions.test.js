@@ -82,7 +82,9 @@ describe("moon-render-profile-actions", () => {
         expect(applyAndRefreshSceneTextures).toHaveBeenCalledWith(
             scene,
             expect.objectContaining({ moonRenderProfile: "quality" }),
-            { disposePrevious: true },
+            // requestRender forwarded so the deferred normal-map rebuild can
+            // wake the on-demand render loop after the profile switch lands.
+            expect.objectContaining({ disposePrevious: true, requestRender: expect.anything() }),
         );
     });
 });
