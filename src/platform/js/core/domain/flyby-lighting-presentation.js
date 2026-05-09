@@ -73,11 +73,11 @@ export function computePhotoModeLightingPresentation({
         moonShadowLift: mix(0.05, 0.02, earthDominance),
         moonShadowWeightExponent: mix(1.6, 1.92, earthDominance),
         moonHighlightWeightExponent: mix(1.2, 1.1, earthDominance),
-        moonTerminatorContrast: mix(1.5, 1.8, earthDominance),
+        moonTerminatorContrast: mix(1.8, 2.0, earthDominance),
         moonTerminatorReliefStrength: mix(7.5, 7.5, earthDominance),
         moonTerminatorShadowFloor: mix(0.0, 0.0, earthDominance),
         moonTerminatorIndirectOcclusion: mix(0.85, 1.0, earthDominance),
-        moonHighlightBoost: mix(1.7, 1.4, earthDominance),
+        moonHighlightBoost: mix(1.45, 1.25, earthDominance),
     };
 }
 

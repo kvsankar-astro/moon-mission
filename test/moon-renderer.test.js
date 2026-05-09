@@ -146,7 +146,7 @@ describe("MoonRenderer", () => {
         moonRenderer.create();
 
         const material = moonRenderer.mesh.material;
-        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.6, 4);
+        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.35, 4);
         expect(material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 4);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 4);
         expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(2.2, 4);
@@ -221,7 +221,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v17");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v18");
         expect(shader.uniforms.uMoonHeightMap.value).toBe(displacementTexture);
         expect(shader.fragmentShader).toContain("float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL");
         expect(shader.fragmentShader).toContain("float moonTerrainReliefBand = 1.0 - smoothstep");

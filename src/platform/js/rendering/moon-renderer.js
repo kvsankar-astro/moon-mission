@@ -20,7 +20,7 @@ const MOON_GEOMETRY_HEIGHT_SEGMENTS = 512;
 const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     normalMapMaxWidth: 5760,
     normalMapStrength: 2.4,
-    normalDetailBoost: 2.5,
+    normalDetailBoost: 1.4,
     normalDetailRadius: 3,
     normalScale: 1.55,
     displacementScale: 0.0128,
@@ -32,10 +32,10 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
     lsClampMax: 1.04,
     oppositionStrength: 0.0023,
     shadowLift: 0.0,
-    highlightBoost: 1.6,
+    highlightBoost: 1.35,
     shadowWeightExponent: 1.92,
     highlightWeightExponent: 1.2,
-    terminatorContrast: 1.5,
+    terminatorContrast: 1.8,
     terminatorReliefStrength: 7.5,
     terminatorShadowFloor: 0.0,
     terminatorIndirectOcclusion: 1.0,
@@ -358,7 +358,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v17",
+            "moon-photometric-v18",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
