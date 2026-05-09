@@ -58,6 +58,38 @@ function createMissionConfig({ mediaEnabled } = {}) {
     };
 }
 
+function createAudioMock() {
+    const instances = [];
+    class FakeAudio {
+        constructor(src) {
+            this.src = src;
+            this.currentTime = 0;
+            this.volume = 1;
+            this.ended = false;
+            this.listeners = new Map();
+            this.play = vi.fn(() => Promise.resolve());
+            this.pause = vi.fn();
+            instances.push(this);
+        }
+
+        addEventListener(type, handler) {
+            const handlers = this.listeners.get(type) || [];
+            handlers.push(handler);
+            this.listeners.set(type, handlers);
+        }
+
+        emit(type) {
+            for (const handler of this.listeners.get(type) || []) {
+                handler();
+            }
+        }
+    }
+    return {
+        AudioMock: vi.fn((src) => new FakeAudio(src)),
+        instances,
+    };
+}
+
 describe("createMediaTimelineCoordination", () => {
     let originalDocument;
     let originalEvent;
@@ -571,6 +603,187 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.playbackModel).toEqual(expect.objectContaining({
             showStartOptions: true,
             playing: false,
+        }));
+    });
+
+    it("does not let audio time updates pull the mission time back after a manual timeline move", async () => {
+        const sliderEvents = [];
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = (event) => sliderEvents.push(event.type);
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        const { AudioMock, instances } = createAudioMock();
+        globalThis.Audio = AudioMock;
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+        const audioStartMs = Date.parse("2026-04-02T16:30:00Z");
+        const manualTimeMs = audioStartMs + 120000;
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: audioStartMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
+        const audio = instances[0];
+        expect(audio).toBeTruthy();
+
+        slider.value = String(manualTimeMs);
+        slider.dataset.currentTimeMs = String(manualTimeMs);
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: manualTimeMs,
+        });
+
+        audio.currentTime = 8;
+        audio.emit("timeupdate");
+
+        expect(Number(slider.dataset.currentTimeMs)).toBe(manualTimeMs);
+        expect(Number(slider.value)).toBe(manualTimeMs);
+        expect(audio.pause).toHaveBeenCalledTimes(1);
+        expect(sliderEvents).toEqual(["input", "change"]);
+    });
+
+    it("does not treat unknown-duration audio clips as active indefinitely", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = vi.fn();
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        const { AudioMock } = createAudioMock();
+        globalThis.Audio = AudioMock;
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const playAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            playAnimation,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:40:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "toggleAudio" });
+
+        expect(AudioMock).not.toHaveBeenCalled();
+        expect(playAnimation).not.toHaveBeenCalled();
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.audioModel).toEqual(expect.objectContaining({
+            nowLabel: "",
+            enabled: true,
+        }));
+    });
+
+    it("clears audio playback state when the audio element fails", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = vi.fn();
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        const { AudioMock, instances } = createAudioMock();
+        globalThis.Audio = AudioMock;
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:30:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
+        instances[0].emit("error");
+
+        expect(pauseAnimation).toHaveBeenCalled();
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel).toEqual(expect.objectContaining({
+            playing: false,
+            showStartOptions: true,
         }));
     });
 

@@ -26,6 +26,8 @@ import { isMissionPanelEnabled } from "./panel-defaults.js";
 
 const MAX_THUMBNAIL_RENDER_ITEMS = 64;
 const THUMBNAIL_WINDOW_EDGE_MARGIN = 8;
+const AUDIO_DEFAULT_DURATION_SECONDS = 300;
+const MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS = 5000;
 
 function formatSignedDuration(seconds) {
     if (!Number.isFinite(seconds) || seconds === 0) return "0s";
@@ -94,11 +96,35 @@ function isPlayableMediaItem(item) {
     return !!resolvePlayableAssetUrl(item);
 }
 
+function resolvePlayableDurationSeconds(item, fallbackDurationSeconds = Number.NaN) {
+    const durationSeconds = Number(item?.durationSeconds);
+    if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+        return durationSeconds;
+    }
+    const fallbackSeconds = Number(fallbackDurationSeconds);
+    return Number.isFinite(fallbackSeconds) && fallbackSeconds > 0 ? fallbackSeconds : Number.NaN;
+}
+
+function resolvePlayableEndTimeMs(item, fallbackDurationSeconds = Number.NaN) {
+    const startTimeMs = Number(item?.startTimeMs);
+    if (!Number.isFinite(startTimeMs)) {
+        return Number.NaN;
+    }
+    const explicitEndTimeMs = Number(item?.endTimeMs);
+    if (Number.isFinite(explicitEndTimeMs) && explicitEndTimeMs > startTimeMs) {
+        return explicitEndTimeMs;
+    }
+    const durationSeconds = resolvePlayableDurationSeconds(item, fallbackDurationSeconds);
+    return Number.isFinite(durationSeconds) ? startTimeMs + durationSeconds * 1000 : Number.NaN;
+}
+
 function resolveAudioClipForTime(audioItems, timeMs) {
     if (!Array.isArray(audioItems) || !Number.isFinite(timeMs)) return null;
     let activeClip = null;
     for (const clip of audioItems) {
         if (clip?.enabled === false || !Number.isFinite(clip?.startTimeMs)) continue;
+        const clipEndTimeMs = resolvePlayableEndTimeMs(clip, AUDIO_DEFAULT_DURATION_SECONDS);
+        if (Number.isFinite(clipEndTimeMs) && timeMs >= clipEndTimeMs) continue;
         if (clip.startTimeMs <= timeMs && (!activeClip || clip.startTimeMs > activeClip.startTimeMs)) {
             activeClip = clip;
         }
@@ -291,8 +317,9 @@ function buildThumbnailViewItems(items, selection = {}, startIndex = 0) {
 function clampMediaCurrentTimeSeconds(item, currentTimeSeconds) {
     const nextTime = Number(currentTimeSeconds);
     if (!Number.isFinite(nextTime) || nextTime < 0) return 0;
-    const durationSeconds = Number(item?.durationSeconds);
-    if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+    const fallbackDurationSeconds = item?.kind === "audioClip" ? AUDIO_DEFAULT_DURATION_SECONDS : Number.NaN;
+    const durationSeconds = resolvePlayableDurationSeconds(item, fallbackDurationSeconds);
+    if (Number.isFinite(durationSeconds)) {
         return Math.min(nextTime, durationSeconds);
     }
     return nextTime;
@@ -338,6 +365,19 @@ function seekMainTimelineTime(timeMs, finalize = false, {
     return clamped === timeMs;
 }
 
+function readMainTimelineTimeMs() {
+    const slider = document.getElementById("timeline-slider");
+    const datasetTimeMs = Number(slider?.dataset?.currentTimeMs);
+    if (Number.isFinite(datasetTimeMs)) {
+        return datasetTimeMs;
+    }
+    const sliderValueMs = slider?.value === "" || slider?.value == null ? Number.NaN : Number(slider.value);
+    if (Number.isFinite(sliderValueMs)) {
+        return sliderValueMs;
+    }
+    return Number.NaN;
+}
+
 function createMediaTimelineCoordination({
     getStartTime = () => Number.NaN,
     getLatestEndTime = () => Number.NaN,
@@ -366,6 +406,7 @@ function createMediaTimelineCoordination({
         active: false,
         playing: false,
         startTimeMs: Number.NaN,
+        syncedTimeMs: Number.NaN,
     };
     let suppressMediaEvents = false;
 
@@ -383,6 +424,7 @@ function createMediaTimelineCoordination({
             active: false,
             playing: false,
             startTimeMs: Number.NaN,
+            syncedTimeMs: Number.NaN,
         };
     }
 
@@ -465,6 +507,23 @@ function createMediaTimelineCoordination({
         rerender();
     }
 
+    function handlePlayableMediaFailed(itemId, mediaElement = null) {
+        if (suppressMediaEvents) return;
+        const normalizedId = String(itemId || "").trim();
+        if (normalizedId && normalizedId !== mediaPlaybackState.itemId) return;
+        if (mediaElement && mediaElement === currentAudio) {
+            currentAudio = null;
+            currentAudioClipId = "";
+        }
+        mediaPlaybackState = {
+            ...mediaPlaybackState,
+            active: false,
+            playing: false,
+        };
+        pauseAnimation();
+        rerender();
+    }
+
     function syncMissionTimeFromMedia(itemId, currentTimeSeconds) {
         const normalizedId = String(itemId || "").trim();
         if (
@@ -477,12 +536,28 @@ function createMediaTimelineCoordination({
         }
         const mediaSeconds = Number(currentTimeSeconds);
         if (!Number.isFinite(mediaSeconds) || mediaSeconds < 0) return;
-        seekMissionTimelineTime(mediaPlaybackState.startTimeMs + (mediaSeconds * 1000), false);
+        const nextTimeMs = mediaPlaybackState.startTimeMs + (mediaSeconds * 1000);
+        const currentTimelineTimeMs = readMainTimelineTimeMs();
+        const previousSyncedTimeMs = Number(mediaPlaybackState.syncedTimeMs);
+        if (
+            Number.isFinite(currentTimelineTimeMs)
+            && Number.isFinite(previousSyncedTimeMs)
+            && Math.abs(currentTimelineTimeMs - previousSyncedTimeMs) > MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS
+        ) {
+            stopPlayableMedia({ pauseClock: false });
+            rerender();
+            return;
+        }
+        seekMissionTimelineTime(nextTimeMs, false);
+        mediaPlaybackState = {
+            ...mediaPlaybackState,
+            syncedTimeMs: nextTimeMs,
+        };
     }
 
     function attachAudioPlaybackEvents(audio, item) {
         if (!audio || typeof audio.addEventListener !== "function" || !item) return;
-        audio.addEventListener("play", () => handlePlayableMediaStarted(item.id, "audioClip"));
+        audio.addEventListener("playing", () => handlePlayableMediaStarted(item.id, "audioClip"));
         audio.addEventListener("pause", () => {
             if (audio.ended === true) return;
             handlePlayableMediaPaused(item.id);
@@ -491,6 +566,11 @@ function createMediaTimelineCoordination({
         audio.addEventListener("timeupdate", () => {
             syncMissionTimeFromMedia(item.id, Number(audio.currentTime));
         });
+        for (const eventName of ["abort", "error", "stalled"]) {
+            audio.addEventListener(eventName, () => {
+                handlePlayableMediaFailed(item.id, audio);
+            });
+        }
     }
 
     function setMediaElementCurrentTime(mediaElement, seconds) {
@@ -502,26 +582,16 @@ function createMediaTimelineCoordination({
         }
     }
 
-    function playMediaElement(mediaElement) {
+    function playMediaElement(mediaElement, itemId = "") {
         try {
             const playResult = mediaElement?.play?.();
             if (playResult && typeof playResult.catch === "function") {
                 playResult.catch(() => {
-                    mediaPlaybackState = {
-                        ...mediaPlaybackState,
-                        playing: false,
-                    };
-                    pauseAnimation();
-                    rerender();
+                    handlePlayableMediaFailed(itemId, mediaElement);
                 });
             }
         } catch {
-            mediaPlaybackState = {
-                ...mediaPlaybackState,
-                playing: false,
-            };
-            pauseAnimation();
-            rerender();
+            handlePlayableMediaFailed(itemId, mediaElement);
         }
     }
 
@@ -552,6 +622,7 @@ function createMediaTimelineCoordination({
             active: true,
             playing: true,
             startTimeMs: item.startTimeMs,
+            syncedTimeMs: timelineTimeMs,
         };
 
         if (seekTimeline) {
@@ -572,7 +643,7 @@ function createMediaTimelineCoordination({
             currentAudioClipId = item.id;
             attachAudioPlaybackEvents(currentAudio, item);
             setMediaElementCurrentTime(currentAudio, offsetSeconds);
-            playMediaElement(currentAudio);
+            playMediaElement(currentAudio, item.id);
             return true;
         }
 
@@ -593,7 +664,7 @@ function createMediaTimelineCoordination({
                 video.dataset.mediaItemId = item.id;
             }
             setMediaElementCurrentTime(video, offsetSeconds);
-            playMediaElement(video);
+            playMediaElement(video, item.id);
             return true;
         }
 
