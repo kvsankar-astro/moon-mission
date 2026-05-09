@@ -330,12 +330,19 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    // Dial the bottom of the dark-side crush WAY back from 0.035 to 0.55 so the
-    // Moon Ambient lift (uMoonShadowLift / indirectDiffuse) can fill the dark side
-    // as a true ambient instead of getting slammed to ~black; the previous value
-    // also crushed the terminator-aware ambient so it read as a directional band.
-    float moonFinalShadowCrush = mix( 0.55, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
+    // Dark-side base crush. Pulled from 0.55 down to 0.32 so the unlit hemisphere
+    // and deep crater shadows read closer to true black; not 0 so that Moon
+    // Ambient (uMoonShadowLift) and earthshine can still partially fill the dark
+    // side when explicitly requested by the user.
+    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
+    // Photographic shadow toe: anything still in the very-dark-grey range after
+    // the lighting pipeline gets pushed toward true black. Smooth so it doesn't
+    // posterize. Only the bottom 18% of the tone range is affected — mid-tones
+    // and highlights pass through unchanged.
+    float moonOutgoingPeak = max( max( outgoingLight.r, outgoingLight.g ), outgoingLight.b );
+    float moonShadowToeMul = smoothstep( 0.0, 0.18, moonOutgoingPeak );
+    outgoingLight *= moonShadowToeMul;
 #endif`,
             )
             .replace(
@@ -356,7 +363,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v14",
+            "moon-photometric-v15",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

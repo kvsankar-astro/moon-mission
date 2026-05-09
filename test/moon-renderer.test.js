@@ -134,7 +134,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v14");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v15");
         expect(shader.uniforms.uMoonHeightMap.value).toBe(displacementTexture);
         expect(shader.fragmentShader).toContain("float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL");
         expect(shader.fragmentShader).toContain("float moonTerrainReliefBand = 1.0 - smoothstep");
