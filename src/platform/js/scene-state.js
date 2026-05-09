@@ -794,24 +794,26 @@ export function computeSceneState(time, config, options) {
         resolveSunStateAtTime,
     });
 
-    // In relative+geo mode, moonState/earthState positions live in the rotating
-    // Earth-Moon frame, but sunState.position from raw ephemeris lives in the
-    // inertial geocentric frame. Mixing them in directionFromTo() would produce
-    // a hybrid-frame "sun direction" — invalid for lighting the moon material.
-    // Rotate sunState.position through the same relative-frame transform that
-    // fallbackSunDirection went through, unless the sun ephemeris already
-    // declares itself relative-frame (sunAlreadyRelative).
-    if (sunState?.available && frameMode === "relative" && config === "geo" && !sunAlreadyRelative) {
-        const transform = buildRelativeFrameTransform();
-        if (transform) {
+    // In relative+geo mode, moonState/earthState/craftPos all live in the
+    // rotating Earth-Moon frame, but sunState.position from raw ephemeris
+    // lives in the inertial geocentric frame. Mixing them in directionFromTo()
+    // would produce a hybrid-frame "sun direction" — invalid for lighting.
+    // Build a single transform that we can apply to every Sun position we
+    // resolve from the ephemeris (including apparent positions inside the
+    // light-time iteration), unless the sun ephemeris is already declared
+    // relative-frame (sunAlreadyRelative).
+    const needsSunFrameRotation = frameMode === "relative" && config === "geo" && !sunAlreadyRelative;
+    const sunPositionToFrame = needsSunFrameRotation ? buildRelativeFrameTransform() : null;
+    if (sunState?.available && needsSunFrameRotation) {
+        if (sunPositionToFrame) {
             sunState = {
                 ...sunState,
-                position: transform(sunState.position),
+                position: sunPositionToFrame(sunState.position),
             };
         } else {
             // No rotation available (no frameQuat AND no rotating-frame moon
             // state). Cannot safely express SUN in the relative frame, so drop
-            // it and let earth/moon centered directions fall back to the
+            // it and let earth/moon/craft centered directions fall back to the
             // already-rotated fallbackSunDirection below.
             sunState = null;
         }
@@ -852,7 +854,14 @@ export function computeSceneState(time, config, options) {
             if (!apparentState?.available || !apparentState.position) {
                 break;
             }
-            apparentSunPos = apparentState.position;
+            // Apparent Sun samples come from the inertial ephemeris; rotate
+            // each one into the rotating frame so directionFromTo(craftPos, ...)
+            // doesn't mix frames. Without this, craftCenteredLightTime would
+            // diverge from craftCentered after the first iteration in
+            // relative+geo mode (regression flagged in code review).
+            apparentSunPos = needsSunFrameRotation && sunPositionToFrame
+                ? sunPositionToFrame(apparentState.position)
+                : apparentState.position;
             const apparentDirection = directionFromTo(craftPos, apparentSunPos);
             if (apparentDirection) {
                 craftCenteredSunDirectionLightTime = apparentDirection;

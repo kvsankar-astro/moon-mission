@@ -621,16 +621,28 @@ export class MoonRenderer {
     }
 
     /**
-     * Create Moon with axis and poles
+     * Create Moon with axis and poles.
+     *
      * @param {boolean} axisVisible - Initial visibility of polar axis
      * @param {boolean} polesVisible - Initial visibility of pole markers
+     * @param {Object} [options]
+     * @param {boolean} [options.deferGeneratedNormalMap=false]
+     *        When true, skip the synchronous normal-map build at create() time
+     *        and let the moon initially render with the runtime bumpMap
+     *        fallback. The caller is responsible for invoking
+     *        refreshGeneratedNormalMap() asynchronously (typically via
+     *        requestIdleCallback) so the upgrade happens off the critical
+     *        first-frame path. The normal-map build allocates and scans large
+     *        canvas + Float32 buffers (~16M pixels at the 5760-wide quality
+     *        profile), so deferring it can save ~300-500ms of main-thread
+     *        time on initial mission load.
      */
-    create(axisVisible = false, polesVisible = false) {
+    create(axisVisible = false, polesVisible = false, { deferGeneratedNormalMap = false } = {}) {
         // Create container (rotation handled separately by rotateMoon)
         this.container = new THREE.Group();
 
         // Moon sphere with displacement mapping
-        if (!this.normalMap && this.displacementMap && !this.generatedNormalMap) {
+        if (!deferGeneratedNormalMap && !this.normalMap && this.displacementMap && !this.generatedNormalMap) {
             this.generatedNormalMap = buildMoonNormalMapFromHeightTexture(this.displacementMap, this.renderSettings);
         }
         const resolvedNormalMap = this.normalMap || this.generatedNormalMap || null;

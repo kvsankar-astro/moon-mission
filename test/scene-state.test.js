@@ -540,6 +540,74 @@ describe("computeSceneState", () => {
         expect(Math.abs(sceneState.sunDirections.moonCentered.z)).toBeLessThan(1e-9);
     });
 
+    it("rotates apparent Sun samples in the light-time loop into the relative frame", () => {
+        // Regression: the light-time iteration re-fetches resolveSunStateAtTime
+        // and uses its raw .position for craftCenteredLightTime. In relative+geo
+        // mode that returns inertial coordinates, while craftPos is in the
+        // rotating frame — producing a hybrid-frame direction that diverges
+        // from craftCentered after the first iteration. The fix rotates each
+        // apparent Sun sample through the same relative-frame transform.
+        //
+        // To prove this, mock the SUN ephemeris to return the SAME inertial
+        // position regardless of timeMs, so light-time correction is a no-op
+        // direction-wise; craftCenteredLightTime must therefore equal
+        // craftCentered in the relative frame.
+        getBodyEphemerisState.mockImplementation(({ bodyId }) => {
+            if (bodyId === "MOON") {
+                // Non-trivial rotating frame: MOON at +Y, velocity along -X.
+                // xHat=+Y, zHat=+Z, yHat=-X, so inertial +X maps to relative -Y.
+                return {
+                    position: { x: 0, y: 384400, z: 0 },
+                    velocity: { vx: -1, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SUN") {
+                return {
+                    position: { x: 100000000, y: 0, z: 0 },
+                    velocity: { vx: 0, vy: 0, vz: 0 },
+                    available: true,
+                };
+            }
+            if (bodyId === "SC") {
+                // Place SC near MOON in the *rotating frame*; the test assertion
+                // only cares that craftCentered and craftCenteredLightTime agree.
+                return {
+                    position: { x: 0, y: 384000, z: 0 },
+                    velocity: { vx: 0, vy: 1, vz: 0 },
+                    available: true,
+                };
+            }
+            return { position: null, velocity: null, available: false };
+        });
+
+        const sceneState = computeSceneState(
+            Date.parse("2023-07-14T10:00:00Z"),
+            "geo",
+            createSceneOptions({
+                includeNextState: false,
+                frameMode: "relative",
+                planetsForLocations: ["SC", "MOON"],
+                sunLongitude: 0,
+                globalConfig: {
+                    spacecraft_mnemonic: "SC",
+                    landing: { enabled: false },
+                    is_lunar: true,
+                },
+            }),
+        );
+
+        const direct = sceneState.sunDirections.craftCentered;
+        const lightTime = sceneState.sunDirections.craftCenteredLightTime;
+        // With Sun ephemeris constant in time, the light-time loop's apparent
+        // Sun direction must equal the direct (untimed) one — but only if both
+        // live in the same frame. Without the fix, the loop's hybrid-frame
+        // direction would deviate from this by the rotation transform itself.
+        expect(direct.x).toBeCloseTo(lightTime.x, 9);
+        expect(direct.y).toBeCloseTo(lightTime.y, 9);
+        expect(direct.z).toBeCloseTo(lightTime.z, 9);
+    });
+
     it("does not rotate sun direction again when relative sun data is already in frame", () => {
         getBodyEphemerisState.mockReturnValue({
             position: { x: 1, y: 0, z: 0 },

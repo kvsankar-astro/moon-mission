@@ -48,6 +48,44 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("skips the synchronous generated normal-map build when deferGeneratedNormalMap is set", () => {
+        const originalDocument = globalThis.document;
+        // Spy on createElement to prove no canvas is constructed (which is the
+        // expensive step inside buildMoonNormalMapFromHeightTexture).
+        const createElement = vi.fn(() => ({
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => ({
+                drawImage: vi.fn(),
+                getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(16) })),
+            })),
+        }));
+        vi.stubGlobal("document", { ...originalDocument, createElement });
+
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, { deferGeneratedNormalMap: true });
+
+        expect(createElement).not.toHaveBeenCalled();
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+        // The mesh material should fall back to bumpMap-based shading until
+        // refreshGeneratedNormalMap is called.
+        expect(moonRenderer.mesh.material.bumpMap).toBe(displacementTexture);
+        expect(moonRenderer.mesh.material.normalMap).toBeNull();
+
+        // Now upgrade and confirm the normal map is actually built.
+        moonRenderer.refreshGeneratedNormalMap();
+        expect(createElement).toHaveBeenCalled();
+        expect(moonRenderer.generatedNormalMap).toBeTruthy();
+        expect(moonRenderer.mesh.material.normalMap).toBe(moonRenderer.generatedNormalMap);
+        expect(moonRenderer.mesh.material.bumpMap).toBeNull();
+
+        moonRenderer.dispose();
+    });
+
     it("initializes lunar photometric presentation defaults on the Moon material", () => {
         const moonRenderer = new MoonRenderer(1);
         const colorTexture = new THREE.Texture();
