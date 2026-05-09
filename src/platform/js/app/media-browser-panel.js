@@ -205,6 +205,28 @@ function createMediaBrowserPanelActions({
         return text.split(" • ")[0]?.trim() || text;
     }
 
+    function formatCountLabel(count, singular, plural = `${singular}s`) {
+        const normalizedCount = Number(count);
+        if (!Number.isFinite(normalizedCount)) return "";
+        return `${normalizedCount} ${normalizedCount === 1 ? singular : plural}`;
+    }
+
+    function formatMediaFilterSummary(filterModel = {}) {
+        const matchCount = Number(filterModel.matchCount);
+        const totalCount = Number(filterModel.totalCount);
+        if (!Number.isFinite(matchCount) || !Number.isFinite(totalCount)) {
+            return "";
+        }
+        const kindCounts = filterModel.matchKindCounts || {};
+        const breakdown = [
+            formatCountLabel(kindCounts.image, "image"),
+            formatCountLabel(kindCounts.audioClip, "audio", "audio"),
+            formatCountLabel(kindCounts.videoClip, "video"),
+        ].filter((part) => part && !part.startsWith("0 "));
+        const base = `${matchCount} of ${formatCountLabel(totalCount, "media file")} filtered in`;
+        return breakdown.length > 0 ? `${base} (${breakdown.join(", ")}).` : `${base}.`;
+    }
+
     function resolveDefaultPanelPosition(panel) {
         const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, 360);
         const height = Math.max(panel.offsetHeight || PANEL_DEFAULT_HEIGHT_PX, 340);
@@ -684,25 +706,21 @@ function createMediaBrowserPanelActions({
         persistPanelLayoutState(panel);
     }
 
-    function appendFilterSeparator(host) {
-        const separator = createElement("span");
-        if (!separator) return;
-        separator.className = "media-browser-panel__filter-separator";
-        separator.textContent = "|";
-        separator.setAttribute("aria-hidden", "true");
-        host.appendChild(separator);
-    }
-
-    function appendFilterButton(host, option, intentType) {
+    function appendFilterButton(host, option, intentType, variant = "") {
         const button = createElement("button");
         if (!button) return;
         const count = Number(option?.count);
         button.type = "button";
-        button.className = option?.active
-            ? "media-browser-panel__filter-button is-active"
-            : "media-browser-panel__filter-button";
+        button.className = [
+            "media-browser-panel__filter-button",
+            variant ? `media-browser-panel__filter-button--${variant}` : "",
+            option?.active ? "is-active" : "",
+        ].filter(Boolean).join(" ");
+        if (button.dataset) {
+            button.dataset.filterId = option?.id || "";
+        }
         button.textContent = option?.label || option?.id || "Filter";
-        button.disabled = Number.isFinite(count) && count <= 0 && option?.id !== "all";
+        button.disabled = Number.isFinite(count) && count <= 0 && option?.active !== true && option?.id !== "all";
         button.setAttribute("aria-pressed", option?.active ? "true" : "false");
         button.title = [
             option?.title,
@@ -714,13 +732,35 @@ function createMediaBrowserPanelActions({
         host.appendChild(button);
     }
 
+    function appendFilterFacetGroup(host, label, options, intentType, variant = "") {
+        const filteredOptions = (Array.isArray(options) ? options : []).filter(Boolean);
+        if (!filteredOptions.length) return;
+        const group = createElement("div");
+        const groupLabel = createElement("span");
+        const buttons = createElement("div");
+        if (!group || !groupLabel || !buttons) return;
+        group.className = [
+            "media-browser-panel__filter-facet",
+            variant ? `media-browser-panel__filter-facet--${variant}` : "",
+        ].filter(Boolean).join(" ");
+        group.setAttribute("role", "group");
+        group.setAttribute("aria-label", label);
+        groupLabel.className = "media-browser-panel__filter-facet-label";
+        groupLabel.textContent = label;
+        buttons.className = "media-browser-panel__filter-facet-buttons";
+        group.appendChild(groupLabel);
+        group.appendChild(buttons);
+        filteredOptions.forEach((option) => appendFilterButton(buttons, option, intentType, variant));
+        host.appendChild(group);
+    }
+
     function renderMediaFilterControls(filterModel) {
         const host = getNode("media-browser-filter-bar");
         if (!host) return;
         const nextSignature = JSON.stringify({
-            quickOptions: filterModel?.quickOptions || [],
+            kindPillOptions: filterModel?.kindPillOptions || [],
+            subjectOptions: filterModel?.subjectOptions || filterModel?.quickOptions || [],
             cameraButtonOptions: filterModel?.cameraButtonOptions || [],
-            videoOption: filterModel?.videoOption || null,
         });
         if (nextSignature === filterSignature) {
             return;
@@ -732,19 +772,14 @@ function createMediaBrowserPanelActions({
             host.innerHTML = "";
         }
 
-        const quickOptions = filterModel?.quickOptions || [];
-        quickOptions.forEach((option) => appendFilterButton(host, option, "setQuickFilter"));
+        const kindPillOptions = filterModel?.kindPillOptions || [];
+        appendFilterFacetGroup(host, "Type", kindPillOptions, "toggleMediaKind", "kind-pill");
+
+        const subjectOptions = filterModel?.subjectOptions || filterModel?.quickOptions || [];
+        appendFilterFacetGroup(host, "Subject", subjectOptions, "toggleSubject", "subject");
 
         const cameraOptions = filterModel?.cameraButtonOptions || [];
-        if (cameraOptions.length > 0) {
-            appendFilterSeparator(host);
-            cameraOptions.forEach((option) => appendFilterButton(host, option, "toggleCameraFilter"));
-        }
-
-        if (filterModel?.videoOption) {
-            appendFilterSeparator(host);
-            appendFilterButton(host, filterModel.videoOption, "setQuickFilter");
-        }
+        appendFilterFacetGroup(host, "Camera", cameraOptions, "toggleCameraFilter", "camera");
     }
 
     function syncAudioControls(audioModel = {}) {
@@ -927,6 +962,7 @@ function createMediaBrowserPanelActions({
         }
 
         renderMediaFilterControls(viewModel.filterModel || {});
+        setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
         syncAudioControls(viewModel.audioModel || {});
         syncPlaybackActions(viewModel.playbackModel || {});
         renderNearbyItems(viewModel.nearbyItems || []);

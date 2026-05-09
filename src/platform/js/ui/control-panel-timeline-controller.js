@@ -32,6 +32,8 @@ function createControlPanelTimelineController(deps = {}) {
     let timelineCarouselDragBound = false;
     let timelineDockResizeObserver = null;
     let timelineDockMutationObserver = null;
+    let mediaPanelMutationObserver = null;
+    let mediaPanelVisibilitySyncBound = false;
     let timelineCarouselWiggleTimeoutId = null;
     let timelineMediaTrackVisible = false;
 
@@ -57,6 +59,10 @@ function createControlPanelTimelineController(deps = {}) {
 
     function getTimelineMediaMarkers() {
         return documentRef?.getElementById?.("timeline-media-markers") || null;
+    }
+
+    function getMediaBrowserPanel() {
+        return documentRef?.getElementById?.("media-browser-panel") || null;
     }
 
     function getRootStyle() {
@@ -93,6 +99,30 @@ function createControlPanelTimelineController(deps = {}) {
             mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
         }
         syncMediaToggleButton();
+    }
+
+    function isMediaBrowserPanelOpen(panel = getMediaBrowserPanel()) {
+        return !!panel && !panel.classList?.contains?.("media-browser-panel--hidden");
+    }
+
+    function syncMediaTrackWithMediaPanelVisibility(panel = getMediaBrowserPanel()) {
+        setTimelineMediaTrackVisibleState(isMediaBrowserPanelOpen(panel));
+    }
+
+    function bindMediaPanelVisibilitySync() {
+        if (mediaPanelVisibilitySyncBound) return;
+        const mediaPanel = getMediaBrowserPanel();
+        if (!mediaPanel) return;
+        mediaPanelVisibilitySyncBound = true;
+        if (typeof MutationObserverClass !== "function") return;
+        mediaPanelMutationObserver = new MutationObserverClass(() => {
+            syncMediaTrackWithMediaPanelVisibility(mediaPanel);
+            requestAnimationFrameImpl(() => syncTimelineDockHeight());
+        });
+        mediaPanelMutationObserver.observe?.(mediaPanel, {
+            attributes: true,
+            attributeFilter: ["class", "hidden"],
+        });
     }
 
     function syncControlPanelInfoOffset(panel = getControlPanel()) {
@@ -326,9 +356,10 @@ function createControlPanelTimelineController(deps = {}) {
         }
         bindTimelineCarouselDragGesture();
         bindTimelineDockHeightSync(timelineDock);
+        bindMediaPanelVisibilitySync();
         setControlPanelCollapsedState(false);
         setTimelineEventCarouselExpandedState(false, { focusUpcoming: false, wiggleCue: false });
-        setTimelineMediaTrackVisibleState(false);
+        syncMediaTrackWithMediaPanelVisibility();
         requestAnimationFrameImpl(() => {
             syncControlPanelInfoOffset(panel);
             syncTimelineDockHeight(timelineDock);
@@ -343,9 +374,8 @@ function createControlPanelTimelineController(deps = {}) {
             setTimelineMediaTrackVisibleState(nextVisible);
             if (nextVisible) {
                 invokeMissionPanelActionImpl("workflow:media-browser", "open");
-                if (!invokeMissionPanelActionImpl("aux:earth-rise-composer", "restoreGuided")) {
-                    invokeMissionPanelActionImpl("aux:earth-rise-composer", "restore");
-                }
+            } else {
+                invokeMissionPanelActionImpl("workflow:media-browser", "close");
             }
             requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
         });

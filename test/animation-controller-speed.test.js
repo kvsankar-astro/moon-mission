@@ -20,10 +20,10 @@ describe("AnimationController speed timing", () => {
         const controller = createController();
 
         controller.tick(1000);
-        expect(controller.getTime()).toBe(60 * 1000);
+        expect(controller.getTime()).toBe(0);
 
         controller.tick(2000);
-        expect(controller.getTime()).toBe(120 * 1000);
+        expect(controller.getTime()).toBe(60 * 1000);
     });
 
     it("advances at 1 sec/sec in realtime mode", () => {
@@ -31,9 +31,29 @@ describe("AnimationController speed timing", () => {
         controller.setRealtimeSpeed();
 
         controller.tick(1000);
-        expect(controller.getTime()).toBe(1000);
+        expect(controller.getTime()).toBe(0);
 
         controller.tick(2000);
-        expect(controller.getTime()).toBe(2000);
+        expect(controller.getTime()).toBe(1000);
+    });
+
+    it("does not apply stale paused frame time after playback resumes", () => {
+        const controller = new AnimationController();
+        controller.configure({
+            startTime: 0,
+            endTime: 30 * TC.MILLI_SECONDS_PER_HOUR,
+            stepDurationMs: TC.ONE_MINUTE_MS,
+        });
+        controller.setRealtimeSpeed();
+        controller.setTime(5000, false);
+
+        controller.tick(1000);
+        controller.play();
+        controller.tick(61000);
+
+        expect(controller.getTime()).toBe(5000);
+
+        controller.tick(62000);
+        expect(controller.getTime()).toBe(6000);
     });
 });

@@ -59,7 +59,7 @@ export class AnimationController {
 
         // Frame timing
         this.prevFrameTime = null;
-        this.deltaFrameTime = TC.ONE_SECOND_MS;
+        this.deltaFrameTime = 0;
 
         // Timeout handle for stopping
         this.timeoutHandle = null;
@@ -141,6 +141,9 @@ export class AnimationController {
             this.currentTime = this.startTime;
         }
 
+        // Discard stale frame timing so resume-after-seek starts from a fresh baseline.
+        this.prevFrameTime = null;
+        this.deltaFrameTime = 0;
         this.isRunning = true;
         this.stopFlag = false;
         this.onPlayStateChange(true);
@@ -305,7 +308,7 @@ export class AnimationController {
         if (this.prevFrameTime !== null) {
             this.deltaFrameTime = currentFrameTime - this.prevFrameTime;
         } else {
-            this.deltaFrameTime = TC.ONE_SECOND_MS;
+            this.deltaFrameTime = 0;
         }
         this.prevFrameTime = currentFrameTime;
 

@@ -1,5 +1,7 @@
 const MEDIA_AUDIENCE_VALUES = new Set(["all", "crew", "external"]);
 const MEDIA_KIND_VALUES = new Set(["all", "image", "videoClip", "audioClip"]);
+const MEDIA_KIND_FILTER_IDS = ["image", "audioClip", "videoClip"];
+const MEDIA_SUBJECT_FILTER_IDS = ["crew", "space"];
 const MEDIA_QUICK_FILTER_VALUES = new Set(["all", "crew", "new", "exterior", "videos"]);
 const CAMERA_BUTTON_ORDER = [
     { id: "d5a", label: "D5 #1", title: "Nikon D5 body 3500015" },
@@ -31,12 +33,33 @@ function normalizeMediaCameraFilter(value) {
 
 function normalizeMediaQuickFilter(value) {
     const normalized = asTrimmedString(value);
+    if (normalized === "new") return "crew";
     return MEDIA_QUICK_FILTER_VALUES.has(normalized) ? normalized : "";
 }
 
 function normalizeMediaCameraIds(value) {
     if (!Array.isArray(value)) return [];
     return [...new Set(value.map((entry) => asTrimmedString(entry)).filter(Boolean))];
+}
+
+function normalizeMediaKindIds(value) {
+    if (!Array.isArray(value)) return null;
+    const normalized = [...new Set(value.map((entry) => asTrimmedString(entry)).filter((entry) => (
+        MEDIA_KIND_FILTER_IDS.includes(entry)
+    )))];
+    return normalized;
+}
+
+function normalizeMediaSubjectId(value) {
+    const normalized = asTrimmedString(value);
+    if (normalized === "new") return "crew";
+    if (normalized === "external" || normalized === "exterior") return "space";
+    return MEDIA_SUBJECT_FILTER_IDS.includes(normalized) ? normalized : "";
+}
+
+function normalizeMediaSubjectIds(value) {
+    if (!Array.isArray(value)) return null;
+    return [...new Set(value.map((entry) => normalizeMediaSubjectId(entry)).filter(Boolean))];
 }
 
 function createDefaultMediaFilterState() {
@@ -46,6 +69,8 @@ function createDefaultMediaFilterState() {
         cameraIds: [],
         audience: "all",
         kind: "all",
+        mediaKinds: [...MEDIA_KIND_FILTER_IDS],
+        subjects: [],
     };
 }
 
@@ -63,74 +88,98 @@ function normalizeMediaFilterState(value = {}) {
     if (cameraIds.length === 0 && legacyCameraId !== "all") {
         cameraIds.push(legacyCameraId);
     }
+    const explicitMediaKinds = normalizeMediaKindIds(value.mediaKinds);
+    const mediaKinds = explicitMediaKinds || (
+        quick === "videos"
+            ? ["videoClip"]
+            : (kind === "all" ? [...MEDIA_KIND_FILTER_IDS] : [kind])
+    );
+    const normalizedKind = mediaKinds.length === 1 ? mediaKinds[0] : "all";
+    const explicitSubjects = normalizeMediaSubjectIds(value.subjects);
+    const subjects = explicitSubjects || (
+        quick === "crew"
+            ? ["crew"]
+            : (quick === "exterior"
+                ? ["space"]
+                : (audience === "crew"
+                    ? ["crew"]
+                    : (audience === "external" ? ["space"] : [])))
+    );
+    const normalizedAudience = subjects.length === 1
+        ? (subjects[0] === "crew" ? "crew" : "external")
+        : "all";
 
     return {
         quick,
         cameraIds,
         cameraId: cameraIds.length === 1 ? cameraIds[0] : "all",
-        audience: quick === "crew"
-            ? "crew"
-            : (quick === "exterior" ? "external" : "all"),
-        kind: quick === "videos" ? "videoClip" : kind,
+        audience: normalizedAudience,
+        kind: normalizedKind,
+        mediaKinds,
+        subjects,
     };
 }
 
-function matchesMediaFilter(item, filterState) {
+function matchesSubjectFilter(item, subjects) {
+    if (!Array.isArray(subjects) || subjects.length === 0) return true;
+    return subjects.some((subject) => (
+        (subject === "crew" && item.crewCaptured === true)
+        || (subject === "space" && item.external === true)
+    ));
+}
+
+function matchesKindFilter(item, filters) {
+    if (filters.quick === "videos" && item.kind !== "videoClip") return false;
+    return filters.mediaKinds.includes(item.kind);
+}
+
+function matchesCameraFilter(item, cameraIds) {
+    return !Array.isArray(cameraIds) || cameraIds.length === 0 || cameraIds.includes(item.cameraId);
+}
+
+function matchesMediaFilterParts(item, filters, {
+    ignoreKind = false,
+    ignoreSubject = false,
+    ignoreCamera = false,
+} = {}) {
     if (!item || item.enabled === false) return false;
-    const filters = normalizeMediaFilterState(filterState);
-
-    if (filters.quick === "crew" && item.crewCaptured !== true) {
-        return false;
-    }
-    if (filters.quick === "new" && item.batch !== 2) {
-        return false;
-    }
-    if (filters.quick === "exterior" && item.external !== true) {
-        return false;
-    }
-    if (filters.quick === "videos" && item.kind !== "videoClip") {
-        return false;
-    }
-    if (filters.quick === "all" && filters.kind !== "all" && item.kind !== filters.kind) {
-        return false;
-    }
-
-    if (filters.cameraIds.length > 0 && !filters.cameraIds.includes(item.cameraId)) {
-        return false;
-    }
-
+    if (!ignoreSubject && !matchesSubjectFilter(item, filters.subjects)) return false;
+    if (!ignoreKind && !matchesKindFilter(item, filters)) return false;
+    if (!ignoreCamera && !matchesCameraFilter(item, filters.cameraIds)) return false;
     return true;
+}
+
+function matchesMediaFilter(item, filterState) {
+    const filters = normalizeMediaFilterState(filterState);
+    return matchesMediaFilterParts(item, filters);
 }
 
 function filterMediaItems(items, filterState) {
     return (Array.isArray(items) ? items : []).filter((item) => matchesMediaFilter(item, filterState));
 }
 
-function buildMediaFilterModel(items, filterState) {
-    const normalizedItems = (Array.isArray(items) ? items : []).filter((item) => item?.enabled !== false);
-    const filters = normalizeMediaFilterState(filterState);
-    const audienceCounts = {
-        all: normalizedItems.length,
-        crew: normalizedItems.filter((item) => item.crewCaptured === true).length,
-        external: normalizedItems.filter((item) => item.external === true).length,
-    };
-    const quickCounts = {
-        all: normalizedItems.length,
-        crew: normalizedItems.filter((item) => item.crewCaptured === true).length,
-        new: normalizedItems.filter((item) => item.batch === 2).length,
-        exterior: normalizedItems.filter((item) => item.external === true).length,
-        videos: normalizedItems.filter((item) => item.kind === "videoClip").length,
-    };
-
-    const kindCounts = {
+function countMediaKinds(items) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    return {
         all: normalizedItems.length,
         image: normalizedItems.filter((item) => item.kind === "image").length,
         videoClip: normalizedItems.filter((item) => item.kind === "videoClip").length,
         audioClip: normalizedItems.filter((item) => item.kind === "audioClip").length,
     };
+}
 
+function countSubjects(items) {
+    const normalizedItems = Array.isArray(items) ? items : [];
+    return {
+        all: normalizedItems.length,
+        crew: normalizedItems.filter((item) => item.crewCaptured === true).length,
+        space: normalizedItems.filter((item) => item.external === true).length,
+    };
+}
+
+function buildCameraCountMap(items) {
     const cameraCounts = new Map();
-    for (const item of normalizedItems) {
+    for (const item of Array.isArray(items) ? items : []) {
         const cameraId = asTrimmedString(item.cameraId);
         const cameraLabel = asTrimmedString(item.cameraLabel || cameraId);
         if (!cameraId || !cameraLabel) continue;
@@ -142,7 +191,30 @@ function buildMediaFilterModel(items, filterState) {
         existing.count += 1;
         cameraCounts.set(cameraId, existing);
     }
+    return cameraCounts;
+}
+
+function buildMediaFilterModel(items, filterState) {
+    const normalizedItems = (Array.isArray(items) ? items : []).filter((item) => item?.enabled !== false);
+    const filters = normalizeMediaFilterState(filterState);
+    const currentItems = normalizedItems.filter((item) => matchesMediaFilterParts(item, filters));
+    const kindScopedItems = normalizedItems.filter((item) => matchesMediaFilterParts(item, filters, {
+        ignoreKind: true,
+    }));
+    const subjectScopedItems = normalizedItems.filter((item) => matchesMediaFilterParts(item, filters, {
+        ignoreSubject: true,
+    }));
+    const cameraScopedItems = normalizedItems.filter((item) => matchesMediaFilterParts(item, filters, {
+        ignoreCamera: true,
+    }));
+    const audienceCounts = countSubjects(normalizedItems);
+    const subjectCounts = countSubjects(subjectScopedItems);
+    const currentKindCounts = countMediaKinds(currentItems);
+    const kindCounts = countMediaKinds(kindScopedItems);
+    const cameraCounts = buildCameraCountMap(cameraScopedItems);
     const activeCameraIds = new Set(filters.cameraIds);
+    const activeKindIds = new Set(filters.mediaKinds);
+    const activeSubjectIds = new Set(filters.subjects);
     const cameraButtonOptions = CAMERA_BUTTON_ORDER.map((cameraOption) => {
         const counted = cameraCounts.get(cameraOption.id);
         return {
@@ -151,24 +223,34 @@ function buildMediaFilterModel(items, filterState) {
             active: activeCameraIds.has(cameraOption.id),
         };
     });
+    const subjectOptions = [
+        { id: "crew", label: "Crew", count: subjectCounts.crew, active: activeSubjectIds.has("crew") },
+        { id: "space", label: "Space", count: subjectCounts.space, active: activeSubjectIds.has("space") },
+    ];
 
     return {
+        totalCount: normalizedItems.length,
+        matchCount: currentItems.length,
+        matchKindCounts: currentKindCounts,
         quick: filters.quick,
         audience: filters.audience,
         kind: filters.kind,
+        mediaKinds: filters.mediaKinds,
+        subjects: filters.subjects,
         cameraId: filters.cameraId,
         cameraIds: filters.cameraIds,
-        quickOptions: [
-            { id: "all", label: "All Photos and Video", count: quickCounts.all, active: filters.quick === "all" && filters.cameraIds.length === 0 },
-            { id: "crew", label: "Crew Photos Only", count: quickCounts.crew, active: filters.quick === "crew" && filters.cameraIds.length === 0 },
-            { id: "new", label: "New Crew Photos", count: quickCounts.new, active: filters.quick === "new" && filters.cameraIds.length === 0 },
-            { id: "exterior", label: "Spacecraft Exterior", count: quickCounts.exterior, active: filters.quick === "exterior" && filters.cameraIds.length === 0 },
+        kindPillOptions: [
+            { id: "image", label: "Images", count: kindCounts.image, active: activeKindIds.has("image") },
+            { id: "audioClip", label: "Audio", count: kindCounts.audioClip, active: activeKindIds.has("audioClip") },
+            { id: "videoClip", label: "Video", count: kindCounts.videoClip, active: activeKindIds.has("videoClip") },
         ],
+        subjectOptions,
+        quickOptions: subjectOptions,
         videoOption: {
             id: "videos",
             label: "Videos",
-            count: quickCounts.videos,
-            active: filters.quick === "videos" && filters.cameraIds.length === 0,
+            count: kindCounts.videoClip,
+            active: filters.mediaKinds.length === 1 && activeKindIds.has("videoClip"),
         },
         cameraButtonOptions,
         audienceOptions: [
@@ -186,7 +268,7 @@ function buildMediaFilterModel(items, filterState) {
             {
                 id: "all",
                 label: "All Cameras",
-                count: normalizedItems.length,
+                count: cameraScopedItems.length,
                 active: filters.cameraId === "all",
             },
             ...Array.from(cameraCounts.values())
@@ -204,5 +286,7 @@ export {
     createDefaultMediaFilterState,
     filterMediaItems,
     matchesMediaFilter,
+    MEDIA_KIND_FILTER_IDS,
+    MEDIA_SUBJECT_FILTER_IDS,
     normalizeMediaFilterState,
 };

@@ -78,6 +78,9 @@ function buildMediaSignature(mediaMarkers) {
                 marker?.label || "",
                 marker?.hoverText || "",
                 marker?.mediaKind || "",
+                marker?.mediaDisplayMode || "",
+                String(marker?.endTimeMs ?? ""),
+                marker?.durationEstimated ? "1" : "0",
                 marker?.selected ? "1" : "0",
                 marker?.clickable === false ? "0" : "1",
                 marker?.preEphemeris ? "1" : "0",
@@ -698,11 +701,31 @@ function createTimelineDockController({
             ? markerInfo.startTime.getTime()
             : Number(markerInfo?.startTimeMs);
         if (!Number.isFinite(markerTimeMs)) return null;
-        if (markerTimeMs < viewMin || markerTimeMs > viewMax) return null;
+        const markerEndTimeMs = Number(markerInfo?.endTimeMs);
+        const isSegment = markerInfo?.mediaDisplayMode === "segment"
+            && Number.isFinite(markerEndTimeMs)
+            && markerEndTimeMs > markerTimeMs;
+        if (isSegment) {
+            if (markerEndTimeMs < viewMin || markerTimeMs > viewMax) return null;
+        } else if (markerTimeMs < viewMin || markerTimeMs > viewMax) {
+            return null;
+        }
 
         const marker = document.createElement("button");
         marker.type = "button";
         const markerClasses = ["timeline-dock__media-marker"];
+        if (isSegment) {
+            markerClasses.push("timeline-dock__media-marker--segment");
+            if (markerTimeMs < viewMin) {
+                markerClasses.push("timeline-dock__media-marker--segment-clipped-start");
+            }
+            if (markerEndTimeMs > viewMax) {
+                markerClasses.push("timeline-dock__media-marker--segment-clipped-end");
+            }
+        }
+        if (markerInfo?.durationEstimated) {
+            markerClasses.push("timeline-dock__media-marker--estimated");
+        }
         if (markerInfo?.selected) {
             markerClasses.push("timeline-dock__media-marker--selected");
         }
@@ -718,7 +741,18 @@ function createTimelineDockController({
             marker.setAttribute("aria-disabled", "true");
         }
         marker.className = markerClasses.join(" ");
-        marker.style.left = `${computePercent(markerTimeMs, viewMin, viewMax)}%`;
+        marker.dataset.mediaStartTimeMs = String(markerTimeMs);
+        if (isSegment) {
+            marker.dataset.mediaEndTimeMs = String(markerEndTimeMs);
+            const visibleStartTimeMs = Math.max(markerTimeMs, viewMin);
+            const visibleEndTimeMs = Math.min(markerEndTimeMs, viewMax);
+            const leftPercent = computePercent(visibleStartTimeMs, viewMin, viewMax);
+            const rightPercent = computePercent(visibleEndTimeMs, viewMin, viewMax);
+            marker.style.left = `${leftPercent}%`;
+            marker.style.width = `${Math.max(0, rightPercent - leftPercent)}%`;
+        } else {
+            marker.style.left = `${computePercent(markerTimeMs, viewMin, viewMax)}%`;
+        }
         const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
         marker.title = markerTitle;
         marker.setAttribute("aria-label", markerTitle);

@@ -2,6 +2,8 @@ import { normalizeMissionMediaManifest } from "../core/domain/media-manifest.js"
 import {
     buildMediaFilterModel,
     filterMediaItems,
+    MEDIA_KIND_FILTER_IDS,
+    MEDIA_SUBJECT_FILTER_IDS,
 } from "../core/domain/media-filter-state.js";
 import { resolveMediaSelectionState } from "../core/domain/media-selection-state.js";
 import { buildMediaTimelineMarkers } from "../core/domain/media-timeline-state.js";
@@ -88,11 +90,8 @@ function buildSelectableMediaItems(mediaItems, audioItems) {
     ].sort((a, b) => a.startTimeMs - b.startTimeMs);
 }
 
-function buildTimelineMarkerItems(mediaItems, audioItems, includeAudio = false) {
-    return buildSelectableMediaItems(
-        mediaItems,
-        includeAudio === true ? audioItems : [],
-    );
+function buildTimelineMarkerItems(mediaItems, audioItems) {
+    return buildSelectableMediaItems(mediaItems, audioItems);
 }
 
 function buildTimingNote(item, deltaMs) {
@@ -141,18 +140,30 @@ function dispatchDocumentCustomEvent(type, detail) {
     document.dispatchEvent({ type, detail });
 }
 
-function seekMainTimelineTime(timeMs, finalize = false) {
+function seekMainTimelineTime(timeMs, finalize = false, {
+    startTimeMs = Number.NaN,
+    endTimeMs = Number.NaN,
+} = {}) {
     const slider = document.getElementById("timeline-slider");
     if (!(slider instanceof HTMLInputElement)) return false;
-    const min = Math.min(Number(slider.min), Number(slider.max));
-    const max = Math.max(Number(slider.min), Number(slider.max));
-    if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(timeMs)) {
+    const viewMin = Math.min(Number(slider.min), Number(slider.max));
+    const viewMax = Math.max(Number(slider.min), Number(slider.max));
+    if (!Number.isFinite(viewMin) || !Number.isFinite(viewMax) || !Number.isFinite(timeMs)) {
         return false;
     }
+    const rangeStart = Number(startTimeMs);
+    const rangeEnd = Number(endTimeMs);
+    const hasFullRange = Number.isFinite(rangeStart) && Number.isFinite(rangeEnd);
+    const min = hasFullRange ? Math.min(rangeStart, rangeEnd) : viewMin;
+    const max = hasFullRange ? Math.max(rangeStart, rangeEnd) : viewMax;
     const clamped = Math.max(min, Math.min(max, timeMs));
-    slider.value = String(clamped);
+    slider.value = String(Math.max(viewMin, Math.min(viewMax, clamped)));
+    const dataset = slider.dataset || (slider.dataset = {});
+    dataset.currentTimeMs = String(clamped);
+    dataset.programmaticSeekTimeMs = String(clamped);
     slider.dispatchEvent(new Event("input", { bubbles: true }));
     if (finalize) {
+        dataset.programmaticSeekTimeMs = String(clamped);
         slider.dispatchEvent(new Event("change", { bubbles: true }));
     }
     return clamped === timeMs;
@@ -187,6 +198,13 @@ function createMediaTimelineCoordination({
         startTimeMs: Number.NaN,
     };
     let suppressMediaEvents = false;
+
+    function seekMissionTimelineTime(timeMs, finalize = false) {
+        return seekMainTimelineTime(timeMs, finalize, {
+            startTimeMs: getStartTime(),
+            endTimeMs: getLatestEndTime(),
+        });
+    }
 
     function resetMediaPlaybackState() {
         mediaPlaybackState = {
@@ -289,7 +307,7 @@ function createMediaTimelineCoordination({
         }
         const mediaSeconds = Number(currentTimeSeconds);
         if (!Number.isFinite(mediaSeconds) || mediaSeconds < 0) return;
-        seekMainTimelineTime(mediaPlaybackState.startTimeMs + (mediaSeconds * 1000), false);
+        seekMissionTimelineTime(mediaPlaybackState.startTimeMs + (mediaSeconds * 1000), false);
     }
 
     function attachAudioPlaybackEvents(audio, item) {
@@ -366,7 +384,7 @@ function createMediaTimelineCoordination({
         };
 
         if (seekTimeline) {
-            seekMainTimelineTime(timelineTimeMs, true);
+            seekMissionTimelineTime(timelineTimeMs, true);
         }
 
         setRealtimeSpeed();
@@ -487,7 +505,10 @@ function createMediaTimelineCoordination({
         if (type === "setAudienceFilter") {
             const value = String(intent.value || "").trim();
             runtimeMediaState.patchFilters({
-                quick: value === "external" ? "exterior" : value,
+                quick: "all",
+                subjects: value === "crew"
+                    ? ["crew"]
+                    : (value === "external" ? ["space"] : []),
                 cameraIds: [],
                 cameraId: "all",
             });
@@ -505,11 +526,61 @@ function createMediaTimelineCoordination({
             return;
         }
         if (type === "setQuickFilter") {
+            const value = String(intent.value || "").trim();
+            const mediaKinds = value === "videos"
+                ? ["videoClip"]
+                : (value === "all" ? [...MEDIA_KIND_FILTER_IDS] : undefined);
+            const subject = value === "crew" || value === "new"
+                ? "crew"
+                : (value === "exterior" || value === "external" || value === "space" ? "space" : "");
+            const subjectPatch = subject
+                ? { subjects: [subject] }
+                : (value === "all" ? { subjects: [] } : {});
             runtimeMediaState.patchFilters({
-                quick: intent.value,
+                quick: value === "space" || subject ? value : "all",
                 cameraIds: [],
                 cameraId: "all",
+                ...(mediaKinds ? { mediaKinds } : {}),
+                ...subjectPatch,
             });
+            rerender();
+            return;
+        }
+        if (type === "toggleSubject") {
+            const value = String(intent.value || "").trim();
+            if (!MEDIA_SUBJECT_FILTER_IDS.includes(value)) return;
+            const filters = runtimeMediaState.getFilters();
+            const active = new Set(filters.subjects || []);
+            if (active.has(value)) {
+                active.delete(value);
+            } else {
+                active.add(value);
+            }
+            runtimeMediaState.patchFilters({
+                quick: "all",
+                subjects: MEDIA_SUBJECT_FILTER_IDS.filter((subjectId) => active.has(subjectId)),
+            });
+            rerender();
+            return;
+        }
+        if (type === "toggleMediaKind") {
+            const value = String(intent.value || "").trim();
+            if (!MEDIA_KIND_FILTER_IDS.includes(value)) return;
+            const filters = runtimeMediaState.getFilters();
+            const active = new Set(filters.mediaKinds || MEDIA_KIND_FILTER_IDS);
+            if (active.has(value)) {
+                active.delete(value);
+            } else {
+                active.add(value);
+            }
+            runtimeMediaState.patchFilters({
+                quick: filters.quick === "videos" ? "all" : filters.quick,
+                kind: "all",
+                mediaKinds: MEDIA_KIND_FILTER_IDS.filter((kindId) => active.has(kindId)),
+            });
+            if (value === "audioClip" && active.has(value) === false && mediaPlaybackState.kind === "audioClip") {
+                stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+            }
             rerender();
             return;
         }
@@ -574,7 +645,7 @@ function createMediaTimelineCoordination({
                 return;
             }
             stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
-            const seekSucceeded = seekMainTimelineTime(selectedItem.startTimeMs, true);
+            const seekSucceeded = seekMissionTimelineTime(selectedItem.startTimeMs, true);
             if (!seekSucceeded) {
                 runtimeMediaState.setActiveItemId(selectedItem.id);
                 rerender();
@@ -617,7 +688,10 @@ function createMediaTimelineCoordination({
         timeMs,
     }) {
         const activeItem = selection.activeItem;
-        const filterModel = buildMediaFilterModel(manifest.mediaItems, runtimeMediaState.getFilters());
+        const filterModel = buildMediaFilterModel(
+            buildSelectableMediaItems(manifest.mediaItems, manifest.audioItems || []),
+            runtimeMediaState.getFilters(),
+        );
         const seedNote = String(manifest?.ui?.seedNote || "").trim();
         const audioClip = resolveAudioClipForTime(manifest.audioItems || [], timeMs);
         const nearbySourceItems = [...(selection.nearbyItems || [])];
@@ -764,7 +838,8 @@ function createMediaTimelineCoordination({
             available,
             title: String(manifest?.ui?.panelTitle || manifest?.title || "Mission Media").trim(),
             nextMissionLabel: missionName,
-            mediaCount: Array.isArray(manifest?.mediaItems) ? manifest.mediaItems.length : 0,
+            mediaCount: (Array.isArray(manifest?.mediaItems) ? manifest.mediaItems.length : 0)
+                + (Array.isArray(manifest?.audioItems) ? manifest.audioItems.length : 0),
         });
 
         if (loadState === "loading" || (loadState === "idle" && !manifest)) {
@@ -794,11 +869,13 @@ function createMediaTimelineCoordination({
         const timeMs = Number.isFinite(context.animTime) ? context.animTime : Date.now();
         const timelineStartMs = Number.isFinite(getStartTime()) ? getStartTime() : Number.NaN;
         const timelineEndMs = Number.isFinite(getLatestEndTime()) ? getLatestEndTime() : Number.NaN;
-        const filteredItems = filterMediaItems(manifest.mediaItems, runtimeMediaState.getFilters());
+        const filters = runtimeMediaState.getFilters();
+        const filteredItems = filterMediaItems(manifest.mediaItems, filters);
+        const filteredAudioItems = filterMediaItems(manifest.audioItems || [], filters);
+        const filteredSelectableItems = buildSelectableMediaItems(filteredItems, filteredAudioItems);
         const selectableItems = buildTimelineMarkerItems(
             filteredItems,
-            manifest.audioItems || [],
-            audioEnabled === true,
+            filteredAudioItems,
         );
         let selection = resolveMediaSelectionState({
             items: selectableItems,
@@ -830,7 +907,7 @@ function createMediaTimelineCoordination({
 
         panelActions.render(buildPanelViewModel({
             manifest,
-            items: filteredItems,
+            items: filteredSelectableItems,
             selectionItems: selectableItems,
             selection,
             timeMs,

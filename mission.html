@@ -1574,12 +1574,19 @@
                     </div>
                 </div>
                 <div class="media-browser-panel__toolbar">
-                    <div
-                        id="media-browser-filter-bar"
-                        class="media-browser-panel__filter-group"
-                        role="group"
-                        aria-label="Media filters"
-                    ></div>
+                    <div class="media-browser-panel__filter-stack">
+                        <div
+                            id="media-browser-filter-bar"
+                            class="media-browser-panel__filter-group"
+                            role="group"
+                            aria-label="Media filters"
+                        ></div>
+                        <div
+                            id="media-browser-filter-summary"
+                            class="media-browser-panel__filter-summary"
+                            aria-live="polite"
+                        ></div>
+                    </div>
                     <div class="media-browser-panel__toolbar-actions">
                         <button
                             id="media-browser-audio-toggle"

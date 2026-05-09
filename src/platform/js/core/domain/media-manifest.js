@@ -21,6 +21,19 @@ function toFiniteNumber(value) {
     return Number.isFinite(numeric) ? numeric : Number.NaN;
 }
 
+function parseDurationSeconds(value) {
+    const numeric = toFiniteNumber(value);
+    if (Number.isFinite(numeric) && numeric > 0) {
+        return numeric;
+    }
+    const text = asTrimmedString(value);
+    if (!text) return Number.NaN;
+    const match = text.match(/(?:^|[\s,;|·])(\d+(?:\.\d+)?)\s*(?:s|sec|secs|second|seconds)\b/i);
+    if (!match) return Number.NaN;
+    const seconds = Number(match[1]);
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : Number.NaN;
+}
+
 function parseFixedOffsetTimestamp(value, timezoneOffset = "") {
     const text = asTrimmedString(value);
     const offset = asTrimmedString(timezoneOffset);
@@ -166,6 +179,9 @@ function normalizeMediaItem(item, index, cameraProfilesById, dataPath) {
         enabled: item.enabled !== false,
         startTimeMs: timeState.startTimeMs,
         endTimeMs,
+        durationSeconds: Number.isFinite(durationSeconds) && durationSeconds > 0
+            ? durationSeconds
+            : Number.NaN,
         captureTimeMs: timeState.captureTimeMs,
         effectiveTimeOffsetSeconds: timeState.effectiveTimeOffsetSeconds,
         timeOffsetNote: asTrimmedString(item.timeOffsetNote || cameraProfile?.timeOffsetNote),
@@ -281,13 +297,20 @@ function normalizeArtemisTimelinePhoto(photo, index, {
     const cameraId = normalizeArtemisTimelineCameraId(photo);
     const cameraProfile = cameraId ? cameraProfilesById[cameraId] : null;
     const batch = toFiniteNumber(photo.batch);
+    const durationSeconds = isVideo
+        ? parseDurationSeconds(photo.durationSeconds || photo.duration || photo.settings)
+        : Number.NaN;
+    const endTimeMs = Number.isFinite(durationSeconds)
+        ? startTimeMs + (durationSeconds * 1000)
+        : Number.NaN;
 
     return {
         id: asTrimmedString(photo.id || fileName) || `media-item-${index + 1}`,
         kind: isVideo ? "videoClip" : "image",
         enabled: photo.enabled !== false,
         startTimeMs,
-        endTimeMs: Number.NaN,
+        endTimeMs,
+        durationSeconds,
         captureTimeMs: Number.NaN,
         effectiveTimeOffsetSeconds: 0,
         timeOffsetNote: "",
@@ -347,12 +370,17 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
     }
 
     const description = asTrimmedString(audio.desc || audio.title || fileName);
+    const durationSeconds = parseDurationSeconds(audio.durationSeconds || audio.duration || audio.settings);
+    const endTimeMs = Number.isFinite(durationSeconds)
+        ? startTimeMs + (durationSeconds * 1000)
+        : Number.NaN;
     return {
         id: asTrimmedString(audio.id) || `audio:${fileName}`,
         kind: "audioClip",
         enabled: audio.enabled !== false,
         startTimeMs,
-        endTimeMs: Number.NaN,
+        endTimeMs,
+        durationSeconds,
         title: description,
         description,
         sourceLabel: fileName,

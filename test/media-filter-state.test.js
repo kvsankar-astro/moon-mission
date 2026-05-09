@@ -37,6 +37,16 @@ const ITEMS = [
         cameraLabel: "Audio",
     },
     {
+        id: "e",
+        enabled: true,
+        kind: "audioClip",
+        crewCaptured: false,
+        external: false,
+        batch: 1,
+        cameraId: "",
+        cameraLabel: "",
+    },
+    {
         id: "d",
         enabled: true,
         kind: "videoClip",
@@ -56,19 +66,117 @@ describe("media filter state", () => {
     });
 
     it("matches upstream quick filters and multi-select camera buttons", () => {
-        expect(filterMediaItems(ITEMS, { quick: "new" }).map((item) => item.id)).toEqual(["a"]);
+        expect(filterMediaItems(ITEMS, { quick: "new" }).map((item) => item.id)).toEqual(["a", "d"]);
+        expect(filterMediaItems(ITEMS, { quick: "exterior" }).map((item) => item.id)).toEqual(["b"]);
         expect(filterMediaItems(ITEMS, { quick: "videos" }).map((item) => item.id)).toEqual(["d"]);
         expect(filterMediaItems(ITEMS, { cameraIds: ["iphone", "z9"] }).map((item) => item.id)).toEqual(["a", "d"]);
+    });
+
+    it("filters by independently selectable subjects", () => {
+        expect(filterMediaItems(ITEMS, { subjects: [] }).map((item) => item.id)).toEqual(["a", "b", "e", "d"]);
+        expect(filterMediaItems(ITEMS, { subjects: ["crew"] }).map((item) => item.id)).toEqual(["a", "d"]);
+        expect(filterMediaItems(ITEMS, { subjects: ["space"] }).map((item) => item.id)).toEqual(["b"]);
+        expect(filterMediaItems(ITEMS, { subjects: ["crew", "space"] }).map((item) => item.id)).toEqual(["a", "b", "d"]);
+    });
+
+    it("filters by independently selectable media kinds", () => {
+        expect(filterMediaItems(ITEMS, { mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a", "b"]);
+        expect(filterMediaItems(ITEMS, { mediaKinds: ["audioClip"] }).map((item) => item.id)).toEqual(["e"]);
+        expect(filterMediaItems(ITEMS, { mediaKinds: ["image", "audioClip"] }).map((item) => item.id)).toEqual(["a", "b", "e"]);
+        expect(filterMediaItems(ITEMS, { mediaKinds: [] }).map((item) => item.id)).toEqual([]);
     });
 
     it("builds UI-facing filter counts", () => {
         const model = buildMediaFilterModel(ITEMS, { audience: "all", cameraId: "all" });
 
-        expect(model.quickOptions.find((option) => option.id === "all")?.count).toBe(3);
-        expect(model.quickOptions.find((option) => option.id === "crew")?.count).toBe(2);
-        expect(model.quickOptions.find((option) => option.id === "new")?.count).toBe(1);
+        expect(model.subjectOptions.find((option) => option.id === "all")).toBeUndefined();
+        expect(model.subjectOptions.find((option) => option.id === "crew")?.count).toBe(2);
+        expect(model.subjectOptions.find((option) => option.id === "new")).toBeUndefined();
+        expect(model.subjectOptions.find((option) => option.id === "crew")?.label).toBe("Crew");
+        expect(model.subjectOptions.find((option) => option.id === "space")?.label).toBe("Space");
         expect(model.videoOption.count).toBe(1);
+        expect(model.matchCount).toBe(4);
+        expect(model.totalCount).toBe(4);
+        expect(model.matchKindCounts).toEqual({
+            all: 4,
+            image: 2,
+            audioClip: 1,
+            videoClip: 1,
+        });
+        expect(model.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["image", 2, true],
+            ["audioClip", 1, true],
+            ["videoClip", 1, true],
+        ]);
         expect(model.cameraOptions.map((option) => option.id)).toEqual(["all", "iphone", "d5", "z9"]);
         expect(model.cameraButtonOptions.map((option) => option.id)).toEqual(["d5a", "d5b", "z9", "gopro", "iphone"]);
+    });
+
+    it("marks selected facet pills as active", () => {
+        const model = buildMediaFilterModel(ITEMS, { mediaKinds: ["image", "videoClip"] });
+
+        expect(model.subjectOptions.map((option) => [option.id, option.active])).toEqual([
+            ["crew", false],
+            ["space", false],
+        ]);
+        expect(model.kindPillOptions.map((option) => [option.id, option.active])).toEqual([
+            ["image", true],
+            ["audioClip", false],
+            ["videoClip", true],
+        ]);
+    });
+
+    it("marks multi-selected subject pills as active", () => {
+        const model = buildMediaFilterModel(ITEMS, { subjects: ["crew", "space"] });
+
+        expect(model.subjectOptions.map((option) => [option.id, option.active])).toEqual([
+            ["crew", true],
+            ["space", true],
+        ]);
+    });
+
+    it("scopes facet counts by the other selected facets", () => {
+        const crewModel = buildMediaFilterModel(ITEMS, { subjects: ["crew"] });
+
+        expect(crewModel.matchCount).toBe(2);
+        expect(crewModel.matchKindCounts).toEqual({
+            all: 2,
+            image: 1,
+            audioClip: 0,
+            videoClip: 1,
+        });
+        expect(crewModel.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["image", 1, true],
+            ["audioClip", 0, true],
+            ["videoClip", 1, true],
+        ]);
+
+        const audioModel = buildMediaFilterModel(ITEMS, { mediaKinds: ["audioClip"] });
+
+        expect(audioModel.matchCount).toBe(1);
+        expect(audioModel.subjectOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["crew", 0, false],
+            ["space", 0, false],
+        ]);
+        expect(audioModel.cameraButtonOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["d5a", 0, false],
+            ["d5b", 0, false],
+            ["z9", 0, false],
+            ["gopro", 0, false],
+            ["iphone", 0, false],
+        ]);
+
+        const cameraModel = buildMediaFilterModel(ITEMS, { cameraIds: ["z9"] });
+
+        expect(cameraModel.matchCount).toBe(1);
+        expect(cameraModel.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["image", 0, true],
+            ["audioClip", 0, true],
+            ["videoClip", 1, true],
+        ]);
+        expect(cameraModel.subjectOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["crew", 1, false],
+            ["space", 0, false],
+        ]);
     });
 });

@@ -193,6 +193,65 @@ describe("createMediaTimelineCoordination", () => {
         );
     });
 
+    it("seeks media selections by absolute mission time when the timeline view is zoomed", async () => {
+        const sliderEvents = [];
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-03T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-03T12:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = (event) => {
+            sliderEvents.push({
+                type: event.type,
+                programmaticSeekTimeMs: Number(slider.dataset?.programmaticSeekTimeMs),
+            });
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "photo.jpg",
+                    title: "Crew photo",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-03T02:00:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "photo.jpg" });
+
+        const targetTimeMs = Date.parse("2026-04-02T16:00:00Z");
+        expect(Number(slider.value)).toBe(Date.parse("2026-04-03T00:00:00Z"));
+        expect(Number(slider.dataset.currentTimeMs)).toBe(targetTimeMs);
+        expect(sliderEvents).toEqual([
+            { type: "input", programmaticSeekTimeMs: targetTimeMs },
+            { type: "change", programmaticSeekTimeMs: targetTimeMs },
+        ]);
+    });
+
     it("releases the media marker listener when config disables the workflow panel", () => {
         mocks.loadMissionMediaManifest.mockResolvedValue(null);
         const coordination = createMediaTimelineCoordination();

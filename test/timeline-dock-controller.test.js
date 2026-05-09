@@ -648,12 +648,44 @@ describe("createTimelineDockController", () => {
                 selected: true,
                 clickable: true,
             },
+            {
+                id: "earthshine-video",
+                startTimeMs: 200,
+                endTimeMs: 500,
+                label: "Earthshine Video",
+                hoverText: "Earthshine Video • 30s",
+                mediaKind: "videoClip",
+                mediaDisplayMode: "segment",
+                clickable: true,
+            },
+            {
+                id: "mission-audio",
+                startTimeMs: -100,
+                endTimeMs: 100,
+                label: "Mission Audio",
+                hoverText: "Mission Audio • Approx. 30s",
+                mediaKind: "audioClip",
+                mediaDisplayMode: "segment",
+                durationEstimated: true,
+                clickable: true,
+            },
         ]);
 
-        expect(mediaMarkers.children).toHaveLength(1);
+        expect(mediaMarkers.children).toHaveLength(3);
         expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker");
+        expect(mediaMarkers.children[0].className).not.toContain("timeline-dock__media-marker--segment");
         expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker--selected");
         expect(mediaMarkers.children[0].title).toBe("Earthrise • Crew iPhone");
+        expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--segment");
+        expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--videoClip");
+        expect(mediaMarkers.children[1].style.left).toBe("20%");
+        expect(mediaMarkers.children[1].style.width).toBe("30%");
+        expect(mediaMarkers.children[2].className).toContain("timeline-dock__media-marker--segment");
+        expect(mediaMarkers.children[2].className).toContain("timeline-dock__media-marker--audioClip");
+        expect(mediaMarkers.children[2].className).toContain("timeline-dock__media-marker--estimated");
+        expect(mediaMarkers.children[2].className).toContain("timeline-dock__media-marker--segment-clipped-start");
+        expect(mediaMarkers.children[2].style.left).toBe("0%");
+        expect(mediaMarkers.children[2].style.width).toBe("10%");
     });
 
     it("emits a media marker selection event when clicking a reachable media marker", () => {

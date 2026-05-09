@@ -155,6 +155,7 @@ const COMPOSER_MOONSHINE_LIFT_SCALE =
     0.65 * LT.MOONSHINE_TO_EARTHSHINE_INTENSITY_RATIO;
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
+const COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION = 1;
 const COMPOSER_DEFAULT_ROLL_RAD = 0;
 const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.525;
 const COMPOSER_DEFAULT_OPEN_TIME_MS = Date.UTC(2026, 3, 6, 23, 27, 0);
@@ -856,6 +857,9 @@ class AuxiliaryCameraViewsManager {
                 fov: Number.isFinite(persistedFov) ? Number(persistedFov) : null,
                 autoFovEnabled: panelState.autoFovEnabled === true,
                 composerControlsCollapsed: panelState.composerControlsCollapsed === true,
+                composerControlsCollapseVersion: panelState.mode === "composer"
+                    ? COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION
+                    : undefined,
             };
             layoutPayload[panelState.panelRegistryId] = {
                 x: Math.round(Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft || 0),
@@ -3033,7 +3037,7 @@ class AuxiliaryCameraViewsManager {
             composerFlybySelectedEventTimeMs: Number.NaN,
             composerPhaseSelectSignature: "",
             composerInteractionEnabled: true,
-            composerControlsCollapsed: false,
+            composerControlsCollapsed: panelMode === "composer",
             composerInfoOverlayEnabled: true,
             composerRaDecGridEnabled: false,
             composerSkyLabelsEnabled: false,
@@ -4071,7 +4075,11 @@ class AuxiliaryCameraViewsManager {
                     );
                     this.setPanelFov(panelState, boundedFov);
                 }
-            } else if (typeof persisted.composerControlsCollapsed === "boolean") {
+            } else if (
+                typeof persisted.composerControlsCollapsed === "boolean" &&
+                Number(persisted.composerControlsCollapseVersion) >=
+                    COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION
+            ) {
                 panelState.composerControlsCollapsed = persisted.composerControlsCollapsed;
             }
         }

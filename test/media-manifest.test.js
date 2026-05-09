@@ -83,6 +83,7 @@ describe("normalizeMissionMediaManifest", () => {
                     location: "Orion Spacecraft",
                     camera: "NIKON D5",
                     camera_id: "d5a",
+                    settings: "720x1280 · 19s",
                     spacecraft: true,
                     video: true,
                     title: "Only One Chance in This Lifetime",
@@ -114,6 +115,8 @@ describe("normalizeMissionMediaManifest", () => {
         expect(manifest.mediaItems[1].kind).toBe("videoClip");
         expect(manifest.mediaItems[1].cameraId).toBe("d5a");
         expect(manifest.mediaItems[1].crewCaptured).toBe(true);
+        expect(manifest.mediaItems[1].durationSeconds).toBe(19);
+        expect(manifest.mediaItems[1].endTimeMs).toBe(Date.parse("2026-04-06T22:45:19Z"));
         expect(manifest.mediaItems[1].posterAssetUrl).toBe(
             "https://pub-example.r2.dev/web/ig-earthset-wiseman-poster.jpg",
         );

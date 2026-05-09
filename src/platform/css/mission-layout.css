@@ -646,7 +646,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     grid-template-columns: minmax(0, 1fr);
     column-gap: 0;
     row-gap: 10px;
-    padding: 10px 12px;
+    padding: 30px 12px 10px;
     border-right: 1px solid rgba(121, 171, 255, 0.16);
     background: rgba(10, 18, 31, 0.64);
     min-width: 0;
@@ -936,10 +936,21 @@ html[data-app-view="selector"] .mission-loading-overlay,
     border-radius: 6px;
     background: rgba(14, 24, 41, 0.82);
     color: rgba(226, 238, 255, 0.95);
+    color-scheme: dark;
     font-size: 10px;
     font-weight: 650;
     line-height: 1.2;
     padding: 4px 8px;
+}
+
+.aux-camera-view__composer-phase-select option {
+    background: rgb(8, 15, 27);
+    color: rgba(226, 238, 255, 0.96);
+}
+
+.aux-camera-view__composer-phase-select option:checked {
+    background: rgb(38, 57, 83);
+    color: #f2f8ff;
 }
 
 .aux-camera-view__composer-phase-picker {
@@ -2268,14 +2279,101 @@ html[data-app-view="selector"] .mission-loading-overlay,
     box-shadow: 0 0 9px rgba(203, 107, 242, 0.32);
 }
 
+.timeline-dock__media-marker--segment {
+    top: -1px;
+    height: 10px;
+    min-width: 16px;
+    transform: none;
+}
+
+.timeline-dock__media-marker--segment::before {
+    left: 0;
+    right: 0;
+    top: 3px;
+    width: auto;
+    height: 4px;
+    transform: none;
+    border-radius: 999px;
+    background: rgba(122, 238, 189, 0.56);
+    box-shadow: 0 0 9px rgba(83, 224, 169, 0.24);
+}
+
+.timeline-dock__media-marker--segment::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(122, 238, 189, 0.94);
+    box-shadow: 0 0 9px rgba(83, 224, 169, 0.34);
+}
+
+.timeline-dock__media-marker--segment-clipped-start::after {
+    display: none;
+}
+
+.timeline-dock__media-marker--segment-clipped-end::before {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--audioClip::before {
+    background: rgba(232, 146, 255, 0.56);
+    box-shadow: 0 0 9px rgba(203, 107, 242, 0.22);
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--audioClip::after {
+    background: rgba(232, 146, 255, 0.94);
+    box-shadow: 0 0 9px rgba(203, 107, 242, 0.34);
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--estimated::before {
+    background-image: repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.18) 0,
+        rgba(255, 255, 255, 0.18) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--selected::before {
+    box-shadow:
+        0 0 0 1px rgba(255, 215, 115, 0.72),
+        0 0 12px rgba(255, 191, 74, 0.34);
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--selected::after {
+    box-shadow:
+        0 0 0 1px rgba(255, 215, 115, 0.72),
+        0 0 12px rgba(255, 191, 74, 0.4);
+}
+
 .timeline-dock__media-marker--out-of-range::before {
     background: rgba(255, 196, 119, 0.88);
+    box-shadow: 0 0 9px rgba(255, 169, 55, 0.34);
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--out-of-range::after {
+    background: rgba(255, 196, 119, 0.92);
     box-shadow: 0 0 9px rgba(255, 169, 55, 0.34);
 }
 
 .timeline-dock__media-marker:hover::before,
 .timeline-dock__media-marker:focus-visible::before {
     transform: translateX(-50%) scale(1.2);
+}
+
+.timeline-dock__media-marker--segment:hover::before,
+.timeline-dock__media-marker--segment:focus-visible::before {
+    transform: none;
+}
+
+.timeline-dock__media-marker--segment:hover::after,
+.timeline-dock__media-marker--segment:focus-visible::after {
+    transform: scale(1.12);
 }
 
 .timeline-dock__media-marker:focus-visible {
@@ -2288,6 +2386,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__media-marker--inactive::before {
+    background: rgba(137, 151, 176, 0.52);
+    box-shadow: none;
+}
+
+.timeline-dock__media-marker--segment.timeline-dock__media-marker--inactive::after {
     background: rgba(137, 151, 176, 0.52);
     box-shadow: none;
 }
