@@ -48,6 +48,55 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("does not build the generated normal map during setRenderSettings before create() runs", () => {
+        // Regression for the addMoon() call sequence:
+        //   setTextures(...) -> setRenderSettings(...) -> create(..., defer=true)
+        // The defer flag on create() is useless if setRenderSettings already
+        // triggered the build. Before this fix, _refreshGeneratedNormalMap fired
+        // inside setRenderSettings even when this.mesh was null, paying the
+        // full ~300-500ms canvas+Float32 cost on the first-frame path.
+        const originalDocument = globalThis.document;
+        const createElement = vi.fn(() => ({
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => ({
+                drawImage: vi.fn(),
+                getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(16) })),
+            })),
+        }));
+        vi.stubGlobal("document", { ...originalDocument, createElement });
+
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        // Mirror the real addMoon() sequence.
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.setRenderSettings({ normalMapMaxWidth: 64 });
+
+        // setRenderSettings must not have built the normal map (no mesh yet).
+        expect(createElement).not.toHaveBeenCalled();
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+
+        moonRenderer.create(false, false, { deferGeneratedNormalMap: true });
+
+        // create(defer=true) must not build either.
+        expect(createElement).not.toHaveBeenCalled();
+        expect(moonRenderer.generatedNormalMap).toBeNull();
+        expect(moonRenderer.mesh.material.bumpMap).toBe(displacementTexture);
+        expect(moonRenderer.mesh.material.normalMap).toBeNull();
+
+        // Now upgrade explicitly (simulates the requestIdleCallback in addMoon).
+        moonRenderer.refreshGeneratedNormalMap();
+        expect(createElement).toHaveBeenCalled();
+        expect(moonRenderer.generatedNormalMap).toBeTruthy();
+        expect(moonRenderer.mesh.material.normalMap).toBe(moonRenderer.generatedNormalMap);
+        expect(moonRenderer.mesh.material.bumpMap).toBeNull();
+
+        moonRenderer.dispose();
+    });
+
     it("skips the synchronous generated normal-map build when deferGeneratedNormalMap is set", () => {
         const originalDocument = globalThis.document;
         // Spy on createElement to prove no canvas is constructed (which is the

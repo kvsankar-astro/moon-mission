@@ -523,12 +523,20 @@ export class MoonRenderer {
 
     setRenderSettings(renderSettings = null) {
         this.renderSettings = normalizeMoonRenderSettings(renderSettings);
-        const resolvedNormalMap = this._refreshGeneratedNormalMap({ disposePrevious: true });
+        // Skip the heavy generated-normal-map rebuild when there is no
+        // material to apply it to yet. Before create() runs, the mesh is null,
+        // and create() (or its caller) decides when to build the normal map —
+        // either synchronously inside create(), or deferred through
+        // refreshGeneratedNormalMap on idle. Calling _refreshGeneratedNormalMap
+        // unconditionally here was defeating { deferGeneratedNormalMap: true }
+        // on create(), so the expensive ~300-500ms build was still landing on
+        // the first-frame path even with the defer flag set.
         const material = this.mesh?.material;
         if (!material) {
             return;
         }
 
+        const resolvedNormalMap = this._refreshGeneratedNormalMap({ disposePrevious: true });
         material.normalMap = resolvedNormalMap;
         material.bumpMap = resolvedNormalMap ? null : (this.displacementMap || null);
         material.bumpScale = resolvedNormalMap ? 0.0 : 0.0045;
