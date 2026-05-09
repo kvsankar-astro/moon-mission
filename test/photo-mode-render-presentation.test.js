@@ -74,8 +74,13 @@ describe("photo-mode-render-presentation", () => {
         expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.56, 4);
         expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
         expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
-        expect(moon.material.userData.moonShadowLift).toBeCloseTo(0.05, 2);
-        expect(moon.material.userData.moonShadowWeightExponent).toBeCloseTo(1.6, 2);
+        // Moon photometric overrides are now held flat at the asset-profile
+        // defaults (DEFAULT_QUALITY_MOON_RENDER_SETTINGS). The Photo Mode
+        // pass writes these values onto the moon material but they match the
+        // defaults the main scene already uses, so the override is a visual
+        // no-op for the moon. Earth fields above still vary with dominance.
+        expect(moon.material.userData.moonShadowLift).toBeCloseTo(0.0, 3);
+        expect(moon.material.userData.moonShadowWeightExponent).toBeCloseTo(1.92, 3);
         expect(moon.material.userData.moonTerminatorReliefStrength).toBeCloseTo(7.5, 2);
         expect(moon.material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 2);
 

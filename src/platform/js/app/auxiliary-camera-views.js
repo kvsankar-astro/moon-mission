@@ -2726,7 +2726,10 @@ class AuxiliaryCameraViewsManager {
         let renderer = null;
         try {
             renderer = new this.THREE.WebGLRenderer({
-                antialias: false,
+                // Match the main renderer's antialias setting so the composer's
+                // moon limb / crater rims look the same as Follow Moon, instead
+                // of showing visible jaggies.
+                antialias: true,
                 powerPreference: "low-power",
                 preserveDrawingBuffer: false,
             });
