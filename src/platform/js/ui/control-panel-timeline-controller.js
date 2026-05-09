@@ -4,6 +4,7 @@ import {
     resolveTimelineEventCarouselPresentation,
     resolveUpcomingTimelineEventIndex,
 } from "../core/domain/control-panel-timeline-state.js";
+import { invokeMissionPanelAction } from "../app/panel-registry.js";
 
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
 
@@ -22,6 +23,7 @@ function createControlPanelTimelineController(deps = {}) {
         ResizeObserverClass = globalThis?.ResizeObserver,
         MutationObserverClass = globalThis?.MutationObserver,
         matchMediaImpl = (query) => windowRef?.matchMedia?.(query) || null,
+        invokeMissionPanelActionImpl = invokeMissionPanelAction,
         nowImpl = () => Date.now(),
     } = deps;
 
@@ -31,6 +33,7 @@ function createControlPanelTimelineController(deps = {}) {
     let timelineDockResizeObserver = null;
     let timelineDockMutationObserver = null;
     let timelineCarouselWiggleTimeoutId = null;
+    let timelineMediaTrackVisible = false;
 
     function getControlPanel() {
         return documentRef?.getElementById?.("control-panel") || null;
@@ -44,6 +47,10 @@ function createControlPanelTimelineController(deps = {}) {
         return documentRef?.getElementById?.("control-panel-toggle") || null;
     }
 
+    function getTimelineMediaToggleButton() {
+        return documentRef?.getElementById?.("timeline-media-toggle") || null;
+    }
+
     function getTimelineMarkers() {
         return documentRef?.getElementById?.("timeline-markers") || null;
     }
@@ -54,6 +61,38 @@ function createControlPanelTimelineController(deps = {}) {
 
     function getRootStyle() {
         return documentRef?.documentElement?.style || null;
+    }
+
+    function shouldAllowMediaMarkersVisible() {
+        const mediaQuery = matchMediaImpl("(min-width: 601px)");
+        return mediaQuery?.matches === true;
+    }
+
+    function syncMediaToggleButton(button = getTimelineMediaToggleButton()) {
+        if (!button) return;
+        const mediaAvailable = shouldAllowMediaMarkersVisible();
+        const pressed = mediaAvailable && timelineMediaTrackVisible;
+        button.disabled = !mediaAvailable;
+        button.setAttribute?.("aria-disabled", mediaAvailable ? "false" : "true");
+        button.setAttribute?.("aria-pressed", pressed ? "true" : "false");
+        button.setAttribute?.(
+            "aria-label",
+            mediaAvailable
+                ? (timelineMediaTrackVisible ? "Hide media track" : "Show media track")
+                : "Media track is desktop-only for now",
+        );
+        button.title = mediaAvailable
+            ? (timelineMediaTrackVisible ? "Hide media track" : "Show media track")
+            : "Media track is desktop-only for now";
+    }
+
+    function setTimelineMediaTrackVisibleState(visible) {
+        timelineMediaTrackVisible = !!visible;
+        const mediaMarkers = getTimelineMediaMarkers();
+        if (mediaMarkers) {
+            mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
+        }
+        syncMediaToggleButton();
     }
 
     function syncControlPanelInfoOffset(panel = getControlPanel()) {
@@ -154,12 +193,13 @@ function createControlPanelTimelineController(deps = {}) {
             markers.hidden = !nextExpanded;
         }
         if (mediaMarkers) {
-            mediaMarkers.hidden = !nextExpanded;
+            mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
         }
         requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
 
         const uiState = resolveTimelineEventCarouselPresentation(nextExpanded);
         button.setAttribute?.("aria-expanded", uiState.ariaExpanded);
+        button.setAttribute?.("aria-pressed", nextExpanded ? "true" : "false");
         button.setAttribute?.("aria-label", uiState.ariaLabel);
         button.title = uiState.title;
 
@@ -276,14 +316,19 @@ function createControlPanelTimelineController(deps = {}) {
         const panel = getControlPanel();
         const timelineDock = getTimelineDock();
         const button = getControlPanelToggleButton();
+        const mediaButton = getTimelineMediaToggleButton();
         if (!panel || !timelineDock || !button) return;
         if (button.dataset?.bound === "true") return;
 
         button.dataset.bound = "true";
+        if (mediaButton?.dataset) {
+            mediaButton.dataset.bound = "true";
+        }
         bindTimelineCarouselDragGesture();
         bindTimelineDockHeightSync(timelineDock);
         setControlPanelCollapsedState(false);
         setTimelineEventCarouselExpandedState(false, { focusUpcoming: false, wiggleCue: false });
+        setTimelineMediaTrackVisibleState(false);
         requestAnimationFrameImpl(() => {
             syncControlPanelInfoOffset(panel);
             syncTimelineDockHeight(timelineDock);
@@ -292,12 +337,25 @@ function createControlPanelTimelineController(deps = {}) {
             const shouldExpand = timelineDock.classList?.contains?.("timeline-dock--events-collapsed");
             setTimelineEventCarouselExpandedState(shouldExpand);
         });
+        mediaButton?.addEventListener?.("click", () => {
+            if (mediaButton.disabled) return;
+            const nextVisible = !timelineMediaTrackVisible;
+            setTimelineMediaTrackVisibleState(nextVisible);
+            if (nextVisible) {
+                invokeMissionPanelActionImpl("workflow:media-browser", "open");
+                if (!invokeMissionPanelActionImpl("aux:earth-rise-composer", "restoreGuided")) {
+                    invokeMissionPanelActionImpl("aux:earth-rise-composer", "restore");
+                }
+            }
+            requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
+        });
 
         if (!controlPanelResizeBound) {
             controlPanelResizeBound = true;
             windowRef?.addEventListener?.("resize", () => {
                 syncControlPanelInfoOffset();
                 syncTimelineDockHeight();
+                setTimelineMediaTrackVisibleState(timelineMediaTrackVisible);
             });
         }
     }
@@ -306,6 +364,7 @@ function createControlPanelTimelineController(deps = {}) {
         bind,
         setControlPanelCollapsedState,
         setTimelineEventCarouselExpandedState,
+        setTimelineMediaTrackVisibleState,
         syncControlPanelInfoOffset,
         syncTimelineDockHeight,
     };

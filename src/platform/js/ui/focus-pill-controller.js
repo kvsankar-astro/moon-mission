@@ -88,7 +88,8 @@ export function createFocusPillController(deps = {}) {
     }
 
     function restoreComposerPanel() {
-        const restored = invokeMissionPanelAction("aux:earth-rise-composer", "restore");
+        const restored = invokeMissionPanelAction("aux:earth-rise-composer", "restoreGuided") ||
+            invokeMissionPanelAction("aux:earth-rise-composer", "restore");
         if (restored) return;
 
         const composerChip = documentRef?.querySelector?.(

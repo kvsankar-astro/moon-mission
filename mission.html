@@ -2190,35 +2190,7 @@
                     <!-- burn buttons will get added here dynamically -->
                 </div>
             </div>
-            <div class="timeline-dock__panel-row">
-                <button
-                    id="control-panel-toggle"
-                    class="timeline-dock__panel-toggle"
-                    type="button"
-                    aria-expanded="false"
-                    aria-label="Pull up events carousel"
-                    title="Pull up events carousel"
-                >
-                    <svg
-                        class="timeline-dock__panel-toggle-glyph"
-                        viewBox="0 0 24 12"
-                        role="presentation"
-                        aria-hidden="true"
-                    >
-                        <path
-                            d="M2 2 L12 10 L22 2"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2.6"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            vector-effect="non-scaling-stroke"
-                        ></path>
-                    </svg>
-                </button>
-            </div>
             <div class="timeline-dock__row">
-                <span id="timeline-start-label" class="timeline-dock__edge">--:--:--</span>
                 <div class="timeline-dock__track-wrap">
                     <input
                         id="timeline-slider"
@@ -2231,6 +2203,7 @@
                         aria-label="Mission timeline slider"
                     >
                     <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true" hidden></div>
+                    <div id="timeline-time-labels" class="timeline-dock__time-labels" aria-hidden="true"></div>
                     <div
                         id="timeline-media-markers"
                         class="timeline-dock__markers timeline-dock__markers--media"
@@ -2238,14 +2211,84 @@
                         hidden
                     ></div>
                 </div>
+            </div>
+            <div class="timeline-dock__meta-row">
+                <span id="timeline-start-label" class="timeline-dock__edge">--:--:--</span>
+                <div class="timeline-dock__center-stack">
+                    <div class="timeline-dock__panel-row">
+                        <button
+                            id="control-panel-toggle"
+                            class="timeline-dock__track-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-pressed="false"
+                            aria-controls="burnbuttons timeline-markers"
+                            aria-label="Show event track"
+                            title="Show event track"
+                        >Events</button>
+                        <button
+                            id="timeline-media-toggle"
+                            class="timeline-dock__track-toggle"
+                            type="button"
+                            aria-pressed="false"
+                            aria-controls="timeline-media-markers"
+                            aria-label="Show media track"
+                            title="Show media track"
+                        >
+                            Media
+                        </button>
+                        <div class="timeline-dock__scale-controls" role="group" aria-label="Timeline zoom and pan">
+                            <button
+                                id="timeline-pan-left"
+                                class="timeline-dock__scale-button mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                aria-label="Pan timeline left"
+                                title="Pan timeline left"
+                            >&lsaquo;</button>
+                            <button
+                                id="timeline-scale-contract"
+                                class="timeline-dock__scale-button mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                data-icon="zoom-out"
+                                aria-label="Zoom timeline out"
+                                title="Zoom timeline out"
+                            ></button>
+                            <button
+                                id="timeline-scale-reset"
+                                class="timeline-dock__scale-button mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                data-icon="reset"
+                                aria-label="Reset timeline zoom"
+                                aria-disabled="true"
+                                title="Reset timeline zoom"
+                                disabled
+                            ></button>
+                            <button
+                                id="timeline-scale-expand"
+                                class="timeline-dock__scale-button mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                data-icon="zoom-in"
+                                aria-label="Zoom timeline in"
+                                title="Zoom timeline in"
+                            ></button>
+                            <button
+                                id="timeline-pan-right"
+                                class="timeline-dock__scale-button mission-panel-shell__button mission-panel-shell__button--icon"
+                                type="button"
+                                aria-label="Pan timeline right"
+                                title="Pan timeline right"
+                            >&rsaquo;</button>
+                        </div>
+                    </div>
+                    <div id="timeline-current-label" class="timeline-dock__current">--</div>
+                    <div
+                        id="timeline-mode-label"
+                        class="timeline-dock__mode timeline-dock__mode--hidden"
+                        hidden
+                    ></div>
+                </div>
                 <span id="timeline-end-label" class="timeline-dock__edge">--:--:--</span>
             </div>
-            <div
-                id="timeline-mode-label"
-                class="timeline-dock__mode timeline-dock__mode--hidden"
-                hidden
-            ></div>
-            <div id="timeline-current-label" class="timeline-dock__current">--</div>
             <div
                 id="timeline-craft-strip"
                 class="timeline-dock__craft-strip timeline-dock__craft-strip--hidden"

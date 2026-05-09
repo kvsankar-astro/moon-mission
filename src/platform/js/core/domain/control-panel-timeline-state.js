@@ -15,15 +15,15 @@ function resolveTimelineEventCarouselPresentation(expanded) {
         return {
             expanded: true,
             ariaExpanded: "true",
-            ariaLabel: "Pull down events carousel",
-            title: "Pull down events carousel",
+            ariaLabel: "Hide event track",
+            title: "Hide event track",
         };
     }
     return {
         expanded: false,
         ariaExpanded: "false",
-        ariaLabel: "Pull up events carousel",
-        title: "Pull up events carousel",
+        ariaLabel: "Show event track",
+        title: "Show event track",
     };
 }
 

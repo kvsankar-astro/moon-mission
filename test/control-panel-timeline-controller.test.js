@@ -81,7 +81,9 @@ function createElement({
     };
 }
 
-function createHarness() {
+function createHarness({
+    desktopTimeline = false,
+} = {}) {
     const rootStyleValues = new Map();
     const panel = createElement({
         classNames: ["control-panel"],
@@ -92,8 +94,10 @@ function createHarness() {
         rect: { top: 700, bottom: 790, width: 320, height: 90 },
     });
     const toggleButton = createElement();
+    const mediaToggleButton = createElement();
     const slider = createElement({ value: "2600" });
     const markers = createElement();
+    const mediaMarkers = createElement();
     const burnButtons = createElement();
     const carousel = createElement({ classNames: ["timeline-dock__event-carousel"] });
     const eventButtons = [
@@ -105,6 +109,7 @@ function createHarness() {
     const resizeObservers = [];
     const mutationObservers = [];
     const timeouts = [];
+    const panelActions = [];
 
     const documentRef = {
         documentElement: {
@@ -119,8 +124,10 @@ function createHarness() {
                 "control-panel": panel,
                 "timeline-dock": timelineDock,
                 "control-panel-toggle": toggleButton,
+                "timeline-media-toggle": mediaToggleButton,
                 "timeline-slider": slider,
                 "timeline-markers": markers,
+                "timeline-media-markers": mediaMarkers,
                 burnbuttons: burnButtons,
             };
             return mapping[id] || null;
@@ -184,8 +191,15 @@ function createHarness() {
         clearTimeoutImpl() {},
         ResizeObserverClass,
         MutationObserverClass,
-        matchMediaImpl() {
+        matchMediaImpl(query) {
+            if (query === "(min-width: 601px)") {
+                return { matches: desktopTimeline };
+            }
             return { matches: false };
+        },
+        invokeMissionPanelActionImpl(id, action) {
+            panelActions.push({ id, action });
+            return true;
         },
         nowImpl() {
             return 1000;
@@ -202,6 +216,9 @@ function createHarness() {
         timeouts,
         timelineDock,
         markers,
+        mediaMarkers,
+        mediaToggleButton,
+        panelActions,
         toggleButton,
     };
 }
@@ -213,10 +230,14 @@ describe("createControlPanelTimelineController", () => {
         harness.controller.bind();
 
         expect(harness.toggleButton.dataset.bound).toBe("true");
+        expect(harness.mediaToggleButton.dataset.bound).toBe("true");
         expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(true);
         expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("false");
-        expect(harness.toggleButton.getAttribute("aria-label")).toBe("Pull up events carousel");
+        expect(harness.toggleButton.getAttribute("aria-pressed")).toBe("false");
+        expect(harness.toggleButton.getAttribute("aria-label")).toBe("Show event track");
+        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
         expect(harness.markers.hidden).toBe(true);
+        expect(harness.mediaMarkers.hidden).toBe(true);
         expect(harness.rootStyleValues.get("--control-panel-visual-height")).toBe("60px");
         expect(harness.rootStyleValues.get("--timeline-dock-height")).toBe("90px");
         expect(harness.resizeObservers).toHaveLength(1);
@@ -242,8 +263,44 @@ describe("createControlPanelTimelineController", () => {
 
         expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(false);
         expect(harness.markers.hidden).toBe(false);
+        expect(harness.mediaMarkers.hidden).toBe(true);
         expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("true");
-        expect(harness.toggleButton.title).toBe("Pull down events carousel");
+        expect(harness.toggleButton.getAttribute("aria-pressed")).toBe("true");
+        expect(harness.toggleButton.title).toBe("Hide event track");
+    });
+
+    it("toggles media markers separately on desktop", () => {
+        const harness = createHarness({ desktopTimeline: true });
+
+        harness.controller.bind();
+
+        expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(true);
+        expect(harness.markers.hidden).toBe(true);
+        expect(harness.mediaToggleButton.disabled).toBe(false);
+        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
+        expect(harness.mediaMarkers.hidden).toBe(true);
+
+        harness.mediaToggleButton.dispatch("click");
+
+        expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(true);
+        expect(harness.markers.hidden).toBe(true);
+        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("true");
+        expect(harness.mediaMarkers.hidden).toBe(false);
+        expect(harness.panelActions).toEqual([
+            { id: "workflow:media-browser", action: "open" },
+            { id: "aux:earth-rise-composer", action: "restoreGuided" },
+        ]);
+    });
+
+    it("keeps the media toggle disabled off desktop", () => {
+        const harness = createHarness({ desktopTimeline: false });
+
+        harness.controller.bind();
+
+        expect(harness.mediaToggleButton.disabled).toBe(true);
+        expect(harness.mediaToggleButton.getAttribute("aria-disabled")).toBe("true");
+        expect(harness.mediaToggleButton.title).toBe("Media track is desktop-only for now");
+        expect(harness.mediaMarkers.hidden).toBe(true);
     });
 
     it("focuses the next future event when opening a collapsed carousel", () => {
@@ -258,5 +315,6 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.eventButtons[2].scrollIntoViewOptions?.inline).toBe("center");
         expect(harness.timelineDock.classList.contains("timeline-dock--events-collapsed")).toBe(false);
         expect(harness.markers.hidden).toBe(false);
+        expect(harness.mediaMarkers.hidden).toBe(true);
     });
 });

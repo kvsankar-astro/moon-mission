@@ -9,6 +9,7 @@ import {
     resolveTimelineEventLabel,
 } from "./comparison-timeline.js";
 import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
+import { buildTimelineTimeLabels } from "../core/domain/timeline-time-labels.js";
 
 function clamp(value, min, max) {
     if (!Number.isFinite(value)) return min;
@@ -21,6 +22,20 @@ function computePercent(value, min, max) {
     const span = max - min;
     if (!Number.isFinite(span) || span <= 0) return 0;
     return ((value - min) / span) * 100;
+}
+
+function normalizeWheelDelta(delta, deltaMode, pixelFallback = 720) {
+    if (!Number.isFinite(delta)) return 0;
+    if (deltaMode === 1) return delta * 16;
+    if (deltaMode === 2) return delta * pixelFallback;
+    return delta;
+}
+
+function resolveWheelZoomFactor(deltaY) {
+    if (!Number.isFinite(deltaY) || deltaY === 0) return 1;
+    const magnitude = clamp(Math.abs(deltaY), 12, 240);
+    const direction = deltaY > 0 ? 1 : -1;
+    return Math.exp(direction * magnitude * 0.0028);
 }
 
 function buildEventSignature(eventInfos) {
@@ -109,6 +124,12 @@ function createTimelineDockController({
     const slider = document.getElementById("timeline-slider");
     const markers = document.getElementById("timeline-markers");
     const mediaMarkers = document.getElementById("timeline-media-markers");
+    const timeLabels = document.getElementById("timeline-time-labels");
+    const panLeftButton = document.getElementById("timeline-pan-left");
+    const scaleContractButton = document.getElementById("timeline-scale-contract");
+    const scaleResetButton = document.getElementById("timeline-scale-reset");
+    const scaleExpandButton = document.getElementById("timeline-scale-expand");
+    const panRightButton = document.getElementById("timeline-pan-right");
     const startLabel = document.getElementById("timeline-start-label");
     const endLabel = document.getElementById("timeline-end-label");
     const modeLabel = document.getElementById("timeline-mode-label");
@@ -129,11 +150,16 @@ function createTimelineDockController({
 
     let rangeMin = 0;
     let rangeMax = 0;
+    let viewMin = 0;
+    let viewMax = 0;
     let lastRangeSignature = "";
     let lastEventSignature = "";
+    let lastEventInfos = [];
     let currentTimeMs = Number.NaN;
     let lastMediaSignature = "";
+    let lastMediaMarkersData = [];
     let isBound = false;
+    let timelineDragState = null;
     let currentMode = {
         compareMode: false,
         label: "",
@@ -158,12 +184,360 @@ function createTimelineDockController({
         slider.setAttribute("aria-valuetext", label);
     }
 
+    function getTrackWidthPx() {
+        const measuredWidth =
+            timeLabels?.parentElement?.getBoundingClientRect?.()?.width ||
+            slider?.parentElement?.getBoundingClientRect?.()?.width ||
+            slider?.getBoundingClientRect?.()?.width ||
+            0;
+        return Number.isFinite(measuredWidth) && measuredWidth > 0 ? measuredWidth : 720;
+    }
+
+    function getTimelineInteractionSurface() {
+        return slider.parentElement || slider;
+    }
+
+    function getTimelineRect() {
+        const rect = getTimelineInteractionSurface()?.getBoundingClientRect?.() ||
+            slider?.getBoundingClientRect?.();
+        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) {
+            return {
+                left: 0,
+                width: getTrackWidthPx(),
+            };
+        }
+        return rect;
+    }
+
+    function getFullSpanMs() {
+        const spanMs = rangeMax - rangeMin;
+        return Number.isFinite(spanMs) && spanMs > 0 ? spanMs : 0;
+    }
+
+    function getViewSpanMs() {
+        const spanMs = viewMax - viewMin;
+        return Number.isFinite(spanMs) && spanMs > 0 ? spanMs : getFullSpanMs();
+    }
+
+    function getMinViewSpanMs() {
+        const fullSpanMs = getFullSpanMs();
+        const stepMs = Number(slider.step);
+        return Math.max(
+            Number.isFinite(stepMs) && stepMs > 0 ? stepMs * 8 : 1,
+            fullSpanMs / 96,
+        );
+    }
+
+    function isTimelineZoomed() {
+        return viewMin > rangeMin || viewMax < rangeMax;
+    }
+
+    function clampViewWindow(nextMin, nextMax) {
+        const fullSpanMs = getFullSpanMs();
+        if (fullSpanMs <= 0) {
+            return { min: rangeMin, max: rangeMax };
+        }
+
+        const minSpanMs = getMinViewSpanMs();
+        const rawSpanMs = Math.max(minSpanMs, Math.min(fullSpanMs, nextMax - nextMin));
+        let min = Number.isFinite(nextMin) ? nextMin : rangeMin;
+        let max = min + rawSpanMs;
+
+        if (min < rangeMin) {
+            min = rangeMin;
+            max = min + rawSpanMs;
+        }
+        if (max > rangeMax) {
+            max = rangeMax;
+            min = max - rawSpanMs;
+        }
+
+        return {
+            min: clamp(min, rangeMin, rangeMax),
+            max: clamp(max, rangeMin, rangeMax),
+        };
+    }
+
+    function setScaleButtonDisabled(button, disabled) {
+        if (!button) return;
+        const isDisabled = disabled === true;
+        button.disabled = isDisabled;
+        if (isDisabled) {
+            button.setAttribute?.("disabled", "");
+        } else {
+            button.removeAttribute?.("disabled");
+        }
+        button.setAttribute?.("aria-disabled", isDisabled ? "true" : "false");
+    }
+
+    function syncScaleButtons() {
+        const fullSpanMs = getFullSpanMs();
+        const viewSpanMs = getViewSpanMs();
+        const minSpanMs = getMinViewSpanMs();
+        const zoomed = isTimelineZoomed();
+        setScaleButtonDisabled(panLeftButton, !zoomed || viewMin <= rangeMin);
+        setScaleButtonDisabled(scaleContractButton, !zoomed);
+        setScaleButtonDisabled(scaleResetButton, !zoomed);
+        setScaleButtonDisabled(scaleExpandButton, fullSpanMs <= 0 || viewSpanMs <= minSpanMs * 1.01);
+        setScaleButtonDisabled(panRightButton, !zoomed || viewMax >= rangeMax);
+    }
+
+    function renderTimeLabels() {
+        if (!timeLabels) {
+            syncScaleButtons();
+            return;
+        }
+        const labels = buildTimelineTimeLabels({
+            startTimeMs: viewMin,
+            endTimeMs: viewMax,
+            widthPx: getTrackWidthPx(),
+            compareMode: currentMode.compareMode,
+        });
+
+        timeLabels.innerHTML = "";
+        for (const labelInfo of labels) {
+            const label = document.createElement("span");
+            label.className = "timeline-dock__time-label";
+            label.style.left = `${labelInfo.percent}%`;
+            label.textContent = labelInfo.label;
+            label.title = labelInfo.label;
+            label.dataset.timeMs = String(labelInfo.timeMs);
+            timeLabels.appendChild(label);
+        }
+        syncScaleButtons();
+    }
+
+    function updateEdgeLabels() {
+        startLabel.innerHTML = formatEdgeLabel(viewMin, "start");
+        endLabel.innerHTML = formatEdgeLabel(viewMax, "end");
+    }
+
+    function syncSliderRangeToView() {
+        slider.min = String(viewMin);
+        slider.max = String(viewMax);
+        const valueMs = Number.isFinite(currentTimeMs)
+            ? currentTimeMs
+            : Number(slider.value);
+        slider.value = String(clamp(valueMs, viewMin, viewMax));
+    }
+
+    function renderEventMarkersFromCache() {
+        markers.innerHTML = "";
+        for (let i = 0; i < lastEventInfos.length; i += 1) {
+            const marker = renderMarker(lastEventInfos[i], i);
+            if (marker) markers.appendChild(marker);
+        }
+        syncMarkerHighlights();
+    }
+
+    function renderMediaMarkersFromCache() {
+        if (!mediaMarkers) return;
+        mediaMarkers.innerHTML = "";
+        for (let i = 0; i < lastMediaMarkersData.length; i += 1) {
+            const marker = renderMediaMarker(lastMediaMarkersData[i], i);
+            if (marker) mediaMarkers.appendChild(marker);
+        }
+    }
+
+    function renderVisualTimeline() {
+        updateEdgeLabels();
+        syncSliderRangeToView();
+        renderTimeLabels();
+        renderEventMarkersFromCache();
+        renderMediaMarkersFromCache();
+        dockRoot?.classList?.toggle?.("timeline-dock--zoomed", isTimelineZoomed());
+    }
+
+    function setViewWindow(nextMin, nextMax) {
+        const nextView = clampViewWindow(nextMin, nextMax);
+        const changed = nextView.min !== viewMin || nextView.max !== viewMax;
+        viewMin = nextView.min;
+        viewMax = nextView.max;
+        if (changed) {
+            renderVisualTimeline();
+        } else {
+            syncScaleButtons();
+        }
+    }
+
+    function resetViewWindow() {
+        setViewWindow(rangeMin, rangeMax);
+    }
+
+    function resolveZoomAnchor() {
+        if (Number.isFinite(currentTimeMs) && currentTimeMs >= viewMin && currentTimeMs <= viewMax) {
+            return currentTimeMs;
+        }
+        return viewMin + getViewSpanMs() / 2;
+    }
+
+    function zoomView(factor, anchorMs = resolveZoomAnchor()) {
+        const spanMs = getViewSpanMs();
+        if (spanMs <= 0) return;
+        const nextSpanMs = spanMs * factor;
+        const anchorRatio = spanMs > 0
+            ? clamp((anchorMs - viewMin) / spanMs, 0, 1)
+            : 0.5;
+        const nextMin = anchorMs - nextSpanMs * anchorRatio;
+        setViewWindow(nextMin, nextMin + nextSpanMs);
+    }
+
+    function panView(deltaMs) {
+        if (!isTimelineZoomed() || !Number.isFinite(deltaMs) || deltaMs === 0) return;
+        setViewWindow(viewMin + deltaMs, viewMax + deltaMs);
+    }
+
+    function getTimeAtClientX(clientX) {
+        const rect = getTimelineRect();
+        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) {
+            return resolveZoomAnchor();
+        }
+        const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
+        return viewMin + getViewSpanMs() * ratio;
+    }
+
+    function getThumbClientX() {
+        const rect = getTimelineRect();
+        const spanMs = getViewSpanMs();
+        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0 || spanMs <= 0) {
+            return Number.NaN;
+        }
+        const valueMs = clamp(Number(slider.value), viewMin, viewMax);
+        const ratio = clamp((valueMs - viewMin) / spanMs, 0, 1);
+        return rect.left + rect.width * ratio;
+    }
+
+    function isNearSliderThumb(clientX) {
+        const thumbClientX = getThumbClientX();
+        return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 18;
+    }
+
+    function isTimelinePointTarget(target) {
+        const surface = getTimelineInteractionSurface();
+        let node = target;
+        while (node && node !== surface) {
+            const className = typeof node.className === "string" ? node.className : "";
+            if (
+                className.split(/\s+/).some((name) => (
+                    name === "timeline-dock__marker" ||
+                    name === "timeline-dock__media-marker"
+                ))
+            ) {
+                return true;
+            }
+            node = node.parentElement;
+        }
+        return false;
+    }
+
+    function seekToTime(timeMs, commit) {
+        if (!Number.isFinite(timeMs)) return;
+        currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
+        slider.value = String(clamp(currentTimeMs, viewMin, viewMax));
+        slider.dataset.currentTimeMs = String(currentTimeMs);
+        updateCurrentLabel(currentTimeMs);
+        syncMarkerHighlights();
+        onSeekTime?.(currentTimeMs, commit === true);
+    }
+
+    function endTimelineDrag(event, cancelled = false) {
+        if (!timelineDragState) return;
+        const state = timelineDragState;
+        timelineDragState = null;
+        dockRoot?.classList?.remove?.("timeline-dock--timeline-dragging");
+        const surface = getTimelineInteractionSurface();
+        if (Number.isFinite(state.pointerId)) {
+            surface?.releasePointerCapture?.(state.pointerId);
+        }
+
+        if (!cancelled && !state.moved && Number.isFinite(event?.clientX)) {
+            seekToTime(getTimeAtClientX(event.clientX), true);
+        }
+    }
+
+    function beginTimelineDrag(event) {
+        if (!event || event.isPrimary === false) return;
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        if (isTimelinePointTarget(event.target)) return;
+        const clientX = Number(event.clientX);
+        if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
+
+        if (event.target === slider && isNearSliderThumb(clientX)) {
+            return;
+        }
+
+        event.preventDefault?.();
+        const surface = getTimelineInteractionSurface();
+        surface?.setPointerCapture?.(event.pointerId);
+        timelineDragState = {
+            pointerId: event.pointerId,
+            startX: clientX,
+            lastX: clientX,
+            moved: false,
+        };
+        dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
+    }
+
+    function updateTimelineDrag(event) {
+        if (!timelineDragState) return;
+        if (
+            Number.isFinite(timelineDragState.pointerId) &&
+            Number.isFinite(event?.pointerId) &&
+            event.pointerId !== timelineDragState.pointerId
+        ) {
+            return;
+        }
+
+        const clientX = Number(event?.clientX);
+        if (!Number.isFinite(clientX)) return;
+        const deltaPx = clientX - timelineDragState.lastX;
+        timelineDragState.lastX = clientX;
+        if (Math.abs(clientX - timelineDragState.startX) >= 3) {
+            timelineDragState.moved = true;
+        }
+
+        if (!timelineDragState.moved) return;
+        event.preventDefault?.();
+        const rect = getTimelineRect();
+        if (!isTimelineZoomed() || !rect || rect.width <= 0 || deltaPx === 0) return;
+        panView((-deltaPx / rect.width) * getViewSpanMs());
+    }
+
+    function handleTimelineWheel(event) {
+        if (getFullSpanMs() <= 0) return;
+        const widthPx = getTrackWidthPx();
+        const deltaMode = Number(event.deltaMode || 0);
+        const deltaX = normalizeWheelDelta(Number(event.deltaX || 0), deltaMode, widthPx);
+        const deltaY = normalizeWheelDelta(Number(event.deltaY || 0), deltaMode, widthPx);
+        const horizontalDelta = Math.abs(deltaX) > Math.abs(deltaY)
+            ? deltaX
+            : (event.shiftKey ? deltaY : 0);
+
+        if (horizontalDelta !== 0 && isTimelineZoomed()) {
+            event.preventDefault?.();
+            panView(getViewSpanMs() * horizontalDelta * 0.0012);
+            return;
+        }
+
+        if (deltaY === 0) return;
+        event.preventDefault?.();
+        zoomView(resolveWheelZoomFactor(deltaY), getTimeAtClientX(event.clientX));
+    }
+
+    function handleTimelineDoubleClick(event) {
+        if (!event || isTimelinePointTarget(event.target) || getFullSpanMs() <= 0) return;
+        event.preventDefault?.();
+        zoomView(0.5, getTimeAtClientX(event.clientX));
+    }
+
+    function isScaleButtonDisabled(button) {
+        return button?.disabled === true || button?.getAttribute?.("aria-disabled") === "true";
+    }
+
     function formatEdgeLabel(timeMs, edge) {
         if (currentMode.compareMode) {
             const edgeLabel = edge === "end" ? "End" : "Start";
-            const edgeElapsed = edge === "end"
-                ? formatComparisonElapsedLabel(timeMs, rangeMin)
-                : "T+0";
+            const edgeElapsed = formatComparisonElapsedLabel(timeMs, rangeMin);
             return `<span class="timeline-dock__edge-date">${edgeLabel}</span><span class="timeline-dock__edge-time">${edgeElapsed}</span>`;
         }
         const includeOffset = typeof window === "undefined" ? true : window.innerWidth > 600;
@@ -191,8 +565,7 @@ function createTimelineDockController({
         }
 
         if (lastRangeSignature) {
-            startLabel.innerHTML = formatEdgeLabel(rangeMin, "start");
-            endLabel.innerHTML = formatEdgeLabel(rangeMax, "end");
+            renderVisualTimeline();
         }
         updateCurrentLabel(Number(slider.value));
     }
@@ -216,16 +589,17 @@ function createTimelineDockController({
         slider.min = String(normalizedMin);
         slider.max = String(normalizedMax);
         slider.step = String(safeStep);
-        startLabel.innerHTML = formatEdgeLabel(normalizedMin, "start");
-        endLabel.innerHTML = formatEdgeLabel(normalizedMax, "end");
+        viewMin = normalizedMin;
+        viewMax = normalizedMax;
         slider.value = String(clamp(Number(slider.value), normalizedMin, normalizedMax));
+        renderVisualTimeline();
     }
 
     function setCurrentTime(timeMs) {
         if (!Number.isFinite(rangeMin) || !Number.isFinite(rangeMax)) return;
         const clamped = clamp(timeMs, rangeMin, rangeMax);
         currentTimeMs = clamped;
-        slider.value = String(clamped);
+        slider.value = String(clamp(clamped, viewMin, viewMax));
         slider.dataset.currentTimeMs = String(clamped);
         updateCurrentLabel(clamped);
         syncMarkerHighlights();
@@ -269,8 +643,8 @@ function createTimelineDockController({
             ? eventInfo.startTime.getTime()
             : Number.NaN;
         if (!Number.isFinite(eventTimeMs)) return null;
+        if (eventTimeMs < viewMin || eventTimeMs > viewMax) return null;
 
-        const clampedTime = clamp(eventTimeMs, rangeMin, rangeMax);
         const marker = document.createElement("button");
         marker.type = "button";
         const markerClasses = ["timeline-dock__marker"];
@@ -289,7 +663,7 @@ function createTimelineDockController({
         }
         marker.className = markerClasses.join(" ");
         marker.dataset.eventTimeMs = String(eventTimeMs);
-        marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
+        marker.style.left = `${computePercent(eventTimeMs, viewMin, viewMax)}%`;
         const markerLabel = resolveTimelineEventLabel(eventInfo);
         const hoverText = resolveTimelineEventHoverText(eventInfo) || "Event";
         const generatedSuffix = eventInfo?.generatedLabel
@@ -297,7 +671,7 @@ function createTimelineDockController({
             : "";
         marker.title = currentMode.compareMode
             ? `${markerLabel}\n${hoverText}${generatedSuffix}`
-            : `${markerLabel} - ${formatDateTimeLocal(clampedTime)}\n${hoverText}${generatedSuffix}`;
+            : `${markerLabel} - ${formatDateTimeLocal(eventTimeMs)}\n${hoverText}${generatedSuffix}`;
         marker.setAttribute("aria-label", marker.title);
         marker.addEventListener("mouseenter", () => {
             onMarkerHover?.(eventInfo, index);
@@ -324,8 +698,8 @@ function createTimelineDockController({
             ? markerInfo.startTime.getTime()
             : Number(markerInfo?.startTimeMs);
         if (!Number.isFinite(markerTimeMs)) return null;
+        if (markerTimeMs < viewMin || markerTimeMs > viewMax) return null;
 
-        const clampedTime = clamp(markerTimeMs, rangeMin, rangeMax);
         const marker = document.createElement("button");
         marker.type = "button";
         const markerClasses = ["timeline-dock__media-marker"];
@@ -344,7 +718,7 @@ function createTimelineDockController({
             marker.setAttribute("aria-disabled", "true");
         }
         marker.className = markerClasses.join(" ");
-        marker.style.left = `${computePercent(clampedTime, rangeMin, rangeMax)}%`;
+        marker.style.left = `${computePercent(markerTimeMs, viewMin, viewMax)}%`;
         const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
         marker.title = markerTitle;
         marker.setAttribute("aria-label", markerTitle);
@@ -362,35 +736,26 @@ function createTimelineDockController({
     function setEvents(eventInfos) {
         const normalizedEvents = Array.isArray(eventInfos) ? eventInfos : [];
         const signature = buildEventSignature(normalizedEvents);
+        lastEventInfos = normalizedEvents;
         if (signature === lastEventSignature) {
             return;
         }
 
         lastEventSignature = signature;
-        markers.innerHTML = "";
-
-        for (let i = 0; i < normalizedEvents.length; i += 1) {
-            const marker = renderMarker(normalizedEvents[i], i);
-            if (marker) markers.appendChild(marker);
-        }
-        syncMarkerHighlights();
+        renderEventMarkersFromCache();
     }
 
     function setMediaMarkersFn(nextMediaMarkers) {
         if (!mediaMarkers) return;
         const normalizedMediaMarkers = Array.isArray(nextMediaMarkers) ? nextMediaMarkers : [];
         const signature = buildMediaSignature(normalizedMediaMarkers);
+        lastMediaMarkersData = normalizedMediaMarkers;
         if (signature === lastMediaSignature) {
             return;
         }
 
         lastMediaSignature = signature;
-        mediaMarkers.innerHTML = "";
-
-        for (let i = 0; i < normalizedMediaMarkers.length; i += 1) {
-            const marker = renderMediaMarker(normalizedMediaMarkers[i], i);
-            if (marker) mediaMarkers.appendChild(marker);
-        }
+        renderMediaMarkersFromCache();
     }
 
     function setCrafts(craftInfos) {
@@ -468,6 +833,47 @@ function createTimelineDockController({
             syncMarkerHighlights();
             onSeekTime?.(currentTimeMs, true);
         });
+
+        panLeftButton?.addEventListener?.("click", () => {
+            if (isScaleButtonDisabled(panLeftButton)) return;
+            panView(getViewSpanMs() * -0.4);
+        });
+        scaleContractButton?.addEventListener?.("click", () => {
+            if (isScaleButtonDisabled(scaleContractButton)) return;
+            zoomView(2);
+        });
+        scaleResetButton?.addEventListener?.("click", () => {
+            if (isScaleButtonDisabled(scaleResetButton)) return;
+            resetViewWindow();
+        });
+        scaleExpandButton?.addEventListener?.("click", () => {
+            if (isScaleButtonDisabled(scaleExpandButton)) return;
+            zoomView(0.5);
+        });
+        panRightButton?.addEventListener?.("click", () => {
+            if (isScaleButtonDisabled(panRightButton)) return;
+            panView(getViewSpanMs() * 0.4);
+        });
+
+        const interactionSurface = getTimelineInteractionSurface();
+        interactionSurface?.addEventListener?.("wheel", handleTimelineWheel, { passive: false });
+        interactionSurface?.addEventListener?.("pointerdown", beginTimelineDrag);
+        interactionSurface?.addEventListener?.("pointermove", updateTimelineDrag);
+        interactionSurface?.addEventListener?.("pointerup", (event) => {
+            endTimelineDrag(event, false);
+        });
+        interactionSurface?.addEventListener?.("pointercancel", (event) => {
+            endTimelineDrag(event, true);
+        });
+        interactionSurface?.addEventListener?.("lostpointercapture", (event) => {
+            endTimelineDrag(event, true);
+        });
+        interactionSurface?.addEventListener?.("dblclick", handleTimelineDoubleClick);
+
+        if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
+            window.addEventListener("resize", renderVisualTimeline);
+        }
+        syncScaleButtons();
     }
 
     return {

@@ -30,7 +30,6 @@ import { LIGHT_SETTINGS as LT } from "../core/constants.js";
 import {
     buildTimelinePhases,
     resolveActiveTimelinePhaseIndex,
-    resolveTimelinePhaseSeekTimeMs,
 } from "../core/domain/timeline-phases.js";
 import { resolveTimelineEventHighlightState } from "../core/domain/timeline-event-highlight-state.js";
 import {
@@ -39,6 +38,10 @@ import {
 import {
     resolveStarDisplayName,
 } from "../core/domain/star-display-names.js";
+import { inferMediaShotViewHint } from "../core/domain/media-shot-view.js";
+import {
+    resolveComposerViewIntent,
+} from "../core/domain/composer-view-state.js";
 import {
     applyPhotoModeBodyPresentation,
     applyPhotoModeExposure,
@@ -115,7 +118,7 @@ const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
-const PANEL_DEFAULT_HEIGHT_RATIO = 0.32;
+const PANEL_DEFAULT_HEIGHT_RATIO = 0.24;
 const PANEL_SIDE_RATIO_COMPOSER = 0.364;
 const PANEL_MIN_SIDE_DEFAULT = 120;
 const PANEL_MIN_SIDE_COMPOSER = 300;
@@ -124,6 +127,10 @@ const COMPOSER_DEFAULT_ASPECT_RATIO = 16 / 9;
 const AUTO_FOV_MARGIN_SCALE = 1.03;
 const AUTO_FOV_MIN_DEGREES = 0.1;
 const AUTO_FOV_MAX_DEGREES = 179;
+const TARGET_AUTO_FOV_MIN_DEGREES = 3;
+const TARGET_AUTO_FOV_MAX_DEGREES = 70;
+const COMPOSER_AUTO_FOV_MIN_DEGREES = 2;
+const COMPOSER_AUTO_FOV_MAX_DEGREES = 70;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
 const COMPOSER_DRAG_SENSITIVITY = 0.00055;
 const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
@@ -577,6 +584,7 @@ class AuxiliaryCameraViewsManager {
         this.zIndexCounter = 1;
         this.dragState = null;
         this.handleResizeBound = this.handleResize.bind(this);
+        this.handleMissionMediaItemSelectBound = this.handleMissionMediaItemSelect.bind(this);
         this.panelStateByElement = new WeakMap();
         this.pendingResizePanelStates = new Set();
         this.pendingResizeRaf = null;
@@ -660,6 +668,7 @@ class AuxiliaryCameraViewsManager {
 
         this.createDom();
         window.addEventListener("resize", this.handleResizeBound, { passive: true });
+        document.addEventListener("mission-media-item-select", this.handleMissionMediaItemSelectBound);
     }
 
     getPanelResizeObserver() {
@@ -725,6 +734,7 @@ class AuxiliaryCameraViewsManager {
             payload[panelState.id] = {
                 fov: Number.isFinite(persistedFov) ? Number(persistedFov) : null,
                 autoFovEnabled: panelState.autoFovEnabled === true,
+                composerControlsCollapsed: panelState.composerControlsCollapsed === true,
             };
             layoutPayload[panelState.panelRegistryId] = {
                 x: Math.round(Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft || 0),
@@ -801,6 +811,9 @@ class AuxiliaryCameraViewsManager {
             actions: {
                 open: () => this.restorePanel(panelState),
                 restore: () => this.restorePanel(panelState),
+                restoreGuided: panelState.mode === "composer"
+                    ? () => this.restoreComposerGuidedPanel(panelState)
+                    : undefined,
                 focus: panelStateName === "open"
                     ? () => this.restorePanel(panelState)
                     : undefined,
@@ -1109,6 +1122,7 @@ class AuxiliaryCameraViewsManager {
         const maxPanelHeight = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportHeight - (PANEL_MARGIN_PX * 2));
         const panelRects = this.panels
             .filter((panelState) => panelState.defaultLayoutManaged !== false)
+            .filter((panelState) => panelState.panel?.hidden !== true)
             .map((panelState) => {
             const isComposer = panelState.mode === "composer";
             const sideFromFormula = isComposer
@@ -1155,12 +1169,6 @@ class AuxiliaryCameraViewsManager {
             });
 
         const composerRects = panelRects.filter((item) => item.panelState.mode === "composer");
-        for (const item of composerRects) {
-            const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
-            const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
-            this.applyPanelPosition(item.panelState, x, y);
-        }
-
         const rightPanelOrder = new Map([
             ["moon", 0],
             ["earth", 1],
@@ -1174,6 +1182,40 @@ class AuxiliaryCameraViewsManager {
                 const bOrder = rightPanelOrder.get(b.panelState.id) ?? Number.MAX_SAFE_INTEGER;
                 return aOrder - bOrder;
             });
+        if (rightPanelRects.length === 3) {
+            const preferredSide = Math.min(...rightPanelRects.map((item) => Math.min(item.width, item.height)));
+            const maxSideFromHeight = Math.floor((bounds.height - (2 * PANEL_GAP_PX)) / 3);
+            const composerWidth = composerRects.length ? Math.max(...composerRects.map((item) => item.width)) : 0;
+            const maxSideFromWidth = Math.floor(
+                bounds.width - (composerWidth > 0 ? composerWidth + PANEL_GAP_PX : 0),
+            );
+            const columnSide = Math.max(
+                PANEL_MIN_SIDE_DEFAULT,
+                Math.min(preferredSide, maxSideFromHeight, maxSideFromWidth),
+            );
+            const columnHeight = (3 * columnSide) + (2 * PANEL_GAP_PX);
+            const columnLeft = Math.round(bounds.right - columnSide);
+            const columnTop = Math.round(bounds.top + Math.max(0, (bounds.height - columnHeight) * 0.5));
+
+            rightPanelRects.forEach((item, index) => {
+                item.width = columnSide;
+                item.height = columnSide;
+                item.panelState.panel.style.width = `${columnSide}px`;
+                item.panelState.panel.style.height = `${columnSide}px`;
+                this.applyPanelPosition(
+                    item.panelState,
+                    columnLeft,
+                    columnTop + (index * (columnSide + PANEL_GAP_PX)),
+                );
+            });
+
+            for (const item of composerRects) {
+                const x = Math.round(columnLeft - PANEL_GAP_PX - item.width);
+                const y = Math.round(columnTop + ((columnHeight - item.height) * 0.5));
+                this.applyPanelPosition(item.panelState, x, y);
+            }
+            return;
+        }
         if (rightPanelRects.length === 4) {
             const columns = 2;
             const rows = 2;
@@ -1202,20 +1244,24 @@ class AuxiliaryCameraViewsManager {
                     gridTop + (row * (gridSide + PANEL_GAP_PX)),
                 );
             });
+            for (const item of composerRects) {
+                const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
+                const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
+                this.applyPanelPosition(item.panelState, x, y);
+            }
             return;
+        }
+
+        for (const item of composerRects) {
+            const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
+            const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
+            this.applyPanelPosition(item.panelState, x, y);
         }
 
         let rightColumnEdge = bounds.right;
         let rightColumnWidth = 0;
         let rightY = bounds.top;
-        for (const item of panelRects) {
-            if (item.panelState.mode === "composer") {
-                const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
-                const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
-                this.applyPanelPosition(item.panelState, x, y);
-                continue;
-            }
-
+        for (const item of rightPanelRects) {
             if (rightY > bounds.top && (rightY + item.height) > bounds.bottom) {
                 rightColumnEdge -= (rightColumnWidth + PANEL_GAP_PX);
                 rightColumnWidth = 0;
@@ -1379,7 +1425,7 @@ class AuxiliaryCameraViewsManager {
         this.syncPanelRegistry(panelState);
     }
 
-    restorePanel(panelState) {
+    restorePanel(panelState, { activateComposer = true } = {}) {
         if (!panelState) {
             return;
         }
@@ -1394,11 +1440,123 @@ class AuxiliaryCameraViewsManager {
             this.scheduleDefaultPanelLayout();
         }
         this.bringPanelToFront(panelState);
-        if (panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
+        if (activateComposer && panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
             this.activateComposerWindow(panelState, { finalize: true });
         }
         this.requestRender?.();
         this.syncPanelRegistry(panelState);
+    }
+
+    readComposerViewState(panelState) {
+        return {
+            lockTarget: panelState?.composerLockTarget,
+            autoFovEnabled: panelState?.autoFovEnabled === true,
+            orientationReference: panelState?.composerOrientationReference,
+            surfaceTarget: panelState?.composerSurfaceTarget || null,
+            mediaDriven: panelState?.composerMediaDriven === true,
+        };
+    }
+
+    applyComposerViewState(panelState, viewState, {
+        syncComposerLockUi = null,
+        syncAutoToggleUi = null,
+        persist = true,
+        requestRender = true,
+    } = {}) {
+        if (!panelState || panelState.mode !== "composer" || !viewState) {
+            return false;
+        }
+        panelState.composerLockTarget = viewState.lockTarget || "none";
+        panelState.autoFovEnabled = viewState.autoFovEnabled === true;
+        this.setComposerOrientationReference(
+            panelState,
+            viewState.orientationReference || "world",
+            { preserveView: false },
+        );
+        panelState.composerSurfaceTarget = viewState.surfaceTarget || null;
+        panelState.composerMediaDriven = viewState.mediaDriven === true;
+        if (Number.isFinite(viewState.manualFovDegrees)) {
+            this.setPanelFov(panelState, viewState.manualFovDegrees);
+        }
+        if (typeof syncComposerLockUi === "function") {
+            syncComposerLockUi();
+        }
+        if (typeof syncAutoToggleUi === "function") {
+            syncAutoToggleUi();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
+        if (persist) {
+            this.queuePersistPanelState?.();
+        }
+        return true;
+    }
+
+    applyComposerViewIntent(panelState, intent, options = {}) {
+        const result = resolveComposerViewIntent(this.readComposerViewState(panelState), intent);
+        if (!result.applied) {
+            return false;
+        }
+        return this.applyComposerViewState(panelState, result.state, options);
+    }
+
+    applyComposerGuidedViewState(panelState, options = {}) {
+        return this.applyComposerViewIntent(panelState, { type: "guided" }, options);
+    }
+
+    restoreComposerGuidedPanel(panelState, { seekTimeMs = COMPOSER_DEFAULT_OPEN_TIME_MS } = {}) {
+        if (!panelState || panelState.mode !== "composer") {
+            return false;
+        }
+        this.restorePanel(panelState, { activateComposer: false });
+        this.applyComposerGuidedViewState(panelState, {
+            syncComposerLockUi: panelState.syncComposerLockUi,
+            syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
+            persist: false,
+        });
+        if (Number.isFinite(seekTimeMs)) {
+            this.seekMainTimelineTime(seekTimeMs, true);
+        }
+        this.requestRender?.();
+        this.queuePersistPanelState?.();
+        return true;
+    }
+
+    getComposerPanelState() {
+        return this.panels.find((panelState) => panelState?.mode === "composer") || null;
+    }
+
+    handleMissionMediaItemSelect(event) {
+        const item = event?.detail?.item;
+        const hint = event?.detail?.shotViewHint || inferMediaShotViewHint(item);
+        if (!hint) {
+            return false;
+        }
+        const panelState = this.getComposerPanelState();
+        if (!panelState || panelState.missionEnabled !== true) {
+            return false;
+        }
+        this.restorePanel(panelState, { activateComposer: false });
+        return this.applyComposerMediaShotHint(panelState, hint);
+    }
+
+    applyComposerMediaShotHint(panelState, hint, { persist = true } = {}) {
+        if (!panelState || panelState.mode !== "composer" || !hint) {
+            return false;
+        }
+        const result = resolveComposerViewIntent(this.readComposerViewState(panelState), {
+            type: "media-shot",
+            hint,
+        });
+        if (!result.applied) {
+            return false;
+        }
+        return this.applyComposerViewState(panelState, result.state, {
+            syncComposerLockUi: panelState.syncComposerLockUi,
+            syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
+            persist,
+        });
     }
 
     updateComposerChipPresentation(panelState) {
@@ -1682,6 +1840,16 @@ class AuxiliaryCameraViewsManager {
         deleteButton.textContent = "";
         deleteButton.setAttribute("aria-label", `Delete ${spec.title}`);
 
+        let composerControlsToggleButton = null;
+        if (spec.mode === "composer") {
+            composerControlsToggleButton = document.createElement("button");
+            composerControlsToggleButton.className = "aux-camera-view__composer-controls-toggle mission-panel-shell__button mission-panel-shell__button--icon";
+            composerControlsToggleButton.type = "button";
+            composerControlsToggleButton.textContent = "\u25c0";
+            composerControlsToggleButton.setAttribute("aria-label", "Collapse Frame and Shoot controls");
+            composerControlsToggleButton.title = "Collapse controls";
+        }
+
         headerControls.appendChild(infoButton);
         headerControls.appendChild(minimizeButton);
         headerControls.appendChild(expandButton);
@@ -1713,6 +1881,8 @@ class AuxiliaryCameraViewsManager {
         let composerLookEarthButton = null;
         let composerLookMoonButton = null;
         let composerControlMatrix = null;
+        let composerSkyControlsWrap = null;
+        let composerSkyTimelineWrap = null;
         let composerInfoRow = null;
         let composerFovWrap = null;
         let composerTimelineWrap = null;
@@ -1790,16 +1960,14 @@ class AuxiliaryCameraViewsManager {
             }
             composerControlMatrix = document.createElement("div");
             composerControlMatrix.className = "aux-camera-view__composer-control-matrix";
+            if (composerControlsToggleButton) {
+                composerControlMatrix.appendChild(composerControlsToggleButton);
+            }
 
-            const createSectionLabel = (text) => {
-                const sectionLabel = document.createElement("div");
-                sectionLabel.className = "aux-camera-view__composer-section-label";
-                sectionLabel.textContent = text;
-                return sectionLabel;
-            };
-            const basicSectionLabel = createSectionLabel("Basic Settings");
-            const sunSectionLabel = createSectionLabel("Sun Related");
-            const timelineSectionLabel = createSectionLabel("Timeline");
+            composerSkyControlsWrap = document.createElement("div");
+            composerSkyControlsWrap.className = "aux-camera-view__composer-sky-controls";
+            composerSkyTimelineWrap = document.createElement("div");
+            composerSkyTimelineWrap.className = "aux-camera-view__composer-sky-timeline";
 
             composerInfoRow = document.createElement("div");
             composerInfoRow.className = "aux-camera-view__composer-info-row";
@@ -1829,7 +1997,7 @@ class AuxiliaryCameraViewsManager {
             composerSkyLabelsCheckbox.setAttribute("aria-label", "Toggle composer bright star and planet labels");
             composerSkyLabelsCheckbox.dataset.proofId = "sky-labels-toggle";
             const composerSkyLabelsText = document.createElement("span");
-            composerSkyLabelsText.textContent = "Sky Labels";
+            composerSkyLabelsText.textContent = "Stars";
             composerSkyLabelsWrap.appendChild(composerSkyLabelsCheckbox);
             composerSkyLabelsWrap.appendChild(composerSkyLabelsText);
             composerInfoToggles.appendChild(composerSkyLabelsWrap);
@@ -1841,7 +2009,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLinesCheckbox.setAttribute("aria-label", "Toggle composer constellation lines");
             composerConstellationLinesCheckbox.dataset.proofId = "constellation-lines-toggle";
             const composerConstellationLinesText = document.createElement("span");
-            composerConstellationLinesText.textContent = "Constellations";
+            composerConstellationLinesText.textContent = "Lines";
             composerConstellationLinesWrap.appendChild(composerConstellationLinesCheckbox);
             composerConstellationLinesWrap.appendChild(composerConstellationLinesText);
             composerInfoToggles.appendChild(composerConstellationLinesWrap);
@@ -1853,7 +2021,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLabelsCheckbox.setAttribute("aria-label", "Toggle composer constellation labels");
             composerConstellationLabelsCheckbox.dataset.proofId = "constellation-labels-toggle";
             const composerConstellationLabelsText = document.createElement("span");
-            composerConstellationLabelsText.textContent = "Const Labels";
+            composerConstellationLabelsText.textContent = "Names";
             composerConstellationLabelsWrap.appendChild(composerConstellationLabelsCheckbox);
             composerConstellationLabelsWrap.appendChild(composerConstellationLabelsText);
             composerInfoToggles.appendChild(composerConstellationLabelsWrap);
@@ -1873,7 +2041,7 @@ class AuxiliaryCameraViewsManager {
             composerInfoRow.appendChild(composerInfoToggles);
 
             const composerStarMagnitudeRow = document.createElement("div");
-            composerStarMagnitudeRow.className = "aux-camera-view__composer-optics-row";
+            composerStarMagnitudeRow.className = "aux-camera-view__composer-optics-row aux-camera-view__composer-star-mag-row";
             const composerStarMagnitudeLabel = document.createElement("span");
             composerStarMagnitudeLabel.className = "aux-camera-view__composer-label";
             composerStarMagnitudeLabel.textContent = "Star Mag";
@@ -1927,6 +2095,10 @@ class AuxiliaryCameraViewsManager {
             composerLookMoonButton.dataset.proofId = "lock-moon";
             lockButtonStrip.appendChild(composerLookMoonButton);
             composerPresetWrap.appendChild(lockButtonStrip);
+            const composerSkyLockRow = document.createElement("div");
+            composerSkyLockRow.className = "aux-camera-view__composer-sky-lock-row";
+            composerSkyLockRow.appendChild(composerPresetWrap);
+            composerSkyLockRow.appendChild(composerStarMagnitudeRow);
 
             composerFovWrap = document.createElement("div");
             composerFovWrap.className = "aux-camera-view__composer-fov";
@@ -2057,10 +2229,16 @@ class AuxiliaryCameraViewsManager {
             composerTimelineLocalValue.className = "aux-camera-view__composer-timeline-local";
             composerTimelineLocalValue.textContent = "Local: --";
             composerTimelineWrap.appendChild(composerTimelineLocalValue);
+            const composerFlybyEventsDetails = document.createElement("details");
+            composerFlybyEventsDetails.className = "aux-camera-view__composer-event-pullup";
+            const composerFlybyEventsSummary = document.createElement("summary");
+            composerFlybyEventsSummary.className = "aux-camera-view__composer-event-pullup-summary";
+            composerFlybyEventsSummary.textContent = "Events";
+            composerFlybyEventsDetails.appendChild(composerFlybyEventsSummary);
             composerFlybyEventsWrap = document.createElement("div");
             composerFlybyEventsWrap.className = "aux-camera-view__composer-event-pills";
-            composerTimelineWrap.appendChild(composerFlybyEventsWrap);
-            composerControlMatrix.appendChild(composerTimelineWrap);
+            composerFlybyEventsDetails.appendChild(composerFlybyEventsWrap);
+            composerPhasePicker.appendChild(composerFlybyEventsDetails);
 
             composerControlsWrap = document.createElement("div");
             composerControlsWrap.className = "aux-camera-view__composer-controls";
@@ -2152,12 +2330,6 @@ class AuxiliaryCameraViewsManager {
                 },
             ));
 
-            const composerMoonOutlineRow = document.createElement("div");
-            composerMoonOutlineRow.className = "aux-camera-view__composer-optics-row aux-camera-view__composer-boolean-row";
-            const composerMoonOutlineLabel = document.createElement("span");
-            composerMoonOutlineLabel.className = "aux-camera-view__composer-label";
-            composerMoonOutlineLabel.textContent = "Moon Outline";
-            composerMoonOutlineRow.appendChild(composerMoonOutlineLabel);
             composerMoonOutlineWrap = document.createElement("label");
             composerMoonOutlineWrap.className = "aux-camera-view__composer-grid-toggle";
             composerMoonOutlineCheckbox = document.createElement("input");
@@ -2165,41 +2337,18 @@ class AuxiliaryCameraViewsManager {
             composerMoonOutlineCheckbox.checked = false;
             composerMoonOutlineCheckbox.setAttribute("aria-label", "Toggle Moon outline in Flyby Planner");
             const composerMoonOutlineText = document.createElement("span");
-            composerMoonOutlineText.textContent = "Show";
+            composerMoonOutlineText.textContent = "Moon Outline";
             composerMoonOutlineWrap.appendChild(composerMoonOutlineCheckbox);
             composerMoonOutlineWrap.appendChild(composerMoonOutlineText);
-            composerMoonOutlineRow.appendChild(composerMoonOutlineWrap);
-            const composerMoonOutlineValue = document.createElement("span");
-            composerMoonOutlineValue.className = "aux-camera-view__composer-value-slot";
-            composerMoonOutlineRow.appendChild(composerMoonOutlineValue);
-            composerControlsWrap.appendChild(composerMoonOutlineRow);
-            composerControlMatrix.appendChild(composerControlsWrap);
+            composerInfoToggles.appendChild(composerMoonOutlineWrap);
 
             composerOpticsWrap = document.createElement("div");
             composerOpticsWrap.className = "aux-camera-view__composer-optics";
 
-            const composerOpticsToggleRow = document.createElement("div");
-            composerOpticsToggleRow.className = "aux-camera-view__composer-optics-toggle-row";
-            composerOpticsToggleButton = document.createElement("button");
-            composerOpticsToggleButton.type = "button";
-            composerOpticsToggleButton.className = "aux-camera-view__composer-disclosure";
-            composerOpticsToggleButton.setAttribute("aria-expanded", "false");
-            composerOpticsToggleButton.setAttribute("aria-label", "Show Sun related controls");
-            const composerOpticsDisclosureIcon = document.createElement("span");
-            composerOpticsDisclosureIcon.className = "aux-camera-view__composer-disclosure-icon";
-            composerOpticsDisclosureIcon.setAttribute("aria-hidden", "true");
-            composerOpticsDisclosureIcon.textContent = "\u25b8";
-            const composerOpticsToggleLabel = document.createElement("span");
-            composerOpticsToggleLabel.className = "aux-camera-view__composer-label";
-            composerOpticsToggleLabel.textContent = "Sun Related";
-            composerOpticsToggleButton.appendChild(composerOpticsDisclosureIcon);
-            composerOpticsToggleButton.appendChild(composerOpticsToggleLabel);
-            composerOpticsToggleRow.appendChild(composerOpticsToggleButton);
-            composerOpticsWrap.appendChild(composerOpticsToggleRow);
-
             composerOpticsBody = document.createElement("div");
             composerOpticsBody.className = "aux-camera-view__composer-optics-body";
-            composerOpticsBody.hidden = true;
+            composerOpticsBody.hidden = false;
+            composerOpticsBody.appendChild(composerControlsWrap);
 
             const composerOpticsHeader = document.createElement("div");
             composerOpticsHeader.className = "aux-camera-view__composer-optics-header";
@@ -2247,7 +2396,7 @@ class AuxiliaryCameraViewsManager {
 
             composerOpticsAdvancedPanel = document.createElement("div");
             composerOpticsAdvancedPanel.className = "aux-camera-view__composer-optics-advanced";
-            composerOpticsAdvancedPanel.hidden = true;
+            composerOpticsAdvancedPanel.hidden = false;
 
             const buildAdvancedRow = (labelText) => {
                 const row = document.createElement("div");
@@ -2298,16 +2447,17 @@ class AuxiliaryCameraViewsManager {
             composerRollValue = document.createElement("output");
             composerRollValue.className = "aux-camera-view__composer-roll-value";
             composerRollWrap.appendChild(composerRollValue);
-            composerControlMatrix.replaceChildren(
-                basicSectionLabel,
+            composerSkyControlsWrap.replaceChildren(
+                composerSkyLockRow,
                 composerInfoRow,
-                composerStarMagnitudeRow,
-                composerPresetWrap,
-                composerControlsWrap,
+            );
+            composerSkyTimelineWrap.replaceChildren(
+                composerTimelineWrap,
+            );
+            composerControlMatrix.replaceChildren(
+                ...(composerControlsToggleButton ? [composerControlsToggleButton] : []),
                 composerFovWrap,
                 composerOpticsWrap,
-                timelineSectionLabel,
-                composerTimelineWrap,
             );
             panel.appendChild(composerControlMatrix);
         } else {
@@ -2345,6 +2495,9 @@ class AuxiliaryCameraViewsManager {
             composerHint.className = "aux-camera-view__composer-hint";
             composerHint.hidden = true;
             viewport.appendChild(composerHint);
+
+            viewport.appendChild(composerSkyControlsWrap);
+            viewport.appendChild(composerSkyTimelineWrap);
 
             composerMetricsStrip = document.createElement("div");
             composerMetricsStrip.className = "aux-camera-view__composer-metrics-strip";
@@ -2475,6 +2628,8 @@ class AuxiliaryCameraViewsManager {
             composerLookFreeButton,
             composerLookEarthButton,
             composerLookMoonButton,
+            composerSkyControlsWrap,
+            composerSkyTimelineWrap,
             composerFovWrap,
             composerTimelineWrap,
             composerTransportRow,
@@ -2544,6 +2699,8 @@ class AuxiliaryCameraViewsManager {
             composerMetricDistanceMoonValue,
             composerMetricAngleValue,
             composerDisabledOverlay,
+            composerControlMatrix,
+            composerControlsToggleButton,
             overlayCanvas,
             overlayCtx,
             farSideTintEnabled: spec.infoMode === "moon-visibility",
@@ -2588,6 +2745,7 @@ class AuxiliaryCameraViewsManager {
             onComposerEarthshineInput: null,
             onComposerMoonshineInput: null,
             onComposerMoonOutlineToggle: null,
+            onComposerControlsToggleClick: null,
             onComposerOpticsPhysicalClick: null,
             onComposerOpticsCameraClick: null,
             onComposerOpticsToggleClick: null,
@@ -2676,6 +2834,7 @@ class AuxiliaryCameraViewsManager {
             composerFlybySelectedEventTimeMs: Number.NaN,
             composerPhaseSelectSignature: "",
             composerInteractionEnabled: true,
+            composerControlsCollapsed: false,
             composerInfoOverlayEnabled: true,
             composerRaDecGridEnabled: false,
             composerSkyLabelsEnabled: false,
@@ -2696,10 +2855,15 @@ class AuxiliaryCameraViewsManager {
         };
 
         const syncAutoToggleUi = () => {
+            const isFreeComposer = panelState.mode === "composer" &&
+                (panelState.composerLockTarget || "none") === "none";
+            if (isFreeComposer && panelState.autoFovEnabled === true) {
+                panelState.autoFovEnabled = false;
+            }
             const enabled = panelState.autoFovEnabled === true;
             panelState.fovControl?.setAutoEnabled(enabled);
             panelState.fovControl?.setDisabledState({
-                autoButtonDisabled: panelState.mode === "orbit-xy" || autoToggle.disabled,
+                autoButtonDisabled: panelState.mode === "orbit-xy" || autoToggle.disabled || isFreeComposer,
                 sliderDisabled: enabled,
                 valueDisabled: false,
             });
@@ -2716,7 +2880,10 @@ class AuxiliaryCameraViewsManager {
             this.queuePersistPanelState();
         };
         const onAutoToggleClick = () => {
-            if (panelState.mode === "orbit-xy") {
+            if (
+                panelState.mode === "orbit-xy" ||
+                (panelState.mode === "composer" && (panelState.composerLockTarget || "none") === "none")
+            ) {
                 return;
             }
             panelState.autoFovEnabled = !panelState.autoFovEnabled;
@@ -2745,16 +2912,13 @@ class AuxiliaryCameraViewsManager {
         };
         let syncComposerLockUi = null;
         let syncComposerCloudsUi = null;
-        const onChipClick = () => {
-            if (panelState.mode === "composer") {
-                panelState.composerLockTarget = "moon";
-                syncComposerLockUi?.();
-                panelState.autoFovEnabled = true;
-                syncAutoToggleUi();
-                this.seekMainTimelineTime(COMPOSER_DEFAULT_OPEN_TIME_MS, true);
-            }
-            this.setPanelMinimized(panelState, false);
-            this.bringPanelToFront(panelState);
+            const onChipClick = () => {
+                if (panelState.mode === "composer") {
+                    this.restoreComposerGuidedPanel(panelState);
+                    return;
+                }
+                this.setPanelMinimized(panelState, false);
+                this.bringPanelToFront(panelState);
             if (panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
                 this.activateComposerWindow(panelState, { finalize: true });
             }
@@ -2767,6 +2931,16 @@ class AuxiliaryCameraViewsManager {
         closeButton.addEventListener("click", onCloseClick);
         deleteButton.addEventListener("click", onDeleteClick);
         chipButton.addEventListener("click", onChipClick);
+        if (composerControlsToggleButton) {
+            const onComposerControlsToggleClick = () => {
+                this.setComposerControlsCollapsed(
+                    panelState,
+                    panelState.composerControlsCollapsed !== true,
+                );
+            };
+            composerControlsToggleButton.addEventListener("click", onComposerControlsToggleClick);
+            panelState.onComposerControlsToggleClick = onComposerControlsToggleClick;
+        }
         panelState.onAutoToggleClick = onAutoToggleClick;
         panelState.onFovInput = onFovInput;
         panelState.onInfoClick = onInfoClick;
@@ -2859,19 +3033,18 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerCloudsWrap?.setAttribute("title", title);
             };
             const syncComposerOpticsUi = () => {
-                const expanded = panelState.composerOpticsExpanded === true;
                 if (panelState.composerOpticsBody) {
-                    panelState.composerOpticsBody.hidden = !expanded;
+                    panelState.composerOpticsBody.hidden = false;
                 }
                 if (panelState.composerOpticsToggleButton) {
-                    panelState.composerOpticsToggleButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+                    panelState.composerOpticsToggleButton.setAttribute("aria-expanded", "true");
                     panelState.composerOpticsToggleButton.setAttribute(
                         "aria-label",
-                        expanded ? "Hide Sun related controls" : "Show Sun related controls",
+                        "Advanced controls",
                     );
                     const icon = panelState.composerOpticsToggleButton.querySelector(".aux-camera-view__composer-disclosure-icon");
                     if (icon) {
-                        icon.textContent = expanded ? "\u25be" : "\u25b8";
+                        icon.textContent = "\u25be";
                     }
                 }
                 const profile = panelState.composerSunProfile === "physical" ? "physical" : "camera";
@@ -3351,6 +3524,14 @@ class AuxiliaryCameraViewsManager {
                 if (isDomElement(event.target) && event.target.closest(".aux-camera-view__composer-roll-dial")) {
                     return;
                 }
+                if (isDomElement(event.target) && event.target.closest(".aux-camera-view__composer-controls-toggle")) {
+                    return;
+                }
+                if (isDomElement(event.target) && event.target.closest(
+                    ".aux-camera-view__composer-sky-controls, .aux-camera-view__composer-sky-timeline",
+                )) {
+                    return;
+                }
                 if (!panelState.composerInteractionEnabled) {
                     this.activateComposerWindow(panelState, { finalize: true });
                     event.preventDefault();
@@ -3636,11 +3817,28 @@ class AuxiliaryCameraViewsManager {
                     );
                     this.setPanelFov(panelState, boundedFov);
                 }
+            } else if (typeof persisted.composerControlsCollapsed === "boolean") {
+                panelState.composerControlsCollapsed = persisted.composerControlsCollapsed;
             }
         }
         if (panelState.mode === "composer") {
             panelState.autoFovEnabled = true;
             this.setPanelFov(panelState, spec.defaultFov);
+            if (persisted && typeof persisted === "object") {
+                const result = resolveComposerViewIntent(this.readComposerViewState(panelState), {
+                    type: "persisted",
+                    persisted,
+                });
+                panelState.autoFovEnabled = result.state.autoFovEnabled === true;
+                if (Number.isFinite(result.state.manualFovDegrees)) {
+                    const boundedFov = this.THREE.MathUtils.clamp(
+                        result.state.manualFovDegrees,
+                        AUTO_FOV_MIN_DEGREES,
+                        AUTO_FOV_MAX_DEGREES,
+                    );
+                    this.setPanelFov(panelState, boundedFov);
+                }
+            }
             panelState.composerEarthAmbient = COMPOSER_DEFAULT_EARTH_AMBIENT;
             panelState.composerMoonAmbient = COMPOSER_DEFAULT_MOON_AMBIENT;
             panelState.composerEarthshineGain = COMPOSER_DEFAULT_EARTHSHINE_GAIN;
@@ -3734,6 +3932,10 @@ class AuxiliaryCameraViewsManager {
             this.bringPanelToFront(panelState);
         };
         panel.addEventListener("pointerdown", panelState.onPanelPointerDown);
+        this.setComposerControlsCollapsed(panelState, panelState.composerControlsCollapsed === true, {
+            persist: false,
+            requestRender: false,
+        });
         if (Number.isFinite(persistedWidth)) {
             panel.style.width = `${Math.round(persistedWidth)}px`;
         }
@@ -3883,6 +4085,40 @@ class AuxiliaryCameraViewsManager {
         }
     }
 
+    setComposerControlsCollapsed(panelState, collapsed, { persist = true, requestRender = true } = {}) {
+        if (!panelState || panelState.mode !== "composer" || !panelState.panel) {
+            return;
+        }
+        const isCollapsed = collapsed === true;
+        panelState.composerControlsCollapsed = isCollapsed;
+        panelState.panel.classList.toggle("aux-camera-view--composer-controls-collapsed", isCollapsed);
+        if (panelState.composerControlsToggleButton) {
+            const toggleHost = isCollapsed ? panelState.viewport : panelState.composerControlMatrix;
+            if (toggleHost && panelState.composerControlsToggleButton.parentElement !== toggleHost) {
+                if (isCollapsed) {
+                    toggleHost.appendChild(panelState.composerControlsToggleButton);
+                } else {
+                    toggleHost.prepend(panelState.composerControlsToggleButton);
+                }
+            }
+            panelState.composerControlsToggleButton.textContent = isCollapsed ? "\u25b6" : "\u25c0";
+            panelState.composerControlsToggleButton.setAttribute(
+                "aria-label",
+                isCollapsed ? "Expand Frame and Shoot controls" : "Collapse Frame and Shoot controls",
+            );
+            panelState.composerControlsToggleButton.title = isCollapsed
+                ? "Expand controls"
+                : "Collapse controls";
+        }
+        this.scheduleVisiblePanelRefresh(panelState);
+        if (persist) {
+            this.queuePersistPanelState();
+        }
+        if (requestRender) {
+            this.requestRender?.();
+        }
+    }
+
     setComposerInteractionEnabled(panelState, enabled) {
         if (!panelState || panelState.mode !== "composer") {
             return;
@@ -3892,8 +4128,9 @@ class AuxiliaryCameraViewsManager {
         panelState.panel.classList.toggle("aux-camera-view--composer-disabled", !isEnabled);
 
         const disableControls = !isEnabled;
+        const isFreeComposer = (panelState.composerLockTarget || "none") === "none";
         panelState.fovControl?.setDisabledState({
-            autoButtonDisabled: disableControls,
+            autoButtonDisabled: disableControls || isFreeComposer,
             sliderDisabled: disableControls || panelState.autoFovEnabled,
             valueDisabled: disableControls,
         });
@@ -3925,6 +4162,9 @@ class AuxiliaryCameraViewsManager {
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
         }
+        panelState.composerPhaseSelect && (panelState.composerPhaseSelect.disabled = disableControls);
+        panelState.composerPhasePrevButton && (panelState.composerPhasePrevButton.disabled = disableControls);
+        panelState.composerPhaseNextButton && (panelState.composerPhaseNextButton.disabled = disableControls);
         panelState.composerTransportMinusSecondButton && (panelState.composerTransportMinusSecondButton.disabled = disableControls);
         panelState.composerTransportMinusMinuteButton && (panelState.composerTransportMinusMinuteButton.disabled = disableControls);
         panelState.composerTransportPlusMinuteButton && (panelState.composerTransportPlusMinuteButton.disabled = disableControls);
@@ -4200,11 +4440,17 @@ class AuxiliaryCameraViewsManager {
             return false;
         }
         const timelineState = this.readMainTimelineState();
-        const targetMs = resolveTimelinePhaseSeekTimeMs({
+        const targetMs = this.resolveComposerPhaseSeekTimeMs({
             phase,
             timelineMinMs: timelineState?.min,
             timelineMaxMs: timelineState?.max,
             stepMs: timelineState?.stepMs,
+        });
+        this.applyComposerGuidedViewState(panelState, {
+            syncComposerLockUi: panelState.syncComposerLockUi,
+            syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
+            persist: false,
+            requestRender: false,
         });
         this.composerActivePhaseIndex = boundedPhaseIndex;
         this.composerSelectedPhaseIndex = boundedPhaseIndex;
@@ -4212,6 +4458,39 @@ class AuxiliaryCameraViewsManager {
         this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: boundedPhaseIndex });
         this.requestRender?.();
         return true;
+    }
+
+    resolveComposerPhaseSeekTimeMs({
+        phase,
+        timelineMinMs,
+        timelineMaxMs,
+        stepMs = 1,
+    }) {
+        const startMs = Number(phase?.startMs);
+        const endMs = Number(phase?.endMs);
+        const minMs = Number(timelineMinMs);
+        const maxMs = Number(timelineMaxMs);
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+            return Number.NaN;
+        }
+        if (!Number.isFinite(minMs) || !Number.isFinite(maxMs) || maxMs < minMs) {
+            return startMs;
+        }
+
+        const clampedStart = Math.min(Math.max(startMs, minMs), maxMs);
+        const clampedEnd = Math.min(Math.max(endMs, minMs), maxMs);
+        if (clampedEnd <= clampedStart) {
+            return clampedStart;
+        }
+
+        const safeStepMs = Number.isFinite(Number(stepMs)) && Number(stepMs) > 0
+            ? Number(stepMs)
+            : 1;
+        const inwardMs = Math.max(1, Math.min(1000, safeStepMs * 0.5));
+        const lowerBound = Math.min(clampedEnd - 1, clampedStart + inwardMs);
+        const upperBound = Math.max(lowerBound, clampedEnd - inwardMs);
+        const midpoint = clampedStart + ((clampedEnd - clampedStart) * 0.5);
+        return Math.round(Math.min(Math.max(midpoint, lowerBound), upperBound));
     }
 
     syncComposerPhaseSelect(panelState, activePhaseIndex) {
@@ -4277,6 +4556,12 @@ class AuxiliaryCameraViewsManager {
                     if (this.composerActivePhaseIndex >= 0) {
                         this.composerSelectedPhaseIndex = this.composerActivePhaseIndex;
                     }
+                    this.applyComposerGuidedViewState(panelState, {
+                        syncComposerLockUi: panelState.syncComposerLockUi,
+                        syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
+                        persist: false,
+                        requestRender: false,
+                    });
                     this.seekMainTimelineTime(eventInfo.timeMs, true);
                     this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: this.composerActivePhaseIndex });
                     this.syncComposerFlybyEventPills(panelState, eventInfo.timeMs);
@@ -4867,7 +5152,10 @@ class AuxiliaryCameraViewsManager {
         moonRadius,
         lockTarget = "none",
     }) {
-        const targetKind = lockTarget === "moon" ? "moon" : "earth";
+        if (lockTarget !== "earth" && lockTarget !== "moon") {
+            return panelState.camera.fov;
+        }
+        const targetKind = lockTarget;
         const targetWorld = targetKind === "moon" ? moonWorld : earthWorld;
         if (!targetWorld || !craftWorld) {
             return panelState.camera.fov;
@@ -6456,6 +6744,15 @@ class AuxiliaryCameraViewsManager {
         return this.THREE.MathUtils.radToDeg(requiredVerticalRadians);
     }
 
+    clampAutoFovDegrees(panelState, requestedDegrees) {
+        const isComposer = panelState?.mode === "composer";
+        return clampFovDegrees(requestedDegrees, {
+            minDegrees: isComposer ? COMPOSER_AUTO_FOV_MIN_DEGREES : TARGET_AUTO_FOV_MIN_DEGREES,
+            maxDegrees: isComposer ? COMPOSER_AUTO_FOV_MAX_DEGREES : TARGET_AUTO_FOV_MAX_DEGREES,
+            fallbackDegrees: panelState?.camera?.fov || panelState?.orbitZoomFovDegrees || 45,
+        });
+    }
+
     applyEclipticNorthUp(camera, lookTarget) {
         if (!camera || !lookTarget) return;
         const worldNorth = this.viewDir.set(0, 0, 1);
@@ -7054,32 +7351,32 @@ class AuxiliaryCameraViewsManager {
     setComposerLockTarget(panelState, target, {
         syncComposerLockUi = null,
         syncAutoToggleUi = null,
+        forceAuto = false,
+        activateIfDisabled = true,
         persist = true,
     } = {}) {
         if (!panelState || panelState.mode !== "composer") {
             return false;
         }
-        const nextTarget = target === "earth" || target === "moon" ? target : "none";
         const previousTarget = panelState.composerLockTarget || "none";
-        if (panelState.composerInteractionEnabled !== true) {
+        if (activateIfDisabled && panelState.composerInteractionEnabled !== true) {
             this.activateComposerWindow(panelState, { finalize: true });
         }
-
-        panelState.composerLockTarget = nextTarget;
-        if (nextTarget !== "none" && nextTarget !== previousTarget) {
-            panelState.autoFovEnabled = true;
-            if (typeof syncAutoToggleUi === "function") {
-                syncAutoToggleUi();
-            }
-        }
-        if (typeof syncComposerLockUi === "function") {
-            syncComposerLockUi();
-        }
-        this.requestRender?.();
-        if (persist) {
-            this.queuePersistPanelState?.();
-        }
-        return true;
+        const result = resolveComposerViewIntent(this.readComposerViewState(panelState), {
+            type: "lock-target",
+            target,
+            forceAuto,
+        });
+        const nextTarget = result.state.lockTarget;
+        const targetChanged = nextTarget !== previousTarget;
+        const shouldSyncAuto = nextTarget === "none"
+            ? targetChanged
+            : (targetChanged || forceAuto === true);
+        return this.applyComposerViewState(panelState, result.state, {
+            syncComposerLockUi,
+            syncAutoToggleUi: shouldSyncAuto ? syncAutoToggleUi : null,
+            persist,
+        });
     }
 
     showComposerHint(panelState, message, durationMs = 1800) {
@@ -7206,7 +7503,7 @@ class AuxiliaryCameraViewsManager {
             }
         }
 
-        if (!disabledAsCraftToEarth && panelState.autoFovEnabled) {
+        if (!disabledAsCraftToEarth && panelState.autoFovEnabled && lockTarget !== "none") {
             const autoFov = this.computeComposerAutoFovDegrees({
                 panelState,
                 craftWorld: this.craftWorld,
@@ -7216,7 +7513,7 @@ class AuxiliaryCameraViewsManager {
                 moonRadius: composerMoonRadius,
                 lockTarget,
             });
-            this.setPanelFov(panelState, autoFov);
+            this.setPanelFov(panelState, this.clampAutoFovDegrees(panelState, autoFov));
         }
 
         if (hasSkyContainer) {
@@ -7562,7 +7859,7 @@ class AuxiliaryCameraViewsManager {
                         targetRadius,
                         aspect: panelState.camera.aspect,
                     });
-                    this.setPanelFov(panelState, autoFovDegrees);
+                    this.setPanelFov(panelState, this.clampAutoFovDegrees(panelState, autoFovDegrees));
                 }
                 panelState.camera.lookAt(this.targetWorld);
 
@@ -7714,6 +8011,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         window.removeEventListener("resize", this.handleResizeBound);
+        document.removeEventListener("mission-media-item-select", this.handleMissionMediaItemSelectBound);
         if (this.panelResizeObserver) {
             this.panelResizeObserver.disconnect();
             this.panelResizeObserver = null;
@@ -7779,6 +8077,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerMoonOutlineToggle) {
                 panelState.composerMoonOutlineCheckbox?.removeEventListener("change", panelState.onComposerMoonOutlineToggle);
+            }
+            if (panelState.onComposerControlsToggleClick) {
+                panelState.composerControlsToggleButton?.removeEventListener("click", panelState.onComposerControlsToggleClick);
             }
             if (panelState.onComposerOpticsToggleClick) {
                 panelState.composerOpticsToggleButton?.removeEventListener("click", panelState.onComposerOpticsToggleClick);

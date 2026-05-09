@@ -44,6 +44,7 @@ function buildUiPort(ctx) {
         initRepeatButtons,
         resetViewTransformState,
         uiEffects,
+        setTimelineMediaMarkers,
     } = ctx;
 
     return {
@@ -90,6 +91,7 @@ function buildUiPort(ctx) {
         bindRepeatButtons,
         initRepeatButtons,
         resetViewTransformState,
+        setTimelineMediaMarkers,
         ...(uiEffects || {}),
     };
 }

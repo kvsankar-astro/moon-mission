@@ -134,13 +134,32 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                 );
             };
 
+            const revealComposerSkyControls = async () => {
+                const viewport = page.locator(".aux-camera-view--composer .aux-camera-view__viewport");
+                const box = await viewport.boundingBox();
+                if (!box) {
+                    throw new Error("Frame and Shoot viewport was not available");
+                }
+                await page.mouse.move(box.x + 24, box.y + 24);
+                await page.waitForFunction(
+                    () => {
+                        const controls = document.querySelector(
+                            ".aux-camera-view--composer .aux-camera-view__composer-sky-controls",
+                        );
+                        return controls && window.getComputedStyle(controls).pointerEvents !== "none";
+                    },
+                    undefined,
+                    { timeout: 5000 },
+                );
+            };
+
             const clickLock = async (label) => {
-                await page.evaluate((targetLabel) => {
-                    const panel = document.querySelector(".aux-camera-view--composer");
-                    const button = [...panel.querySelectorAll(".aux-camera-view__composer-button")]
-                        .find((candidate) => candidate.textContent.trim() === targetLabel);
-                    button?.click();
-                }, label);
+                await revealComposerSkyControls();
+                await page
+                    .locator(".aux-camera-view--composer .aux-camera-view__composer-sky-controls .aux-camera-view__composer-button")
+                    .filter({ hasText: new RegExp(`^${label}$`) })
+                    .first()
+                    .click();
             };
 
             const waitForRefit = async (label) => page.waitForFunction(
@@ -160,9 +179,26 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                 { timeout: 10000 },
             );
 
+            const waitForFreeLock = async () => page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    const activeLock = [...panel.querySelectorAll(".aux-camera-view__composer-button.is-active")]
+                        .find((button) => ["Free", "Earth", "Moon"].includes(button.textContent.trim()));
+                    const autoButton = panel.querySelector(".aux-camera-view__auto-toggle");
+                    return activeLock?.textContent.trim() === "Free" &&
+                        !autoButton?.classList.contains("is-active") &&
+                        autoButton?.disabled === true;
+                },
+                undefined,
+                { timeout: 10000 },
+            );
+
             await setManualMinimumFov();
             await clickLock("Earth");
             await waitForRefit("Earth");
+
+            await clickLock("Free");
+            await waitForFreeLock();
 
             await setManualMinimumFov();
             await clickLock("Moon");

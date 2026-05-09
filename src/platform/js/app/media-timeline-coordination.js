@@ -130,6 +130,17 @@ function clampMediaCurrentTimeSeconds(item, currentTimeSeconds) {
     return nextTime;
 }
 
+function dispatchDocumentCustomEvent(type, detail) {
+    if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") {
+        return;
+    }
+    if (typeof CustomEvent === "function") {
+        document.dispatchEvent(new CustomEvent(type, { detail }));
+        return;
+    }
+    document.dispatchEvent({ type, detail });
+}
+
 function seekMainTimelineTime(timeMs, finalize = false) {
     const slider = document.getElementById("timeline-slider");
     if (!(slider instanceof HTMLInputElement)) return false;
@@ -411,6 +422,7 @@ function createMediaTimelineCoordination({
         if (typeof document?.addEventListener !== "function") return;
         timelineEventBound = true;
         onTimelineMarkerSelect = (event) => {
+            panelActions.setPanelState?.("open");
             handlePanelIntent({
                 type: "selectItem",
                 value: event?.detail?.marker?.id || "",
@@ -551,6 +563,9 @@ function createMediaTimelineCoordination({
             const selectableItems = buildSelectableMediaItems(filteredItems, manifest?.audioItems || []);
             const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
             if (!selectedItem) return;
+            dispatchDocumentCustomEvent("mission-media-item-select", {
+                item: selectedItem,
+            });
             if (isPlayableMediaItem(selectedItem)) {
                 startPlayableMediaItem(selectedItem, {
                     fromBeginning: true,

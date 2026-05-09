@@ -9,6 +9,7 @@ describe("buildMissionRuntimeWireupConfig", () => {
         const setEpochDisplay = vi.fn();
         const applyViewSettings = vi.fn();
         const clearLegacyTimeout = vi.fn();
+        const setTimelineMediaMarkers = vi.fn();
 
         const result = buildMissionRuntimeWireupConfig({
             statePorts: {
@@ -24,6 +25,7 @@ describe("buildMissionRuntimeWireupConfig", () => {
                 setEpochDisplay,
             },
             applyViewSettings,
+            setTimelineMediaMarkers,
             clockEffects: {
                 clearLegacyTimeout,
             },
@@ -38,7 +40,9 @@ describe("buildMissionRuntimeWireupConfig", () => {
         expect(result.wiringPorts.uiPort.setEventInfoText).toBe(setEventInfoText);
         expect(result.wiringPorts.uiPort.setEpochDisplay).toBe(setEpochDisplay);
         expect(result.wiringPorts.uiPort.applyViewSettings).toBe(applyViewSettings);
+        expect(result.wiringPorts.uiPort.setTimelineMediaMarkers).toBe(setTimelineMediaMarkers);
         expect(result.wiringPorts.statePort.sceneView.applyViewSettings).toBeUndefined();
+        expect(result.wiringPorts.statePort.sceneView.setTimelineMediaMarkers).toBeUndefined();
         expect(result.wiringPorts.clockPort.clearLegacyTimeout).toBe(clearLegacyTimeout);
     });
 });

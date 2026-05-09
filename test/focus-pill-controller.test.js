@@ -235,6 +235,10 @@ describe("createFocusPillController", function () {
         expect(harness.setView).toHaveBeenCalled();
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith(
             "aux:earth-rise-composer",
+            "restoreGuided",
+        );
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith(
+            "aux:earth-rise-composer",
             "restore",
         );
         expect(harness.composerChip.clicked).toBe(true);

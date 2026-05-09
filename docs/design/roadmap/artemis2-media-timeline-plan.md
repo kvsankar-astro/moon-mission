@@ -20,6 +20,8 @@ This plan intentionally does **not** mirror `artemistimeline.com` literally.
 That site is an excellent reference for product shape, but this repo already
 has a richer mission-runtime architecture, so the right move is to add a media
 layer that plugs into our existing time, event, and panel seams.
+The controlling product direction for future timeline polish is captured in
+[Orbit-First Timeline Plan](orbit-first-timeline-plan.md).
 
 ## Implementation Snapshot
 

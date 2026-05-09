@@ -87,8 +87,8 @@ canvas {
     pointer-events: auto;
     display: grid;
     grid-template-rows: auto auto auto 1fr;
-    width: 280px;
-    height: 280px;
+    width: 210px;
+    height: 210px;
     aspect-ratio: 1 / 1;
     min-width: 160px;
     min-height: 160px;
@@ -340,11 +340,17 @@ canvas {
 }
 
 .aux-camera-view--composer {
+    --aux-composer-triangle-size: 12px;
     grid-template-rows: auto 1fr;
     grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
     min-width: 760px;
     min-height: 320px;
     aspect-ratio: auto;
+}
+
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 420px;
 }
 
 .aux-camera-view--composer > .aux-camera-view__header {
@@ -454,14 +460,23 @@ html[data-app-view="selector"] .mission-loading-overlay,
     grid-row: 2;
     grid-column: 1;
     align-self: stretch;
+    position: relative;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed > .aux-camera-view__composer-control-matrix {
+    display: none;
+}
+
 .aux-camera-view--composer > .aux-camera-view__viewport {
     grid-row: 2;
     grid-column: 2;
+}
+
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed > .aux-camera-view__viewport {
+    grid-column: 1;
 }
 
 .aux-camera-view[data-mode="orbit-xy"] > .aux-camera-view__viewport {
@@ -488,6 +503,38 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .aux-camera-view--composer .aux-camera-view__title {
     font-size: 9px;
+}
+
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle {
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    z-index: 6;
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    font-size: var(--aux-composer-triangle-size);
+    line-height: 1;
+    color: rgba(205, 225, 252, 0.94);
+}
+
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle:hover,
+.aux-camera-view--composer .aux-camera-view__composer-controls-toggle:focus-visible {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+    color: rgba(242, 248, 255, 0.98);
+}
+
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed .aux-camera-view__viewport > .aux-camera-view__composer-controls-toggle {
+    top: 8px;
+    left: 8px;
+    right: auto;
 }
 
 .aux-camera-view__composer-presets {
@@ -607,6 +654,272 @@ html[data-app-view="selector"] .mission-loading-overlay,
     align-content: start;
 }
 
+.aux-camera-view__composer-sky-controls,
+.aux-camera-view__composer-sky-timeline {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 0;
+    pointer-events: none;
+    transition: none;
+}
+
+.aux-camera-view__composer-sky-controls {
+    top: 8px;
+    right: auto;
+    width: min(calc(100% - 16px), 520px);
+    max-height: 38%;
+    align-content: start;
+    overflow: visible;
+    transform: translateY(-4px);
+}
+
+.aux-camera-view__composer-sky-timeline {
+    bottom: 50px;
+    max-height: 38%;
+    align-content: end;
+    overflow: visible;
+    transform: translateY(4px);
+}
+
+.aux-camera-view__viewport:hover > .aux-camera-view__composer-sky-controls,
+.aux-camera-view__viewport:hover > .aux-camera-view__composer-sky-timeline,
+.aux-camera-view__composer-sky-controls:focus-within,
+.aux-camera-view__composer-sky-timeline:focus-within {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed .aux-camera-view__composer-sky-controls,
+.aux-camera-view--composer.aux-camera-view--composer-controls-collapsed .aux-camera-view__composer-sky-timeline {
+    left: 34px;
+}
+
+.aux-camera-view__composer-sky-lock-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: max-content;
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-presets {
+    display: flex;
+    grid-template-columns: none;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: 100%;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-info-row {
+    display: flex;
+    grid-template-columns: none;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-optics-row {
+    display: flex;
+    grid-template-columns: none;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: 100%;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-star-mag-row {
+    display: grid;
+    grid-template-columns: auto minmax(84px, 118px) 28px;
+    flex: 0 1 220px;
+    width: 220px;
+    column-gap: 7px;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-star-mag-row .aux-camera-view__composer-label {
+    white-space: nowrap;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-row-label {
+    width: auto;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-lock-buttons {
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-button {
+    padding: 3px 7px;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-grid-toggle {
+    gap: 3px;
+    font-size: 9px;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-grid-toggle input {
+    width: 10px;
+    height: 10px;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-value-slot {
+    display: none;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-timeline {
+    display: grid;
+    grid-template-columns: 38px 24px minmax(140px, 1fr) 24px;
+    column-gap: 6px;
+    row-gap: 4px;
+    justify-self: stretch;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-row-label {
+    width: 38px;
+    align-self: center;
+    font-size: 9px;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-value-slot {
+    display: none;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-transport-row {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-content: center;
+    margin-bottom: 1px;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-phase-picker {
+    grid-column: 2 / -1;
+    grid-row: 2;
+    grid-template-columns: 24px minmax(0, 1fr) 24px auto;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-timeline-slider {
+    grid-column: 2 / -1;
+    grid-row: 3;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-timeline-local {
+    grid-column: 2 / -1;
+    grid-row: 4;
+    margin-top: 0;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-phase-select {
+    height: 24px;
+    padding: 3px 7px;
+    background: rgba(13, 24, 42, 0.54);
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-phase-step {
+    width: 22px;
+    height: 22px;
+    background: rgba(13, 24, 42, 0.48);
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-transport-row .controls-cluster {
+    background: transparent;
+    border-color: rgba(121, 171, 255, 0.22);
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-transport-row .button {
+    min-height: 20px;
+    background: rgba(13, 24, 42, 0.42);
+}
+
+.aux-camera-view__composer-event-pullup {
+    flex: 0 0 auto;
+    min-width: 0;
+    position: relative;
+    justify-self: start;
+}
+
+.aux-camera-view__composer-event-pullup-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    list-style: none;
+    color: rgba(205, 224, 250, 0.84);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+.aux-camera-view__composer-event-pullup-summary::-webkit-details-marker {
+    display: none;
+}
+
+.aux-camera-view__composer-event-pullup-summary::before {
+    content: "▴";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--aux-composer-triangle-size);
+    color: rgba(154, 195, 255, 0.78);
+    font-size: var(--aux-composer-triangle-size);
+    line-height: 1;
+}
+
+.aux-camera-view__composer-event-pullup[open] .aux-camera-view__composer-event-pullup-summary::before {
+    content: "▾";
+}
+
+.aux-camera-view__composer-event-pullup:not([open]) > .aux-camera-view__composer-event-pills {
+    display: none;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-event-pills {
+    position: absolute;
+    right: 0;
+    bottom: 20px;
+    display: grid;
+    gap: 3px;
+    width: max-content;
+    max-width: min(340px, calc(100vw - 80px));
+    max-height: 142px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid rgba(120, 170, 245, 0.5);
+    border-radius: 7px;
+    background: rgb(8, 15, 27);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.42);
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-event-pill {
+    justify-self: start;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    grid-template-columns: minmax(0, max-content) max-content;
+    column-gap: 12px;
+    border-radius: 6px;
+    background: rgba(18, 33, 58, 0.96);
+    padding: 3px 7px;
+}
+
+.aux-camera-view__composer-sky-timeline .aux-camera-view__composer-event-pill-title {
+    max-width: 142px;
+}
+
 .aux-camera-view__composer-timeline {
     display: grid;
     grid-template-columns: 72px minmax(0, 1fr) 42px;
@@ -647,7 +960,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     border-radius: 7px;
     background: rgba(14, 24, 41, 0.82);
     color: rgba(226, 238, 255, 0.92);
-    font-size: 12px;
+    font-size: var(--aux-composer-triangle-size);
     font-weight: 800;
     line-height: 1;
     cursor: pointer;
@@ -779,10 +1092,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .aux-camera-view__composer-disclosure-icon {
-    width: 10px;
-    flex: 0 0 10px;
+    width: var(--aux-composer-triangle-size);
+    flex: 0 0 var(--aux-composer-triangle-size);
     color: rgba(128, 182, 255, 0.96);
-    font-size: 10px;
+    font-size: var(--aux-composer-triangle-size);
     line-height: 1;
 }
 
@@ -1034,8 +1347,9 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-roll-dial {
     position: absolute;
     right: 14px;
-    bottom: 54px;
-    z-index: 5;
+    top: 14px;
+    bottom: auto;
+    z-index: 7;
     width: 54px;
     height: 54px;
     padding: 0;
@@ -1493,15 +1807,15 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock {
     position: fixed;
-    left: var(--timeline-dock-offset);
-    right: var(--timeline-dock-offset);
+    left: 0;
+    right: 0;
     bottom: var(--timeline-dock-offset);
     z-index: 6;
     pointer-events: all;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 5px 8px 4px;
+    gap: 2px;
+    padding: 4px 0 4px;
     border-radius: var(--ui-radius-sm);
     border: 1px solid rgba(121, 171, 255, 0.1);
     border-top: none;
@@ -1512,14 +1826,16 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock.timeline-dock--events-collapsed {
     gap: 0;
-    padding-top: 1px;
-    padding-bottom: 2px;
+    padding-top: 0;
+    padding-bottom: 3px;
 }
 
 .timeline-dock__event-carousel.swiper2 {
     --timeline-event-gap: 18px;
     width: 100%;
     max-width: 100%;
+    padding: 0 var(--timeline-dock-offset);
+    box-sizing: border-box;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -1587,81 +1903,136 @@ html[data-app-view="selector"] .mission-loading-overlay,
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     min-height: 18px;
+    min-width: 0;
 }
 
 .timeline-dock.timeline-dock--events-collapsed .timeline-dock__panel-row {
     min-height: 14px;
 }
 
-.timeline-dock__panel-toggle {
-    min-width: 30px;
-    height: 18px;
+.timeline-dock__track-toggle {
+    min-width: 52px;
+    height: 20px;
     border-radius: 999px;
-    border: none;
-    background: transparent;
-    color: rgba(236, 247, 255, 1);
-    padding: 0 8px;
+    border: 1px solid rgba(128, 178, 255, 0.34);
+    background: rgba(12, 24, 44, 0.58);
+    color: rgba(214, 229, 250, 0.9);
+    padding: 0 10px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.15s ease, border-color 0.15s ease;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     box-shadow: none;
 }
 
-.timeline-dock__panel-toggle:hover {
-    background: transparent;
+.timeline-dock__track-toggle:hover {
+    border-color: rgba(157, 203, 255, 0.62);
+    background: rgba(28, 48, 82, 0.72);
+    color: rgba(241, 247, 255, 0.98);
 }
 
-.timeline-dock__panel-toggle:focus-visible {
-    outline: none;
+.timeline-dock__track-toggle:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
 }
 
-.timeline-dock__panel-toggle-glyph {
-    width: 19px;
-    height: 10px;
-    flex: 0 0 auto;
-    display: block;
-    position: static;
-    top: auto;
-    left: auto;
-    min-width: 0;
-    min-height: 0;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    transition: transform 0.15s ease;
-    transform-origin: 50% 50%;
-    pointer-events: none;
+.timeline-dock__track-toggle[aria-pressed="true"] {
+    border-color: rgba(125, 191, 255, 0.82);
+    background: rgba(48, 93, 156, 0.74);
+    color: rgba(248, 252, 255, 1);
+    box-shadow: 0 0 12px rgba(84, 160, 255, 0.2);
 }
 
-.timeline-dock__panel-toggle-glyph path {
-    stroke: currentColor;
-    fill: none;
-    vector-effect: non-scaling-stroke;
+.timeline-dock__track-toggle:disabled,
+.timeline-dock__track-toggle[aria-disabled="true"] {
+    border-color: rgba(128, 146, 172, 0.22);
+    background: rgba(16, 24, 38, 0.36);
+    color: rgba(166, 181, 205, 0.48);
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
-.timeline-dock__panel-toggle[aria-expanded="false"] .timeline-dock__panel-toggle-glyph {
-    transform: rotate(180deg);
+.timeline-dock__scale-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 2px;
+}
+
+.timeline-dock .timeline-dock__scale-button {
+    width: 20px;
+    height: 20px;
+    border-color: rgba(128, 178, 255, 0.24);
+    background: rgba(12, 24, 44, 0.4);
+    color: rgba(214, 229, 250, 0.78);
+    box-shadow: none;
+}
+
+.timeline-dock .timeline-dock__scale-button:hover {
+    border-color: rgba(157, 203, 255, 0.5);
+    background: rgba(28, 48, 82, 0.62);
+    color: rgba(241, 247, 255, 0.94);
+}
+
+.timeline-dock .timeline-dock__scale-button:disabled,
+.timeline-dock .timeline-dock__scale-button[aria-disabled="true"] {
+    border-color: rgba(128, 146, 172, 0.16);
+    background: rgba(16, 24, 38, 0.24);
+    color: rgba(166, 181, 205, 0.34);
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 .timeline-dock__row {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: center;
-    column-gap: 8px;
+    display: block;
+    min-width: 0;
+    margin: 0;
 }
 
 .timeline-dock__track-wrap {
     position: relative;
     min-width: 0;
-    height: 30px;
+    height: 42px;
     display: flex;
     align-items: center;
     touch-action: none;
+    margin: 0 max(14px, calc(var(--timeline-dock-offset) * 2));
+}
+
+.timeline-dock__meta-row {
+    display: grid;
+    grid-template-columns: minmax(74px, auto) minmax(0, 1fr) minmax(74px, auto);
+    align-items: center;
+    column-gap: 8px;
+    min-height: 36px;
+    margin-top: 3px;
+    padding: 0 var(--timeline-dock-offset);
+}
+
+.timeline-dock__center-stack {
+    display: grid;
+    justify-items: center;
+    align-items: center;
+    row-gap: 2px;
+    min-width: 0;
+}
+
+.timeline-dock--zoomed .timeline-dock__track-wrap {
+    cursor: grab;
+}
+
+.timeline-dock--timeline-dragging .timeline-dock__track-wrap {
+    cursor: grabbing;
 }
 
 .timeline-dock__slider {
@@ -1673,6 +2044,14 @@ html[data-app-view="selector"] .mission-loading-overlay,
     --timeline-thumb-core: #fff7fb;
     --timeline-thumb-ring: rgba(255, 108, 176, 0.96);
     --timeline-thumb-glow: rgba(255, 108, 176, 0.22);
+}
+
+.timeline-dock--zoomed .timeline-dock__slider {
+    cursor: grab;
+}
+
+.timeline-dock--timeline-dragging .timeline-dock__slider {
+    cursor: grabbing;
 }
 
 .timeline-dock__slider::-webkit-slider-runnable-track {
@@ -1698,6 +2077,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
         );
     box-shadow:
         0 0 0 3px var(--timeline-thumb-glow);
+    cursor: ew-resize;
 }
 
 .timeline-dock__slider::-moz-range-track {
@@ -1721,6 +2101,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
         );
     box-shadow:
         0 0 0 3px var(--timeline-thumb-glow);
+    cursor: ew-resize;
 }
 
 .timeline-dock__slider:focus-visible {
@@ -1730,12 +2111,15 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock__markers {
     position: absolute;
-    inset: 0 0 0 0;
+    top: 6px;
+    left: 0;
+    right: 0;
+    height: 24px;
     pointer-events: none;
 }
 
 .timeline-dock__markers--media {
-    top: 13px;
+    top: 19px;
 }
 
 .timeline-dock__marker {
@@ -1896,6 +2280,41 @@ html[data-app-view="selector"] .mission-loading-overlay,
     box-shadow: none;
 }
 
+.timeline-dock__time-labels {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 14px;
+    pointer-events: none;
+}
+
+.timeline-dock__time-label {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(196, 214, 241, 0.72);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+}
+
+.timeline-dock__time-label::before {
+    content: "";
+    display: block;
+    width: 1px;
+    height: 4px;
+    margin: 0 auto 2px;
+    border-radius: 999px;
+    background: rgba(157, 190, 232, 0.4);
+}
+
 .timeline-dock__edge {
     font-size: 10px;
     font-weight: 600;
@@ -1904,6 +2323,17 @@ html[data-app-view="selector"] .mission-loading-overlay,
     white-space: normal;
     line-height: 1.05;
     min-width: 74px;
+    max-width: min(24vw, 170px);
+}
+
+#timeline-start-label {
+    justify-self: start;
+    text-align: left;
+}
+
+#timeline-end-label {
+    justify-self: end;
+    text-align: right;
 }
 
 .timeline-dock__edge-date,
@@ -1920,12 +2350,12 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__current {
-    margin-top: 4px;
+    margin-top: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 18px;
-    padding: 2px 0 3px;
+    min-height: 14px;
+    padding: 0;
     overflow: visible;
     text-align: center;
     font-size: 10px;
@@ -1939,8 +2369,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 16px;
-    padding: 2px 0 1px;
+    min-height: 14px;
+    padding: 0;
     text-align: center;
     font-size: 9px;
     font-weight: 700;
@@ -1959,18 +2389,14 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(215, 246, 233, 0.96);
 }
 
-.timeline-dock--compare .timeline-dock__row {
-    margin-bottom: 1px;
-}
-
 .timeline-dock--compare .timeline-dock__mode {
-    min-height: 18px;
-    padding: 3px 0 1px;
+    min-height: 16px;
+    padding: 1px 0 0;
     line-height: 1.45;
 }
 
 .timeline-dock.timeline-dock--events-collapsed .timeline-dock__current {
-    margin-top: 2px;
+    margin-top: 0;
 }
 
 .timeline-dock__craft-strip {
@@ -3080,10 +3506,14 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
         padding: 2px 3px 1px;
     }
 
-    .timeline-dock__panel-toggle {
-        min-width: 28px;
+    .timeline-dock__track-toggle {
+        min-width: 44px;
         height: 18px;
         padding: 0 7px 1px;
+    }
+
+    .timeline-dock__scale-controls {
+        display: none;
     }
 
     #animation-control-panel {
@@ -3108,11 +3538,19 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock {
-        padding: 5px 6px 4px;
+        padding: 3px 0 4px;
     }
 
-    .timeline-dock__row {
+    .timeline-dock__meta-row {
+        grid-template-columns: minmax(58px, auto) minmax(0, 1fr) minmax(58px, auto);
         column-gap: 5px;
+        min-height: 34px;
+        margin-top: 2px;
+        padding: 0 var(--timeline-dock-offset);
+    }
+
+    .timeline-dock__track-wrap {
+        height: 38px;
     }
 
     .timeline-dock__edge,
@@ -3123,6 +3561,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
     .timeline-dock__edge {
         min-width: 62px;
+        max-width: 28vw;
     }
 
     .timeline-dock__slider {
@@ -3149,6 +3588,15 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
     .timeline-dock__marker::before {
         top: 4px;
+    }
+
+    .timeline-dock__time-label {
+        max-width: 56px;
+        font-size: 8px;
+    }
+
+    .timeline-dock__markers--media {
+        display: none;
     }
 
     #shortcut-help {

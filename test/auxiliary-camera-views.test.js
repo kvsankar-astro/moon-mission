@@ -180,6 +180,30 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(panelState.camera.fov).toBe(0.1);
         expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(0.1, 0.1);
     });
+
+    it("keeps target-panel Auto FoV in presentation bounds", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "target",
+            camera: { fov: 45 },
+        };
+
+        expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(3);
+        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(70);
+        expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
+    });
+
+    it("keeps Frame and Shoot Auto FoV in composition bounds", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "composer",
+            camera: { fov: 50 },
+        };
+
+        expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(2);
+        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(70);
+        expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
+    });
 });
 
 describe("Frame and Shoot lock target FoV behavior", () => {
@@ -245,6 +269,108 @@ describe("Frame and Shoot lock target FoV behavior", () => {
         expect(panelState.composerLockTarget).toBe("moon");
         expect(panelState.autoFovEnabled).toBe(false);
         expect(syncAutoToggleUi).not.toHaveBeenCalled();
+    });
+
+    it("can force auto FoV back on for guided composer restores", () => {
+        const {
+            manager,
+            panelState,
+            syncAutoToggleUi,
+        } = createLockTargetHarness({
+            lockTarget: "moon",
+            autoFovEnabled: false,
+        });
+
+        manager.setComposerLockTarget(panelState, "moon", {
+            syncAutoToggleUi,
+            forceAuto: true,
+        });
+
+        expect(panelState.composerLockTarget).toBe("moon");
+        expect(panelState.autoFovEnabled).toBe(true);
+        expect(syncAutoToggleUi).toHaveBeenCalledTimes(1);
+    });
+
+    it("turns off auto FoV when switching to Free", () => {
+        const {
+            manager,
+            panelState,
+            syncComposerLockUi,
+            syncAutoToggleUi,
+        } = createLockTargetHarness({
+            lockTarget: "moon",
+            autoFovEnabled: true,
+        });
+
+        manager.setComposerLockTarget(panelState, "none", {
+            syncComposerLockUi,
+            syncAutoToggleUi,
+        });
+
+        expect(panelState.composerLockTarget).toBe("none");
+        expect(panelState.autoFovEnabled).toBe(false);
+        expect(syncAutoToggleUi).toHaveBeenCalledTimes(1);
+        expect(syncComposerLockUi).toHaveBeenCalledTimes(1);
+        expect(manager.requestRender).toHaveBeenCalledTimes(1);
+    });
+
+    it("clears stale media-shot state when a lock button is selected", () => {
+        const {
+            manager,
+            panelState,
+        } = createLockTargetHarness({
+            lockTarget: "earth",
+            autoFovEnabled: false,
+        });
+        panelState.composerMediaDriven = true;
+        panelState.composerSurfaceTarget = { bodyId: "moon" };
+
+        manager.setComposerLockTarget(panelState, "moon");
+
+        expect(panelState.composerLockTarget).toBe("moon");
+        expect(panelState.composerMediaDriven).toBe(false);
+        expect(panelState.composerSurfaceTarget).toBe(null);
+    });
+});
+
+describe("Frame and Shoot media shot hints", () => {
+    it("applies Earth shot hints as locked manual-FoV composer views", () => {
+        const panelState = {
+            mode: "composer",
+            composerInteractionEnabled: true,
+            composerLockTarget: "moon",
+            composerOrientationReference: "world",
+            autoFovEnabled: true,
+            camera: {
+                fov: 50,
+                updateProjectionMatrix: vi.fn(),
+            },
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+            syncComposerLockUi: vi.fn(),
+            syncComposerAutoToggleUi: vi.fn(),
+        };
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            activateComposerWindow: vi.fn(),
+            queuePersistPanelState: vi.fn(),
+            requestRender: vi.fn(),
+        });
+
+        const applied = manager.applyComposerMediaShotHint(panelState, {
+            lockTarget: "earth",
+            orientationReference: "moon-north",
+            verticalFovDegrees: 12.5,
+        });
+
+        expect(applied).toBe(true);
+        expect(panelState.composerLockTarget).toBe("earth");
+        expect(panelState.composerOrientationReference).toBe("moon-north");
+        expect(panelState.autoFovEnabled).toBe(false);
+        expect(panelState.camera.fov).toBeCloseTo(12.5);
+        expect(panelState.composerMediaDriven).toBe(true);
+        expect(panelState.syncComposerLockUi).toHaveBeenCalled();
+        expect(panelState.syncComposerAutoToggleUi).toHaveBeenCalled();
     });
 });
 
@@ -655,6 +781,62 @@ describe("Frame and Shoot timeline phase tracking", () => {
         expect(manager.composerSelectedPhaseIndex).toBe(-1);
         expect(manager.composerActivePhaseIndex).toBe(1);
     });
+
+    it("seeks to the middle of a selected phase instead of the boundary", () => {
+        const { manager } = createTimelineHarness();
+
+        expect(manager.resolveComposerPhaseSeekTimeMs({
+            phase: phases[1],
+            timelineMinMs: 0,
+            timelineMaxMs: 200,
+            stepMs: 10,
+        })).toBe(150);
+    });
+
+    it("keeps selected phase seeks inside very short phase ranges", () => {
+        const { manager } = createTimelineHarness();
+
+        expect(manager.resolveComposerPhaseSeekTimeMs({
+            phase: { startMs: 100, endMs: 101 },
+            timelineMinMs: 0,
+            timelineMaxMs: 200,
+            stepMs: 10,
+        })).toBe(100);
+    });
+
+    it("returns phase selection to the guided Moon Auto FoV view", () => {
+        const { manager, panelState } = createTimelineHarness();
+        Object.assign(manager, {
+            seekMainTimelineTime: vi.fn(),
+            requestRender: vi.fn(),
+        });
+        manager.readMainTimelineState.mockReturnValue({
+            min: 0,
+            max: 200,
+            value: 25,
+            stepMs: 1,
+        });
+        Object.assign(panelState, {
+            mode: "composer",
+            composerLockTarget: "earth",
+            composerOrientationReference: "moon-north",
+            composerMediaDriven: true,
+            composerSurfaceTarget: { bodyId: "moon" },
+            autoFovEnabled: false,
+            syncComposerLockUi: vi.fn(),
+            syncComposerAutoToggleUi: vi.fn(),
+        });
+
+        manager.selectComposerTimelinePhase(panelState, 1);
+
+        expect(panelState.composerLockTarget).toBe("moon");
+        expect(panelState.composerOrientationReference).toBe("world");
+        expect(panelState.autoFovEnabled).toBe(true);
+        expect(panelState.composerMediaDriven).toBe(false);
+        expect(panelState.composerSurfaceTarget).toBe(null);
+        expect(panelState.syncComposerLockUi).toHaveBeenCalledTimes(1);
+        expect(panelState.syncComposerAutoToggleUi).toHaveBeenCalledTimes(1);
+    });
 });
 
 describe("Frame and Shoot event pill highlighting", () => {
@@ -729,10 +911,18 @@ describe("Frame and Shoot event pill highlighting", () => {
             requestRender: vi.fn(),
         });
         const panelState = {
+            mode: "composer",
+            composerLockTarget: "earth",
+            composerOrientationReference: "moon-north",
+            composerMediaDriven: true,
+            composerSurfaceTarget: { bodyId: "moon" },
+            autoFovEnabled: false,
             composerFlybyEventsWrap: new FakeElement(),
             composerFlybyEventsSignature: "",
             composerFlybyEventNodes: [],
             composerFlybySelectedEventTimeMs: Number.NaN,
+            syncComposerLockUi: vi.fn(),
+            syncComposerAutoToggleUi: vi.fn(),
         };
         return { manager, panelState };
     }
@@ -757,6 +947,22 @@ describe("Frame and Shoot event pill highlighting", () => {
         expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-boundary")).toBe(false);
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-active")).toBe(false);
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-boundary")).toBe(false);
+    });
+
+    it("returns event selection to the guided Moon Auto FoV view", () => {
+        const { manager, panelState } = createHarness();
+        manager.syncComposerFlybyEventPills(panelState, 1500);
+
+        const clickHandlers = panelState.composerFlybyEventNodes[0].element.listeners.get("click") || [];
+        clickHandlers[0]?.();
+
+        expect(panelState.composerLockTarget).toBe("moon");
+        expect(panelState.composerOrientationReference).toBe("world");
+        expect(panelState.autoFovEnabled).toBe(true);
+        expect(panelState.composerMediaDriven).toBe(false);
+        expect(panelState.composerSurfaceTarget).toBe(null);
+        expect(panelState.syncComposerLockUi).toHaveBeenCalledTimes(1);
+        expect(panelState.syncComposerAutoToggleUi).toHaveBeenCalledTimes(1);
     });
 });
 
@@ -789,5 +995,74 @@ describe("Auxiliary visible panel refresh scheduling", () => {
         expect(manager.syncPanelSize).toHaveBeenCalledWith(visibleComposerPanel);
         expect(manager.syncPanelSize).not.toHaveBeenCalledWith(hiddenMoonPanel);
         expect(manager.requestRender).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe("Auxiliary default panel layout", () => {
+    function createPanel(hidden = false) {
+        const style = {};
+        return {
+            hidden,
+            style,
+            get offsetWidth() {
+                return Number.parseInt(style.width, 10) || 0;
+            },
+            get offsetHeight() {
+                return Number.parseInt(style.height, 10) || 0;
+            },
+        };
+    }
+
+    function createPanelState(id, { mode = "target", hidden = false } = {}) {
+        return {
+            id,
+            mode,
+            side: mode === "composer" ? "left" : "right",
+            defaultLayoutManaged: true,
+            panel: createPanel(hidden),
+        };
+    }
+
+    it("stacks the three visible right panels and centers Frame and Shoot beside them", () => {
+        vi.stubGlobal("window", { innerWidth: 1600, innerHeight: 900 });
+        vi.stubGlobal("document", { querySelector: vi.fn(() => null) });
+
+        const moon = createPanelState("moon");
+        const earth = createPanelState("earth");
+        const earthToMoon = createPanelState("earth-to-moon", { hidden: true });
+        const orbitXy = createPanelState("earth-origin-orbit-xy");
+        const composer = createPanelState("earth-rise-composer", { mode: "composer" });
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            panels: [earth, moon, earthToMoon, orbitXy, composer],
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+            resolvePanelViewportBounds: () => ({
+                left: 8,
+                top: 80,
+                right: 1592,
+                bottom: 820,
+                width: 1584,
+                height: 740,
+            }),
+            readTimelineDockOffset: () => 8,
+            clampPanelRect: ({ x, y }) => ({ x, y }),
+        });
+
+        manager.applyDefaultPanelLayout();
+
+        expect(moon.panel.style.left).toBe("1376px");
+        expect(moon.panel.style.top).toBe("118px");
+        expect(earth.panel.style.left).toBe("1376px");
+        expect(earth.panel.style.top).toBe("342px");
+        expect(orbitXy.panel.style.left).toBe("1376px");
+        expect(orbitXy.panel.style.top).toBe("566px");
+        expect(earthToMoon.panel.style.left).toBeUndefined();
+        expect(composer.panel.style.left).toBe("527px");
+        expect(composer.panel.style.top).toBe("214px");
     });
 });
