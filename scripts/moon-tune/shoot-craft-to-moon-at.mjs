@@ -74,6 +74,65 @@ try {
     });
     await page.waitForTimeout(2500);
 
+    // Optionally tighten panel FoV so crater detail is visible at viewable
+    // resolution. Pass FOV_DEG=8 to zoom in. We do this by finding the
+    // Craft->Moon panelState in the runtime aux-camera-views manager and
+    // assigning camera.fov directly + disabling autoFov.
+    const fovDeg = Number(process.env.FOV_DEG);
+    if (Number.isFinite(fovDeg) && fovDeg > 0) {
+        const debug = await page.evaluate((deg) => {
+            // The aux-camera-views manager lives on the scene-handler, not the
+            // animationScene. Search the document/window for an instance with
+            // a `panels` array.
+            const candidates = [];
+            if (window.__moonMissionDesktopPanelManager?.panels) {
+                candidates.push({ from: "desktopPanelManager", mgr: window.__moonMissionDesktopPanelManager });
+            }
+            // Try to find via scene-handler reference if exposed.
+            for (const k of Object.keys(window)) {
+                const v = window[k];
+                if (v && typeof v === "object" && Array.isArray(v.panels) && v.panels.length) {
+                    candidates.push({ from: k, mgr: v });
+                }
+            }
+            // Also walk children of any Object3D with panels (scene-handler is an obj with auxiliaryCameraViews).
+            const animationScenes = window.animationScenes || {};
+            for (const k of Object.keys(animationScenes)) {
+                const sc = animationScenes[k];
+                for (const prop of ["auxiliaryCameraViews", "auxCameraViews", "missionAuxiliaryCameraViews"]) {
+                    if (sc?.[prop]?.panels?.length) {
+                        candidates.push({ from: `animationScenes[${k}].${prop}`, mgr: sc[prop] });
+                    }
+                }
+            }
+            const result = { found: candidates.map((c) => c.from), patched: false, panelIds: [] };
+            for (const { mgr } of candidates) {
+                result.panelIds = mgr.panels.map((p) => p.id || p.title);
+                const moonPanel = mgr.panels.find((p) => {
+                    const id = String(p.id || "");
+                    return id === "moon" || id === "aux:moon" || /Craft.*Moon/i.test(p.title || "");
+                });
+                // The desktop-panel-manager wraps the actual aux panel; the
+                // inner panelState lives at moonPanel.panelState (or .source).
+                const inner = moonPanel?.panelState || moonPanel?.source || moonPanel?.delegate || moonPanel;
+                if (inner?.camera) {
+                    inner.autoFovEnabled = false;
+                    inner.camera.fov = deg;
+                    inner.camera.updateProjectionMatrix?.();
+                    result.patched = true;
+                    result.patchedPanelId = moonPanel?.id || inner?.id;
+                    result.innerKeys = Object.keys(inner).slice(0, 30);
+                    break;
+                } else if (moonPanel) {
+                    result.moonPanelKeys = Object.keys(moonPanel).slice(0, 30);
+                }
+            }
+            return result;
+        }, fovDeg);
+        console.log("FoV override:", JSON.stringify(debug));
+        await page.waitForTimeout(2500);
+    }
+
     // Verify the time landed where we asked.
     const probe = await page.evaluate(() => {
         const scenes = window.animationScenes || {};
