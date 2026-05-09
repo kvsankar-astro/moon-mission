@@ -1611,7 +1611,6 @@
                         <video
                             id="media-browser-video"
                             class="media-browser-panel__video"
-                            controls
                             playsinline
                             preload="metadata"
                             hidden
@@ -1669,24 +1668,6 @@
                             >&gt;</button>
                         </div>
                         <div
-                            id="media-browser-playback-actions"
-                            class="media-browser-panel__playback-actions"
-                            role="group"
-                            aria-label="Media playback alignment"
-                            hidden
-                        >
-                            <button
-                                id="media-browser-playback-start"
-                                class="media-browser-panel__playback-button"
-                                type="button"
-                            >Start</button>
-                            <button
-                                id="media-browser-playback-restart"
-                                class="media-browser-panel__playback-button"
-                                type="button"
-                            >From Beginning</button>
-                        </div>
-                        <div
                             id="media-browser-image-controls"
                             class="media-browser-panel__image-controls"
                             role="group"
@@ -1732,6 +1713,31 @@
                             <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
                         </div>
                     </div>
+                </div>
+                <div
+                    id="media-browser-media-controls"
+                    class="media-browser-panel__media-controls"
+                    role="group"
+                    aria-label="Selected media playback"
+                    hidden
+                >
+                    <button
+                        id="media-browser-media-play"
+                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        type="button"
+                        title="Play media from the current mission time"
+                        aria-label="Play media"
+                        data-icon="play"
+                    ></button>
+                    <button
+                        id="media-browser-media-restart"
+                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        type="button"
+                        title="Restart media from beginning"
+                        aria-label="Restart media from beginning"
+                        data-icon="restart"
+                    ></button>
+                    <span id="media-browser-media-status" class="media-browser-panel__media-status">Media ready</span>
                 </div>
                 <div
                     id="media-browser-thumbnail-resizer"

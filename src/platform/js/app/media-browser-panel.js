@@ -344,11 +344,13 @@ function createMediaBrowserPanelActions({
 
         const headerHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__header"));
         const toolbarHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__toolbar"));
+        const mediaControlsHeight = getElementHeight(getNode("media-browser-media-controls"));
         const statusHeight = getElementHeight(getNode("media-browser-status"));
         const resizerHeight = getElementHeight(getNode("media-browser-thumbnail-resizer")) || 8;
         const availableHeight = panelHeight
             - headerHeight
             - toolbarHeight
+            - mediaControlsHeight
             - statusHeight
             - resizerHeight
             - THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX;
@@ -1031,21 +1033,32 @@ function createMediaBrowserPanelActions({
         }
     }
 
-    function syncPlaybackActions(playbackModel = {}) {
-        const actions = getNode("media-browser-playback-actions");
-        const startButton = getNode("media-browser-playback-start");
-        const restartButton = getNode("media-browser-playback-restart");
-        const show = playbackModel.showStartOptions === true;
-        if (actions) {
-            actions.hidden = !show;
+    function syncMediaControls(playbackModel = {}) {
+        const controls = getNode("media-browser-media-controls");
+        const playButton = getNode("media-browser-media-play");
+        const restartButton = getNode("media-browser-media-restart");
+        const status = getNode("media-browser-media-status");
+        const show = playbackModel.showControls === true;
+        const isBusy = playbackModel.playing === true || playbackModel.buffering === true;
+        if (controls) {
+            controls.hidden = !show;
         }
-        if (startButton) {
-            startButton.disabled = !show;
-            startButton.title = playbackModel.startTitle || "Start media from the current mission time";
+        if (playButton) {
+            playButton.disabled = !show;
+            playButton.dataset.icon = isBusy ? "pause" : "play";
+            playButton.title = playbackModel.playTitle || (isBusy
+                ? "Pause media playback"
+                : "Play media from the current mission time");
+            playButton.setAttribute("aria-label", playButton.title);
         }
         if (restartButton) {
             restartButton.disabled = !show;
-            restartButton.title = playbackModel.restartTitle || "Start media from its beginning";
+            restartButton.title = playbackModel.restartTitle || "Restart media from beginning";
+            restartButton.setAttribute("aria-label", restartButton.title);
+        }
+        if (status) {
+            status.textContent = show ? String(playbackModel.statusLabel || "") : "";
+            status.title = status.textContent;
         }
     }
 
@@ -1131,10 +1144,9 @@ function createMediaBrowserPanelActions({
             const media = createElement("span");
             const image = createElement("img");
             const fallback = createThumbnailFallback(item.kind);
-            const badge = createElement("span");
             const title = createElement("span");
             const meta = createElement("span");
-            if (!button || !media || !badge || !title || !meta) return;
+            if (!button || !media || !title || !meta) return;
             button.type = "button";
             button.className = [
                 "media-browser-panel__thumbnail-card",
@@ -1176,9 +1188,14 @@ function createMediaBrowserPanelActions({
             } else if (fallback) {
                 media.appendChild(fallback);
             }
-            badge.className = "media-browser-panel__thumbnail-kind";
-            badge.textContent = item.badge || "Media";
-            media.appendChild(badge);
+            if (item.kind === "videoClip") {
+                const videoIcon = createElement("span");
+                if (videoIcon) {
+                    videoIcon.className = "media-browser-panel__thumbnail-video-icon";
+                    videoIcon.setAttribute("aria-hidden", "true");
+                    media.appendChild(videoIcon);
+                }
+            }
             title.className = "media-browser-panel__thumbnail-title";
             title.textContent = item.title;
             meta.className = "media-browser-panel__thumbnail-meta";
@@ -1217,7 +1234,9 @@ function createMediaBrowserPanelActions({
         ensurePanelEventsBound();
         panelTitle = viewModel.panelTitle || panelTitle;
         mediaCountLabel = viewModel.mediaCountLabel || mediaCountLabel;
-        setText("media-browser-status", viewModel.statusText || "Waiting for media manifest...");
+        const statusText = String(viewModel.statusText || "").trim();
+        setText("media-browser-status", statusText);
+        setHidden("media-browser-status", !statusText);
         const fullTimeLabel = viewModel.activeItem?.timeLabel || "--";
         setText("media-browser-time", resolveCompactTimeLabel(fullTimeLabel));
         setText("media-browser-full-time", fullTimeLabel);
@@ -1329,7 +1348,7 @@ function createMediaBrowserPanelActions({
         renderMediaFilterControls(viewModel.filterModel || {});
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
         syncAudioControls(viewModel.audioModel || {});
-        syncPlaybackActions(viewModel.playbackModel || {});
+        syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
         renderThumbnailItems(viewModel.thumbnailItems || []);
         syncDrilldownFlyoutPlacement();
@@ -1451,19 +1470,34 @@ function createMediaBrowserPanelActions({
             onIntent?.({ type: "selectAdjacentItem", value: "next" });
         });
 
-        getNode("media-browser-playback-start")?.addEventListener?.("click", () => {
-            onIntent?.({ type: "startActiveMedia" });
+        getNode("media-browser-media-play")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "toggleActiveMediaPlayback" });
         });
 
-        getNode("media-browser-playback-restart")?.addEventListener?.("click", () => {
+        getNode("media-browser-media-restart")?.addEventListener?.("click", () => {
             onIntent?.({ type: "startActiveMediaFromBeginning" });
         });
 
         const video = getNode("media-browser-video");
         const getVideoItemId = () => String(video?.dataset?.mediaItemId || "").trim();
-        video?.addEventListener?.("play", () => {
-            onIntent?.({ type: "mediaPlaybackStarted", value: getVideoItemId(), mediaKind: "videoClip" });
+        video?.addEventListener?.("playing", () => {
+            onIntent?.({
+                type: "mediaPlaybackStarted",
+                value: getVideoItemId(),
+                mediaKind: "videoClip",
+                currentTime: Number(video?.currentTime),
+            });
         });
+        for (const eventName of ["waiting", "stalled"]) {
+            video?.addEventListener?.(eventName, () => {
+                onIntent?.({
+                    type: "mediaPlaybackBuffering",
+                    value: getVideoItemId(),
+                    mediaKind: "videoClip",
+                    currentTime: Number(video?.currentTime),
+                });
+            });
+        }
         video?.addEventListener?.("pause", () => {
             if (video?.ended === true) return;
             onIntent?.({ type: "mediaPlaybackPaused", value: getVideoItemId(), mediaKind: "videoClip" });
