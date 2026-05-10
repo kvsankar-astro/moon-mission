@@ -293,9 +293,11 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
     diffuseColor.rgb *= ( 1.0 + moonOpposition );
 
-    // Sharpen the grazing-light transition so terminator relief reads from the
-    // perturbed lunar normals rather than looking softly airbrushed.
-    float moonTerminatorScale = pow( max( moonNdotL, 1e-4 ), max( 1.0, uMoonTerminatorContrast ) - 1.0 );
+    // Keep terminator contrast as a light touch only. Lambert already supplies
+    // the physical falloff; a full NdotL^contrast multiplier made basins like
+    // Hertzsprung drop into darkness several degrees before the real photo.
+    float moonTerminatorScaleRaw = pow( max( moonNdotL, 1e-4 ), max( 1.0, uMoonTerminatorContrast ) - 1.0 );
+    float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );
     reflectedLight.directDiffuse *= moonTerminatorScale;
 
     float moonSmoothNdotL = clamp( dot( normalize( nonPerturbedNormal ), moonLightDir ), 0.0, 1.0 );
@@ -406,13 +408,14 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    // Dark-side base crush, gated by moonSmoothNdotL — only fires close to
-    // the terminator and into the unlit hemisphere (smoothNdotL < 0.22).
-    // Lit-side mid-tones are NOT affected; the smoothstep saturates at 1.0
-    // by smoothNdotL=0.22 so anything in the lit hemisphere passes through.
-    // Floor of 0.18 pushes the unlit hemisphere closer to true black for
-    // the Sun's contribution and ambient/indirect.
-    float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
+    // Dark-side base crush for residual indirect light. Keep this narrow:
+    // the previous 0.22 upper edge reached about 13 degrees into the sunlit
+    // hemisphere and erased the faint but visible terrain beside the terminator.
+    float moonFinalShadowCrush = mix(
+        0.18,
+        1.0,
+        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonSmoothRawNdotLForVis )
+    );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 
     // Restore earthshine, held separately so it bypasses the Sun-side
@@ -442,7 +445,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v22-earthshine-isolated",
+            "moon-photometric-v25-no-terminator-band",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

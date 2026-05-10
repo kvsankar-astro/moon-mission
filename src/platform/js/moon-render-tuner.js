@@ -446,7 +446,8 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
     diffuseColor.rgb *= ( 1.0 + moonOpposition );
 
-    float moonTerminatorScale = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
+    float moonTerminatorScaleRaw = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
+    float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );
     reflectedLight.directDiffuse *= moonTerminatorScale;
 
     float moonSmoothNdotL = clamp( dot( normalize( nonPerturbedNormal ), moonLightDir ), 0.0, 1.0 );
@@ -546,7 +547,11 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
+    float moonFinalShadowCrush = mix(
+        0.18,
+        1.0,
+        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonSmoothRawNdotLForVis )
+    );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
     // Restore earthshine after dark-side crush. Cavity AO applies; shadow
     // crush does not (earthshine is the reason the dark side isn't black).
@@ -567,7 +572,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
 #endif`,
             );
     };
-    material.customProgramCacheKey = () => "moon-render-tuner-v4-earthshine-isolated";
+    material.customProgramCacheKey = () => "moon-render-tuner-v7-no-terminator-band";
 }
 
 function updateShaderUniforms() {

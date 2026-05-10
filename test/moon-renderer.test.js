@@ -221,7 +221,7 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v22-earthshine-isolated");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v25-no-terminator-band");
         expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
         expect(shader.fragmentShader)
             .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
@@ -252,6 +252,13 @@ describe("MoonRenderer", () => {
         expect(shader.fragmentShader).toContain("float moonTerrainSelfShadow = 0.0");
         expect(shader.fragmentShader).toContain("reflectedLight.directDiffuse *= 1.0 - moonTerrainShadow");
         expect(shader.fragmentShader).toContain("float moonShadowWeight = 1.0");
+        expect(shader.fragmentShader)
+            .toContain("float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );");
+        expect(shader.fragmentShader).not.toContain("moonSunlitTerminatorToneFloor");
+        expect(shader.fragmentShader)
+            .toContain("smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonSmoothRawNdotLForVis )");
+        expect(shader.fragmentShader).not.toContain("smoothstep( 0.045, 0.22, moonSmoothNdotL )");
+        expect(shader.fragmentShader).not.toContain("smoothstep( 0.0, 0.055, moonSmoothNdotL )");
         expect(shader.fragmentShader).toContain("#endif\n    reflectedLight.indirectDiffuse += diffuseColor.rgb * ( uMoonShadowLift * moonShadowWeight * 0.72 );");
 
         moonRenderer.dispose();
