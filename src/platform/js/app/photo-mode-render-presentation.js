@@ -127,35 +127,12 @@ export function applyPhotoModeBodyPresentation({
                 return record;
             },
         ),
-        ...(presentation
-            ? applyBodyMaterialOverride(
-                moon,
-                (material) => Object.prototype.hasOwnProperty.call(material.userData, "moonTerminatorShadowFloor"),
-                (material) => {
-                    const record = {
-                        kind: "moon",
-                        material,
-                        moonShadowLift: material.userData.moonShadowLift,
-                        moonShadowWeightExponent: material.userData.moonShadowWeightExponent,
-                        moonHighlightWeightExponent: material.userData.moonHighlightWeightExponent,
-                        moonTerminatorContrast: material.userData.moonTerminatorContrast,
-                        moonTerminatorReliefStrength: material.userData.moonTerminatorReliefStrength,
-                        moonTerminatorShadowFloor: material.userData.moonTerminatorShadowFloor,
-                        moonTerminatorIndirectOcclusion: material.userData.moonTerminatorIndirectOcclusion,
-                        moonHighlightBoost: material.userData.moonHighlightBoost,
-                    };
-                    material.userData.moonShadowLift = presentation.moonShadowLift;
-                    material.userData.moonShadowWeightExponent = presentation.moonShadowWeightExponent;
-                    material.userData.moonHighlightWeightExponent = presentation.moonHighlightWeightExponent;
-                    material.userData.moonTerminatorContrast = presentation.moonTerminatorContrast;
-                    material.userData.moonTerminatorReliefStrength = presentation.moonTerminatorReliefStrength;
-                    material.userData.moonTerminatorShadowFloor = presentation.moonTerminatorShadowFloor;
-                    material.userData.moonTerminatorIndirectOcclusion = presentation.moonTerminatorIndirectOcclusion;
-                    material.userData.moonHighlightBoost = presentation.moonHighlightBoost;
-                    return record;
-                },
-            )
-            : []),
+        // Moon photometric values are intentionally NOT overridden here. The
+        // active profile (Standard/Fast or Detailed/Quality) has already
+        // written its tuned values onto the moon material; composer / photo
+        // mode reads them directly so the rendered moon matches the main
+        // scene by construction. (Earlier code hard-coded quality values as
+        // a "no-op" override that silently retuned Standard profile renders.)
     ];
 
     return () => {
@@ -170,16 +147,8 @@ export function applyPhotoModeBodyPresentation({
                 record.material.userData.earthAtmosphereRimStrength = record.earthAtmosphereRimStrength;
                 continue;
             }
-            if (record.kind === "moon") {
-                record.material.userData.moonShadowLift = record.moonShadowLift;
-                record.material.userData.moonShadowWeightExponent = record.moonShadowWeightExponent;
-                record.material.userData.moonHighlightWeightExponent = record.moonHighlightWeightExponent;
-                record.material.userData.moonTerminatorContrast = record.moonTerminatorContrast;
-                record.material.userData.moonTerminatorReliefStrength = record.moonTerminatorReliefStrength;
-                record.material.userData.moonTerminatorShadowFloor = record.moonTerminatorShadowFloor;
-                record.material.userData.moonTerminatorIndirectOcclusion = record.moonTerminatorIndirectOcclusion;
-                record.material.userData.moonHighlightBoost = record.moonHighlightBoost;
-            }
+            // No "moon" record kind — moon photometric values are no longer
+            // overridden in photo mode (see applyBodyMaterialOverride call above).
         }
     };
 }
