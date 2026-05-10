@@ -265,7 +265,58 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // artifacts and is omitted. See docs/research/moon-rendering/
     // 01-solar-disk-physics.md sections 2.6 and Appendix B.
     float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
-    float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
+    float moonSmoothNdotL = clamp( moonSmoothRawNdotLForVis, 0.0, 1.0 );
+    float moonTerrainHorizonLift = 0.0;
+    float moonFinalCavityDarkenFromHeight = 0.0;
+
+#if defined( USE_DISPLACEMENTMAP ) || defined( USE_NORMALMAP )
+    #if defined( USE_DISPLACEMENTMAP )
+        vec2 moonHeightUv = vDisplacementMapUv;
+    #else
+        vec2 moonHeightUv = vNormalMapUv;
+    #endif
+    vec2 moonCavityStep = uMoonHeightTexelSize * max( 1.0, uMoonTerrainShadowTexelStride * 1.6 );
+    float moonCenterHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
+    float moonAxisHeightAverage = (
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, 0.0 ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - vec2( moonCavityStep.x, 0.0 ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( 0.0, moonCavityStep.y ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - vec2( 0.0, moonCavityStep.y ) ).r
+    ) * 0.25;
+    float moonDiagonalHeightAverage = (
+        texture2D( uMoonHeightMap, moonHeightUv + moonCavityStep ).r +
+        texture2D( uMoonHeightMap, moonHeightUv - moonCavityStep ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, -moonCavityStep.y ) ).r +
+        texture2D( uMoonHeightMap, moonHeightUv + vec2( -moonCavityStep.x, moonCavityStep.y ) ).r
+    ) * 0.25;
+    float moonNeighborHeightAverage = mix( moonAxisHeightAverage, moonDiagonalHeightAverage, 0.45 );
+    float moonTerrainProminence = max( 0.0, moonCenterHeight - moonNeighborHeightAverage );
+    float moonTerrainProminenceWeight = smoothstep( 0.0022, 0.012, moonTerrainProminence );
+    float moonTerminatorVisibilityBand = 1.0 - smoothstep( 0.015, 0.13, moonSmoothRawNdotLForVis );
+    float moonSunwardFacetWeight = smoothstep( 0.0, 0.045, moonNdotL );
+    // Raised coherent terrain can see over the smooth spherical horizon near
+    // the terminator. Using prominence against an 8-neighbour average avoids
+    // letting normal-map grain create a uniform glow band.
+    moonTerrainHorizonLift = clamp(
+        moonTerrainProminence * moonTerrainProminenceWeight * moonTerminatorVisibilityBand * moonSunwardFacetWeight * 4.8,
+        0.0,
+        0.038
+    );
+
+    float moonCavityBand = smoothstep( 0.018, 0.10, moonSmoothNdotL )
+        * ( 1.0 - smoothstep( 0.24, 0.42, moonSmoothNdotL ) );
+    float moonTerrainCavity = max( 0.0, moonNeighborHeightAverage - moonCenterHeight );
+    // Threshold above the LDEM noise floor (~0.0005 normalized) so micro-bumps
+    // don't read as shadows. Real crater bowls show up above 0.0015.
+    float moonCavityOcclusion = smoothstep( 0.0015, 0.0085, moonTerrainCavity )
+        * moonCavityBand
+        * uMoonTerrainShadowStrength;
+    // Soft basin shading only — the sun-direction-aware march carries the drama.
+    moonFinalCavityDarkenFromHeight = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
+#endif
+
+    float moonEffectiveRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift;
+    float moonSunVisibility = moonSunDiskVisibleFraction( moonEffectiveRawNdotLForVis );
 
     // Isolate earthshine. directDiffuse currently holds the Sun's
     // shadow-attenuated contribution PLUS earthshine from directionalLights[1]
@@ -300,7 +351,6 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );
     reflectedLight.directDiffuse *= moonTerminatorScale;
 
-    float moonSmoothNdotL = clamp( dot( normalize( nonPerturbedNormal ), moonLightDir ), 0.0, 1.0 );
     float moonTerminatorReliefBoost = max( 0.0, uMoonTerminatorContrast - 1.0 ) * max( 0.0, uMoonTerminatorReliefStrength );
     float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
     float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
@@ -323,41 +373,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         * clamp( moonLocalReliefDelta * 3.6, -0.34, 0.0 );
     reflectedLight.directDiffuse *= clamp( moonLocalReliefTone, 0.48, 1.0 );
 
-#if defined( USE_DISPLACEMENTMAP ) || defined( USE_NORMALMAP )
-    #if defined( USE_DISPLACEMENTMAP )
-        vec2 moonHeightUv = vDisplacementMapUv;
-    #else
-        vec2 moonHeightUv = vNormalMapUv;
-    #endif
-    vec2 moonCavityStep = uMoonHeightTexelSize * max( 1.0, uMoonTerrainShadowTexelStride * 1.6 );
-    float moonCenterHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
-    float moonAxisHeightAverage = (
-        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, 0.0 ) ).r +
-        texture2D( uMoonHeightMap, moonHeightUv - vec2( moonCavityStep.x, 0.0 ) ).r +
-        texture2D( uMoonHeightMap, moonHeightUv + vec2( 0.0, moonCavityStep.y ) ).r +
-        texture2D( uMoonHeightMap, moonHeightUv - vec2( 0.0, moonCavityStep.y ) ).r
-    ) * 0.25;
-    float moonDiagonalHeightAverage = (
-        texture2D( uMoonHeightMap, moonHeightUv + moonCavityStep ).r +
-        texture2D( uMoonHeightMap, moonHeightUv - moonCavityStep ).r +
-        texture2D( uMoonHeightMap, moonHeightUv + vec2( moonCavityStep.x, -moonCavityStep.y ) ).r +
-        texture2D( uMoonHeightMap, moonHeightUv + vec2( -moonCavityStep.x, moonCavityStep.y ) ).r
-    ) * 0.25;
-    float moonNeighborHeightAverage = mix( moonAxisHeightAverage, moonDiagonalHeightAverage, 0.45 );
-    float moonCavityBand = smoothstep( 0.018, 0.10, moonSmoothNdotL )
-        * ( 1.0 - smoothstep( 0.24, 0.42, moonSmoothNdotL ) );
-    float moonTerrainCavity = max( 0.0, moonNeighborHeightAverage - moonCenterHeight );
-    // Threshold above the LDEM noise floor (~0.0005 normalized) so micro-bumps
-    // don't read as shadows. Real crater bowls show up above 0.0015.
-    float moonCavityOcclusion = smoothstep( 0.0015, 0.0085, moonTerrainCavity )
-        * moonCavityBand
-        * uMoonTerrainShadowStrength;
-    // Soft basin shading only — the sun-direction-aware march carries the drama.
-    float moonCavityDarken = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
-    moonFinalCavityDarken = moonCavityDarken;
-    reflectedLight.directDiffuse *= 1.0 - moonCavityDarken;
-    reflectedLight.indirectDiffuse *= 1.0 - moonCavityDarken * 0.50;
-#endif
+    moonFinalCavityDarken = moonFinalCavityDarkenFromHeight;
+    reflectedLight.directDiffuse *= 1.0 - moonFinalCavityDarkenFromHeight;
+    reflectedLight.indirectDiffuse *= 1.0 - moonFinalCavityDarkenFromHeight * 0.50;
 
 #if defined( USE_NORMALMAP_TANGENTSPACE )
     vec3 moonLightTangent = vec3(
@@ -372,20 +390,26 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             * uMoonHeightTexelSize
             * max( 0.5, uMoonTerrainShadowTexelStride );
         float moonBaseHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
-        float moonSlopeAllowance = max( moonLightTangent.z, 0.025 ) * max( 0.0, uMoonTerrainShadowSlopeBias );
-        float moonHorizonRise = 0.0;
-        for ( int moonSampleIndex = 1; moonSampleIndex <= 8; moonSampleIndex += 1 ) {
+        float moonSunSlope = max( moonLightTangent.z, 0.0 ) / max( moonLightTangentPlanarLength, 1e-4 );
+        float moonSlopeScale = max( 0.0002, uMoonTerrainShadowSlopeBias );
+        float moonHorizonShadow = 0.0;
+        for ( int moonSampleIndex = 1; moonSampleIndex <= 12; moonSampleIndex += 1 ) {
             float moonSampleDistance = float( moonSampleIndex );
             float moonSampleHeight = texture2D( uMoonHeightMap, moonHeightUv + moonLightUvStep * moonSampleDistance ).r;
-            moonHorizonRise = max(
-                moonHorizonRise,
-                moonSampleHeight - moonBaseHeight - moonSlopeAllowance * moonSampleDistance
+            float moonRequiredRise = moonSunSlope * moonSlopeScale * moonSampleDistance * 7.0;
+            float moonBlockerRise = moonSampleHeight - moonBaseHeight - moonRequiredRise;
+            float moonSampleShadow = smoothstep(
+                0.0012,
+                0.0065,
+                moonBlockerRise
             );
+            moonHorizonShadow = max( moonHorizonShadow, moonSampleShadow );
         }
-        // Catch small crater rims (down to ~0.5 km on the 1737 km moon, ~0.0003
-        // normalized) — but the terminator-only band below kills any false
-        // triggering by surface noise on the lit side.
-        moonTerrainSelfShadow = smoothstep( 0.00015, 0.0014, moonHorizonRise );
+        // Compare blocker height against the Sun's local slope instead of a
+        // tiny absolute height threshold. This keeps random height-map specks
+        // from becoming lit/dark pinholes while preserving long low-Sun
+        // crater-rim shadows near the terminator.
+        moonTerrainSelfShadow = moonHorizonShadow;
     }
     // Confine the self-shadow strictly to the terminator-adjacent band:
     // moonTerrainReliefBand = 1 at terminator, 0 by NdotL > 0.20, so noise on
@@ -414,7 +438,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonFinalShadowCrush = mix(
         0.18,
         1.0,
-        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonSmoothRawNdotLForVis )
+        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonEffectiveRawNdotLForVis )
     );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 
@@ -445,7 +469,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v25-no-terminator-band",
+            "moon-photometric-v27-terrain-horizon-visibility",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,

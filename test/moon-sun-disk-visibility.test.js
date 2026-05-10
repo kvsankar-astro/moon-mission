@@ -126,8 +126,11 @@ describe("moonSunDiskVisibleFraction drift check (renderer vs tuner)", () => {
         expect(tunerShaderSource).toMatch(formulaPattern);
     });
 
-    it("applies the smooth-normal visibility on directionalLights[0] in both shader sources", () => {
-        const visibilityPattern = /moonSunDiskVisibleFraction\(\s*moonSmoothRawNdotLForVis\s*\)/;
+    it("applies terrain-adjusted smooth-normal visibility on directionalLights[0] in both shader sources", () => {
+        const effectiveHorizonPattern = /moonEffectiveRawNdotLForVis\s*=\s*moonSmoothRawNdotLForVis\s*\+\s*moonTerrainHorizonLift/;
+        const visibilityPattern = /moonSunDiskVisibleFraction\(\s*moonEffectiveRawNdotLForVis\s*\)/;
+        expect(renderShaderSource).toMatch(effectiveHorizonPattern);
+        expect(tunerShaderSource).toMatch(effectiveHorizonPattern);
         expect(renderShaderSource).toMatch(visibilityPattern);
         expect(tunerShaderSource).toMatch(visibilityPattern);
     });

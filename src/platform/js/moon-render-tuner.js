@@ -428,50 +428,9 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
                                    * RECIPROCAL_PI * material.diffuseColor;
     float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
-    float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
-    moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );
-    reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;
-
-    float moonLsScale = 1.0;
-    if ( moonNdotL > 1e-4 ) {
-        float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
-        moonLsScale = moonLs / moonNdotL;
-    } else {
-        moonLsScale = 0.0;
-    }
-    moonLsScale = clamp( moonLsScale, min(uMoonLsClampMin, uMoonLsClampMax), max(uMoonLsClampMin, uMoonLsClampMax) );
-    reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
-
-    float moonPhaseAlignment = clamp( dot( moonLightDir, moonViewDir ), 0.0, 1.0 );
-    float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
-    diffuseColor.rgb *= ( 1.0 + moonOpposition );
-
-    float moonTerminatorScaleRaw = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
-    float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );
-    reflectedLight.directDiffuse *= moonTerminatorScale;
-
-    float moonSmoothNdotL = clamp( dot( normalize( nonPerturbedNormal ), moonLightDir ), 0.0, 1.0 );
-    float moonTerminatorReliefBoost = max( 0.0, uMoonTerminatorContrast - 1.0 ) * max( 0.0, uMoonTerminatorReliefStrength );
-    float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
-    float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
-    float moonTerminatorBand = 1.0 - smoothstep( 0.06, moonTerminatorOuter, moonNdotL );
-    float moonTerrainReliefBand = 1.0 - smoothstep( 0.025, max( moonTerminatorOuter, 0.20 ), moonSmoothNdotL );
-    float moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
-    float moonHighlightWeight = pow( moonNdotL, max(0.2, uMoonHighlightWeightExponent) );
-    float moonShadowCrush = mix( 0.18, 0.24, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
-    float moonHighlightLift = mix( 0.04, 0.055, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
-    float moonShadowTarget = max( clamp( uMoonTerminatorShadowFloor, 0.0, 1.0 ), 1.0 + uMoonShadowLift - moonShadowCrush );
-    float moonHighlightTarget = uMoonHighlightBoost + moonHighlightLift;
-    float moonShadowTone = mix(1.0, moonShadowTarget, moonShadowWeight);
-    float moonHighlightTone = mix(1.0, moonHighlightTarget, moonHighlightWeight);
-    vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
-    reflectedLight.directDiffuse *= moonToneMultiplier;
-
-    float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL;
-    float moonLocalReliefTone = 1.0 + moonTerrainReliefBand
-        * uMoonTerrainShadowStrength
-        * clamp( moonLocalReliefDelta * 3.6, -0.34, 0.0 );
-    reflectedLight.directDiffuse *= clamp( moonLocalReliefTone, 0.48, 1.0 );
+    float moonSmoothNdotL = clamp( moonSmoothRawNdotLForVis, 0.0, 1.0 );
+    float moonTerrainHorizonLift = 0.0;
+    float moonFinalCavityDarkenFromHeight = 0.0;
 
 #if defined( USE_DISPLACEMENTMAP ) || defined( USE_NORMALMAP )
     #if defined( USE_DISPLACEMENTMAP )
@@ -494,17 +453,73 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         texture2D( uMoonHeightMap, moonHeightUv + vec2( -moonCavityStep.x, moonCavityStep.y ) ).r
     ) * 0.25;
     float moonNeighborHeightAverage = mix( moonAxisHeightAverage, moonDiagonalHeightAverage, 0.45 );
+    float moonTerrainProminence = max( 0.0, moonCenterHeight - moonNeighborHeightAverage );
+    float moonTerrainProminenceWeight = smoothstep( 0.0022, 0.012, moonTerrainProminence );
+    float moonTerminatorVisibilityBand = 1.0 - smoothstep( 0.015, 0.13, moonSmoothRawNdotLForVis );
+    float moonSunwardFacetWeight = smoothstep( 0.0, 0.045, moonNdotL );
+    moonTerrainHorizonLift = clamp(
+        moonTerrainProminence * moonTerrainProminenceWeight * moonTerminatorVisibilityBand * moonSunwardFacetWeight * 4.8,
+        0.0,
+        0.038
+    );
+
     float moonCavityBand = smoothstep( 0.018, 0.10, moonSmoothNdotL )
         * ( 1.0 - smoothstep( 0.24, 0.42, moonSmoothNdotL ) );
     float moonTerrainCavity = max( 0.0, moonNeighborHeightAverage - moonCenterHeight );
     float moonCavityOcclusion = smoothstep( 0.0015, 0.0085, moonTerrainCavity )
         * moonCavityBand
         * uMoonTerrainShadowStrength;
-    float moonCavityDarken = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
-    moonFinalCavityDarken = moonCavityDarken;
-    reflectedLight.directDiffuse *= 1.0 - moonCavityDarken;
-    reflectedLight.indirectDiffuse *= 1.0 - moonCavityDarken * 0.50;
+    moonFinalCavityDarkenFromHeight = clamp( moonCavityOcclusion * 0.10, 0.0, 0.18 );
 #endif
+
+    float moonEffectiveRawNdotLForVis = moonSmoothRawNdotLForVis + moonTerrainHorizonLift;
+    float moonSunVisibility = moonSunDiskVisibleFraction( moonEffectiveRawNdotLForVis );
+    moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );
+    reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;
+
+    float moonLsScale = 1.0;
+    if ( moonNdotL > 1e-4 ) {
+        float moonLs = moonNdotL / max( moonNdotL + moonNdotV, 1e-4 );
+        moonLsScale = moonLs / moonNdotL;
+    } else {
+        moonLsScale = 0.0;
+    }
+    moonLsScale = clamp( moonLsScale, min(uMoonLsClampMin, uMoonLsClampMax), max(uMoonLsClampMin, uMoonLsClampMax) );
+    reflectedLight.directDiffuse *= mix( 1.0, moonLsScale, uMoonLsBlend );
+
+    float moonPhaseAlignment = clamp( dot( moonLightDir, moonViewDir ), 0.0, 1.0 );
+    float moonOpposition = pow( moonPhaseAlignment, 18.0 ) * uMoonOppositionStrength;
+    diffuseColor.rgb *= ( 1.0 + moonOpposition );
+
+    float moonTerminatorScaleRaw = pow( max( moonNdotL, 1e-4 ), max(1.0, uMoonTerminatorContrast) - 1.0 );
+    float moonTerminatorScale = mix( 1.0, moonTerminatorScaleRaw, 0.42 );
+    reflectedLight.directDiffuse *= moonTerminatorScale;
+
+    float moonTerminatorReliefBoost = max( 0.0, uMoonTerminatorContrast - 1.0 ) * max( 0.0, uMoonTerminatorReliefStrength );
+    float moonReliefBandT = clamp( ( uMoonTerminatorReliefStrength - 1.0 ) / 6.5, 0.0, 1.0 );
+    float moonTerminatorOuter = mix( 0.42, 0.28, moonReliefBandT );
+    float moonTerminatorBand = 1.0 - smoothstep( 0.06, moonTerminatorOuter, moonNdotL );
+    float moonTerrainReliefBand = 1.0 - smoothstep( 0.025, max( moonTerminatorOuter, 0.20 ), moonSmoothNdotL );
+    float moonShadowWeight = pow( 1.0 - moonNdotL, max(0.2, uMoonShadowWeightExponent) );
+    float moonHighlightWeight = pow( moonNdotL, max(0.2, uMoonHighlightWeightExponent) );
+    float moonShadowCrush = mix( 0.18, 0.24, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
+    float moonHighlightLift = mix( 0.04, 0.055, moonReliefBandT ) * moonTerminatorReliefBoost * moonTerminatorBand;
+    float moonShadowTarget = max( clamp( uMoonTerminatorShadowFloor, 0.0, 1.0 ), 1.0 + uMoonShadowLift - moonShadowCrush );
+    float moonHighlightTarget = uMoonHighlightBoost + moonHighlightLift;
+    float moonShadowTone = mix(1.0, moonShadowTarget, moonShadowWeight);
+    float moonHighlightTone = mix(1.0, moonHighlightTarget, moonHighlightWeight);
+    vec3 moonToneMultiplier = vec3( moonShadowTone * moonHighlightTone );
+    reflectedLight.directDiffuse *= moonToneMultiplier;
+
+    float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL;
+    float moonLocalReliefTone = 1.0 + moonTerrainReliefBand
+        * uMoonTerrainShadowStrength
+        * clamp( moonLocalReliefDelta * 3.6, -0.34, 0.0 );
+    reflectedLight.directDiffuse *= clamp( moonLocalReliefTone, 0.48, 1.0 );
+
+    moonFinalCavityDarken = moonFinalCavityDarkenFromHeight;
+    reflectedLight.directDiffuse *= 1.0 - moonFinalCavityDarkenFromHeight;
+    reflectedLight.indirectDiffuse *= 1.0 - moonFinalCavityDarkenFromHeight * 0.50;
 
 #if defined( USE_NORMALMAP_TANGENTSPACE )
     vec3 moonLightTangent = vec3(
@@ -519,17 +534,22 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
             * uMoonHeightTexelSize
             * max( 0.5, uMoonTerrainShadowTexelStride );
         float moonBaseHeight = texture2D( uMoonHeightMap, moonHeightUv ).r;
-        float moonSlopeAllowance = max( moonLightTangent.z, 0.025 ) * max( 0.0, uMoonTerrainShadowSlopeBias );
-        float moonHorizonRise = 0.0;
-        for ( int moonSampleIndex = 1; moonSampleIndex <= 8; moonSampleIndex += 1 ) {
+        float moonSunSlope = max( moonLightTangent.z, 0.0 ) / max( moonLightTangentPlanarLength, 1e-4 );
+        float moonSlopeScale = max( 0.0002, uMoonTerrainShadowSlopeBias );
+        float moonHorizonShadow = 0.0;
+        for ( int moonSampleIndex = 1; moonSampleIndex <= 12; moonSampleIndex += 1 ) {
             float moonSampleDistance = float( moonSampleIndex );
             float moonSampleHeight = texture2D( uMoonHeightMap, moonHeightUv + moonLightUvStep * moonSampleDistance ).r;
-            moonHorizonRise = max(
-                moonHorizonRise,
-                moonSampleHeight - moonBaseHeight - moonSlopeAllowance * moonSampleDistance
+            float moonRequiredRise = moonSunSlope * moonSlopeScale * moonSampleDistance * 7.0;
+            float moonBlockerRise = moonSampleHeight - moonBaseHeight - moonRequiredRise;
+            float moonSampleShadow = smoothstep(
+                0.0012,
+                0.0065,
+                moonBlockerRise
             );
+            moonHorizonShadow = max( moonHorizonShadow, moonSampleShadow );
         }
-        moonTerrainSelfShadow = smoothstep( 0.00015, 0.0014, moonHorizonRise );
+        moonTerrainSelfShadow = moonHorizonShadow;
     }
     float moonTerrainShadowBand = moonTerrainReliefBand
         * pow( 1.0 - moonSmoothNdotL, 1.4 );
@@ -550,7 +570,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     float moonFinalShadowCrush = mix(
         0.18,
         1.0,
-        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonSmoothRawNdotLForVis )
+        smoothstep( -MOON_SUN_SIN_ALPHA, 0.025, moonEffectiveRawNdotLForVis )
     );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
     // Restore earthshine after dark-side crush. Cavity AO applies; shadow
@@ -572,7 +592,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
 #endif`,
             );
     };
-    material.customProgramCacheKey = () => "moon-render-tuner-v7-no-terminator-band";
+    material.customProgramCacheKey = () => "moon-render-tuner-v9-terrain-horizon-visibility";
 }
 
 function updateShaderUniforms() {
