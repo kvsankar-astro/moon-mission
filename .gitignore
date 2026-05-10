@@ -1,5 +1,11 @@
 .claude
 .playwright-mcp/
+
+# Code-review markdown reports stay in the working tree as scratch but
+# are not part of the repo. They go stale immediately as fixes land.
+*-review.md
+*-review-round*.md
+
 # =========================
 # Generated Data Files
 # =========================
