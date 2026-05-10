@@ -19,6 +19,9 @@ const PANEL_DEFAULT_LEFT_PX = 22;
 const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
 const PANEL_DEFAULT_WIDTH_PX = 560;
 const PANEL_DEFAULT_HEIGHT_PX = 500;
+const DRILLDOWN_DRAWER_WIDTH_PX = 320;
+const DRILLDOWN_DRAWER_MIN_WIDTH_PX = 260;
+const DRILLDOWN_DRAWER_MIN_HEIGHT_PX = 180;
 const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = 148;
 const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
 const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
@@ -272,6 +275,7 @@ function createMediaBrowserPanelActions({
         panelPosition = clamped;
         panel.style.left = `${clamped.x}px`;
         panel.style.top = `${clamped.y}px`;
+        syncDrilldownFlyoutPlacement();
     }
 
     function clampPanelPosition(panel) {
@@ -716,33 +720,38 @@ function createMediaBrowserPanelActions({
             || panel.classList.contains("media-browser-panel--hidden")
         ) {
             flyout.hidden = true;
+            panel?.classList?.remove("media-browser-panel--drilldown-open");
             return;
         }
 
-        const summary = drilldown.querySelector("summary");
-        const body = panel.querySelector(".media-browser-panel__body");
-        const summaryRect = summary?.getBoundingClientRect?.() || null;
-        const bodyRect = body?.getBoundingClientRect?.() || panel.getBoundingClientRect();
+        const panelRect = panel.getBoundingClientRect();
+        if (!Number.isFinite(panelRect.width) || panelRect.width <= 0 || panelRect.height <= 0) {
+            flyout.hidden = true;
+            panel.classList.remove("media-browser-panel--drilldown-open");
+            return;
+        }
+
         const viewportWidth = getViewportWidth();
         const viewportHeight = getViewportHeight();
-        const flyoutWidth = Math.min(320, Math.max(260, viewportWidth - (PANEL_EDGE_MARGIN_PX * 2)));
-        const desiredLeft = Number.isFinite(summaryRect?.right)
-            ? summaryRect.right + PANEL_EDGE_MARGIN_PX
-            : bodyRect.right + PANEL_EDGE_MARGIN_PX;
+        const maxWidth = Math.max(DRILLDOWN_DRAWER_MIN_WIDTH_PX, viewportWidth - (PANEL_EDGE_MARGIN_PX * 2));
+        const availableRight = Math.max(DRILLDOWN_DRAWER_MIN_WIDTH_PX, viewportWidth - panelRect.right - PANEL_EDGE_MARGIN_PX);
+        const flyoutWidth = Math.min(DRILLDOWN_DRAWER_WIDTH_PX, maxWidth, availableRight);
         const maxLeft = Math.max(PANEL_EDGE_MARGIN_PX, viewportWidth - flyoutWidth - PANEL_EDGE_MARGIN_PX);
+        const desiredLeft = Math.round(panelRect.right) - 1;
         const top = clamp(
-            Math.round(bodyRect.top),
+            Math.round(panelRect.top),
             PANEL_EDGE_MARGIN_PX,
-            Math.max(PANEL_EDGE_MARGIN_PX, viewportHeight - 180),
+            Math.max(PANEL_EDGE_MARGIN_PX, viewportHeight - DRILLDOWN_DRAWER_MIN_HEIGHT_PX),
         );
         const height = clamp(
-            Math.round(bodyRect.height || 320),
-            180,
-            Math.max(180, viewportHeight - top - PANEL_EDGE_MARGIN_PX),
+            Math.round(panelRect.height || PANEL_DEFAULT_HEIGHT_PX),
+            DRILLDOWN_DRAWER_MIN_HEIGHT_PX,
+            Math.max(DRILLDOWN_DRAWER_MIN_HEIGHT_PX, viewportHeight - top - PANEL_EDGE_MARGIN_PX),
         );
 
         flyout.hidden = false;
-        flyout.style.left = `${Math.round(Math.min(desiredLeft, maxLeft))}px`;
+        panel.classList.add("media-browser-panel--drilldown-open");
+        flyout.style.left = `${Math.round(clamp(desiredLeft, PANEL_EDGE_MARGIN_PX, maxLeft))}px`;
         flyout.style.top = `${Math.round(top)}px`;
         flyout.style.width = `${Math.round(flyoutWidth)}px`;
         flyout.style.height = `${Math.round(height)}px`;
@@ -1012,25 +1021,6 @@ function createMediaBrowserPanelActions({
 
         const cameraOptions = filterModel?.cameraButtonOptions || [];
         appendFilterFacetGroup(host, "Camera", cameraOptions, "toggleCameraFilter", "camera");
-    }
-
-    function syncAudioControls(audioModel = {}) {
-        const button = getNode("media-browser-audio-toggle");
-        const now = getNode("media-browser-audio-now");
-        const available = audioModel.available === true;
-        const enabled = available && audioModel.enabled === true;
-        if (isElementLike(button)) {
-            button.disabled = !available;
-            button.classList.toggle("is-active", enabled);
-            button.setAttribute("aria-pressed", enabled ? "true" : "false");
-            button.title = available
-                ? (enabled ? "Pause mission audio" : "Play mission audio")
-                : "No mission audio clips are available";
-        }
-        if (now) {
-            now.textContent = enabled ? String(audioModel.nowLabel || "") : "";
-            now.title = now.textContent;
-        }
     }
 
     function syncMediaControls(playbackModel = {}) {
@@ -1347,7 +1337,6 @@ function createMediaBrowserPanelActions({
 
         renderMediaFilterControls(viewModel.filterModel || {});
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
-        syncAudioControls(viewModel.audioModel || {});
         syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
         renderThumbnailItems(viewModel.thumbnailItems || []);
@@ -1457,10 +1446,6 @@ function createMediaBrowserPanelActions({
         expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
         closeButton?.addEventListener("click", () => setPanelState("closed"));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());
-
-        getNode("media-browser-audio-toggle")?.addEventListener?.("click", () => {
-            onIntent?.({ type: "toggleAudio" });
-        });
 
         getNode("media-browser-filter-prev")?.addEventListener?.("click", () => {
             onIntent?.({ type: "selectAdjacentItem", value: "previous" });

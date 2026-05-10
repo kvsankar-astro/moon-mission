@@ -101,33 +101,6 @@ function resolvePlayableDurationSeconds(item, fallbackDurationSeconds = Number.N
     return Number.isFinite(fallbackSeconds) && fallbackSeconds > 0 ? fallbackSeconds : Number.NaN;
 }
 
-function resolvePlayableEndTimeMs(item, fallbackDurationSeconds = Number.NaN) {
-    const startTimeMs = Number(item?.startTimeMs);
-    if (!Number.isFinite(startTimeMs)) {
-        return Number.NaN;
-    }
-    const explicitEndTimeMs = Number(item?.endTimeMs);
-    if (Number.isFinite(explicitEndTimeMs) && explicitEndTimeMs > startTimeMs) {
-        return explicitEndTimeMs;
-    }
-    const durationSeconds = resolvePlayableDurationSeconds(item, fallbackDurationSeconds);
-    return Number.isFinite(durationSeconds) ? startTimeMs + durationSeconds * 1000 : Number.NaN;
-}
-
-function resolveAudioClipForTime(audioItems, timeMs) {
-    if (!Array.isArray(audioItems) || !Number.isFinite(timeMs)) return null;
-    let activeClip = null;
-    for (const clip of audioItems) {
-        if (clip?.enabled === false || !Number.isFinite(clip?.startTimeMs)) continue;
-        const clipEndTimeMs = resolvePlayableEndTimeMs(clip, AUDIO_DEFAULT_DURATION_SECONDS);
-        if (Number.isFinite(clipEndTimeMs) && timeMs >= clipEndTimeMs) continue;
-        if (clip.startTimeMs <= timeMs && (!activeClip || clip.startTimeMs > activeClip.startTimeMs)) {
-            activeClip = clip;
-        }
-    }
-    return activeClip;
-}
-
 function buildSelectableMediaItems(mediaItems, audioItems) {
     return [
         ...(Array.isArray(mediaItems) ? mediaItems : []),
@@ -403,7 +376,6 @@ function createMediaTimelineCoordination({
     let onTimelineMarkerSelect = null;
     let animationPlayStateEventBound = false;
     let onAnimationPlayStateUpdated = null;
-    let audioEnabled = false;
     let currentAudio = null;
     let currentAudioClipId = "";
     let thumbnailWindowStartIndex = 0;
@@ -727,9 +699,6 @@ function createMediaTimelineCoordination({
         seekTimeline = true,
     } = {}) {
         if (!isPlayableMediaItem(item)) return false;
-        if (item.kind === "audioClip") {
-            audioEnabled = true;
-        }
         const offsetSeconds = resolvePlaybackOffsetSeconds(item, readCurrentMissionTimeMs(), fromBeginning);
         const timelineTimeMs = item.startTimeMs + offsetSeconds * 1000;
 
@@ -1025,31 +994,6 @@ function createMediaTimelineCoordination({
             rerender();
             return;
         }
-        if (type === "toggleAudio") {
-            if (audioEnabled === true) {
-                audioEnabled = false;
-                if (mediaPlaybackState.kind === "audioClip") {
-                    stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
-                } else {
-                    stopAudioPlayback();
-                }
-                rerender();
-                return;
-            }
-            audioEnabled = true;
-            const manifest = runtimeMediaState.getManifest();
-            const currentTimeMs = readCurrentMissionTimeMs();
-            const activeAudioClip = resolveAudioClipForTime(manifest?.audioItems || [], currentTimeMs);
-            if (activeAudioClip?.assetUrl) {
-                startPlayableMediaItem(activeAudioClip, {
-                    fromBeginning: false,
-                    seekTimeline: true,
-                });
-                return;
-            }
-            rerender();
-            return;
-        }
         if (type === "selectItem") {
             const selectableItems = getFilteredSelectableItems();
             const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
@@ -1132,7 +1076,6 @@ function createMediaTimelineCoordination({
             runtimeMediaState.getFilters(),
         );
         const seedNote = String(manifest?.ui?.seedNote || "").trim();
-        const audioClip = resolveAudioClipForTime(manifest.audioItems || [], timeMs);
         const navigationModel = buildMediaNavigationModel(selectionItems, selection);
         thumbnailWindowStartIndex = resolveThumbnailWindowStart(
             selectionItems,
@@ -1169,11 +1112,6 @@ function createMediaTimelineCoordination({
             seedNote,
             statusText,
             filterModel,
-            audioModel: {
-                available: Array.isArray(manifest.audioItems) && manifest.audioItems.length > 0,
-                enabled: audioEnabled === true,
-                nowLabel: audioClip?.title || audioClip?.description || "",
-            },
             playbackModel: {
                 playable: activePlayable,
                 playing: activePlaybackPlaying,
@@ -1232,11 +1170,6 @@ function createMediaTimelineCoordination({
             descriptionEmptyText: "No media available.",
             stageEmptyText: "No media available.",
             filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()),
-            audioModel: {
-                available: false,
-                enabled: false,
-                nowLabel: "",
-            },
             thumbnailItems: [],
         });
     }
@@ -1293,11 +1226,6 @@ function createMediaTimelineCoordination({
                 descriptionEmptyText: "Loading mission media manifest...",
                 stageEmptyText: "Loading mission media manifest...",
                 filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()),
-                audioModel: {
-                    available: false,
-                    enabled: audioEnabled === true,
-                    nowLabel: "",
-                },
                 thumbnailItems: [],
             });
             return;
