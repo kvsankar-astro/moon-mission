@@ -483,6 +483,30 @@ function getAuxiliaryPanelFallbackState(spec) {
     return "open";
 }
 
+// Aux panels prefer antialiased GL contexts (so composer / Craft-to-Moon
+// moon limbs and crater rims aren't visibly aliased relative to Follow
+// Moon), but a low-end browser or context-constrained tab may not be
+// able to grant antialiased contexts. Try in order; throw only if all
+// attempts fail. (Mirrors the main renderer's fallback chain in
+// scene-handler-init.js#createRendererWithFallback.)
+const AUXILIARY_WEBGL_RENDERER_FALLBACK_ATTEMPTS = Object.freeze([
+    Object.freeze({ antialias: true, powerPreference: "low-power", preserveDrawingBuffer: false }),
+    Object.freeze({ antialias: false, powerPreference: "low-power", preserveDrawingBuffer: false }),
+    Object.freeze({ antialias: false, preserveDrawingBuffer: false }),
+]);
+
+export function createAuxiliaryWebGLRendererWithFallback(THREE) {
+    let lastError = null;
+    for (const auxRendererOptions of AUXILIARY_WEBGL_RENDERER_FALLBACK_ATTEMPTS) {
+        try {
+            return new THREE.WebGLRenderer(auxRendererOptions);
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw lastError || new Error("Unable to create aux WebGLRenderer with fallback options");
+}
+
 function resolveEventStartTimeMs(eventInfo) {
     const startTime = eventInfo?.startTime;
     if (startTime instanceof Date) {
@@ -2725,34 +2749,7 @@ class AuxiliaryCameraViewsManager {
 
         let renderer = null;
         try {
-            // Aux panels match the main renderer's antialias preference (so
-            // composer / Craft-to-Moon moon limbs and crater rims aren't
-            // visibly aliased relative to Follow Moon), but a low-end
-            // browser or context-constrained tab may not be able to grant
-            // antialiased GL contexts. Mirror the main renderer's fallback
-            // chain (see scene-handler-init.js#createRendererWithFallback)
-            // so we degrade gracefully instead of silently dropping the
-            // panel — the previous code caught the failure and removed the
-            // panel entirely, hiding composer / Craft-to-Moon on those
-            // browsers.
-            const auxRendererAttempts = [
-                { antialias: true, powerPreference: "low-power", preserveDrawingBuffer: false },
-                { antialias: false, powerPreference: "low-power", preserveDrawingBuffer: false },
-                { antialias: false, preserveDrawingBuffer: false },
-            ];
-            let auxRendererCreateError = null;
-            for (const auxRendererOptions of auxRendererAttempts) {
-                try {
-                    renderer = new this.THREE.WebGLRenderer(auxRendererOptions);
-                    break;
-                } catch (auxRendererTryError) {
-                    auxRendererCreateError = auxRendererTryError;
-                }
-            }
-            if (!renderer) {
-                throw auxRendererCreateError
-                    || new Error("Unable to create aux WebGLRenderer with fallback options");
-            }
+            renderer = createAuxiliaryWebGLRendererWithFallback(this.THREE);
             if ("outputColorSpace" in renderer && this.THREE.SRGBColorSpace) {
                 renderer.outputColorSpace = this.THREE.SRGBColorSpace;
             } else {

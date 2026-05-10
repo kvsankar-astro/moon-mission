@@ -6,6 +6,7 @@ import {
     AUXILIARY_VIEW_CAMERA_PRESETS,
     computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
+    createAuxiliaryWebGLRendererWithFallback,
     isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
     resolveComposerSkyLabelOccluders,
@@ -17,6 +18,62 @@ import { LIGHT_SETTINGS as LT } from "../src/platform/js/core/constants.js";
 
 afterEach(() => {
     vi.unstubAllGlobals();
+});
+
+describe("createAuxiliaryWebGLRendererWithFallback", () => {
+    function makeFakeRendererCtor({ failOnAntialias = false, failAlways = false } = {}) {
+        const calls = [];
+        const Ctor = vi.fn(function FakeWebGLRenderer(options) {
+            calls.push(options);
+            if (failAlways) {
+                throw new Error("WebGL not available");
+            }
+            if (failOnAntialias && options?.antialias === true) {
+                throw new Error("antialias not granted");
+            }
+            this.options = options;
+        });
+        return { Ctor, calls };
+    }
+
+    it("returns a renderer on the first attempt when antialias is available", () => {
+        const { Ctor, calls } = makeFakeRendererCtor();
+        const fakeTHREE = { WebGLRenderer: Ctor };
+
+        const renderer = createAuxiliaryWebGLRendererWithFallback(fakeTHREE);
+
+        expect(renderer).toBeInstanceOf(Ctor);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toMatchObject({ antialias: true });
+    });
+
+    it("falls back to non-antialiased on antialias failure (no panel removal)", () => {
+        // Reviewer-flagged regression case: previously aux panel construction
+        // wrapped a single antialias:true attempt in try/catch and removed
+        // the panel on failure. Low-end browsers silently lost composer /
+        // Craft-to-Moon panels. Now we fall back instead.
+        const { Ctor, calls } = makeFakeRendererCtor({ failOnAntialias: true });
+        const fakeTHREE = { WebGLRenderer: Ctor };
+
+        const renderer = createAuxiliaryWebGLRendererWithFallback(fakeTHREE);
+
+        expect(renderer).toBeInstanceOf(Ctor);
+        // First attempt has antialias:true and threw; the constructor was
+        // called again with antialias:false, which succeeded.
+        expect(calls.length).toBeGreaterThanOrEqual(2);
+        expect(calls[0]).toMatchObject({ antialias: true });
+        expect(calls[1]).toMatchObject({ antialias: false });
+        expect(renderer.options.antialias).toBe(false);
+    });
+
+    it("throws the last error when every fallback attempt fails", () => {
+        const { Ctor, calls } = makeFakeRendererCtor({ failAlways: true });
+        const fakeTHREE = { WebGLRenderer: Ctor };
+
+        expect(() => createAuxiliaryWebGLRendererWithFallback(fakeTHREE))
+            .toThrow(/WebGL not available/);
+        expect(calls.length).toBeGreaterThanOrEqual(3);
+    });
 });
 
 describe("AUXILIARY_VIEW_CAMERA_PRESETS", () => {
