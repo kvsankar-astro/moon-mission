@@ -84,6 +84,7 @@ function createMissionSceneEntry(ctx) {
         getViewEquatorialPlane,
         getEventInfos,
         getTimelineEventInfos,
+        getLastInputActivityMs,
     } = ctx;
     const readViewEarthClouds = typeof getViewEarthClouds === "function"
         ? getViewEarthClouds
@@ -157,6 +158,7 @@ function createMissionSceneEntry(ctx) {
             getAnimTime,
             getEarthRadius,
             getViewCraters,
+            getLastInputActivityMs,
             SceneHelpers,
         },
         sceneBootstrapDeps: {

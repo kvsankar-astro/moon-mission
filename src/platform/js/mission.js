@@ -522,6 +522,7 @@ const {
     getViewEquatorialPlane: () => runtimeViewState.getViewEquatorialPlane(),
     getEventInfos: () => eventInfos,
     getTimelineEventInfos,
+    getLastInputActivityMs: runtimeInteractionState.getLastInputActivityMs,
     render,
 });
 

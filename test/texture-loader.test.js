@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+    loadSceneTexturesProgressively,
     loadMoonRenderProfileTextures,
     loadSceneTextures,
 } from "../src/platform/js/app/texture-loader.js";
@@ -121,5 +122,62 @@ describe("texture-loader", () => {
             "/textures/shared-moon-source.png",
         ]);
         expect(textures.moonMap).not.toBe(textures.moonDisplacementMap);
+    });
+
+    it("can progressively load and report texture groups", async () => {
+        const loadCalls = [];
+        const applyCalls = [];
+        const THREE = createFakeThree(loadCalls);
+        const files = {
+            earthTexture: "/textures/earth-day.jpg",
+            earthSpecularTexture: "/textures/earth-spec.jpg",
+            moonMap: "/textures/moon-fast.jpg",
+            moonDisplacementMap: "/textures/moon-height.png",
+            skyMilkyWayTexture: "/textures/sky.jpg",
+            skyTexture: "/textures/sky.jpg",
+        };
+        const globalObject = {
+            MOON_RENDER_ASSET_PATHS: {
+                fast: {
+                    moonMap: files.moonMap,
+                    moonDisplacementMap: files.moonDisplacementMap,
+                },
+            },
+        };
+
+        const textures = await loadSceneTexturesProgressively({
+            THREE,
+            files,
+            globalObject,
+            textureGroups: [
+                ["earthTexture"],
+                ["moonMap"],
+                ["moonDisplacementMap"],
+                ["skyMilkyWayTexture", "skyTexture"],
+            ],
+            onTexturesReady: (groupTextures, groupInfo) => {
+                applyCalls.push({
+                    keys: groupInfo.keys,
+                    textures: groupTextures,
+                });
+            },
+        });
+
+        expect(loadCalls).toEqual([
+            "/textures/earth-day.jpg",
+            "/textures/moon-fast.jpg",
+            "/textures/moon-height.png",
+            "/textures/sky.jpg",
+        ]);
+        expect(applyCalls.map((call) => call.keys)).toEqual([
+            ["earthTexture"],
+            ["moonMap"],
+            ["moonDisplacementMap"],
+            ["skyMilkyWayTexture", "skyTexture"],
+        ]);
+        expect(applyCalls[1].textures).toMatchObject({
+            moonRenderProfile: "fast",
+        });
+        expect(textures.skyTexture).toBe(textures.skyMilkyWayTexture);
     });
 });

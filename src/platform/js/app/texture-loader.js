@@ -31,6 +31,16 @@ const SHAREABLE_TEXTURE_KEY_GROUPS = Object.freeze({
     skyMilkyWayTexture: "skyBackground",
     skyTexture: "skyBackground",
 });
+const DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS = Object.freeze([
+    Object.freeze(["earthTexture"]),
+    Object.freeze(["earthSpecularTexture"]),
+    Object.freeze(["moonMap"]),
+    Object.freeze(["moonDisplacementMap"]),
+    Object.freeze(["skyMilkyWayTexture", "skyTexture"]),
+    Object.freeze(["skyConstellationTexture"]),
+    Object.freeze(["earthPhotoTexture"]),
+    Object.freeze(["earthNightTexture"]),
+]);
 
 function loadTexture(loader, fileName) {
     return new Promise((resolve, reject) => {
@@ -80,6 +90,98 @@ function loadTextureEntries(loader, entries, loadEntryTexture, { getCacheKey = n
         }
         return promisesByCacheKey.get(cacheKey);
     }));
+}
+
+function resolveSceneTextureFiles({
+    files = DEFAULT_SCENE_TEXTURE_FILES,
+    search = null,
+    moonRenderProfile = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+} = {}) {
+    const moonAssets = resolveMoonRenderAssetSelection({
+        search,
+        profile: moonRenderProfile,
+        globalObject,
+    });
+    const resolvedFiles = {
+        ...files,
+        moonMap: moonAssets.active.moonMap || files.moonMap,
+        moonDisplacementMap: moonAssets.active.moonDisplacementMap || files.moonDisplacementMap,
+    };
+    return { moonAssets, resolvedFiles };
+}
+
+function getSceneTextureCacheKey(key, fileName, moonAssets) {
+    return MOON_TEXTURE_KEYS.has(key)
+        ? `${key}\u0000${fileName}\u0000${normalizeTextureFileName(moonAssets.fallback[key])}`
+        : `${SHAREABLE_TEXTURE_KEY_GROUPS[key] || key}\u0000${fileName}`;
+}
+
+function loadSceneTextureEntry(loader, key, fileName, moonAssets) {
+    if (MOON_TEXTURE_KEYS.has(key)) {
+        return loadTextureWithFallback(
+            loader,
+            fileName,
+            moonAssets.fallback[key],
+            { logLabel: `${moonAssets.profile}.${key}` },
+        );
+    }
+    return loadTexture(loader, fileName);
+}
+
+function makeTextureResult({
+    THREE,
+    entries,
+    textures,
+    minFilter = null,
+    moonAssets,
+}) {
+    const byKey = {};
+    let hasMoonTexture = false;
+    for (let i = 0; i < entries.length; i += 1) {
+        const [key] = entries[i];
+        byKey[key] = textures[i];
+        if (MOON_TEXTURE_KEYS.has(key)) {
+            hasMoonTexture = true;
+        }
+    }
+    if (!byKey.skyTexture && byKey.skyMilkyWayTexture) {
+        byKey.skyTexture = byKey.skyMilkyWayTexture;
+    }
+
+    applyTextureDefaults({
+        THREE,
+        texturesByKey: byKey,
+        minFilter,
+    });
+
+    if (hasMoonTexture) {
+        byKey.moonRenderProfile = moonAssets.profile;
+        byKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
+    }
+
+    return byKey;
+}
+
+async function loadProgressiveTextureEntries({
+    loader,
+    entries,
+    moonAssets,
+    promisesByCacheKey,
+}) {
+    const textures = [];
+    for (const [key, fileName] of entries) {
+        const normalizedFileName = normalizeTextureFileName(fileName);
+        const cacheKey = getSceneTextureCacheKey(key, normalizedFileName, moonAssets);
+        if (!promisesByCacheKey.has(cacheKey)) {
+            promisesByCacheKey.set(
+                cacheKey,
+                loadSceneTextureEntry(loader, key, normalizedFileName, moonAssets),
+            );
+        }
+        textures.push(await promisesByCacheKey.get(cacheKey));
+    }
+    return textures;
 }
 
 function setColorTextureSpace(THREE, texture) {
@@ -170,34 +272,18 @@ export function loadSceneTextures({
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
     const loader = new THREE.TextureLoader();
-    const moonAssets = resolveMoonRenderAssetSelection({
+    const { moonAssets, resolvedFiles } = resolveSceneTextureFiles({
+        files,
         search,
-        profile: moonRenderProfile,
+        moonRenderProfile,
         globalObject,
     });
-    const resolvedFiles = {
-        ...files,
-        moonMap: moonAssets.active.moonMap || files.moonMap,
-        moonDisplacementMap: moonAssets.active.moonDisplacementMap || files.moonDisplacementMap,
-    };
 
     const entries = Object.entries(resolvedFiles);
     const texturePromise = loadTextureEntries(loader, entries, (key, fileName) => {
-        if (MOON_TEXTURE_KEYS.has(key)) {
-            return loadTextureWithFallback(
-                loader,
-                fileName,
-                moonAssets.fallback[key],
-                { logLabel: `${moonAssets.profile}.${key}` },
-            );
-        }
-        return loadTexture(loader, fileName);
+        return loadSceneTextureEntry(loader, key, fileName, moonAssets);
     }, {
-        getCacheKey: (key, fileName) => (
-            MOON_TEXTURE_KEYS.has(key)
-                ? `${key}\u0000${fileName}\u0000${normalizeTextureFileName(moonAssets.fallback[key])}`
-                : `${SHAREABLE_TEXTURE_KEY_GROUPS[key] || key}\u0000${fileName}`
-        ),
+        getCacheKey: (key, fileName) => getSceneTextureCacheKey(key, fileName, moonAssets),
     });
 
     return texturePromise.then((textures) => {
@@ -221,6 +307,84 @@ export function loadSceneTextures({
 
         return byKey;
     });
+}
+
+export async function loadSceneTexturesProgressively({
+    THREE,
+    files = DEFAULT_SCENE_TEXTURE_FILES,
+    minFilter = null,
+    search = null,
+    moonRenderProfile = null,
+    globalObject = typeof window !== "undefined" ? window : globalThis,
+    textureGroups = DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS,
+    beforeLoadGroup = null,
+    beforeApplyGroup = null,
+    onTexturesReady = null,
+} = {}) {
+    const loader = new THREE.TextureLoader();
+    const { moonAssets, resolvedFiles } = resolveSceneTextureFiles({
+        files,
+        search,
+        moonRenderProfile,
+        globalObject,
+    });
+    const promisesByCacheKey = new Map();
+    const finalByKey = {};
+
+    for (let groupIndex = 0; groupIndex < textureGroups.length; groupIndex += 1) {
+        const keys = textureGroups[groupIndex];
+        const entries = keys
+            .map((key) => [key, resolvedFiles[key]])
+            .filter(([, fileName]) => !!normalizeTextureFileName(fileName));
+
+        if (!entries.length) {
+            continue;
+        }
+
+        const groupInfo = {
+            groupIndex,
+            keys: entries.map(([key]) => key),
+            entries,
+        };
+        if (typeof beforeLoadGroup === "function") {
+            await beforeLoadGroup(groupInfo);
+        }
+
+        const textures = await loadProgressiveTextureEntries({
+            loader,
+            entries,
+            moonAssets,
+            promisesByCacheKey,
+        });
+        const byKey = makeTextureResult({
+            THREE,
+            entries,
+            textures,
+            minFilter,
+            moonAssets,
+        });
+
+        if (typeof beforeApplyGroup === "function") {
+            await beforeApplyGroup({
+                ...groupInfo,
+                textures: byKey,
+            });
+        }
+        Object.assign(finalByKey, byKey);
+        if (typeof onTexturesReady === "function") {
+            await onTexturesReady(byKey, {
+                ...groupInfo,
+                done: false,
+            });
+        }
+    }
+
+    if (!finalByKey.skyTexture && finalByKey.skyMilkyWayTexture) {
+        finalByKey.skyTexture = finalByKey.skyMilkyWayTexture;
+    }
+    finalByKey.moonRenderProfile = moonAssets.profile;
+    finalByKey.moonRenderSettings = moonAssets.activeRenderSettings || null;
+    return finalByKey;
 }
 
 export function loadMoonRenderProfileTextures({

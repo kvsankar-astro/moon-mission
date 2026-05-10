@@ -15,6 +15,7 @@ import {
     createPlaceholderSceneTextures,
     loadMoonRenderProfileTextures,
     loadSceneTextures,
+    loadSceneTexturesProgressively,
 } from "./texture-loader.js";
 import { createSceneInitActions } from "./scene-init-actions.js";
 import { createSceneDisposeActions } from "./scene-dispose-actions.js";
@@ -95,6 +96,7 @@ function createMissionSceneActionBundle(deps) {
         getAnimTime,
         getEarthRadius,
         getViewCraters,
+        getLastInputActivityMs,
         SceneHelpers,
     } = deps;
 
@@ -186,9 +188,11 @@ function createMissionSceneActionBundle(deps) {
         THREE,
         createPlaceholderSceneTextures,
         loadSceneTextures,
+        loadSceneTexturesProgressively,
         loadMoonRenderProfileTextures,
         applyAndRefreshSceneTextures,
         render,
+        getLastInputActivityMs,
         globalObject: typeof window !== "undefined" ? window : globalThis,
     });
 

@@ -1,12 +1,23 @@
 import { resolveMoonRenderAssetProfile } from "./moon-render-asset-profiles.js";
+import {
+    resolveDelayUntilInputIdle,
+    shouldDeferForRecentInput,
+} from "../core/domain/interaction-idle-policy.js";
+
+const TEXTURE_APPLY_IDLE_MS = 1200;
+const TEXTURE_APPLY_POLL_MS = 120;
 
 export function createScene3dInitActions({
     THREE,
     createPlaceholderSceneTextures,
     loadSceneTextures,
+    loadSceneTexturesProgressively = null,
     loadMoonRenderProfileTextures = null,
     applyAndRefreshSceneTextures,
     render,
+    getLastInputActivityMs = null,
+    scheduleTimeout = globalThis?.setTimeout?.bind(globalThis),
+    requestAnimationFrame = globalThis?.requestAnimationFrame?.bind(globalThis),
     globalObject = typeof window !== "undefined" ? window : globalThis,
 }) {
     const loadMoonTextures = typeof loadMoonRenderProfileTextures === "function"
@@ -23,7 +34,90 @@ export function createScene3dInitActions({
         return resolveMoonRenderAssetProfile({ globalObject });
     }
 
-    function refreshMoonProfileInBackground(scene, requestedProfile, applyTextures) {
+    function getNowMs() {
+        return Date.now();
+    }
+
+    function isTextureLoadCurrent(scene, token, runId) {
+        return !!scene &&
+            scene.textureLoadToken === token &&
+            scene.deferred3DInitRunId === runId &&
+            scene.initialized3D === true &&
+            scene.stopCreationFlag !== true;
+    }
+
+    function createStaleTextureLoadError() {
+        const error = new Error("Texture load was superseded by a newer scene initialization.");
+        error.name = "TextureLoadStaleError";
+        return error;
+    }
+
+    function assertTextureLoadCurrent(scene, token, runId) {
+        if (!isTextureLoadCurrent(scene, token, runId)) {
+            throw createStaleTextureLoadError();
+        }
+    }
+
+    function hasRecentInput(minIdleMs = TEXTURE_APPLY_IDLE_MS) {
+        if (typeof getLastInputActivityMs !== "function") {
+            return false;
+        }
+        return shouldDeferForRecentInput({
+            nowMs: getNowMs(),
+            lastInputActivityMs: getLastInputActivityMs(),
+            minIdleMs,
+        });
+    }
+
+    function waitForTextureWorkSlot({
+        scene,
+        token,
+        runId,
+        minIdleMs = TEXTURE_APPLY_IDLE_MS,
+    } = {}) {
+        assertTextureLoadCurrent(scene, token, runId);
+        if (typeof scheduleTimeout !== "function") {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            const check = () => {
+                try {
+                    assertTextureLoadCurrent(scene, token, runId);
+                    const nowMs = getNowMs();
+                    const lastInputActivityMs = typeof getLastInputActivityMs === "function"
+                        ? getLastInputActivityMs()
+                        : -Infinity;
+                    if (shouldDeferForRecentInput({ nowMs, lastInputActivityMs, minIdleMs })) {
+                        scheduleTimeout(check, Math.max(
+                            TEXTURE_APPLY_POLL_MS,
+                            resolveDelayUntilInputIdle({ nowMs, lastInputActivityMs, minIdleMs }),
+                        ));
+                        return;
+                    }
+                    if (typeof requestAnimationFrame === "function") {
+                        requestAnimationFrame(() => {
+                            scheduleTimeout(() => {
+                                try {
+                                    assertTextureLoadCurrent(scene, token, runId);
+                                    resolve();
+                                } catch (error) {
+                                    reject(error);
+                                }
+                            }, 0);
+                        });
+                        return;
+                    }
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            check();
+        });
+    }
+
+    function refreshMoonProfileInBackground(scene, requestedProfile, applyTextures, loadContext = {}) {
         if (!scene || !requestedProfile || requestedProfile === (scene.moonRenderProfile || "fast")) {
             return null;
         }
@@ -36,10 +130,17 @@ export function createScene3dInitActions({
             moonRenderProfile: requestedProfile,
             globalObject,
         }).then(
-            (textures) => {
+            async (textures) => {
                 if (resolveRequestedMoonProfile() !== requestedProfile) {
                     scene.moonTextureLoadState = "stale";
                     return;
+                }
+                if (loadContext.token) {
+                    await waitForTextureWorkSlot({
+                        scene,
+                        token: loadContext.token,
+                        runId: loadContext.runId,
+                    });
                 }
                 applyTextures(textures);
                 scene.moonTextureLoadState = "ready";
@@ -55,6 +156,39 @@ export function createScene3dInitActions({
         return scene.moonTextureLoadPromise;
     }
 
+    function applyLoadedTextures(scene, textures, loadContext = {}) {
+        applyAndRefreshSceneTextures(scene, textures, {
+            disposePrevious: true,
+            requestRender: render,
+            shouldDeferGeneratedNormalMap: () => hasRecentInput(TEXTURE_APPLY_IDLE_MS),
+        });
+        render?.();
+    }
+
+    function beginProgressiveTextureLoad(scene, loadContext, requestedProfile) {
+        return loadSceneTexturesProgressively({
+            THREE,
+            minFilter: THREE.LinearFilter,
+            moonRenderProfile: requestedProfile,
+            globalObject,
+            beforeLoadGroup: () => waitForTextureWorkSlot({
+                scene,
+                token: loadContext.token,
+                runId: loadContext.runId,
+                minIdleMs: Math.round(TEXTURE_APPLY_IDLE_MS / 2),
+            }),
+            beforeApplyGroup: () => waitForTextureWorkSlot({
+                scene,
+                token: loadContext.token,
+                runId: loadContext.runId,
+            }),
+            onTexturesReady: (textures) => {
+                assertTextureLoadCurrent(scene, loadContext.token, loadContext.runId);
+                applyLoadedTextures(scene, textures, loadContext);
+            },
+        });
+    }
+
     function beginTextureLoad(scene) {
         if (!scene || scene.textureLoadState === "loading" || scene.textureLoadState === "ready") {
             return scene?.textureLoadPromise || null;
@@ -63,28 +197,38 @@ export function createScene3dInitActions({
         scene.textureLoadState = "loading";
         scene.textureLoadPending = true;
         const requestedProfile = resolveRequestedMoonProfile();
-        scene.textureLoadPromise = loadSceneTextures({
-            THREE,
-            minFilter: THREE.LinearFilter,
-            moonRenderProfile: requestedProfile,
-            globalObject,
-        }).then(
-            (textures) => {
-                const applyTextures = (resolvedTextures) => {
-                    // Pass requestRender so the deferred generated-normal-map
-                    // refresh (scheduled inside applyAndRefreshSceneTextures
-                    // when disposePrevious=true) wakes the on-demand render
-                    // loop after the build completes. Without this the
-                    // upgraded normal map only becomes visible on the next
-                    // user interaction — visible regression on Artemis II's
-                    // quality-profile startup path.
-                    applyAndRefreshSceneTextures(scene, resolvedTextures, {
-                        disposePrevious: true,
-                        requestRender: render,
-                    });
-                    render?.();
-                };
-                applyTextures(textures);
+        const loadContext = {
+            token: Number.isFinite(scene.textureLoadToken) ? scene.textureLoadToken + 1 : 1,
+            runId: scene.deferred3DInitRunId,
+        };
+        scene.textureLoadToken = loadContext.token;
+        const textureLoad = typeof loadSceneTexturesProgressively === "function"
+            ? beginProgressiveTextureLoad(scene, loadContext, requestedProfile)
+            : loadSceneTextures({
+                THREE,
+                minFilter: THREE.LinearFilter,
+                moonRenderProfile: requestedProfile,
+                globalObject,
+            });
+        const handleTextureLoadError = (error) => {
+            if (error?.name === "TextureLoadStaleError") {
+                markTextureLoadDone(scene, "stale");
+                return;
+            }
+            console.error("Error: couldn't load textures. Using placeholders:", error);
+            markTextureLoadDone(scene, "error");
+        };
+        scene.textureLoadPromise = textureLoad.then(
+            async (textures) => {
+                assertTextureLoadCurrent(scene, loadContext.token, loadContext.runId);
+                const applyTextures = (resolvedTextures) => applyLoadedTextures(
+                    scene,
+                    resolvedTextures,
+                    loadContext,
+                );
+                if (typeof loadSceneTexturesProgressively !== "function") {
+                    applyTextures(textures);
+                }
 
                 const latestRequestedProfile = resolveRequestedMoonProfile();
                 if ((textures?.moonRenderProfile || "fast") !== latestRequestedProfile) {
@@ -92,17 +236,15 @@ export function createScene3dInitActions({
                         scene,
                         latestRequestedProfile,
                         applyTextures,
+                        loadContext,
                     ).finally(() => {
                         markTextureLoadDone(scene, "ready");
                     });
                 }
                 markTextureLoadDone(scene, "ready");
             },
-            (error) => {
-                console.error("Error: couldn't load textures. Using placeholders:", error);
-                markTextureLoadDone(scene, "error");
-            },
-        );
+            handleTextureLoadError,
+        ).catch(handleTextureLoadError);
         return scene.textureLoadPromise;
     }
 
@@ -122,6 +264,7 @@ export function createScene3dInitActions({
         scene.textureLoadState = "deferred";
         scene.textureLoadPending = false;
         scene.textureLoadPromise = null;
+        scene.textureLoadToken = Number.isFinite(scene.textureLoadToken) ? scene.textureLoadToken : 0;
         scene.beginTextureLoad = () => beginTextureLoad(scene);
     }
 

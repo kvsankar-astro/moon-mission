@@ -112,6 +112,7 @@ function createMissionSceneEntryContext(ctx, { render }) {
         getViewEquatorialPlane: ctx.getViewEquatorialPlane,
         getEventInfos: ctx.getEventInfos,
         getTimelineEventInfos: ctx.getTimelineEventInfos,
+        getLastInputActivityMs: ctx.getLastInputActivityMs,
     };
 }
 

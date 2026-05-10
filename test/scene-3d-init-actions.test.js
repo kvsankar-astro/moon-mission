@@ -175,4 +175,81 @@ describe("scene-3d-init-actions", () => {
         expect(scene.moonTextureLoadPending).toBe(false);
         expect(scene.moonRenderProfile).toBe("quality");
     });
+
+    it("applies progressive startup texture groups after input-idle slots", async () => {
+        const scene = createScene();
+        const callback = vi.fn();
+        const render = vi.fn();
+        const applyAndRefreshSceneTextures = vi.fn((targetScene, textures) => {
+            targetScene.moonRenderProfile = textures.moonRenderProfile || targetScene.moonRenderProfile;
+        });
+        let nowMs = 1000;
+        const scheduleTimeout = vi.fn((scheduledCallback, delayMs = 0) => {
+            nowMs += Number(delayMs) || 0;
+            scheduledCallback();
+            return 1;
+        });
+        const requestAnimationFrame = vi.fn((scheduledCallback) => {
+            scheduledCallback(nowMs);
+            return 1;
+        });
+        const loadSceneTexturesProgressively = vi.fn(async ({
+            beforeLoadGroup,
+            beforeApplyGroup,
+            onTexturesReady,
+        }) => {
+            await beforeLoadGroup({ keys: ["earthTexture"] });
+            await beforeApplyGroup({ keys: ["earthTexture"], textures: { earthTexture: "earth" } });
+            await onTexturesReady({ earthTexture: "earth" }, { keys: ["earthTexture"] });
+
+            await beforeLoadGroup({ keys: ["moonMap"] });
+            await beforeApplyGroup({
+                keys: ["moonMap"],
+                textures: { moonMap: "moon", moonRenderProfile: "fast", moonRenderSettings: {} },
+            });
+            await onTexturesReady(
+                { moonMap: "moon", moonRenderProfile: "fast", moonRenderSettings: {} },
+                { keys: ["moonMap"] },
+            );
+            return {
+                earthTexture: "earth",
+                moonMap: "moon",
+                moonRenderProfile: "fast",
+                moonRenderSettings: {},
+            };
+        });
+        const actions = createScene3dInitActions({
+            THREE: { LinearFilter: "linear" },
+            createPlaceholderSceneTextures: vi.fn(() => ({ moonRenderProfile: "fast" })),
+            loadSceneTextures: vi.fn(),
+            loadSceneTexturesProgressively,
+            loadMoonRenderProfileTextures: vi.fn(),
+            applyAndRefreshSceneTextures,
+            render,
+            getLastInputActivityMs: () => 1000,
+            scheduleTimeout,
+            requestAnimationFrame,
+            globalObject: {},
+        });
+        const dateNowSpy = vi.spyOn(Date, "now").mockImplementation(() => nowMs);
+
+        try {
+            actions.init3d(scene, callback);
+            await scene.beginTextureLoad();
+        } finally {
+            dateNowSpy.mockRestore();
+        }
+
+        const appliedTexturePayloads = applyAndRefreshSceneTextures.mock.calls
+            .map(([, textures]) => textures);
+        expect(appliedTexturePayloads).toEqual([
+            { moonRenderProfile: "fast" },
+            { earthTexture: "earth" },
+            { moonMap: "moon", moonRenderProfile: "fast", moonRenderSettings: {} },
+        ]);
+        expect(scheduleTimeout.mock.calls.some(([, delayMs]) => delayMs >= 600)).toBe(true);
+        expect(render).toHaveBeenCalledTimes(2);
+        expect(scene.textureLoadState).toBe("ready");
+        expect(callback).toHaveBeenCalled();
+    });
 });

@@ -84,21 +84,69 @@ function disposeTextureIfReplaced(previousTexture, nextTexture, sharedTextures =
     previousTexture.dispose?.();
 }
 
-function scheduleGeneratedMoonNormalMapRefresh(callback) {
+function scheduleGeneratedMoonNormalMapRefresh(callback, {
+    shouldDefer = null,
+    maxDeferrals = 40,
+    retryDelayMs = 250,
+    minIdleTimeMs = 8,
+} = {}) {
     if (typeof callback !== "function") {
         return;
     }
-    if (typeof globalThis?.requestIdleCallback === "function") {
-        globalThis.requestIdleCallback(callback, { timeout: 1500 });
+
+    let deferrals = 0;
+    const shouldWaitLonger = (deadline) => {
+        if (typeof shouldDefer === "function" && shouldDefer(deadline)) {
+            return true;
+        }
+        if (
+            deadline &&
+            deadline.didTimeout !== true &&
+            typeof deadline.timeRemaining === "function" &&
+            deadline.timeRemaining() < minIdleTimeMs
+        ) {
+            return true;
+        }
+        return false;
+    };
+    const scheduleRetry = () => {
+        globalThis?.setTimeout?.(schedule, retryDelayMs);
+    };
+    const run = (deadline) => {
+        if (deferrals < maxDeferrals && shouldWaitLonger(deadline)) {
+            deferrals += 1;
+            scheduleRetry();
+            return;
+        }
+        callback(deadline);
+    };
+    const schedule = () => {
+        if (typeof globalThis?.requestIdleCallback === "function") {
+            globalThis.requestIdleCallback(run, { timeout: 1500 });
+            return;
+        }
+        globalThis?.setTimeout?.(() => run({
+            didTimeout: true,
+            timeRemaining: () => 0,
+        }), retryDelayMs);
+    };
+
+    if (typeof globalThis?.setTimeout !== "function") {
+        callback({
+            didTimeout: true,
+            timeRemaining: () => minIdleTimeMs,
+        });
         return;
     }
-    globalThis?.setTimeout?.(() => callback({
-        didTimeout: false,
-        timeRemaining: () => 0,
-    }), 1200);
+
+    schedule();
 }
 
-export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious = false, requestRender = null } = {}) {
+export function applyAndRefreshSceneTextures(scene, textures, {
+    disposePrevious = false,
+    requestRender = null,
+    shouldDeferGeneratedNormalMap = null,
+} = {}) {
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
         earthPhotoTexture: scene.earthPhotoTexture || null,
@@ -170,6 +218,8 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
                 if (typeof requestRender === "function") {
                     requestRender();
                 }
+            }, {
+                shouldDefer: shouldDeferGeneratedNormalMap,
             });
         }
     }

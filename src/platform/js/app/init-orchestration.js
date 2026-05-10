@@ -229,32 +229,8 @@ function createInitOrchestrationActions(deps) {
                     return;
                 }
                 beginDeferredTextureLoad(scene);
-                waitForTextureLoadThenHideOverlay(runId);
             });
         }, delayMs);
-    }
-
-    function waitForTextureLoadThenHideOverlay(runId, maxAttempts = 240, pollIntervalMs = 50) {
-        if (typeof document === "undefined") {
-            return;
-        }
-        if (runId !== latestInitRunId) {
-            return;
-        }
-        const scene = animationScenes?.[getConfig()];
-        if (scene?.textureLoadState === "deferred") {
-            startTextureLoadAfterInteractionWindow(scene, runId, 0);
-            return;
-        }
-        if (scene?.textureLoadPending === true && maxAttempts > 0) {
-            setMissionLoadingMessage("Loading high-resolution textures...");
-            scheduleTimeout(() => {
-                waitForTextureLoadThenHideOverlay(runId, maxAttempts - 1, pollIntervalMs);
-            }, pollIntervalMs);
-            return;
-        }
-        setMissionLoadingMessage("Finalizing controls...");
-        hideLoadingOverlayAfterResponsiveFrames();
     }
 
     function settleLoadingOverlayWhenInteractive(runId, maxAttempts = 120, pollIntervalMs = 50) {
@@ -269,11 +245,6 @@ function createInitOrchestrationActions(deps) {
             setMissionLoadingOverlayBlocking(false);
             if (scene?.textureLoadState === "deferred") {
                 startTextureLoadAfterInteractionWindow(scene, runId);
-                return;
-            }
-            if (scene?.textureLoadPending === true) {
-                waitForTextureLoadThenHideOverlay(runId);
-                return;
             }
             setMissionLoadingMessage("Finalizing controls...");
             hideLoadingOverlayAfterResponsiveFrames();
