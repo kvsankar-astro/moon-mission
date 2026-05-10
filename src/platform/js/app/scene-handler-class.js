@@ -39,6 +39,7 @@ function createSceneHandlerClass(deps) {
             this.desktopPanelManager = null;
             this.initialized = false;
             this.lastAnimationScene = null;
+            this.auxiliaryCameraRenderRaf = null;
             this.lookAtWorldTarget = new THREE.Vector3();
             this.skyWorldPosition = new THREE.Vector3();
             this.sunWorldPosition = new THREE.Vector3();
@@ -116,9 +117,18 @@ function createSceneHandlerClass(deps) {
                         return this.earthCloudsEnabled;
                     },
                     requestRender: () => {
-                        if (this.lastAnimationScene) {
-                            this.render(this.lastAnimationScene);
+                        if (!this.lastAnimationScene || this.auxiliaryCameraRenderRaf != null) {
+                            return;
                         }
+                        const scheduleFrame = typeof window !== "undefined" && typeof window.requestAnimationFrame === "function"
+                            ? window.requestAnimationFrame.bind(window)
+                            : (callback) => setTimeout(callback, 0);
+                        this.auxiliaryCameraRenderRaf = scheduleFrame(() => {
+                            this.auxiliaryCameraRenderRaf = null;
+                            if (this.lastAnimationScene) {
+                                this.render(this.lastAnimationScene);
+                            }
+                        });
                     },
                 });
                 this.auxiliaryCameraViews = manager;

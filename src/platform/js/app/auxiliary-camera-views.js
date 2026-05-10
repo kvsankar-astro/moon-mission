@@ -158,7 +158,6 @@ const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
 const COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION = 1;
 const COMPOSER_DEFAULT_ROLL_RAD = 0;
 const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.525;
-const COMPOSER_DEFAULT_OPEN_TIME_MS = Date.UTC(2026, 3, 6, 23, 27, 0);
 const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
 const COMPOSER_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
@@ -1550,7 +1549,7 @@ class AuxiliaryCameraViewsManager {
         this.syncPanelRegistry(panelState);
     }
 
-    restorePanel(panelState, { activateComposer = true } = {}) {
+    restorePanel(panelState) {
         if (!panelState) {
             return;
         }
@@ -1565,9 +1564,6 @@ class AuxiliaryCameraViewsManager {
             this.scheduleDefaultPanelLayout();
         }
         this.bringPanelToFront(panelState);
-        if (activateComposer && panelState.mode === "composer" && panelState.composerInteractionEnabled !== true) {
-            this.activateComposerWindow(panelState, { finalize: true });
-        }
         this.requestRender?.();
         this.syncPanelRegistry(panelState);
     }
@@ -1630,11 +1626,11 @@ class AuxiliaryCameraViewsManager {
         return this.applyComposerViewIntent(panelState, { type: "guided" }, options);
     }
 
-    restoreComposerGuidedPanel(panelState, { seekTimeMs = COMPOSER_DEFAULT_OPEN_TIME_MS } = {}) {
+    restoreComposerGuidedPanel(panelState, { seekTimeMs = Number.NaN } = {}) {
         if (!panelState || panelState.mode !== "composer") {
             return false;
         }
-        this.restorePanel(panelState, { activateComposer: false });
+        this.restorePanel(panelState);
         this.applyComposerGuidedViewState(panelState, {
             syncComposerLockUi: panelState.syncComposerLockUi,
             syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
@@ -1662,7 +1658,7 @@ class AuxiliaryCameraViewsManager {
         if (!panelState || panelState.missionEnabled !== true) {
             return false;
         }
-        this.restorePanel(panelState, { activateComposer: false });
+        this.restorePanel(panelState);
         return this.applyComposerMediaShotHint(panelState, hint);
     }
 

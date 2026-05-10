@@ -41,6 +41,7 @@ describe("SceneHandler auxiliary panels", () => {
         auxiliaryManagerInstances.length = 0;
         globalThis.window = {
             innerWidth: 1280,
+            requestAnimationFrame: vi.fn(() => 1),
         };
         globalThis.document = {
             body: {},
@@ -97,6 +98,70 @@ describe("SceneHandler auxiliary panels", () => {
         expect(auxiliaryManagerConstructor).toHaveBeenCalledTimes(1);
         expect(manager).toBe(auxiliaryManagerInstances[0]);
         expect(handler.auxiliaryCameraViews).toBe(auxiliaryManagerInstances[0]);
+    });
+
+    it("coalesces auxiliary requestRender onto the next animation frame", () => {
+        const rafCallbacks = [];
+        globalThis.window.requestAnimationFrame = vi.fn((callback) => {
+            rafCallbacks.push(callback);
+            return rafCallbacks.length;
+        });
+        const renderer = {
+            autoClear: true,
+            render: vi.fn(),
+            clearDepth: vi.fn(),
+        };
+        const animationScene = {
+            initialized3D: true,
+            scene: new THREE.Scene(),
+            camera: new THREE.PerspectiveCamera(),
+            earthContainer: new THREE.Object3D(),
+            moonContainer: new THREE.Object3D(),
+            refreshBodyHalos: vi.fn(),
+            stateSunDirection: null,
+            stateSunDirections: null,
+        };
+
+        const SceneHandler = createSceneHandlerClass({
+            THREE,
+            d3: {},
+            bindSettingsPanel: vi.fn(),
+            initSceneHandlerDom: vi.fn(() => ({
+                renderer,
+                canvasNode: {},
+            })),
+            computeSVGDimensions: vi.fn(),
+            getSvgWidth: vi.fn(() => 100),
+            getSvgHeight: vi.fn(() => 100),
+            isTestMode: false,
+            onWindowResize: vi.fn(),
+            updateCraftScale: vi.fn(),
+            getRuntimeState: vi.fn(() => ({
+                globalConfig: null,
+                joyRideFlag: false,
+                landingFlag: false,
+                viewAuxiliaryPanels: true,
+                earthRadius: 1,
+                moonRadius: 1,
+                timelineEventInfos: [],
+            })),
+        });
+
+        const handler = new SceneHandler();
+        handler.lastAnimationScene = animationScene;
+        handler.ensureAuxiliaryCameraViews();
+        const requestRender = auxiliaryManagerConstructor.mock.calls.at(-1)?.[0]?.requestRender;
+
+        expect(typeof requestRender).toBe("function");
+        expect(rafCallbacks).toHaveLength(1);
+        requestRender();
+        expect(rafCallbacks).toHaveLength(1);
+        expect(renderer.render).not.toHaveBeenCalled();
+
+        rafCallbacks.shift()();
+
+        expect(handler.auxiliaryCameraRenderRaf).toBeNull();
+        expect(renderer.render).toHaveBeenCalled();
     });
 
     it("applies Frame and Shoot ambient while rendering the main camera", () => {

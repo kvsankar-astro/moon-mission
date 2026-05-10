@@ -1066,6 +1066,50 @@ describe("Frame and Shoot timeline phase tracking", () => {
         })).toBe(100);
     });
 
+    it("restores the guided composer view without seeking the main timeline by default", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            restorePanel: vi.fn(),
+            applyComposerGuidedViewState: vi.fn(() => true),
+            seekMainTimelineTime: vi.fn(),
+            requestRender: vi.fn(),
+            queuePersistPanelState: vi.fn(),
+        });
+        const panelState = {
+            mode: "composer",
+            syncComposerLockUi: vi.fn(),
+            syncComposerAutoToggleUi: vi.fn(),
+        };
+
+        expect(manager.restoreComposerGuidedPanel(panelState)).toBe(true);
+
+        expect(manager.restorePanel).toHaveBeenCalledWith(panelState);
+        expect(manager.applyComposerGuidedViewState).toHaveBeenCalledWith(panelState, expect.objectContaining({
+            persist: false,
+        }));
+        expect(manager.seekMainTimelineTime).not.toHaveBeenCalled();
+        expect(manager.requestRender).toHaveBeenCalledTimes(1);
+        expect(manager.queuePersistPanelState).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps explicit guided composer seeks available for deliberate jumps", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            restorePanel: vi.fn(),
+            applyComposerGuidedViewState: vi.fn(() => true),
+            seekMainTimelineTime: vi.fn(),
+            requestRender: vi.fn(),
+            queuePersistPanelState: vi.fn(),
+        });
+        const panelState = {
+            mode: "composer",
+            syncComposerLockUi: vi.fn(),
+            syncComposerAutoToggleUi: vi.fn(),
+        };
+
+        manager.restoreComposerGuidedPanel(panelState, { seekTimeMs: 150 });
+
+        expect(manager.seekMainTimelineTime).toHaveBeenCalledWith(150, true);
+    });
+
     it("returns phase selection to the guided Moon Auto FoV view", () => {
         const { manager, panelState } = createTimelineHarness();
         Object.assign(manager, {
