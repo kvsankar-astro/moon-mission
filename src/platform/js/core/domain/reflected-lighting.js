@@ -74,8 +74,13 @@ export function computeEarthshineLightState({
         };
     }
 
+    // Phase of Earth as seen from Moon.
+    // Full Earth (max intensity) occurs at New Moon (Sun-Moon-Earth), where
+    // sunDirection (Sun->Moon) and direction (Moon->Earth) are opposite.
+    // New Earth (min intensity) occurs at Full Moon (Sun-Earth-Moon), where
+    // they are aligned.
     const phaseAlignment = clamp01(
-        (1 + ((sunDirection.x * direction.x) + (sunDirection.y * direction.y) + (sunDirection.z * direction.z))) * 0.5,
+        (1.0 - ((sunDirection.x * direction.x) + (sunDirection.y * direction.y) + (sunDirection.z * direction.z))) * 0.5,
     );
     const phasedIntensity = Math.pow(phaseAlignment, Math.max(0.1, Number(phaseExponent) || 1));
 
@@ -114,8 +119,12 @@ export function computeMoonshineLightState({
         };
     }
 
+    // Phase of Moon as seen from Earth.
+    // Full Moon (max intensity) occurs at Sun-Earth-Moon, where
+    // sunDirection (Sun->Earth) and direction (Earth->Moon) are aligned.
+    // New Moon (min intensity) occurs at Sun-Moon-Earth, where they are opposite.
     const illuminationFraction = clamp01(
-        (1 - ((sunDirection.x * direction.x) + (sunDirection.y * direction.y) + (sunDirection.z * direction.z))) * 0.5,
+        (1.0 + ((sunDirection.x * direction.x) + (sunDirection.y * direction.y) + (sunDirection.z * direction.z))) * 0.5,
     );
     const phasedIntensity = Math.pow(illuminationFraction, Math.max(0.1, Number(phaseExponent) || 1));
     const dx = Number(moonPosition?.x) - Number(earthPosition?.x);

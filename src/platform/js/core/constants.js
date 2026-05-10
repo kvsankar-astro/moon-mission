@@ -2,7 +2,6 @@
  * Core Constants Module
  * 
  * Centralized constants for physical, mathematical, and astronomical values.
- * Extracted from mission.js to improve maintainability and reduce hardcoded values.
  */
 
 // ===================================
@@ -31,7 +30,7 @@ export const PHYSICS_CONSTANTS = {
     EARTH_RADIUS_MIN_KM: 6356.8,
     EARTH_GM_KM3_S2: 398600.4418,
     MOON_GM_KM3_S2: 4902.800118,
-    MOON_RADIUS_KM: 1737.4 + 0.52, // 0.52 is to keep the lander on the surface
+    MOON_RADIUS_KM: 1737.4,
     MOON_SOI_RADIUS_KM: 66000,
     MOON_HILL_SPHERE_RADIUS_KM: 62800,
     EARTH_MOON_DISTANCE_MEAN_AU: 0.00257,
@@ -43,7 +42,7 @@ export const PHYSICS_CONSTANTS = {
     EARTH_AXIS_INCLINATION_RADS: 23.439279444 * Math.PI / 180.0,
     
     // Location constants
-    GREENWICH_LONGITUDE: 0 // used to be that of Bangalore earlier: 77.5667
+    GREENWICH_LONGITUDE: 0
 };
 
 // ===================================
@@ -55,12 +54,8 @@ export const TIME_CONSTANTS = {
     ONE_MINUTE_MS: 60 * 1000,
     MILLI_SECONDS_PER_MINUTE: 60000,
     MILLI_SECONDS_PER_HOUR: 3600000,
-    STEP_DURATION_MS: 1 * 60000, // 1 minute - update when Orbit JSON time resolution changes
+    STEP_DURATION_MS: 1 * 60000,
 
-    // TDB - UTC offset in milliseconds.
-    // TDB ≈ UTC + leap_seconds + 32.184s (fixed TT-UTC offset).
-    // 37 leap seconds are in effect from 2017-01-01 onward.
-    // Update this value when the next leap second is announced.
     TDB_OFFSET_MS: (37.000 + 32.184) * 1000,
 };
 
@@ -78,7 +73,7 @@ export const UI_CONSTANTS = {
     ZOOM_SCALE: 1.10,
     ZOOM_TIMEOUT: 200,
     
-    // SVG positioning (TODO: match with CSS values; find better way)
+    // SVG positioning
     SVG_ORIGIN_X: 0,
     SVG_ORIGIN_Y: 0
 };
@@ -125,19 +120,16 @@ const MOONSHINE_REFERENCE_INTENSITY =
 
 export const LIGHT_SETTINGS = {
     // Scene lighting
-    PRIMARY_COLOR: 0xFFFFFF,     // white
+    PRIMARY_COLOR: 0xFFFFFF,
     PRIMARY_INTENSITY: 3.1,
-    AMBIENT_COLOR: 0x222222,     // soft white
+    AMBIENT_COLOR: 0x222222,
     AMBIENT_INTENSITY: 0.0,
-    EARTHSHINE_COLOR: 0x9fb2d8,  // subtle cool fill from Earthshine
+    EARTHSHINE_COLOR: 0x9fb2d8,
     EARTHSHINE_INTENSITY: EARTHSHINE_REFERENCE_INTENSITY,
     EARTHSHINE_MIN_INTENSITY: 0.0,
     EARTHSHINE_MAX_INTENSITY: EARTHSHINE_REFERENCE_INTENSITY,
     EARTHSHINE_PHASE_EXPONENT: 1.8,
     MOONSHINE_COLOR: 0x8a97aa,
-    // Approximate reflected-light scaling from NASA Earth/Moon geometric albedo
-    // and radius ratios. Moonshine on Earth should be dramatically weaker than
-    // Earthshine on the Moon.
     MOONSHINE_TO_EARTHSHINE_INTENSITY_RATIO,
     MOONSHINE_INTENSITY: MOONSHINE_REFERENCE_INTENSITY,
     MOONSHINE_MIN_INTENSITY: 0.0,
@@ -147,14 +139,15 @@ export const LIGHT_SETTINGS = {
     EARTH_REFLECTED_LIGHT_LAYER: 3,
     MOON_REFLECTED_LIGHT_LAYER: 4,
     SHADOW_MAP_SIZE: 4096,
-    SHADOW_FRUSTUM_HALF_SIZE: 2.4,
+    SHADOW_FRUSTUM_HALF_SIZE: 2.0,
     SHADOW_FRUSTUM_MIN_HALF_SIZE: 1.6,
     SHADOW_FRUSTUM_RADIUS_MULTIPLIER: 1.35,
-    SHADOW_NEAR: 0.1,
-    SHADOW_FAR: 32.0,
-    SHADOW_BIAS: -0.00001,
-    SHADOW_NORMAL_BIAS: 0.0016,
+    SHADOW_NEAR: 4.0,
+    SHADOW_FAR: 12.0,
+    SHADOW_BIAS: -0.00002,
+    SHADOW_NORMAL_BIAS: 0.0016, // Corrected for unit-scale Moon
     SHADOW_LIGHT_DISTANCE: 8.0,
+    SHADOW_CAMERA_SIZE: 2.0,
 
     // Spacecraft lighting
     CRAFT_PRIMARY_COLOR: 0xFFFFFF,

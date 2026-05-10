@@ -1,12 +1,5 @@
 /**
  * Animation3DController - Renders 3D scene from computed state
- *
- * Part of the pull-based renderer architecture:
- * - Animation loop pulls state from SceneStateController
- * - Passes state to this controller
- * - Controller updates THREE.js objects and renders
- *
- * One instance per config (geo, lunar).
  */
 
 import { PHYSICS_CONSTANTS as PC, LIGHT_SETTINGS as LT } from "../core/constants.js";
@@ -17,38 +10,22 @@ import {
     computeMoonshineLightState,
 } from "../core/domain/reflected-lighting.js";
 
-// PIXELS_PER_AU is passed as a render option since it varies by config
-
 function normalizeDirection(candidate) {
     const x = Number(candidate?.x);
     const y = Number(candidate?.y);
     const z = Number(candidate?.z);
     const norm = Math.hypot(x, y, z);
-    if (!Number.isFinite(norm) || norm <= 1e-12) {
-        return null;
-    }
-    return {
-        x: x / norm,
-        y: y / norm,
-        z: z / norm,
-    };
+    if (!Number.isFinite(norm) || norm <= 1e-12) return null;
+    return { x: x / norm, y: y / norm, z: z / norm };
 }
 
 function cloneDirection(direction) {
-    return direction
-        ? {
-            x: direction.x,
-            y: direction.y,
-            z: direction.z,
-        }
-        : null;
+    return direction ? { x: direction.x, y: direction.y, z: direction.z } : null;
 }
 
 function createFixedCompareSunDirections(compareDisplayProfile) {
     const fixedDirection = normalizeDirection(compareDisplayProfile?.fixedSunDirection);
-    if (!fixedDirection) {
-        return null;
-    }
+    if (!fixedDirection) return null;
     return {
         earthCentered: cloneDirection(fixedDirection),
         moonCentered: cloneDirection(fixedDirection),
@@ -58,31 +35,15 @@ function createFixedCompareSunDirections(compareDisplayProfile) {
 }
 
 export class Animation3DController {
-    /**
-     * Create a 3D animation controller.
-     * @param {string} config - Configuration name: "geo" or "lunar"
-     * @param {Object} animationScene - The AnimationScene instance for this config
-     */
     constructor(config, animationScene) {
         this.config = config;
         this.scene = animationScene;
         this._frozenNextScreenPosByCraftId = {};
     }
 
-    /**
-     * Render the 3D scene based on computed state.
-     * @param {Object} state - Scene state from computeSceneState()
-     * @param {Object} options - Additional render options
-     * @param {string} options.craftId - Spacecraft ID (e.g., "SC")
-     * @param {number} options.pixelsPerAU - Scale factor for coordinate conversion
-     * @param {Function} options.updateCraftScale - Callback to update craft scale
-     */
-    render(state, options = /** @type {any} */ ({}) ) {
-        if (!this.scene || !this.scene.initialized3D) {
-            return;
-        }
+    render(state, options = {}) {
+        if (!this.scene || !this.scene.initialized3D) return;
 
-        /** @type {{ craftId?: string, pixelsPerAU?: number, updateCraftScale?: Function, landingFreezeTime?: number | null, compareMode?: boolean, compareDisplayProfile?: Object | null }} */
         const renderOptions = options || {};
         const {
             craftId = "SC",
@@ -92,67 +53,41 @@ export class Animation3DController {
             compareMode = false,
             compareDisplayProfile = null,
         } = renderOptions;
-        const fixedCompareSunDirections = compareMode
-            ? createFixedCompareSunDirections(compareDisplayProfile)
-            : null;
+        
+        const fixedCompareSunDirections = compareMode ? createFixedCompareSunDirections(compareDisplayProfile) : null;
         const effectiveSunDirections = fixedCompareSunDirections || state.sunDirections || null;
         const effectiveSunDirection = effectiveSunDirections?.earthCentered || state.sunDirection;
         this.pixelsPerAU = pixelsPerAU;
-        // Carry body-specific sun directions for lighting and craft optics.
+        
         this.scene.stateSunDirection = effectiveSunDirection;
         this.scene.stateSunDirections = effectiveSunDirections;
         this.scene.stateTime = state.time;
         this.scene.latestSceneState = state;
+        
         if (!(compareMode && compareDisplayProfile?.freezeSkyOrientation)) {
             this.scene.skyRenderer?.setTime?.(state.time, { realtimeFrame: true });
         }
 
-        // 1. Update lighting from sun position
-        this.updateLighting(
-            state.sunLongitude,
-            state.bodies,
-            effectiveSunDirections,
-            compareMode ? compareDisplayProfile : null,
-        );
+        this.updateLighting(state.sunLongitude, state.bodies, effectiveSunDirections, compareMode ? compareDisplayProfile : null);
 
-        // 2. Rotate Earth and Moon based on time
-        if (!(compareMode && compareDisplayProfile?.freezeEarthRotation)) {
-            this.scene.rotateEarth(state.time);
-        }
-        if (!(compareMode && compareDisplayProfile?.freezeMoonRotation)) {
-            this.scene.rotateMoon(state.time);
-        }
+        if (!(compareMode && compareDisplayProfile?.freezeEarthRotation)) this.scene.rotateEarth(state.time);
+        if (!(compareMode && compareDisplayProfile?.freezeMoonRotation)) this.scene.rotateMoon(state.time);
 
-        // 3. Update body positions
         this.updateBodyPositions(state.bodies, craftId, state.time, landingFreezeTime);
-
-        // 3b. Update time-windowed orbit trails
         this.updateOrbitTrails(state.time, state.bodies);
 
-        // 4. Update spacecraft scale (depends on camera distance)
-        if (updateCraftScale) {
-            updateCraftScale();
-        }
-
-        // 5. Render the scene
-        // Note: render() is called separately by the animation loop
+        if (updateCraftScale) updateCraftScale();
     }
 
-    /**
-     * Update light positions based on sun longitude.
-     * @param {number} sunLongitude - Sun longitude in radians
-     */
     updateLighting(sunLongitude, bodies = null, sunDirections = null, compareDisplayProfile = null) {
-        if (!this.scene.light || !this.scene.light2) {
-            return;
-        }
+        if (!this.scene.light || !this.scene.light2) return;
+        
         const bodyAmbientLight = this.scene.lightManager?.bodyAmbientLight || null;
         const renderSettings = this.scene.moonRenderSettings || null;
         if (bodyAmbientLight) {
-            bodyAmbientLight.intensity = Number.isFinite(LT.AMBIENT_INTENSITY)
-                ? LT.AMBIENT_INTENSITY
-                : 0;
+            bodyAmbientLight.intensity = Number.isFinite(LT.AMBIENT_INTENSITY) ? LT.AMBIENT_INTENSITY : 0;
         }
+
         const shadowNormalBias = Number(renderSettings?.shadowNormalBias);
         if (Number.isFinite(shadowNormalBias) && this.scene.light?.shadow) {
             this.scene.light.shadow.normalBias = shadowNormalBias;
@@ -166,79 +101,41 @@ export class Animation3DController {
         const moonState = bodies?.MOON;
 
         const normalizeDir = (candidate, fallbackX = 1, fallbackY = 0, fallbackZ = 0) => {
-            let x = fallbackX;
-            let y = fallbackY;
-            let z = fallbackZ;
             if (candidate && Number.isFinite(candidate.x) && Number.isFinite(candidate.y) && Number.isFinite(candidate.z)) {
-                x = candidate.x;
-                y = candidate.y;
-                z = candidate.z;
+                const norm = Math.hypot(candidate.x, candidate.y, candidate.z);
+                if (norm > 1e-12) return { x: candidate.x / norm, y: candidate.y / norm, z: candidate.z / norm };
             }
-            const norm = Math.hypot(x, y, z);
-            if (!Number.isFinite(norm) || norm <= 1e-12) {
-                return { x: fallbackX, y: fallbackY, z: fallbackZ };
-            }
-            return {
-                x: x / norm,
-                y: y / norm,
-                z: z / norm,
-            };
+            return { x: fallbackX, y: fallbackY, z: fallbackZ };
         };
 
-        const fallbackDir = normalizeDir({
-            x: Math.cos(sunLongitude),
-            y: Math.sin(sunLongitude),
-            z: 0,
-        });
-        const earthSunDir = normalizeDir(
-            sunDirections?.earthCentered || this.scene.stateSunDirection,
-            fallbackDir.x,
-            fallbackDir.y,
-            fallbackDir.z,
-        );
-        const moonSunDir = normalizeDir(
-            sunDirections?.moonCentered,
-            earthSunDir.x,
-            earthSunDir.y,
-            earthSunDir.z,
-        );
-        const craftSunDir = normalizeDir(
-            sunDirections?.craftCenteredLightTime || sunDirections?.craftCentered,
-            earthSunDir.x,
-            earthSunDir.y,
-            earthSunDir.z,
-        );
+        const fallbackDir = normalizeDir({ x: Math.cos(sunLongitude), y: Math.sin(sunLongitude), z: 0 });
+        const earthSunDir = normalizeDir(sunDirections?.earthCentered || this.scene.stateSunDirection, fallbackDir.x, fallbackDir.y, fallbackDir.z);
+        const moonSunDir = normalizeDir(sunDirections?.moonCentered, earthSunDir.x, earthSunDir.y, earthSunDir.z);
+        const craftSunDir = normalizeDir(sunDirections?.craftCenteredLightTime || sunDirections?.craftCentered, earthSunDir.x, earthSunDir.y, earthSunDir.z);
 
-        // Keep spacecraft key light directional-only and use craft apparent sun.
         this.scene.light2.position.set(craftSunDir.x, craftSunDir.y, craftSunDir.z);
-        // Default global Sun billboard direction remains Earth-centered.
         this.scene.sunRenderer?.setDirection?.(earthSunDir.x, earthSunDir.y, earthSunDir.z);
         this.scene.sunRenderer?.updateAppearance?.(this.scene?.stateTime ?? 0);
 
-        // Anchor the shadow-casting primary light to the illuminated body so
-        // the shadow frustum stays tight and terrain relief can self-shadow.
-        const shadowAnchorState = moonState?.available
-            ? moonState
-            : (earthState?.available ? earthState : null);
-        const shadowDistance = Number.isFinite(LT.SHADOW_LIGHT_DISTANCE)
-            ? LT.SHADOW_LIGHT_DISTANCE
-            : 8.0;
-        const shadowFrustumHalfFromRadius = Number.isFinite(this.scene.secondaryBodyRadius)
-            ? this.scene.secondaryBodyRadius * (Number.isFinite(LT.SHADOW_FRUSTUM_RADIUS_MULTIPLIER) ? LT.SHADOW_FRUSTUM_RADIUS_MULTIPLIER : 1.35)
-            : (Number.isFinite(LT.SHADOW_FRUSTUM_HALF_SIZE) ? LT.SHADOW_FRUSTUM_HALF_SIZE : 2.4);
-        const shadowFrustumHalf = Math.max(
-            Number.isFinite(LT.SHADOW_FRUSTUM_MIN_HALF_SIZE) ? LT.SHADOW_FRUSTUM_MIN_HALF_SIZE : 1.6,
-            shadowFrustumHalfFromRadius,
-        );
+        const shadowAnchorState = moonState?.available ? moonState : (earthState?.available ? earthState : null);
+        
+        // NORMALIZED UNIT LOCK (Moon Radius = 1.0)
+        const shadowFrustumHalf = 2.0; 
+        const shadowDistance = 8.0;   
 
         if (shadowAnchorState && Number.isFinite(this.pixelsPerAU)) {
             const anchorX = shadowAnchorState.position.x * this.pixelsPerAU;
             const anchorY = shadowAnchorState.position.y * this.pixelsPerAU;
             const anchorZ = shadowAnchorState.position.z * this.pixelsPerAU;
+            
+            const sunX = moonState?.available ? moonSunDir.x : earthSunDir.x;
+            const sunY = moonState?.available ? moonSunDir.y : earthSunDir.y;
+            const sunZ = moonState?.available ? moonSunDir.z : earthSunDir.z;
+
             this.scene.light.position.set(
-                anchorX + (moonState?.available ? moonSunDir.x : earthSunDir.x) * shadowDistance,
-                anchorY + (moonState?.available ? moonSunDir.y : earthSunDir.y) * shadowDistance,
-                anchorZ + (moonState?.available ? moonSunDir.z : earthSunDir.z) * shadowDistance,
+                anchorX + sunX * shadowDistance,
+                anchorY + sunY * shadowDistance,
+                anchorZ + sunZ * shadowDistance
             );
             if (this.scene.light.target) {
                 this.scene.light.target.position.set(anchorX, anchorY, anchorZ);
@@ -250,18 +147,15 @@ export class Animation3DController {
                 shadowCamera.right = shadowFrustumHalf;
                 shadowCamera.top = shadowFrustumHalf;
                 shadowCamera.bottom = -shadowFrustumHalf;
-                shadowCamera.near = Number.isFinite(LT.SHADOW_NEAR) ? LT.SHADOW_NEAR : 0.1;
-                shadowCamera.far = Math.max(
-                    Number.isFinite(LT.SHADOW_FAR) ? LT.SHADOW_FAR : 32.0,
-                    shadowDistance + shadowFrustumHalf * 2.5,
-                );
+                shadowCamera.near = 4.0; 
+                shadowCamera.far = 12.0; 
                 shadowCamera.updateProjectionMatrix?.();
             }
         } else {
             this.scene.light.position.set(
                 moonState?.available ? moonSunDir.x : earthSunDir.x,
                 moonState?.available ? moonSunDir.y : earthSunDir.y,
-                moonState?.available ? moonSunDir.z : earthSunDir.z,
+                moonState?.available ? moonSunDir.z : earthSunDir.z
             );
             if (this.scene.light.target) {
                 this.scene.light.target.position.set(0, 0, 0);
@@ -277,25 +171,13 @@ export class Animation3DController {
                     earthPosition: earthState?.available ? earthState.position : { x: 0, y: 0, z: 0 },
                     moonPosition: moonState?.available ? moonState.position : { x: 0, y: 0, z: 0 },
                     moonSunDirection: moonSunDir,
-                    minIntensity: Number.isFinite(LT.EARTHSHINE_MIN_INTENSITY)
-                        ? LT.EARTHSHINE_MIN_INTENSITY
-                        : 0,
-                    maxIntensity: Number.isFinite(LT.EARTHSHINE_MAX_INTENSITY)
-                        ? LT.EARTHSHINE_MAX_INTENSITY
-                        : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02),
-                    phaseExponent: Number.isFinite(LT.EARTHSHINE_PHASE_EXPONENT)
-                        ? LT.EARTHSHINE_PHASE_EXPONENT
-                        : 1.8,
+                    maxIntensity: LT.EARTHSHINE_MAX_INTENSITY,
+                    phaseExponent: LT.EARTHSHINE_PHASE_EXPONENT,
                 });
                 if (earthshineState) {
-                    this.scene.lightFill.position.set(
-                        earthshineState.direction.x,
-                        earthshineState.direction.y,
-                        earthshineState.direction.z,
-                    );
+                    this.scene.lightFill.position.set(earthshineState.direction.x, earthshineState.direction.y, earthshineState.direction.z);
                     this.scene.lightFill.intensity = earthshineState.intensity;
                 } else {
-                    this.scene.lightFill.position.set(-moonSunDir.x, -moonSunDir.y, -moonSunDir.z);
                     this.scene.lightFill.intensity = 0.0;
                 }
             }
@@ -310,65 +192,27 @@ export class Animation3DController {
                 earthPosition: earthState?.available ? earthState.position : { x: 0, y: 0, z: 0 },
                 moonPosition: moonState?.available ? moonState.position : { x: 0, y: 0, z: 0 },
                 earthSunDirection: earthSunDir,
-                minIntensity: Number.isFinite(LT.MOONSHINE_MIN_INTENSITY)
-                    ? LT.MOONSHINE_MIN_INTENSITY
-                    : 0,
-                maxIntensity: Number.isFinite(LT.MOONSHINE_MAX_INTENSITY)
-                    ? LT.MOONSHINE_MAX_INTENSITY
-                    : (Number.isFinite(LT.MOONSHINE_INTENSITY) ? LT.MOONSHINE_INTENSITY : 0.0004),
-                phaseExponent: Number.isFinite(LT.MOONSHINE_PHASE_EXPONENT)
-                    ? LT.MOONSHINE_PHASE_EXPONENT
-                    : 1.45,
-                distanceWeight: Number.isFinite(LT.MOONSHINE_DISTANCE_WEIGHT)
-                    ? LT.MOONSHINE_DISTANCE_WEIGHT
-                    : 0.24,
+                maxIntensity: LT.MOONSHINE_MAX_INTENSITY,
+                phaseExponent: LT.MOONSHINE_PHASE_EXPONENT,
             });
             if (moonshineState) {
-                this.scene.lightMoonshine.position.set(
-                    moonshineState.direction.x,
-                    moonshineState.direction.y,
-                    moonshineState.direction.z,
-                );
+                this.scene.lightMoonshine.position.set(moonshineState.direction.x, moonshineState.direction.y, moonshineState.direction.z);
                 this.scene.lightMoonshine.intensity = moonshineState.intensity;
             } else {
-                this.scene.lightMoonshine.position.set(earthSunDir.x, earthSunDir.y, earthSunDir.z);
                 this.scene.lightMoonshine.intensity = 0.0;
             }
         }
     }
 
-    /**
-     * Update 3D object positions from body states.
-     * @param {Object} bodies - Body states keyed by ID
-     * @param {string} craftId - Spacecraft ID
-     */
     updateBodyPositions(bodies, craftId, stateTime, landingFreezeTime) {
         for (const [bodyId, bodyState] of Object.entries(bodies)) {
-            if (!bodyState || !bodyState.available) {
-                continue;
-            }
-
+            if (!bodyState || !bodyState.available) continue;
             const screenPos = toScreenCoordinates(bodyState.position, this.pixelsPerAU);
-
             if (bodyId === this.scene.secondaryBody) {
-                // Secondary body (Moon in geo, Earth in lunar)
                 this.updateSecondaryBodyPosition(screenPos);
-                this.scene.updateSecondaryBodyVisualAids?.(
-                    bodyId,
-                    bodyState,
-                    this.pixelsPerAU,
-                    stateTime,
-                );
+                this.scene.updateSecondaryBodyVisualAids?.(bodyId, bodyState, this.pixelsPerAU, stateTime);
             } else if (this.scene?.craftsById?.[bodyId]) {
-                this.updateSpacecraftPosition(
-                    bodyState,
-                    screenPos,
-                    bodies,
-                    stateTime,
-                    landingFreezeTime,
-                    bodyId,
-                    { isActiveCraft: bodyId === craftId },
-                );
+                this.updateSpacecraftPosition(bodyState, screenPos, bodies, stateTime, landingFreezeTime, bodyId, { isActiveCraft: bodyId === craftId });
             }
         }
     }
@@ -380,14 +224,11 @@ export class Animation3DController {
             const curveTimes = this.scene?.curveTimesById?.[bodyId] || [];
             const orbitStyleMetadata = this.scene?.orbitStyleMetadataByBodyId?.[bodyId] || null;
             const bodyState = bodies?.[bodyId];
-            const isAvailable = !!bodyState?.available;
-
-            if (!bundle || curve.length < 2 || curveTimes.length < 2 || !isAvailable) {
+            if (!bundle || curve.length < 2 || curveTimes.length < 2 || !bodyState?.available) {
                 this.setTrailDrawRange(bundle?.tailLine, 0);
                 this.setTrailDrawRange(bundle?.headLine, 0);
                 continue;
             }
-
             const window = resolveTrailWindow(curveTimes, stateTime, {
                 orbitStyleMetadata,
                 phaseKey: this.scene?.name,
@@ -395,60 +236,26 @@ export class Animation3DController {
                 headOrbitFraction: this.scene?.orbitTrailHeadFraction,
             });
             const layers = resolveTrailLayerWindow(window);
-            this.updateTrailLineGeometry(
-                bundle.tailLine,
-                curve,
-                layers.tailStartIndex,
-                layers.currentIndex,
-            );
-            this.updateTrailLineGeometry(
-                bundle.midLine,
-                curve,
-                layers.midStartIndex,
-                layers.currentIndex,
-            );
-            this.updateTrailLineGeometry(
-                bundle.headGlowLine,
-                curve,
-                layers.headGlowStartIndex,
-                layers.currentIndex,
-            );
-            this.updateTrailLineGeometry(
-                bundle.headLine,
-                curve,
-                layers.headStartIndex,
-                layers.currentIndex,
-            );
+            this.updateTrailLineGeometry(bundle.tailLine, curve, layers.tailStartIndex, layers.currentIndex);
+            this.updateTrailLineGeometry(bundle.midLine, curve, layers.midStartIndex, layers.currentIndex);
+            this.updateTrailLineGeometry(bundle.headGlowLine, curve, layers.headGlowStartIndex, layers.currentIndex);
+            this.updateTrailLineGeometry(bundle.headLine, curve, layers.headStartIndex, layers.currentIndex);
         }
     }
 
     updateTrailLineGeometry(line, curve, startIndex, endIndex) {
-        if (!line?.geometry) {
-            return;
-        }
-
-        const geometry = line.geometry;
-        const positionAttr = geometry.getAttribute?.("position");
-        if (!positionAttr?.array) {
-            return;
-        }
-
-        if (
-            !Number.isFinite(startIndex) ||
-            !Number.isFinite(endIndex) ||
-            startIndex < 0 ||
-            endIndex < startIndex
-        ) {
+        if (!line?.geometry) return;
+        const positionAttr = line.geometry.getAttribute?.("position");
+        if (!positionAttr?.array) return;
+        if (!Number.isFinite(startIndex) || !Number.isFinite(endIndex) || startIndex < 0 || endIndex < startIndex) {
             this.setTrailDrawRange(line, 0);
             return;
         }
-
         const count = Math.max(0, endIndex - startIndex + 1);
         if (count < 2) {
             this.setTrailDrawRange(line, 0);
             return;
         }
-
         const positions = positionAttr.array;
         let offset = 0;
         for (let i = startIndex; i <= endIndex; i++) {
@@ -458,70 +265,27 @@ export class Animation3DController {
             positions[offset++] = point.z;
         }
         positionAttr.needsUpdate = true;
-        geometry.setDrawRange(0, count);
-        geometry.computeBoundingSphere?.();
+        line.geometry.setDrawRange(0, count);
+        line.geometry.computeBoundingSphere?.();
     }
 
     setTrailDrawRange(line, count) {
-        if (!line?.geometry) {
-            return;
-        }
-        line.geometry.setDrawRange(0, count);
+        if (line?.geometry) line.geometry.setDrawRange(0, count);
     }
 
-    /**
-     * Update secondary body (Moon/Earth) position.
-     * @param {Object} screenPos - Screen coordinates {x, y, z}
-     */
     updateSecondaryBodyPosition(screenPos) {
-        if (this.scene.secondaryBody3D) {
-            this.scene.secondaryBody3D.position.set(
-                screenPos.x,
-                screenPos.y,
-                screenPos.z
-            );
-        }
+        if (this.scene.secondaryBody3D) this.scene.secondaryBody3D.position.set(screenPos.x, screenPos.y, screenPos.z);
     }
 
-    /**
-     * Update spacecraft position and orientation.
-     * @param {Object} bodyState - Spacecraft body state
-     * @param {Object} screenPos - Current screen position
-     * @param {Object} allBodies - All body states (for next position calculation)
-     */
-    updateSpacecraftPosition(
-        bodyState,
-        screenPos,
-        allBodies,
-        stateTime,
-        landingFreezeTime,
-        craftId = "SC",
-        options = {},
-    ) {
+    updateSpacecraftPosition(bodyState, screenPos, allBodies, stateTime, landingFreezeTime, craftId = "SC", options = {}) {
         const { isActiveCraft = false } = options || {};
-        const craftObject = isActiveCraft
-            ? (this.scene.craft || this.scene.craftsById?.[craftId] || null)
-            : (this.scene.craftsById?.[craftId] || null);
-        const droneObject = isActiveCraft
-            ? (this.scene.drone || this.scene.dronesById?.[craftId] || null)
-            : (this.scene.dronesById?.[craftId] || null);
-        const renderer = this.scene.spacecraftRenderersById?.[craftId] ||
-            (isActiveCraft ? this.scene.spacecraftRenderer : null);
+        const craftObject = isActiveCraft ? (this.scene.craft || this.scene.craftsById?.[craftId]) : this.scene.craftsById?.[craftId];
+        if (!craftObject) return;
 
-        if (!craftObject) {
-            return;
-        }
-
-        // Set spacecraft position
         craftObject.position.set(screenPos.x, screenPos.y, screenPos.z);
-
-        // Calculate next position for orientation (prefer Chebyshev-derived next position from state)
+        
         const shouldFreeze = typeof landingFreezeTime === "number" && stateTime >= landingFreezeTime;
-        this._frozenNextScreenPosByCraftId ||= {};
-        if (!shouldFreeze) {
-            delete this._frozenNextScreenPosByCraftId[craftId];
-        }
-
+        if (!shouldFreeze) delete this._frozenNextScreenPosByCraftId[craftId];
         let nextScreenPos;
         if (shouldFreeze) {
             if (!this._frozenNextScreenPosByCraftId[craftId]) {
@@ -534,71 +298,29 @@ export class Animation3DController {
             nextScreenPos = toScreenCoordinates(nextPos, this.pixelsPerAU);
         }
 
-        // Update drone position (follows spacecraft at offset)
-        if (droneObject) {
-            const droneScale = 1.05;
-            const delta = {
-                x: nextScreenPos.x - screenPos.x,
-                y: nextScreenPos.y - screenPos.y,
-                z: nextScreenPos.z - screenPos.z
-            };
-            droneObject.position.set(
-                droneScale * (screenPos.x - delta.x),
-                droneScale * (screenPos.y - delta.y),
-                droneScale * (screenPos.z - delta.z)
-            );
-        }
-
-        // Orient spacecraft to face instantaneous velocity direction.
-        // Fallback to next-position heading if velocity is unavailable.
         const vel = bodyState?.velocity;
-        const velX = Number(vel?.vx);
-        const velY = Number(vel?.vy);
-        const velZ = Number(vel?.vz);
-        let lookX = nextScreenPos.x;
-        let lookY = nextScreenPos.y;
-        let lookZ = nextScreenPos.z;
-        if (Number.isFinite(velX) && Number.isFinite(velY) && Number.isFinite(velZ)) {
-            const speed = Math.hypot(velX, velY, velZ);
+        let lookX = nextScreenPos.x, lookY = nextScreenPos.y, lookZ = nextScreenPos.z;
+        if (vel && Number.isFinite(vel.vx)) {
+            const speed = Math.hypot(vel.vx, vel.vy, vel.vz);
             if (speed > 1e-12) {
-                const velocityLookDistance = 1.0;
-                lookX = screenPos.x + (velX / speed) * velocityLookDistance;
-                lookY = screenPos.y + (velY / speed) * velocityLookDistance;
-                lookZ = screenPos.z + (velZ / speed) * velocityLookDistance;
+                lookX = screenPos.x + (vel.vx / speed);
+                lookY = screenPos.y + (vel.vy / speed);
+                lookZ = screenPos.z + (vel.vz / speed);
             }
         }
         craftObject.up.set(0, 0, 1);
         craftObject.lookAt(lookX, lookY, lookZ);
 
-        // Apply model-specific forward-axis correction after lookAt so the
-        // physical body long axis aligns with velocity tangent.
+        const renderer = this.scene.spacecraftRenderersById?.[craftId] || (isActiveCraft ? this.scene.spacecraftRenderer : null);
         const attitudeOffset = renderer?.getAttitudeOffsetQuaternion?.();
-        if (attitudeOffset) {
-            craftObject.quaternion.multiply(attitudeOffset);
-        }
+        if (attitudeOffset) craftObject.quaternion.multiply(attitudeOffset);
 
-        // Orient drone to look back at spacecraft
-        if (droneObject) {
-            droneObject.lookAt(screenPos.x, screenPos.y, screenPos.z);
-        }
-
-        // Keep only solar wings tracking the live sun direction (1-DOF tilt per wing).
-        // Craft body attitude remains velocity-aligned above.
-        const craftSun = this.scene.stateSunDirections?.craftCenteredLightTime ||
-            this.scene.stateSunDirections?.craftCentered ||
-            this.scene.stateSunDirection;
+        const craftSun = this.scene.stateSunDirections?.craftCenteredLightTime || this.scene.stateSunDirections?.craftCentered || this.scene.stateSunDirection;
         renderer?.updateSolarArrayTracking?.(craftSun);
     }
 
-    /**
-     * Calculate approximate next position for orientation.
-     * Uses velocity to extrapolate position.
-     * @param {Object} bodyState - Current body state with position and velocity
-     * @returns {Object} Approximate next position {x, y, z}
-     */
     calculateNextPosition(bodyState) {
-        // Use velocity to estimate next position (1 minute ahead)
-        const dt = 60; // seconds
+        const dt = 60;
         return {
             x: bodyState.position.x + bodyState.velocity.vx * dt,
             y: bodyState.position.y + bodyState.velocity.vy * dt,
@@ -606,25 +328,10 @@ export class Animation3DController {
         };
     }
 
-    /**
-     * Update camera projection and sky position.
-     * Called when camera controls are enabled.
-     */
     updateCameraAndSky() {
-        if (!this.scene.cameraControlsEnabled) {
-            return;
-        }
-
+        if (!this.scene.cameraControlsEnabled) return;
         this.scene.camera.updateProjectionMatrix();
-
-        if (this.scene.skyContainer) {
-            this.scene.skyContainer.position.setFromMatrixPosition(
-                this.scene.camera.matrixWorld
-            );
-        }
-
-        if (this.scene.cameraControls) {
-            this.scene.cameraControls.update();
-        }
+        if (this.scene.skyContainer) this.scene.skyContainer.position.setFromMatrixPosition(this.scene.camera.matrixWorld);
+        if (this.scene.cameraControls) this.scene.cameraControls.update();
     }
 }

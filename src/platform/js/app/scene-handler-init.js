@@ -39,7 +39,7 @@ export function initSceneHandlerDom({
         renderer.outputEncoding = THREE.sRGBEncoding;
     }
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.14;
+    renderer.toneMappingExposure = 1.8;
     renderer.shadowMap.enabled = true;
     if (THREE.PCFShadowMap) {
         renderer.shadowMap.type = THREE.PCFShadowMap;
