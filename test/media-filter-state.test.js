@@ -89,7 +89,10 @@ describe("media filter state", () => {
     it("builds UI-facing filter counts", () => {
         const model = buildMediaFilterModel(ITEMS, { audience: "all", cameraId: "all" });
 
-        expect(model.subjectOptions.find((option) => option.id === "all")).toBeUndefined();
+        expect(model.subjectOptions.find((option) => option.id === "all")).toEqual(expect.objectContaining({
+            count: 4,
+            active: true,
+        }));
         expect(model.subjectOptions.find((option) => option.id === "crew")?.count).toBe(2);
         expect(model.subjectOptions.find((option) => option.id === "new")).toBeUndefined();
         expect(model.subjectOptions.find((option) => option.id === "crew")?.label).toBe("Crew");
@@ -104,22 +107,25 @@ describe("media filter state", () => {
             videoClip: 1,
         });
         expect(model.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
-            ["image", 2, true],
-            ["audioClip", 1, true],
-            ["videoClip", 1, true],
+            ["all", 4, true],
+            ["image", 2, false],
+            ["audioClip", 1, false],
+            ["videoClip", 1, false],
         ]);
         expect(model.cameraOptions.map((option) => option.id)).toEqual(["all", "iphone", "d5", "z9"]);
-        expect(model.cameraButtonOptions.map((option) => option.id)).toEqual(["d5a", "d5b", "z9", "gopro", "iphone"]);
+        expect(model.cameraButtonOptions.map((option) => option.id)).toEqual(["all", "d5a", "d5b", "z9", "gopro", "iphone"]);
     });
 
     it("marks selected facet pills as active", () => {
         const model = buildMediaFilterModel(ITEMS, { mediaKinds: ["image", "videoClip"] });
 
         expect(model.subjectOptions.map((option) => [option.id, option.active])).toEqual([
+            ["all", true],
             ["crew", false],
             ["space", false],
         ]);
         expect(model.kindPillOptions.map((option) => [option.id, option.active])).toEqual([
+            ["all", false],
             ["image", true],
             ["audioClip", false],
             ["videoClip", true],
@@ -130,6 +136,7 @@ describe("media filter state", () => {
         const model = buildMediaFilterModel(ITEMS, { subjects: ["crew", "space"] });
 
         expect(model.subjectOptions.map((option) => [option.id, option.active])).toEqual([
+            ["all", false],
             ["crew", true],
             ["space", true],
         ]);
@@ -146,19 +153,22 @@ describe("media filter state", () => {
             videoClip: 1,
         });
         expect(crewModel.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
-            ["image", 1, true],
-            ["audioClip", 0, true],
-            ["videoClip", 1, true],
+            ["all", 2, true],
+            ["image", 1, false],
+            ["audioClip", 0, false],
+            ["videoClip", 1, false],
         ]);
 
         const audioModel = buildMediaFilterModel(ITEMS, { mediaKinds: ["audioClip"] });
 
         expect(audioModel.matchCount).toBe(1);
         expect(audioModel.subjectOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["all", 1, true],
             ["crew", 0, false],
             ["space", 0, false],
         ]);
         expect(audioModel.cameraButtonOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["all", 1, true],
             ["d5a", 0, false],
             ["d5b", 0, false],
             ["z9", 0, false],
@@ -170,11 +180,13 @@ describe("media filter state", () => {
 
         expect(cameraModel.matchCount).toBe(1);
         expect(cameraModel.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
-            ["image", 0, true],
-            ["audioClip", 0, true],
-            ["videoClip", 1, true],
+            ["all", 1, true],
+            ["image", 0, false],
+            ["audioClip", 0, false],
+            ["videoClip", 1, false],
         ]);
         expect(cameraModel.subjectOptions.map((option) => [option.id, option.count, option.active])).toEqual([
+            ["all", 1, true],
             ["crew", 1, false],
             ["space", 0, false],
         ]);

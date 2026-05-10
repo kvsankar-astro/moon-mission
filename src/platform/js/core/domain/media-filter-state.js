@@ -215,17 +215,36 @@ function buildMediaFilterModel(items, filterState) {
     const activeCameraIds = new Set(filters.cameraIds);
     const activeKindIds = new Set(filters.mediaKinds);
     const activeSubjectIds = new Set(filters.subjects);
-    const cameraButtonOptions = CAMERA_BUTTON_ORDER.map((cameraOption) => {
-        const counted = cameraCounts.get(cameraOption.id);
-        return {
-            ...cameraOption,
-            count: counted?.count || 0,
-            active: activeCameraIds.has(cameraOption.id),
-        };
-    });
+    const kindFacetUnrestricted = MEDIA_KIND_FILTER_IDS.every((kindId) => activeKindIds.has(kindId));
+    const subjectFacetUnrestricted = filters.subjects.length === 0;
+    const cameraFacetUnrestricted = filters.cameraIds.length === 0;
+    const cameraButtonOptions = [
+        {
+            id: "all",
+            label: "All",
+            title: "All cameras and uncategorized media",
+            count: cameraScopedItems.length,
+            active: cameraFacetUnrestricted,
+        },
+        ...CAMERA_BUTTON_ORDER.map((cameraOption) => {
+            const counted = cameraCounts.get(cameraOption.id);
+            return {
+                ...cameraOption,
+                count: counted?.count || 0,
+                active: !cameraFacetUnrestricted && activeCameraIds.has(cameraOption.id),
+            };
+        }),
+    ];
     const subjectOptions = [
-        { id: "crew", label: "Crew", count: subjectCounts.crew, active: activeSubjectIds.has("crew") },
-        { id: "space", label: "Space", count: subjectCounts.space, active: activeSubjectIds.has("space") },
+        {
+            id: "all",
+            label: "All",
+            title: "All subjects and uncategorized media",
+            count: subjectScopedItems.length,
+            active: subjectFacetUnrestricted,
+        },
+        { id: "crew", label: "Crew", count: subjectCounts.crew, active: !subjectFacetUnrestricted && activeSubjectIds.has("crew") },
+        { id: "space", label: "Space", count: subjectCounts.space, active: !subjectFacetUnrestricted && activeSubjectIds.has("space") },
     ];
 
     return {
@@ -240,9 +259,16 @@ function buildMediaFilterModel(items, filterState) {
         cameraId: filters.cameraId,
         cameraIds: filters.cameraIds,
         kindPillOptions: [
-            { id: "image", label: "Images", count: kindCounts.image, active: activeKindIds.has("image") },
-            { id: "audioClip", label: "Audio", count: kindCounts.audioClip, active: activeKindIds.has("audioClip") },
-            { id: "videoClip", label: "Video", count: kindCounts.videoClip, active: activeKindIds.has("videoClip") },
+            {
+                id: "all",
+                label: "All",
+                title: "All media types",
+                count: kindCounts.all,
+                active: kindFacetUnrestricted,
+            },
+            { id: "image", label: "Images", count: kindCounts.image, active: !kindFacetUnrestricted && activeKindIds.has("image") },
+            { id: "audioClip", label: "Audio", count: kindCounts.audioClip, active: !kindFacetUnrestricted && activeKindIds.has("audioClip") },
+            { id: "videoClip", label: "Video", count: kindCounts.videoClip, active: !kindFacetUnrestricted && activeKindIds.has("videoClip") },
         ],
         subjectOptions,
         quickOptions: subjectOptions,

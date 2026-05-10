@@ -939,6 +939,14 @@ function createMediaTimelineCoordination({
         }
         if (type === "toggleSubject") {
             const value = String(intent.value || "").trim();
+            if (value === "all") {
+                runtimeMediaState.patchFilters({
+                    quick: "all",
+                    subjects: [],
+                });
+                rerender();
+                return;
+            }
             if (!MEDIA_SUBJECT_FILTER_IDS.includes(value)) return;
             const filters = runtimeMediaState.getFilters();
             const active = new Set(filters.subjects || []);
@@ -956,20 +964,37 @@ function createMediaTimelineCoordination({
         }
         if (type === "toggleMediaKind") {
             const value = String(intent.value || "").trim();
-            if (!MEDIA_KIND_FILTER_IDS.includes(value)) return;
             const filters = runtimeMediaState.getFilters();
+            if (value === "all") {
+                runtimeMediaState.patchFilters({
+                    quick: "all",
+                    kind: "all",
+                    mediaKinds: [...MEDIA_KIND_FILTER_IDS],
+                });
+                rerender();
+                return;
+            }
+            if (!MEDIA_KIND_FILTER_IDS.includes(value)) return;
             const active = new Set(filters.mediaKinds || MEDIA_KIND_FILTER_IDS);
-            if (active.has(value)) {
+            const currentlyUnrestricted = MEDIA_KIND_FILTER_IDS.every((kindId) => active.has(kindId));
+            if (currentlyUnrestricted) {
+                active.clear();
+                active.add(value);
+            } else if (active.has(value)) {
                 active.delete(value);
             } else {
                 active.add(value);
             }
+            const selectedKinds = MEDIA_KIND_FILTER_IDS.filter((kindId) => active.has(kindId));
+            const mediaKinds = selectedKinds.length === 0 || selectedKinds.length === MEDIA_KIND_FILTER_IDS.length
+                ? [...MEDIA_KIND_FILTER_IDS]
+                : selectedKinds;
             runtimeMediaState.patchFilters({
                 quick: filters.quick === "videos" ? "all" : filters.quick,
                 kind: "all",
-                mediaKinds: MEDIA_KIND_FILTER_IDS.filter((kindId) => active.has(kindId)),
+                mediaKinds,
             });
-            if (value === "audioClip" && active.has(value) === false && mediaPlaybackState.kind === "audioClip") {
+            if (!mediaKinds.includes("audioClip") && mediaPlaybackState.kind === "audioClip") {
                 stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
             }
             rerender();
@@ -978,6 +1003,15 @@ function createMediaTimelineCoordination({
         if (type === "toggleCameraFilter") {
             const value = String(intent.value || "").trim();
             if (!value) return;
+            if (value === "all") {
+                runtimeMediaState.patchFilters({
+                    quick: "all",
+                    cameraIds: [],
+                    cameraId: "all",
+                });
+                rerender();
+                return;
+            }
             const filters = runtimeMediaState.getFilters();
             const active = new Set(filters.cameraIds || []);
             if (active.has(value)) {

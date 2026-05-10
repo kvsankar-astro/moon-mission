@@ -409,8 +409,7 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "image" });
-        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "videoClip" });
+        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "audioClip" });
 
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(latestRender.filterModel.mediaKinds).toEqual(["audioClip"]);
@@ -640,8 +639,7 @@ describe("createMediaTimelineCoordination", () => {
             animTime: Date.parse("2026-04-02T16:31:00Z"),
         });
         await flushPromises(8);
-        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "image" });
-        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "videoClip" });
+        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "audioClip" });
 
         mocks.panelIntentHandler?.({ type: "selectAdjacentItem", value: "next" });
 
