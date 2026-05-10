@@ -28,6 +28,7 @@ const MAX_THUMBNAIL_RENDER_ITEMS = 64;
 const THUMBNAIL_WINDOW_EDGE_MARGIN = 8;
 const AUDIO_DEFAULT_DURATION_SECONDS = 300;
 const MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS = 5000;
+const MEDIA_EXPLICIT_FOCUS_TOLERANCE_MS = 1000;
 
 function formatSignedDuration(seconds) {
     if (!Number.isFinite(seconds) || seconds === 0) return "0s";
@@ -152,11 +153,12 @@ function buildNearbyMediaItems(items, activeIndex, nearbyRadius = 3) {
     return normalizedItems.slice(startIndex, endIndex);
 }
 
-function buildExplicitMediaSelectionState({
+function buildExplicitMediaFocusState({
     items,
     activeItemId,
     timeMs,
     nearbyRadius = 3,
+    focusSource = "user-selection",
 } = {}) {
     const normalizedItems = Array.isArray(items) ? items : [];
     const activeItem = findMediaItemById(normalizedItems, activeItemId);
@@ -178,6 +180,8 @@ function buildExplicitMediaSelectionState({
             nextItem: null,
             nearbyItems: nearestSelection.nearbyItems,
             activeDeltaMs: Number.NaN,
+            focusSource: "none",
+            explicit: false,
         };
     }
 
@@ -189,6 +193,25 @@ function buildExplicitMediaSelectionState({
         nextItem: activeIndex < (normalizedItems.length - 1) ? normalizedItems[activeIndex + 1] : null,
         nearbyItems: buildNearbyMediaItems(normalizedItems, activeIndex, nearbyRadius),
         activeDeltaMs: Number.isFinite(timeMs) ? timeMs - activeItem.startTimeMs : Number.NaN,
+        focusSource,
+        explicit: focusSource !== "time-proximity",
+    };
+}
+
+function buildTimeProximityMediaFocusState({
+    items,
+    timeMs,
+    nearbyRadius = 3,
+} = {}) {
+    const focusState = resolveMediaSelectionState({
+        items,
+        timeMs,
+        nearbyRadius,
+    });
+    return {
+        ...focusState,
+        focusSource: focusState.activeItem ? "time-proximity" : "none",
+        explicit: false,
     };
 }
 
@@ -204,7 +227,7 @@ function buildMediaNavigationModel(items, selection = {}) {
             available: false,
             previousEnabled: false,
             nextEnabled: false,
-            positionLabel: "No media selected",
+            positionLabel: "No media focused",
         };
     }
     if (!Number.isInteger(activeIndex) || activeIndex < 0) {
@@ -212,9 +235,9 @@ function buildMediaNavigationModel(items, selection = {}) {
             available: true,
             previousEnabled: false,
             nextEnabled: true,
-            positionLabel: `${count} filtered - none selected`,
-            previousTitle: "Select a filtered media item first",
-            nextTitle: "Select nearest filtered media",
+            positionLabel: `${count} filtered - none focused`,
+            previousTitle: "Focus a filtered media item first",
+            nextTitle: "Focus nearest filtered media",
         };
     }
     return {
@@ -513,7 +536,9 @@ function createMediaTimelineCoordination({
         syncedTimeMs = Number.NaN,
     } = {}) {
         if (!item || !isPlayableMediaItem(item)) return false;
-        runtimeMediaState.setActiveItemId(item.id);
+        runtimeMediaState.setActiveItemId(item.id, {
+            anchorTimeMs: item.startTimeMs,
+        });
         mediaPlaybackState = {
             itemId: item.id,
             kind: item.kind,
@@ -532,7 +557,9 @@ function createMediaTimelineCoordination({
         const item = findCurrentManifestItemById(normalizedId);
         if (!item || !isPlayableMediaItem(item)) return;
         const timelineTimeMs = syncMissionTimeToMediaOffset(item, Number(currentTimeSeconds) || 0, false);
-        runtimeMediaState.setActiveItemId(item.id);
+        runtimeMediaState.setActiveItemId(item.id, {
+            anchorTimeMs: item.startTimeMs,
+        });
         mediaPlaybackState = {
             itemId: item.id,
             kind: kind || item.kind,
@@ -753,10 +780,9 @@ function createMediaTimelineCoordination({
         return false;
     }
 
-    function startSelectedPlayableMediaFromMissionTime() {
+    function startFocusedPlayableMediaFromMissionTime() {
         if (mediaPlaybackState.playing === true) return false;
-        const activeItemId = runtimeMediaState.getActiveItemId() || mediaPlaybackState.itemId;
-        const activeItem = findCurrentManifestItemById(activeItemId);
+        const activeItem = getCurrentFocusedMediaItem();
         if (!activeItem || !isPlayableMediaItem(activeItem)) return false;
         return startPlayableMediaItem(activeItem, {
             fromBeginning: false,
@@ -790,7 +816,6 @@ function createMediaTimelineCoordination({
         animationPlayStateEventBound = true;
         onAnimationPlayStateUpdated = (event) => {
             if (event?.detail?.isPlaying === true) {
-                startSelectedPlayableMediaFromMissionTime();
                 return;
             }
             pausePlayableMediaForAnimationPause();
@@ -869,6 +894,65 @@ function createMediaTimelineCoordination({
         );
     }
 
+    function getPlaybackFocusItemId() {
+        return mediaPlaybackState.active === true || mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true
+            ? mediaPlaybackState.itemId
+            : "";
+    }
+
+    function isExplicitFocusCurrent(timeMs) {
+        const anchorTimeMs = Number(runtimeMediaState.getActiveItemAnchorTimeMs?.());
+        if (!Number.isFinite(anchorTimeMs) || !Number.isFinite(Number(timeMs))) return true;
+        return Math.abs(Number(timeMs) - anchorTimeMs) <= MEDIA_EXPLICIT_FOCUS_TOLERANCE_MS;
+    }
+
+    function buildCurrentMediaFocusState(items, timeMs) {
+        const selectableItems = Array.isArray(items) ? items : getFilteredSelectableItems();
+        const playbackItemId = getPlaybackFocusItemId();
+        if (playbackItemId) {
+            const playbackFocus = buildExplicitMediaFocusState({
+                items: selectableItems,
+                activeItemId: playbackItemId,
+                timeMs,
+                nearbyRadius: 3,
+                focusSource: "media-playback",
+            });
+            if (playbackFocus.activeItem) {
+                return playbackFocus;
+            }
+        }
+
+        const activeItemId = runtimeMediaState.getActiveItemId();
+        if (activeItemId && isExplicitFocusCurrent(timeMs)) {
+            const explicitFocus = buildExplicitMediaFocusState({
+                items: selectableItems,
+                activeItemId,
+                timeMs,
+                nearbyRadius: 3,
+                focusSource: "user-selection",
+            });
+            if (explicitFocus.activeItem) {
+                return explicitFocus;
+            }
+        }
+
+        if (activeItemId) {
+            runtimeMediaState.setActiveItemId("");
+        }
+        return buildTimeProximityMediaFocusState({
+            items: selectableItems,
+            timeMs,
+            nearbyRadius: 3,
+        });
+    }
+
+    function getCurrentFocusedMediaItem() {
+        return buildCurrentMediaFocusState(
+            getFilteredSelectableItems(),
+            Number(lastRenderContext?.animTime),
+        ).activeItem;
+    }
+
     function previewMediaItem(item, {
         seekTimeline = true,
     } = {}) {
@@ -877,15 +961,25 @@ function createMediaTimelineCoordination({
             item,
         });
         stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
-        runtimeMediaState.setActiveItemId(item.id);
         if (!seekTimeline) {
+            runtimeMediaState.setActiveItemId(item.id, {
+                anchorTimeMs: readCurrentMissionTimeMs(),
+            });
             rerender();
             return true;
         }
-        const seekSucceeded = seekMissionTimelineTime(item.startTimeMs, true);
-        if (!seekSucceeded) {
-            rerender();
+        seekMissionTimelineTime(item.startTimeMs, true);
+        const anchorTimeMs = readCurrentMissionTimeMs();
+        runtimeMediaState.setActiveItemId(item.id, {
+            anchorTimeMs: Number.isFinite(anchorTimeMs) ? anchorTimeMs : item.startTimeMs,
+        });
+        if (Number.isFinite(anchorTimeMs) && lastRenderContext) {
+            lastRenderContext = {
+                ...lastRenderContext,
+                animTime: anchorTimeMs,
+            };
         }
+        rerender();
         return true;
     }
 
@@ -1043,10 +1137,13 @@ function createMediaTimelineCoordination({
                 rerender();
                 return;
             }
-            const currentId = runtimeMediaState.getActiveItemId();
-            const currentIndex = selectableItems.findIndex((item) => item?.id === currentId);
-            const targetIndex = currentIndex >= 0
-                ? clampIndex(currentIndex + direction, selectableItems.length - 1)
+            const currentFocus = buildCurrentMediaFocusState(
+                selectableItems,
+                Number(lastRenderContext?.animTime),
+            );
+            const focusedIndex = Number(currentFocus.activeIndex);
+            const targetIndex = Number.isInteger(focusedIndex) && focusedIndex >= 0
+                ? clampIndex(focusedIndex + direction, selectableItems.length - 1)
                 : resolveNearestMediaIndex(selectableItems, Number(lastRenderContext?.animTime));
             previewMediaItem(selectableItems[targetIndex] || selectableItems[0]);
             return;
@@ -1062,13 +1159,11 @@ function createMediaTimelineCoordination({
                 pauseActivePlayableMedia();
                 return;
             }
-            startSelectedPlayableMediaFromMissionTime();
+            startFocusedPlayableMediaFromMissionTime();
             return;
         }
         if (type === "startActiveMedia" || type === "startActiveMediaFromBeginning") {
-            const manifest = runtimeMediaState.getManifest();
-            const activeItemId = mediaPlaybackState.itemId || runtimeMediaState.getActiveItemId();
-            const activeItem = findManifestMediaItemById(manifest, activeItemId);
+            const activeItem = getCurrentFocusedMediaItem();
             if (!activeItem || !isPlayableMediaItem(activeItem)) return;
             startPlayableMediaItem(activeItem, {
                 fromBeginning: type === "startActiveMediaFromBeginning",
@@ -1153,15 +1248,18 @@ function createMediaTimelineCoordination({
                 showControls: activePlayable,
                 playTitle: activePlaybackPlaying || activePlaybackBuffering
                     ? "Pause media playback"
-                    : "Play media from the current mission time",
+                    : "Play focused media from the current mission time",
                 restartTitle: "Restart media from beginning",
                 statusLabel: activePlayable ? activeMediaStatus : "",
             },
             navigationModel,
+            focusSource: selection.focusSource || "none",
             activeItem: activeItem
                 ? {
                     id: activeItem.id,
                     kind: activeItem.kind,
+                    focusSource: selection.focusSource || "none",
+                    explicit: selection.explicit === true,
                     title: activeItem.title,
                     description: activeItem.description,
                     assetUrl: resolvePreviewAssetUrl(activeItem),
@@ -1281,18 +1379,7 @@ function createMediaTimelineCoordination({
             filteredItems,
             filteredAudioItems,
         );
-        const requestedActiveItemId = mediaPlaybackState.itemId || runtimeMediaState.getActiveItemId();
-        const selection = buildExplicitMediaSelectionState({
-            items: selectableItems,
-            activeItemId: requestedActiveItemId,
-            timeMs,
-            nearbyRadius: 3,
-        });
-        if (requestedActiveItemId && !selection.activeItem) {
-            runtimeMediaState.setActiveItemId("");
-        } else if (selection.activeItem) {
-            runtimeMediaState.setActiveItemId(selection.activeItem.id);
-        }
+        const selection = buildCurrentMediaFocusState(selectableItems, timeMs);
 
         setTimelineMediaMarkers(buildMediaTimelineMarkers({
             items: selectableItems,

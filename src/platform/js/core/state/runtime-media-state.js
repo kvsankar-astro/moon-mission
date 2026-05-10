@@ -10,6 +10,7 @@ function createRuntimeMediaState({
     let loadState = "idle";
     let filters = normalizeMediaFilterState(initialFilters);
     let activeItemId = "";
+    let activeItemAnchorTimeMs = Number.NaN;
 
     return {
         getManifest: () => manifest,
@@ -31,8 +32,14 @@ function createRuntimeMediaState({
             });
         },
         getActiveItemId: () => activeItemId,
-        setActiveItemId: (value) => {
+        getActiveItemAnchorTimeMs: () => activeItemAnchorTimeMs,
+        setActiveItemId: (value, {
+            anchorTimeMs = Number.NaN,
+        } = {}) => {
             activeItemId = String(value || "").trim();
+            activeItemAnchorTimeMs = activeItemId && Number.isFinite(Number(anchorTimeMs))
+                ? Number(anchorTimeMs)
+                : Number.NaN;
         },
     };
 }

@@ -910,6 +910,7 @@ function createMediaBrowserPanelActions({
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
         applyThumbnailStripHeight(thumbnailStripHeight);
+        scheduleActiveThumbnailReveal();
         persistPanelLayoutState(panel);
     }
 
@@ -944,6 +945,7 @@ function createMediaBrowserPanelActions({
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
         applyThumbnailStripHeight(thumbnailStripHeight);
+        scheduleActiveThumbnailReveal();
         persistPanelLayoutState(panel);
     }
 
@@ -1078,7 +1080,7 @@ function createMediaBrowserPanelActions({
             );
         }
         if (position) {
-            position.textContent = navigationModel.positionLabel || "No media selected";
+            position.textContent = navigationModel.positionLabel || "No media focused";
             position.title = position.textContent;
         }
     }
@@ -1115,11 +1117,51 @@ function createMediaBrowserPanelActions({
         return fallback;
     }
 
+    function revealActiveThumbnail() {
+        const host = getNode("media-browser-thumbnail-list");
+        if (!host) return;
+        const activeButton = host.querySelector?.(".media-browser-panel__thumbnail-card.is-active");
+        if (!activeButton || typeof activeButton.getBoundingClientRect !== "function") return;
+        if (typeof host.getBoundingClientRect !== "function") return;
+        const hostRect = host.getBoundingClientRect();
+        const activeRect = activeButton.getBoundingClientRect();
+        const edgePadding = Math.min(120, Math.max(48, hostRect.width * 0.18));
+        const isNearEdge = activeRect.left < (hostRect.left + edgePadding)
+            || activeRect.right > (hostRect.right - edgePadding);
+        if (!isNearEdge) return;
+        const targetScrollLeft = Math.max(
+            0,
+            host.scrollLeft
+                + (activeRect.left - hostRect.left)
+                - ((hostRect.width - activeRect.width) / 2),
+        );
+        try {
+            if (typeof host.scrollTo === "function") {
+                host.scrollTo({
+                    left: targetScrollLeft,
+                    behavior: "auto",
+                });
+            } else {
+                host.scrollLeft = targetScrollLeft;
+            }
+        } catch {
+            host.scrollLeft = targetScrollLeft;
+        }
+    }
+
+    function scheduleActiveThumbnailReveal() {
+        revealActiveThumbnail();
+        const windowRef = getWindowRef();
+        windowRef?.requestAnimationFrame?.(revealActiveThumbnail);
+        windowRef?.setTimeout?.(revealActiveThumbnail, 80);
+    }
+
     function renderThumbnailItems(thumbnailItems) {
         const host = getNode("media-browser-thumbnail-list");
         if (!host) return;
         const nextSignature = JSON.stringify(thumbnailItems || []);
         if (nextSignature === thumbnailSignature) {
+            revealActiveThumbnail();
             return;
         }
         thumbnailSignature = nextSignature;
@@ -1199,25 +1241,7 @@ function createMediaBrowserPanelActions({
             host.appendChild(button);
         }
 
-        const activeButton = host.querySelector?.(".media-browser-panel__thumbnail-card.is-active");
-        if (!activeButton || typeof activeButton.getBoundingClientRect !== "function") return;
-        if (typeof host.getBoundingClientRect !== "function") return;
-        const hostRect = host.getBoundingClientRect();
-        const activeRect = activeButton.getBoundingClientRect();
-        const edgePadding = Math.min(120, Math.max(48, hostRect.width * 0.18));
-        const isNearEdge = activeRect.left < (hostRect.left + edgePadding)
-            || activeRect.right > (hostRect.right - edgePadding);
-        if (!isNearEdge) return;
-        const prefersReducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
-        try {
-            activeButton.scrollIntoView?.({
-                block: "nearest",
-                inline: "center",
-                behavior: prefersReducedMotion ? "auto" : "smooth",
-            });
-        } catch {
-            activeButton.scrollIntoView?.();
-        }
+        revealActiveThumbnail();
     }
 
     function render(viewModel = {}) {
