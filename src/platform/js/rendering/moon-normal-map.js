@@ -104,6 +104,18 @@ export function buildMoonNormalMapFromHeightTexture(
         DEFAULT_MOON_NORMAL_MAP_SETTINGS.normalMapStrength,
     );
 
+    // Image-row-0 maps to V=1 (north pole) when flipY=true (three.js default),
+    // OR to V=0 (south pole) when flipY=false. This flips the relationship
+    // between image-Y and the texture V axis, which means dh/dv has opposite
+    // sign in the two cases. The output normal MUST inherit the same flipY as
+    // the heightTexture (we set it on line below) — so to encode the same
+    // dh/dv into the green channel correctly, the gradient-Y sign has to flip
+    // too. Without this, a heightTexture with flipY=false would produce a
+    // normal map whose Y component is inverted, and crater slopes would tilt
+    // the wrong direction (north appearing as south).
+    const sourceFlipY = heightTexture?.flipY !== false;
+    const gradientYSign = sourceFlipY ? 1.0 : -1.0;
+
     const sampleHeight = (x, y) => {
         const clampedX = Math.max(0, Math.min(width - 1, x));
         const clampedY = Math.max(0, Math.min(height - 1, y));
@@ -129,18 +141,18 @@ export function buildMoonNormalMapFromHeightTexture(
             const gradientY = gradientYWide + (gradientYFine - gradientYWide) * detailBoost;
 
             // Image-space gradient -> tangent-space normal:
-            //   image X axis runs +east  (matches +U / +tangent), so nx = -dh/du = -gradientX
-            //   image Y axis runs +south (OPPOSITE of +V / +bitangent, because the texture
-            //                             is uploaded with flipY=true, mapping image-row 0
-            //                             to V=1 / north pole). So a height gradient in
-            //                             image-Y direction has *opposite* sign to dh/dv.
-            //                             ny = -dh/dv = -(-gradientY) = +gradientY.
-            // Previously this used -1 * gradientY, encoding the bitangent direction
-            // flipped, which mirrored the perturbed normal across the tangent-normal
-            // plane and produced shadow plumes pointing 90deg off the sun direction
-            // when the moon was viewed obliquely.
+            //   image X axis runs +east  (matches +U / +tangent), so nx = -dh/du = -gradientX.
+            //   image Y axis vs +V depends on heightTexture.flipY (see gradientYSign above):
+            //     flipY=true  (default): image-Y runs +south, OPPOSITE of +V/+bitangent.
+            //                            ny = -dh/dv = +dh/dy_image = +gradientY.
+            //     flipY=false:           image-Y runs +north, SAME as +V/+bitangent.
+            //                            ny = -dh/dv = -dh/dy_image = -gradientY.
+            // (gradientYSign captures this.) An earlier version hard-coded the
+            // flipY=true case, so for any non-flipped height texture the green
+            // channel was inverted — crater rims appeared to tilt north/south
+            // backwards when the moon was viewed obliquely.
             let nx = -1 * gradientX * normalStrength;
-            let ny = +1 * gradientY * normalStrength;
+            let ny = gradientYSign * gradientY * normalStrength;
             let nz = 1.0;
             const invLen = 1 / Math.max(1e-8, Math.hypot(nx, ny, nz));
             nx *= invLen;

@@ -221,15 +221,28 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v21-soft-disk-sun-only");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v22-earthshine-isolated");
         expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
         expect(shader.fragmentShader)
             .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
-        // Sun-only delta — must NOT scale the entire directDiffuse accumulator
-        // (would clobber earthshine on directionalLights[1]).
+        // Sun reconstruction must include the shadow factor — without it,
+        // shadowed pixels (eclipses, occultations) get over-subtracted and
+        // directDiffuse can go negative.
+        expect(shader.fragmentShader).toContain("float moonSunShadowFactor = 1.0;");
         expect(shader.fragmentShader)
-            .toContain("reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);");
+            .toContain("moonNdotL * directionalLights[0].color * moonSunShadowFactor");
+        // Earthshine isolation: held aside and restored AFTER all Sun-side
+        // terminator multipliers + the dark-side crush.
+        expect(shader.fragmentShader)
+            .toContain("moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );");
+        expect(shader.fragmentShader)
+            .toContain("reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;");
+        expect(shader.fragmentShader)
+            .toContain("outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone;");
+        // Old approaches must not leak back in.
         expect(shader.fragmentShader).not.toContain("reflectedLight.directDiffuse *= moonSunVisibility");
+        expect(shader.fragmentShader)
+            .not.toContain("reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);");
         expect(shader.uniforms.uMoonHeightMap.value).toBe(displacementTexture);
         expect(shader.fragmentShader).toContain("float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL");
         expect(shader.fragmentShader).toContain("float moonTerrainReliefBand = 1.0 - smoothstep");

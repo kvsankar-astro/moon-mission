@@ -65,25 +65,16 @@ export function computePhotoModeLightingPresentation({
         // more atmospheric rim so the presentation feels more photographic.
         earthDaySaturation: mix(0.48, 0.86, earthDominance),
         earthAtmosphereRimStrength: mix(0.38, 0.16, earthDominance),
-        // Moon photometric overrides held flat at the asset-profile defaults
-        // (DEFAULT_QUALITY_MOON_RENDER_SETTINGS in moon-render-asset-profiles.js).
-        // The composer / aux panel render path applies these values onto the
-        // moon material before its render pass; previously the values diverged
-        // from the defaults (e.g. moonShadowLift 0.05, moonHighlightBoost 1.45,
-        // moonShadowWeightExponent 1.6, moonTerminatorIndirectOcclusion 0.85)
-        // which made composer-rendered moons look softer + flatter than the
-        // main scene's tuned defaults. Keeping these equal to defaults makes
-        // the override a visual no-op so composer and main scene render the
-        // moon identically. The earth-* fields above are unaffected by this
-        // change — Photo Mode for Earth still works.
-        moonShadowLift: 0.0,
-        moonShadowWeightExponent: 1.92,
-        moonHighlightWeightExponent: 1.2,
-        moonTerminatorContrast: 1.8,
-        moonTerminatorReliefStrength: 7.5,
-        moonTerminatorShadowFloor: 0.0,
-        moonTerminatorIndirectOcclusion: 1.0,
-        moonHighlightBoost: 1.20,
+        // Moon photometric values are NOT overridden here. The previous
+        // implementation hard-coded DEFAULT_QUALITY_MOON_RENDER_SETTINGS values
+        // intending a no-op for both profiles, but the Standard/Fast profile
+        // uses different values (e.g. highlightBoost 1.15 vs 1.20,
+        // terminatorReliefStrength 7.0 vs 7.5, terminatorShadowFloor 0.04 vs
+        // 0.0, terminatorIndirectOcclusion 0.96 vs 1.0). Hard-coding the
+        // quality values silently retuned Standard renders.
+        // The composer / aux panels now render the moon with whatever
+        // photometric settings the active profile already wrote onto the
+        // material — composer and main scene agree by construction.
     };
 }
 

@@ -36,7 +36,7 @@ describe("photo-mode-render-presentation", () => {
         expect(presentation).toBe(null);
     });
 
-    it("applies and restores Earth and Moon presentation overrides", () => {
+    it("applies and restores Earth presentation overrides; leaves Moon untouched", () => {
         const originalEarthTexture = { name: "earth-base" };
         const photoEarthTexture = { name: "earth-photo" };
         const earth = createBodyWithMaterial({
@@ -46,6 +46,10 @@ describe("photo-mode-render-presentation", () => {
             earthDaySaturation: 1.0,
             earthAtmosphereRimStrength: 0.0,
         }, { map: originalEarthTexture });
+        // Moon material starts with non-default values — the photo-mode
+        // pass must NOT overwrite them. (Earlier code hard-coded the
+        // quality-profile defaults onto the moon material as a "no-op",
+        // which silently retuned Standard/Fast renders.)
         const moon = createBodyWithMaterial({
             moonShadowLift: 0.015,
             moonTerminatorContrast: 2.78,
@@ -74,15 +78,11 @@ describe("photo-mode-render-presentation", () => {
         expect(earth.material.userData.earthPhotoBlend).toBeCloseTo(0.56, 4);
         expect(earth.material.userData.earthNightMapIntensity).toBeLessThan(0.02);
         expect(earth.material.userData.earthDaySaturation).toBeLessThan(0.55);
-        // Moon photometric overrides are now held flat at the asset-profile
-        // defaults (DEFAULT_QUALITY_MOON_RENDER_SETTINGS). The Photo Mode
-        // pass writes these values onto the moon material but they match the
-        // defaults the main scene already uses, so the override is a visual
-        // no-op for the moon. Earth fields above still vary with dominance.
-        expect(moon.material.userData.moonShadowLift).toBeCloseTo(0.0, 3);
-        expect(moon.material.userData.moonShadowWeightExponent).toBeCloseTo(1.92, 3);
-        expect(moon.material.userData.moonTerminatorReliefStrength).toBeCloseTo(7.5, 2);
-        expect(moon.material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 2);
+        // Moon photometric values must remain the input fixture's values,
+        // not be replaced with quality-profile defaults.
+        expect(moon.material.userData.moonShadowLift).toBe(0.015);
+        expect(moon.material.userData.moonTerminatorContrast).toBe(2.78);
+        expect(moon.material.userData.moonHighlightBoost).toBe(1.025);
 
         restore();
 
@@ -90,10 +90,52 @@ describe("photo-mode-render-presentation", () => {
         expect(earth.material.userData.earthPhotoTexture).toBe(originalEarthTexture);
         expect(earth.material.userData.earthNightMapIntensity).toBe(0.08);
         expect(earth.material.userData.earthDaySaturation).toBe(1.0);
+        // Restore is a no-op for moon since nothing was overridden.
         expect(moon.material.userData.moonShadowLift).toBe(0.015);
-        expect(moon.material.userData.moonShadowWeightExponent).toBeUndefined();
-        expect(moon.material.userData.moonTerminatorReliefStrength).toBeUndefined();
-        expect(moon.material.userData.moonTerminatorShadowFloor).toBe(0.0);
+        expect(moon.material.userData.moonTerminatorContrast).toBe(2.78);
+    });
+
+    it("preserves Standard/Fast profile moon photometric values across photo-mode override", () => {
+        // Reviewer-flagged regression: hard-coding DEFAULT_QUALITY values onto
+        // the moon material silently retuned Standard renders. This test
+        // pins the contract — values come in, same values come out.
+        const fastProfileMoon = createBodyWithMaterial({
+            moonShadowLift: 0.0,
+            moonShadowWeightExponent: 1.9,
+            moonHighlightWeightExponent: 1.2,
+            moonTerminatorContrast: 1.8,
+            moonTerminatorReliefStrength: 7.0,
+            moonTerminatorShadowFloor: 0.04,
+            moonTerminatorIndirectOcclusion: 0.96,
+            moonHighlightBoost: 1.15,
+        });
+        const presentation = resolvePhotoModeLightingPresentation({
+            enabled: true,
+            cameraPosition: { x: 0, y: 0, z: 0 },
+            earthPosition: { x: 380000, y: 0, z: 0 },
+            earthRadius: 6371,
+            moonPosition: { x: 9000, y: 0, z: 0 },
+            moonRadius: 1737.4,
+        });
+
+        const restore = applyPhotoModeBodyPresentation({
+            moon: fastProfileMoon,
+            presentation,
+        });
+
+        expect(fastProfileMoon.material.userData.moonShadowLift).toBe(0.0);
+        expect(fastProfileMoon.material.userData.moonShadowWeightExponent).toBe(1.9);
+        expect(fastProfileMoon.material.userData.moonHighlightWeightExponent).toBe(1.2);
+        expect(fastProfileMoon.material.userData.moonTerminatorContrast).toBe(1.8);
+        expect(fastProfileMoon.material.userData.moonTerminatorReliefStrength).toBe(7.0);
+        expect(fastProfileMoon.material.userData.moonTerminatorShadowFloor).toBe(0.04);
+        expect(fastProfileMoon.material.userData.moonTerminatorIndirectOcclusion).toBe(0.96);
+        expect(fastProfileMoon.material.userData.moonHighlightBoost).toBe(1.15);
+
+        restore();
+
+        expect(fastProfileMoon.material.userData.moonHighlightBoost).toBe(1.15);
+        expect(fastProfileMoon.material.userData.moonTerminatorShadowFloor).toBe(0.04);
     });
 
     it("allows callers to explicitly disable Earth cloud/photo blending", () => {

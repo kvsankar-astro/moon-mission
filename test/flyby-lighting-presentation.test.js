@@ -40,18 +40,19 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.earthDayGain).toBeGreaterThan(1.14);
         expect(presentation.earthDaySaturation).toBeLessThan(0.55);
         expect(presentation.earthAtmosphereRimStrength).toBeGreaterThan(0.34);
-        // Moon photometric overrides held flat at the asset-profile defaults
-        // (DEFAULT_QUALITY_MOON_RENDER_SETTINGS). The composer applying these
-        // values is now a visual no-op for the moon; composer panels render
-        // the moon identically to Follow Moon in the main scene.
-        expect(presentation.moonShadowLift).toBeCloseTo(0.0, 3);
-        expect(presentation.moonShadowWeightExponent).toBeCloseTo(1.92, 3);
-        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(1.2, 3);
-        expect(presentation.moonTerminatorContrast).toBeCloseTo(1.8, 3);
-        expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 3);
-        expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 3);
-        expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 3);
-        expect(presentation.moonHighlightBoost).toBeCloseTo(1.20, 3);
+        // Moon photometric values are intentionally NOT exposed here — the
+        // composer / aux panels render the moon with whatever the active
+        // profile (Standard/Fast or Detailed/Quality) wrote on its material.
+        // Earlier code hard-coded DEFAULT_QUALITY values as a "no-op", which
+        // silently retuned Standard renders.
+        expect(presentation.moonShadowLift).toBeUndefined();
+        expect(presentation.moonShadowWeightExponent).toBeUndefined();
+        expect(presentation.moonHighlightWeightExponent).toBeUndefined();
+        expect(presentation.moonTerminatorContrast).toBeUndefined();
+        expect(presentation.moonTerminatorReliefStrength).toBeUndefined();
+        expect(presentation.moonTerminatorShadowFloor).toBeUndefined();
+        expect(presentation.moonTerminatorIndirectOcclusion).toBeUndefined();
+        expect(presentation.moonHighlightBoost).toBeUndefined();
     });
 
     it("allows somewhat more Earth night-light visibility when Earth dominates the frame", () => {
@@ -69,15 +70,10 @@ describe("flyby-lighting-presentation", () => {
         expect(presentation.earthDayGain).toBeCloseTo(1.0, 3);
         expect(presentation.earthDaySaturation).toBeGreaterThan(0.83);
         expect(presentation.earthAtmosphereRimStrength).toBeLessThan(0.18);
-        // Moon overrides are flat at asset-profile defaults regardless of
-        // dominance — same expectations as the moon-dominant case.
-        expect(presentation.moonShadowLift).toBeCloseTo(0.0, 3);
-        expect(presentation.moonShadowWeightExponent).toBeCloseTo(1.92, 3);
-        expect(presentation.moonHighlightWeightExponent).toBeCloseTo(1.2, 3);
-        expect(presentation.moonTerminatorContrast).toBeCloseTo(1.8, 3);
-        expect(presentation.moonTerminatorReliefStrength).toBeCloseTo(7.5, 3);
-        expect(presentation.moonTerminatorShadowFloor).toBeCloseTo(0.0, 3);
-        expect(presentation.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 3);
-        expect(presentation.moonHighlightBoost).toBeCloseTo(1.20, 3);
+        // Moon photometric values are intentionally NOT exposed regardless
+        // of dominance — same expectations as the moon-dominant case.
+        expect(presentation.moonShadowLift).toBeUndefined();
+        expect(presentation.moonHighlightBoost).toBeUndefined();
+        expect(presentation.moonTerminatorReliefStrength).toBeUndefined();
     });
 });

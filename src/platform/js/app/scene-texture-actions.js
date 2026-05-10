@@ -151,14 +151,22 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
         );
         moonHandled = true;
         if (disposePrevious === true && scene.moonRenderer?.refreshGeneratedNormalMap) {
+            // Capture the renderer instance at scheduling time. A subsequent
+            // scene/profile change before the idle fires can replace
+            // scene.moonRenderer; without this guard the callback would
+            // refresh the wrong (or null) renderer.
+            const capturedMoonRenderer = scene.moonRenderer;
             scheduleGeneratedMoonNormalMapRefresh(() => {
-                scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+                if (scene.moonRenderer !== capturedMoonRenderer) {
+                    return;
+                }
+                capturedMoonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
                 // The render loop is on-demand: switching profiles loads new
-                // textures + rebuilds the normal map, but unless we explicitly
-                // request a render here the scene won't redraw until the next
-                // user interaction wakes the loop. Without this, switching
-                // Standard <-> Detailed appeared to hang until the user moved
-                // the cursor or clicked.
+                // textures + rebuilds the normal map, but unless we
+                // explicitly request a render here the scene won't redraw
+                // until the next user interaction wakes the loop. Without
+                // this, switching Standard <-> Detailed appeared to hang
+                // until the user moved the cursor or clicked.
                 if (typeof requestRender === "function") {
                     requestRender();
                 }

@@ -69,6 +69,57 @@ describe("scene-3d-init-actions", () => {
         expect(scene.moonRenderProfile).toBe("quality");
     });
 
+    it("forwards requestRender into applyAndRefreshSceneTextures so deferred normal-map redraws wake the on-demand loop", async () => {
+        // Reviewer-flagged regression case: without forwarding `requestRender`
+        // into the startup-path applyAndRefreshSceneTextures call, the
+        // generated normal-map's deferred refresh (scheduled inside
+        // applyAndRefreshSceneTextures when disposePrevious=true) cannot
+        // wake the on-demand render loop after the build completes — the
+        // upgraded normal map only becomes visible on the next user
+        // interaction.
+        const scene = createScene();
+        const render = vi.fn();
+        const applyAndRefreshSceneTextures = vi.fn((targetScene, textures) => {
+            targetScene.moonRenderProfile = textures.moonRenderProfile;
+        });
+        const loadSceneTextures = vi.fn().mockResolvedValue({
+            moonMap: "quality-map",
+            moonDisplacementMap: "quality-height",
+            moonRenderProfile: "quality",
+            moonRenderSettings: {},
+        });
+        const actions = createScene3dInitActions({
+            THREE: { LinearFilter: "linear" },
+            createPlaceholderSceneTextures: vi.fn(() => ({ moonRenderProfile: "quality" })),
+            loadSceneTextures,
+            loadMoonRenderProfileTextures: vi.fn(),
+            applyAndRefreshSceneTextures,
+            render,
+            globalObject: {
+                location: { search: "?moonRenderProfile=quality" },
+            },
+        });
+
+        actions.init3d(scene, vi.fn());
+        await scene.beginTextureLoad();
+        await scene.moonTextureLoadPromise;
+
+        // The post-load call (disposePrevious=true) MUST include
+        // requestRender — that combination triggers the deferred
+        // generated-normal-map refresh and wakes the on-demand loop
+        // afterward. The earlier placeholder-texture call has
+        // disposePrevious=false and intentionally does not need it.
+        const disposingCalls = applyAndRefreshSceneTextures.mock.calls
+            .filter(([, , options]) => options?.disposePrevious === true);
+        expect(disposingCalls.length).toBeGreaterThan(0);
+        for (const [, , options] of disposingCalls) {
+            expect(options).toMatchObject({
+                disposePrevious: true,
+                requestRender: render,
+            });
+        }
+    });
+
     it("keeps startup texture loading pending until a changed Moon profile refresh completes", async () => {
         const scene = createScene();
         const mainLoad = createDeferred();
