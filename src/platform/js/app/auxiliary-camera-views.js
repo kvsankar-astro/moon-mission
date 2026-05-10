@@ -2725,14 +2725,34 @@ class AuxiliaryCameraViewsManager {
 
         let renderer = null;
         try {
-            renderer = new this.THREE.WebGLRenderer({
-                // Match the main renderer's antialias setting so the composer's
-                // moon limb / crater rims look the same as Follow Moon, instead
-                // of showing visible jaggies.
-                antialias: true,
-                powerPreference: "low-power",
-                preserveDrawingBuffer: false,
-            });
+            // Aux panels match the main renderer's antialias preference (so
+            // composer / Craft-to-Moon moon limbs and crater rims aren't
+            // visibly aliased relative to Follow Moon), but a low-end
+            // browser or context-constrained tab may not be able to grant
+            // antialiased GL contexts. Mirror the main renderer's fallback
+            // chain (see scene-handler-init.js#createRendererWithFallback)
+            // so we degrade gracefully instead of silently dropping the
+            // panel — the previous code caught the failure and removed the
+            // panel entirely, hiding composer / Craft-to-Moon on those
+            // browsers.
+            const auxRendererAttempts = [
+                { antialias: true, powerPreference: "low-power", preserveDrawingBuffer: false },
+                { antialias: false, powerPreference: "low-power", preserveDrawingBuffer: false },
+                { antialias: false, preserveDrawingBuffer: false },
+            ];
+            let auxRendererCreateError = null;
+            for (const auxRendererOptions of auxRendererAttempts) {
+                try {
+                    renderer = new this.THREE.WebGLRenderer(auxRendererOptions);
+                    break;
+                } catch (auxRendererTryError) {
+                    auxRendererCreateError = auxRendererTryError;
+                }
+            }
+            if (!renderer) {
+                throw auxRendererCreateError
+                    || new Error("Unable to create aux WebGLRenderer with fallback options");
+            }
             if ("outputColorSpace" in renderer && this.THREE.SRGBColorSpace) {
                 renderer.outputColorSpace = this.THREE.SRGBColorSpace;
             } else {
