@@ -71,7 +71,17 @@ export function createScene3dInitActions({
         }).then(
             (textures) => {
                 const applyTextures = (resolvedTextures) => {
-                    applyAndRefreshSceneTextures(scene, resolvedTextures, { disposePrevious: true });
+                    // Pass requestRender so the deferred generated-normal-map
+                    // refresh (scheduled inside applyAndRefreshSceneTextures
+                    // when disposePrevious=true) wakes the on-demand render
+                    // loop after the build completes. Without this the
+                    // upgraded normal map only becomes visible on the next
+                    // user interaction — visible regression on Artemis II's
+                    // quality-profile startup path.
+                    applyAndRefreshSceneTextures(scene, resolvedTextures, {
+                        disposePrevious: true,
+                        requestRender: render,
+                    });
                     render?.();
                 };
                 applyTextures(textures);
