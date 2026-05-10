@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 
 // JS reproduction of the GLSL `moonSunDiskVisibleFraction` helper inside
 // `src/platform/js/rendering/moon-renderer.js` (and the same helper in
@@ -11,6 +14,16 @@ import { describe, expect, it } from "vitest";
 
 const MOON_SUN_SIN_ALPHA = 0.00466; // sin(0.267°), Sun half-angle from Moon
 const MOON_INV_PI = 0.31830988618;
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const renderShaderSource = readFileSync(
+    resolve(repoRoot, "src/platform/js/rendering/moon-renderer.js"),
+    "utf8",
+);
+const tunerShaderSource = readFileSync(
+    resolve(repoRoot, "src/platform/js/moon-render-tuner.js"),
+    "utf8",
+);
 
 function moonSunDiskVisibleFraction(rawNdotL) {
     const h = rawNdotL / MOON_SUN_SIN_ALPHA;
@@ -77,5 +90,51 @@ describe("moonSunDiskVisibleFraction (closed-form Sun-disk visible-area fraction
         const expectedSinAlpha = Math.sin((0.267 * Math.PI) / 180);
         // Constant in the shader is rounded to 4 sig figs.
         expect(MOON_SUN_SIN_ALPHA).toBeCloseTo(expectedSinAlpha, 4);
+    });
+});
+
+// Drift check: the shader helper exists in TWO places (the production
+// renderer and the tuner). They are not currently extracted into a shared
+// GLSL string. This block reads both source files and asserts they share
+// the canonical signature, constants, and reconstruction line — so that a
+// future edit to one without the other is caught at test time.
+describe("moonSunDiskVisibleFraction drift check (renderer vs tuner)", () => {
+    it("declares the same MOON_SUN_SIN_ALPHA constant in both shader sources", () => {
+        const constantPattern = /const float MOON_SUN_SIN_ALPHA\s*=\s*0\.00466\s*;/;
+        expect(renderShaderSource).toMatch(constantPattern);
+        expect(tunerShaderSource).toMatch(constantPattern);
+    });
+
+    it("declares the same MOON_INV_PI constant in both shader sources", () => {
+        const constantPattern = /const float MOON_INV_PI\s*=\s*0\.31830988618\s*;/;
+        expect(renderShaderSource).toMatch(constantPattern);
+        expect(tunerShaderSource).toMatch(constantPattern);
+    });
+
+    it("declares the moonSunDiskVisibleFraction helper signature in both shader sources", () => {
+        const signaturePattern = /float moonSunDiskVisibleFraction\(\s*float rawNdotL\s*\)/;
+        expect(renderShaderSource).toMatch(signaturePattern);
+        expect(tunerShaderSource).toMatch(signaturePattern);
+    });
+
+    it("uses the same closed-form expression in both shader sources", () => {
+        // The asin term and the disk-area formula must be identical between
+        // the two implementations (catches accidental sign flips or rounded
+        // constants in one file but not the other).
+        const formulaPattern = /MOON_INV_PI\s*\*\s*\(\s*1\.5707963267948966\s*\+\s*asin\(\s*h\s*\)\s*\+\s*h\s*\*\s*s\s*\)/;
+        expect(renderShaderSource).toMatch(formulaPattern);
+        expect(tunerShaderSource).toMatch(formulaPattern);
+    });
+
+    it("applies the smooth-normal visibility on directionalLights[0] in both shader sources", () => {
+        const visibilityPattern = /moonSunDiskVisibleFraction\(\s*moonSmoothRawNdotLForVis\s*\)/;
+        expect(renderShaderSource).toMatch(visibilityPattern);
+        expect(tunerShaderSource).toMatch(visibilityPattern);
+    });
+
+    it("isolates earthshine via the same delta pattern in both shader sources", () => {
+        const isolationPattern = /moonEarthshineDirectKept\s*=\s*max\(\s*reflectedLight\.directDiffuse\s*-\s*moonSunDirectContribution\s*,\s*vec3\(\s*0\.0\s*\)\s*\)/;
+        expect(renderShaderSource).toMatch(isolationPattern);
+        expect(tunerShaderSource).toMatch(isolationPattern);
     });
 });

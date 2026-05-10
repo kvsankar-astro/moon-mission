@@ -402,6 +402,7 @@ float moonSunDiskVisibleFraction(float rawNdotL) {
                 "#include <lights_fragment_begin>",
                 `#include <lights_fragment_begin>
 float moonFinalCavityDarken = 0.0;
+vec3 moonEarthshineDirectKept = vec3( 0.0 );
 #if NUM_DIR_LIGHTS > 0
     vec3 moonNormal = normalize( geometryNormal );
     vec3 moonViewDir = normalize( geometryViewDir );
@@ -409,15 +410,26 @@ float moonFinalCavityDarken = 0.0;
     float moonNdotL = clamp( dot( moonNormal, moonLightDir ), 0.0, 1.0 );
     float moonNdotV = clamp( dot( moonNormal, moonViewDir ), 0.0, 1.0 );
 
-    // Sun-disk visibility on the SMOOTH normal; applied only to the Sun's
-    // contribution (directionalLights[0]) to avoid clobbering earthshine
-    // on the moon mesh's MOON_REFLECTED_LIGHT_LAYER. See moon-renderer.js
-    // for the full physics-scope rationale.
+    // Sun-disk visibility on the SMOOTH normal, applied only to the Sun's
+    // contribution. Earthshine on directionalLights[1] is held aside and
+    // restored after dark-side multipliers. See moon-renderer.js for full
+    // physics-scope rationale.
+    float moonSunShadowFactor = 1.0;
+    #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+        moonSunShadowFactor = receiveShadow ? getShadow(
+            directionalShadowMap[ 0 ],
+            directionalLightShadows[ 0 ].shadowMapSize,
+            directionalLightShadows[ 0 ].shadowBias,
+            directionalLightShadows[ 0 ].shadowRadius,
+            vDirectionalShadowCoord[ 0 ]
+        ) : 1.0;
+    #endif
+    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
+                                   * RECIPROCAL_PI * material.diffuseColor;
     float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
     float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
-    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color
-                                   * RECIPROCAL_PI * material.diffuseColor;
-    reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);
+    moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );
+    reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;
 
     float moonLsScale = 1.0;
     if ( moonNdotL > 1e-4 ) {
@@ -535,6 +547,9 @@ float moonFinalCavityDarken = 0.0;
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
     float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
+    // Restore earthshine after dark-side crush. Cavity AO applies; shadow
+    // crush does not (earthshine is the reason the dark side isn't black).
+    outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone;
 #endif`,
             )
             .replace(
@@ -551,7 +566,7 @@ float moonFinalCavityDarken = 0.0;
 #endif`,
             );
     };
-    material.customProgramCacheKey = () => "moon-render-tuner-v3-soft-disk-sun-only";
+    material.customProgramCacheKey = () => "moon-render-tuner-v4-earthshine-isolated";
 }
 
 function updateShaderUniforms() {

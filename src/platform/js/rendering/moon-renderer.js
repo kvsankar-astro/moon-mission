@@ -219,6 +219,7 @@ float moonSunDiskVisibleFraction(float rawNdotL) {
                 `#include <lights_fragment_begin>
 float moonShadowWeight = 1.0;
 float moonFinalCavityDarken = 0.0;
+vec3 moonEarthshineDirectKept = vec3( 0.0 );
 #if NUM_DIR_LIGHTS > 0
     vec3 moonNormal = normalize( geometryNormal );
     vec3 moonViewDir = normalize( geometryViewDir );
@@ -226,35 +227,54 @@ float moonFinalCavityDarken = 0.0;
     float moonNdotL = clamp( dot( moonNormal, moonLightDir ), 0.0, 1.0 );
     float moonNdotV = clamp( dot( moonNormal, moonViewDir ), 0.0, 1.0 );
 
-    // Macroscopic Sun-disk visibility, gated by the SMOOTH (non-perturbed)
-    // normal. Closed-form fraction of the Sun's disk above the local
-    // geometric horizon, with the Sun's angular half-radius (~0.267 deg)
-    // as the soft-step bandwidth. The dominant visible effect at typical
-    // zoom is suppressing perturbed-normal-driven phantom illumination on
-    // the dark side (no crater-rim halos, no dark-side cement band) — the
-    // soft ~16 km penumbra band itself is sub-pixel at typical zoom.
+    // Reconstruct the Sun's contribution to directDiffuse using the same
+    // form three.js used internally (Lambert * lightColor * diffuseColor / pi),
+    // INCLUDING the shadow factor that three.js applied inside the directional-
+    // light loop. Without the shadow factor, the subtraction below would
+    // over-remove light on shadowed pixels and could push directDiffuse
+    // negative (eclipses, occultations).
+    float moonSunShadowFactor = 1.0;
+    #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+        moonSunShadowFactor = receiveShadow ? getShadow(
+            directionalShadowMap[ 0 ],
+            directionalLightShadows[ 0 ].shadowMapSize,
+            directionalLightShadows[ 0 ].shadowBias,
+            directionalLightShadows[ 0 ].shadowRadius,
+            vDirectionalShadowCoord[ 0 ]
+        ) : 1.0;
+    #endif
+    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color * moonSunShadowFactor
+                                   * RECIPROCAL_PI * material.diffuseColor;
+
+    // Macroscopic Sun-disk visibility on the SMOOTH (non-perturbed) normal.
+    // Closed-form area-fraction of the Sun's disk above the local geometric
+    // horizon, using the Sun's angular half-radius (~0.267 deg) as the
+    // soft-step bandwidth. Sub-pixel at typical zoom; primary effect is
+    // suppressing perturbed-normal phantom illumination on the dark side.
     //
-    // We apply visibility to ONLY the Sun's contribution, reconstructed
-    // from directionalLights[0] using the same Lambert form three.js uses
-    // internally. directDiffuse already contains earthshine from
-    // directionalLights[1] (on MOON_REFLECTED_LIGHT_LAYER) and that
-    // contribution must survive across the terminator — earthshine peaks
-    // on crescent phases when the Sun's direct contribution is suppressed.
-    //
-    // NOTE on physics scope: this is a multiplier on Lambert (irradiance ×
+    // Physics scope: this is a multiplier on Lambert (irradiance times
     // visible-disk-area-fraction). The full disk-source irradiance is
-    //   S(t) = t · f_geom(t) + (2/(3π))·(1 − t²)^(3/2)
-    // (see docs/research/moon-rendering/01-solar-disk-physics.md §2.6 and
-    // Appendix B). The symmetric (2/(3π))·(1-t²)^(3/2) "disk-glow" term
-    // lifts the dark-side just past the terminator and is purely additive;
-    // it cannot be expressed as a multiplier on Lambert (Lambert is 0
-    // there). An earlier add-back attempt produced "cement band" artifacts
-    // from per-pixel uniform glow on the dark side, so we omit it.
+    //   S(t) = t * f_geom(t) + (2/(3 pi)) * (1 - t^2)^(3/2)
+    // The symmetric (2/(3 pi)) * (1 - t^2)^(3/2) disk-glow term in S(t)
+    // lifts the dark side just past the terminator and is purely additive
+    // on Lambert (Lambert is 0 there). It cannot be expressed as a
+    // multiplier; an earlier add-back attempt produced cement-band
+    // artifacts and is omitted. See docs/research/moon-rendering/
+    // 01-solar-disk-physics.md sections 2.6 and Appendix B.
     float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
     float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
-    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color
-                                   * RECIPROCAL_PI * material.diffuseColor;
-    reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);
+
+    // Isolate earthshine. directDiffuse currently holds the Sun's
+    // shadow-attenuated contribution PLUS earthshine from directionalLights[1]
+    // (MOON_REFLECTED_LIGHT_LAYER). Save earthshine separately so the entire
+    // chain of Sun-side terminator multipliers below (LS blend, terminatorContrast,
+    // shadowTone * highlightTone, localReliefTone, cavity AO, terrainShadow,
+    // moonFinalShadowCrush) operates ONLY on the Sun's contribution and does
+    // not crush earthshine on the dark side — earthshine peaks on crescent
+    // phases, exactly where the Sun is being suppressed. max(...,0.0) guards
+    // floating-point precision in the reconstruction.
+    moonEarthshineDirectKept = max( reflectedLight.directDiffuse - moonSunDirectContribution, vec3(0.0) );
+    reflectedLight.directDiffuse = moonSunDirectContribution * moonSunVisibility;
 
     float moonLsScale = 1.0;
     if ( moonNdotL > 1e-4 ) {
@@ -383,15 +403,22 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    // Dark-side base crush, gated by moonSmoothNdotL — only fires close to the
-    // terminator and into the unlit hemisphere (smoothNdotL < 0.22). The
-    // lit-side mid-tones are NOT affected; the smoothstep saturates at 1.0 by
-    // smoothNdotL=0.22 so anything in the lit hemisphere passes through. Bottom
-    // pulled from 0.32 to 0.18 to push the unlit hemisphere closer to true
-    // black — Moon Ambient / earthshine can still partially fill it when
-    // explicitly dialed up, just on a darker base.
+    // Dark-side base crush, gated by moonSmoothNdotL — only fires close to
+    // the terminator and into the unlit hemisphere (smoothNdotL < 0.22).
+    // Lit-side mid-tones are NOT affected; the smoothstep saturates at 1.0
+    // by smoothNdotL=0.22 so anything in the lit hemisphere passes through.
+    // Floor of 0.18 pushes the unlit hemisphere closer to true black for
+    // the Sun's contribution and ambient/indirect.
     float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
+
+    // Restore earthshine, held separately so it bypasses the Sun-side
+    // terminator multipliers and the dark-side shadow crush. Cavity AO
+    // (moonFinalTerrainTone) DOES apply because crater bowls darken any
+    // direct light source; moonFinalShadowCrush does NOT — that crush is a
+    // Sun-side darkness baseline, and earthshine is the explicit reason the
+    // dark side isn't entirely black on crescent phases.
+    outgoingLight += moonEarthshineDirectKept * moonFinalTerrainTone;
 #endif`,
             )
             .replace(
@@ -412,7 +439,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v21-soft-disk-sun-only",
+            "moon-photometric-v22-earthshine-isolated",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
