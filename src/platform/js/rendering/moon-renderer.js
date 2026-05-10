@@ -235,9 +235,12 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
     // negative (eclipses, occultations).
     float moonSunShadowFactor = 1.0;
     #if defined( USE_SHADOWMAP ) && NUM_DIR_LIGHT_SHADOWS > 0
+        // Match three.js's own call signature in <lights_fragment_begin>:
+        // getShadow takes 6 args including shadowIntensity (3rd arg).
         moonSunShadowFactor = receiveShadow ? getShadow(
             directionalShadowMap[ 0 ],
             directionalLightShadows[ 0 ].shadowMapSize,
+            directionalLightShadows[ 0 ].shadowIntensity,
             directionalLightShadows[ 0 ].shadowBias,
             directionalLightShadows[ 0 ].shadowRadius,
             vDirectionalShadowCoord[ 0 ]

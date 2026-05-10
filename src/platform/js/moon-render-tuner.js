@@ -419,6 +419,7 @@ vec3 moonEarthshineDirectKept = vec3( 0.0 );
         moonSunShadowFactor = receiveShadow ? getShadow(
             directionalShadowMap[ 0 ],
             directionalLightShadows[ 0 ].shadowMapSize,
+            directionalLightShadows[ 0 ].shadowIntensity,
             directionalLightShadows[ 0 ].shadowBias,
             directionalLightShadows[ 0 ].shadowRadius,
             vDirectionalShadowCoord[ 0 ]
