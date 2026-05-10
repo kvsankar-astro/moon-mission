@@ -98,7 +98,7 @@ function scheduleGeneratedMoonNormalMapRefresh(callback) {
     }), 1200);
 }
 
-export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious = false } = {}) {
+export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious = false, requestRender = null } = {}) {
     const previousTextures = {
         earthTexture: scene.earthTexture || null,
         earthPhotoTexture: scene.earthPhotoTexture || null,
@@ -153,6 +153,15 @@ export function applyAndRefreshSceneTextures(scene, textures, { disposePrevious 
         if (disposePrevious === true && scene.moonRenderer?.refreshGeneratedNormalMap) {
             scheduleGeneratedMoonNormalMapRefresh(() => {
                 scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+                // The render loop is on-demand: switching profiles loads new
+                // textures + rebuilds the normal map, but unless we explicitly
+                // request a render here the scene won't redraw until the next
+                // user interaction wakes the loop. Without this, switching
+                // Standard <-> Detailed appeared to hang until the user moved
+                // the cursor or clicked.
+                if (typeof requestRender === "function") {
+                    requestRender();
+                }
             });
         }
     }

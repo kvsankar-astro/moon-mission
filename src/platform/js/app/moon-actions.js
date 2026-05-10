@@ -1,9 +1,15 @@
-function scheduleDeferredNormalMapUpgrade(scene) {
+function scheduleDeferredNormalMapUpgrade(scene, requestRender) {
     const upgrade = () => {
         if (!scene.moonRenderer) {
             return;
         }
         scene.moonRenderer.refreshGeneratedNormalMap({ disposePrevious: true });
+        // Trigger a redraw when the rebuild lands; the runtime renders
+        // on-demand, so without an explicit kick the upgrade would only
+        // become visible on the next user interaction.
+        if (typeof requestRender === "function") {
+            requestRender();
+        }
     };
     const idle = globalThis?.requestIdleCallback;
     if (typeof idle === "function") {
@@ -46,7 +52,7 @@ export function createMoonActions({
             getViewPoles(),
             { deferGeneratedNormalMap: true },
         );
-        scheduleDeferredNormalMapUpgrade(scene);
+        scheduleDeferredNormalMapUpgrade(scene, render);
 
         scene.moonContainer = scene.moonRenderer.container;
         scene.moon = scene.moonRenderer.mesh;

@@ -385,7 +385,18 @@ uniform sampler2D uMoonHeightMap;
 uniform vec2 uMoonHeightTexelSize;
 uniform float uMoonTerrainShadowStrength;
 uniform float uMoonTerrainShadowTexelStride;
-uniform float uMoonTerrainShadowSlopeBias;`,
+uniform float uMoonTerrainShadowSlopeBias;
+
+const float MOON_SUN_SIN_ALPHA = 0.00466;
+const float MOON_INV_PI        = 0.31830988618;
+
+float moonSunDiskVisibleFraction(float rawNdotL) {
+    float h = rawNdotL / MOON_SUN_SIN_ALPHA;
+    if (h >=  1.0) return 1.0;
+    if (h <= -1.0) return 0.0;
+    float s = sqrt(max(1.0 - h * h, 0.0));
+    return MOON_INV_PI * (1.5707963267948966 + asin(h) + h * s);
+}`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
@@ -397,6 +408,16 @@ float moonFinalCavityDarken = 0.0;
     vec3 moonLightDir = normalize( directionalLights[0].direction );
     float moonNdotL = clamp( dot( moonNormal, moonLightDir ), 0.0, 1.0 );
     float moonNdotV = clamp( dot( moonNormal, moonViewDir ), 0.0, 1.0 );
+
+    // Sun-disk visibility on the SMOOTH normal; applied only to the Sun's
+    // contribution (directionalLights[0]) to avoid clobbering earthshine
+    // on the moon mesh's MOON_REFLECTED_LIGHT_LAYER. See moon-renderer.js
+    // for the full physics-scope rationale.
+    float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
+    float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
+    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color
+                                   * RECIPROCAL_PI * material.diffuseColor;
+    reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);
 
     float moonLsScale = 1.0;
     if ( moonNdotL > 1e-4 ) {
@@ -512,7 +533,7 @@ float moonFinalCavityDarken = 0.0;
                 `vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;
 #if NUM_DIR_LIGHTS > 0
     float moonFinalTerrainTone = clamp( 1.0 - moonFinalCavityDarken * 0.40, 0.55, 1.0 );
-    float moonFinalShadowCrush = mix( 0.32, 1.0, smoothstep( 0.045, 0.48, moonSmoothNdotL ) );
+    float moonFinalShadowCrush = mix( 0.18, 1.0, smoothstep( 0.045, 0.22, moonSmoothNdotL ) );
     outgoingLight *= moonFinalTerrainTone * moonFinalShadowCrush;
 #endif`,
             )
@@ -530,7 +551,7 @@ float moonFinalCavityDarken = 0.0;
 #endif`,
             );
     };
-    material.customProgramCacheKey = () => "moon-render-tuner-v1";
+    material.customProgramCacheKey = () => "moon-render-tuner-v3-soft-disk-sun-only";
 }
 
 function updateShaderUniforms() {

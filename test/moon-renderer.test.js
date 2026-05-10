@@ -146,7 +146,7 @@ describe("MoonRenderer", () => {
         moonRenderer.create();
 
         const material = moonRenderer.mesh.material;
-        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.6, 4);
+        expect(material.userData.moonHighlightBoost).toBeCloseTo(1.20, 4);
         expect(material.userData.moonTerminatorShadowFloor).toBeCloseTo(0.0, 4);
         expect(material.userData.moonTerminatorIndirectOcclusion).toBeCloseTo(1.0, 4);
         expect(material.userData.moonTerrainShadowStrength).toBeCloseTo(2.2, 4);
@@ -221,7 +221,15 @@ describe("MoonRenderer", () => {
 
         material.onBeforeCompile(shader);
 
-        expect(material.customProgramCacheKey()).toContain("moon-photometric-v16");
+        expect(material.customProgramCacheKey()).toContain("moon-photometric-v21-soft-disk-sun-only");
+        expect(shader.fragmentShader).toContain("float moonSunDiskVisibleFraction(float rawNdotL)");
+        expect(shader.fragmentShader)
+            .toContain("float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );");
+        // Sun-only delta — must NOT scale the entire directDiffuse accumulator
+        // (would clobber earthshine on directionalLights[1]).
+        expect(shader.fragmentShader)
+            .toContain("reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);");
+        expect(shader.fragmentShader).not.toContain("reflectedLight.directDiffuse *= moonSunVisibility");
         expect(shader.uniforms.uMoonHeightMap.value).toBe(displacementTexture);
         expect(shader.fragmentShader).toContain("float moonLocalReliefDelta = moonNdotL - moonSmoothNdotL");
         expect(shader.fragmentShader).toContain("float moonTerrainReliefBand = 1.0 - smoothstep");
