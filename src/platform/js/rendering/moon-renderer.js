@@ -189,7 +189,30 @@ uniform sampler2D uMoonHeightMap;
 uniform vec2 uMoonHeightTexelSize;
 uniform float uMoonTerrainShadowStrength;
 uniform float uMoonTerrainShadowTexelStride;
-uniform float uMoonTerrainShadowSlopeBias;`,
+uniform float uMoonTerrainShadowSlopeBias;
+
+// Sun's angular half-radius as seen from the lunar surface (~0.267 deg).
+// sin(alpha) ~ 0.00466 — sets the width of the macroscopic terminator
+// penumbra band. Ahead-of-the-field detail; sub-pixel at typical zoom.
+const float MOON_SUN_SIN_ALPHA = 0.00466;
+const float MOON_INV_PI        = 0.31830988618;
+
+// Fraction of the Sun's disk above the local geometric horizon, in [0, 1].
+// Closed-form integral of the visible disk-area fraction. Drives the
+// macroscopic-terminator soft transition.
+//
+// The smooth (non-perturbed) normal is the right input here: macroscopic
+// visibility is determined by the surrounding surface, not by per-pixel
+// normal-map perturbations. (Using the perturbed normal produces white
+// halos around crater rims and a uniform glow band on the dark side
+// just past the terminator.)
+float moonSunDiskVisibleFraction(float rawNdotL) {
+    float h = rawNdotL / MOON_SUN_SIN_ALPHA;
+    if (h >=  1.0) return 1.0;
+    if (h <= -1.0) return 0.0;
+    float s = sqrt(max(1.0 - h * h, 0.0));
+    return MOON_INV_PI * (1.5707963267948966 + asin(h) + h * s);
+}`,
             )
             .replace(
                 "#include <lights_fragment_begin>",
@@ -202,6 +225,36 @@ float moonFinalCavityDarken = 0.0;
     vec3 moonLightDir = normalize( directionalLights[0].direction );
     float moonNdotL = clamp( dot( moonNormal, moonLightDir ), 0.0, 1.0 );
     float moonNdotV = clamp( dot( moonNormal, moonViewDir ), 0.0, 1.0 );
+
+    // Macroscopic Sun-disk visibility, gated by the SMOOTH (non-perturbed)
+    // normal. Closed-form fraction of the Sun's disk above the local
+    // geometric horizon, with the Sun's angular half-radius (~0.267 deg)
+    // as the soft-step bandwidth. The dominant visible effect at typical
+    // zoom is suppressing perturbed-normal-driven phantom illumination on
+    // the dark side (no crater-rim halos, no dark-side cement band) — the
+    // soft ~16 km penumbra band itself is sub-pixel at typical zoom.
+    //
+    // We apply visibility to ONLY the Sun's contribution, reconstructed
+    // from directionalLights[0] using the same Lambert form three.js uses
+    // internally. directDiffuse already contains earthshine from
+    // directionalLights[1] (on MOON_REFLECTED_LIGHT_LAYER) and that
+    // contribution must survive across the terminator — earthshine peaks
+    // on crescent phases when the Sun's direct contribution is suppressed.
+    //
+    // NOTE on physics scope: this is a multiplier on Lambert (irradiance ×
+    // visible-disk-area-fraction). The full disk-source irradiance is
+    //   S(t) = t · f_geom(t) + (2/(3π))·(1 − t²)^(3/2)
+    // (see docs/research/moon-rendering/01-solar-disk-physics.md §2.6 and
+    // Appendix B). The symmetric (2/(3π))·(1-t²)^(3/2) "disk-glow" term
+    // lifts the dark-side just past the terminator and is purely additive;
+    // it cannot be expressed as a multiplier on Lambert (Lambert is 0
+    // there). An earlier add-back attempt produced "cement band" artifacts
+    // from per-pixel uniform glow on the dark side, so we omit it.
+    float moonSmoothRawNdotLForVis = dot( normalize( nonPerturbedNormal ), moonLightDir );
+    float moonSunVisibility = moonSunDiskVisibleFraction( moonSmoothRawNdotLForVis );
+    vec3 moonSunDirectContribution = moonNdotL * directionalLights[0].color
+                                   * RECIPROCAL_PI * material.diffuseColor;
+    reflectedLight.directDiffuse += moonSunDirectContribution * (moonSunVisibility - 1.0);
 
     float moonLsScale = 1.0;
     if ( moonNdotL > 1e-4 ) {
@@ -359,7 +412,7 @@ float moonFinalCavityDarken = 0.0;
     material.customProgramCacheKey = () => {
         const data = material.userData || {};
         return [
-            "moon-photometric-v19",
+            "moon-photometric-v21-soft-disk-sun-only",
             data.moonLsBlend,
             data.moonOppositionStrength,
             data.moonLsClampMin,
