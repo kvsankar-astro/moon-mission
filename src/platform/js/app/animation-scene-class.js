@@ -16,6 +16,7 @@ function createAnimationSceneClass(deps) {
         sunActions,
         earthActions,
         moonActions,
+        lunarCraterActions,
         locationActions,
         primarySecondaryBodiesActions,
         spacecraftCurveActions,
@@ -153,6 +154,17 @@ function createAnimationSceneClass(deps) {
             this.moonSOISphere = null;
             this.moonHillSphere = null;
             this.moonOsculatingOrbitLine = null;
+            this.lunarCraterGroup = null;
+            this.lunarCraterAnnotations = [];
+            this.lunarCraterPickTargets = [];
+            this.lunarCraterHoverLabel = null;
+            this.lunarCraterHoverRing = null;
+            this.lunarCraterHoverMaterial = null;
+            this.lunarCraterDisplayLimit = null;
+            this.lunarCraterDisplayMode = null;
+            this.lunarCraterHoverLabelsEnabled = true;
+            this.lunarCraterHoveredName = null;
+            this.lunarCraterHoveredDiameterKm = null;
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
             this.primaryCraftId = "SC";
@@ -431,6 +443,60 @@ function createAnimationSceneClass(deps) {
 
         disposeMoonLocations() {
             locationActions.disposeMoonLocations({ scene: this });
+        }
+
+        addLunarCraterAnnotations() {
+            lunarCraterActions.addLunarCraterAnnotations({ scene: this });
+        }
+
+        disposeLunarCraterAnnotations() {
+            lunarCraterActions.disposeLunarCraterAnnotations({ scene: this });
+        }
+
+        setLunarCraterAnnotationsVisible(visible) {
+            lunarCraterActions.setLunarCraterAnnotationsVisible({
+                scene: this,
+                visible,
+            });
+        }
+
+        setLunarCraterDisplayLimit(limit) {
+            return lunarCraterActions.setLunarCraterDisplayLimit({
+                scene: this,
+                limit,
+            });
+        }
+
+        setLunarCraterDisplayMode(mode) {
+            return lunarCraterActions.setLunarCraterDisplayMode({
+                scene: this,
+                mode,
+            });
+        }
+
+        setLunarCraterHoverLabelsEnabled(enabled) {
+            return lunarCraterActions.setLunarCraterHoverLabelsEnabled({
+                scene: this,
+                enabled,
+            });
+        }
+
+        updateLunarCraterLabelScales(input) {
+            return lunarCraterActions.updateLunarCraterLabelScales({
+                scene: this,
+                ...input,
+            });
+        }
+
+        updateLunarCraterHoverFromPointer(input) {
+            return lunarCraterActions.updateLunarCraterHoverFromPointer({
+                scene: this,
+                ...input,
+            });
+        }
+
+        clearLunarCraterHover() {
+            return lunarCraterActions.hideLunarCraterHover({ scene: this });
         }
 
         setPrimaryAndSecondaryBodies() {

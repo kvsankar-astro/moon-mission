@@ -41,6 +41,7 @@ function createElement(id, options = {}) {
         checked: options.checked === true,
         disabled: options.disabled === true,
         hidden: options.hidden === true,
+        value: options.value || "",
         textContent: options.textContent || "",
         title: options.title || "",
         style: {
@@ -62,6 +63,9 @@ function createElement(id, options = {}) {
         },
         getAttribute(name) {
             return attributes.get(name) || "";
+        },
+        contains(target) {
+            return target === this;
         },
         closest(selector) {
             if (selector === ".settings-option" || selector === "label") {
@@ -103,13 +107,22 @@ function createHarness(options = {}) {
     const dimension3DPill = createElement("dimension-pill-3d");
     const viewOrbitInput = createElement("view-orbit", { checked: true });
     const viewCratersInput = createElement("view-craters");
+    const viewLunarCratersInput = createElement("view-lunar-craters");
     const viewMoonOrbitInput = createElement("view-moon-osculating-orbit", {
         closestSettingsOption: createElement("secondary-orbit-row"),
     });
     const bodyHaloToggle = createElement("view-body-halos", { checked: true });
+    const lunarCraterPanel = createElement("lunar-crater-controls-panel", { hidden: true });
+    const lunarCraterVisibleToggle = createElement("lunar-crater-visible-toggle");
+    const lunarCraterHoverInput = createElement("lunar-crater-hover-labels", { checked: true });
+    const lunarCraterDisplayMode = createElement("lunar-crater-display-mode", { value: "hover" });
+    const lunarCraterHoverToggle = createElement("lunar-crater-hover-toggle");
+    const lunarCraterCount = createElement("lunar-crater-count", { value: "120" });
+    const lunarCraterCountValue = createElement("lunar-crater-count-value");
     const locatorsPill = createElement("locators-pill");
     const orbitPill = createElement("toggle-pill-orbit");
     const cratersPill = createElement("toggle-pill-craters");
+    const lunarCratersPill = createElement("toggle-pill-lunar-craters");
     const landingPill = createElement("toggle-pill-landing");
     const moonOrbitPill = createElement("toggle-pill-moon-orbit");
     const descentPill = createElement("toggle-pill-descent");
@@ -135,11 +148,20 @@ function createHarness(options = {}) {
         ["dimension-pill-3d", dimension3DPill],
         ["view-orbit", viewOrbitInput],
         ["view-craters", viewCratersInput],
+        ["view-lunar-craters", viewLunarCratersInput],
         ["view-moon-osculating-orbit", viewMoonOrbitInput],
         ["view-body-halos", bodyHaloToggle],
+        ["lunar-crater-controls-panel", lunarCraterPanel],
+        ["lunar-crater-visible-toggle", lunarCraterVisibleToggle],
+        ["lunar-crater-hover-labels", lunarCraterHoverInput],
+        ["lunar-crater-display-mode", lunarCraterDisplayMode],
+        ["lunar-crater-hover-toggle", lunarCraterHoverToggle],
+        ["lunar-crater-count", lunarCraterCount],
+        ["lunar-crater-count-value", lunarCraterCountValue],
         ["locators-pill", locatorsPill],
         ["toggle-pill-orbit", orbitPill],
         ["toggle-pill-craters", cratersPill],
+        ["toggle-pill-lunar-craters", lunarCratersPill],
         ["toggle-pill-landing", landingPill],
         ["toggle-pill-moon-orbit", moonOrbitPill],
         ["toggle-pill-descent", descentPill],
@@ -177,6 +199,7 @@ function createHarness(options = {}) {
     const controlBackend = {
         commitDimensionSelection: vi.fn(),
         commitOriginMode: vi.fn(),
+        commitViewPatch: vi.fn(),
         commitViewSetting: vi.fn(),
         toggleLandingMode: vi.fn(),
     };
@@ -240,6 +263,14 @@ function createHarness(options = {}) {
         landingOptionRow,
         landingPill,
         landingToggle,
+        lunarCraterCount,
+        lunarCraterCountValue,
+        lunarCraterDisplayMode,
+        lunarCraterHoverInput,
+        lunarCraterHoverToggle,
+        lunarCraterPanel,
+        lunarCratersPill,
+        lunarCraterVisibleToggle,
         locatorsPill,
         moonOrbitPill,
         observerInstances,
@@ -341,6 +372,57 @@ describe("createViewSettingsPillController", function () {
 
         expect(harness.photoModePill.classList.contains("is-active")).toBe(true);
         expect(harness.photoModePill["aria-pressed"]).toBe("true");
+    });
+
+    it("opens the crater panel and commits dense crater controls", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.lunarCratersPill.dispatchEvent({ type: "click", target: harness.lunarCratersPill });
+
+        expect(harness.lunarCraterPanel.hidden).toBe(false);
+        expect(harness.lunarCratersPill["aria-expanded"]).toBe("true");
+
+        harness.lunarCraterVisibleToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarCraterVisibleToggle,
+        });
+        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+            {
+                viewLunarCraters: true,
+                lunarCraterDisplayMode: "always",
+                lunarCraterHoverLabels: false,
+            },
+            { sourceId: "lunar-crater-visible-toggle" },
+        );
+        expect(harness.lunarCraterDisplayMode.value).toBe("always");
+        expect(harness.lunarCraterCount.disabled).toBe(false);
+
+        harness.lunarCraterHoverToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarCraterHoverToggle,
+        });
+        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+            {
+                viewLunarCraters: true,
+                lunarCraterDisplayMode: "hover",
+                lunarCraterHoverLabels: true,
+            },
+            { sourceId: "lunar-crater-hover-toggle" },
+        );
+        expect(harness.lunarCraterDisplayMode.value).toBe("hover");
+        expect(harness.lunarCraterCount.disabled).toBe(true);
+
+        harness.lunarCraterCount.value = "250";
+        harness.lunarCraterCount.dispatchEvent({
+            type: "input",
+            target: harness.lunarCraterCount,
+        });
+        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+            { lunarCraterLimit: 250 },
+            { sourceId: "lunar-crater-count" },
+        );
+        expect(harness.lunarCraterCountValue.textContent).toBe("250");
     });
 
     it("re-syncs landing pill visibility from the mutation observer", function () {

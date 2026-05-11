@@ -35,6 +35,7 @@ import { createSkyActions } from "./sky-actions.js";
 import { createSunActions } from "./sun-actions.js";
 import { createEarthActions } from "./earth-actions.js";
 import { createMoonActions } from "./moon-actions.js";
+import { createLunarCraterActions } from "./lunar-crater-actions.js";
 
 function createMissionSceneActionBundle(deps) {
     const {
@@ -96,6 +97,9 @@ function createMissionSceneActionBundle(deps) {
         getAnimTime,
         getEarthRadius,
         getViewCraters,
+        getViewLunarCraters,
+        getLunarCraterLimit,
+        getLunarCraterDisplayMode,
         getLastInputActivityMs,
         SceneHelpers,
     } = deps;
@@ -286,6 +290,18 @@ function createMissionSceneActionBundle(deps) {
         render,
     });
 
+    const lunarCraterActions = createLunarCraterActions({
+        THREE,
+        sphericalToCartesian,
+        degreesToRadians,
+        PC,
+        getMoonRadius,
+        getGlobalConfig,
+        getViewLunarCraters,
+        getLunarCraterLimit,
+        getLunarCraterDisplayMode,
+    });
+
     return {
         orbitCurveActions,
         bodyRotationActions,
@@ -309,6 +325,7 @@ function createMissionSceneActionBundle(deps) {
         sunActions,
         earthActions,
         moonActions,
+        lunarCraterActions,
     };
 }
 

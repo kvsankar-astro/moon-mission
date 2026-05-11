@@ -1369,6 +1369,7 @@ async function enforceSsimProfileViewDefaults(page) {
   const booleanToggleBindings = [
     ['viewOrbit', '#view-orbit'],
     ['viewOrbitDescent', '#view-orbit-descent'],
+    ['viewLunarCraters', '#view-lunar-craters'],
     ['viewSky', '#view-sky'],
     ['viewMoonSOI', '#view-moonsoi'],
     ['viewBodyHalos', '#view-body-halos'],

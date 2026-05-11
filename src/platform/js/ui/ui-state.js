@@ -56,6 +56,10 @@ function getRangeValue(idOrSelector, fallback = 1) {
     return Number.isFinite(value) ? value : fallback;
 }
 
+function normalizeLunarCraterDisplayMode(value) {
+    return value === "always" ? "always" : "hover";
+}
+
 function setRangeValue(idOrSelector, value) {
     const element = getElement(idOrSelector);
     if (!element) return;
@@ -129,6 +133,7 @@ const VIEW_SETTING_CHECKBOXES = {
     viewOrbit: "view-orbit",
     viewOrbitDescent: "view-orbit-descent",
     viewCraters: "view-craters",
+    viewLunarCraters: "view-lunar-craters",
     viewXYZAxes: "view-xyz-axes",
     viewPoles: "view-poles",
     viewPolarAxes: "view-polar-axes",
@@ -201,6 +206,18 @@ export function readViewSettings() {
         settings[key] = getChecked(id);
     }
 
+    if (hasElement("lunar-crater-hover-labels")) {
+        settings.lunarCraterHoverLabels = getChecked("lunar-crater-hover-labels");
+    }
+    if (hasElement("lunar-crater-display-mode")) {
+        settings.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(
+            getSelectValue("lunar-crater-display-mode", "hover"),
+        );
+    }
+    if (hasElement("lunar-crater-count")) {
+        settings.lunarCraterLimit = getRangeValue("lunar-crater-count", 120);
+    }
+
     const activeCraftId = getSelectValue("active-craft-select", "");
     if (activeCraftId) {
         settings.activeCraftId = activeCraftId;
@@ -241,6 +258,21 @@ export function applyViewSettings(patch) {
         const id = VIEW_SETTING_CHECKBOXES[key];
         if (!id) continue;
         setChecked(id, value);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverLabels")) {
+        setChecked("lunar-crater-hover-labels", patch.lunarCraterHoverLabels);
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode")) {
+        setSelectValue(
+            "lunar-crater-display-mode",
+            normalizeLunarCraterDisplayMode(patch.lunarCraterDisplayMode),
+        );
+    }
+    if (Number.isFinite(Number(patch.lunarCraterLimit))) {
+        const craterLimit = Number(patch.lunarCraterLimit);
+        setRangeValue("lunar-crater-count", craterLimit);
+        setText("lunar-crater-count-value", String(Math.round(craterLimit)));
     }
 
     const effectiveViewOrbit = Object.prototype.hasOwnProperty.call(patch, "viewOrbit")

@@ -58,9 +58,14 @@ function createMissionSceneEntry(ctx) {
         getAnimTime,
         getEarthRadius,
         getViewCraters,
+        getViewLunarCraters,
+        getLunarCraterLimit,
+        getLunarCraterHoverLabels,
+        getLunarCraterDisplayMode,
         getViewPhotoMode,
         getViewEarthClouds,
         setViewEarthClouds,
+        setViewLunarCraters,
         SceneHelpers,
         d3,
         DEFAULT_VIEW_STATE,
@@ -91,6 +96,21 @@ function createMissionSceneEntry(ctx) {
         : () => true;
     const writeViewEarthClouds = typeof setViewEarthClouds === "function"
         ? setViewEarthClouds
+        : null;
+    const readViewLunarCraters = typeof getViewLunarCraters === "function"
+        ? getViewLunarCraters
+        : () => false;
+    const readLunarCraterLimit = typeof getLunarCraterLimit === "function"
+        ? getLunarCraterLimit
+        : () => 120;
+    const readLunarCraterHoverLabels = typeof getLunarCraterHoverLabels === "function"
+        ? getLunarCraterHoverLabels
+        : () => true;
+    const readLunarCraterDisplayMode = typeof getLunarCraterDisplayMode === "function"
+        ? getLunarCraterDisplayMode
+        : () => "hover";
+    const writeViewLunarCraters = typeof setViewLunarCraters === "function"
+        ? setViewLunarCraters
         : null;
 
     return createMissionSceneRuntime({
@@ -158,6 +178,10 @@ function createMissionSceneEntry(ctx) {
             getAnimTime,
             getEarthRadius,
             getViewCraters,
+            getViewLunarCraters: readViewLunarCraters,
+            getLunarCraterLimit: readLunarCraterLimit,
+            getLunarCraterHoverLabels: readLunarCraterHoverLabels,
+            getLunarCraterDisplayMode: readLunarCraterDisplayMode,
             getLastInputActivityMs,
             SceneHelpers,
         },
@@ -185,6 +209,10 @@ function createMissionSceneEntry(ctx) {
                     isCompareMode,
                     viewPhotoMode: getViewPhotoMode(),
                     viewEarthClouds: readViewEarthClouds(),
+                    viewLunarCraters: readViewLunarCraters(),
+                    lunarCraterLimit: readLunarCraterLimit(),
+                    lunarCraterHoverLabels: readLunarCraterHoverLabels(),
+                    lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
@@ -196,6 +224,8 @@ function createMissionSceneEntry(ctx) {
             },
             getViewEarthClouds: readViewEarthClouds,
             setViewEarthClouds: writeViewEarthClouds,
+            getViewLunarCraters: readViewLunarCraters,
+            setViewLunarCraters: writeViewLunarCraters,
             ensureSceneViewState,
             computeSceneCameraParameters,
             adjustCameraProjectionMatrixAndSkyAngle: bridgeActions.adjustCameraProjectionMatrixAndSkyAngle,
@@ -224,6 +254,10 @@ function createMissionSceneEntry(ctx) {
                 viewMoonHillSphere: getViewMoonHillSphere(),
                 viewBodyHalos: getViewBodyHalos(),
                 viewMoonOsculatingOrbit: getViewMoonOsculatingOrbit(),
+                viewLunarCraters: readViewLunarCraters(),
+                lunarCraterLimit: readLunarCraterLimit(),
+                lunarCraterHoverLabels: readLunarCraterHoverLabels(),
+                lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                 viewXYZAxes: getViewXYZAxes(),
                 viewEclipticPlane: getViewEclipticPlane(),
                 viewEquatorialPlane: getViewEquatorialPlane(),

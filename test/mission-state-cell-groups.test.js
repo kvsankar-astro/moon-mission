@@ -17,6 +17,10 @@ describe("mission state cell groups", () => {
             viewOrbit: true,
             viewOrbitDescent: false,
             viewCraters: false,
+            viewLunarCraters: false,
+            lunarCraterHoverLabels: true,
+            lunarCraterDisplayMode: "hover",
+            lunarCraterLimit: 120,
             viewXYZAxes: false,
             viewPoles: false,
             viewPolarAxes: false,
@@ -53,6 +57,14 @@ describe("mission state cell groups", () => {
             setViewOrbitDescent: (value) => { state.viewOrbitDescent = value; },
             getViewCraters: () => state.viewCraters,
             setViewCraters: (value) => { state.viewCraters = value; },
+            getViewLunarCraters: () => state.viewLunarCraters,
+            setViewLunarCraters: (value) => { state.viewLunarCraters = value; },
+            getLunarCraterHoverLabels: () => state.lunarCraterHoverLabels,
+            setLunarCraterHoverLabels: (value) => { state.lunarCraterHoverLabels = value; },
+            getLunarCraterDisplayMode: () => state.lunarCraterDisplayMode,
+            setLunarCraterDisplayMode: (value) => { state.lunarCraterDisplayMode = value; },
+            getLunarCraterLimit: () => state.lunarCraterLimit,
+            setLunarCraterLimit: (value) => { state.lunarCraterLimit = value; },
             getViewXYZAxes: () => state.viewXYZAxes,
             setViewXYZAxes: (value) => { state.viewXYZAxes = value; },
             getViewPoles: () => state.viewPoles,
@@ -101,6 +113,14 @@ describe("mission state cell groups", () => {
         expect(cells.viewOrbit.get()).toBe(true);
         cells.viewOrbit.set(false);
         expect(state.viewOrbit).toBe(false);
+        cells.viewLunarCraters.set(true);
+        expect(state.viewLunarCraters).toBe(true);
+        cells.lunarCraterHoverLabels.set(false);
+        cells.lunarCraterDisplayMode.set("always");
+        cells.lunarCraterLimit.set(250);
+        expect(state.lunarCraterHoverLabels).toBe(false);
+        expect(state.lunarCraterDisplayMode).toBe("always");
+        expect(state.lunarCraterLimit).toBe(250);
 
         expect(cells.effectiveOrbitStyle.get()).toBe("trail");
         effectiveOrbitStyle = "classic";

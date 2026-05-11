@@ -5,6 +5,8 @@ const VIEW_FLAG_KEYS = [
     "viewOrbit",
     "viewOrbitDescent",
     "viewCraters",
+    "viewLunarCraters",
+    "lunarCraterHoverLabels",
     "viewXYZAxes",
     "viewPoles",
     "viewPolarAxes",
@@ -19,6 +21,15 @@ const VIEW_FLAG_KEYS = [
     "viewFPS",
 ];
 
+const LUNAR_CRATER_DISPLAY_MODE_ALWAYS = "always";
+const LUNAR_CRATER_DISPLAY_MODE_HOVER = "hover";
+
+function normalizeLunarCraterDisplayMode(value) {
+    return value === LUNAR_CRATER_DISPLAY_MODE_ALWAYS
+        ? LUNAR_CRATER_DISPLAY_MODE_ALWAYS
+        : LUNAR_CRATER_DISPLAY_MODE_HOVER;
+}
+
 function buildDefaultViewFlags() {
     return {
         viewPhotoMode: false,
@@ -27,6 +38,10 @@ function buildDefaultViewFlags() {
         viewOrbit: true,
         viewOrbitDescent: true,
         viewCraters: true,
+        viewLunarCraters: false,
+        lunarCraterHoverLabels: true,
+        lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
+        lunarCraterLimit: 120,
         viewXYZAxes: false,
         viewPoles: false,
         viewPolarAxes: false,
@@ -68,6 +83,13 @@ function applyViewFlagPatch(target, patch) {
     }
     if (Number.isFinite(patch.trailTailBrightness3D)) {
         target.trailTailBrightness3D = patch.trailTailBrightness3D;
+    }
+    const craterLimit = Number(patch.lunarCraterLimit);
+    if (Number.isFinite(craterLimit)) {
+        target.lunarCraterLimit = craterLimit;
+    }
+    if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode")) {
+        target.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(patch.lunarCraterDisplayMode);
     }
 }
 
@@ -129,6 +151,23 @@ function createRuntimeViewState({
         getViewCraters: () => viewFlags.viewCraters,
         setViewCraters: (value) => {
             viewFlags.viewCraters = Boolean(value);
+        },
+        getViewLunarCraters: () => viewFlags.viewLunarCraters,
+        setViewLunarCraters: (value) => {
+            viewFlags.viewLunarCraters = Boolean(value);
+        },
+        getLunarCraterHoverLabels: () => viewFlags.lunarCraterHoverLabels,
+        setLunarCraterHoverLabels: (value) => {
+            viewFlags.lunarCraterHoverLabels = Boolean(value);
+        },
+        getLunarCraterDisplayMode: () => normalizeLunarCraterDisplayMode(viewFlags.lunarCraterDisplayMode),
+        setLunarCraterDisplayMode: (value) => {
+            viewFlags.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(value);
+        },
+        getLunarCraterLimit: () => viewFlags.lunarCraterLimit ?? 120,
+        setLunarCraterLimit: (value) => {
+            const numericValue = Number(value);
+            viewFlags.lunarCraterLimit = Number.isFinite(numericValue) ? numericValue : 120;
         },
         getViewXYZAxes: () => viewFlags.viewXYZAxes,
         setViewXYZAxes: (value) => {

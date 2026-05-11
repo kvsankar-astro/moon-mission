@@ -65,6 +65,19 @@ function applySceneViewPlanToScene({
     scene.locations.forEach((location) => {
         location.visible = view.viewCraters;
     });
+    if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
+        scene.setLunarCraterDisplayMode?.(view.lunarCraterDisplayMode);
+    }
+    if (Number.isFinite(Number(view.lunarCraterLimit))) {
+        scene.setLunarCraterDisplayLimit?.(Number(view.lunarCraterLimit));
+    }
+    if (
+        !Object.prototype.hasOwnProperty.call(view, "lunarCraterDisplayMode") &&
+        Object.prototype.hasOwnProperty.call(view, "lunarCraterHoverLabels")
+    ) {
+        scene.setLunarCraterHoverLabelsEnabled?.(view.lunarCraterHoverLabels);
+    }
+    scene.setLunarCraterAnnotationsVisible?.(view.viewLunarCraters);
 
     if (scene.axesHelper) {
         scene.axesHelper.visible = view.viewXYZAxes;

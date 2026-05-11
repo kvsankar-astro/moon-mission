@@ -27,6 +27,8 @@ function createSceneHandlerClass(deps) {
         getRuntimeState,
         getViewEarthClouds = null,
         setViewEarthClouds = null,
+        getViewLunarCraters = null,
+        setViewLunarCraters = null,
     } = deps;
 
     return class SceneHandler {
@@ -47,6 +49,9 @@ function createSceneHandlerClass(deps) {
             this.earthWorldPosition = new THREE.Vector3();
             this.moonWorldPosition = new THREE.Vector3();
             this.earthCloudsEnabled = true;
+            this.lunarCraterHoverRenderRaf = null;
+            this.handleLunarCraterPointerMoveBound = this.handleLunarCraterPointerMove.bind(this);
+            this.handleLunarCraterPointerLeaveBound = this.handleLunarCraterPointerLeave.bind(this);
 
             this.init();
         }
@@ -68,6 +73,7 @@ function createSceneHandlerClass(deps) {
             });
             this.renderer = renderer;
             this.canvasNode = canvasNode;
+            this.bindLunarCraterHoverEvents();
 
             if (!isTestMode && window.innerWidth > 600) {
                 const overlayHost = document.getElementById("content-wrapper") ||
@@ -79,6 +85,60 @@ function createSceneHandlerClass(deps) {
             }
 
             this.initialized = true;
+        }
+
+        getPointerEventTarget() {
+            return this.renderer?.domElement || this.canvasNode || null;
+        }
+
+        scheduleLunarCraterHoverRender() {
+            if (!this.lastAnimationScene || this.lunarCraterHoverRenderRaf != null) {
+                return;
+            }
+            const scheduleFrame = typeof window !== "undefined" && typeof window.requestAnimationFrame === "function"
+                ? window.requestAnimationFrame.bind(window)
+                : (callback) => setTimeout(callback, 0);
+            this.lunarCraterHoverRenderRaf = scheduleFrame(() => {
+                this.lunarCraterHoverRenderRaf = null;
+                if (this.lastAnimationScene) {
+                    this.render(this.lastAnimationScene);
+                }
+            });
+        }
+
+        handleLunarCraterPointerMove(event) {
+            const animationScene = this.lastAnimationScene;
+            if (!animationScene?.updateLunarCraterHoverFromPointer || !animationScene.camera) {
+                return;
+            }
+            const changed = animationScene.updateLunarCraterHoverFromPointer({
+                camera: animationScene.camera,
+                rendererDomElement: this.getPointerEventTarget(),
+                clientX: event?.clientX,
+                clientY: event?.clientY,
+            });
+            if (changed) {
+                this.scheduleLunarCraterHoverRender();
+            }
+        }
+
+        handleLunarCraterPointerLeave() {
+            const animationScene = this.lastAnimationScene;
+            const changed = animationScene?.clearLunarCraterHover?.();
+            if (changed) {
+                this.scheduleLunarCraterHoverRender();
+            }
+        }
+
+        bindLunarCraterHoverEvents() {
+            const target = this.getPointerEventTarget();
+            if (!target?.addEventListener) {
+                return;
+            }
+            target.addEventListener("pointermove", this.handleLunarCraterPointerMoveBound, {
+                passive: true,
+            });
+            target.addEventListener("pointerleave", this.handleLunarCraterPointerLeaveBound);
         }
 
         ensureAuxiliaryCameraViews() {
@@ -115,6 +175,23 @@ function createSceneHandlerClass(deps) {
                             this.render(this.lastAnimationScene);
                         }
                         return this.earthCloudsEnabled;
+                    },
+                    getLunarCratersEnabled: () => {
+                        if (typeof getViewLunarCraters === "function") {
+                            return getViewLunarCraters();
+                        }
+                        const runtimeCraters = getRuntimeState?.().viewLunarCraters;
+                        return runtimeCraters === true;
+                    },
+                    setLunarCratersEnabled: (value) => {
+                        if (typeof setViewLunarCraters === "function") {
+                            return setViewLunarCraters(value);
+                        }
+                        if (this.lastAnimationScene) {
+                            this.lastAnimationScene.setLunarCraterAnnotationsVisible?.(value === true);
+                            this.render(this.lastAnimationScene);
+                        }
+                        return value === true;
                     },
                     requestRender: () => {
                         if (!this.lastAnimationScene || this.auxiliaryCameraRenderRaf != null) {
@@ -168,6 +245,10 @@ function createSceneHandlerClass(deps) {
                         this.sunWorldPosition.z,
                     );
                 }
+                animationScene.updateLunarCraterLabelScales?.({
+                    camera,
+                    rendererDomElement: this.renderer?.domElement || null,
+                });
                 // Render sky first on its dedicated layer, then clear depth so
                 // foreground bodies fully occlude background stars.
                 const renderSkyLayer = animationScene.skyContainer?.visible !== false;

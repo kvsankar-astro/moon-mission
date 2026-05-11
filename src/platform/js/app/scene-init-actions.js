@@ -14,6 +14,7 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
             () => scene.addAxesHelper(),
             () => scene.addEarthLocations(),
             () => scene.addMoonLocations(),
+            () => scene.addLunarCraterAnnotations(),
             () => scene.addLineOfSight(),
         ];
 

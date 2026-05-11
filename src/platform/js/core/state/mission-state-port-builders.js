@@ -7,11 +7,17 @@ function createStateHelpers(state) {
         if (value === undefined) return;
         setState(key, Boolean(value));
     };
+    const setNumberStateIfDefined = (key, value) => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue)) return;
+        setState(key, numericValue);
+    };
 
     return {
         getState,
         setState,
         setBooleanStateIfDefined,
+        setNumberStateIfDefined,
     };
 }
 
@@ -279,7 +285,7 @@ function createMissionSceneViewStatePort(ctx, helpers) {
         setPlaneVariablesState,
         syncPlaneStateForConfig,
     } = ctx;
-    const { getState, setState, setBooleanStateIfDefined } = helpers;
+    const { getState, setState, setBooleanStateIfDefined, setNumberStateIfDefined } = helpers;
 
     return {
         getZoomFactor: () => getZoomFactorState(getState("config")),
@@ -309,6 +315,12 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewOrbit", view.viewOrbit);
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
             setBooleanStateIfDefined("viewCraters", view.viewCraters);
+            setBooleanStateIfDefined("viewLunarCraters", view.viewLunarCraters);
+            setBooleanStateIfDefined("lunarCraterHoverLabels", view.lunarCraterHoverLabels);
+            if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
+                setState("lunarCraterDisplayMode", view.lunarCraterDisplayMode);
+            }
+            setNumberStateIfDefined("lunarCraterLimit", view.lunarCraterLimit);
             setBooleanStateIfDefined("viewXYZAxes", view.viewXYZAxes);
             setBooleanStateIfDefined("viewPoles", view.viewPoles);
             setBooleanStateIfDefined("viewPolarAxes", view.viewPolarAxes);
@@ -346,6 +358,9 @@ function createMissionSceneViewStatePort(ctx, helpers) {
         getPanYStateForConfig: () => getPanYState(getState("config")),
         getViewSky: () => getState("viewSky"),
         getViewConstellationLines: () => getState("viewConstellationLines"),
+        getLunarCraterHoverLabels: () => getState("lunarCraterHoverLabels"),
+        getLunarCraterDisplayMode: () => getState("lunarCraterDisplayMode"),
+        getLunarCraterLimit: () => getState("lunarCraterLimit"),
         getOrbitStyle: () => getState("orbitStyle"),
         getEffectiveOrbitStyle: () =>
             typeof state.effectiveOrbitStyle?.get === "function"

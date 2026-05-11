@@ -1015,9 +1015,68 @@
                     <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
                     <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
                     <button id="toggle-pill-craters" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle moon sites">Moon Sites</button>
+                    <button
+                        id="toggle-pill-lunar-craters"
+                        type="button"
+                        class="header-toggle-pill"
+                        aria-pressed="false"
+                        aria-expanded="false"
+                        aria-haspopup="dialog"
+                        aria-controls="lunar-crater-controls-panel"
+                        title="Open lunar crater controls"
+                    >
+                        Craters
+                    </button>
                     <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
                     <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
                     <button id="toggle-pill-polar-axes" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle polar axes">Polar Axes</button>
+                </div>
+                <div
+                    id="lunar-crater-controls-panel"
+                    class="lunar-crater-controls-panel"
+                    role="dialog"
+                    aria-label="Lunar crater controls"
+                    hidden
+                >
+                    <input type="checkbox" id="lunar-crater-hover-labels" checked hidden>
+                    <input type="hidden" id="lunar-crater-display-mode" value="hover">
+                    <div class="lunar-crater-controls-panel__toggles" role="group" aria-label="Crater display mode">
+                        <button
+                            id="lunar-crater-visible-toggle"
+                            type="button"
+                            class="lunar-crater-controls-panel__button"
+                            aria-pressed="false"
+                            title="Show lunar crater boundaries and labels"
+                        >
+                            Show always
+                        </button>
+                        <button
+                            id="lunar-crater-hover-toggle"
+                            type="button"
+                            class="lunar-crater-controls-panel__button"
+                            aria-pressed="true"
+                            title="Show the crater under the pointer"
+                        >
+                            Show on hover
+                        </button>
+                    </div>
+                    <label class="lunar-crater-controls-panel__range-label" for="lunar-crater-count">
+                        <span>Count</span>
+                        <output id="lunar-crater-count-value" for="lunar-crater-count">120</output>
+                    </label>
+                    <input
+                        id="lunar-crater-count"
+                        class="lunar-crater-controls-panel__range"
+                        type="range"
+                        min="25"
+                        max="500"
+                        step="25"
+                        value="120"
+                    >
+                    <div class="lunar-crater-controls-panel__scale" aria-hidden="true">
+                        <span>Big</span>
+                        <span>More</span>
+                    </div>
                 </div>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
@@ -1409,6 +1468,10 @@
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
                                     <span>Moon Sites</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="lunar-craters" id="view-lunar-craters">
+                                    <span>Lunar Craters</span>
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="xyz" id="view-xyz-axes">

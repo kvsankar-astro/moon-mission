@@ -709,7 +709,15 @@ function timelinePhaseContainsTime(phase, timeMs) {
 }
 
 class AuxiliaryCameraViewsManager {
-    constructor({ THREE, overlayHost, requestRender, getEarthCloudsEnabled = null, setEarthCloudsEnabled = null }) {
+    constructor({
+        THREE,
+        overlayHost,
+        requestRender,
+        getEarthCloudsEnabled = null,
+        setEarthCloudsEnabled = null,
+        getLunarCratersEnabled = null,
+        setLunarCratersEnabled = null,
+    }) {
         this.THREE = THREE;
         this.overlayHost = overlayHost || document.body;
         this.requestRender = typeof requestRender === "function" ? requestRender : null;
@@ -718,6 +726,12 @@ class AuxiliaryCameraViewsManager {
             : () => true;
         this.setEarthCloudsEnabled = typeof setEarthCloudsEnabled === "function"
             ? setEarthCloudsEnabled
+            : null;
+        this.getLunarCratersEnabled = typeof getLunarCratersEnabled === "function"
+            ? getLunarCratersEnabled
+            : () => false;
+        this.setLunarCratersEnabled = typeof setLunarCratersEnabled === "function"
+            ? setLunarCratersEnabled
             : null;
         this.root = null;
         this.chipDock = null;
@@ -2245,6 +2259,8 @@ class AuxiliaryCameraViewsManager {
         let composerConstellationLabelsCheckbox = null;
         let composerCloudsWrap = null;
         let composerCloudsCheckbox = null;
+        let composerLunarCratersWrap = null;
+        let composerLunarCratersCheckbox = null;
         let composerStarMagnitudeSlider = null;
         let composerStarMagnitudeValue = null;
         let composerHint = null;
@@ -2338,6 +2354,19 @@ class AuxiliaryCameraViewsManager {
             composerCloudsWrap.appendChild(composerCloudsCheckbox);
             composerCloudsWrap.appendChild(composerCloudsText);
             composerInfoToggles.appendChild(composerCloudsWrap);
+
+            composerLunarCratersWrap = document.createElement("label");
+            composerLunarCratersWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerLunarCratersCheckbox = document.createElement("input");
+            composerLunarCratersCheckbox.type = "checkbox";
+            composerLunarCratersCheckbox.checked = false;
+            composerLunarCratersCheckbox.setAttribute("aria-label", "Toggle lunar crater annotations");
+            composerLunarCratersCheckbox.dataset.proofId = "lunar-craters-toggle";
+            const composerLunarCratersText = document.createElement("span");
+            composerLunarCratersText.textContent = "Craters";
+            composerLunarCratersWrap.appendChild(composerLunarCratersCheckbox);
+            composerLunarCratersWrap.appendChild(composerLunarCratersText);
+            composerInfoToggles.appendChild(composerLunarCratersWrap);
             composerInfoRow.appendChild(composerInfoToggles);
 
             const composerStarMagnitudeRow = document.createElement("div");
@@ -3056,6 +3085,8 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLabelsCheckbox,
             composerCloudsWrap,
             composerCloudsCheckbox,
+            composerLunarCratersWrap,
+            composerLunarCratersCheckbox,
             composerStarMagnitudeSlider,
             composerStarMagnitudeValue,
             composerHint,
@@ -3138,6 +3169,7 @@ class AuxiliaryCameraViewsManager {
             onComposerTransportFasterClick: null,
             onComposerInfoOverlayToggle: null,
             onComposerCloudsChange: null,
+            onComposerLunarCratersChange: null,
             onComposerRollInput: null,
             onComposerRollDialPointerDown: null,
             onComposerRollDialPointerMove: null,
@@ -3214,6 +3246,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLinesEnabled: false,
             composerConstellationLabelsEnabled: false,
             composerEarthCloudsEnabled: true,
+            composerLunarCratersEnabled: false,
             composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
             onOrbitViewportWheel: null,
             onOrbitViewportPointerDown: null,
@@ -3285,6 +3318,7 @@ class AuxiliaryCameraViewsManager {
         };
         let syncComposerLockUi = null;
         let syncComposerCloudsUi = null;
+        let syncComposerLunarCratersUi = null;
             const onChipClick = () => {
                 if (panelState.mode === "composer") {
                     this.restoreComposerGuidedPanel(panelState);
@@ -3404,6 +3438,19 @@ class AuxiliaryCameraViewsManager {
                     : "Show Earth cloud cover in all Earth renders";
                 panelState.composerCloudsWrap?.classList.toggle("is-active", enabled);
                 panelState.composerCloudsWrap?.setAttribute("title", title);
+            };
+            syncComposerLunarCratersUi = () => {
+                if (!panelState.composerLunarCratersCheckbox) {
+                    return;
+                }
+                const enabled = this.getLunarCratersEnabled() === true;
+                panelState.composerLunarCratersEnabled = enabled;
+                panelState.composerLunarCratersCheckbox.checked = enabled;
+                const title = enabled
+                    ? "Hide lunar crater annotations"
+                    : "Show lunar crater annotations";
+                panelState.composerLunarCratersWrap?.classList.toggle("is-active", enabled);
+                panelState.composerLunarCratersWrap?.setAttribute("title", title);
             };
             const syncComposerOpticsUi = () => {
                 if (panelState.composerOpticsBody) {
@@ -3577,6 +3624,15 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerEarthCloudsEnabled = nextEnabled;
                 this.setEarthCloudsEnabled?.(nextEnabled);
                 syncComposerCloudsUi();
+                requestComposerControlRender();
+                this.queuePersistPanelState();
+            };
+            const onComposerLunarCratersChange = () => {
+                activateComposerForControl();
+                const nextEnabled = panelState.composerLunarCratersCheckbox?.checked === true;
+                panelState.composerLunarCratersEnabled = nextEnabled;
+                this.setLunarCratersEnabled?.(nextEnabled);
+                syncComposerLunarCratersUi();
                 requestComposerControlRender();
                 this.queuePersistPanelState();
             };
@@ -4057,6 +4113,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEclipseCoronaStructureSlider?.addEventListener("input", onComposerEclipseCoronaStructureInput, { passive: true });
             panelState.composerStarMagnitudeSlider?.addEventListener("input", onComposerStarMagnitudeInput, { passive: true });
             panelState.composerCloudsCheckbox?.addEventListener("change", onComposerCloudsChange);
+            panelState.composerLunarCratersCheckbox?.addEventListener("change", onComposerLunarCratersChange);
             panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
             panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
             panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
@@ -4109,6 +4166,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerEclipseCoronaStructureInput = onComposerEclipseCoronaStructureInput;
             panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
             panelState.onComposerCloudsChange = onComposerCloudsChange;
+            panelState.onComposerLunarCratersChange = onComposerLunarCratersChange;
             panelState.onComposerTimelineInput = onComposerTimelineInput;
             panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
             panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
@@ -4141,6 +4199,7 @@ class AuxiliaryCameraViewsManager {
             panelState.syncComposerRollUi = syncComposerRollUi;
             panelState.syncComposerAutoToggleUi = syncAutoToggleUi;
             panelState.syncComposerCloudsUi = syncComposerCloudsUi;
+            panelState.syncComposerLunarCratersUi = syncComposerLunarCratersUi;
             setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbient, { persist: false });
             setComposerAmbient("composerMoonAmbient", panelState.composerMoonAmbient, { persist: false });
             setComposerEarthshineGain(panelState.composerEarthshineGain, { persist: false });
@@ -4149,6 +4208,7 @@ class AuxiliaryCameraViewsManager {
             syncComposerOpticsUi();
             syncComposerStarMagnitudeUi();
             syncComposerCloudsUi?.();
+            syncComposerLunarCratersUi?.();
             syncComposerRollUi();
         }
         if (panelState.mode === "orbit-xy") {
@@ -4579,6 +4639,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerMoonshineSlider && (panelState.composerMoonshineSlider.disabled = disableControls);
         panelState.composerMoonOutlineCheckbox && (panelState.composerMoonOutlineCheckbox.disabled = disableControls);
         panelState.composerCloudsCheckbox && (panelState.composerCloudsCheckbox.disabled = disableControls);
+        panelState.composerLunarCratersCheckbox && (panelState.composerLunarCratersCheckbox.disabled = disableControls);
         panelState.composerOpticsToggleButton && (panelState.composerOpticsToggleButton.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
@@ -8090,6 +8151,8 @@ class AuxiliaryCameraViewsManager {
         this.setPanelVisible(panelState, true);
         panelState.composerEarthCloudsEnabled = earthCloudsEnabled !== false;
         panelState.syncComposerCloudsUi?.();
+        panelState.composerLunarCratersEnabled = this.getLunarCratersEnabled() === true;
+        panelState.syncComposerLunarCratersUi?.();
         this.syncPanelSize(panelState);
         this.setPanelFov(panelState, panelState.camera.fov);
         this.syncComposerTimelineUi(panelState);
@@ -8804,6 +8867,12 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerCloudsChange) {
                 panelState.composerCloudsCheckbox?.removeEventListener("change", panelState.onComposerCloudsChange);
+            }
+            if (panelState.onComposerLunarCratersChange) {
+                panelState.composerLunarCratersCheckbox?.removeEventListener(
+                    "change",
+                    panelState.onComposerLunarCratersChange,
+                );
             }
             if (panelState.onComposerTimelinePointerDown) {
                 panelState.composerTimelineSlider?.removeEventListener("pointerdown", panelState.onComposerTimelinePointerDown);

@@ -26,6 +26,7 @@ function createMissionSceneBootstrap(deps) {
         sunActions,
         earthActions,
         moonActions,
+        lunarCraterActions,
         locationActions,
         primarySecondaryBodiesActions,
         spacecraftCurveActions,
@@ -46,6 +47,10 @@ function createMissionSceneBootstrap(deps) {
         getBodyEphemerisState,
         resolveBodySource,
         getAnimationSceneRuntimeState,
+        getViewEarthClouds,
+        setViewEarthClouds,
+        getViewLunarCraters,
+        setViewLunarCraters,
     } = deps;
 
     const SceneHandler = createSceneHandlerClass({
@@ -60,6 +65,10 @@ function createMissionSceneBootstrap(deps) {
         onWindowResize,
         updateCraftScale,
         getRuntimeState: getSceneHandlerRuntimeState,
+        getViewEarthClouds,
+        setViewEarthClouds,
+        getViewLunarCraters,
+        setViewLunarCraters,
     });
 
     const AnimationScene = createAnimationSceneClass({
@@ -76,6 +85,7 @@ function createMissionSceneBootstrap(deps) {
         sunActions,
         earthActions,
         moonActions,
+        lunarCraterActions,
         locationActions,
         primarySecondaryBodiesActions,
         spacecraftCurveActions,

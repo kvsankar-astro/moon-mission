@@ -11,6 +11,7 @@ export function createSceneDisposeActions() {
         scene.disposeEarth();
         scene.disposeSky();
         scene.disposeSun();
+        scene.disposeLunarCraterAnnotations?.();
         scene.disposeMoonLocations();
         scene.disposeMoon();
         scene.disposeSpacecraftModel();

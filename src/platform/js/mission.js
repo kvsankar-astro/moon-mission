@@ -22,6 +22,7 @@ import {
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
+import { applyViewSettings } from "./ui/ui-state.js";
 import { syncCompareModeControls } from "./ui/event-handlers.js";
 import { bindRuntimeInteractionActivity } from "./ui/runtime-interaction-activity.js";
 import {
@@ -358,6 +359,10 @@ runtimeViewState.setViewFlags({
     viewOrbit: initialMissionViewState.viewOrbit,
     viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
     viewCraters: initialMissionViewState.viewCraters,
+    viewLunarCraters: initialMissionViewState.viewLunarCraters,
+    lunarCraterLimit: initialMissionViewState.lunarCraterLimit ?? runtimeViewState.getLunarCraterLimit(),
+    lunarCraterHoverLabels: initialMissionViewState.lunarCraterHoverLabels ?? runtimeViewState.getLunarCraterHoverLabels(),
+    lunarCraterDisplayMode: initialMissionViewState.lunarCraterDisplayMode ?? runtimeViewState.getLunarCraterDisplayMode(),
     viewXYZAxes: initialMissionViewState.viewXYZAxes,
     viewPoles: initialMissionViewState.viewPoles,
     viewPolarAxes: initialMissionViewState.viewPolarAxes,
@@ -500,12 +505,55 @@ const {
     getAnimTime: () => runtimeSessionState.getAnimTime(),
     getEarthRadius: () => earthRadius,
     getViewCraters: () => runtimeViewState.getViewCraters(),
+    getViewLunarCraters: () => runtimeViewState.getViewLunarCraters(),
+    getLunarCraterLimit: () => runtimeViewState.getLunarCraterLimit(),
+    getLunarCraterHoverLabels: () => runtimeViewState.getLunarCraterHoverLabels(),
+    getLunarCraterDisplayMode: () => runtimeViewState.getLunarCraterDisplayMode(),
     getViewPhotoMode: () => runtimeViewState.getViewPhotoMode(),
     getViewEarthClouds: () => runtimeViewState.getViewEarthClouds(),
     setViewEarthClouds: (value) => {
         runtimeViewState.setViewEarthClouds(value);
         render();
         return runtimeViewState.getViewEarthClouds();
+    },
+    setViewLunarCraters: (value) => {
+        runtimeViewState.setViewLunarCraters(value);
+        const enabled = runtimeViewState.getViewLunarCraters();
+        const craterDisplayMode = runtimeViewState.getLunarCraterDisplayMode();
+        applyViewSettings({
+            viewLunarCraters: enabled,
+            lunarCraterDisplayMode: craterDisplayMode,
+        });
+        const lunarCraterPill = document.getElementById("toggle-pill-lunar-craters");
+        if (lunarCraterPill) {
+            lunarCraterPill.classList.toggle("is-active", enabled);
+            lunarCraterPill.setAttribute("aria-pressed", enabled ? "true" : "false");
+        }
+        const lunarCraterVisibleToggle = document.getElementById("lunar-crater-visible-toggle");
+        if (lunarCraterVisibleToggle) {
+            const active = enabled && craterDisplayMode === "always";
+            lunarCraterVisibleToggle.classList.toggle("is-active", active);
+            lunarCraterVisibleToggle.setAttribute("aria-pressed", active ? "true" : "false");
+            lunarCraterVisibleToggle.textContent = "Show always";
+        }
+        const lunarCraterHoverToggle = document.getElementById("lunar-crater-hover-toggle");
+        if (lunarCraterHoverToggle) {
+            const active = enabled && craterDisplayMode === "hover";
+            lunarCraterHoverToggle.classList.toggle("is-active", active);
+            lunarCraterHoverToggle.setAttribute("aria-pressed", active ? "true" : "false");
+            lunarCraterHoverToggle.textContent = "Show on hover";
+        }
+        const lunarCraterCount = document.getElementById("lunar-crater-count");
+        if (lunarCraterCount) {
+            lunarCraterCount.disabled = craterDisplayMode === "hover";
+            lunarCraterCount.setAttribute("aria-disabled", craterDisplayMode === "hover" ? "true" : "false");
+        }
+        if (typeof setView === "function") {
+            setView();
+        } else {
+            render();
+        }
+        return enabled;
     },
     getRuntimeFlags: () => runtimeSessionState.getRuntimeFlags(),
     ensureSceneViewState: sceneViewStateActions.ensureSceneViewState,

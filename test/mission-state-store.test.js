@@ -66,12 +66,18 @@ function createStateCells() {
         viewOrbit: createCell(true),
         viewOrbitDescent: createCell(false),
         viewCraters: createCell(false),
+        viewLunarCraters: createCell(false),
+        lunarCraterHoverLabels: createCell(true),
+        lunarCraterDisplayMode: createCell("hover"),
+        lunarCraterLimit: createCell(120),
         viewXYZAxes: createCell(false),
         viewPoles: createCell(false),
         viewPolarAxes: createCell(false),
         viewSky: createCell(true),
         viewConstellationLines: createCell(false),
         viewMoonSOI: createCell(false),
+        viewMoonHillSphere: createCell(false),
+        viewMoonOsculatingOrbit: createCell(false),
         viewBodyHalos: createCell(true),
         viewEclipticPlane: createCell(false),
         viewEquatorialPlane: createCell(false),
@@ -283,12 +289,18 @@ describe("createMissionStateStore", () => {
             viewOrbit: false,
             viewOrbitDescent: true,
             viewCraters: true,
+            viewLunarCraters: true,
+            lunarCraterHoverLabels: false,
+            lunarCraterDisplayMode: "always",
+            lunarCraterLimit: 250,
             viewXYZAxes: true,
             viewPoles: true,
             viewPolarAxes: true,
             viewSky: false,
             viewConstellationLines: false,
             viewMoonSOI: true,
+            viewMoonHillSphere: true,
+            viewMoonOsculatingOrbit: true,
             viewBodyHalos: false,
             viewEclipticPlane: true,
             viewEquatorialPlane: true,
@@ -300,12 +312,18 @@ describe("createMissionStateStore", () => {
         expect(state.viewOrbit.get()).toBe(false);
         expect(state.viewOrbitDescent.get()).toBe(true);
         expect(state.viewCraters.get()).toBe(true);
+        expect(state.viewLunarCraters.get()).toBe(true);
+        expect(state.lunarCraterHoverLabels.get()).toBe(false);
+        expect(state.lunarCraterDisplayMode.get()).toBe("always");
+        expect(state.lunarCraterLimit.get()).toBe(250);
         expect(state.viewXYZAxes.get()).toBe(true);
         expect(state.viewPoles.get()).toBe(true);
         expect(state.viewPolarAxes.get()).toBe(true);
         expect(state.viewSky.get()).toBe(false);
         expect(state.viewConstellationLines.get()).toBe(false);
         expect(state.viewMoonSOI.get()).toBe(true);
+        expect(state.viewMoonHillSphere.get()).toBe(true);
+        expect(state.viewMoonOsculatingOrbit.get()).toBe(true);
         expect(state.viewBodyHalos.get()).toBe(false);
         expect(state.viewEclipticPlane.get()).toBe(true);
         expect(state.viewEquatorialPlane.get()).toBe(true);
