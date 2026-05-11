@@ -1425,7 +1425,7 @@ describe("Auxiliary default panel layout", () => {
         expect(orbitXy.panel.style.left).toBe("1376px");
         expect(orbitXy.panel.style.top).toBe("566px");
         expect(earthToMoon.panel.style.left).toBeUndefined();
-        expect(composer.panel.style.left).toBe("527px");
-        expect(composer.panel.style.top).toBe("214px");
+        expect(composer.panel.style.left).toBe("696px");
+        expect(composer.panel.style.top).toBe("180px");
     });
 });

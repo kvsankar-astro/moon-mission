@@ -16,6 +16,15 @@ export function createFocusPillController(deps = {}) {
 
     let bound = false;
 
+    const panelShortcutIds = [
+        "flyby-pill",
+        "focus-pill-splashdown",
+        "panel-pill-media",
+        "panel-pill-craft-moon",
+        "panel-pill-craft-earth",
+        "panel-pill-earth-orbit-xy",
+    ];
+
     function getElement(id) {
         return documentRef?.getElementById?.(id) || null;
     }
@@ -46,21 +55,40 @@ export function createFocusPillController(deps = {}) {
         element.setAttribute?.("aria-pressed", isActive ? "true" : "false");
     }
 
+    function setShortcutHidden(id, hidden) {
+        const element = getElement(id);
+        if (element) {
+            element.hidden = hidden === true;
+        }
+    }
+
+    function queryVisiblePanel(selector) {
+        return !!documentRef?.querySelector?.(selector);
+    }
+
+    function isAuxPanelVisible(panelId) {
+        return queryVisiblePanel(
+            `#aux-camera-views .aux-camera-view[data-panel-id="${panelId}"]:not([hidden])`,
+        );
+    }
+
     function syncFocusPillVisibility() {
-        const flybyPill = getElement("flyby-pill");
-        const splashdownFocusPill = getElement("focus-pill-splashdown");
         const flybyPillWrap = getElement("flyby-pill-wrap");
         if (!flybyPillWrap) return;
 
-        const flybyVisible = isArtemis2Mission();
+        const panelShortcutsVisible = isArtemis2Mission();
         const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
-        if (flybyPill) {
-            flybyPill.hidden = !flybyVisible;
-        }
-        if (splashdownFocusPill) {
-            splashdownFocusPill.hidden = !splashdownVisible;
-        }
-        const visible = flybyVisible || splashdownVisible;
+        setShortcutHidden("flyby-pill", !panelShortcutsVisible);
+        setShortcutHidden("focus-pill-splashdown", !splashdownVisible);
+        setShortcutHidden("panel-pill-media", !panelShortcutsVisible);
+        setShortcutHidden("panel-pill-craft-moon", !panelShortcutsVisible);
+        setShortcutHidden("panel-pill-craft-earth", !panelShortcutsVisible);
+        setShortcutHidden("panel-pill-earth-orbit-xy", !panelShortcutsVisible);
+
+        const visible = panelShortcutIds.some((id) => {
+            const element = getElement(id);
+            return !!element && element.hidden !== true;
+        });
         const flybyGroup = flybyPillWrap.closest?.(".header-pill-group");
         if (flybyGroup) {
             flybyGroup.hidden = !visible;
@@ -77,19 +105,53 @@ export function createFocusPillController(deps = {}) {
     function syncFocusPillState() {
         const flybyPill = getElement("flyby-pill");
         const splashdownFocusPill = getElement("focus-pill-splashdown");
+        const mediaPill = getElement("panel-pill-media");
+        const craftMoonPill = getElement("panel-pill-craft-moon");
+        const craftEarthPill = getElement("panel-pill-craft-earth");
+        const earthOrbitXyPill = getElement("panel-pill-earth-orbit-xy");
         const composerPanelVisible = !!documentRef?.querySelector?.(
             "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
         );
         const groundTrackPanelVisible = !!documentRef?.querySelector?.(
             "#ground-track-panel:not(.ground-track-panel--hidden)",
         );
+        const mediaPanelVisible = !!documentRef?.querySelector?.(
+            "#media-browser-panel:not(.media-browser-panel--hidden)",
+        );
         syncPressedState(flybyPill, composerPanelVisible);
         syncPressedState(splashdownFocusPill, groundTrackPanelVisible);
+        syncPressedState(mediaPill, mediaPanelVisible);
+        syncPressedState(craftMoonPill, isAuxPanelVisible("aux:moon"));
+        syncPressedState(craftEarthPill, isAuxPanelVisible("aux:earth"));
+        syncPressedState(earthOrbitXyPill, isAuxPanelVisible("aux:earth-origin-orbit-xy"));
+    }
+
+    function ensureAuxiliaryPanelsEnabled() {
+        const auxiliaryPanelsToggle = getElement("view-aux-camera-panels");
+        if (
+            auxiliaryPanelsToggle &&
+            typeof auxiliaryPanelsToggle.checked === "boolean" &&
+            !auxiliaryPanelsToggle.checked &&
+            !auxiliaryPanelsToggle.disabled
+        ) {
+            auxiliaryPanelsToggle.checked = true;
+            if (typeof setView === "function") {
+                setView();
+            }
+        }
+    }
+
+    function invokeFirstAvailablePanelAction(panelId, actionNames) {
+        for (const actionName of actionNames) {
+            if (invokeMissionPanelAction(panelId, actionName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function restoreComposerPanel() {
-        const restored = invokeMissionPanelAction("aux:earth-rise-composer", "restoreGuided") ||
-            invokeMissionPanelAction("aux:earth-rise-composer", "restore");
+        const restored = invokeFirstAvailablePanelAction("aux:earth-rise-composer", ["restoreGuided", "restore", "open"]);
         if (restored) return;
 
         const composerChip = documentRef?.querySelector?.(
@@ -102,28 +164,35 @@ export function createFocusPillController(deps = {}) {
         }
     }
 
+    function restoreAuxiliaryPanel(panelId) {
+        ensureAuxiliaryPanelsEnabled();
+        invokeFirstAvailablePanelAction(panelId, ["restore", "open", "focus"]);
+        requestAnimationFrameImpl(syncFocusPillState);
+    }
+
+    function restoreMediaPanel() {
+        const restored = invokeFirstAvailablePanelAction("workflow:media-browser", ["restore", "open", "focus"]);
+        if (!restored) {
+            documentRef?.dispatchEvent?.(createCustomEvent("media-browser-panel-open"));
+        }
+        requestAnimationFrameImpl(syncFocusPillState);
+    }
+
     function bind() {
         if (bound) return;
         bound = true;
 
         const flybyPill = getElement("flyby-pill");
         const splashdownFocusPill = getElement("focus-pill-splashdown");
-        const auxiliaryPanelsToggle = getElement("view-aux-camera-panels");
+        const mediaPill = getElement("panel-pill-media");
+        const craftMoonPill = getElement("panel-pill-craft-moon");
+        const craftEarthPill = getElement("panel-pill-craft-earth");
+        const earthOrbitXyPill = getElement("panel-pill-earth-orbit-xy");
         const burnButtonsHost = getElement("burnbuttons");
 
         if (flybyPill) {
             flybyPill.addEventListener("click", function () {
-                if (
-                    auxiliaryPanelsToggle &&
-                    typeof auxiliaryPanelsToggle.checked === "boolean" &&
-                    !auxiliaryPanelsToggle.checked &&
-                    !auxiliaryPanelsToggle.disabled
-                ) {
-                    auxiliaryPanelsToggle.checked = true;
-                    if (typeof setView === "function") {
-                        setView();
-                    }
-                }
+                ensureAuxiliaryPanelsEnabled();
                 restoreComposerPanel();
                 requestAnimationFrameImpl(syncFocusPillState);
             });
@@ -132,10 +201,16 @@ export function createFocusPillController(deps = {}) {
         if (splashdownFocusPill) {
             splashdownFocusPill.addEventListener("click", function () {
                 if (!isArtemis2Mission()) return;
+                invokeFirstAvailablePanelAction("workflow:splashdown", ["restore", "open", "focus"]);
                 documentRef?.dispatchEvent?.(createCustomEvent("ground-track-panel-open"));
                 syncFocusPillState();
             });
         }
+
+        mediaPill?.addEventListener?.("click", restoreMediaPanel);
+        craftMoonPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:moon"));
+        craftEarthPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:earth"));
+        earthOrbitXyPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:earth-origin-orbit-xy"));
 
         if (burnButtonsHost && MutationObserverImpl) {
             const observer = new MutationObserverImpl(() => {
@@ -147,6 +222,18 @@ export function createFocusPillController(deps = {}) {
                 subtree: true,
                 attributes: true,
                 attributeFilter: ["class", "data-event-key", "data-event-time-ms", "title"],
+            });
+        }
+
+        const panelStateObserverTarget = documentRef?.body || documentRef?.documentElement || null;
+        if (panelStateObserverTarget && MutationObserverImpl) {
+            const observer = new MutationObserverImpl(() => {
+                syncFocusPillState();
+            });
+            observer.observe(panelStateObserverTarget, {
+                subtree: true,
+                attributes: true,
+                attributeFilter: ["class", "hidden", "data-panel-id"],
             });
         }
 

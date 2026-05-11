@@ -96,10 +96,11 @@ class DesktopPanelManager {
         this.launcher = document.createElement("button");
         this.launcher.type = "button";
         this.launcher.className = "panel-manager-launcher header-pill-segment__btn";
-        this.launcher.textContent = "Panels";
+        this.launcher.textContent = "Advanced";
         this.launcher.hidden = true;
         this.launcher.setAttribute("aria-haspopup", "dialog");
         this.launcher.setAttribute("aria-expanded", "false");
+        this.launcher.title = "Open advanced panel controls";
         this.launcher.addEventListener("click", () => {
             this.setMenuOpen(!this.menuOpen);
         });
@@ -110,7 +111,7 @@ class DesktopPanelManager {
         this.menu.setAttribute("aria-hidden", "true");
         this.menu.innerHTML = `
             <div class="panel-manager-menu__header">
-                <div class="panel-manager-menu__title">Panels</div>
+                <div class="panel-manager-menu__title">Advanced Panels</div>
                 <button type="button" class="panel-manager-menu__close" aria-label="Close panels menu" title="Close">x</button>
             </div>
             <div class="panel-manager-menu__body"></div>
@@ -129,7 +130,8 @@ class DesktopPanelManager {
         });
         this.root.appendChild(this.menu);
 
-        const headerRow = document.getElementById("header-pill-strip-tertiary") ||
+        const headerRow = document.getElementById("panel-manager-launcher-mount") ||
+            document.getElementById("header-pill-strip-tertiary") ||
             document.getElementById("header-pill-strip-secondary") ||
             document.getElementById("header-pill-strip-primary") ||
             document.getElementById("header-pill-strip") ||
@@ -333,7 +335,7 @@ class DesktopPanelManager {
             this.launcherSlot.hidden = !shouldShowLauncher;
         }
         this.launcher.hidden = !shouldShowLauncher;
-        this.launcher.textContent = "Panels";
+        this.launcher.textContent = "Advanced";
     }
 
     renderMenu() {

@@ -119,7 +119,8 @@ const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.24;
-const PANEL_SIDE_RATIO_COMPOSER = 0.364;
+const PANEL_DEFAULT_WIDTH_COMPOSER = 672;
+const PANEL_DEFAULT_HEIGHT_RATIO_COMPOSER = 0.6;
 const PANEL_MIN_SIDE_DEFAULT = 120;
 const PANEL_MIN_SIDE_COMPOSER = 300;
 const STARTUP_MINIMIZED_PANEL_IDS = new Set(["moon", "earth-to-moon"]);
@@ -157,7 +158,6 @@ const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
 const COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION = 1;
 const COMPOSER_DEFAULT_ROLL_RAD = 0;
-const COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO = 0.525;
 const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
 const COMPOSER_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
@@ -728,6 +728,7 @@ class AuxiliaryCameraViewsManager {
         this.zIndexCounter = 1;
         this.dragState = null;
         this.handleResizeBound = this.handleResize.bind(this);
+        this.handleExternalLayoutRequestBound = this.handleExternalLayoutRequest.bind(this);
         this.handleMissionMediaItemSelectBound = this.handleMissionMediaItemSelect.bind(this);
         this.panelStateByElement = new WeakMap();
         this.pendingResizePanelStates = new Set();
@@ -813,6 +814,7 @@ class AuxiliaryCameraViewsManager {
 
         this.createDom();
         window.addEventListener("resize", this.handleResizeBound, { passive: true });
+        document.addEventListener("moon-mission:auxiliary-panels-layout-request", this.handleExternalLayoutRequestBound);
         document.addEventListener("mission-media-item-select", this.handleMissionMediaItemSelectBound);
     }
 
@@ -1086,6 +1088,13 @@ class AuxiliaryCameraViewsManager {
         return Number.isFinite(parsed) ? parsed : PANEL_MARGIN_PX;
     }
 
+    handleExternalLayoutRequest() {
+        if (!this.root) {
+            return;
+        }
+        this.scheduleDefaultPanelLayout();
+    }
+
     clampPanelRect({ x, y, width, height }) {
         const viewportWidth = Math.max(window.innerWidth, 1);
         const viewportHeight = Math.max(window.innerHeight, 1);
@@ -1134,6 +1143,31 @@ class AuxiliaryCameraViewsManager {
             width: Math.max(160, right - left),
             height: Math.max(160, bottom - top),
         };
+    }
+
+    getManagedMediaBrowserPanel() {
+        const documentRef = typeof document !== "undefined" ? document : null;
+        const panel = typeof documentRef?.getElementById === "function"
+            ? documentRef.getElementById("media-browser-panel")
+            : null;
+        if (!panel || panel.classList.contains("media-browser-panel--hidden")) {
+            return null;
+        }
+        if (panel.classList.contains("is-maximized") || panel.dataset.defaultLayoutManaged === "false") {
+            return null;
+        }
+        return panel;
+    }
+
+    applyManagedMediaBrowserFrame(frame) {
+        const panel = this.getManagedMediaBrowserPanel();
+        if (!panel || typeof CustomEvent !== "function") {
+            return false;
+        }
+        panel.dispatchEvent(new CustomEvent("moon-mission:media-browser-default-frame", {
+            detail: frame,
+        }));
+        return true;
     }
 
     capturePanelFrame(panelState) {
@@ -1257,13 +1291,6 @@ class AuxiliaryCameraViewsManager {
         const viewportWidth = Math.max(window.innerWidth, 1);
         const viewportHeight = Math.max(window.innerHeight, 1);
         const bounds = this.resolvePanelViewportBounds();
-        const headerEl = document.querySelector(".header");
-        const timelineEl = document.querySelector(".timeline-dock");
-        const headerRect = headerEl?.getBoundingClientRect?.() || null;
-        const timelineRect = timelineEl?.getBoundingClientRect?.() || null;
-        const headerSpace = Number.isFinite(headerRect?.height) ? headerRect.height : 0;
-        const controlSpace = Number.isFinite(timelineRect?.height) ? timelineRect.height : 0;
-        const h = Math.max(0, viewportHeight - headerSpace - controlSpace);
         const dockOffset = this.readTimelineDockOffset();
         const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - dockOffset - PANEL_MARGIN_PX * 2);
         const maxPanelWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - (PANEL_MARGIN_PX * 2));
@@ -1273,41 +1300,17 @@ class AuxiliaryCameraViewsManager {
             .filter((panelState) => panelState.panel?.hidden !== true)
             .map((panelState) => {
             const isComposer = panelState.mode === "composer";
-            const sideFromFormula = isComposer
-                ? (PANEL_SIDE_RATIO_COMPOSER * h)
-                : (PANEL_DEFAULT_HEIGHT_RATIO * viewportHeight);
+            const sideFromFormula = PANEL_DEFAULT_HEIGHT_RATIO * viewportHeight;
+            const composerHeightFromFormula = PANEL_DEFAULT_HEIGHT_RATIO_COMPOSER * viewportHeight;
             const minSideTarget = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
             const minSide = Math.min(minSideTarget, maxSideFromWidth);
-            let width = Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
-            let height = width;
+            let width = isComposer
+                ? Math.round(this.THREE.MathUtils.clamp(PANEL_DEFAULT_WIDTH_COMPOSER, minSide, maxPanelWidth))
+                : Math.round(this.THREE.MathUtils.clamp(sideFromFormula, minSide, maxSideFromWidth));
+            let height = isComposer
+                ? Math.round(this.THREE.MathUtils.clamp(composerHeightFromFormula, minSide, maxPanelHeight))
+                : width;
             if (isComposer) {
-                const minComposerHeight = Math.round(viewportHeight * COMPOSER_DEFAULT_OPEN_MIN_VIEWPORT_HEIGHT_RATIO);
-                let preferredWidth = Math.max(width, minSideTarget);
-                let preferredHeight = Math.round(preferredWidth / COMPOSER_DEFAULT_ASPECT_RATIO);
-
-                if (preferredHeight > maxPanelHeight) {
-                    preferredHeight = maxPanelHeight;
-                    preferredWidth = Math.round(preferredHeight * COMPOSER_DEFAULT_ASPECT_RATIO);
-                }
-                if (preferredWidth > maxPanelWidth) {
-                    preferredWidth = maxPanelWidth;
-                    preferredHeight = Math.round(preferredWidth / COMPOSER_DEFAULT_ASPECT_RATIO);
-                }
-
-                width = Math.max(minSideTarget, Math.min(preferredWidth, maxPanelWidth));
-                height = Math.max(minSideTarget, Math.min(preferredHeight, maxPanelHeight));
-
-                const heightFloor = Math.max(minSideTarget, minComposerHeight);
-                const boundedHeightFloor = Math.min(heightFloor, maxPanelHeight);
-                if (height < boundedHeightFloor) {
-                    height = boundedHeightFloor;
-                    width = Math.round(height * COMPOSER_DEFAULT_ASPECT_RATIO);
-                    if (width > maxPanelWidth) {
-                        width = maxPanelWidth;
-                        height = Math.round(width / COMPOSER_DEFAULT_ASPECT_RATIO);
-                    }
-                }
-
                 // The controls column scrolls; don't let controls force the shooting frame huge.
                 panelState.panel.style.width = `${width}px`;
             }
@@ -1333,6 +1336,72 @@ class AuxiliaryCameraViewsManager {
         if (rightPanelRects.length === 3) {
             const preferredSide = Math.min(...rightPanelRects.map((item) => Math.min(item.width, item.height)));
             const maxSideFromHeight = Math.floor((bounds.height - (2 * PANEL_GAP_PX)) / 3);
+            const mediaBrowserPanel = composerRects.length > 0 ? this.getManagedMediaBrowserPanel() : null;
+
+            if (mediaBrowserPanel && composerRects.length > 0) {
+                const mediaRect = mediaBrowserPanel.getBoundingClientRect?.() || null;
+                const mediaWidth = Math.round(mediaRect?.width || mediaBrowserPanel.offsetWidth || 0);
+                const mediaHeight = Math.round(mediaRect?.height || mediaBrowserPanel.offsetHeight || 0);
+                const composerItem = composerRects[0];
+                const composerWidth = Math.round(composerItem.width || composerItem.panelState.panel.offsetWidth || 0);
+                const composerHeight = Math.round(composerItem.height || composerItem.panelState.panel.offsetHeight || 0);
+                const maxColumnSide = Math.min(preferredSide, maxSideFromHeight);
+                const sceneGapWidth = Math.max(
+                    88,
+                    Math.min(maxColumnSide, Math.round(bounds.width * 0.1)),
+                );
+                const maxSideFromWidth = Math.floor(
+                    bounds.width - mediaWidth - sceneGapWidth - composerWidth - PANEL_GAP_PX,
+                );
+                if (
+                    mediaWidth > 0 &&
+                    mediaHeight > 0 &&
+                    composerWidth > 0 &&
+                    composerHeight > 0 &&
+                    maxSideFromWidth >= PANEL_MIN_SIDE_DEFAULT
+                ) {
+                    const columnSide = Math.max(
+                        PANEL_MIN_SIDE_DEFAULT,
+                        Math.min(maxColumnSide, maxSideFromWidth),
+                    );
+                    const columnHeight = (3 * columnSide) + (2 * PANEL_GAP_PX);
+                    const columnLeft = Math.round(bounds.right - columnSide);
+                    const composerLeft = Math.round(columnLeft - PANEL_GAP_PX - composerWidth);
+                    const mediaLeft = Math.round(bounds.left);
+                    const columnTop = Math.round(bounds.top + Math.max(0, (bounds.height - columnHeight) * 0.5));
+                    const pairHeight = Math.max(mediaHeight, composerHeight);
+                    const pairTop = Math.round(bounds.top + Math.max(0, (bounds.height - pairHeight) * 0.5));
+
+                    rightPanelRects.forEach((item, index) => {
+                        item.width = columnSide;
+                        item.height = columnSide;
+                        item.panelState.panel.style.width = `${columnSide}px`;
+                        item.panelState.panel.style.height = `${columnSide}px`;
+                        this.applyPanelPosition(
+                            item.panelState,
+                            columnLeft,
+                            columnTop + (index * (columnSide + PANEL_GAP_PX)),
+                        );
+                    });
+
+                    for (const item of composerRects) {
+                        this.applyPanelPosition(
+                            item.panelState,
+                            composerLeft,
+                            pairTop + Math.round((pairHeight - composerHeight) * 0.5),
+                        );
+                    }
+
+                    this.applyManagedMediaBrowserFrame({
+                        x: mediaLeft,
+                        y: pairTop + Math.round((pairHeight - mediaHeight) * 0.5),
+                        width: mediaWidth,
+                        height: mediaHeight,
+                    });
+                    return;
+                }
+            }
+
             const composerWidth = composerRects.length ? Math.max(...composerRects.map((item) => item.width)) : 0;
             const maxSideFromWidth = Math.floor(
                 bounds.width - (composerWidth > 0 ? composerWidth + PANEL_GAP_PX : 0),
@@ -1805,17 +1874,18 @@ class AuxiliaryCameraViewsManager {
         panelState.onPointerCancel = releaseDrag;
     }
 
-    applyPanelSize(panelState, width, height) {
+    applyPanelFrame(panelState, { x, y, width, height }) {
         if (!panelState?.panel) {
             return;
         }
-        const bounds = this.resolvePanelViewportBounds();
         const isComposer = panelState.mode === "composer";
         const minSize = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
-        const maxWidth = Math.max(minSize, bounds.width - Math.max(0, panelState.x - bounds.left));
-        const maxHeight = Math.max(minSize, bounds.height - Math.max(0, panelState.y - bounds.top));
-        const nextWidth = Math.round(this.THREE.MathUtils.clamp(width, minSize, maxWidth));
-        const nextHeight = Math.round(this.THREE.MathUtils.clamp(height, minSize, maxHeight));
+        const nextWidth = Math.round(Math.max(minSize, Number(width) || minSize));
+        const nextHeight = Math.round(Math.max(minSize, Number(height) || minSize));
+        panelState.x = Math.round(Number(x) || 0);
+        panelState.y = Math.round(Number(y) || 0);
+        panelState.panel.style.left = `${panelState.x}px`;
+        panelState.panel.style.top = `${panelState.y}px`;
         panelState.panel.style.width = `${nextWidth}px`;
         panelState.panel.style.height = `${isComposer ? nextHeight : nextWidth}px`;
         this.syncPanelSize(panelState);
@@ -1826,16 +1896,90 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const RESIZE_HIT_PX = 28;
+        const RESIZE_EDGE_FUZZ_PX = 2;
 
-        const isInResizeCorner = (event) => {
+        const resolveCornerFromEvent = (event) => {
+            const grip = isDomElement(event.target)
+                ? event.target.closest(".aux-camera-view__resize-grip")
+                : null;
+            const gripCorner = asTrimmedString(grip?.dataset?.resizeCorner);
+            if (gripCorner) {
+                return gripCorner;
+            }
+
             const rect = panelState.panel.getBoundingClientRect();
-            return event.clientX >= rect.right - RESIZE_HIT_PX &&
-                event.clientX <= rect.right + 2 &&
-                event.clientY >= rect.bottom - RESIZE_HIT_PX &&
-                event.clientY <= rect.bottom + 2;
+            const nearLeft = event.clientX >= rect.left - RESIZE_EDGE_FUZZ_PX &&
+                event.clientX <= rect.left + RESIZE_HIT_PX;
+            const nearRight = event.clientX >= rect.right - RESIZE_HIT_PX &&
+                event.clientX <= rect.right + RESIZE_EDGE_FUZZ_PX;
+            const nearTop = event.clientY >= rect.top - RESIZE_EDGE_FUZZ_PX &&
+                event.clientY <= rect.top + RESIZE_HIT_PX;
+            const nearBottom = event.clientY >= rect.bottom - RESIZE_HIT_PX &&
+                event.clientY <= rect.bottom + RESIZE_EDGE_FUZZ_PX;
+            if (nearLeft && nearTop) return "nw";
+            if (nearRight && nearTop) return "ne";
+            if (nearLeft && nearBottom) return "sw";
+            if (nearRight && nearBottom) return "se";
+            return "";
         };
 
-        const startResize = (event, captureTarget) => {
+        const resolveResizeFrame = (resizeState, event) => {
+            const bounds = this.resolvePanelViewportBounds();
+            const isComposer = resizeState.panelState.mode === "composer";
+            const minSize = isComposer ? PANEL_MIN_SIDE_COMPOSER : PANEL_MIN_SIDE_DEFAULT;
+            const dx = event.clientX - resizeState.startX;
+            const dy = event.clientY - resizeState.startY;
+            const corner = resizeState.corner || "se";
+            let left = resizeState.x;
+            let top = resizeState.y;
+            let right = resizeState.x + resizeState.width;
+            let bottom = resizeState.y + resizeState.height;
+
+            if (corner.includes("w")) {
+                left += dx;
+                left = this.THREE.MathUtils.clamp(left, bounds.left, right - minSize);
+            } else {
+                right += dx;
+                right = this.THREE.MathUtils.clamp(right, left + minSize, bounds.right);
+            }
+
+            if (corner.includes("n")) {
+                top += dy;
+                top = this.THREE.MathUtils.clamp(top, bounds.top, bottom - minSize);
+            } else {
+                bottom += dy;
+                bottom = this.THREE.MathUtils.clamp(bottom, top + minSize, bounds.bottom);
+            }
+
+            if (!isComposer) {
+                const maxWidth = corner.includes("w") ? right - bounds.left : bounds.right - left;
+                const maxHeight = corner.includes("n") ? bottom - bounds.top : bounds.bottom - top;
+                const side = Math.round(this.THREE.MathUtils.clamp(
+                    Math.max(right - left, bottom - top),
+                    minSize,
+                    Math.max(minSize, Math.min(maxWidth, maxHeight)),
+                ));
+                if (corner.includes("w")) {
+                    left = right - side;
+                } else {
+                    right = left + side;
+                }
+                if (corner.includes("n")) {
+                    top = bottom - side;
+                } else {
+                    bottom = top + side;
+                }
+            }
+
+            return {
+                x: Math.round(left),
+                y: Math.round(top),
+                width: Math.round(right - left),
+                height: Math.round(bottom - top),
+            };
+        };
+
+        const startResize = (event, captureTarget, corner) => {
             panelState.defaultLayoutManaged = false;
             this.bringPanelToFront(panelState);
             this.resizeState = {
@@ -1843,8 +1987,11 @@ class AuxiliaryCameraViewsManager {
                 pointerId: event.pointerId,
                 startX: event.clientX,
                 startY: event.clientY,
+                x: Number.isFinite(panelState.x) ? panelState.x : panelState.panel.offsetLeft,
+                y: Number.isFinite(panelState.y) ? panelState.y : panelState.panel.offsetTop,
                 width: panelState.panel.offsetWidth || panelState.width || 0,
                 height: panelState.panel.offsetHeight || panelState.height || 0,
+                corner,
                 captureTarget,
             };
             captureTarget.setPointerCapture(event.pointerId);
@@ -1856,27 +2003,26 @@ class AuxiliaryCameraViewsManager {
             if (event.button !== 0 || panelState.maximized === true) {
                 return;
             }
-            startResize(event, resizeGrip);
+            const corner = resolveCornerFromEvent(event) || "se";
+            startResize(event, resizeGrip, corner);
         };
 
         const onPanelPointerDown = (event) => {
-            if (event.button !== 0 || panelState.maximized === true || !isInResizeCorner(event)) {
+            if (isDomElement(event.target) && event.target.closest("input, button, select, option, label, output, a")) {
                 return;
             }
-            startResize(event, panelState.panel);
+            const corner = resolveCornerFromEvent(event);
+            if (event.button !== 0 || panelState.maximized === true || !corner) {
+                return;
+            }
+            startResize(event, panelState.panel, corner);
         };
 
         const onPointerMove = (event) => {
             if (!this.resizeState || this.resizeState.pointerId !== event.pointerId) {
                 return;
             }
-            const dx = event.clientX - this.resizeState.startX;
-            const dy = event.clientY - this.resizeState.startY;
-            this.applyPanelSize(
-                this.resizeState.panelState,
-                this.resizeState.width + dx,
-                this.resizeState.height + dy,
-            );
+            this.applyPanelFrame(this.resizeState.panelState, resolveResizeFrame(this.resizeState, event));
             this.requestRender?.();
             event.preventDefault();
         };
@@ -2781,10 +2927,15 @@ class AuxiliaryCameraViewsManager {
         viewport.appendChild(overlayCanvas);
         const overlayCtx = overlayCanvas.getContext("2d");
 
-        const resizeGrip = document.createElement("div");
-        resizeGrip.className = "aux-camera-view__resize-grip";
-        resizeGrip.setAttribute("aria-hidden", "true");
-        panel.appendChild(resizeGrip);
+        const resizeGrips = ["nw", "ne", "sw", "se"].map((corner) => {
+            const grip = document.createElement("div");
+            grip.className = `aux-camera-view__resize-grip aux-camera-view__resize-grip--${corner}`;
+            grip.dataset.resizeCorner = corner;
+            grip.setAttribute("aria-hidden", "true");
+            panel.appendChild(grip);
+            return grip;
+        });
+        const resizeGrip = resizeGrips[resizeGrips.length - 1];
 
         const chipButton = document.createElement("button");
         chipButton.className = "aux-camera-chip";
@@ -2800,6 +2951,7 @@ class AuxiliaryCameraViewsManager {
             : new this.THREE.PerspectiveCamera(spec.defaultFov, 1, 0.0001, 100000);
         camera.up.set(0, 0, 1);
         const panelRegistryId = `aux:${spec.id}`;
+        panel.dataset.panelId = panelRegistryId;
         const persistedLayout = readMissionPanelState(panelRegistryId);
         const persistedState = normalizeMissionPanelState(persistedLayout?.state, "");
         const hasPersistedVisibilityState = persistedState.length > 0;
@@ -8533,6 +8685,7 @@ class AuxiliaryCameraViewsManager {
         }
 
         window.removeEventListener("resize", this.handleResizeBound);
+        document.removeEventListener("moon-mission:auxiliary-panels-layout-request", this.handleExternalLayoutRequestBound);
         document.removeEventListener("mission-media-item-select", this.handleMissionMediaItemSelectBound);
         if (this.panelResizeObserver) {
             this.panelResizeObserver.disconnect();

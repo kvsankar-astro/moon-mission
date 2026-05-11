@@ -140,27 +140,27 @@
         "aux:earth": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-column-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
         },
         "aux:moon": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-column-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
         },
         "aux:earth-to-moon": {
           "enabled": true,
           "defaultState": "minimized",
-          "layoutPresetVersion": "artemis2-aux-right-column-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
         },
         "aux:earth-origin-orbit-xy": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-aux-right-column-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
         },
         "aux:earth-rise-composer": {
           "enabled": true,
           "defaultState": "minimized",
-          "layoutPresetVersion": "artemis2-frame-shoot-right-column-v2"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
         },
         "workflow:media-browser": {
           "enabled": true,

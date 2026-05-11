@@ -13,19 +13,21 @@ import {
 } from "./panel-defaults.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v2-windowed";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v7-wide-independent-60vh-media-frame";
 const PANEL_EDGE_MARGIN_PX = 8;
-const PANEL_DEFAULT_LEFT_PX = 22;
-const PANEL_DEFAULT_BOTTOM_GAP_PX = 12;
-const PANEL_DEFAULT_WIDTH_PX = 560;
-const PANEL_DEFAULT_HEIGHT_PX = 500;
+const PANEL_DEFAULT_LEFT_PX = 8;
+const PANEL_DEFAULT_WIDTH_PX = 672;
+const PANEL_DEFAULT_HEIGHT_RATIO = 0.6;
+const PANEL_MIN_WIDTH_PX = 360;
+const PANEL_MIN_HEIGHT_PX = 360;
+const PANEL_RESIZE_HIT_PX = 28;
 const DRILLDOWN_DRAWER_WIDTH_PX = 320;
 const DRILLDOWN_DRAWER_MIN_WIDTH_PX = 260;
 const DRILLDOWN_DRAWER_MIN_HEIGHT_PX = 180;
 const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = 148;
 const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
 const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
-const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 140;
+const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 160;
 const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
 const THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX = 36;
 const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
@@ -140,14 +142,8 @@ function getViewportHeight() {
     return Number.isFinite(height) && height > 0 ? height : 900;
 }
 
-function getCssCustomPropertyNumber(name, fallbackValue) {
-    const documentElement = getDocumentRef()?.documentElement || null;
-    const getComputedStyleFn = globalThis.getComputedStyle;
-    if (!documentElement || typeof getComputedStyleFn !== "function") {
-        return fallbackValue;
-    }
-    const value = Number.parseFloat(getComputedStyleFn(documentElement).getPropertyValue(name));
-    return Number.isFinite(value) ? value : fallbackValue;
+function getPanelDefaultHeightPx() {
+    return Math.round(getViewportHeight() * PANEL_DEFAULT_HEIGHT_RATIO);
 }
 
 function createMediaBrowserPanelActions({
@@ -162,6 +158,7 @@ function createMediaBrowserPanelActions({
     let panelVisibilityState = "closed";
     let panelPosition = null;
     let dragState = null;
+    let panelResizeDragState = null;
     let thumbnailResizeDragState = null;
     let thumbnailScrollerDragState = null;
     let suppressThumbnailClick = false;
@@ -175,7 +172,7 @@ function createMediaBrowserPanelActions({
     if (String(restoredPanelLayout?.layoutPresetVersion || "").trim() !== MEDIA_BROWSER_LAYOUT_PRESET_VERSION) {
         restoredPanelLayout = null;
     }
-    let hasRestoredPanelLayout = !!restoredPanelLayout;
+    let defaultLayoutManaged = restoredPanelLayout?.defaultLayoutManaged !== false;
     let thumbnailStripHeight = Number.isFinite(Number(restoredPanelLayout?.thumbnailStripHeight))
         && Number(restoredPanelLayout.thumbnailStripHeight) > 0
         ? Math.round(Number(restoredPanelLayout.thumbnailStripHeight))
@@ -249,12 +246,10 @@ function createMediaBrowserPanelActions({
     }
 
     function resolveDefaultPanelPosition(panel) {
-        const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, 360);
-        const height = Math.max(panel.offsetHeight || PANEL_DEFAULT_HEIGHT_PX, 340);
-        const timelineHeight = getCssCustomPropertyNumber("--timeline-dock-height", 88);
-        const timelineOffset = getCssCustomPropertyNumber("--timeline-dock-offset", 10);
+        const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, PANEL_MIN_WIDTH_PX);
+        const height = Math.max(panel.offsetHeight || getPanelDefaultHeightPx(), PANEL_MIN_HEIGHT_PX);
         const x = PANEL_DEFAULT_LEFT_PX;
-        const y = getViewportHeight() - height - timelineHeight - timelineOffset - PANEL_DEFAULT_BOTTOM_GAP_PX;
+        const y = Math.round((getViewportHeight() - height) * 0.5);
         return clampPanelRect({ x, y, width, height });
     }
 
@@ -269,13 +264,66 @@ function createMediaBrowserPanelActions({
 
     function applyPanelPosition(panel, x, y) {
         if (!panel) return;
-        const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, 360);
-        const height = Math.max(panel.offsetHeight || PANEL_DEFAULT_HEIGHT_PX, 340);
+        const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, PANEL_MIN_WIDTH_PX);
+        const height = Math.max(panel.offsetHeight || getPanelDefaultHeightPx(), PANEL_MIN_HEIGHT_PX);
         const clamped = clampPanelRect({ x, y, width, height });
         panelPosition = clamped;
         panel.style.left = `${clamped.x}px`;
         panel.style.top = `${clamped.y}px`;
         syncDrilldownFlyoutPlacement();
+    }
+
+    function setDefaultLayoutManaged(managed, panel = getNode("media-browser-panel")) {
+        defaultLayoutManaged = managed !== false;
+        if (isElementLike(panel) && panel.dataset) {
+            panel.dataset.defaultLayoutManaged = defaultLayoutManaged ? "true" : "false";
+        }
+    }
+
+    function clampPanelFrame({ x, y, width, height }) {
+        const nextWidth = clamp(
+            Math.round(Number(width) || PANEL_DEFAULT_WIDTH_PX),
+            PANEL_MIN_WIDTH_PX,
+            Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - (2 * PANEL_EDGE_MARGIN_PX)),
+        );
+        const nextHeight = clamp(
+            Math.round(Number(height) || getPanelDefaultHeightPx()),
+            PANEL_MIN_HEIGHT_PX,
+            Math.max(PANEL_MIN_HEIGHT_PX, getViewportHeight() - (2 * PANEL_EDGE_MARGIN_PX)),
+        );
+        const maxX = Math.max(PANEL_EDGE_MARGIN_PX, getViewportWidth() - nextWidth - PANEL_EDGE_MARGIN_PX);
+        const maxY = Math.max(PANEL_EDGE_MARGIN_PX, getViewportHeight() - nextHeight - PANEL_EDGE_MARGIN_PX);
+        return {
+            x: clamp(Math.round(Number(x) || PANEL_EDGE_MARGIN_PX), PANEL_EDGE_MARGIN_PX, maxX),
+            y: clamp(Math.round(Number(y) || PANEL_EDGE_MARGIN_PX), PANEL_EDGE_MARGIN_PX, maxY),
+            width: nextWidth,
+            height: nextHeight,
+        };
+    }
+
+    function applyPanelFrame(panel, frame, { managed = defaultLayoutManaged, persist = true } = {}) {
+        if (!isElementLike(panel) || !frame) return;
+        const clamped = clampPanelFrame(frame);
+        panel.style.width = `${clamped.width}px`;
+        panel.style.height = `${clamped.height}px`;
+        panelPosition = { x: clamped.x, y: clamped.y };
+        panel.style.left = `${clamped.x}px`;
+        panel.style.top = `${clamped.y}px`;
+        setDefaultLayoutManaged(managed, panel);
+        syncDrilldownFlyoutPlacement();
+        applyThumbnailStripHeight(thumbnailStripHeight);
+        applyImageViewState(imageViewState, { animate: false });
+        if (persist) {
+            persistPanelLayoutState(panel);
+        }
+    }
+
+    function requestAuxiliaryPanelLayout() {
+        const documentRef = getDocumentRef();
+        if (!documentRef?.dispatchEvent || typeof CustomEvent !== "function") {
+            return;
+        }
+        documentRef.dispatchEvent(new CustomEvent("moon-mission:auxiliary-panels-layout-request"));
     }
 
     function clampPanelPosition(panel) {
@@ -317,6 +365,7 @@ function createMediaBrowserPanelActions({
             state: panelVisibilityState,
             maximized: panelExpanded === true,
             layoutPresetVersion: MEDIA_BROWSER_LAYOUT_PRESET_VERSION,
+            defaultLayoutManaged: defaultLayoutManaged !== false,
             thumbnailStripHeight: Math.round(thumbnailStripHeight),
             restoreFrame: restorePanelFrame && typeof restorePanelFrame === "object"
                 ? {
@@ -380,7 +429,8 @@ function createMediaBrowserPanelActions({
             constraints.max,
         );
         const cssValue = `${thumbnailStripHeight}px`;
-        if (panel.style.getPropertyValue("--media-browser-thumbnail-strip-height") !== cssValue) {
+        const heightChanged = panel.style.getPropertyValue("--media-browser-thumbnail-strip-height") !== cssValue;
+        if (heightChanged) {
             panel.style.setProperty("--media-browser-thumbnail-strip-height", cssValue);
         }
 
@@ -396,6 +446,10 @@ function createMediaBrowserPanelActions({
         }
         if (persist) {
             persistPanelLayoutState(panel);
+        }
+        if (heightChanged) {
+            applyImageViewState(imageViewState, { animate: false });
+            revealActiveThumbnail();
         }
     }
 
@@ -744,7 +798,7 @@ function createMediaBrowserPanelActions({
             Math.max(PANEL_EDGE_MARGIN_PX, viewportHeight - DRILLDOWN_DRAWER_MIN_HEIGHT_PX),
         );
         const height = clamp(
-            Math.round(panelRect.height || PANEL_DEFAULT_HEIGHT_PX),
+            Math.round(panelRect.height || getPanelDefaultHeightPx()),
             DRILLDOWN_DRAWER_MIN_HEIGHT_PX,
             Math.max(DRILLDOWN_DRAWER_MIN_HEIGHT_PX, viewportHeight - top - PANEL_EDGE_MARGIN_PX),
         );
@@ -770,6 +824,7 @@ function createMediaBrowserPanelActions({
         const onPointerDown = (event) => {
             if (panelExpanded === true) return;
             if (!shouldStartDrag(event)) return;
+            setDefaultLayoutManaged(false, panel);
             const rect = panel.getBoundingClientRect();
             dragState = {
                 pointerId: event.pointerId,
@@ -802,6 +857,130 @@ function createMediaBrowserPanelActions({
         header.addEventListener("pointermove", onPointerMove);
         header.addEventListener("pointerup", releaseDrag);
         header.addEventListener("pointercancel", releaseDrag);
+    }
+
+    function ensurePanelResizeGrips(panel) {
+        if (!isElementLike(panel)) return;
+        for (const corner of ["nw", "ne", "sw", "se"]) {
+            if (panel.querySelector?.(`.media-browser-panel__resize-grip--${corner}`)) {
+                continue;
+            }
+            const grip = createElement("div");
+            if (!grip) continue;
+            grip.className = `media-browser-panel__resize-grip media-browser-panel__resize-grip--${corner}`;
+            grip.dataset.resizeCorner = corner;
+            grip.setAttribute("aria-hidden", "true");
+            panel.appendChild(grip);
+        }
+    }
+
+    function resolvePanelResizeCorner(panel, event) {
+        const grip = isObjectLike(event?.target) && typeof event.target.closest === "function"
+            ? event.target.closest(".media-browser-panel__resize-grip")
+            : null;
+        const gripCorner = String(grip?.dataset?.resizeCorner || "").trim();
+        if (gripCorner) return gripCorner;
+
+        const rect = panel?.getBoundingClientRect?.() || null;
+        if (!rect) return "";
+        const nearLeft = event.clientX >= rect.left - 2 && event.clientX <= rect.left + PANEL_RESIZE_HIT_PX;
+        const nearRight = event.clientX >= rect.right - PANEL_RESIZE_HIT_PX && event.clientX <= rect.right + 2;
+        const nearTop = event.clientY >= rect.top - 2 && event.clientY <= rect.top + PANEL_RESIZE_HIT_PX;
+        const nearBottom = event.clientY >= rect.bottom - PANEL_RESIZE_HIT_PX && event.clientY <= rect.bottom + 2;
+        if (nearLeft && nearTop) return "nw";
+        if (nearRight && nearTop) return "ne";
+        if (nearLeft && nearBottom) return "sw";
+        if (nearRight && nearBottom) return "se";
+        return "";
+    }
+
+    function resolvePanelResizeFrame(resizeState, event) {
+        const dx = event.clientX - resizeState.startX;
+        const dy = event.clientY - resizeState.startY;
+        const corner = resizeState.corner || "se";
+        let left = resizeState.x;
+        let top = resizeState.y;
+        let right = resizeState.x + resizeState.width;
+        let bottom = resizeState.y + resizeState.height;
+        const bounds = {
+            left: PANEL_EDGE_MARGIN_PX,
+            top: PANEL_EDGE_MARGIN_PX,
+            right: getViewportWidth() - PANEL_EDGE_MARGIN_PX,
+            bottom: getViewportHeight() - PANEL_EDGE_MARGIN_PX,
+        };
+
+        if (corner.includes("w")) {
+            left = clamp(left + dx, bounds.left, right - PANEL_MIN_WIDTH_PX);
+        } else {
+            right = clamp(right + dx, left + PANEL_MIN_WIDTH_PX, bounds.right);
+        }
+
+        if (corner.includes("n")) {
+            top = clamp(top + dy, bounds.top, bottom - PANEL_MIN_HEIGHT_PX);
+        } else {
+            bottom = clamp(bottom + dy, top + PANEL_MIN_HEIGHT_PX, bounds.bottom);
+        }
+
+        return {
+            x: left,
+            y: top,
+            width: right - left,
+            height: bottom - top,
+        };
+    }
+
+    function bindPanelResizing(panel) {
+        if (!isElementLike(panel)) return;
+        ensurePanelResizeGrips(panel);
+
+        const startResize = (event, corner) => {
+            setDefaultLayoutManaged(false, panel);
+            const rect = panel.getBoundingClientRect();
+            panelResizeDragState = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                x: Math.round(rect.left),
+                y: Math.round(rect.top),
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+                corner,
+            };
+            panel.setPointerCapture?.(event.pointerId);
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        panel.addEventListener("pointerdown", (event) => {
+            if (event.button !== 0 || panelExpanded === true) return;
+            if (isObjectLike(event.target) && typeof event.target.closest === "function" &&
+                event.target.closest("input, button, select, option, label, output, a")) {
+                return;
+            }
+            const corner = resolvePanelResizeCorner(panel, event);
+            if (!corner) return;
+            startResize(event, corner);
+        }, true);
+
+        panel.addEventListener("pointermove", (event) => {
+            if (!panelResizeDragState || panelResizeDragState.pointerId !== event.pointerId) return;
+            applyPanelFrame(panel, resolvePanelResizeFrame(panelResizeDragState, event), {
+                managed: false,
+                persist: false,
+            });
+            event.preventDefault();
+        });
+
+        const releaseResize = (event) => {
+            if (!panelResizeDragState || panelResizeDragState.pointerId !== event.pointerId) return;
+            panel.releasePointerCapture?.(event.pointerId);
+            panelResizeDragState = null;
+            persistPanelLayoutState(panel);
+            event.preventDefault();
+        };
+
+        panel.addEventListener("pointerup", releaseResize);
+        panel.addEventListener("pointercancel", releaseResize);
     }
 
     function confirmDeletePanel() {
@@ -941,6 +1120,9 @@ function createMediaBrowserPanelActions({
         } else {
             panel.classList.remove("is-maximized");
             ensurePanelPosition(panel);
+            if (defaultLayoutManaged !== false) {
+                requestAuxiliaryPanelLayout();
+            }
         }
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
@@ -1407,6 +1589,7 @@ function createMediaBrowserPanelActions({
                 defaultPanelStateApplied = true;
             }
             panel.classList.toggle("is-maximized", panelExpanded === true);
+            setDefaultLayoutManaged(defaultLayoutManaged, panel);
         }
 
         if (!infoButton && isElementLike(headerControls) && typeof headerControls.insertBefore === "function") {
@@ -1450,6 +1633,21 @@ function createMediaBrowserPanelActions({
         }
 
         bindPanelDragging(panel, header);
+        bindPanelResizing(panel);
+        panel?.addEventListener?.("moon-mission:media-browser-default-frame", (event) => {
+            if (
+                defaultLayoutManaged === false ||
+                panelVisibilityState !== "open" ||
+                panelExpanded === true ||
+                !isElementLike(panel)
+            ) {
+                return;
+            }
+            applyPanelFrame(panel, event.detail || {}, {
+                managed: true,
+                persist: true,
+            });
+        });
         bindImageViewControls();
         bindThumbnailStripResizer();
         bindThumbnailStripDragging();

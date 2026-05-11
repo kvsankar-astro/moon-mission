@@ -1021,9 +1021,9 @@
                 </div>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
-                    <div class="header-pill-group header-pill-group--focus" role="group" aria-label="Focus control">
-                        <span class="header-pill-group__label">Focus</span>
-                        <div id="flyby-pill-wrap" class="header-pill-segment" role="group" aria-label="Focus options">
+                    <div class="header-pill-group header-pill-group--panels" role="group" aria-label="Panels">
+                        <span class="header-pill-group__label">Panels</span>
+                        <div id="flyby-pill-wrap" class="header-pill-segment header-pill-segment--panels" role="group" aria-label="Panel shortcuts">
                             <button
                                 id="flyby-pill"
                                 type="button"
@@ -1031,7 +1031,7 @@
                                 aria-pressed="false"
                                 title="Open Frame and Shoot panel"
                             >
-                                Frame and Shoot
+                                Frame & Focus
                             </button>
                             <button
                                 id="focus-pill-splashdown"
@@ -1043,7 +1043,44 @@
                             >
                                 Splashdown
                             </button>
+                            <button
+                                id="panel-pill-media"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Mission Media"
+                            >
+                                Mission Media
+                            </button>
+                            <button
+                                id="panel-pill-craft-moon"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Craft to Moon panel"
+                            >
+                                Craft &rarr; Moon
+                            </button>
+                            <button
+                                id="panel-pill-craft-earth"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Craft to Earth panel"
+                            >
+                                Craft &rarr; Earth
+                            </button>
+                            <button
+                                id="panel-pill-earth-orbit-xy"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Earth Orbit 2D XY panel"
+                            >
+                                Earth Orbit XY
+                            </button>
                         </div>
+                        <span id="panel-manager-launcher-mount" class="panel-manager-launcher-mount" aria-label="Advanced panel controls"></span>
                     </div>
                     <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Moon surface profile">
                         <span class="header-pill-group__label">Moon Surface</span>

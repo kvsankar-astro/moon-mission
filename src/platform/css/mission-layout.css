@@ -104,22 +104,70 @@ canvas {
 
 .aux-camera-view__resize-grip {
     position: absolute;
-    right: 0;
-    bottom: 0;
     z-index: 8;
     width: 30px;
     height: 30px;
-    cursor: nwse-resize;
     touch-action: none;
+}
+
+.aux-camera-view__resize-grip--nw {
+    left: 0;
+    top: 0;
+    cursor: nwse-resize;
+}
+
+.aux-camera-view__resize-grip--ne {
+    right: 0;
+    top: 0;
+    cursor: nesw-resize;
+}
+
+.aux-camera-view__resize-grip--sw {
+    left: 0;
+    bottom: 0;
+    cursor: nesw-resize;
+}
+
+.aux-camera-view__resize-grip--se {
+    right: 0;
+    bottom: 0;
+    cursor: nwse-resize;
 }
 
 .aux-camera-view__resize-grip::before {
     content: "";
     position: absolute;
-    right: 6px;
-    bottom: 6px;
     width: 12px;
     height: 12px;
+}
+
+.aux-camera-view__resize-grip--nw::before {
+    left: 6px;
+    top: 6px;
+    border-left: 1px solid rgba(173, 208, 255, 0.74);
+    border-top: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: -4px -4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.aux-camera-view__resize-grip--ne::before {
+    right: 6px;
+    top: 6px;
+    border-right: 1px solid rgba(173, 208, 255, 0.74);
+    border-top: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: 4px -4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.aux-camera-view__resize-grip--sw::before {
+    left: 6px;
+    bottom: 6px;
+    border-left: 1px solid rgba(173, 208, 255, 0.74);
+    border-bottom: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: -4px 4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.aux-camera-view__resize-grip--se::before {
+    right: 6px;
+    bottom: 6px;
     border-right: 1px solid rgba(173, 208, 255, 0.74);
     border-bottom: 1px solid rgba(173, 208, 255, 0.74);
     box-shadow: 4px 4px 0 -3px rgba(173, 208, 255, 0.46);
@@ -343,7 +391,7 @@ canvas {
     --aux-composer-triangle-size: 12px;
     grid-template-rows: auto 1fr;
     grid-template-columns: minmax(300px, 36%) minmax(0, 1fr);
-    min-width: 760px;
+    min-width: 420px;
     min-height: 320px;
     aspect-ratio: auto;
 }

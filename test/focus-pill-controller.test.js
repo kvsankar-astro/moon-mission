@@ -76,6 +76,10 @@ function createHarness(options = {}) {
     let splashdownVisible = options.splashdownVisible === true;
     let composerVisible = options.composerVisible === true;
     let groundTrackVisible = options.groundTrackVisible === true;
+    let mediaVisible = options.mediaVisible === true;
+    let craftMoonVisible = options.craftMoonVisible === true;
+    let craftEarthVisible = options.craftEarthVisible === true;
+    let earthOrbitXyVisible = options.earthOrbitXyVisible === true;
 
     class FakeMutationObserver {
         constructor(callback) {
@@ -93,6 +97,10 @@ function createHarness(options = {}) {
     const flybyWrap = createElement("flyby-pill-wrap", { closestHeaderGroup: flybyGroup });
     const flybyPill = createElement("flyby-pill");
     const splashdownPill = createElement("focus-pill-splashdown");
+    const mediaPill = createElement("panel-pill-media");
+    const craftMoonPill = createElement("panel-pill-craft-moon");
+    const craftEarthPill = createElement("panel-pill-craft-earth");
+    const earthOrbitXyPill = createElement("panel-pill-earth-orbit-xy");
     const tertiaryRow = createElement("header-pill-strip-tertiary");
     const auxPanelsToggle = createElement("view-aux-camera-panels");
     const burnButtonsHost = createElement("burnbuttons");
@@ -102,6 +110,10 @@ function createHarness(options = {}) {
         ["flyby-pill-wrap", flybyWrap],
         ["flyby-pill", flybyPill],
         ["focus-pill-splashdown", splashdownPill],
+        ["panel-pill-media", mediaPill],
+        ["panel-pill-craft-moon", craftMoonPill],
+        ["panel-pill-craft-earth", craftEarthPill],
+        ["panel-pill-earth-orbit-xy", earthOrbitXyPill],
         ["header-pill-strip-tertiary", tertiaryRow],
         ["view-aux-camera-panels", auxPanelsToggle],
         ["burnbuttons", burnButtonsHost],
@@ -117,6 +129,18 @@ function createHarness(options = {}) {
             }
             if (selector === "#ground-track-panel:not(.ground-track-panel--hidden)") {
                 return groundTrackVisible ? { id: "ground-track-panel" } : null;
+            }
+            if (selector === "#media-browser-panel:not(.media-browser-panel--hidden)") {
+                return mediaVisible ? { id: "media-browser-panel" } : null;
+            }
+            if (selector === "#aux-camera-views .aux-camera-view[data-panel-id=\"aux:moon\"]:not([hidden])") {
+                return craftMoonVisible ? { id: "moon-view" } : null;
+            }
+            if (selector === "#aux-camera-views .aux-camera-view[data-panel-id=\"aux:earth\"]:not([hidden])") {
+                return craftEarthVisible ? { id: "earth-view" } : null;
+            }
+            if (selector === "#aux-camera-views .aux-camera-view[data-panel-id=\"aux:earth-origin-orbit-xy\"]:not([hidden])") {
+                return earthOrbitXyVisible ? { id: "earth-origin-orbit-xy-view" } : null;
             }
             if (selector === "#aux-camera-views .aux-camera-chip--composer-tab") {
                 return options.hasComposerTab === false ? null : composerChip;
@@ -154,7 +178,9 @@ function createHarness(options = {}) {
         },
     };
 
-    const invokeMissionPanelAction = vi.fn(() => options.restoreComposer === true);
+    const invokeMissionPanelAction = vi.fn((panelId) =>
+        (options.restoreComposer === true && panelId === "aux:earth-rise-composer") ||
+        options.restoredPanelId === panelId);
     const setView = vi.fn();
     const createCustomEvent = (type) => ({ type });
     const controller = createFocusPillController({
@@ -180,7 +206,10 @@ function createHarness(options = {}) {
         auxPanelsToggle,
         composerChip,
         controller,
+        craftEarthPill,
+        craftMoonPill,
         documentRef,
+        earthOrbitXyPill,
         flushRaf,
         flybyGroup,
         flybyPill,
@@ -192,10 +221,14 @@ function createHarness(options = {}) {
         setGroundTrackVisible(value) {
             groundTrackVisible = value;
         },
+        setMediaVisible(value) {
+            mediaVisible = value;
+        },
         setSplashdownVisible(value) {
             splashdownVisible = value;
         },
         setView,
+        mediaPill,
         splashdownPill,
         tertiaryRow,
     };
@@ -205,7 +238,11 @@ describe("createFocusPillController", function () {
     it("syncs initial focus pill visibility and active state for Artemis II", function () {
         const harness = createHarness({
             composerVisible: true,
+            craftEarthVisible: true,
+            craftMoonVisible: true,
+            earthOrbitXyVisible: true,
             groundTrackVisible: true,
+            mediaVisible: true,
             splashdownVisible: true,
         });
 
@@ -214,9 +251,17 @@ describe("createFocusPillController", function () {
 
         expect(harness.flybyPill.hidden).toBe(false);
         expect(harness.splashdownPill.hidden).toBe(false);
+        expect(harness.mediaPill.hidden).toBe(false);
+        expect(harness.craftMoonPill.hidden).toBe(false);
+        expect(harness.craftEarthPill.hidden).toBe(false);
+        expect(harness.earthOrbitXyPill.hidden).toBe(false);
         expect(harness.flybyGroup.hidden).toBe(false);
         expect(harness.flybyPill.classList.contains("is-active")).toBe(true);
         expect(harness.splashdownPill.classList.contains("is-active")).toBe(true);
+        expect(harness.mediaPill.classList.contains("is-active")).toBe(true);
+        expect(harness.craftMoonPill.classList.contains("is-active")).toBe(true);
+        expect(harness.craftEarthPill.classList.contains("is-active")).toBe(true);
+        expect(harness.earthOrbitXyPill.classList.contains("is-active")).toBe(true);
         expect(harness.tertiaryRow.scrollLeft).toBe(0);
     });
 
@@ -242,6 +287,25 @@ describe("createFocusPillController", function () {
             "restore",
         );
         expect(harness.composerChip.clicked).toBe(true);
+    });
+
+    it("opens the one-click panel shortcuts through mission panel actions", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.auxPanelsToggle.checked = false;
+        harness.mediaPill.dispatchEvent({ type: "click" });
+        harness.craftMoonPill.dispatchEvent({ type: "click" });
+        harness.craftEarthPill.dispatchEvent({ type: "click" });
+        harness.earthOrbitXyPill.dispatchEvent({ type: "click" });
+        harness.flushRaf();
+
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:media-browser", "restore");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:moon", "restore");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth", "restore");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-origin-orbit-xy", "restore");
+        expect(harness.auxPanelsToggle.checked).toBe(true);
+        expect(harness.setView).toHaveBeenCalled();
     });
 
     it("dispatches the splashdown open event only for Artemis II", function () {
