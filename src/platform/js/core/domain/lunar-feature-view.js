@@ -13,17 +13,17 @@ export const LUNAR_FEATURE_PRESET_IDS = Object.freeze({
 
 const BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS = Object.freeze({
     "Satellite Feature": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
-    "Crater, craters": { enabled: true, minDiameterKm: 120, maxDiameterKm: null },
-    "Rima, rimae": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Mons, montes": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Dorsum, dorsa": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Mare, maria": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Catena, catenae": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Vallis, valles": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Promontorium, promontoria": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Palus, paludes": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Oceanus, oceani": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
-    "Planitia, planitiae": { enabled: true, minDiameterKm: 0, maxDiameterKm: null },
+    "Crater, craters": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Rima, rimae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Mons, montes": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Dorsum, dorsa": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Mare, maria": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Catena, catenae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Vallis, valles": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Promontorium, promontoria": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Palus, paludes": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Oceanus, oceani": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Planitia, planitiae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
 });
 
 const BASE_DEFAULT_LUNAR_FEATURE_VIEW_STATE = Object.freeze({

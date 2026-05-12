@@ -153,10 +153,10 @@ function buildPresetTypeFilters(baseFilters, presetId) {
         const existing = current[stats.featureType] || {};
         const minDiameterKm = Number.isFinite(existing.minDiameterKm)
             ? existing.minDiameterKm
-            : TYPE_FILTER_DEFAULT_MIN_KM;
+            : null;
         const maxDiameterKm = Number.isFinite(existing.maxDiameterKm)
             ? existing.maxDiameterKm
-            : Math.max(TYPE_FILTER_DEFAULT_MAX_KM, Math.ceil(stats.maxDiameterKm / 10) * 10);
+            : null;
         next[stats.featureType] = {
             enabled: existing.enabled !== false,
             minDiameterKm,
@@ -169,7 +169,8 @@ function buildPresetTypeFilters(baseFilters, presetId) {
         switch (presetId) {
             case LUNAR_FEATURE_PRESET_IDS.ALL:
                 filter.enabled = true;
-                filter.minDiameterKm = TYPE_FILTER_DEFAULT_MIN_KM;
+                filter.minDiameterKm = null;
+                filter.maxDiameterKm = null;
                 break;
             case LUNAR_FEATURE_PRESET_IDS.CRATERS_ONLY:
                 filter.enabled = isCrater;
@@ -624,16 +625,16 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
         for (const [featureType, controls] of elements.typeControls.entries()) {
             const entry = normalizedTypeFilters[featureType] || {};
             const active = entry.enabled !== false;
-            controls.row?.classList?.toggle?.("is-disabled", !active);
+            controls.row?.classList?.toggle?.("is-disabled", controlsDisabled);
             if (controls.toggle) {
                 controls.toggle.checked = active;
                 controls.toggle.disabled = controlsDisabled;
             }
             if (controls.minInput) {
-                controls.minInput.disabled = controlsDisabled || !active;
+                controls.minInput.disabled = controlsDisabled;
             }
             if (controls.maxInput) {
-                controls.maxInput.disabled = controlsDisabled || !active;
+                controls.maxInput.disabled = controlsDisabled;
             }
             if (controls.row) {
                 controls.row.title = formatTypeRangeValue(entry.minDiameterKm, entry.maxDiameterKm);
@@ -806,7 +807,6 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
                 const current = readLunarCraterControlState(elements);
                 commit(
                     {
-                        viewLunarCraters: true,
                         lunarFeatureTypeFilters: buildPresetTypeFilters(current.lunarFeatureTypeFilters, presetId),
                     },
                     { sourceId: `lunar-feature-preset:${presetId}` },

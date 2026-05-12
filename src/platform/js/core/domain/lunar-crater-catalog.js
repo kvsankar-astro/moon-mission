@@ -37,6 +37,14 @@ function readFiniteNumber(value, fallback) {
     return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
+function readOptionalFiniteNumber(value, fallback) {
+    if (value === null || value === undefined || value === "") {
+        return fallback;
+    }
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
 function normalizeVector3(vector) {
     if (!vector) return null;
     const x = Number(Array.isArray(vector) ? vector[0] : vector.x);
@@ -871,12 +879,14 @@ export function getCraterDisplayFeatures(catalog = {}, options = {}) {
         if (typeFilter?.enabled === false) {
             continue;
         }
-        const minDiameterKm = Number.isFinite(Number(typeFilter?.minDiameterKm))
-            ? Number(typeFilter.minDiameterKm)
-            : diameterRange.lunarCraterMinDiameterKm;
-        const maxDiameterKm = Number.isFinite(Number(typeFilter?.maxDiameterKm))
-            ? Number(typeFilter.maxDiameterKm)
-            : diameterRange.lunarCraterMaxDiameterKm;
+        const minDiameterKm = readOptionalFiniteNumber(
+            typeFilter?.minDiameterKm,
+            diameterRange.lunarCraterMinDiameterKm,
+        );
+        const maxDiameterKm = readOptionalFiniteNumber(
+            typeFilter?.maxDiameterKm,
+            diameterRange.lunarCraterMaxDiameterKm,
+        );
         if (feature.diameterKm > maxDiameterKm) {
             continue;
         }
