@@ -116,6 +116,7 @@ function createHarness(options = {}) {
     const lunarCraterVisibleToggle = createElement("lunar-crater-visible-toggle");
     const lunarCraterHoverInput = createElement("lunar-crater-hover-labels", { checked: true });
     const lunarCraterDisplayMode = createElement("lunar-crater-display-mode", { value: "hover" });
+    const lunarCraterOffToggle = createElement("lunar-crater-off-toggle");
     const lunarCraterHoverToggle = createElement("lunar-crater-hover-toggle");
     const lunarCraterCount = createElement("lunar-crater-count", { value: "120" });
     const lunarCraterCountValue = createElement("lunar-crater-count-value");
@@ -152,6 +153,7 @@ function createHarness(options = {}) {
         ["view-moon-osculating-orbit", viewMoonOrbitInput],
         ["view-body-halos", bodyHaloToggle],
         ["lunar-crater-controls-panel", lunarCraterPanel],
+        ["lunar-crater-off-toggle", lunarCraterOffToggle],
         ["lunar-crater-visible-toggle", lunarCraterVisibleToggle],
         ["lunar-crater-hover-labels", lunarCraterHoverInput],
         ["lunar-crater-display-mode", lunarCraterDisplayMode],
@@ -268,6 +270,7 @@ function createHarness(options = {}) {
         lunarCraterDisplayMode,
         lunarCraterHoverInput,
         lunarCraterHoverToggle,
+        lunarCraterOffToggle,
         lunarCraterPanel,
         lunarCratersPill,
         lunarCraterVisibleToggle,
@@ -283,6 +286,7 @@ function createHarness(options = {}) {
         originRelativeInput,
         qualityPill,
         secondaryOrbitLabel,
+        viewLunarCratersInput,
         viewMoonOrbitInput,
         viewOrbitInput,
     };
@@ -382,6 +386,8 @@ describe("createViewSettingsPillController", function () {
 
         expect(harness.lunarCraterPanel.hidden).toBe(false);
         expect(harness.lunarCratersPill["aria-expanded"]).toBe("true");
+        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
+        expect(harness.lunarCraterCount.disabled).toBe(true);
 
         harness.lunarCraterVisibleToggle.dispatchEvent({
             type: "click",
@@ -396,6 +402,7 @@ describe("createViewSettingsPillController", function () {
             { sourceId: "lunar-crater-visible-toggle" },
         );
         expect(harness.lunarCraterDisplayMode.value).toBe("always");
+        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("false");
         expect(harness.lunarCraterCount.disabled).toBe(false);
 
         harness.lunarCraterHoverToggle.dispatchEvent({
@@ -411,6 +418,18 @@ describe("createViewSettingsPillController", function () {
             { sourceId: "lunar-crater-hover-toggle" },
         );
         expect(harness.lunarCraterDisplayMode.value).toBe("hover");
+        expect(harness.lunarCraterCount.disabled).toBe(true);
+
+        harness.lunarCraterOffToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarCraterOffToggle,
+        });
+        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+            { viewLunarCraters: false },
+            { sourceId: "lunar-crater-off-toggle" },
+        );
+        expect(harness.viewLunarCratersInput.checked).toBe(false);
+        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
         expect(harness.lunarCraterCount.disabled).toBe(true);
 
         harness.lunarCraterCount.value = "250";

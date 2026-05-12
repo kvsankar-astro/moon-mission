@@ -102,6 +102,8 @@ function createMissionRuntimeWireupEntryContext({
     isTestMode,
     getTimelineEventInfos,
     setTimelineMediaMarkers,
+    syncViewIdentity,
+    applyViewForCurrentIdentity,
 }) {
     return {
         d3,
@@ -149,6 +151,8 @@ function createMissionRuntimeWireupEntryContext({
         isTestMode,
         getTimelineEventInfos,
         setTimelineMediaMarkers,
+        syncViewIdentity,
+        applyViewForCurrentIdentity,
     };
 }
 

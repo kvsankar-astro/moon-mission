@@ -22,6 +22,7 @@ export function createCameraActions({
     readPlaneSelection,
     setPlaneSelection,
     handlePlaneChange,
+    applyViewForCurrentIdentity = null,
     render,
     getViewSky,
     getViewConstellationLines,
@@ -875,6 +876,9 @@ export function createCameraActions({
         lastAppliedPositionMode = positionMode;
         lastAppliedLookMode = lookMode;
         lastAppliedConfig = config;
+        if (typeof applyViewForCurrentIdentity === "function" && applyViewForCurrentIdentity()) {
+            return;
+        }
         render();
     }
 
@@ -896,6 +900,9 @@ export function createCameraActions({
             scene.cameraController?.controls?.update?.();
         }
         updateMountedBodyVisibility(scene, positionMode);
+        if (typeof applyViewForCurrentIdentity === "function" && applyViewForCurrentIdentity()) {
+            return;
+        }
         render();
     }
 
@@ -925,6 +932,9 @@ export function createCameraActions({
                 controls.update?.();
                 render();
             }
+        }
+        if (typeof applyViewForCurrentIdentity === "function") {
+            applyViewForCurrentIdentity();
         }
     }
 

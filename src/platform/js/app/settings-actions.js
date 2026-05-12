@@ -34,6 +34,7 @@ export function createSettingsActions({
     setViewFlags,
     setDimension,
     onConfigChanged,
+    syncViewIdentity = null,
 }) {
     function syncLocatorsPillState(enabled) {
         if (typeof document === "undefined") return;
@@ -210,6 +211,9 @@ export function createSettingsActions({
     }
 
     function setView() {
+        if (typeof syncViewIdentity === "function") {
+            syncViewIdentity();
+        }
         const requestedView = readViewSettings();
         setViewFlags(requestedView);
         syncLocatorsPillState(requestedView.viewBodyHalos);

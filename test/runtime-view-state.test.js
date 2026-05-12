@@ -92,6 +92,71 @@ describe("runtime-view-state", () => {
         expect(flags.viewEquatorialPlane).toBe(true);
         expect(flags.viewFPS).toBe(false);
     });
+
+    it("keeps lunar crater presentation scoped to the current view identity", () => {
+        const state = createRuntimeViewState({
+            initialConfig: "geo",
+            initialCurrentDimension: "3D",
+        });
+
+        state.setCurrentViewIdentity({
+            originMode: "geo",
+            cameraPositionMode: "manual",
+            cameraLookMode: "manual",
+            planeSelection: "DEFAULT",
+            dimension: "3D",
+        });
+        state.setViewFlags({
+            viewLunarCraters: true,
+            lunarCraterDisplayMode: "always",
+            lunarCraterHoverLabels: false,
+            lunarCraterLimit: 250,
+        });
+
+        state.setCurrentViewIdentity({
+            originMode: "geo",
+            cameraPositionMode: "spacecraft",
+            cameraLookMode: "moon",
+            planeSelection: "DEFAULT",
+            dimension: "3D",
+        });
+
+        expect(state.getViewLunarCraters()).toBe(false);
+        expect(state.getLunarCraterDisplayMode()).toBe("hover");
+        expect(state.getLunarCraterHoverLabels()).toBe(true);
+        expect(state.getLunarCraterLimit()).toBe(120);
+
+        state.setViewFlags({
+            viewLunarCraters: true,
+            lunarCraterDisplayMode: "hover",
+            lunarCraterHoverLabels: true,
+            lunarCraterLimit: 75,
+        });
+
+        state.setCurrentViewIdentity({
+            originMode: "geo",
+            cameraPositionMode: "manual",
+            cameraLookMode: "manual",
+            planeSelection: "DEFAULT",
+            dimension: "3D",
+        });
+        expect(state.getViewLunarCraters()).toBe(true);
+        expect(state.getLunarCraterDisplayMode()).toBe("always");
+        expect(state.getLunarCraterHoverLabels()).toBe(false);
+        expect(state.getLunarCraterLimit()).toBe(250);
+
+        state.setCurrentViewIdentity({
+            originMode: "geo",
+            cameraPositionMode: "spacecraft",
+            cameraLookMode: "moon",
+            planeSelection: "DEFAULT",
+            dimension: "3D",
+        });
+        expect(state.getViewLunarCraters()).toBe(true);
+        expect(state.getLunarCraterDisplayMode()).toBe("hover");
+        expect(state.getLunarCraterHoverLabels()).toBe(true);
+        expect(state.getLunarCraterLimit()).toBe(75);
+    });
 });
 
 

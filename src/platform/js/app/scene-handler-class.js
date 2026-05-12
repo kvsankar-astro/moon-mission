@@ -27,8 +27,6 @@ function createSceneHandlerClass(deps) {
         getRuntimeState,
         getViewEarthClouds = null,
         setViewEarthClouds = null,
-        getViewLunarCraters = null,
-        setViewLunarCraters = null,
     } = deps;
 
     return class SceneHandler {
@@ -175,23 +173,6 @@ function createSceneHandlerClass(deps) {
                             this.render(this.lastAnimationScene);
                         }
                         return this.earthCloudsEnabled;
-                    },
-                    getLunarCratersEnabled: () => {
-                        if (typeof getViewLunarCraters === "function") {
-                            return getViewLunarCraters();
-                        }
-                        const runtimeCraters = getRuntimeState?.().viewLunarCraters;
-                        return runtimeCraters === true;
-                    },
-                    setLunarCratersEnabled: (value) => {
-                        if (typeof setViewLunarCraters === "function") {
-                            return setViewLunarCraters(value);
-                        }
-                        if (this.lastAnimationScene) {
-                            this.lastAnimationScene.setLunarCraterAnnotationsVisible?.(value === true);
-                            this.render(this.lastAnimationScene);
-                        }
-                        return value === true;
                     },
                     requestRender: () => {
                         if (!this.lastAnimationScene || this.auxiliaryCameraRenderRaf != null) {

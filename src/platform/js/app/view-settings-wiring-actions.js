@@ -35,6 +35,8 @@ function createViewSettingsWiringActions(deps) {
         getAnimationRunning,
         setViewFlags,
         onConfigChanged,
+        syncViewIdentity,
+        applyViewForCurrentIdentity,
     } = deps;
 
     const dimensionActions = createDimensionActions({
@@ -59,6 +61,7 @@ function createViewSettingsWiringActions(deps) {
         toggleLanding,
         updateProgressLabel,
         loadProgress,
+        applyViewForCurrentIdentity,
     });
 
     const { toggleMode, setDimensionTop, setView } = createSettingsActions({
@@ -76,6 +79,7 @@ function createViewSettingsWiringActions(deps) {
         setViewFlags,
         setDimension: dimensionActions.setDimension,
         onConfigChanged,
+        syncViewIdentity,
     });
 
     return {

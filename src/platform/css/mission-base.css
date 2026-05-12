@@ -461,7 +461,7 @@ body {
 
 .lunar-crater-controls-panel__toggles {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1px;
     padding: 2px;
     border: 1px solid rgba(100, 130, 180, 0.36);

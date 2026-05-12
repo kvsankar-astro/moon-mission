@@ -59,6 +59,7 @@ function createRuntimeCameraControlActions(deps) {
         readPlaneSelection: deps.readPlaneSelection,
         setPlaneSelection: deps.setPlaneSelection,
         handlePlaneChange: deps.handlePlaneChange,
+        applyViewForCurrentIdentity: deps.applyViewForCurrentIdentity,
         render: deps.render,
         getViewSky: deps.getViewSky,
         getViewConstellationLines: deps.getViewConstellationLines,

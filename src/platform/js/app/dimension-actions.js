@@ -28,6 +28,7 @@ export function createDimensionActions({
     toggleLanding,
     updateProgressLabel,
     loadProgress,
+    applyViewForCurrentIdentity = null,
 }) {
     const progress =
         loadProgress &&
@@ -38,6 +39,12 @@ export function createDimensionActions({
         typeof loadProgress.isActive === "function"
             ? loadProgress
             : null;
+
+    function applyIdentityScopedView() {
+        if (typeof applyViewForCurrentIdentity === "function") {
+            applyViewForCurrentIdentity();
+        }
+    }
 
     function setDimension(init_flag = false) {
         const transitionPlan = planDimensionTransition({
@@ -85,6 +92,7 @@ export function createDimensionActions({
                     handleDimensionSwitch(transitionPlan.requestedDimension);
                     handlePlaneChange(getDimensionChanged(), init_flag);
                     setLocation();
+                    applyIdentityScopedView();
                     if (getStartLandingFlag()) {
                         clearStartLandingFlag();
                         toggleLanding();
@@ -98,6 +106,7 @@ export function createDimensionActions({
                 handleDimensionSwitch(transitionPlan.requestedDimension);
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
+                applyIdentityScopedView();
                 if (getStartLandingFlag()) {
                     clearStartLandingFlag();
                     toggleLanding();
@@ -116,6 +125,7 @@ export function createDimensionActions({
                 handlePlaneChange(getDimensionChanged(), init_flag);
                 setLocation();
                 adjustLabelLocations();
+                applyIdentityScopedView();
                 if (getStartLandingFlag()) {
                     clearStartLandingFlag();
                     toggleLanding();

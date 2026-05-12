@@ -45,6 +45,8 @@ function buildUiPort(ctx) {
         resetViewTransformState,
         uiEffects,
         setTimelineMediaMarkers,
+        syncViewIdentity,
+        applyViewForCurrentIdentity,
     } = ctx;
 
     return {
@@ -92,6 +94,8 @@ function buildUiPort(ctx) {
         initRepeatButtons,
         resetViewTransformState,
         setTimelineMediaMarkers,
+        syncViewIdentity,
+        applyViewForCurrentIdentity,
         ...(uiEffects || {}),
     };
 }

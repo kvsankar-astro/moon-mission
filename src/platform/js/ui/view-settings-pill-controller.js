@@ -140,6 +140,7 @@ export function createViewSettingsPillController(deps = {}) {
             visibleInput: getElement("view-lunar-craters"),
             hoverInput: getElement("lunar-crater-hover-labels"),
             modeInput: getElement("lunar-crater-display-mode"),
+            offToggle: getElement("lunar-crater-off-toggle"),
             visibleToggle: getElement("lunar-crater-visible-toggle"),
             hoverToggle: getElement("lunar-crater-hover-toggle"),
             countSlider: getElement("lunar-crater-count"),
@@ -169,6 +170,7 @@ export function createViewSettingsPillController(deps = {}) {
             visibleInput,
             hoverInput,
             modeInput,
+            offToggle,
             visibleToggle,
             hoverToggle,
             countSlider,
@@ -183,6 +185,10 @@ export function createViewSettingsPillController(deps = {}) {
             pill.classList?.toggle?.("is-open", panelOpen);
             pill.setAttribute?.("aria-expanded", panelOpen ? "true" : "false");
         }
+        if (offToggle) {
+            syncPressedState(offToggle, !enabled);
+            offToggle.textContent = "Off";
+        }
         if (visibleToggle) {
             syncPressedState(visibleToggle, enabled && mode === LUNAR_CRATER_DISPLAY_MODE_ALWAYS);
             visibleToggle.textContent = "Show always";
@@ -193,10 +199,10 @@ export function createViewSettingsPillController(deps = {}) {
         }
         if (countSlider && countValue) {
             countValue.textContent = String(Math.round(getNumericControlValue(countSlider)));
-            countSlider.disabled = mode === LUNAR_CRATER_DISPLAY_MODE_HOVER;
+            countSlider.disabled = !enabled || mode === LUNAR_CRATER_DISPLAY_MODE_HOVER;
             countSlider.setAttribute?.(
                 "aria-disabled",
-                mode === LUNAR_CRATER_DISPLAY_MODE_HOVER ? "true" : "false",
+                (!enabled || mode === LUNAR_CRATER_DISPLAY_MODE_HOVER) ? "true" : "false",
             );
         }
     }
@@ -250,6 +256,7 @@ export function createViewSettingsPillController(deps = {}) {
             visibleInput,
             hoverInput,
             modeInput,
+            offToggle,
             visibleToggle,
             hoverToggle,
             countSlider,
@@ -260,6 +267,16 @@ export function createViewSettingsPillController(deps = {}) {
                 if (pill.disabled || pill.getAttribute?.("aria-disabled") === "true") return;
                 event?.stopPropagation?.();
                 toggleLunarCraterPanel();
+            });
+        }
+        if (offToggle) {
+            offToggle.addEventListener("click", function () {
+                if (visibleInput) visibleInput.checked = false;
+                commitLunarCraterViewPatch(
+                    { viewLunarCraters: false },
+                    { sourceId: "lunar-crater-off-toggle" },
+                );
+                syncLunarCraterPanelState();
             });
         }
         if (visibleToggle) {
@@ -645,6 +662,7 @@ export function createViewSettingsPillController(deps = {}) {
         }
 
         bindLunarCraterControlPanel();
+        documentRef?.addEventListener?.("moon-mission:view-identity-settings-applied", sync);
 
         const landingToggle = getElement("landing");
         if (landingToggle) {

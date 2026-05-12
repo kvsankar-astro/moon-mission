@@ -281,6 +281,8 @@ function createViewSettingsWiringDeps(ctx, { dataflow, loadProgress }) {
         getAnimationRunning: ctx.getAnimationRunning,
         setViewFlags: ctx.setViewFlags,
         onConfigChanged: ctx.onConfigChanged,
+        syncViewIdentity: ctx.syncViewIdentity,
+        applyViewForCurrentIdentity: ctx.applyViewForCurrentIdentity,
     };
 }
 

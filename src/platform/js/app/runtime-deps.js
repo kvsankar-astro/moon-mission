@@ -95,6 +95,7 @@ function createRuntimeUiControlsDeps(deps) {
         readPlaneSelection,
         setPlaneSelectionState,
         handlePlaneChange,
+        applyViewForCurrentIdentity,
         getViewSky,
         getViewConstellationLines,
         getGlobalConfig,
@@ -163,6 +164,7 @@ function createRuntimeUiControlsDeps(deps) {
             setPlaneSelectionState(val, getConfig());
         },
         handlePlaneChange,
+        applyViewForCurrentIdentity,
         getViewSky,
         getViewConstellationLines,
         getGlobalConfig,

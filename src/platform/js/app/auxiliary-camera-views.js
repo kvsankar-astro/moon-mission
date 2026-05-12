@@ -715,8 +715,6 @@ class AuxiliaryCameraViewsManager {
         requestRender,
         getEarthCloudsEnabled = null,
         setEarthCloudsEnabled = null,
-        getLunarCratersEnabled = null,
-        setLunarCratersEnabled = null,
     }) {
         this.THREE = THREE;
         this.overlayHost = overlayHost || document.body;
@@ -726,12 +724,6 @@ class AuxiliaryCameraViewsManager {
             : () => true;
         this.setEarthCloudsEnabled = typeof setEarthCloudsEnabled === "function"
             ? setEarthCloudsEnabled
-            : null;
-        this.getLunarCratersEnabled = typeof getLunarCratersEnabled === "function"
-            ? getLunarCratersEnabled
-            : () => false;
-        this.setLunarCratersEnabled = typeof setLunarCratersEnabled === "function"
-            ? setLunarCratersEnabled
             : null;
         this.root = null;
         this.chipDock = null;
@@ -3443,8 +3435,7 @@ class AuxiliaryCameraViewsManager {
                 if (!panelState.composerLunarCratersCheckbox) {
                     return;
                 }
-                const enabled = this.getLunarCratersEnabled() === true;
-                panelState.composerLunarCratersEnabled = enabled;
+                const enabled = panelState.composerLunarCratersEnabled === true;
                 panelState.composerLunarCratersCheckbox.checked = enabled;
                 const title = enabled
                     ? "Hide lunar crater annotations"
@@ -3631,7 +3622,6 @@ class AuxiliaryCameraViewsManager {
                 activateComposerForControl();
                 const nextEnabled = panelState.composerLunarCratersCheckbox?.checked === true;
                 panelState.composerLunarCratersEnabled = nextEnabled;
-                this.setLunarCratersEnabled?.(nextEnabled);
                 syncComposerLunarCratersUi();
                 requestComposerControlRender();
                 this.queuePersistPanelState();
@@ -5744,6 +5734,36 @@ class AuxiliaryCameraViewsManager {
         renderer.autoClear = false;
         configureCraftRenderLayers(camera);
         renderer.render(scene, camera);
+    }
+
+    renderLayersWithLunarCraterVisibility(renderer, scene, camera, options = {}) {
+        const craterGroup = scene?.getObjectByName?.("lunar-crater-annotations") || null;
+        if (!craterGroup) {
+            this.renderLayers(renderer, scene, camera, options);
+            return;
+        }
+
+        const previousVisible = craterGroup.visible;
+        craterGroup.visible = options.lunarCratersVisible === true;
+        try {
+            this.renderLayers(renderer, scene, camera, options);
+        } finally {
+            craterGroup.visible = previousVisible;
+        }
+    }
+
+    renderComposerLayers(panelState, scene, options = {}) {
+        this.renderLayersWithLunarCraterVisibility(panelState.renderer, scene, panelState.camera, {
+            ...options,
+            lunarCratersVisible: panelState.composerLunarCratersEnabled === true,
+        });
+    }
+
+    renderAuxiliaryPanelLayers(panelState, scene, options = {}) {
+        this.renderLayersWithLunarCraterVisibility(panelState.renderer, scene, panelState.camera, {
+            ...options,
+            lunarCratersVisible: panelState.lunarCratersEnabled === true,
+        });
     }
 
     requestComposerCoronaAnimationFrame() {
@@ -8151,7 +8171,6 @@ class AuxiliaryCameraViewsManager {
         this.setPanelVisible(panelState, true);
         panelState.composerEarthCloudsEnabled = earthCloudsEnabled !== false;
         panelState.syncComposerCloudsUi?.();
-        panelState.composerLunarCratersEnabled = this.getLunarCratersEnabled() === true;
         panelState.syncComposerLunarCratersUi?.();
         this.syncPanelSize(panelState);
         this.setPanelFov(panelState, panelState.camera.fov);
@@ -8296,7 +8315,7 @@ class AuxiliaryCameraViewsManager {
             eclipseActive: panelState.composerSolarEclipseActive,
         });
         try {
-            this.renderLayers(panelState.renderer, scene, panelState.camera, {
+            this.renderComposerLayers(panelState, scene, {
                 renderSkyLayer: hasSkyContainer && skyContainer?.visible !== false,
             });
         } finally {
@@ -8650,7 +8669,7 @@ class AuxiliaryCameraViewsManager {
                     presentation: photoModePresentation,
                 });
                 try {
-                    this.renderLayers(panelState.renderer, scene, panelState.camera, {
+                    this.renderAuxiliaryPanelLayers(panelState, scene, {
                         renderSkyLayer: hasSkyContainer && skyContainer?.visible !== false,
                     });
                 } finally {

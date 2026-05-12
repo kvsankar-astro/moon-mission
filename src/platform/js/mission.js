@@ -22,7 +22,14 @@ import {
 } from "./core/domain/runtime-mode.js";
 import { startMissionApp } from "./app/mission-app.js";
 import { showElementById } from "./ui/dom-helpers.js";
-import { applyViewSettings } from "./ui/ui-state.js";
+import {
+    applyViewSettings,
+    readCameraLookMode,
+    readCameraPositionMode,
+    readDimensionSelection,
+    readPlaneSelection,
+    readViewSettings,
+} from "./ui/ui-state.js";
 import { syncCompareModeControls } from "./ui/event-handlers.js";
 import { bindRuntimeInteractionActivity } from "./ui/runtime-interaction-activity.js";
 import {
@@ -352,6 +359,13 @@ const {
     changeCompareAlignment,
 } = initialMissionViewState;
 runtimeViewState.setConfig(initialMissionViewState.config);
+runtimeViewState.setCurrentViewIdentity({
+    originMode: initialMissionViewState.config,
+    cameraPositionMode: readCameraPositionMode(),
+    cameraLookMode: readCameraLookMode(),
+    planeSelection,
+    dimension: runtimeViewState.getCurrentDimension(),
+});
 runtimeViewState.setViewFlags({
     viewPhotoMode: runtimeViewState.getViewPhotoMode(),
     viewEarthClouds: runtimeViewState.getViewEarthClouds(),
@@ -381,6 +395,54 @@ runtimeViewState.setViewFlags({
     trailTailBrightness2D: runtimeViewState.getTrailTailBrightness2D(),
     trailTailBrightness3D: runtimeViewState.getTrailTailBrightness3D(),
 });
+
+function dispatchViewSettingsAppliedForIdentity() {
+    document.dispatchEvent(
+        new CustomEvent("moon-mission:view-identity-settings-applied", {
+            detail: {
+                viewIdentity: runtimeViewState.getCurrentViewIdentity(),
+                viewIdentityKey: runtimeViewState.getCurrentViewIdentityKey(),
+            },
+        }),
+    );
+}
+
+function readCurrentViewIdentity() {
+    return {
+        originMode: runtimeViewState.getConfig() || "geo",
+        cameraPositionMode: readCameraPositionMode(),
+        cameraLookMode: readCameraLookMode(),
+        planeSelection:
+            sceneViewStateActions.getPlaneSelectionState?.(runtimeViewState.getConfig()) ||
+            readPlaneSelection(),
+        dimension: runtimeViewState.getCurrentDimension() || readDimensionSelection(),
+    };
+}
+
+function syncRuntimeViewIdentityFromControls() {
+    const result = runtimeViewState.setCurrentViewIdentity(
+        readCurrentViewIdentity(),
+        { previousViewFlags: readViewSettings() },
+    );
+    if (result.changed) {
+        applyViewSettings(result.viewFlags);
+        dispatchViewSettingsAppliedForIdentity();
+    }
+    return result;
+}
+
+function applyViewForCurrentIdentity() {
+    syncRuntimeViewIdentityFromControls();
+    if (typeof setView === "function") {
+        setView({
+            detail: {
+                reason: "view-identity-change",
+            },
+        });
+        return true;
+    }
+    return false;
+}
 
 function getTimelineEventInfos() {
     const currentConfig = runtimeViewState.getConfig();
@@ -528,6 +590,12 @@ const {
         if (lunarCraterPill) {
             lunarCraterPill.classList.toggle("is-active", enabled);
             lunarCraterPill.setAttribute("aria-pressed", enabled ? "true" : "false");
+        }
+        const lunarCraterOffToggle = document.getElementById("lunar-crater-off-toggle");
+        if (lunarCraterOffToggle) {
+            lunarCraterOffToggle.classList.toggle("is-active", !enabled);
+            lunarCraterOffToggle.setAttribute("aria-pressed", enabled ? "false" : "true");
+            lunarCraterOffToggle.textContent = "Off";
         }
         const lunarCraterVisibleToggle = document.getElementById("lunar-crater-visible-toggle");
         if (lunarCraterVisibleToggle) {
@@ -739,6 +807,8 @@ const wireupEntryContext = createMissionRuntimeWireupEntryContext({
     isTestMode,
     getTimelineEventInfos,
     setTimelineMediaMarkers,
+    syncViewIdentity: syncRuntimeViewIdentityFromControls,
+    applyViewForCurrentIdentity,
 });
 
 const {

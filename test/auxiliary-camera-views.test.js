@@ -195,6 +195,74 @@ describe("Frame and Shoot drag sensitivity math", () => {
 });
 
 describe("Frame and Shoot FoV bounds", () => {
+    it("applies lunar crater visibility for a composer render without mutating the shared scene", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const renderer = {};
+        const camera = {};
+        const craterGroup = { visible: false };
+        const scene = {
+            getObjectByName: vi.fn((name) =>
+                name === "lunar-crater-annotations" ? craterGroup : null,
+            ),
+        };
+        const renderedVisibility = [];
+        manager.renderLayers = vi.fn(() => {
+            renderedVisibility.push(craterGroup.visible);
+        });
+
+        manager.renderComposerLayers(
+            {
+                renderer,
+                camera,
+                composerLunarCratersEnabled: true,
+            },
+            scene,
+            { renderSkyLayer: false },
+        );
+
+        expect(renderedVisibility).toEqual([true]);
+        expect(craterGroup.visible).toBe(false);
+
+        craterGroup.visible = true;
+        manager.renderComposerLayers(
+            {
+                renderer,
+                camera,
+                composerLunarCratersEnabled: false,
+            },
+            scene,
+            { renderSkyLayer: false },
+        );
+
+        expect(renderedVisibility).toEqual([true, false]);
+        expect(craterGroup.visible).toBe(true);
+    });
+
+    it("keeps ordinary auxiliary renders independent from fullscreen lunar crater visibility", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const renderer = {};
+        const camera = {};
+        const craterGroup = { visible: true };
+        const scene = {
+            getObjectByName: vi.fn((name) =>
+                name === "lunar-crater-annotations" ? craterGroup : null,
+            ),
+        };
+        const renderedVisibility = [];
+        manager.renderLayers = vi.fn(() => {
+            renderedVisibility.push(craterGroup.visible);
+        });
+
+        manager.renderAuxiliaryPanelLayers(
+            { renderer, camera },
+            scene,
+            { renderSkyLayer: false },
+        );
+
+        expect(renderedVisibility).toEqual([false]);
+        expect(craterGroup.visible).toBe(true);
+    });
+
     it("allows manual crater-scale FoV down to a tenth of a degree", () => {
         const updates = [];
         const position = { x: 12, y: 34, z: 56 };

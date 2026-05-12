@@ -181,6 +181,7 @@ function createRuntimeUiControlsDepsFromPorts(
         handlePlaneChange: renderPort.handlePlaneChange,
         getViewSky: sceneView.getViewSky,
         getViewConstellationLines: sceneView.getViewConstellationLines,
+        applyViewForCurrentIdentity: uiPort.applyViewForCurrentIdentity,
         getGlobalConfig: app.getGlobalConfig,
         updateCraftScale: renderPort.updateCraftScale,
         getLandingFlag: session.getLandingFlag,

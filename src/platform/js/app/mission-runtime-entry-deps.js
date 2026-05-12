@@ -78,6 +78,8 @@ function createMissionRuntimeWireupContext(
         clockEffects: missionClockEffects,
         readPlaneSelection: ctx.readPlaneSelection,
         toggleStatsVisibility: ctx.toggleStatsVisibility,
+        syncViewIdentity: ctx.syncViewIdentity,
+        applyViewForCurrentIdentity: ctx.applyViewForCurrentIdentity,
     };
 }
 
