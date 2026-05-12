@@ -1,3 +1,8 @@
+import {
+    LUNAR_CRATER_DISPLAY_MODE_HOVER,
+    normalizeLunarCraterDisplayMode,
+} from "../domain/lunar-crater-view.js";
+
 const VIEW_FLAG_KEYS = [
     "viewPhotoMode",
     "viewEarthClouds",
@@ -21,8 +26,6 @@ const VIEW_FLAG_KEYS = [
     "viewFPS",
 ];
 
-const LUNAR_CRATER_DISPLAY_MODE_ALWAYS = "always";
-const LUNAR_CRATER_DISPLAY_MODE_HOVER = "hover";
 const DEFAULT_VIEW_IDENTITY = Object.freeze({
     originMode: "geo",
     cameraPositionMode: "manual",
@@ -36,12 +39,6 @@ const PER_VIEW_FLAG_KEYS = Object.freeze([
     "lunarCraterDisplayMode",
     "lunarCraterLimit",
 ]);
-
-function normalizeLunarCraterDisplayMode(value) {
-    return value === LUNAR_CRATER_DISPLAY_MODE_ALWAYS
-        ? LUNAR_CRATER_DISPLAY_MODE_ALWAYS
-        : LUNAR_CRATER_DISPLAY_MODE_HOVER;
-}
 
 function normalizeString(value, fallback) {
     const normalized = typeof value === "string" ? value.trim() : "";

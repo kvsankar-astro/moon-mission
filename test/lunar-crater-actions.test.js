@@ -6,6 +6,8 @@ import {
     calculateCraterHoverLabelOffset,
     calculateCraterLabelScaleRatio,
     getCraterDisplayFeatures,
+    resolveCraterHoverTarget,
+    resolveCraterHoverTargetFromScreen,
 } from "../src/platform/js/app/lunar-crater-actions.js";
 
 describe("lunar crater actions", () => {
@@ -103,5 +105,56 @@ describe("lunar crater actions", () => {
         expect(offset).toBeCloseTo(angularRadius + angularRadius * (22 / 34));
         expect(largerCraterOffset).toBeGreaterThan(offset);
         expect(fallbackOffset).toBeGreaterThan(angularRadius);
+    });
+
+    it("picks the crater nearest the pointer surface point instead of the smallest containing crater", () => {
+        const surfaceNormal = new THREE.Vector3(1, 0, 0);
+        const largeCrater = {
+            crater: { name: "Large" },
+            centerNormal: new THREE.Vector3(1, 0, 0),
+            angularRadius: 0.2,
+        };
+        const smallOffsetCrater = {
+            crater: { name: "Small offset" },
+            centerNormal: new THREE.Vector3(Math.cos(0.08), Math.sin(0.08), 0).normalize(),
+            angularRadius: 0.09,
+        };
+
+        expect(resolveCraterHoverTarget(surfaceNormal, [largeCrater, smallOffsetCrater])).toBe(largeCrater);
+    });
+
+    it("picks visible craters by screen position with a far camera and tiny field of view", () => {
+        const moonContainer = new THREE.Group();
+        const camera = new THREE.PerspectiveCamera(0.5, 1, 0.1, 1000);
+        camera.position.set(0, 0, 100);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+        moonContainer.updateMatrixWorld(true);
+        const rendererDomElement = { clientWidth: 1000, clientHeight: 1000 };
+        const centerCrater = {
+            crater: { name: "Center" },
+            centerNormal: new THREE.Vector3(0, 0, 1),
+            angularRadius: 0.01,
+        };
+        const offsetCrater = {
+            crater: { name: "Offset" },
+            centerNormal: new THREE.Vector3(0.05, 0, 0.99875).normalize(),
+            angularRadius: 0.01,
+        };
+
+        const target = resolveCraterHoverTargetFromScreen({
+            THREE,
+            scene: { moonContainer },
+            camera,
+            rendererDomElement,
+            pointerX: 500,
+            pointerY: 500,
+            pickTargets: [offsetCrater, centerCrater],
+            moonRadius: 1,
+            cameraMoonLocalNormal: new THREE.Vector3(0, 0, 1),
+        });
+
+        expect(target).toBe(centerCrater);
     });
 });

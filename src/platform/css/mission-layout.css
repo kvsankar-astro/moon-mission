@@ -689,6 +689,19 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(240, 247, 255, 0.97);
 }
 
+.aux-camera-view__composer-crater-control {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.aux-camera-view__composer-crater-control .lunar-crater-controls-panel {
+    top: calc(100% + 4px);
+    right: auto;
+    left: 0;
+    z-index: 16;
+}
+
 .aux-camera-view__composer-control-matrix {
     display: grid;
     grid-template-columns: minmax(0, 1fr);

@@ -352,6 +352,7 @@ function createSceneHandlerClass(deps) {
                     animationScene.refreshBodyHalos?.({ suppress: true });
                 }
                 auxiliaryCameraViews?.render({
+                    animationScene,
                     scene: animationScene.scene,
                     skyRenderer: animationScene.skyRenderer,
                     latestSceneState: animationScene.latestSceneState || null,
@@ -454,6 +455,7 @@ function createSceneHandlerClass(deps) {
                 animationScene.refreshBodyHalos?.({ suppress: true });
             }
             auxiliaryCameraViews?.render({
+                animationScene,
                 scene: animationScene.scene,
                 skyRenderer: animationScene.skyRenderer,
                 latestSceneState: animationScene.latestSceneState || null,

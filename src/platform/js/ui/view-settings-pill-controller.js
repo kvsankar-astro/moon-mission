@@ -3,6 +3,11 @@ import {
     resolveBodyOrbitCopy,
     resolveCraftOrbitCopy,
 } from "./orbit-control-labels.js";
+import {
+    bindLunarCraterControlPanel as bindSharedLunarCraterControlPanel,
+    readLunarCraterControlState,
+    syncLunarCraterControlPanel,
+} from "./lunar-crater-control-panel.js";
 
 export const DEFAULT_ORIGIN_PILL_PAIRS = [
     ["origin-pill-earth", "origin-earth", "geo"],
@@ -20,8 +25,6 @@ export const DEFAULT_MOON_PROFILE_PILL_PAIRS = [
     ["moon-profile-pill-quality", "quality"],
 ];
 export const DEFAULT_PHOTO_MODE_PILL_ID = "photo-mode-pill";
-const LUNAR_CRATER_DISPLAY_MODE_ALWAYS = "always";
-const LUNAR_CRATER_DISPLAY_MODE_HOVER = "hover";
 
 export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
@@ -148,63 +151,9 @@ export function createViewSettingsPillController(deps = {}) {
         };
     }
 
-    function getNumericControlValue(control, fallback = 120) {
-        const value = Number(control?.value);
-        return Number.isFinite(value) ? value : fallback;
-    }
-
-    function normalizeLunarCraterDisplayMode(value) {
-        return value === LUNAR_CRATER_DISPLAY_MODE_ALWAYS
-            ? LUNAR_CRATER_DISPLAY_MODE_ALWAYS
-            : LUNAR_CRATER_DISPLAY_MODE_HOVER;
-    }
-
-    function readLunarCraterDisplayMode(modeInput) {
-        return normalizeLunarCraterDisplayMode(modeInput?.value);
-    }
-
     function syncLunarCraterPanelState() {
-        const {
-            pill,
-            panel,
-            visibleInput,
-            hoverInput,
-            modeInput,
-            offToggle,
-            visibleToggle,
-            hoverToggle,
-            countSlider,
-            countValue,
-        } = getCraterPanelElements();
-        const enabled = visibleInput?.checked === true;
-        const mode = readLunarCraterDisplayMode(modeInput);
-        const panelOpen = panel ? panel.hidden === false : false;
-
-        if (pill) {
-            syncPressedState(pill, enabled);
-            pill.classList?.toggle?.("is-open", panelOpen);
-            pill.setAttribute?.("aria-expanded", panelOpen ? "true" : "false");
-        }
-        if (offToggle) {
-            syncPressedState(offToggle, !enabled);
-            offToggle.textContent = "Off";
-        }
-        if (visibleToggle) {
-            syncPressedState(visibleToggle, enabled && mode === LUNAR_CRATER_DISPLAY_MODE_ALWAYS);
-            visibleToggle.textContent = "Show always";
-        }
-        if (hoverToggle) {
-            syncPressedState(hoverToggle, enabled && mode === LUNAR_CRATER_DISPLAY_MODE_HOVER);
-            hoverToggle.textContent = "Show on hover";
-        }
-        if (countSlider && countValue) {
-            countValue.textContent = String(Math.round(getNumericControlValue(countSlider)));
-            countSlider.disabled = !enabled || mode === LUNAR_CRATER_DISPLAY_MODE_HOVER;
-            countSlider.setAttribute?.(
-                "aria-disabled",
-                (!enabled || mode === LUNAR_CRATER_DISPLAY_MODE_HOVER) ? "true" : "false",
-            );
-        }
+        const elements = getCraterPanelElements();
+        syncLunarCraterControlPanel(elements, readLunarCraterControlState(elements));
     }
 
     function setLunarCraterPanelOpen(open) {
@@ -250,17 +199,7 @@ export function createViewSettingsPillController(deps = {}) {
     }
 
     function bindLunarCraterControlPanel() {
-        const {
-            pill,
-            panel,
-            visibleInput,
-            hoverInput,
-            modeInput,
-            offToggle,
-            visibleToggle,
-            hoverToggle,
-            countSlider,
-        } = getCraterPanelElements();
+        const { pill, panel } = getCraterPanelElements();
 
         if (pill) {
             pill.addEventListener("click", function (event) {
@@ -269,67 +208,11 @@ export function createViewSettingsPillController(deps = {}) {
                 toggleLunarCraterPanel();
             });
         }
-        if (offToggle) {
-            offToggle.addEventListener("click", function () {
-                if (visibleInput) visibleInput.checked = false;
-                commitLunarCraterViewPatch(
-                    { viewLunarCraters: false },
-                    { sourceId: "lunar-crater-off-toggle" },
-                );
-                syncLunarCraterPanelState();
-            });
-        }
-        if (visibleToggle) {
-            visibleToggle.addEventListener("click", function () {
-                if (visibleInput) visibleInput.checked = true;
-                if (hoverInput) hoverInput.checked = false;
-                if (modeInput) modeInput.value = LUNAR_CRATER_DISPLAY_MODE_ALWAYS;
-                commitLunarCraterViewPatch(
-                    {
-                        viewLunarCraters: true,
-                        lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
-                        lunarCraterHoverLabels: false,
-                    },
-                    { sourceId: "lunar-crater-visible-toggle" },
-                );
-                syncLunarCraterPanelState();
-            });
-        }
-        if (hoverToggle) {
-            hoverToggle.addEventListener("click", function () {
-                if (visibleInput) visibleInput.checked = true;
-                if (hoverInput) hoverInput.checked = true;
-                if (modeInput) modeInput.value = LUNAR_CRATER_DISPLAY_MODE_HOVER;
-                commitLunarCraterViewPatch(
-                    {
-                        viewLunarCraters: true,
-                        lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-                        lunarCraterHoverLabels: true,
-                    },
-                    { sourceId: "lunar-crater-hover-toggle" },
-                );
-                syncLunarCraterPanelState();
-            });
-        }
-        if (countSlider) {
-            const commitCount = function () {
-                commitLunarCraterViewPatch(
-                    { lunarCraterLimit: getNumericControlValue(countSlider) },
-                    { sourceId: "lunar-crater-count" },
-                );
-            };
-            countSlider.addEventListener("input", commitCount);
-            countSlider.addEventListener("change", commitCount);
-        }
-        if (visibleInput) {
-            visibleInput.addEventListener("change", syncLunarCraterPanelState);
-        }
-        if (hoverInput) {
-            hoverInput.addEventListener("change", syncLunarCraterPanelState);
-        }
-        if (modeInput) {
-            modeInput.addEventListener("change", syncLunarCraterPanelState);
-        }
+        bindSharedLunarCraterControlPanel({
+            elements: getCraterPanelElements(),
+            commitPatch: commitLunarCraterViewPatch,
+            sync: syncLunarCraterPanelState,
+        });
 
         documentRef?.addEventListener?.("click", function (event) {
             if (!panel || panel.hidden !== false) return;

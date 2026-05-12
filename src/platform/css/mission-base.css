@@ -512,7 +512,8 @@ body {
     text-transform: uppercase;
 }
 
-#lunar-crater-count-value {
+#lunar-crater-count-value,
+.lunar-crater-controls-panel__count-value {
     min-width: 34px;
     color: var(--ui-annotation-accent);
     font-variant-numeric: tabular-nums;

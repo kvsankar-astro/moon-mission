@@ -23,6 +23,10 @@ const DEFAULT_CRATER_MIN_LIMIT = 25;
 const DEFAULT_CRATER_MAX_LIMIT = 500;
 const CRATER_DISPLAY_MODE_ALWAYS = "always";
 const CRATER_DISPLAY_MODE_HOVER = "hover";
+const CRATER_VISIBILITY_EDGE_PADDING = 0.01;
+const CRATER_HOVER_PICK_PADDING_MIN_PX = 6;
+const CRATER_HOVER_PICK_PADDING_MAX_PX = 16;
+const CRATER_HOVER_PICK_PADDING_RATIO = 0.12;
 
 function createCanvas(width, height) {
     if (typeof document !== "undefined" && document.createElement) {
@@ -129,6 +133,11 @@ function getCraterAngularRadius(crater, lunarRadiusKm) {
     );
 }
 
+function getCraterVisibilityThreshold(angularRadius = 0) {
+    const craterAngularRadius = Math.max(0, Number(angularRadius) || 0);
+    return -Math.sin(Math.min(Math.PI / 2, craterAngularRadius)) - CRATER_VISIBILITY_EDGE_PADDING;
+}
+
 function createCraterRing({
     THREE,
     crater,
@@ -139,15 +148,17 @@ function createCraterRing({
     surfaceScale = CRATER_RING_SURFACE_SCALE,
     renderOrder = 8,
     namePrefix = "lunar-crater-ring",
+    hoverAnnotation = false,
 }) {
     const angularRadius = getCraterAngularRadius(crater, lunarRadiusKm);
+    const centerNormal = normal.clone().normalize();
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute(
         "position",
         new THREE.Float32BufferAttribute(
             buildCraterCirclePositions({
                 THREE,
-                normal,
+                normal: centerNormal,
                 angularRadius,
                 radius: moonRadius * surfaceScale,
             }),
@@ -163,6 +174,9 @@ function createCraterRing({
         lunarCrater: true,
         name: crater.name,
         diameterKm: crater.diameterKm,
+        centerNormal: centerNormal.toArray(),
+        visibilityAngularRadius: angularRadius,
+        hoverAnnotation,
     };
     return ring;
 }
@@ -452,6 +466,7 @@ function createCraterLabelSprite({
     labelWidthBase = 0.2,
     labelWidthPerNameChar = 0.015,
     offsetAngularRadius = 0,
+    visibilityAngularRadius = 0,
 }) {
     const texture = createCraterLabelTexture(THREE, crater);
     if (!texture) return null;
@@ -488,10 +503,116 @@ function createCraterLabelSprite({
         offsetAngularRadius,
         baseScaleX: labelWidth,
         baseScaleY: labelHeight,
+        centerNormal: normal.clone().normalize().toArray(),
+        labelNormal: labelNormal.toArray(),
+        visibilityAngularRadius,
         name: crater.name,
         diameterKm: crater.diameterKm,
     };
     return label;
+}
+
+function resolveCraterHoverTarget(surfaceNormal, pickTargets = []) {
+    if (!surfaceNormal || !Array.isArray(pickTargets)) {
+        return null;
+    }
+    let bestTarget = null;
+    let bestAngle = Infinity;
+    let bestRadius = Infinity;
+    for (const target of pickTargets) {
+        if (!target?.centerNormal) continue;
+        const radius = Number(target.angularRadius);
+        if (!Number.isFinite(radius) || radius <= 0) continue;
+        const angle = surfaceNormal.angleTo(target.centerNormal);
+        const pickPadding = Math.min(0.018, Math.max(0.002, radius * 0.12));
+        if (angle > radius + pickPadding) {
+            continue;
+        }
+        if (
+            angle < bestAngle - 1e-8 ||
+            (Math.abs(angle - bestAngle) <= 1e-8 && radius < bestRadius)
+        ) {
+            bestTarget = target;
+            bestAngle = angle;
+            bestRadius = radius;
+        }
+    }
+    return bestTarget;
+}
+
+function resolveCraterHoverTargetFromScreen({
+    THREE,
+    scene,
+    camera,
+    rendererDomElement,
+    pointerX,
+    pointerY,
+    pickTargets = [],
+    moonRadius,
+    cameraMoonLocalNormal = null,
+}) {
+    if (!THREE || !scene || !camera || !Array.isArray(pickTargets) || !pickTargets.length) {
+        return null;
+    }
+    const numericMoonRadius = Number(moonRadius);
+    if (!Number.isFinite(numericMoonRadius) || numericMoonRadius <= 0) {
+        return null;
+    }
+
+    let bestTarget = null;
+    let bestScore = Infinity;
+    let bestDistance = Infinity;
+    for (const target of pickTargets) {
+        if (!target?.centerNormal) continue;
+        const angularRadius = Number(target.angularRadius);
+        if (!Number.isFinite(angularRadius) || angularRadius <= 0) continue;
+        if (
+            cameraMoonLocalNormal &&
+            target.centerNormal.dot(cameraMoonLocalNormal) <= getCraterVisibilityThreshold(angularRadius)
+        ) {
+            continue;
+        }
+
+        const center = projectMoonLocalNormalToScreen({
+            scene,
+            camera,
+            rendererDomElement,
+            normal: target.centerNormal,
+            radius: numericMoonRadius * CRATER_HOVER_RING_SURFACE_SCALE,
+        });
+        const projectedRadius = calculateCraterProjectedRadiusPx({
+            THREE,
+            scene,
+            camera,
+            rendererDomElement,
+            normal: target.centerNormal,
+            angularRadius,
+            moonRadius: numericMoonRadius,
+        });
+        if (!center || !Number.isFinite(projectedRadius) || projectedRadius <= 0) {
+            continue;
+        }
+
+        const distance = Math.hypot(pointerX - center.x, pointerY - center.y);
+        const pickPadding = Math.min(
+            CRATER_HOVER_PICK_PADDING_MAX_PX,
+            Math.max(CRATER_HOVER_PICK_PADDING_MIN_PX, projectedRadius * CRATER_HOVER_PICK_PADDING_RATIO),
+        );
+        if (distance > projectedRadius + pickPadding) {
+            continue;
+        }
+
+        const score = distance / Math.max(projectedRadius, 1);
+        if (
+            score < bestScore - 1e-8 ||
+            (Math.abs(score - bestScore) <= 1e-8 && distance < bestDistance)
+        ) {
+            bestTarget = target;
+            bestScore = score;
+            bestDistance = distance;
+        }
+    }
+    return bestTarget;
 }
 
 function disposeObjectResources(object, disposedMaterials, disposedTextures) {
@@ -527,6 +648,9 @@ function createLunarCraterActions({
     const pointerNdc = new THREE.Vector2();
     const surfaceNormal = new THREE.Vector3();
     const labelWorldPosition = new THREE.Vector3();
+    const cameraWorldPosition = new THREE.Vector3();
+    const cameraMoonLocalPosition = new THREE.Vector3();
+    const craterLabelNormal = new THREE.Vector3();
 
     function getLunarRadiusKm() {
         return Number.isFinite(PC?.MOON_RADIUS_KM)
@@ -587,6 +711,7 @@ function createLunarCraterActions({
                 normal,
                 moonRadius,
                 offsetAngularRadius,
+                visibilityAngularRadius: angularRadius,
             });
             if (scene.lunarCraterHoverLabel) {
                 scene.lunarCraterGroup.add(scene.lunarCraterHoverLabel);
@@ -599,6 +724,8 @@ function createLunarCraterActions({
             offsetAngularRadius,
         });
         scene.lunarCraterHoverLabel.userData.offsetAngularRadius = offsetAngularRadius;
+        scene.lunarCraterHoverLabel.userData.centerNormal = normal.clone().normalize().toArray();
+        scene.lunarCraterHoverLabel.userData.visibilityAngularRadius = angularRadius;
         scene.lunarCraterHoverLabel.position.copy(labelNormal).multiplyScalar(
             moonRadius * CRATER_LABEL_SURFACE_SCALE,
         );
@@ -627,6 +754,7 @@ function createLunarCraterActions({
             surfaceScale: CRATER_HOVER_RING_SURFACE_SCALE,
             renderOrder: 19,
             namePrefix: "lunar-crater-hover-ring",
+            hoverAnnotation: true,
         });
 
         if (scene.lunarCraterHoverRing?.parent) {
@@ -669,12 +797,29 @@ function createLunarCraterActions({
         if (!rect || rect.width <= 0 || rect.height <= 0) {
             return null;
         }
+        const pointerX = clientX - rect.left;
+        const pointerY = clientY - rect.top;
+        if (pointerX < 0 || pointerY < 0 || pointerX > rect.width || pointerY > rect.height) {
+            return null;
+        }
 
         pointerNdc.set(
-            ((clientX - rect.left) / rect.width) * 2 - 1,
-            -(((clientY - rect.top) / rect.height) * 2 - 1),
+            (pointerX / rect.width) * 2 - 1,
+            -((pointerY / rect.height) * 2 - 1),
         );
+        scene.moonContainer.updateWorldMatrix?.(true, true);
+        scene.moon.updateWorldMatrix?.(true, true);
         camera.updateMatrixWorld?.();
+        let cameraNormalAvailable = false;
+        if (scene.moonContainer.worldToLocal && camera.getWorldPosition) {
+            camera.getWorldPosition(cameraWorldPosition);
+            cameraMoonLocalPosition.copy(cameraWorldPosition);
+            scene.moonContainer.worldToLocal(cameraMoonLocalPosition);
+            if (cameraMoonLocalPosition.lengthSq() > 1e-12) {
+                cameraMoonLocalPosition.normalize();
+                cameraNormalAvailable = true;
+            }
+        }
         raycaster.setFromCamera(pointerNdc, camera);
 
         const intersections = raycaster.intersectObject(scene.moon, true);
@@ -686,21 +831,18 @@ function createLunarCraterActions({
         scene.moonContainer.worldToLocal(surfaceNormal);
         surfaceNormal.normalize();
 
-        let bestTarget = null;
-        let bestScore = Infinity;
-        for (const target of scene.lunarCraterPickTargets || []) {
-            const angle = surfaceNormal.angleTo(target.centerNormal);
-            const pickPadding = Math.min(0.018, Math.max(0.002, target.angularRadius * 0.12));
-            if (angle > target.angularRadius + pickPadding) {
-                continue;
-            }
-            const score = target.angularRadius;
-            if (score < bestScore) {
-                bestTarget = target;
-                bestScore = score;
-            }
-        }
-        return bestTarget;
+        const pickTargets = scene.lunarCraterPickTargets || [];
+        return resolveCraterHoverTargetFromScreen({
+            THREE,
+            scene,
+            camera,
+            rendererDomElement,
+            pointerX,
+            pointerY,
+            pickTargets,
+            moonRadius: getMoonRadius(),
+            cameraMoonLocalNormal: cameraNormalAvailable ? cameraMoonLocalPosition : null,
+        }) || resolveCraterHoverTarget(surfaceNormal, pickTargets);
     }
 
     function addLunarCraterAnnotations({ scene }) {
@@ -765,7 +907,7 @@ function createLunarCraterActions({
                 normal: target.centerNormal,
                 moonRadius,
                 surfaceScale: CRATER_ALWAYS_LABEL_SURFACE_SCALE,
-                depthTest: true,
+                depthTest: false,
                 renderOrder: 9,
                 namePrefix: "lunar-crater-label",
                 hoverLabel: false,
@@ -773,6 +915,7 @@ function createLunarCraterActions({
                 labelWidthMax: 0.36,
                 labelWidthBase: 0.11,
                 labelWidthPerNameChar: 0.008,
+                visibilityAngularRadius: target.angularRadius,
             });
             target.ring = ring;
             group.add(ring);
@@ -899,8 +1042,41 @@ function createLunarCraterActions({
             return false;
         }
         let changed = false;
+        let cameraNormalAvailable = false;
+        if (scene.moonContainer?.worldToLocal && camera.getWorldPosition) {
+            camera.getWorldPosition(cameraWorldPosition);
+            cameraMoonLocalPosition.copy(cameraWorldPosition);
+            scene.moonContainer.worldToLocal(cameraMoonLocalPosition);
+            if (cameraMoonLocalPosition.lengthSq() > 1e-12) {
+                cameraMoonLocalPosition.normalize();
+                cameraNormalAvailable = true;
+            }
+        }
         scene.lunarCraterGroup.traverse((object) => {
-            if (!object?.userData?.lunarCrater || !Number.isFinite(object.userData.baseScaleY)) {
+            if (!object?.userData?.lunarCrater) {
+                return;
+            }
+            if (cameraNormalAvailable && Array.isArray(object.userData.centerNormal)) {
+                craterLabelNormal.fromArray(object.userData.centerNormal).normalize();
+                const visibilityAngularRadius = Number(object.userData.visibilityAngularRadius);
+                const visibilityThreshold = getCraterVisibilityThreshold(
+                    Number.isFinite(visibilityAngularRadius) ? visibilityAngularRadius : 0,
+                );
+                const facingCamera = craterLabelNormal.dot(cameraMoonLocalPosition) > visibilityThreshold;
+                if (object.userData.hoverLabel || object.userData.hoverAnnotation) {
+                    if (object.visible && !facingCamera) {
+                        object.visible = false;
+                        changed = true;
+                    }
+                } else if (object.visible !== facingCamera) {
+                    object.visible = facingCamera;
+                    changed = true;
+                }
+                if (!facingCamera || !object.visible) {
+                    return;
+                }
+            }
+            if (!Number.isFinite(object.userData.baseScaleY)) {
                 return;
             }
             const baseScaleX = object.userData.baseScaleX;
@@ -1011,4 +1187,6 @@ export {
     createLunarCraterActions,
     getCraterDisplayFeatures,
     normalizeCraterDisplayLimit,
+    resolveCraterHoverTarget,
+    resolveCraterHoverTargetFromScreen,
 };
