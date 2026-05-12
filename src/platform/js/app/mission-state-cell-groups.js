@@ -68,6 +68,10 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getLunarCraterMaxDiameterKm(),
             (value) => { runtimeViewState.setLunarCraterMaxDiameterKm(value); },
         ),
+        lunarFeatureTypeFilters: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureTypeFilters(),
+            (value) => { runtimeViewState.setLunarFeatureTypeFilters(value); },
+        ),
         viewXYZAxes: createMutableStateCell(
             () => runtimeViewState.getViewXYZAxes(),
             (value) => { runtimeViewState.setViewXYZAxes(value); },

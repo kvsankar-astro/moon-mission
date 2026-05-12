@@ -350,6 +350,7 @@
         </script>
 
         <script src="https://d3js.org/d3.v3.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
         <script src="src/platform/js/ui/dom-realm-helpers.js"></script>
         <script src="src/platform/js/ui/jquery-ui-dialog-stub.js"></script>
         <script src="https://unpkg.com/astronomy-engine/astronomy.browser.js"></script>
@@ -1014,7 +1015,6 @@
                     <button id="toggle-pill-moon-hill-sphere" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle Moon Hill sphere">Moon Hill Sphere</button>
                     <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
                     <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
-                    <button id="toggle-pill-craters" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle moon sites">Moon Sites</button>
                     <button
                         id="toggle-pill-lunar-craters"
                         type="button"
@@ -1023,9 +1023,20 @@
                         aria-expanded="false"
                         aria-haspopup="dialog"
                         aria-controls="lunar-crater-controls-panel"
-                        title="Open lunar crater controls"
+                        title="Open lunar feature controls"
                     >
-                        Craters
+                        Lunar Features
+                    </button>
+                    <button
+                        id="toggle-pill-craters"
+                        type="button"
+                        class="header-toggle-pill"
+                        aria-pressed="false"
+                        title="Toggle legacy Moon Sites overlay"
+                        hidden
+                        aria-hidden="true"
+                    >
+                        Moon Sites
                     </button>
                     <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
                     <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
@@ -1035,40 +1046,22 @@
                     id="lunar-crater-controls-panel"
                     class="lunar-crater-controls-panel"
                     role="dialog"
-                    aria-label="Lunar crater controls"
+                    aria-label="Lunar feature controls"
                     hidden
                 >
                     <input type="checkbox" id="lunar-crater-hover-labels" checked hidden>
                     <input type="hidden" id="lunar-crater-display-mode" value="hover">
-                    <div class="lunar-crater-controls-panel__toggles" role="group" aria-label="Crater display mode">
+                    <div class="lunar-crater-controls-panel__header">
+                        <span class="lunar-crater-controls-panel__title">Lunar Features</span>
                         <button
-                            id="lunar-crater-off-toggle"
+                            id="lunar-crater-close"
                             type="button"
-                            class="lunar-crater-controls-panel__button"
-                            aria-pressed="true"
-                            title="Hide lunar crater annotations"
-                        >
-                            Off
-                        </button>
-                        <button
-                            id="lunar-crater-visible-toggle"
-                            type="button"
-                            class="lunar-crater-controls-panel__button"
-                            aria-pressed="false"
-                            title="Show lunar crater boundaries and labels"
-                        >
-                            Show always
-                        </button>
-                        <button
-                            id="lunar-crater-hover-toggle"
-                            type="button"
-                            class="lunar-crater-controls-panel__button"
-                            aria-pressed="true"
-                            title="Show the crater under the pointer"
-                        >
-                            Show on hover
-                        </button>
+                            class="lunar-crater-controls-panel__close"
+                            aria-label="Close lunar feature controls"
+                        >Close</button>
                     </div>
+                    <div id="lunar-crater-presets" class="lunar-crater-controls-panel__presets"></div>
+                    <div id="lunar-crater-type-filters" class="lunar-crater-controls-panel__type-filters"></div>
                     <label class="lunar-crater-controls-panel__range-label" for="lunar-crater-min-diameter">
                         <span>Diameter</span>
                         <output
@@ -1083,8 +1076,8 @@
                                 id="lunar-crater-min-diameter-step-down"
                                 type="button"
                                 class="lunar-crater-controls-panel__step-button"
-                                aria-label="Decrease minimum crater diameter"
-                                title="Decrease minimum crater diameter"
+                                aria-label="Decrease minimum feature diameter"
+                                title="Decrease minimum feature diameter"
                             >-</button>
                             <input
                                 id="lunar-crater-min-diameter"
@@ -1094,14 +1087,14 @@
                                 max="600"
                                 step="10"
                                 value="80"
-                                aria-label="Minimum crater diameter"
+                                aria-label="Minimum feature diameter"
                             >
                             <button
                                 id="lunar-crater-min-diameter-step-up"
                                 type="button"
                                 class="lunar-crater-controls-panel__step-button"
-                                aria-label="Increase minimum crater diameter"
-                                title="Increase minimum crater diameter"
+                                aria-label="Increase minimum feature diameter"
+                                title="Increase minimum feature diameter"
                             >+</button>
                         </div>
                         <div class="lunar-crater-controls-panel__range-row">
@@ -1109,8 +1102,8 @@
                                 id="lunar-crater-max-diameter-step-down"
                                 type="button"
                                 class="lunar-crater-controls-panel__step-button"
-                                aria-label="Decrease maximum crater diameter"
-                                title="Decrease maximum crater diameter"
+                                aria-label="Decrease maximum feature diameter"
+                                title="Decrease maximum feature diameter"
                             >-</button>
                             <input
                                 id="lunar-crater-max-diameter"
@@ -1120,14 +1113,14 @@
                                 max="600"
                                 step="10"
                                 value="600"
-                                aria-label="Maximum crater diameter"
+                                aria-label="Maximum feature diameter"
                             >
                             <button
                                 id="lunar-crater-max-diameter-step-up"
                                 type="button"
                                 class="lunar-crater-controls-panel__step-button"
-                                aria-label="Increase maximum crater diameter"
-                                title="Increase maximum crater diameter"
+                                aria-label="Increase maximum feature diameter"
+                                title="Increase maximum feature diameter"
                             >+</button>
                         </div>
                     </div>
@@ -1152,6 +1145,36 @@
                         class="lunar-crater-controls-panel__nudge"
                         hidden
                     ></div>
+                    <div class="lunar-crater-controls-panel__mode-label">Display</div>
+                    <div class="lunar-crater-controls-panel__toggles" role="group" aria-label="Lunar feature display mode">
+                        <button
+                            id="lunar-crater-off-toggle"
+                            type="button"
+                            class="lunar-crater-controls-panel__button"
+                            aria-pressed="true"
+                            title="Hide lunar feature annotations"
+                        >
+                            Off
+                        </button>
+                        <button
+                            id="lunar-crater-visible-toggle"
+                            type="button"
+                            class="lunar-crater-controls-panel__button"
+                            aria-pressed="false"
+                            title="Show lunar feature boundaries and labels"
+                        >
+                            Show always
+                        </button>
+                        <button
+                            id="lunar-crater-hover-toggle"
+                            type="button"
+                            class="lunar-crater-controls-panel__button"
+                            aria-pressed="true"
+                            title="Show the feature under the pointer"
+                        >
+                            Show on hover
+                        </button>
+                    </div>
                 </div>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
@@ -1542,7 +1565,7 @@
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="craters" id="view-craters" checked="checked">
-                                    <span>Moon Sites</span>
+                                    <span>Lunar Sites</span>
                                 </label>
                                 <label class="settings-option settings-option--hidden" aria-hidden="true">
                                     <input type="checkbox" name="view" value="lunar-craters" id="view-lunar-craters">
@@ -1900,6 +1923,14 @@
                         title="Restart media from beginning"
                         aria-label="Restart media from beginning"
                         data-icon="restart"
+                    ></button>
+                    <button
+                        id="media-browser-media-resync"
+                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        type="button"
+                        title="Force resync media with animation"
+                        aria-label="Force resync media with animation"
+                        data-icon="reset"
                     ></button>
                     <span id="media-browser-media-status" class="media-browser-panel__media-status">Media ready</span>
                 </div>

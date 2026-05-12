@@ -83,6 +83,9 @@ function applySceneViewPlanToScene({
     ) {
         scene.setLunarCraterHoverLabelsEnabled?.(view.lunarCraterHoverLabels);
     }
+    if (view.lunarFeatureTypeFilters && typeof view.lunarFeatureTypeFilters === "object") {
+        scene.setLunarFeatureTypeFilters?.(view.lunarFeatureTypeFilters);
+    }
     scene.setLunarCraterAnnotationsVisible?.(view.viewLunarCraters);
 
     if (scene.axesHelper) {

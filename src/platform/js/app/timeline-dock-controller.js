@@ -439,12 +439,23 @@ function createTimelineDockController({
         return rect.left + rect.width * ratio;
     }
 
-    function isNearSliderThumb(clientX) {
-        const thumbClientX = getThumbClientX();
-        return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 18;
+    function getClientXAtTime(timeMs) {
+        const rect = getTimelineRect();
+        const spanMs = getViewSpanMs();
+        if (!Number.isFinite(timeMs) || !rect || !Number.isFinite(rect.width) || rect.width <= 0 || spanMs <= 0) {
+            return Number.NaN;
+        }
+        const clampedTimeMs = clamp(timeMs, viewMin, viewMax);
+        const ratio = clamp((clampedTimeMs - viewMin) / spanMs, 0, 1);
+        return rect.left + rect.width * ratio;
     }
 
-    function isTimelinePointTarget(target) {
+    function isNearSliderThumb(clientX) {
+        const thumbClientX = getThumbClientX();
+        return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 24;
+    }
+
+    function resolveTimelinePointTarget(target) {
         const surface = getTimelineInteractionSurface();
         let node = target;
         while (node && node !== surface) {
@@ -455,11 +466,43 @@ function createTimelineDockController({
                     name === "timeline-dock__media-marker"
                 ))
             ) {
-                return true;
+                return node;
             }
             node = node.parentElement;
         }
-        return false;
+        return null;
+    }
+
+    function isNearTimelinePointGlyph(pointTarget, clientX) {
+        if (!pointTarget || !Number.isFinite(clientX)) {
+            return false;
+        }
+
+        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
+        const classSet = new Set(className.split(/\s+/).filter(Boolean));
+        const isMediaMarker = classSet.has("timeline-dock__media-marker");
+        const isSegmentMarker = classSet.has("timeline-dock__media-marker--segment");
+        if (isSegmentMarker) {
+            const startTimeMs = Number(pointTarget?.dataset?.mediaStartTimeMs);
+            const endTimeMs = Number(pointTarget?.dataset?.mediaEndTimeMs);
+            const startClientX = getClientXAtTime(startTimeMs);
+            const endClientX = getClientXAtTime(endTimeMs);
+            if (Number.isFinite(startClientX) && Number.isFinite(endClientX) && endClientX > startClientX) {
+                const insetPx = Math.min(8, (endClientX - startClientX) * 0.2);
+                return clientX >= (startClientX + insetPx) && clientX <= (endClientX - insetPx);
+            }
+        }
+
+        const centerTimeMs = Number.isFinite(Number(pointTarget?.dataset?.eventTimeMs))
+            ? Number(pointTarget.dataset.eventTimeMs)
+            : Number(pointTarget?.dataset?.mediaStartTimeMs);
+        const markerCenterClientX = getClientXAtTime(centerTimeMs);
+        if (Number.isFinite(markerCenterClientX)) {
+            const glyphRadiusPx = isMediaMarker ? 6 : 5;
+            return Math.abs(clientX - markerCenterClientX) <= glyphRadiusPx;
+        }
+
+        return true;
     }
 
     function seekToTime(timeMs, commit) {
@@ -491,9 +534,10 @@ function createTimelineDockController({
     function beginTimelineDrag(event) {
         if (!event || event.isPrimary === false) return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
-        if (isTimelinePointTarget(event.target)) return;
         const clientX = Number(event.clientX);
         if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
+        const pointTarget = resolveTimelinePointTarget(event.target);
+        if (pointTarget && isNearTimelinePointGlyph(pointTarget, clientX)) return;
 
         if (event.target === slider && isNearSliderThumb(clientX)) {
             return;
@@ -558,7 +602,10 @@ function createTimelineDockController({
     }
 
     function handleTimelineDoubleClick(event) {
-        if (!event || isTimelinePointTarget(event.target) || getFullSpanMs() <= 0) return;
+        if (!event || getFullSpanMs() <= 0) return;
+        const clientX = Number(event.clientX);
+        const pointTarget = resolveTimelinePointTarget(event.target);
+        if (pointTarget && isNearTimelinePointGlyph(pointTarget, clientX)) return;
         event.preventDefault?.();
         zoomView(0.5, getTimeAtClientX(event.clientX));
     }

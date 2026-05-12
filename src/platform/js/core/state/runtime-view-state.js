@@ -5,6 +5,11 @@ import {
     normalizeLunarCraterDisplayMode,
     normalizeLunarCraterDiameterRange,
 } from "../domain/lunar-crater-view.js";
+import {
+    createDefaultLunarFeatureViewState,
+    normalizeLunarFeatureViewState,
+    normalizeLunarFeatureTypeFilters,
+} from "../domain/lunar-feature-view.js";
 
 const VIEW_FLAG_KEYS = [
     "viewPhotoMode",
@@ -37,11 +42,13 @@ const DEFAULT_VIEW_IDENTITY = Object.freeze({
     dimension: "3D",
 });
 const PER_VIEW_FLAG_KEYS = Object.freeze([
+    "viewCraters",
     "viewLunarCraters",
     "lunarCraterHoverLabels",
     "lunarCraterDisplayMode",
     "lunarCraterMinDiameterKm",
     "lunarCraterMaxDiameterKm",
+    "lunarFeatureTypeFilters",
 ]);
 
 function normalizeString(value, fallback) {
@@ -70,18 +77,20 @@ function buildViewIdentityKey(identity = {}) {
 }
 
 function buildDefaultViewFlags() {
+    const lunarFeatureDefaults = createDefaultLunarFeatureViewState();
     return {
         viewPhotoMode: false,
         viewEarthClouds: true,
         viewAuxiliaryPanels: false,
         viewOrbit: true,
         viewOrbitDescent: true,
-        viewCraters: true,
-        viewLunarCraters: false,
-        lunarCraterHoverLabels: true,
-        lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-        lunarCraterMinDiameterKm: LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
-        lunarCraterMaxDiameterKm: LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+        viewCraters: lunarFeatureDefaults.viewCraters,
+        viewLunarCraters: lunarFeatureDefaults.viewLunarCraters,
+        lunarCraterHoverLabels: lunarFeatureDefaults.lunarCraterHoverLabels,
+        lunarCraterDisplayMode: lunarFeatureDefaults.lunarCraterDisplayMode,
+        lunarCraterMinDiameterKm: lunarFeatureDefaults.lunarCraterMinDiameterKm,
+        lunarCraterMaxDiameterKm: lunarFeatureDefaults.lunarCraterMaxDiameterKm,
+        lunarFeatureTypeFilters: lunarFeatureDefaults.lunarFeatureTypeFilters,
         viewXYZAxes: false,
         viewPoles: false,
         viewPolarAxes: false,
@@ -113,6 +122,17 @@ function applyViewFlagPatch(target, patch, options = {}) {
     const canApplyKey = (key) =>
         (!allowedKeys || allowedKeys.has(key)) &&
         (!blockedKeys || !blockedKeys.has(key));
+    if (canApplyKey("viewLunarCraters") &&
+        Object.prototype.hasOwnProperty.call(patch, "viewLunarFeatures")) {
+        const enabled = Boolean(patch.viewLunarFeatures);
+        target.viewLunarCraters = enabled;
+    }
+    if (canApplyKey("lunarFeatureTypeFilters") && Object.prototype.hasOwnProperty.call(patch, "lunarFeatureTypeFilters")) {
+        target.lunarFeatureTypeFilters = normalizeLunarFeatureTypeFilters(
+            patch.lunarFeatureTypeFilters,
+            target.lunarFeatureTypeFilters,
+        );
+    }
     for (const key of VIEW_FLAG_KEYS) {
         if (canApplyKey(key) && Object.prototype.hasOwnProperty.call(patch, key)) {
             target[key] = Boolean(patch[key]);
@@ -171,9 +191,13 @@ function extractPerViewFlagPatch(patch) {
 }
 
 function mergeViewFlags(globalViewFlags, perViewFlags) {
-    return {
+    const merged = {
         ...globalViewFlags,
         ...perViewFlags,
+    };
+    return {
+        ...merged,
+        ...normalizeLunarFeatureViewState(merged),
     };
 }
 
@@ -280,11 +304,25 @@ function createRuntimeViewState({
         },
         getViewCraters: () => getEffectiveViewFlags().viewCraters,
         setViewCraters: (value) => {
-            viewFlags.viewCraters = Boolean(value);
+            setPerViewFlags({ viewCraters: value });
+        },
+        getViewLunarFeatures: () => getEffectiveViewFlags().viewLunarFeatures === true,
+        setViewLunarFeatures: (value) => {
+            const enabled = Boolean(value);
+            setPerViewFlags({
+                viewLunarCraters: enabled,
+            });
         },
         getViewLunarCraters: () => getEffectiveViewFlags().viewLunarCraters,
         setViewLunarCraters: (value) => {
             setPerViewFlags({ viewLunarCraters: value });
+        },
+        getLunarFeatureTypeFilters: () => normalizeLunarFeatureTypeFilters(
+            getEffectiveViewFlags().lunarFeatureTypeFilters,
+            viewFlags.lunarFeatureTypeFilters,
+        ),
+        setLunarFeatureTypeFilters: (value) => {
+            setPerViewFlags({ lunarFeatureTypeFilters: value });
         },
         getLunarCraterHoverLabels: () => getEffectiveViewFlags().lunarCraterHoverLabels,
         setLunarCraterHoverLabels: (value) => {

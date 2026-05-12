@@ -16,25 +16,25 @@ function createController() {
 }
 
 describe("AnimationController speed timing", () => {
-    it("advances at 1 min/sec in base non-realtime mode", () => {
+    it("advances at 1 sec/sec in default realtime mode", () => {
         const controller = createController();
-
-        controller.tick(1000);
-        expect(controller.getTime()).toBe(0);
-
-        controller.tick(2000);
-        expect(controller.getTime()).toBe(60 * 1000);
-    });
-
-    it("advances at 1 sec/sec in realtime mode", () => {
-        const controller = createController();
-        controller.setRealtimeSpeed();
 
         controller.tick(1000);
         expect(controller.getTime()).toBe(0);
 
         controller.tick(2000);
         expect(controller.getTime()).toBe(1000);
+    });
+
+    it("advances at 1 min/sec in discrete simulation mode", () => {
+        const controller = createController();
+        controller.resetSpeed();
+
+        controller.tick(1000);
+        expect(controller.getTime()).toBe(0);
+
+        controller.tick(2000);
+        expect(controller.getTime()).toBe(60 * 1000);
     });
 
     it("does not apply stale paused frame time after playback resumes", () => {

@@ -101,6 +101,7 @@ function createMissionSceneActionBundle(deps) {
         getLunarCraterMinDiameterKm,
         getLunarCraterMaxDiameterKm,
         getLunarCraterDisplayMode,
+        getLunarFeatureTypeFilters,
         getLastInputActivityMs,
         SceneHelpers,
     } = deps;
@@ -302,6 +303,7 @@ function createMissionSceneActionBundle(deps) {
         getLunarCraterMinDiameterKm,
         getLunarCraterMaxDiameterKm,
         getLunarCraterDisplayMode,
+        getLunarFeatureTypeFilters,
     });
 
     return {

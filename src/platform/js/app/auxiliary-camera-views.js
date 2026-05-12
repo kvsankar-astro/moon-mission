@@ -55,10 +55,12 @@ import {
 import {
     LUNAR_CRATER_DISPLAY_MODE_HOVER,
     LUNAR_CRATER_VIEW_IDS,
-    createDefaultLunarCraterViewState,
     normalizeLunarCraterDisplayMode,
-    patchLunarCraterViewState,
 } from "../core/domain/lunar-crater-view.js";
+import {
+    createDefaultLunarFeatureViewState,
+    patchLunarFeatureViewState,
+} from "../core/domain/lunar-feature-view.js";
 import {
     bindLunarCraterControlPanel,
     createLunarCraterControlPanelElements,
@@ -2367,12 +2369,12 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersPill = document.createElement("button");
             composerLunarCratersPill.type = "button";
             composerLunarCratersPill.className = "aux-camera-view__composer-pill";
-            composerLunarCratersPill.setAttribute("aria-label", "Open Frame and Shoot lunar crater controls");
+            composerLunarCratersPill.setAttribute("aria-label", "Open Frame and Shoot lunar feature controls");
             composerLunarCratersPill.setAttribute("aria-haspopup", "dialog");
             composerLunarCratersPill.setAttribute("aria-expanded", "false");
             composerLunarCratersPill.setAttribute("aria-pressed", "false");
             composerLunarCratersPill.dataset.proofId = "lunar-craters-toggle";
-            composerLunarCratersPill.textContent = "Craters";
+            composerLunarCratersPill.textContent = "Lunar Features";
             composerLunarCraterControls = createLunarCraterControlPanelElements(document, {
                 idPrefix: "composer-lunar-crater",
             });
@@ -3264,7 +3266,7 @@ class AuxiliaryCameraViewsManager {
             composerConstellationLabelsEnabled: false,
             composerEarthCloudsEnabled: true,
             composerLunarCratersEnabled: false,
-            composerLunarCraterState: createDefaultLunarCraterViewState(),
+            composerLunarCraterState: createDefaultLunarFeatureViewState(),
             composerLunarCraterPointer: null,
             composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
             onOrbitViewportWheel: null,
@@ -3472,7 +3474,7 @@ class AuxiliaryCameraViewsManager {
                     panelState.composerLunarCraterControls,
                     panelState.composerLunarCraterState,
                 );
-                panelState.composerLunarCratersWrap?.setAttribute("title", "Open lunar crater controls");
+                panelState.composerLunarCratersWrap?.setAttribute("title", "Open lunar feature controls");
             };
             const syncComposerOpticsUi = () => {
                 if (panelState.composerOpticsBody) {
@@ -3651,7 +3653,7 @@ class AuxiliaryCameraViewsManager {
             };
             const commitComposerLunarCraterPatch = (patch = {}) => {
                 activateComposerForControl();
-                panelState.composerLunarCraterState = patchLunarCraterViewState(
+                panelState.composerLunarCraterState = patchLunarFeatureViewState(
                     panelState.composerLunarCraterState,
                     patch,
                 );
@@ -5813,7 +5815,7 @@ class AuxiliaryCameraViewsManager {
     }
 
     renderLayersWithLunarCraterVisibility(renderer, scene, camera, options = {}) {
-        const fallbackState = createDefaultLunarCraterViewState({
+        const fallbackState = createDefaultLunarFeatureViewState({
             viewLunarCraters: options.lunarCratersVisible === true,
         });
         renderWithLunarCraterView({
@@ -5831,7 +5833,7 @@ class AuxiliaryCameraViewsManager {
     }
 
     renderComposerLayers(panelState, scene, options = {}) {
-        const fallbackState = createDefaultLunarCraterViewState({
+        const fallbackState = createDefaultLunarFeatureViewState({
             viewLunarCraters: panelState.composerLunarCratersEnabled === true,
         });
         this.renderLayersWithLunarCraterVisibility(panelState.renderer, scene, panelState.camera, {

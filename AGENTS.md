@@ -56,6 +56,9 @@
 - On desktop, the header pill strip is the primary quick-control surface for origin/dimension/view toggles.
 - The Settings panel remains a fallback/advanced surface and may be hidden in layouts where the pill strip is visible.
 - Production/browser automation should prefer the visible pill controls before assuming `#settings-panel-button` is interactable.
+- Keep lunar feature controls separate from legacy landing overlays:
+  - `view-lunar-craters` + `toggle-pill-lunar-craters` are the active "Lunar Features" controls and must not be gated by landing availability.
+  - `view-craters` + `toggle-pill-craters` refer to legacy Moon Sites/landing-era overlays and should not be used to drive the Lunar Features panel.
 
 ## Testing Guidelines
 

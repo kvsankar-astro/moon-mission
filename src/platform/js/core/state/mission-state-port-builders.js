@@ -322,6 +322,9 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             }
             setNumberStateIfDefined("lunarCraterMinDiameterKm", view.lunarCraterMinDiameterKm);
             setNumberStateIfDefined("lunarCraterMaxDiameterKm", view.lunarCraterMaxDiameterKm);
+            if (view.lunarFeatureTypeFilters && typeof view.lunarFeatureTypeFilters === "object") {
+                setState("lunarFeatureTypeFilters", view.lunarFeatureTypeFilters);
+            }
             setBooleanStateIfDefined("viewXYZAxes", view.viewXYZAxes);
             setBooleanStateIfDefined("viewPoles", view.viewPoles);
             setBooleanStateIfDefined("viewPolarAxes", view.viewPolarAxes);
@@ -363,6 +366,7 @@ function createMissionSceneViewStatePort(ctx, helpers) {
         getLunarCraterDisplayMode: () => getState("lunarCraterDisplayMode"),
         getLunarCraterMinDiameterKm: () => getState("lunarCraterMinDiameterKm"),
         getLunarCraterMaxDiameterKm: () => getState("lunarCraterMaxDiameterKm"),
+        getLunarFeatureTypeFilters: () => getState("lunarFeatureTypeFilters"),
         getOrbitStyle: () => getState("orbitStyle"),
         getEffectiveOrbitStyle: () =>
             typeof state.effectiveOrbitStyle?.get === "function"

@@ -31,7 +31,6 @@ export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
     ["toggle-pill-descent", "view-orbit-descent", "viewOrbitDescent"],
     ["toggle-pill-sky", "view-sky", "viewSky"],
-    ["toggle-pill-craters", "view-craters", "viewCraters"],
     ["toggle-pill-xyz", "view-xyz-axes", "viewXYZAxes"],
     ["toggle-pill-poles", "view-poles", "viewPoles"],
     ["toggle-pill-polar-axes", "view-polar-axes", "viewPolarAxes"],
@@ -178,13 +177,6 @@ export function createViewSettingsPillController(deps = {}) {
         }
     }
 
-    function toggleLunarCraterPanel() {
-        const { panel } = getCraterPanelElements();
-        if (!panel) return;
-        setLunarCraterPanelOpen(panel.hidden !== false);
-        syncLunarCraterPanelState();
-    }
-
     function commitLunarCraterViewPatch(patch, options = {}) {
         controlBackend.commitViewPatch?.(patch, options);
         syncTogglePillVisibility();
@@ -193,34 +185,20 @@ export function createViewSettingsPillController(deps = {}) {
     }
 
     function bindLunarCraterControlPanel() {
-        const { pill, panel } = getCraterPanelElements();
+        const { pill } = getCraterPanelElements();
 
         if (pill) {
             pill.addEventListener("click", function (event) {
                 if (pill.disabled || pill.getAttribute?.("aria-disabled") === "true") return;
                 event?.stopPropagation?.();
-                toggleLunarCraterPanel();
+                setLunarCraterPanelOpen(true);
+                syncLunarCraterPanelState();
             });
         }
         bindSharedLunarCraterControlPanel({
             elements: getCraterPanelElements(),
             commitPatch: commitLunarCraterViewPatch,
             sync: syncLunarCraterPanelState,
-        });
-
-        documentRef?.addEventListener?.("click", function (event) {
-            if (!panel || panel.hidden !== false) return;
-            const target = event?.target;
-            const clickedPanel = typeof panel.contains === "function" && panel.contains(target);
-            const clickedPill = typeof pill?.contains === "function" && pill.contains(target);
-            if (clickedPanel || clickedPill) return;
-            setLunarCraterPanelOpen(false);
-            syncLunarCraterPanelState();
-        });
-        windowRef?.addEventListener?.("keydown", function (event) {
-            if (event?.key !== "Escape") return;
-            setLunarCraterPanelOpen(false);
-            syncLunarCraterPanelState();
         });
     }
 
@@ -288,7 +266,7 @@ export function createViewSettingsPillController(deps = {}) {
                 syncPressedState(moonSitesPill, false);
                 moonSitesPill.title = "Moon Sites available for landing missions";
             } else {
-                moonSitesPill.title = "Toggle Moon Sites";
+                moonSitesPill.title = "Toggle legacy Moon Sites overlay";
             }
         }
     }

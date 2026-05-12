@@ -32,6 +32,7 @@ Runtime/data boundary, staging, deployment, and asset-process guidance:
 - Current mission-data operating model: [operations/mission-data-current-state.md](operations/mission-data-current-state.md)
 - Moon render asset provenance and maintenance: [operations/moon-render-assets.md](operations/moon-render-assets.md)
 - Artemis II media asset source and maintenance notes: [operations/artemis2-media-assets.md](operations/artemis2-media-assets.md)
+- Lunar feature datasets and Artemis II map reference links: [operations/lunar-feature-and-artemis2-reference-sources.md](operations/lunar-feature-and-artemis2-reference-sources.md)
 
 ## Product Specs
 

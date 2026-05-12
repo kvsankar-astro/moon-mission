@@ -26,6 +26,12 @@ The current manifest was seeded from the public Artemis Timeline project:
 
 The manifest records this provenance under its `provenance` block. Keep that block current when refreshing the metadata source.
 
+## Related Mission Reference Files
+
+For Artemis II flyby map/feature reference files (for example the labeled Moon map, Lunar Fifteen cards, and Lunar Targeting Plan), use:
+
+- [lunar-feature-and-artemis2-reference-sources.md](lunar-feature-and-artemis2-reference-sources.md)
+
 ## Ownership And Boundary
 
 In this repo:
@@ -68,6 +74,20 @@ The Artemis II manifest declares:
 - Video clips may still use remote poster images as runtime fallback when a generated derivative is missing.
 - The referenced R2 media set was roughly 206 MiB at import time. Recalculate before making cache, hosting, or deploy-size decisions.
 - Some audio references from the upstream project were unavailable during import review; do not assume all upstream media paths are live without checking.
+
+## Open TODOs
+
+- [ ] Maintain the official long-form stream sync anchor ledger and segment-map workup.
+  - See [artemis2-video-sync-anchors.md](artemis2-video-sync-anchors.md).
+  - Current direction: use piecewise (segment-based) UTC/MET <-> video-time mapping, not one global offset.
+
+- [ ] Investigate intermittent browser warning for `55196663265_ef59978360_o.jpg` ("Image corrupt or truncated").
+  - Context: file is present in upstream Artemis Timeline manifest and on Flickr page `https://www.flickr.com/photos/nasa2explore/55196663265/`.
+  - Current finding (2026-05-12): R2 derivative URL is reachable and decodes in local validation, but browser console still reports occasional truncation/corruption in app runtime.
+  - Follow-up actions:
+    1. Re-test on target browsers with network throttling and cache disabled to capture exact failing response behavior.
+    2. Compare R2 derivative against Flickr-served variants (`_b.jpg` / original) and decide whether to pin this asset to a different source URL.
+    3. If warning persists, add resilient fallback logic for image load/decode failure on this item class.
 
 ## Policy Notes
 

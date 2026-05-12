@@ -431,6 +431,76 @@ describe("createTimelineDockController", () => {
         expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(false);
     });
 
+    it("still seeks when clicking a marker hitbox away from the visible glyph", () => {
+        const dockRoot = new FakeElement("div");
+        const trackWrap = new FakeElement("div", { left: 100, width: 800, height: 42 });
+        const slider = new FakeElement("input", { left: 100, width: 800, height: 24 });
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const seekTimes = [];
+
+        trackWrap.appendChild(slider);
+        trackWrap.appendChild(markers);
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({
+            onSeekTime(timeMs, commit) {
+                seekTimes.push({ timeMs, commit });
+            },
+        });
+        controller.bind();
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 1,
+        });
+        controller.setEvents([
+            { key: "event-mid", startTime: new Date(500), label: "Midpoint Event", clickable: true },
+        ]);
+
+        const marker = markers.children[0];
+        const markerCenterX = 500;
+        const markerHitboxButNotGlyphX = markerCenterX + 20;
+
+        trackWrap.dispatchEvent({
+            type: "pointerdown",
+            pointerId: 9,
+            pointerType: "mouse",
+            button: 0,
+            clientX: markerHitboxButNotGlyphX,
+            target: marker,
+        });
+        trackWrap.dispatchEvent({
+            type: "pointerup",
+            pointerId: 9,
+            pointerType: "mouse",
+            clientX: markerHitboxButNotGlyphX,
+            target: marker,
+        });
+
+        expect(seekTimes).toHaveLength(1);
+        expect(seekTimes[0].commit).toBe(true);
+        expect(seekTimes[0].timeMs).toBeGreaterThan(500);
+    });
+
     it("switches to explicit compare-mode labels and styles comparison markers", () => {
         const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");

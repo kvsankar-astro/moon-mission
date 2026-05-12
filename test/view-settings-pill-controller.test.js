@@ -259,7 +259,6 @@ function createHarness(options = {}) {
         ],
         togglePillPairs: [
             ["toggle-pill-orbit", "view-orbit", "viewOrbit"],
-            ["toggle-pill-craters", "view-craters", "viewCraters"],
         ],
     });
 
@@ -413,11 +412,11 @@ describe("createViewSettingsPillController", function () {
             expect(harness.lunarCraterPanel.hidden).toBe(false);
             expect(harness.lunarCratersPill["aria-expanded"]).toBe("true");
             expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
-            expect(harness.lunarCraterMinDiameter.disabled).toBe(true);
-            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(true);
-            expect(harness.lunarCraterMaxDiameter.disabled).toBe(true);
-            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(true);
-            expect(harness.lunarCraterCountValue.textContent).toMatch(/selected$/);
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(false);
+            expect(harness.lunarCraterCountValue.textContent).toMatch(/filtered$/);
 
             harness.lunarCraterVisibleToggle.dispatchEvent({
                 type: "click",
@@ -464,10 +463,10 @@ describe("createViewSettingsPillController", function () {
             );
             expect(harness.viewLunarCratersInput.checked).toBe(false);
             expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
-            expect(harness.lunarCraterMinDiameter.disabled).toBe(true);
-            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(true);
-            expect(harness.lunarCraterMaxDiameter.disabled).toBe(true);
-            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(true);
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(false);
 
             const commitsBeforeInput = harness.controlBackend.commitViewPatch.mock.calls.length;
             harness.lunarCraterMinDiameter.value = "40";

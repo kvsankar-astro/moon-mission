@@ -851,21 +851,40 @@ export function normalizeCraterDisplayDiameterRange(value = {}, catalog = {}) {
 
 export function getCraterDisplayFeatures(catalog = {}, options = {}) {
     const features = getValidCraterFeatures(catalog);
+    const typeFilters = options?.lunarFeatureTypeFilters && typeof options.lunarFeatureTypeFilters === "object"
+        ? options.lunarFeatureTypeFilters
+        : null;
     if (
         options.includeAll === true &&
         !Number.isFinite(Number(options.lunarCraterMinDiameterKm ?? options.minDiameterKm)) &&
-        !Number.isFinite(Number(options.lunarCraterMaxDiameterKm ?? options.maxDiameterKm))
+        !Number.isFinite(Number(options.lunarCraterMaxDiameterKm ?? options.maxDiameterKm)) &&
+        !typeFilters
     ) {
         return features;
     }
     const diameterRange = normalizeCraterDisplayDiameterRange(options, catalog);
     const selectedFeatures = [];
     for (const feature of features) {
-        if (feature.diameterKm > diameterRange.lunarCraterMaxDiameterKm) {
+        const typeFilter = typeFilters
+            ? typeFilters[feature.featureType] || null
+            : null;
+        if (typeFilter?.enabled === false) {
             continue;
         }
-        if (feature.diameterKm < diameterRange.lunarCraterMinDiameterKm) {
-            break;
+        const minDiameterKm = Number.isFinite(Number(typeFilter?.minDiameterKm))
+            ? Number(typeFilter.minDiameterKm)
+            : diameterRange.lunarCraterMinDiameterKm;
+        const maxDiameterKm = Number.isFinite(Number(typeFilter?.maxDiameterKm))
+            ? Number(typeFilter.maxDiameterKm)
+            : diameterRange.lunarCraterMaxDiameterKm;
+        if (feature.diameterKm > maxDiameterKm) {
+            continue;
+        }
+        if (feature.diameterKm < minDiameterKm) {
+            if (!typeFilters) {
+                break;
+            }
+            continue;
         }
         selectedFeatures.push(feature);
     }

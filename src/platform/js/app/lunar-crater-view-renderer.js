@@ -1,9 +1,11 @@
 import {
     LUNAR_CRATER_DISPLAY_MODE_HOVER,
-    createDefaultLunarCraterViewState,
-    normalizeLunarCraterViewState,
     supportsLunarCraterView,
 } from "../core/domain/lunar-crater-view.js";
+import {
+    createDefaultLunarFeatureViewState,
+    normalizeLunarFeatureViewState,
+} from "../core/domain/lunar-feature-view.js";
 
 function resolveCraterGroup({ animationScene = null, scene = null } = {}) {
     return animationScene?.lunarCraterGroup ||
@@ -69,8 +71,8 @@ export function renderWithLunarCraterView({
 
     const supported = supportsLunarCraterView(viewId);
     const craterState = supported
-        ? normalizeLunarCraterViewState(viewState)
-        : createDefaultLunarCraterViewState();
+        ? normalizeLunarFeatureViewState(viewState)
+        : createDefaultLunarFeatureViewState();
 
     if (craterState.viewLunarCraters !== true || !supported) {
         setCraterGroupVisibleTemporarily(
@@ -90,6 +92,7 @@ export function renderWithLunarCraterView({
         animationScene.lunarCraterDisplayMode = craterState.lunarCraterDisplayMode;
         animationScene.lunarCraterMinDiameterKm = craterState.lunarCraterMinDiameterKm;
         animationScene.lunarCraterMaxDiameterKm = craterState.lunarCraterMaxDiameterKm;
+        animationScene.lunarFeatureTypeFilters = craterState.lunarFeatureTypeFilters;
         animationScene.addLunarCraterAnnotations({
             camera,
             rendererDomElement,

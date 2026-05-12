@@ -15,6 +15,8 @@ function createSceneUiUpdateActions(deps) {
         playAnimation,
         pauseAnimation,
         setRealtimeSpeed,
+        getAnimationSpeedMultiplier,
+        getAnimationRealtime,
         setTimelineMediaMarkers,
     } = deps;
 
@@ -35,6 +37,8 @@ function createSceneUiUpdateActions(deps) {
         playAnimation,
         pauseAnimation,
         setRealtimeSpeed,
+        getAnimationSpeedMultiplier,
+        getAnimationRealtime,
         setTimelineMediaMarkers,
     });
 

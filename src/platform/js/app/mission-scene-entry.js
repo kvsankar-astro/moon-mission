@@ -63,6 +63,7 @@ function createMissionSceneEntry(ctx) {
         getLunarCraterMaxDiameterKm,
         getLunarCraterHoverLabels,
         getLunarCraterDisplayMode,
+        getLunarFeatureTypeFilters,
         getViewPhotoMode,
         getViewEarthClouds,
         setViewEarthClouds,
@@ -113,6 +114,9 @@ function createMissionSceneEntry(ctx) {
     const readLunarCraterDisplayMode = typeof getLunarCraterDisplayMode === "function"
         ? getLunarCraterDisplayMode
         : () => "hover";
+    const readLunarFeatureTypeFilters = typeof getLunarFeatureTypeFilters === "function"
+        ? getLunarFeatureTypeFilters
+        : () => ({});
     const writeViewLunarCraters = typeof setViewLunarCraters === "function"
         ? setViewLunarCraters
         : null;
@@ -187,6 +191,7 @@ function createMissionSceneEntry(ctx) {
             getLunarCraterMaxDiameterKm: readLunarCraterMaxDiameterKm,
             getLunarCraterHoverLabels: readLunarCraterHoverLabels,
             getLunarCraterDisplayMode: readLunarCraterDisplayMode,
+            getLunarFeatureTypeFilters: readLunarFeatureTypeFilters,
             getLastInputActivityMs,
             SceneHelpers,
         },
@@ -219,6 +224,7 @@ function createMissionSceneEntry(ctx) {
                     lunarCraterMaxDiameterKm: readLunarCraterMaxDiameterKm(),
                     lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                     lunarCraterDisplayMode: readLunarCraterDisplayMode(),
+                    lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
@@ -265,6 +271,7 @@ function createMissionSceneEntry(ctx) {
                 lunarCraterMaxDiameterKm: readLunarCraterMaxDiameterKm(),
                 lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                 lunarCraterDisplayMode: readLunarCraterDisplayMode(),
+                lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
                 viewXYZAxes: getViewXYZAxes(),
                 viewEclipticPlane: getViewEclipticPlane(),
                 viewEquatorialPlane: getViewEquatorialPlane(),

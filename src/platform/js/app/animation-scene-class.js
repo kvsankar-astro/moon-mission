@@ -163,6 +163,7 @@ function createAnimationSceneClass(deps) {
             this.lunarCraterMinDiameterKm = null;
             this.lunarCraterMaxDiameterKm = null;
             this.lunarCraterDisplayMode = null;
+            this.lunarFeatureTypeFilters = null;
             this.lunarCraterHoverLabelsEnabled = true;
             this.lunarCraterHoveredName = null;
             this.lunarCraterHoveredDiameterKm = null;
@@ -504,6 +505,18 @@ function createAnimationSceneClass(deps) {
             return lunarCraterActions.setLunarCraterHoverLabelsEnabled({
                 scene: this,
                 enabled,
+            });
+        }
+
+        setLunarFeatureTypeFilters(typeFilters, input = {}) {
+            return lunarCraterActions.setLunarFeatureTypeFilters({
+                scene: this,
+                typeFilters,
+                camera: input.camera || this.camera,
+                rendererDomElement: input.rendererDomElement ||
+                    this.cameraController?._rendererDomElement ||
+                    this.renderer?.domElement ||
+                    null,
             });
         }
 

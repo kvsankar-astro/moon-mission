@@ -2189,9 +2189,9 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 13px;
-    height: 13px;
-    margin-top: -5px;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
     border-radius: 999px;
     border: 0 solid transparent;
     background:
@@ -2214,8 +2214,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__slider::-moz-range-thumb {
-    width: 13px;
-    height: 13px;
+    width: 16px;
+    height: 16px;
     border: 0 solid transparent;
     border-radius: 999px;
     background:
@@ -2327,6 +2327,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock__marker--inactive {
     cursor: default;
+    pointer-events: none;
 }
 
 .timeline-dock__marker--inactive::before {
@@ -2486,6 +2487,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .timeline-dock__media-marker--inactive {
     cursor: default;
+    pointer-events: none;
 }
 
 .timeline-dock__media-marker--inactive::before {

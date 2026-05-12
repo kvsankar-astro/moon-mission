@@ -1211,6 +1211,7 @@ function createMediaBrowserPanelActions({
         const controls = getNode("media-browser-media-controls");
         const playButton = getNode("media-browser-media-play");
         const restartButton = getNode("media-browser-media-restart");
+        const resyncButton = getNode("media-browser-media-resync");
         const status = getNode("media-browser-media-status");
         const show = playbackModel.showControls === true;
         const isBusy = playbackModel.playing === true || playbackModel.buffering === true;
@@ -1229,6 +1230,11 @@ function createMediaBrowserPanelActions({
             restartButton.disabled = !show;
             restartButton.title = playbackModel.restartTitle || "Restart media from beginning";
             restartButton.setAttribute("aria-label", restartButton.title);
+        }
+        if (resyncButton) {
+            resyncButton.disabled = !show;
+            resyncButton.title = playbackModel.resyncTitle || "Force resync media with animation";
+            resyncButton.setAttribute("aria-label", resyncButton.title);
         }
         if (status) {
             status.textContent = show ? String(playbackModel.statusLabel || "") : "";
@@ -1472,10 +1478,13 @@ function createMediaBrowserPanelActions({
         if (isVideoLike(video)) {
             if (hasVideo) {
                 const nextVideoUrl = activeItem.videoAssetUrl;
-                if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
+                const sourceType = String(activeItem.videoSourceType || "").trim().toLowerCase();
+                if (videoViewAssetUrl !== nextVideoUrl) {
                     videoViewAssetUrl = nextVideoUrl;
-                    video.src = nextVideoUrl;
-                    callMediaMethod(video, "load");
+                    if (sourceType !== "hls") {
+                        video.src = nextVideoUrl;
+                        callMediaMethod(video, "load");
+                    }
                 }
                 if (activeItem.posterAssetUrl) {
                     video.poster = activeItem.posterAssetUrl;
@@ -1683,6 +1692,9 @@ function createMediaBrowserPanelActions({
 
         getNode("media-browser-media-restart")?.addEventListener?.("click", () => {
             onIntent?.({ type: "startActiveMediaFromBeginning" });
+        });
+        getNode("media-browser-media-resync")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "forceResyncActiveMedia" });
         });
 
         const video = getNode("media-browser-video");

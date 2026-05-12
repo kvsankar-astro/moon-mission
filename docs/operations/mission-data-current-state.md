@@ -47,6 +47,7 @@ Current Artemis II media note:
 - The Mission Media browser stores only metadata in this app repo.
 - The referenced photo/video assets remain remote in the public Artemis Timeline R2 bucket.
 - Source and maintenance details live in [artemis2-media-assets.md](artemis2-media-assets.md).
+- Curated lunar feature datasets and Artemis II map references live in [lunar-feature-and-artemis2-reference-sources.md](lunar-feature-and-artemis2-reference-sources.md).
 
 ## Runtime cadence policy
 

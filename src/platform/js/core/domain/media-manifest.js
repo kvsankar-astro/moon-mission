@@ -538,15 +538,30 @@ function normalizeMediaStream(stream, index, dataPath) {
         return null;
     }
     const endTimeMs = parseMediaTimestamp(stream.endTime);
+    const explicitDurationSeconds = parseDurationSeconds(stream.durationSeconds || stream.duration);
+    const derivedDurationSeconds = (
+        Number.isFinite(endTimeMs) && endTimeMs > startTimeMs
+            ? (endTimeMs - startTimeMs) / 1000
+            : Number.NaN
+    );
+    const durationSeconds = Number.isFinite(explicitDurationSeconds)
+        ? explicitDurationSeconds
+        : derivedDurationSeconds;
 
     return {
         id,
         enabled: stream.enabled !== false,
         title: asTrimmedString(stream.title || id),
+        description: asTrimmedString(stream.description || stream.desc),
         streamKind: asTrimmedString(stream.streamKind || "video") || "video",
         sourceType: normalizeStreamSourceType(stream.sourceType),
         sourceUrl: asTrimmedString(stream.sourceUrl),
         posterAssetUrl: resolveMediaAssetUrl(stream.posterAsset, dataPath),
+        sourceLabel: asTrimmedString(stream.sourceLabel || stream.sourceCredit),
+        sourcePageUrl: asTrimmedString(stream.sourcePageUrl),
+        sourceCredit: asTrimmedString(stream.sourceCredit),
+        license: asTrimmedString(stream.license),
+        durationSeconds,
         captions: normalizeTextArray(stream.captions),
         startTimeMs,
         endTimeMs,
@@ -558,10 +573,74 @@ function normalizeMediaStream(stream, index, dataPath) {
     };
 }
 
+function normalizeMediaStreamItem(stream, index, dataPath, thumbnailConfig = {}) {
+    if (!stream || stream.enabled === false || stream.streamKind !== "video") {
+        return null;
+    }
+    const id = asTrimmedString(stream.id) || `media-stream-${index + 1}`;
+    const assetUrl = resolveMediaAssetUrl(stream.sourceUrl, dataPath);
+    if (!assetUrl) {
+        return null;
+    }
+    const posterAssetUrl = asTrimmedString(stream.posterAssetUrl);
+    const thumbnailAssetUrl = posterAssetUrl || resolveThumbnailConventionAssetUrl(
+        thumbnailConfig,
+        {
+            id,
+            kind: "videoClip",
+            fileName: id,
+            thumbnailKey: id,
+        },
+        dataPath,
+    );
+
+    return {
+        id,
+        kind: "videoClip",
+        enabled: stream.enabled !== false,
+        startTimeMs: stream.startTimeMs,
+        endTimeMs: stream.endTimeMs,
+        durationSeconds: stream.durationSeconds,
+        captureTimeMs: Number.NaN,
+        effectiveTimeOffsetSeconds: Number.isFinite(toFiniteNumber(stream.timeOffsetSeconds))
+            ? toFiniteNumber(stream.timeOffsetSeconds)
+            : 0,
+        timeOffsetNote: "",
+        timeSource: "timelineTime",
+        title: asTrimmedString(stream.title || id),
+        description: asTrimmedString(stream.description),
+        sourceLabel: asTrimmedString(stream.sourceLabel || stream.license || "Mission stream"),
+        sourceUrl: asTrimmedString(stream.sourcePageUrl || stream.sourceUrl),
+        assetUrl,
+        posterAssetUrl,
+        thumbnailAssetUrl: thumbnailAssetUrl || assetUrl,
+        thumbnailKey: buildMediaThumbnailKey(id),
+        streamSourceType: asTrimmedString(stream.sourceType),
+        photographer: asTrimmedString(stream.sourceCredit),
+        cameraId: "mission-stream",
+        cameraLabel: "Mission stream",
+        location: "",
+        fileName: asTrimmedString(stream.sourceUrl),
+        settings: asTrimmedString(stream.sourceType),
+        tags: ["stream"],
+        crewCaptured: false,
+        external: true,
+        batch: 0,
+        availabilityStartPolicy: "",
+    };
+}
+
 function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {
     const manifest = manifestData && typeof manifestData === "object" ? manifestData : {};
     const cameraProfilesById = normalizeCameraProfiles(manifest.cameraProfiles);
     const thumbnailConfig = normalizeThumbnailConfig(manifest.thumbnails);
+    const mediaStreams = (Array.isArray(manifest.mediaStreams) ? manifest.mediaStreams : [])
+        .map((stream, index) => normalizeMediaStream(stream, index, dataPath))
+        .filter(Boolean)
+        .sort((a, b) => a.startTimeMs - b.startTimeMs);
+    const streamMediaItems = mediaStreams
+        .map((stream, index) => normalizeMediaStreamItem(stream, index, dataPath, thumbnailConfig))
+        .filter(Boolean);
     const mediaItems = [
         ...(Array.isArray(manifest.mediaItems) ? manifest.mediaItems : [])
             .map((item, index) => normalizeMediaItem(
@@ -573,11 +652,8 @@ function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {
             ))
             .filter(Boolean),
         ...normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesById, thumbnailConfig),
+        ...streamMediaItems,
     ].sort((a, b) => a.startTimeMs - b.startTimeMs);
-    const mediaStreams = (Array.isArray(manifest.mediaStreams) ? manifest.mediaStreams : [])
-        .map((stream, index) => normalizeMediaStream(stream, index, dataPath))
-        .filter(Boolean)
-        .sort((a, b) => a.startTimeMs - b.startTimeMs);
     const audioItems = [
         ...(Array.isArray(manifest.audioItems) ? manifest.audioItems : [])
             .map((item, index) => normalizeMediaItem({
