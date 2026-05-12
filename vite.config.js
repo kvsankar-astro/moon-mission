@@ -53,6 +53,17 @@ function copyStaticDeployAssets() {
     }
 }
 
+function applyStreamingMediaHeaders(pathname, res) {
+    const normalizedPath = String(pathname || "").toLowerCase();
+    if (normalizedPath.endsWith(".m3u8")) {
+        res.setHeader("Content-Type", "application/vnd.apple.mpegurl; charset=utf-8");
+        return;
+    }
+    if (normalizedPath.endsWith(".m4s")) {
+        res.setHeader("Content-Type", "video/iso.segment");
+    }
+}
+
 function createMissionPageRoutePlugin() {
     const context = loadMissionPageContext({ appRoot: APP_ROOT });
     const missionFolders = new Set(
@@ -79,6 +90,7 @@ function createMissionPageRoutePlugin() {
             server.middlewares.use((req, res, next) => {
                 try {
                     const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "127.0.0.1"}`);
+                    applyStreamingMediaHeaders(requestUrl.pathname, res);
                     if (requestUrl.pathname === "/mission.html") {
                         const legacyMission = String(requestUrl.searchParams.get("mission") || "").trim().toLowerCase();
                         const canonicalFolder = missionFolderMap.get(legacyMission);

@@ -26,6 +26,8 @@ function createSceneTelemetryUiActions(deps) {
         playAnimation = () => {},
         pauseAnimation = () => {},
         setRealtimeSpeed = () => {},
+        getAnimationSpeedMultiplier = () => 1,
+        getAnimationRealtime = () => true,
         setTimelineMediaMarkers = () => {},
         documentRef = document,
         windowRef = window,
@@ -45,6 +47,8 @@ function createSceneTelemetryUiActions(deps) {
         playAnimation,
         pauseAnimation,
         setRealtimeSpeed,
+        getAnimationSpeedMultiplier,
+        getAnimationRealtime,
         setTimelineMediaMarkers,
     });
 

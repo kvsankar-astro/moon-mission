@@ -174,4 +174,59 @@ describe("normalizeMissionMediaManifest", () => {
             "assets/artemis2/data/../media/thumbnails/audio/waveform.svg",
         );
     });
+
+    it("normalizes long-form media stream metadata and sync anchors", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaStreams: [
+                {
+                    id: "flyby-broadcast",
+                    title: "Lunar flyby broadcast",
+                    description: "Mission-long stream.",
+                    enabled: false,
+                    streamKind: "video",
+                    sourceType: "hls",
+                    sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
+                    sourceLabel: "NASA broadcast",
+                    sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
+                    sourceCredit: "NASA",
+                    license: "Public domain",
+                    startTime: "2026-04-06T17:56:00Z",
+                    endTime: "2026-04-07T04:06:00Z",
+                    durationSeconds: 36600.13,
+                    syncStatus: "provisional",
+                    syncAnchors: [
+                        {
+                            label: "Closest approach",
+                            missionTime: "2026-04-06T23:00:00Z",
+                            streamTimeSeconds: 18240,
+                            note: "Initial estimate from NASA broadcast description.",
+                        },
+                    ],
+                },
+            ],
+        });
+
+        expect(manifest.mediaStreams).toHaveLength(1);
+        expect(manifest.mediaStreams[0]).toMatchObject({
+            id: "flyby-broadcast",
+            description: "Mission-long stream.",
+            enabled: false,
+            sourceType: "hls",
+            sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
+            durationSeconds: 36600.13,
+            syncStatus: "provisional",
+            sourceLabel: "NASA broadcast",
+            sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
+            sourceCredit: "NASA",
+            license: "Public domain",
+        });
+        expect(manifest.mediaStreams[0].syncAnchors).toEqual([
+            {
+                label: "Closest approach",
+                missionTimeMs: Date.parse("2026-04-06T23:00:00Z"),
+                streamTimeSeconds: 18240,
+                note: "Initial estimate from NASA broadcast description.",
+            },
+        ]);
+    });
 });

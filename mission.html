@@ -344,6 +344,7 @@
                 "three/addons/": "https://unpkg.com/three@0.179.1/examples/jsm/",
                 "swiper": "https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.mjs",
                 "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm",
+                "hls.js": "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/+esm",
                 "d3": "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm"
             }
         }
@@ -1839,6 +1840,21 @@
                         aria-label="Restart media from beginning"
                         data-icon="restart"
                     ></button>
+                    <span
+                        id="media-browser-media-elapsed"
+                        class="media-browser-panel__media-elapsed"
+                        aria-live="polite"
+                    >--:-- / --:--</span>
+                    <input
+                        id="media-browser-media-timeline"
+                        class="media-browser-panel__media-slider"
+                        type="range"
+                        min="0"
+                        max="0"
+                        step="0.25"
+                        value="0"
+                        aria-label="Selected media timeline"
+                    />
                     <span id="media-browser-media-status" class="media-browser-panel__media-status">Media ready</span>
                 </div>
                 <div

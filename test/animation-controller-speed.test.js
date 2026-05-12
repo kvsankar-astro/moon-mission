@@ -16,8 +16,9 @@ function createController() {
 }
 
 describe("AnimationController speed timing", () => {
-    it("advances at 1 min/sec in base non-realtime mode", () => {
+    it("advances at 1 min/sec after leaving realtime mode", () => {
         const controller = createController();
+        controller.faster();
 
         controller.tick(1000);
         expect(controller.getTime()).toBe(0);

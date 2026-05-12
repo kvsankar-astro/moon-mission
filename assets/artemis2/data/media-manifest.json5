@@ -78,7 +78,7 @@
       "batch": 0,
       "title": "Jeremy Hansen Suited Up and Ready",
       "flickr_desc": "Canadian Space Agency astronaut Jeremy Hansen gives a thumbs-up in the suit-up room at Kennedy Space Center, wearing his orange Orion crew survival suit on launch day.",
-      "enabled": true
+      "enabled": false
     },
     {
       "time": "2026-04-01 13:08:40",
@@ -7677,5 +7677,87 @@
       "enabled": true
     }
   ],
-  "mediaStreams": []
+  "mediaStreams": [
+    {
+      "id": "artemis2-lunar-flyby-broadcast",
+      "title": "Artemis II Lunar Flyby Official Broadcast",
+      "description": "Mission-long NASA broadcast covering the Artemis II lunar flyby, packaged locally as HLS for streaming tests.",
+      "enabled": true,
+      "streamKind": "video",
+      "sourceType": "hls",
+      "sourceUrl": "assets/artemis2/media/streams/lunar-flyby/v1/master.m3u8",
+      "posterAsset": "../media/thumbnails/videos/artemis2-lunar-flyby-broadcast.webp",
+      "sourceLabel": "NASA broadcast archived on Wikimedia Commons",
+      "sourcePageUrl": "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
+      "sourceCredit": "NASA",
+      "license": "Public domain",
+      "startTime": "2026-04-06T16:58:14Z",
+      "endTime": "2026-04-07T03:08:14.130Z",
+      "durationSeconds": 36600.130215,
+      "syncMode": "missionClock",
+      "syncStatus": "provisional",
+      "timeOffsetSeconds": 0,
+      "defaultPanelState": "closed",
+      "sourceParts": [
+        {
+          "label": "Part 1",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/f/f6/2026-04-06_NASA%E2%80%99s_Artemis_II_Crew_Flies_Around_the_Moon_%28Official_Broadcast%29_%281%29.webm",
+          "sizeBytes": 4292026329,
+          "durationSeconds": 22373.268
+        },
+        {
+          "label": "Part 2",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/6/6f/2026-04-06_NASA%E2%80%99s_Artemis_II_Crew_Flies_Around_the_Moon_%28Official_Broadcast%29_%282%29.webm",
+          "sizeBytes": 3862789971,
+          "durationSeconds": 14226.866
+        }
+      ],
+      "packaging": {
+        "format": "hls-fmp4",
+        "segmentSeconds": 6,
+        "renditions": [
+          {
+            "id": "720p",
+            "width": 1280,
+            "height": 720,
+            "codec": "h264/aac",
+            "fileCount": 6102,
+            "sizeBytes": 2661423628
+          }
+        ]
+      },
+      "syncAnchors": [
+        {
+          "label": "Rebased stream start (GMT cross-check)",
+          "missionTime": "2026-04-06T16:58:14Z",
+          "streamTimeSeconds": 0,
+          "note": "Calibrated from multiple in-video GMT references supplied during sync pass."
+        },
+        {
+          "label": "GMT 096:22:50:31",
+          "missionTime": "2026-04-06T22:50:31Z",
+          "streamTimeSeconds": 21137,
+          "note": "In-video GMT timestamp observed at relative 05:52:17."
+        },
+        {
+          "label": "GMT 096:23:19:35",
+          "missionTime": "2026-04-06T23:19:35Z",
+          "streamTimeSeconds": 22881,
+          "note": "In-video GMT timestamp observed at relative 06:21:21."
+        },
+        {
+          "label": "UTC/MET callout",
+          "missionTime": "2026-04-06T19:02:20Z",
+          "streamTimeSeconds": 7447,
+          "note": "In-video reference: relative 02:04:07 with MET 4d 20h 27m 08s."
+        },
+        {
+          "label": "Closest lunar approach",
+          "missionTime": "2026-04-06T23:00:00Z",
+          "streamTimeSeconds": 21706,
+          "note": "Derived from rebased stream start plus NASA's published 23:00 UTC closest-approach milestone."
+        }
+      ]
+    }
+  ]
 }

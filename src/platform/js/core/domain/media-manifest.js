@@ -538,11 +538,17 @@ function normalizeMediaStream(stream, index, dataPath) {
         return null;
     }
     const endTimeMs = parseMediaTimestamp(stream.endTime);
+    const explicitDurationSeconds = toFiniteNumber(stream.durationSeconds);
+    const durationSeconds = Number.isFinite(explicitDurationSeconds) && explicitDurationSeconds > 0
+        ? explicitDurationSeconds
+        : (Number.isFinite(endTimeMs) ? Math.max(0, (endTimeMs - startTimeMs) / 1000) : Number.NaN);
+    const source = normalizeSourceMetadata(stream.source);
 
     return {
         id,
         enabled: stream.enabled !== false,
         title: asTrimmedString(stream.title || id),
+        description: asTrimmedString(stream.description),
         streamKind: asTrimmedString(stream.streamKind || "video") || "video",
         sourceType: normalizeStreamSourceType(stream.sourceType),
         sourceUrl: asTrimmedString(stream.sourceUrl),
@@ -550,12 +556,40 @@ function normalizeMediaStream(stream, index, dataPath) {
         captions: normalizeTextArray(stream.captions),
         startTimeMs,
         endTimeMs,
+        durationSeconds,
         syncMode: asTrimmedString(stream.syncMode || "missionClock") || "missionClock",
+        syncStatus: asTrimmedString(stream.syncStatus),
+        syncAnchors: normalizeMediaStreamSyncAnchors(stream.syncAnchors),
         timeOffsetSeconds: Number.isFinite(toFiniteNumber(stream.timeOffsetSeconds))
             ? toFiniteNumber(stream.timeOffsetSeconds)
             : 0,
+        sourceLabel: asTrimmedString(stream.sourceLabel || source.label),
+        sourcePageUrl: asTrimmedString(stream.sourcePageUrl || source.url),
+        sourceCredit: asTrimmedString(stream.sourceCredit),
+        license: asTrimmedString(stream.license),
         defaultPanelState: asTrimmedString(stream.defaultPanelState || "closed") || "closed",
     };
+}
+
+function normalizeMediaStreamSyncAnchors(syncAnchors = []) {
+    if (!Array.isArray(syncAnchors)) return [];
+    return syncAnchors
+        .map((anchor) => {
+            if (!anchor || typeof anchor !== "object" || Array.isArray(anchor)) return null;
+            const missionTimeMs = parseMediaTimestamp(anchor.missionTime || anchor.time);
+            const streamTimeSeconds = toFiniteNumber(anchor.streamTimeSeconds);
+            if (!Number.isFinite(missionTimeMs) || !Number.isFinite(streamTimeSeconds)) {
+                return null;
+            }
+            return {
+                label: asTrimmedString(anchor.label || anchor.id),
+                missionTimeMs,
+                streamTimeSeconds,
+                note: asTrimmedString(anchor.note),
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.streamTimeSeconds - b.streamTimeSeconds);
 }
 
 function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {

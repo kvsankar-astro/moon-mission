@@ -55,7 +55,7 @@ export class AnimationController {
         // Speed control
         this.speedIndex = 0;
         this.speedMultiplier = DISCRETE_SIM_SPEEDS[this.speedIndex].ratio;
-        this.isRealtimeSpeed = false;
+        this.isRealtimeSpeed = true;
 
         // Frame timing
         this.prevFrameTime = null;

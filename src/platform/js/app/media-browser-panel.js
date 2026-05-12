@@ -35,6 +35,8 @@ const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
 
+let hlsLibraryPromise = null;
+
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -124,6 +126,29 @@ function callMediaMethod(mediaElement, methodName) {
     }
 }
 
+function isLikelyHlsSource(url = "", sourceType = "") {
+    const normalizedSourceType = String(sourceType || "").trim().toLowerCase();
+    const normalizedUrl = String(url || "").trim().toLowerCase();
+    return normalizedSourceType === "hls" || normalizedUrl.includes(".m3u8");
+}
+
+function canPlayHlsNatively(video) {
+    if (typeof video?.canPlayType !== "function") return false;
+    return Boolean(
+        video.canPlayType("application/vnd.apple.mpegurl")
+            || video.canPlayType("application/x-mpegURL"),
+    );
+}
+
+function loadHlsLibrary() {
+    if (!hlsLibraryPromise) {
+        hlsLibraryPromise = import("hls.js")
+            .then((module) => module.default || module.Hls || module)
+            .catch(() => null);
+    }
+    return hlsLibraryPromise;
+}
+
 function createElement(tagName) {
     return getDocumentRef()?.createElement?.(tagName) || null;
 }
@@ -146,6 +171,17 @@ function getPanelDefaultHeightPx() {
     return Math.round(getViewportHeight() * PANEL_DEFAULT_HEIGHT_RATIO);
 }
 
+function formatMediaElapsedTime(seconds) {
+    const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hours > 0) {
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
 function createMediaBrowserPanelActions({
     onIntent,
 } = {}) {
@@ -166,6 +202,10 @@ function createMediaBrowserPanelActions({
     let imagePanDragState = null;
     let imageViewAssetUrl = "";
     let videoViewAssetUrl = "";
+    let hlsInstance = null;
+    let hlsSourceUrl = "";
+    let hlsAttachToken = 0;
+    let hlsUnsupportedSourceUrl = "";
     let filterSignature = "";
     let thumbnailSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
@@ -1211,9 +1251,20 @@ function createMediaBrowserPanelActions({
         const controls = getNode("media-browser-media-controls");
         const playButton = getNode("media-browser-media-play");
         const restartButton = getNode("media-browser-media-restart");
+        const elapsed = getNode("media-browser-media-elapsed");
+        const slider = getNode("media-browser-media-timeline");
         const status = getNode("media-browser-media-status");
         const show = playbackModel.showControls === true;
         const isBusy = playbackModel.playing === true || playbackModel.buffering === true;
+        const elapsedSeconds = Number(playbackModel.elapsedSeconds);
+        const durationSeconds = Number(playbackModel.durationSeconds);
+        const hasDuration = Number.isFinite(durationSeconds) && durationSeconds > 0;
+        const safeElapsedSeconds = Number.isFinite(elapsedSeconds) && elapsedSeconds >= 0
+            ? elapsedSeconds
+            : 0;
+        const clampedElapsedSeconds = hasDuration
+            ? Math.min(safeElapsedSeconds, durationSeconds)
+            : safeElapsedSeconds;
         if (controls) {
             controls.hidden = !show;
         }
@@ -1229,6 +1280,29 @@ function createMediaBrowserPanelActions({
             restartButton.disabled = !show;
             restartButton.title = playbackModel.restartTitle || "Restart media from beginning";
             restartButton.setAttribute("aria-label", restartButton.title);
+        }
+        if (elapsed) {
+            const elapsedLabel = hasDuration
+                ? `${formatMediaElapsedTime(clampedElapsedSeconds)} / ${formatMediaElapsedTime(durationSeconds)}`
+                : `${formatMediaElapsedTime(clampedElapsedSeconds)} / --:--`;
+            elapsed.textContent = show ? elapsedLabel : "";
+            elapsed.title = elapsedLabel;
+        }
+        if (slider) {
+            const seekEnabled = show && playbackModel.seekEnabled !== false && hasDuration;
+            slider.hidden = !show;
+            slider.disabled = !seekEnabled;
+            slider.min = "0";
+            slider.max = hasDuration ? String(durationSeconds) : "0";
+            slider.step = "0.25";
+            slider.value = String(hasDuration ? clampedElapsedSeconds : 0);
+            slider.setAttribute(
+                "aria-label",
+                playbackModel.sliderTitle || "Selected media timeline",
+            );
+            slider.title = seekEnabled
+                ? (playbackModel.sliderTitle || "Seek selected media")
+                : "Media timeline unavailable";
         }
         if (status) {
             status.textContent = show ? String(playbackModel.statusLabel || "") : "";
@@ -1426,6 +1500,136 @@ function createMediaBrowserPanelActions({
         revealActiveThumbnail();
     }
 
+    function destroyHlsInstance() {
+        if (!hlsInstance) return;
+        try {
+            hlsInstance.destroy?.();
+        } catch {
+            // hls.js can throw while tearing down a partially attached stream.
+        }
+        hlsInstance = null;
+        hlsSourceUrl = "";
+    }
+
+    function setVideoPoster(video, posterAssetUrl = "") {
+        if (posterAssetUrl) {
+            video.poster = posterAssetUrl;
+        } else {
+            video.removeAttribute?.("poster");
+        }
+    }
+
+    function setNativeVideoSource(video, activeItem, nextVideoUrl) {
+        destroyHlsInstance();
+        hlsUnsupportedSourceUrl = "";
+        if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
+            videoViewAssetUrl = nextVideoUrl;
+            video.src = nextVideoUrl;
+            callMediaMethod(video, "load");
+        }
+        setVideoPoster(video, activeItem.posterAssetUrl || "");
+    }
+
+    function attachHlsVideoSource(video, activeItem, nextVideoUrl) {
+        if (hlsUnsupportedSourceUrl === nextVideoUrl) {
+            setVideoPoster(video, activeItem.posterAssetUrl || "");
+            return;
+        }
+        if (hlsInstance && hlsSourceUrl === nextVideoUrl && videoViewAssetUrl === nextVideoUrl) {
+            setVideoPoster(video, activeItem.posterAssetUrl || "");
+            return;
+        }
+        hlsAttachToken += 1;
+        const attachToken = hlsAttachToken;
+        destroyHlsInstance();
+        videoViewAssetUrl = nextVideoUrl;
+        video.removeAttribute?.("src");
+        setVideoPoster(video, activeItem.posterAssetUrl || "");
+        callMediaMethod(video, "load");
+
+        loadHlsLibrary().then((Hls) => {
+            if (attachToken !== hlsAttachToken || videoViewAssetUrl !== nextVideoUrl) return;
+            if (!Hls || typeof Hls.isSupported !== "function" || !Hls.isSupported()) {
+                if (canPlayHlsNatively(video)) {
+                    setNativeVideoSource(video, activeItem, nextVideoUrl);
+                    return;
+                }
+                hlsUnsupportedSourceUrl = nextVideoUrl;
+                video.removeAttribute?.("src");
+                callMediaMethod(video, "load");
+                onIntent?.({
+                    type: "mediaPlaybackFailed",
+                    value: activeItem.id || "",
+                    mediaKind: "videoClip",
+                });
+                return;
+            }
+
+            hlsUnsupportedSourceUrl = "";
+            const instance = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+            });
+            hlsInstance = instance;
+            hlsSourceUrl = nextVideoUrl;
+            instance.attachMedia(video);
+            instance.on(Hls.Events.MEDIA_ATTACHED, () => {
+                if (attachToken !== hlsAttachToken || hlsInstance !== instance) return;
+                instance.loadSource(nextVideoUrl);
+            });
+            instance.on(Hls.Events.ERROR, (_event, data = {}) => {
+                if (hlsInstance !== instance || data.fatal !== true) return;
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                    instance.startLoad();
+                    return;
+                }
+                if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                    instance.recoverMediaError();
+                    return;
+                }
+                destroyHlsInstance();
+            });
+        });
+    }
+
+    function configureVideoSource(video, activeItem) {
+        const nextVideoUrl = activeItem.videoAssetUrl;
+        const sourceType = activeItem.sourceType || "";
+        const isHlsSource = isLikelyHlsSource(nextVideoUrl, sourceType);
+
+        if (video.dataset) {
+            video.dataset.mediaItemId = activeItem.id || "";
+            video.dataset.mediaSourceUrl = nextVideoUrl || "";
+            video.dataset.sourceType = sourceType;
+        }
+
+        if (isHlsSource) {
+            attachHlsVideoSource(video, activeItem, nextVideoUrl);
+            return;
+        }
+
+        hlsAttachToken += 1;
+        setNativeVideoSource(video, activeItem, nextVideoUrl);
+    }
+
+    function clearVideoSource(video) {
+        hlsAttachToken += 1;
+        destroyHlsInstance();
+        hlsUnsupportedSourceUrl = "";
+        if (videoViewAssetUrl) {
+            callMediaMethod(video, "pause");
+            video.removeAttribute?.("src");
+            video.removeAttribute?.("poster");
+            callMediaMethod(video, "load");
+        }
+        videoViewAssetUrl = "";
+        if (video.dataset) {
+            video.dataset.mediaItemId = "";
+            video.dataset.mediaSourceUrl = "";
+            video.dataset.sourceType = "";
+        }
+    }
+
     function render(viewModel = {}) {
         ensurePanelEventsBound();
         panelTitle = viewModel.panelTitle || panelTitle;
@@ -1471,32 +1675,10 @@ function createMediaBrowserPanelActions({
 
         if (isVideoLike(video)) {
             if (hasVideo) {
-                const nextVideoUrl = activeItem.videoAssetUrl;
-                if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
-                    videoViewAssetUrl = nextVideoUrl;
-                    video.src = nextVideoUrl;
-                    callMediaMethod(video, "load");
-                }
-                if (activeItem.posterAssetUrl) {
-                    video.poster = activeItem.posterAssetUrl;
-                } else {
-                    video.removeAttribute?.("poster");
-                }
-                if (video.dataset) {
-                    video.dataset.mediaItemId = activeItem.id || "";
-                }
+                configureVideoSource(video, activeItem);
                 video.hidden = false;
             } else {
-                if (videoViewAssetUrl) {
-                    callMediaMethod(video, "pause");
-                    video.removeAttribute?.("src");
-                    video.removeAttribute?.("poster");
-                    callMediaMethod(video, "load");
-                }
-                videoViewAssetUrl = "";
-                if (video.dataset) {
-                    video.dataset.mediaItemId = "";
-                }
+                clearVideoSource(video);
                 video.hidden = true;
             }
         }
@@ -1684,6 +1866,21 @@ function createMediaBrowserPanelActions({
         getNode("media-browser-media-restart")?.addEventListener?.("click", () => {
             onIntent?.({ type: "startActiveMediaFromBeginning" });
         });
+        const mediaTimelineSlider = getNode("media-browser-media-timeline");
+        mediaTimelineSlider?.addEventListener?.("input", () => {
+            onIntent?.({
+                type: "mediaSeekTime",
+                value: Number(mediaTimelineSlider?.value),
+                finalize: false,
+            });
+        });
+        mediaTimelineSlider?.addEventListener?.("change", () => {
+            onIntent?.({
+                type: "mediaSeekTime",
+                value: Number(mediaTimelineSlider?.value),
+                finalize: true,
+            });
+        });
 
         const video = getNode("media-browser-video");
         const getVideoItemId = () => String(video?.dataset?.mediaItemId || "").trim();
@@ -1712,6 +1909,15 @@ function createMediaBrowserPanelActions({
         video?.addEventListener?.("ended", () => {
             onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip" });
         });
+        for (const eventName of ["abort", "error"]) {
+            video?.addEventListener?.(eventName, () => {
+                onIntent?.({
+                    type: "mediaPlaybackFailed",
+                    value: getVideoItemId(),
+                    mediaKind: "videoClip",
+                });
+            });
+        }
         video?.addEventListener?.("timeupdate", () => {
             onIntent?.({
                 type: "mediaPlaybackTimeUpdate",
