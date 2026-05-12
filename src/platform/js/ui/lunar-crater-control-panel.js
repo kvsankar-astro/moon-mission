@@ -29,18 +29,8 @@ const TYPE_FILTER_DEFAULT_MAX_KM = 6000;
 const LUNAR_FEATURE_PRESETS = Object.freeze([
     {
         id: LUNAR_FEATURE_PRESET_IDS.INTERESTING,
-        label: "Interesting",
-        title: "Balanced preset: removes clutter from satellite features",
-    },
-    {
-        id: LUNAR_FEATURE_PRESET_IDS.NON_CRATER,
-        label: "No Craters",
-        title: "Show non-crater feature classes only",
-    },
-    {
-        id: LUNAR_FEATURE_PRESET_IDS.CRATERS_ONLY,
-        label: "Craters",
-        title: "Show crater-only features",
+        label: "Default",
+        title: "Balanced preset: prioritize prominent and diverse lunar features",
     },
     {
         id: LUNAR_FEATURE_PRESET_IDS.ALL,
@@ -63,6 +53,44 @@ const INTERESTING_TYPE_MINIMA_KM = Object.freeze({
     "Planitia, planitiae": 0,
 });
 
+const FEATURE_TYPE_DISPLAY_ORDER = Object.freeze([
+    "Crater, craters",
+    "Mare, maria",
+    "Mons, montes",
+    "Rima, rimae",
+    "Vallis, valles",
+    "Dorsum, dorsa",
+    "Catena, catenae",
+    "Promontorium, promontoria",
+    "Oceanus, oceani",
+    "Palus, paludes",
+    "Planitia, planitiae",
+    "Satellite Feature",
+]);
+
+const FEATURE_TYPE_GROUPS = Object.freeze([
+    {
+        id: "popular",
+        label: "Popular Highlights",
+        types: ["Crater, craters", "Mare, maria", "Mons, montes", "Rima, rimae"],
+    },
+    {
+        id: "structures",
+        label: "Lines And Relief",
+        types: ["Vallis, valles", "Dorsum, dorsa", "Catena, catenae", "Promontorium, promontoria"],
+    },
+    {
+        id: "regions",
+        label: "Large Regions",
+        types: ["Oceanus, oceani", "Palus, paludes", "Planitia, planitiae"],
+    },
+    {
+        id: "reference",
+        label: "Reference Labels",
+        types: ["Satellite Feature"],
+    },
+]);
+
 const craterCountFormatter = typeof Intl !== "undefined"
     ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 })
     : null;
@@ -70,6 +98,20 @@ const craterCountFormatter = typeof Intl !== "undefined"
 function readNumericControlValue(control, fallback) {
     const value = Number(control?.value);
     return Number.isFinite(value) ? value : fallback;
+}
+
+function readGlobalDiameterRangeFromElements(elements = {}) {
+    const fallback = createDefaultLunarCraterViewState();
+    return normalizeLunarCraterDiameterRange({
+        lunarCraterMinDiameterKm: readNumericControlValue(
+            elements.minDiameterSlider,
+            fallback.lunarCraterMinDiameterKm,
+        ),
+        lunarCraterMaxDiameterKm: readNumericControlValue(
+            elements.maxDiameterSlider,
+            fallback.lunarCraterMaxDiameterKm,
+        ),
+    });
 }
 
 function formatDiameterKm(value) {
@@ -123,6 +165,23 @@ function getCatalogTypeStats() {
 
 const CATALOG_TYPE_STATS = getCatalogTypeStats();
 
+function getOrderedCatalogTypeStats(statsList = CATALOG_TYPE_STATS) {
+    const orderIndex = new Map(FEATURE_TYPE_DISPLAY_ORDER.map((name, index) => [name, index]));
+    return [...statsList].sort((a, b) => {
+        const aIdx = orderIndex.has(a.featureType) ? orderIndex.get(a.featureType) : Number.MAX_SAFE_INTEGER;
+        const bIdx = orderIndex.has(b.featureType) ? orderIndex.get(b.featureType) : Number.MAX_SAFE_INTEGER;
+        if (aIdx !== bIdx) {
+            return aIdx - bIdx;
+        }
+        if (b.count !== a.count) {
+            return b.count - a.count;
+        }
+        return a.featureType.localeCompare(b.featureType);
+    });
+}
+
+const ORDERED_CATALOG_TYPE_STATS = getOrderedCatalogTypeStats();
+
 function formatFeatureTypeLabel(featureType) {
     const primary = String(featureType || "").split(",")[0].trim();
     return primary || String(featureType || "");
@@ -138,18 +197,53 @@ function formatTypeRangeValue(minDiameterKm, maxDiameterKm) {
     return `${formatDiameterKm(safeMin)}-${formatDiameterKm(safeMax)} km`;
 }
 
-function readOptionalNumericInputValue(input) {
-    if (!input) return null;
-    const raw = `${input.value ?? ""}`.trim();
-    if (!raw) return null;
-    const numeric = Number(raw);
-    return Number.isFinite(numeric) ? numeric : null;
+function resolveTypeSliderMax(stats = null) {
+    const maxFromStats = Number(stats?.maxDiameterKm);
+    if (!Number.isFinite(maxFromStats)) {
+        return TYPE_FILTER_DEFAULT_MAX_KM;
+    }
+    return Math.max(
+        TYPE_FILTER_DEFAULT_MAX_KM,
+        Math.ceil(maxFromStats / LUNAR_CRATER_DIAMETER_STEP_KM) * LUNAR_CRATER_DIAMETER_STEP_KM,
+    );
+}
+
+function readSliderBound(slider, key, fallback) {
+    if (!slider) return fallback;
+    const value = Number(slider[key]);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function readTypeSliderValue(slider, fallback, { minBound = 0, maxBound = TYPE_FILTER_DEFAULT_MAX_KM } = {}) {
+    const value = Number(slider?.value);
+    if (!Number.isFinite(value)) {
+        return fallback;
+    }
+    return Math.max(minBound, Math.min(maxBound, value));
+}
+
+function syncTypeRangeValueText(controls, minDiameterKm, maxDiameterKm) {
+    if (!controls?.rangeValue) return;
+    controls.rangeValue.textContent = formatTypeRangeValue(minDiameterKm, maxDiameterKm);
+}
+
+function syncDualRangeFill(fillElement, minSlider, maxSlider) {
+    if (!fillElement || !minSlider || !maxSlider) return;
+    const minBound = readSliderBound(minSlider, "min", TYPE_FILTER_DEFAULT_MIN_KM);
+    const maxBound = readSliderBound(maxSlider, "max", TYPE_FILTER_DEFAULT_MAX_KM);
+    const span = Math.max(1, maxBound - minBound);
+    const minValue = readTypeSliderValue(minSlider, minBound, { minBound, maxBound });
+    const maxValue = readTypeSliderValue(maxSlider, maxBound, { minBound, maxBound });
+    const leftPct = ((minValue - minBound) / span) * 100;
+    const rightPct = ((maxBound - maxValue) / span) * 100;
+    fillElement.style.left = `${Math.max(0, Math.min(100, leftPct))}%`;
+    fillElement.style.right = `${Math.max(0, Math.min(100, rightPct))}%`;
 }
 
 function buildPresetTypeFilters(baseFilters, presetId) {
     const current = normalizeLunarFeatureTypeFilters(baseFilters);
     const next = {};
-    for (const stats of CATALOG_TYPE_STATS) {
+    for (const stats of ORDERED_CATALOG_TYPE_STATS) {
         const existing = current[stats.featureType] || {};
         const minDiameterKm = Number.isFinite(existing.minDiameterKm)
             ? existing.minDiameterKm
@@ -264,7 +358,7 @@ function rehydrateTypeFilterControls(elements = {}, { panel, container, presetCo
     }
     const typeControls = new Map();
     const presetButtons = new Map();
-    const statsByType = new Map(CATALOG_TYPE_STATS.map((entry) => [entry.featureType, entry]));
+    const statsByType = new Map(ORDERED_CATALOG_TYPE_STATS.map((entry) => [entry.featureType, entry]));
 
     if (presetContainer) {
         const presetButtonNodes = presetContainer.querySelectorAll?.("[data-preset-id]");
@@ -280,14 +374,21 @@ function rehydrateTypeFilterControls(elements = {}, { panel, container, presetCo
         const featureType = `${row?.dataset?.featureType || ""}`;
         if (!featureType) continue;
         const toggle = row.querySelector?.(".lunar-crater-controls-panel__type-toggle") || null;
-        const typeNumbers = row.querySelectorAll?.(".lunar-crater-controls-panel__type-number") || [];
-        const minInput = typeNumbers[0] || null;
-        const maxInput = typeNumbers[1] || null;
+        const dualRange = row.querySelector?.(".lunar-crater-controls-panel__dual-range") || null;
+        const dualRangeFill = row.querySelector?.(".lunar-crater-controls-panel__dual-range-fill") || null;
+        const minSlider = row.querySelector?.(".lunar-crater-controls-panel__type-slider--min") || null;
+        const maxSlider = row.querySelector?.(".lunar-crater-controls-panel__type-slider--max") || null;
+        const rangeValue = row.querySelector?.(".lunar-crater-controls-panel__type-range-value") || null;
         typeControls.set(featureType, {
             row,
             toggle,
-            minInput,
-            maxInput,
+            dualRange,
+            dualRangeFill,
+            minSlider,
+            maxSlider,
+            rangeValue,
+            minExplicit: row?.dataset?.typeMinExplicit === "true",
+            maxExplicit: row?.dataset?.typeMaxExplicit === "true",
             stats: statsByType.get(featureType) || null,
         });
     }
@@ -295,6 +396,46 @@ function rehydrateTypeFilterControls(elements = {}, { panel, container, presetCo
     elements.typeControls = typeControls;
     elements.presetButtons = presetButtons;
     return typeControls.size > 0;
+}
+
+function getLunarFeatureGroupEntries(container) {
+    const groups = container?.querySelectorAll?.(".lunar-crater-controls-panel__type-group") || [];
+    return Array.from(groups).map((groupContainer) => ({
+        groupContainer,
+        groupTitle: groupContainer.querySelector?.(".lunar-crater-controls-panel__type-group-title") || null,
+        groupRows: groupContainer.querySelector?.(".lunar-crater-controls-panel__type-group-rows") || null,
+    })).filter((entry) => entry.groupTitle && entry.groupRows);
+}
+
+function setExpandedLunarFeatureGroup(container, targetId = null) {
+    for (const entry of getLunarFeatureGroupEntries(container)) {
+        const groupId = `${entry.groupContainer?.dataset?.groupId || ""}`;
+        const expanded = Boolean(targetId && groupId === targetId);
+        entry.groupContainer.dataset.expanded = expanded ? "true" : "false";
+        entry.groupRows.hidden = !expanded;
+        entry.groupTitle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+}
+
+function bindLunarFeatureGroupAccordion(container, { openFirst = false } = {}) {
+    if (!container) return;
+    const entries = getLunarFeatureGroupEntries(container);
+    if (openFirst && entries.length > 0) {
+        const firstGroupId = `${entries[0].groupContainer?.dataset?.groupId || ""}`;
+        setExpandedLunarFeatureGroup(container, firstGroupId || null);
+    }
+    if (container.dataset.lunarFeatureAccordionBound === "true") {
+        return;
+    }
+    container.addEventListener("click", (event) => {
+        const title = event.target?.closest?.(".lunar-crater-controls-panel__type-group-title");
+        if (!title || !container.contains(title)) return;
+        const groupContainer = title.closest?.(".lunar-crater-controls-panel__type-group");
+        const groupId = `${groupContainer?.dataset?.groupId || ""}`;
+        const currentlyExpanded = groupContainer?.dataset?.expanded === "true";
+        setExpandedLunarFeatureGroup(container, currentlyExpanded ? null : groupId);
+    });
+    container.dataset.lunarFeatureAccordionBound = "true";
 }
 
 function ensureTypeFilterControls(elements = {}) {
@@ -317,6 +458,7 @@ function ensureTypeFilterControls(elements = {}) {
     }
     if (container.dataset.lunarFeatureTypesBuilt === "true") {
         rehydrateTypeFilterControls(elements, { panel, container, presetContainer });
+        bindLunarFeatureGroupAccordion(container);
         return;
     }
     while (presetContainer?.firstChild) {
@@ -328,7 +470,6 @@ function ensureTypeFilterControls(elements = {}) {
 
     const typeControls = new Map();
     const presetButtons = new Map();
-
     for (const preset of LUNAR_FEATURE_PRESETS) {
         const button = panel.ownerDocument?.createElement?.("button")
             || document.createElement("button");
@@ -341,7 +482,49 @@ function ensureTypeFilterControls(elements = {}) {
         presetButtons.set(preset.id, button);
     }
 
-    for (const stats of CATALOG_TYPE_STATS) {
+    const statsByType = new Map(ORDERED_CATALOG_TYPE_STATS.map((entry) => [entry.featureType, entry]));
+    const groupedStats = FEATURE_TYPE_GROUPS.map((group) => ({
+        ...group,
+        stats: group.types
+            .map((featureType) => statsByType.get(featureType))
+            .filter(Boolean),
+    }));
+    const groupedFeatureTypes = new Set(FEATURE_TYPE_GROUPS.flatMap((group) => group.types));
+    const ungroupedStats = ORDERED_CATALOG_TYPE_STATS.filter(
+        (entry) => !groupedFeatureTypes.has(entry.featureType),
+    );
+    if (ungroupedStats.length > 0) {
+        groupedStats.push({
+            id: "other",
+            label: "Other Features",
+            types: ungroupedStats.map((entry) => entry.featureType),
+            stats: ungroupedStats,
+        });
+    }
+
+    for (const group of groupedStats) {
+        if (!Array.isArray(group.stats) || group.stats.length === 0) {
+            continue;
+        }
+        const groupContainer = panel.ownerDocument?.createElement?.("section")
+            || document.createElement("section");
+        groupContainer.className = "lunar-crater-controls-panel__type-group";
+        groupContainer.dataset.groupId = `${group.id || ""}`;
+
+        const groupTitle = panel.ownerDocument?.createElement?.("button")
+            || document.createElement("button");
+        groupTitle.type = "button";
+        groupTitle.className = "lunar-crater-controls-panel__type-group-title";
+        groupTitle.textContent = group.label || "";
+        groupTitle.setAttribute("aria-expanded", "false");
+        groupContainer.appendChild(groupTitle);
+
+        const groupRows = panel.ownerDocument?.createElement?.("div")
+            || document.createElement("div");
+        groupRows.className = "lunar-crater-controls-panel__type-group-rows";
+        groupRows.hidden = true;
+
+        for (const stats of group.stats) {
         const row = panel.ownerDocument?.createElement?.("div")
             || document.createElement("div");
         row.className = "lunar-crater-controls-panel__type-row";
@@ -360,47 +543,76 @@ function ensureTypeFilterControls(elements = {}) {
         const range = panel.ownerDocument?.createElement?.("div")
             || document.createElement("div");
         range.className = "lunar-crater-controls-panel__type-range";
-
-        const minInput = panel.ownerDocument?.createElement?.("input")
-            || document.createElement("input");
-        minInput.type = "number";
-        minInput.className = "lunar-crater-controls-panel__type-number";
-        minInput.step = "1";
-        minInput.min = "0";
-        minInput.title = "Minimum diameter (km)";
-        minInput.setAttribute("aria-label", `${formatFeatureTypeLabel(stats.featureType)} minimum diameter in km`);
-
-        const maxInput = panel.ownerDocument?.createElement?.("input")
-            || document.createElement("input");
-        maxInput.type = "number";
-        maxInput.className = "lunar-crater-controls-panel__type-number";
-        maxInput.step = "1";
-        maxInput.min = "0";
-        maxInput.title = "Maximum diameter (km)";
-        maxInput.setAttribute("aria-label", `${formatFeatureTypeLabel(stats.featureType)} maximum diameter in km`);
-
-        const unit = panel.ownerDocument?.createElement?.("span")
+        const rangeValue = panel.ownerDocument?.createElement?.("span")
             || document.createElement("span");
-        unit.className = "lunar-crater-controls-panel__type-unit";
-        unit.textContent = "km";
+        rangeValue.className = "lunar-crater-controls-panel__type-range-value";
+        rangeValue.textContent = formatTypeRangeValue(null, null);
 
-        range.appendChild(minInput);
-        range.appendChild(maxInput);
-        range.appendChild(unit);
+        const rangeStack = panel.ownerDocument?.createElement?.("div")
+            || document.createElement("div");
+        rangeStack.className = "lunar-crater-controls-panel__type-range-stack";
+
+        const createTypeSlider = (className, labelText, sliderMax) => {
+            const slider = panel.ownerDocument?.createElement?.("input")
+                || document.createElement("input");
+            slider.type = "range";
+            slider.className = `lunar-crater-controls-panel__range ${className}`;
+            slider.step = String(LUNAR_CRATER_DIAMETER_STEP_KM);
+            slider.min = String(TYPE_FILTER_DEFAULT_MIN_KM);
+            slider.max = String(sliderMax);
+            slider.value = String(TYPE_FILTER_DEFAULT_MIN_KM);
+            slider.setAttribute("aria-label", labelText);
+            return slider;
+        };
+
+        const sliderMax = resolveTypeSliderMax(stats);
+        const dualRange = panel.ownerDocument?.createElement?.("div")
+            || document.createElement("div");
+        dualRange.className = "lunar-crater-controls-panel__dual-range";
+        const dualRangeFill = panel.ownerDocument?.createElement?.("span")
+            || document.createElement("span");
+        dualRangeFill.className = "lunar-crater-controls-panel__dual-range-fill";
+
+        const minSlider = createTypeSlider(
+            "lunar-crater-controls-panel__type-slider--min",
+            `${formatFeatureTypeLabel(stats.featureType)} minimum diameter`,
+            sliderMax,
+        );
+        const maxSlider = createTypeSlider(
+            "lunar-crater-controls-panel__type-slider--max",
+            `${formatFeatureTypeLabel(stats.featureType)} maximum diameter`,
+            sliderMax,
+        );
+        maxSlider.value = String(sliderMax);
+        dualRange.appendChild(dualRangeFill);
+        dualRange.appendChild(minSlider);
+        dualRange.appendChild(maxSlider);
+        rangeStack.appendChild(dualRange);
+        range.appendChild(rangeValue);
+        range.appendChild(rangeStack);
 
         row.appendChild(toggle);
         row.appendChild(label);
-        row.appendChild(range);
-        container.appendChild(row);
+            row.appendChild(range);
+            groupRows.appendChild(row);
 
-        typeControls.set(stats.featureType, {
-            row,
-            toggle,
-            minInput,
-            maxInput,
-            stats,
-        });
+            typeControls.set(stats.featureType, {
+                row,
+                toggle,
+                dualRange,
+                dualRangeFill,
+                minSlider,
+                maxSlider,
+                rangeValue,
+                minExplicit: false,
+                maxExplicit: false,
+                stats,
+            });
+        }
+        groupContainer.appendChild(groupRows);
+        container.appendChild(groupContainer);
     }
+    bindLunarFeatureGroupAccordion(container, { openFirst: true });
 
     elements.typeControls = typeControls;
     elements.presetButtons = presetButtons;
@@ -414,16 +626,44 @@ function ensureTypeFilterControls(elements = {}) {
 function readTypeFiltersFromControls(elements = {}, fallback = {}) {
     ensureTypeFilterControls(elements);
     const normalizedFallback = normalizeLunarFeatureTypeFilters(fallback);
+    const currentGlobal = readGlobalDiameterRangeFromElements(elements);
     if (!(elements.typeControls instanceof Map) || !elements.typeControls.size) {
         return normalizedFallback;
     }
     const next = {};
     for (const [featureType, controls] of elements.typeControls.entries()) {
         const fallbackEntry = normalizedFallback[featureType] || {};
+        const sliderMax = readSliderBound(
+            controls.maxSlider || controls.minSlider,
+            "max",
+            resolveTypeSliderMax(controls.stats),
+        );
+        const minFromSlider = readTypeSliderValue(
+            controls.minSlider,
+            currentGlobal.lunarCraterMinDiameterKm,
+            {
+                minBound: TYPE_FILTER_DEFAULT_MIN_KM,
+                maxBound: sliderMax,
+            },
+        );
+        const maxFromSlider = readTypeSliderValue(
+            controls.maxSlider,
+            currentGlobal.lunarCraterMaxDiameterKm,
+            {
+                minBound: TYPE_FILTER_DEFAULT_MIN_KM,
+                maxBound: sliderMax,
+            },
+        );
+        const minDiameterKm = controls.minExplicit === true
+            ? minFromSlider
+            : fallbackEntry.minDiameterKm ?? null;
+        const maxDiameterKm = controls.maxExplicit === true
+            ? maxFromSlider
+            : fallbackEntry.maxDiameterKm ?? null;
         next[featureType] = {
             enabled: controls.toggle?.checked !== false,
-            minDiameterKm: readOptionalNumericInputValue(controls.minInput) ?? fallbackEntry.minDiameterKm ?? null,
-            maxDiameterKm: readOptionalNumericInputValue(controls.maxInput) ?? fallbackEntry.maxDiameterKm ?? null,
+            minDiameterKm,
+            maxDiameterKm,
         };
     }
     return normalizeLunarFeatureTypeFilters(next, normalizedFallback);
@@ -435,21 +675,39 @@ function writeTypeFiltersToControls(elements = {}, typeFilters = {}) {
         return;
     }
     const normalized = normalizeLunarFeatureTypeFilters(typeFilters);
+    const globalState = readGlobalDiameterRangeFromElements(elements);
     for (const [featureType, controls] of elements.typeControls.entries()) {
         const entry = normalized[featureType] || {};
+        const sliderMax = resolveTypeSliderMax(controls.stats);
+        const effectiveMin = Number.isFinite(entry.minDiameterKm)
+            ? Math.max(TYPE_FILTER_DEFAULT_MIN_KM, Math.min(sliderMax, entry.minDiameterKm))
+            : globalState.lunarCraterMinDiameterKm;
+        const effectiveMax = Number.isFinite(entry.maxDiameterKm)
+            ? Math.max(TYPE_FILTER_DEFAULT_MIN_KM, Math.min(sliderMax, entry.maxDiameterKm))
+            : globalState.lunarCraterMaxDiameterKm;
+        const boundedMin = Math.min(effectiveMin, effectiveMax);
+        const boundedMax = Math.max(effectiveMin, effectiveMax);
         if (controls.toggle) {
             controls.toggle.checked = entry.enabled !== false;
         }
-        if (controls.minInput) {
-            controls.minInput.value = Number.isFinite(entry.minDiameterKm)
-                ? String(Math.max(0, entry.minDiameterKm))
-                : "";
+        if (controls.minSlider) {
+            controls.minSlider.min = String(TYPE_FILTER_DEFAULT_MIN_KM);
+            controls.minSlider.max = String(sliderMax);
+            controls.minSlider.value = String(boundedMin);
         }
-        if (controls.maxInput) {
-            controls.maxInput.value = Number.isFinite(entry.maxDiameterKm)
-                ? String(Math.max(0, entry.maxDiameterKm))
-                : "";
+        if (controls.maxSlider) {
+            controls.maxSlider.min = String(TYPE_FILTER_DEFAULT_MIN_KM);
+            controls.maxSlider.max = String(sliderMax);
+            controls.maxSlider.value = String(boundedMax);
         }
+        controls.minExplicit = Number.isFinite(entry.minDiameterKm);
+        controls.maxExplicit = Number.isFinite(entry.maxDiameterKm);
+        if (controls.row) {
+            controls.row.dataset.typeMinExplicit = controls.minExplicit ? "true" : "false";
+            controls.row.dataset.typeMaxExplicit = controls.maxExplicit ? "true" : "false";
+        }
+        syncTypeRangeValueText(controls, boundedMin, boundedMax);
+        syncDualRangeFill(controls.dualRangeFill, controls.minSlider, controls.maxSlider);
     }
 }
 
@@ -481,6 +739,7 @@ export function getLunarCraterControlPanelElements(documentRef, {
         maxDiameterSlider: getElement(`${idPrefix}-max-diameter`),
         maxDiameterStepDown: getElement(`${idPrefix}-max-diameter-step-down`),
         maxDiameterStepUp: getElement(`${idPrefix}-max-diameter-step-up`),
+        globalRangeFill: getElement(`${idPrefix}-global-range-fill`),
         diameterValue: getElement(`${idPrefix}-diameter-value`),
         countValue: getElement(`${idPrefix}-count-value`),
         busyIndicator: getElement(`${idPrefix}-busy-indicator`),
@@ -539,6 +798,7 @@ export function writeLunarCraterControlState(elements = {}, patch = {}) {
     ) {
         elements.minDiameterSlider.value = String(normalized.lunarCraterMinDiameterKm);
         elements.maxDiameterSlider.value = String(normalized.lunarCraterMaxDiameterKm);
+        syncDualRangeFill(elements.globalRangeFill, elements.minDiameterSlider, elements.maxDiameterSlider);
     }
     if (elements.diameterValue) {
         elements.diameterValue.value = formatDiameterRange(normalized);
@@ -595,6 +855,7 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
     if (elements.minDiameterSlider && elements.maxDiameterSlider) {
         elements.minDiameterSlider.value = String(normalized.lunarCraterMinDiameterKm);
         elements.maxDiameterSlider.value = String(normalized.lunarCraterMaxDiameterKm);
+        syncDualRangeFill(elements.globalRangeFill, elements.minDiameterSlider, elements.maxDiameterSlider);
         for (const slider of [elements.minDiameterSlider, elements.maxDiameterSlider]) {
             slider.disabled = controlsDisabled;
             slider.setAttribute?.("aria-disabled", slider.disabled ? "true" : "false");
@@ -630,11 +891,11 @@ export function syncLunarCraterControlPanel(elements = {}, state = readLunarCrat
                 controls.toggle.checked = active;
                 controls.toggle.disabled = controlsDisabled;
             }
-            if (controls.minInput) {
-                controls.minInput.disabled = controlsDisabled;
+            if (controls.minSlider) {
+                controls.minSlider.disabled = controlsDisabled;
             }
-            if (controls.maxInput) {
-                controls.maxInput.disabled = controlsDisabled;
+            if (controls.maxSlider) {
+                controls.maxSlider.disabled = controlsDisabled;
             }
             if (controls.row) {
                 controls.row.title = formatTypeRangeValue(entry.minDiameterKm, entry.maxDiameterKm);
@@ -815,21 +1076,63 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
         }
     }
     if (elements.typeControls instanceof Map) {
+        const markTypeExplicit = (controls, key) => {
+            if (!controls) return;
+            if (key === "min") {
+                controls.minExplicit = true;
+                controls.row?.dataset && (controls.row.dataset.typeMinExplicit = "true");
+            } else if (key === "max") {
+                controls.maxExplicit = true;
+                controls.row?.dataset && (controls.row.dataset.typeMaxExplicit = "true");
+            }
+        };
+        const commitTypeFromSliders = (featureType, controls, sourceId, { queued = false } = {}) => {
+            markTypeExplicit(controls, sourceId.includes("min") ? "min" : "max");
+            if (controls?.minSlider && controls?.maxSlider) {
+                const sliderMax = readSliderBound(
+                    controls.maxSlider,
+                    "max",
+                    resolveTypeSliderMax(controls.stats),
+                );
+                let minValue = readTypeSliderValue(
+                    controls.minSlider,
+                    TYPE_FILTER_DEFAULT_MIN_KM,
+                    { minBound: TYPE_FILTER_DEFAULT_MIN_KM, maxBound: sliderMax },
+                );
+                let maxValue = readTypeSliderValue(
+                    controls.maxSlider,
+                    sliderMax,
+                    { minBound: TYPE_FILTER_DEFAULT_MIN_KM, maxBound: sliderMax },
+                );
+                if (minValue > maxValue) {
+                    if (sourceId.includes("min")) {
+                        maxValue = minValue;
+                        controls.maxSlider.value = String(maxValue);
+                    } else {
+                        minValue = maxValue;
+                        controls.minSlider.value = String(minValue);
+                    }
+                }
+                syncTypeRangeValueText(controls, minValue, maxValue);
+                syncDualRangeFill(controls.dualRangeFill, controls.minSlider, controls.maxSlider);
+            }
+            commitCurrentTypeFilters(`lunar-feature-type-${sourceId}:${featureType}`, { queued });
+        };
         for (const [featureType, controls] of elements.typeControls.entries()) {
             listen(controls.toggle, "change", () => {
                 commitCurrentTypeFilters(`lunar-feature-type-toggle:${featureType}`);
             });
-            listen(controls.minInput, "input", () => {
-                commitCurrentTypeFilters(`lunar-feature-type-min:${featureType}`, { queued: true });
+            listen(controls.minSlider, "input", () => {
+                commitTypeFromSliders(featureType, controls, "min-input", { queued: true });
             });
-            listen(controls.maxInput, "input", () => {
-                commitCurrentTypeFilters(`lunar-feature-type-max:${featureType}`, { queued: true });
+            listen(controls.maxSlider, "input", () => {
+                commitTypeFromSliders(featureType, controls, "max-input", { queued: true });
             });
-            listen(controls.minInput, "change", () => {
-                commitCurrentTypeFilters(`lunar-feature-type-min:${featureType}`);
+            listen(controls.minSlider, "change", () => {
+                commitTypeFromSliders(featureType, controls, "min-change");
             });
-            listen(controls.maxInput, "change", () => {
-                commitCurrentTypeFilters(`lunar-feature-type-max:${featureType}`);
+            listen(controls.maxSlider, "change", () => {
+                commitTypeFromSliders(featureType, controls, "max-change");
             });
         }
     }
@@ -1015,21 +1318,10 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     const rangeStack = documentRef.createElement("div");
     rangeStack.className = "lunar-crater-controls-panel__range-stack";
 
-    const createStepButton = (idSuffix, labelTextValue, text) => {
-        const button = documentRef.createElement("button");
-        button.id = `${prefix}-${idSuffix}`;
-        button.type = "button";
-        button.className = "lunar-crater-controls-panel__step-button";
-        button.setAttribute("aria-label", labelTextValue);
-        button.title = labelTextValue;
-        button.textContent = text;
-        return button;
-    };
-
-    const createDiameterSlider = (idSuffix, labelTextValue, value) => {
+    const createDiameterSlider = (idSuffix, labelTextValue, value, variantClass) => {
         const slider = documentRef.createElement("input");
         slider.id = `${prefix}-${idSuffix}`;
-        slider.className = "lunar-crater-controls-panel__range";
+        slider.className = `lunar-crater-controls-panel__range ${variantClass}`;
         slider.type = "range";
         slider.min = String(LUNAR_CRATER_RANGE_MIN_DIAMETER_KM);
         slider.max = String(LUNAR_CRATER_RANGE_MAX_DIAMETER_KM);
@@ -1042,42 +1334,23 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
         "min-diameter",
         "Minimum feature diameter",
         LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+        "lunar-crater-controls-panel__range--min",
     );
     const maxDiameterSlider = createDiameterSlider(
         "max-diameter",
         "Maximum feature diameter",
         LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+        "lunar-crater-controls-panel__range--max",
     );
-    const minDiameterStepDown = createStepButton(
-        "min-diameter-step-down",
-        "Decrease minimum feature diameter",
-        "-",
-    );
-    const minDiameterStepUp = createStepButton(
-        "min-diameter-step-up",
-        "Increase minimum feature diameter",
-        "+",
-    );
-    const maxDiameterStepDown = createStepButton(
-        "max-diameter-step-down",
-        "Decrease maximum feature diameter",
-        "-",
-    );
-    const maxDiameterStepUp = createStepButton(
-        "max-diameter-step-up",
-        "Increase maximum feature diameter",
-        "+",
-    );
-    const createSliderRow = (stepDown, slider, stepUp) => {
-        const row = documentRef.createElement("div");
-        row.className = "lunar-crater-controls-panel__range-row";
-        row.appendChild(stepDown);
-        row.appendChild(slider);
-        row.appendChild(stepUp);
-        return row;
-    };
-    rangeStack.appendChild(createSliderRow(minDiameterStepDown, minDiameterSlider, minDiameterStepUp));
-    rangeStack.appendChild(createSliderRow(maxDiameterStepDown, maxDiameterSlider, maxDiameterStepUp));
+    const globalDualRange = documentRef.createElement("div");
+    globalDualRange.className = "lunar-crater-controls-panel__dual-range";
+    const globalRangeFill = documentRef.createElement("span");
+    globalRangeFill.id = `${prefix}-global-range-fill`;
+    globalRangeFill.className = "lunar-crater-controls-panel__dual-range-fill";
+    globalDualRange.appendChild(globalRangeFill);
+    globalDualRange.appendChild(minDiameterSlider);
+    globalDualRange.appendChild(maxDiameterSlider);
+    rangeStack.appendChild(globalDualRange);
 
     const scale = documentRef.createElement("div");
     scale.className = "lunar-crater-controls-panel__scale";
@@ -1116,11 +1389,11 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
     panel.appendChild(hoverInput);
     panel.appendChild(modeInput);
     panel.appendChild(header);
-    panel.appendChild(presets);
-    panel.appendChild(typeFilters);
     panel.appendChild(label);
     panel.appendChild(rangeStack);
     panel.appendChild(scale);
+    panel.appendChild(presets);
+    panel.appendChild(typeFilters);
     panel.appendChild(statusRow);
     panel.appendChild(nudge);
     panel.appendChild(modeLabel);
@@ -1138,11 +1411,12 @@ export function createLunarCraterControlPanelElements(documentRef, options = {})
         visibleToggle,
         hoverToggle,
         minDiameterSlider,
-        minDiameterStepDown,
-        minDiameterStepUp,
+        minDiameterStepDown: null,
+        minDiameterStepUp: null,
         maxDiameterSlider,
-        maxDiameterStepDown,
-        maxDiameterStepUp,
+        maxDiameterStepDown: null,
+        maxDiameterStepUp: null,
+        globalRangeFill,
         diameterValue,
         countValue,
         busyIndicator,

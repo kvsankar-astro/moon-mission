@@ -453,6 +453,9 @@ body {
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
     color: #e7edf7;
     font-size: 10px;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .lunar-crater-controls-panel__header {
@@ -542,7 +545,7 @@ body {
 
 .lunar-crater-controls-panel__presets {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
 }
 
@@ -572,18 +575,68 @@ body {
 
 .lunar-crater-controls-panel__type-filters {
     display: grid;
-    gap: 4px;
-    max-height: 168px;
-    overflow: auto;
+    gap: 8px;
     padding-right: 2px;
 }
 
-.lunar-crater-controls-panel__type-row {
+.lunar-crater-controls-panel__type-group {
     display: grid;
-    grid-template-columns: 14px minmax(0, 1fr) minmax(116px, 128px);
+    gap: 5px;
+}
+
+.lunar-crater-controls-panel__type-group-title {
+    display: flex;
     align-items: center;
-    gap: 6px;
-    min-height: 20px;
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    color: rgba(188, 208, 241, 0.82);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.lunar-crater-controls-panel__type-group-title::before {
+    content: "▸";
+    display: inline-block;
+    width: 8px;
+    color: rgba(188, 208, 241, 0.9);
+    font-size: 10px;
+    line-height: 1;
+}
+
+.lunar-crater-controls-panel__type-group-title[aria-expanded="true"]::before {
+    content: "▾";
+}
+
+.lunar-crater-controls-panel__type-group-title:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 2px;
+}
+
+.lunar-crater-controls-panel__type-group-rows {
+    display: grid;
+    gap: 18px;
+}
+
+.lunar-crater-controls-panel__type-group-rows[hidden] {
+    display: none !important;
+}
+
+.lunar-crater-controls-panel__type-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    align-items: start;
+    gap: 1px 6px;
+    min-height: 26px;
 }
 
 .lunar-crater-controls-panel__type-row.is-disabled {
@@ -599,7 +652,8 @@ body {
 .lunar-crater-controls-panel__type-label {
     color: #d5e2f6;
     font-size: 8.5px;
-    line-height: 1.1;
+    line-height: 1.25;
+    padding-right: 68px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -607,28 +661,59 @@ body {
 
 .lunar-crater-controls-panel__type-range {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 4px;
-}
-
-.lunar-crater-controls-panel__type-number {
-    width: 100%;
+    grid-column: 2 / -1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
     min-width: 0;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 4px;
-    background: rgba(5, 10, 17, 0.85);
-    color: #dce8ff;
-    font-size: 8px;
-    line-height: 1.2;
-    padding: 2px 4px;
-    box-sizing: border-box;
+    margin-top: 0;
 }
 
-.lunar-crater-controls-panel__type-unit {
-    color: rgba(185, 197, 216, 0.86);
-    font-size: 7px;
-    text-transform: uppercase;
+.lunar-crater-controls-panel__type-range-value {
+    display: block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    color: rgba(185, 207, 244, 0.96);
+    font-size: 8px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.lunar-crater-controls-panel__type-range-stack {
+    display: grid;
+    gap: 0;
+}
+
+.lunar-crater-controls-panel__dual-range {
+    position: relative;
+    height: 16px;
+    display: flex;
+    align-items: center;
+}
+
+.lunar-crater-controls-panel__dual-range::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 2px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: rgba(213, 224, 244, 0.5);
+}
+
+.lunar-crater-controls-panel__dual-range-fill {
+    position: absolute;
+    top: 50%;
+    height: 3px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: var(--ui-annotation-accent);
+    left: 0;
+    right: 0;
+    pointer-events: none;
 }
 
 .lunar-crater-controls-panel__range-label,
@@ -654,88 +739,82 @@ body {
 
 .lunar-crater-controls-panel__range-stack {
     display: grid;
-    gap: 4px;
-}
-
-.lunar-crater-controls-panel__range-row {
-    display: grid;
-    grid-template-columns: 18px minmax(0, 1fr) 18px;
-    align-items: center;
-    gap: 4px;
-}
-
-.lunar-crater-controls-panel__step-button {
-    width: 18px;
-    height: 18px;
-    padding: 0;
-    border: 1px solid rgba(121, 171, 255, 0.34);
-    border-radius: 50%;
-    background: rgba(12, 24, 44, 0.92);
-    color: #dce8ff;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 15px;
-    cursor: pointer;
-}
-
-.lunar-crater-controls-panel__step-button:hover {
-    border-color: rgba(160, 196, 255, 0.62);
-    background: rgba(38, 68, 112, 0.96);
-}
-
-.lunar-crater-controls-panel__step-button:focus-visible {
-    outline: 2px solid var(--ui-focus);
-    outline-offset: 1px;
-}
-
-.lunar-crater-controls-panel__step-button:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+    gap: 2px;
 }
 
 .lunar-crater-controls-panel__range {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
     width: 100%;
-    height: 12px;
+    height: 16px;
     margin: 0;
     appearance: none;
     -webkit-appearance: none;
-    accent-color: var(--ui-annotation-accent);
     background: transparent;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.lunar-crater-controls-panel__range--min,
+.lunar-crater-controls-panel__type-slider--min {
+    z-index: 4;
+}
+
+.lunar-crater-controls-panel__range--max,
+.lunar-crater-controls-panel__type-slider--max {
+    z-index: 3;
 }
 
 .lunar-crater-controls-panel__range:disabled {
-    opacity: 0.45;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
 .lunar-crater-controls-panel__range::-webkit-slider-runnable-track {
-    height: 3px;
+    height: 2px;
     border-radius: 999px;
-    background: rgba(213, 224, 244, 0.86);
+    background: transparent;
 }
 
 .lunar-crater-controls-panel__range::-webkit-slider-thumb {
-    width: 8px;
-    height: 8px;
-    margin-top: -2.5px;
+    width: 10px;
+    height: 10px;
+    margin-top: -4px;
     border: 1px solid rgba(255, 255, 255, 0.92);
     border-radius: 50%;
     background: var(--ui-annotation-accent);
     -webkit-appearance: none;
+    pointer-events: all;
+    cursor: pointer;
 }
 
 .lunar-crater-controls-panel__range::-moz-range-track {
-    height: 3px;
+    height: 2px;
     border-radius: 999px;
-    background: rgba(213, 224, 244, 0.86);
+    background: transparent;
 }
 
 .lunar-crater-controls-panel__range::-moz-range-thumb {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border: 1px solid rgba(255, 255, 255, 0.92);
     border-radius: 50%;
     background: var(--ui-annotation-accent);
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.lunar-crater-controls-panel__type-range .lunar-crater-controls-panel__range::-webkit-slider-thumb {
+    width: 8px;
+    height: 8px;
+    margin-top: -3px;
+}
+
+.lunar-crater-controls-panel__type-range .lunar-crater-controls-panel__range::-moz-range-thumb {
+    width: 8px;
+    height: 8px;
 }
 
 .lunar-crater-controls-panel__scale {
