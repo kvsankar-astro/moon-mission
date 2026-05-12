@@ -160,6 +160,64 @@ describe("lunar crater actions", () => {
         );
     });
 
+    it("keeps Show Always labels sparse instead of labeling every rendered feature", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: Array.from({ length: 28 }, (_, index) => ({
+                name: `Visible crater ${index}`,
+                featureType: "Crater, craters",
+                latitudeDeg: -6 + (index % 7) * 2,
+                longitudeDeg: -6 + Math.floor(index / 7) * 4,
+                diameterKm: 120 + index,
+            })),
+        };
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "always",
+            getLunarFeatureTypeFilters: () => ({}),
+            craterCatalog: catalog,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+        };
+        const camera = new THREE.PerspectiveCamera(20, 1, 0.1, 1000);
+        camera.position.set(100, 0, 0);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+
+        actions.addLunarCraterAnnotations({
+            scene,
+            camera,
+            rendererDomElement: { clientWidth: 1000, clientHeight: 1000 },
+        });
+
+        const renderedRings = scene.lunarCraterAnnotations.filter((object) => object.userData?.craterRing);
+        const renderedLabels = scene.lunarCraterAnnotations.filter((object) =>
+            object.userData?.lunarCrater && !object.userData?.craterRing,
+        );
+        expect(renderedRings.length).toBeGreaterThan(14);
+        expect(renderedLabels.length).toBeLessThanOrEqual(14);
+        expect(renderedLabels.length).toBeLessThan(renderedRings.length);
+    });
+
     it("caps crater label scale when the camera is too close", () => {
         const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
         const labelWorldPosition = new THREE.Vector3(0, 0, 0);

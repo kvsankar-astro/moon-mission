@@ -72,6 +72,14 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getLunarFeatureTypeFilters(),
             (value) => { runtimeViewState.setLunarFeatureTypeFilters(value); },
         ),
+        lunarFeatureSearchQuery: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureSearchQuery(),
+            (value) => { runtimeViewState.setLunarFeatureSearchQuery(value); },
+        ),
+        lunarFeatureExcludedKeys: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureExcludedKeys(),
+            (value) => { runtimeViewState.setLunarFeatureExcludedKeys(value); },
+        ),
         viewXYZAxes: createMutableStateCell(
             () => runtimeViewState.getViewXYZAxes(),
             (value) => { runtimeViewState.setViewXYZAxes(value); },

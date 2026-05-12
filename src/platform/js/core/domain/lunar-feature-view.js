@@ -38,8 +38,25 @@ const BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS = Object.freeze({
 const BASE_DEFAULT_LUNAR_FEATURE_VIEW_STATE = Object.freeze({
     viewCraters: true,
     lunarFeatureTypeFilters: BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS,
+    lunarFeatureSearchQuery: "",
+    lunarFeatureExcludedKeys: [],
     ...createDefaultLunarCraterViewState(),
 });
+
+export function normalizeLunarFeatureSearchQuery(value) {
+    return typeof value === "string"
+        ? value.trim().replace(/\s+/g, " ")
+        : "";
+}
+
+export function normalizeLunarFeatureKeyList(value) {
+    if (!Array.isArray(value)) return [];
+    return Array.from(new Set(
+        value
+            .map((entry) => typeof entry === "string" ? entry.trim() : "")
+            .filter(Boolean),
+    ));
+}
 
 function normalizeOptionalDiameter(value, fallback = null) {
     if (value === null || value === undefined || value === "") {
@@ -124,6 +141,12 @@ export function normalizeLunarFeatureViewState(
             value.lunarFeatureTypeFilters,
             resolvedFallback.lunarFeatureTypeFilters,
         ),
+        lunarFeatureSearchQuery: Object.prototype.hasOwnProperty.call(value, "lunarFeatureSearchQuery")
+            ? normalizeLunarFeatureSearchQuery(value.lunarFeatureSearchQuery)
+            : normalizeLunarFeatureSearchQuery(resolvedFallback.lunarFeatureSearchQuery),
+        lunarFeatureExcludedKeys: Object.prototype.hasOwnProperty.call(value, "lunarFeatureExcludedKeys")
+            ? normalizeLunarFeatureKeyList(value.lunarFeatureExcludedKeys)
+            : normalizeLunarFeatureKeyList(resolvedFallback.lunarFeatureExcludedKeys),
         ...craterState,
     };
     normalized.viewLunarFeatures = normalized.viewLunarCraters === true;
@@ -147,6 +170,12 @@ export function patchLunarFeatureViewState(
                 baseState.lunarFeatureTypeFilters,
             )
             : baseState.lunarFeatureTypeFilters,
+        lunarFeatureSearchQuery: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureSearchQuery")
+            ? normalizeLunarFeatureSearchQuery(patch.lunarFeatureSearchQuery)
+            : baseState.lunarFeatureSearchQuery,
+        lunarFeatureExcludedKeys: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureExcludedKeys")
+            ? normalizeLunarFeatureKeyList(patch.lunarFeatureExcludedKeys)
+            : baseState.lunarFeatureExcludedKeys,
     };
     return normalizeLunarFeatureViewState(nextState, baseState);
 }

@@ -64,6 +64,8 @@ function createMissionSceneEntry(ctx) {
         getLunarCraterHoverLabels,
         getLunarCraterDisplayMode,
         getLunarFeatureTypeFilters,
+        getLunarFeatureSearchQuery,
+        getLunarFeatureExcludedKeys,
         getViewPhotoMode,
         getViewEarthClouds,
         setViewEarthClouds,
@@ -117,6 +119,12 @@ function createMissionSceneEntry(ctx) {
     const readLunarFeatureTypeFilters = typeof getLunarFeatureTypeFilters === "function"
         ? getLunarFeatureTypeFilters
         : () => ({});
+    const readLunarFeatureSearchQuery = typeof getLunarFeatureSearchQuery === "function"
+        ? getLunarFeatureSearchQuery
+        : () => "";
+    const readLunarFeatureExcludedKeys = typeof getLunarFeatureExcludedKeys === "function"
+        ? getLunarFeatureExcludedKeys
+        : () => [];
     const writeViewLunarCraters = typeof setViewLunarCraters === "function"
         ? setViewLunarCraters
         : null;
@@ -192,6 +200,8 @@ function createMissionSceneEntry(ctx) {
             getLunarCraterHoverLabels: readLunarCraterHoverLabels,
             getLunarCraterDisplayMode: readLunarCraterDisplayMode,
             getLunarFeatureTypeFilters: readLunarFeatureTypeFilters,
+            getLunarFeatureSearchQuery: readLunarFeatureSearchQuery,
+            getLunarFeatureExcludedKeys: readLunarFeatureExcludedKeys,
             getLastInputActivityMs,
             SceneHelpers,
         },
@@ -225,6 +235,8 @@ function createMissionSceneEntry(ctx) {
                     lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                     lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                     lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
+                    lunarFeatureSearchQuery: readLunarFeatureSearchQuery(),
+                    lunarFeatureExcludedKeys: readLunarFeatureExcludedKeys(),
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
@@ -272,6 +284,8 @@ function createMissionSceneEntry(ctx) {
                 lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                 lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                 lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
+                lunarFeatureSearchQuery: readLunarFeatureSearchQuery(),
+                lunarFeatureExcludedKeys: readLunarFeatureExcludedKeys(),
                 viewXYZAxes: getViewXYZAxes(),
                 viewEclipticPlane: getViewEclipticPlane(),
                 viewEquatorialPlane: getViewEquatorialPlane(),

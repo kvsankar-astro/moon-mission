@@ -6,6 +6,7 @@ import {
     getCraterHoverLabelScreenAnchor,
     getCraterLabelPlacement,
     getCratersToShow,
+    getLunarFeatureKey,
 } from "../src/platform/js/core/domain/lunar-crater-catalog.js";
 
 const catalog = {
@@ -45,6 +46,55 @@ describe("lunar crater catalog render planning", () => {
 
         expect(plan.filteredCount).toBe(3);
         expect(names(plan)).toEqual(["Center small", "East small", "West small"]);
+    });
+
+    it("filters lunar features by search query", () => {
+        const plan = getCratersToShow({
+            display: catalog.display,
+            features: [
+                ...catalog.features,
+                {
+                    name: "Mare Tranquillitatis",
+                    cleanName: "mare-tranquillitatis",
+                    featureType: "Mare, maria",
+                    latitudeDeg: 8,
+                    longitudeDeg: 31,
+                    diameterKm: 500,
+                },
+            ],
+        }, {
+            lunarCraterMinDiameterKm: 0,
+            lunarCraterMaxDiameterKm: 1000,
+            lunarFeatureSearchQuery: "tranquil",
+            minScreenDiameterPx: 0,
+        });
+
+        expect(names(plan)).toEqual(["Mare Tranquillitatis"]);
+        expect(plan.filteredCount).toBe(1);
+    });
+
+    it("excludes unchecked lunar feature search results by key", () => {
+        const tycho = {
+            name: "Tycho",
+            featureType: "Crater, craters",
+            latitudeDeg: -43.31,
+            longitudeDeg: 348.82,
+            diameterKm: 85.3,
+            link: "https://example.test/tycho",
+        };
+        const plan = getCratersToShow({
+            display: catalog.display,
+            features: [...catalog.features, tycho],
+        }, {
+            lunarCraterMinDiameterKm: 0,
+            lunarCraterMaxDiameterKm: 600,
+            lunarFeatureSearchQuery: "tycho",
+            lunarFeatureExcludedKeys: [getLunarFeatureKey(tycho)],
+            minScreenDiameterPx: 0,
+        });
+
+        expect(names(plan)).toEqual([]);
+        expect(plan.filteredCount).toBe(0);
     });
 
     it("prioritizes the center of the selected FoV over a larger crater outside that view", () => {

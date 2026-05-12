@@ -268,6 +268,8 @@ export function applyViewSettings(patch) {
         Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverLabels") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarFeatureTypeFilters") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarFeatureSearchQuery") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarFeatureExcludedKeys") ||
         Number.isFinite(Number(patch.lunarCraterMinDiameterKm)) ||
         Number.isFinite(Number(patch.lunarCraterMaxDiameterKm))
     ) {

@@ -4,6 +4,7 @@ import {
     DEFAULT_LUNAR_FEATURE_TYPES,
     LUNAR_FEATURE_PRESET_IDS,
     createDefaultLunarFeatureViewState,
+    normalizeLunarFeatureViewState,
 } from "../src/platform/js/core/domain/lunar-feature-view.js";
 
 describe("lunar feature view domain", () => {
@@ -21,5 +22,17 @@ describe("lunar feature view domain", () => {
         expect(LUNAR_FEATURE_PRESET_IDS.NONE).toBe("none");
         expect(LUNAR_FEATURE_PRESET_IDS.DEFAULT).toBe("default");
         expect(LUNAR_FEATURE_PRESET_IDS.ALL).toBe("all");
+    });
+
+    it("normalizes the Lunar Features search query", () => {
+        expect(normalizeLunarFeatureViewState({
+            lunarFeatureSearchQuery: "  Mare   Tranquillitatis  ",
+        }).lunarFeatureSearchQuery).toBe("Mare Tranquillitatis");
+    });
+
+    it("normalizes excluded lunar feature keys", () => {
+        expect(normalizeLunarFeatureViewState({
+            lunarFeatureExcludedKeys: [" Tycho ", "Tycho", "", null],
+        }).lunarFeatureExcludedKeys).toEqual(["Tycho"]);
     });
 });

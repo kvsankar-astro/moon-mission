@@ -86,6 +86,12 @@ function applySceneViewPlanToScene({
     if (view.lunarFeatureTypeFilters && typeof view.lunarFeatureTypeFilters === "object") {
         scene.setLunarFeatureTypeFilters?.(view.lunarFeatureTypeFilters);
     }
+    if (Object.prototype.hasOwnProperty.call(view, "lunarFeatureSearchQuery")) {
+        scene.setLunarFeatureSearchQuery?.(view.lunarFeatureSearchQuery);
+    }
+    if (Object.prototype.hasOwnProperty.call(view, "lunarFeatureExcludedKeys")) {
+        scene.setLunarFeatureExcludedKeys?.(view.lunarFeatureExcludedKeys);
+    }
     scene.setLunarCraterAnnotationsVisible?.(view.viewLunarCraters);
 
     if (scene.axesHelper) {

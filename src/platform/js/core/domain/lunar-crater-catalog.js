@@ -45,6 +45,30 @@ function readOptionalFiniteNumber(value, fallback) {
     return Number.isFinite(numericValue) ? numericValue : fallback;
 }
 
+function normalizeSearchText(value) {
+    return String(value || "").trim().toLowerCase();
+}
+
+export function getLunarFeatureKey(feature) {
+    const link = typeof feature?.link === "string" ? feature.link.trim() : "";
+    if (link) return link;
+    return [
+        feature?.name,
+        feature?.featureType,
+        Number.isFinite(Number(feature?.latitudeDeg)) ? Number(feature.latitudeDeg).toFixed(4) : "",
+        Number.isFinite(Number(feature?.longitudeDeg)) ? Number(feature.longitudeDeg).toFixed(4) : "",
+    ].map((value) => String(value || "").trim()).join("|");
+}
+
+function featureMatchesSearch(feature, query) {
+    if (!query) return true;
+    return [
+        feature?.name,
+        feature?.cleanName,
+        feature?.featureType,
+    ].some((value) => normalizeSearchText(value).includes(query));
+}
+
 function normalizeVector3(vector) {
     if (!vector) return null;
     const x = Number(Array.isArray(vector) ? vector[0] : vector.x);
@@ -862,17 +886,29 @@ export function getCraterDisplayFeatures(catalog = {}, options = {}) {
     const typeFilters = options?.lunarFeatureTypeFilters && typeof options.lunarFeatureTypeFilters === "object"
         ? options.lunarFeatureTypeFilters
         : null;
+    const searchQuery = normalizeSearchText(options.lunarFeatureSearchQuery ?? options.searchQuery);
+    const excludedKeys = new Set(Array.isArray(options.lunarFeatureExcludedKeys)
+        ? options.lunarFeatureExcludedKeys.map((entry) => String(entry || "").trim()).filter(Boolean)
+        : []);
     if (
         options.includeAll === true &&
         !Number.isFinite(Number(options.lunarCraterMinDiameterKm ?? options.minDiameterKm)) &&
         !Number.isFinite(Number(options.lunarCraterMaxDiameterKm ?? options.maxDiameterKm)) &&
-        !typeFilters
+        !typeFilters &&
+        !searchQuery &&
+        excludedKeys.size === 0
     ) {
         return features;
     }
     const diameterRange = normalizeCraterDisplayDiameterRange(options, catalog);
     const selectedFeatures = [];
     for (const feature of features) {
+        if (!featureMatchesSearch(feature, searchQuery)) {
+            continue;
+        }
+        if (excludedKeys.has(getLunarFeatureKey(feature))) {
+            continue;
+        }
         const typeFilter = typeFilters
             ? typeFilters[feature.featureType] || null
             : null;

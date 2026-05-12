@@ -99,6 +99,8 @@ function createMissionSceneEntryContext(ctx, { render }) {
         getLunarCraterHoverLabels: ctx.getLunarCraterHoverLabels,
         getLunarCraterDisplayMode: ctx.getLunarCraterDisplayMode,
         getLunarFeatureTypeFilters: ctx.getLunarFeatureTypeFilters,
+        getLunarFeatureSearchQuery: ctx.getLunarFeatureSearchQuery,
+        getLunarFeatureExcludedKeys: ctx.getLunarFeatureExcludedKeys,
         getViewPhotoMode: ctx.getViewPhotoMode,
         getViewEarthClouds: ctx.getViewEarthClouds,
         setViewEarthClouds: ctx.setViewEarthClouds,

@@ -382,6 +382,10 @@ runtimeViewState.setViewFlags({
     lunarCraterDisplayMode: initialMissionViewState.lunarCraterDisplayMode ?? runtimeViewState.getLunarCraterDisplayMode(),
     lunarFeatureTypeFilters:
         initialMissionViewState.lunarFeatureTypeFilters ?? runtimeViewState.getLunarFeatureTypeFilters(),
+    lunarFeatureSearchQuery:
+        initialMissionViewState.lunarFeatureSearchQuery ?? runtimeViewState.getLunarFeatureSearchQuery(),
+    lunarFeatureExcludedKeys:
+        initialMissionViewState.lunarFeatureExcludedKeys ?? runtimeViewState.getLunarFeatureExcludedKeys(),
     viewXYZAxes: initialMissionViewState.viewXYZAxes,
     viewPoles: initialMissionViewState.viewPoles,
     viewPolarAxes: initialMissionViewState.viewPolarAxes,
@@ -578,6 +582,8 @@ const {
     getLunarCraterHoverLabels: () => runtimeViewState.getLunarCraterHoverLabels(),
     getLunarCraterDisplayMode: () => runtimeViewState.getLunarCraterDisplayMode(),
     getLunarFeatureTypeFilters: () => runtimeViewState.getLunarFeatureTypeFilters(),
+    getLunarFeatureSearchQuery: () => runtimeViewState.getLunarFeatureSearchQuery(),
+    getLunarFeatureExcludedKeys: () => runtimeViewState.getLunarFeatureExcludedKeys(),
     getViewPhotoMode: () => runtimeViewState.getViewPhotoMode(),
     getViewEarthClouds: () => runtimeViewState.getViewEarthClouds(),
     setViewEarthClouds: (value) => {
@@ -596,6 +602,8 @@ const {
             lunarCraterMinDiameterKm: runtimeViewState.getLunarCraterMinDiameterKm(),
             lunarCraterMaxDiameterKm: runtimeViewState.getLunarCraterMaxDiameterKm(),
             lunarFeatureTypeFilters: runtimeViewState.getLunarFeatureTypeFilters(),
+            lunarFeatureSearchQuery: runtimeViewState.getLunarFeatureSearchQuery(),
+            lunarFeatureExcludedKeys: runtimeViewState.getLunarFeatureExcludedKeys(),
         });
         const lunarCraterPill = document.getElementById("toggle-pill-lunar-craters");
         if (lunarCraterPill) {

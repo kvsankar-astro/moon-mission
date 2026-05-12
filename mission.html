@@ -1060,6 +1060,22 @@
                             aria-label="Close lunar feature controls"
                         >Close</button>
                     </div>
+                    <div id="lunar-crater-presets" class="lunar-crater-controls-panel__presets"></div>
+                    <div class="lunar-crater-controls-panel__search">
+                        <label
+                            class="lunar-crater-controls-panel__search-label"
+                            for="lunar-crater-search"
+                        >Search</label>
+                        <input
+                            id="lunar-crater-search"
+                            class="lunar-crater-controls-panel__search-input"
+                            type="search"
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder="Search lunar features"
+                            aria-label="Search lunar features"
+                        >
+                    </div>
                     <label class="lunar-crater-controls-panel__range-label" for="lunar-crater-min-diameter">
                         <span>Diameter</span>
                         <output
@@ -1097,8 +1113,7 @@
                         <span>0 km</span>
                         <span>600 km</span>
                     </div>
-                    <div id="lunar-crater-presets" class="lunar-crater-controls-panel__presets"></div>
-                    <div id="lunar-crater-type-filters" class="lunar-crater-controls-panel__type-filters"></div>
+                    <div id="lunar-crater-type-filters" class="lunar-crater-controls-panel__type-filters" hidden></div>
                     <div class="lunar-crater-controls-panel__status-row">
                         <span
                             id="lunar-crater-busy-indicator"
@@ -1116,6 +1131,18 @@
                         class="lunar-crater-controls-panel__nudge"
                         hidden
                     ></div>
+                    <div
+                        id="lunar-crater-search-results"
+                        class="lunar-crater-controls-panel__search-results"
+                        hidden
+                    ></div>
+                    <button
+                        id="lunar-crater-filter-toggle"
+                        type="button"
+                        class="lunar-crater-controls-panel__filter-toggle"
+                        aria-expanded="false"
+                        aria-controls="lunar-crater-type-filters"
+                    >Filters</button>
                     <div class="lunar-crater-controls-panel__mode-label">Display</div>
                     <div class="lunar-crater-controls-panel__toggles" role="group" aria-label="Lunar feature display mode">
                         <button

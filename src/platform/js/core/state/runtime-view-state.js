@@ -49,6 +49,8 @@ const PER_VIEW_FLAG_KEYS = Object.freeze([
     "lunarCraterMinDiameterKm",
     "lunarCraterMaxDiameterKm",
     "lunarFeatureTypeFilters",
+    "lunarFeatureSearchQuery",
+    "lunarFeatureExcludedKeys",
 ]);
 
 function normalizeString(value, fallback) {
@@ -91,6 +93,8 @@ function buildDefaultViewFlags() {
         lunarCraterMinDiameterKm: lunarFeatureDefaults.lunarCraterMinDiameterKm,
         lunarCraterMaxDiameterKm: lunarFeatureDefaults.lunarCraterMaxDiameterKm,
         lunarFeatureTypeFilters: lunarFeatureDefaults.lunarFeatureTypeFilters,
+        lunarFeatureSearchQuery: lunarFeatureDefaults.lunarFeatureSearchQuery,
+        lunarFeatureExcludedKeys: lunarFeatureDefaults.lunarFeatureExcludedKeys,
         viewXYZAxes: false,
         viewPoles: false,
         viewPolarAxes: false,
@@ -132,6 +136,16 @@ function applyViewFlagPatch(target, patch, options = {}) {
             patch.lunarFeatureTypeFilters,
             target.lunarFeatureTypeFilters,
         );
+    }
+    if (canApplyKey("lunarFeatureSearchQuery") && Object.prototype.hasOwnProperty.call(patch, "lunarFeatureSearchQuery")) {
+        target.lunarFeatureSearchQuery = normalizeLunarFeatureViewState({
+            lunarFeatureSearchQuery: patch.lunarFeatureSearchQuery,
+        }, target).lunarFeatureSearchQuery;
+    }
+    if (canApplyKey("lunarFeatureExcludedKeys") && Object.prototype.hasOwnProperty.call(patch, "lunarFeatureExcludedKeys")) {
+        target.lunarFeatureExcludedKeys = normalizeLunarFeatureViewState({
+            lunarFeatureExcludedKeys: patch.lunarFeatureExcludedKeys,
+        }, target).lunarFeatureExcludedKeys;
     }
     for (const key of VIEW_FLAG_KEYS) {
         if (canApplyKey(key) && Object.prototype.hasOwnProperty.call(patch, key)) {
@@ -323,6 +337,14 @@ function createRuntimeViewState({
         ),
         setLunarFeatureTypeFilters: (value) => {
             setPerViewFlags({ lunarFeatureTypeFilters: value });
+        },
+        getLunarFeatureSearchQuery: () => getEffectiveViewFlags().lunarFeatureSearchQuery || "",
+        setLunarFeatureSearchQuery: (value) => {
+            setPerViewFlags({ lunarFeatureSearchQuery: value });
+        },
+        getLunarFeatureExcludedKeys: () => getEffectiveViewFlags().lunarFeatureExcludedKeys || [],
+        setLunarFeatureExcludedKeys: (value) => {
+            setPerViewFlags({ lunarFeatureExcludedKeys: value });
         },
         getLunarCraterHoverLabels: () => getEffectiveViewFlags().lunarCraterHoverLabels,
         setLunarCraterHoverLabels: (value) => {

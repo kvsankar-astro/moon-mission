@@ -22,6 +22,8 @@ describe("mission state cell groups", () => {
             lunarCraterDisplayMode: "hover",
             lunarCraterMinDiameterKm: 80,
             lunarCraterMaxDiameterKm: 600,
+            lunarFeatureSearchQuery: "",
+            lunarFeatureExcludedKeys: [],
             viewXYZAxes: false,
             viewPoles: false,
             viewPolarAxes: false,
@@ -68,6 +70,10 @@ describe("mission state cell groups", () => {
             setLunarCraterMinDiameterKm: (value) => { state.lunarCraterMinDiameterKm = value; },
             getLunarCraterMaxDiameterKm: () => state.lunarCraterMaxDiameterKm,
             setLunarCraterMaxDiameterKm: (value) => { state.lunarCraterMaxDiameterKm = value; },
+            getLunarFeatureSearchQuery: () => state.lunarFeatureSearchQuery,
+            setLunarFeatureSearchQuery: (value) => { state.lunarFeatureSearchQuery = value; },
+            getLunarFeatureExcludedKeys: () => state.lunarFeatureExcludedKeys,
+            setLunarFeatureExcludedKeys: (value) => { state.lunarFeatureExcludedKeys = value; },
             getViewXYZAxes: () => state.viewXYZAxes,
             setViewXYZAxes: (value) => { state.viewXYZAxes = value; },
             getViewPoles: () => state.viewPoles,
@@ -122,10 +128,14 @@ describe("mission state cell groups", () => {
         cells.lunarCraterDisplayMode.set("always");
         cells.lunarCraterMinDiameterKm.set(40);
         cells.lunarCraterMaxDiameterKm.set(120);
+        cells.lunarFeatureSearchQuery.set("Tycho");
+        cells.lunarFeatureExcludedKeys.set(["tycho"]);
         expect(state.lunarCraterHoverLabels).toBe(false);
         expect(state.lunarCraterDisplayMode).toBe("always");
         expect(state.lunarCraterMinDiameterKm).toBe(40);
         expect(state.lunarCraterMaxDiameterKm).toBe(120);
+        expect(state.lunarFeatureSearchQuery).toBe("Tycho");
+        expect(state.lunarFeatureExcludedKeys).toEqual(["tycho"]);
 
         expect(cells.effectiveOrbitStyle.get()).toBe("trail");
         effectiveOrbitStyle = "classic";
