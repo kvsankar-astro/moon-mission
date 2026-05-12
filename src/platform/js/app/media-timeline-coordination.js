@@ -485,6 +485,7 @@ function createMediaTimelineCoordination({
         animationWasRunning: false,
         stoppedForOutOfRange: false,
     };
+    let mediaPanelOpen = false;
 
     function seekMissionTimelineTime(timeMs, finalize = false) {
         return seekMainTimelineTime(timeMs, finalize, {
@@ -947,10 +948,14 @@ function createMediaTimelineCoordination({
             && Number.isFinite(previousSyncedTimeMs)
             && Math.abs(currentTimelineTimeMs - previousSyncedTimeMs) > MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS
         ) {
+            const animationWasRunning = getAnimationRunning() === true;
             if (seekActivePlayableMediaToMissionTime(currentTimelineTimeMs)) {
                 return;
             }
             stopPlayableMedia({ pauseClock: false });
+            keepPlaybackSynchronizedAtTime(currentTimelineTimeMs, {
+                animationWasRunning,
+            });
             return;
         }
         const mediaItem = findCurrentManifestItemById(mediaPlaybackState.itemId) || mediaPlaybackState;
@@ -1142,6 +1147,7 @@ function createMediaTimelineCoordination({
         };
         onMediaPanelStateChanged = (event) => {
             const panelState = String(event?.detail?.state || "").trim().toLowerCase();
+            mediaPanelOpen = panelState === "open";
             if (panelState !== "closed") return;
             stopPlayableMedia({ pauseClock: false });
             rerender();
@@ -1194,6 +1200,7 @@ function createMediaTimelineCoordination({
             animationWasRunning: false,
             stoppedForOutOfRange: false,
         };
+        mediaPanelOpen = false;
     }
 
     function releaseAnimationPlayStateBinding() {
@@ -1289,6 +1296,22 @@ function createMediaTimelineCoordination({
         return timeMs === item.startTimeMs;
     }
 
+    function shouldPreserveMissionTimeForPlayableSelection(item, missionTimeMs) {
+        if (!item || !isPlayableMediaItem(item)) return false;
+        const startTimeMs = Number(item.startTimeMs);
+        const currentTimeMs = Number(missionTimeMs);
+        if (!Number.isFinite(startTimeMs) || !Number.isFinite(currentTimeMs) || currentTimeMs < startTimeMs) {
+            return false;
+        }
+        const endTimeMs = resolveMediaItemEndTimeMs(item);
+        if (Number.isFinite(endTimeMs) && endTimeMs >= startTimeMs) {
+            return currentTimeMs <= endTimeMs;
+        }
+        // If a playable item has no resolved end boundary yet (common for streams
+        // or partially specified manifests), keep the user's current timeline point.
+        return true;
+    }
+
     function resolvePlayableItemAtTime(timeMs) {
         if (!Number.isFinite(timeMs)) return null;
         const selectableItems = getFilteredSelectableItems();
@@ -1316,6 +1339,29 @@ function createMediaTimelineCoordination({
             }
         }
         return bestItem;
+    }
+
+    function keepPlaybackSynchronizedAtTime(timeMs, {
+        animationWasRunning = false,
+    } = {}) {
+        if (mediaPanelOpen !== true || animationWasRunning !== true || !Number.isFinite(timeMs)) {
+            return false;
+        }
+        const nextPlayableItem = resolvePlayableItemAtTime(timeMs);
+        if (nextPlayableItem) {
+            runtimeMediaState.setActiveItemId(nextPlayableItem.id, {
+                anchorTimeMs: timeMs,
+            });
+            const restarted = startPlayableMediaItem(nextPlayableItem, {
+                fromBeginning: false,
+                seekTimeline: false,
+            });
+            if (restarted) {
+                return true;
+            }
+        }
+        pauseAnimation();
+        return false;
     }
 
     function handleTimelineUserSeek(eventDetail = {}) {
@@ -1357,16 +1403,9 @@ function createMediaTimelineCoordination({
             && timelineUserSeekState.animationWasRunning
             && timelineUserSeekState.stoppedForOutOfRange
         ) {
-            const nextPlayableItem = resolvePlayableItemAtTime(timeMs);
-            if (nextPlayableItem) {
-                runtimeMediaState.setActiveItemId(nextPlayableItem.id, {
-                    anchorTimeMs: timeMs,
-                });
-                startPlayableMediaItem(nextPlayableItem, {
-                    fromBeginning: false,
-                    seekTimeline: false,
-                });
-            }
+            keepPlaybackSynchronizedAtTime(timeMs, {
+                animationWasRunning: true,
+            });
         }
 
         if (phase === "end" || phase === "cancel" || phase === "commit") {
@@ -1396,6 +1435,12 @@ function createMediaTimelineCoordination({
         return Math.abs(Number(timeMs) - anchorTimeMs) <= MEDIA_EXPLICIT_FOCUS_TOLERANCE_MS;
     }
 
+    function shouldKeepExplicitSelectionActive(activeItem, timeMs) {
+        if (!activeItem) return false;
+        if (!Number.isFinite(Number(timeMs))) return true;
+        return isMediaItemActiveAtTime(activeItem, Number(timeMs));
+    }
+
     function buildCurrentMediaFocusState(items, timeMs) {
         const selectableItems = Array.isArray(items) ? items : getFilteredSelectableItems();
         const playbackItemId = getPlaybackFocusItemId();
@@ -1413,7 +1458,16 @@ function createMediaTimelineCoordination({
         }
 
         const activeItemId = runtimeMediaState.getActiveItemId();
-        if (activeItemId && isExplicitFocusCurrent(timeMs)) {
+        const explicitActiveItem = activeItemId
+            ? selectableItems.find((item) => item?.id === activeItemId) || null
+            : null;
+        if (
+            activeItemId &&
+            (
+                isExplicitFocusCurrent(timeMs)
+                || shouldKeepExplicitSelectionActive(explicitActiveItem, timeMs)
+            )
+        ) {
             const explicitFocus = buildExplicitMediaFocusState({
                 items: selectableItems,
                 activeItemId,
@@ -1446,24 +1500,32 @@ function createMediaTimelineCoordination({
     function previewMediaItem(item, {
         seekTimeline = true,
         preserveCurrentPlayableOffset = false,
+        autoStartPlayable = false,
     } = {}) {
         if (!item) return false;
         const currentMissionTimeMs = readCurrentMissionTimeMs();
         const shouldPreserveCurrentMissionTime = preserveCurrentPlayableOffset
             && seekTimeline
-            && isPlayableMediaItem(item)
             && isFrameScrubMode() !== true
-            && isMediaItemActiveAtTime(item, currentMissionTimeMs);
+            && shouldPreserveMissionTimeForPlayableSelection(item, currentMissionTimeMs);
 
         dispatchDocumentCustomEvent("mission-media-item-select", {
             item,
         });
 
-        stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        if (autoStartPlayable !== true) {
+            stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        }
         if (!seekTimeline) {
             runtimeMediaState.setActiveItemId(item.id, {
                 anchorTimeMs: readCurrentMissionTimeMs(),
             });
+            if (autoStartPlayable === true && isPlayableMediaItem(item)) {
+                return startPlayableMediaItem(item, {
+                    fromBeginning: false,
+                    seekTimeline: false,
+                });
+            }
             rerender();
             return true;
         }
@@ -1480,6 +1542,12 @@ function createMediaTimelineCoordination({
                 ...lastRenderContext,
                 animTime: anchorTimeMs,
             };
+        }
+        if (autoStartPlayable === true && isPlayableMediaItem(item)) {
+            return startPlayableMediaItem(item, {
+                fromBeginning: false,
+                seekTimeline: false,
+            });
         }
         rerender();
         return true;
@@ -1630,6 +1698,7 @@ function createMediaTimelineCoordination({
             if (!selectedItem) return;
             previewMediaItem(selectedItem, {
                 preserveCurrentPlayableOffset: true,
+                autoStartPlayable: getAnimationRunning() === true,
             });
             return;
         }
@@ -1649,7 +1718,10 @@ function createMediaTimelineCoordination({
             const targetIndex = Number.isInteger(focusedIndex) && focusedIndex >= 0
                 ? clampIndex(focusedIndex + direction, selectableItems.length - 1)
                 : resolveNearestMediaIndex(selectableItems, Number(lastRenderContext?.animTime));
-            previewMediaItem(selectableItems[targetIndex] || selectableItems[0]);
+            previewMediaItem(selectableItems[targetIndex] || selectableItems[0], {
+                preserveCurrentPlayableOffset: true,
+                autoStartPlayable: getAnimationRunning() === true,
+            });
             return;
         }
         if (type === "previewItem") {
@@ -1782,8 +1854,8 @@ function createMediaTimelineCoordination({
                 showControls: activePlayable,
                 playTitle: activePlaybackPlaying || activePlaybackBuffering
                     ? "Pause media playback"
-                    : "Play focused media from the current mission time",
-                restartTitle: "Restart media from beginning",
+                    : "Play focused media from current timeline position",
+                restartTitle: "Play focused media from beginning",
                 statusLabel: activePlayable ? activeMediaStatus : "",
                 elapsedSeconds: activePlayable ? activeElapsedSeconds : 0,
                 durationSeconds: activePlayable ? activeDurationSeconds : Number.NaN,

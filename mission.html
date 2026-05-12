@@ -1825,21 +1825,19 @@
                     hidden
                 >
                     <button
-                        id="media-browser-media-play"
-                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
-                        type="button"
-                        title="Play media from the current mission time"
-                        aria-label="Play media"
-                        data-icon="play"
-                    ></button>
-                    <button
                         id="media-browser-media-restart"
-                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--start mission-panel-shell__button"
                         type="button"
-                        title="Restart media from beginning"
-                        aria-label="Restart media from beginning"
-                        data-icon="restart"
-                    ></button>
+                        title="Play selected media from beginning"
+                        aria-label="Play selected media from beginning"
+                    >❚▶</button>
+                    <button
+                        id="media-browser-media-play"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--play mission-panel-shell__button"
+                        type="button"
+                        title="Play media from current timeline position"
+                        aria-label="Play media"
+                    >Play</button>
                     <span
                         id="media-browser-media-elapsed"
                         class="media-browser-panel__media-elapsed"

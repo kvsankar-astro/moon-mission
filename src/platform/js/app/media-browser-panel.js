@@ -1284,7 +1284,7 @@ function createMediaBrowserPanelActions({
         }
         if (playButton) {
             playButton.disabled = !show;
-            playButton.dataset.icon = isBusy ? "pause" : "play";
+            playButton.textContent = isBusy ? "Pause" : "Play";
             playButton.title = playbackModel.playTitle || (isBusy
                 ? "Pause media playback"
                 : "Play media from the current mission time");
@@ -1292,7 +1292,7 @@ function createMediaBrowserPanelActions({
         }
         if (restartButton) {
             restartButton.disabled = !show;
-            restartButton.title = playbackModel.restartTitle || "Restart media from beginning";
+            restartButton.title = playbackModel.restartTitle || "Play media from beginning";
             restartButton.setAttribute("aria-label", restartButton.title);
         }
         if (elapsed) {

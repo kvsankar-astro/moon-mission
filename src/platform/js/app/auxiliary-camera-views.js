@@ -198,6 +198,12 @@ const COMPOSER_SKY_LABEL_VISIBLE_FRACTION = 0.2;
 const COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT = 36;
 const COMPOSER_SKY_LABEL_EDGE_MARGIN_PX = 10;
 const COMPOSER_SKY_LABEL_OCCLUSION_PADDING_PX = 2;
+const COMPOSER_SEE_THROUGH_DASH_PX = Object.freeze([3, 3]);
+const COMPOSER_SEE_THROUGH_LINE_WIDTH_PX = 1.4;
+const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MIN_PX = 3.2;
+const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MAX_PX = 8.8;
+const COMPOSER_SEE_THROUGH_SUN_RADIUS_MIN_PX = 5.2;
+const COMPOSER_SEE_THROUGH_OPACITY = 0.9;
 const COMPOSER_CONSTELLATION_LABELS = Object.freeze([
     { name: "Andromeda", raDeg: 10.5, decDeg: 37 },
     { name: "Aquila", raDeg: 295.5, decDeg: 5 },
@@ -410,6 +416,153 @@ function resolveComposerSkyLabelOccluders({
         });
     }
     return occluders;
+}
+
+function resolveComposerSeeThroughMarkers({
+    THREE,
+    camera,
+    width,
+    height,
+    skyContainer,
+    planetRenderer,
+    occluders = [],
+} = {}) {
+    const Vector3 = THREE?.Vector3;
+    const Quaternion = THREE?.Quaternion;
+    if (
+        !Vector3 ||
+        !Quaternion ||
+        !camera?.isCamera ||
+        !skyContainer?.getWorldQuaternion ||
+        !Array.isArray(occluders) ||
+        occluders.length === 0
+    ) {
+        return [];
+    }
+
+    const canvasWidth = Number(width);
+    const canvasHeight = Number(height);
+    if (
+        !Number.isFinite(canvasWidth) ||
+        !Number.isFinite(canvasHeight) ||
+        canvasWidth <= 0 ||
+        canvasHeight <= 0
+    ) {
+        return [];
+    }
+
+    const planetPositionAttr = planetRenderer?.geometry?.getAttribute?.("position") || null;
+    const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
+    const planetSizeAttr = planetRenderer?.geometry?.getAttribute?.("aSize") || null;
+    const planetColorAttr = planetRenderer?.geometry?.getAttribute?.("aColor") || null;
+    const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
+    const planetPositionArray = planetPositionAttr?.array || null;
+    const planetAlphaArray = planetAlphaAttr?.array || null;
+    const planetSizeArray = planetSizeAttr?.array || null;
+    const planetColorArray = planetColorAttr?.array || null;
+    if (!planetPositionArray || !planetAlphaArray || !planetSizeArray || planetBodySlots.length <= 0) {
+        return [];
+    }
+
+    const planetCount = Math.min(
+        planetBodySlots.length,
+        planetPositionAttr.count || 0,
+        planetAlphaAttr.count || 0,
+        planetSizeAttr.count || 0,
+    );
+    if (planetCount <= 0) {
+        return [];
+    }
+
+    const worldQuat = new Quaternion();
+    const worldPoint = new Vector3();
+    const projected = new Vector3();
+    skyContainer.getWorldQuaternion(worldQuat);
+
+    const fovDeg = Number(camera?.fov);
+    const tanHalfVerticalFov = Math.tan((fovDeg * Math.PI / 180) * 0.5);
+    const fallbackSunRadiusPx = (
+        Math.tan(COMPOSER_SOLAR_ANGULAR_RADIUS_RAD) / Math.max(tanHalfVerticalFov, 1e-9)
+    ) * (canvasHeight * 0.5);
+    const sunRadiusPx = Number.isFinite(fallbackSunRadiusPx)
+        ? Math.max(COMPOSER_SEE_THROUGH_SUN_RADIUS_MIN_PX, fallbackSunRadiusPx)
+        : COMPOSER_SEE_THROUGH_SUN_RADIUS_MIN_PX;
+
+    const markers = [];
+    for (let i = 0; i < planetCount; i += 1) {
+        const label = String(planetBodySlots[i] || "").trim();
+        if (!label || label === "Moon" || label === "Earth") {
+            continue;
+        }
+        const alpha = Number(planetAlphaArray[i]);
+        if (!Number.isFinite(alpha) || alpha <= 0.001) {
+            continue;
+        }
+
+        const idx3 = i * 3;
+        worldPoint.set(
+            Number(planetPositionArray[idx3]),
+            Number(planetPositionArray[idx3 + 1]),
+            Number(planetPositionArray[idx3 + 2]),
+        );
+        if (skyContainer?.matrixWorld) {
+            worldPoint.applyMatrix4(skyContainer.matrixWorld);
+        } else {
+            worldPoint.applyQuaternion(worldQuat);
+        }
+        projected.copy(worldPoint).project(camera);
+        if (
+            !Number.isFinite(projected.x) ||
+            !Number.isFinite(projected.y) ||
+            !Number.isFinite(projected.z) ||
+            projected.z < -1 ||
+            projected.z > 1
+        ) {
+            continue;
+        }
+
+        const point = {
+            x: ((projected.x * 0.5) + 0.5) * canvasWidth,
+            y: (1 - ((projected.y * 0.5) + 0.5)) * canvasHeight,
+        };
+        if (
+            point.x < 0 ||
+            point.x > canvasWidth ||
+            point.y < 0 ||
+            point.y > canvasHeight
+        ) {
+            continue;
+        }
+        if (!isComposerSkyLabelPointOccluded(point, occluders)) {
+            continue;
+        }
+
+        const size = Number(planetSizeArray[i]);
+        const radiusPx = label === "Sun"
+            ? sunRadiusPx
+            : THREE.MathUtils.clamp(
+                Number.isFinite(size) ? size * 0.9 : COMPOSER_SEE_THROUGH_PLANET_RADIUS_MIN_PX,
+                COMPOSER_SEE_THROUGH_PLANET_RADIUS_MIN_PX,
+                COMPOSER_SEE_THROUGH_PLANET_RADIUS_MAX_PX,
+            );
+
+        let strokeStyle = "rgba(239, 246, 255, 0.90)";
+        if (planetColorArray && (idx3 + 2) < planetColorArray.length) {
+            const r = Math.max(0, Math.min(255, Math.round(Number(planetColorArray[idx3]) * 255)));
+            const g = Math.max(0, Math.min(255, Math.round(Number(planetColorArray[idx3 + 1]) * 255)));
+            const b = Math.max(0, Math.min(255, Math.round(Number(planetColorArray[idx3 + 2]) * 255)));
+            strokeStyle = `rgba(${r}, ${g}, ${b}, ${COMPOSER_SEE_THROUGH_OPACITY.toFixed(2)})`;
+        }
+
+        markers.push({
+            label,
+            x: point.x,
+            y: point.y,
+            radiusPx,
+            strokeStyle,
+        });
+    }
+    return markers;
 }
 
 function rollRadFromDialPointer({ pointerX, pointerY, centerX, centerY }) {
@@ -2226,6 +2379,8 @@ class AuxiliaryCameraViewsManager {
         let composerMoonshineValue = null;
         let composerMoonOutlineWrap = null;
         let composerMoonOutlineCheckbox = null;
+        let composerSeeThroughWrap = null;
+        let composerSeeThroughCheckbox = null;
         let composerOpticsWrap = null;
         let composerOpticsBody = null;
         let composerOpticsToggleButton = null;
@@ -2685,6 +2840,22 @@ class AuxiliaryCameraViewsManager {
             composerMoonOutlineWrap.appendChild(composerMoonOutlineText);
             composerInfoToggles.appendChild(composerMoonOutlineWrap);
 
+            composerSeeThroughWrap = document.createElement("label");
+            composerSeeThroughWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerSeeThroughCheckbox = document.createElement("input");
+            composerSeeThroughCheckbox.type = "checkbox";
+            composerSeeThroughCheckbox.checked = false;
+            composerSeeThroughCheckbox.setAttribute(
+                "aria-label",
+                "Toggle see-through dotted outlines for obscured Sun and planets",
+            );
+            composerSeeThroughCheckbox.dataset.proofId = "see-through-toggle";
+            const composerSeeThroughText = document.createElement("span");
+            composerSeeThroughText.textContent = "See Through";
+            composerSeeThroughWrap.appendChild(composerSeeThroughCheckbox);
+            composerSeeThroughWrap.appendChild(composerSeeThroughText);
+            composerInfoToggles.appendChild(composerSeeThroughWrap);
+
             composerOpticsWrap = document.createElement("div");
             composerOpticsWrap.className = "aux-camera-view__composer-optics";
 
@@ -3061,6 +3232,8 @@ class AuxiliaryCameraViewsManager {
             composerMoonshineValue,
             composerMoonOutlineWrap,
             composerMoonOutlineCheckbox,
+            composerSeeThroughWrap,
+            composerSeeThroughCheckbox,
             composerOpticsWrap,
             composerOpticsBody,
             composerOpticsToggleButton,
@@ -3157,6 +3330,7 @@ class AuxiliaryCameraViewsManager {
             onComposerEarthshineInput: null,
             onComposerMoonshineInput: null,
             onComposerMoonOutlineToggle: null,
+            onComposerSeeThroughToggle: null,
             onComposerControlsToggleClick: null,
             onComposerOpticsPhysicalClick: null,
             onComposerOpticsCameraClick: null,
@@ -3237,6 +3411,7 @@ class AuxiliaryCameraViewsManager {
             composerEarthshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_EARTHSHINE_GAIN : 1,
             composerMoonshineGain: panelMode === "composer" ? COMPOSER_DEFAULT_MOONSHINE_GAIN : 1,
             composerMoonOutlineEnabled: false,
+            composerSeeThroughEnabled: false,
             composerOpticsExpanded: false,
             composerSunProfile: "camera",
             composerSunStrength: COMPOSER_OPTICS_STRENGTH_DEFAULT,
@@ -3426,6 +3601,9 @@ class AuxiliaryCameraViewsManager {
                 );
                 if (panelState.composerMoonOutlineCheckbox) {
                     panelState.composerMoonOutlineCheckbox.checked = panelState.composerMoonOutlineEnabled === true;
+                }
+                if (panelState.composerSeeThroughCheckbox) {
+                    panelState.composerSeeThroughCheckbox.checked = panelState.composerSeeThroughEnabled === true;
                 }
             };
             const syncComposerStarMagnitudeUi = () => {
@@ -3812,6 +3990,12 @@ class AuxiliaryCameraViewsManager {
                 panelState.overlayDirty = true;
                 this.requestRender?.();
             };
+            const onComposerSeeThroughToggle = () => {
+                activateComposerForControl();
+                panelState.composerSeeThroughEnabled = !!panelState.composerSeeThroughCheckbox?.checked;
+                panelState.overlayDirty = true;
+                this.requestRender?.();
+            };
             const onComposerOpticsPhysicalClick = () => {
                 activateComposerForControl();
                 setComposerOpticsProfile("physical");
@@ -4155,6 +4339,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEarthshineSlider?.addEventListener("input", onComposerEarthshineInput, { passive: true });
             panelState.composerMoonshineSlider?.addEventListener("input", onComposerMoonshineInput, { passive: true });
             panelState.composerMoonOutlineCheckbox?.addEventListener("change", onComposerMoonOutlineToggle);
+            panelState.composerSeeThroughCheckbox?.addEventListener("change", onComposerSeeThroughToggle);
             panelState.composerOpticsToggleButton?.addEventListener("click", onComposerOpticsToggleClick);
             panelState.composerOpticsPhysicalButton?.addEventListener("click", onComposerOpticsPhysicalClick);
             panelState.composerOpticsCameraButton?.addEventListener("click", onComposerOpticsCameraClick);
@@ -4216,6 +4401,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerEarthshineInput = onComposerEarthshineInput;
             panelState.onComposerMoonshineInput = onComposerMoonshineInput;
             panelState.onComposerMoonOutlineToggle = onComposerMoonOutlineToggle;
+            panelState.onComposerSeeThroughToggle = onComposerSeeThroughToggle;
             panelState.onComposerOpticsToggleClick = onComposerOpticsToggleClick;
             panelState.onComposerOpticsPhysicalClick = onComposerOpticsPhysicalClick;
             panelState.onComposerOpticsCameraClick = onComposerOpticsCameraClick;
@@ -4399,6 +4585,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEarthshineGain = COMPOSER_DEFAULT_EARTHSHINE_GAIN;
             panelState.composerMoonshineGain = COMPOSER_DEFAULT_MOONSHINE_GAIN;
             panelState.composerMoonOutlineEnabled = false;
+            panelState.composerSeeThroughEnabled = false;
             panelState.composerSunProfile = "camera";
             panelState.composerSunStrength = COMPOSER_OPTICS_STRENGTH_DEFAULT;
             panelState.composerSunHaloGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
@@ -4444,6 +4631,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.composerMoonOutlineCheckbox) {
                 panelState.composerMoonOutlineCheckbox.checked = panelState.composerMoonOutlineEnabled;
+            }
+            if (panelState.composerSeeThroughCheckbox) {
+                panelState.composerSeeThroughCheckbox.checked = panelState.composerSeeThroughEnabled;
             }
             if (panelState.composerRaDecGridCheckbox) {
                 panelState.composerRaDecGridCheckbox.checked = false;
@@ -4701,6 +4891,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerEarthshineSlider && (panelState.composerEarthshineSlider.disabled = disableControls);
         panelState.composerMoonshineSlider && (panelState.composerMoonshineSlider.disabled = disableControls);
         panelState.composerMoonOutlineCheckbox && (panelState.composerMoonOutlineCheckbox.disabled = disableControls);
+        panelState.composerSeeThroughCheckbox && (panelState.composerSeeThroughCheckbox.disabled = disableControls);
         panelState.composerCloudsCheckbox && (panelState.composerCloudsCheckbox.disabled = disableControls);
         if (panelState.composerLunarCraterControls) {
             panelState.composerLunarCraterControls.disabled = disableControls;
@@ -7400,6 +7591,91 @@ class AuxiliaryCameraViewsManager {
         ctx.restore();
     }
 
+    renderComposerSeeThroughOverlay(
+        panelState,
+        {
+            scene = null,
+            skyContainer = null,
+            skyRenderer = null,
+            earthWorld = null,
+            moonWorld = null,
+            earthRadius = null,
+            moonRadius = null,
+        } = {},
+    ) {
+        if (
+            !panelState?.overlayCtx ||
+            !panelState?.overlayCanvas ||
+            panelState.composerSeeThroughEnabled !== true
+        ) {
+            return;
+        }
+        const canvas = panelState.overlayCanvas;
+        const ctx = panelState.overlayCtx;
+        const width = canvas.width;
+        const height = canvas.height;
+        if (width <= 1 || height <= 1) {
+            return;
+        }
+
+        const resolvedSkyRenderer = skyRenderer || scene?.skyRenderer || null;
+        const activeSkyContainer = skyContainer || scene?.skyContainer || resolvedSkyRenderer?.container || null;
+        if (!activeSkyContainer?.getWorldQuaternion) {
+            return;
+        }
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE: this.THREE,
+            camera: panelState.camera,
+            width,
+            height,
+            bodies: [
+                { bodyId: "earth", centerWorld: earthWorld || this.earthWorld, radius: earthRadius },
+                { bodyId: "moon", centerWorld: moonWorld || this.moonWorld, radius: moonRadius },
+            ],
+            paddingPx: 0,
+        });
+        if (occluders.length <= 0) {
+            return;
+        }
+
+        const markers = resolveComposerSeeThroughMarkers({
+            THREE: this.THREE,
+            camera: panelState.camera,
+            width,
+            height,
+            skyContainer: activeSkyContainer,
+            planetRenderer: resolvedSkyRenderer?.planetRenderer || null,
+            occluders,
+        });
+        if (markers.length <= 0) {
+            return;
+        }
+
+        ctx.save();
+        ctx.setLineDash(COMPOSER_SEE_THROUGH_DASH_PX);
+        ctx.lineWidth = COMPOSER_SEE_THROUGH_LINE_WIDTH_PX;
+        ctx.lineCap = "round";
+        for (const marker of markers) {
+            const x = Number(marker?.x);
+            const y = Number(marker?.y);
+            const radiusPx = Number(marker?.radiusPx);
+            if (
+                !Number.isFinite(x) ||
+                !Number.isFinite(y) ||
+                !Number.isFinite(radiusPx) ||
+                radiusPx <= 0
+            ) {
+                continue;
+            }
+            ctx.beginPath();
+            ctx.arc(x, y, radiusPx, 0, Math.PI * 2);
+            ctx.strokeStyle = marker?.strokeStyle || "rgba(239, 246, 255, 0.90)";
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+
     renderComposerBottomMetricsOverlay(panelState, { craftWorld, moonWorld, earthWorld, telemetry = null }) {
         if (!panelState?.camera) {
             return;
@@ -8425,6 +8701,15 @@ class AuxiliaryCameraViewsManager {
             moonWorld: this.moonWorld,
             moonRadius: composerMoonRadius,
         });
+        this.renderComposerSeeThroughOverlay(panelState, {
+            scene,
+            skyContainer,
+            skyRenderer,
+            earthWorld: this.earthWorld,
+            moonWorld: this.moonWorld,
+            earthRadius: composerEarthRadius,
+            moonRadius: composerMoonRadius,
+        });
         this.renderComposerBottomMetricsOverlay(panelState, {
             craftWorld: this.craftWorld,
             moonWorld: this.moonWorld,
@@ -8928,6 +9213,9 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerMoonOutlineToggle) {
                 panelState.composerMoonOutlineCheckbox?.removeEventListener("change", panelState.onComposerMoonOutlineToggle);
             }
+            if (panelState.onComposerSeeThroughToggle) {
+                panelState.composerSeeThroughCheckbox?.removeEventListener("change", panelState.onComposerSeeThroughToggle);
+            }
             if (panelState.onComposerControlsToggleClick) {
                 panelState.composerControlsToggleButton?.removeEventListener("click", panelState.onComposerControlsToggleClick);
             }
@@ -9153,6 +9441,7 @@ export {
     composerRollDialKnobOffset,
     isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
+    resolveComposerSeeThroughMarkers,
     resolveComposerSkyLabelOccluders,
     resolveLunarFlybyTimeMs,
     resolveLunarFlybyWindowMs,

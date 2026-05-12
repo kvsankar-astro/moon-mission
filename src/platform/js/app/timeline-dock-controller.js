@@ -747,6 +747,11 @@ function createTimelineDockController({
         });
         if (eventInfo?.clickable !== false) {
             marker.addEventListener("click", () => {
+                seekToTime(eventTimeMs, true);
+                dispatchTimelineUserSeek("commit", eventTimeMs, {
+                    commit: true,
+                    source: "timeline-event-marker",
+                });
                 onMarkerSelect?.(eventInfo, index);
             });
         }
@@ -814,10 +819,23 @@ function createTimelineDockController({
         marker.title = markerTitle;
         marker.setAttribute("aria-label", markerTitle);
         if (markerInfo?.clickable !== false) {
-            marker.addEventListener("click", () => {
+            marker.addEventListener("click", (event) => {
+                let targetTimeMs = markerTimeMs;
+                if (isSegment) {
+                    const clickTimeMs = Number.isFinite(event?.clientX)
+                        ? getTimeAtClientX(event.clientX)
+                        : markerTimeMs;
+                    targetTimeMs = clamp(clickTimeMs, markerTimeMs, markerEndTimeMs);
+                }
+                seekToTime(targetTimeMs, true);
+                dispatchTimelineUserSeek("commit", targetTimeMs, {
+                    commit: true,
+                    source: "timeline-media-marker",
+                });
                 dispatchDocumentCustomEvent("mission-media-marker-select", {
                     marker: markerInfo,
                     index,
+                    timeMs: targetTimeMs,
                 });
             });
         }

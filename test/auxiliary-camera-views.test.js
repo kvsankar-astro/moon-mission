@@ -9,6 +9,7 @@ import {
     createAuxiliaryWebGLRendererWithFallback,
     isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
+    resolveComposerSeeThroughMarkers,
     resolveComposerSkyLabelOccluders,
     resolveLunarFlybyWindowMs,
     rollRadFromDialPointer,
@@ -602,6 +603,122 @@ describe("Frame and Shoot sky label occlusion", () => {
         expect(occluders[0].x).toBeCloseTo(500, 6);
         expect(occluders[0].y).toBeCloseTo(250, 6);
         expect(occluders[0].radiusPx).toBeGreaterThan(40);
+    });
+});
+
+describe("Frame and Shoot see-through markers", () => {
+    it("returns a dotted Sun marker when the Sun is behind Earth/Moon occluders", () => {
+        const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        const skyContainer = new THREE.Object3D();
+        skyContainer.updateMatrixWorld(true);
+
+        const position = new Float32Array([
+            0, 0, -1,
+            0.6, 0, -0.8,
+        ]);
+        const alpha = new Float32Array([1, 1]);
+        const size = new Float32Array([6.2, 4.3]);
+        const color = new Float32Array([
+            1, 0.95, 0.74,
+            1, 0.56, 0.40,
+        ]);
+        const planetRenderer = {
+            bodySlots: ["Sun", "Mars"],
+            geometry: {
+                getAttribute(name) {
+                    if (name === "position") return { array: position, count: 2 };
+                    if (name === "aAlpha") return { array: alpha, count: 2 };
+                    if (name === "aSize") return { array: size, count: 2 };
+                    if (name === "aColor") return { array: color, count: 2 };
+                    return null;
+                },
+            },
+        };
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            bodies: [
+                { bodyId: "earth", centerWorld: new THREE.Vector3(0, 0, -10), radius: 1 },
+            ],
+            paddingPx: 0,
+        });
+
+        const markers = resolveComposerSeeThroughMarkers({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            skyContainer,
+            planetRenderer,
+            occluders,
+        });
+
+        expect(markers).toHaveLength(1);
+        expect(markers[0].label).toBe("Sun");
+        expect(markers[0].x).toBeCloseTo(500, 6);
+        expect(markers[0].y).toBeCloseTo(250, 6);
+        expect(markers[0].radiusPx).toBeGreaterThan(5);
+    });
+
+    it("excludes Earth/Moon and only returns actually occluded bodies", () => {
+        const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        const skyContainer = new THREE.Object3D();
+        skyContainer.updateMatrixWorld(true);
+
+        const position = new Float32Array([
+            0, 0, -1,
+            0, 0, -1,
+            0.75, 0, -0.66,
+        ]);
+        const alpha = new Float32Array([1, 1, 1]);
+        const size = new Float32Array([4.9, 4.6, 4.3]);
+        const planetRenderer = {
+            bodySlots: ["Earth", "Moon", "Mars"],
+            geometry: {
+                getAttribute(name) {
+                    if (name === "position") return { array: position, count: 3 };
+                    if (name === "aAlpha") return { array: alpha, count: 3 };
+                    if (name === "aSize") return { array: size, count: 3 };
+                    return null;
+                },
+            },
+        };
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            bodies: [
+                { bodyId: "earth", centerWorld: new THREE.Vector3(0, 0, -10), radius: 1 },
+            ],
+            paddingPx: 0,
+        });
+
+        const markers = resolveComposerSeeThroughMarkers({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            skyContainer,
+            planetRenderer,
+            occluders,
+        });
+
+        expect(markers).toHaveLength(0);
     });
 });
 

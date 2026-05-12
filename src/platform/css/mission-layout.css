@@ -2111,11 +2111,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock--zoomed .timeline-dock__track-wrap {
-    cursor: ew-resize;
+    cursor: grab;
 }
 
 .timeline-dock--timeline-dragging .timeline-dock__track-wrap {
-    cursor: ew-resize;
+    cursor: grabbing;
 }
 
 .timeline-dock__slider {
@@ -2134,11 +2134,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock--zoomed .timeline-dock__slider {
-    cursor: ew-resize;
+    cursor: grab;
 }
 
 .timeline-dock--timeline-dragging .timeline-dock__slider {
-    cursor: ew-resize;
+    cursor: grabbing;
 }
 
 .timeline-dock__overview {
@@ -2199,7 +2199,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     border: 0 solid transparent;
     background: transparent;
     box-shadow: none;
-    cursor: ew-resize;
+    cursor: grab;
 }
 
 .timeline-dock__slider::-moz-range-track {
@@ -2216,7 +2216,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     border-radius: 0;
     background: transparent;
     box-shadow: none;
-    cursor: ew-resize;
+    cursor: grab;
 }
 
 .timeline-dock__slider:focus-visible {
@@ -2521,7 +2521,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
         0 0 0 1px rgba(255, 126, 191, 0.42),
         0 0 12px rgba(255, 108, 176, 0.3);
     pointer-events: all;
-    cursor: ew-resize;
+    cursor: grab;
+}
+
+.timeline-dock--timeline-dragging .timeline-dock__playhead {
+    cursor: grabbing;
 }
 
 .timeline-dock__time-label {

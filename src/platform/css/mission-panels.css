@@ -1250,6 +1250,31 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     color: rgba(232, 242, 255, 0.94);
 }
 
+.media-browser-panel__media-button--start {
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
+    color: rgba(223, 238, 255, 0.94);
+}
+
+.media-browser-panel__media-button--play {
+    width: auto;
+    min-width: 64px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1;
+    color: #f4f8ff;
+    background: rgba(77, 141, 255, 0.16);
+    border-color: rgba(121, 171, 255, 0.62);
+}
+
+.media-browser-panel__media-button--play:hover {
+    background: rgba(98, 158, 255, 0.24);
+    border-color: rgba(146, 190, 255, 0.78);
+    box-shadow: 0 0 0 1px rgba(154, 195, 255, 0.18);
+}
+
 .media-browser-panel__media-button:disabled {
     opacity: 0.42;
     cursor: default;
