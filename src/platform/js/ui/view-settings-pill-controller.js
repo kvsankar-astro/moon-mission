@@ -5,6 +5,7 @@ import {
 } from "./orbit-control-labels.js";
 import {
     bindLunarCraterControlPanel as bindSharedLunarCraterControlPanel,
+    getLunarCraterControlPanelElements as getSharedLunarCraterControlPanelElements,
     readLunarCraterControlState,
     syncLunarCraterControlPanel,
 } from "./lunar-crater-control-panel.js";
@@ -137,18 +138,11 @@ export function createViewSettingsPillController(deps = {}) {
     }
 
     function getCraterPanelElements() {
-        return {
-            pill: getElement("toggle-pill-lunar-craters"),
-            panel: getElement("lunar-crater-controls-panel"),
-            visibleInput: getElement("view-lunar-craters"),
-            hoverInput: getElement("lunar-crater-hover-labels"),
-            modeInput: getElement("lunar-crater-display-mode"),
-            offToggle: getElement("lunar-crater-off-toggle"),
-            visibleToggle: getElement("lunar-crater-visible-toggle"),
-            hoverToggle: getElement("lunar-crater-hover-toggle"),
-            countSlider: getElement("lunar-crater-count"),
-            countValue: getElement("lunar-crater-count-value"),
-        };
+        return getSharedLunarCraterControlPanelElements(documentRef, {
+            idPrefix: "lunar-crater",
+            pillId: "toggle-pill-lunar-craters",
+            visibleInputId: "view-lunar-craters",
+        });
     }
 
     function syncLunarCraterPanelState() {

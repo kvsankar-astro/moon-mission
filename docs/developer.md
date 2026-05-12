@@ -72,6 +72,15 @@ Useful pages:
   2. Update `docs/operations/moon-render-assets.md` with the new source/derivation story.
   3. Be careful with `.gitignore`; only explicitly tracked Moon runtime files should be unignored.
 
+### Lunar Crater / Moon Sites Controls
+
+- The crater overlay uses diameter range controls instead of a count slider. Keep the main view and `Frame and Shoot` controls backed by the same runtime crater state.
+- Pure crater selection, projection, label coupling, hover-anchor math, and count metadata live in `src/platform/js/core/domain/lunar-crater-catalog.js`.
+- Three.js object creation, hover picking, and dynamic style updates live in `src/platform/js/app/lunar-crater-actions.js`.
+- `Show always` should display a FoV-based subset of filtered craters; if a boundary is rendered, its label must be rendered too.
+- Hover labels should be positioned from apparent screen-space crater bounds, close to the circle and outside the rim.
+- Regression coverage should include `test/lunar-crater-catalog.test.js`, `test/lunar-crater-actions.test.js`, and any UI state tests touched by the control surface change.
+
 ### Artemis II Mission-Specific Panels
 
 - Artemis II currently adds three mission-specific panel surfaces beyond the generic settings/info shell:

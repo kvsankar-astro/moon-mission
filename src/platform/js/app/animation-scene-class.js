@@ -160,11 +160,19 @@ function createAnimationSceneClass(deps) {
             this.lunarCraterHoverLabel = null;
             this.lunarCraterHoverRing = null;
             this.lunarCraterHoverMaterial = null;
-            this.lunarCraterDisplayLimit = null;
+            this.lunarCraterMinDiameterKm = null;
+            this.lunarCraterMaxDiameterKm = null;
             this.lunarCraterDisplayMode = null;
             this.lunarCraterHoverLabelsEnabled = true;
             this.lunarCraterHoveredName = null;
             this.lunarCraterHoveredDiameterKm = null;
+            this.lunarCraterFilteredCount = 0;
+            this.lunarCraterRenderedCount = 0;
+            this.lunarCraterRenderOmittedCount = 0;
+            this.lunarCraterRenderDense = false;
+            this.lunarCraterRenderContextKey = null;
+            this.lunarCraterSmallestRenderedDiameterKm = null;
+            this.lunarCraterRenderPlanLastCheckMs = 0;
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
             this.primaryCraftId = "SC";
@@ -445,8 +453,15 @@ function createAnimationSceneClass(deps) {
             locationActions.disposeMoonLocations({ scene: this });
         }
 
-        addLunarCraterAnnotations() {
-            lunarCraterActions.addLunarCraterAnnotations({ scene: this });
+        addLunarCraterAnnotations(input = {}) {
+            lunarCraterActions.addLunarCraterAnnotations({
+                scene: this,
+                camera: input.camera || this.camera,
+                rendererDomElement: input.rendererDomElement ||
+                    this.cameraController?._rendererDomElement ||
+                    this.renderer?.domElement ||
+                    null,
+            });
         }
 
         disposeLunarCraterAnnotations() {
@@ -460,17 +475,28 @@ function createAnimationSceneClass(deps) {
             });
         }
 
-        setLunarCraterDisplayLimit(limit) {
-            return lunarCraterActions.setLunarCraterDisplayLimit({
+        setLunarCraterDiameterRange(range = {}) {
+            return lunarCraterActions.setLunarCraterDiameterRange({
                 scene: this,
-                limit,
+                minDiameterKm: range.lunarCraterMinDiameterKm ?? range.minDiameterKm,
+                maxDiameterKm: range.lunarCraterMaxDiameterKm ?? range.maxDiameterKm,
+                camera: range.camera || this.camera,
+                rendererDomElement: range.rendererDomElement ||
+                    this.cameraController?._rendererDomElement ||
+                    this.renderer?.domElement ||
+                    null,
             });
         }
 
-        setLunarCraterDisplayMode(mode) {
+        setLunarCraterDisplayMode(mode, input = {}) {
             return lunarCraterActions.setLunarCraterDisplayMode({
                 scene: this,
                 mode,
+                camera: input.camera || this.camera,
+                rendererDomElement: input.rendererDomElement ||
+                    this.cameraController?._rendererDomElement ||
+                    this.renderer?.domElement ||
+                    null,
             });
         }
 

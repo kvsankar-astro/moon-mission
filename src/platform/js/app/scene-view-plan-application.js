@@ -68,8 +68,14 @@ function applySceneViewPlanToScene({
     if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
         scene.setLunarCraterDisplayMode?.(view.lunarCraterDisplayMode);
     }
-    if (Number.isFinite(Number(view.lunarCraterLimit))) {
-        scene.setLunarCraterDisplayLimit?.(Number(view.lunarCraterLimit));
+    if (
+        Number.isFinite(Number(view.lunarCraterMinDiameterKm)) ||
+        Number.isFinite(Number(view.lunarCraterMaxDiameterKm))
+    ) {
+        scene.setLunarCraterDiameterRange?.({
+            lunarCraterMinDiameterKm: view.lunarCraterMinDiameterKm,
+            lunarCraterMaxDiameterKm: view.lunarCraterMaxDiameterKm,
+        });
     }
     if (
         !Object.prototype.hasOwnProperty.call(view, "lunarCraterDisplayMode") &&

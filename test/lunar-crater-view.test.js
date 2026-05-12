@@ -29,20 +29,23 @@ describe("lunar crater view domain", () => {
             viewLunarCraters: false,
             lunarCraterHoverLabels: true,
             lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-            lunarCraterLimit: 120,
+            lunarCraterMinDiameterKm: 80,
+            lunarCraterMaxDiameterKm: 600,
         });
 
         const alwaysState = patchLunarCraterViewState(defaultState, {
             viewLunarCraters: true,
             lunarCraterHoverLabels: false,
             lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
-            lunarCraterLimit: 250,
+            lunarCraterMinDiameterKm: 40,
+            lunarCraterMaxDiameterKm: 120,
         });
         expect(alwaysState).toEqual({
             viewLunarCraters: true,
             lunarCraterHoverLabels: false,
             lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
-            lunarCraterLimit: 250,
+            lunarCraterMinDiameterKm: 40,
+            lunarCraterMaxDiameterKm: 120,
         });
 
         expect(normalizeLunarCraterDisplayMode("bogus")).toBe(LUNAR_CRATER_DISPLAY_MODE_HOVER);

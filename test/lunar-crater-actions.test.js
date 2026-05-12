@@ -5,30 +5,55 @@ import {
     buildCraterCirclePositions,
     calculateCraterHoverLabelOffset,
     calculateCraterLabelScaleRatio,
+    calculateCraterProjectedScreenBounds,
+    calculateCraterProjectedRadiusPx,
+    countCraterDisplayFeatures,
     getCraterDisplayFeatures,
     resolveCraterHoverTarget,
     resolveCraterHoverTargetFromScreen,
+    resolveMoonSurfaceHitNormal,
 } from "../src/platform/js/app/lunar-crater-actions.js";
 
 describe("lunar crater actions", () => {
-    it("selects the most prominent craters by display limit", () => {
-        const features = getCraterDisplayFeatures({
-            display: { defaultLimit: 1, minLimit: 1, maxLimit: 3 },
+    it("selects craters within the requested diameter range", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 80,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
             features: [
                 { name: "Kepler", latitudeDeg: 8.1, longitudeDeg: 321.99, diameterKm: 31.0 },
                 { name: "Tycho", latitudeDeg: -43.31, longitudeDeg: 348.82, diameterKm: 85.3 },
+                { name: "Clavius", latitudeDeg: -58.62, longitudeDeg: 345.59, diameterKm: 230.8 },
                 { name: "", latitudeDeg: 0, longitudeDeg: 0, diameterKm: 100 },
             ],
+        };
+        const features = getCraterDisplayFeatures({
+            ...catalog,
+        }, {
+            lunarCraterMinDiameterKm: 40,
+            lunarCraterMaxDiameterKm: 100,
         });
 
         expect(features).toEqual([
             { name: "Tycho", latitudeDeg: -43.31, longitudeDeg: 348.82, diameterKm: 85.3 },
         ]);
+        expect(countCraterDisplayFeatures(catalog, {
+            lunarCraterMinDiameterKm: 40,
+            lunarCraterMaxDiameterKm: 100,
+        })).toBe(1);
     });
 
     it("can return the full valid crater set for hover picking", () => {
         const features = getCraterDisplayFeatures({
-            display: { defaultLimit: 1, minLimit: 1, maxLimit: 1 },
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
             features: [
                 { name: "Kepler", latitudeDeg: 8.1, longitudeDeg: 321.99, diameterKm: 31.0 },
                 { name: "Tycho", latitudeDeg: -43.31, longitudeDeg: 348.82, diameterKm: 85.3 },
@@ -38,6 +63,17 @@ describe("lunar crater actions", () => {
         }, { includeAll: true });
 
         expect(features.map((feature) => feature.name)).toEqual(["Clavius", "Tycho", "Kepler"]);
+    });
+
+    it("includes adopted satellite-feature crater records from the bundled catalog", () => {
+        const features = getCraterDisplayFeatures(undefined, {
+            lunarCraterMinDiameterKm: 0,
+            lunarCraterMaxDiameterKm: 20,
+        });
+
+        expect(features.map((feature) => feature.name)).toEqual(
+            expect.arrayContaining(["Galilaei", "Galilaei A", "Galilaei B"]),
+        );
     });
 
     it("builds crater circle points on the requested sphere radius", () => {
@@ -89,6 +125,61 @@ describe("lunar crater actions", () => {
         expect(farRatio).toBe(1);
     });
 
+    it("projects crater radius from the rim instead of the moon center plane near the surface", () => {
+        const moonRadius = 10;
+        const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+        camera.position.set(0, 0, moonRadius * 1.04);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+
+        const moonContainer = new THREE.Group();
+        moonContainer.updateMatrixWorld(true);
+        const scene = { moonContainer };
+        const angularRadius = (10 * 0.5) / 1737.4;
+        const projectedRadius = calculateCraterProjectedRadiusPx({
+            THREE,
+            scene,
+            camera,
+            rendererDomElement: { clientWidth: 800, clientHeight: 800 },
+            normal: new THREE.Vector3(0, 0, 1),
+            angularRadius,
+            moonRadius,
+        });
+
+        const centerPlaneEstimate = angularRadius *
+            ((800 * 0.5 * moonRadius) / (camera.position.length() * Math.tan((60 * Math.PI / 180) * 0.5)));
+        expect(projectedRadius).toBeGreaterThan(centerPlaneEstimate * 10);
+        expect(projectedRadius).toBeGreaterThan(4);
+    });
+
+    it("measures apparent crater bounds from projected rim points", () => {
+        const moonRadius = 10;
+        const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+        camera.position.set(0, 0, moonRadius * 4);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+
+        const moonContainer = new THREE.Group();
+        moonContainer.updateMatrixWorld(true);
+        const bounds = calculateCraterProjectedScreenBounds({
+            THREE,
+            scene: { moonContainer },
+            camera,
+            rendererDomElement: { clientWidth: 800, clientHeight: 800 },
+            normal: new THREE.Vector3(0, 0, 1),
+            angularRadius: 0.06,
+            moonRadius,
+        });
+
+        expect(bounds.centerX).toBeCloseTo(400, 4);
+        expect(bounds.centerY).toBeCloseTo(400, 4);
+        expect(bounds.top).toBeLessThan(bounds.centerY);
+        expect(bounds.bottom).toBeGreaterThan(bounds.centerY);
+        expect(bounds.radiusPx).toBeGreaterThan(0);
+    });
+
     it("keeps hover labels close while clearing the crater edge", () => {
         const angularRadius = 0.017;
         const offset = calculateCraterHoverLabelOffset({
@@ -121,6 +212,22 @@ describe("lunar crater actions", () => {
         };
 
         expect(resolveCraterHoverTarget(surfaceNormal, [largeCrater, smallOffsetCrater])).toBe(largeCrater);
+    });
+
+    it("picks a smaller nested crater when the pointer is on that crater", () => {
+        const smallCenter = new THREE.Vector3(Math.cos(0.08), Math.sin(0.08), 0).normalize();
+        const largeCrater = {
+            crater: { name: "Large" },
+            centerNormal: new THREE.Vector3(1, 0, 0),
+            angularRadius: 0.2,
+        };
+        const smallCrater = {
+            crater: { name: "Small" },
+            centerNormal: smallCenter,
+            angularRadius: 0.09,
+        };
+
+        expect(resolveCraterHoverTarget(smallCenter, [largeCrater, smallCrater])).toBe(smallCrater);
     });
 
     it("picks visible craters by screen position with a far camera and tiny field of view", () => {
@@ -156,5 +263,22 @@ describe("lunar crater actions", () => {
         });
 
         expect(target).toBe(centerCrater);
+    });
+
+    it("chooses the real lunar surface hit when raycasting also returns outer moon children", () => {
+        const moonContainer = new THREE.Group();
+        moonContainer.updateMatrixWorld(true);
+        const normal = resolveMoonSurfaceHitNormal({
+            scene: { moonContainer },
+            moonRadius: 2,
+            intersections: [
+                { point: new THREE.Vector3(64, 0.1, 0) },
+                { point: new THREE.Vector3(1.9, 0.2, 0) },
+                { point: new THREE.Vector3(-60, 0, 0) },
+            ],
+        });
+
+        expect(normal.x).toBeGreaterThan(0.99);
+        expect(normal.y).toBeGreaterThan(0.09);
     });
 });

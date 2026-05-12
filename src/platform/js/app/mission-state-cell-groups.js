@@ -60,9 +60,13 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getLunarCraterDisplayMode(),
             (value) => { runtimeViewState.setLunarCraterDisplayMode(value); },
         ),
-        lunarCraterLimit: createMutableStateCell(
-            () => runtimeViewState.getLunarCraterLimit(),
-            (value) => { runtimeViewState.setLunarCraterLimit(value); },
+        lunarCraterMinDiameterKm: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterMinDiameterKm(),
+            (value) => { runtimeViewState.setLunarCraterMinDiameterKm(value); },
+        ),
+        lunarCraterMaxDiameterKm: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterMaxDiameterKm(),
+            (value) => { runtimeViewState.setLunarCraterMaxDiameterKm(value); },
         ),
         viewXYZAxes: createMutableStateCell(
             () => runtimeViewState.getViewXYZAxes(),

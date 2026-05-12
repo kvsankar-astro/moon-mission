@@ -10,13 +10,15 @@ import {
 function makeCraterScene({
     visible = true,
     displayMode = LUNAR_CRATER_DISPLAY_MODE_HOVER,
-    displayLimit = 120,
+    minDiameterKm = 80,
+    maxDiameterKm = 600,
     hoverLabelsEnabled = true,
 } = {}) {
     const animationScene = {
         lunarCraterGroup: { name: "lunar-crater-annotations", visible },
         lunarCraterDisplayMode: displayMode,
-        lunarCraterDisplayLimit: displayLimit,
+        lunarCraterMinDiameterKm: minDiameterKm,
+        lunarCraterMaxDiameterKm: maxDiameterKm,
         lunarCraterHoverLabelsEnabled: hoverLabelsEnabled,
         addLunarCraterAnnotations: vi.fn(function addLunarCraterAnnotations() {
             this.lunarCraterGroup = {
@@ -66,7 +68,8 @@ describe("renderWithLunarCraterView", () => {
         const { animationScene, scene } = makeCraterScene({
             visible: true,
             displayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-            displayLimit: 75,
+            minDiameterKm: 60,
+            maxDiameterKm: 240,
             hoverLabelsEnabled: true,
         });
         const renderedPresentation = [];
@@ -77,7 +80,8 @@ describe("renderWithLunarCraterView", () => {
                 viewLunarCraters: true,
                 lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
                 lunarCraterHoverLabels: false,
-                lunarCraterLimit: 250,
+                lunarCraterMinDiameterKm: 40,
+                lunarCraterMaxDiameterKm: 120,
             },
             animationScene,
             scene,
@@ -85,7 +89,8 @@ describe("renderWithLunarCraterView", () => {
                 renderedPresentation.push({
                     visible: animationScene.lunarCraterGroup.visible,
                     displayMode: animationScene.lunarCraterDisplayMode,
-                    displayLimit: animationScene.lunarCraterDisplayLimit,
+                    minDiameterKm: animationScene.lunarCraterMinDiameterKm,
+                    maxDiameterKm: animationScene.lunarCraterMaxDiameterKm,
                     hoverLabelsEnabled: animationScene.lunarCraterHoverLabelsEnabled,
                 });
             },
@@ -94,11 +99,13 @@ describe("renderWithLunarCraterView", () => {
         expect(renderedPresentation).toEqual([{
             visible: true,
             displayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
-            displayLimit: 250,
+            minDiameterKm: 40,
+            maxDiameterKm: 120,
             hoverLabelsEnabled: false,
         }]);
         expect(animationScene.lunarCraterDisplayMode).toBe(LUNAR_CRATER_DISPLAY_MODE_HOVER);
-        expect(animationScene.lunarCraterDisplayLimit).toBe(75);
+        expect(animationScene.lunarCraterMinDiameterKm).toBe(60);
+        expect(animationScene.lunarCraterMaxDiameterKm).toBe(240);
         expect(animationScene.lunarCraterHoverLabelsEnabled).toBe(true);
         expect(animationScene.lunarCraterGroup.visible).toBe(true);
         expect(animationScene.updateLunarCraterLabelScales).toHaveBeenCalledWith({
@@ -118,7 +125,8 @@ describe("renderWithLunarCraterView", () => {
                 viewLunarCraters: true,
                 lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
                 lunarCraterHoverLabels: true,
-                lunarCraterLimit: 120,
+                lunarCraterMinDiameterKm: 80,
+                lunarCraterMaxDiameterKm: 600,
             },
             animationScene,
             scene,

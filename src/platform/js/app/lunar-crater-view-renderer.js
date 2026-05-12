@@ -17,7 +17,8 @@ function captureCraterPresentation(animationScene) {
         hadGroup: !!animationScene.lunarCraterGroup,
         visible: animationScene.lunarCraterGroup?.visible === true,
         displayMode: animationScene.lunarCraterDisplayMode,
-        displayLimit: animationScene.lunarCraterDisplayLimit,
+        minDiameterKm: animationScene.lunarCraterMinDiameterKm,
+        maxDiameterKm: animationScene.lunarCraterMaxDiameterKm,
         hoverLabelsEnabled: animationScene.lunarCraterHoverLabelsEnabled,
     };
 }
@@ -30,7 +31,8 @@ function restoreCraterPresentation(animationScene, previous) {
     }
 
     animationScene.lunarCraterDisplayMode = previous.displayMode;
-    animationScene.lunarCraterDisplayLimit = previous.displayLimit;
+    animationScene.lunarCraterMinDiameterKm = previous.minDiameterKm;
+    animationScene.lunarCraterMaxDiameterKm = previous.maxDiameterKm;
     animationScene.addLunarCraterAnnotations?.();
     animationScene.setLunarCraterHoverLabelsEnabled?.(previous.hoverLabelsEnabled);
     if (animationScene.lunarCraterGroup) {
@@ -86,8 +88,12 @@ export function renderWithLunarCraterView({
     );
     if (canApplyPresentation) {
         animationScene.lunarCraterDisplayMode = craterState.lunarCraterDisplayMode;
-        animationScene.lunarCraterDisplayLimit = craterState.lunarCraterLimit;
-        animationScene.addLunarCraterAnnotations();
+        animationScene.lunarCraterMinDiameterKm = craterState.lunarCraterMinDiameterKm;
+        animationScene.lunarCraterMaxDiameterKm = craterState.lunarCraterMaxDiameterKm;
+        animationScene.addLunarCraterAnnotations({
+            camera,
+            rendererDomElement,
+        });
         animationScene.setLunarCraterHoverLabelsEnabled(
             craterState.lunarCraterDisplayMode === LUNAR_CRATER_DISPLAY_MODE_HOVER &&
                 craterState.lunarCraterHoverLabels !== false,

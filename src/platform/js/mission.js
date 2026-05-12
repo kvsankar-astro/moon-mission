@@ -374,7 +374,10 @@ runtimeViewState.setViewFlags({
     viewOrbitDescent: initialMissionViewState.viewOrbitDescent,
     viewCraters: initialMissionViewState.viewCraters,
     viewLunarCraters: initialMissionViewState.viewLunarCraters,
-    lunarCraterLimit: initialMissionViewState.lunarCraterLimit ?? runtimeViewState.getLunarCraterLimit(),
+    lunarCraterMinDiameterKm:
+        initialMissionViewState.lunarCraterMinDiameterKm ?? runtimeViewState.getLunarCraterMinDiameterKm(),
+    lunarCraterMaxDiameterKm:
+        initialMissionViewState.lunarCraterMaxDiameterKm ?? runtimeViewState.getLunarCraterMaxDiameterKm(),
     lunarCraterHoverLabels: initialMissionViewState.lunarCraterHoverLabels ?? runtimeViewState.getLunarCraterHoverLabels(),
     lunarCraterDisplayMode: initialMissionViewState.lunarCraterDisplayMode ?? runtimeViewState.getLunarCraterDisplayMode(),
     viewXYZAxes: initialMissionViewState.viewXYZAxes,
@@ -568,7 +571,8 @@ const {
     getEarthRadius: () => earthRadius,
     getViewCraters: () => runtimeViewState.getViewCraters(),
     getViewLunarCraters: () => runtimeViewState.getViewLunarCraters(),
-    getLunarCraterLimit: () => runtimeViewState.getLunarCraterLimit(),
+    getLunarCraterMinDiameterKm: () => runtimeViewState.getLunarCraterMinDiameterKm(),
+    getLunarCraterMaxDiameterKm: () => runtimeViewState.getLunarCraterMaxDiameterKm(),
     getLunarCraterHoverLabels: () => runtimeViewState.getLunarCraterHoverLabels(),
     getLunarCraterDisplayMode: () => runtimeViewState.getLunarCraterDisplayMode(),
     getViewPhotoMode: () => runtimeViewState.getViewPhotoMode(),
@@ -585,6 +589,8 @@ const {
         applyViewSettings({
             viewLunarCraters: enabled,
             lunarCraterDisplayMode: craterDisplayMode,
+            lunarCraterMinDiameterKm: runtimeViewState.getLunarCraterMinDiameterKm(),
+            lunarCraterMaxDiameterKm: runtimeViewState.getLunarCraterMaxDiameterKm(),
         });
         const lunarCraterPill = document.getElementById("toggle-pill-lunar-craters");
         if (lunarCraterPill) {
@@ -610,11 +616,6 @@ const {
             lunarCraterHoverToggle.classList.toggle("is-active", active);
             lunarCraterHoverToggle.setAttribute("aria-pressed", active ? "true" : "false");
             lunarCraterHoverToggle.textContent = "Show on hover";
-        }
-        const lunarCraterCount = document.getElementById("lunar-crater-count");
-        if (lunarCraterCount) {
-            lunarCraterCount.disabled = craterDisplayMode === "hover";
-            lunarCraterCount.setAttribute("aria-disabled", craterDisplayMode === "hover" ? "true" : "false");
         }
         if (typeof setView === "function") {
             setView();

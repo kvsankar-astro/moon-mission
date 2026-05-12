@@ -98,7 +98,8 @@ function createMissionSceneActionBundle(deps) {
         getEarthRadius,
         getViewCraters,
         getViewLunarCraters,
-        getLunarCraterLimit,
+        getLunarCraterMinDiameterKm,
+        getLunarCraterMaxDiameterKm,
         getLunarCraterDisplayMode,
         getLastInputActivityMs,
         SceneHelpers,
@@ -298,7 +299,8 @@ function createMissionSceneActionBundle(deps) {
         getMoonRadius,
         getGlobalConfig,
         getViewLunarCraters,
-        getLunarCraterLimit,
+        getLunarCraterMinDiameterKm,
+        getLunarCraterMaxDiameterKm,
         getLunarCraterDisplayMode,
     });
 

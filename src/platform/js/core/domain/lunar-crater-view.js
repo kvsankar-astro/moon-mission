@@ -10,6 +10,11 @@ export const LUNAR_CRATER_SUPPORTED_VIEW_IDS = Object.freeze([
 
 export const LUNAR_CRATER_DISPLAY_MODE_ALWAYS = "always";
 export const LUNAR_CRATER_DISPLAY_MODE_HOVER = "hover";
+export const LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM = 80;
+export const LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM = 600;
+export const LUNAR_CRATER_RANGE_MIN_DIAMETER_KM = 0;
+export const LUNAR_CRATER_RANGE_MAX_DIAMETER_KM = 600;
+export const LUNAR_CRATER_DIAMETER_STEP_KM = 10;
 
 const SUPPORTED_VIEW_ID_SET = new Set(LUNAR_CRATER_SUPPORTED_VIEW_IDS);
 
@@ -23,27 +28,64 @@ export function normalizeLunarCraterDisplayMode(value) {
         : LUNAR_CRATER_DISPLAY_MODE_HOVER;
 }
 
+function readDiameterValue(value, fallback) {
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : fallback;
+}
+
+export function normalizeLunarCraterDiameterRange(value = {}, fallback = {}, bounds = {}) {
+    const minBound = readDiameterValue(
+        bounds.minDiameterKm,
+        LUNAR_CRATER_RANGE_MIN_DIAMETER_KM,
+    );
+    const maxBound = Math.max(
+        minBound,
+        readDiameterValue(bounds.maxDiameterKm, LUNAR_CRATER_RANGE_MAX_DIAMETER_KM),
+    );
+    const fallbackMin = readDiameterValue(
+        fallback.lunarCraterMinDiameterKm ?? fallback.minDiameterKm,
+        LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+    );
+    const fallbackMax = readDiameterValue(
+        fallback.lunarCraterMaxDiameterKm ?? fallback.maxDiameterKm,
+        LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+    );
+    const rawMin = readDiameterValue(
+        value.lunarCraterMinDiameterKm ?? value.minDiameterKm,
+        fallbackMin,
+    );
+    const rawMax = readDiameterValue(
+        value.lunarCraterMaxDiameterKm ?? value.maxDiameterKm,
+        fallbackMax,
+    );
+    const clampedMin = Math.min(maxBound, Math.max(minBound, rawMin));
+    const clampedMax = Math.min(maxBound, Math.max(minBound, rawMax));
+
+    return {
+        lunarCraterMinDiameterKm: Math.min(clampedMin, clampedMax),
+        lunarCraterMaxDiameterKm: Math.max(clampedMin, clampedMax),
+    };
+}
+
 export function createDefaultLunarCraterViewState(overrides = {}) {
     return normalizeLunarCraterViewState(overrides, {
         viewLunarCraters: false,
         lunarCraterHoverLabels: true,
         lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-        lunarCraterLimit: 120,
+        lunarCraterMinDiameterKm: LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+        lunarCraterMaxDiameterKm: LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
     });
 }
 
 export function normalizeLunarCraterViewState(value = {}, fallback = createDefaultLunarCraterViewState()) {
-    const craterLimit = Number(value.lunarCraterLimit);
-    const fallbackLimit = Number(fallback.lunarCraterLimit);
+    const diameterRange = normalizeLunarCraterDiameterRange(value, fallback);
     return {
         viewLunarCraters: value.viewLunarCraters === true,
         lunarCraterHoverLabels: value.lunarCraterHoverLabels !== false,
         lunarCraterDisplayMode: normalizeLunarCraterDisplayMode(
             value.lunarCraterDisplayMode ?? fallback.lunarCraterDisplayMode,
         ),
-        lunarCraterLimit: Number.isFinite(craterLimit)
-            ? craterLimit
-            : (Number.isFinite(fallbackLimit) ? fallbackLimit : 120),
+        ...diameterRange,
     };
 }
 
@@ -58,8 +100,11 @@ export function patchLunarCraterViewState(state = createDefaultLunarCraterViewSt
     if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode")) {
         nextState.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(patch.lunarCraterDisplayMode);
     }
-    if (Number.isFinite(Number(patch.lunarCraterLimit))) {
-        nextState.lunarCraterLimit = Number(patch.lunarCraterLimit);
+    if (
+        Number.isFinite(Number(patch.lunarCraterMinDiameterKm)) ||
+        Number.isFinite(Number(patch.lunarCraterMaxDiameterKm))
+    ) {
+        Object.assign(nextState, normalizeLunarCraterDiameterRange(patch, state));
     }
     return normalizeLunarCraterViewState(nextState, state);
 }

@@ -118,8 +118,16 @@ function createHarness(options = {}) {
     const lunarCraterDisplayMode = createElement("lunar-crater-display-mode", { value: "hover" });
     const lunarCraterOffToggle = createElement("lunar-crater-off-toggle");
     const lunarCraterHoverToggle = createElement("lunar-crater-hover-toggle");
-    const lunarCraterCount = createElement("lunar-crater-count", { value: "120" });
+    const lunarCraterMinDiameter = createElement("lunar-crater-min-diameter", { value: "80" });
+    const lunarCraterMinDiameterStepDown = createElement("lunar-crater-min-diameter-step-down");
+    const lunarCraterMinDiameterStepUp = createElement("lunar-crater-min-diameter-step-up");
+    const lunarCraterMaxDiameter = createElement("lunar-crater-max-diameter", { value: "600" });
+    const lunarCraterMaxDiameterStepDown = createElement("lunar-crater-max-diameter-step-down");
+    const lunarCraterMaxDiameterStepUp = createElement("lunar-crater-max-diameter-step-up");
+    const lunarCraterDiameterValue = createElement("lunar-crater-diameter-value");
     const lunarCraterCountValue = createElement("lunar-crater-count-value");
+    const lunarCraterBusyIndicator = createElement("lunar-crater-busy-indicator", { hidden: true });
+    const lunarCraterNudge = createElement("lunar-crater-nudge", { hidden: true });
     const locatorsPill = createElement("locators-pill");
     const orbitPill = createElement("toggle-pill-orbit");
     const cratersPill = createElement("toggle-pill-craters");
@@ -158,8 +166,16 @@ function createHarness(options = {}) {
         ["lunar-crater-hover-labels", lunarCraterHoverInput],
         ["lunar-crater-display-mode", lunarCraterDisplayMode],
         ["lunar-crater-hover-toggle", lunarCraterHoverToggle],
-        ["lunar-crater-count", lunarCraterCount],
+        ["lunar-crater-min-diameter", lunarCraterMinDiameter],
+        ["lunar-crater-min-diameter-step-down", lunarCraterMinDiameterStepDown],
+        ["lunar-crater-min-diameter-step-up", lunarCraterMinDiameterStepUp],
+        ["lunar-crater-max-diameter", lunarCraterMaxDiameter],
+        ["lunar-crater-max-diameter-step-down", lunarCraterMaxDiameterStepDown],
+        ["lunar-crater-max-diameter-step-up", lunarCraterMaxDiameterStepUp],
+        ["lunar-crater-diameter-value", lunarCraterDiameterValue],
         ["lunar-crater-count-value", lunarCraterCountValue],
+        ["lunar-crater-busy-indicator", lunarCraterBusyIndicator],
+        ["lunar-crater-nudge", lunarCraterNudge],
         ["locators-pill", locatorsPill],
         ["toggle-pill-orbit", orbitPill],
         ["toggle-pill-craters", cratersPill],
@@ -265,8 +281,16 @@ function createHarness(options = {}) {
         landingOptionRow,
         landingPill,
         landingToggle,
-        lunarCraterCount,
+        lunarCraterMinDiameter,
+        lunarCraterMinDiameterStepDown,
+        lunarCraterMinDiameterStepUp,
+        lunarCraterMaxDiameter,
+        lunarCraterMaxDiameterStepDown,
+        lunarCraterMaxDiameterStepUp,
+        lunarCraterDiameterValue,
         lunarCraterCountValue,
+        lunarCraterBusyIndicator,
+        lunarCraterNudge,
         lunarCraterDisplayMode,
         lunarCraterHoverInput,
         lunarCraterHoverToggle,
@@ -379,69 +403,115 @@ describe("createViewSettingsPillController", function () {
     });
 
     it("opens the crater panel and commits dense crater controls", function () {
+        vi.useFakeTimers();
         const harness = createHarness();
 
-        harness.controller.bind();
-        harness.lunarCratersPill.dispatchEvent({ type: "click", target: harness.lunarCratersPill });
+        try {
+            harness.controller.bind();
+            harness.lunarCratersPill.dispatchEvent({ type: "click", target: harness.lunarCratersPill });
 
-        expect(harness.lunarCraterPanel.hidden).toBe(false);
-        expect(harness.lunarCratersPill["aria-expanded"]).toBe("true");
-        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
-        expect(harness.lunarCraterCount.disabled).toBe(true);
+            expect(harness.lunarCraterPanel.hidden).toBe(false);
+            expect(harness.lunarCratersPill["aria-expanded"]).toBe("true");
+            expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(true);
+            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(true);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(true);
+            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(true);
+            expect(harness.lunarCraterCountValue.textContent).toMatch(/selected$/);
 
-        harness.lunarCraterVisibleToggle.dispatchEvent({
-            type: "click",
-            target: harness.lunarCraterVisibleToggle,
-        });
-        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
-            {
-                viewLunarCraters: true,
-                lunarCraterDisplayMode: "always",
-                lunarCraterHoverLabels: false,
-            },
-            { sourceId: "lunar-crater-visible-toggle" },
-        );
-        expect(harness.lunarCraterDisplayMode.value).toBe("always");
-        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("false");
-        expect(harness.lunarCraterCount.disabled).toBe(false);
+            harness.lunarCraterVisibleToggle.dispatchEvent({
+                type: "click",
+                target: harness.lunarCraterVisibleToggle,
+            });
+            expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+                {
+                    viewLunarCraters: true,
+                    lunarCraterDisplayMode: "always",
+                    lunarCraterHoverLabels: false,
+                },
+                { sourceId: "lunar-crater-visible-toggle" },
+            );
+            expect(harness.lunarCraterDisplayMode.value).toBe("always");
+            expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("false");
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(false);
 
-        harness.lunarCraterHoverToggle.dispatchEvent({
-            type: "click",
-            target: harness.lunarCraterHoverToggle,
-        });
-        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
-            {
-                viewLunarCraters: true,
-                lunarCraterDisplayMode: "hover",
-                lunarCraterHoverLabels: true,
-            },
-            { sourceId: "lunar-crater-hover-toggle" },
-        );
-        expect(harness.lunarCraterDisplayMode.value).toBe("hover");
-        expect(harness.lunarCraterCount.disabled).toBe(true);
+            harness.lunarCraterHoverToggle.dispatchEvent({
+                type: "click",
+                target: harness.lunarCraterHoverToggle,
+            });
+            expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+                {
+                    viewLunarCraters: true,
+                    lunarCraterDisplayMode: "hover",
+                    lunarCraterHoverLabels: true,
+                },
+                { sourceId: "lunar-crater-hover-toggle" },
+            );
+            expect(harness.lunarCraterDisplayMode.value).toBe("hover");
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(false);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(false);
 
-        harness.lunarCraterOffToggle.dispatchEvent({
-            type: "click",
-            target: harness.lunarCraterOffToggle,
-        });
-        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
-            { viewLunarCraters: false },
-            { sourceId: "lunar-crater-off-toggle" },
-        );
-        expect(harness.viewLunarCratersInput.checked).toBe(false);
-        expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
-        expect(harness.lunarCraterCount.disabled).toBe(true);
+            harness.lunarCraterOffToggle.dispatchEvent({
+                type: "click",
+                target: harness.lunarCraterOffToggle,
+            });
+            expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+                { viewLunarCraters: false },
+                { sourceId: "lunar-crater-off-toggle" },
+            );
+            expect(harness.viewLunarCratersInput.checked).toBe(false);
+            expect(harness.lunarCraterOffToggle["aria-pressed"]).toBe("true");
+            expect(harness.lunarCraterMinDiameter.disabled).toBe(true);
+            expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(true);
+            expect(harness.lunarCraterMaxDiameter.disabled).toBe(true);
+            expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(true);
 
-        harness.lunarCraterCount.value = "250";
-        harness.lunarCraterCount.dispatchEvent({
-            type: "input",
-            target: harness.lunarCraterCount,
-        });
-        expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
-            { lunarCraterLimit: 250 },
-            { sourceId: "lunar-crater-count" },
-        );
-        expect(harness.lunarCraterCountValue.textContent).toBe("250");
+            const commitsBeforeInput = harness.controlBackend.commitViewPatch.mock.calls.length;
+            harness.lunarCraterMinDiameter.value = "40";
+            harness.lunarCraterMinDiameter.dispatchEvent({
+                type: "input",
+                target: harness.lunarCraterMinDiameter,
+            });
+            expect(harness.controlBackend.commitViewPatch.mock.calls).toHaveLength(commitsBeforeInput);
+            expect(harness.lunarCraterBusyIndicator.hidden).toBe(false);
+            expect(harness.lunarCraterDiameterValue.textContent).toBe("40-600 km");
+            vi.advanceTimersByTime(180);
+            expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+                {
+                    lunarCraterMinDiameterKm: 40,
+                    lunarCraterMaxDiameterKm: 600,
+                },
+                { sourceId: "lunar-crater-min-diameter" },
+            );
+            expect(harness.lunarCraterBusyIndicator.hidden).toBe(true);
+
+            harness.lunarCraterHoverToggle.dispatchEvent({
+                type: "click",
+                target: harness.lunarCraterHoverToggle,
+            });
+            const commitsBeforeStep = harness.controlBackend.commitViewPatch.mock.calls.length;
+            harness.lunarCraterMinDiameterStepUp.dispatchEvent({
+                type: "click",
+                target: harness.lunarCraterMinDiameterStepUp,
+            });
+            expect(harness.controlBackend.commitViewPatch.mock.calls).toHaveLength(commitsBeforeStep);
+            expect(harness.lunarCraterBusyIndicator.hidden).toBe(false);
+            expect(harness.lunarCraterDiameterValue.textContent).toBe("50-600 km");
+            vi.advanceTimersByTime(180);
+            expect(harness.controlBackend.commitViewPatch).toHaveBeenCalledWith(
+                {
+                    lunarCraterMinDiameterKm: 50,
+                    lunarCraterMaxDiameterKm: 600,
+                },
+                { sourceId: "lunar-crater-min-diameter" },
+            );
+            expect(harness.lunarCraterBusyIndicator.hidden).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("re-syncs landing pill visibility from the mutation observer", function () {

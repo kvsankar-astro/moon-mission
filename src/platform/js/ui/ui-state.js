@@ -4,6 +4,11 @@
  * Imperative-shell utilities for reading and writing UI control state.
  * These helpers centralize DOM access so core/renderer code can stay focused.
  */
+import {
+    getLunarCraterControlPanelElements,
+    readLunarCraterControlState,
+    writeLunarCraterControlState,
+} from "./lunar-crater-control-panel.js";
 
 function normalizeId(idOrSelector) {
     if (!idOrSelector) return "";
@@ -56,10 +61,6 @@ function getRangeValue(idOrSelector, fallback = 1) {
     return Number.isFinite(value) ? value : fallback;
 }
 
-function normalizeLunarCraterDisplayMode(value) {
-    return value === "always" ? "always" : "hover";
-}
-
 function setRangeValue(idOrSelector, value) {
     const element = getElement(idOrSelector);
     if (!element) return;
@@ -87,6 +88,13 @@ function setElementsHidden(selector, hidden) {
 function readOrbitStyle() {
     const selected = document.querySelector('input[name="orbit-style"]:checked');
     return selected?.value === "trail" ? "trail" : "classic";
+}
+
+function getMainLunarCraterControlElements() {
+    return getLunarCraterControlPanelElements(document, {
+        idPrefix: "lunar-crater",
+        visibleInputId: "view-lunar-craters",
+    });
 }
 
 function syncTrailStyleControlVisibility(orbitStyle, viewOrbit = getChecked("view-orbit")) {
@@ -206,16 +214,9 @@ export function readViewSettings() {
         settings[key] = getChecked(id);
     }
 
-    if (hasElement("lunar-crater-hover-labels")) {
-        settings.lunarCraterHoverLabels = getChecked("lunar-crater-hover-labels");
-    }
-    if (hasElement("lunar-crater-display-mode")) {
-        settings.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(
-            getSelectValue("lunar-crater-display-mode", "hover"),
-        );
-    }
-    if (hasElement("lunar-crater-count")) {
-        settings.lunarCraterLimit = getRangeValue("lunar-crater-count", 120);
+    const craterElements = getMainLunarCraterControlElements();
+    if (craterElements.panel || craterElements.visibleInput) {
+        Object.assign(settings, readLunarCraterControlState(craterElements));
     }
 
     const activeCraftId = getSelectValue("active-craft-select", "");
@@ -260,19 +261,14 @@ export function applyViewSettings(patch) {
         setChecked(id, value);
     }
 
-    if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverLabels")) {
-        setChecked("lunar-crater-hover-labels", patch.lunarCraterHoverLabels);
-    }
-    if (Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode")) {
-        setSelectValue(
-            "lunar-crater-display-mode",
-            normalizeLunarCraterDisplayMode(patch.lunarCraterDisplayMode),
-        );
-    }
-    if (Number.isFinite(Number(patch.lunarCraterLimit))) {
-        const craterLimit = Number(patch.lunarCraterLimit);
-        setRangeValue("lunar-crater-count", craterLimit);
-        setText("lunar-crater-count-value", String(Math.round(craterLimit)));
+    if (
+        Object.prototype.hasOwnProperty.call(patch, "viewLunarCraters") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverLabels") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode") ||
+        Number.isFinite(Number(patch.lunarCraterMinDiameterKm)) ||
+        Number.isFinite(Number(patch.lunarCraterMaxDiameterKm))
+    ) {
+        writeLunarCraterControlState(getMainLunarCraterControlElements(), patch);
     }
 
     const effectiveViewOrbit = Object.prototype.hasOwnProperty.call(patch, "viewOrbit")

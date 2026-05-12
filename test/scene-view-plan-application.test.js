@@ -111,7 +111,7 @@ describe("scene view plan application", () => {
             equatorialPlaneHelper: { visible: false },
             equatorialPolarGridHelper: { visible: false },
             setLunarCraterAnnotationsVisible: vi.fn(),
-            setLunarCraterDisplayLimit: vi.fn(),
+            setLunarCraterDiameterRange: vi.fn(),
             setLunarCraterDisplayMode: vi.fn(),
             setLunarCraterHoverLabelsEnabled: vi.fn(),
         };
@@ -122,7 +122,8 @@ describe("scene view plan application", () => {
                 trailTailBrightness3D: 0.9,
                 viewCraters: true,
                 viewLunarCraters: true,
-                lunarCraterLimit: 250,
+                lunarCraterMinDiameterKm: 40,
+                lunarCraterMaxDiameterKm: 120,
                 lunarCraterHoverLabels: true,
                 lunarCraterDisplayMode: "always",
                 viewXYZAxes: true,
@@ -180,7 +181,10 @@ describe("scene view plan application", () => {
         );
         expect(scene.locations[0].visible).toBe(true);
         expect(scene.setLunarCraterDisplayMode).toHaveBeenCalledWith("always");
-        expect(scene.setLunarCraterDisplayLimit).toHaveBeenCalledWith(250);
+        expect(scene.setLunarCraterDiameterRange).toHaveBeenCalledWith({
+            lunarCraterMinDiameterKm: 40,
+            lunarCraterMaxDiameterKm: 120,
+        });
         expect(scene.setLunarCraterHoverLabelsEnabled).not.toHaveBeenCalled();
         expect(scene.setLunarCraterAnnotationsVisible).toHaveBeenCalledWith(true);
         expect(scene.axesHelper.visible).toBe(true);

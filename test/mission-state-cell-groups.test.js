@@ -20,7 +20,8 @@ describe("mission state cell groups", () => {
             viewLunarCraters: false,
             lunarCraterHoverLabels: true,
             lunarCraterDisplayMode: "hover",
-            lunarCraterLimit: 120,
+            lunarCraterMinDiameterKm: 80,
+            lunarCraterMaxDiameterKm: 600,
             viewXYZAxes: false,
             viewPoles: false,
             viewPolarAxes: false,
@@ -63,8 +64,10 @@ describe("mission state cell groups", () => {
             setLunarCraterHoverLabels: (value) => { state.lunarCraterHoverLabels = value; },
             getLunarCraterDisplayMode: () => state.lunarCraterDisplayMode,
             setLunarCraterDisplayMode: (value) => { state.lunarCraterDisplayMode = value; },
-            getLunarCraterLimit: () => state.lunarCraterLimit,
-            setLunarCraterLimit: (value) => { state.lunarCraterLimit = value; },
+            getLunarCraterMinDiameterKm: () => state.lunarCraterMinDiameterKm,
+            setLunarCraterMinDiameterKm: (value) => { state.lunarCraterMinDiameterKm = value; },
+            getLunarCraterMaxDiameterKm: () => state.lunarCraterMaxDiameterKm,
+            setLunarCraterMaxDiameterKm: (value) => { state.lunarCraterMaxDiameterKm = value; },
             getViewXYZAxes: () => state.viewXYZAxes,
             setViewXYZAxes: (value) => { state.viewXYZAxes = value; },
             getViewPoles: () => state.viewPoles,
@@ -117,10 +120,12 @@ describe("mission state cell groups", () => {
         expect(state.viewLunarCraters).toBe(true);
         cells.lunarCraterHoverLabels.set(false);
         cells.lunarCraterDisplayMode.set("always");
-        cells.lunarCraterLimit.set(250);
+        cells.lunarCraterMinDiameterKm.set(40);
+        cells.lunarCraterMaxDiameterKm.set(120);
         expect(state.lunarCraterHoverLabels).toBe(false);
         expect(state.lunarCraterDisplayMode).toBe("always");
-        expect(state.lunarCraterLimit).toBe(250);
+        expect(state.lunarCraterMinDiameterKm).toBe(40);
+        expect(state.lunarCraterMaxDiameterKm).toBe(120);
 
         expect(cells.effectiveOrbitStyle.get()).toBe("trail");
         effectiveOrbitStyle = "classic";

@@ -1,6 +1,9 @@
 import {
+    LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+    LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
     LUNAR_CRATER_DISPLAY_MODE_HOVER,
     normalizeLunarCraterDisplayMode,
+    normalizeLunarCraterDiameterRange,
 } from "../domain/lunar-crater-view.js";
 
 const VIEW_FLAG_KEYS = [
@@ -37,7 +40,8 @@ const PER_VIEW_FLAG_KEYS = Object.freeze([
     "viewLunarCraters",
     "lunarCraterHoverLabels",
     "lunarCraterDisplayMode",
-    "lunarCraterLimit",
+    "lunarCraterMinDiameterKm",
+    "lunarCraterMaxDiameterKm",
 ]);
 
 function normalizeString(value, fallback) {
@@ -76,7 +80,8 @@ function buildDefaultViewFlags() {
         viewLunarCraters: false,
         lunarCraterHoverLabels: true,
         lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
-        lunarCraterLimit: 120,
+        lunarCraterMinDiameterKm: LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+        lunarCraterMaxDiameterKm: LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
         viewXYZAxes: false,
         viewPoles: false,
         viewPolarAxes: false,
@@ -128,9 +133,20 @@ function applyViewFlagPatch(target, patch, options = {}) {
     if (canApplyKey("trailTailBrightness3D") && Number.isFinite(patch.trailTailBrightness3D)) {
         target.trailTailBrightness3D = patch.trailTailBrightness3D;
     }
-    const craterLimit = Number(patch.lunarCraterLimit);
-    if (canApplyKey("lunarCraterLimit") && Number.isFinite(craterLimit)) {
-        target.lunarCraterLimit = craterLimit;
+    if (
+        (canApplyKey("lunarCraterMinDiameterKm") || canApplyKey("lunarCraterMaxDiameterKm")) &&
+        (
+            Number.isFinite(Number(patch.lunarCraterMinDiameterKm)) ||
+            Number.isFinite(Number(patch.lunarCraterMaxDiameterKm))
+        )
+    ) {
+        const range = normalizeLunarCraterDiameterRange(patch, target);
+        if (canApplyKey("lunarCraterMinDiameterKm")) {
+            target.lunarCraterMinDiameterKm = range.lunarCraterMinDiameterKm;
+        }
+        if (canApplyKey("lunarCraterMaxDiameterKm")) {
+            target.lunarCraterMaxDiameterKm = range.lunarCraterMaxDiameterKm;
+        }
     }
     if (canApplyKey("lunarCraterDisplayMode") && Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode")) {
         target.lunarCraterDisplayMode = normalizeLunarCraterDisplayMode(patch.lunarCraterDisplayMode);
@@ -278,9 +294,15 @@ function createRuntimeViewState({
         setLunarCraterDisplayMode: (value) => {
             setPerViewFlags({ lunarCraterDisplayMode: value });
         },
-        getLunarCraterLimit: () => getEffectiveViewFlags().lunarCraterLimit ?? 120,
-        setLunarCraterLimit: (value) => {
-            setPerViewFlags({ lunarCraterLimit: value });
+        getLunarCraterMinDiameterKm: () =>
+            getEffectiveViewFlags().lunarCraterMinDiameterKm ?? LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+        setLunarCraterMinDiameterKm: (value) => {
+            setPerViewFlags({ lunarCraterMinDiameterKm: value });
+        },
+        getLunarCraterMaxDiameterKm: () =>
+            getEffectiveViewFlags().lunarCraterMaxDiameterKm ?? LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+        setLunarCraterMaxDiameterKm: (value) => {
+            setPerViewFlags({ lunarCraterMaxDiameterKm: value });
         },
         getViewXYZAxes: () => getEffectiveViewFlags().viewXYZAxes,
         setViewXYZAxes: (value) => {

@@ -512,19 +512,63 @@ body {
     text-transform: uppercase;
 }
 
-#lunar-crater-count-value,
-.lunar-crater-controls-panel__count-value {
-    min-width: 34px;
+#lunar-crater-diameter-value,
+.lunar-crater-controls-panel__diameter-value {
+    min-width: 70px;
     color: var(--ui-annotation-accent);
     font-variant-numeric: tabular-nums;
     text-align: right;
 }
 
+.lunar-crater-controls-panel__range-stack {
+    display: grid;
+    gap: 4px;
+}
+
+.lunar-crater-controls-panel__range-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 4px;
+}
+
+.lunar-crater-controls-panel__step-button {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: 50%;
+    background: rgba(12, 24, 44, 0.92);
+    color: #dce8ff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 15px;
+    cursor: pointer;
+}
+
+.lunar-crater-controls-panel__step-button:hover {
+    border-color: rgba(160, 196, 255, 0.62);
+    background: rgba(38, 68, 112, 0.96);
+}
+
+.lunar-crater-controls-panel__step-button:focus-visible {
+    outline: 2px solid var(--ui-focus);
+    outline-offset: 1px;
+}
+
+.lunar-crater-controls-panel__step-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
 .lunar-crater-controls-panel__range {
     width: 100%;
-    height: 15px;
-    margin: -1px 0 0;
+    height: 12px;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
     accent-color: var(--ui-annotation-accent);
+    background: transparent;
 }
 
 .lunar-crater-controls-panel__range:disabled {
@@ -534,27 +578,97 @@ body {
 
 .lunar-crater-controls-panel__range::-webkit-slider-runnable-track {
     height: 3px;
+    border-radius: 999px;
+    background: rgba(213, 224, 244, 0.86);
 }
 
 .lunar-crater-controls-panel__range::-webkit-slider-thumb {
-    width: 12px;
-    height: 12px;
-    margin-top: -4px;
+    width: 8px;
+    height: 8px;
+    margin-top: -2.5px;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    background: var(--ui-annotation-accent);
+    -webkit-appearance: none;
 }
 
 .lunar-crater-controls-panel__range::-moz-range-track {
     height: 3px;
+    border-radius: 999px;
+    background: rgba(213, 224, 244, 0.86);
 }
 
 .lunar-crater-controls-panel__range::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 50%;
+    background: var(--ui-annotation-accent);
 }
 
 .lunar-crater-controls-panel__scale {
     margin-top: -4px;
     color: rgba(185, 197, 216, 0.76);
     font-size: 8px;
+}
+
+.lunar-crater-controls-panel__status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 13px;
+    gap: 8px;
+    color: rgba(185, 197, 216, 0.82);
+    font-size: 8.5px;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.lunar-crater-controls-panel__count-value {
+    margin-left: auto;
+    color: #dce8ff;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.lunar-crater-controls-panel__busy-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ui-annotation-accent);
+    text-transform: uppercase;
+}
+
+.lunar-crater-controls-panel__busy-indicator::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border: 1px solid rgba(121, 171, 255, 0.3);
+    border-top-color: var(--ui-annotation-accent);
+    border-radius: 50%;
+    animation: lunar-crater-spin 0.75s linear infinite;
+}
+
+.lunar-crater-controls-panel__busy-indicator[hidden] {
+    display: none !important;
+}
+
+.lunar-crater-controls-panel__nudge {
+    margin-top: -2px;
+    color: rgba(220, 232, 255, 0.82);
+    font-size: 8.5px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.lunar-crater-controls-panel__nudge[hidden] {
+    display: none !important;
+}
+
+@keyframes lunar-crater-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .header-main-fov {

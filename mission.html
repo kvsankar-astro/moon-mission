@@ -1069,27 +1069,89 @@
                             Show on hover
                         </button>
                     </div>
-                    <label class="lunar-crater-controls-panel__range-label" for="lunar-crater-count">
-                        <span>Count</span>
+                    <label class="lunar-crater-controls-panel__range-label" for="lunar-crater-min-diameter">
+                        <span>Diameter</span>
                         <output
+                            id="lunar-crater-diameter-value"
+                            class="lunar-crater-controls-panel__diameter-value"
+                            for="lunar-crater-min-diameter lunar-crater-max-diameter"
+                        >80-600 km</output>
+                    </label>
+                    <div class="lunar-crater-controls-panel__range-stack">
+                        <div class="lunar-crater-controls-panel__range-row">
+                            <button
+                                id="lunar-crater-min-diameter-step-down"
+                                type="button"
+                                class="lunar-crater-controls-panel__step-button"
+                                aria-label="Decrease minimum crater diameter"
+                                title="Decrease minimum crater diameter"
+                            >-</button>
+                            <input
+                                id="lunar-crater-min-diameter"
+                                class="lunar-crater-controls-panel__range"
+                                type="range"
+                                min="0"
+                                max="600"
+                                step="10"
+                                value="80"
+                                aria-label="Minimum crater diameter"
+                            >
+                            <button
+                                id="lunar-crater-min-diameter-step-up"
+                                type="button"
+                                class="lunar-crater-controls-panel__step-button"
+                                aria-label="Increase minimum crater diameter"
+                                title="Increase minimum crater diameter"
+                            >+</button>
+                        </div>
+                        <div class="lunar-crater-controls-panel__range-row">
+                            <button
+                                id="lunar-crater-max-diameter-step-down"
+                                type="button"
+                                class="lunar-crater-controls-panel__step-button"
+                                aria-label="Decrease maximum crater diameter"
+                                title="Decrease maximum crater diameter"
+                            >-</button>
+                            <input
+                                id="lunar-crater-max-diameter"
+                                class="lunar-crater-controls-panel__range"
+                                type="range"
+                                min="0"
+                                max="600"
+                                step="10"
+                                value="600"
+                                aria-label="Maximum crater diameter"
+                            >
+                            <button
+                                id="lunar-crater-max-diameter-step-up"
+                                type="button"
+                                class="lunar-crater-controls-panel__step-button"
+                                aria-label="Increase maximum crater diameter"
+                                title="Increase maximum crater diameter"
+                            >+</button>
+                        </div>
+                    </div>
+                    <div class="lunar-crater-controls-panel__scale" aria-hidden="true">
+                        <span>0 km</span>
+                        <span>600 km</span>
+                    </div>
+                    <div class="lunar-crater-controls-panel__status-row">
+                        <span
+                            id="lunar-crater-busy-indicator"
+                            class="lunar-crater-controls-panel__busy-indicator"
+                            hidden
+                        >Rendering</span>
+                        <span
                             id="lunar-crater-count-value"
                             class="lunar-crater-controls-panel__count-value"
-                            for="lunar-crater-count"
-                        >120</output>
-                    </label>
-                    <input
-                        id="lunar-crater-count"
-                        class="lunar-crater-controls-panel__range"
-                        type="range"
-                        min="25"
-                        max="500"
-                        step="25"
-                        value="120"
-                    >
-                    <div class="lunar-crater-controls-panel__scale" aria-hidden="true">
-                        <span>Big</span>
-                        <span>More</span>
+                            aria-live="polite"
+                        ></span>
                     </div>
+                    <div
+                        id="lunar-crater-nudge"
+                        class="lunar-crater-controls-panel__nudge"
+                        hidden
+                    ></div>
                 </div>
                 <div id="header-pill-strip-tertiary" class="header-pill-strip__row header-pill-strip__row--tertiary" aria-label="Utility controls">
                     <span class="header-pill-strip__spacer header-pill-strip__spacer--tertiary" aria-hidden="true"></span>
