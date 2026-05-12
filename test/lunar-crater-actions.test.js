@@ -8,11 +8,13 @@ import {
     calculateCraterProjectedScreenBounds,
     calculateCraterProjectedRadiusPx,
     countCraterDisplayFeatures,
+    createLunarCraterActions,
     getCraterDisplayFeatures,
     resolveCraterHoverTarget,
     resolveCraterHoverTargetFromScreen,
     resolveMoonSurfaceHitNormal,
 } from "../src/platform/js/app/lunar-crater-actions.js";
+import { getLunarFeatureBoundaryColor } from "../src/platform/js/core/domain/lunar-feature-colors.js";
 
 describe("lunar crater actions", () => {
     it("selects craters within the requested diameter range", () => {
@@ -94,6 +96,68 @@ describe("lunar crater actions", () => {
             );
             expect(radius).toBeCloseTo(10, 6);
         }
+    });
+
+    it("renders always-visible feature rings with per-type colors", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [
+                {
+                    name: "Blue crater",
+                    featureType: "Crater, craters",
+                    latitudeDeg: 0,
+                    longitudeDeg: 0,
+                    diameterKm: 120,
+                },
+                {
+                    name: "Green mare",
+                    featureType: "Mare, maria",
+                    latitudeDeg: 5,
+                    longitudeDeg: 5,
+                    diameterKm: 110,
+                },
+            ],
+        };
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "always",
+            getLunarFeatureTypeFilters: () => ({}),
+            craterCatalog: catalog,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+        };
+
+        actions.addLunarCraterAnnotations({ scene });
+
+        const rings = scene.lunarCraterAnnotations.filter((object) => object.userData?.craterRing);
+        const colorByName = new Map(rings.map((ring) => [
+            ring.userData.name,
+            `#${ring.material.color.getHexString()}`,
+        ]));
+        expect(colorByName.get("Blue crater")).toBe(
+            getLunarFeatureBoundaryColor("Crater, craters"),
+        );
+        expect(colorByName.get("Green mare")).toBe(
+            getLunarFeatureBoundaryColor("Mare, maria"),
+        );
     });
 
     it("caps crater label scale when the camera is too close", () => {

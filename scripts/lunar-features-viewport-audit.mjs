@@ -215,7 +215,7 @@ async function main() {
             minDiffRatio: 0.0012,
         });
 
-        for (const presetId of ["interesting", "non_crater", "craters_only", "all"]) {
+        for (const presetId of ["none", "default", "all"]) {
             await runStep({
                 name: `Preset ${presetId}`,
                 action: async () => { await page.click(`[data-preset-id="${presetId}"]`); },
@@ -398,4 +398,3 @@ main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
-

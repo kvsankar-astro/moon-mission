@@ -11,6 +11,7 @@ import {
     normalizeLunarCraterDisplayMode,
 } from "../core/domain/lunar-crater-view.js";
 import {
+    DEFAULT_LUNAR_FEATURE_TYPES,
     createDefaultLunarFeatureViewState,
     LUNAR_FEATURE_PRESET_IDS,
     normalizeLunarFeatureViewState,
@@ -20,6 +21,7 @@ import lunarCraterCatalog from "../../../../assets/lunar-features.json";
 import {
     countCraterDisplayFeatures,
 } from "../core/domain/lunar-crater-catalog.js";
+import { getLunarFeatureTypeColor } from "../core/domain/lunar-feature-colors.js";
 
 const CRATER_DENSE_SELECTION_COUNT = 1000;
 const CRATER_DIAMETER_COMMIT_DELAY_MS = 180;
@@ -28,9 +30,14 @@ const TYPE_FILTER_DEFAULT_MAX_KM = 6000;
 
 const LUNAR_FEATURE_PRESETS = Object.freeze([
     {
-        id: LUNAR_FEATURE_PRESET_IDS.INTERESTING,
+        id: LUNAR_FEATURE_PRESET_IDS.NONE,
+        label: "None",
+        title: "Disable all lunar feature classes",
+    },
+    {
+        id: LUNAR_FEATURE_PRESET_IDS.DEFAULT,
         label: "Default",
-        title: "Balanced preset: prioritize prominent and diverse lunar features",
+        title: "Show the main Lunar Features group",
     },
     {
         id: LUNAR_FEATURE_PRESET_IDS.ALL,
@@ -38,20 +45,6 @@ const LUNAR_FEATURE_PRESETS = Object.freeze([
         title: "Show all lunar feature classes",
     },
 ]);
-
-const INTERESTING_TYPE_MINIMA_KM = Object.freeze({
-    "Crater, craters": 120,
-    "Rima, rimae": 80,
-    "Mons, montes": 50,
-    "Dorsum, dorsa": 80,
-    "Mare, maria": 120,
-    "Catena, catenae": 80,
-    "Vallis, valles": 80,
-    "Promontorium, promontoria": 20,
-    "Palus, paludes": 120,
-    "Oceanus, oceani": 400,
-    "Planitia, planitiae": 0,
-});
 
 const FEATURE_TYPE_DISPLAY_ORDER = Object.freeze([
     "Crater, craters",
@@ -72,7 +65,7 @@ const FEATURE_TYPE_GROUPS = Object.freeze([
     {
         id: "popular",
         label: "Popular Highlights",
-        types: ["Crater, craters", "Mare, maria", "Mons, montes", "Rima, rimae"],
+        types: DEFAULT_LUNAR_FEATURE_TYPES,
     },
     {
         id: "structures",
@@ -260,11 +253,15 @@ function buildPresetTypeFilters(baseFilters, presetId) {
     for (const [featureType, filter] of Object.entries(next)) {
         const isCrater = featureType === "Crater, craters";
         const isSatellite = featureType === "Satellite Feature";
+        const isDefaultType = DEFAULT_LUNAR_FEATURE_TYPES.includes(featureType);
+        filter.minDiameterKm = null;
+        filter.maxDiameterKm = null;
         switch (presetId) {
             case LUNAR_FEATURE_PRESET_IDS.ALL:
                 filter.enabled = true;
-                filter.minDiameterKm = null;
-                filter.maxDiameterKm = null;
+                break;
+            case LUNAR_FEATURE_PRESET_IDS.NONE:
+                filter.enabled = false;
                 break;
             case LUNAR_FEATURE_PRESET_IDS.CRATERS_ONLY:
                 filter.enabled = isCrater;
@@ -272,13 +269,9 @@ function buildPresetTypeFilters(baseFilters, presetId) {
             case LUNAR_FEATURE_PRESET_IDS.NON_CRATER:
                 filter.enabled = !isCrater && !isSatellite;
                 break;
-            case LUNAR_FEATURE_PRESET_IDS.INTERESTING:
+            case LUNAR_FEATURE_PRESET_IDS.DEFAULT:
             default:
-                filter.enabled = !isSatellite;
-                filter.minDiameterKm = Math.max(
-                    Number(INTERESTING_TYPE_MINIMA_KM[featureType]) || 0,
-                    filter.minDiameterKm || 0,
-                );
+                filter.enabled = isDefaultType;
                 break;
         }
     }
@@ -534,6 +527,16 @@ function ensureTypeFilterControls(elements = {}) {
             || document.createElement("input");
         toggle.type = "checkbox";
         toggle.className = "lunar-crater-controls-panel__type-toggle";
+        const featureColor = getLunarFeatureTypeColor(stats.featureType);
+        if (toggle.style) {
+            toggle.style.accentColor = featureColor;
+        }
+
+        const swatch = panel.ownerDocument?.createElement?.("span")
+            || document.createElement("span");
+        swatch.className = "lunar-crater-controls-panel__type-swatch";
+        swatch.style?.setProperty?.("--lunar-feature-type-color", featureColor);
+        swatch.setAttribute("aria-hidden", "true");
 
         const label = panel.ownerDocument?.createElement?.("label")
             || document.createElement("label");
@@ -592,6 +595,7 @@ function ensureTypeFilterControls(elements = {}) {
         range.appendChild(rangeStack);
 
         row.appendChild(toggle);
+        row.appendChild(swatch);
         row.appendChild(label);
             row.appendChild(range);
             groupRows.appendChild(row);
@@ -599,6 +603,7 @@ function ensureTypeFilterControls(elements = {}) {
             typeControls.set(stats.featureType, {
                 row,
                 toggle,
+                swatch,
                 dualRange,
                 dualRangeFill,
                 minSlider,

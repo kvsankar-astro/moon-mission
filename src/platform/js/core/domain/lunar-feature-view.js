@@ -5,25 +5,34 @@ import {
 } from "./lunar-crater-view.js";
 
 export const LUNAR_FEATURE_PRESET_IDS = Object.freeze({
-    INTERESTING: "interesting",
+    NONE: "none",
+    DEFAULT: "default",
+    INTERESTING: "default",
     ALL: "all",
     CRATERS_ONLY: "craters_only",
     NON_CRATER: "non_crater",
 });
+
+export const DEFAULT_LUNAR_FEATURE_TYPES = Object.freeze([
+    "Crater, craters",
+    "Mare, maria",
+    "Mons, montes",
+    "Rima, rimae",
+]);
 
 const BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS = Object.freeze({
     "Satellite Feature": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
     "Crater, craters": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
     "Rima, rimae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
     "Mons, montes": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Dorsum, dorsa": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Dorsum, dorsa": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
     "Mare, maria": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Catena, catenae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Vallis, valles": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Promontorium, promontoria": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Palus, paludes": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Oceanus, oceani": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
-    "Planitia, planitiae": { enabled: true, minDiameterKm: null, maxDiameterKm: null },
+    "Catena, catenae": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
+    "Vallis, valles": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
+    "Promontorium, promontoria": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
+    "Palus, paludes": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
+    "Oceanus, oceani": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
+    "Planitia, planitiae": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
 });
 
 const BASE_DEFAULT_LUNAR_FEATURE_VIEW_STATE = Object.freeze({

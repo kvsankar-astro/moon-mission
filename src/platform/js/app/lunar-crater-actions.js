@@ -13,16 +13,13 @@ import {
     normalizeCraterDisplayDiameterRange as normalizeCraterDisplayDiameterRangeForCatalog,
 } from "../core/domain/lunar-crater-catalog.js";
 import { normalizeLunarFeatureTypeFilters } from "../core/domain/lunar-feature-view.js";
+import { getLunarFeatureBoundaryColor } from "../core/domain/lunar-feature-colors.js";
 
 const CRATER_RING_SEGMENTS = 96;
 const CRATER_RING_SURFACE_SCALE = 1.002;
 const CRATER_HOVER_RING_SURFACE_SCALE = 1.004;
 const CRATER_LABEL_SURFACE_SCALE = 1.11;
 const CRATER_ALWAYS_LABEL_SURFACE_SCALE = 1.048;
-const CRATER_RING_LIT_COLOR = 0x2b5f91;
-const CRATER_RING_UNLIT_COLOR = 0x6fa7dc;
-const CRATER_HOVER_RING_LIT_COLOR = 0x1f5a90;
-const CRATER_HOVER_RING_UNLIT_COLOR = 0x82bbf0;
 const CRATER_LABEL_FILL_COLOR = "rgba(8, 13, 23, 0.72)";
 const CRATER_LABEL_TEXT_COLOR = "#e8eef8";
 const CRATER_LABEL_FONT_FAMILY = '"IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
@@ -165,6 +162,7 @@ function createCraterRing({
         lunarCrater: true,
         craterRing: true,
         name: crater.name,
+        featureType: typeof crater.featureType === "string" ? crater.featureType : "",
         diameterKm: crater.diameterKm,
         centerNormal: centerNormal.toArray(),
         visibilityAngularRadius: angularRadius,
@@ -937,52 +935,42 @@ function createLunarCraterActions({
         return tone.sunlit;
     }
 
-    function ensureCraterBoundaryMaterials(group) {
-        if (!group) return null;
-        if (group.userData?.craterBoundaryMaterials) {
-            return group.userData.craterBoundaryMaterials;
-        }
-        group.userData.craterBoundaryMaterials = {
-            lit: new THREE.LineBasicMaterial({
-                color: CRATER_RING_LIT_COLOR,
-                transparent: true,
-                opacity: 0.94,
-                depthTest: true,
-                depthWrite: false,
-            }),
-            unlit: new THREE.LineBasicMaterial({
-                color: CRATER_RING_UNLIT_COLOR,
-                transparent: true,
-                opacity: 0.9,
-                depthTest: true,
-                depthWrite: false,
-            }),
-            hoverLit: new THREE.LineBasicMaterial({
-                color: CRATER_HOVER_RING_LIT_COLOR,
-                transparent: true,
-                opacity: 0.98,
-                depthTest: false,
-                depthWrite: false,
-            }),
-            hoverUnlit: new THREE.LineBasicMaterial({
-                color: CRATER_HOVER_RING_UNLIT_COLOR,
-                transparent: true,
-                opacity: 0.98,
-                depthTest: false,
-                depthWrite: false,
-            }),
-        };
-        group.userData.sharedMaterials.push(
-            group.userData.craterBoundaryMaterials.lit,
-            group.userData.craterBoundaryMaterials.unlit,
-            group.userData.craterBoundaryMaterials.hoverLit,
-            group.userData.craterBoundaryMaterials.hoverUnlit,
-        );
-        return group.userData.craterBoundaryMaterials;
+    function createCraterBoundaryMaterial({ featureType, sunlit, hover }) {
+        return new THREE.LineBasicMaterial({
+            color: getLunarFeatureBoundaryColor(featureType, { sunlit, hover }),
+            transparent: true,
+            opacity: hover ? 0.98 : (sunlit === false ? 0.9 : 0.94),
+            depthTest: hover ? false : true,
+            depthWrite: false,
+        });
     }
 
-    function getCraterBoundaryMaterial({ group, sunlit, hover = false }) {
-        const materials = ensureCraterBoundaryMaterials(group);
+    function ensureCraterBoundaryMaterials(group, featureType = "") {
+        if (!group) return null;
+        if (!group.userData.craterBoundaryMaterialsByType) {
+            group.userData.craterBoundaryMaterialsByType = new Map();
+        }
+        const key = typeof featureType === "string" && featureType ? featureType : "__fallback";
+        const existing = group.userData.craterBoundaryMaterialsByType.get(key);
+        if (existing) return existing;
+        const materials = {
+            lit: createCraterBoundaryMaterial({ featureType, sunlit: true, hover: false }),
+            unlit: createCraterBoundaryMaterial({ featureType, sunlit: false, hover: false }),
+            hoverLit: createCraterBoundaryMaterial({ featureType, sunlit: true, hover: true }),
+            hoverUnlit: createCraterBoundaryMaterial({ featureType, sunlit: false, hover: true }),
+        };
+        group.userData.craterBoundaryMaterialsByType.set(key, materials);
+        group.userData.sharedMaterials.push(
+            materials.lit,
+            materials.unlit,
+            materials.hoverLit,
+            materials.hoverUnlit,
+        );
+        return materials;
+    }
+
+    function getCraterBoundaryMaterial({ group, featureType = "", sunlit, hover = false }) {
+        const materials = ensureCraterBoundaryMaterials(group, featureType);
         if (!materials) return null;
         if (hover) {
             return sunlit === false ? materials.hoverUnlit : materials.hoverLit;
@@ -1003,6 +991,7 @@ function createLunarCraterActions({
             const sunlit = resolveCraterSunlit({ scene, centerNormal: craterLabelNormal, sunNormal });
             const nextMaterial = getCraterBoundaryMaterial({
                 group,
+                featureType: object.userData.featureType,
                 sunlit,
                 hover: object.userData.hoverAnnotation === true,
             });
@@ -1363,6 +1352,7 @@ function createLunarCraterActions({
             moonRadius,
             material: getCraterBoundaryMaterial({
                 group: scene.lunarCraterGroup,
+                featureType: target.crater.featureType,
                 sunlit,
                 hover: true,
             }),
@@ -1525,7 +1515,9 @@ function createLunarCraterActions({
         };
         const renderTargets = shouldShowAlways ? renderPlan.targets : [];
         if (shouldShowAlways) {
-            ensureCraterBoundaryMaterials(group);
+            for (const target of renderTargets) {
+                ensureCraterBoundaryMaterials(group, target.crater?.featureType);
+            }
         }
 
         if (shouldShowAlways) {
@@ -1546,6 +1538,7 @@ function createLunarCraterActions({
                 moonRadius,
                 material: getCraterBoundaryMaterial({
                     group,
+                    featureType: crater.featureType,
                     sunlit: target.sunlit,
                     hover: false,
                 }),

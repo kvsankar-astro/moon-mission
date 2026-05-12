@@ -341,37 +341,24 @@ async function main() {
         });
 
         await runStep({
-            name: "Preset Interesting",
+            name: "Preset Default",
             action: async () => {
-                await page.locator('#lunar-crater-controls-panel [data-preset-id="interesting"]').click({ force: true });
+                await page.locator('#lunar-crater-controls-panel [data-preset-id="default"]').click({ force: true });
             },
             expectCountDelta: "decrease",
         });
         await runStep({
-            name: "Preset No Craters",
+            name: "Preset None",
             action: async () => {
-                await page.locator('#lunar-crater-controls-panel [data-preset-id="non_crater"]').click({ force: true });
+                await page.locator('#lunar-crater-controls-panel [data-preset-id="none"]').click({ force: true });
             },
             expectCountDelta: "decrease",
-        });
-        await runStep({
-            name: "Preset Craters Only",
-            prepare: async () => {
-                await openPanel(page);
-                await page.locator('#lunar-crater-controls-panel [data-preset-id="non_crater"]').click({ force: true });
-                await sleep(250);
-                await closePanel(page);
-            },
-            action: async () => {
-                await page.locator('#lunar-crater-controls-panel [data-preset-id="craters_only"]').click({ force: true });
-            },
-            expectCountDelta: "increase",
         });
         await runStep({
             name: "Preset All",
             prepare: async () => {
                 await openPanel(page);
-                await page.locator('#lunar-crater-controls-panel [data-preset-id="craters_only"]').click({ force: true });
+                await page.locator('#lunar-crater-controls-panel [data-preset-id="none"]').click({ force: true });
                 await sleep(250);
                 await closePanel(page);
             },

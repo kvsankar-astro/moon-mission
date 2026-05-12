@@ -118,7 +118,7 @@ async function run() {
             },
         );
 
-        for (const presetId of ["interesting", "non_crater", "craters_only", "all"]) {
+        for (const presetId of ["none", "default", "all"]) {
             await recordTest(
                 `Preset ${presetId}`,
                 async () => {
@@ -249,7 +249,7 @@ async function run() {
         await recordTest(
             "Group Scenario Mare Only + Show Always",
             async () => {
-                await page.click('[data-preset-id="non_crater"]');
+                await page.click('[data-preset-id="none"]');
                 const allRows = page.locator(".lunar-crater-controls-panel__type-row");
                 const count = await allRows.count();
                 for (let i = 0; i < count; i += 1) {
