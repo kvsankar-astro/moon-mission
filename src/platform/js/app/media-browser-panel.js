@@ -153,6 +153,16 @@ function createElement(tagName) {
     return getDocumentRef()?.createElement?.(tagName) || null;
 }
 
+function dispatchDocumentCustomEvent(type, detail) {
+    const documentRef = getDocumentRef();
+    if (!documentRef || typeof documentRef.dispatchEvent !== "function") return;
+    if (typeof CustomEvent === "function") {
+        documentRef.dispatchEvent(new CustomEvent(type, { detail }));
+        return;
+    }
+    documentRef.dispatchEvent({ type, detail });
+}
+
 function createSvgElement(tagName) {
     return getDocumentRef()?.createElementNS?.("http://www.w3.org/2000/svg", tagName) || null;
 }
@@ -1144,6 +1154,10 @@ function createMediaBrowserPanelActions({
             return;
         }
         panelVisibilityState = resolvedState;
+        dispatchDocumentCustomEvent("mission-media-panel-state", {
+            state: resolvedState,
+            isOpen: resolvedState === "open",
+        });
         const panel = getNode("media-browser-panel");
         if (!isElementLike(panel)) return;
         const isVisible = resolvedState === "open";

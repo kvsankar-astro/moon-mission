@@ -2086,9 +2086,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__track-wrap {
     position: relative;
     min-width: 0;
-    height: 42px;
-    display: flex;
-    align-items: center;
+    height: 52px;
+    display: block;
     touch-action: none;
     margin: 0 max(14px, calc(var(--timeline-dock-offset) * 2));
 }
@@ -2112,35 +2111,39 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock--zoomed .timeline-dock__track-wrap {
-    cursor: grab;
+    cursor: ew-resize;
 }
 
 .timeline-dock--timeline-dragging .timeline-dock__track-wrap {
-    cursor: grabbing;
+    cursor: ew-resize;
 }
 
 .timeline-dock__slider {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 20px;
     width: 100%;
     height: 24px;
     background: transparent;
     margin: 0;
     accent-color: var(--ui-accent-1);
-    --timeline-thumb-core: #fff7fb;
-    --timeline-thumb-ring: rgba(255, 108, 176, 0.96);
-    --timeline-thumb-glow: rgba(255, 108, 176, 0.22);
+    --timeline-thumb-core: rgba(0, 0, 0, 0);
+    --timeline-thumb-ring: rgba(0, 0, 0, 0);
+    --timeline-thumb-glow: rgba(0, 0, 0, 0);
 }
 
 .timeline-dock--zoomed .timeline-dock__slider {
-    cursor: grab;
+    cursor: ew-resize;
 }
 
 .timeline-dock--timeline-dragging .timeline-dock__slider {
-    cursor: grabbing;
+    cursor: ew-resize;
 }
 
 .timeline-dock__overview {
     position: absolute;
-    top: 3px;
+    top: 0;
     right: 0;
     width: min(132px, 22vw);
     height: 12px;
@@ -2189,20 +2192,13 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 13px;
-    height: 13px;
+    width: 2px;
+    height: 16px;
     margin-top: -5px;
-    border-radius: 999px;
+    border-radius: 0;
     border: 0 solid transparent;
-    background:
-        radial-gradient(
-            circle at center,
-            var(--timeline-thumb-core) 0 31%,
-            var(--timeline-thumb-ring) 31% 42%,
-            transparent 42%
-        );
-    box-shadow:
-        0 0 0 3px var(--timeline-thumb-glow);
+    background: transparent;
+    box-shadow: none;
     cursor: ew-resize;
 }
 
@@ -2214,19 +2210,12 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__slider::-moz-range-thumb {
-    width: 13px;
-    height: 13px;
+    width: 2px;
+    height: 16px;
     border: 0 solid transparent;
-    border-radius: 999px;
-    background:
-        radial-gradient(
-            circle at center,
-            var(--timeline-thumb-core) 0 31%,
-            var(--timeline-thumb-ring) 31% 42%,
-            transparent 42%
-        );
-    box-shadow:
-        0 0 0 3px var(--timeline-thumb-glow);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
     cursor: ew-resize;
 }
 
@@ -2235,9 +2224,21 @@ html[data-app-view="selector"] .mission-loading-overlay,
     outline-offset: 2px;
 }
 
+.timeline-dock__media-rail {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(128, 198, 255, 0.52), rgba(166, 211, 255, 0.22));
+    box-shadow: 0 0 8px rgba(98, 172, 238, 0.2);
+    pointer-events: none;
+}
+
 .timeline-dock__markers {
     position: absolute;
-    top: 6px;
+    top: 22px;
     left: 0;
     right: 0;
     height: 24px;
@@ -2245,7 +2246,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__markers--media {
-    top: 19px;
+    top: 3px;
 }
 
 .timeline-dock__marker {
@@ -2505,6 +2506,22 @@ html[data-app-view="selector"] .mission-loading-overlay,
     bottom: 0;
     height: 14px;
     pointer-events: none;
+}
+
+.timeline-dock__playhead {
+    position: absolute;
+    top: 3px;
+    bottom: 14px;
+    width: 2px;
+    z-index: 4;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: rgba(255, 243, 250, 0.95);
+    box-shadow:
+        0 0 0 1px rgba(255, 126, 191, 0.42),
+        0 0 12px rgba(255, 108, 176, 0.3);
+    pointer-events: all;
+    cursor: ew-resize;
 }
 
 .timeline-dock__time-label {
@@ -3768,7 +3785,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock__track-wrap {
-        height: 38px;
+        height: 36px;
     }
 
     .timeline-dock__overview {
@@ -3787,6 +3804,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock__slider {
+        top: 8px;
         height: 28px;
     }
 
@@ -3818,6 +3836,11 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     }
 
     .timeline-dock__markers--media {
+        display: none;
+    }
+
+    .timeline-dock__media-rail,
+    .timeline-dock__playhead {
         display: none;
     }
 

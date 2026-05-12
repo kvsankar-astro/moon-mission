@@ -5,6 +5,12 @@
 - Agent/Contributor reference docs:
   - `docs/developer.md` (repo workflow, commands, CI, conventions)
   - `docs/design/design.md` (system design and architecture map)
+- Workspace setup first (required before debugging server/runtime issues):
+  - Read `docs/developer.md`, especially **Section 2) Local Setup**.
+  - Run `npm install`, then start the app with `npm run dev` (default `http://localhost:7274/`).
+  - For a non-default port in PowerShell, run Vite directly instead of passing `--port` through npm, for example:
+    - `.\node_modules\.bin\vite.cmd --port 7275 --strictPort --host 127.0.0.1`
+  - Validate runtime assets load with real mission routes (for example `/artemis2/`) before debugging UI/CSS regressions.
 - Entry points: `mission.html` (mission selector + app; shows landing view when `mission` is omitted), `index.html` (landing page).
 - Shared platform code: `src/platform/` (`css/` + `js/` ES modules).
 - Shared authored landing content: `assets/mission-briefs.json`, `assets/mission-images.json`.

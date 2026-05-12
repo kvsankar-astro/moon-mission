@@ -127,6 +127,7 @@ function createTimelineDockController({
     const slider = document.getElementById("timeline-slider");
     const markers = document.getElementById("timeline-markers");
     const mediaMarkers = document.getElementById("timeline-media-markers");
+    const playhead = document.getElementById("timeline-playhead");
     const timeLabels = document.getElementById("timeline-time-labels");
     const overview = document.getElementById("timeline-overview");
     const overviewWindow = overview?.querySelector?.(".timeline-dock__overview-window") || null;
@@ -350,6 +351,34 @@ function createTimelineDockController({
             ? currentTimeMs
             : Number(slider.value);
         slider.value = String(clamp(valueMs, viewMin, viewMax));
+        syncPlayhead();
+    }
+
+    function syncPlayhead() {
+        if (!playhead) return;
+        const inView = Number.isFinite(currentTimeMs)
+            && Number.isFinite(viewMin)
+            && Number.isFinite(viewMax)
+            && viewMax > viewMin
+            && currentTimeMs >= viewMin
+            && currentTimeMs <= viewMax;
+        playhead.hidden = !inView;
+        if (!inView) return;
+        const leftPercent = clamp(computePercent(currentTimeMs, viewMin, viewMax), 0, 100);
+        playhead.style.left = `${leftPercent}%`;
+    }
+
+    function dispatchTimelineUserSeek(phase, timeMs, {
+        commit = false,
+        source = "timeline",
+    } = {}) {
+        if (!Number.isFinite(timeMs)) return;
+        dispatchDocumentCustomEvent("mission-timeline-user-seek", {
+            phase,
+            source,
+            commit: commit === true,
+            timeMs,
+        });
     }
 
     function renderEventMarkersFromCache() {
@@ -377,6 +406,7 @@ function createTimelineDockController({
         renderEventMarkersFromCache();
         renderMediaMarkersFromCache();
         dockRoot?.classList?.toggle?.("timeline-dock--zoomed", isTimelineZoomed());
+        syncPlayhead();
         syncTimelineOverview();
     }
 
@@ -428,22 +458,6 @@ function createTimelineDockController({
         return viewMin + getViewSpanMs() * ratio;
     }
 
-    function getThumbClientX() {
-        const rect = getTimelineRect();
-        const spanMs = getViewSpanMs();
-        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0 || spanMs <= 0) {
-            return Number.NaN;
-        }
-        const valueMs = clamp(Number(slider.value), viewMin, viewMax);
-        const ratio = clamp((valueMs - viewMin) / spanMs, 0, 1);
-        return rect.left + rect.width * ratio;
-    }
-
-    function isNearSliderThumb(clientX) {
-        const thumbClientX = getThumbClientX();
-        return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 18;
-    }
-
     function isTimelinePointTarget(target) {
         const surface = getTimelineInteractionSurface();
         let node = target;
@@ -469,6 +483,7 @@ function createTimelineDockController({
         slider.dataset.currentTimeMs = String(currentTimeMs);
         updateCurrentLabel(currentTimeMs);
         syncMarkerHighlights();
+        syncPlayhead();
         syncTimelineOverview();
         onSeekTime?.(currentTimeMs, commit === true);
     }
@@ -483,9 +498,22 @@ function createTimelineDockController({
             surface?.releasePointerCapture?.(state.pointerId);
         }
 
-        if (!cancelled && !state.moved && Number.isFinite(event?.clientX)) {
-            seekToTime(getTimeAtClientX(event.clientX), true);
+        if (cancelled) {
+            dispatchTimelineUserSeek("cancel", state.lastTimeMs, {
+                commit: false,
+                source: "timeline-drag",
+            });
+            return;
         }
+
+        const finalTimeMs = Number.isFinite(event?.clientX)
+            ? getTimeAtClientX(event.clientX)
+            : state.lastTimeMs;
+        seekToTime(finalTimeMs, true);
+        dispatchTimelineUserSeek("end", finalTimeMs, {
+            commit: true,
+            source: "timeline-drag",
+        });
     }
 
     function beginTimelineDrag(event) {
@@ -495,20 +523,20 @@ function createTimelineDockController({
         const clientX = Number(event.clientX);
         if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
 
-        if (event.target === slider && isNearSliderThumb(clientX)) {
-            return;
-        }
-
         event.preventDefault?.();
         const surface = getTimelineInteractionSurface();
         surface?.setPointerCapture?.(event.pointerId);
+        const initialTimeMs = getTimeAtClientX(clientX);
+        seekToTime(initialTimeMs, false);
         timelineDragState = {
             pointerId: event.pointerId,
-            startX: clientX,
-            lastX: clientX,
-            moved: false,
+            lastTimeMs: initialTimeMs,
         };
         dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
+        dispatchTimelineUserSeek("start", initialTimeMs, {
+            commit: false,
+            source: "timeline-drag",
+        });
     }
 
     function updateTimelineDrag(event) {
@@ -523,17 +551,14 @@ function createTimelineDockController({
 
         const clientX = Number(event?.clientX);
         if (!Number.isFinite(clientX)) return;
-        const deltaPx = clientX - timelineDragState.lastX;
-        timelineDragState.lastX = clientX;
-        if (Math.abs(clientX - timelineDragState.startX) >= 3) {
-            timelineDragState.moved = true;
-        }
-
-        if (!timelineDragState.moved) return;
         event.preventDefault?.();
-        const rect = getTimelineRect();
-        if (!isTimelineZoomed() || !rect || rect.width <= 0 || deltaPx === 0) return;
-        panView((-deltaPx / rect.width) * getViewSpanMs());
+        const nextTimeMs = getTimeAtClientX(clientX);
+        timelineDragState.lastTimeMs = nextTimeMs;
+        seekToTime(nextTimeMs, false);
+        dispatchTimelineUserSeek("update", nextTimeMs, {
+            commit: false,
+            source: "timeline-drag",
+        });
     }
 
     function handleTimelineWheel(event) {
@@ -636,6 +661,7 @@ function createTimelineDockController({
         slider.dataset.currentTimeMs = String(clamped);
         updateCurrentLabel(clamped);
         syncMarkerHighlights();
+        syncPlayhead();
         syncTimelineOverview();
     }
 
@@ -870,33 +896,59 @@ function createTimelineDockController({
         if (isBound) return;
         isBound = true;
 
-        const readSliderEventTime = () => {
+        const readSliderEventPayload = () => {
             const programmaticTimeMs = Number(slider.dataset.programmaticSeekTimeMs);
+            const programmaticSource = String(slider.dataset.programmaticSeekSource || "").trim();
             delete slider.dataset.programmaticSeekTimeMs;
+            delete slider.dataset.programmaticSeekSource;
             if (Number.isFinite(programmaticTimeMs)) {
-                return programmaticTimeMs;
+                return {
+                    timeMs: programmaticTimeMs,
+                    programmatic: true,
+                    source: programmaticSource || "programmatic",
+                };
             }
-            return Number(slider.value);
+            return {
+                timeMs: Number(slider.value),
+                programmatic: false,
+                source: "timeline-slider",
+            };
         };
 
         slider.addEventListener("input", () => {
-            const timeMs = readSliderEventTime();
+            const payload = readSliderEventPayload();
+            const timeMs = payload.timeMs;
             if (!Number.isFinite(timeMs)) return;
             currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
             slider.dataset.currentTimeMs = String(currentTimeMs);
             updateCurrentLabel(currentTimeMs);
             syncMarkerHighlights();
+            syncPlayhead();
             onSeekTime?.(currentTimeMs, false);
+            if (!payload.programmatic) {
+                dispatchTimelineUserSeek("update", currentTimeMs, {
+                    commit: false,
+                    source: payload.source,
+                });
+            }
         });
 
         slider.addEventListener("change", () => {
-            const timeMs = readSliderEventTime();
+            const payload = readSliderEventPayload();
+            const timeMs = payload.timeMs;
             if (!Number.isFinite(timeMs)) return;
             currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
             slider.dataset.currentTimeMs = String(currentTimeMs);
             updateCurrentLabel(currentTimeMs);
             syncMarkerHighlights();
+            syncPlayhead();
             onSeekTime?.(currentTimeMs, true);
+            if (!payload.programmatic) {
+                dispatchTimelineUserSeek("commit", currentTimeMs, {
+                    commit: true,
+                    source: payload.source,
+                });
+            }
         });
 
         panLeftButton?.addEventListener?.("click", () => {

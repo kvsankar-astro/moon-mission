@@ -315,7 +315,7 @@ describe("createTimelineDockController", () => {
         expect(scaleResetButton.disabled).toBe(true);
     });
 
-    it("supports wheel zoom, drag panning, and click seeking on the timeline strip", () => {
+    it("supports wheel zoom plus playhead drag and click seeking on the timeline strip", () => {
         const dockRoot = new FakeElement("div");
         const trackWrap = new FakeElement("div", { left: 100, width: 800, height: 42 });
         const slider = new FakeElement("input", { left: 100, width: 800, height: 24 });
@@ -395,7 +395,7 @@ describe("createTimelineDockController", () => {
             clientX: 600,
         });
 
-        expect(Number(slider.min)).toBeLessThan(zoomedMin);
+        expect(Number(slider.min)).toBe(zoomedMin);
         expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(false);
 
         trackWrap.dispatchEvent({
@@ -412,10 +412,13 @@ describe("createTimelineDockController", () => {
             clientX: 700,
         });
 
-        expect(seekTimes).toHaveLength(1);
-        expect(seekTimes[0].commit).toBe(true);
-        expect(seekTimes[0].timeMs).toBeGreaterThan(Number(slider.min));
-        expect(seekTimes[0].timeMs).toBeLessThan(Number(slider.max));
+        expect(seekTimes.length).toBeGreaterThanOrEqual(5);
+        const committedSeeks = seekTimes.filter((entry) => entry.commit === true);
+        expect(committedSeeks.length).toBeGreaterThanOrEqual(2);
+        const lastSeek = seekTimes[seekTimes.length - 1];
+        expect(lastSeek.commit).toBe(true);
+        expect(lastSeek.timeMs).toBeGreaterThan(Number(slider.min));
+        expect(lastSeek.timeMs).toBeLessThan(Number(slider.max));
 
         const thumbDownEvent = {
             type: "pointerdown",
@@ -427,7 +430,14 @@ describe("createTimelineDockController", () => {
         };
         trackWrap.dispatchEvent(thumbDownEvent);
 
-        expect(thumbDownEvent.defaultPrevented).not.toBe(true);
+        expect(thumbDownEvent.defaultPrevented).toBe(true);
+        expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(true);
+        trackWrap.dispatchEvent({
+            type: "pointerup",
+            pointerId: 3,
+            pointerType: "mouse",
+            clientX: 700,
+        });
         expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(false);
     });
 
