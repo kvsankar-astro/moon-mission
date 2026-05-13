@@ -318,7 +318,54 @@ function buildMediaNavigationModel(items, selection = {}) {
     };
 }
 
-function buildThumbnailViewItem(item, activeItem) {
+function normalizeThumbnailSearchQuery(value) {
+    return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function collectThumbnailMetadataValues(item) {
+    const values = [
+        item.mainBody,
+        ...(Array.isArray(item.bodies) ? item.bodies : []),
+        item.sceneType,
+        ...(Array.isArray(item.metadataTags) && item.metadataTags.length ? item.metadataTags : (item.tags || [])),
+        ...(Array.isArray(item.subjects) ? item.subjects : []),
+        item.shortDescription,
+        item.qualityNotes,
+    ];
+    const seen = new Set();
+    return values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .filter((value) => {
+            const key = value.toLowerCase();
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+}
+
+function formatThumbnailMetadataValue(value) {
+    const text = String(value || "").trim();
+    return text.length > 46 ? `${text.slice(0, 43).trimEnd()}...` : text;
+}
+
+function buildThumbnailMetadataLabel(item, searchQuery = "") {
+    const metadataValues = collectThumbnailMetadataValues(item);
+    if (metadataValues.length === 0) return "";
+    const queryTerms = normalizeThumbnailSearchQuery(searchQuery).split(" ").filter(Boolean);
+    const matchingValues = queryTerms.length > 0
+        ? metadataValues.filter((value) => {
+            const normalizedValue = value.toLowerCase();
+            return queryTerms.some((term) => normalizedValue.includes(term));
+        })
+        : [];
+    const selectedValues = (matchingValues.length > 0 ? matchingValues : metadataValues)
+        .slice(0, 4)
+        .map(formatThumbnailMetadataValue);
+    return selectedValues.length ? `LLM: ${selectedValues.join(" · ")}` : "";
+}
+
+function buildThumbnailViewItem(item, activeItem, searchQuery = "") {
     return {
         id: item.id,
         kind: item.kind,
@@ -330,6 +377,7 @@ function buildThumbnailViewItem(item, activeItem) {
             formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
             item.cameraLabel || (item.kind === "audioClip" ? "Audio" : ""),
         ].filter(Boolean).join(" • "),
+        metadataLabel: buildThumbnailMetadataLabel(item, searchQuery),
     };
 }
 
@@ -359,7 +407,7 @@ function resolveThumbnailWindowStart(items, selection = {}, timeMs = Number.NaN,
     return clampIndex(clampedTargetIndex - halfWindow, maxStartIndex);
 }
 
-function buildThumbnailViewItems(items, selection = {}, startIndex = 0) {
+function buildThumbnailViewItems(items, selection = {}, startIndex = 0, searchQuery = "") {
     const normalizedItems = Array.isArray(items) ? items : [];
     const clampedStartIndex = normalizedItems.length > MAX_THUMBNAIL_RENDER_ITEMS
         ? clampIndex(Number(startIndex) || 0, normalizedItems.length - MAX_THUMBNAIL_RENDER_ITEMS)
@@ -368,7 +416,7 @@ function buildThumbnailViewItems(items, selection = {}, startIndex = 0) {
         clampedStartIndex,
         clampedStartIndex + MAX_THUMBNAIL_RENDER_ITEMS,
     );
-    return windowItems.map((item) => buildThumbnailViewItem(item, selection.activeItem));
+    return windowItems.map((item) => buildThumbnailViewItem(item, selection.activeItem, searchQuery));
 }
 
 function clampMediaCurrentTimeSeconds(item, currentTimeSeconds) {
@@ -1915,7 +1963,12 @@ function createMediaTimelineCoordination({
                     timingNote: buildTimingNote(activeItem, selection.activeDeltaMs),
                 }
                 : null,
-            thumbnailItems: buildThumbnailViewItems(selectionItems, selection, thumbnailWindowStartIndex),
+            thumbnailItems: buildThumbnailViewItems(
+                selectionItems,
+                selection,
+                thumbnailWindowStartIndex,
+                runtimeMediaState.getFilters().query,
+            ),
             currentTimeMs: timeMs,
         };
     }

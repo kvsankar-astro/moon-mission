@@ -176,10 +176,10 @@ function matchesSearchFilter(item, query) {
     if (terms.length === 0) return true;
     const corpus = [
         item?.title,
-        item?.description,
         item?.shortDescription,
         item?.qualityNotes,
         item?.location,
+        item?.photographer,
         item?.cameraLabel,
         item?.sourceLabel,
         item?.fileName,

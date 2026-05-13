@@ -1519,7 +1519,8 @@ function createMediaBrowserPanelActions({
             const fallback = createThumbnailFallback(item.kind);
             const title = createElement("span");
             const meta = createElement("span");
-            if (!button || !media || !title || !meta) return;
+            const metadata = createElement("span");
+            if (!button || !media || !title || !meta || !metadata) return;
             button.type = "button";
             button.className = [
                 "media-browser-panel__thumbnail-card",
@@ -1530,7 +1531,7 @@ function createMediaBrowserPanelActions({
                 button.setAttribute("aria-current", "true");
             }
             button.draggable = false;
-            button.title = [item.title, item.meta].filter(Boolean).join(" - ");
+            button.title = [item.title, item.meta, item.metadataLabel].filter(Boolean).join(" - ");
             media.className = "media-browser-panel__thumbnail-media";
             media.addEventListener("dragstart", (event) => event.preventDefault());
             if (image && item.thumbnailAssetUrl) {
@@ -1573,9 +1574,13 @@ function createMediaBrowserPanelActions({
             title.textContent = item.title;
             meta.className = "media-browser-panel__thumbnail-meta";
             meta.textContent = item.meta;
+            metadata.className = "media-browser-panel__thumbnail-metadata";
+            metadata.textContent = item.metadataLabel || "";
+            metadata.hidden = !item.metadataLabel;
             button.appendChild(media);
             button.appendChild(title);
             button.appendChild(meta);
+            button.appendChild(metadata);
             button.addEventListener("click", () => {
                 onIntent?.({ type: "previewItem", value: item.id });
             });

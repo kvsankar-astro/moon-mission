@@ -1684,6 +1684,17 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     white-space: nowrap;
 }
 
+.media-browser-panel__thumbnail-metadata {
+    display: block;
+    margin-top: 3px;
+    color: rgba(255, 214, 144, 0.86);
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-card {
     padding: 5px;
 }
@@ -1696,7 +1707,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     -webkit-line-clamp: 1;
 }
 
-.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-meta {
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-meta,
+.media-browser-panel__thumbnail-strip.is-compact .media-browser-panel__thumbnail-metadata {
     display: none;
 }
 
@@ -1707,7 +1719,8 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-strip-title,
 .media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-title,
-.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-meta {
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-meta,
+.media-browser-panel__thumbnail-strip.is-minimal .media-browser-panel__thumbnail-metadata {
     display: none;
 }
 

@@ -616,6 +616,8 @@ describe("createMediaTimelineCoordination", () => {
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(latestRender.filterModel.query).toBe("earth");
         expect(latestRender.thumbnailItems.map((item) => item.id)).toEqual(["earth.jpg"]);
+        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("LLM:");
+        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("Earth");
         expect(latestRender.mediaCountLabel).toBe("1");
     });
 

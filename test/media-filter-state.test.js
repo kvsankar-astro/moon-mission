@@ -65,6 +65,17 @@ const ITEMS = [
         cameraId: "z9",
         cameraLabel: "Z9",
         description: "A crew video near Earth through a spacecraft window.",
+    },
+    {
+        id: "f",
+        enabled: true,
+        kind: "image",
+        crewCaptured: false,
+        external: false,
+        batch: 1,
+        cameraId: "",
+        cameraLabel: "",
+        shortDescription: "A crew member looks through a spacecraft window.",
         subjects: ["spacecraft window"],
     },
 ];
@@ -84,7 +95,7 @@ describe("media filter state", () => {
     });
 
     it("filters by independently selectable subjects", () => {
-        expect(filterMediaItems(ITEMS, { subjects: [] }).map((item) => item.id)).toEqual(["a", "b", "e", "d"]);
+        expect(filterMediaItems(ITEMS, { subjects: [] }).map((item) => item.id)).toEqual(["a", "b", "e", "d", "f"]);
         expect(filterMediaItems(ITEMS, { subjects: ["crew"] }).map((item) => item.id)).toEqual(["a", "d"]);
         expect(filterMediaItems(ITEMS, { subjects: ["space"] }).map((item) => item.id)).toEqual(["b"]);
         expect(filterMediaItems(ITEMS, { subjects: ["crew", "space"] }).map((item) => item.id)).toEqual(["a", "b", "d"]);
@@ -92,17 +103,17 @@ describe("media filter state", () => {
 
     it("searches title, description, tags, subjects, bodies, and scene metadata", () => {
         expect(filterMediaItems(ITEMS, { query: "gloves" }).map((item) => item.id)).toEqual(["a"]);
-        expect(filterMediaItems(ITEMS, { query: "window" }).map((item) => item.id)).toEqual(["d"]);
+        expect(filterMediaItems(ITEMS, { query: "window" }).map((item) => item.id)).toEqual(["f"]);
         expect(filterMediaItems(ITEMS, { query: "earth" }).map((item) => item.id)).toEqual([]);
         expect(filterMediaItems(ITEMS, { query: "sun" }).map((item) => item.id)).toEqual(["e"]);
         expect(filterMediaItems(ITEMS, { query: "moon craters" }).map((item) => item.id)).toEqual(["b"]);
-        expect(filterMediaItems(ITEMS, { query: "crew", mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a"]);
+        expect(filterMediaItems(ITEMS, { query: "crew", mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a", "f"]);
     });
 
     it("filters by independently selectable media kinds", () => {
-        expect(filterMediaItems(ITEMS, { mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a", "b"]);
+        expect(filterMediaItems(ITEMS, { mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a", "b", "f"]);
         expect(filterMediaItems(ITEMS, { mediaKinds: ["audioClip"] }).map((item) => item.id)).toEqual(["e"]);
-        expect(filterMediaItems(ITEMS, { mediaKinds: ["image", "audioClip"] }).map((item) => item.id)).toEqual(["a", "b", "e"]);
+        expect(filterMediaItems(ITEMS, { mediaKinds: ["image", "audioClip"] }).map((item) => item.id)).toEqual(["a", "b", "e", "f"]);
         expect(filterMediaItems(ITEMS, { mediaKinds: [] }).map((item) => item.id)).toEqual([]);
     });
 
@@ -110,7 +121,7 @@ describe("media filter state", () => {
         const model = buildMediaFilterModel(ITEMS, { audience: "all", cameraId: "all" });
 
         expect(model.subjectOptions.find((option) => option.id === "all")).toEqual(expect.objectContaining({
-            count: 4,
+            count: 5,
             active: true,
         }));
         expect(model.subjectOptions.find((option) => option.id === "crew")?.count).toBe(2);
@@ -118,17 +129,17 @@ describe("media filter state", () => {
         expect(model.subjectOptions.find((option) => option.id === "crew")?.label).toBe("Crew");
         expect(model.subjectOptions.find((option) => option.id === "space")?.label).toBe("Space");
         expect(model.videoOption.count).toBe(1);
-        expect(model.matchCount).toBe(4);
-        expect(model.totalCount).toBe(4);
+        expect(model.matchCount).toBe(5);
+        expect(model.totalCount).toBe(5);
         expect(model.matchKindCounts).toEqual({
-            all: 4,
-            image: 2,
+            all: 5,
+            image: 3,
             audioClip: 1,
             videoClip: 1,
         });
         expect(model.kindPillOptions.map((option) => [option.id, option.count, option.active])).toEqual([
-            ["all", 4, true],
-            ["image", 2, false],
+            ["all", 5, true],
+            ["image", 3, false],
             ["audioClip", 1, false],
             ["videoClip", 1, false],
         ]);
