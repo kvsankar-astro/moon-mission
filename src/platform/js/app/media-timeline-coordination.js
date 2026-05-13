@@ -34,6 +34,7 @@ const MEDIA_TIME_SYNC_EPSILON_SECONDS = 0.2;
 const MEDIA_SCRUB_SYNC_INTERVAL_MS = 120;
 const MEDIA_PLAYBACK_RATE_MAX = 4;
 const MEDIA_FRAME_SCRUB_INTERVAL_MS = 180;
+const VIDEO_ESTIMATED_SEGMENT_DURATION_SECONDS = 30;
 
 function formatSignedDuration(seconds) {
     if (!Number.isFinite(seconds) || seconds === 0) return "0s";
@@ -1408,10 +1409,35 @@ function createMediaTimelineCoordination({
         if (typeof document?.addEventListener !== "function") return;
         timelineEventBound = true;
         onTimelineMarkerSelect = (event) => {
+            const markerId = String(event?.detail?.marker?.id || "").trim();
+            const markerTimeMs = Number(event?.detail?.timeMs);
             panelActions.setPanelState?.("open");
+            const markerItem = markerId ? findCurrentManifestItemById(markerId) : null;
+            if (
+                markerItem &&
+                isPlayableMediaItem(markerItem) &&
+                mediaPlaybackState.active === true &&
+                mediaPlaybackState.itemId === markerItem.id &&
+                Number.isFinite(markerTimeMs) &&
+                isActivePlayableMarkerSeekTime(markerItem, markerTimeMs)
+            ) {
+                seekMissionTimelineTime(markerTimeMs, true);
+                runtimeMediaState.setActiveItemId(markerItem.id, {
+                    anchorTimeMs: markerTimeMs,
+                });
+                if (lastRenderContext) {
+                    lastRenderContext = {
+                        ...lastRenderContext,
+                        animTime: markerTimeMs,
+                    };
+                }
+                seekActivePlayableMediaToMissionTime(markerTimeMs);
+                rerender();
+                return;
+            }
             handlePanelIntent({
                 type: "selectItem",
-                value: event?.detail?.marker?.id || "",
+                value: markerId,
             });
         };
         onTimelineUserSeek = (event) => {
@@ -1585,6 +1611,20 @@ function createMediaTimelineCoordination({
         return timeMs === item.startTimeMs;
     }
 
+    function isActivePlayableMarkerSeekTime(item, timeMs) {
+        if (isMediaItemActiveAtTime(item, timeMs)) return true;
+        if (!item || !isPlayableMediaItem(item) || item.kind !== "videoClip") return false;
+        const startTimeMs = Number(item.startTimeMs);
+        const markerTimeMs = Number(timeMs);
+        if (!Number.isFinite(startTimeMs) || !Number.isFinite(markerTimeMs) || markerTimeMs < startTimeMs) {
+            return false;
+        }
+        const knownEndTimeMs = resolveMediaItemEndTimeMs(item);
+        if (Number.isFinite(knownEndTimeMs)) return false;
+        const estimatedEndTimeMs = startTimeMs + (VIDEO_ESTIMATED_SEGMENT_DURATION_SECONDS * 1000);
+        return markerTimeMs <= estimatedEndTimeMs;
+    }
+
     function shouldPreserveMissionTimeForPlayableSelection(item, missionTimeMs) {
         if (!item || !isPlayableMediaItem(item)) return false;
         const startTimeMs = Number(item.startTimeMs);
@@ -1677,7 +1717,7 @@ function createMediaTimelineCoordination({
         const currentPlayableItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
         const currentPlayableActive = !!currentPlayableItem
             && isPlayableMediaItem(currentPlayableItem)
-            && isMediaItemActiveAtTime(currentPlayableItem, timeMs);
+            && isActivePlayableMarkerSeekTime(currentPlayableItem, timeMs);
         if (
             (mediaPlaybackState.active === true || mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true)
             && !currentPlayableActive

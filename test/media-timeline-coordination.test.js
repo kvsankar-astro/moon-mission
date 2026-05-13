@@ -1854,6 +1854,238 @@ describe("createMediaTimelineCoordination", () => {
         expect(video.play).toHaveBeenCalledTimes(1);
     });
 
+    it("seeks the active playing video when clicking another time inside its media marker", async () => {
+        class FakeInput {}
+        const startTimeMs = Date.parse("2026-04-02T10:00:00Z");
+        const firstTimeMs = Date.parse("2026-04-02T10:05:00Z");
+        const clickedTimeMs = Date.parse("2026-04-02T10:30:00Z");
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-02T09:00:00Z"));
+        slider.max = String(Date.parse("2026-04-02T12:00:00Z"));
+        slider.value = String(firstTimeMs);
+        slider.dataset = {
+            currentTimeMs: String(firstTimeMs),
+        };
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            paused: false,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "+00:00",
+            photos: [
+                {
+                    time: "2026-04-02 10:00:00",
+                    file: "clip.mp4",
+                    title: "One hour video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 3600,
+                },
+            ],
+        });
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getAnimationRunning: () => true,
+            getStartTime: () => Date.parse("2026-04-02T09:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-02T12:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: firstTimeMs,
+        });
+        await flushPromises(8);
+
+        const [, markerSelectHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-media-marker-select"
+        ));
+        const [, timelineSeekHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-timeline-user-seek"
+        ));
+        markerSelectHandler({
+            detail: {
+                marker: {
+                    id: "clip.mp4",
+                },
+                timeMs: firstTimeMs,
+            },
+        });
+
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
+        expect(video.currentTime).toBe(300);
+        pauseAnimation.mockClear();
+
+        slider.value = String(clickedTimeMs);
+        slider.dataset.currentTimeMs = String(clickedTimeMs);
+        timelineSeekHandler({
+            detail: {
+                phase: "commit",
+                source: "timeline-media-marker",
+                commit: true,
+                timeMs: clickedTimeMs,
+            },
+        });
+        markerSelectHandler({
+            detail: {
+                marker: {
+                    id: "clip.mp4",
+                },
+                timeMs: clickedTimeMs,
+            },
+        });
+        await flushPromises(2);
+
+        expect(Number(slider.dataset.currentTimeMs)).toBe(clickedTimeMs);
+        expect(Number(slider.value)).toBe(clickedTimeMs);
+        expect(video.currentTime).toBe(1800);
+        expect(video.play).toHaveBeenCalledTimes(1);
+        expect(pauseAnimation).not.toHaveBeenCalled();
+    });
+
+    it("seeks active playing video from an estimated-duration marker", async () => {
+        class FakeInput {}
+        const firstTimeMs = Date.parse("2026-04-02T10:00:05Z");
+        const clickedTimeMs = Date.parse("2026-04-02T10:00:20Z");
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-02T09:00:00Z"));
+        slider.max = String(Date.parse("2026-04-02T12:00:00Z"));
+        slider.value = String(firstTimeMs);
+        slider.dataset = {
+            currentTimeMs: String(firstTimeMs),
+        };
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            paused: false,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "+00:00",
+            photos: [
+                {
+                    time: "2026-04-02 10:00:00",
+                    file: "clip.mp4",
+                    title: "Estimated video",
+                    enabled: true,
+                    video: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getAnimationRunning: () => true,
+            getStartTime: () => Date.parse("2026-04-02T09:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-02T12:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: firstTimeMs,
+        });
+        await flushPromises(8);
+
+        const [, markerSelectHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-media-marker-select"
+        ));
+        const [, timelineSeekHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-timeline-user-seek"
+        ));
+        markerSelectHandler({
+            detail: {
+                marker: {
+                    id: "clip.mp4",
+                },
+                timeMs: firstTimeMs,
+            },
+        });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
+        expect(video.currentTime).toBe(5);
+
+        slider.value = String(clickedTimeMs);
+        slider.dataset.currentTimeMs = String(clickedTimeMs);
+        timelineSeekHandler({
+            detail: {
+                phase: "commit",
+                source: "timeline-media-marker",
+                commit: true,
+                timeMs: clickedTimeMs,
+            },
+        });
+        markerSelectHandler({
+            detail: {
+                marker: {
+                    id: "clip.mp4",
+                },
+                timeMs: clickedTimeMs,
+            },
+        });
+        await flushPromises(2);
+
+        expect(Number(slider.dataset.currentTimeMs)).toBe(clickedTimeMs);
+        expect(video.currentTime).toBe(20);
+        expect(video.play).toHaveBeenCalledTimes(1);
+    });
+
     it("starts selected video from the current mission offset when media controls play", async () => {
         class FakeInput {}
         const slider = new FakeInput();

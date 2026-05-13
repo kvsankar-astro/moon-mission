@@ -630,6 +630,14 @@ function createTimelineDockController({
         return true;
     }
 
+    function isMediaSegmentPointTarget(pointTarget) {
+        if (!pointTarget) return false;
+        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
+        const classSet = new Set(className.split(/\s+/).filter(Boolean));
+        return classSet.has("timeline-dock__media-marker") &&
+            classSet.has("timeline-dock__media-marker--segment");
+    }
+
     function seekToTime(timeMs, commit) {
         if (!Number.isFinite(timeMs)) return;
         currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
@@ -699,7 +707,13 @@ function createTimelineDockController({
         const clientY = Number(event.clientY);
         if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
         const pointTarget = resolveTimelinePointTarget(event.target);
-        if (pointTarget && isNearTimelinePointGlyph(pointTarget, clientX)) return;
+        if (
+            pointTarget &&
+            !isMediaSegmentPointTarget(pointTarget) &&
+            isNearTimelinePointGlyph(pointTarget, clientX)
+        ) {
+            return;
+        }
         const pointerSurface = getTimelinePointerSurface();
         const pointerZone = resolvePointerZone(event, clientX, clientY);
         if (!pointerZone) return;

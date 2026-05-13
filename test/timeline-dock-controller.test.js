@@ -781,6 +781,7 @@ describe("createTimelineDockController", () => {
         ]);
         mediaMarkers.children[0].rect = { left: 260, top: 100, width: 240, height: 10 };
         mediaMarkers.children[1].rect = { left: 260, top: 100, width: 240, height: 10 };
+        const visibleVideoMarker = mediaMarkers.children[0];
 
         trackWrap.dispatchEvent({
             type: "pointerdown",
@@ -789,7 +790,7 @@ describe("createTimelineDockController", () => {
             button: 0,
             clientX: 420,
             clientY: 108,
-            target: trackWrap,
+            target: visibleVideoMarker,
         });
         trackWrap.dispatchEvent({
             type: "pointerup",
@@ -797,7 +798,7 @@ describe("createTimelineDockController", () => {
             pointerType: "mouse",
             clientX: 420,
             clientY: 108,
-            target: trackWrap,
+            target: visibleVideoMarker,
         });
 
         expect(seekTimes).toEqual([{ timeMs: 400, commit: true }]);
