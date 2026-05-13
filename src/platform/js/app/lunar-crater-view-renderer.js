@@ -1,7 +1,4 @@
-import {
-    LUNAR_CRATER_DISPLAY_MODE_HOVER,
-    supportsLunarCraterView,
-} from "../core/domain/lunar-crater-view.js";
+import { supportsLunarCraterView } from "../core/domain/lunar-crater-view.js";
 import {
     createDefaultLunarFeatureViewState,
     normalizeLunarFeatureViewState,
@@ -69,6 +66,7 @@ export function renderWithLunarCraterView({
     camera = null,
     rendererDomElement = null,
     pointer = null,
+    freezeLabelScale = false,
     render,
 }) {
     if (typeof render !== "function") return;
@@ -103,10 +101,7 @@ export function renderWithLunarCraterView({
             camera,
             rendererDomElement,
         });
-        animationScene.setLunarCraterHoverLabelsEnabled(
-            craterState.lunarCraterDisplayMode === LUNAR_CRATER_DISPLAY_MODE_HOVER &&
-                craterState.lunarCraterHoverLabels !== false,
-        );
+        animationScene.setLunarCraterHoverLabelsEnabled(craterState.lunarCraterHoverLabels !== false);
     }
 
     const craterGroup = resolveCraterGroup({ animationScene, scene });
@@ -117,7 +112,7 @@ export function renderWithLunarCraterView({
     try {
         if (
             canApplyPresentation &&
-            craterState.lunarCraterDisplayMode === LUNAR_CRATER_DISPLAY_MODE_HOVER
+            craterState.lunarCraterHoverLabels !== false
         ) {
             if (pointer) {
                 animationScene.updateLunarCraterHoverFromPointer?.({
@@ -133,6 +128,7 @@ export function renderWithLunarCraterView({
         animationScene?.updateLunarCraterLabelScales?.({
             camera,
             rendererDomElement,
+            freezeScale: freezeLabelScale === true,
         });
         render();
     } finally {

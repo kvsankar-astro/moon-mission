@@ -174,4 +174,113 @@ describe("normalizeMissionMediaManifest", () => {
             "assets/artemis2/data/../media/thumbnails/audio/waveform.svg",
         );
     });
+
+    it("attaches curated thumbnail metadata to normalized Artemis photos", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaBase: "https://pub-example.r2.dev/",
+            timelineTimezoneOffset: "-04:00",
+            thumbnails: {
+                basePath: "../media/thumbnails",
+                imagePattern: "images/{key}.webp",
+            },
+            mediaMetadata: [
+                {
+                    file: "ART002-E-21257.JPG",
+                    shortDescription: "Earth rises over the cratered lunar horizon.",
+                    tags: ["earthrise", "lunar horizon"],
+                    subjects: ["Earth", "Moon", "lunar surface"],
+                    sceneType: "moon",
+                    bodies: ["Earth", "Moon"],
+                    mainBody: "Earth",
+                    compositionHints: {
+                        suggestedLockTarget: "earth",
+                        confidence: 0.96,
+                        reason: "Earth is the focal point.",
+                    },
+                    qualityNotes: "Good thumbnail candidate.",
+                },
+            ],
+            photos: [
+                {
+                    time: "2026-04-06 18:45:00",
+                    file: "ART002-E-21257.JPG",
+                    title: "Earthrise",
+                    enabled: true,
+                },
+            ],
+        }, {
+            dataPath: "assets/artemis2/data",
+        });
+
+        expect(manifest.mediaItems[0]).toMatchObject({
+            shortDescription: "Earth rises over the cratered lunar horizon.",
+            tags: ["earthrise", "lunar horizon"],
+            subjects: ["Earth", "Moon", "lunar surface"],
+            sceneType: "moon",
+            bodies: ["Earth", "Moon"],
+            mainBody: "Earth",
+            qualityNotes: "Good thumbnail candidate.",
+        });
+        expect(manifest.mediaItems[0].description).toBe("Earth rises over the cratered lunar horizon.");
+        expect(manifest.mediaItems[0].compositionHints).toEqual({
+            suggestedLockTarget: "earth",
+            confidence: 0.96,
+            reason: "Earth is the focal point.",
+        });
+    });
+
+    it("normalizes long-form media stream metadata and sync anchors", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaStreams: [
+                {
+                    id: "flyby-broadcast",
+                    title: "Lunar flyby broadcast",
+                    description: "Mission-long stream.",
+                    enabled: false,
+                    streamKind: "video",
+                    sourceType: "hls",
+                    sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
+                    sourceLabel: "NASA broadcast",
+                    sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
+                    sourceCredit: "NASA",
+                    license: "Public domain",
+                    startTime: "2026-04-06T17:56:00Z",
+                    endTime: "2026-04-07T04:06:00Z",
+                    durationSeconds: 36600.13,
+                    syncStatus: "provisional",
+                    syncAnchors: [
+                        {
+                            label: "Closest approach",
+                            missionTime: "2026-04-06T23:00:00Z",
+                            streamTimeSeconds: 18240,
+                            note: "Initial estimate from NASA broadcast description.",
+                        },
+                    ],
+                },
+            ],
+        });
+
+        expect(manifest.mediaStreams).toHaveLength(1);
+        expect(manifest.mediaStreams[0]).toMatchObject({
+            id: "flyby-broadcast",
+            description: "Mission-long stream.",
+            enabled: false,
+            sourceType: "hls",
+            sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
+            durationSeconds: 36600.13,
+            syncStatus: "provisional",
+            sourceLabel: "NASA broadcast",
+            sourcePageUrl: "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",
+            sourceCredit: "NASA",
+            license: "Public domain",
+        });
+        expect(manifest.mediaStreams[0].syncAnchors).toEqual([
+            {
+                label: "Closest approach",
+                missionTimeMs: Date.parse("2026-04-06T23:00:00Z"),
+                streamTimeSeconds: 18240,
+                note: "Initial estimate from NASA broadcast description.",
+            },
+        ]);
+    });
 });

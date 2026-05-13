@@ -1183,7 +1183,7 @@ export function bindLunarCraterControlPanel({ elements, commitPatch, sync }) {
             {
                 viewLunarCraters: true,
                 lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
-                lunarCraterHoverLabels: false,
+                lunarCraterHoverLabels: true,
             },
             { sourceId: elements.visibleToggle?.id || "lunar-crater-visible-toggle" },
         );

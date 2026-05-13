@@ -111,10 +111,11 @@ describe("renderWithLunarCraterView", () => {
         expect(animationScene.updateLunarCraterLabelScales).toHaveBeenCalledWith({
             camera: null,
             rendererDomElement: null,
+            freezeScale: false,
         });
     });
 
-    it("uses the Frame and Shoot pointer only for hover-mode crater renders", () => {
+    it("uses the Frame and Shoot pointer for hover-mode crater renders", () => {
         const { animationScene, scene } = makeCraterScene();
         const camera = {};
         const rendererDomElement = {};
@@ -146,6 +147,66 @@ describe("renderWithLunarCraterView", () => {
         expect(animationScene.updateLunarCraterLabelScales).toHaveBeenCalledWith({
             camera,
             rendererDomElement,
+            freezeScale: false,
         });
+    });
+
+    it("can freeze crater label scale updates while a view camera is being dragged", () => {
+        const { animationScene, scene } = makeCraterScene();
+        const camera = {};
+        const rendererDomElement = {};
+
+        renderWithLunarCraterView({
+            viewId: LUNAR_CRATER_VIEW_IDS.FRAME_AND_SHOOT,
+            viewState: {
+                viewLunarCraters: true,
+                lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
+                lunarCraterHoverLabels: true,
+            },
+            animationScene,
+            scene,
+            camera,
+            rendererDomElement,
+            freezeLabelScale: true,
+            render: vi.fn(),
+        });
+
+        expect(animationScene.updateLunarCraterLabelScales).toHaveBeenCalledWith({
+            camera,
+            rendererDomElement,
+            freezeScale: true,
+        });
+    });
+
+    it("uses the Frame and Shoot pointer for Show Always hover inspection", () => {
+        const { animationScene, scene } = makeCraterScene();
+        const camera = {};
+        const rendererDomElement = {};
+
+        renderWithLunarCraterView({
+            viewId: LUNAR_CRATER_VIEW_IDS.FRAME_AND_SHOOT,
+            viewState: {
+                viewLunarCraters: true,
+                lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
+                lunarCraterHoverLabels: true,
+                lunarCraterMinDiameterKm: 80,
+                lunarCraterMaxDiameterKm: 600,
+            },
+            animationScene,
+            scene,
+            camera,
+            rendererDomElement,
+            pointer: { clientX: 56, clientY: 78 },
+            render: vi.fn(),
+        });
+
+        expect(animationScene.setLunarCraterHoverLabelsEnabled).toHaveBeenCalledWith(true);
+        expect(animationScene.updateLunarCraterHoverFromPointer).toHaveBeenCalledWith({
+            camera,
+            rendererDomElement,
+            clientX: 56,
+            clientY: 78,
+        });
+        expect(animationScene.clearLunarCraterHover).not.toHaveBeenCalled();
     });
 });

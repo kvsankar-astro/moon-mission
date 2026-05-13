@@ -7,12 +7,15 @@ import {
     computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
     createAuxiliaryWebGLRendererWithFallback,
+    isComposerPlanetVisibleForMagnitudeLimit,
     isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
+    resolveComposerSeeThroughMarkers,
     resolveComposerSkyLabelOccluders,
     resolveLunarFlybyWindowMs,
     rollRadFromDialPointer,
     selectComposerSkyLabelCandidates,
+    shouldRenderComposerLunarCraterHover,
 } from "../src/platform/js/app/auxiliary-camera-views.js";
 import { LIGHT_SETTINGS as LT } from "../src/platform/js/core/constants.js";
 
@@ -149,18 +152,19 @@ describe("Frame and Shoot roll dial math", () => {
         expect(normalizeComposerRollRad(-Math.PI / 2)).toBeCloseTo(Math.PI * 1.5);
     });
 
-    it("maps dial pointer positions with 0 degrees at the top and clockwise positive", () => {
+    it("maps dial pointer positions with 0 degrees at the top and counterclockwise positive", () => {
         const center = { centerX: 100, centerY: 100 };
 
         expect(rollRadFromDialPointer({ ...center, pointerX: 100, pointerY: 80 })).toBeCloseTo(0);
-        expect(rollRadFromDialPointer({ ...center, pointerX: 120, pointerY: 100 })).toBeCloseTo(Math.PI / 2);
+        expect(rollRadFromDialPointer({ ...center, pointerX: 120, pointerY: 100 })).toBeCloseTo(Math.PI * 1.5);
         expect(rollRadFromDialPointer({ ...center, pointerX: 100, pointerY: 120 })).toBeCloseTo(Math.PI);
-        expect(rollRadFromDialPointer({ ...center, pointerX: 80, pointerY: 100 })).toBeCloseTo(Math.PI * 1.5);
+        expect(rollRadFromDialPointer({ ...center, pointerX: 80, pointerY: 100 })).toBeCloseTo(Math.PI / 2);
     });
 
     it("places the roll knob on the same polar convention", () => {
-        expect(composerRollDialKnobOffset(0, 18)).toEqual({ x: 0, y: -18 });
-        expect(composerRollDialKnobOffset(Math.PI / 2, 18).x).toBeCloseTo(18);
+        expect(composerRollDialKnobOffset(0, 18).x).toBeCloseTo(0);
+        expect(composerRollDialKnobOffset(0, 18).y).toBeCloseTo(-18);
+        expect(composerRollDialKnobOffset(Math.PI / 2, 18).x).toBeCloseTo(-18);
         expect(composerRollDialKnobOffset(Math.PI / 2, 18).y).toBeCloseTo(0);
     });
 });
@@ -195,6 +199,29 @@ describe("Frame and Shoot drag sensitivity math", () => {
 });
 
 describe("Frame and Shoot FoV bounds", () => {
+    it("requests lunar feature hover renders in Show Always and hover modes", () => {
+        expect(shouldRenderComposerLunarCraterHover({
+            viewLunarCraters: true,
+            lunarCraterDisplayMode: "always",
+            lunarCraterHoverLabels: true,
+        })).toBe(true);
+        expect(shouldRenderComposerLunarCraterHover({
+            viewLunarCraters: true,
+            lunarCraterDisplayMode: "hover",
+            lunarCraterHoverLabels: true,
+        })).toBe(true);
+        expect(shouldRenderComposerLunarCraterHover({
+            viewLunarCraters: true,
+            lunarCraterDisplayMode: "always",
+            lunarCraterHoverLabels: false,
+        })).toBe(false);
+        expect(shouldRenderComposerLunarCraterHover({
+            viewLunarCraters: false,
+            lunarCraterDisplayMode: "always",
+            lunarCraterHoverLabels: true,
+        })).toBe(false);
+    });
+
     it("applies lunar crater visibility for a composer render without mutating the shared scene", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const renderer = {};
@@ -236,6 +263,44 @@ describe("Frame and Shoot FoV bounds", () => {
 
         expect(renderedVisibility).toEqual([true, false]);
         expect(craterGroup.visible).toBe(true);
+    });
+
+    it("freezes Frame and Shoot lunar label scaling during viewport drag", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const renderer = {};
+        const camera = {};
+        const animationScene = {
+            lunarCraterGroup: { name: "lunar-crater-annotations", visible: false },
+            addLunarCraterAnnotations: vi.fn(function addLunarCraterAnnotations() {
+                this.lunarCraterGroup = { name: "lunar-crater-annotations", visible: false };
+            }),
+            setLunarCraterHoverLabelsEnabled: vi.fn(),
+            clearLunarCraterHover: vi.fn(),
+            updateLunarCraterLabelScales: vi.fn(),
+        };
+        const scene = {
+            getObjectByName: vi.fn((name) =>
+                name === "lunar-crater-annotations" ? animationScene.lunarCraterGroup : null,
+            ),
+        };
+        manager.renderLayers = vi.fn();
+
+        manager.renderComposerLayers(
+            {
+                renderer,
+                camera,
+                composerLunarCratersEnabled: true,
+                composerViewportPointer: { pointerId: 1 },
+            },
+            scene,
+            { animationScene },
+        );
+
+        expect(animationScene.updateLunarCraterLabelScales).toHaveBeenCalledWith({
+            camera,
+            rendererDomElement: null,
+            freezeScale: true,
+        });
     });
 
     it("keeps ordinary auxiliary renders independent from fullscreen lunar crater visibility", () => {
@@ -333,7 +398,7 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
-    it("clamps stale or manual Frame and Shoot FoV above composition bounds", () => {
+    it("allows manual Frame and Shoot FoV beyond Auto composition bounds", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
             mode: "composer",
@@ -348,8 +413,27 @@ describe("Frame and Shoot FoV bounds", () => {
 
         manager.setPanelFov(panelState, 143.5);
 
-        expect(panelState.camera.fov).toBe(70);
-        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(70, 70);
+        expect(panelState.camera.fov).toBe(143.5);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(143.5, 143.5);
+    });
+
+    it("clamps manual Frame and Shoot FoV at optical bounds", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "composer",
+            camera: {
+                fov: 50,
+                updateProjectionMatrix: vi.fn(),
+            },
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+        };
+
+        manager.setPanelFov(panelState, 240);
+
+        expect(panelState.camera.fov).toBe(179);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(179, 179);
     });
 });
 
@@ -602,6 +686,122 @@ describe("Frame and Shoot sky label occlusion", () => {
         expect(occluders[0].x).toBeCloseTo(500, 6);
         expect(occluders[0].y).toBeCloseTo(250, 6);
         expect(occluders[0].radiusPx).toBeGreaterThan(40);
+    });
+});
+
+describe("Frame and Shoot see-through markers", () => {
+    it("returns a dotted Sun marker when the Sun is behind Earth/Moon occluders", () => {
+        const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        const skyContainer = new THREE.Object3D();
+        skyContainer.updateMatrixWorld(true);
+
+        const position = new Float32Array([
+            0, 0, -1,
+            0.6, 0, -0.8,
+        ]);
+        const alpha = new Float32Array([1, 1]);
+        const size = new Float32Array([6.2, 4.3]);
+        const color = new Float32Array([
+            1, 0.95, 0.74,
+            1, 0.56, 0.40,
+        ]);
+        const planetRenderer = {
+            bodySlots: ["Sun", "Mars"],
+            geometry: {
+                getAttribute(name) {
+                    if (name === "position") return { array: position, count: 2 };
+                    if (name === "aAlpha") return { array: alpha, count: 2 };
+                    if (name === "aSize") return { array: size, count: 2 };
+                    if (name === "aColor") return { array: color, count: 2 };
+                    return null;
+                },
+            },
+        };
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            bodies: [
+                { bodyId: "earth", centerWorld: new THREE.Vector3(0, 0, -10), radius: 1 },
+            ],
+            paddingPx: 0,
+        });
+
+        const markers = resolveComposerSeeThroughMarkers({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            skyContainer,
+            planetRenderer,
+            occluders,
+        });
+
+        expect(markers).toHaveLength(1);
+        expect(markers[0].label).toBe("Sun");
+        expect(markers[0].x).toBeCloseTo(500, 6);
+        expect(markers[0].y).toBeCloseTo(250, 6);
+        expect(markers[0].radiusPx).toBeGreaterThan(5);
+    });
+
+    it("excludes Earth/Moon and only returns actually occluded bodies", () => {
+        const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(0, 0, -1);
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        const skyContainer = new THREE.Object3D();
+        skyContainer.updateMatrixWorld(true);
+
+        const position = new Float32Array([
+            0, 0, -1,
+            0, 0, -1,
+            0.75, 0, -0.66,
+        ]);
+        const alpha = new Float32Array([1, 1, 1]);
+        const size = new Float32Array([4.9, 4.6, 4.3]);
+        const planetRenderer = {
+            bodySlots: ["Earth", "Moon", "Mars"],
+            geometry: {
+                getAttribute(name) {
+                    if (name === "position") return { array: position, count: 3 };
+                    if (name === "aAlpha") return { array: alpha, count: 3 };
+                    if (name === "aSize") return { array: size, count: 3 };
+                    return null;
+                },
+            },
+        };
+
+        const occluders = resolveComposerSkyLabelOccluders({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            bodies: [
+                { bodyId: "earth", centerWorld: new THREE.Vector3(0, 0, -10), radius: 1 },
+            ],
+            paddingPx: 0,
+        });
+
+        const markers = resolveComposerSeeThroughMarkers({
+            THREE,
+            camera,
+            width: 1000,
+            height: 500,
+            skyContainer,
+            planetRenderer,
+            occluders,
+        });
+
+        expect(markers).toHaveLength(0);
     });
 });
 
@@ -888,6 +1088,53 @@ describe("Frame and Shoot constellation line rendering", () => {
         expect(profile.sunVisualState.coronaFlowOpacity).toBe(0);
     });
 
+    it("uses the composer magnitude limit for planet markers too", () => {
+        expect(isComposerPlanetVisibleForMagnitudeLimit("Venus", -3)).toBe(true);
+        expect(isComposerPlanetVisibleForMagnitudeLimit("Mars", -3)).toBe(false);
+        expect(isComposerPlanetVisibleForMagnitudeLimit("Uranus", 6)).toBe(true);
+        expect(isComposerPlanetVisibleForMagnitudeLimit("Neptune", 6)).toBe(false);
+    });
+
+    it("temporarily filters composer planet markers by magnitude during render presentation", () => {
+        const manager = createManagerForExposureTests();
+        const alphas = new Float32Array([1, 0.8, 0.6, 0.4]);
+        const alphaAttr = { array: alphas, needsUpdate: false };
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: -3,
+        };
+        const skyRenderer = {
+            planetRenderer: {
+                bodySlots: ["Venus", "Mars", "Sun", "Neptune"],
+                geometry: {
+                    getAttribute: (name) => (name === "aAlpha" ? alphaAttr : null),
+                },
+            },
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, null, { skyRenderer });
+
+        expect(alphas[0]).toBeCloseTo(1);
+        expect(alphas[1]).toBeCloseTo(0);
+        expect(alphas[2]).toBeCloseTo(0.6);
+        expect(alphas[3]).toBeCloseTo(0);
+        expect(alphaAttr.needsUpdate).toBe(true);
+
+        restore();
+
+        expect(alphas[0]).toBeCloseTo(1);
+        expect(alphas[1]).toBeCloseTo(0.8);
+        expect(alphas[2]).toBeCloseTo(0.6);
+        expect(alphas[3]).toBeCloseTo(0.4);
+    });
+
     it("ignores regular Sun optics controls during eclipse and uses corona controls instead", () => {
         const manager = createManagerForExposureTests();
 
@@ -947,7 +1194,7 @@ describe("Frame and Shoot constellation line rendering", () => {
         expect(dim.sunVisualState.coronaMotionMul).toBeCloseTo(0.25);
     });
 
-    it("detects craft-view solar eclipse geometry from Earth or Moon occultation", () => {
+    it("detects craft-view solar eclipse geometry only at full Sun occultation", () => {
         const manager = Object.assign(createManagerForExposureTests(), {
             sunDirectionCraftWorld: {
                 x: 1,
@@ -957,9 +1204,16 @@ describe("Frame and Shoot constellation line rendering", () => {
             },
         });
 
-        const eclipsed = manager.resolveComposerSolarEclipseState({
+        const fullyEclipsed = manager.resolveComposerSolarEclipseState({
             craftWorld: { x: 0, y: 0, z: 0 },
             moonWorld: { x: 100, y: 0, z: 0 },
+            moonRadius: 4,
+            earthWorld: { x: 0, y: 100, z: 0 },
+            earthRadius: 10,
+        });
+        const partial = manager.resolveComposerSolarEclipseState({
+            craftWorld: { x: 0, y: 0, z: 0 },
+            moonWorld: { x: 10000, y: 5, z: 0 },
             moonRadius: 4,
             earthWorld: { x: 0, y: 100, z: 0 },
             earthRadius: 10,
@@ -972,8 +1226,11 @@ describe("Frame and Shoot constellation line rendering", () => {
             earthRadius: 10,
         });
 
-        expect(eclipsed.active).toBe(true);
-        expect(eclipsed.occluder).toBe("moon");
+        expect(fullyEclipsed.active).toBe(true);
+        expect(fullyEclipsed.occluder).toBe("moon");
+        expect(fullyEclipsed.fullyObscured).toBe(true);
+        expect(partial.coverage).toBeGreaterThan(0);
+        expect(partial.active).toBe(false);
         expect(clear.active).toBe(false);
     });
 

@@ -33,8 +33,8 @@ const CRATER_HOVER_LABEL_SCREEN_GAP_MAX_PX = 10;
 const CRATER_HOVER_LABEL_SCREEN_GAP_RATIO = 0.08;
 const CRATER_HOVER_LABEL_FALLBACK_RADIUS_MULTIPLIER = 1.3;
 const CRATER_HOVER_LABEL_MAX_ANGULAR_OFFSET = 0.35;
-const CRATER_LABEL_MAX_SCREEN_HEIGHT_PX = 36;
-const CRATER_HOVER_LABEL_MAX_SCREEN_HEIGHT_PX = 36;
+const CRATER_LABEL_MAX_SCREEN_HEIGHT_PX = 38;
+const CRATER_HOVER_LABEL_MAX_SCREEN_HEIGHT_PX = 38;
 const CRATER_DISPLAY_MODE_ALWAYS = "always";
 const CRATER_DISPLAY_MODE_HOVER = "hover";
 const CRATER_VISIBILITY_EDGE_PADDING = 0.01;
@@ -44,10 +44,10 @@ const CRATER_HOVER_PICK_PADDING_RATIO = 0.12;
 const CRATER_ALWAYS_MIN_SCREEN_DIAMETER_PX = 9;
 const CRATER_ALWAYS_RENDER_LIMIT = 900;
 const CRATER_ALWAYS_RENDER_FALLBACK_LIMIT = 450;
-const CRATER_ALWAYS_LABEL_MAX_COUNT = 14;
-const CRATER_ALWAYS_LABEL_MIN_SCREEN_DIAMETER_PX = 46;
-const CRATER_ALWAYS_LABEL_SCREEN_SPACING_PX = 160;
-const CRATER_ALWAYS_LABEL_TARGET_SCREEN_HEIGHT_PX = 24;
+const CRATER_ALWAYS_LABEL_MAX_COUNT = 28;
+const CRATER_ALWAYS_LABEL_MIN_SCREEN_DIAMETER_PX = 36;
+const CRATER_ALWAYS_LABEL_SCREEN_SPACING_PX = 120;
+const CRATER_ALWAYS_LABEL_TARGET_SCREEN_HEIGHT_PX = CRATER_HOVER_LABEL_MAX_SCREEN_HEIGHT_PX;
 const CRATER_DENSE_SELECTION_COUNT = 1000;
 const CRATER_RENDER_PLAN_CHECK_INTERVAL_MS = 180;
 const DEG_TO_RAD = Math.PI / 180;
@@ -69,6 +69,11 @@ function normalizeCraterDisplayMode(value) {
     return value === CRATER_DISPLAY_MODE_ALWAYS
         ? CRATER_DISPLAY_MODE_ALWAYS
         : CRATER_DISPLAY_MODE_HOVER;
+}
+
+function shouldShowHoverLabelForDisplayMode(displayMode) {
+    return displayMode === CRATER_DISPLAY_MODE_HOVER ||
+        displayMode === CRATER_DISPLAY_MODE_ALWAYS;
 }
 
 function normalizeCraterDisplayDiameterRange(value = {}, catalog = lunarCraterCatalog) {
@@ -252,7 +257,7 @@ function createCraterLabelTexture(THREE, crater) {
 
     context.textAlign = "center";
     context.textBaseline = "middle";
-    let fontSize = 32;
+    let fontSize = 34;
     const maxTextWidth = canvas.width - 48;
     do {
         context.font = `400 ${fontSize}px ${CRATER_LABEL_FONT_FAMILY}`;
@@ -1456,7 +1461,17 @@ function createLunarCraterActions({
             moonRadius,
         });
         if (!hitNormal) {
-            return null;
+            return resolveCraterHoverTargetFromScreen({
+                THREE,
+                scene,
+                camera,
+                rendererDomElement,
+                pointerX,
+                pointerY,
+                pickTargets: scene.lunarCraterPickTargets || [],
+                moonRadius,
+                cameraMoonLocalNormal: cameraNormalAvailable ? cameraMoonLocalPosition : null,
+            });
         }
 
         surfaceNormal.copy(hitNormal);
@@ -1492,6 +1507,7 @@ function createLunarCraterActions({
             return;
         }
 
+        const hoverLabelsEnabled = scene.lunarCraterHoverLabelsEnabled !== false;
         disposeLunarCraterAnnotations({ scene });
 
         const moonRadius = getMoonRadius();
@@ -1610,7 +1626,7 @@ function createLunarCraterActions({
         scene.lunarCraterGroup = group;
         scene.lunarCraterAnnotations = annotations;
         scene.lunarCraterPickTargets = pickTargets;
-        scene.lunarCraterHoverLabelsEnabled = displayMode === CRATER_DISPLAY_MODE_HOVER;
+        scene.lunarCraterHoverLabelsEnabled = hoverLabelsEnabled;
         scene.lunarCraterHoverLabel = null;
         scene.lunarCraterHoverRing = null;
         scene.lunarCraterHoverMaterial = null;
@@ -1831,8 +1847,11 @@ function createLunarCraterActions({
         return true;
     }
 
-    function updateLunarCraterLabelScales({ scene, camera, rendererDomElement = null }) {
+    function updateLunarCraterLabelScales({ scene, camera, rendererDomElement = null, freezeScale = false }) {
         if (!scene?.lunarCraterGroup || !camera) {
+            return false;
+        }
+        if (freezeScale === true) {
             return false;
         }
         if (resolveDisplayMode(scene) === CRATER_DISPLAY_MODE_ALWAYS) {
@@ -1937,7 +1956,7 @@ function createLunarCraterActions({
         const displayMode = resolveDisplayMode(scene);
         if (
             !scene?.lunarCraterGroup?.visible ||
-            displayMode !== CRATER_DISPLAY_MODE_HOVER ||
+            !shouldShowHoverLabelForDisplayMode(displayMode) ||
             scene.lunarCraterHoverLabelsEnabled === false
         ) {
             return hideLunarCraterHover({ scene });

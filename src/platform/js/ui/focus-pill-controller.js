@@ -238,6 +238,7 @@ export function createFocusPillController(deps = {}) {
         }
 
         documentRef?.addEventListener?.("ground-track-panel-visibilitychange", syncFocusPillState);
+        documentRef?.addEventListener?.("mission-media-panel-state", syncFocusPillState);
         sync();
     }
 

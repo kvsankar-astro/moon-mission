@@ -32,8 +32,6 @@ function createControlPanelTimelineController(deps = {}) {
     let timelineCarouselDragBound = false;
     let timelineDockResizeObserver = null;
     let timelineDockMutationObserver = null;
-    let mediaPanelMutationObserver = null;
-    let mediaPanelVisibilitySyncBound = false;
     let timelineCarouselWiggleTimeoutId = null;
     let timelineMediaTrackVisible = false;
 
@@ -61,8 +59,10 @@ function createControlPanelTimelineController(deps = {}) {
         return documentRef?.getElementById?.("timeline-media-markers") || null;
     }
 
-    function getMediaBrowserPanel() {
-        return documentRef?.getElementById?.("media-browser-panel") || null;
+    function getTimelineMediaRail() {
+        return documentRef?.getElementById?.("timeline-media-rail")
+            || documentRef?.querySelector?.("#timeline-dock .timeline-dock__media-rail")
+            || null;
     }
 
     function getRootStyle() {
@@ -94,35 +94,16 @@ function createControlPanelTimelineController(deps = {}) {
 
     function setTimelineMediaTrackVisibleState(visible) {
         timelineMediaTrackVisible = !!visible;
+        const mediaRail = getTimelineMediaRail();
         const mediaMarkers = getTimelineMediaMarkers();
+        const shouldShowMediaTrack = timelineMediaTrackVisible && shouldAllowMediaMarkersVisible();
+        if (mediaRail) {
+            mediaRail.hidden = !shouldShowMediaTrack;
+        }
         if (mediaMarkers) {
-            mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
+            mediaMarkers.hidden = !shouldShowMediaTrack;
         }
         syncMediaToggleButton();
-    }
-
-    function isMediaBrowserPanelOpen(panel = getMediaBrowserPanel()) {
-        return !!panel && !panel.classList?.contains?.("media-browser-panel--hidden");
-    }
-
-    function syncMediaTrackWithMediaPanelVisibility(panel = getMediaBrowserPanel()) {
-        setTimelineMediaTrackVisibleState(isMediaBrowserPanelOpen(panel));
-    }
-
-    function bindMediaPanelVisibilitySync() {
-        if (mediaPanelVisibilitySyncBound) return;
-        const mediaPanel = getMediaBrowserPanel();
-        if (!mediaPanel) return;
-        mediaPanelVisibilitySyncBound = true;
-        if (typeof MutationObserverClass !== "function") return;
-        mediaPanelMutationObserver = new MutationObserverClass(() => {
-            syncMediaTrackWithMediaPanelVisibility(mediaPanel);
-            requestAnimationFrameImpl(() => syncTimelineDockHeight());
-        });
-        mediaPanelMutationObserver.observe?.(mediaPanel, {
-            attributes: true,
-            attributeFilter: ["class", "hidden"],
-        });
     }
 
     function syncControlPanelInfoOffset(panel = getControlPanel()) {
@@ -222,8 +203,12 @@ function createControlPanelTimelineController(deps = {}) {
         if (markers) {
             markers.hidden = !nextExpanded;
         }
+        const mediaRail = getTimelineMediaRail();
         if (mediaMarkers) {
             mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
+        }
+        if (mediaRail) {
+            mediaRail.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
         }
         requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
 
@@ -356,10 +341,9 @@ function createControlPanelTimelineController(deps = {}) {
         }
         bindTimelineCarouselDragGesture();
         bindTimelineDockHeightSync(timelineDock);
-        bindMediaPanelVisibilitySync();
         setControlPanelCollapsedState(false);
         setTimelineEventCarouselExpandedState(false, { focusUpcoming: false, wiggleCue: false });
-        syncMediaTrackWithMediaPanelVisibility();
+        setTimelineMediaTrackVisibleState(false);
         requestAnimationFrameImpl(() => {
             syncControlPanelInfoOffset(panel);
             syncTimelineDockHeight(timelineDock);

@@ -218,7 +218,7 @@ describe("createMediaTimelineCoordination", () => {
         }));
     });
 
-    it("uses HLS.js playback for hls mission streams when native decoding is unavailable", async () => {
+    it("leaves HLS stream attachment to the media panel while preserving source metadata", async () => {
         class FakeInput {}
         const slider = new FakeInput();
         slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
@@ -244,16 +244,11 @@ describe("createMediaTimelineCoordination", () => {
             }),
             load: vi.fn(),
         };
-        let onManifestParsed = null;
         const hlsInstance = {
             attachMedia: vi.fn(),
             loadSource: vi.fn(),
             destroy: vi.fn(),
-            on: vi.fn((eventName, handler) => {
-                if (eventName === "MANIFEST_PARSED") {
-                    onManifestParsed = handler;
-                }
-            }),
+            on: vi.fn(),
         };
         const HlsMock = vi.fn(() => hlsInstance);
         HlsMock.isSupported = vi.fn(() => true);
@@ -309,17 +304,21 @@ describe("createMediaTimelineCoordination", () => {
             type === "animation-play-state-updated"
         ));
         playStateHandler({ detail: { isPlaying: true } });
-        onManifestParsed?.();
         await flushPromises(2);
 
-        expect(HlsMock).toHaveBeenCalledTimes(1);
-        expect(hlsInstance.attachMedia).toHaveBeenCalledWith(video);
-        expect(hlsInstance.loadSource).toHaveBeenCalledWith("assets/artemis2/data/../media/streams/lunar-flyby/v1/master.m3u8");
+        expect(HlsMock).not.toHaveBeenCalled();
+        expect(hlsInstance.attachMedia).not.toHaveBeenCalled();
+        expect(hlsInstance.loadSource).not.toHaveBeenCalled();
         expect(video.play).toHaveBeenCalledTimes(1);
+        expect(video.dataset).toEqual(expect.objectContaining({
+            mediaItemId: "lunar-flyby-stream",
+            mediaSourceUrl: "assets/artemis2/data/../media/streams/lunar-flyby/v1/master.m3u8",
+            sourceType: "hls",
+        }));
         expect(video.src).toBe("");
     });
 
-    it("keeps a single HLS.js attachment across timeline rerenders for the same stream", async () => {
+    it("does not reinitialize HLS attachment from timeline rerenders for the same stream", async () => {
         class FakeInput {}
         const slider = new FakeInput();
         slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
@@ -346,16 +345,11 @@ describe("createMediaTimelineCoordination", () => {
             }),
             load: vi.fn(),
         };
-        let onManifestParsed = null;
         const hlsInstance = {
             attachMedia: vi.fn(),
             loadSource: vi.fn(),
             destroy: vi.fn(),
-            on: vi.fn((eventName, handler) => {
-                if (eventName === "MANIFEST_PARSED") {
-                    onManifestParsed = handler;
-                }
-            }),
+            on: vi.fn(),
         };
         const HlsMock = vi.fn(() => hlsInstance);
         HlsMock.isSupported = vi.fn(() => true);
@@ -410,9 +404,8 @@ describe("createMediaTimelineCoordination", () => {
 
         mocks.panelIntentHandler?.({ type: "selectItem", value: "lunar-flyby-stream" });
         mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
-        onManifestParsed?.();
         await flushPromises(2);
-        expect(HlsMock).toHaveBeenCalledTimes(1);
+        expect(HlsMock).not.toHaveBeenCalled();
 
         coordination.update({
             globalConfig: createMissionConfig({ mediaEnabled: true }),
@@ -420,9 +413,10 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(2);
 
-        expect(HlsMock).toHaveBeenCalledTimes(1);
-        expect(hlsInstance.attachMedia).toHaveBeenCalledTimes(1);
-        expect(hlsInstance.loadSource).toHaveBeenCalledTimes(1);
+        expect(HlsMock).not.toHaveBeenCalled();
+        expect(hlsInstance.attachMedia).not.toHaveBeenCalled();
+        expect(hlsInstance.loadSource).not.toHaveBeenCalled();
+        expect(video.load).not.toHaveBeenCalled();
     });
 
     it("opens the media panel and seeks when a timeline media marker is selected", async () => {
@@ -448,11 +442,23 @@ describe("createMediaTimelineCoordination", () => {
         mocks.loadMissionMediaManifest.mockResolvedValue({
             mediaBase: "https://media.example/",
             timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "photo.jpg",
+                    tags: ["gloves", "crew"],
+                    subjects: ["gloved hands"],
+                    bodies: ["Moon"],
+                    sceneType: "crew",
+                    qualityNotes: "Readable thumbnail.",
+                },
+            ],
             photos: [
                 {
                     time: "2026-04-02 12:00:00",
                     file: "photo.jpg",
                     title: "Crew photo",
+                    camera: "Canon EOS R5",
+                    settings: "57mm · f/4 · 1/200 · ISO 1250",
                     enabled: true,
                 },
             ],
@@ -523,11 +529,23 @@ describe("createMediaTimelineCoordination", () => {
         mocks.loadMissionMediaManifest.mockResolvedValue({
             mediaBase: "https://media.example/",
             timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "photo.jpg",
+                    tags: ["gloves", "crew"],
+                    subjects: ["gloved hands"],
+                    bodies: ["Moon"],
+                    sceneType: "crew",
+                    qualityNotes: "Readable thumbnail.",
+                },
+            ],
             photos: [
                 {
                     time: "2026-04-02 12:00:00",
                     file: "photo.jpg",
                     title: "Crew photo",
+                    camera: "Canon EOS R5",
+                    settings: "57mm · f/4 · 1/200 · ISO 1250",
                     enabled: true,
                 },
             ],
@@ -557,6 +575,12 @@ describe("createMediaTimelineCoordination", () => {
             id: "photo.jpg",
             focusSource: "user-selection",
             explicit: true,
+            tags: ["gloves", "crew"],
+            subjects: ["gloved hands"],
+            bodies: ["Moon"],
+            sceneType: "crew",
+            qualityNotes: "Readable thumbnail.",
+            exifLabel: "Canon EOS R5 - 57mm · f/4 · 1/200 · ISO 1250",
         }));
     });
 
@@ -579,6 +603,88 @@ describe("createMediaTimelineCoordination", () => {
             "mission-media-marker-select",
             handler,
         );
+    });
+
+    it("stops active media playback when the media browser panel is closed", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(Date.parse("2026-04-02T16:00:00Z"));
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            pause: vi.fn(),
+            dataset: {
+                mediaItemId: "video:clip.mp4",
+                mediaSourceUrl: "https://media.example/clip.mp4",
+                sourceType: "mp4",
+            },
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "photo.jpg",
+                    title: "Crew photo",
+                    enabled: true,
+                },
+            ],
+            videos: [
+                {
+                    id: "video:clip.mp4",
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:00:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "video:clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 12,
+        });
+
+        const [, panelStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-media-panel-state"
+        ));
+        panelStateHandler({
+            detail: {
+                state: "closed",
+            },
+        });
+
+        expect(video.pause).toHaveBeenCalledTimes(1);
     });
 
     it("adds audio markers and seeks to an audio clip when selected", async () => {
@@ -709,6 +815,71 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.statusText).toBe("");
         expect(latestRender.statusText).not.toContain("Following mission time");
         expect(latestRender.statusText).not.toContain("Selected");
+    });
+
+    it("filters thumbnails from structured LLM body metadata when searching", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "earth.jpg",
+                    shortDescription: "Earth fills the frame.",
+                    tags: ["earth", "clouds"],
+                    subjects: ["Earth"],
+                    sceneType: "earth",
+                    bodies: ["Earth"],
+                    mainBody: "Earth",
+                    compositionHints: {
+                        suggestedLockTarget: "earth",
+                        confidence: 0.95,
+                        reason: "Earth is the main subject.",
+                    },
+                },
+            ],
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "crew.jpg",
+                    title: "Crew update",
+                    flickr_desc: "The crew talks while far from Earth.",
+                    enabled: true,
+                },
+                {
+                    time: "2026-04-02 12:05:00",
+                    file: "earth.jpg",
+                    title: "Earth portrait",
+                    enabled: true,
+                },
+                {
+                    time: "2026-04-02 12:10:00",
+                    file: "moon.jpg",
+                    title: "Moon portrait",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:00:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "setSearchQuery", value: "earth" });
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.filterModel.query).toBe("earth");
+        expect(latestRender.thumbnailItems.map((item) => item.id)).toEqual(["earth.jpg"]);
+        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("LLM:");
+        expect(latestRender.thumbnailItems[0].metadataLabel).toContain("Earth");
+        expect(latestRender.mediaCountLabel).toBe("1");
     });
 
     it("moves adjacent controls from the current time-proximity focus", async () => {
@@ -884,6 +1055,54 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.statusText).toBe("");
     });
 
+    it("surfaces enabled mission media streams as playable video items", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaStreams: [
+                {
+                    id: "flyby-stream",
+                    title: "Lunar flyby broadcast",
+                    description: "Mission-long stream.",
+                    enabled: true,
+                    streamKind: "video",
+                    sourceType: "hls",
+                    sourceUrl: "../media/streams/lunar-flyby/v1/master.m3u8",
+                    sourceLabel: "NASA broadcast",
+                    startTime: "2026-04-06T17:56:00Z",
+                    durationSeconds: 36600.13,
+                    syncStatus: "provisional",
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-06T17:56:00Z"),
+        });
+        await flushPromises(8);
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.mediaCountLabel).toBe("1");
+        expect(latestRender.activeItem).toMatchObject({
+            id: "flyby-stream",
+            kind: "videoClip",
+            mediaStream: true,
+            sourceType: "hls",
+            videoAssetUrl: "assets/artemis2/data/../media/streams/lunar-flyby/v1/master.m3u8",
+            sourceLabel: "NASA broadcast",
+            stageBadge: "Stream • Video • Exterior",
+        });
+        expect(latestRender.playbackModel).toMatchObject({
+            playable: true,
+            showControls: true,
+        });
+    });
+
     it("keeps the thumbnail window stable when selecting an item already away from the rail edge", async () => {
         class FakeInput {}
         const slider = new FakeInput();
@@ -1020,6 +1239,99 @@ describe("createMediaTimelineCoordination", () => {
         }));
     });
 
+    it("keeps explicit selected media pinned while that media still covers mission time", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-02T09:00:00Z"));
+        slider.max = String(Date.parse("2026-04-02T12:30:00Z"));
+        slider.value = String(Date.parse("2026-04-02T10:30:00Z"));
+        slider.dataset = {
+            currentTimeMs: String(Date.parse("2026-04-02T10:30:00Z")),
+        };
+        slider.dispatchEvent = vi.fn();
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "+00:00",
+            photos: [
+                {
+                    time: "2026-04-02 10:00:00",
+                    file: "a.mp4",
+                    title: "Video A",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 7200,
+                },
+                {
+                    time: "2026-04-02 10:30:00",
+                    file: "b.mp4",
+                    title: "Video B",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 3600,
+                },
+                {
+                    time: "2026-04-02 11:00:00",
+                    file: "still.jpg",
+                    title: "Image C",
+                    enabled: true,
+                },
+            ],
+            audio: [
+                {
+                    time: "2026-04-02 10:45:00",
+                    file: "audio/d.mp3",
+                    desc: "Audio D",
+                    enabled: true,
+                    durationSeconds: 900,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-02T09:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-02T12:30:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T10:30:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "a.mp4" });
+        const selectedRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(selectedRender.activeItem).toEqual(expect.objectContaining({
+            id: "a.mp4",
+            focusSource: "user-selection",
+            explicit: true,
+        }));
+
+        slider.value = String(Date.parse("2026-04-02T11:00:00Z"));
+        slider.dataset.currentTimeMs = String(Date.parse("2026-04-02T11:00:00Z"));
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T11:00:00Z"),
+        });
+        const pinnedRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(pinnedRender.activeItem).toEqual(expect.objectContaining({
+            id: "a.mp4",
+            focusSource: "user-selection",
+            explicit: true,
+        }));
+        expect(pinnedRender.activeItem?.id).not.toBe("still.jpg");
+    });
+
     it("uses the filtered media scroller as explicit selection without autoplaying clips", async () => {
         const sliderEvents = [];
         class FakeInput {}
@@ -1079,7 +1391,7 @@ describe("createMediaTimelineCoordination", () => {
 
         mocks.panelIntentHandler?.({ type: "selectAdjacentItem", value: "next" });
 
-        expect(Number(slider.value)).toBe(audioStartMs);
+        expect(Number(slider.value)).toBe(Date.parse("2026-04-02T16:31:00Z"));
         expect(sliderEvents).toEqual(["input", "change"]);
         expect(AudioMock).not.toHaveBeenCalled();
         expect(playAnimation).not.toHaveBeenCalled();
@@ -1102,7 +1414,106 @@ describe("createMediaTimelineCoordination", () => {
         }));
     });
 
-    it("does not let audio time updates pull the mission time back after a manual timeline move", async () => {
+    it("pauses animation at commit when mission media is open and seek lands outside playable coverage", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dataset = {};
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 900,
+                },
+            ],
+        });
+
+        let animationRunning = true;
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getAnimationRunning: () => animationRunning,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:00:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 180,
+        });
+        const pauseCallsBeforeSeek = pauseAnimation.mock.calls.length;
+
+        const [, panelStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-media-panel-state"
+        ));
+        panelStateHandler({
+            detail: {
+                state: "open",
+            },
+        });
+
+        const [, timelineSeekHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-timeline-user-seek"
+        ));
+        timelineSeekHandler({
+            detail: {
+                phase: "commit",
+                source: "timeline-event-marker",
+                commit: true,
+                timeMs: Date.parse("2026-04-02T17:00:00Z"),
+            },
+        });
+
+        expect(video.pause).toHaveBeenCalled();
+        expect(pauseAnimation.mock.calls.length).toBeGreaterThan(pauseCallsBeforeSeek);
+    });
+
+    it("seeks active audio to the manually selected mission time", async () => {
         const sliderEvents = [];
         class FakeInput {}
         const slider = new FakeInput();
@@ -1151,7 +1562,7 @@ describe("createMediaTimelineCoordination", () => {
 
         mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
         mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
-        const audio = instances[0];
+        const audio = instances[instances.length - 1];
         expect(audio).toBeTruthy();
         audio.emit("playing");
 
@@ -1167,7 +1578,8 @@ describe("createMediaTimelineCoordination", () => {
 
         expect(Number(slider.dataset.currentTimeMs)).toBe(manualTimeMs);
         expect(Number(slider.value)).toBe(manualTimeMs);
-        expect(audio.pause).toHaveBeenCalledTimes(2);
+        expect(audio.currentTime).toBe(120);
+        expect(audio.pause).toHaveBeenCalled();
         expect(sliderEvents).toEqual(["input", "change", "input", "change", "input"]);
     });
 
@@ -1297,18 +1709,18 @@ describe("createMediaTimelineCoordination", () => {
 
         expect(Number(slider.value)).toBe(Date.parse("2026-04-02T16:00:00Z"));
         expect(video.play).not.toHaveBeenCalled();
-        expect(playAnimation).not.toHaveBeenCalled();
 
         const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
             type === "animation-play-state-updated"
         ));
         playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
 
         expect(video.src).toBe("https://media.example/web/clip.mp4");
         expect(video.poster).toBe("https://media.example/web/clip-poster.jpg");
         expect(video.play).toHaveBeenCalledTimes(1);
         expect(setRealtimeSpeed).not.toHaveBeenCalled();
-        expect(playAnimation).not.toHaveBeenCalled();
+        expect(playAnimation).toHaveBeenCalled();
     });
 
     it("starts selected video from the current mission offset when media controls play", async () => {
@@ -1381,6 +1793,235 @@ describe("createMediaTimelineCoordination", () => {
         expect(video.currentTime).toBe(300);
         expect(video.play).toHaveBeenCalledTimes(1);
         expect(playAnimation).not.toHaveBeenCalled();
+    });
+
+    it("keeps in-range timeline position when selecting a playable video", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(Date.parse("2026-04-02T16:30:00Z"));
+        slider.dataset = {
+            currentTimeMs: String(Date.parse("2026-04-02T16:30:00Z")),
+        };
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 3600,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:30:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        expect(Number(slider.value)).toBe(Date.parse("2026-04-02T16:30:00Z"));
+        expect(video.play).not.toHaveBeenCalled();
+    });
+
+    it("uses frame-scrub preview instead of transport playback at high animation rates", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 600,
+                },
+            ],
+        });
+        const playAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            playAnimation,
+            getAnimationSpeedMultiplier: () => 60,
+            getAnimationRealtime: () => false,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:10:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
+
+        expect(video.play).not.toHaveBeenCalled();
+        expect(video.pause).toHaveBeenCalled();
+        expect(video.currentTime).toBe(0);
+        expect(playAnimation).toHaveBeenCalled();
+    });
+
+    it("resumes transport playback when switching from high-speed scrub mode to realtime", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = vi.fn();
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        let speedMultiplier = 60;
+        let isRealtime = false;
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 600,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getAnimationSpeedMultiplier: () => speedMultiplier,
+            getAnimationRealtime: () => isRealtime,
+            getAnimationRunning: () => true,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:10:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
+        expect(video.play).not.toHaveBeenCalled();
+
+        speedMultiplier = 60;
+        isRealtime = true;
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:10:01Z"),
+        });
+        await flushPromises(2);
+
+        expect(video.play).toHaveBeenCalledTimes(1);
     });
 
     it("syncs mission time when native video playback starts", async () => {
@@ -1659,6 +2300,97 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.playbackModel.statusLabel).toContain("playing");
     });
 
+    it("moves the mission timeline when scrubbing active media during playback", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        const clipStartMs = Date.parse("2026-04-02T16:00:00Z");
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dataset = { currentTimeMs: String(clipStartMs) };
+        slider.dispatchEvent = vi.fn((event) => {
+            if (event.type === "input" || event.type === "change") {
+                slider.dataset.currentTimeMs = slider.dataset.programmaticSeekTimeMs || slider.dataset.currentTimeMs;
+            }
+        });
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            paused: false,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 300,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+            getAnimationSpeedMultiplier: () => 1,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: clipStartMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 0,
+        });
+        mocks.panelIntentHandler?.({
+            type: "mediaSeekTime",
+            value: 120,
+            finalize: true,
+        });
+
+        expect(video.currentTime).toBe(120);
+        expect(Number(slider.dataset.currentTimeMs)).toBe(clipStartMs + 120000);
+        expect(Number(slider.value)).toBe(clipStartMs + 120000);
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel.elapsedSeconds).toBe(120);
+    });
+
     it("force resync keeps media paused and aligned when animation is paused", async () => {
         class FakeInput {}
         const slider = new FakeInput();
@@ -1823,7 +2555,7 @@ describe("createMediaTimelineCoordination", () => {
         expect(video.pause).toHaveBeenCalled();
         expect(video.currentTime).toBeGreaterThanOrEqual(0);
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
-        expect(latestRender.playbackModel.statusLabel).toContain("timeline-synced");
+        expect(latestRender.playbackModel.statusLabel).toContain("frame preview");
         expect(latestRender.playbackModel.statusLabel).toContain("60x");
     });
 
@@ -1909,13 +2641,30 @@ describe("createMediaTimelineCoordination", () => {
         expect(playAnimation).toHaveBeenCalledTimes(2);
     });
 
-    it("does not pause mission animation when an hls stream reports buffering", async () => {
+    it("pauses mission animation and shows a status toast when an hls stream reports buffering", async () => {
         class FakeInput {}
         const slider = new FakeInput();
         slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
         slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
         slider.value = "";
         slider.dispatchEvent = vi.fn();
+        const hiddenClasses = new Set(["media-buffering-status--hidden"]);
+        const bufferingStatus = {
+            hidden: true,
+            dataset: {},
+            classList: {
+                toggle: vi.fn((className, force) => {
+                    if (force) {
+                        hiddenClasses.add(className);
+                    } else {
+                        hiddenClasses.delete(className);
+                    }
+                }),
+            },
+        };
+        const bufferingStatusText = {
+            textContent: "",
+        };
         globalThis.HTMLInputElement = FakeInput;
         globalThis.Event = class {
             constructor(type) {
@@ -1927,7 +2676,12 @@ describe("createMediaTimelineCoordination", () => {
                 dataPath: "assets/artemis2/data",
             },
         };
-        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-buffering-status") return bufferingStatus;
+            if (id === "media-buffering-status-text") return bufferingStatusText;
+            return null;
+        });
         mocks.loadMissionMediaManifest.mockResolvedValue({
             mediaStreams: [
                 {
@@ -1973,12 +2727,27 @@ describe("createMediaTimelineCoordination", () => {
             currentTime: 4,
         });
 
-        expect(pauseAnimation).not.toHaveBeenCalled();
+        expect(pauseAnimation).toHaveBeenCalledTimes(1);
+        expect(bufferingStatus.hidden).toBe(false);
+        expect(bufferingStatus.dataset.status).toBe("buffering");
+        expect(hiddenClasses.has("media-buffering-status--hidden")).toBe(false);
+        expect(bufferingStatusText.textContent).toContain("animation paused");
         const bufferingRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(bufferingRender.playbackModel).toEqual(expect.objectContaining({
             buffering: true,
             playing: false,
             showControls: true,
         }));
+
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "lunar-flyby-stream",
+            mediaKind: "videoClip",
+            currentTime: 4,
+        });
+
+        expect(bufferingStatus.hidden).toBe(true);
+        expect(bufferingStatus.dataset.status).toBe("");
+        expect(hiddenClasses.has("media-buffering-status--hidden")).toBe(true);
     });
 });

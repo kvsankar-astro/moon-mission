@@ -168,11 +168,11 @@ describe("lunar crater actions", () => {
                 rangeMinDiameterKm: 0,
                 rangeMaxDiameterKm: 600,
             },
-            features: Array.from({ length: 28 }, (_, index) => ({
+            features: Array.from({ length: 56 }, (_, index) => ({
                 name: `Visible crater ${index}`,
                 featureType: "Crater, craters",
-                latitudeDeg: -6 + (index % 7) * 2,
-                longitudeDeg: -6 + Math.floor(index / 7) * 4,
+                latitudeDeg: -10 + (index % 8) * 2.5,
+                longitudeDeg: -12 + Math.floor(index / 8) * 4,
                 diameterKm: 120 + index,
             })),
         };
@@ -213,9 +213,58 @@ describe("lunar crater actions", () => {
         const renderedLabels = scene.lunarCraterAnnotations.filter((object) =>
             object.userData?.lunarCrater && !object.userData?.craterRing,
         );
-        expect(renderedRings.length).toBeGreaterThan(14);
-        expect(renderedLabels.length).toBeLessThanOrEqual(14);
+        expect(renderedRings.length).toBeGreaterThan(28);
+        expect(renderedLabels.length).toBeLessThanOrEqual(28);
         expect(renderedLabels.length).toBeLessThan(renderedRings.length);
+    });
+
+    it("preserves hover labels when rebuilding Show Always annotations", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [
+                {
+                    name: "Hoverable crater",
+                    featureType: "Crater, craters",
+                    latitudeDeg: 0,
+                    longitudeDeg: 0,
+                    diameterKm: 120,
+                },
+            ],
+        };
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "always",
+            getLunarFeatureTypeFilters: () => ({}),
+            craterCatalog: catalog,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+            lunarCraterDisplayMode: "always",
+            lunarCraterHoverLabelsEnabled: true,
+        };
+
+        actions.addLunarCraterAnnotations({ scene });
+
+        expect(scene.lunarCraterDisplayMode).toBe("always");
+        expect(scene.lunarCraterHoverLabelsEnabled).toBe(true);
+        expect(scene.lunarCraterPickTargets.length).toBeGreaterThan(0);
     });
 
     it("caps crater label scale when the camera is too close", () => {

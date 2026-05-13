@@ -48,8 +48,11 @@ function createSceneHandlerClass(deps) {
             this.moonWorldPosition = new THREE.Vector3();
             this.earthCloudsEnabled = true;
             this.lunarCraterHoverRenderRaf = null;
+            this.lunarCraterLabelScaleFrozen = false;
             this.handleLunarCraterPointerMoveBound = this.handleLunarCraterPointerMove.bind(this);
             this.handleLunarCraterPointerLeaveBound = this.handleLunarCraterPointerLeave.bind(this);
+            this.handleLunarCraterPointerDownBound = this.handleLunarCraterPointerDown.bind(this);
+            this.handleLunarCraterPointerUpBound = this.handleLunarCraterPointerUp.bind(this);
 
             this.init();
         }
@@ -128,6 +131,21 @@ function createSceneHandlerClass(deps) {
             }
         }
 
+        handleLunarCraterPointerDown(event) {
+            if (event?.button != null && event.button !== 0) {
+                return;
+            }
+            this.lunarCraterLabelScaleFrozen = true;
+        }
+
+        handleLunarCraterPointerUp() {
+            if (!this.lunarCraterLabelScaleFrozen) {
+                return;
+            }
+            this.lunarCraterLabelScaleFrozen = false;
+            this.scheduleLunarCraterHoverRender();
+        }
+
         bindLunarCraterHoverEvents() {
             const target = this.getPointerEventTarget();
             if (!target?.addEventListener) {
@@ -137,6 +155,16 @@ function createSceneHandlerClass(deps) {
                 passive: true,
             });
             target.addEventListener("pointerleave", this.handleLunarCraterPointerLeaveBound);
+            target.addEventListener("pointerdown", this.handleLunarCraterPointerDownBound, {
+                passive: true,
+            });
+            const windowRef = typeof window !== "undefined" ? window : null;
+            windowRef?.addEventListener?.("pointerup", this.handleLunarCraterPointerUpBound, {
+                passive: true,
+            });
+            windowRef?.addEventListener?.("pointercancel", this.handleLunarCraterPointerUpBound, {
+                passive: true,
+            });
         }
 
         ensureAuxiliaryCameraViews() {
@@ -229,6 +257,7 @@ function createSceneHandlerClass(deps) {
                 animationScene.updateLunarCraterLabelScales?.({
                     camera,
                     rendererDomElement: this.renderer?.domElement || null,
+                    freezeScale: this.lunarCraterLabelScaleFrozen === true,
                 });
                 // Render sky first on its dedicated layer, then clear depth so
                 // foreground bodies fully occlude background stars.

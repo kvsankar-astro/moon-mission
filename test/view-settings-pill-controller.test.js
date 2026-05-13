@@ -426,7 +426,7 @@ describe("createViewSettingsPillController", function () {
                 {
                     viewLunarCraters: true,
                     lunarCraterDisplayMode: "always",
-                    lunarCraterHoverLabels: false,
+                    lunarCraterHoverLabels: true,
                 },
                 { sourceId: "lunar-crater-visible-toggle" },
             );

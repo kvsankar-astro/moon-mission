@@ -207,4 +207,111 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
             await page.close();
         }
     }, TEST_TIMEOUT_MS);
+
+    it("allows Moon-locked Frame and Shoot wheel zoom to widen beyond Auto FoV bounds", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            const viewportBox = await page
+                .locator(".aux-camera-view--composer .aux-camera-view__viewport")
+                .boundingBox();
+            if (!viewportBox) {
+                throw new Error("Frame and Shoot viewport was not available");
+            }
+
+            await page.mouse.move(
+                viewportBox.x + viewportBox.width * 0.5,
+                viewportBox.y + viewportBox.height * 0.5,
+            );
+            for (let i = 0; i < 8; i += 1) {
+                await page.mouse.wheel(0, 2000);
+            }
+
+            const zoomState = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const activeLock = [...panel.querySelectorAll(".aux-camera-view__composer-button.is-active")]
+                    .find((button) => ["Free", "Earth", "Moon"].includes(button.textContent.trim()));
+                const autoButton = panel.querySelector(".aux-camera-view__auto-toggle");
+                const valueText = panel.querySelector(".aux-camera-view__fov-value")?.textContent?.trim() || "";
+                return {
+                    activeLock: activeLock?.textContent.trim() || "",
+                    autoActive: autoButton?.classList.contains("is-active") === true,
+                    fov: Number.parseFloat(valueText),
+                };
+            });
+
+            expect(zoomState.activeLock).toBe("Moon");
+            expect(zoomState.autoActive).toBe(false);
+            expect(zoomState.fov).toBeGreaterThan(70);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
+    it("keeps Mag and Craters controls in the expected Frame and Shoot rows", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            const state = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const magRow = panel.querySelector(".aux-camera-view__composer-star-mag-row");
+                const craterPill = panel.querySelector("[data-proof-id='lunar-craters-toggle']");
+                const craterRow = craterPill?.closest(".aux-camera-view__composer-crater-row");
+                const infoRow = craterPill?.closest(".aux-camera-view__composer-info-row");
+                return {
+                    magLabel: magRow?.querySelector(".aux-camera-view__composer-label")?.textContent?.trim() || "",
+                    craterHasOwnRow: !!craterRow,
+                    craterInOverlayRow: !!infoRow,
+                    craterText: craterPill?.textContent?.trim() || "",
+                };
+            });
+
+            expect(state.magLabel).toBe("Mag");
+            expect(state.craterText).toBe("Craters");
+            expect(state.craterHasOwnRow).toBe(true);
+            expect(state.craterInOverlayRow).toBe(false);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
 });

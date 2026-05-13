@@ -315,7 +315,7 @@ describe("createTimelineDockController", () => {
         expect(scaleResetButton.disabled).toBe(true);
     });
 
-    it("supports wheel zoom, drag panning, and click seeking on the timeline strip", () => {
+    it("supports wheel zoom plus playhead drag and click seeking on the timeline strip", () => {
         const dockRoot = new FakeElement("div");
         const trackWrap = new FakeElement("div", { left: 100, width: 800, height: 42 });
         const slider = new FakeElement("input", { left: 100, width: 800, height: 24 });
@@ -395,7 +395,7 @@ describe("createTimelineDockController", () => {
             clientX: 600,
         });
 
-        expect(Number(slider.min)).toBeLessThan(zoomedMin);
+        expect(Number(slider.min)).toBe(zoomedMin);
         expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(false);
 
         trackWrap.dispatchEvent({
@@ -412,10 +412,13 @@ describe("createTimelineDockController", () => {
             clientX: 700,
         });
 
-        expect(seekTimes).toHaveLength(1);
-        expect(seekTimes[0].commit).toBe(true);
-        expect(seekTimes[0].timeMs).toBeGreaterThan(Number(slider.min));
-        expect(seekTimes[0].timeMs).toBeLessThan(Number(slider.max));
+        expect(seekTimes.length).toBeGreaterThanOrEqual(5);
+        const committedSeeks = seekTimes.filter((entry) => entry.commit === true);
+        expect(committedSeeks.length).toBeGreaterThanOrEqual(2);
+        const lastSeek = seekTimes[seekTimes.length - 1];
+        expect(lastSeek.commit).toBe(true);
+        expect(lastSeek.timeMs).toBeGreaterThan(Number(slider.min));
+        expect(lastSeek.timeMs).toBeLessThan(Number(slider.max));
 
         const thumbDownEvent = {
             type: "pointerdown",
@@ -427,7 +430,14 @@ describe("createTimelineDockController", () => {
         };
         trackWrap.dispatchEvent(thumbDownEvent);
 
-        expect(thumbDownEvent.defaultPrevented).not.toBe(true);
+        expect(thumbDownEvent.defaultPrevented).toBe(true);
+        expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(true);
+        trackWrap.dispatchEvent({
+            type: "pointerup",
+            pointerId: 3,
+            pointerType: "mouse",
+            clientX: 700,
+        });
         expect(dockRoot.classList.contains("timeline-dock--timeline-dragging")).toBe(false);
     });
 
@@ -499,6 +509,74 @@ describe("createTimelineDockController", () => {
         expect(seekTimes).toHaveLength(1);
         expect(seekTimes[0].commit).toBe(true);
         expect(seekTimes[0].timeMs).toBeGreaterThan(500);
+    });
+
+    it("seeks when clicking the empty media marker lane", () => {
+        const dockRoot = new FakeElement("div");
+        const trackWrap = new FakeElement("div", { left: 100, width: 800, height: 42 });
+        const slider = new FakeElement("input", { left: 100, width: 800, height: 24 });
+        const markers = new FakeElement("div");
+        const mediaMarkers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const seekTimes = [];
+
+        trackWrap.appendChild(slider);
+        trackWrap.appendChild(markers);
+        trackWrap.appendChild(mediaMarkers);
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-media-markers") return mediaMarkers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({
+            onSeekTime(timeMs, commit) {
+                seekTimes.push({ timeMs, commit });
+            },
+        });
+        controller.bind();
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 1,
+        });
+
+        const laneClickX = 700;
+        trackWrap.dispatchEvent({
+            type: "pointerdown",
+            pointerId: 12,
+            pointerType: "mouse",
+            button: 0,
+            clientX: laneClickX,
+            target: mediaMarkers,
+        });
+        trackWrap.dispatchEvent({
+            type: "pointerup",
+            pointerId: 12,
+            pointerType: "mouse",
+            clientX: laneClickX,
+            target: mediaMarkers,
+        });
+
+        expect(seekTimes).toEqual([
+            { timeMs: 750, commit: false },
+            { timeMs: 750, commit: true },
+        ]);
     });
 
     it("switches to explicit compare-mode labels and styles comparison markers", () => {
@@ -672,6 +750,80 @@ describe("createTimelineDockController", () => {
         expect(markers.children[0].className).not.toContain("timeline-dock__marker--time-boundary");
     });
 
+    it("emits a timeline seek event when clicking a reachable timeline event marker", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const dispatchedEvents = [];
+        const selectedMarkers = [];
+        const onMarkerSelect = (eventInfo, index) => {
+            selectedMarkers.push({ eventInfo, index });
+        };
+
+        global.CustomEvent = class {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        };
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            dispatchEvent(event) {
+                dispatchedEvents.push(event);
+            },
+        };
+
+        const controller = createTimelineDockController({
+            onMarkerSelect,
+        });
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 100,
+        });
+        controller.setEvents([
+            {
+                key: "event-1",
+                startTime: new Date(500),
+                label: "Event 1",
+                clickable: true,
+            },
+        ]);
+
+        markers.children[0].dispatchEvent({ type: "click" });
+
+        expect(dispatchedEvents).toHaveLength(1);
+        expect(dispatchedEvents[0].type).toBe("mission-timeline-user-seek");
+        expect(dispatchedEvents[0].detail.phase).toBe("commit");
+        expect(dispatchedEvents[0].detail.source).toBe("timeline-event-marker");
+        expect(dispatchedEvents[0].detail.timeMs).toBe(500);
+        expect(selectedMarkers).toHaveLength(1);
+        expect(selectedMarkers[0]).toEqual(expect.objectContaining({
+            eventInfo: expect.objectContaining({
+                key: "event-1",
+            }),
+            index: 0,
+        }));
+
+        delete global.CustomEvent;
+    });
+
     it("renders media markers on a separate rail", () => {
         const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");
@@ -813,9 +965,14 @@ describe("createTimelineDockController", () => {
 
         mediaMarkers.children[0].dispatchEvent({ type: "click" });
 
-        expect(dispatchedEvents).toHaveLength(1);
-        expect(dispatchedEvents[0].type).toBe("mission-media-marker-select");
-        expect(dispatchedEvents[0].detail.marker.id).toBe("earthset-photo");
+        expect(dispatchedEvents).toHaveLength(2);
+        expect(dispatchedEvents[0].type).toBe("mission-timeline-user-seek");
+        expect(dispatchedEvents[0].detail.phase).toBe("commit");
+        expect(dispatchedEvents[0].detail.source).toBe("timeline-media-marker");
+        expect(dispatchedEvents[0].detail.timeMs).toBe(500);
+        expect(dispatchedEvents[1].type).toBe("mission-media-marker-select");
+        expect(dispatchedEvents[1].detail.marker.id).toBe("earthset-photo");
+        expect(dispatchedEvents[1].detail.timeMs).toBe(500);
 
         delete global.CustomEvent;
     });

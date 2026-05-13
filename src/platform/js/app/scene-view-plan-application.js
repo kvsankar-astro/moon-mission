@@ -77,10 +77,7 @@ function applySceneViewPlanToScene({
             lunarCraterMaxDiameterKm: view.lunarCraterMaxDiameterKm,
         });
     }
-    if (
-        !Object.prototype.hasOwnProperty.call(view, "lunarCraterDisplayMode") &&
-        Object.prototype.hasOwnProperty.call(view, "lunarCraterHoverLabels")
-    ) {
+    if (Object.prototype.hasOwnProperty.call(view, "lunarCraterHoverLabels")) {
         scene.setLunarCraterHoverLabelsEnabled?.(view.lunarCraterHoverLabels);
     }
     if (view.lunarFeatureTypeFilters && typeof view.lunarFeatureTypeFilters === "object") {

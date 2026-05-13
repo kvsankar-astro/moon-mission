@@ -35,8 +35,35 @@ const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
 
+let hlsLibraryPromise = null;
+
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+}
+
+function snapRangeValue(value, min, max, step) {
+    const safeValue = clamp(value, min, max);
+    const safeStep = Number(step);
+    if (!Number.isFinite(safeStep) || safeStep <= 0) {
+        return safeValue;
+    }
+    const snapped = min + Math.round((safeValue - min) / safeStep) * safeStep;
+    return clamp(snapped, min, max);
+}
+
+function resolveRangeValueAtClientX(rangeInput, clientX) {
+    if (!rangeInput || !Number.isFinite(clientX)) return Number.NaN;
+    const min = Number(rangeInput.min);
+    const max = Number(rangeInput.max);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+        return Number.NaN;
+    }
+    const rect = rangeInput.getBoundingClientRect?.();
+    const width = Number(rect?.width);
+    if (!Number.isFinite(width) || width <= 0) return Number.NaN;
+    const left = Number(rect?.left) || 0;
+    const ratio = clamp((clientX - left) / width, 0, 1);
+    return snapRangeValue(min + ratio * (max - min), min, max, rangeInput.step);
 }
 
 function createDefaultMediaImageViewState() {
@@ -124,8 +151,49 @@ function callMediaMethod(mediaElement, methodName) {
     }
 }
 
+function isPictureInPictureSupported(video) {
+    const documentRef = getDocumentRef();
+    return !!video
+        && typeof video.requestPictureInPicture === "function"
+        && documentRef?.pictureInPictureEnabled !== false
+        && video.disablePictureInPicture !== true;
+}
+
+function isLikelyHlsSource(url = "", sourceType = "") {
+    const normalizedSourceType = String(sourceType || "").trim().toLowerCase();
+    const normalizedUrl = String(url || "").trim().toLowerCase();
+    return normalizedSourceType === "hls" || normalizedUrl.includes(".m3u8");
+}
+
+function canPlayHlsNatively(video) {
+    if (typeof video?.canPlayType !== "function") return false;
+    return Boolean(
+        video.canPlayType("application/vnd.apple.mpegurl")
+            || video.canPlayType("application/x-mpegURL"),
+    );
+}
+
+function loadHlsLibrary() {
+    if (!hlsLibraryPromise) {
+        hlsLibraryPromise = import("hls.js")
+            .then((module) => module.default || module.Hls || module)
+            .catch(() => null);
+    }
+    return hlsLibraryPromise;
+}
+
 function createElement(tagName) {
     return getDocumentRef()?.createElement?.(tagName) || null;
+}
+
+function dispatchDocumentCustomEvent(type, detail) {
+    const documentRef = getDocumentRef();
+    if (!documentRef || typeof documentRef.dispatchEvent !== "function") return;
+    if (typeof CustomEvent === "function") {
+        documentRef.dispatchEvent(new CustomEvent(type, { detail }));
+        return;
+    }
+    documentRef.dispatchEvent({ type, detail });
 }
 
 function createSvgElement(tagName) {
@@ -144,6 +212,17 @@ function getViewportHeight() {
 
 function getPanelDefaultHeightPx() {
     return Math.round(getViewportHeight() * PANEL_DEFAULT_HEIGHT_RATIO);
+}
+
+function formatMediaElapsedTime(seconds) {
+    const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    if (hours > 0) {
+        return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 function createMediaBrowserPanelActions({
@@ -166,6 +245,10 @@ function createMediaBrowserPanelActions({
     let imagePanDragState = null;
     let imageViewAssetUrl = "";
     let videoViewAssetUrl = "";
+    let hlsInstance = null;
+    let hlsSourceUrl = "";
+    let hlsAttachToken = 0;
+    let hlsUnsupportedSourceUrl = "";
     let filterSignature = "";
     let thumbnailSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
@@ -243,6 +326,26 @@ function createMediaBrowserPanelActions({
         ].filter((part) => part && !part.startsWith("0 "));
         const base = `${matchCount} of ${formatCountLabel(totalCount, "media file")} filtered in`;
         return breakdown.length > 0 ? `${base} (${breakdown.join(", ")}).` : `${base}.`;
+    }
+
+    function formatMediaDetailList(values) {
+        const parts = (Array.isArray(values) ? values : [])
+            .map((value) => String(value || "").trim())
+            .filter(Boolean);
+        return parts.length ? parts.join(", ") : "--";
+    }
+
+    function formatCompositionHintLabel(hint = {}) {
+        const target = String(hint?.suggestedLockTarget || hint?.lockTarget || "").trim();
+        const confidence = Number(hint?.confidence);
+        const reason = String(hint?.reason || "").trim();
+        const targetLabel = target ? `Lock ${target}` : "";
+        const confidenceLabel = Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : "";
+        return [
+            targetLabel,
+            confidenceLabel,
+            reason,
+        ].filter(Boolean).join(" - ") || "--";
     }
 
     function resolveDefaultPanelPosition(panel) {
@@ -1104,6 +1207,10 @@ function createMediaBrowserPanelActions({
             return;
         }
         panelVisibilityState = resolvedState;
+        dispatchDocumentCustomEvent("mission-media-panel-state", {
+            state: resolvedState,
+            isOpen: resolvedState === "open",
+        });
         const panel = getNode("media-browser-panel");
         if (!isElementLike(panel)) return;
         const isVisible = resolvedState === "open";
@@ -1207,20 +1314,74 @@ function createMediaBrowserPanelActions({
         appendFilterFacetGroup(host, "Camera", cameraOptions, "toggleCameraFilter", "camera");
     }
 
+    function syncMediaSearchControl(filterModel = {}) {
+        const input = getNode("media-browser-search");
+        if (!input) return;
+        const query = String(filterModel.query || "").trim();
+        if (input.value !== query) {
+            input.value = query;
+        }
+        input.title = query ? `Searching media metadata for "${query}"` : "Search media metadata";
+    }
+
+    function syncVideoPopoutButton({ hasVideo = false } = {}) {
+        const button = getNode("media-browser-media-popout");
+        const video = getNode("media-browser-video");
+        if (!button) return;
+        const supported = hasVideo === true && isPictureInPictureSupported(video);
+        button.hidden = !supported;
+        button.disabled = !supported;
+        const poppedOut = supported && getDocumentRef()?.pictureInPictureElement === video;
+        button.textContent = poppedOut ? "Dock" : "Pop Out";
+        button.title = poppedOut ? "Return video to panel" : "Pop out video";
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-pressed", poppedOut ? "true" : "false");
+    }
+
+    async function toggleVideoPopout() {
+        const video = getNode("media-browser-video");
+        if (!isPictureInPictureSupported(video)) {
+            syncVideoPopoutButton({ hasVideo: false });
+            return;
+        }
+        const documentRef = getDocumentRef();
+        try {
+            if (documentRef?.pictureInPictureElement === video) {
+                await documentRef.exitPictureInPicture?.();
+            } else {
+                await video.requestPictureInPicture();
+            }
+        } catch {
+            // Browsers can reject Picture-in-Picture until metadata is ready or after a rapid source swap.
+        }
+        syncVideoPopoutButton({ hasVideo: video?.hidden !== true && !!video?.dataset?.mediaSourceUrl });
+    }
+
     function syncMediaControls(playbackModel = {}) {
         const controls = getNode("media-browser-media-controls");
         const playButton = getNode("media-browser-media-play");
         const restartButton = getNode("media-browser-media-restart");
         const resyncButton = getNode("media-browser-media-resync");
+        const elapsed = getNode("media-browser-media-elapsed");
+        const slider = getNode("media-browser-media-timeline");
         const status = getNode("media-browser-media-status");
         const show = playbackModel.showControls === true;
         const isBusy = playbackModel.playing === true || playbackModel.buffering === true;
+        const elapsedSeconds = Number(playbackModel.elapsedSeconds);
+        const durationSeconds = Number(playbackModel.durationSeconds);
+        const hasDuration = Number.isFinite(durationSeconds) && durationSeconds > 0;
+        const safeElapsedSeconds = Number.isFinite(elapsedSeconds) && elapsedSeconds >= 0
+            ? elapsedSeconds
+            : 0;
+        const clampedElapsedSeconds = hasDuration
+            ? Math.min(safeElapsedSeconds, durationSeconds)
+            : safeElapsedSeconds;
         if (controls) {
             controls.hidden = !show;
         }
         if (playButton) {
             playButton.disabled = !show;
-            playButton.dataset.icon = isBusy ? "pause" : "play";
+            playButton.textContent = isBusy ? "Pause" : "Play";
             playButton.title = playbackModel.playTitle || (isBusy
                 ? "Pause media playback"
                 : "Play media from the current mission time");
@@ -1228,13 +1389,36 @@ function createMediaBrowserPanelActions({
         }
         if (restartButton) {
             restartButton.disabled = !show;
-            restartButton.title = playbackModel.restartTitle || "Restart media from beginning";
+            restartButton.title = playbackModel.restartTitle || "Play media from beginning";
             restartButton.setAttribute("aria-label", restartButton.title);
         }
         if (resyncButton) {
             resyncButton.disabled = !show;
             resyncButton.title = playbackModel.resyncTitle || "Force resync media with animation";
             resyncButton.setAttribute("aria-label", resyncButton.title);
+        }
+        if (elapsed) {
+            const elapsedLabel = hasDuration
+                ? `${formatMediaElapsedTime(clampedElapsedSeconds)} / ${formatMediaElapsedTime(durationSeconds)}`
+                : `${formatMediaElapsedTime(clampedElapsedSeconds)} / --:--`;
+            elapsed.textContent = show ? elapsedLabel : "";
+            elapsed.title = elapsedLabel;
+        }
+        if (slider) {
+            const seekEnabled = show && playbackModel.seekEnabled !== false && hasDuration;
+            slider.hidden = !show;
+            slider.disabled = !seekEnabled;
+            slider.min = "0";
+            slider.max = hasDuration ? String(durationSeconds) : "0";
+            slider.step = "0.25";
+            slider.value = String(hasDuration ? clampedElapsedSeconds : 0);
+            slider.setAttribute(
+                "aria-label",
+                playbackModel.sliderTitle || "Selected media timeline",
+            );
+            slider.title = seekEnabled
+                ? (playbackModel.sliderTitle || "Seek selected media")
+                : "Media timeline unavailable";
         }
         if (status) {
             status.textContent = show ? String(playbackModel.statusLabel || "") : "";
@@ -1366,7 +1550,8 @@ function createMediaBrowserPanelActions({
             const fallback = createThumbnailFallback(item.kind);
             const title = createElement("span");
             const meta = createElement("span");
-            if (!button || !media || !title || !meta) return;
+            const metadata = createElement("span");
+            if (!button || !media || !title || !meta || !metadata) return;
             button.type = "button";
             button.className = [
                 "media-browser-panel__thumbnail-card",
@@ -1377,7 +1562,7 @@ function createMediaBrowserPanelActions({
                 button.setAttribute("aria-current", "true");
             }
             button.draggable = false;
-            button.title = [item.title, item.meta].filter(Boolean).join(" - ");
+            button.title = [item.title, item.meta, item.metadataLabel].filter(Boolean).join(" - ");
             media.className = "media-browser-panel__thumbnail-media";
             media.addEventListener("dragstart", (event) => event.preventDefault());
             if (image && item.thumbnailAssetUrl) {
@@ -1420,9 +1605,13 @@ function createMediaBrowserPanelActions({
             title.textContent = item.title;
             meta.className = "media-browser-panel__thumbnail-meta";
             meta.textContent = item.meta;
+            metadata.className = "media-browser-panel__thumbnail-metadata";
+            metadata.textContent = item.metadataLabel || "";
+            metadata.hidden = !item.metadataLabel;
             button.appendChild(media);
             button.appendChild(title);
             button.appendChild(meta);
+            button.appendChild(metadata);
             button.addEventListener("click", () => {
                 onIntent?.({ type: "previewItem", value: item.id });
             });
@@ -1430,6 +1619,136 @@ function createMediaBrowserPanelActions({
         }
 
         revealActiveThumbnail();
+    }
+
+    function destroyHlsInstance() {
+        if (!hlsInstance) return;
+        try {
+            hlsInstance.destroy?.();
+        } catch {
+            // hls.js can throw while tearing down a partially attached stream.
+        }
+        hlsInstance = null;
+        hlsSourceUrl = "";
+    }
+
+    function setVideoPoster(video, posterAssetUrl = "") {
+        if (posterAssetUrl) {
+            video.poster = posterAssetUrl;
+        } else {
+            video.removeAttribute?.("poster");
+        }
+    }
+
+    function setNativeVideoSource(video, activeItem, nextVideoUrl) {
+        destroyHlsInstance();
+        hlsUnsupportedSourceUrl = "";
+        if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
+            videoViewAssetUrl = nextVideoUrl;
+            video.src = nextVideoUrl;
+            callMediaMethod(video, "load");
+        }
+        setVideoPoster(video, activeItem.posterAssetUrl || "");
+    }
+
+    function attachHlsVideoSource(video, activeItem, nextVideoUrl) {
+        if (hlsUnsupportedSourceUrl === nextVideoUrl) {
+            setVideoPoster(video, activeItem.posterAssetUrl || "");
+            return;
+        }
+        if (hlsInstance && hlsSourceUrl === nextVideoUrl && videoViewAssetUrl === nextVideoUrl) {
+            setVideoPoster(video, activeItem.posterAssetUrl || "");
+            return;
+        }
+        hlsAttachToken += 1;
+        const attachToken = hlsAttachToken;
+        destroyHlsInstance();
+        videoViewAssetUrl = nextVideoUrl;
+        video.removeAttribute?.("src");
+        setVideoPoster(video, activeItem.posterAssetUrl || "");
+        callMediaMethod(video, "load");
+
+        loadHlsLibrary().then((Hls) => {
+            if (attachToken !== hlsAttachToken || videoViewAssetUrl !== nextVideoUrl) return;
+            if (!Hls || typeof Hls.isSupported !== "function" || !Hls.isSupported()) {
+                if (canPlayHlsNatively(video)) {
+                    setNativeVideoSource(video, activeItem, nextVideoUrl);
+                    return;
+                }
+                hlsUnsupportedSourceUrl = nextVideoUrl;
+                video.removeAttribute?.("src");
+                callMediaMethod(video, "load");
+                onIntent?.({
+                    type: "mediaPlaybackFailed",
+                    value: activeItem.id || "",
+                    mediaKind: "videoClip",
+                });
+                return;
+            }
+
+            hlsUnsupportedSourceUrl = "";
+            const instance = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+            });
+            hlsInstance = instance;
+            hlsSourceUrl = nextVideoUrl;
+            instance.attachMedia(video);
+            instance.on(Hls.Events.MEDIA_ATTACHED, () => {
+                if (attachToken !== hlsAttachToken || hlsInstance !== instance) return;
+                instance.loadSource(nextVideoUrl);
+            });
+            instance.on(Hls.Events.ERROR, (_event, data = {}) => {
+                if (hlsInstance !== instance || data.fatal !== true) return;
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                    instance.startLoad();
+                    return;
+                }
+                if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                    instance.recoverMediaError();
+                    return;
+                }
+                destroyHlsInstance();
+            });
+        });
+    }
+
+    function configureVideoSource(video, activeItem) {
+        const nextVideoUrl = activeItem.videoAssetUrl;
+        const sourceType = activeItem.sourceType || "";
+        const isHlsSource = isLikelyHlsSource(nextVideoUrl, sourceType);
+
+        if (video.dataset) {
+            video.dataset.mediaItemId = activeItem.id || "";
+            video.dataset.mediaSourceUrl = nextVideoUrl || "";
+            video.dataset.sourceType = sourceType;
+        }
+
+        if (isHlsSource) {
+            attachHlsVideoSource(video, activeItem, nextVideoUrl);
+            return;
+        }
+
+        hlsAttachToken += 1;
+        setNativeVideoSource(video, activeItem, nextVideoUrl);
+    }
+
+    function clearVideoSource(video) {
+        hlsAttachToken += 1;
+        destroyHlsInstance();
+        hlsUnsupportedSourceUrl = "";
+        if (videoViewAssetUrl) {
+            callMediaMethod(video, "pause");
+            video.removeAttribute?.("src");
+            video.removeAttribute?.("poster");
+            callMediaMethod(video, "load");
+        }
+        videoViewAssetUrl = "";
+        if (video.dataset) {
+            video.dataset.mediaItemId = "";
+            video.dataset.mediaSourceUrl = "";
+            video.dataset.sourceType = "";
+        }
     }
 
     function render(viewModel = {}) {
@@ -1452,6 +1771,17 @@ function createMediaBrowserPanelActions({
         setText("media-browser-photographer", viewModel.activeItem?.photographer || "--");
         setText("media-browser-location", viewModel.activeItem?.location || "--");
         setText("media-browser-source", viewModel.activeItem?.sourceLabel || "--");
+        setText("media-browser-llm-summary", viewModel.activeItem?.shortDescription || "--");
+        setText("media-browser-scene-type", viewModel.activeItem?.sceneType || "--");
+        setText("media-browser-bodies", formatMediaDetailList(viewModel.activeItem?.bodies));
+        setText("media-browser-main-body", viewModel.activeItem?.mainBody || "--");
+        setText("media-browser-tags", formatMediaDetailList(viewModel.activeItem?.tags));
+        setText("media-browser-subjects", formatMediaDetailList(viewModel.activeItem?.subjects));
+        setText("media-browser-composition-hint", formatCompositionHintLabel(viewModel.activeItem?.compositionHints));
+        setText("media-browser-quality-notes", viewModel.activeItem?.qualityNotes || "--");
+        setText("media-browser-exif-detail", viewModel.activeItem?.exifLabel || "--");
+        setText("media-browser-exif", viewModel.activeItem?.exifLabel || "");
+        setHidden("media-browser-exif", !viewModel.activeItem?.exifLabel);
         setText(
             "media-browser-description",
             viewModel.activeItem?.description
@@ -1461,8 +1791,8 @@ function createMediaBrowserPanelActions({
         );
         setText("media-browser-timing-note", viewModel.activeItem?.timingNote || "");
         setHidden("media-browser-timing-note", !viewModel.activeItem?.timingNote);
-        setText("media-browser-seed-note", viewModel.seedNote || "");
-        setHidden("media-browser-seed-note", !viewModel.seedNote);
+        setText("media-browser-seed-note", "");
+        setHidden("media-browser-seed-note", true);
         setText("media-browser-stage-badge", viewModel.activeItem?.stageBadge || "");
         setHidden("media-browser-stage-badge", !viewModel.activeItem?.stageBadge);
 
@@ -1477,38 +1807,14 @@ function createMediaBrowserPanelActions({
 
         if (isVideoLike(video)) {
             if (hasVideo) {
-                const nextVideoUrl = activeItem.videoAssetUrl;
-                const sourceType = String(activeItem.videoSourceType || "").trim().toLowerCase();
-                if (videoViewAssetUrl !== nextVideoUrl) {
-                    videoViewAssetUrl = nextVideoUrl;
-                    if (sourceType !== "hls") {
-                        video.src = nextVideoUrl;
-                        callMediaMethod(video, "load");
-                    }
-                }
-                if (activeItem.posterAssetUrl) {
-                    video.poster = activeItem.posterAssetUrl;
-                } else {
-                    video.removeAttribute?.("poster");
-                }
-                if (video.dataset) {
-                    video.dataset.mediaItemId = activeItem.id || "";
-                }
+                configureVideoSource(video, activeItem);
                 video.hidden = false;
             } else {
-                if (videoViewAssetUrl) {
-                    callMediaMethod(video, "pause");
-                    video.removeAttribute?.("src");
-                    video.removeAttribute?.("poster");
-                    callMediaMethod(video, "load");
-                }
-                videoViewAssetUrl = "";
-                if (video.dataset) {
-                    video.dataset.mediaItemId = "";
-                }
+                clearVideoSource(video);
                 video.hidden = true;
             }
         }
+        syncVideoPopoutButton({ hasVideo });
 
         if (isImageLike(image)) {
             if (hasImage) {
@@ -1551,6 +1857,7 @@ function createMediaBrowserPanelActions({
         }
 
         renderMediaFilterControls(viewModel.filterModel || {});
+        syncMediaSearchControl(viewModel.filterModel || {});
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
         syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
@@ -1696,6 +2003,97 @@ function createMediaBrowserPanelActions({
         getNode("media-browser-media-resync")?.addEventListener?.("click", () => {
             onIntent?.({ type: "forceResyncActiveMedia" });
         });
+        getNode("media-browser-media-popout")?.addEventListener?.("click", () => {
+            toggleVideoPopout();
+        });
+        const mediaTimelineSlider = getNode("media-browser-media-timeline");
+        let mediaTimelinePointerState = null;
+        const seekMediaTimelineFromPointer = (event, finalize = false) => {
+            const value = resolveRangeValueAtClientX(mediaTimelineSlider, Number(event?.clientX));
+            if (!Number.isFinite(value)) return false;
+            mediaTimelineSlider.value = String(value);
+            onIntent?.({
+                type: "mediaSeekTime",
+                value,
+                finalize: finalize === true,
+            });
+            return true;
+        };
+        mediaTimelineSlider?.addEventListener?.("pointerdown", (event) => {
+            if (mediaTimelineSlider.disabled === true || mediaTimelineSlider.hidden === true) return;
+            if (event?.isPrimary === false) return;
+            if (event?.pointerType === "mouse" && event?.button !== 0) return;
+            if (!seekMediaTimelineFromPointer(event, false)) return;
+            event?.preventDefault?.();
+            mediaTimelinePointerState = {
+                pointerId: Number(event?.pointerId),
+            };
+            if (Number.isFinite(mediaTimelinePointerState.pointerId)) {
+                mediaTimelineSlider.setPointerCapture?.(mediaTimelinePointerState.pointerId);
+            }
+        });
+        mediaTimelineSlider?.addEventListener?.("pointermove", (event) => {
+            if (!mediaTimelinePointerState) return;
+            const pointerId = Number(event?.pointerId);
+            if (
+                Number.isFinite(mediaTimelinePointerState.pointerId)
+                && Number.isFinite(pointerId)
+                && pointerId !== mediaTimelinePointerState.pointerId
+            ) {
+                return;
+            }
+            if (seekMediaTimelineFromPointer(event, false)) {
+                event?.preventDefault?.();
+            }
+        });
+        mediaTimelineSlider?.addEventListener?.("pointerup", (event) => {
+            if (!mediaTimelinePointerState) return;
+            const pointerId = Number(event?.pointerId);
+            if (
+                Number.isFinite(mediaTimelinePointerState.pointerId)
+                && Number.isFinite(pointerId)
+                && pointerId !== mediaTimelinePointerState.pointerId
+            ) {
+                return;
+            }
+            seekMediaTimelineFromPointer(event, true);
+            if (Number.isFinite(mediaTimelinePointerState.pointerId)) {
+                mediaTimelineSlider.releasePointerCapture?.(mediaTimelinePointerState.pointerId);
+            }
+            mediaTimelinePointerState = null;
+            event?.preventDefault?.();
+        });
+        mediaTimelineSlider?.addEventListener?.("pointercancel", () => {
+            if (
+                mediaTimelinePointerState
+                && Number.isFinite(mediaTimelinePointerState.pointerId)
+            ) {
+                mediaTimelineSlider.releasePointerCapture?.(mediaTimelinePointerState.pointerId);
+            }
+            mediaTimelinePointerState = null;
+        });
+        mediaTimelineSlider?.addEventListener?.("input", () => {
+            onIntent?.({
+                type: "mediaSeekTime",
+                value: Number(mediaTimelineSlider?.value),
+                finalize: false,
+            });
+        });
+        mediaTimelineSlider?.addEventListener?.("change", () => {
+            onIntent?.({
+                type: "mediaSeekTime",
+                value: Number(mediaTimelineSlider?.value),
+                finalize: true,
+            });
+        });
+
+        const mediaSearchInput = getNode("media-browser-search");
+        mediaSearchInput?.addEventListener?.("input", () => {
+            onIntent?.({
+                type: "setSearchQuery",
+                value: mediaSearchInput?.value || "",
+            });
+        });
 
         const video = getNode("media-browser-video");
         const getVideoItemId = () => String(video?.dataset?.mediaItemId || "").trim();
@@ -1724,6 +2122,15 @@ function createMediaBrowserPanelActions({
         video?.addEventListener?.("ended", () => {
             onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip" });
         });
+        for (const eventName of ["abort", "error"]) {
+            video?.addEventListener?.(eventName, () => {
+                onIntent?.({
+                    type: "mediaPlaybackFailed",
+                    value: getVideoItemId(),
+                    mediaKind: "videoClip",
+                });
+            });
+        }
         video?.addEventListener?.("timeupdate", () => {
             onIntent?.({
                 type: "mediaPlaybackTimeUpdate",
@@ -1732,6 +2139,13 @@ function createMediaBrowserPanelActions({
                 currentTime: Number(video?.currentTime),
             });
         });
+        for (const eventName of ["enterpictureinpicture", "leavepictureinpicture", "loadedmetadata", "emptied"]) {
+            video?.addEventListener?.(eventName, () => {
+                syncVideoPopoutButton({
+                    hasVideo: video?.hidden !== true && !!video?.dataset?.mediaSourceUrl,
+                });
+            });
+        }
 
         const drilldown = getNode("media-browser-drilldown");
         drilldown?.addEventListener?.("toggle", () => {
@@ -1818,5 +2232,6 @@ export {
     createMediaBrowserPanelActions,
     clampMediaImagePan,
     createDefaultMediaImageViewState,
+    resolveRangeValueAtClientX,
     zoomMediaImageViewState,
 };

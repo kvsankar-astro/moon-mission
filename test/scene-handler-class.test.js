@@ -227,4 +227,89 @@ describe("SceneHandler auxiliary panels", () => {
         expect(manager.restoreSharedComposerBodyAmbientLighting.mock.invocationCallOrder[0])
             .toBeGreaterThan(renderer.render.mock.invocationCallOrder.at(-1));
     });
+
+    it("freezes lunar label scaling during main canvas drag and refreshes after release", () => {
+        const rafCallbacks = [];
+        const windowListeners = {};
+        globalThis.window = {
+            innerWidth: 1280,
+            requestAnimationFrame: vi.fn((callback) => {
+                rafCallbacks.push(callback);
+                return rafCallbacks.length;
+            }),
+            addEventListener: vi.fn((type, handler) => {
+                windowListeners[type] = handler;
+            }),
+        };
+        const domListeners = {};
+        const domElement = {
+            addEventListener: vi.fn((type, handler) => {
+                domListeners[type] = handler;
+            }),
+        };
+        const renderer = {
+            autoClear: true,
+            domElement,
+            render: vi.fn(),
+            clearDepth: vi.fn(),
+        };
+        const camera = new THREE.PerspectiveCamera();
+        const animationScene = {
+            initialized3D: true,
+            scene: new THREE.Scene(),
+            camera,
+            earthContainer: new THREE.Object3D(),
+            moonContainer: new THREE.Object3D(),
+            refreshBodyHalos: vi.fn(),
+            stateSunDirection: null,
+            stateSunDirections: null,
+            updateLunarCraterLabelScales: vi.fn(),
+        };
+
+        const SceneHandler = createSceneHandlerClass({
+            THREE,
+            d3: {},
+            bindSettingsPanel: vi.fn(),
+            initSceneHandlerDom: vi.fn(() => ({
+                renderer,
+                canvasNode: domElement,
+            })),
+            computeSVGDimensions: vi.fn(),
+            getSvgWidth: vi.fn(() => 100),
+            getSvgHeight: vi.fn(() => 100),
+            isTestMode: false,
+            onWindowResize: vi.fn(),
+            updateCraftScale: vi.fn(),
+            getRuntimeState: vi.fn(() => ({
+                globalConfig: null,
+                joyRideFlag: false,
+                landingFlag: false,
+                viewPhotoMode: false,
+                viewAuxiliaryPanels: false,
+                earthRadius: 1,
+                moonRadius: 1,
+                timelineEventInfos: [],
+            })),
+        });
+
+        const handler = new SceneHandler();
+        domListeners.pointerdown({ button: 0 });
+        handler.render(animationScene);
+
+        expect(animationScene.updateLunarCraterLabelScales).toHaveBeenLastCalledWith({
+            camera,
+            rendererDomElement: domElement,
+            freezeScale: true,
+        });
+
+        windowListeners.pointerup({});
+        expect(rafCallbacks).toHaveLength(1);
+        rafCallbacks[0]();
+
+        expect(animationScene.updateLunarCraterLabelScales).toHaveBeenLastCalledWith({
+            camera,
+            rendererDomElement: domElement,
+            freezeScale: false,
+        });
+    });
 });

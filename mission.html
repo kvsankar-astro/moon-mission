@@ -344,6 +344,7 @@
                 "three/addons/": "https://unpkg.com/three@0.179.1/examples/jsm/",
                 "swiper": "https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.mjs",
                 "jszip": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm",
+                "hls.js": "https://cdn.jsdelivr.net/npm/hls.js@1.6.16/+esm",
                 "d3": "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm"
             }
         }
@@ -1777,6 +1778,18 @@
                             role="group"
                             aria-label="Media filters"
                         ></div>
+                        <label class="media-browser-panel__search">
+                            <span class="media-browser-panel__search-label">Search</span>
+                            <input
+                                id="media-browser-search"
+                                class="media-browser-panel__search-input"
+                                type="search"
+                                autocomplete="off"
+                                spellcheck="false"
+                                placeholder="crew, window, gloves..."
+                                aria-label="Search media metadata"
+                            >
+                        </label>
                         <div
                             id="media-browser-filter-summary"
                             class="media-browser-panel__filter-summary"
@@ -1896,6 +1909,7 @@
                                 <span id="media-browser-camera" class="media-browser-panel__caption-camera">--</span>
                             </div>
                             <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
+                            <div id="media-browser-exif" class="media-browser-panel__exif" hidden></div>
                         </div>
                     </div>
                 </div>
@@ -1907,16 +1921,8 @@
                     hidden
                 >
                     <button
-                        id="media-browser-media-play"
-                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
-                        type="button"
-                        title="Play media from the current mission time"
-                        aria-label="Play media"
-                        data-icon="play"
-                    ></button>
-                    <button
                         id="media-browser-media-restart"
-                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--start mission-panel-shell__button mission-panel-shell__button--icon"
                         type="button"
                         title="Restart media from beginning"
                         aria-label="Restart media from beginning"
@@ -1930,6 +1936,37 @@
                         aria-label="Force resync media with animation"
                         data-icon="reset"
                     ></button>
+                    <button
+                        id="media-browser-media-play"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--play mission-panel-shell__button"
+                        type="button"
+                        title="Play media from current timeline position"
+                        aria-label="Play media"
+                    >Play</button>
+                    <button
+                        id="media-browser-media-popout"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--popout mission-panel-shell__button"
+                        type="button"
+                        title="Pop out video"
+                        aria-label="Pop out video"
+                        aria-pressed="false"
+                        hidden
+                    >Pop Out</button>
+                    <span
+                        id="media-browser-media-elapsed"
+                        class="media-browser-panel__media-elapsed"
+                        aria-live="polite"
+                    >--:-- / --:--</span>
+                    <input
+                        id="media-browser-media-timeline"
+                        class="media-browser-panel__media-slider"
+                        type="range"
+                        min="0"
+                        max="0"
+                        step="0.25"
+                        value="0"
+                        aria-label="Selected media timeline"
+                    />
                     <span id="media-browser-media-status" class="media-browser-panel__media-status">Media ready</span>
                 </div>
                 <div
@@ -1969,6 +2006,42 @@
                     <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
                         <div class="media-browser-panel__meta-key">Source</div>
                         <div id="media-browser-source" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Summary</div>
+                        <div id="media-browser-llm-summary" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Scene</div>
+                        <div id="media-browser-scene-type" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Bodies</div>
+                        <div id="media-browser-bodies" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Main Body</div>
+                        <div id="media-browser-main-body" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Tags</div>
+                        <div id="media-browser-tags" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Subjects</div>
+                        <div id="media-browser-subjects" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Frame Hint</div>
+                        <div id="media-browser-composition-hint" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Quality Notes</div>
+                        <div id="media-browser-quality-notes" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">EXIF / Camera</div>
+                        <div id="media-browser-exif-detail" class="media-browser-panel__meta-value">--</div>
                     </div>
                 </div>
                 <p id="media-browser-description" class="media-browser-panel__description">--</p>
@@ -2447,6 +2520,14 @@
                 <span class="orbit-style-meta-status__dot" aria-hidden="true"></span>
                 <span id="orbit-style-meta-status-text" class="orbit-style-meta-status__text">Style data ready</span>
             </div>
+            <div
+                id="media-buffering-status"
+                class="media-buffering-status media-buffering-status--hidden"
+                hidden
+            >
+                <span class="media-buffering-status__dot" aria-hidden="true"></span>
+                <span id="media-buffering-status-text" class="media-buffering-status__text">Media buffering</span>
+            </div>
         </div>
 
         <div id="timeline-dock" class="timeline-dock timeline-dock--events-collapsed" role="group" aria-label="Mission timeline">
@@ -2457,6 +2538,7 @@
             </div>
             <div class="timeline-dock__row">
                 <div class="timeline-dock__track-wrap">
+                    <div id="timeline-media-rail" class="timeline-dock__media-rail" aria-hidden="true" hidden></div>
                     <input
                         id="timeline-slider"
                         class="timeline-dock__slider"
@@ -2484,6 +2566,11 @@
                         class="timeline-dock__markers timeline-dock__markers--media"
                         aria-hidden="true"
                         hidden
+                    ></div>
+                    <div
+                        id="timeline-playhead"
+                        class="timeline-dock__playhead"
+                        aria-hidden="true"
                     ></div>
                 </div>
             </div>

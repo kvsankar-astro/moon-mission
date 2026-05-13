@@ -119,7 +119,7 @@ Example deep dive:
   - Catalog filtering and render planning live in the functional core at `src/platform/js/core/domain/lunar-crater-catalog.js`.
   - The main Moon view and `Frame and Shoot` share the same crater view state: diameter range, display mode (`Off`, `Show always`, `Show on hover`), and hover-label behavior.
   - The imperative shell in `src/platform/js/app/lunar-crater-actions.js` turns pure render plans into Three.js rings, labels, hover targets, and runtime visibility updates.
-  - `Show always` renders only the subset of filtered craters that are apparent in the active view/FoV; every rendered boundary must have a label.
+  - `Show always` renders only the subset of filtered craters that are apparent in the active view/FoV; persistent labels are sparse for readability, and hover labels remain available for unlabeled boundaries.
   - Hover labels are placed from projected screen-space crater rim bounds, keeping labels close to the apparent crater circle while avoiding overlap.
 - Optional auxiliary camera panels for desktop multi-view workflows.
 - Desktop panels share a common shell language, lifecycle actions, and mission-scoped layout persistence.

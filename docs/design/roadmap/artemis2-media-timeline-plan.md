@@ -47,6 +47,19 @@ Current product behavior:
 - Images support pan/zoom/reset in the panel.
 - Selecting a playable video or audio clip starts that media, switches mission animation to realtime, and keeps the mission clock aligned from media timeupdates. Media pause/end pauses animation. Playing animation alone does not auto-start media; paused playable media exposes start/alignment controls.
 
+Timeline and media interaction requirements (implemented):
+
+- The timeline now uses two nearby lanes in one shared time axis:
+  - a main mission timeline lane
+  - a distinct media-marker lane just above it
+- The current time indicator is a single shared playhead (small vertical line) spanning both lanes.
+- Primary time-seek interaction is dragging the shared playhead/timeline surface.
+- Clicking empty main timeline space moves the playhead to that time.
+- Clicking a media marker/segment in the media lane selects that media item.
+- During user timeline seek/scrub:
+  - if currently active media no longer covers the new mission time, media playback is stopped
+  - if animation was playing when the seek started and seek ended out of the prior media range, the runtime auto-starts another playable media item only when one is valid at the new mission time
+
 Still deferred:
 
 - A full ArtemisLive-style horizontal media scroller inside the panel.

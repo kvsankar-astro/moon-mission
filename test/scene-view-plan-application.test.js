@@ -185,7 +185,7 @@ describe("scene view plan application", () => {
             lunarCraterMinDiameterKm: 40,
             lunarCraterMaxDiameterKm: 120,
         });
-        expect(scene.setLunarCraterHoverLabelsEnabled).not.toHaveBeenCalled();
+        expect(scene.setLunarCraterHoverLabelsEnabled).toHaveBeenCalledWith(true);
         expect(scene.setLunarCraterAnnotationsVisible).toHaveBeenCalledWith(true);
         expect(scene.axesHelper.visible).toBe(true);
         expect(scene.earthNorthPoleSphere.visible).toBe(true);
