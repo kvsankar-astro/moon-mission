@@ -113,6 +113,7 @@ function createHarness({ mobile = false } = {}) {
     const title = createElement({ textContent: "Settings" });
     const cameraLegend = createElement();
     const viewLegend = createElement({ textContent: "View" });
+    const panelManagerLegend = createElement({ textContent: "Panels" });
     const otherLegend = createElement();
     const cameraSection = createElement({ classNames: ["settings-section", "settings-section--camera"], dataset: { sectionKey: "camera" } });
     const viewSection = createElement({ classNames: ["settings-section", "settings-section--view"], dataset: { sectionKey: "view" } });
@@ -143,6 +144,7 @@ function createHarness({ mobile = false } = {}) {
 
     cameraSection.setQuerySelector(".settings-section__title", cameraLegend);
     viewSection.setQuerySelector(".settings-section__title", viewLegend);
+    panelManagerSection.setQuerySelector(".settings-section__title", panelManagerLegend);
     otherSection.setQuerySelector(".settings-section__title", otherLegend);
     viewSection.setQuerySelector(".settings-options", viewOptions);
     viewOptions.children = [genericViewOption, additionalCraftsOption, auxPanelsOption, fpsOption];
@@ -237,6 +239,7 @@ function createHarness({ mobile = false } = {}) {
         title,
         viewLegend,
         cameraLegend,
+        panelManagerLegend,
         cameraSection,
         viewSection,
         panelManagerSection,
@@ -277,8 +280,16 @@ describe("createSettingsPanelController", () => {
         expect(harness.panelManagerSection.classList.contains("settings-panel__filtered-hidden")).toBe(false);
         expect(harness.genericViewOption.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.additionalCraftsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);
-        expect(harness.auxPanelsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);
+        expect(harness.auxPanelsOption.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.fpsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);
+        expect(harness.cameraSection.classList.contains("settings-section--advanced-collapsible")).toBe(true);
+        expect(harness.cameraSection.classList.contains("settings-section--collapsed")).toBe(false);
+        expect(harness.viewSection.classList.contains("settings-section--collapsed")).toBe(true);
+        expect(harness.panelManagerSection.classList.contains("settings-section--collapsed")).toBe(true);
+
+        harness.viewLegend.dispatch("click");
+        expect(harness.viewSection.classList.contains("settings-section--collapsed")).toBe(false);
+        expect(harness.viewLegend.getAttribute("aria-expanded")).toBe("true");
         expect(harness.advancedButton.getAttribute("aria-expanded")).toBe("true");
         expect(harness.advancedButton.classList.contains("is-open")).toBe(true);
         expect(harness.settingsButton.getAttribute("aria-expanded")).toBe("false");

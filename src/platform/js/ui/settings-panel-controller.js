@@ -1,6 +1,7 @@
 const SETTINGS_PANEL_FILTERED_CLASS = "settings-panel__filtered-hidden";
 const SETTINGS_PANEL_MODE_FULL = "full";
 const SETTINGS_PANEL_MODE_ADVANCED = "advanced";
+const SETTINGS_SECTION_ADVANCED_COLLAPSIBLE_CLASS = "settings-section--advanced-collapsible";
 
 function defaultOnClick(documentRef, id, handler) {
     const element = documentRef?.getElementById?.(id);
@@ -31,6 +32,7 @@ function createSettingsPanelController(deps = {}) {
     let settingsAutoCollapsedControls = false;
     let settingsPanelLauncherId = null;
     const mobileSettingsSectionState = new Map();
+    const advancedSettingsSectionState = new Map();
 
     function adjustSettingsPanelBodyOverflow() {
         const panel = documentRef?.getElementById?.("settings-panel");
@@ -120,7 +122,6 @@ function createSettingsPanelController(deps = {}) {
         };
 
         addClosestOption("view-additional-crafts");
-        addClosestOption("view-aux-camera-panels");
         addClosestOption("view-fps");
 
         const activeCraftRow = documentRef?.getElementById?.("active-craft-row");
@@ -221,6 +222,63 @@ function createSettingsPanelController(deps = {}) {
         legend.setAttribute?.("aria-expanded", String(!collapsed));
     }
 
+    function bindAdvancedSettingsSectionToggle(section, legend) {
+        if (!section || !legend || legend.dataset?.advancedBound) return;
+        legend.dataset.advancedBound = "true";
+        const toggle = function (event) {
+            const panel = documentRef?.getElementById?.("settings-panel");
+            if (!panel?.classList?.contains?.("settings-panel--advanced")) return;
+            if (!section.classList?.contains?.(SETTINGS_SECTION_ADVANCED_COLLAPSIBLE_CLASS)) return;
+            if (event?.key && event.key !== "Enter" && event.key !== " ") return;
+            event?.preventDefault?.();
+            const sectionKey = section.dataset?.sectionKey || "";
+            const nextCollapsed = !section.classList?.contains?.("settings-section--collapsed");
+            setSettingsSectionCollapsed(section, nextCollapsed);
+            advancedSettingsSectionState.set(sectionKey, nextCollapsed);
+            adjustSettingsPanelBodyOverflow();
+            requestAnimationFrameImpl(adjustSettingsPanelBodyOverflow);
+        };
+        legend.addEventListener?.("click", toggle);
+        legend.addEventListener?.("keydown", toggle);
+    }
+
+    function applyAdvancedSettingsSections() {
+        const panel = documentRef?.getElementById?.("settings-panel");
+        if (!panel) return;
+        const sections = Array.from(panel.querySelectorAll?.(".settings-section") || []);
+        const advanced = panel.classList?.contains?.("settings-panel--advanced");
+
+        sections.forEach((section) => {
+            section.classList?.remove?.(SETTINGS_SECTION_ADVANCED_COLLAPSIBLE_CLASS);
+            if (!advanced && !isMobileViewport()) {
+                section.classList?.remove?.("settings-section--collapsed");
+                const legend = section.querySelector?.(".settings-section__title");
+                legend?.removeAttribute?.("aria-expanded");
+            }
+        });
+
+        if (!advanced) return;
+
+        const visibleSections = sections.filter((section) => (
+            !section.classList?.contains?.(SETTINGS_PANEL_FILTERED_CLASS)
+        ));
+
+        visibleSections.forEach((section, index) => {
+            const legend = section.querySelector?.(".settings-section__title");
+            if (!legend) return;
+            section.classList?.add?.(SETTINGS_SECTION_ADVANCED_COLLAPSIBLE_CLASS);
+            legend.setAttribute?.("role", "button");
+            legend.setAttribute?.("tabindex", "0");
+
+            const sectionKey = section.dataset?.sectionKey || "";
+            const shouldCollapse = advancedSettingsSectionState.has(sectionKey)
+                ? advancedSettingsSectionState.get(sectionKey)
+                : index > 0;
+            setSettingsSectionCollapsed(section, shouldCollapse);
+            bindAdvancedSettingsSectionToggle(section, legend);
+        });
+    }
+
     function applyMobileSettingsSections() {
         const sections = Array.from(documentRef?.querySelectorAll?.("#settings-panel .settings-section") || []);
         if (!sections.length) return;
@@ -233,9 +291,11 @@ function createSettingsPanelController(deps = {}) {
             section.classList?.toggle?.("settings-section--mobile-collapsible", mobile);
             if (!mobile) {
                 section.classList?.remove?.("settings-section--collapsed");
-                legend.removeAttribute?.("role");
-                legend.removeAttribute?.("tabindex");
-                legend.removeAttribute?.("aria-expanded");
+                if (!section.classList?.contains?.(SETTINGS_SECTION_ADVANCED_COLLAPSIBLE_CLASS)) {
+                    legend.removeAttribute?.("role");
+                    legend.removeAttribute?.("tabindex");
+                    legend.removeAttribute?.("aria-expanded");
+                }
                 return;
             }
 
@@ -352,6 +412,7 @@ function createSettingsPanelController(deps = {}) {
             }
 
             applyMobileSettingsSections();
+            applyAdvancedSettingsSections();
             adjustSettingsPanelBodyOverflow();
             requestAnimationFrameImpl(adjustSettingsPanelBodyOverflow);
 
@@ -375,6 +436,7 @@ function createSettingsPanelController(deps = {}) {
                     const currentWrapper = currentDialogApi?.widgetElement?.("#settings-panel");
                     if (currentWrapper) applyMobileSettingsPanelLayout(currentWrapper);
                     applyMobileSettingsSections();
+                    applyAdvancedSettingsSections();
                 });
             }
 
