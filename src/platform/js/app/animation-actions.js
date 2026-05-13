@@ -26,10 +26,16 @@ export function createAnimationActions({
             setMissionStartCalled?.(true);
             animationController.goToStart();
         },
-        missionSetTime: () => animationController.goToEvent(getAnimTime()),
+        missionSetTime: () => animationController.goToEvent(getAnimTime(), {
+            source: "mission-set-time",
+        }),
         missionNow: () => animationController.goToNow(),
-        missionTLI: () => animationController.goToEvent(getTimeTransLunarInjection()),
-        missionLunar: () => animationController.goToEvent(getTimeLunarOrbitInsertion()),
+        missionTLI: () => animationController.goToEvent(getTimeTransLunarInjection(), {
+            source: "mission-tli",
+        }),
+        missionLunar: () => animationController.goToEvent(getTimeLunarOrbitInsertion(), {
+            source: "mission-lunar",
+        }),
         missionEnd: () => animationController.goToEnd(),
         faster: () => animationController.faster(),
         resetspeed: () => animationController.resetSpeed(),

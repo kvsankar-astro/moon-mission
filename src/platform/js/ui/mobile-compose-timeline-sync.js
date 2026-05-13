@@ -58,9 +58,11 @@ function createMobileComposeTimelineSync(deps) {
         timelineState.slider.value = String(clamped);
         const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
         dataset.currentTimeMs = String(clamped);
+        dataset.programmaticSeekSource = "mobile-compose";
         dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(createInputEvent());
         if (finalize) {
+            dataset.programmaticSeekSource = "mobile-compose";
             dataset.programmaticSeekTimeMs = String(clamped);
             timelineState.slider.dispatchEvent(createChangeEvent());
         }

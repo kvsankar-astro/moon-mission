@@ -97,8 +97,9 @@ export class AnimationController {
      * Set the current animation time (with bounds checking).
      * @param {number} time - Time in milliseconds
      * @param {boolean} [notify=true] - Whether to trigger onTimeChange callback
+     * @param {Object} [metadata] - Optional source metadata for downstream coordination
      */
-    setTime(time, notify = true) {
+    setTime(time, notify = true, metadata = {}) {
         // Clamp to valid range
         if (time < this.startTime) {
             this.currentTime = this.startTime;
@@ -109,7 +110,7 @@ export class AnimationController {
         }
 
         if (notify) {
-            this.onTimeChange(this.currentTime);
+            this.onTimeChange(this.currentTime, metadata || {});
         }
     }
 
@@ -175,28 +176,48 @@ export class AnimationController {
      * Step forward by one step.
      */
     stepForward() {
-        this.setTime(this.currentTime + this.stepDurationMs);
+        this.setTime(this.currentTime + this.stepDurationMs, true, {
+            source: "transport-forward",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
      * Step backward by one step.
      */
     stepBackward() {
-        this.setTime(this.currentTime - this.stepDurationMs);
+        this.setTime(this.currentTime - this.stepDurationMs, true, {
+            source: "transport-backward",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
      * Fast forward by multiple steps.
      */
     fastForward() {
-        this.setTime(this.currentTime + this.stepsPerHop * this.stepDurationMs);
+        this.setTime(this.currentTime + this.stepsPerHop * this.stepDurationMs, true, {
+            source: "transport-fast-forward",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
      * Fast backward by multiple steps.
      */
     fastBackward() {
-        this.setTime(this.currentTime - this.stepsPerHop * this.stepDurationMs);
+        this.setTime(this.currentTime - this.stepsPerHop * this.stepDurationMs, true, {
+            source: "transport-fast-backward",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
@@ -204,7 +225,12 @@ export class AnimationController {
      */
     goToStart() {
         this.pause();
-        this.setTime(this.startTime);
+        this.setTime(this.startTime, true, {
+            source: "mission-start",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
@@ -212,16 +238,28 @@ export class AnimationController {
      */
     goToEnd() {
         this.pause();
-        this.setTime(this.endTime);
+        this.setTime(this.endTime, true, {
+            source: "mission-end",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
      * Go to a specific event time.
      * @param {number} time - Event time in milliseconds
+     * @param {Object} [metadata] - Optional source metadata for downstream coordination
      */
-    goToEvent(time) {
+    goToEvent(time, metadata = {}) {
         this.pause();
-        this.setTime(time);
+        this.setTime(time, true, {
+            source: "mission-event",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+            ...(metadata || {}),
+        });
     }
 
     /**
@@ -229,7 +267,12 @@ export class AnimationController {
      */
     goToNow() {
         this.pause();
-        this.setTime(Date.now());
+        this.setTime(Date.now(), true, {
+            source: "mission-now",
+            phase: "commit",
+            commit: true,
+            seekEvent: true,
+        });
     }
 
     /**
@@ -331,12 +374,18 @@ export class AnimationController {
             newTime = this.endTime;
             this.currentTime = newTime;
             this.pause(); // Stop at end
-            this.onTimeChange(this.currentTime);
+            this.onTimeChange(this.currentTime, {
+                source: "animation-tick",
+                seekEvent: false,
+            });
             return true;
         }
 
         this.currentTime = newTime;
-        this.onTimeChange(this.currentTime);
+        this.onTimeChange(this.currentTime, {
+            source: "animation-tick",
+            seekEvent: false,
+        });
         return true;
     }
 

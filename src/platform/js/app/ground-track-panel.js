@@ -991,8 +991,13 @@ function createGroundTrackPanelActions(options = {}) {
         if (!timelineState) return;
         const clamped = clamp(timeMs, timelineState.min, timelineState.max);
         timelineState.slider.value = String(clamped);
+        const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
+        dataset.programmaticSeekSource = "ground-track";
+        dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
         if (finalize) {
+            dataset.programmaticSeekSource = "ground-track";
+            dataset.programmaticSeekTimeMs = String(clamped);
             timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
         }
     }

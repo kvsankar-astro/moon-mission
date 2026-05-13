@@ -87,6 +87,7 @@ function createMissionPlaybackRuntime({
         updateD3ElementText,
         updateTransportControlsUI: playbackUiShell.updateTransportControlsUI,
         dispatchAnimationPlayStateUpdated: playbackUiShell.dispatchAnimationPlayStateUpdated,
+        dispatchMissionTimelineUserSeek: playbackUiShell.dispatchMissionTimelineUserSeek,
         getSetView,
         updateSpeedControlsUI: playbackUiShell.updateSpeedControlsUI,
         eventBus,

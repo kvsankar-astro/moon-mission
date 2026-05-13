@@ -57,4 +57,38 @@ describe("AnimationController speed timing", () => {
         controller.tick(62000);
         expect(controller.getTime()).toBe(6000);
     });
+
+    it("labels transport seeks while keeping playback ticks off the seek channel", () => {
+        const changes = [];
+        const controller = new AnimationController({
+            onTimeChange: (time, metadata) => {
+                changes.push({ time, metadata });
+            },
+        });
+        controller.configure({
+            startTime: 0,
+            endTime: 30 * TC.MILLI_SECONDS_PER_HOUR,
+            stepDurationMs: TC.ONE_MINUTE_MS,
+        });
+
+        controller.stepForward();
+        controller.play();
+        controller.tick(1000);
+        controller.tick(2000);
+
+        expect(changes[0]).toEqual({
+            time: TC.ONE_MINUTE_MS,
+            metadata: expect.objectContaining({
+                source: "transport-forward",
+                seekEvent: true,
+            }),
+        });
+        expect(changes.at(-1)).toEqual({
+            time: TC.ONE_MINUTE_MS + 1000,
+            metadata: expect.objectContaining({
+                source: "animation-tick",
+                seekEvent: false,
+            }),
+        });
+    });
 });

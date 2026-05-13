@@ -34,6 +34,7 @@ const MEDIA_TIME_SYNC_EPSILON_SECONDS = 0.2;
 const MEDIA_SCRUB_SYNC_INTERVAL_MS = 120;
 const MEDIA_PLAYBACK_RATE_MAX = 4;
 const MEDIA_FRAME_SCRUB_INTERVAL_MS = 180;
+const MEDIA_SILENT_PAUSE_SUPPRESSION_MS = 500;
 const VIDEO_ESTIMATED_SEGMENT_DURATION_SECONDS = 30;
 
 function formatSignedDuration(seconds) {
@@ -518,6 +519,7 @@ function createMediaTimelineCoordination({
         currentTimeSeconds: 0,
     };
     let suppressMediaEvents = false;
+    const silentPauseUntilByElement = typeof WeakMap === "function" ? new WeakMap() : null;
     let mediaPlayRequestPending = false;
     let scrubSyncState = {
         itemId: "",
@@ -623,6 +625,7 @@ function createMediaTimelineCoordination({
     function stopAudioPlayback() {
         if (currentAudio && typeof currentAudio.pause === "function") {
             suppressMediaEvents = true;
+            currentAudio.loop = false;
             callMediaMethod(currentAudio, "pause");
             suppressMediaEvents = false;
         }
@@ -634,6 +637,8 @@ function createMediaTimelineCoordination({
         const video = getVideoElement();
         if (!video || typeof video.pause !== "function") return;
         suppressMediaEvents = true;
+        video.loop = false;
+        video.removeAttribute?.("loop");
         callMediaMethod(video, "pause");
         suppressMediaEvents = false;
     }
@@ -768,12 +773,7 @@ function createMediaTimelineCoordination({
         const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs, false);
         const video = getVideoElement();
         if (video) {
-            if (mediaPlaybackState.itemId === activeItem.id && mediaPlaybackState.playing === true) {
-                suppressMediaEvents = true;
-                callMediaMethod(video, "pause");
-                suppressMediaEvents = false;
-            }
-            callMediaMethod(video, "pause");
+            pauseMediaElementSilently(video);
             setMediaElementCurrentTime(video, offsetSeconds);
         }
         if (mediaPlaybackState.itemId === activeItem.id) {
@@ -954,11 +954,33 @@ function createMediaTimelineCoordination({
         );
     }
 
+    function markSilentMediaPause(mediaElement) {
+        if (!mediaElement || !silentPauseUntilByElement) return;
+        silentPauseUntilByElement.set(mediaElement, Date.now() + MEDIA_SILENT_PAUSE_SUPPRESSION_MS);
+    }
+
+    function isSilentMediaPausePending(mediaElement) {
+        if (!mediaElement || !silentPauseUntilByElement) return false;
+        const silentUntilMs = Number(silentPauseUntilByElement.get(mediaElement));
+        if (!Number.isFinite(silentUntilMs)) return false;
+        if (Date.now() <= silentUntilMs) return true;
+        silentPauseUntilByElement.delete(mediaElement);
+        return false;
+    }
+
     function handlePlayableMediaPaused(itemId, mediaElement = null, currentTimeSeconds = 0) {
         if (suppressMediaEvents) return;
+        if (isSilentMediaPausePending(mediaElement)) return;
         if (mediaPlayRequestPending === true) return;
         const normalizedId = String(itemId || "").trim();
         if (!normalizedId || normalizedId !== mediaPlaybackState.itemId) return;
+        if (
+            mediaPlaybackState.active !== true
+            && mediaPlaybackState.playing !== true
+            && mediaPlaybackState.buffering !== true
+        ) {
+            return;
+        }
         if (mediaPlaybackState.buffering === true) return;
         if (mediaPlaybackState.playing === true && isMediaElementLikelyBuffering(mediaElement)) {
             handlePlayableMediaBuffering(itemId, currentTimeSeconds);
@@ -979,11 +1001,34 @@ function createMediaTimelineCoordination({
         if (suppressMediaEvents) return;
         const normalizedId = String(itemId || "").trim();
         if (!normalizedId || normalizedId !== mediaPlaybackState.itemId) return;
+        if (
+            mediaPlaybackState.active !== true
+            && mediaPlaybackState.playing !== true
+            && mediaPlaybackState.buffering !== true
+        ) {
+            return;
+        }
+        const mediaItem = findCurrentManifestItemById(normalizedId) || mediaPlaybackState;
+        const durationSeconds = resolvePlayableDurationSeconds(mediaItem);
+        const endedTimeMs = Number.isFinite(durationSeconds)
+            ? syncMissionTimeToMediaOffset(mediaItem, durationSeconds, true)
+            : mediaPlaybackState.syncedTimeMs;
+        const mediaElement = getActivePlayableMediaElement();
+        if (mediaElement) {
+            mediaElement.loop = false;
+            mediaElement.removeAttribute?.("loop");
+            pauseMediaElementSilently(mediaElement);
+        }
+        mediaPlayRequestPending = false;
         mediaPlaybackState = {
             ...mediaPlaybackState,
             active: false,
             playing: false,
             buffering: false,
+            syncedTimeMs: Number.isFinite(endedTimeMs) ? endedTimeMs : mediaPlaybackState.syncedTimeMs,
+            currentTimeSeconds: Number.isFinite(durationSeconds)
+                ? durationSeconds
+                : mediaPlaybackState.currentTimeSeconds,
         };
         setMediaBufferingStatusVisible(false);
         pauseAnimation();
@@ -1040,10 +1085,15 @@ function createMediaTimelineCoordination({
         }
         const mediaSeconds = Number(currentTimeSeconds);
         if (!Number.isFinite(mediaSeconds) || mediaSeconds < 0) return;
+        const mediaItem = findCurrentManifestItemById(mediaPlaybackState.itemId) || mediaPlaybackState;
+        const durationSeconds = resolvePlayableDurationSeconds(mediaItem);
+        if (Number.isFinite(durationSeconds) && mediaSeconds >= Math.max(0, durationSeconds - 0.05)) {
+            handlePlayableMediaEnded(normalizedId);
+            return;
+        }
         const nextTimeMs = mediaPlaybackState.startTimeMs + (mediaSeconds * 1000);
         const currentTimelineTimeMs = readMainTimelineTimeMs();
         const previousSyncedTimeMs = Number(mediaPlaybackState.syncedTimeMs);
-        const mediaItem = findCurrentManifestItemById(mediaPlaybackState.itemId) || mediaPlaybackState;
         if (
             Number.isFinite(currentTimelineTimeMs)
             && Number.isFinite(previousSyncedTimeMs)
@@ -1226,6 +1276,7 @@ function createMediaTimelineCoordination({
             }
             currentAudio = new globalThis.Audio(item.assetUrl);
             currentAudio.volume = 0.7;
+            currentAudio.loop = false;
             currentAudioClipId = item.id;
             attachAudioPlaybackEvents(currentAudio, item);
             setMediaPlaybackRate(currentAudio, getMediaPlaybackRate());
@@ -1244,13 +1295,15 @@ function createMediaTimelineCoordination({
                 video.poster = item.posterAssetUrl;
             }
             const sourceSetup = ensureVideoPlaybackSource(video, item);
+            video.loop = false;
+            video.removeAttribute?.("loop");
             if (video.dataset) {
                 video.dataset.mediaItemId = item.id;
                 video.dataset.mediaSourceUrl = item.assetUrl;
                 video.dataset.sourceType = item.sourceType || "";
             }
             if (frameScrubMode) {
-                callMediaMethod(video, "pause");
+                pauseMediaElementSilently(video);
                 setMediaElementCurrentTime(video, offsetSeconds);
                 mediaPlaybackState = {
                     ...mediaPlaybackState,
@@ -1303,6 +1356,7 @@ function createMediaTimelineCoordination({
 
     function pauseMediaElementSilently(mediaElement) {
         if (!mediaElement || typeof mediaElement.pause !== "function") return;
+        markSilentMediaPause(mediaElement);
         suppressMediaEvents = true;
         callMediaMethod(mediaElement, "pause");
         suppressMediaEvents = false;
@@ -1699,6 +1753,7 @@ function createMediaTimelineCoordination({
         const timeMs = Number(eventDetail.timeMs);
         const commit = eventDetail.commit === true;
         if (!Number.isFinite(timeMs)) return;
+        if (source === "media-sync") return;
 
         if (phase === "start") {
             timelineUserSeekState = {
@@ -1724,6 +1779,20 @@ function createMediaTimelineCoordination({
         ) {
             stopPlayableMedia({ pauseClock: false });
             timelineUserSeekState.stoppedForOutOfRange = true;
+        }
+        if (
+            currentPlayableActive
+            && (mediaPlaybackState.active === true || mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true)
+        ) {
+            if (lastRenderContext) {
+                lastRenderContext = {
+                    ...lastRenderContext,
+                    animTime: timeMs,
+                };
+            }
+            if (seekActivePlayableMediaToMissionTime(timeMs)) {
+                rerender();
+            }
         }
 
         const shouldFinalize = phase === "commit" || phase === "end" || commit;

@@ -1388,12 +1388,10 @@ function createTimelineDockController({
             syncMarkerHighlights();
             syncPlayhead();
             onSeekTime?.(currentTimeMs, false);
-            if (!payload.programmatic) {
-                dispatchTimelineUserSeek("update", currentTimeMs, {
-                    commit: false,
-                    source: payload.source,
-                });
-            }
+            dispatchTimelineUserSeek("update", currentTimeMs, {
+                commit: false,
+                source: payload.source,
+            });
         });
 
         slider.addEventListener("change", () => {
@@ -1406,12 +1404,10 @@ function createTimelineDockController({
             syncMarkerHighlights();
             syncPlayhead();
             onSeekTime?.(currentTimeMs, true);
-            if (!payload.programmatic) {
-                dispatchTimelineUserSeek("commit", currentTimeMs, {
-                    commit: true,
-                    source: payload.source,
-                });
-            }
+            dispatchTimelineUserSeek("commit", currentTimeMs, {
+                commit: true,
+                source: payload.source,
+            });
         });
 
         panLeftButton?.addEventListener?.("click", () => {

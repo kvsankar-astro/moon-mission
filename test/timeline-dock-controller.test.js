@@ -1195,7 +1195,7 @@ describe("createTimelineDockController", () => {
         expect(markers.children[1].className).not.toContain("timeline-dock__marker--time-boundary");
     });
 
-    it("uses programmatic seek precision when range input values snap to the step grid", () => {
+    it("uses programmatic seek precision and source when range input values snap to the step grid", () => {
         const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");
         const markers = new FakeElement("div");
@@ -1205,6 +1205,14 @@ describe("createTimelineDockController", () => {
         const currentLabel = new FakeElement("div");
         const craftStrip = new FakeElement("div");
         const seekTimes = [];
+        const dispatchedEvents = [];
+
+        global.CustomEvent = class {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        };
 
         global.document = {
             getElementById(id) {
@@ -1220,6 +1228,9 @@ describe("createTimelineDockController", () => {
             },
             createElement(tagName) {
                 return new FakeElement(tagName);
+            },
+            dispatchEvent(event) {
+                dispatchedEvents.push(event);
             },
         };
 
@@ -1241,12 +1252,23 @@ describe("createTimelineDockController", () => {
 
         slider.value = "1200";
         slider.dataset.programmaticSeekTimeMs = "1234";
+        slider.dataset.programmaticSeekSource = "frame-shoot";
         slider.dispatchEvent({ type: "input" });
 
         expect(seekTimes).toEqual([1234]);
         expect(slider.dataset.currentTimeMs).toBe("1234");
+        expect(dispatchedEvents).toHaveLength(1);
+        expect(dispatchedEvents[0].type).toBe("mission-timeline-user-seek");
+        expect(dispatchedEvents[0].detail).toEqual(expect.objectContaining({
+            phase: "update",
+            source: "frame-shoot",
+            timeMs: 1234,
+            commit: false,
+        }));
         expect(markers.children[0].className).toContain("timeline-dock__marker--current-event");
         expect(markers.children[0].className).not.toContain("timeline-dock__marker--time-boundary");
+
+        delete global.CustomEvent;
     });
 
     it("emits a timeline seek event when clicking a reachable timeline event marker", () => {

@@ -5087,9 +5087,11 @@ class AuxiliaryCameraViewsManager {
         timelineState.slider.value = String(clamped);
         const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
         dataset.currentTimeMs = String(clamped);
+        dataset.programmaticSeekSource = "frame-shoot";
         dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
         if (finalize) {
+            dataset.programmaticSeekSource = "frame-shoot";
             dataset.programmaticSeekTimeMs = String(clamped);
             timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
         }

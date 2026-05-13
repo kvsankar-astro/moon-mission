@@ -205,15 +205,24 @@ function createAnimationControllerCallbacks({
     dispatchAnimationPlayStateUpdated,
     getSetView,
     updateSpeedControlsUI,
+    dispatchMissionTimelineUserSeek = () => {},
     eventBus,
 }) {
     return {
-        onTimeChange: (time) => {
+        onTimeChange: (time, metadata = {}) => {
             runtimeSessionState.setAnimTime(time);
             bridgeActions.setLocation();
             syncTimelineDock();
             syncActiveCraftControl();
             eventBus.emit("animation:timeChanged", { time });
+            if (metadata?.seekEvent === true) {
+                dispatchMissionTimelineUserSeek({
+                    phase: metadata.phase || "commit",
+                    source: metadata.source || "animation-controller",
+                    commit: metadata.commit !== false,
+                    timeMs: time,
+                });
+            }
         },
         onPlayStateChange: (isPlaying) => {
             runtimeSessionState.setAnimationRunning(isPlaying);
@@ -262,11 +271,6 @@ function createMissionPlaybackUiShell({
             onSeekTime: (timeMs) => {
                 getAnimationController()?.setTime(timeMs);
             },
-            onMarkerSelect: (eventInfo) => {
-                if (eventInfo?.clickable === false) return;
-                if (!(eventInfo?.startTime instanceof Date)) return;
-                getAnimationController()?.goToEvent(eventInfo.startTime.getTime());
-            },
             onMarkerHover: (eventInfo) => {
                 const hoverText = resolveTimelineEventHoverText(
                     eventInfo,
@@ -275,6 +279,9 @@ function createMissionPlaybackUiShell({
                 if (hoverText) {
                     updateEventInfo(hoverText);
                 }
+            },
+            onMarkerSelect: () => {
+                getAnimationController()?.pause?.();
             },
             onMarkerLeave: () => {
                 clearEventInfo();
@@ -422,6 +429,23 @@ function createMissionPlaybackUiShell({
         }));
     }
 
+    function dispatchMissionTimelineUserSeek({
+        phase = "commit",
+        source = "animation-controller",
+        commit = true,
+        timeMs = Number.NaN,
+    } = {}) {
+        if (!documentRef?.dispatchEvent || !CustomEventClass || !Number.isFinite(timeMs)) return;
+        documentRef.dispatchEvent(new CustomEventClass("mission-timeline-user-seek", {
+            detail: {
+                phase,
+                source,
+                commit: commit === true,
+                timeMs,
+            },
+        }));
+    }
+
     function syncPlaybackStartup({
         isRunning,
         speedMultiplier,
@@ -452,6 +476,7 @@ function createMissionPlaybackUiShell({
         updateSpeedControlsUI,
         updateTransportControlsUI,
         dispatchAnimationPlayStateUpdated,
+        dispatchMissionTimelineUserSeek,
         syncPlaybackStartup,
     };
 }

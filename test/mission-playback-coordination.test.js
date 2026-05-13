@@ -194,6 +194,7 @@ describe("mission playback coordination", () => {
         const updateD3ElementText = vi.fn();
         const updateTransportControlsUI = vi.fn();
         const dispatchAnimationPlayStateUpdated = vi.fn();
+        const dispatchMissionTimelineUserSeek = vi.fn();
         const setView = vi.fn();
         const updateSpeedControlsUI = vi.fn();
         const eventBus = {
@@ -208,19 +209,33 @@ describe("mission playback coordination", () => {
             updateD3ElementText,
             updateTransportControlsUI,
             dispatchAnimationPlayStateUpdated,
+            dispatchMissionTimelineUserSeek,
             getSetView: () => setView,
             updateSpeedControlsUI,
             eventBus,
         });
 
         callbacks.onTimeChange(1234);
+        callbacks.onTimeChange(2345, {
+            seekEvent: true,
+            phase: "commit",
+            source: "transport-forward",
+            commit: true,
+        });
         callbacks.onPlayStateChange(true);
         callbacks.onSpeedChange(300, false);
 
         expect(runtimeSessionState.setAnimTime).toHaveBeenCalledWith(1234);
-        expect(bridgeActions.setLocation).toHaveBeenCalledTimes(1);
-        expect(syncTimelineDock).toHaveBeenCalledTimes(1);
-        expect(syncActiveCraftControl).toHaveBeenCalledTimes(1);
+        expect(runtimeSessionState.setAnimTime).toHaveBeenCalledWith(2345);
+        expect(bridgeActions.setLocation).toHaveBeenCalledTimes(2);
+        expect(syncTimelineDock).toHaveBeenCalledTimes(2);
+        expect(syncActiveCraftControl).toHaveBeenCalledTimes(2);
+        expect(dispatchMissionTimelineUserSeek).toHaveBeenCalledWith({
+            phase: "commit",
+            source: "transport-forward",
+            commit: true,
+            timeMs: 2345,
+        });
         expect(runtimeSessionState.setAnimationRunning).toHaveBeenCalledWith(true);
         expect(updateD3ElementText).toHaveBeenCalledWith("#animate", "Pause");
         expect(updateTransportControlsUI).toHaveBeenCalledWith(true);
@@ -228,8 +243,9 @@ describe("mission playback coordination", () => {
         expect(setView).toHaveBeenCalledTimes(1);
         expect(updateSpeedControlsUI).toHaveBeenCalledWith(300, false);
         expect(eventBus.emit).toHaveBeenNthCalledWith(1, "animation:timeChanged", { time: 1234 });
-        expect(eventBus.emit).toHaveBeenNthCalledWith(2, "animation:play", { isPlaying: true });
-        expect(eventBus.emit).toHaveBeenNthCalledWith(3, "animation:speedChanged", {
+        expect(eventBus.emit).toHaveBeenNthCalledWith(2, "animation:timeChanged", { time: 2345 });
+        expect(eventBus.emit).toHaveBeenNthCalledWith(3, "animation:play", { isPlaying: true });
+        expect(eventBus.emit).toHaveBeenNthCalledWith(4, "animation:speedChanged", {
             multiplier: 300,
             isRealtime: false,
         });
@@ -394,5 +410,58 @@ describe("mission playback coordination", () => {
 
         nowButton._listeners.click();
         expect(goToNow).toHaveBeenCalledTimes(1);
+    });
+
+    it("pauses transport when timeline event markers are selected without seeking twice", () => {
+        let dockOptions = null;
+        const animationController = {
+            setTime: vi.fn(),
+            pause: vi.fn(),
+        };
+        const createTimelineDockControllerImpl = vi.fn((options) => {
+            dockOptions = options;
+            return {
+                bind: vi.fn(),
+                setMode: vi.fn(),
+                setRange: vi.fn(),
+                setCurrentTime: vi.fn(),
+                setEvents: vi.fn(),
+                setCrafts: vi.fn(),
+            };
+        });
+
+        const shell = createMissionPlaybackUiShell({
+            documentRef: {
+                getElementById: () => null,
+                querySelector: () => null,
+                createElement: vi.fn(() => ({
+                    value: "",
+                    textContent: "",
+                })),
+            },
+            CustomEventClass: class {},
+            createTimelineDockControllerImpl,
+            getAnimationController: () => animationController,
+            getSetView: () => vi.fn(),
+            getAnimationScenes: () => ({ geo: {} }),
+            getConfig: () => "geo",
+            getGlobalConfig: () => createMissionConfig(),
+            getStartTime: () => 1000,
+            getLatestEndTime: () => 5000,
+            getAnimTime: () => 3000,
+            getEventInfos: () => [],
+            defaultStepMs: 60000,
+            maxTimelineStepMs: 1000,
+            updateEventInfo: vi.fn(),
+            clearEventInfo: vi.fn(),
+        });
+
+        shell.ensureTimelineDockController();
+        dockOptions.onSeekTime(2500, true);
+        dockOptions.onMarkerSelect({ key: "burn-a" }, 0);
+
+        expect(animationController.setTime).toHaveBeenCalledWith(2500);
+        expect(animationController.pause).toHaveBeenCalledTimes(1);
+        expect(animationController.setTime).toHaveBeenCalledTimes(1);
     });
 });
