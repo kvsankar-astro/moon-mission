@@ -65,6 +65,11 @@ function createControlPanelTimelineController(deps = {}) {
             || null;
     }
 
+    function isMissionMediaPanelOpen() {
+        const panel = documentRef?.getElementById?.("media-browser-panel") || null;
+        return !!panel && !panel.classList?.contains?.("media-browser-panel--hidden");
+    }
+
     function getRootStyle() {
         return documentRef?.documentElement?.style || null;
     }
@@ -104,6 +109,13 @@ function createControlPanelTimelineController(deps = {}) {
             mediaMarkers.hidden = !shouldShowMediaTrack;
         }
         syncMediaToggleButton();
+    }
+
+    function handleMissionMediaPanelState(event) {
+        const isOpen = event?.detail?.isOpen === true
+            || String(event?.detail?.state || "").trim().toLowerCase() === "open";
+        setTimelineMediaTrackVisibleState(isOpen);
+        requestAnimationFrameImpl(() => syncTimelineDockHeight());
     }
 
     function syncControlPanelInfoOffset(panel = getControlPanel()) {
@@ -343,7 +355,8 @@ function createControlPanelTimelineController(deps = {}) {
         bindTimelineDockHeightSync(timelineDock);
         setControlPanelCollapsedState(false);
         setTimelineEventCarouselExpandedState(false, { focusUpcoming: false, wiggleCue: false });
-        setTimelineMediaTrackVisibleState(false);
+        setTimelineMediaTrackVisibleState(isMissionMediaPanelOpen());
+        documentRef?.addEventListener?.("mission-media-panel-state", handleMissionMediaPanelState);
         requestAnimationFrameImpl(() => {
             syncControlPanelInfoOffset(panel);
             syncTimelineDockHeight(timelineDock);

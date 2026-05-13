@@ -471,12 +471,12 @@
       "requiresEphemeris": true
     },
     "eclipseEnd": {
-      "startTime": "2026-04-07T01:32:00Z",
+      "startTime": "2026-04-07T01:28:55Z",
       "durationSeconds": 0,
       "label": "Eclipse Out",
       "burnFlag": false,
-      "infoText": "7th Apr 2026, 01:32 UTC - Orion exits solar eclipse",
-      "hoverText": "NASA's public flyby timeline marks solar-eclipse exit at 9:32 p.m. Eastern; this is a NASA media milestone, not a HORIZONS major event.",
+      "infoText": "7th Apr 2026, 01:28:55 UTC - Orion exits solar eclipse",
+      "hoverText": "Solar-eclipse exit adjusted to 6:58:55 a.m. IST / 1:28:55 a.m. UTC on 7 Apr 2026; this is a media-review milestone, not a HORIZONS major event.",
       "body": "SC",
       "requiresEphemeris": true
     },

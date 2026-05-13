@@ -110,6 +110,7 @@ function createHarness({
         createElement({ dataset: { eventIndex: "1", eventTimeMs: "2500" } }),
         createElement({ dataset: { eventIndex: "2", eventTimeMs: "5000" } }),
     ];
+    const documentListeners = new Map();
     const windowListeners = new Map();
     const resizeObservers = [];
     const mutationObservers = [];
@@ -146,6 +147,18 @@ function createHarness({
         querySelectorAll(selector) {
             if (selector === "#burnbuttons button[data-event-index]") return eventButtons;
             return [];
+        },
+        addEventListener(type, handler) {
+            const handlers = documentListeners.get(type) || [];
+            handlers.push(handler);
+            documentListeners.set(type, handlers);
+        },
+        dispatch(type, event = {}) {
+            const handlers = documentListeners.get(type) || [];
+            handlers.forEach((handler) => handler({
+                type,
+                ...event,
+            }));
         },
     };
 
@@ -216,6 +229,7 @@ function createHarness({
     return {
         controller,
         eventButtons,
+        documentRef,
         mutationObservers,
         panel,
         resizeObservers,
@@ -255,15 +269,15 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.timeouts).toEqual([80, 180, 320, 520, 900]);
     });
 
-    it("keeps the media lane hidden until the media toggle pill is clicked", () => {
+    it("shows the media lane initially when the mission media panel is open", () => {
         const harness = createHarness({ desktopTimeline: true, mediaPanelOpen: true });
 
         harness.controller.bind();
 
-        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
-        expect(harness.mediaToggleButton.title).toBe("Show media track");
-        expect(harness.mediaRail.hidden).toBe(true);
-        expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("true");
+        expect(harness.mediaToggleButton.title).toBe("Hide media track");
+        expect(harness.mediaRail.hidden).toBe(false);
+        expect(harness.mediaMarkers.hidden).toBe(false);
     });
 
     it("collapses the control panel and updates the shared visual height", () => {
@@ -325,7 +339,7 @@ describe("createControlPanelTimelineController", () => {
         ]);
     });
 
-    it("does not auto-sync the media lane when panel visibility changes externally", () => {
+    it("syncs the media lane when the mission media panel opens or closes externally", () => {
         const harness = createHarness({ desktopTimeline: true });
 
         harness.controller.bind();
@@ -333,10 +347,26 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
 
-        harness.mediaBrowserPanel.classList.remove("media-browser-panel--hidden");
-        harness.mutationObservers.forEach((observer) => observer.callback());
+        harness.documentRef.dispatch("mission-media-panel-state", {
+            detail: {
+                state: "open",
+                isOpen: true,
+            },
+        });
+
+        expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("true");
+        expect(harness.mediaRail.hidden).toBe(false);
+        expect(harness.mediaMarkers.hidden).toBe(false);
+
+        harness.documentRef.dispatch("mission-media-panel-state", {
+            detail: {
+                state: "closed",
+                isOpen: false,
+            },
+        });
 
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
+        expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
     });
 
