@@ -81,8 +81,8 @@ future work.
 3. A dedicated media workflow panel can show the current or nearby photo at the
    current mission time, plus filters and metadata.
 4. Selecting a media item can seek the mission clock when the target time is
-   inside the animation range; playable videos/audio also start realtime
-   animation and pause it when media pauses or ends.
+   inside the animation range; playback behavior is specified in
+   [Timeline and Media Playback Spec](../specs/timeline-media-playback-spec.md).
 5. Later, one or more built-in video stream panels can play synchronized
    streams in separate panels, all driven by the same mission clock.
 

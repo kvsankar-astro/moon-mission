@@ -1497,6 +1497,23 @@ describe("Frame and Shoot timeline phase tracking", () => {
         })).toBe(100);
     });
 
+    it("nudges Frame and Shoot transport by absolute mission time instead of phase bounds", () => {
+        const { manager, panelState } = createTimelineHarness();
+        panelState.composerTimelineStartMs = 100;
+        panelState.composerTimelineEndMs = 200;
+
+        expect(manager.resolveComposerTransportStepTimeMs({
+            min: 0,
+            max: 1000,
+            value: 150,
+        }, -60)).toBe(90);
+        expect(manager.resolveComposerTransportStepTimeMs({
+            min: 0,
+            max: 1000,
+            value: 150,
+        }, 60)).toBe(210);
+    });
+
     it("restores the guided composer view without seeking the main timeline by default", () => {
         const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
             restorePanel: vi.fn(),

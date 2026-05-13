@@ -2856,6 +2856,144 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.playbackModel.elapsedSeconds).toBe(65);
     });
 
+    it("keeps Frame and Shoot nudges authoritative while playing media emits stale seek events", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        const clipStartMs = Date.parse("2026-04-02T16:00:00Z");
+        const targetTimeMs = clipStartMs + 60000;
+        const staleTimeMs = clipStartMs + 120000;
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(staleTimeMs);
+        slider.dataset = { currentTimeMs: String(staleTimeMs) };
+        slider.dispatchEvent = vi.fn((event) => {
+            if (event.type === "input" || event.type === "change") {
+                slider.value = String(slider.dataset.programmaticSeekTimeMs || slider.value);
+                slider.dataset.currentTimeMs = slider.dataset.programmaticSeekTimeMs || slider.dataset.currentTimeMs;
+            }
+        });
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 120,
+            paused: false,
+            readyState: 2,
+            networkState: 2,
+            seeking: true,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => {
+                video.paused = false;
+                return Promise.resolve();
+            }),
+            pause: vi.fn(() => {
+                video.paused = true;
+            }),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 300,
+                },
+            ],
+        });
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+            getAnimationSpeedMultiplier: () => 1,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: staleTimeMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 120,
+        });
+        pauseAnimation.mockClear();
+        video.play.mockClear();
+        const [, seekHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "mission-timeline-user-seek"
+        ));
+
+        slider.value = String(targetTimeMs);
+        slider.dataset.currentTimeMs = String(targetTimeMs);
+        seekHandler({
+            detail: {
+                phase: "commit",
+                source: "frame-shoot",
+                commit: true,
+                timeMs: targetTimeMs,
+            },
+        });
+
+        expect(video.currentTime).toBe(60);
+        video.currentTime = 120;
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackBuffering",
+            value: "clip.mp4",
+            currentTime: 120,
+        });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackPaused",
+            value: "clip.mp4",
+            mediaElement: video,
+            currentTime: 120,
+        });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackTimeUpdate",
+            value: "clip.mp4",
+            currentTime: 120,
+        });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackEnded",
+            value: "clip.mp4",
+        });
+
+        expect(Number(slider.dataset.currentTimeMs)).toBe(targetTimeMs);
+        expect(Number(slider.value)).toBe(targetTimeMs);
+        expect(pauseAnimation).not.toHaveBeenCalled();
+        expect(video.play).toHaveBeenCalled();
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel.statusLabel).not.toContain("paused");
+    });
+
     it("moves the mission timeline when scrubbing active media during playback", async () => {
         class FakeInput {}
         const slider = new FakeInput();
@@ -3293,12 +3431,14 @@ describe("createMediaTimelineCoordination", () => {
         await flushPromises(8);
 
         mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
         mocks.panelIntentHandler?.({
             type: "mediaPlaybackStarted",
             value: "clip.mp4",
             mediaKind: "videoClip",
             currentTime: 0,
         });
+        pauseAnimation.mockClear();
         video.loop = true;
         const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1000);
 
@@ -3347,6 +3487,118 @@ describe("createMediaTimelineCoordination", () => {
         expect(pauseAnimation).toHaveBeenCalledTimes(pauseAnimationCountAfterEnd);
         expect(mocks.panelRender).toHaveBeenCalledTimes(renderCountAfterEnd);
         nowSpy.mockRestore();
+    });
+
+    it("lets animation continue when animation-started media reaches its end", async () => {
+        class FakeInput {}
+        const startTimeMs = Date.parse("2026-04-02T16:00:00Z");
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(startTimeMs);
+        slider.dataset = {
+            currentTimeMs: String(startTimeMs),
+        };
+        slider.dispatchEvent = vi.fn((event) => {
+            if (event.type === "input" || event.type === "change") {
+                slider.value = String(slider.dataset.programmaticSeekTimeMs || slider.value);
+                slider.dataset.currentTimeMs = slider.dataset.programmaticSeekTimeMs || slider.dataset.currentTimeMs;
+            }
+        });
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            loop: true,
+            paused: false,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            removeAttribute: vi.fn((name) => {
+                if (name === "loop") video.loop = false;
+            }),
+            play: vi.fn(() => Promise.resolve()),
+            pause: vi.fn(() => {
+                video.paused = true;
+            }),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "+00:00",
+            photos: [
+                {
+                    time: "2026-04-02 16:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 30,
+                },
+            ],
+        });
+        let animationRunning = false;
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getAnimationRunning: () => animationRunning,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: startTimeMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        animationRunning = true;
+        playStateHandler({ detail: { isPlaying: true } });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 0,
+        });
+        pauseAnimation.mockClear();
+
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackTimeUpdate",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 30,
+        });
+
+        expect(video.loop).toBe(false);
+        expect(video.pause).toHaveBeenCalled();
+        expect(pauseAnimation).not.toHaveBeenCalled();
+        expect(Number(slider.dataset.currentTimeMs)).toBe(startTimeMs + 30000);
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel).toEqual(expect.objectContaining({
+            playing: false,
+            buffering: false,
+        }));
     });
 
     it("shows a status toast when an hls stream reports buffering without toggling animation", async () => {

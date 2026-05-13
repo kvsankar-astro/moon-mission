@@ -4175,17 +4175,7 @@ class AuxiliaryCameraViewsManager {
                 if (!timelineState) {
                     return;
                 }
-                const localMin = Number.isFinite(panelState.composerTimelineStartMs)
-                    ? panelState.composerTimelineStartMs
-                    : timelineState.min;
-                const localMax = Number.isFinite(panelState.composerTimelineEndMs)
-                    ? panelState.composerTimelineEndMs
-                    : timelineState.max;
-                const bounded = this.THREE.MathUtils.clamp(
-                    timelineState.value + deltaMs,
-                    Math.min(localMin, localMax),
-                    Math.max(localMin, localMax),
-                );
+                const bounded = this.resolveComposerTransportStepTimeMs(timelineState, deltaMs);
                 this.seekMainTimelineTime(bounded, true);
             };
             const onComposerTransportMinusSecondClick = () => {
@@ -5076,6 +5066,24 @@ class AuxiliaryCameraViewsManager {
             value: this.THREE.MathUtils.clamp(value, Math.min(min, max), Math.max(min, max)),
             stepMs: Number.isFinite(step) && step > 0 ? step : 1,
         };
+    }
+
+    resolveComposerTransportStepTimeMs(timelineState, deltaMs) {
+        if (!timelineState) {
+            return Number.NaN;
+        }
+        const min = Number(timelineState.min);
+        const max = Number(timelineState.max);
+        const value = Number(timelineState.value);
+        const delta = Number(deltaMs);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value) || !Number.isFinite(delta)) {
+            return Number.NaN;
+        }
+        return this.THREE.MathUtils.clamp(
+            value + delta,
+            Math.min(min, max),
+            Math.max(min, max),
+        );
     }
 
     seekMainTimelineTime(timeMs, finalize = false) {

@@ -12,7 +12,7 @@ This note documents the current Artemis II media browser asset model. Use it whe
 - Full image and playable clip assets are loaded directly from the public Artemis Timeline R2 bucket recorded in the manifest `mediaBase`.
 - Thumbnail cards use generated derivatives declared by the manifest `thumbnails` block. Runtime falls back to the full remote image or video poster if a generated thumbnail is missing.
 - Videos use the upstream `web/*.mp4` asset as the playable source and generated `assets/artemis2/media/thumbnails/videos/*.webp` thumbnails in the picker.
-- Audio clips use direct remote audio paths from the manifest. Selecting a playable video or audio item aligns the mission timeline to that item, starts realtime animation, and pauses animation when the media pauses or ends.
+- Audio clips use direct remote audio paths from the manifest. Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](../design/specs/timeline-media-playback-spec.md).
 - Compare mode intentionally disables the media browser because media timestamps are real mission chronology, not compare-mode aligned time.
 
 ## Source Chain
