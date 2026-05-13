@@ -163,7 +163,10 @@ Current implementation notes:
 - During craft-view solar eclipse, normal Sun optics can remain visible in the
   UI but must not drive the eclipse-corona model.
 - `Eclipse Corona` controls (`Intensity`, `Motion`, `Detail`) drive the
-  corona-only eclipse presentation.
+  corona-only eclipse presentation. `Motion` is a real-time visual animation
+  control for the corona layer and does not depend on mission playback.
+- Eclipse corona falloff should avoid a visibly circular texture boundary; the
+  outer fade should follow angular streamer structure.
 - Any future Sun physical intensity control must be clearly separate from camera
   exposure and creative glare/flare controls.
 

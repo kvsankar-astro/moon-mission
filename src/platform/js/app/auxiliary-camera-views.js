@@ -6461,7 +6461,7 @@ class AuxiliaryCameraViewsManager {
             haloScaleMul: 4.8,
             coronaOpacity: clamp(0.80 * coronaIntensity, 0, 1),
             coronaScaleMul: 90.0,
-            coronaFlowOpacity: clamp(0.18 * coronaIntensity * coronaStructure, 0, 0.60),
+            coronaFlowOpacity: clamp(0.28 * coronaIntensity * coronaStructure, 0, 0.72),
             coronaFlowScaleMul: 84.0 + (4.0 * coronaIntensity),
             coronaMotionMul: coronaMotion,
             starburstOpacity: 0.0,

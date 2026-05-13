@@ -10,8 +10,8 @@ const SUN_CORONA_SCALE = SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
 const SUN_CORONA_OPACITY = 0.0;
 const SUN_CORONA_FLOW_SCALE = 84;
 const SUN_CORONA_FLOW_OPACITY = 0.0;
-const SUN_CORONA_BASE_ROTATION_AMPLITUDE = 0.018;
-const SUN_CORONA_FLOW_ROTATION_SPEED = 0.022;
+const SUN_CORONA_BASE_ROTATION_AMPLITUDE = 0.026;
+const SUN_CORONA_FLOW_ROTATION_SPEED = 0.055;
 const SUN_STARBURST_SCALE = 16.0;
 const SUN_STARBURST_OPACITY = 0.0;
 const SUN_FLARE_SCALE_X = 26.0;
@@ -60,6 +60,48 @@ function baumbachAllenDensityTerm(radiusSolar) {
 function deterministicCoronaGrain(x, y) {
     const value = Math.sin((x * 12.9898) + (y * 78.233)) * 43758.5453;
     return value - Math.floor(value);
+}
+
+function coronaStreamerReach(theta, eclipticTiltRad) {
+    const streamerCenters = [
+        eclipticTiltRad - 0.08,
+        eclipticTiltRad + Math.PI + 0.10,
+        eclipticTiltRad + 0.42,
+        eclipticTiltRad + Math.PI - 0.48,
+        eclipticTiltRad - 0.72,
+        eclipticTiltRad + Math.PI + 0.68,
+    ];
+    let reach = 0;
+    for (let i = 0; i < streamerCenters.length; i += 1) {
+        const width = 0.19 + (0.035 * (i % 3));
+        const strength = 1.0 - (0.055 * i);
+        reach = Math.max(reach, strength * gaussianAngle(theta, streamerCenters[i], width));
+    }
+    return clamp01(reach);
+}
+
+export function sampleSolarCoronaOuterFade(radialNorm, thetaRad, {
+    eclipticTiltRad = -0.16,
+} = {}) {
+    const radial = Math.max(Number(radialNorm), 0);
+    const theta = Number.isFinite(thetaRad) ? thetaRad : 0;
+    const eclipticAngle = theta - eclipticTiltRad;
+    const equatorial = Math.abs(Math.cos(eclipticAngle));
+    const streamerReach = coronaStreamerReach(theta, eclipticTiltRad);
+    const broadWave =
+        (0.024 * Math.sin((theta * 3.0) + 0.7)) +
+        (0.018 * Math.sin((theta * 7.0) - 1.3)) +
+        (0.012 * Math.sin((theta * 13.0) + 2.1));
+    const outerRadius = clamp(
+        0.805 +
+            (0.070 * (equatorial ** 1.65)) +
+            (0.105 * streamerReach) +
+            broadWave,
+        0.74,
+        0.99,
+    );
+    const feather = clamp(0.105 + (0.035 * (1 - streamerReach)), 0.09, 0.15);
+    return 1 - smoothstep(outerRadius - feather, outerRadius, radial);
 }
 
 export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
@@ -421,16 +463,16 @@ export class SunRenderer {
         if (this.coronaFlowSprite?.material) {
             const flowOpacity = THREE.MathUtils.clamp(Number(this._visualState.coronaFlowOpacity), 0, 1);
             const slowPulse =
-                0.84 +
-                (0.14 * Math.sin(0.8 + (seconds * 0.24 * motionMul))) +
-                (0.08 * Math.sin(2.4 + (seconds * 0.37 * motionMul)));
+                0.78 +
+                (0.18 * Math.sin(0.8 + (seconds * 0.40 * motionMul))) +
+                (0.10 * Math.sin(2.4 + (seconds * 0.63 * motionMul)));
             this.coronaFlowSprite.material.rotation =
                 0.38 + (seconds * SUN_CORONA_FLOW_ROTATION_SPEED * motionMul) +
-                (0.060 * Math.sin(1.1 + (seconds * 0.13 * motionMul)));
+                (0.080 * Math.sin(1.1 + (seconds * 0.24 * motionMul)));
             this.coronaFlowSprite.material.opacity = THREE.MathUtils.clamp(flowOpacity * slowPulse, 0, 1);
             const scaleMul = Number(this._visualState.coronaFlowScaleMul);
             if (Number.isFinite(scaleMul) && scaleMul > 0) {
-                const scalePulse = 1 + (0.030 * Math.sin(0.35 + (seconds * 0.18 * motionMul)));
+                const scalePulse = 1 + (0.050 * Math.sin(0.35 + (seconds * 0.32 * motionMul)));
                 this.coronaFlowSprite.scale.setScalar(this.radius * 2 * scaleMul * scalePulse);
             }
             this.coronaFlowSprite.visible = flowOpacity > 1e-4 && Number(motionMul) > 1e-4;
@@ -669,7 +711,7 @@ export class SunRenderer {
                 const radiusSolar = radial * SUN_CORONA_MODEL_EXTENT_SOLAR_RADII;
                 const theta = Math.atan2(ny, nx);
                 const sample = sampleSolarCoronaModel(radiusSolar, theta, modelOptions);
-                const edgeFade = 1 - smoothstep(0.88, 1.0, radial);
+                const edgeFade = sampleSolarCoronaOuterFade(radial, theta, modelOptions);
                 const centerFade = smoothstep(0.002, 0.02, radial);
                 const grain = 0.965 + (0.07 * deterministicCoronaGrain(x, y));
                 const alpha = clamp01(sample.alpha * edgeFade * centerFade * grain);

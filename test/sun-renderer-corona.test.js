@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
     SunRenderer,
+    sampleSolarCoronaOuterFade,
     sampleSolarCoronaModel,
 } from "../src/platform/js/rendering/sun-renderer.js";
 
@@ -43,6 +44,14 @@ describe("sampleSolarCoronaModel", () => {
 
         expect(shifted.signal).not.toBeCloseTo(base.signal, 5);
         expect(shifted.alpha).toBeGreaterThan(0);
+    });
+
+    it("uses an angular outer fade so the corona does not end as a perfect circle", () => {
+        const streamerDirection = sampleSolarCoronaOuterFade(0.89, -0.24);
+        const quietDirection = sampleSolarCoronaOuterFade(0.89, 1.45);
+
+        expect(streamerDirection).toBeGreaterThan(quietDirection);
+        expect(Math.abs(streamerDirection - quietDirection)).toBeGreaterThan(0.2);
     });
 });
 
