@@ -15,6 +15,9 @@ const ITEMS = [
         batch: 2,
         cameraId: "iphone",
         cameraLabel: "Crew iPhone",
+        tags: ["gloves", "orange suit"],
+        subjects: ["suited crew member", "gloved hands"],
+        sceneType: "crew",
     },
     {
         id: "b",
@@ -25,6 +28,11 @@ const ITEMS = [
         batch: 1,
         cameraId: "d5",
         cameraLabel: "D5 #1",
+        tags: ["craters"],
+        subjects: ["Moon"],
+        bodies: ["Moon"],
+        mainBody: "Moon",
+        sceneType: "moon",
     },
     {
         id: "c",
@@ -45,6 +53,7 @@ const ITEMS = [
         batch: 1,
         cameraId: "",
         cameraLabel: "",
+        mainBody: "Sun",
     },
     {
         id: "d",
@@ -55,6 +64,8 @@ const ITEMS = [
         batch: 1,
         cameraId: "z9",
         cameraLabel: "Z9",
+        description: "A crew video near a spacecraft window.",
+        subjects: ["spacecraft window"],
     },
 ];
 
@@ -77,6 +88,14 @@ describe("media filter state", () => {
         expect(filterMediaItems(ITEMS, { subjects: ["crew"] }).map((item) => item.id)).toEqual(["a", "d"]);
         expect(filterMediaItems(ITEMS, { subjects: ["space"] }).map((item) => item.id)).toEqual(["b"]);
         expect(filterMediaItems(ITEMS, { subjects: ["crew", "space"] }).map((item) => item.id)).toEqual(["a", "b", "d"]);
+    });
+
+    it("searches title, description, tags, subjects, bodies, and scene metadata", () => {
+        expect(filterMediaItems(ITEMS, { query: "gloves" }).map((item) => item.id)).toEqual(["a"]);
+        expect(filterMediaItems(ITEMS, { query: "window" }).map((item) => item.id)).toEqual(["d"]);
+        expect(filterMediaItems(ITEMS, { query: "sun" }).map((item) => item.id)).toEqual(["e"]);
+        expect(filterMediaItems(ITEMS, { query: "moon craters" }).map((item) => item.id)).toEqual(["b"]);
+        expect(filterMediaItems(ITEMS, { query: "crew", mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a"]);
     });
 
     it("filters by independently selectable media kinds", () => {

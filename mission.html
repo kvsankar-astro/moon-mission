@@ -1695,6 +1695,18 @@
                             role="group"
                             aria-label="Media filters"
                         ></div>
+                        <label class="media-browser-panel__search">
+                            <span class="media-browser-panel__search-label">Search</span>
+                            <input
+                                id="media-browser-search"
+                                class="media-browser-panel__search-input"
+                                type="search"
+                                autocomplete="off"
+                                spellcheck="false"
+                                placeholder="crew, window, gloves..."
+                                aria-label="Search media metadata"
+                            >
+                        </label>
                         <div
                             id="media-browser-filter-summary"
                             class="media-browser-panel__filter-summary"
@@ -1814,6 +1826,7 @@
                                 <span id="media-browser-camera" class="media-browser-panel__caption-camera">--</span>
                             </div>
                             <h3 id="media-browser-item-title" class="media-browser-panel__item-title">Mission Media</h3>
+                            <div id="media-browser-exif" class="media-browser-panel__exif" hidden></div>
                         </div>
                     </div>
                 </div>
@@ -1838,6 +1851,15 @@
                         title="Play media from current timeline position"
                         aria-label="Play media"
                     >Play</button>
+                    <button
+                        id="media-browser-media-popout"
+                        class="media-browser-panel__media-button media-browser-panel__media-button--popout mission-panel-shell__button"
+                        type="button"
+                        title="Pop out video"
+                        aria-label="Pop out video"
+                        aria-pressed="false"
+                        hidden
+                    >Pop Out</button>
                     <span
                         id="media-browser-media-elapsed"
                         class="media-browser-panel__media-elapsed"
@@ -1892,6 +1914,42 @@
                     <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
                         <div class="media-browser-panel__meta-key">Source</div>
                         <div id="media-browser-source" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Summary</div>
+                        <div id="media-browser-llm-summary" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Scene</div>
+                        <div id="media-browser-scene-type" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Bodies</div>
+                        <div id="media-browser-bodies" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell">
+                        <div class="media-browser-panel__meta-key">LLM Main Body</div>
+                        <div id="media-browser-main-body" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Tags</div>
+                        <div id="media-browser-tags" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Subjects</div>
+                        <div id="media-browser-subjects" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Frame Hint</div>
+                        <div id="media-browser-composition-hint" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">LLM Quality Notes</div>
+                        <div id="media-browser-quality-notes" class="media-browser-panel__meta-value">--</div>
+                    </div>
+                    <div class="media-browser-panel__meta-cell media-browser-panel__meta-cell--wide">
+                        <div class="media-browser-panel__meta-key">EXIF / Camera</div>
+                        <div id="media-browser-exif-detail" class="media-browser-panel__meta-value">--</div>
                     </div>
                 </div>
                 <p id="media-browser-description" class="media-browser-panel__description">--</p>

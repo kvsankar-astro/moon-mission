@@ -756,8 +756,46 @@ button, input, textarea, select, a, [role="button"], [onclick] {
 .media-browser-panel__filter-stack {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
     min-width: 0;
+}
+
+.media-browser-panel__search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.media-browser-panel__search-label {
+    flex: 0 0 auto;
+    color: rgba(172, 190, 216, 0.66);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 20px;
+    text-transform: uppercase;
+}
+
+.media-browser-panel__search-input {
+    flex: 1 1 180px;
+    min-width: 140px;
+    max-width: 320px;
+    height: 24px;
+    box-sizing: border-box;
+    border: 1px solid rgba(120, 166, 231, 0.22);
+    border-radius: 4px;
+    background: rgba(5, 10, 18, 0.62);
+    color: rgba(230, 241, 255, 0.94);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0 8px;
+}
+
+.media-browser-panel__search-input::placeholder {
+    color: rgba(176, 196, 222, 0.48);
 }
 
 .media-browser-panel__filter-summary {
@@ -1143,6 +1181,30 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     pointer-events: none;
 }
 
+.media-browser-panel__exif {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    max-width: min(46%, 360px);
+    padding: 5px 8px;
+    border: 1px solid rgba(154, 190, 238, 0.2);
+    border-radius: 4px;
+    background: rgba(3, 8, 16, 0.62);
+    color: rgba(222, 235, 253, 0.86);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(6px);
+}
+
+.media-browser-panel__exif[hidden] {
+    display: none;
+}
+
 .media-browser-panel__caption-meta {
     display: flex;
     align-items: center;
@@ -1188,6 +1250,10 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.media-browser-panel__summary-card:has(.media-browser-panel__exif:not([hidden])) .media-browser-panel__item-title {
+    max-width: calc(54% - 16px);
 }
 
 .media-browser-panel__meta-grid {
@@ -1273,6 +1339,15 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     background: rgba(98, 158, 255, 0.24);
     border-color: rgba(146, 190, 255, 0.78);
     box-shadow: 0 0 0 1px rgba(154, 195, 255, 0.18);
+}
+
+.media-browser-panel__media-button--popout {
+    width: auto;
+    min-width: 62px;
+    padding: 0 10px;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1;
 }
 
 .media-browser-panel__media-button:disabled {

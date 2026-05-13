@@ -181,11 +181,23 @@ describe("createMediaTimelineCoordination", () => {
         mocks.loadMissionMediaManifest.mockResolvedValue({
             mediaBase: "https://media.example/",
             timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "photo.jpg",
+                    tags: ["gloves", "crew"],
+                    subjects: ["gloved hands"],
+                    bodies: ["Moon"],
+                    sceneType: "crew",
+                    qualityNotes: "Readable thumbnail.",
+                },
+            ],
             photos: [
                 {
                     time: "2026-04-02 12:00:00",
                     file: "photo.jpg",
                     title: "Crew photo",
+                    camera: "Canon EOS R5",
+                    settings: "57mm · f/4 · 1/200 · ISO 1250",
                     enabled: true,
                 },
             ],
@@ -256,11 +268,23 @@ describe("createMediaTimelineCoordination", () => {
         mocks.loadMissionMediaManifest.mockResolvedValue({
             mediaBase: "https://media.example/",
             timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "photo.jpg",
+                    tags: ["gloves", "crew"],
+                    subjects: ["gloved hands"],
+                    bodies: ["Moon"],
+                    sceneType: "crew",
+                    qualityNotes: "Readable thumbnail.",
+                },
+            ],
             photos: [
                 {
                     time: "2026-04-02 12:00:00",
                     file: "photo.jpg",
                     title: "Crew photo",
+                    camera: "Canon EOS R5",
+                    settings: "57mm · f/4 · 1/200 · ISO 1250",
                     enabled: true,
                 },
             ],
@@ -290,6 +314,12 @@ describe("createMediaTimelineCoordination", () => {
             id: "photo.jpg",
             focusSource: "user-selection",
             explicit: true,
+            tags: ["gloves", "crew"],
+            subjects: ["gloved hands"],
+            bodies: ["Moon"],
+            sceneType: "crew",
+            qualityNotes: "Readable thumbnail.",
+            exifLabel: "Canon EOS R5 - 57mm · f/4 · 1/200 · ISO 1250",
         }));
     });
 

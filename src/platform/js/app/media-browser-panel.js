@@ -126,6 +126,14 @@ function callMediaMethod(mediaElement, methodName) {
     }
 }
 
+function isPictureInPictureSupported(video) {
+    const documentRef = getDocumentRef();
+    return !!video
+        && typeof video.requestPictureInPicture === "function"
+        && documentRef?.pictureInPictureEnabled !== false
+        && video.disablePictureInPicture !== true;
+}
+
 function isLikelyHlsSource(url = "", sourceType = "") {
     const normalizedSourceType = String(sourceType || "").trim().toLowerCase();
     const normalizedUrl = String(url || "").trim().toLowerCase();
@@ -293,6 +301,26 @@ function createMediaBrowserPanelActions({
         ].filter((part) => part && !part.startsWith("0 "));
         const base = `${matchCount} of ${formatCountLabel(totalCount, "media file")} filtered in`;
         return breakdown.length > 0 ? `${base} (${breakdown.join(", ")}).` : `${base}.`;
+    }
+
+    function formatMediaDetailList(values) {
+        const parts = (Array.isArray(values) ? values : [])
+            .map((value) => String(value || "").trim())
+            .filter(Boolean);
+        return parts.length ? parts.join(", ") : "--";
+    }
+
+    function formatCompositionHintLabel(hint = {}) {
+        const target = String(hint?.suggestedLockTarget || hint?.lockTarget || "").trim();
+        const confidence = Number(hint?.confidence);
+        const reason = String(hint?.reason || "").trim();
+        const targetLabel = target ? `Lock ${target}` : "";
+        const confidenceLabel = Number.isFinite(confidence) ? `${Math.round(confidence * 100)}%` : "";
+        return [
+            targetLabel,
+            confidenceLabel,
+            reason,
+        ].filter(Boolean).join(" - ") || "--";
     }
 
     function resolveDefaultPanelPosition(panel) {
@@ -1261,6 +1289,49 @@ function createMediaBrowserPanelActions({
         appendFilterFacetGroup(host, "Camera", cameraOptions, "toggleCameraFilter", "camera");
     }
 
+    function syncMediaSearchControl(filterModel = {}) {
+        const input = getNode("media-browser-search");
+        if (!input) return;
+        const query = String(filterModel.query || "").trim();
+        if (input.value !== query) {
+            input.value = query;
+        }
+        input.title = query ? `Searching media metadata for "${query}"` : "Search media metadata";
+    }
+
+    function syncVideoPopoutButton({ hasVideo = false } = {}) {
+        const button = getNode("media-browser-media-popout");
+        const video = getNode("media-browser-video");
+        if (!button) return;
+        const supported = hasVideo === true && isPictureInPictureSupported(video);
+        button.hidden = !supported;
+        button.disabled = !supported;
+        const poppedOut = supported && getDocumentRef()?.pictureInPictureElement === video;
+        button.textContent = poppedOut ? "Dock" : "Pop Out";
+        button.title = poppedOut ? "Return video to panel" : "Pop out video";
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-pressed", poppedOut ? "true" : "false");
+    }
+
+    async function toggleVideoPopout() {
+        const video = getNode("media-browser-video");
+        if (!isPictureInPictureSupported(video)) {
+            syncVideoPopoutButton({ hasVideo: false });
+            return;
+        }
+        const documentRef = getDocumentRef();
+        try {
+            if (documentRef?.pictureInPictureElement === video) {
+                await documentRef.exitPictureInPicture?.();
+            } else {
+                await video.requestPictureInPicture();
+            }
+        } catch {
+            // Browsers can reject Picture-in-Picture until metadata is ready or after a rapid source swap.
+        }
+        syncVideoPopoutButton({ hasVideo: video?.hidden !== true && !!video?.dataset?.mediaSourceUrl });
+    }
+
     function syncMediaControls(playbackModel = {}) {
         const controls = getNode("media-browser-media-controls");
         const playButton = getNode("media-browser-media-play");
@@ -1664,6 +1735,17 @@ function createMediaBrowserPanelActions({
         setText("media-browser-photographer", viewModel.activeItem?.photographer || "--");
         setText("media-browser-location", viewModel.activeItem?.location || "--");
         setText("media-browser-source", viewModel.activeItem?.sourceLabel || "--");
+        setText("media-browser-llm-summary", viewModel.activeItem?.shortDescription || "--");
+        setText("media-browser-scene-type", viewModel.activeItem?.sceneType || "--");
+        setText("media-browser-bodies", formatMediaDetailList(viewModel.activeItem?.bodies));
+        setText("media-browser-main-body", viewModel.activeItem?.mainBody || "--");
+        setText("media-browser-tags", formatMediaDetailList(viewModel.activeItem?.tags));
+        setText("media-browser-subjects", formatMediaDetailList(viewModel.activeItem?.subjects));
+        setText("media-browser-composition-hint", formatCompositionHintLabel(viewModel.activeItem?.compositionHints));
+        setText("media-browser-quality-notes", viewModel.activeItem?.qualityNotes || "--");
+        setText("media-browser-exif-detail", viewModel.activeItem?.exifLabel || "--");
+        setText("media-browser-exif", viewModel.activeItem?.exifLabel || "");
+        setHidden("media-browser-exif", !viewModel.activeItem?.exifLabel);
         setText(
             "media-browser-description",
             viewModel.activeItem?.description
@@ -1673,8 +1755,8 @@ function createMediaBrowserPanelActions({
         );
         setText("media-browser-timing-note", viewModel.activeItem?.timingNote || "");
         setHidden("media-browser-timing-note", !viewModel.activeItem?.timingNote);
-        setText("media-browser-seed-note", viewModel.seedNote || "");
-        setHidden("media-browser-seed-note", !viewModel.seedNote);
+        setText("media-browser-seed-note", "");
+        setHidden("media-browser-seed-note", true);
         setText("media-browser-stage-badge", viewModel.activeItem?.stageBadge || "");
         setHidden("media-browser-stage-badge", !viewModel.activeItem?.stageBadge);
 
@@ -1696,6 +1778,7 @@ function createMediaBrowserPanelActions({
                 video.hidden = true;
             }
         }
+        syncVideoPopoutButton({ hasVideo });
 
         if (isImageLike(image)) {
             if (hasImage) {
@@ -1738,6 +1821,7 @@ function createMediaBrowserPanelActions({
         }
 
         renderMediaFilterControls(viewModel.filterModel || {});
+        syncMediaSearchControl(viewModel.filterModel || {});
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
         syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
@@ -1880,6 +1964,9 @@ function createMediaBrowserPanelActions({
         getNode("media-browser-media-restart")?.addEventListener?.("click", () => {
             onIntent?.({ type: "startActiveMediaFromBeginning" });
         });
+        getNode("media-browser-media-popout")?.addEventListener?.("click", () => {
+            toggleVideoPopout();
+        });
         const mediaTimelineSlider = getNode("media-browser-media-timeline");
         mediaTimelineSlider?.addEventListener?.("input", () => {
             onIntent?.({
@@ -1893,6 +1980,14 @@ function createMediaBrowserPanelActions({
                 type: "mediaSeekTime",
                 value: Number(mediaTimelineSlider?.value),
                 finalize: true,
+            });
+        });
+
+        const mediaSearchInput = getNode("media-browser-search");
+        mediaSearchInput?.addEventListener?.("input", () => {
+            onIntent?.({
+                type: "setSearchQuery",
+                value: mediaSearchInput?.value || "",
             });
         });
 
@@ -1940,6 +2035,13 @@ function createMediaBrowserPanelActions({
                 currentTime: Number(video?.currentTime),
             });
         });
+        for (const eventName of ["enterpictureinpicture", "leavepictureinpicture", "loadedmetadata", "emptied"]) {
+            video?.addEventListener?.(eventName, () => {
+                syncVideoPopoutButton({
+                    hasVideo: video?.hidden !== true && !!video?.dataset?.mediaSourceUrl,
+                });
+            });
+        }
 
         const drilldown = getNode("media-browser-drilldown");
         drilldown?.addEventListener?.("toggle", () => {

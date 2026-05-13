@@ -104,7 +104,7 @@ Useful pages:
 - The current Artemis II media implementation keeps full media files remote in the public Artemis Timeline R2 bucket, stores mirrored metadata locally, and stages generated thumbnail derivatives from `../moon-mission-data`. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
 - Playable Mission Media items are synchronized with the mission clock: selecting a video or audio clip seeks the mission time, switches animation playback to realtime, starts both media and animation, and pauses animation when the media pauses or ends. Plain animation playback does not auto-start media.
 - `Flyby in Focus` / `Frame and Shoot` treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft.
-- Its sky controls include `Star Mag` from `-3` to `6`, `Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox. Body labels are suppressed when their anchor point is hidden behind the projected Earth or Moon disk.
+- Its sky controls include `Mag` from `-3` to `6` for star and planet filtering, `Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox. Body labels are suppressed when their anchor point is hidden behind the projected Earth or Moon disk.
 - Its Sun controls intentionally keep ordinary camera optics separate from eclipse rendering:
   - outside a craft-view solar eclipse, `Strength`, `Halo`, `Star`, and `Flare` adjust the normal Sun/camera optics
   - during a craft-view solar eclipse, those normal controls stay visible but do not affect the eclipse render; changes apply again after eclipse

@@ -187,6 +187,15 @@ function buildTimingNote(item, deltaMs) {
     return parts.join(" ");
 }
 
+function buildMediaExifLabel(item) {
+    if (!item) return "";
+    const parts = [
+        item.cameraLabel,
+        item.settings,
+    ].map((part) => String(part || "").trim()).filter(Boolean);
+    return [...new Set(parts)].join(" - ");
+}
+
 function findManifestMediaItemById(manifest, itemId) {
     const normalizedId = String(itemId || "").trim();
     if (!manifest || !normalizedId) return null;
@@ -1692,6 +1701,13 @@ function createMediaTimelineCoordination({
             rerender();
             return;
         }
+        if (type === "setSearchQuery") {
+            runtimeMediaState.patchFilters({
+                query: String(intent.value || "").trim(),
+            });
+            rerender();
+            return;
+        }
         if (type === "selectItem") {
             const selectableItems = getFilteredSelectableItems();
             const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
@@ -1885,6 +1901,16 @@ function createMediaTimelineCoordination({
                     photographer: activeItem.photographer,
                     location: activeItem.location,
                     sourceLabel: activeItem.sourceLabel || activeItem.fileName,
+                    settings: activeItem.settings || "",
+                    shortDescription: activeItem.shortDescription || "",
+                    tags: activeItem.tags || [],
+                    subjects: activeItem.subjects || [],
+                    bodies: activeItem.bodies || [],
+                    mainBody: activeItem.mainBody || "",
+                    sceneType: activeItem.sceneType || "",
+                    compositionHints: activeItem.compositionHints || null,
+                    qualityNotes: activeItem.qualityNotes || "",
+                    exifLabel: buildMediaExifLabel(activeItem),
                     stageBadge: buildStageBadge(activeItem),
                     timingNote: buildTimingNote(activeItem, selection.activeDeltaMs),
                 }

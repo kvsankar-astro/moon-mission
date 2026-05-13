@@ -689,6 +689,12 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(240, 247, 255, 0.97);
 }
 
+.aux-camera-view__composer-crater-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
 .aux-camera-view__composer-crater-control {
     position: relative;
     display: inline-flex;
@@ -791,6 +797,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
     align-items: center;
     gap: 8px;
     max-width: 100%;
+}
+
+.aux-camera-view__composer-sky-controls .aux-camera-view__composer-crater-row {
+    justify-content: flex-start;
 }
 
 .aux-camera-view__composer-sky-controls .aux-camera-view__composer-optics-row {

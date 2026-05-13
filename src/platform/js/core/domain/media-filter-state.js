@@ -62,6 +62,17 @@ function normalizeMediaSubjectIds(value) {
     return [...new Set(value.map((entry) => normalizeMediaSubjectId(entry)).filter(Boolean))];
 }
 
+function normalizeMediaSearchQuery(value) {
+    return asTrimmedString(value).replace(/\s+/g, " ");
+}
+
+function normalizeSearchCorpusValue(value) {
+    if (Array.isArray(value)) {
+        return value.map(normalizeSearchCorpusValue).filter(Boolean).join(" ");
+    }
+    return asTrimmedString(value).toLowerCase();
+}
+
 function createDefaultMediaFilterState() {
     return {
         quick: "all",
@@ -71,6 +82,7 @@ function createDefaultMediaFilterState() {
         kind: "all",
         mediaKinds: [...MEDIA_KIND_FILTER_IDS],
         subjects: [],
+        query: "",
     };
 }
 
@@ -117,6 +129,7 @@ function normalizeMediaFilterState(value = {}) {
         kind: normalizedKind,
         mediaKinds,
         subjects,
+        query: normalizeMediaSearchQuery(value.query || value.searchQuery),
     };
 }
 
@@ -125,6 +138,7 @@ function matchesSubjectFilter(item, subjects) {
     return subjects.some((subject) => (
         (subject === "crew" && item.crewCaptured === true)
         || (subject === "space" && item.external === true)
+        || (Array.isArray(item.subjects) && item.subjects.some((itemSubject) => normalizeMediaSubjectId(itemSubject) === subject))
     ));
 }
 
@@ -137,15 +151,40 @@ function matchesCameraFilter(item, cameraIds) {
     return !Array.isArray(cameraIds) || cameraIds.length === 0 || cameraIds.includes(item.cameraId);
 }
 
+function matchesSearchFilter(item, query) {
+    const normalizedQuery = normalizeMediaSearchQuery(query).toLowerCase();
+    if (!normalizedQuery) return true;
+    const terms = normalizedQuery.split(" ").filter(Boolean);
+    if (terms.length === 0) return true;
+    const corpus = [
+        item?.title,
+        item?.description,
+        item?.shortDescription,
+        item?.qualityNotes,
+        item?.location,
+        item?.cameraLabel,
+        item?.sourceLabel,
+        item?.fileName,
+        item?.sceneType,
+        item?.mainBody,
+        item?.tags,
+        item?.subjects,
+        item?.bodies,
+    ].map(normalizeSearchCorpusValue).filter(Boolean).join(" ");
+    return terms.every((term) => corpus.includes(term));
+}
+
 function matchesMediaFilterParts(item, filters, {
     ignoreKind = false,
     ignoreSubject = false,
     ignoreCamera = false,
+    ignoreQuery = false,
 } = {}) {
     if (!item || item.enabled === false) return false;
     if (!ignoreSubject && !matchesSubjectFilter(item, filters.subjects)) return false;
     if (!ignoreKind && !matchesKindFilter(item, filters)) return false;
     if (!ignoreCamera && !matchesCameraFilter(item, filters.cameraIds)) return false;
+    if (!ignoreQuery && !matchesSearchFilter(item, filters.query)) return false;
     return true;
 }
 
@@ -256,6 +295,7 @@ function buildMediaFilterModel(items, filterState) {
         kind: filters.kind,
         mediaKinds: filters.mediaKinds,
         subjects: filters.subjects,
+        query: filters.query,
         cameraId: filters.cameraId,
         cameraIds: filters.cameraIds,
         kindPillOptions: [

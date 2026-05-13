@@ -14,6 +14,15 @@ function toLowerCorpus(parts) {
         .join(" ");
 }
 
+function normalizeBodyName(value) {
+    return asTrimmedString(value).toLowerCase();
+}
+
+function normalizeLockTarget(value) {
+    const normalized = asTrimmedString(value).toLowerCase();
+    return normalized === "earth" || normalized === "moon" ? normalized : "";
+}
+
 function parseFocalLengthMm(...candidates) {
     for (const candidate of candidates) {
         const text = asTrimmedString(candidate);
@@ -73,6 +82,49 @@ function inferLockTarget(corpus) {
     return "";
 }
 
+function inferLockTargetFromBodies(bodies = []) {
+    const normalizedBodies = (Array.isArray(bodies) ? bodies : []).map(normalizeBodyName);
+    if (normalizedBodies.includes("earth")) return "earth";
+    if (normalizedBodies.includes("moon")) return "moon";
+    return "";
+}
+
+function inferLockTargetFromMainBody(mainBody) {
+    return normalizeLockTarget(mainBody);
+}
+
+function normalizeExplicitMediaShotHint(item) {
+    const explicit = item?.shotViewHint || item?.compositionHint || null;
+    const compositionHints = item?.compositionHints || item?.composition_hints || null;
+    const explicitLockTarget = normalizeLockTarget(
+        explicit?.lockTarget ||
+        explicit?.suggestedLockTarget ||
+        explicit?.suggested_lock_target ||
+        compositionHints?.lockTarget ||
+        compositionHints?.suggestedLockTarget ||
+        compositionHints?.suggested_lock_target,
+    );
+    const mainBodyLockTarget = inferLockTargetFromMainBody(item?.mainBody || item?.main_body || item?.primaryBody || item?.primary_body);
+    const bodyLockTarget = inferLockTargetFromBodies(item?.bodies);
+    const lockTarget = explicitLockTarget || mainBodyLockTarget || bodyLockTarget;
+    if (!lockTarget) return null;
+    return {
+        mediaItemId: asTrimmedString(item.id),
+        lockTarget,
+        orientationReference: asTrimmedString(
+            explicit?.orientationReference ||
+            explicit?.orientation_reference ||
+            compositionHints?.orientationReference ||
+            compositionHints?.orientation_reference,
+        ) || (lockTarget === "earth" ? "moon-north" : "world"),
+        focalLengthMm: toFiniteNumber(explicit?.focalLengthMm || explicit?.focal_length_mm),
+        verticalFovDegrees: toFiniteNumber(explicit?.verticalFovDegrees || explicit?.vertical_fov_degrees),
+        sensorProfileId: asTrimmedString(explicit?.sensorProfileId || explicit?.sensor_profile_id),
+        surfaceTarget: explicit?.surfaceTarget || explicit?.surface_target || compositionHints?.surfaceTarget || compositionHints?.surface_target || null,
+        bodies: Array.isArray(item?.bodies) ? item.bodies.map(asTrimmedString).filter(Boolean) : [],
+    };
+}
+
 const SURFACE_TARGET_HINT_OVERRIDES = Object.freeze([
     {
         match: (item, corpus) =>
@@ -105,6 +157,11 @@ function resolveSurfaceTargetHint(item, corpus) {
 function inferMediaShotViewHint(item) {
     if (!item || typeof item !== "object") {
         return null;
+    }
+
+    const explicitHint = normalizeExplicitMediaShotHint(item);
+    if (explicitHint) {
+        return explicitHint;
     }
 
     const corpus = toLowerCorpus([

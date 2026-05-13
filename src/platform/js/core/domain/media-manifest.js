@@ -16,6 +16,127 @@ function normalizeTextArray(value) {
         .filter(Boolean);
 }
 
+function normalizeMetadataKey(value) {
+    return buildMediaThumbnailKey(value).toLowerCase();
+}
+
+function normalizeMediaCompositionHints(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {
+            suggestedLockTarget: "",
+            confidence: Number.NaN,
+            reason: "",
+        };
+    }
+    const suggestedLockTarget = asTrimmedString(
+        value.suggestedLockTarget || value.suggested_lock_target,
+    ).toLowerCase();
+    return {
+        suggestedLockTarget,
+        confidence: toFiniteNumber(value.confidence),
+        reason: asTrimmedString(value.reason),
+    };
+}
+
+function normalizeMediaMainBody(value) {
+    const normalized = asTrimmedString(value).toLowerCase();
+    if (normalized === "earth") return "Earth";
+    if (normalized === "moon") return "Moon";
+    if (normalized === "sun") return "Sun";
+    return "";
+}
+
+function normalizeMediaMetadataEntry(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return null;
+    }
+    return {
+        id: asTrimmedString(value.id),
+        fileName: asTrimmedString(value.file || value.fileName || value.filename),
+        thumbnail: asTrimmedString(value.thumbnail || value.thumbnailAsset),
+        shortDescription: asTrimmedString(value.shortDescription || value.short_description),
+        tags: normalizeTextArray(value.tags),
+        subjects: normalizeTextArray(value.subjects),
+        sceneType: asTrimmedString(value.sceneType || value.scene_type),
+        bodies: normalizeTextArray(value.bodies),
+        mainBody: normalizeMediaMainBody(value.mainBody || value.main_body || value.primaryBody || value.primary_body),
+        compositionHints: normalizeMediaCompositionHints(value.compositionHints || value.composition_hints),
+        qualityNotes: asTrimmedString(value.qualityNotes || value.quality_notes),
+    };
+}
+
+function normalizeMediaMetadataMap(entries = []) {
+    const metadataByKey = new Map();
+    for (const entry of Array.isArray(entries) ? entries : []) {
+        const normalized = normalizeMediaMetadataEntry(entry);
+        if (!normalized) continue;
+        const keys = [
+            normalized.id,
+            normalized.fileName,
+            normalized.thumbnail,
+        ].map(normalizeMetadataKey).filter(Boolean);
+        for (const key of keys) {
+            metadataByKey.set(key, normalized);
+        }
+    }
+    return metadataByKey;
+}
+
+function resolveMediaMetadata(metadataByKey, {
+    id = "",
+    fileName = "",
+    thumbnailKey = "",
+} = {}) {
+    if (!(metadataByKey instanceof Map) || metadataByKey.size === 0) return null;
+    const keys = [
+        id,
+        fileName,
+        thumbnailKey,
+    ].map(normalizeMetadataKey).filter(Boolean);
+    for (const key of keys) {
+        const metadata = metadataByKey.get(key);
+        if (metadata) return metadata;
+    }
+    return null;
+}
+
+function applyMediaMetadata(item, metadata) {
+    const normalizedItem = item || {};
+    if (!metadata) {
+        return {
+            ...normalizedItem,
+            tags: normalizeTextArray(normalizedItem.tags),
+            metadataTags: [],
+            subjects: normalizeTextArray(normalizedItem.subjects),
+            bodies: normalizeTextArray(normalizedItem.bodies),
+            mainBody: normalizeMediaMainBody(
+                normalizedItem.mainBody || normalizedItem.main_body || normalizedItem.primaryBody || normalizedItem.primary_body,
+            ),
+            sceneType: asTrimmedString(normalizedItem.sceneType || normalizedItem.scene_type),
+            shortDescription: asTrimmedString(normalizedItem.shortDescription || normalizedItem.short_description),
+            compositionHints: normalizeMediaCompositionHints(
+                normalizedItem.compositionHints || normalizedItem.composition_hints,
+            ),
+            qualityNotes: asTrimmedString(normalizedItem.qualityNotes || normalizedItem.quality_notes),
+        };
+    }
+    const metadataTags = normalizeTextArray(metadata.tags);
+    const itemTags = normalizeTextArray(normalizedItem.tags);
+    return {
+        ...normalizedItem,
+        description: normalizedItem.description || metadata.shortDescription || "",
+        shortDescription: metadata.shortDescription || asTrimmedString(normalizedItem.shortDescription),
+        tags: [...new Set([...itemTags, ...metadataTags])],
+        metadataTags,
+        subjects: normalizeTextArray(metadata.subjects),
+        bodies: normalizeTextArray(metadata.bodies),
+        mainBody: metadata.mainBody || normalizeMediaMainBody(normalizedItem.mainBody),
+        sceneType: metadata.sceneType || asTrimmedString(normalizedItem.sceneType),
+        compositionHints: metadata.compositionHints,
+        qualityNotes: metadata.qualityNotes,
+    };
+}
+
 function toFiniteNumber(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : Number.NaN;
@@ -223,7 +344,7 @@ function resolveMediaStartTimeMs(item, cameraProfile) {
     };
 }
 
-function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnailConfig = {}) {
+function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnailConfig = {}, metadataByKey = new Map()) {
     if (!item || typeof item !== "object" || Array.isArray(item)) {
         return null;
     }
@@ -258,7 +379,7 @@ function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnail
         thumbnailKey: item.thumbnailKey,
     }, dataPath);
 
-    return {
+    const normalizedItem = {
         id,
         kind,
         enabled: item.enabled !== false,
@@ -294,6 +415,14 @@ function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnail
         batch: Number.isFinite(batch) ? batch : 0,
         availabilityStartPolicy: asTrimmedString(item.availabilityStartPolicy),
     };
+    return applyMediaMetadata(
+        normalizedItem,
+        resolveMediaMetadata(metadataByKey, {
+            id,
+            fileName,
+            thumbnailKey: item.thumbnailKey,
+        }),
+    );
 }
 
 function ensureTrailingSlash(value) {
@@ -365,6 +494,7 @@ function normalizeArtemisTimelinePhoto(photo, index, {
     timezoneOffset = ARTEMIS_TIMELINE_DEFAULT_TIMEZONE_OFFSET,
     cameraProfilesById = {},
     thumbnailConfig = {},
+    metadataByKey = new Map(),
 } = {}) {
     if (!photo || typeof photo !== "object" || Array.isArray(photo)) {
         return null;
@@ -403,7 +533,7 @@ function normalizeArtemisTimelinePhoto(photo, index, {
         thumbnailKey: photo.thumbnailKey,
     }, dataPath);
 
-    return {
+    const normalizedItem = {
         id,
         kind: isVideo ? "videoClip" : "image",
         enabled: photo.enabled !== false,
@@ -437,9 +567,17 @@ function normalizeArtemisTimelinePhoto(photo, index, {
         batch: Number.isFinite(batch) ? batch : 0,
         availabilityStartPolicy: "",
     };
+    return applyMediaMetadata(
+        normalizedItem,
+        resolveMediaMetadata(metadataByKey, {
+            id,
+            fileName,
+            thumbnailKey: photo.thumbnailKey,
+        }),
+    );
 }
 
-function normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesById, thumbnailConfig = {}) {
+function normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesById, thumbnailConfig = {}, metadataByKey = new Map()) {
     const photos = Array.isArray(manifest?.photos) ? manifest.photos : [];
     if (photos.length === 0) return [];
 
@@ -454,6 +592,7 @@ function normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesBy
             timezoneOffset,
             cameraProfilesById,
             thumbnailConfig,
+            metadataByKey,
         }))
         .filter(Boolean);
 }
@@ -463,6 +602,7 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
     dataPath = "",
     timezoneOffset = ARTEMIS_TIMELINE_DEFAULT_TIMEZONE_OFFSET,
     thumbnailConfig = {},
+    metadataByKey = new Map(),
 } = {}) {
     if (!audio || typeof audio !== "object" || Array.isArray(audio)) {
         return null;
@@ -484,7 +624,7 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
         audio.thumbnailAsset || audio.thumbnail,
         dataPath,
     );
-    return {
+    const normalizedItem = {
         id,
         kind: "audioClip",
         enabled: audio.enabled !== false,
@@ -506,9 +646,17 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
         thumbnailKey: buildMediaThumbnailKey(audio.thumbnailKey, id, fileName),
         fileName,
     };
+    return applyMediaMetadata(
+        normalizedItem,
+        resolveMediaMetadata(metadataByKey, {
+            id,
+            fileName,
+            thumbnailKey: audio.thumbnailKey,
+        }),
+    );
 }
 
-function normalizeArtemisTimelineAudioItems(manifest, dataPath, thumbnailConfig = {}) {
+function normalizeArtemisTimelineAudioItems(manifest, dataPath, thumbnailConfig = {}, metadataByKey = new Map()) {
     const audio = Array.isArray(manifest?.audio) ? manifest.audio : [];
     if (audio.length === 0) return [];
 
@@ -522,12 +670,13 @@ function normalizeArtemisTimelineAudioItems(manifest, dataPath, thumbnailConfig 
             dataPath,
             timezoneOffset,
             thumbnailConfig,
+            metadataByKey,
         }))
         .filter(Boolean)
         .sort((a, b) => a.startTimeMs - b.startTimeMs);
 }
 
-function normalizeMediaStream(stream, index, dataPath) {
+function normalizeMediaStream(stream, index, dataPath, metadataByKey = new Map()) {
     if (!stream || typeof stream !== "object" || Array.isArray(stream)) {
         return null;
     }
@@ -544,7 +693,7 @@ function normalizeMediaStream(stream, index, dataPath) {
         : (Number.isFinite(endTimeMs) ? Math.max(0, (endTimeMs - startTimeMs) / 1000) : Number.NaN);
     const source = normalizeSourceMetadata(stream.source);
 
-    return {
+    const normalizedItem = {
         id,
         enabled: stream.enabled !== false,
         title: asTrimmedString(stream.title || id),
@@ -569,6 +718,14 @@ function normalizeMediaStream(stream, index, dataPath) {
         license: asTrimmedString(stream.license),
         defaultPanelState: asTrimmedString(stream.defaultPanelState || "closed") || "closed",
     };
+    return applyMediaMetadata(
+        normalizedItem,
+        resolveMediaMetadata(metadataByKey, {
+            id,
+            fileName: stream.posterAsset || stream.sourceUrl,
+            thumbnailKey: stream.thumbnailKey,
+        }),
+    );
 }
 
 function normalizeMediaStreamSyncAnchors(syncAnchors = []) {
@@ -596,6 +753,7 @@ function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {
     const manifest = manifestData && typeof manifestData === "object" ? manifestData : {};
     const cameraProfilesById = normalizeCameraProfiles(manifest.cameraProfiles);
     const thumbnailConfig = normalizeThumbnailConfig(manifest.thumbnails);
+    const metadataByKey = normalizeMediaMetadataMap(manifest.mediaMetadata);
     const mediaItems = [
         ...(Array.isArray(manifest.mediaItems) ? manifest.mediaItems : [])
             .map((item, index) => normalizeMediaItem(
@@ -604,12 +762,13 @@ function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {
                 cameraProfilesById,
                 dataPath,
                 thumbnailConfig,
+                metadataByKey,
             ))
             .filter(Boolean),
-        ...normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesById, thumbnailConfig),
+        ...normalizeArtemisTimelineMediaItems(manifest, dataPath, cameraProfilesById, thumbnailConfig, metadataByKey),
     ].sort((a, b) => a.startTimeMs - b.startTimeMs);
     const mediaStreams = (Array.isArray(manifest.mediaStreams) ? manifest.mediaStreams : [])
-        .map((stream, index) => normalizeMediaStream(stream, index, dataPath))
+        .map((stream, index) => normalizeMediaStream(stream, index, dataPath, metadataByKey))
         .filter(Boolean)
         .sort((a, b) => a.startTimeMs - b.startTimeMs);
     const audioItems = [
@@ -617,9 +776,9 @@ function normalizeMissionMediaManifest(manifestData, { dataPath = "" } = {}) {
             .map((item, index) => normalizeMediaItem({
                 ...item,
                 kind: "audioClip",
-            }, index, cameraProfilesById, dataPath, thumbnailConfig))
+            }, index, cameraProfilesById, dataPath, thumbnailConfig, metadataByKey))
             .filter(Boolean),
-        ...normalizeArtemisTimelineAudioItems(manifest, dataPath, thumbnailConfig),
+        ...normalizeArtemisTimelineAudioItems(manifest, dataPath, thumbnailConfig, metadataByKey),
     ].sort((a, b) => a.startTimeMs - b.startTimeMs);
 
     return {

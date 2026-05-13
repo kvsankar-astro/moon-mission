@@ -146,6 +146,7 @@ const TARGET_AUTO_FOV_MIN_DEGREES = 3;
 const TARGET_AUTO_FOV_MAX_DEGREES = 70;
 const COMPOSER_AUTO_FOV_MIN_DEGREES = 2;
 const COMPOSER_AUTO_FOV_MAX_DEGREES = 70;
+const COMPOSER_MANUAL_FOV_MAX_DEGREES = AUTO_FOV_MAX_DEGREES;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
 const COMPOSER_DRAG_SENSITIVITY = 0.00055;
 const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
@@ -204,6 +205,16 @@ const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MIN_PX = 3.2;
 const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MAX_PX = 8.8;
 const COMPOSER_SEE_THROUGH_SUN_RADIUS_MIN_PX = 5.2;
 const COMPOSER_SEE_THROUGH_OPACITY = 0.9;
+const COMPOSER_PLANET_MAGNITUDE_BY_BODY = Object.freeze({
+    Mercury: -1.9,
+    Venus: -4.4,
+    Earth: -3.9,
+    Mars: -2.0,
+    Jupiter: -2.7,
+    Saturn: 0.5,
+    Uranus: 5.7,
+    Neptune: 7.8,
+});
 const COMPOSER_CONSTELLATION_LABELS = Object.freeze([
     { name: "Andromeda", raDeg: 10.5, decDeg: 37 },
     { name: "Aquila", raDeg: 295.5, decDeg: 5 },
@@ -571,16 +582,32 @@ function rollRadFromDialPointer({ pointerX, pointerY, centerX, centerY }) {
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || (Math.abs(dx) + Math.abs(dy)) <= 1e-6) {
         return 0;
     }
-    return normalizeComposerRollRad(Math.atan2(dx, -dy));
+    return normalizeComposerRollRad(Math.atan2(-dx, -dy));
 }
 
 function composerRollDialKnobOffset(rollRad, radiusPx) {
     const roll = normalizeComposerRollRad(rollRad);
     const radius = Math.max(0, Number(radiusPx) || 0);
     return {
-        x: Math.sin(roll) * radius,
+        x: -Math.sin(roll) * radius,
         y: -Math.cos(roll) * radius,
     };
+}
+
+function isComposerPlanetVisibleForMagnitudeLimit(bodyName, magnitudeLimit) {
+    const label = String(bodyName || "").trim();
+    if (!label || label === "Sun" || label === "Moon") {
+        return true;
+    }
+    const limit = Number(magnitudeLimit);
+    if (!Number.isFinite(limit)) {
+        return true;
+    }
+    const magnitude = COMPOSER_PLANET_MAGNITUDE_BY_BODY[label];
+    if (!Number.isFinite(magnitude)) {
+        return true;
+    }
+    return magnitude <= limit;
 }
 
 function computeComposerDragSensitivityScale(fovDegrees) {
@@ -2248,7 +2275,7 @@ class AuxiliaryCameraViewsManager {
         let panelControls = null;
 
         const isComposerPanel = spec.mode === "composer";
-        const maxFovDegrees = isComposerPanel ? COMPOSER_AUTO_FOV_MAX_DEGREES : AUTO_FOV_MAX_DEGREES;
+        const maxFovDegrees = isComposerPanel ? COMPOSER_MANUAL_FOV_MAX_DEGREES : AUTO_FOV_MAX_DEGREES;
         const fovControls = document.createElement("div");
         fovControls.className = "aux-camera-view__fov-controls";
         const fovControl = mountMissionFovControl(fovControls, {
@@ -2517,6 +2544,10 @@ class AuxiliaryCameraViewsManager {
             composerCloudsWrap.appendChild(composerCloudsText);
             composerInfoToggles.appendChild(composerCloudsWrap);
 
+            composerInfoRow.appendChild(composerInfoToggles);
+
+            const composerCraterRow = document.createElement("div");
+            composerCraterRow.className = "aux-camera-view__composer-crater-row";
             composerLunarCratersWrap = document.createElement("div");
             composerLunarCratersWrap.className = "aux-camera-view__composer-crater-control";
             composerLunarCratersPill = document.createElement("button");
@@ -2535,14 +2566,13 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersPill.setAttribute("aria-controls", composerLunarCraterControls.panel.id);
             composerLunarCratersWrap.appendChild(composerLunarCratersPill);
             composerLunarCratersWrap.appendChild(composerLunarCraterControls.panel);
-            composerInfoToggles.appendChild(composerLunarCratersWrap);
-            composerInfoRow.appendChild(composerInfoToggles);
+            composerCraterRow.appendChild(composerLunarCratersWrap);
 
             const composerStarMagnitudeRow = document.createElement("div");
             composerStarMagnitudeRow.className = "aux-camera-view__composer-optics-row aux-camera-view__composer-star-mag-row";
             const composerStarMagnitudeLabel = document.createElement("span");
             composerStarMagnitudeLabel.className = "aux-camera-view__composer-label";
-            composerStarMagnitudeLabel.textContent = "Star Mag";
+            composerStarMagnitudeLabel.textContent = "Mag";
             composerStarMagnitudeRow.appendChild(composerStarMagnitudeLabel);
             composerStarMagnitudeSlider = document.createElement("input");
             composerStarMagnitudeSlider.type = "range";
@@ -2551,7 +2581,7 @@ class AuxiliaryCameraViewsManager {
             composerStarMagnitudeSlider.max = String(COMPOSER_STAR_MAGNITUDE_MAX);
             composerStarMagnitudeSlider.step = "0.1";
             composerStarMagnitudeSlider.value = String(COMPOSER_STAR_MAGNITUDE_DEFAULT);
-            composerStarMagnitudeSlider.setAttribute("aria-label", "Frame and Shoot star limiting magnitude");
+            composerStarMagnitudeSlider.setAttribute("aria-label", "Frame and Shoot limiting magnitude");
             composerStarMagnitudeSlider.dataset.proofId = "star-mag-slider";
             composerStarMagnitudeRow.appendChild(composerStarMagnitudeSlider);
             composerStarMagnitudeValue = document.createElement("output");
@@ -3021,6 +3051,7 @@ class AuxiliaryCameraViewsManager {
             composerSkyControlsWrap.replaceChildren(
                 composerSkyLockRow,
                 composerInfoRow,
+                composerCraterRow,
             );
             composerSkyTimelineWrap.replaceChildren(
                 composerTimelineWrap,
@@ -6116,15 +6147,19 @@ class AuxiliaryCameraViewsManager {
             const separationRad = Math.acos(dot);
             const bodyAngularRadiusRad = Math.asin(clamp(bodyRadius / distance, 0, 0.999999));
             const contactRad = bodyAngularRadiusRad + COMPOSER_SOLAR_ANGULAR_RADIUS_RAD;
+            const fullCoverageRad = bodyAngularRadiusRad - COMPOSER_SOLAR_ANGULAR_RADIUS_RAD;
             const coverage = clamp(
                 (contactRad - separationRad) / Math.max(COMPOSER_SOLAR_ANGULAR_RADIUS_RAD * 2, 1e-9),
                 0,
                 1,
             );
+            const fullyObscured = fullCoverageRad >= 0 &&
+                separationRad <= (fullCoverageRad + 1e-9);
             return {
-                active: coverage > 0,
+                active: fullyObscured,
                 occluder: id,
                 coverage,
+                fullyObscured,
                 separationRad,
                 bodyAngularRadiusRad,
             };
@@ -6136,9 +6171,7 @@ class AuxiliaryCameraViewsManager {
             .filter(Boolean)
             .sort((a, b) => b.coverage - a.coverage)[0] || null;
 
-        return best?.active === true
-            ? best
-            : { active: false, occluder: null, coverage: 0 };
+        return best || { active: false, occluder: null, coverage: 0 };
     }
 
     resolveComposerEclipseCoronaVisualState(panelState) {
@@ -6314,6 +6347,10 @@ class AuxiliaryCameraViewsManager {
         const constellationMaterial = constellationMesh?.material || null;
         const skyContainer = activeSkyRenderer?.container || null;
         const starUniforms = activeSkyRenderer?.starRenderer?.uniforms || null;
+        const planetRenderer = activeSkyRenderer?.planetRenderer || null;
+        const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
+        const planetAlphaArray = planetAlphaAttr?.array || null;
+        const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
         const originalSunVisualState = sunRenderer?.getVisualState?.() || null;
         const constellationLinesEnabled = panelState?.composerConstellationLinesEnabled === true;
 
@@ -6343,6 +6380,9 @@ class AuxiliaryCameraViewsManager {
             : null;
         const originalStarMagnitudeLimit = Number.isFinite(starUniforms?.uMagnitudeLimit?.value)
             ? starUniforms.uMagnitudeLimit.value
+            : null;
+        const originalPlanetAlphas = planetAlphaArray && planetBodySlots.length > 0
+            ? new Float32Array(planetAlphaArray)
             : null;
         const starMagnitudeLimit = this.THREE.MathUtils.clamp(
             Number(panelState?.composerStarMagnitudeLimit),
@@ -6390,6 +6430,17 @@ class AuxiliaryCameraViewsManager {
                 starUniforms.uMagnitudeLimit.value = starMagnitudeLimit;
             }
         }
+        if (originalPlanetAlphas && Number.isFinite(starMagnitudeLimit)) {
+            const count = Math.min(originalPlanetAlphas.length, planetBodySlots.length);
+            for (let i = 0; i < count; i += 1) {
+                planetAlphaArray[i] = isComposerPlanetVisibleForMagnitudeLimit(planetBodySlots[i], starMagnitudeLimit)
+                    ? originalPlanetAlphas[i]
+                    : 0;
+            }
+            if (planetAlphaAttr) {
+                planetAlphaAttr.needsUpdate = true;
+            }
+        }
 
         return () => {
             renderer.toneMappingExposure = originalExposure;
@@ -6423,6 +6474,12 @@ class AuxiliaryCameraViewsManager {
                 }
                 if (originalStarMagnitudeLimit != null && starUniforms.uMagnitudeLimit) {
                     starUniforms.uMagnitudeLimit.value = originalStarMagnitudeLimit;
+                }
+            }
+            if (originalPlanetAlphas && planetAlphaArray) {
+                planetAlphaArray.set(originalPlanetAlphas);
+                if (planetAlphaAttr) {
+                    planetAlphaAttr.needsUpdate = true;
                 }
             }
         };
@@ -7361,6 +7418,9 @@ class AuxiliaryCameraViewsManager {
                 }
                 const alpha = Number(planetAlphaArray[i]);
                 if (!Number.isFinite(alpha) || alpha <= 0.001) {
+                    continue;
+                }
+                if (!isComposerPlanetVisibleForMagnitudeLimit(label, panelState.composerStarMagnitudeLimit)) {
                     continue;
                 }
                 const idx3 = i * 3;
@@ -8419,7 +8479,7 @@ class AuxiliaryCameraViewsManager {
             ? panelState.fovMinDegrees
             : AUTO_FOV_MIN_DEGREES;
         const defaultMaxDegrees = panelState.mode === "composer"
-            ? COMPOSER_AUTO_FOV_MAX_DEGREES
+            ? COMPOSER_MANUAL_FOV_MAX_DEGREES
             : AUTO_FOV_MAX_DEGREES;
         const maxDegrees = Number.isFinite(panelState.fovMaxDegrees)
             ? panelState.fovMaxDegrees
@@ -9439,6 +9499,7 @@ export {
     AUXILIARY_VIEW_CAMERA_PRESETS,
     computeComposerDragSensitivityScale,
     composerRollDialKnobOffset,
+    isComposerPlanetVisibleForMagnitudeLimit,
     isComposerSkyLabelPointOccluded,
     normalizeComposerRollRad,
     resolveComposerSeeThroughMarkers,

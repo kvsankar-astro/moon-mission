@@ -175,6 +175,60 @@ describe("normalizeMissionMediaManifest", () => {
         );
     });
 
+    it("attaches curated thumbnail metadata to normalized Artemis photos", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaBase: "https://pub-example.r2.dev/",
+            timelineTimezoneOffset: "-04:00",
+            thumbnails: {
+                basePath: "../media/thumbnails",
+                imagePattern: "images/{key}.webp",
+            },
+            mediaMetadata: [
+                {
+                    file: "ART002-E-21257.JPG",
+                    shortDescription: "Earth rises over the cratered lunar horizon.",
+                    tags: ["earthrise", "lunar horizon"],
+                    subjects: ["Earth", "Moon", "lunar surface"],
+                    sceneType: "moon",
+                    bodies: ["Earth", "Moon"],
+                    mainBody: "Earth",
+                    compositionHints: {
+                        suggestedLockTarget: "earth",
+                        confidence: 0.96,
+                        reason: "Earth is the focal point.",
+                    },
+                    qualityNotes: "Good thumbnail candidate.",
+                },
+            ],
+            photos: [
+                {
+                    time: "2026-04-06 18:45:00",
+                    file: "ART002-E-21257.JPG",
+                    title: "Earthrise",
+                    enabled: true,
+                },
+            ],
+        }, {
+            dataPath: "assets/artemis2/data",
+        });
+
+        expect(manifest.mediaItems[0]).toMatchObject({
+            shortDescription: "Earth rises over the cratered lunar horizon.",
+            tags: ["earthrise", "lunar horizon"],
+            subjects: ["Earth", "Moon", "lunar surface"],
+            sceneType: "moon",
+            bodies: ["Earth", "Moon"],
+            mainBody: "Earth",
+            qualityNotes: "Good thumbnail candidate.",
+        });
+        expect(manifest.mediaItems[0].description).toBe("Earth rises over the cratered lunar horizon.");
+        expect(manifest.mediaItems[0].compositionHints).toEqual({
+            suggestedLockTarget: "earth",
+            confidence: 0.96,
+            reason: "Earth is the focal point.",
+        });
+    });
+
     it("normalizes long-form media stream metadata and sync anchors", () => {
         const manifest = normalizeMissionMediaManifest({
             mediaStreams: [

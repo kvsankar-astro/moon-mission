@@ -334,4 +334,18 @@ describe("createFocusPillController", function () {
 
         expect(harness.splashdownPill.hidden).toBe(false);
     });
+
+    it("re-syncs the Media pill when the media panel reports restored state", function () {
+        const harness = createHarness({
+            mediaVisible: false,
+        });
+
+        harness.controller.bind();
+        expect(harness.mediaPill.classList.contains("is-active")).toBe(false);
+
+        harness.setMediaVisible(true);
+        harness.documentRef.dispatchEvent({ type: "mission-media-panel-state" });
+
+        expect(harness.mediaPill.classList.contains("is-active")).toBe(true);
+    });
 });
