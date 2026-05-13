@@ -352,7 +352,7 @@ class DesktopPanelManager {
 
         const fragments = [];
         if (nonOpenPanels.length > 0) {
-            fragments.push(this.createSection("Minimized / Closed", nonOpenPanels));
+            fragments.push(this.createSection("Closed", nonOpenPanels));
         }
         if (openPanels.length > 0) {
             fragments.push(this.createSection("Open", openPanels));

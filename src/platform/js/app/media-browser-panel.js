@@ -1120,10 +1120,7 @@ function createMediaBrowserPanelActions({
                 focus: panelStateName === "open"
                     ? () => setPanelState("open")
                     : undefined,
-                minimize: panelStateName === "open"
-                    ? () => setPanelState("minimized")
-                    : undefined,
-                close: (panelStateName === "open" || panelStateName === "minimized")
+                close: panelStateName === "open"
                     ? () => setPanelState("closed")
                     : undefined,
                 delete: panelStateName !== "deleted"
@@ -1198,7 +1195,7 @@ function createMediaBrowserPanelActions({
 
     function setPanelState(nextState) {
         const resolvedState = nextState === "minimized"
-            ? "minimized"
+            ? "closed"
             : (nextState === "deleted"
                 ? "deleted"
                 : (nextState === "open" ? "open" : "closed"));
@@ -1876,7 +1873,7 @@ function createMediaBrowserPanelActions({
         const header = panel?.querySelector(".media-browser-panel__header");
         const headerControls = panel?.querySelector(".media-browser-panel__header-controls");
         let closeButton = getNode("media-browser-panel-close");
-        let minimizeButton = getNode("media-browser-panel-minimize");
+        const minimizeButton = getNode("media-browser-panel-minimize");
         let expandButton = getNode("media-browser-panel-expand");
         let infoButton = getNode("media-browser-panel-info");
         let deleteButton = getNode("media-browser-panel-delete");
@@ -1900,7 +1897,7 @@ function createMediaBrowserPanelActions({
             }
             const persistedState = String(restoredPanelLayout?.state || "").trim().toLowerCase();
             if (persistedState === "open" || persistedState === "minimized" || persistedState === "closed" || persistedState === "deleted") {
-                panelVisibilityState = persistedState;
+                panelVisibilityState = persistedState === "minimized" ? "closed" : persistedState;
                 hasRestoredPanelVisibilityState = true;
                 defaultPanelStateApplied = true;
             }
@@ -1922,17 +1919,8 @@ function createMediaBrowserPanelActions({
             headerControls.insertBefore(infoButton, closeButton || null);
         }
 
-        if (!minimizeButton && isElementLike(headerControls) && typeof headerControls.insertBefore === "function") {
-            minimizeButton = createElement("button");
-            if (!minimizeButton) return;
-            minimizeButton.id = "media-browser-panel-minimize";
-            minimizeButton.className = "media-browser-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon";
-            minimizeButton.type = "button";
-            minimizeButton.title = "Minimize";
-            minimizeButton.setAttribute("aria-label", "Minimize");
-            minimizeButton.dataset.icon = "minimize";
-            minimizeButton.textContent = "";
-            headerControls.insertBefore(minimizeButton, closeButton || null);
+        if (minimizeButton && typeof minimizeButton.remove === "function") {
+            minimizeButton.remove();
         }
 
         if (!deleteButton && isElementLike(headerControls) && typeof headerControls.appendChild === "function") {
@@ -1980,7 +1968,6 @@ function createMediaBrowserPanelActions({
             setPanelState("open");
         });
         infoButton?.addEventListener("click", () => showMissionPanelInfo(MEDIA_BROWSER_PANEL_ID, infoButton));
-        minimizeButton?.addEventListener("click", () => setPanelState("minimized"));
         expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
         closeButton?.addEventListener("click", () => setPanelState("closed"));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());

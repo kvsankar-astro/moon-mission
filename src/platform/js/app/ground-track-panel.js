@@ -797,10 +797,7 @@ function createGroundTrackPanelActions(options = {}) {
                 focus: panelStateName === "open"
                     ? () => setPanelState("open")
                     : undefined,
-                minimize: panelStateName === "open"
-                    ? () => setPanelState("minimized")
-                    : undefined,
-                close: (panelStateName === "open" || panelStateName === "minimized")
+                close: panelStateName === "open"
                     ? () => setPanelState("closed")
                     : undefined,
                 delete: panelStateName !== "deleted"
@@ -1870,7 +1867,7 @@ function createGroundTrackPanelActions(options = {}) {
     function setPanelState(nextState) {
         const previousState = panelVisibilityState;
         const resolvedState = nextState === "minimized"
-            ? "minimized"
+            ? "closed"
             : (nextState === "deleted"
                 ? "deleted"
                 : (nextState === "open" ? "open" : "closed"));
@@ -1957,7 +1954,7 @@ function createGroundTrackPanelActions(options = {}) {
         const header = panel?.querySelector(".ground-track-panel__header");
         const headerControls = panel?.querySelector(".ground-track-panel__header-controls");
         let closeButton = getNode("ground-track-panel-close");
-        let minimizeButton = getNode("ground-track-panel-minimize");
+        const minimizeButton = getNode("ground-track-panel-minimize");
         let expandButton = getNode("ground-track-panel-expand");
         let infoButton = getNode("ground-track-panel-info");
         let deleteButton = getNode("ground-track-panel-delete");
@@ -1981,7 +1978,7 @@ function createGroundTrackPanelActions(options = {}) {
             }
             const persistedState = String(restoredPanelLayout?.state || "").trim().toLowerCase();
             if (persistedState === "open" || persistedState === "minimized" || persistedState === "closed" || persistedState === "deleted") {
-                panelVisibilityState = persistedState;
+                panelVisibilityState = persistedState === "minimized" ? "closed" : persistedState;
                 hasRestoredPanelVisibilityState = true;
                 defaultPanelStateApplied = true;
             }
@@ -2001,20 +1998,8 @@ function createGroundTrackPanelActions(options = {}) {
             headerControls.insertBefore(infoButton, closeButton || null);
         }
 
-        if (!minimizeButton && isDomInstance(headerControls, "HTMLElement")) {
-            minimizeButton = document.createElement("button");
-            minimizeButton.id = "ground-track-panel-minimize";
-            minimizeButton.className = "ground-track-panel__icon-button ground-track-panel__minimize mission-panel-shell__button mission-panel-shell__button--icon";
-            minimizeButton.type = "button";
-            minimizeButton.title = "Minimize";
-            minimizeButton.setAttribute("aria-label", "Minimize");
-            minimizeButton.dataset.icon = "minimize";
-            minimizeButton.textContent = "";
-            if (isDomInstance(closeButton, "HTMLElement")) {
-                headerControls.insertBefore(minimizeButton, closeButton);
-            } else {
-                headerControls.appendChild(minimizeButton);
-            }
+        if (minimizeButton && typeof minimizeButton.remove === "function") {
+            minimizeButton.remove();
         }
 
         if (!expandButton && isDomInstance(headerControls, "HTMLElement")) {
@@ -2062,7 +2047,6 @@ function createGroundTrackPanelActions(options = {}) {
             setPanelVisible(true);
         });
         infoButton?.addEventListener("click", () => showMissionPanelInfo(GROUND_TRACK_PANEL_REGISTRY_ID, infoButton));
-        minimizeButton?.addEventListener("click", () => setPanelState("minimized"));
         expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
         closeButton?.addEventListener("click", () => setPanelVisible(false));
         deleteButton?.addEventListener("click", () => confirmDeletePanel());

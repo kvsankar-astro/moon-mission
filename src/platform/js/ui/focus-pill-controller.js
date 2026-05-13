@@ -126,6 +126,24 @@ export function createFocusPillController(deps = {}) {
         syncPressedState(earthOrbitXyPill, isAuxPanelVisible("aux:earth-origin-orbit-xy"));
     }
 
+    function isComposerPanelVisible() {
+        return !!documentRef?.querySelector?.(
+            "#aux-camera-views .aux-camera-view[data-mode=\"composer\"]:not([hidden])",
+        );
+    }
+
+    function isGroundTrackPanelVisible() {
+        return !!documentRef?.querySelector?.(
+            "#ground-track-panel:not(.ground-track-panel--hidden)",
+        );
+    }
+
+    function isMediaPanelVisible() {
+        return !!documentRef?.querySelector?.(
+            "#media-browser-panel:not(.media-browser-panel--hidden)",
+        );
+    }
+
     function ensureAuxiliaryPanelsEnabled() {
         const auxiliaryPanelsToggle = getElement("view-aux-camera-panels");
         if (
@@ -164,10 +182,33 @@ export function createFocusPillController(deps = {}) {
         }
     }
 
+    function closePanel(panelId) {
+        invokeFirstAvailablePanelAction(panelId, ["close"]);
+        requestAnimationFrameImpl(syncFocusPillState);
+    }
+
+    function toggleComposerPanel() {
+        if (isComposerPanelVisible()) {
+            closePanel("aux:earth-rise-composer");
+            return;
+        }
+        ensureAuxiliaryPanelsEnabled();
+        restoreComposerPanel();
+        requestAnimationFrameImpl(syncFocusPillState);
+    }
+
     function restoreAuxiliaryPanel(panelId) {
         ensureAuxiliaryPanelsEnabled();
         invokeFirstAvailablePanelAction(panelId, ["restore", "open", "focus"]);
         requestAnimationFrameImpl(syncFocusPillState);
+    }
+
+    function toggleAuxiliaryPanel(panelId) {
+        if (isAuxPanelVisible(panelId)) {
+            closePanel(panelId);
+            return;
+        }
+        restoreAuxiliaryPanel(panelId);
     }
 
     function restoreMediaPanel() {
@@ -176,6 +217,25 @@ export function createFocusPillController(deps = {}) {
             documentRef?.dispatchEvent?.(createCustomEvent("media-browser-panel-open"));
         }
         requestAnimationFrameImpl(syncFocusPillState);
+    }
+
+    function toggleMediaPanel() {
+        if (isMediaPanelVisible()) {
+            closePanel("workflow:media-browser");
+            return;
+        }
+        restoreMediaPanel();
+    }
+
+    function toggleSplashdownPanel() {
+        if (!isArtemis2Mission()) return;
+        if (isGroundTrackPanelVisible()) {
+            closePanel("workflow:splashdown");
+            return;
+        }
+        invokeFirstAvailablePanelAction("workflow:splashdown", ["restore", "open", "focus"]);
+        documentRef?.dispatchEvent?.(createCustomEvent("ground-track-panel-open"));
+        syncFocusPillState();
     }
 
     function bind() {
@@ -192,25 +252,20 @@ export function createFocusPillController(deps = {}) {
 
         if (flybyPill) {
             flybyPill.addEventListener("click", function () {
-                ensureAuxiliaryPanelsEnabled();
-                restoreComposerPanel();
-                requestAnimationFrameImpl(syncFocusPillState);
+                toggleComposerPanel();
             });
         }
 
         if (splashdownFocusPill) {
             splashdownFocusPill.addEventListener("click", function () {
-                if (!isArtemis2Mission()) return;
-                invokeFirstAvailablePanelAction("workflow:splashdown", ["restore", "open", "focus"]);
-                documentRef?.dispatchEvent?.(createCustomEvent("ground-track-panel-open"));
-                syncFocusPillState();
+                toggleSplashdownPanel();
             });
         }
 
-        mediaPill?.addEventListener?.("click", restoreMediaPanel);
-        craftMoonPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:moon"));
-        craftEarthPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:earth"));
-        earthOrbitXyPill?.addEventListener?.("click", () => restoreAuxiliaryPanel("aux:earth-origin-orbit-xy"));
+        mediaPill?.addEventListener?.("click", toggleMediaPanel);
+        craftMoonPill?.addEventListener?.("click", () => toggleAuxiliaryPanel("aux:moon"));
+        craftEarthPill?.addEventListener?.("click", () => toggleAuxiliaryPanel("aux:earth"));
+        earthOrbitXyPill?.addEventListener?.("click", () => toggleAuxiliaryPanel("aux:earth-origin-orbit-xy"));
 
         if (burnButtonsHost && MutationObserverImpl) {
             const observer = new MutationObserverImpl(() => {

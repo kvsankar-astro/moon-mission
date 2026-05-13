@@ -224,6 +224,15 @@ function createHarness(options = {}) {
         setMediaVisible(value) {
             mediaVisible = value;
         },
+        setCraftMoonVisible(value) {
+            craftMoonVisible = value;
+        },
+        setCraftEarthVisible(value) {
+            craftEarthVisible = value;
+        },
+        setEarthOrbitXyVisible(value) {
+            earthOrbitXyVisible = value;
+        },
         setSplashdownVisible(value) {
             splashdownVisible = value;
         },
@@ -306,6 +315,34 @@ describe("createFocusPillController", function () {
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-origin-orbit-xy", "restore");
         expect(harness.auxPanelsToggle.checked).toBe(true);
         expect(harness.setView).toHaveBeenCalled();
+    });
+
+    it("closes visible panel shortcuts when their pills are clicked again", function () {
+        const harness = createHarness({
+            composerVisible: true,
+            craftEarthVisible: true,
+            craftMoonVisible: true,
+            earthOrbitXyVisible: true,
+            groundTrackVisible: true,
+            mediaVisible: true,
+        });
+        const dispatchSpy = vi.spyOn(harness.documentRef, "dispatchEvent");
+
+        harness.controller.bind();
+        harness.flybyPill.dispatchEvent({ type: "click" });
+        harness.mediaPill.dispatchEvent({ type: "click" });
+        harness.craftMoonPill.dispatchEvent({ type: "click" });
+        harness.craftEarthPill.dispatchEvent({ type: "click" });
+        harness.earthOrbitXyPill.dispatchEvent({ type: "click" });
+        harness.splashdownPill.dispatchEvent({ type: "click" });
+
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-rise-composer", "close");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:media-browser", "close");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:moon", "close");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth", "close");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-origin-orbit-xy", "close");
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:splashdown", "close");
+        expect(dispatchSpy).not.toHaveBeenCalledWith({ type: "ground-track-panel-open" });
     });
 
     it("dispatches the splashdown open event only for Artemis II", function () {

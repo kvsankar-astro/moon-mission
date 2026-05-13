@@ -676,7 +676,7 @@ function shouldEnableAuxiliaryPanels(missionConfig) {
 
 function getAuxiliaryPanelFallbackState(spec) {
     if (spec?.mode === "composer" || STARTUP_MINIMIZED_PANEL_IDS.has(spec?.id)) {
-        return "minimized";
+        return "closed";
     }
     return "open";
 }
@@ -1131,7 +1131,7 @@ class AuxiliaryCameraViewsManager {
             return "closed";
         }
         if (panelState.minimized === true) {
-            return "minimized";
+            return "closed";
         }
         return "open";
     }
@@ -1171,10 +1171,7 @@ class AuxiliaryCameraViewsManager {
                 focus: panelStateName === "open"
                     ? () => this.restorePanel(panelState)
                     : undefined,
-                minimize: panelStateName === "open"
-                    ? () => this.setPanelMinimized(panelState, true)
-                    : undefined,
-                close: (panelStateName === "open" || panelStateName === "minimized")
+                close: panelStateName === "open"
                     ? () => this.setPanelClosed(panelState, true)
                     : undefined,
                 delete: panelStateName !== "deleted"
@@ -1198,7 +1195,7 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         if (nextState === "minimized") {
-            this.setPanelMinimized(panelState, true, { persist, requestRender });
+            this.setPanelClosed(panelState, true, { persist, requestRender });
             return;
         }
         panelState.deleted = false;
@@ -1733,7 +1730,7 @@ class AuxiliaryCameraViewsManager {
             panelState.chipButton.setAttribute("aria-pressed", nextMinimized ? "true" : "false");
             panelState.chipButton.title = nextMinimized
                 ? `Restore ${panelState.title}`
-                : `Minimize ${panelState.title}`;
+                : `Show ${panelState.title}`;
         }
         if (nextMinimized) {
             this.clearPanelOverlay(panelState);
@@ -2301,13 +2298,6 @@ class AuxiliaryCameraViewsManager {
         });
         const { autoButton: autoToggle, slider: fovSlider, value: fovValue } = fovControl;
 
-        const minimizeButton = document.createElement("button");
-        minimizeButton.className = "aux-camera-view__minimize-button mission-panel-shell__button mission-panel-shell__button--icon";
-        minimizeButton.type = "button";
-        minimizeButton.dataset.icon = "minimize";
-        minimizeButton.textContent = "";
-        minimizeButton.setAttribute("aria-label", `Minimize ${spec.title}`);
-
         const expandButton = document.createElement("button");
         expandButton.className = "aux-camera-view__header-button aux-camera-view__expand-button mission-panel-shell__button mission-panel-shell__button--icon";
         expandButton.type = "button";
@@ -2348,7 +2338,6 @@ class AuxiliaryCameraViewsManager {
         }
 
         headerControls.appendChild(infoButton);
-        headerControls.appendChild(minimizeButton);
         headerControls.appendChild(expandButton);
         headerControls.appendChild(closeButton);
         headerControls.appendChild(deleteButton);
@@ -3341,7 +3330,7 @@ class AuxiliaryCameraViewsManager {
             orbitViewportPointer: null,
             autoToggle,
             infoButton,
-            minimizeButton,
+            minimizeButton: null,
             expandButton,
             closeButton,
             deleteButton,
@@ -3351,7 +3340,6 @@ class AuxiliaryCameraViewsManager {
             autoFovEnabled: panelMode !== "orbit-xy",
             onAutoToggleClick: null,
             onInfoClick: null,
-            onMinimizeClick: null,
             onExpandClick: null,
             onCloseClick: null,
             onDeleteClick: null,
@@ -3533,9 +3521,6 @@ class AuxiliaryCameraViewsManager {
         const onInfoClick = () => {
             showMissionPanelInfo(panelState.panelRegistryId, infoButton);
         };
-        const onMinimizeClick = () => {
-            this.setPanelMinimized(panelState, true);
-        };
         const onExpandClick = () => {
             this.setPanelMaximized(panelState, panelState.maximized !== true);
         };
@@ -3562,7 +3547,6 @@ class AuxiliaryCameraViewsManager {
         fovSlider.addEventListener("input", onFovInput, { passive: true });
         autoToggle.addEventListener("click", onAutoToggleClick);
         infoButton.addEventListener("click", onInfoClick);
-        minimizeButton.addEventListener("click", onMinimizeClick);
         expandButton.addEventListener("click", onExpandClick);
         closeButton.addEventListener("click", onCloseClick);
         deleteButton.addEventListener("click", onDeleteClick);
@@ -3580,7 +3564,6 @@ class AuxiliaryCameraViewsManager {
         panelState.onAutoToggleClick = onAutoToggleClick;
         panelState.onFovInput = onFovInput;
         panelState.onInfoClick = onInfoClick;
-        panelState.onMinimizeClick = onMinimizeClick;
         panelState.onExpandClick = onExpandClick;
         panelState.onCloseClick = onCloseClick;
         panelState.onDeleteClick = onDeleteClick;
@@ -9258,7 +9241,7 @@ class AuxiliaryCameraViewsManager {
             panelState.fovSlider.removeEventListener("input", panelState.onFovInput);
             panelState.autoToggle.removeEventListener("click", panelState.onAutoToggleClick);
             panelState.infoButton.removeEventListener("click", panelState.onInfoClick);
-            panelState.minimizeButton.removeEventListener("click", panelState.onMinimizeClick);
+            panelState.minimizeButton?.removeEventListener?.("click", panelState.onMinimizeClick);
             panelState.expandButton.removeEventListener("click", panelState.onExpandClick);
             panelState.closeButton.removeEventListener("click", panelState.onCloseClick);
             panelState.deleteButton.removeEventListener("click", panelState.onDeleteClick);
