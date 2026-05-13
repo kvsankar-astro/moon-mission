@@ -783,6 +783,50 @@ describe("Frame and Shoot constellation line rendering", () => {
         });
     }
 
+    it("temporarily enables the Milky Way sky layer for the composer render", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: false,
+        };
+        const skyRenderer = {
+            container: { visible: false },
+            starRenderer: { container: { visible: false } },
+            skyMesh: {
+                visible: false,
+                material: { opacity: 0.18 },
+            },
+            constellationMesh: {
+                visible: false,
+                material: { opacity: 0.06 },
+            },
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, null, { skyRenderer });
+
+        expect(skyRenderer.container.visible).toBe(true);
+        expect(skyRenderer.skyMesh.visible).toBe(true);
+        expect(skyRenderer.skyMesh.material.opacity).toBeCloseTo(0.03);
+        expect(skyRenderer.starRenderer.container.visible).toBe(true);
+        expect(skyRenderer.constellationMesh.visible).toBe(false);
+
+        restore();
+
+        expect(skyRenderer.container.visible).toBe(false);
+        expect(skyRenderer.skyMesh.visible).toBe(false);
+        expect(skyRenderer.skyMesh.material.opacity).toBeCloseTo(0.18);
+        expect(skyRenderer.starRenderer.container.visible).toBe(false);
+        expect(skyRenderer.constellationMesh.visible).toBe(false);
+    });
+
     it("temporarily enables the sky constellation layer only when the composer checkbox is on", () => {
         const manager = createManagerForExposureTests();
         const panelState = {
@@ -799,7 +843,10 @@ describe("Frame and Shoot constellation line rendering", () => {
         };
         const skyRenderer = {
             container: { visible: false },
-            skyMesh: { material: { opacity: 0.18 } },
+            skyMesh: {
+                visible: false,
+                material: { opacity: 0.18 },
+            },
             constellationMesh: {
                 visible: false,
                 material: { opacity: 0.06 },
@@ -809,12 +856,14 @@ describe("Frame and Shoot constellation line rendering", () => {
         const restore = manager.applyComposerExposureProfile({}, panelState, null, { skyRenderer });
 
         expect(skyRenderer.container.visible).toBe(true);
+        expect(skyRenderer.skyMesh.visible).toBe(true);
         expect(skyRenderer.constellationMesh.visible).toBe(true);
         expect(skyRenderer.constellationMesh.material.opacity).toBeCloseTo(0.06);
 
         restore();
 
         expect(skyRenderer.container.visible).toBe(false);
+        expect(skyRenderer.skyMesh.visible).toBe(false);
         expect(skyRenderer.constellationMesh.visible).toBe(false);
         expect(skyRenderer.constellationMesh.material.opacity).toBeCloseTo(0.06);
     });

@@ -6120,14 +6120,21 @@ class AuxiliaryCameraViewsManager {
             earthshineExposureLift;
 
         const activeSkyRenderer = skyRenderer || scene?.skyRenderer || null;
-        const skyMaterial = activeSkyRenderer?.skyMesh?.material || null;
+        const skyMesh = activeSkyRenderer?.skyMesh || null;
+        const skyMaterial = skyMesh?.material || null;
         const constellationMesh = activeSkyRenderer?.constellationMesh || null;
         const constellationMaterial = constellationMesh?.material || null;
         const skyContainer = activeSkyRenderer?.container || null;
+        const starContainer = activeSkyRenderer?.starRenderer?.container ||
+            activeSkyRenderer?.starRenderer?.object3D ||
+            null;
         const starUniforms = activeSkyRenderer?.starRenderer?.uniforms || null;
         const originalSunVisualState = sunRenderer?.getVisualState?.() || null;
         const constellationLinesEnabled = panelState?.composerConstellationLinesEnabled === true;
 
+        const originalSkyMeshVisible = typeof skyMesh?.visible === "boolean"
+            ? skyMesh.visible
+            : null;
         const originalSkyOpacity = Number.isFinite(skyMaterial?.opacity)
             ? skyMaterial.opacity
             : null;
@@ -6139,6 +6146,9 @@ class AuxiliaryCameraViewsManager {
             : null;
         const originalSkyContainerVisible = typeof skyContainer?.visible === "boolean"
             ? skyContainer.visible
+            : null;
+        const originalStarContainerVisible = typeof starContainer?.visible === "boolean"
+            ? starContainer.visible
             : null;
         const originalStarPhotometricScale = Number.isFinite(starUniforms?.uPhotometricScale?.value)
             ? starUniforms.uPhotometricScale.value
@@ -6164,6 +6174,9 @@ class AuxiliaryCameraViewsManager {
         if (originalSkyOpacity != null) {
             skyMaterial.opacity = Math.min(originalSkyOpacity, profile.skyStarmapOpacityCap);
         }
+        if (originalSkyMeshVisible != null) {
+            skyMesh.visible = true;
+        }
         if (originalConstellationOpacity != null) {
             constellationMaterial.opacity = Math.min(
                 originalConstellationOpacity,
@@ -6175,8 +6188,11 @@ class AuxiliaryCameraViewsManager {
         if (originalConstellationVisible != null) {
             constellationMesh.visible = constellationLinesEnabled;
         }
-        if (originalSkyContainerVisible != null && constellationLinesEnabled) {
+        if (originalSkyContainerVisible != null) {
             skyContainer.visible = true;
+        }
+        if (originalStarContainerVisible != null) {
+            starContainer.visible = true;
         }
         if (sunRenderer?.setVisualState) {
             sunRenderer.setVisualState(profile.sunVisualState);
@@ -6207,6 +6223,9 @@ class AuxiliaryCameraViewsManager {
             if (originalSkyOpacity != null && skyMaterial) {
                 skyMaterial.opacity = originalSkyOpacity;
             }
+            if (originalSkyMeshVisible != null && skyMesh) {
+                skyMesh.visible = originalSkyMeshVisible;
+            }
             if (originalConstellationOpacity != null && constellationMaterial) {
                 constellationMaterial.opacity = originalConstellationOpacity;
             }
@@ -6215,6 +6234,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (originalSkyContainerVisible != null && skyContainer) {
                 skyContainer.visible = originalSkyContainerVisible;
+            }
+            if (originalStarContainerVisible != null && starContainer) {
+                starContainer.visible = originalStarContainerVisible;
             }
             if (sunRenderer?.setVisualState && originalSunVisualState) {
                 sunRenderer.setVisualState(originalSunVisualState);
