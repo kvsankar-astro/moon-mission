@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 
 import {
@@ -9,12 +9,53 @@ import {
     calculateCraterProjectedRadiusPx,
     countCraterDisplayFeatures,
     createLunarCraterActions,
+    formatCraterLabelText,
     getCraterDisplayFeatures,
     resolveCraterHoverTarget,
     resolveCraterHoverTargetFromScreen,
     resolveMoonSurfaceHitNormal,
 } from "../src/platform/js/app/lunar-crater-actions.js";
 import { getLunarFeatureBoundaryColor } from "../src/platform/js/core/domain/lunar-feature-colors.js";
+
+function withFakeCanvas(callback) {
+    const previousDocument = globalThis.document;
+    const context = {
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        quadraticCurveTo: vi.fn(),
+        closePath: vi.fn(),
+        clearRect: vi.fn(),
+        fill: vi.fn(),
+        fillText: vi.fn(),
+        measureText: vi.fn((text) => ({ width: text.length * 8 })),
+        set fillStyle(value) {
+            this._fillStyle = value;
+        },
+        get fillStyle() {
+            return this._fillStyle;
+        },
+        textAlign: "center",
+        textBaseline: "middle",
+        font: "",
+    };
+    globalThis.document = {
+        createElement: vi.fn(() => ({
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => context),
+        })),
+    };
+    try {
+        return callback(context);
+    } finally {
+        if (previousDocument === undefined) {
+            delete globalThis.document;
+        } else {
+            globalThis.document = previousDocument;
+        }
+    }
+}
 
 describe("lunar crater actions", () => {
     it("selects craters within the requested diameter range", () => {
@@ -265,6 +306,102 @@ describe("lunar crater actions", () => {
         expect(scene.lunarCraterDisplayMode).toBe("always");
         expect(scene.lunarCraterHoverLabelsEnabled).toBe(true);
         expect(scene.lunarCraterPickTargets.length).toBeGreaterThan(0);
+    });
+
+    it("does not add feature-type suffixes to label text", () => {
+        expect(formatCraterLabelText({
+            name: "Rima test",
+            featureType: "Rima, rimae",
+            diameterKm: 120,
+        })).toBe("Rima test  120 km");
+    });
+
+    it("does not show a hover label when the target already has an always-visible label", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [{
+                name: "Always labeled",
+                featureType: "Crater, craters",
+                latitudeDeg: 0,
+                longitudeDeg: 0,
+                diameterKm: 300,
+            }],
+        };
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "always",
+            getLunarFeatureTypeFilters: () => ({}),
+            craterCatalog: catalog,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+            moon: new THREE.Mesh(
+                new THREE.SphereGeometry(10, 16, 8),
+                new THREE.MeshBasicMaterial(),
+            ),
+            lunarCraterHoverLabelsEnabled: true,
+        };
+        scene.moonContainer.add(scene.moon);
+        const camera = new THREE.PerspectiveCamera(20, 1, 0.1, 1000);
+        camera.position.set(100, 0, 0);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+        const rendererDomElement = {
+            clientWidth: 1000,
+            clientHeight: 1000,
+            getBoundingClientRect: () => ({
+                left: 0,
+                top: 0,
+                width: 1000,
+                height: 1000,
+            }),
+        };
+
+        withFakeCanvas(() => {
+            actions.addLunarCraterAnnotations({
+                scene,
+                camera,
+                rendererDomElement,
+            });
+
+            const renderedLabels = scene.lunarCraterAnnotations.filter((object) =>
+                object.userData?.lunarCrater &&
+                !object.userData?.craterRing &&
+                object.userData?.hoverLabel === false,
+            );
+            expect(renderedLabels).toHaveLength(1);
+            expect(scene.lunarCraterPickTargets[0]?.showLabel).toBe(true);
+
+            actions.updateLunarCraterHoverFromPointer({
+                scene,
+                camera,
+                rendererDomElement,
+                clientX: 500,
+                clientY: 500,
+            });
+        });
+
+        expect(scene.lunarCraterHoveredName).toBe("Always labeled");
+        expect(scene.lunarCraterHoverRing?.visible).toBe(true);
+        expect(scene.lunarCraterHoverLabel?.visible).not.toBe(true);
     });
 
     it("caps crater label scale when the camera is too close", () => {

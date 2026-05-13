@@ -88,6 +88,9 @@ function countCraterDisplayFeatures(catalog = lunarCraterCatalog, options = {}) 
     return countCraterDisplayFeaturesForCatalog(catalog || lunarCraterCatalog, options);
 }
 
+function formatCraterLabelText(crater) {
+    return `${crater.name}  ${Math.round(crater.diameterKm)} km`;
+}
 
 function buildCraterCirclePositions({
     THREE,
@@ -239,16 +242,7 @@ function createCraterLabelTexture(THREE, crater) {
     if (!canvas) return null;
     const context = canvas.getContext("2d");
     if (!context) return null;
-    const featureType = typeof crater?.featureType === "string"
-        ? crater.featureType
-        : "";
-    const isCraterLike = featureType === "Crater, craters" || featureType === "Satellite Feature";
-    const featureTag = isCraterLike
-        ? ""
-        : featureType.split(",")[0].trim();
-    const label = featureTag
-        ? `${crater.name}  ${Math.round(crater.diameterKm)} km  · ${featureTag}`
-        : `${crater.name}  ${Math.round(crater.diameterKm)} km`;
+    const label = formatCraterLabelText(crater);
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawRoundedRect(context, 10, 14, canvas.width - 20, canvas.height - 28, 18);
@@ -1995,19 +1989,27 @@ function createLunarCraterActions({
             moonRadius,
         });
         const alreadyHovered = scene.lunarCraterHoveredName === target.crater.name;
-        ensureHoverLabel({
-            scene,
-            camera,
-            rendererDomElement,
-            crater: target.crater,
-            normal: target.centerNormal,
-            moonRadius,
-            angularRadius: target.angularRadius,
-            projectedCraterRadiusPx,
-            craterScreenBounds,
-            cameraUpNormal: cameraContext?.cameraUpNormal ?? null,
-            cameraRightNormal: cameraContext?.cameraRightNormal ?? null,
-        });
+        let labelVisibilityChanged = false;
+        if (target.showLabel === true) {
+            if (scene.lunarCraterHoverLabel?.visible) {
+                scene.lunarCraterHoverLabel.visible = false;
+                labelVisibilityChanged = true;
+            }
+        } else {
+            ensureHoverLabel({
+                scene,
+                camera,
+                rendererDomElement,
+                crater: target.crater,
+                normal: target.centerNormal,
+                moonRadius,
+                angularRadius: target.angularRadius,
+                projectedCraterRadiusPx,
+                craterScreenBounds,
+                cameraUpNormal: cameraContext?.cameraUpNormal ?? null,
+                cameraRightNormal: cameraContext?.cameraRightNormal ?? null,
+            });
+        }
         if (!alreadyHovered || !scene.lunarCraterHoverRing?.visible) {
             ensureHoverRing({
                 scene,
@@ -2021,7 +2023,7 @@ function createLunarCraterActions({
         }
         scene.lunarCraterHoveredName = target.crater.name;
         scene.lunarCraterHoveredDiameterKm = target.crater.diameterKm;
-        return !alreadyHovered;
+        return !alreadyHovered || labelVisibilityChanged;
     }
 
     return {
@@ -2048,6 +2050,7 @@ export {
     calculateCraterProjectedRadiusPx,
     countCraterDisplayFeatures,
     createLunarCraterActions,
+    formatCraterLabelText,
     getCraterDisplayFeatures,
     normalizeCraterDisplayDiameterRange,
     resolveCraterHoverTarget,
