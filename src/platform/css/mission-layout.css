@@ -647,6 +647,14 @@ html[data-app-view="selector"] .mission-loading-overlay,
     accent-color: rgba(106, 169, 255, 1);
 }
 
+.aux-camera-view__composer-auto-exposure-total {
+    color: rgba(174, 206, 252, 0.9);
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
 .aux-camera-view__composer-button {
     border: 1px solid rgba(121, 171, 255, 0.35);
     border-radius: 4px;

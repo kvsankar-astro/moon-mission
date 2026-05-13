@@ -180,7 +180,7 @@ const COMPOSER_CAMERA_EXPOSURE = 0.98;
 const COMPOSER_EXPOSURE_EV_MIN = -16;
 const COMPOSER_EXPOSURE_EV_MAX = 16;
 const COMPOSER_EXPOSURE_EV_DEFAULT = 0;
-const COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV = 2;
+const COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV = 6;
 const COMPOSER_CAMERA_SKY_STARMAP_OPACITY_CAP = 0.03;
 const COMPOSER_CAMERA_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
 const COMPOSER_CONSTELLATION_LINES_OPACITY_CAP = 0.06;
@@ -2420,6 +2420,7 @@ class AuxiliaryCameraViewsManager {
         let composerOpticsCameraButton = null;
         let composerExposureSlider = null;
         let composerExposureValue = null;
+        let composerExposureTotalValue = null;
         let composerAutoExposureWrap = null;
         let composerAutoExposureCheckbox = null;
         let composerOpticsStrengthSlider = null;
@@ -2931,7 +2932,7 @@ class AuxiliaryCameraViewsManager {
             composerExposureRow.className = "aux-camera-view__composer-optics-row";
             const composerExposureLabel = document.createElement("span");
             composerExposureLabel.className = "aux-camera-view__composer-label";
-            composerExposureLabel.textContent = "Exposure";
+            composerExposureLabel.textContent = "Exposure Comp";
             composerExposureRow.appendChild(composerExposureLabel);
             composerExposureSlider = document.createElement("input");
             composerExposureSlider.type = "range";
@@ -2959,8 +2960,14 @@ class AuxiliaryCameraViewsManager {
             composerAutoExposureCheckbox.dataset.proofId = "auto-exposure-toggle";
             const composerAutoExposureText = document.createElement("span");
             composerAutoExposureText.textContent = "Auto Exposure";
+            composerExposureTotalValue = document.createElement("output");
+            composerExposureTotalValue.className = "aux-camera-view__composer-auto-exposure-total";
+            composerExposureTotalValue.value = "Total +0.0 EV";
+            composerExposureTotalValue.textContent = composerExposureTotalValue.value;
+            composerExposureTotalValue.dataset.proofId = "exposure-total-value";
             composerAutoExposureWrap.appendChild(composerAutoExposureCheckbox);
             composerAutoExposureWrap.appendChild(composerAutoExposureText);
+            composerAutoExposureWrap.appendChild(composerExposureTotalValue);
             composerOpticsBody.appendChild(composerAutoExposureWrap);
 
             const composerOpticsHeader = document.createElement("div");
@@ -3343,6 +3350,7 @@ class AuxiliaryCameraViewsManager {
             composerOpticsCameraButton,
             composerExposureSlider,
             composerExposureValue,
+            composerExposureTotalValue,
             composerAutoExposureWrap,
             composerAutoExposureCheckbox,
             composerOpticsStrengthSlider,
@@ -3744,6 +3752,16 @@ class AuxiliaryCameraViewsManager {
                 if (panelState.composerExposureValue) {
                     panelState.composerExposureValue.value = exposureText;
                     panelState.composerExposureValue.textContent = exposureText;
+                }
+                if (panelState.composerExposureTotalValue) {
+                    const exposureState = this.resolveComposerExposureState(panelState);
+                    const totalEv = exposureState.manualEv + exposureState.autoEv;
+                    const totalText = `Total ${totalEv >= 0 ? "+" : ""}${totalEv.toFixed(1)} EV`;
+                    panelState.composerExposureTotalValue.value = totalText;
+                    panelState.composerExposureTotalValue.textContent = totalText;
+                    panelState.composerExposureTotalValue.title = exposureState.autoEv !== 0
+                        ? `Manual ${exposureState.manualEv >= 0 ? "+" : ""}${exposureState.manualEv.toFixed(1)} EV + auto ${exposureState.autoEv >= 0 ? "+" : ""}${exposureState.autoEv.toFixed(1)} EV`
+                        : `Manual ${exposureState.manualEv >= 0 ? "+" : ""}${exposureState.manualEv.toFixed(1)} EV`;
                 }
                 if (panelState.composerAutoExposureCheckbox) {
                     panelState.composerAutoExposureCheckbox.checked = panelState.composerAutoExposureEnabled !== false;
@@ -4658,6 +4676,7 @@ class AuxiliaryCameraViewsManager {
             panelState.syncComposerLockUi = syncComposerLockUi;
             panelState.syncComposerRollUi = syncComposerRollUi;
             panelState.syncComposerAutoToggleUi = syncAutoToggleUi;
+            panelState.syncComposerExposureUi = syncComposerExposureUi;
             panelState.syncComposerCloudsUi = syncComposerCloudsUi;
             panelState.syncComposerLunarCratersUi = syncComposerLunarCratersUi;
             setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbient, { persist: false });
@@ -4866,6 +4885,13 @@ class AuxiliaryCameraViewsManager {
                 const exposureText = `${panelState.composerExposureEv >= 0 ? "+" : ""}${panelState.composerExposureEv.toFixed(1)} EV`;
                 panelState.composerExposureValue.value = exposureText;
                 panelState.composerExposureValue.textContent = panelState.composerExposureValue.value;
+            }
+            if (panelState.composerExposureTotalValue) {
+                const exposureState = this.resolveComposerExposureState(panelState);
+                const totalEv = exposureState.manualEv + exposureState.autoEv;
+                const totalText = `Total ${totalEv >= 0 ? "+" : ""}${totalEv.toFixed(1)} EV`;
+                panelState.composerExposureTotalValue.value = totalText;
+                panelState.composerExposureTotalValue.textContent = totalText;
             }
             if (panelState.composerAutoExposureCheckbox) {
                 panelState.composerAutoExposureCheckbox.checked = panelState.composerAutoExposureEnabled !== false;
@@ -8990,7 +9016,11 @@ class AuxiliaryCameraViewsManager {
             earthRadius: composerEarthRadius,
             moonRadius: composerMoonRadius,
         });
+        const previousSolarEclipseActive = panelState.composerSolarEclipseActive === true;
         panelState.composerSolarEclipseActive = composerSolarEclipseState.active === true;
+        if (panelState.composerSolarEclipseActive !== previousSolarEclipseActive) {
+            panelState.syncComposerExposureUi?.();
+        }
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer, {
             exposureBias: composerLightingPresentation?.exposureBias ?? 1,
             skyRenderer,

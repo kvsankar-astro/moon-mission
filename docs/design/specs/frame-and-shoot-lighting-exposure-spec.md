@@ -94,6 +94,17 @@ The current implementation already has several useful pieces:
 - Frame and Shoot owns explicit exposure compensation and eclipse auto exposure
   state, and persists those photo controls with the composer panel state.
 - Exposure compensation is exposed as a `-16` to `+16` stop EV range.
+- Manual exposure is exposure compensation. Auto Exposure may add an
+  eclipse-specific EV bias, so the UI must show the computed total EV whenever
+  the two values stack.
+- The current eclipse Auto Exposure bias is `+6 EV`.
+- Current exposure scope is mixed:
+  - Earth, Moon, spacecraft, and ordinary tone-mapped scene bodies respond to
+    renderer tone-mapping exposure.
+  - Stars, Milky Way/starmap, constellation texture, planet markers, and most
+    Sun/corona presentation use `toneMapped: false` or custom visual state, so
+    they need explicit exposure-aware gains before Frame and Shoot can claim a
+    fully photographic exposure pipeline.
 - Earthshine and Moonshine directional lights are layer-scoped reflected-light
   sources created by `light-manager.js`.
 - Reflected-light direction and phase are computed by
@@ -103,6 +114,9 @@ Current implementation notes:
 
 - UI labels use `Earth Fill`, `Moon Fill`, `Earthshine Gain`, and
   `Moonshine Gain`.
+- The manual photo slider is labeled `Exposure Comp`; the adjacent total EV
+  readout shows the additive result of manual compensation plus any active auto
+  exposure bias.
 - The controls include a reset command for restoring Frame and Shoot
   presentation values to defaults without changing the selected event/time.
 - Some internal state names still use older `Ambient` terminology for
@@ -122,6 +136,10 @@ Current implementation notes:
    - Frame and Shoot should own explicit exposure state.
    - The initial UI can use EV compensation if ISO/shutter/aperture would be too
      much surface area.
+   - Manual exposure should be labeled as compensation, not as the entire camera
+     exposure, when auto exposure is enabled.
+   - If manual EV and auto EV are both active, the UI must show the computed
+     total EV.
    - Future UI may expose ISO, shutter, and aperture as a photographer-friendly
      wrapper around EV/tone-mapping exposure.
 
@@ -129,7 +147,9 @@ Current implementation notes:
    - Auto exposure should respond to eclipse/dark-side compositions by biasing
      the camera layer, not by changing physical Earthshine.
    - It should be user-overridable.
-   - It must avoid fighting deliberate manual exposure.
+   - It must avoid silently fighting deliberate manual exposure. Manual exposure
+     compensation may remain enabled while Auto Exposure is on only if the UI
+     makes the additive total explicit.
 
 4. Keep creative overrides independent.
    - Creative fill/gain controls can scale individual contributors.
@@ -157,6 +177,36 @@ Current implementation notes:
   Shoot should not silently reintroduce it as physical light.
 - Visibility of very dim reflected light should usually be handled through
   exposure or explicit creative gain.
+
+## Exposure Scope Rules
+
+- The desired long-term model is:
+  `physical scene radiance -> camera exposure -> tone/display transform`.
+- UI labels, text overlays, crater labels, controls, and panel chrome must not
+  respond to photo exposure.
+- Tone-mapped bodies and spacecraft can use renderer tone-mapping exposure.
+- Non-tone-mapped sky/star/Sun layers should become exposure-aware through their
+  own uniforms or visual-state gains, not by pretending they are already part of
+  the renderer tone-mapping path.
+- Until that work is complete, Frame and Shoot documentation and UI must avoid
+  implying that exposure affects every visible layer equally.
+
+## Moon Dark-Side Investigation Rules
+
+- Do not change Moon surface rendering, crater rendering, terminator rendering,
+  lunar terrain shadowing, lunar texture/material profiles, or the Moon
+  photometric shader without explicit approval.
+- If high positive exposure reveals light on a Moon region that should be
+  neither Sun-lit nor Earth-lit, first isolate contributions in the Frame and
+  Shoot composition layer:
+  - renderer exposure multiplier
+  - eclipse auto EV
+  - Earthshine directional light intensity/gain
+  - Moon Fill / `moonShadowLift`
+  - global body ambient
+  - residual Sun/terminator contribution
+- Correct non-physical residuals at the Frame and Shoot composition layer before
+  considering any Moon-rendering change.
 
 ## Fill Control Rules
 

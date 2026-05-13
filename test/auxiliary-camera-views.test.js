@@ -1070,7 +1070,7 @@ describe("Frame and Shoot constellation line rendering", () => {
 
         const restoreEclipse = manager.applyComposerExposureProfile({}, panelState, null, { eclipseActive: true });
 
-        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 4, 6);
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 64, 6);
 
         restoreEclipse();
 

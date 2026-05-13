@@ -317,6 +317,7 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                     sectionLabels,
                     hasExposureSlider: !!panel.querySelector("[data-proof-id='exposure-ev-slider']"),
                     hasAutoExposureToggle: !!panel.querySelector("[data-proof-id='auto-exposure-toggle']"),
+                    exposureTotalText: panel.querySelector("[data-proof-id='exposure-total-value']")?.textContent?.trim() || "",
                     hasResetButton: !!panel.querySelector("[data-proof-id='composer-reset-button']"),
                 };
             });
@@ -332,9 +333,10 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                 "Earthshine Gain",
                 "Moonshine Gain",
             ]));
-            expect(state.opticsLabels).toEqual(expect.arrayContaining(["Exposure"]));
+            expect(state.opticsLabels).toEqual(expect.arrayContaining(["Exposure Comp"]));
             expect(state.hasExposureSlider).toBe(true);
             expect(state.hasAutoExposureToggle).toBe(true);
+            expect(state.exposureTotalText).toBe("Total +0.0 EV");
             expect(state.hasResetButton).toBe(true);
         } finally {
             await page.close();
@@ -386,6 +388,8 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                 const exposureSlider = panel.querySelector("[data-proof-id='exposure-ev-slider']");
                 const exposureValue = exposureSlider.closest(".aux-camera-view__composer-optics-row")
                     ?.querySelector("output")?.textContent?.trim();
+                const exposureTotalValue = panel.querySelector("[data-proof-id='exposure-total-value']")
+                    ?.textContent?.trim();
                 const starMagSlider = panel.querySelector("[data-proof-id='star-mag-slider']");
                 const starMagValue = starMagSlider.closest(".aux-camera-view__composer-optics-row")
                     ?.querySelector("output")?.textContent?.trim();
@@ -394,6 +398,7 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                     earthFillValue,
                     exposure: exposureSlider.value,
                     exposureValue,
+                    exposureTotalValue,
                     autoExposure: autoExposure.checked,
                     starMag: starMagSlider.value,
                     starMagValue,
@@ -404,6 +409,7 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
             expect(state.earthFillValue).toBe("0.00");
             expect(state.exposure).toBe("0");
             expect(state.exposureValue).toBe("+0.0 EV");
+            expect(state.exposureTotalValue).toBe("Total +0.0 EV");
             expect(state.autoExposure).toBe(true);
             expect(state.starMag).toBe("6");
             expect(state.starMagValue).toBe("6.0");
