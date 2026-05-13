@@ -1017,18 +1017,6 @@
                     <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
                     <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
                     <button
-                        id="toggle-pill-lunar-craters"
-                        type="button"
-                        class="header-toggle-pill"
-                        aria-pressed="false"
-                        aria-expanded="false"
-                        aria-haspopup="dialog"
-                        aria-controls="lunar-crater-controls-panel"
-                        title="Open lunar feature controls"
-                    >
-                        Lunar Features
-                    </button>
-                    <button
                         id="toggle-pill-craters"
                         type="button"
                         class="header-toggle-pill"
@@ -1187,7 +1175,7 @@
                                 aria-pressed="false"
                                 title="Open Frame and Shoot panel"
                             >
-                                Frame & Focus
+                                Frame & Shoot
                             </button>
                             <button
                                 id="focus-pill-splashdown"
@@ -1243,6 +1231,23 @@
                         <div class="header-pill-segment" role="group" aria-label="Moon surface detail options">
                             <button id="moon-profile-pill-fast" type="button" class="header-pill-segment__btn" aria-pressed="true" title="Use the standard Moon surface asset profile">Standard</button>
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
+                        </div>
+                    </div>
+                    <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Lunar feature controls">
+                        <span class="header-pill-group__label">Lunar</span>
+                        <div class="header-pill-segment" role="group" aria-label="Lunar feature controls">
+                            <button
+                                id="toggle-pill-lunar-craters"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                aria-expanded="false"
+                                aria-haspopup="dialog"
+                                aria-controls="lunar-crater-controls-panel"
+                                title="Open lunar feature controls"
+                            >
+                                Lunar Features
+                            </button>
                         </div>
                     </div>
                     <div class="header-pill-group header-pill-group--utility" role="group" aria-label="Render presentation mode">
