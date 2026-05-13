@@ -556,6 +556,69 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.statusText).not.toContain("Selected");
     });
 
+    it("filters thumbnails from structured LLM body metadata when searching", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            mediaMetadata: [
+                {
+                    file: "earth.jpg",
+                    shortDescription: "Earth fills the frame.",
+                    tags: ["earth", "clouds"],
+                    subjects: ["Earth"],
+                    sceneType: "earth",
+                    bodies: ["Earth"],
+                    mainBody: "Earth",
+                    compositionHints: {
+                        suggestedLockTarget: "earth",
+                        confidence: 0.95,
+                        reason: "Earth is the main subject.",
+                    },
+                },
+            ],
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "crew.jpg",
+                    title: "Crew update",
+                    flickr_desc: "The crew talks while far from Earth.",
+                    enabled: true,
+                },
+                {
+                    time: "2026-04-02 12:05:00",
+                    file: "earth.jpg",
+                    title: "Earth portrait",
+                    enabled: true,
+                },
+                {
+                    time: "2026-04-02 12:10:00",
+                    file: "moon.jpg",
+                    title: "Moon portrait",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:00:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "setSearchQuery", value: "earth" });
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.filterModel.query).toBe("earth");
+        expect(latestRender.thumbnailItems.map((item) => item.id)).toEqual(["earth.jpg"]);
+        expect(latestRender.mediaCountLabel).toBe("1");
+    });
+
     it("moves adjacent controls from the current time-proximity focus", async () => {
         const sliderEvents = [];
         class FakeInput {}

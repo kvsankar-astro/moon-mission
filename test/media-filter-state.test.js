@@ -64,7 +64,7 @@ const ITEMS = [
         batch: 1,
         cameraId: "z9",
         cameraLabel: "Z9",
-        description: "A crew video near a spacecraft window.",
+        description: "A crew video near Earth through a spacecraft window.",
         subjects: ["spacecraft window"],
     },
 ];
@@ -93,6 +93,7 @@ describe("media filter state", () => {
     it("searches title, description, tags, subjects, bodies, and scene metadata", () => {
         expect(filterMediaItems(ITEMS, { query: "gloves" }).map((item) => item.id)).toEqual(["a"]);
         expect(filterMediaItems(ITEMS, { query: "window" }).map((item) => item.id)).toEqual(["d"]);
+        expect(filterMediaItems(ITEMS, { query: "earth" }).map((item) => item.id)).toEqual([]);
         expect(filterMediaItems(ITEMS, { query: "sun" }).map((item) => item.id)).toEqual(["e"]);
         expect(filterMediaItems(ITEMS, { query: "moon craters" }).map((item) => item.id)).toEqual(["b"]);
         expect(filterMediaItems(ITEMS, { query: "crew", mediaKinds: ["image"] }).map((item) => item.id)).toEqual(["a"]);

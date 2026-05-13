@@ -10,6 +10,7 @@ const CAMERA_BUTTON_ORDER = [
     { id: "gopro", label: "GoPro", title: "GoPro exterior camera" },
     { id: "iphone", label: "iPhone", title: "Crew iPhone" },
 ];
+const CELESTIAL_BODY_SEARCH_TERMS = new Set(["earth", "moon", "sun"]);
 
 function asTrimmedString(value) {
     if (typeof value !== "string") return "";
@@ -71,6 +72,23 @@ function normalizeSearchCorpusValue(value) {
         return value.map(normalizeSearchCorpusValue).filter(Boolean).join(" ");
     }
     return asTrimmedString(value).toLowerCase();
+}
+
+function normalizeSearchTerm(value) {
+    return asTrimmedString(value).toLowerCase();
+}
+
+function matchesStructuredBodySearchTerm(item, term) {
+    const normalizedTerm = normalizeSearchTerm(term);
+    if (!CELESTIAL_BODY_SEARCH_TERMS.has(normalizedTerm)) return false;
+    const structuredCorpus = [
+        item?.mainBody,
+        item?.bodies,
+        item?.sceneType,
+        item?.tags,
+        item?.subjects,
+    ].map(normalizeSearchCorpusValue).filter(Boolean).join(" ");
+    return structuredCorpus.includes(normalizedTerm);
 }
 
 function createDefaultMediaFilterState() {
@@ -171,7 +189,11 @@ function matchesSearchFilter(item, query) {
         item?.subjects,
         item?.bodies,
     ].map(normalizeSearchCorpusValue).filter(Boolean).join(" ");
-    return terms.every((term) => corpus.includes(term));
+    return terms.every((term) => (
+        CELESTIAL_BODY_SEARCH_TERMS.has(term)
+            ? matchesStructuredBodySearchTerm(item, term)
+            : corpus.includes(term)
+    ));
 }
 
 function matchesMediaFilterParts(item, filters, {
