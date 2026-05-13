@@ -129,6 +129,8 @@ function createTimelineDockController({
     const mediaMarkers = document.getElementById("timeline-media-markers");
     const playhead = document.getElementById("timeline-playhead");
     const timeLabels = document.getElementById("timeline-time-labels");
+    const timeClickLane = document.getElementById("timeline-time-click-lane");
+    const scrubLane = document.getElementById("timeline-scrub-lane");
     const overview = document.getElementById("timeline-overview");
     const overviewWindow = overview?.querySelector?.(".timeline-dock__overview-window") || null;
     const overviewCurrent = overview?.querySelector?.(".timeline-dock__overview-current") || null;
@@ -167,6 +169,7 @@ function createTimelineDockController({
     let lastMediaMarkersData = [];
     let isBound = false;
     let timelineDragState = null;
+    const timelineDragThresholdPx = 3;
     let currentMode = {
         compareMode: false,
         label: "",
@@ -194,6 +197,7 @@ function createTimelineDockController({
     function getTrackWidthPx() {
         const measuredWidth =
             timeLabels?.parentElement?.getBoundingClientRect?.()?.width ||
+            timeClickLane?.getBoundingClientRect?.()?.width ||
             slider?.parentElement?.getBoundingClientRect?.()?.width ||
             slider?.getBoundingClientRect?.()?.width ||
             0;
@@ -201,11 +205,61 @@ function createTimelineDockController({
     }
 
     function getTimelineInteractionSurface() {
-        return slider.parentElement || slider;
+        return scrubLane || slider.parentElement || slider;
+    }
+
+    function getTimelinePointerSurface() {
+        const interactionSurface = getTimelineInteractionSurface();
+        return interactionSurface?.parentElement || interactionSurface;
+    }
+
+    function isNodeWithin(root, node) {
+        if (!root || !node) return false;
+        let current = node;
+        while (current) {
+            if (current === root) return true;
+            current = current.parentElement;
+        }
+        return false;
+    }
+
+    function isPointInsideElement(element, clientX, clientY) {
+        if (!element || element.hidden === true) return false;
+        if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return false;
+        const rect = element.getBoundingClientRect?.();
+        if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.width) || rect.width <= 0) {
+            return false;
+        }
+        const top = Number.isFinite(rect.top) ? rect.top : 0;
+        const height = Number.isFinite(rect.height) && rect.height > 0 ? rect.height : 0;
+        if (height <= 0) return false;
+        return clientX >= rect.left &&
+            clientX <= rect.left + rect.width &&
+            clientY >= top &&
+            clientY <= top + height;
+    }
+
+    function resolvePointerZone(event, clientX, clientY) {
+        if (isPlayheadPointerTarget(event?.target)) return "playhead";
+
+        if (Number.isFinite(clientY)) {
+            if (isPointInsideElement(scrubLane, clientX, clientY)) return "scrub";
+            if (isPointInsideElement(mediaMarkers, clientX, clientY)) return "media-click-lane";
+            if (isPointInsideElement(timeClickLane, clientX, clientY)) return "click-lane";
+            if (isPointInsideElement(markers, clientX, clientY)) return "click-lane";
+            return "";
+        }
+
+        if (isNodeWithin(scrubLane, event.target)) return "scrub";
+        if (isNodeWithin(mediaMarkers, event.target)) return "media-click-lane";
+        if (isNodeWithin(timeClickLane, event.target)) return "click-lane";
+        if (isNodeWithin(markers, event.target)) return "click-lane";
+        return "";
     }
 
     function getTimelineRect() {
         const rect = getTimelineInteractionSurface()?.getBoundingClientRect?.() ||
+            timeClickLane?.getBoundingClientRect?.() ||
             slider?.getBoundingClientRect?.();
         if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) {
             return {
@@ -217,6 +271,7 @@ function createTimelineDockController({
     }
 
     function getFullSpanMs() {
+        syncRangeStateFromSliderIfNeeded();
         const spanMs = rangeMax - rangeMin;
         return Number.isFinite(spanMs) && spanMs > 0 ? spanMs : 0;
     }
@@ -237,6 +292,27 @@ function createTimelineDockController({
 
     function isTimelineZoomed() {
         return viewMin > rangeMin || viewMax < rangeMax;
+    }
+
+    function syncRangeStateFromSliderIfNeeded() {
+        if (rangeMax > rangeMin && viewMax > viewMin) return;
+        const sliderMin = Number(slider.min);
+        const sliderMax = Number(slider.max);
+        if (!Number.isFinite(sliderMin) || !Number.isFinite(sliderMax) || sliderMax <= sliderMin) return;
+        if (!(rangeMax > rangeMin)) {
+            rangeMin = sliderMin;
+            rangeMax = sliderMax;
+        }
+        if (!(viewMax > viewMin)) {
+            viewMin = sliderMin;
+            viewMax = sliderMax;
+        }
+        if (!Number.isFinite(currentTimeMs)) {
+            const sliderValue = Number(slider.value);
+            currentTimeMs = Number.isFinite(sliderValue)
+                ? clamp(sliderValue, rangeMin, rangeMax)
+                : rangeMin;
+        }
     }
 
     function clampViewWindow(nextMin, nextMax) {
@@ -449,6 +525,13 @@ function createTimelineDockController({
         setViewWindow(viewMin + deltaMs, viewMax + deltaMs);
     }
 
+    function panViewFromDrag(startViewMin, startViewMax, startClientX, clientX) {
+        if (!isTimelineZoomed()) return;
+        const deltaMs = getDragDeltaTimeMs(startClientX, clientX);
+        if (!Number.isFinite(deltaMs) || deltaMs === 0) return;
+        setViewWindow(startViewMin - deltaMs, startViewMax - deltaMs);
+    }
+
     function getTimeAtClientX(clientX) {
         const rect = getTimelineRect();
         if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) {
@@ -456,6 +539,13 @@ function createTimelineDockController({
         }
         const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
         return viewMin + getViewSpanMs() * ratio;
+    }
+
+    function getDragDeltaTimeMs(startClientX, clientX) {
+        const rect = getTimelineRect();
+        if (!rect || !Number.isFinite(rect.width) || rect.width <= 0) return 0;
+        const deltaRatio = (clientX - startClientX) / rect.width;
+        return getViewSpanMs() * deltaRatio;
     }
 
     function getThumbClientX() {
@@ -485,8 +575,13 @@ function createTimelineDockController({
         return Number.isFinite(thumbClientX) && Math.abs(clientX - thumbClientX) <= 24;
     }
 
+    function isPlayheadPointerTarget(target) {
+        if (!playhead || playhead.hidden === true) return false;
+        return isNodeWithin(playhead, target);
+    }
+
     function resolveTimelinePointTarget(target) {
-        const surface = getTimelineInteractionSurface();
+        const surface = getTimelinePointerSurface();
         let node = target;
         while (node && node !== surface) {
             const className = typeof node.className === "string" ? node.className : "";
@@ -552,9 +647,8 @@ function createTimelineDockController({
         const state = timelineDragState;
         timelineDragState = null;
         dockRoot?.classList?.remove?.("timeline-dock--timeline-dragging");
-        const surface = getTimelineInteractionSurface();
         if (Number.isFinite(state.pointerId)) {
-            surface?.releasePointerCapture?.(state.pointerId);
+            state.captureTarget?.releasePointerCapture?.(state.pointerId);
         }
 
         if (cancelled) {
@@ -565,13 +659,36 @@ function createTimelineDockController({
             return;
         }
 
+        if ((state.mode === "click-lane" || state.mode === "media-click-lane") && state.moved) {
+            dispatchTimelineUserSeek("cancel", state.lastTimeMs, {
+                commit: false,
+                source: "timeline-click",
+            });
+            return;
+        }
+
+        if (state.mode === "scrub") {
+            return;
+        }
+
         const finalTimeMs = Number.isFinite(event?.clientX)
             ? getTimeAtClientX(event.clientX)
             : state.lastTimeMs;
+        if (state.mode === "playhead") {
+            seekToTime(finalTimeMs, true);
+            dispatchTimelineUserSeek(state.moved ? "end" : "commit", finalTimeMs, {
+                commit: true,
+                source: "timeline-playhead",
+            });
+            return;
+        }
+        if (state.mode === "media-click-lane" && selectMediaMarkerAtTime(finalTimeMs, event)) {
+            return;
+        }
         seekToTime(finalTimeMs, true);
-        dispatchTimelineUserSeek("end", finalTimeMs, {
+        dispatchTimelineUserSeek(state.moved ? "end" : "commit", finalTimeMs, {
             commit: true,
-            source: "timeline-drag",
+            source: "timeline-click",
         });
     }
 
@@ -579,26 +696,33 @@ function createTimelineDockController({
         if (!event || event.isPrimary === false) return;
         if (event.pointerType === "mouse" && event.button !== 0) return;
         const clientX = Number(event.clientX);
+        const clientY = Number(event.clientY);
         if (!Number.isFinite(clientX) || getFullSpanMs() <= 0) return;
         const pointTarget = resolveTimelinePointTarget(event.target);
         if (pointTarget && isNearTimelinePointGlyph(pointTarget, clientX)) return;
+        const pointerSurface = getTimelinePointerSurface();
+        const pointerZone = resolvePointerZone(event, clientX, clientY);
+        if (!pointerZone) return;
 
         event.preventDefault?.();
-        const surface = getTimelineInteractionSurface();
-        surface?.setPointerCapture?.(event.pointerId);
+        pointerSurface?.setPointerCapture?.(event.pointerId);
         const initialTimeMs = getTimeAtClientX(clientX);
-        if (!pointTarget) {
-            seekToTime(initialTimeMs, false);
-        }
         timelineDragState = {
             pointerId: event.pointerId,
+            startClientX: clientX,
+            startTimeMs: Number.isFinite(currentTimeMs)
+                ? currentTimeMs
+                : clamp(Number(slider.value), viewMin, viewMax),
+            startViewMin: viewMin,
+            startViewMax: viewMax,
+            moved: false,
             lastTimeMs: initialTimeMs,
+            mode: pointerZone,
+            captureTarget: pointerSurface,
         };
-        dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
-        dispatchTimelineUserSeek("start", initialTimeMs, {
-            commit: false,
-            source: "timeline-drag",
-        });
+        if (pointerZone === "scrub" || pointerZone === "playhead") {
+            dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
+        }
     }
 
     function updateTimelineDrag(event) {
@@ -613,14 +737,33 @@ function createTimelineDockController({
 
         const clientX = Number(event?.clientX);
         if (!Number.isFinite(clientX)) return;
+        const moveDeltaPx = Math.abs(clientX - Number(timelineDragState.startClientX));
+        if (!timelineDragState.moved && moveDeltaPx < timelineDragThresholdPx) {
+            return;
+        }
         event.preventDefault?.();
-        const nextTimeMs = getTimeAtClientX(clientX);
-        timelineDragState.lastTimeMs = nextTimeMs;
-        seekToTime(nextTimeMs, false);
-        dispatchTimelineUserSeek("update", nextTimeMs, {
-            commit: false,
-            source: "timeline-drag",
-        });
+        timelineDragState.moved = true;
+        if (timelineDragState.mode === "playhead") {
+            const nextTimeMs = getTimeAtClientX(clientX);
+            timelineDragState.lastTimeMs = nextTimeMs;
+            seekToTime(nextTimeMs, false);
+            dispatchTimelineUserSeek("update", nextTimeMs, {
+                commit: false,
+                source: "timeline-playhead",
+            });
+            return;
+        }
+        if (timelineDragState.mode !== "scrub") {
+            timelineDragState.lastTimeMs = getTimeAtClientX(clientX);
+            return;
+        }
+        panViewFromDrag(
+            Number(timelineDragState.startViewMin),
+            Number(timelineDragState.startViewMax),
+            Number(timelineDragState.startClientX),
+            clientX,
+        );
+        timelineDragState.lastTimeMs = currentTimeMs;
     }
 
     function handleTimelineWheel(event) {
@@ -823,6 +966,169 @@ function createTimelineDockController({
         return marker;
     }
 
+    function resolveMediaMarkerTargetTime(markerInfo, timeMs) {
+        const markerTimeMs = markerInfo?.startTime instanceof Date
+            ? markerInfo.startTime.getTime()
+            : Number(markerInfo?.startTimeMs);
+        if (!Number.isFinite(markerTimeMs)) return Number.NaN;
+        const markerEndTimeMs = Number(markerInfo?.endTimeMs);
+        const isSegment = markerInfo?.mediaDisplayMode === "segment"
+            && Number.isFinite(markerEndTimeMs)
+            && markerEndTimeMs > markerTimeMs;
+        if (!isSegment) return markerTimeMs;
+        return clamp(Number.isFinite(timeMs) ? timeMs : markerTimeMs, markerTimeMs, markerEndTimeMs);
+    }
+
+    function dispatchMediaMarkerSelection(markerInfo, index, targetTimeMs) {
+        if (!markerInfo || markerInfo.clickable === false || !Number.isFinite(targetTimeMs)) return false;
+        seekToTime(targetTimeMs, true);
+        dispatchTimelineUserSeek("commit", targetTimeMs, {
+            commit: true,
+            source: "timeline-media-marker",
+        });
+        dispatchDocumentCustomEvent("mission-media-marker-select", {
+            marker: markerInfo,
+            index,
+            timeMs: targetTimeMs,
+        });
+        return true;
+    }
+
+    function getMediaMarkerElementIndex(element) {
+        const index = Number(element?.dataset?.mediaIndex);
+        return Number.isInteger(index) && index >= 0 ? index : -1;
+    }
+
+    function findMediaMarkerElementTarget(target) {
+        let node = target;
+        while (node && node !== mediaMarkers) {
+            const className = typeof node.className === "string" ? node.className : "";
+            if (className.split(/\s+/).includes("timeline-dock__media-marker")) {
+                return node;
+            }
+            node = node.parentElement;
+        }
+        return null;
+    }
+
+    function resolveMediaMarkerClickRank(markerInfo) {
+        const mediaKind = String(markerInfo?.mediaKind || "").trim();
+        if (mediaKind === "videoClip") return 0;
+        if (mediaKind === "audioClip") return 1;
+        return 2;
+    }
+
+    function resolveRenderedMediaMarkerIndexAtPointer(clientX, clientY, timeMs) {
+        if (!mediaMarkers || !Number.isFinite(clientX)) return -1;
+        const laneRect = mediaMarkers.getBoundingClientRect?.();
+        if (Number.isFinite(clientY) && laneRect) {
+            const laneTop = Number(laneRect.top);
+            const laneHeight = Number(laneRect.height);
+            if (
+                Number.isFinite(laneTop) &&
+                Number.isFinite(laneHeight) &&
+                laneHeight > 0 &&
+                (clientY < laneTop || clientY > laneTop + laneHeight)
+            ) {
+                return -1;
+            }
+        }
+
+        const children = Array.from(mediaMarkers.children || []);
+        let bestCandidate = null;
+        for (let childIndex = children.length - 1; childIndex >= 0; childIndex -= 1) {
+            const child = children[childIndex];
+            if (child?.hidden === true) continue;
+            const className = typeof child.className === "string" ? child.className : "";
+            if (!className.split(/\s+/).includes("timeline-dock__media-marker")) continue;
+            const rect = child.getBoundingClientRect?.();
+            if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.width) || rect.width <= 0) continue;
+            if (clientX >= rect.left && clientX <= rect.left + rect.width) {
+                const index = getMediaMarkerElementIndex(child);
+                const markerInfo = lastMediaMarkersData[index];
+                if (!markerInfo || markerInfo.clickable === false) continue;
+                const centerDistancePx = Math.abs(clientX - (rect.left + rect.width / 2));
+                const startTimeMs = Number(markerInfo.startTimeMs);
+                const timeDistanceMs = Number.isFinite(timeMs) && Number.isFinite(startTimeMs)
+                    ? Math.abs(timeMs - startTimeMs)
+                    : Number.POSITIVE_INFINITY;
+                const candidate = {
+                    index,
+                    rank: resolveMediaMarkerClickRank(markerInfo),
+                    centerDistancePx,
+                    timeDistanceMs,
+                    childIndex,
+                };
+                if (
+                    !bestCandidate ||
+                    candidate.rank < bestCandidate.rank ||
+                    (candidate.rank === bestCandidate.rank && candidate.centerDistancePx < bestCandidate.centerDistancePx) ||
+                    (
+                        candidate.rank === bestCandidate.rank &&
+                        candidate.centerDistancePx === bestCandidate.centerDistancePx &&
+                        candidate.timeDistanceMs < bestCandidate.timeDistanceMs
+                    ) ||
+                    (
+                        candidate.rank === bestCandidate.rank &&
+                        candidate.centerDistancePx === bestCandidate.centerDistancePx &&
+                        candidate.timeDistanceMs === bestCandidate.timeDistanceMs &&
+                        candidate.childIndex > bestCandidate.childIndex
+                    )
+                ) {
+                    bestCandidate = candidate;
+                }
+            }
+        }
+        return bestCandidate?.index ?? -1;
+    }
+
+    function selectMediaMarkerByIndex(index, timeMs) {
+        if (!Array.isArray(lastMediaMarkersData) || index < 0 || index >= lastMediaMarkersData.length) return false;
+        const markerInfo = lastMediaMarkersData[index];
+        const targetTimeMs = resolveMediaMarkerTargetTime(markerInfo, timeMs);
+        return dispatchMediaMarkerSelection(markerInfo, index, targetTimeMs);
+    }
+
+    function selectMediaMarkerAtTime(timeMs, event = null) {
+        if (!Array.isArray(lastMediaMarkersData) || !Number.isFinite(timeMs)) return false;
+        const renderedIndex = resolveRenderedMediaMarkerIndexAtPointer(
+            Number(event?.clientX),
+            Number(event?.clientY),
+            timeMs,
+        );
+        if (selectMediaMarkerByIndex(renderedIndex, timeMs)) {
+            return true;
+        }
+        const targetMarkerElement = findMediaMarkerElementTarget(event?.target);
+        if (targetMarkerElement && selectMediaMarkerByIndex(getMediaMarkerElementIndex(targetMarkerElement), timeMs)) {
+            return true;
+        }
+        for (let index = 0; index < lastMediaMarkersData.length; index += 1) {
+            const markerInfo = lastMediaMarkersData[index];
+            if (!markerInfo || markerInfo.clickable === false) continue;
+            const markerTimeMs = markerInfo?.startTime instanceof Date
+                ? markerInfo.startTime.getTime()
+                : Number(markerInfo?.startTimeMs);
+            if (!Number.isFinite(markerTimeMs)) continue;
+            const markerEndTimeMs = Number(markerInfo?.endTimeMs);
+            const isSegment = markerInfo?.mediaDisplayMode === "segment"
+                && Number.isFinite(markerEndTimeMs)
+                && markerEndTimeMs > markerTimeMs;
+            if (isSegment) {
+                if (timeMs >= markerTimeMs && timeMs <= markerEndTimeMs) {
+                    return dispatchMediaMarkerSelection(markerInfo, index, timeMs);
+                }
+                continue;
+            }
+            const markerClientX = getClientXAtTime(markerTimeMs);
+            const targetClientX = getClientXAtTime(timeMs);
+            if (Number.isFinite(markerClientX) && Number.isFinite(targetClientX) && Math.abs(markerClientX - targetClientX) <= 8) {
+                return dispatchMediaMarkerSelection(markerInfo, index, markerTimeMs);
+            }
+        }
+        return false;
+    }
+
     function renderMediaMarker(markerInfo, index) {
         const markerTimeMs = markerInfo?.startTime instanceof Date
             ? markerInfo.startTime.getTime()
@@ -868,6 +1174,10 @@ function createTimelineDockController({
             marker.setAttribute("aria-disabled", "true");
         }
         marker.className = markerClasses.join(" ");
+        marker.dataset.mediaIndex = String(index);
+        if (markerInfo?.id) {
+            marker.dataset.mediaId = String(markerInfo.id);
+        }
         marker.dataset.mediaStartTimeMs = String(markerTimeMs);
         if (isSegment) {
             marker.dataset.mediaEndTimeMs = String(markerEndTimeMs);
@@ -885,23 +1195,15 @@ function createTimelineDockController({
         marker.setAttribute("aria-label", markerTitle);
         if (markerInfo?.clickable !== false) {
             marker.addEventListener("click", (event) => {
-                let targetTimeMs = markerTimeMs;
-                if (isSegment) {
-                    const clickTimeMs = Number.isFinite(event?.clientX)
-                        ? getTimeAtClientX(event.clientX)
-                        : markerTimeMs;
-                    targetTimeMs = clamp(clickTimeMs, markerTimeMs, markerEndTimeMs);
-                }
-                seekToTime(targetTimeMs, true);
-                dispatchTimelineUserSeek("commit", targetTimeMs, {
-                    commit: true,
-                    source: "timeline-media-marker",
-                });
-                dispatchDocumentCustomEvent("mission-media-marker-select", {
-                    marker: markerInfo,
+                const clickTimeMs = Number.isFinite(event?.clientX)
+                    ? getTimeAtClientX(event.clientX)
+                    : markerTimeMs;
+                if (selectMediaMarkerAtTime(isSegment ? clickTimeMs : markerTimeMs, event)) return;
+                dispatchMediaMarkerSelection(
+                    markerInfo,
                     index,
-                    timeMs: targetTimeMs,
-                });
+                    resolveMediaMarkerTargetTime(markerInfo, isSegment ? clickTimeMs : markerTimeMs),
+                );
             });
         }
         return marker;
@@ -1056,19 +1358,20 @@ function createTimelineDockController({
         });
 
         const interactionSurface = getTimelineInteractionSurface();
-        interactionSurface?.addEventListener?.("wheel", handleTimelineWheel, { passive: false });
-        interactionSurface?.addEventListener?.("pointerdown", beginTimelineDrag);
-        interactionSurface?.addEventListener?.("pointermove", updateTimelineDrag);
-        interactionSurface?.addEventListener?.("pointerup", (event) => {
+        const pointerSurface = getTimelinePointerSurface();
+        pointerSurface?.addEventListener?.("wheel", handleTimelineWheel, { passive: false });
+        pointerSurface?.addEventListener?.("pointerdown", beginTimelineDrag, { passive: false, capture: true });
+        pointerSurface?.addEventListener?.("pointermove", updateTimelineDrag);
+        pointerSurface?.addEventListener?.("pointerup", (event) => {
             endTimelineDrag(event, false);
         });
-        interactionSurface?.addEventListener?.("pointercancel", (event) => {
+        pointerSurface?.addEventListener?.("pointercancel", (event) => {
             endTimelineDrag(event, true);
         });
-        interactionSurface?.addEventListener?.("lostpointercapture", (event) => {
+        pointerSurface?.addEventListener?.("lostpointercapture", (event) => {
             endTimelineDrag(event, true);
         });
-        interactionSurface?.addEventListener?.("dblclick", handleTimelineDoubleClick);
+        pointerSurface?.addEventListener?.("dblclick", handleTimelineDoubleClick);
 
         if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
             window.addEventListener("resize", renderVisualTimeline);

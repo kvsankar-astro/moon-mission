@@ -2117,7 +2117,13 @@ function createMediaBrowserPanelActions({
         }
         video?.addEventListener?.("pause", () => {
             if (video?.ended === true) return;
-            onIntent?.({ type: "mediaPlaybackPaused", value: getVideoItemId(), mediaKind: "videoClip" });
+            onIntent?.({
+                type: "mediaPlaybackPaused",
+                value: getVideoItemId(),
+                mediaKind: "videoClip",
+                currentTime: Number(video?.currentTime),
+                mediaElement: video,
+            });
         });
         video?.addEventListener?.("ended", () => {
             onIntent?.({ type: "mediaPlaybackEnded", value: getVideoItemId(), mediaKind: "videoClip" });

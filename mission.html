@@ -2539,16 +2539,6 @@
             <div class="timeline-dock__row">
                 <div class="timeline-dock__track-wrap">
                     <div id="timeline-media-rail" class="timeline-dock__media-rail" aria-hidden="true" hidden></div>
-                    <input
-                        id="timeline-slider"
-                        class="timeline-dock__slider"
-                        type="range"
-                        min="0"
-                        max="0"
-                        step="60000"
-                        value="0"
-                        aria-label="Mission timeline slider"
-                    >
                     <div
                         id="timeline-overview"
                         class="timeline-dock__overview"
@@ -2560,18 +2550,32 @@
                         <span class="timeline-dock__overview-current"></span>
                     </div>
                     <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true" hidden></div>
-                    <div id="timeline-time-labels" class="timeline-dock__time-labels" aria-hidden="true"></div>
                     <div
                         id="timeline-media-markers"
                         class="timeline-dock__markers timeline-dock__markers--media"
                         aria-hidden="true"
                         hidden
                     ></div>
-                    <div
-                        id="timeline-playhead"
-                        class="timeline-dock__playhead"
-                        aria-hidden="true"
-                    ></div>
+                    <div id="timeline-time-click-lane" class="timeline-dock__time-click-lane">
+                        <input
+                            id="timeline-slider"
+                            class="timeline-dock__slider"
+                            type="range"
+                            min="0"
+                            max="0"
+                            step="60000"
+                            value="0"
+                            aria-label="Mission timeline slider"
+                        >
+                        <div
+                            id="timeline-playhead"
+                            class="timeline-dock__playhead"
+                            aria-hidden="true"
+                        ></div>
+                    </div>
+                    <div id="timeline-scrub-lane" class="timeline-dock__scrub-lane">
+                        <div id="timeline-time-labels" class="timeline-dock__time-labels" aria-hidden="true"></div>
+                    </div>
                 </div>
             </div>
             <div class="timeline-dock__meta-row">
