@@ -199,6 +199,7 @@ describe("lunar crater actions", () => {
         expect(colorByName.get("Green mare")).toBe(
             getLunarFeatureBoundaryColor("Mare, maria"),
         );
+        expect(rings.every((ring) => ring.material.toneMapped === false)).toBe(true);
     });
 
     it("keeps Show Always labels sparse instead of labeling every rendered feature", () => {
@@ -388,6 +389,7 @@ describe("lunar crater actions", () => {
                 object.userData?.hoverLabel === false,
             );
             expect(renderedLabels).toHaveLength(1);
+            expect(renderedLabels[0].material.toneMapped).toBe(false);
             expect(scene.lunarCraterPickTargets[0]?.showLabel).toBe(true);
 
             actions.updateLunarCraterHoverFromPointer({

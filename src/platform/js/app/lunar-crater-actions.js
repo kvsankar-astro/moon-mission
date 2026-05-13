@@ -615,6 +615,7 @@ function createCraterLabelSprite({
         opacity: 0.98,
         depthTest,
         depthWrite: false,
+        toneMapped: false,
     });
     const label = new THREE.Sprite(material);
     label.name = `${namePrefix}:${crater.cleanName || crater.name}`;
@@ -959,6 +960,7 @@ function createLunarCraterActions({
             opacity: hover ? 0.98 : (sunlit === false ? 0.9 : 0.94),
             depthTest: hover ? false : true,
             depthWrite: false,
+            toneMapped: false,
         });
     }
 
