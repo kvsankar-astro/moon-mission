@@ -262,6 +262,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.markers.hidden).toBe(true);
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
         expect(harness.rootStyleValues.get("--control-panel-visual-height")).toBe("60px");
         expect(harness.rootStyleValues.get("--timeline-dock-height")).toBe("90px");
         expect(harness.resizeObservers).toHaveLength(1);
@@ -278,6 +279,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.title).toBe("Hide media track");
         expect(harness.mediaRail.hidden).toBe(false);
         expect(harness.mediaMarkers.hidden).toBe(false);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(true);
     });
 
     it("collapses the control panel and updates the shared visual height", () => {
@@ -300,6 +302,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.markers.hidden).toBe(false);
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
         expect(harness.toggleButton.getAttribute("aria-expanded")).toBe("true");
         expect(harness.toggleButton.getAttribute("aria-pressed")).toBe("true");
         expect(harness.toggleButton.title).toBe("Hide event track");
@@ -324,6 +327,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("true");
         expect(harness.mediaRail.hidden).toBe(false);
         expect(harness.mediaMarkers.hidden).toBe(false);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(true);
         expect(harness.panelActions).toEqual([
             { id: "workflow:media-browser", action: "open" },
         ]);
@@ -333,6 +337,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
         expect(harness.panelActions).toEqual([
             { id: "workflow:media-browser", action: "open" },
             { id: "workflow:media-browser", action: "close" },
@@ -346,6 +351,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
 
         harness.documentRef.dispatch("mission-media-panel-state", {
             detail: {
@@ -357,6 +363,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("true");
         expect(harness.mediaRail.hidden).toBe(false);
         expect(harness.mediaMarkers.hidden).toBe(false);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(true);
 
         harness.documentRef.dispatch("mission-media-panel-state", {
             detail: {
@@ -368,6 +375,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.getAttribute("aria-pressed")).toBe("false");
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
     });
 
     it("keeps the media toggle disabled off desktop", () => {
@@ -380,6 +388,7 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaToggleButton.title).toBe("Media track is desktop-only for now");
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
     });
 
     it("focuses the next future event when opening a collapsed carousel", () => {
@@ -396,5 +405,6 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.markers.hidden).toBe(false);
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
+        expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
     });
 });

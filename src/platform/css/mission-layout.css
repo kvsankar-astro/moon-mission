@@ -2606,6 +2606,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
     touch-action: none;
 }
 
+.timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__playhead {
+    top: 24px;
+}
+
 .timeline-dock__playhead::after {
     content: "";
     position: absolute;

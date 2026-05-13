@@ -99,9 +99,11 @@ function createControlPanelTimelineController(deps = {}) {
 
     function setTimelineMediaTrackVisibleState(visible) {
         timelineMediaTrackVisible = !!visible;
+        const timelineDock = getTimelineDock();
         const mediaRail = getTimelineMediaRail();
         const mediaMarkers = getTimelineMediaMarkers();
         const shouldShowMediaTrack = timelineMediaTrackVisible && shouldAllowMediaMarkersVisible();
+        timelineDock?.classList?.toggle?.("timeline-dock--media-track-visible", shouldShowMediaTrack);
         if (mediaRail) {
             mediaRail.hidden = !shouldShowMediaTrack;
         }
@@ -216,11 +218,13 @@ function createControlPanelTimelineController(deps = {}) {
             markers.hidden = !nextExpanded;
         }
         const mediaRail = getTimelineMediaRail();
+        const shouldShowMediaTrack = timelineMediaTrackVisible && shouldAllowMediaMarkersVisible();
+        timelineDock.classList?.toggle?.("timeline-dock--media-track-visible", shouldShowMediaTrack);
         if (mediaMarkers) {
-            mediaMarkers.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
+            mediaMarkers.hidden = !shouldShowMediaTrack;
         }
         if (mediaRail) {
-            mediaRail.hidden = !timelineMediaTrackVisible || !shouldAllowMediaMarkersVisible();
+            mediaRail.hidden = !shouldShowMediaTrack;
         }
         requestAnimationFrameImpl(() => syncTimelineDockHeight(timelineDock));
 
