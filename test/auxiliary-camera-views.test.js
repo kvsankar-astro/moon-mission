@@ -652,6 +652,28 @@ describe("selectComposerSkyLabelCandidates", () => {
             }).map((candidate) => candidate.text),
         ).toEqual(["A", "B"]);
     });
+
+    it("ranks planet and star label candidates in one brightness order", () => {
+        const candidates = [
+            { text: "Sirius", style: "star", magnitude: -1.46, point: { x: 10, y: 10 } },
+            { text: "Venus", style: "planet", magnitude: -4.4, point: { x: 20, y: 20 } },
+            { text: "Jupiter", style: "planet", magnitude: -2.7, point: { x: 30, y: 30 } },
+            { text: "Canopus", style: "star", magnitude: -0.74, point: { x: 40, y: 40 } },
+        ];
+
+        const selected = selectComposerSkyLabelCandidates(candidates, {
+            visibleFraction: 1,
+            maxCount: 4,
+        });
+
+        expect(selected.map((candidate) => candidate.text)).toEqual([
+            "Venus",
+            "Jupiter",
+            "Sirius",
+            "Canopus",
+        ]);
+        expect(selected[0].style).toBe("planet");
+    });
 });
 
 describe("Frame and Shoot sky label occlusion", () => {

@@ -7650,7 +7650,10 @@ class AuxiliaryCameraViewsManager {
             return false;
         };
 
-        if (constellationLabelsEnabled) {
+        const drawConstellationLabels = () => {
+            if (!constellationLabelsEnabled) {
+                return;
+            }
             for (const label of COMPOSER_CONSTELLATION_LABELS) {
                 const raRad = this.THREE.MathUtils.degToRad(label.raDeg);
                 const decRad = this.THREE.MathUtils.degToRad(label.decDeg);
@@ -7676,12 +7679,14 @@ class AuxiliaryCameraViewsManager {
                 }
                 drawLabel(label.name, point, "constellation");
             }
-        }
+        };
 
         if (!skyLabelsEnabled) {
+            drawConstellationLabels();
             return;
         }
 
+        const objectLabelCandidates = [];
         const planetPositionAttr = planetRenderer?.geometry?.getAttribute?.("position") || null;
         const planetAlphaAttr = planetRenderer?.geometry?.getAttribute?.("aAlpha") || null;
         const planetBodySlots = Array.isArray(planetRenderer?.bodySlots) ? planetRenderer.bodySlots : [];
@@ -7722,13 +7727,18 @@ class AuxiliaryCameraViewsManager {
                 if (isLabelOccluded(point)) {
                     continue;
                 }
-                drawLabel(label, point, "planet");
+                const magnitude = COMPOSER_PLANET_MAGNITUDE_BY_BODY[label];
+                objectLabelCandidates.push({
+                    text: label,
+                    magnitude: Number.isFinite(magnitude) ? magnitude : 99,
+                    point,
+                    style: "planet",
+                });
             }
         }
 
         const brightStarDescriptors = this.resolveComposerBrightStarLabelDescriptors(panelState.composerStarMagnitudeLimit);
         if (brightStarDescriptors.length > 0) {
-            const visibleStarCandidates = [];
             for (const descriptor of brightStarDescriptors) {
                 const localDirection = descriptor?.localDirection;
                 if (!localDirection) {
@@ -7753,19 +7763,36 @@ class AuxiliaryCameraViewsManager {
                 if (isLabelOccluded(point)) {
                     continue;
                 }
-                visibleStarCandidates.push({
+                objectLabelCandidates.push({
                     ...descriptor,
                     point,
+                    style: "star",
                 });
             }
-            const visibleStarLabels = selectSkyLabelCandidates(visibleStarCandidates, {
-                visibleFraction: COMPOSER_SKY_LABEL_VISIBLE_FRACTION,
-                maxCount: COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT,
+        }
+
+        if (objectLabelCandidates.length > 0) {
+            const targetObjectLabelCount = Math.min(
+                objectLabelCandidates.length,
+                COMPOSER_BRIGHT_STAR_LABEL_MAX_COUNT,
+                Math.max(1, Math.ceil(objectLabelCandidates.length * COMPOSER_SKY_LABEL_VISIBLE_FRACTION)),
+            );
+            const sortedObjectLabels = selectSkyLabelCandidates(objectLabelCandidates, {
+                visibleFraction: 1,
+                maxCount: objectLabelCandidates.length,
             });
-            for (const descriptor of visibleStarLabels) {
-                drawLabel(descriptor.text, descriptor.point, "star");
+            let placedObjectLabels = 0;
+            for (const descriptor of sortedObjectLabels) {
+                if (drawLabel(descriptor.text, descriptor.point, descriptor.style || "star")) {
+                    placedObjectLabels += 1;
+                    if (placedObjectLabels >= targetObjectLabelCount) {
+                        break;
+                    }
+                }
             }
         }
+
+        drawConstellationLabels();
     }
 
     renderMoonFarSideOverlay(panelState, { distanceToTarget, targetRadius, earthDirectionWorld }) {
