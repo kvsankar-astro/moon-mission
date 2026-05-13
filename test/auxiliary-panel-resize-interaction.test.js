@@ -223,6 +223,67 @@ describe("Auxiliary panel resize interactions", () => {
         }
     }, TEST_TIMEOUT_MS);
 
+    it("zooms regular auxiliary panels with the mouse wheel", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.addInitScript(() => localStorage.clear());
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view[data-target='earth']:not(.aux-camera-view--composer)");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            const before = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view[data-target='earth']:not(.aux-camera-view--composer)");
+                const viewport = panel.querySelector(".aux-camera-view__viewport");
+                const rect = viewport.getBoundingClientRect();
+                const valueText = panel.querySelector(".aux-camera-view__fov-value")?.textContent?.trim() || "";
+                return {
+                    fov: Number.parseFloat(valueText),
+                    x: rect.left + rect.width * 0.5,
+                    y: rect.top + rect.height * 0.5,
+                    autoPressed: panel.querySelector(".aux-camera-view__auto-toggle")?.getAttribute("aria-pressed"),
+                };
+            });
+
+            expect(before.autoPressed).toBe("true");
+
+            await page.mouse.move(before.x, before.y);
+            await page.mouse.wheel(0, -1000);
+            await page.waitForTimeout(150);
+
+            const after = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view[data-target='earth']:not(.aux-camera-view--composer)");
+                const valueText = panel.querySelector(".aux-camera-view__fov-value")?.textContent?.trim() || "";
+                return {
+                    fov: Number.parseFloat(valueText),
+                    autoPressed: panel.querySelector(".aux-camera-view__auto-toggle")?.getAttribute("aria-pressed"),
+                    sliderDisabled: panel.querySelector(".aux-camera-view__fov-slider")?.disabled,
+                };
+            });
+
+            expect(after.autoPressed).toBe("false");
+            expect(after.sliderDisabled).toBe(false);
+            expect(after.fov).toBeLessThan(before.fov);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
     it("defaults Mission Media and Frame and Shoot with matching frames and an open scene gap", async () => {
         const page = await browser.newPage({ viewport: { width: 1920, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());

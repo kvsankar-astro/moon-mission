@@ -2123,6 +2123,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
     margin: 0 max(14px, calc(var(--timeline-dock-offset) * 2));
 }
 
+.timeline-dock.timeline-dock--events-collapsed .timeline-dock__track-wrap {
+    height: 50px;
+}
+
 .timeline-dock__meta-row {
     display: grid;
     grid-template-columns: minmax(74px, auto) minmax(0, 1fr) minmax(74px, auto);
@@ -2131,6 +2135,11 @@ html[data-app-view="selector"] .mission-loading-overlay,
     min-height: 36px;
     margin-top: 3px;
     padding: 0 var(--timeline-dock-offset);
+}
+
+.timeline-dock.timeline-dock--events-collapsed .timeline-dock__meta-row {
+    min-height: 31px;
+    margin-top: 0;
 }
 
 .timeline-dock__center-stack {

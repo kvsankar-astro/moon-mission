@@ -151,6 +151,7 @@ const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
 const COMPOSER_DRAG_SENSITIVITY = 0.00055;
 const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
 const COMPOSER_WHEEL_ZOOM_SENSITIVITY = 0.00022;
+const AUXILIARY_WHEEL_ZOOM_SENSITIVITY = COMPOSER_WHEEL_ZOOM_SENSITIVITY;
 const ORBIT_XY_WHEEL_ZOOM_SENSITIVITY = 0.001;
 const COMPOSER_MAX_PITCH_RAD = (Math.PI * 0.5) - 0.02;
 const COMPOSER_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -3567,6 +3568,7 @@ class AuxiliaryCameraViewsManager {
             composerLunarCraterPointer: null,
             composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
             onOrbitViewportWheel: null,
+            onAuxiliaryViewportWheel: null,
             onOrbitViewportPointerDown: null,
             onOrbitViewportPointerMove: null,
             onOrbitViewportPointerUp: null,
@@ -4773,6 +4775,31 @@ class AuxiliaryCameraViewsManager {
             panelState.onOrbitViewportPointerDown = onOrbitViewportPointerDown;
             panelState.onOrbitViewportPointerMove = onOrbitViewportPointerMove;
             panelState.onOrbitViewportPointerUp = releaseOrbitViewport;
+        }
+        if (panelState.mode !== "composer" && panelState.mode !== "orbit-xy") {
+            const onAuxiliaryViewportWheel = (event) => {
+                if (!isDomEventInstance(event, "WheelEvent")) {
+                    return;
+                }
+                event.preventDefault();
+                if (panelState.autoFovEnabled) {
+                    panelState.autoFovEnabled = false;
+                    syncAutoToggleUi();
+                }
+                const currentFov = Number.isFinite(panelState.camera?.fov)
+                    ? panelState.camera.fov
+                    : spec.defaultFov;
+                const nextFov = this.THREE.MathUtils.clamp(
+                    currentFov * Math.exp(event.deltaY * AUXILIARY_WHEEL_ZOOM_SENSITIVITY),
+                    panelState.fovMinDegrees ?? AUTO_FOV_MIN_DEGREES,
+                    panelState.fovMaxDegrees ?? AUTO_FOV_MAX_DEGREES,
+                );
+                this.setPanelFov(panelState, nextFov);
+                this.requestRender?.();
+                this.queuePersistPanelState();
+            };
+            panelState.viewport.addEventListener("wheel", onAuxiliaryViewportWheel, { passive: false });
+            panelState.onAuxiliaryViewportWheel = onAuxiliaryViewportWheel;
         }
 
         const persisted = this.persistedPanelState?.[spec.id];
@@ -9769,6 +9796,9 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onOrbitViewportWheel) {
                 panelState.viewport.removeEventListener("wheel", panelState.onOrbitViewportWheel);
+            }
+            if (panelState.onAuxiliaryViewportWheel) {
+                panelState.viewport.removeEventListener("wheel", panelState.onAuxiliaryViewportWheel);
             }
             if (panelState.onComposerPanelGatePointerDown) {
                 panelState.panel.removeEventListener("pointerdown", panelState.onComposerPanelGatePointerDown, true);
