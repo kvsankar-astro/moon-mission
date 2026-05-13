@@ -104,6 +104,149 @@ describe("AUXILIARY_VIEW_CAMERA_PRESETS", () => {
     });
 });
 
+function createRecordingCanvasContext() {
+    const strokes = [];
+    let currentPath = [];
+    const ctx = {
+        strokes,
+        save: vi.fn(),
+        restore: vi.fn(),
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        fill: vi.fn(),
+        fillText: vi.fn(),
+        arc: vi.fn(),
+        setLineDash: vi.fn(),
+        beginPath: vi.fn(() => {
+            currentPath = [];
+        }),
+        moveTo: vi.fn((x, y) => {
+            currentPath.push({ command: "M", x, y });
+        }),
+        lineTo: vi.fn((x, y) => {
+            currentPath.push({ command: "L", x, y });
+        }),
+        closePath: vi.fn(() => {
+            currentPath.push({ command: "Z" });
+        }),
+        stroke: vi.fn(() => {
+            strokes.push({
+                commands: currentPath.slice(),
+                lineWidth: ctx.lineWidth,
+                strokeStyle: ctx.strokeStyle,
+            });
+        }),
+        font: "",
+        fillStyle: "",
+        lineWidth: 1,
+        strokeStyle: "",
+        textBaseline: "",
+    };
+    return ctx;
+}
+
+describe("Earth Orbit XY overlay", () => {
+    function createManager() {
+        vi.stubGlobal("window", { innerWidth: 500 });
+        return new AuxiliaryCameraViewsManager({
+            THREE,
+            overlayHost: {},
+            requestRender: vi.fn(),
+        });
+    }
+
+    it("draws the orbit curve from scene trajectory data when line objects are absent", () => {
+        const manager = createManager();
+        const ctx = createRecordingCanvasContext();
+        const scene = {
+            activeCraftId: "SC",
+            primaryCraftId: "SC",
+            curvesById: {
+                SC: [
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(10, 7, 0),
+                    new THREE.Vector3(20, 0, 0),
+                ],
+            },
+            traverse: vi.fn(),
+        };
+
+        manager.renderOrbitPlane2DOverlay(
+            {
+                overlayCanvas: { width: 200, height: 100 },
+                overlayCtx: ctx,
+                orbitPanOffsetX: 0,
+                orbitPanOffsetY: 0,
+            },
+            {
+                scene,
+                earthWorld: new THREE.Vector3(0, 0, 0),
+                moonWorld: new THREE.Vector3(0, 18, 0),
+                craftWorld: new THREE.Vector3(20, 0, 0),
+                earthRadius: 1,
+                moonRadius: 1,
+                halfHeight: 20,
+            },
+        );
+
+        expect(ctx.strokes.some((stroke) =>
+            stroke.lineWidth === 1.35 &&
+            stroke.commands.length === 3 &&
+            stroke.commands[0].command === "M" &&
+            stroke.commands[1].command === "L" &&
+            stroke.commands[2].command === "L" &&
+            stroke.commands[1].y < stroke.commands[0].y
+        )).toBe(true);
+    });
+
+    it("treats empty draw ranges as undrawn line objects", () => {
+        const manager = createManager();
+        const ctx = createRecordingCanvasContext();
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+            "position",
+            new THREE.Float32BufferAttribute([
+                0, 0, 0,
+                10, 0, 0,
+            ], 3),
+        );
+        geometry.setDrawRange(0, 1);
+        const line = new THREE.Line(
+            geometry,
+            new THREE.LineBasicMaterial({ color: 0x75b0ff }),
+        );
+
+        const drew = manager.drawOrbitPlaneLineObject(ctx, line, (point) => ({
+            x: point.x,
+            y: point.y,
+        }));
+
+        expect(drew).toBe(false);
+        expect(ctx.strokes).toHaveLength(0);
+    });
+
+    it("auto-fits by resetting Orbit XY pan and zoom", () => {
+        const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
+        const panelState = {
+            mode: "orbit-xy",
+            camera: { isOrthographicCamera: true },
+            orbitZoomFovDegrees: 12,
+            orbitPanOffsetX: 123,
+            orbitPanOffsetY: -456,
+            fovControl: {
+                setFovDegrees: vi.fn(),
+            },
+        };
+
+        expect(manager.applyOrbitPlaneAutoFit(panelState)).toBe(true);
+
+        expect(panelState.orbitPanOffsetX).toBe(0);
+        expect(panelState.orbitPanOffsetY).toBe(0);
+        expect(panelState.orbitZoomFovDegrees).toBe(45);
+        expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(45, 45);
+    });
+});
+
 describe("resolveLunarFlybyWindowMs", () => {
     it("returns SOI entry/exit bounds when present in mission events", () => {
         const paddingMs = 5 * 60 * 1000;

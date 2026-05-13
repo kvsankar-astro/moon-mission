@@ -66,6 +66,7 @@ import {
     writeLunarCraterControlState,
 } from "../ui/lunar-crater-control-panel.js";
 import { renderWithLunarCraterView } from "./lunar-crater-view-renderer.js";
+import { getSceneVisibleCraftIds } from "./scene-craft-helpers.js";
 
 const PANEL_SPECS = Object.freeze([
     {
@@ -153,6 +154,7 @@ const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
 const COMPOSER_WHEEL_ZOOM_SENSITIVITY = 0.00022;
 const AUXILIARY_WHEEL_ZOOM_SENSITIVITY = COMPOSER_WHEEL_ZOOM_SENSITIVITY;
 const ORBIT_XY_WHEEL_ZOOM_SENSITIVITY = 0.001;
+const ORBIT_XY_AUTO_FOV_DEGREES = 45;
 const COMPOSER_MAX_PITCH_RAD = (Math.PI * 0.5) - 0.02;
 const COMPOSER_TIMELINE_WINDOW_MS = 2 * 60 * 60 * 1000;
 const COMPOSER_FLYBY_WINDOW_PADDING_MS = 5 * 60 * 1000;
@@ -3434,7 +3436,7 @@ class AuxiliaryCameraViewsManager {
             resizeGrip,
             panelControls,
             chipButton,
-            autoFovEnabled: panelMode !== "orbit-xy",
+            autoFovEnabled: true,
             onAutoToggleClick: null,
             onInfoClick: null,
             onExpandClick: null,
@@ -3589,7 +3591,7 @@ class AuxiliaryCameraViewsManager {
             const enabled = panelState.autoFovEnabled === true;
             panelState.fovControl?.setAutoEnabled(enabled);
             panelState.fovControl?.setDisabledState({
-                autoButtonDisabled: panelState.mode === "orbit-xy" || autoToggle.disabled || isFreeComposer,
+                autoButtonDisabled: autoToggle.disabled || isFreeComposer,
                 sliderDisabled: enabled,
                 valueDisabled: false,
             });
@@ -3606,10 +3608,17 @@ class AuxiliaryCameraViewsManager {
             this.queuePersistPanelState();
         };
         const onAutoToggleClick = () => {
-            if (
-                panelState.mode === "orbit-xy" ||
-                (panelState.mode === "composer" && (panelState.composerLockTarget || "none") === "none")
-            ) {
+            if (panelState.mode === "orbit-xy") {
+                panelState.autoFovEnabled = !panelState.autoFovEnabled;
+                if (panelState.autoFovEnabled) {
+                    this.applyOrbitPlaneAutoFit(panelState);
+                }
+                syncAutoToggleUi();
+                this.requestRender?.();
+                this.queuePersistPanelState();
+                return;
+            }
+            if (panelState.mode === "composer" && (panelState.composerLockTarget || "none") === "none") {
                 return;
             }
             panelState.autoFovEnabled = !panelState.autoFovEnabled;
@@ -4700,6 +4709,10 @@ class AuxiliaryCameraViewsManager {
         }
         if (panelState.mode === "orbit-xy") {
             const zoomOrbitPanelBy = (deltaY) => {
+                if (panelState.autoFovEnabled) {
+                    panelState.autoFovEnabled = false;
+                    syncAutoToggleUi();
+                }
                 const currentFov = Number.isFinite(panelState.orbitZoomFovDegrees)
                     ? panelState.orbitZoomFovDegrees
                     : spec.defaultFov;
@@ -4740,6 +4753,10 @@ class AuxiliaryCameraViewsManager {
                 const dy = event.clientY - drag.clientY;
                 drag.clientX = event.clientX;
                 drag.clientY = event.clientY;
+                if (panelState.autoFovEnabled) {
+                    panelState.autoFovEnabled = false;
+                    syncAutoToggleUi();
+                }
                 const width = Math.max(1, panelState.overlayCanvas?.width || panelState.width || 1);
                 const height = Math.max(1, panelState.overlayCanvas?.height || panelState.height || 1);
                 const project = this.createOrbitPlaneProjector({
@@ -8343,7 +8360,7 @@ class AuxiliaryCameraViewsManager {
         return this.sunDirectionEarthWorld;
     }
 
-    computeOrbitPlaneHalfHeight({ scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius }) {
+    computeOrbitPlaneHalfHeight({ scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius, missionConfig = null }) {
         let maxRadius = Math.max(
             Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius * 6 : 1,
             Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1,
@@ -8363,6 +8380,12 @@ class AuxiliaryCameraViewsManager {
 
         includeWorldPoint(moonWorld, moonRadius);
         includeWorldPoint(craftWorld, 0);
+        for (const bodyId of this.resolveOrbitPlaneCurveBodyIds(scene, missionConfig)) {
+            const curve = scene?.curvesById?.[bodyId] || [];
+            for (const point of curve) {
+                includeWorldPoint(point, 0);
+            }
+        }
 
         scene?.traverse?.((object) => {
             if (!object?.visible || (!object.isLine && !object.isLineLoop && !object.isLineSegments)) {
@@ -8444,7 +8467,18 @@ class AuxiliaryCameraViewsManager {
         const geometry = object?.geometry;
         const position = geometry?.getAttribute?.("position");
         if (!position || position.count < 2) {
-            return;
+            return false;
+        }
+        const drawRange = geometry.drawRange || {};
+        const rangeStart = Number.isFinite(drawRange.start)
+            ? Math.max(0, Math.floor(drawRange.start))
+            : 0;
+        const rangeCount = Number.isFinite(drawRange.count)
+            ? Math.max(0, Math.floor(drawRange.count))
+            : Infinity;
+        const rangeEnd = Math.min(position.count, rangeStart + rangeCount);
+        if (rangeEnd - rangeStart < 2) {
+            return false;
         }
         const color = object.material?.color;
         const opacity = Number.isFinite(object.material?.opacity) ? object.material.opacity : 1;
@@ -8459,7 +8493,8 @@ class AuxiliaryCameraViewsManager {
         const drawPolyline = () => {
             ctx.beginPath();
             let moved = false;
-            for (let i = 0; i < position.count; i += 1) {
+            let drewSegment = false;
+            for (let i = rangeStart; i < rangeEnd; i += 1) {
                 const point = drawVertex(i);
                 if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
                     continue;
@@ -8469,22 +8504,25 @@ class AuxiliaryCameraViewsManager {
                     moved = true;
                 } else {
                     ctx.lineTo(point.x, point.y);
+                    drewSegment = true;
                 }
             }
-            if (object.isLineLoop && moved) {
+            if (object.isLineLoop && moved && drewSegment) {
                 ctx.closePath();
             }
-            if (moved) {
+            if (drewSegment) {
                 ctx.stroke();
             }
+            return drewSegment;
         };
 
         ctx.save();
         ctx.strokeStyle = strokeColor;
         ctx.lineWidth = object.isLineSegments ? 1 : 1.35;
         ctx.setLineDash(object.isLineSegments ? [3, 4] : []);
+        let drew = false;
         if (object.isLineSegments) {
-            for (let i = 0; i + 1 < position.count; i += 2) {
+            for (let i = rangeStart; i + 1 < rangeEnd; i += 2) {
                 const a = drawVertex(i);
                 const b = drawVertex(i + 1);
                 if (
@@ -8497,15 +8535,112 @@ class AuxiliaryCameraViewsManager {
                     ctx.moveTo(a.x, a.y);
                     ctx.lineTo(b.x, b.y);
                     ctx.stroke();
+                    drew = true;
                 }
             }
         } else {
-            drawPolyline();
+            drew = drawPolyline();
         }
         ctx.restore();
+        return drew;
     }
 
-    renderOrbitPlane2DOverlay(panelState, { scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius, halfHeight }) {
+    resolveOrbitPlaneCurveBodyIds(scene, missionConfig = null) {
+        const curvesById = scene?.curvesById || {};
+        const bodyIds = [];
+        const seen = new Set();
+        const addBodyId = (bodyId) => {
+            if (!bodyId || seen.has(bodyId)) {
+                return;
+            }
+            const curve = curvesById[bodyId];
+            if (!Array.isArray(curve) || curve.length < 2) {
+                return;
+            }
+            seen.add(bodyId);
+            bodyIds.push(bodyId);
+        };
+
+        try {
+            getSceneVisibleCraftIds(scene, missionConfig).forEach(addBodyId);
+        } catch {
+            // Fall back to scene-local ids below; the overlay should still draw
+            // when mission metadata is not available during startup.
+        }
+        addBodyId(scene?.activeCraftId);
+        addBodyId(scene?.primaryCraftId);
+        if (bodyIds.length === 0) {
+            Object.keys(curvesById).forEach(addBodyId);
+        }
+        return bodyIds;
+    }
+
+    resolveOrbitPlaneCurveStroke(scene, bodyId) {
+        const lines = scene?.orbitLinesByBodyId?.[bodyId] || [];
+        const sourceLine = lines.find((line) => line?.material?.color);
+        const color = sourceLine?.material?.color;
+        const opacity = Number.isFinite(sourceLine?.material?.opacity)
+            ? sourceLine.material.opacity
+            : 0.56;
+        if (!color) {
+            return "rgba(117, 176, 255, 0.56)";
+        }
+        return `rgba(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)}, ${Math.max(0.22, Math.min(0.76, opacity))})`;
+    }
+
+    drawOrbitPlaneCurve(ctx, curve, project, { strokeStyle = "rgba(117, 176, 255, 0.56)", lineWidth = 1.35 } = {}) {
+        if (!Array.isArray(curve) || curve.length < 2) {
+            return false;
+        }
+        ctx.save();
+        ctx.strokeStyle = strokeStyle;
+        ctx.lineWidth = lineWidth;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        let moved = false;
+        let drewSegment = false;
+        for (const worldPoint of curve) {
+            if (
+                !worldPoint ||
+                !Number.isFinite(worldPoint.x) ||
+                !Number.isFinite(worldPoint.y)
+            ) {
+                moved = false;
+                continue;
+            }
+            const point = project(worldPoint);
+            if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+                moved = false;
+                continue;
+            }
+            if (!moved) {
+                ctx.moveTo(point.x, point.y);
+                moved = true;
+            } else {
+                ctx.lineTo(point.x, point.y);
+                drewSegment = true;
+            }
+        }
+        if (drewSegment) {
+            ctx.stroke();
+        }
+        ctx.restore();
+        return drewSegment;
+    }
+
+    drawOrbitPlaneCurvesFromSceneData(ctx, scene, project, missionConfig = null) {
+        let drewAny = false;
+        for (const bodyId of this.resolveOrbitPlaneCurveBodyIds(scene, missionConfig)) {
+            const curve = scene?.curvesById?.[bodyId] || [];
+            const drew = this.drawOrbitPlaneCurve(ctx, curve, project, {
+                strokeStyle: this.resolveOrbitPlaneCurveStroke(scene, bodyId),
+            });
+            drewAny = drewAny || drew;
+        }
+        return drewAny;
+    }
+
+    renderOrbitPlane2DOverlay(panelState, { scene, earthWorld, moonWorld, craftWorld, earthRadius, moonRadius, halfHeight, missionConfig = null }) {
         const canvas = panelState?.overlayCanvas;
         const ctx = panelState?.overlayCtx;
         if (!canvas || !ctx) {
@@ -8557,12 +8692,19 @@ class AuxiliaryCameraViewsManager {
         ctx.lineTo(origin.x, height);
         ctx.stroke();
 
+        let drewCraftOrbit = false;
         scene?.traverse?.((object) => {
             if (!object?.visible || (!object.isLine && !object.isLineLoop && !object.isLineSegments)) {
                 return;
             }
-            this.drawOrbitPlaneLineObject(ctx, object, project);
+            const drewLine = this.drawOrbitPlaneLineObject(ctx, object, project);
+            if (drewLine && object?.userData?.bodyId && scene?.curvesById?.[object.userData.bodyId]) {
+                drewCraftOrbit = true;
+            }
         });
+        if (!drewCraftOrbit) {
+            this.drawOrbitPlaneCurvesFromSceneData(ctx, scene, project, missionConfig);
+        }
 
         const earthRadiusPx = Math.max(4, Math.min(16, (earthRadius / Math.max(1e-9, halfHeight)) * (height * 0.5)));
         const moonRadiusPx = Math.max(3, Math.min(10, (moonRadius / Math.max(1e-9, halfHeight)) * (height * 0.5)));
@@ -8588,7 +8730,7 @@ class AuxiliaryCameraViewsManager {
         ctx.restore();
     }
 
-    renderOrbitPlanePanel(panelState, { scene, activeCraft, earth, moon, earthRadius, moonRadius }) {
+    renderOrbitPlanePanel(panelState, { scene, activeCraft, earth, moon, earthRadius, moonRadius, missionConfig = null }) {
         if (!panelState?.camera?.isOrthographicCamera || !earth || !activeCraft) {
             this.setPanelVisible(panelState, false);
             return false;
@@ -8603,6 +8745,9 @@ class AuxiliaryCameraViewsManager {
 
         this.setPanelVisible(panelState, true);
         this.syncPanelSize(panelState);
+        if (panelState.autoFovEnabled === true) {
+            this.applyOrbitPlaneAutoFit(panelState);
+        }
 
         const halfHeight = this.computeOrbitPlaneHalfHeight({
             scene,
@@ -8611,6 +8756,7 @@ class AuxiliaryCameraViewsManager {
             craftWorld: this.craftWorld,
             earthRadius,
             moonRadius,
+            missionConfig,
         });
         const zoomFov = clampFovDegrees(panelState.orbitZoomFovDegrees, {
             minDegrees: panelState.fovMinDegrees ?? AUTO_FOV_MIN_DEGREES,
@@ -8628,6 +8774,7 @@ class AuxiliaryCameraViewsManager {
             earthRadius: Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 1,
             moonRadius: Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1,
             halfHeight: panelState.orthographicHalfHeight,
+            missionConfig,
         });
         this.setPanelInfo(panelState, "Earth-origin XY plane", "2D projection");
         return true;
@@ -8844,6 +8991,16 @@ class AuxiliaryCameraViewsManager {
         }
 
         panelState.fovControl?.setFovDegrees(fovDegrees, panelState.camera.fov);
+    }
+
+    applyOrbitPlaneAutoFit(panelState) {
+        if (!panelState || panelState.mode !== "orbit-xy") {
+            return false;
+        }
+        panelState.orbitPanOffsetX = 0;
+        panelState.orbitPanOffsetY = 0;
+        this.setPanelFov(panelState, ORBIT_XY_AUTO_FOV_DEGREES);
+        return true;
     }
 
     setComposerLockTarget(panelState, target, {
@@ -9285,6 +9442,7 @@ class AuxiliaryCameraViewsManager {
                         moon,
                         earthRadius,
                         moonRadius,
+                        missionConfig,
                     });
                     if (rendered) {
                         visiblePanels += 1;
