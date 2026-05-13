@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
     computeAnimationStepState,
+    updateThreeDLoopCamera,
     updateFpsCounterState,
     updateFrameDeltaState,
 } from "../src/platform/js/app/animation-loop.js";
@@ -121,5 +122,30 @@ describe("animation-loop core helpers", () => {
             animateLoopCount: 0,
             shouldAdvance: true,
         });
+    });
+
+    it("skips 3D camera upkeep when the initialized scene has no camera yet", () => {
+        const cameraControlsCallback = vi.fn();
+        const scene = {
+            initialized3D: true,
+            cameraControlsEnabled: true,
+            camera: null,
+            skyContainer: {
+                position: {
+                    copy: vi.fn(),
+                },
+            },
+            cameraControls: {
+                update: vi.fn(),
+            },
+        };
+
+        expect(() => updateThreeDLoopCamera({
+            scene,
+            cameraControlsCallback,
+        })).not.toThrow();
+        expect(scene.skyContainer.position.copy).not.toHaveBeenCalled();
+        expect(scene.cameraControls.update).not.toHaveBeenCalled();
+        expect(cameraControlsCallback).not.toHaveBeenCalled();
     });
 });

@@ -3323,7 +3323,7 @@ class AuxiliaryCameraViewsManager {
             composerControlsToggleButton,
             overlayCanvas,
             overlayCtx,
-            farSideTintEnabled: spec.infoMode === "moon-visibility",
+            farSideTintEnabled: false,
             overlayDirty: true,
             lastOverlayUpdateMs: -Infinity,
             width: 0,

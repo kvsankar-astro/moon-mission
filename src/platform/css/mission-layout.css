@@ -2120,6 +2120,16 @@ html[data-app-view="selector"] .mission-loading-overlay,
     min-width: 0;
 }
 
+.timeline-dock__current-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    min-width: 0;
+    min-height: 14px;
+}
+
 .timeline-dock__time-click-lane {
     position: absolute;
     left: 0;
@@ -2663,6 +2673,46 @@ html[data-app-view="selector"] .mission-loading-overlay,
     line-height: 1.4;
     color: rgba(211, 227, 252, 0.94);
     letter-spacing: 0.015em;
+}
+
+.timeline-dock__mission-elapsed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 14px;
+    padding: 0;
+    overflow: visible;
+    text-align: center;
+    font-family: "Lucida Console", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: rgba(178, 237, 214, 0.94);
+    letter-spacing: 0;
+}
+
+.timeline-dock__utc-year-elapsed {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 14px;
+    padding: 0;
+    overflow: visible;
+    text-align: center;
+    font-family: "Lucida Console", monospace;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: rgba(211, 227, 252, 0.86);
+    letter-spacing: 0;
+}
+
+.timeline-dock__mission-elapsed[hidden] {
+    display: none;
+}
+
+.timeline-dock__utc-year-elapsed[hidden] {
+    display: none;
 }
 
 .timeline-dock__mode {

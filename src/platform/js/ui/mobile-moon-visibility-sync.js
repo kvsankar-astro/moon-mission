@@ -28,7 +28,7 @@ function createMobileMoonVisibilitySync(deps) {
         windowRef = globalThis?.window || globalThis,
         performanceRef = globalThis?.performance,
         overlayUpdateIntervalMs = 180,
-        initialFarSideOverlayEnabled = true,
+        initialFarSideOverlayEnabled = false,
     } = deps;
 
     let farSideOverlayEnabled = !!initialFarSideOverlayEnabled;

@@ -176,8 +176,8 @@ describe("createMobileMoonVisibilitySync", () => {
         expect(harness.mobileViewsMoonVisibility.hidden).toBe(false);
         expect(harness.mobileViewsMoonVisibilityHead.hidden).toBe(false);
         expect(harness.mobileViewsMoonVisibilityValues.innerHTML).toContain("%");
-        expect(harness.mobileViewsFarSideToggle.textContent).toBe("Far Side: ON");
-        expect(harness.mobileViewsFarSideToggle.getAttribute("aria-pressed")).toBe("true");
+        expect(harness.mobileViewsFarSideToggle.textContent).toBe("Far Side: OFF");
+        expect(harness.mobileViewsFarSideToggle.getAttribute("aria-pressed")).toBe("false");
         expect(harness.mobileMoonFarSideOverlay.classList.contains("is-active")).toBe(false);
 
         harness.state.activeViewPresetId = "earth";
@@ -193,14 +193,14 @@ describe("createMobileMoonVisibilitySync", () => {
         harness.sync.sync({ force: true });
 
         harness.mobileViewsFarSideToggle.dispatch("click");
-        expect(harness.mobileViewsFarSideToggle.textContent).toBe("Far Side: OFF");
-        expect(harness.mobileViewsFarSideToggle.getAttribute("aria-pressed")).toBe("false");
+        expect(harness.mobileViewsFarSideToggle.textContent).toBe("Far Side: ON");
+        expect(harness.mobileViewsFarSideToggle.getAttribute("aria-pressed")).toBe("true");
         expect(harness.renderRequests).toBe(1);
 
         harness.flushNextAnimationFrame();
 
         expect(harness.renderRequests).toBe(2);
-        expect(harness.sync.isFarSideOverlayEnabled()).toBe(false);
+        expect(harness.sync.isFarSideOverlayEnabled()).toBe(true);
     });
 
     it("starts the RAF loop only for the mobile views tab and stops when the tab changes", () => {

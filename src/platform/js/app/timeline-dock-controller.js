@@ -116,6 +116,35 @@ function formatComparisonElapsedLabel(timeMs, rangeStartMs) {
     })}`;
 }
 
+function formatMissionElapsedLabel(timeMs, rangeStartMs) {
+    const elapsedMs = Number(timeMs) - Number(rangeStartMs);
+    if (!Number.isFinite(elapsedMs)) return "";
+    const sign = elapsedMs < 0 ? "-" : "+";
+    const absoluteMs = Math.abs(elapsedMs);
+    const totalSeconds = Math.floor(absoluteMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (value) => String(value).padStart(2, "0");
+    return `MET ${sign}${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
+}
+
+function formatUtcYearElapsedLabel(timeMs) {
+    if (!Number.isFinite(timeMs)) return "";
+    const date = new Date(timeMs);
+    const yearStartMs = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
+    const elapsedMs = timeMs - yearStartMs;
+    if (!Number.isFinite(elapsedMs) || elapsedMs < 0) return "";
+    const totalSeconds = Math.floor(elapsedMs / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (value, length = 2) => String(value).padStart(length, "0");
+    return `UTC ${pad(days, 3)}:${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
 function createTimelineDockController({
     onSeekTime,
     onMarkerSelect,
@@ -143,6 +172,8 @@ function createTimelineDockController({
     const endLabel = document.getElementById("timeline-end-label");
     const modeLabel = document.getElementById("timeline-mode-label");
     const currentLabel = document.getElementById("timeline-current-label");
+    const utcYearElapsedLabel = document.getElementById("timeline-utc-year-elapsed-label");
+    const missionElapsedLabel = document.getElementById("timeline-mission-elapsed-label");
     const craftStrip = document.getElementById("timeline-craft-strip");
 
     if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
@@ -182,6 +213,16 @@ function createTimelineDockController({
             const elapsedLabel = formatComparisonElapsedLabel(timeMs, rangeMin);
             const label = `Comparison Elapsed • ${elapsedLabel}`;
             currentLabel.textContent = label;
+            if (missionElapsedLabel) {
+                missionElapsedLabel.textContent = "";
+                missionElapsedLabel.title = "";
+                missionElapsedLabel.hidden = true;
+            }
+            if (utcYearElapsedLabel) {
+                utcYearElapsedLabel.textContent = "";
+                utcYearElapsedLabel.title = "";
+                utcYearElapsedLabel.hidden = true;
+            }
             slider.setAttribute(
                 "aria-valuetext",
                 `Comparison elapsed time ${elapsedLabel}`,
@@ -191,7 +232,30 @@ function createTimelineDockController({
 
         const label = formatDateTimeLocal(timeMs, { includeOffset: false });
         currentLabel.textContent = label;
-        slider.setAttribute("aria-valuetext", label);
+        const utcYearElapsedText = formatUtcYearElapsedLabel(timeMs);
+        if (utcYearElapsedLabel) {
+            utcYearElapsedLabel.textContent = utcYearElapsedText;
+            utcYearElapsedLabel.title = utcYearElapsedText
+                ? "UTC year elapsed time"
+                : "";
+            utcYearElapsedLabel.hidden = utcYearElapsedText.length === 0;
+        }
+        const missionElapsedText = formatMissionElapsedLabel(timeMs, rangeMin);
+        if (missionElapsedLabel) {
+            missionElapsedLabel.textContent = missionElapsedText;
+            missionElapsedLabel.title = missionElapsedText
+                ? "Mission elapsed time"
+                : "";
+            missionElapsedLabel.hidden = missionElapsedText.length === 0;
+        }
+        slider.setAttribute(
+            "aria-valuetext",
+            [
+                label,
+                utcYearElapsedText ? `UTC year elapsed time ${utcYearElapsedText}` : "",
+                missionElapsedText ? `mission elapsed time ${missionElapsedText}` : "",
+            ].filter(Boolean).join(", "),
+        );
     }
 
     function getTrackWidthPx() {

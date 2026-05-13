@@ -62,17 +62,15 @@ function updateThreeDLoopCamera({
     cameraControlsCallback,
 }) {
     if (!scene || !scene.initialized3D || !scene.cameraControlsEnabled) return;
+    if (!scene.camera) return;
 
     // Keep sky centered on the camera without relying on matrixWorld timing.
     scene.camera.updateMatrixWorld?.(true);
-    scene.skyContainer.position.copy(scene.camera.position);
-    // Keep sky centered on the camera without relying on matrixWorld timing.
-    scene.camera.updateMatrixWorld?.(true);
-    scene.skyContainer.position.copy(scene.camera.position);
+    scene.skyContainer?.position?.copy?.(scene.camera.position);
 
-    if (!scene.cameraController?._freeFlyActive) {
-        scene.cameraControls.update();
-        cameraControlsCallback();
+    if (!scene.cameraController?._freeFlyActive && scene.cameraControls) {
+        scene.cameraControls.update?.();
+        cameraControlsCallback?.();
     }
 }
 

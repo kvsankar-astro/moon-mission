@@ -230,8 +230,60 @@ describe("createTimelineDockController", () => {
         controller.setCurrentTime(timestamp);
 
         expect(currentLabel.textContent).not.toMatch(/UTC[+-]\d{2}:\d{2}$/);
-        expect(slider.attributes["aria-valuetext"]).toBe(currentLabel.textContent);
+        expect(slider.attributes["aria-valuetext"]).toContain(currentLabel.textContent);
+        expect(slider.attributes["aria-valuetext"]).toContain("UTC year elapsed time UTC 091:12:34:56");
+        expect(slider.attributes["aria-valuetext"]).toContain("mission elapsed time MET +0d 00h 00m 01s");
         expect(startLabel.innerHTML).toMatch(/UTC[+-]\d{2}:\d{2}</);
+    });
+
+    it("shows mission elapsed time beside the current timeline date", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const utcYearElapsedLabel = new FakeElement("div");
+        const missionElapsedLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-utc-year-elapsed-label") return utcYearElapsedLabel;
+                if (id === "timeline-mission-elapsed-label") return missionElapsedLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        const startTimeMs = Date.UTC(2026, 3, 2, 10, 0, 0);
+        const currentTimeMs = startTimeMs + (((4 * 24 + 20) * 60 + 27) * 60 + 8) * 1000;
+        controller.setRange({
+            startTimeMs,
+            endTimeMs: currentTimeMs + 60000,
+            stepMs: 1000,
+        });
+        controller.setCurrentTime(currentTimeMs);
+
+        expect(currentLabel.textContent).not.toContain("MET");
+        expect(utcYearElapsedLabel.hidden).toBe(false);
+        expect(utcYearElapsedLabel.textContent).toBe("UTC 096:06:27:08");
+        expect(missionElapsedLabel.hidden).toBe(false);
+        expect(missionElapsedLabel.textContent).toBe("MET +4d 20h 27m 08s");
+        expect(slider.attributes["aria-valuetext"]).toContain("UTC year elapsed time UTC 096:06:27:08");
+        expect(slider.attributes["aria-valuetext"]).toContain("mission elapsed time MET +4d 20h 27m 08s");
     });
 
     it("renders progressive time labels and lets scale controls zoom and pan the visible window", () => {
