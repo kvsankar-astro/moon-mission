@@ -40,7 +40,7 @@ class DesktopPanelManager {
     }
 
     static removeStaleDom() {
-        document.querySelectorAll(".panel-manager-root, .panel-manager-launcher-slot")
+        document.querySelectorAll(".panel-manager-root, .panel-manager-launcher-slot, .settings-section--panel-manager")
             .forEach((node) => node.remove());
     }
 
@@ -80,69 +80,29 @@ class DesktopPanelManager {
             this.panels = Array.isArray(panels) ? panels : [];
             this.render();
         });
-        document.addEventListener("pointerdown", this.handleDocumentPointerDownBound);
-        document.addEventListener("keydown", this.handleDocumentKeyDownBound);
         window.addEventListener("resize", this.handleResizeBound, { passive: true });
     }
 
     createDom() {
-        this.root = document.createElement("div");
-        this.root.className = "panel-manager-root";
+        this.root = document.createElement("fieldset");
+        this.root.className = "settings-section settings-section--panel-manager";
+        this.root.dataset.sectionKey = "panel-manager";
 
-        this.launcherSlot = document.createElement("div");
-        this.launcherSlot.className = "panel-manager-launcher-slot header-pill-segment header-pill-segment--single";
-        this.launcherSlot.hidden = true;
+        const legend = document.createElement("legend");
+        legend.className = "settings-section__title";
+        legend.textContent = "Panels";
+        this.root.appendChild(legend);
 
-        this.launcher = document.createElement("button");
-        this.launcher.type = "button";
-        this.launcher.className = "panel-manager-launcher header-pill-segment__btn";
-        this.launcher.textContent = "Advanced";
-        this.launcher.hidden = true;
-        this.launcher.setAttribute("aria-haspopup", "dialog");
-        this.launcher.setAttribute("aria-expanded", "false");
-        this.launcher.title = "Open advanced panel controls";
-        this.launcher.addEventListener("click", () => {
-            this.setMenuOpen(!this.menuOpen);
-        });
-        this.launcherSlot.appendChild(this.launcher);
+        this.menuBody = document.createElement("div");
+        this.menuBody.className = "panel-manager-menu__body panel-manager-menu__body--embedded";
+        this.root.appendChild(this.menuBody);
 
-        this.menu = document.createElement("section");
-        this.menu.className = "panel-manager-menu";
-        this.menu.setAttribute("aria-hidden", "true");
-        this.menu.innerHTML = `
-            <div class="panel-manager-menu__header">
-                <div class="panel-manager-menu__title">Advanced Panels</div>
-                <button type="button" class="panel-manager-menu__close" aria-label="Close panels menu" title="Close">x</button>
-            </div>
-            <div class="panel-manager-menu__body"></div>
-        `;
-        this.menuBody = this.menu.querySelector(".panel-manager-menu__body");
-        const closeButton = this.menu.querySelector(".panel-manager-menu__close");
-        closeButton?.addEventListener("pointerdown", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this.setMenuOpen(false);
-        });
-        closeButton?.addEventListener("click", (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            this.setMenuOpen(false);
-        });
-        this.root.appendChild(this.menu);
-
-        const headerRow = document.getElementById("panel-manager-launcher-mount") ||
-            document.getElementById("header-pill-strip-tertiary") ||
-            document.getElementById("header-pill-strip-secondary") ||
-            document.getElementById("header-pill-strip-primary") ||
-            document.getElementById("header-pill-strip") ||
-            document.getElementById("header");
-        if (isDomElement(headerRow)) {
-            headerRow.appendChild(this.launcherSlot);
+        const settingsSections = document.getElementById("settings-panel-fieldset");
+        if (isDomElement(settingsSections)) {
+            settingsSections.appendChild(this.root);
         } else {
-            this.root.appendChild(this.launcherSlot);
+            this.overlayHost.appendChild(this.root);
         }
-
-        this.overlayHost.appendChild(this.root);
     }
 
     handleDocumentPointerDown(event) {
@@ -170,19 +130,12 @@ class DesktopPanelManager {
             if (this.root) {
                 this.root.hidden = true;
             }
-            if (this.launcherSlot) {
-                this.launcherSlot.hidden = true;
-            }
-            if (this.launcher) {
-                this.launcher.hidden = true;
-            }
             return;
         }
         if (this.root) {
             this.root.hidden = false;
         }
         this.render();
-        this.positionMenu();
     }
 
     setMenuOpen(open) {
@@ -321,21 +274,7 @@ class DesktopPanelManager {
     }
 
     renderLauncher() {
-        if (!this.launcher) {
-            return;
-        }
-
-        const actionablePanels = this.panels.filter((panel) => panel.available !== false);
-        const shouldShowLauncher = actionablePanels.length > 0;
-
-        if (!shouldShowLauncher && this.menuOpen) {
-            this.setMenuOpen(false);
-        }
-        if (this.launcherSlot) {
-            this.launcherSlot.hidden = !shouldShowLauncher;
-        }
-        this.launcher.hidden = !shouldShowLauncher;
-        this.launcher.textContent = "Advanced";
+        // Panel management now lives inside the global Advanced panel.
     }
 
     renderMenu() {
@@ -366,7 +305,6 @@ class DesktopPanelManager {
         }
 
         this.menuBody.replaceChildren(...fragments);
-        this.positionMenu();
     }
 
     render() {
@@ -375,8 +313,6 @@ class DesktopPanelManager {
     }
 
     dispose() {
-        document.removeEventListener("pointerdown", this.handleDocumentPointerDownBound);
-        document.removeEventListener("keydown", this.handleDocumentKeyDownBound);
         window.removeEventListener("resize", this.handleResizeBound);
         this.unsubscribe?.();
         this.unsubscribe = null;

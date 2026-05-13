@@ -116,6 +116,7 @@ function createHarness({ mobile = false } = {}) {
     const otherLegend = createElement();
     const cameraSection = createElement({ classNames: ["settings-section", "settings-section--camera"], dataset: { sectionKey: "camera" } });
     const viewSection = createElement({ classNames: ["settings-section", "settings-section--view"], dataset: { sectionKey: "view" } });
+    const panelManagerSection = createElement({ classNames: ["settings-section", "settings-section--panel-manager"], dataset: { sectionKey: "panel-manager" } });
     const otherSection = createElement({ classNames: ["settings-section"], dataset: { sectionKey: "other" } });
     const viewOptions = createElement();
     const additionalCraftsOption = createElement({ classNames: ["settings-option"] });
@@ -137,7 +138,8 @@ function createHarness({ mobile = false } = {}) {
     wrapper.setQuerySelector(".ui-dialog-titlebar", titleBar);
     settingsPanel.setQuerySelector(".settings-panel__title", title);
     settingsPanel.setQuerySelector(".settings-section--view", viewSection);
-    settingsPanel.setQuerySelectorAll(".settings-section", [cameraSection, viewSection, otherSection]);
+    settingsPanel.setQuerySelector(".settings-section--panel-manager", panelManagerSection);
+    settingsPanel.setQuerySelectorAll(".settings-section", [cameraSection, viewSection, panelManagerSection, otherSection]);
 
     cameraSection.setQuerySelector(".settings-section__title", cameraLegend);
     viewSection.setQuerySelector(".settings-section__title", viewLegend);
@@ -176,7 +178,7 @@ function createHarness({ mobile = false } = {}) {
         },
         querySelectorAll(selector) {
             if (selector === "#settings-panel .settings-section") {
-                return [cameraSection, viewSection, otherSection];
+                return [cameraSection, viewSection, panelManagerSection, otherSection];
             }
             return [];
         },
@@ -237,6 +239,7 @@ function createHarness({ mobile = false } = {}) {
         cameraLegend,
         cameraSection,
         viewSection,
+        panelManagerSection,
         otherSection,
         genericViewOption,
         additionalCraftsOption,
@@ -271,6 +274,7 @@ describe("createSettingsPanelController", () => {
         expect(harness.viewLegend.textContent).toBe("Craft / Display");
         expect(harness.otherSection.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.cameraSection.classList.contains("settings-panel__filtered-hidden")).toBe(false);
+        expect(harness.panelManagerSection.classList.contains("settings-panel__filtered-hidden")).toBe(false);
         expect(harness.genericViewOption.classList.contains("settings-panel__filtered-hidden")).toBe(true);
         expect(harness.additionalCraftsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);
         expect(harness.auxPanelsOption.classList.contains("settings-panel__filtered-hidden")).toBe(false);

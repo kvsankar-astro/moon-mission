@@ -2250,6 +2250,12 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     gap: 8px;
 }
 
+.settings-section--panel-manager .panel-manager-menu__body {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+}
+
 .panel-manager-menu__empty {
     padding: 8px 0;
     color: rgba(196, 210, 232, 0.8);

@@ -158,6 +158,7 @@ function createSettingsPanelController(deps = {}) {
 
         const sections = Array.from(panel.querySelectorAll?.(".settings-section") || []);
         sections.forEach((section) => setSettingsPanelFilteredHidden(section, false));
+        const panelManagerSection = panel.querySelector?.(".settings-section--panel-manager");
 
         const viewSection = panel.querySelector?.(".settings-section--view");
         const viewSectionTitle = viewSection?.querySelector?.(".settings-section__title");
@@ -176,12 +177,14 @@ function createSettingsPanelController(deps = {}) {
         }
 
         if (normalizedMode !== SETTINGS_PANEL_MODE_ADVANCED) {
+            setSettingsPanelFilteredHidden(panelManagerSection, true);
             return;
         }
 
         sections.forEach((section) => {
             const keepSection = section.classList?.contains?.("settings-section--camera") ||
-                section.classList?.contains?.("settings-section--view");
+                section.classList?.contains?.("settings-section--view") ||
+                section.classList?.contains?.("settings-section--panel-manager");
             setSettingsPanelFilteredHidden(section, !keepSection);
         });
 
