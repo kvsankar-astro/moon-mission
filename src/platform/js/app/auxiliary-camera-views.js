@@ -2192,6 +2192,12 @@ class AuxiliaryCameraViewsManager {
         };
 
         const startResize = (event, captureTarget, corner) => {
+            if (panelState.maximized === true) {
+                panelState.maximized = false;
+                panelState.restoreFrame = null;
+                panelState.panel.classList.remove("is-maximized");
+                this.syncPanelExpandButton(panelState);
+            }
             panelState.defaultLayoutManaged = false;
             this.bringPanelToFront(panelState);
             this.resizeState = {
@@ -2212,7 +2218,7 @@ class AuxiliaryCameraViewsManager {
         };
 
         const onPointerDown = (event) => {
-            if (event.button !== 0 || panelState.maximized === true) {
+            if (event.button !== 0) {
                 return;
             }
             const corner = resolveCornerFromEvent(event) || "se";
@@ -2224,7 +2230,7 @@ class AuxiliaryCameraViewsManager {
                 return;
             }
             const corner = resolveCornerFromEvent(event);
-            if (event.button !== 0 || panelState.maximized === true || !corner) {
+            if (event.button !== 0 || !corner) {
                 return;
             }
             startResize(event, panelState.panel, corner);

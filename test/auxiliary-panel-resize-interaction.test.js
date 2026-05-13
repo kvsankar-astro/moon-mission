@@ -147,6 +147,82 @@ describe("Auxiliary panel resize interactions", () => {
         }
     }, TEST_TIMEOUT_MS);
 
+    it("lets a maximized Frame and Shoot panel be resized from a corner", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.addInitScript(() => localStorage.clear());
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            await page.evaluate(() => {
+                document.querySelector(".aux-camera-view--composer .aux-camera-view__expand-button")?.click();
+            });
+            await page.waitForFunction(
+                () => document.querySelector(".aux-camera-view--composer")?.classList.contains("is-maximized"),
+                { timeout: 5000 },
+            );
+
+            const before = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const rect = panel.getBoundingClientRect();
+                return {
+                    width: rect.width,
+                    height: rect.height,
+                    x: rect.right - 10,
+                    y: rect.bottom - 10,
+                    maximized: panel.classList.contains("is-maximized"),
+                    topClass: String(document.elementFromPoint(rect.right - 10, rect.bottom - 10)?.className || ""),
+                };
+            });
+
+            expect(before.maximized).toBe(true);
+            expect(before.topClass).toContain("aux-camera-view__resize-grip");
+
+            await page.mouse.move(before.x, before.y);
+            await page.mouse.down();
+            await page.mouse.move(before.x - 140, before.y - 90, { steps: 6 });
+            await page.mouse.up();
+            await page.waitForTimeout(200);
+
+            const after = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const rect = panel.getBoundingClientRect();
+                const expandButton = panel.querySelector(".aux-camera-view__expand-button");
+                return {
+                    width: rect.width,
+                    height: rect.height,
+                    maximized: panel.classList.contains("is-maximized"),
+                    expandPressed: expandButton?.getAttribute("aria-pressed"),
+                };
+            });
+
+            expect(after.maximized).toBe(false);
+            expect(after.expandPressed).toBe("false");
+            expect(after.width).toBeLessThan(before.width - 80);
+            expect(after.height).toBeLessThan(before.height - 50);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
     it("defaults Mission Media and Frame and Shoot with matching frames and an open scene gap", async () => {
         const page = await browser.newPage({ viewport: { width: 1920, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());
