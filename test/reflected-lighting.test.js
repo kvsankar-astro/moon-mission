@@ -21,6 +21,20 @@ describe("reflected-lighting", () => {
         expect(state.intensity).toBeCloseTo(0.02);
     });
 
+    it("keeps Earthshine dark when Earth phase geometry is dark", () => {
+        const state = computeEarthshineLightState({
+            earthPosition: { x: 0, y: 0, z: 0 },
+            moonPosition: { x: 1, y: 0, z: 0 },
+            moonSunDirection: { x: 1, y: 0, z: 0 },
+            minIntensity: 0,
+            maxIntensity: 0.02,
+            phaseExponent: 1,
+        });
+
+        expect(state.direction).toEqual({ x: -1, y: 0, z: 0 });
+        expect(state.intensity).toBeCloseTo(0);
+    });
+
     it("computes phased Moonshine toward Earth from Moon->Earth geometry", () => {
         const fullMoonState = computeMoonshineLightState({
             earthPosition: { x: 0, y: 0, z: 0 },

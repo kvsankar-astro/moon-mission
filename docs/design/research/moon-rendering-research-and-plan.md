@@ -6,6 +6,10 @@ Last updated: 2026-04-16 (IST)
 
 This captures the full context of the moon-rendering investigations, what has already been tested, what is currently in-flight, and a concrete plan for next steps so work can be resumed later without losing technical continuity.
 
+This is a Moon surface-rendering research note. Use
+[Frame and Shoot Lighting and Exposure Spec](../specs/frame-and-shoot-lighting-exposure-spec.md)
+for Frame and Shoot exposure and reflected-light behavior.
+
 ## Objective
 
 Primary objective: improve Moon realism so crater relief near the terminator is driven by physically plausible light/shadow behavior, not mainly by contrast tricks.
@@ -57,12 +61,7 @@ Moon shader/material path has been iterated with:
 Expected effect:
 - Cleaner relief and less over-processed appearance.
 
-### 4) Earthshine and ambient behavior
-
-Lighting now uses phase-aware earthshine intent instead of static opposite-sun fill logic.
-Ambient and fill levels were tuned down to protect micro-shadow contrast.
-
-### 5) Hard limit now appears data-driven
+### 4) Hard limit now appears data-driven
 
 Even with better shadow/light setup, quality may still plateau because:
 - Runtime Moon displacement source is relatively limited compared to available high-res LRO/LOLA products.

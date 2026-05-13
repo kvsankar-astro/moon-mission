@@ -59,6 +59,17 @@ describe("Auxiliary panel resize interactions", () => {
                 { timeout: 10000 },
             );
 
+            await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                panel.style.left = "96px";
+                panel.style.top = "96px";
+                panel.style.right = "auto";
+                panel.style.bottom = "auto";
+                panel.style.width = "600px";
+                panel.style.height = "360px";
+            });
+            await page.waitForTimeout(100);
+
             const before = await page.evaluate(() => {
                 const panel = document.querySelector(".aux-camera-view--composer");
                 const scene = window.animationScenes?.geo || window.animationScenes?.lunar || null;
@@ -92,7 +103,7 @@ describe("Auxiliary panel resize interactions", () => {
             });
 
             expect(after.width).toBeGreaterThan(before.width + 80);
-            expect(after.height).toBeGreaterThan(before.height + 20);
+            expect(after.height).toBeGreaterThan(before.height + 40);
 
             const beforeTopLeft = await page.evaluate(() => {
                 const panel = document.querySelector(".aux-camera-view--composer");

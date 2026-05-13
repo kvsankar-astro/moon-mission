@@ -129,7 +129,7 @@ Example deep dive:
     - uses the composer-style panel shell and flyby-specific timeline window
     - keeps the composer camera anchored at Orion; wheel zoom changes FoV only
     - supports `Star Mag` from `-3` to `6`, `Labels`, `Constellations`, `Const Labels`, and default-on clouds; body labels are hidden when Earth or Moon obscures them
-    - keeps normal Sun optics (`Strength`, `Halo`, `Star`, `Flare`) active outside eclipse, while craft-view eclipse rendering uses separate `Eclipse Corona` controls (`Intensity`, `Motion`, `Detail`)
+    - follows the [Frame and Shoot Lighting and Exposure Spec](specs/frame-and-shoot-lighting-exposure-spec.md)
   - `Splashdown in Spotlight`
     - implemented in `src/platform/js/app/ground-track-panel.js`
     - combines a left-hand timeline/event sidebar with either a Leaflet `2D` map or a Three.js `3D` globe
@@ -155,6 +155,7 @@ Example deep dive:
 
 - [Panel System V1 Spec](specs/panel-system-v1-spec.md)
 - [Camera State Transition Spec](specs/camera-state-transition-spec.md)
+- [Frame and Shoot Lighting and Exposure Spec](specs/frame-and-shoot-lighting-exposure-spec.md)
 - [Timeline and Media Playback Spec](specs/timeline-media-playback-spec.md)
 
 ### Roadmaps and implementation plans

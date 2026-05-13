@@ -1070,6 +1070,19 @@ html[data-app-view="selector"] .mission-loading-overlay,
     min-width: 0;
 }
 
+.aux-camera-view__composer-reset-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.aux-camera-view__composer-reset-button {
+    flex: 0 0 auto;
+    padding-inline: 8px;
+}
+
 .aux-camera-view__composer-transport-row {
     grid-column: 1 / -1;
     display: flex;

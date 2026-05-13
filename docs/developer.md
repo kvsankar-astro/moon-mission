@@ -114,10 +114,7 @@ Useful pages:
 - Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](design/specs/timeline-media-playback-spec.md).
 - `Flyby in Focus` / `Frame and Shoot` treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft.
 - Its sky controls include `Mag` from `-3` to `6` for star and planet filtering, `Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox. Body labels are suppressed when their anchor point is hidden behind the projected Earth or Moon disk.
-- Its Sun controls intentionally keep ordinary camera optics separate from eclipse rendering:
-  - outside a craft-view solar eclipse, `Strength`, `Halo`, `Star`, and `Flare` adjust the normal Sun/camera optics
-  - during a craft-view solar eclipse, those normal controls stay visible but do not affect the eclipse render; changes apply again after eclipse
-  - `Eclipse Corona` controls (`Intensity`, `Motion`, `Detail`) drive the corona-only eclipse model
+- Frame and Shoot lighting/exposure behavior is specified in [Frame and Shoot Lighting and Exposure Spec](design/specs/frame-and-shoot-lighting-exposure-spec.md).
 
 ## 3) Core Commands
 

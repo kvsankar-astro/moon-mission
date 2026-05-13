@@ -938,7 +938,7 @@ describe("Frame and Shoot body ambient controls", () => {
         expect(uniforms.moonshine).toBe(0);
     });
 
-    it("keeps Moon artificial ambient at zero when the Moon Ambient slider is zero", () => {
+    it("keeps Moon creative fill at zero when the Moon Fill slider is zero", () => {
         const manager = createManagerForAmbientTests();
         const material = {
             map: {},
@@ -982,6 +982,104 @@ describe("Frame and Shoot constellation line rendering", () => {
             },
         });
     }
+
+    it("persists Frame and Shoot exposure controls with the panel state", () => {
+        const storage = new Map();
+        vi.stubGlobal("localStorage", {
+            getItem(key) {
+                return storage.get(key) || null;
+            },
+            setItem(key, value) {
+                storage.set(key, String(value));
+            },
+        });
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            panels: [
+                {
+                    id: "composer",
+                    mode: "composer",
+                    panelRegistryId: "composer",
+                    missionEnabled: true,
+                    camera: { fov: 42 },
+                    autoFovEnabled: false,
+                    composerControlsCollapsed: false,
+                    composerExposureEv: 1.5,
+                    composerAutoExposureEnabled: false,
+                    panel: {
+                        offsetLeft: 0,
+                        offsetTop: 0,
+                        offsetWidth: 640,
+                        offsetHeight: 360,
+                    },
+                    restoreFrame: null,
+                    maximized: false,
+                    layoutPresetVersion: "",
+                },
+            ],
+        });
+
+        manager.persistPanelState();
+
+        const persisted = JSON.parse(storage.get("moon-mission:aux-camera-panels:v1"));
+        expect(persisted.composer.composerExposureEv).toBe(1.5);
+        expect(persisted.composer.composerAutoExposureEnabled).toBe(false);
+    });
+
+    it("applies manual Frame and Shoot exposure EV and restores renderer exposure", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1.14 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerExposureEv: 1,
+            composerAutoExposureEnabled: false,
+            composerEarthshineGain: 2.4,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: false,
+        };
+
+        const restore = manager.applyComposerExposureProfile({}, panelState, null);
+
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 2, 6);
+
+        restore();
+
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(1.14, 6);
+    });
+
+    it("adds auto exposure only during Frame and Shoot eclipse renders", () => {
+        const manager = createManagerForExposureTests();
+        const panelState = {
+            mode: "composer",
+            renderer: { toneMappingExposure: 1 },
+            composerSunProfile: "camera",
+            composerSunStrength: 1,
+            composerSunHaloGain: 1,
+            composerSunStarburstGain: 1,
+            composerSunFlareGain: 1,
+            composerExposureEv: 0,
+            composerAutoExposureEnabled: true,
+            composerEarthshineGain: 1,
+            composerStarMagnitudeLimit: 6,
+            composerConstellationLinesEnabled: false,
+        };
+
+        const restoreEclipse = manager.applyComposerExposureProfile({}, panelState, null, { eclipseActive: true });
+
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 4, 6);
+
+        restoreEclipse();
+
+        const restoreNormal = manager.applyComposerExposureProfile({}, panelState, null, { eclipseActive: false });
+
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98, 6);
+
+        restoreNormal();
+    });
 
     it("temporarily enables the Milky Way sky layer for the composer render", () => {
         const manager = createManagerForExposureTests();
@@ -1344,6 +1442,44 @@ describe("Frame and Shoot reflected-light gain controls", () => {
         });
     }
 
+    it("scales Earthshine reflected light during composer renders and restores it", () => {
+        const manager = createManagerForLightTests();
+        const scene = {
+            lightFill: {
+                intensity: 0.02,
+            },
+        };
+
+        const restore = manager.applyComposerEarthshineGain({
+            composerEarthshineGain: 2.4,
+        }, scene);
+
+        expect(scene.lightFill.intensity).toBeCloseTo(0.048, 8);
+
+        restore();
+
+        expect(scene.lightFill.intensity).toBeCloseTo(0.02, 8);
+    });
+
+    it("keeps Earthshine dark when the physical phase light is dark", () => {
+        const manager = createManagerForLightTests();
+        const scene = {
+            lightFill: {
+                intensity: 0,
+            },
+        };
+
+        const restore = manager.applyComposerEarthshineGain({
+            composerEarthshineGain: 2.4,
+        }, scene);
+
+        expect(scene.lightFill.intensity).toBe(0);
+
+        restore();
+
+        expect(scene.lightFill.intensity).toBe(0);
+    });
+
     it("scales Moonshine reflected light during composer renders and restores it", () => {
         const manager = createManagerForLightTests();
         const scene = {
@@ -1363,7 +1499,7 @@ describe("Frame and Shoot reflected-light gain controls", () => {
         expect(scene.lightMoonshine.intensity).toBeCloseTo(0.0005, 8);
     });
 
-    it("falls back to the reference Moonshine intensity when the phase light is dark", () => {
+    it("keeps Moonshine dark when the physical phase light is dark", () => {
         const manager = createManagerForLightTests();
         const scene = {
             lightMoonshine: {
@@ -1372,10 +1508,10 @@ describe("Frame and Shoot reflected-light gain controls", () => {
         };
 
         const restore = manager.applyComposerMoonshineGain({
-            composerMoonshineGain: 1,
+            composerMoonshineGain: 2.4,
         }, scene);
 
-        expect(scene.lightMoonshine.intensity).toBeGreaterThan(0);
+        expect(scene.lightMoonshine.intensity).toBe(0);
 
         restore();
 

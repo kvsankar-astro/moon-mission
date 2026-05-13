@@ -268,7 +268,7 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
         }
     }, TEST_TIMEOUT_MS);
 
-    it("keeps Mag and Craters controls in the expected Frame and Shoot rows", async () => {
+    it("keeps Frame and Shoot controls in the expected rows", async () => {
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());
 
@@ -298,18 +298,115 @@ describe("Auxiliary Frame and Shoot lock interactions", () => {
                 const craterPill = panel.querySelector("[data-proof-id='lunar-craters-toggle']");
                 const craterRow = craterPill?.closest(".aux-camera-view__composer-crater-row");
                 const infoRow = craterPill?.closest(".aux-camera-view__composer-info-row");
+                const controlLabels = [...panel.querySelectorAll(".aux-camera-view__composer-controls .aux-camera-view__composer-label")]
+                    .map((label) => label.textContent?.trim())
+                    .filter(Boolean);
+                const opticsLabels = [...panel.querySelectorAll(".aux-camera-view__composer-optics-body .aux-camera-view__composer-label")]
+                    .map((label) => label.textContent?.trim())
+                    .filter(Boolean);
+                const sectionLabels = [...panel.querySelectorAll(".aux-camera-view__composer-section-label")]
+                    .map((label) => label.textContent?.trim())
+                    .filter(Boolean);
                 return {
                     magLabel: magRow?.querySelector(".aux-camera-view__composer-label")?.textContent?.trim() || "",
                     craterHasOwnRow: !!craterRow,
                     craterInOverlayRow: !!infoRow,
                     craterText: craterPill?.textContent?.trim() || "",
+                    controlLabels,
+                    opticsLabels,
+                    sectionLabels,
+                    hasExposureSlider: !!panel.querySelector("[data-proof-id='exposure-ev-slider']"),
+                    hasAutoExposureToggle: !!panel.querySelector("[data-proof-id='auto-exposure-toggle']"),
+                    hasResetButton: !!panel.querySelector("[data-proof-id='composer-reset-button']"),
                 };
             });
 
             expect(state.magLabel).toBe("Mag");
-            expect(state.craterText).toBe("Craters");
+            expect(state.craterText).toBe("Lunar Features");
             expect(state.craterHasOwnRow).toBe(true);
             expect(state.craterInOverlayRow).toBe(false);
+            expect(state.sectionLabels).toEqual(expect.arrayContaining(["Creative", "Photo"]));
+            expect(state.controlLabels).toEqual(expect.arrayContaining([
+                "Earth Fill",
+                "Moon Fill",
+                "Earthshine Gain",
+                "Moonshine Gain",
+            ]));
+            expect(state.opticsLabels).toEqual(expect.arrayContaining(["Exposure"]));
+            expect(state.hasExposureSlider).toBe(true);
+            expect(state.hasAutoExposureToggle).toBe(true);
+            expect(state.hasResetButton).toBe(true);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
+    it("resets Frame and Shoot control values to defaults", async () => {
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.evaluate(() => document.getElementById("flyby-pill")?.click());
+            await page.waitForFunction(
+                () => {
+                    const panel = document.querySelector(".aux-camera-view--composer");
+                    return panel && !panel.hidden;
+                },
+                { timeout: 10000 },
+            );
+
+            const state = await page.evaluate(() => {
+                const panel = document.querySelector(".aux-camera-view--composer");
+                const setInput = (proofId, value, eventType = "input") => {
+                    const input = panel.querySelector(`[data-proof-id='${proofId}']`);
+                    input.value = String(value);
+                    input.dispatchEvent(new Event(eventType, { bubbles: true }));
+                };
+                setInput("earth-ambient-slider", 1.25);
+                setInput("exposure-ev-slider", 8);
+                setInput("star-mag-slider", 0);
+                const autoExposure = panel.querySelector("[data-proof-id='auto-exposure-toggle']");
+                autoExposure.checked = false;
+                autoExposure.dispatchEvent(new Event("change", { bubbles: true }));
+                const resetButton = panel.querySelector("[data-proof-id='composer-reset-button']");
+                resetButton.click();
+                const earthFillSlider = panel.querySelector("[data-proof-id='earth-ambient-slider']");
+                const earthFillValue = earthFillSlider.closest(".aux-camera-view__composer-optics-row")
+                    ?.querySelector("output")?.textContent?.trim();
+                const exposureSlider = panel.querySelector("[data-proof-id='exposure-ev-slider']");
+                const exposureValue = exposureSlider.closest(".aux-camera-view__composer-optics-row")
+                    ?.querySelector("output")?.textContent?.trim();
+                const starMagSlider = panel.querySelector("[data-proof-id='star-mag-slider']");
+                const starMagValue = starMagSlider.closest(".aux-camera-view__composer-optics-row")
+                    ?.querySelector("output")?.textContent?.trim();
+                return {
+                    earthFill: earthFillSlider.value,
+                    earthFillValue,
+                    exposure: exposureSlider.value,
+                    exposureValue,
+                    autoExposure: autoExposure.checked,
+                    starMag: starMagSlider.value,
+                    starMagValue,
+                };
+            });
+
+            expect(state.earthFill).toBe("0");
+            expect(state.earthFillValue).toBe("0.00");
+            expect(state.exposure).toBe("0");
+            expect(state.exposureValue).toBe("+0.0 EV");
+            expect(state.autoExposure).toBe(true);
+            expect(state.starMag).toBe("6");
+            expect(state.starMagValue).toBe("6.0");
         } finally {
             await page.close();
         }

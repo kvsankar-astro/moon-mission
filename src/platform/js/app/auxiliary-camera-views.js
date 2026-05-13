@@ -177,6 +177,10 @@ const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
 const COMPOSER_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
 const COMPOSER_CAMERA_EXPOSURE = 0.98;
+const COMPOSER_EXPOSURE_EV_MIN = -16;
+const COMPOSER_EXPOSURE_EV_MAX = 16;
+const COMPOSER_EXPOSURE_EV_DEFAULT = 0;
+const COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV = 2;
 const COMPOSER_CAMERA_SKY_STARMAP_OPACITY_CAP = 0.03;
 const COMPOSER_CAMERA_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
 const COMPOSER_CONSTELLATION_LINES_OPACITY_CAP = 0.06;
@@ -1088,6 +1092,13 @@ class AuxiliaryCameraViewsManager {
                 composerControlsCollapsed: panelState.composerControlsCollapsed === true,
                 composerControlsCollapseVersion: panelState.mode === "composer"
                     ? COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION
+                    : undefined,
+                composerExposureEv: panelState.mode === "composer" &&
+                    Number.isFinite(Number(panelState.composerExposureEv))
+                    ? Number(panelState.composerExposureEv)
+                    : undefined,
+                composerAutoExposureEnabled: panelState.mode === "composer"
+                    ? panelState.composerAutoExposureEnabled !== false
                     : undefined,
             };
             layoutPayload[panelState.panelRegistryId] = {
@@ -2389,6 +2400,7 @@ class AuxiliaryCameraViewsManager {
         let composerTimelineLocalValue = null;
         let composerFlybyEventsWrap = null;
         let composerControlsWrap = null;
+        let composerResetButton = null;
         let composerEarthAmbientSlider = null;
         let composerEarthAmbientValue = null;
         let composerMoonAmbientSlider = null;
@@ -2406,6 +2418,10 @@ class AuxiliaryCameraViewsManager {
         let composerOpticsToggleButton = null;
         let composerOpticsPhysicalButton = null;
         let composerOpticsCameraButton = null;
+        let composerExposureSlider = null;
+        let composerExposureValue = null;
+        let composerAutoExposureWrap = null;
+        let composerAutoExposureCheckbox = null;
         let composerOpticsStrengthSlider = null;
         let composerOpticsStrengthValue = null;
         let composerOpticsAdvancedPanel = null;
@@ -2764,6 +2780,26 @@ class AuxiliaryCameraViewsManager {
             composerControlsWrap = document.createElement("div");
             composerControlsWrap.className = "aux-camera-view__composer-controls";
 
+            const composerResetRow = document.createElement("div");
+            composerResetRow.className = "aux-camera-view__composer-reset-row";
+            const composerControlsLabel = document.createElement("span");
+            composerControlsLabel.className = "aux-camera-view__composer-section-label";
+            composerControlsLabel.textContent = "Controls";
+            composerResetRow.appendChild(composerControlsLabel);
+            composerResetButton = document.createElement("button");
+            composerResetButton.type = "button";
+            composerResetButton.className = "aux-camera-view__composer-button aux-camera-view__composer-reset-button";
+            composerResetButton.textContent = "Reset";
+            composerResetButton.setAttribute("aria-label", "Reset Frame and Shoot controls to defaults");
+            composerResetButton.dataset.proofId = "composer-reset-button";
+            composerResetRow.appendChild(composerResetButton);
+            composerControlsWrap.appendChild(composerResetRow);
+
+            const composerCreativeLabel = document.createElement("span");
+            composerCreativeLabel.className = "aux-camera-view__composer-section-label";
+            composerCreativeLabel.textContent = "Creative";
+            composerControlsWrap.appendChild(composerCreativeLabel);
+
             const buildComposerSliderRow = (
                 labelText,
                 ariaLabel,
@@ -2810,8 +2846,8 @@ class AuxiliaryCameraViewsManager {
                 slider: composerEarthAmbientSlider,
                 value: composerEarthAmbientValue,
             } = buildComposerSliderRow(
-                "Earth Ambient",
-                "Flyby Planner Earth night-side ambient",
+                "Earth Fill",
+                "Frame and Shoot creative Earth fill",
                 COMPOSER_DEFAULT_EARTH_AMBIENT,
                 { proofId: "earth-ambient-slider" },
             ));
@@ -2819,8 +2855,8 @@ class AuxiliaryCameraViewsManager {
                 slider: composerMoonAmbientSlider,
                 value: composerMoonAmbientValue,
             } = buildComposerSliderRow(
-                "Moon Ambient",
-                "Flyby Planner Moon night-side ambient",
+                "Moon Fill",
+                "Frame and Shoot creative Moon fill",
                 COMPOSER_DEFAULT_MOON_AMBIENT,
                 { proofId: "moon-ambient-slider" },
             ));
@@ -2828,7 +2864,7 @@ class AuxiliaryCameraViewsManager {
                 slider: composerEarthshineSlider,
                 value: composerEarthshineValue,
             } = buildComposerSliderRow(
-                "Earthshine",
+                "Earthshine Gain",
                 "Flyby Planner Earthshine gain",
                 COMPOSER_DEFAULT_EARTHSHINE_GAIN,
                 {
@@ -2841,7 +2877,7 @@ class AuxiliaryCameraViewsManager {
                 slider: composerMoonshineSlider,
                 value: composerMoonshineValue,
             } = buildComposerSliderRow(
-                "Moonshine",
+                "Moonshine Gain",
                 "Flyby Planner Moonshine gain",
                 COMPOSER_DEFAULT_MOONSHINE_GAIN,
                 {
@@ -2885,6 +2921,47 @@ class AuxiliaryCameraViewsManager {
             composerOpticsBody = document.createElement("div");
             composerOpticsBody.className = "aux-camera-view__composer-optics-body";
             composerOpticsBody.hidden = false;
+
+            const composerPhotoLabel = document.createElement("span");
+            composerPhotoLabel.className = "aux-camera-view__composer-section-label";
+            composerPhotoLabel.textContent = "Photo";
+            composerOpticsBody.appendChild(composerPhotoLabel);
+
+            const composerExposureRow = document.createElement("div");
+            composerExposureRow.className = "aux-camera-view__composer-optics-row";
+            const composerExposureLabel = document.createElement("span");
+            composerExposureLabel.className = "aux-camera-view__composer-label";
+            composerExposureLabel.textContent = "Exposure";
+            composerExposureRow.appendChild(composerExposureLabel);
+            composerExposureSlider = document.createElement("input");
+            composerExposureSlider.type = "range";
+            composerExposureSlider.className = "aux-camera-view__composer-ambient-slider";
+            composerExposureSlider.min = String(COMPOSER_EXPOSURE_EV_MIN);
+            composerExposureSlider.max = String(COMPOSER_EXPOSURE_EV_MAX);
+            composerExposureSlider.step = "0.1";
+            composerExposureSlider.value = String(COMPOSER_EXPOSURE_EV_DEFAULT);
+            composerExposureSlider.setAttribute("aria-label", "Frame and Shoot exposure compensation");
+            composerExposureSlider.dataset.proofId = "exposure-ev-slider";
+            composerExposureRow.appendChild(composerExposureSlider);
+            composerExposureValue = document.createElement("output");
+            composerExposureValue.className = "aux-camera-view__composer-ambient-value";
+            composerExposureValue.value = "+0.0 EV";
+            composerExposureValue.textContent = composerExposureValue.value;
+            composerExposureRow.appendChild(composerExposureValue);
+            composerOpticsBody.appendChild(composerExposureRow);
+
+            composerAutoExposureWrap = document.createElement("label");
+            composerAutoExposureWrap.className = "aux-camera-view__composer-grid-toggle";
+            composerAutoExposureCheckbox = document.createElement("input");
+            composerAutoExposureCheckbox.type = "checkbox";
+            composerAutoExposureCheckbox.checked = true;
+            composerAutoExposureCheckbox.setAttribute("aria-label", "Toggle Frame and Shoot eclipse auto exposure");
+            composerAutoExposureCheckbox.dataset.proofId = "auto-exposure-toggle";
+            const composerAutoExposureText = document.createElement("span");
+            composerAutoExposureText.textContent = "Auto Exposure";
+            composerAutoExposureWrap.appendChild(composerAutoExposureCheckbox);
+            composerAutoExposureWrap.appendChild(composerAutoExposureText);
+            composerOpticsBody.appendChild(composerAutoExposureWrap);
 
             const composerOpticsHeader = document.createElement("div");
             composerOpticsHeader.className = "aux-camera-view__composer-optics-header";
@@ -3246,6 +3323,7 @@ class AuxiliaryCameraViewsManager {
             composerTimelineLocalValue,
             composerFlybyEventsWrap,
             composerControlsWrap,
+            composerResetButton,
             composerEarthAmbientSlider,
             composerEarthAmbientValue,
             composerMoonAmbientSlider,
@@ -3263,6 +3341,10 @@ class AuxiliaryCameraViewsManager {
             composerOpticsToggleButton,
             composerOpticsPhysicalButton,
             composerOpticsCameraButton,
+            composerExposureSlider,
+            composerExposureValue,
+            composerAutoExposureWrap,
+            composerAutoExposureCheckbox,
             composerOpticsStrengthSlider,
             composerOpticsStrengthValue,
             composerOpticsAdvancedPanel,
@@ -3348,6 +3430,7 @@ class AuxiliaryCameraViewsManager {
             onComposerLookFreeClick: null,
             onComposerLookEarthClick: null,
             onComposerLookMoonClick: null,
+            onComposerResetClick: null,
             onComposerEarthAmbientInput: null,
             onComposerMoonAmbientInput: null,
             onComposerEarthshineInput: null,
@@ -3358,6 +3441,8 @@ class AuxiliaryCameraViewsManager {
             onComposerOpticsPhysicalClick: null,
             onComposerOpticsCameraClick: null,
             onComposerOpticsToggleClick: null,
+            onComposerExposureInput: null,
+            onComposerAutoExposureChange: null,
             onComposerOpticsStrengthInput: null,
             onComposerOpticsHaloInput: null,
             onComposerOpticsStarburstInput: null,
@@ -3437,6 +3522,8 @@ class AuxiliaryCameraViewsManager {
             composerSeeThroughEnabled: false,
             composerOpticsExpanded: false,
             composerSunProfile: "camera",
+            composerExposureEv: COMPOSER_EXPOSURE_EV_DEFAULT,
+            composerAutoExposureEnabled: true,
             composerSunStrength: COMPOSER_OPTICS_STRENGTH_DEFAULT,
             composerSunHaloGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
             composerSunStarburstGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
@@ -3641,6 +3728,31 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerStarMagnitudeValue.value = text;
                 panelState.composerStarMagnitudeValue.textContent = text;
             };
+            const syncComposerExposureUi = () => {
+                const exposureEv = this.THREE.MathUtils.clamp(
+                    Number(panelState.composerExposureEv),
+                    COMPOSER_EXPOSURE_EV_MIN,
+                    COMPOSER_EXPOSURE_EV_MAX,
+                );
+                panelState.composerExposureEv = Number.isFinite(exposureEv)
+                    ? exposureEv
+                    : COMPOSER_EXPOSURE_EV_DEFAULT;
+                const exposureText = `${panelState.composerExposureEv >= 0 ? "+" : ""}${panelState.composerExposureEv.toFixed(1)} EV`;
+                if (panelState.composerExposureSlider) {
+                    panelState.composerExposureSlider.value = panelState.composerExposureEv.toFixed(1);
+                }
+                if (panelState.composerExposureValue) {
+                    panelState.composerExposureValue.value = exposureText;
+                    panelState.composerExposureValue.textContent = exposureText;
+                }
+                if (panelState.composerAutoExposureCheckbox) {
+                    panelState.composerAutoExposureCheckbox.checked = panelState.composerAutoExposureEnabled !== false;
+                }
+                panelState.composerAutoExposureWrap?.classList.toggle(
+                    "is-active",
+                    panelState.composerAutoExposureEnabled !== false,
+                );
+            };
             syncComposerCloudsUi = () => {
                 if (!panelState.composerCloudsCheckbox) {
                     return;
@@ -3688,6 +3800,7 @@ class AuxiliaryCameraViewsManager {
                 const profile = panelState.composerSunProfile === "physical" ? "physical" : "camera";
                 panelState.composerOpticsPhysicalButton?.classList.toggle("is-active", profile === "physical");
                 panelState.composerOpticsCameraButton?.classList.toggle("is-active", profile === "camera");
+                syncComposerExposureUi();
                 if (panelState.composerOpticsStrengthSlider && panelState.composerOpticsStrengthValue) {
                     panelState.composerOpticsStrengthSlider.value = String(panelState.composerSunStrength);
                     const text = panelState.composerSunStrength.toFixed(2);
@@ -3726,6 +3839,30 @@ class AuxiliaryCameraViewsManager {
             const setComposerOpticsProfile = (nextProfile) => {
                 panelState.composerSunProfile = nextProfile === "physical" ? "physical" : "camera";
                 syncComposerOpticsUi();
+                requestComposerControlRender();
+            };
+            const setComposerExposureEv = (nextExposureEv, { persist = false } = {}) => {
+                const bounded = this.THREE.MathUtils.clamp(
+                    Number(nextExposureEv),
+                    COMPOSER_EXPOSURE_EV_MIN,
+                    COMPOSER_EXPOSURE_EV_MAX,
+                );
+                if (!Number.isFinite(bounded)) {
+                    return;
+                }
+                panelState.composerExposureEv = bounded;
+                syncComposerExposureUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
+                requestComposerControlRender();
+            };
+            const setComposerAutoExposureEnabled = (enabled, { persist = false } = {}) => {
+                panelState.composerAutoExposureEnabled = enabled !== false;
+                syncComposerExposureUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
                 requestComposerControlRender();
             };
             const onComposerOpticsToggleClick = () => {
@@ -3831,6 +3968,59 @@ class AuxiliaryCameraViewsManager {
                 }
                 panelState.composerStarMagnitudeLimit = bounded;
                 syncComposerStarMagnitudeUi();
+                if (persist) {
+                    this.queuePersistPanelState();
+                }
+                requestComposerControlRender();
+            };
+            const resetComposerControlsToDefaults = ({ persist = false } = {}) => {
+                panelState.composerEarthAmbient = COMPOSER_DEFAULT_EARTH_AMBIENT;
+                panelState.composerMoonAmbient = COMPOSER_DEFAULT_MOON_AMBIENT;
+                panelState.composerEarthshineGain = COMPOSER_DEFAULT_EARTHSHINE_GAIN;
+                panelState.composerMoonshineGain = COMPOSER_DEFAULT_MOONSHINE_GAIN;
+                panelState.composerMoonOutlineEnabled = false;
+                panelState.composerSeeThroughEnabled = false;
+                panelState.composerInfoOverlayEnabled = true;
+                panelState.composerRaDecGridEnabled = false;
+                panelState.composerSkyLabelsEnabled = false;
+                panelState.composerConstellationLinesEnabled = false;
+                panelState.composerConstellationLabelsEnabled = false;
+                panelState.composerStarMagnitudeLimit = COMPOSER_STAR_MAGNITUDE_DEFAULT;
+                panelState.composerEarthCloudsEnabled = true;
+                panelState.composerSunProfile = "camera";
+                panelState.composerExposureEv = COMPOSER_EXPOSURE_EV_DEFAULT;
+                panelState.composerAutoExposureEnabled = true;
+                panelState.composerSunStrength = COMPOSER_OPTICS_STRENGTH_DEFAULT;
+                panelState.composerSunHaloGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
+                panelState.composerSunStarburstGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
+                panelState.composerSunFlareGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
+                panelState.composerEclipseCoronaIntensity = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+                panelState.composerEclipseCoronaMotion = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+                panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+                panelState.composerRollRad = COMPOSER_DEFAULT_ROLL_RAD;
+
+                this.setEarthCloudsEnabled?.(true);
+                if (panelState.composerInfoOverlayCheckbox) {
+                    panelState.composerInfoOverlayCheckbox.checked = true;
+                }
+                if (panelState.composerRaDecGridCheckbox) {
+                    panelState.composerRaDecGridCheckbox.checked = false;
+                }
+                if (panelState.composerSkyLabelsCheckbox) {
+                    panelState.composerSkyLabelsCheckbox.checked = false;
+                }
+                if (panelState.composerConstellationLinesCheckbox) {
+                    panelState.composerConstellationLinesCheckbox.checked = false;
+                }
+                if (panelState.composerConstellationLabelsCheckbox) {
+                    panelState.composerConstellationLabelsCheckbox.checked = false;
+                }
+                syncComposerAmbientUi();
+                syncComposerStarMagnitudeUi();
+                syncComposerCloudsUi?.();
+                syncComposerOpticsUi();
+                syncComposerRollUi();
+                panelState.overlayDirty = true;
                 if (persist) {
                     this.queuePersistPanelState();
                 }
@@ -3986,6 +4176,10 @@ class AuxiliaryCameraViewsManager {
             const onComposerLookMoonClick = () => {
                 setComposerLockTarget("moon");
             };
+            const onComposerResetClick = () => {
+                activateComposerForControl();
+                resetComposerControlsToDefaults({ persist: true });
+            };
             const onComposerEarthAmbientInput = () => {
                 activateComposerForControl();
                 setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbientSlider?.value, { persist: true });
@@ -4021,6 +4215,16 @@ class AuxiliaryCameraViewsManager {
             const onComposerOpticsCameraClick = () => {
                 activateComposerForControl();
                 setComposerOpticsProfile("camera");
+            };
+            const onComposerExposureInput = () => {
+                activateComposerForControl();
+                setComposerExposureEv(panelState.composerExposureSlider?.value, { persist: true });
+            };
+            const onComposerAutoExposureChange = () => {
+                activateComposerForControl();
+                setComposerAutoExposureEnabled(panelState.composerAutoExposureCheckbox?.checked !== false, {
+                    persist: true,
+                });
             };
             const onComposerOpticsStrengthInput = () => {
                 activateComposerForControl();
@@ -4335,6 +4539,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerLookFreeButton?.addEventListener("click", onComposerLookFreeClick);
             panelState.composerLookEarthButton?.addEventListener("click", onComposerLookEarthClick);
             panelState.composerLookMoonButton?.addEventListener("click", onComposerLookMoonClick);
+            panelState.composerResetButton?.addEventListener("click", onComposerResetClick);
             panelState.composerEarthAmbientSlider?.addEventListener("input", onComposerEarthAmbientInput, { passive: true });
             panelState.composerMoonAmbientSlider?.addEventListener("input", onComposerMoonAmbientInput, { passive: true });
             panelState.composerEarthshineSlider?.addEventListener("input", onComposerEarthshineInput, { passive: true });
@@ -4344,6 +4549,8 @@ class AuxiliaryCameraViewsManager {
             panelState.composerOpticsToggleButton?.addEventListener("click", onComposerOpticsToggleClick);
             panelState.composerOpticsPhysicalButton?.addEventListener("click", onComposerOpticsPhysicalClick);
             panelState.composerOpticsCameraButton?.addEventListener("click", onComposerOpticsCameraClick);
+            panelState.composerExposureSlider?.addEventListener("input", onComposerExposureInput, { passive: true });
+            panelState.composerAutoExposureCheckbox?.addEventListener("change", onComposerAutoExposureChange);
             panelState.composerOpticsStrengthSlider?.addEventListener("input", onComposerOpticsStrengthInput, { passive: true });
             panelState.composerOpticsHaloSlider?.addEventListener("input", onComposerOpticsHaloInput, { passive: true });
             panelState.composerOpticsStarburstSlider?.addEventListener("input", onComposerOpticsStarburstInput, { passive: true });
@@ -4397,6 +4604,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerLookFreeClick = onComposerLookFreeClick;
             panelState.onComposerLookEarthClick = onComposerLookEarthClick;
             panelState.onComposerLookMoonClick = onComposerLookMoonClick;
+            panelState.onComposerResetClick = onComposerResetClick;
             panelState.onComposerEarthAmbientInput = onComposerEarthAmbientInput;
             panelState.onComposerMoonAmbientInput = onComposerMoonAmbientInput;
             panelState.onComposerEarthshineInput = onComposerEarthshineInput;
@@ -4406,6 +4614,8 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerOpticsToggleClick = onComposerOpticsToggleClick;
             panelState.onComposerOpticsPhysicalClick = onComposerOpticsPhysicalClick;
             panelState.onComposerOpticsCameraClick = onComposerOpticsCameraClick;
+            panelState.onComposerExposureInput = onComposerExposureInput;
+            panelState.onComposerAutoExposureChange = onComposerAutoExposureChange;
             panelState.onComposerOpticsStrengthInput = onComposerOpticsStrengthInput;
             panelState.onComposerOpticsHaloInput = onComposerOpticsHaloInput;
             panelState.onComposerOpticsStarburstInput = onComposerOpticsStarburstInput;
@@ -4588,6 +4798,21 @@ class AuxiliaryCameraViewsManager {
             panelState.composerMoonOutlineEnabled = false;
             panelState.composerSeeThroughEnabled = false;
             panelState.composerSunProfile = "camera";
+            panelState.composerExposureEv = COMPOSER_EXPOSURE_EV_DEFAULT;
+            panelState.composerAutoExposureEnabled = true;
+            if (persisted && typeof persisted === "object") {
+                const persistedExposureEv = Number(persisted.composerExposureEv);
+                if (Number.isFinite(persistedExposureEv)) {
+                    panelState.composerExposureEv = this.THREE.MathUtils.clamp(
+                        persistedExposureEv,
+                        COMPOSER_EXPOSURE_EV_MIN,
+                        COMPOSER_EXPOSURE_EV_MAX,
+                    );
+                }
+                if (typeof persisted.composerAutoExposureEnabled === "boolean") {
+                    panelState.composerAutoExposureEnabled = persisted.composerAutoExposureEnabled;
+                }
+            }
             panelState.composerSunStrength = COMPOSER_OPTICS_STRENGTH_DEFAULT;
             panelState.composerSunHaloGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
             panelState.composerSunStarburstGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
@@ -4636,6 +4861,19 @@ class AuxiliaryCameraViewsManager {
             if (panelState.composerSeeThroughCheckbox) {
                 panelState.composerSeeThroughCheckbox.checked = panelState.composerSeeThroughEnabled;
             }
+            if (panelState.composerExposureSlider && panelState.composerExposureValue) {
+                panelState.composerExposureSlider.value = panelState.composerExposureEv.toFixed(1);
+                const exposureText = `${panelState.composerExposureEv >= 0 ? "+" : ""}${panelState.composerExposureEv.toFixed(1)} EV`;
+                panelState.composerExposureValue.value = exposureText;
+                panelState.composerExposureValue.textContent = panelState.composerExposureValue.value;
+            }
+            if (panelState.composerAutoExposureCheckbox) {
+                panelState.composerAutoExposureCheckbox.checked = panelState.composerAutoExposureEnabled !== false;
+            }
+            panelState.composerAutoExposureWrap?.classList.toggle(
+                "is-active",
+                panelState.composerAutoExposureEnabled !== false,
+            );
             if (panelState.composerRaDecGridCheckbox) {
                 panelState.composerRaDecGridCheckbox.checked = false;
             }
@@ -4887,6 +5125,7 @@ class AuxiliaryCameraViewsManager {
         panelState.composerLookFreeButton && (panelState.composerLookFreeButton.disabled = false);
         panelState.composerLookEarthButton && (panelState.composerLookEarthButton.disabled = false);
         panelState.composerLookMoonButton && (panelState.composerLookMoonButton.disabled = false);
+        panelState.composerResetButton && (panelState.composerResetButton.disabled = disableControls);
         panelState.composerEarthAmbientSlider && (panelState.composerEarthAmbientSlider.disabled = disableControls);
         panelState.composerMoonAmbientSlider && (panelState.composerMoonAmbientSlider.disabled = disableControls);
         panelState.composerEarthshineSlider && (panelState.composerEarthshineSlider.disabled = disableControls);
@@ -4901,6 +5140,8 @@ class AuxiliaryCameraViewsManager {
         panelState.composerOpticsToggleButton && (panelState.composerOpticsToggleButton.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
+        panelState.composerExposureSlider && (panelState.composerExposureSlider.disabled = disableControls);
+        panelState.composerAutoExposureCheckbox && (panelState.composerAutoExposureCheckbox.disabled = disableControls);
         panelState.composerOpticsStrengthSlider && (panelState.composerOpticsStrengthSlider.disabled = disableControls);
         panelState.composerOpticsHaloSlider && (panelState.composerOpticsHaloSlider.disabled = disableControls);
         panelState.composerOpticsStarburstSlider && (panelState.composerOpticsStarburstSlider.disabled = disableControls);
@@ -5769,13 +6010,13 @@ class AuxiliaryCameraViewsManager {
             return applied;
         };
 
-        // Earth Ambient is an explicit artificial lift for Earth's night side.
+        // Earth Fill is an explicit creative lift for Earth's night side.
         // Moonshine uses a separate Earth shader lift so it remains visible on the night side.
         const earthLiftApplied = applyEarthNightsideControls(earth, earthNightsideLift, earthMoonshineLift);
         if (!earthLiftApplied) {
             applyToBodyEmissive(earth, earthNightsideLift + (earthMoonshineLift * 0.35), 0x6c86a6);
         }
-        // Moon Ambient is independent of Earthshine; zero must mean no artificial Moon fill.
+        // Moon Fill is independent of Earthshine; zero must mean no artificial Moon fill.
         const moonLiftApplied = applyMoonShadowLift(moon, moonShadowLift);
         if (!moonLiftApplied) {
             const fallbackMoonEmissive = Number.isFinite(moonAmbient) ? (moonAmbient * 0.2) : 0;
@@ -5869,18 +6110,15 @@ class AuxiliaryCameraViewsManager {
             return () => {};
         }
         const previousIntensity = Number(lightFill.intensity);
-        const baseIntensity = Number.isFinite(previousIntensity) && previousIntensity > 1e-8
-            ? previousIntensity
-            : (Number.isFinite(LT.EARTHSHINE_INTENSITY) ? LT.EARTHSHINE_INTENSITY : 0.02);
         const gain = this.THREE.MathUtils.clamp(
             Number(panelState?.composerEarthshineGain),
             COMPOSER_MIN_EARTHSHINE_GAIN,
             COMPOSER_MAX_EARTHSHINE_GAIN,
         );
-        if (!Number.isFinite(previousIntensity) || !Number.isFinite(baseIntensity) || !Number.isFinite(gain)) {
+        if (!Number.isFinite(previousIntensity) || !Number.isFinite(gain)) {
             return () => {};
         }
-        lightFill.intensity = baseIntensity * gain;
+        lightFill.intensity = Math.max(0, previousIntensity) * gain;
         return () => {
             lightFill.intensity = previousIntensity;
         };
@@ -5892,18 +6130,15 @@ class AuxiliaryCameraViewsManager {
             return () => {};
         }
         const previousIntensity = Number(lightMoonshine.intensity);
-        const baseIntensity = Number.isFinite(previousIntensity) && previousIntensity > 1e-8
-            ? previousIntensity
-            : (Number.isFinite(LT.MOONSHINE_INTENSITY) ? LT.MOONSHINE_INTENSITY : 0.0004);
         const gain = this.THREE.MathUtils.clamp(
             Number(panelState?.composerMoonshineGain),
             COMPOSER_MIN_MOONSHINE_GAIN,
             COMPOSER_MAX_MOONSHINE_GAIN,
         );
-        if (!Number.isFinite(previousIntensity) || !Number.isFinite(baseIntensity) || !Number.isFinite(gain)) {
+        if (!Number.isFinite(previousIntensity) || !Number.isFinite(gain)) {
             return () => {};
         }
-        lightMoonshine.intensity = baseIntensity * gain;
+        lightMoonshine.intensity = Math.max(0, previousIntensity) * gain;
         return () => {
             lightMoonshine.intensity = previousIntensity;
         };
@@ -6303,6 +6538,25 @@ class AuxiliaryCameraViewsManager {
         };
     }
 
+    resolveComposerExposureState(panelState, { eclipseActive = panelState?.composerSolarEclipseActive === true } = {}) {
+        const manualEv = this.THREE.MathUtils.clamp(
+            Number(panelState?.composerExposureEv),
+            COMPOSER_EXPOSURE_EV_MIN,
+            COMPOSER_EXPOSURE_EV_MAX,
+        );
+        const boundedManualEv = Number.isFinite(manualEv)
+            ? manualEv
+            : COMPOSER_EXPOSURE_EV_DEFAULT;
+        const autoEv = panelState?.composerAutoExposureEnabled !== false && eclipseActive === true
+            ? COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV
+            : 0;
+        return {
+            manualEv: boundedManualEv,
+            autoEv,
+            multiplier: Math.pow(2, boundedManualEv + autoEv),
+        };
+    }
+
     applyComposerExposureProfile(
         scene,
         panelState,
@@ -6321,17 +6575,10 @@ class AuxiliaryCameraViewsManager {
             0.5,
             1.5,
         );
-        const earthshineGain = this.THREE.MathUtils.clamp(
-            Number(panelState?.composerEarthshineGain),
-            COMPOSER_MIN_EARTHSHINE_GAIN,
-            COMPOSER_MAX_EARTHSHINE_GAIN,
-        );
-        const earthshineExposureLift = Number.isFinite(earthshineGain)
-            ? (1 + (earthshineGain * 0.08))
-            : 1;
+        const exposureState = this.resolveComposerExposureState(panelState, { eclipseActive });
         renderer.toneMappingExposure = profile.exposure *
             (Number.isFinite(boundedExposureBias) ? boundedExposureBias : 1) *
-            earthshineExposureLift;
+            exposureState.multiplier;
 
         const activeSkyRenderer = skyRenderer || scene?.skyRenderer || null;
         const skyMesh = activeSkyRenderer?.skyMesh || null;
@@ -9269,6 +9516,9 @@ class AuxiliaryCameraViewsManager {
             if (panelState.onComposerLookMoonClick) {
                 panelState.composerLookMoonButton?.removeEventListener("click", panelState.onComposerLookMoonClick);
             }
+            if (panelState.onComposerResetClick) {
+                panelState.composerResetButton?.removeEventListener("click", panelState.onComposerResetClick);
+            }
             if (panelState.onComposerTimelineInput) {
                 panelState.composerTimelineSlider?.removeEventListener("input", panelState.onComposerTimelineInput);
             }
@@ -9301,6 +9551,12 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerOpticsCameraClick) {
                 panelState.composerOpticsCameraButton?.removeEventListener("click", panelState.onComposerOpticsCameraClick);
+            }
+            if (panelState.onComposerExposureInput) {
+                panelState.composerExposureSlider?.removeEventListener("input", panelState.onComposerExposureInput);
+            }
+            if (panelState.onComposerAutoExposureChange) {
+                panelState.composerAutoExposureCheckbox?.removeEventListener("change", panelState.onComposerAutoExposureChange);
             }
             if (panelState.onComposerOpticsStrengthInput) {
                 panelState.composerOpticsStrengthSlider?.removeEventListener("input", panelState.onComposerOpticsStrengthInput);
