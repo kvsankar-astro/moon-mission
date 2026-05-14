@@ -1721,8 +1721,6 @@
     
                     <!-- <span id="burnbuttons"></span>     -->
 
-                    <div id="eventinfo" class="eventinfo"></div>
-
                     <div id="shortcut-panel" class="shortcut-panel shortcut-panel--hidden" aria-live="polite">
                         <div class="shortcut-panel__title">Keyboard</div>
                         <div class="shortcut-panel__grid">
@@ -2553,9 +2551,16 @@
                     <!-- burn buttons will get added here dynamically -->
                 </div>
             </div>
+            <div id="eventinfo" class="eventinfo" title=""></div>
             <div class="timeline-dock__row">
                 <div class="timeline-dock__track-wrap">
                     <div id="timeline-media-rail" class="timeline-dock__media-rail" aria-hidden="true" hidden></div>
+                    <div
+                        id="timeline-event-visible-range"
+                        class="timeline-dock__event-visible-range"
+                        aria-hidden="true"
+                        hidden
+                    ></div>
                     <div
                         id="timeline-overview"
                         class="timeline-dock__overview"

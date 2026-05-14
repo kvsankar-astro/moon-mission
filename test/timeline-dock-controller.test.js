@@ -1195,6 +1195,105 @@ describe("createTimelineDockController", () => {
         expect(markers.children[1].className).not.toContain("timeline-dock__marker--time-boundary");
     });
 
+    it("extends the matching timeline marker while an event pill is hovered", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const modeLabel = new FakeElement("div");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const eventVisibleRange = new FakeElement("div");
+        const documentHandlers = new Map();
+
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-event-visible-range") return eventVisibleRange;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-mode-label") return modeLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            addEventListener(type, handler) {
+                const handlers = documentHandlers.get(type) || [];
+                handlers.push(handler);
+                documentHandlers.set(type, handlers);
+            },
+            dispatchEvent(event) {
+                const handlers = documentHandlers.get(event.type) || [];
+                handlers.forEach((handler) => handler(event));
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 3000,
+            stepMs: 1,
+        });
+        controller.setEvents([
+            { key: "e1", startTime: new Date(1000), label: "E1" },
+            { key: "e2", startTime: new Date(2000), label: "E2" },
+        ]);
+        controller.bind();
+
+        global.document.dispatchEvent({
+            type: "mission-timeline-event-hover",
+            detail: {
+                active: true,
+                eventKey: "e2",
+                eventTimeMs: 2000,
+            },
+        });
+
+        expect(markers.children[0].className).not.toContain("timeline-dock__marker--hovered");
+        expect(markers.children[1].className).toContain("timeline-dock__marker--hovered");
+
+        global.document.dispatchEvent({
+            type: "mission-timeline-event-hover",
+            detail: {
+                active: false,
+                eventKey: "e2",
+                eventTimeMs: 2000,
+            },
+        });
+
+        expect(markers.children[1].className).not.toContain("timeline-dock__marker--hovered");
+
+        global.document.dispatchEvent({
+            type: "mission-timeline-visible-event-range-hover",
+            detail: {
+                active: true,
+                startTimeMs: 1000,
+                endTimeMs: 2000,
+            },
+        });
+
+        expect(eventVisibleRange.hidden).toBe(false);
+        expect(eventVisibleRange.style.left).toBe("33.33333333333333%");
+        expect(eventVisibleRange.style.width).toBe("33.33333333333333%");
+
+        global.document.dispatchEvent({
+            type: "mission-timeline-visible-event-range-hover",
+            detail: {
+                active: false,
+                startTimeMs: 1000,
+                endTimeMs: 2000,
+            },
+        });
+
+        expect(eventVisibleRange.hidden).toBe(true);
+    });
+
     it("uses programmatic seek precision and source when range input values snap to the step grid", () => {
         const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");

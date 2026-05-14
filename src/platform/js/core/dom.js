@@ -262,6 +262,10 @@ export function setFPSCounterVisibility(visible) {
  * @returns {boolean} - Success status
  */
 export function clearEventInfo() {
+    const element = getElementById("eventinfo", true);
+    if (element) {
+        element.title = "";
+    }
     return updateD3ElementText("#eventinfo", "", true);
 }
 
@@ -271,6 +275,10 @@ export function clearEventInfo() {
  * @returns {boolean} - Success status
  */
 export function updateEventInfo(message) {
+    const element = getElementById("eventinfo", true);
+    if (element) {
+        element.title = String(message || "");
+    }
     return updateD3ElementText("#eventinfo", message, true);
 }
 

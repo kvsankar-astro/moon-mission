@@ -1,6 +1,6 @@
 # Timeline And Media Playback Spec
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 This spec defines how the mission clock, timeline controls, Frame and Shoot,
 and Mission Media playback coordinate. It is the reference for behavior in:
@@ -75,6 +75,21 @@ The timeline dock separates click-to-seek and drag-to-pan regions:
 - media lane: click sets mission time and selects matching media when relevant
 - playhead: drag sets mission time continuously
 - scrub/pan region: drag pans the visible timeline window, not mission time
+
+The expanded Events track is an event-inspection layer over the same time axis:
+
+- The Events track is hidden when collapsed. Event hover text is shown only
+  while the Events track is expanded.
+- The event hover caption lives in the timeline dock between event pills and
+  the time axis. The caption lane reserves its height while Events is expanded
+  so hovering an event cannot move the transport controls.
+- Hovering or focusing an event pill highlights the corresponding timeline
+  marker with an extended vertical indicator. Hovering or focusing the marker
+  itself uses the same visual state.
+- Hovering or focusing the event strip shows a subtle range band on the
+  timeline scrub bar. The band spans the earliest to latest mission event time
+  represented by the event pills currently visible in the horizontal strip.
+  The band disappears when the event strip loses hover/focus.
 
 Timeline dock seek events use `mission-timeline-user-seek` with:
 

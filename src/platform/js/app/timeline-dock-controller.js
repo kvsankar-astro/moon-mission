@@ -160,6 +160,7 @@ function createTimelineDockController({
     const timeLabels = document.getElementById("timeline-time-labels");
     const timeClickLane = document.getElementById("timeline-time-click-lane");
     const scrubLane = document.getElementById("timeline-scrub-lane");
+    const eventVisibleRange = document.getElementById("timeline-event-visible-range");
     const overview = document.getElementById("timeline-overview");
     const overviewWindow = overview?.querySelector?.(".timeline-dock__overview-window") || null;
     const overviewCurrent = overview?.querySelector?.(".timeline-dock__overview-current") || null;
@@ -175,6 +176,7 @@ function createTimelineDockController({
     const utcYearElapsedLabel = document.getElementById("timeline-utc-year-elapsed-label");
     const missionElapsedLabel = document.getElementById("timeline-mission-elapsed-label");
     const craftStrip = document.getElementById("timeline-craft-strip");
+    const EVENT_MARKER_HOVERED_CLASS = "timeline-dock__marker--hovered";
 
     if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
         return {
@@ -198,6 +200,8 @@ function createTimelineDockController({
     let currentTimeMs = Number.NaN;
     let lastMediaSignature = "";
     let lastMediaMarkersData = [];
+    let hoveredEventMarker = null;
+    let hoveredVisibleEventRange = null;
     let isBound = false;
     let timelineDragState = null;
     const timelineDragThresholdPx = 3;
@@ -452,10 +456,39 @@ function createTimelineDockController({
         }
     }
 
+    function syncHoveredVisibleEventRange() {
+        if (!eventVisibleRange) return;
+        if (!hoveredVisibleEventRange) {
+            eventVisibleRange.hidden = true;
+            return;
+        }
+        const { startTimeMs, endTimeMs } = hoveredVisibleEventRange;
+        if (
+            !Number.isFinite(startTimeMs) ||
+            !Number.isFinite(endTimeMs) ||
+            !(viewMax > viewMin)
+        ) {
+            eventVisibleRange.hidden = true;
+            return;
+        }
+        if (Math.max(startTimeMs, endTimeMs) < viewMin || Math.min(startTimeMs, endTimeMs) > viewMax) {
+            eventVisibleRange.hidden = true;
+            return;
+        }
+        const visibleStartTimeMs = clamp(Math.min(startTimeMs, endTimeMs), viewMin, viewMax);
+        const visibleEndTimeMs = clamp(Math.max(startTimeMs, endTimeMs), viewMin, viewMax);
+        const leftPercent = clamp(computePercent(visibleStartTimeMs, viewMin, viewMax), 0, 100);
+        const rightPercent = clamp(computePercent(visibleEndTimeMs, viewMin, viewMax), 0, 100);
+        eventVisibleRange.style.left = `${leftPercent}%`;
+        eventVisibleRange.style.width = `${Math.max(0.25, rightPercent - leftPercent)}%`;
+        eventVisibleRange.hidden = false;
+    }
+
     function renderTimeLabels() {
         if (!timeLabels) {
             syncScaleButtons();
             syncTimelineOverview();
+            syncHoveredVisibleEventRange();
             return;
         }
         const labels = buildTimelineTimeLabels({
@@ -477,6 +510,7 @@ function createTimelineDockController({
         }
         syncScaleButtons();
         syncTimelineOverview();
+        syncHoveredVisibleEventRange();
     }
 
     function updateEdgeLabels() {
@@ -522,6 +556,7 @@ function createTimelineDockController({
     }
 
     function renderEventMarkersFromCache() {
+        clearHoveredEventMarker();
         markers.innerHTML = "";
         for (let i = 0; i < lastEventInfos.length; i += 1) {
             const marker = renderMarker(lastEventInfos[i], i);
@@ -548,6 +583,7 @@ function createTimelineDockController({
         dockRoot?.classList?.toggle?.("timeline-dock--zoomed", isTimelineZoomed());
         syncPlayhead();
         syncTimelineOverview();
+        syncHoveredVisibleEventRange();
     }
 
     function setViewWindow(nextMin, nextMax) {
@@ -960,6 +996,53 @@ function createTimelineDockController({
         }
     }
 
+    function clearHoveredEventMarker() {
+        if (hoveredEventMarker?.classList) {
+            hoveredEventMarker.classList.remove(EVENT_MARKER_HOVERED_CLASS);
+        }
+        hoveredEventMarker = null;
+    }
+
+    function markerMatchesHoverDetail(marker, detail = {}) {
+        if (!marker?.dataset) return false;
+        const eventKey = String(detail.eventKey || "");
+        const eventSourceKey = String(detail.eventSourceKey || "");
+        if (eventKey && marker.dataset.eventKey === eventKey) return true;
+        if (eventSourceKey && marker.dataset.eventSourceKey === eventSourceKey) return true;
+        const eventTimeMs = Number(detail.eventTimeMs);
+        const markerTimeMs = Number(marker.dataset.eventTimeMs);
+        return Number.isFinite(eventTimeMs) &&
+            Number.isFinite(markerTimeMs) &&
+            Math.abs(eventTimeMs - markerTimeMs) <= 1;
+    }
+
+    function setHoveredEventMarker(detail = {}, hovered = true) {
+        clearHoveredEventMarker();
+        if (!hovered) return;
+        const marker = Array.from(markers.children || [])
+            .find((candidate) => markerMatchesHoverDetail(candidate, detail));
+        if (!marker?.classList) return;
+        marker.classList.add(EVENT_MARKER_HOVERED_CLASS);
+        hoveredEventMarker = marker;
+    }
+
+    function setHoveredVisibleEventRange(detail = {}) {
+        if (detail?.active !== true) {
+            hoveredVisibleEventRange = null;
+            syncHoveredVisibleEventRange();
+            return;
+        }
+        const startTimeMs = Number(detail.startTimeMs);
+        const endTimeMs = Number(detail.endTimeMs);
+        if (!Number.isFinite(startTimeMs) || !Number.isFinite(endTimeMs)) {
+            hoveredVisibleEventRange = null;
+            syncHoveredVisibleEventRange();
+            return;
+        }
+        hoveredVisibleEventRange = { startTimeMs, endTimeMs };
+        syncHoveredVisibleEventRange();
+    }
+
     function syncMarkerHighlights() {
         const markerNodes = Array.from(markers.children || []);
         if (markerNodes.length === 0) return;
@@ -1008,6 +1091,9 @@ function createTimelineDockController({
             marker.setAttribute("aria-disabled", "true");
         }
         marker.className = markerClasses.join(" ");
+        marker.dataset.eventKey = eventInfo?.key || "";
+        marker.dataset.eventSourceKey = eventInfo?.timelineSourceKey || eventInfo?.key || "";
+        marker.dataset.eventIndex = String(index);
         marker.dataset.eventTimeMs = String(eventTimeMs);
         marker.style.left = `${computePercent(eventTimeMs, viewMin, viewMax)}%`;
         const markerLabel = resolveTimelineEventLabel(eventInfo);
@@ -1020,15 +1106,27 @@ function createTimelineDockController({
             : `${markerLabel} - ${formatDateTimeLocal(eventTimeMs)}\n${hoverText}${generatedSuffix}`;
         marker.setAttribute("aria-label", marker.title);
         marker.addEventListener("mouseenter", () => {
+            setHoveredEventMarker({
+                eventKey: eventInfo?.key || "",
+                eventSourceKey: eventInfo?.timelineSourceKey || eventInfo?.key || "",
+                eventTimeMs,
+            }, true);
             onMarkerHover?.(eventInfo, index);
         });
         marker.addEventListener("focus", () => {
+            setHoveredEventMarker({
+                eventKey: eventInfo?.key || "",
+                eventSourceKey: eventInfo?.timelineSourceKey || eventInfo?.key || "",
+                eventTimeMs,
+            }, true);
             onMarkerHover?.(eventInfo, index);
         });
         marker.addEventListener("mouseleave", () => {
+            setHoveredEventMarker({}, false);
             onMarkerLeave?.(eventInfo, index);
         });
         marker.addEventListener("blur", () => {
+            setHoveredEventMarker({}, false);
             onMarkerLeave?.(eventInfo, index);
         });
         if (eventInfo?.clickable !== false) {
@@ -1408,6 +1506,13 @@ function createTimelineDockController({
                 commit: true,
                 source: payload.source,
             });
+        });
+
+        document.addEventListener?.("mission-timeline-event-hover", (event) => {
+            setHoveredEventMarker(event?.detail || {}, event?.detail?.active === true);
+        });
+        document.addEventListener?.("mission-timeline-visible-event-range-hover", (event) => {
+            setHoveredVisibleEventRange(event?.detail || {});
         });
 
         panLeftButton?.addEventListener?.("click", () => {

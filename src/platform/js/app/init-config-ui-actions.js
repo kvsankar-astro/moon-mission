@@ -16,6 +16,7 @@ function createInitConfigUiActions(deps) {
         updateEventInfo,
         clearEventInfo,
     } = deps;
+    let eventRangeHoverBound = false;
 
     function resolveEventTimeMs(eventInfo) {
         if (!eventInfo) return Number.NaN;
@@ -42,6 +43,97 @@ function createInitConfigUiActions(deps) {
 
         const when = formatDateTimeUTC(eventTimeMs);
         return baseText ? `${baseText} • ${when}` : when;
+    }
+
+    function dispatchTimelineEventHover(eventInfo, eventTimeMs, active) {
+        if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") {
+            return;
+        }
+        const detail = {
+            active: active === true,
+            eventKey: eventInfo?.key || "",
+            eventSourceKey: eventInfo?.timelineSourceKey || eventInfo?.key || "",
+            eventTimeMs: Number.isFinite(eventTimeMs) ? eventTimeMs : Number.NaN,
+        };
+        if (typeof CustomEvent === "function") {
+            document.dispatchEvent(new CustomEvent("mission-timeline-event-hover", { detail }));
+            return;
+        }
+        document.dispatchEvent({ type: "mission-timeline-event-hover", detail });
+    }
+
+    function dispatchTimelineVisibleEventRangeHover(detail) {
+        if (typeof document === "undefined" || typeof document.dispatchEvent !== "function") {
+            return;
+        }
+        if (typeof CustomEvent === "function") {
+            document.dispatchEvent(new CustomEvent("mission-timeline-visible-event-range-hover", { detail }));
+            return;
+        }
+        document.dispatchEvent({ type: "mission-timeline-visible-event-range-hover", detail });
+    }
+
+    function resolveVisibleEventRange(carousel) {
+        const carouselRect = carousel?.getBoundingClientRect?.();
+        if (!carouselRect) return null;
+        const visibleButtons = Array.from(
+            carousel.querySelectorAll?.("button[data-event-time-ms]") || [],
+        ).filter((button) => {
+            const eventTimeMs = Number(button?.dataset?.eventTimeMs);
+            if (!Number.isFinite(eventTimeMs)) return false;
+            const buttonRect = button.getBoundingClientRect?.();
+            if (!buttonRect) return false;
+            return buttonRect.right >= carouselRect.left && buttonRect.left <= carouselRect.right;
+        });
+        if (visibleButtons.length === 0) return null;
+        const eventTimes = visibleButtons
+            .map((button) => Number(button?.dataset?.eventTimeMs))
+            .filter(Number.isFinite);
+        if (eventTimes.length === 0) return null;
+        return {
+            startTimeMs: Math.min(...eventTimes),
+            endTimeMs: Math.max(...eventTimes),
+        };
+    }
+
+    function bindEventRangeHover() {
+        if (eventRangeHoverBound || typeof document === "undefined") return;
+        const carousel = document.querySelector?.("#timeline-dock .timeline-dock__event-carousel");
+        if (!carousel) return;
+        eventRangeHoverBound = true;
+        let hovered = false;
+        const updateVisibleRange = () => {
+            if (!hovered) return;
+            const range = resolveVisibleEventRange(carousel);
+            dispatchTimelineVisibleEventRangeHover({
+                active: !!range,
+                startTimeMs: range?.startTimeMs ?? Number.NaN,
+                endTimeMs: range?.endTimeMs ?? Number.NaN,
+            });
+        };
+        const clearVisibleRange = () => {
+            hovered = false;
+            dispatchTimelineVisibleEventRangeHover({
+                active: false,
+                startTimeMs: Number.NaN,
+                endTimeMs: Number.NaN,
+            });
+        };
+        carousel.addEventListener("mouseenter", () => {
+            hovered = true;
+            updateVisibleRange();
+        });
+        carousel.addEventListener("mousemove", updateVisibleRange);
+        carousel.addEventListener("scroll", updateVisibleRange);
+        carousel.addEventListener("mouseleave", clearVisibleRange);
+        carousel.addEventListener("focusin", () => {
+            hovered = true;
+            updateVisibleRange();
+        });
+        carousel.addEventListener("focusout", (event) => {
+            if (carousel.contains?.(event.relatedTarget)) return;
+            clearVisibleRange();
+        });
     }
 
     function renderBurnButtonsWithEventInfos(eventInfos = []) {
@@ -82,12 +174,14 @@ function createInitConfigUiActions(deps) {
             const node = button.node();
             if (!node) continue;
             const showHoverText = () => {
+                dispatchTimelineEventHover(eventInfo, eventTimeMs, true);
                 const hoverText = getEventHoverText(eventInfo);
                 if (hoverText) {
                     updateEventInfo?.(hoverText);
                 }
             };
             const clearHoverText = () => {
+                dispatchTimelineEventHover(eventInfo, eventTimeMs, false);
                 clearEventInfo?.();
             };
             node.addEventListener("mouseenter", showHoverText);
@@ -107,6 +201,7 @@ function createInitConfigUiActions(deps) {
 
     function syncBurnButtons(eventInfos = getTimelineEventInfos() || []) {
         renderBurnButtonsWithEventInfos(eventInfos);
+        bindEventRangeHover();
         bindBurnEventButtons(eventInfos);
     }
 
