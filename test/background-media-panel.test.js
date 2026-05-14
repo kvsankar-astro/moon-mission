@@ -142,14 +142,14 @@ describe("background media panel helpers", () => {
         })).toBe("playing");
     });
 
-    it("pauses broadcast video decoding while a foreground video is active", () => {
+    it("mutes broadcast audio while a foreground video is active", () => {
         expect(resolveBackgroundPlaybackMode({
             panelState: "open",
             playbackEnabled: true,
             animationRunning: true,
             foregroundMediaActive: true,
             foregroundMediaKind: "videoClip",
-        })).toBe("paused-for-foreground-video");
+        })).toBe("muted-for-foreground");
     });
 
     it("labels the broadcast transport by enabled and animation state", () => {
@@ -249,7 +249,7 @@ describe("background media panel helpers", () => {
         globalThis.window = {
             innerWidth: 1400,
             innerHeight: 900,
-            mission: "artemis2",
+            missionConfig: { dataPath: "assets/artemis2/data/" },
             addEventListener: vi.fn(),
             setTimeout: vi.fn(() => 1),
             clearTimeout: vi.fn(),
@@ -320,5 +320,160 @@ describe("background media panel helpers", () => {
 
         expect(currentTimeWrites).toBe(0);
         expect(video.load).toHaveBeenCalledTimes(1);
+    });
+
+    it("binds broadcast dragging even when the first setup runs before panel DOM exists", () => {
+        const nodes = new Map();
+        const documentListeners = new Map();
+        const storage = new Map();
+        const makeClassList = () => ({
+            toggle: vi.fn(),
+            contains: vi.fn(() => false),
+        });
+        const makeNode = (id) => {
+            const listeners = new Map();
+            const node = {
+                id,
+                hidden: false,
+                textContent: "",
+                title: "",
+                dataset: {},
+                style: {},
+                offsetLeft: 8,
+                offsetTop: 80,
+                offsetWidth: 546,
+                offsetHeight: 300,
+                classList: makeClassList(),
+                setAttribute: vi.fn(),
+                focus: vi.fn(),
+                replaceChildren: vi.fn(),
+                appendChild: vi.fn(),
+                querySelector: vi.fn(() => null),
+                setPointerCapture: vi.fn(),
+                hasPointerCapture: vi.fn(() => true),
+                releasePointerCapture: vi.fn(),
+                closest: vi.fn(() => null),
+                addEventListener(type, handler) {
+                    const handlers = listeners.get(type) || [];
+                    handlers.push(handler);
+                    listeners.set(type, handlers);
+                },
+                dispatchEvent(event) {
+                    if (!event.target) event.target = node;
+                    if (typeof event.preventDefault !== "function") {
+                        event.preventDefault = vi.fn();
+                    }
+                    for (const handler of listeners.get(event.type) || []) {
+                        handler.call(node, event);
+                    }
+                },
+                getBoundingClientRect() {
+                    return {
+                        left: Number.parseFloat(node.style.left) || node.offsetLeft,
+                        top: Number.parseFloat(node.style.top) || node.offsetTop,
+                        width: Number.parseFloat(node.style.width) || node.offsetWidth,
+                        height: Number.parseFloat(node.style.height) || node.offsetHeight,
+                        bottom: 80,
+                    };
+                },
+            };
+            return node;
+        };
+
+        globalThis.localStorage = {
+            getItem: vi.fn((key) => storage.get(key) || null),
+            setItem: vi.fn((key, value) => storage.set(key, value)),
+        };
+        globalThis.window = {
+            innerWidth: 1400,
+            innerHeight: 900,
+            missionConfig: { dataPath: "assets/artemis2/data/" },
+            addEventListener: vi.fn(),
+            setTimeout: vi.fn(() => 1),
+            clearTimeout: vi.fn(),
+        };
+        globalThis.document = {
+            getElementById: vi.fn((id) => nodes.get(id) || null),
+            querySelector: vi.fn(() => ({ getBoundingClientRect: () => ({ bottom: 80 }) })),
+            createElement: vi.fn((tagName) => makeNode(tagName)),
+            addEventListener(type, handler) {
+                const handlers = documentListeners.get(type) || [];
+                handlers.push(handler);
+                documentListeners.set(type, handlers);
+            },
+        };
+
+        const actions = createBackgroundMediaPanelActions();
+        const missionContext = {
+            available: true,
+            configData: {
+                ui: {
+                    panels: {
+                        defaults: {
+                            "workflow:background-media": {
+                                enabled: true,
+                                defaultState: "open",
+                            },
+                        },
+                    },
+                },
+            },
+        };
+        actions.setMissionContext(missionContext);
+
+        const panel = makeNode("background-media-panel");
+        const header = makeNode("background-media-panel-header");
+        panel.querySelector = vi.fn((selector) => (
+            selector === ".background-media-panel__header" ? header : null
+        ));
+        nodes.set("background-media-panel", panel);
+        nodes.set("background-media-panel-wrapper", makeNode("background-media-panel-wrapper"));
+        [
+            "background-media-panel-close",
+            "background-media-panel-expand",
+            "background-media-enable",
+            "background-media-mute",
+            "background-media-video",
+        ].forEach((id) => nodes.set(id, makeNode(id)));
+
+        actions.setMissionContext(missionContext);
+
+        header.dispatchEvent({
+            type: "pointerdown",
+            pointerId: 4,
+            button: 0,
+            clientX: 40,
+            clientY: 50,
+            target: header,
+        });
+        for (const handler of documentListeners.get("pointermove") || []) {
+            handler({
+                type: "pointermove",
+                pointerId: 4,
+                clientX: 100,
+                clientY: 90,
+                preventDefault: vi.fn(),
+            });
+        }
+        actions.setMissionContext(missionContext);
+
+        expect(panel.style.left).toBe("68px");
+        expect(panel.style.top).toBe("128px");
+
+        for (const handler of documentListeners.get("pointerup") || []) {
+            handler({
+                type: "pointerup",
+                pointerId: 4,
+                preventDefault: vi.fn(),
+            });
+        }
+
+        expect(panel.style.left).toBe("68px");
+        expect(panel.style.top).toBe("128px");
+        const savedLayout = JSON.parse(storage.get("moon-mission:panel-layout:v1:artemis2"));
+        expect(savedLayout.panels["workflow:background-media"].rect).toEqual(expect.objectContaining({
+            left: 68,
+            top: 128,
+        }));
     });
 });

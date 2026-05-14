@@ -153,9 +153,6 @@ function resolveBackgroundPlaybackMode({
         return "ready";
     }
     if (foregroundMediaActive === true) {
-        if (String(foregroundMediaKind || "").trim() === "videoClip") {
-            return "paused-for-foreground-video";
-        }
         return "muted-for-foreground";
     }
     return "playing";
@@ -423,6 +420,7 @@ function createBackgroundMediaPanelActions({
     let lastForegroundEffect = "";
     let playRequestPending = false;
     let storedLayoutMatchesPreset = false;
+    let panelLayoutApplied = false;
     let dragState = null;
     let effectiveAudioMuted = true;
     let mutedForForegroundMedia = false;
@@ -775,7 +773,9 @@ function createBackgroundMediaPanelActions({
         }
     }
 
-    function syncPanelVisibility() {
+    function syncPanelVisibility({
+        forceLayout = false,
+    } = {}) {
         const wrapper = getWrapper();
         const panel = getPanel();
         if (!wrapper || !panel) return;
@@ -783,19 +783,23 @@ function createBackgroundMediaPanelActions({
         wrapper.hidden = !visible;
         panel.classList.toggle("background-media-panel--hidden", !visible);
         panel.classList.toggle("is-maximized", expanded);
+        if (!visible) {
+            panelLayoutApplied = false;
+        }
         if (visible) {
             if (expanded) {
                 panel.style.left = `${PANEL_EDGE_MARGIN_PX}px`;
                 panel.style.top = `${PANEL_EDGE_MARGIN_PX}px`;
                 panel.style.width = `calc(100vw - ${PANEL_EDGE_MARGIN_PX * 2}px)`;
                 panel.style.height = `calc(100vh - ${PANEL_EDGE_MARGIN_PX * 2}px)`;
-            } else {
+            } else if (dragState == null && (forceLayout === true || panelLayoutApplied !== true)) {
                 const saved = readMissionPanelState(BACKGROUND_MEDIA_PANEL_ID);
                 const useSavedRect = storedLayoutMatchesPreset === true && saved?.rect;
                 const appliedRect = applyPanelRect(
                     panel,
                     useSavedRect ? saved.rect : getDefaultPanelRect(),
                 );
+                panelLayoutApplied = true;
                 if (!useSavedRect) {
                     persistState({ rect: appliedRect });
                     storedLayoutMatchesPreset = true;
@@ -852,7 +856,7 @@ function createBackgroundMediaPanelActions({
             event.preventDefault();
         });
 
-        header.addEventListener?.("pointermove", (event) => {
+        const handlePointerMove = (event) => {
             if (!dragState || dragState.pointerId !== event.pointerId) return;
             const dx = event.clientX - dragState.startX;
             const dy = event.clientY - dragState.startY;
@@ -862,7 +866,7 @@ function createBackgroundMediaPanelActions({
                 top: dragState.rect.top + dy,
             });
             event.preventDefault();
-        });
+        };
 
         const releaseDrag = (event) => {
             if (!dragState || dragState.pointerId !== event.pointerId) return;
@@ -874,8 +878,14 @@ function createBackgroundMediaPanelActions({
             event.preventDefault();
         };
 
+        const documentRef = getDocumentRef();
+        documentRef?.addEventListener?.("pointermove", handlePointerMove, true);
+        documentRef?.addEventListener?.("pointerup", releaseDrag, true);
+        documentRef?.addEventListener?.("pointercancel", releaseDrag, true);
+        header.addEventListener?.("pointermove", handlePointerMove);
         header.addEventListener?.("pointerup", releaseDrag);
         header.addEventListener?.("pointercancel", releaseDrag);
+        header.addEventListener?.("lostpointercapture", releaseDrag);
     }
 
     function setControlsHidden(hidden) {
@@ -886,6 +896,7 @@ function createBackgroundMediaPanelActions({
     function openPanel() {
         if (!panelAvailable) return;
         panelState = "open";
+        panelLayoutApplied = false;
         persistState();
         syncPanelVisibility();
         bringPanelToFront();
@@ -894,6 +905,7 @@ function createBackgroundMediaPanelActions({
 
     function closePanel() {
         panelState = "closed";
+        panelLayoutApplied = false;
         persistState();
         clearVideoSource();
         syncPanelVisibility();
@@ -906,9 +918,10 @@ function createBackgroundMediaPanelActions({
     }
 
     function toggleExpanded() {
+        const wasExpanded = expanded === true;
         expanded = !expanded;
         persistState();
-        syncPanelVisibility();
+        syncPanelVisibility({ forceLayout: wasExpanded && expanded !== true });
     }
 
     function togglePlaybackEnabled() {
@@ -1045,19 +1058,21 @@ function createBackgroundMediaPanelActions({
 
     function ensurePanelEventsBound() {
         if (panelEventsBound) return;
+        const panel = getPanel();
+        if (!panel) return;
         panelEventsBound = true;
         getNode("background-media-panel-close")?.addEventListener?.("click", closePanel);
         getNode("background-media-panel-expand")?.addEventListener?.("click", toggleExpanded);
         getNode("background-media-enable")?.addEventListener?.("click", togglePlaybackEnabled);
         getNode("background-media-mute")?.addEventListener?.("click", toggleMuted);
-        getPanel()?.addEventListener?.("pointerdown", bringPanelToFront, true);
+        panel.addEventListener?.("pointerdown", bringPanelToFront, true);
         bindPanelDragging();
         const video = getVideo();
         ["loadedmetadata", "canplay"].forEach((eventName) => {
             video?.addEventListener?.(eventName, () => render(lastRenderModel));
         });
         getWindowRef()?.addEventListener?.("resize", () => {
-            if (panelState === "open") syncPanelVisibility();
+            if (panelState === "open") syncPanelVisibility({ forceLayout: true });
         }, { passive: true });
     }
 
@@ -1269,7 +1284,11 @@ function createBackgroundMediaPanelActions({
         render,
         setMissionContext,
         setPanelState(nextState) {
+            const wasOpen = panelState === "open";
             panelState = nextState || "closed";
+            if (panelState !== "open" || wasOpen !== true) {
+                panelLayoutApplied = false;
+            }
             persistState();
             syncPanelVisibility();
             if (panelState === "open") {
