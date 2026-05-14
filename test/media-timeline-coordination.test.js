@@ -307,6 +307,7 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.activeItem).toEqual(expect.objectContaining({
             id: "lunar-flyby-stream",
         }));
+        expect(latestRender.activeItem.videoAssetUrl).toBe("");
         expect(latestRender.playbackModel).toEqual(expect.objectContaining({
             playable: false,
             showControls: false,
@@ -4004,5 +4005,108 @@ describe("createMediaTimelineCoordination", () => {
         expect(bufferingStatus.hidden).toBe(true);
         expect(bufferingStatus.dataset.status).toBe("");
         expect(hiddenClasses.has("media-buffering-status--hidden")).toBe(true);
+    });
+
+    it("treats direct media play as media authority even while animation is already running", async () => {
+        class FakeInput {}
+        const clipStartMs = Date.parse("2026-04-02T16:00:00Z");
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(clipStartMs);
+        slider.dataset = {
+            currentTimeMs: String(clipStartMs),
+        };
+        slider.dispatchEvent = vi.fn((event) => {
+            if (event.type === "input" || event.type === "change") {
+                slider.value = String(slider.dataset.programmaticSeekTimeMs || slider.value);
+                slider.dataset.currentTimeMs = slider.dataset.programmaticSeekTimeMs || slider.dataset.currentTimeMs;
+            }
+        });
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            loop: false,
+            paused: true,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            removeAttribute: vi.fn((name) => {
+                if (name === "loop") video.loop = false;
+            }),
+            play: vi.fn(() => {
+                video.paused = false;
+                return Promise.resolve();
+            }),
+            pause: vi.fn(() => {
+                video.paused = true;
+            }),
+            load: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 30,
+                },
+            ],
+        });
+        const pauseAnimation = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+            getAnimationSpeedMultiplier: () => 1,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: clipStartMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "toggleActiveMediaPlayback" });
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackStarted",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 0,
+        });
+        pauseAnimation.mockClear();
+
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackEnded",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+        });
+
+        expect(pauseAnimation).toHaveBeenCalledTimes(1);
     });
 });

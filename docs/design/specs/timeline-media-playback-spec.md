@@ -63,6 +63,11 @@ Set authority to `media` when the user directly uses media transport:
 - media seek slider
 - media panel play controls that start a focused playable item
 
+This rule applies even if animation was already running. Whether animation
+continues while the media starts is an effect flag, not playback authority.
+Direct media Play/Restart/Seek always means media end/pause behavior follows
+media authority.
+
 Media-driven calls to animation Play/Pause must not accidentally switch
 authority back to `animation`. They are consequences of media authority, not a
 new animation user intent.
@@ -77,6 +82,11 @@ Media at the same time. A video with the `background` playback role belongs to
 the Background Video surface for playback. Mission Media may show it as
 timeline context, but foreground transport controls, auto-start rules, and
 selection clicks ignore it.
+
+Mission Media must not attach a playable foreground video source for
+background-role videos. It may show poster/thumbnail/context metadata, but the
+video element, Picture-in-Picture affordance, and foreground media transport
+belong only to foreground-playable clips.
 
 ## Cause-Effect Rules
 
@@ -250,12 +260,35 @@ At high animation speeds above the media transport limit, video uses
 frame-scrub preview mode instead of normal transport playback. Animation stays
 authoritative in that mode.
 
+Frame-scrub preview is still foreground video activity while animation is
+running. It must mute Background Video just like normal foreground video
+playback, even though the foreground video element is paused between frame
+seeks.
+
 ## Foreground Media And Background Video
 
 Background Video is enabled by the user with a "Play background videos"
 control. When enabled, it plays an in-range background-role video only while the
 mission animation is running and the Background Video panel is open. It is
 paused whenever animation is paused.
+
+Paused does not mean unloaded. If Background Video is open, enabled, and
+in-range, but animation is paused, the active source should remain attached and
+seeked to the current mission time. Detach/clear the source only when the panel
+is closed, playback is disabled, or mission time leaves the background video
+range. This avoids repeated HLS teardown/re-attach churn and keeps poster/frame
+state stable.
+
+At high animation speeds above the same transport limit used by foreground
+video, Background Video switches to mission-clock frame preview: pause
+transport playback, keep the source attached, and seek frames from mission
+time. It should not attempt to run audio/video transport at a clamped rate that
+cannot keep up with the mission clock.
+
+For HLS background video, frame preview must keep or restart HLS loading while
+seeking mission-clock frames. Pausing transport for frame preview must not leave
+the HLS loader stopped, because then the source remains attached but cannot
+fetch new frame data.
 
 Background Video has an independent mute/unmute preference. Mission Media also
 has an independent mute/unmute control for its own audio/video playback. These
@@ -273,8 +306,12 @@ because simultaneous visible video playback is confusing.
 Foreground policy:
 
 - Foreground Mission Media playback wins.
-- While Mission Media audio/video is playing or buffering, Background Video
-  keeps running with the mission clock but is temporarily muted.
+- While Mission Media audio/video is playing, buffering, or frame-previewing,
+  Background Video keeps running or frame-previewing with the mission clock but
+  is temporarily muted.
+- A foreground video that is merely selected/active but not playing, buffering,
+  or in frame-scrub preview is not foreground activity and must not mute
+  Background Video.
 - The Background Video panel shows `Muted for Foreground Media`.
 - When foreground playback pauses or ends, Background Video restores its prior
   mute preference if all of these are true:

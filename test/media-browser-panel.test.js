@@ -183,6 +183,14 @@ class FakeElement {
 
     removeAttribute(name) {
         delete this.attributes[name];
+        if (name === "src") this.src = "";
+        if (name === "poster") this.poster = "";
+    }
+
+    getAttribute(name) {
+        if (name === "src") return this.src || "";
+        if (name === "poster") return this.poster || "";
+        return this.attributes[name] || "";
     }
 
     querySelector(selector) {
@@ -462,5 +470,49 @@ describe("media browser panel timeline", () => {
         expect(thumbnailList.scrollTo).toHaveBeenNthCalledWith(2, expect.objectContaining({
             left: 416,
         }));
+    });
+
+    it("does not reload a native video source that is already attached for playback", () => {
+        const panelElement = new FakePanel();
+        const video = new FakeElement("video");
+        video.src = "https://media.example/clip.mp4";
+        video.load = vi.fn();
+        video.pause = vi.fn();
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-video") return video;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            activeItem: {
+                id: "clip.mp4",
+                kind: "videoClip",
+                title: "Crew clip",
+                videoAssetUrl: "https://media.example/clip.mp4",
+                sourceType: "mp4",
+            },
+        });
+
+        expect(video.load).not.toHaveBeenCalled();
+        expect(video.src).toBe("https://media.example/clip.mp4");
+        expect(video.dataset).toEqual(expect.objectContaining({
+            mediaItemId: "clip.mp4",
+            mediaSourceUrl: "https://media.example/clip.mp4",
+            sourceType: "mp4",
+        }));
+        expect(video.hidden).toBe(false);
     });
 });

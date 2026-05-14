@@ -7,6 +7,7 @@ import {
     resolveBackgroundCandidates,
     resolveBackgroundPlaybackMode,
     resolveNearestInactiveBackgroundItem,
+    shouldUseBackgroundTransportPlayback,
 } from "../src/platform/js/app/background-media-panel.js";
 
 describe("background media panel helpers", () => {
@@ -16,6 +17,113 @@ describe("background media panel helpers", () => {
         delete globalThis.window;
         delete globalThis.localStorage;
     });
+
+    function installBackgroundPanelDom({ currentTime = 0, paused = true } = {}) {
+        const nodes = new Map();
+        const makeClassList = () => ({
+            toggle: vi.fn(),
+            contains: vi.fn(() => false),
+            add: vi.fn(),
+            remove: vi.fn(),
+        });
+        const makeNode = (id) => ({
+            id,
+            hidden: false,
+            textContent: "",
+            title: "",
+            dataset: {},
+            style: {},
+            classList: makeClassList(),
+            setAttribute: vi.fn(),
+            addEventListener: vi.fn(),
+            focus: vi.fn(),
+            replaceChildren: vi.fn(),
+            appendChild: vi.fn(),
+            querySelector: vi.fn(() => null),
+            getBoundingClientRect: vi.fn(() => ({ bottom: 80 })),
+        });
+        const video = makeNode("background-media-video");
+        let videoCurrentTime = currentTime;
+        Object.defineProperty(video, "currentTime", {
+            get: () => videoCurrentTime,
+            set: (value) => {
+                videoCurrentTime = Number(value);
+            },
+        });
+        video.paused = paused;
+        video.play = vi.fn(() => {
+            video.paused = false;
+            return Promise.resolve();
+        });
+        video.pause = vi.fn(() => {
+            video.paused = true;
+        });
+        video.load = vi.fn();
+        video.canPlayType = vi.fn(() => "");
+        video.getAttribute = vi.fn((name) => (name === "src" ? video.src || "" : ""));
+        video.removeAttribute = vi.fn((name) => {
+            delete video[name];
+        });
+        nodes.set("background-media-video", video);
+        [
+            "background-media-panel",
+            "background-media-panel-wrapper",
+            "background-video-status",
+            "background-video-status-text",
+            "background-media-empty",
+            "background-media-live",
+            "background-media-title",
+            "background-media-status",
+            "background-media-controls",
+            "background-media-enable",
+            "background-media-mute",
+            "background-media-panel-expand",
+            "background-media-panel-close",
+        ].forEach((id) => {
+            if (!nodes.has(id)) nodes.set(id, makeNode(id));
+        });
+
+        globalThis.document = {
+            getElementById: vi.fn((id) => nodes.get(id) || null),
+            querySelector: vi.fn(() => ({ getBoundingClientRect: () => ({ bottom: 80 }) })),
+            addEventListener: vi.fn(),
+            createElement: vi.fn((tagName) => makeNode(tagName)),
+        };
+        globalThis.window = {
+            innerWidth: 1400,
+            innerHeight: 900,
+            missionConfig: { dataPath: "assets/artemis2/data/" },
+            addEventListener: vi.fn(),
+            setTimeout: vi.fn(() => 1),
+            clearTimeout: vi.fn(),
+        };
+        const storage = new Map();
+        globalThis.localStorage = {
+            getItem: vi.fn((key) => storage.get(key) || null),
+            setItem: vi.fn((key, value) => storage.set(key, value)),
+        };
+        return { nodes, video };
+    }
+
+    function openEnabledBackgroundPanel(actions, nodes) {
+        actions.setMissionContext({
+            available: true,
+            configData: {
+                ui: {
+                    panels: {
+                        defaults: {
+                            "workflow:background-media": {
+                                enabled: true,
+                                defaultState: "open",
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        const [, enablePlayback] = nodes.get("background-media-enable").addEventListener.mock.calls.find(([type]) => type === "click");
+        enablePlayback();
+    }
 
     it("selects the highest-priority background video active at mission time", () => {
         const timeMs = Date.parse("2026-04-06T18:00:00Z");
@@ -150,6 +258,17 @@ describe("background media panel helpers", () => {
             foregroundMediaActive: true,
             foregroundMediaKind: "videoClip",
         })).toBe("muted-for-foreground");
+    });
+
+    it("uses frame preview instead of transport playback above the background rate limit", () => {
+        expect(shouldUseBackgroundTransportPlayback({
+            animationRealtime: false,
+            animationSpeedMultiplier: 4,
+        })).toBe(true);
+        expect(shouldUseBackgroundTransportPlayback({
+            animationRealtime: false,
+            animationSpeedMultiplier: 60,
+        })).toBe(false);
     });
 
     it("labels the broadcast transport by enabled and animation state", () => {
@@ -320,6 +439,203 @@ describe("background media panel helpers", () => {
 
         expect(currentTimeWrites).toBe(0);
         expect(video.load).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps an in-range broadcast source attached while animation is paused", () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                backgroundPlayback: {
+                    enabled: true,
+                    muted: false,
+                },
+            }],
+            timeMs: startTimeMs + 12000,
+            animationRunning: false,
+        });
+
+        expect(video.pause).toHaveBeenCalled();
+        expect(video.load).toHaveBeenCalledTimes(1);
+        expect(video.src).toBe("broadcast.mp4");
+        expect(video.currentTime).toBe(12);
+        expect(nodes.get("background-media-status").textContent).toContain("Paused");
+    });
+
+    it("mutes foreground playback and restores the user's background mute preference", async () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const item = {
+            id: "broadcast",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+                muted: false,
+            },
+        };
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: true,
+            foregroundMediaState: {
+                active: true,
+                kind: "videoClip",
+                previewing: true,
+            },
+        });
+        await Promise.resolve();
+
+        expect(video.muted).toBe(true);
+        expect(nodes.get("background-media-status").textContent).toBe("Muted for Foreground Media");
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 11000,
+            animationRunning: true,
+            foregroundMediaState: {
+                active: false,
+                kind: "",
+            },
+        });
+        await Promise.resolve();
+
+        expect(video.muted).toBe(false);
+        expect(nodes.get("background-media-status").textContent).toContain("Playing");
+        expect(nodes.get("background-video-status-text").textContent).toBe("Background video audio restored");
+    });
+
+    it("frame-previews in-range broadcast video at high animation speeds", () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => false,
+            getAnimationSpeedMultiplier: () => 60,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                backgroundPlayback: {
+                    enabled: true,
+                },
+            }],
+            timeMs: startTimeMs + 45000,
+            animationRunning: true,
+        });
+
+        expect(video.play).not.toHaveBeenCalled();
+        expect(video.pause).toHaveBeenCalled();
+        expect(video.currentTime).toBe(45);
+        expect(nodes.get("background-media-status").textContent).toContain("Frame preview");
+    });
+
+    it("keeps HLS loading while frame-previewing at high animation speeds", async () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const hlsHandlers = new Map();
+        const hlsInstance = {
+            attachMedia: vi.fn(),
+            loadSource: vi.fn(),
+            startLoad: vi.fn(),
+            stopLoad: vi.fn(),
+            destroy: vi.fn(),
+            on: vi.fn((eventName, handler) => hlsHandlers.set(eventName, handler)),
+        };
+        const HlsMock = vi.fn(() => hlsInstance);
+        HlsMock.isSupported = vi.fn(() => true);
+        HlsMock.Events = {
+            MEDIA_ATTACHED: "MEDIA_ATTACHED",
+            MANIFEST_PARSED: "MANIFEST_PARSED",
+            LEVEL_LOADED: "LEVEL_LOADED",
+            ERROR: "ERROR",
+        };
+        HlsMock.ErrorTypes = {
+            NETWORK_ERROR: "networkError",
+            MEDIA_ERROR: "mediaError",
+        };
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => false,
+            getAnimationSpeedMultiplier: () => 60,
+            loadHlsLibraryFn: () => Promise.resolve(HlsMock),
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        const item = {
+            id: "broadcast",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast.m3u8",
+            sourceType: "hls",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+        };
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 45000,
+            animationRunning: true,
+        });
+        await Promise.resolve();
+
+        expect(hlsInstance.attachMedia).toHaveBeenCalledWith(video);
+        hlsHandlers.get("MEDIA_ATTACHED")?.();
+        expect(hlsInstance.loadSource).toHaveBeenCalledWith("broadcast.m3u8");
+
+        hlsHandlers.get("MANIFEST_PARSED")?.();
+
+        expect(video.play).not.toHaveBeenCalled();
+        expect(video.pause).toHaveBeenCalled();
+        expect(video.currentTime).toBe(45);
+        expect(hlsInstance.stopLoad).not.toHaveBeenCalled();
+        expect(hlsInstance.startLoad).toHaveBeenCalledWith(45);
+        expect(nodes.get("background-media-status").textContent).toContain("Frame preview");
+
+        hlsInstance.stopLoad.mockClear();
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 46000,
+            animationRunning: false,
+        });
+
+        expect(video.dataset.mediaSourceUrl).toBe("broadcast.m3u8");
+        expect(hlsInstance.stopLoad).toHaveBeenCalledTimes(1);
+        expect(nodes.get("background-media-status").textContent).toContain("Paused");
     });
 
     it("binds broadcast dragging even when the first setup runs before panel DOM exists", () => {

@@ -1,4 +1,5 @@
 import { resolveNearestMediaIndex } from "./media-selection-state.js";
+import { isBackgroundPlaybackMediaItem } from "./media-playback-policy.js";
 
 const DEFAULT_PLAYABLE_SEGMENT_DURATION_MS = 30000;
 
@@ -13,12 +14,6 @@ function formatDurationLabel(durationMs) {
 
 function isPlayableMediaKind(kind) {
     return kind === "audioClip" || kind === "videoClip";
-}
-
-function isBackgroundPlaybackMediaItem(item) {
-    if (!item) return false;
-    const roles = Array.isArray(item.playbackRoles) ? item.playbackRoles : [];
-    return roles.includes("background") || item.backgroundPlayback?.enabled === true;
 }
 
 function resolveMediaSegmentTiming(item, startTimeMs) {

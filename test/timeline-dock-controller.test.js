@@ -1596,4 +1596,76 @@ describe("createTimelineDockController", () => {
 
         delete global.CustomEvent;
     });
+
+    it("does not select or seek inactive background media markers", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const mediaMarkers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const seekTimes = [];
+        const dispatchedEvents = [];
+
+        global.CustomEvent = class {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        };
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-media-markers") return mediaMarkers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            dispatchEvent(event) {
+                dispatchedEvents.push(event);
+            },
+        };
+
+        const controller = createTimelineDockController({
+            onSeekTime(timeMs, commit) {
+                seekTimes.push({ timeMs, commit });
+            },
+        });
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 100,
+        });
+        controller.setMediaMarkers([
+            {
+                id: "broadcast-video",
+                startTimeMs: 200,
+                endTimeMs: 500,
+                label: "Broadcast Video",
+                mediaKind: "videoClip",
+                mediaDisplayMode: "segment",
+                clickable: false,
+            },
+        ]);
+
+        expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker--inactive");
+        expect(mediaMarkers.children[0].getAttribute("aria-disabled")).toBe("true");
+
+        mediaMarkers.children[0].dispatchEvent({ type: "click" });
+        controller.setCurrentTime(300);
+
+        expect(seekTimes).toEqual([]);
+        expect(dispatchedEvents).toEqual([]);
+
+        delete global.CustomEvent;
+    });
 });

@@ -158,6 +158,15 @@ function resolveBackgroundPlaybackMode({
     return "playing";
 }
 
+function shouldUseBackgroundTransportPlayback({
+    animationRealtime = true,
+    animationSpeedMultiplier = 1,
+} = {}) {
+    if (animationRealtime === true) return true;
+    const multiplier = Number(animationSpeedMultiplier);
+    return Number.isFinite(multiplier) && multiplier > 0 && multiplier <= MAX_PLAYBACK_RATE;
+}
+
 function resolveBackgroundPlaybackButtonState({
     playbackEnabled = false,
     animationRunning = false,
@@ -399,6 +408,7 @@ function createBackgroundMediaPanelActions({
     onJumpToTime = () => {},
     onRequestPlay = () => {},
     onRequestPause = () => {},
+    loadHlsLibraryFn = loadHlsLibrary,
 } = {}) {
     let missionConfigData = null;
     let panelAvailable = false;
@@ -566,7 +576,7 @@ function createBackgroundMediaPanelActions({
         }
         callMediaMethod(video, "load");
 
-        loadHlsLibrary().then((Hls) => {
+        loadHlsLibraryFn().then((Hls) => {
             if (attachToken !== hlsAttachToken || videoSourceUrl !== sourceUrl) return;
             if (!Hls || typeof Hls.isSupported !== "function" || !Hls.isSupported()) {
                 if (canPlayHlsNatively(video)) {
@@ -651,16 +661,33 @@ function createBackgroundMediaPanelActions({
         setNativeVideoSource(video, item, sourceUrl);
     }
 
-    function pauseVideo() {
+    function pauseVideo({
+        stopHlsLoad = true,
+    } = {}) {
         const video = getVideo();
-        if (video?.paused === true && playRequestPending !== true) return;
-        try {
-            hlsInstance?.stopLoad?.();
-        } catch {
-            // Ignore HLS loader state races during media transitions.
+        const alreadyPaused = video?.paused === true && playRequestPending !== true;
+        if (stopHlsLoad === true) {
+            try {
+                hlsInstance?.stopLoad?.();
+            } catch {
+                // Ignore HLS loader state races during media transitions.
+            }
         }
+        if (alreadyPaused) return;
         callMediaMethod(video, "pause");
         playRequestPending = false;
+    }
+
+    function keepHlsLoadingForFramePreview(offsetSeconds) {
+        const video = getVideo();
+        if (!isLikelyHlsSource(videoSourceUrl, video?.dataset?.sourceType)) return;
+        try {
+            hlsInstance?.startLoad?.(Number.isFinite(offsetSeconds)
+                ? Math.max(0, offsetSeconds)
+                : (Number(video?.currentTime) || 0));
+        } catch {
+            // hls.js can reject loader restarts while it is attaching media.
+        }
     }
 
     function playVideo() {
@@ -1177,8 +1204,29 @@ function createBackgroundMediaPanelActions({
             foregroundMediaActive,
             foregroundMediaKind,
         });
+        const sourceChanged = activeItem.id !== activeItemId || activeItem.assetUrl !== videoSourceUrl;
 
         if (playbackMode === "ready") {
+            const keepPausedSource = panelState === "open" && playbackEnabled === true;
+            if (keepPausedSource) {
+                if (sourceChanged) {
+                    configureVideoSource(activeItem);
+                }
+                const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
+                setVideoCurrentTime(offsetSeconds, { force: sourceChanged });
+                if (!hasStoredMutedPreference) {
+                    muted = activeItem.backgroundPlayback?.muted !== false;
+                }
+                effectiveAudioMuted = muted;
+                mutedForForegroundMedia = false;
+                if (video) video.muted = muted;
+                pauseVideo();
+                lastPlaybackMode = playbackMode;
+                setHidden("background-media-live", true);
+                setText("background-media-status", `Paused ${formatStatusTime(offsetSeconds)}`);
+                syncButtons();
+                return;
+            }
             if (lastPlaybackMode !== "ready") {
                 pauseVideo();
             }
@@ -1193,7 +1241,6 @@ function createBackgroundMediaPanelActions({
             return;
         }
 
-        const sourceChanged = activeItem.id !== activeItemId || activeItem.assetUrl !== videoSourceUrl;
         if (sourceChanged) {
             configureVideoSource(activeItem);
         }
@@ -1219,8 +1266,14 @@ function createBackgroundMediaPanelActions({
         }
         const basePlaybackRate = getAnimationRealtime() === true ? 1 : Number(getAnimationSpeedMultiplier());
         const correctionPlaybackRate = Number(streamSyncPlan.playbackRate);
-        setVideoPlaybackRate((Number.isFinite(basePlaybackRate) && basePlaybackRate > 0 ? basePlaybackRate : 1)
-            * (Number.isFinite(correctionPlaybackRate) && correctionPlaybackRate > 0 ? correctionPlaybackRate : 1));
+        const useTransportPlayback = shouldUseBackgroundTransportPlayback({
+            animationRealtime: getAnimationRealtime() === true,
+            animationSpeedMultiplier: basePlaybackRate,
+        });
+        setVideoPlaybackRate(useTransportPlayback
+            ? (Number.isFinite(basePlaybackRate) && basePlaybackRate > 0 ? basePlaybackRate : 1)
+                * (Number.isFinite(correctionPlaybackRate) && correctionPlaybackRate > 0 ? correctionPlaybackRate : 1)
+            : 1);
         if (!hasStoredMutedPreference) {
             muted = activeItem.backgroundPlayback?.muted !== false;
         }
@@ -1229,7 +1282,16 @@ function createBackgroundMediaPanelActions({
         mutedForForegroundMedia = playbackMode === "muted-for-foreground";
         if (video) video.muted = effectiveMuted;
 
-        if (playbackMode === "playing") {
+        if (!useTransportPlayback && (playbackMode === "playing" || playbackMode === "muted-for-foreground")) {
+            pauseVideo({ stopHlsLoad: false });
+            keepHlsLoadingForFramePreview(offsetSeconds);
+            setVideoCurrentTime(offsetSeconds, { force: sourceChanged });
+            setHidden("background-media-live", true);
+            setText("background-media-status", playbackMode === "muted-for-foreground"
+                ? "Muted for Foreground Media"
+                : `Frame preview ${formatStatusTime(offsetSeconds)}`);
+            lastForegroundEffect = playbackMode === "muted-for-foreground" ? "muted" : "";
+        } else if (playbackMode === "playing") {
             const playStarted = playVideo();
             setHidden("background-media-live", !playStarted);
             setText("background-media-status", playStarted
@@ -1307,4 +1369,5 @@ export {
     resolveBackgroundPlaybackButtonState,
     resolveBackgroundPlaybackMode,
     resolveNearestInactiveBackgroundItem,
+    shouldUseBackgroundTransportPlayback,
 };

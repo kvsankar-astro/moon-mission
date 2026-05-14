@@ -1796,7 +1796,9 @@ function createMediaBrowserPanelActions({
     function setNativeVideoSource(video, activeItem, nextVideoUrl) {
         destroyHlsInstance();
         hlsUnsupportedSourceUrl = "";
-        if (videoViewAssetUrl !== nextVideoUrl || video.getAttribute?.("src") !== nextVideoUrl) {
+        if (video.getAttribute?.("src") === nextVideoUrl) {
+            videoViewAssetUrl = nextVideoUrl;
+        } else {
             videoViewAssetUrl = nextVideoUrl;
             video.src = nextVideoUrl;
             callMediaMethod(video, "load");
