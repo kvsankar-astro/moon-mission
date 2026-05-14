@@ -2486,7 +2486,7 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "previewItem", value: "clip.mp4" });
         const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
             type === "animation-play-state-updated"
         ));
@@ -2497,6 +2497,107 @@ describe("createMediaTimelineCoordination", () => {
         expect(video.pause).toHaveBeenCalled();
         expect(video.currentTime).toBe(0);
         expect(playAnimation).toHaveBeenCalled();
+    });
+
+    it("plays a directly selected foreground video even when animation is running fast", async () => {
+        class FakeInput {}
+        const clipStartMs = Date.parse("2026-04-02T16:00:00Z");
+        const selectedTimeMs = clipStartMs + 300000;
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = String(selectedTimeMs);
+        slider.dataset = {
+            currentTimeMs: String(selectedTimeMs),
+        };
+        slider.dispatchEvent = vi.fn((event) => {
+            if (event.type === "input" || event.type === "change") {
+                slider.value = String(slider.dataset.programmaticSeekTimeMs || slider.value);
+                slider.dataset.currentTimeMs = slider.dataset.programmaticSeekTimeMs || slider.dataset.currentTimeMs;
+            }
+        });
+        let resolvePlay = null;
+        const video = {
+            dataset: {},
+            src: "",
+            poster: "",
+            currentTime: 0,
+            paused: true,
+            getAttribute(name) {
+                return name === "src" ? this.src : "";
+            },
+            play: vi.fn(() => {
+                video.paused = false;
+                return new Promise((resolve) => {
+                    resolvePlay = resolve;
+                });
+            }),
+            pause: vi.fn(() => {
+                video.paused = true;
+            }),
+            load: vi.fn(),
+            removeAttribute: vi.fn(),
+        };
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => {
+            if (id === "timeline-slider") return slider;
+            if (id === "media-browser-video") return video;
+            return null;
+        });
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            photos: [
+                {
+                    time: "2026-04-02 12:00:00",
+                    file: "clip.mp4",
+                    title: "Crew video",
+                    enabled: true,
+                    video: true,
+                    durationSeconds: 600,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getAnimationRunning: () => true,
+            getAnimationSpeedMultiplier: () => 60,
+            getAnimationRealtime: () => false,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: selectedTimeMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        await flushPromises(3);
+
+        expect(video.currentTime).toBe(300);
+        expect(video.play).toHaveBeenCalledTimes(1);
+
+        video.pause.mockClear();
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: selectedTimeMs + 1000,
+        });
+
+        expect(video.currentTime).toBe(300);
+        expect(video.pause).not.toHaveBeenCalled();
+        resolvePlay?.();
+        await flushPromises(3);
     });
 
     it("keeps frame-scrub preview pauses from toggling animation playback", async () => {
@@ -2581,13 +2682,12 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
-        mocks.panelIntentHandler?.({
-            type: "mediaPlaybackStarted",
-            value: "clip.mp4",
-            mediaKind: "videoClip",
-            currentTime: 0,
-        });
+        mocks.panelIntentHandler?.({ type: "previewItem", value: "clip.mp4" });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
         pauseAnimation.mockClear();
 
         coordination.update({
@@ -2666,7 +2766,7 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "previewItem", value: "clip.mp4" });
         const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
             type === "animation-play-state-updated"
         ));
@@ -2820,7 +2920,14 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
+        mocks.panelIntentHandler?.({ type: "previewItem", value: "clip.mp4" });
+        slider.value = String(animationTimeMs);
+        slider.dataset.currentTimeMs = String(animationTimeMs);
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
         slider.dispatchEvent.mockClear();
 
         mocks.panelIntentHandler?.({
@@ -2839,8 +2946,6 @@ describe("createMediaTimelineCoordination", () => {
         expect(Number(slider.dataset.currentTimeMs)).toBe(animationTimeMs);
         expect(Number(slider.value)).toBe(animationTimeMs);
         expect(slider.dispatchEvent).not.toHaveBeenCalled();
-        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
-        expect(latestRender.playbackModel.elapsedSeconds).toBe(65);
     });
 
     it("keeps active video synced when switching fast sim speed back to realtime", async () => {
@@ -3531,8 +3636,13 @@ describe("createMediaTimelineCoordination", () => {
         });
         await flushPromises(8);
 
-        mocks.panelIntentHandler?.({ type: "selectItem", value: "clip.mp4" });
-        mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
+        mocks.panelIntentHandler?.({ type: "previewItem", value: "clip.mp4" });
+        const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
+            type === "animation-play-state-updated"
+        ));
+        playStateHandler({ detail: { isPlaying: true } });
+        await flushPromises(2);
+        video.pause.mockClear();
         slider.dataset.currentTimeMs = String(clipStartMs + 45000);
         slider.value = String(clipStartMs + 45000);
         mocks.panelIntentHandler?.({ type: "forceResyncActiveMedia" });

@@ -62,6 +62,8 @@ Set authority to `media` when the user directly uses media transport:
 - media Restart
 - media seek slider
 - media panel play controls that start a focused playable item
+- direct selection of a foreground audio/video item while animation is already
+  running, because that selection starts foreground playback
 
 This rule applies even if animation was already running. Whether animation
 continues while the media starts is an effect flag, not playback authority.
@@ -112,7 +114,9 @@ These are the canonical user-visible rules.
    - Effect: if the selected item is an image/photo, any active foreground
      audio/video is stopped without pausing animation.
    - Effect: if the selected item is audio/video and animation is running, the
-     foreground item starts from the matching mission-time offset.
+     foreground item starts real media transport from the matching mission-time
+     offset, even when animation speed is high enough that animation-owned
+     preview would normally use frame-scrub mode.
    - Exception: a video with the `background` playback role is not a
      foreground playback candidate. Mission-time changes may make it the active
      contextual item, but it must not start in the Mission Media player.
@@ -136,7 +140,9 @@ These are the canonical user-visible rules.
    - Cause: direct media play, selecting a playable carousel item while
      animation is running, or entering an explicitly selected playable media
      range while animation is running.
-   - Effect: foreground media plays.
+   - Effect: user-selected foreground media plays through media transport;
+     animation-owned foreground video may use frame-scrub preview at high
+     speeds.
    - Effect: Background Video keeps time with the mission clock but is
      temporarily muted and shows `Muted for Foreground Media`.
    - Effect: when foreground media pauses/ends/buffers out of foreground
@@ -256,9 +262,14 @@ When authority is `media`, mission time follows media time:
 - Media End stops media and pauses animation.
 - Media Restart begins from the media start and seeks mission time.
 
-At high animation speeds above the media transport limit, video uses
-frame-scrub preview mode instead of normal transport playback. Animation stays
-authoritative in that mode.
+At high animation speeds above the media transport limit, animation-owned video
+uses frame-scrub preview mode instead of normal transport playback. Animation
+stays authoritative in that mode.
+
+Media-owned playback is different: when the user directly starts or selects a
+foreground audio/video item, Mission Media must use real media transport and
+must not be converted into frame-scrub preview by a concurrent fast-running
+animation. In that state, media time is allowed to drive mission time.
 
 Frame-scrub preview is still foreground video activity while animation is
 running. It must mute Background Video just like normal foreground video
