@@ -11,21 +11,26 @@ import {
     getMissionPanelDefaultState,
     isMissionPanelEnabled,
 } from "./panel-defaults.js";
+import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v7-wide-independent-60vh-media-frame";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v11-non-overlap-z-order";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 8;
 const PANEL_DEFAULT_WIDTH_PX = 672;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.6;
 const PANEL_MIN_WIDTH_PX = 360;
 const PANEL_MIN_HEIGHT_PX = 360;
+const WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX = 72;
+const WORKFLOW_PANEL_STACK_GAP_PX = 8;
+const WORKFLOW_BROADCAST_PANEL_HEIGHT_PX = 300;
+const WORKFLOW_MEDIA_PANEL_WIDTH_PX = 546;
 const PANEL_RESIZE_HIT_PX = 28;
 const DRILLDOWN_DRAWER_WIDTH_PX = 320;
 const DRILLDOWN_DRAWER_MIN_WIDTH_PX = 260;
 const DRILLDOWN_DRAWER_MIN_HEIGHT_PX = 180;
-const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = 148;
 const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
+const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = THUMBNAIL_STRIP_MIN_HEIGHT_PX;
 const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
 const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 160;
 const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
@@ -214,6 +219,15 @@ function getPanelDefaultHeightPx() {
     return Math.round(getViewportHeight() * PANEL_DEFAULT_HEIGHT_RATIO);
 }
 
+function getWorkflowPanelStackTopPx() {
+    const headerRect = getDocumentRef()?.querySelector?.(".header")?.getBoundingClientRect?.() || null;
+    const headerBottom = Number(headerRect?.bottom);
+    if (Number.isFinite(headerBottom) && headerBottom > 0) {
+        return Math.max(PANEL_EDGE_MARGIN_PX, Math.round(headerBottom + PANEL_EDGE_MARGIN_PX));
+    }
+    return WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX;
+}
+
 function formatMediaElapsedTime(seconds) {
     const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
     const hours = Math.floor(totalSeconds / 3600);
@@ -240,6 +254,7 @@ function createMediaBrowserPanelActions({
     let panelResizeDragState = null;
     let thumbnailResizeDragState = null;
     let thumbnailScrollerDragState = null;
+    let thumbnailPagingTargetScrollLeft = null;
     let suppressThumbnailClick = false;
     let imageViewState = createDefaultMediaImageViewState();
     let imagePanDragState = null;
@@ -271,9 +286,18 @@ function createMediaBrowserPanelActions({
         : null;
     let hasRestoredPanelVisibilityState = false;
     let defaultPanelStateApplied = false;
+    let suppressNativeMediaSeekEvents = 0;
 
     function getNode(id) {
         return getDocumentRef()?.getElementById?.(id) || null;
+    }
+
+    function getWrapper() {
+        return getNode("media-browser-panel-wrapper");
+    }
+
+    function bringPanelToFront() {
+        bringPanelElementToFront(getWrapper());
     }
 
     function getImageStageSize() {
@@ -352,8 +376,31 @@ function createMediaBrowserPanelActions({
         const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, PANEL_MIN_WIDTH_PX);
         const height = Math.max(panel.offsetHeight || getPanelDefaultHeightPx(), PANEL_MIN_HEIGHT_PX);
         const x = PANEL_DEFAULT_LEFT_PX;
-        const y = Math.round((getViewportHeight() - height) * 0.5);
+        const y = getWorkflowPanelStackTopPx()
+            + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
+            + WORKFLOW_PANEL_STACK_GAP_PX;
         return clampPanelRect({ x, y, width, height });
+    }
+
+    function resolveDefaultPanelFrame() {
+        const y = getWorkflowPanelStackTopPx()
+            + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
+            + WORKFLOW_PANEL_STACK_GAP_PX;
+        const width = Math.min(
+            WORKFLOW_MEDIA_PANEL_WIDTH_PX,
+            Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - (2 * PANEL_EDGE_MARGIN_PX)),
+        );
+        const availableHeight = getViewportHeight() - y - PANEL_EDGE_MARGIN_PX;
+        const height = Math.min(
+            getPanelDefaultHeightPx(),
+            Math.max(PANEL_MIN_HEIGHT_PX, availableHeight),
+        );
+        return {
+            x: PANEL_DEFAULT_LEFT_PX,
+            y,
+            width,
+            height,
+        };
     }
 
     function clampPanelRect({ x, y, width, height }) {
@@ -441,8 +488,10 @@ function createMediaBrowserPanelActions({
     function ensurePanelPosition(panel) {
         if (!panel) return;
         if (!panelPosition) {
-            const initial = resolveDefaultPanelPosition(panel);
-            applyPanelPosition(panel, initial.x, initial.y);
+            applyPanelFrame(panel, resolveDefaultPanelFrame(), {
+                managed: defaultLayoutManaged,
+                persist: false,
+            });
             return;
         }
         clampPanelPosition(panel);
@@ -678,6 +727,7 @@ function createMediaBrowserPanelActions({
             }
             if (thumbnailScrollerDragState.didDrag !== true) {
                 thumbnailScrollerDragState.didDrag = true;
+                thumbnailPagingTargetScrollLeft = null;
                 host.classList.add("is-dragging");
                 host.setPointerCapture?.(event.pointerId);
             }
@@ -695,6 +745,97 @@ function createMediaBrowserPanelActions({
             event.preventDefault();
             event.stopPropagation();
         }, true);
+    }
+
+    function getThumbnailPageStep(host) {
+        const width = Number(host?.clientWidth);
+        if (!Number.isFinite(width) || width <= 0) return 0;
+        return Math.max(1, Math.floor(width - 32));
+    }
+
+    function getThumbnailMaxScrollLeft(host) {
+        if (!host) return 0;
+        const clientWidth = Number(host.clientWidth);
+        const scrollWidth = Number(host.scrollWidth);
+        let maxScrollLeft = Number.isFinite(scrollWidth) && Number.isFinite(clientWidth)
+            ? scrollWidth - clientWidth
+            : 0;
+        const children = Array.from(host.children || []);
+        const lastChild = children.at(-1);
+        const lastChildRight = Number(lastChild?.offsetLeft) + Number(lastChild?.offsetWidth);
+        if (Number.isFinite(lastChildRight) && Number.isFinite(clientWidth)) {
+            maxScrollLeft = Math.max(maxScrollLeft, lastChildRight - clientWidth);
+        }
+        return Math.max(0, maxScrollLeft);
+    }
+
+    function getEffectiveThumbnailScrollLeft(host) {
+        if (thumbnailPagingTargetScrollLeft != null) {
+            const target = Number(thumbnailPagingTargetScrollLeft);
+            if (Number.isFinite(target)) return target;
+        }
+        return Number(host?.scrollLeft) || 0;
+    }
+
+    function syncThumbnailPageButtons() {
+        const host = getNode("media-browser-thumbnail-list");
+        const previousButton = getNode("media-browser-thumbnail-prev");
+        const nextButton = getNode("media-browser-thumbnail-next");
+        const maxScrollLeft = getThumbnailMaxScrollLeft(host);
+        const scrollLeft = clamp(getEffectiveThumbnailScrollLeft(host), 0, maxScrollLeft);
+        const canScroll = maxScrollLeft > 1;
+        if (previousButton) {
+            previousButton.disabled = !canScroll || scrollLeft <= 1;
+        }
+        if (nextButton) {
+            nextButton.disabled = !canScroll || scrollLeft >= maxScrollLeft - 1;
+        }
+    }
+
+    function scrollThumbnailPage(direction) {
+        const host = getNode("media-browser-thumbnail-list");
+        if (!host) return;
+        const step = getThumbnailPageStep(host);
+        if (step <= 0) return;
+        const maxScrollLeft = getThumbnailMaxScrollLeft(host);
+        const currentScrollLeft = clamp(getEffectiveThumbnailScrollLeft(host), 0, maxScrollLeft);
+        const nextScrollLeft = clamp(currentScrollLeft + (direction < 0 ? -step : step), 0, maxScrollLeft);
+        thumbnailPagingTargetScrollLeft = nextScrollLeft;
+        try {
+            if (typeof host.scrollTo === "function") {
+                host.scrollTo({
+                    left: nextScrollLeft,
+                    behavior: "smooth",
+                });
+            } else {
+                host.scrollLeft = nextScrollLeft;
+            }
+        } catch {
+            host.scrollLeft = nextScrollLeft;
+        }
+        getWindowRef()?.requestAnimationFrame?.(syncThumbnailPageButtons);
+        getWindowRef()?.setTimeout?.(syncThumbnailPageButtons, 160);
+    }
+
+    function handleThumbnailScroll() {
+        const host = getNode("media-browser-thumbnail-list");
+        const target = thumbnailPagingTargetScrollLeft == null
+            ? Number.NaN
+            : Number(thumbnailPagingTargetScrollLeft);
+        if (host && Number.isFinite(target) && Math.abs((Number(host.scrollLeft) || 0) - target) <= 1) {
+            thumbnailPagingTargetScrollLeft = null;
+        }
+        syncThumbnailPageButtons();
+    }
+
+    function bindThumbnailPageButtons() {
+        const host = getNode("media-browser-thumbnail-list");
+        const previousButton = getNode("media-browser-thumbnail-prev");
+        const nextButton = getNode("media-browser-thumbnail-next");
+        previousButton?.addEventListener?.("click", () => scrollThumbnailPage(-1));
+        nextButton?.addEventListener?.("click", () => scrollThumbnailPage(1));
+        host?.addEventListener?.("scroll", handleThumbnailScroll, { passive: true });
+        syncThumbnailPageButtons();
     }
 
     function resolveExpandedPanelRect() {
@@ -1218,6 +1359,7 @@ function createMediaBrowserPanelActions({
             persistPanelLayoutState(panel);
             return;
         }
+        bringPanelToFront();
         if (panelExpanded === true) {
             panel.classList.add("is-maximized");
             applyExpandedPanelRect(panel);
@@ -1357,6 +1499,7 @@ function createMediaBrowserPanelActions({
     function syncMediaControls(playbackModel = {}) {
         const controls = getNode("media-browser-media-controls");
         const playButton = getNode("media-browser-media-play");
+        const muteButton = getNode("media-browser-media-mute");
         const restartButton = getNode("media-browser-media-restart");
         const resyncButton = getNode("media-browser-media-resync");
         const elapsed = getNode("media-browser-media-elapsed");
@@ -1378,11 +1521,20 @@ function createMediaBrowserPanelActions({
         }
         if (playButton) {
             playButton.disabled = !show;
-            playButton.textContent = isBusy ? "Pause" : "Play";
+            playButton.textContent = playbackModel.playLabel || (isBusy ? "Pause" : "Play");
             playButton.title = playbackModel.playTitle || (isBusy
                 ? "Pause media playback"
                 : "Play media from the current mission time");
             playButton.setAttribute("aria-label", playButton.title);
+        }
+        if (muteButton) {
+            const muted = playbackModel.muted === true;
+            muteButton.disabled = !show;
+            muteButton.textContent = "";
+            muteButton.dataset.icon = muted ? "speaker-muted" : "speaker";
+            muteButton.title = muted ? "Unmute Mission Media" : "Mute Mission Media";
+            muteButton.setAttribute("aria-label", muteButton.title);
+            muteButton.setAttribute("aria-pressed", muted ? "true" : "false");
         }
         if (restartButton) {
             restartButton.disabled = !show;
@@ -1516,6 +1668,7 @@ function createMediaBrowserPanelActions({
         } catch {
             host.scrollLeft = targetScrollLeft;
         }
+        syncThumbnailPageButtons();
     }
 
     function scheduleActiveThumbnailReveal() {
@@ -1529,11 +1682,12 @@ function createMediaBrowserPanelActions({
         const host = getNode("media-browser-thumbnail-list");
         if (!host) return;
         const nextSignature = JSON.stringify(thumbnailItems || []);
-        if (nextSignature === thumbnailSignature) {
-            revealActiveThumbnail();
-            return;
-        }
+            if (nextSignature === thumbnailSignature) {
+                syncThumbnailPageButtons();
+                return;
+            }
         thumbnailSignature = nextSignature;
+        thumbnailPagingTargetScrollLeft = null;
         if (typeof host.replaceChildren === "function") {
             host.replaceChildren();
         } else {
@@ -1610,12 +1764,14 @@ function createMediaBrowserPanelActions({
             button.appendChild(meta);
             button.appendChild(metadata);
             button.addEventListener("click", () => {
+                if (suppressThumbnailClick === true) return;
                 onIntent?.({ type: "previewItem", value: item.id });
             });
             host.appendChild(button);
         }
 
-        revealActiveThumbnail();
+        scheduleActiveThumbnailReveal();
+        syncThumbnailPageButtons();
     }
 
     function destroyHlsInstance() {
@@ -1690,13 +1846,31 @@ function createMediaBrowserPanelActions({
             });
             hlsInstance = instance;
             hlsSourceUrl = nextVideoUrl;
-            instance.attachMedia(video);
             instance.on(Hls.Events.MEDIA_ATTACHED, () => {
                 if (attachToken !== hlsAttachToken || hlsInstance !== instance) return;
                 instance.loadSource(nextVideoUrl);
+                instance.startLoad?.(0);
+            });
+            instance.on(Hls.Events.MANIFEST_PARSED, () => {
+                if (attachToken !== hlsAttachToken || hlsInstance !== instance) return;
+                onIntent?.({
+                    type: "mediaVideoSourceReady",
+                    value: activeItem.id || "",
+                    mediaKind: "videoClip",
+                    currentTime: Number(video?.currentTime),
+                });
             });
             instance.on(Hls.Events.ERROR, (_event, data = {}) => {
                 if (hlsInstance !== instance || data.fatal !== true) return;
+                if (data.details === "manifestIncompatibleCodecsError") {
+                    destroyHlsInstance();
+                    onIntent?.({
+                        type: "mediaPlaybackFailed",
+                        value: activeItem.id || "",
+                        mediaKind: "videoClip",
+                    });
+                    return;
+                }
                 if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
                     instance.startLoad();
                     return;
@@ -1707,6 +1881,7 @@ function createMediaBrowserPanelActions({
                 }
                 destroyHlsInstance();
             });
+            instance.attachMedia(video);
         });
     }
 
@@ -1903,6 +2078,7 @@ function createMediaBrowserPanelActions({
             }
             panel.classList.toggle("is-maximized", panelExpanded === true);
             setDefaultLayoutManaged(defaultLayoutManaged, panel);
+            panel.addEventListener?.("pointerdown", bringPanelToFront, true);
         }
 
         if (!infoButton && isElementLike(headerControls) && typeof headerControls.insertBefore === "function") {
@@ -1955,10 +2131,11 @@ function createMediaBrowserPanelActions({
         bindImageViewControls();
         bindThumbnailStripResizer();
         bindThumbnailStripDragging();
+        bindThumbnailPageButtons();
         if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
-            clampPanelPosition(panel);
+            ensurePanelPosition(panel);
         }
         applyThumbnailStripHeight(thumbnailStripHeight);
         panel?.classList.toggle("media-browser-panel--hidden", panelVisibilityState !== "open");
@@ -1983,6 +2160,9 @@ function createMediaBrowserPanelActions({
         getNode("media-browser-media-play")?.addEventListener?.("click", () => {
             onIntent?.({ type: "toggleActiveMediaPlayback" });
         });
+        getNode("media-browser-media-mute")?.addEventListener?.("click", () => {
+            onIntent?.({ type: "toggleMediaMuted" });
+        });
 
         getNode("media-browser-media-restart")?.addEventListener?.("click", () => {
             onIntent?.({ type: "startActiveMediaFromBeginning" });
@@ -1999,6 +2179,7 @@ function createMediaBrowserPanelActions({
             const value = resolveRangeValueAtClientX(mediaTimelineSlider, Number(event?.clientX));
             if (!Number.isFinite(value)) return false;
             mediaTimelineSlider.value = String(value);
+            suppressNativeMediaSeekEvents = Math.max(suppressNativeMediaSeekEvents, finalize === true ? 2 : 1);
             onIntent?.({
                 type: "mediaSeekTime",
                 value,
@@ -2060,6 +2241,10 @@ function createMediaBrowserPanelActions({
             mediaTimelinePointerState = null;
         });
         mediaTimelineSlider?.addEventListener?.("input", () => {
+            if (suppressNativeMediaSeekEvents > 0) {
+                suppressNativeMediaSeekEvents -= 1;
+                return;
+            }
             onIntent?.({
                 type: "mediaSeekTime",
                 value: Number(mediaTimelineSlider?.value),
@@ -2067,6 +2252,10 @@ function createMediaBrowserPanelActions({
             });
         });
         mediaTimelineSlider?.addEventListener?.("change", () => {
+            if (suppressNativeMediaSeekEvents > 0) {
+                suppressNativeMediaSeekEvents -= 1;
+                return;
+            }
             onIntent?.({
                 type: "mediaSeekTime",
                 value: Number(mediaTimelineSlider?.value),
@@ -2139,6 +2328,14 @@ function createMediaBrowserPanelActions({
                 });
             });
         }
+        video?.addEventListener?.("canplay", () => {
+            onIntent?.({
+                type: "mediaVideoSourceReady",
+                value: getVideoItemId(),
+                mediaKind: "videoClip",
+                currentTime: Number(video?.currentTime),
+            });
+        });
 
         const drilldown = getNode("media-browser-drilldown");
         drilldown?.addEventListener?.("toggle", () => {

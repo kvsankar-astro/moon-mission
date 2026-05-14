@@ -44,13 +44,12 @@ The intended hosted URL is:
 `https://media.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8`
 
 The stream is declared in `assets/artemis2/data/media-manifest.json5` with
-`enabled: true` for local testing. The local test manifest points at:
-
-`assets/artemis2/media/streams/lunar-flyby/v1/master.m3u8`
-
-For this worktree, the HLS package has been copied to:
+`enabled: true` and points at the local staged HLS copy for development:
 
 `assets/artemis2/media/streams/lunar-flyby/v1/`
+
+The hosted URL above is the intended production location once DNS and static
+hosting are configured.
 
 A generated poster frame is staged at:
 

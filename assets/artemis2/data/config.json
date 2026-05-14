@@ -106,31 +106,35 @@
         "aux:earth": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v2-default-open"
         },
         "aux:moon": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v2-default-open"
         },
         "aux:earth-to-moon": {
           "enabled": true,
           "defaultState": "minimized",
-          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v2-default-open"
         },
         "aux:earth-origin-orbit-xy": {
           "enabled": true,
           "defaultState": "open",
-          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v2-default-open"
         },
         "aux:earth-rise-composer": {
           "enabled": true,
-          "defaultState": "minimized",
-          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v1"
+          "defaultState": "open",
+          "layoutPresetVersion": "artemis2-wide-independent-panel-row-v2-default-open"
         },
         "workflow:media-browser": {
           "enabled": true,
-          "defaultState": "closed"
+          "defaultState": "open"
+        },
+        "workflow:background-media": {
+          "enabled": true,
+          "defaultState": "open"
         },
         "workflow:splashdown": {
           "enabled": true,

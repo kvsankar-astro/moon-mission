@@ -75,6 +75,7 @@ function createHarness(options = {}) {
     const observerInstances = [];
     let splashdownVisible = options.splashdownVisible === true;
     let composerVisible = options.composerVisible === true;
+    let backgroundVisible = options.backgroundVisible === true;
     let groundTrackVisible = options.groundTrackVisible === true;
     let mediaVisible = options.mediaVisible === true;
     let craftMoonVisible = options.craftMoonVisible === true;
@@ -95,6 +96,7 @@ function createHarness(options = {}) {
 
     const flybyGroup = createElement("flyby-group");
     const flybyWrap = createElement("flyby-pill-wrap", { closestHeaderGroup: flybyGroup });
+    const backgroundPill = createElement("panel-pill-background");
     const flybyPill = createElement("flyby-pill");
     const splashdownPill = createElement("focus-pill-splashdown");
     const mediaPill = createElement("panel-pill-media");
@@ -108,6 +110,7 @@ function createHarness(options = {}) {
 
     const byId = new Map([
         ["flyby-pill-wrap", flybyWrap],
+        ["panel-pill-background", backgroundPill],
         ["flyby-pill", flybyPill],
         ["focus-pill-splashdown", splashdownPill],
         ["panel-pill-media", mediaPill],
@@ -132,6 +135,9 @@ function createHarness(options = {}) {
             }
             if (selector === "#media-browser-panel:not(.media-browser-panel--hidden)") {
                 return mediaVisible ? { id: "media-browser-panel" } : null;
+            }
+            if (selector === "#background-media-panel:not(.background-media-panel--hidden)") {
+                return backgroundVisible ? { id: "background-media-panel" } : null;
             }
             if (selector === "#aux-camera-views .aux-camera-view[data-panel-id=\"aux:moon\"]:not([hidden])") {
                 return craftMoonVisible ? { id: "moon-view" } : null;
@@ -180,6 +186,7 @@ function createHarness(options = {}) {
 
     const invokeMissionPanelAction = vi.fn((panelId) =>
         (options.restoreComposer === true && panelId === "aux:earth-rise-composer") ||
+        (options.restoreBackground === true && panelId === "workflow:background-media") ||
         options.restoredPanelId === panelId);
     const setView = vi.fn();
     const createCustomEvent = (type) => ({ type });
@@ -204,6 +211,7 @@ function createHarness(options = {}) {
 
     return {
         auxPanelsToggle,
+        backgroundPill,
         composerChip,
         controller,
         craftEarthPill,
@@ -217,6 +225,9 @@ function createHarness(options = {}) {
         observerInstances,
         setComposerVisible(value) {
             composerVisible = value;
+        },
+        setBackgroundVisible(value) {
+            backgroundVisible = value;
         },
         setGroundTrackVisible(value) {
             groundTrackVisible = value;
@@ -247,6 +258,7 @@ describe("createFocusPillController", function () {
     it("syncs initial focus pill visibility and active state for Artemis II", function () {
         const harness = createHarness({
             composerVisible: true,
+            backgroundVisible: true,
             craftEarthVisible: true,
             craftMoonVisible: true,
             earthOrbitXyVisible: true,
@@ -258,6 +270,7 @@ describe("createFocusPillController", function () {
         harness.controller.bind();
         harness.flushRaf();
 
+        expect(harness.backgroundPill.hidden).toBe(false);
         expect(harness.flybyPill.hidden).toBe(false);
         expect(harness.splashdownPill.hidden).toBe(false);
         expect(harness.mediaPill.hidden).toBe(false);
@@ -265,6 +278,7 @@ describe("createFocusPillController", function () {
         expect(harness.craftEarthPill.hidden).toBe(false);
         expect(harness.earthOrbitXyPill.hidden).toBe(false);
         expect(harness.flybyGroup.hidden).toBe(false);
+        expect(harness.backgroundPill.classList.contains("is-active")).toBe(true);
         expect(harness.flybyPill.classList.contains("is-active")).toBe(true);
         expect(harness.splashdownPill.classList.contains("is-active")).toBe(true);
         expect(harness.mediaPill.classList.contains("is-active")).toBe(true);
@@ -303,12 +317,14 @@ describe("createFocusPillController", function () {
 
         harness.controller.bind();
         harness.auxPanelsToggle.checked = false;
+        harness.backgroundPill.dispatchEvent({ type: "click" });
         harness.mediaPill.dispatchEvent({ type: "click" });
         harness.craftMoonPill.dispatchEvent({ type: "click" });
         harness.craftEarthPill.dispatchEvent({ type: "click" });
         harness.earthOrbitXyPill.dispatchEvent({ type: "click" });
         harness.flushRaf();
 
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:background-media", "restore");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:media-browser", "restore");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:moon", "restore");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth", "restore");
@@ -320,6 +336,7 @@ describe("createFocusPillController", function () {
     it("closes visible panel shortcuts when their pills are clicked again", function () {
         const harness = createHarness({
             composerVisible: true,
+            backgroundVisible: true,
             craftEarthVisible: true,
             craftMoonVisible: true,
             earthOrbitXyVisible: true,
@@ -329,6 +346,7 @@ describe("createFocusPillController", function () {
         const dispatchSpy = vi.spyOn(harness.documentRef, "dispatchEvent");
 
         harness.controller.bind();
+        harness.backgroundPill.dispatchEvent({ type: "click" });
         harness.flybyPill.dispatchEvent({ type: "click" });
         harness.mediaPill.dispatchEvent({ type: "click" });
         harness.craftMoonPill.dispatchEvent({ type: "click" });
@@ -336,6 +354,7 @@ describe("createFocusPillController", function () {
         harness.earthOrbitXyPill.dispatchEvent({ type: "click" });
         harness.splashdownPill.dispatchEvent({ type: "click" });
 
+        expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:background-media", "close");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:earth-rise-composer", "close");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("workflow:media-browser", "close");
         expect(harness.invokeMissionPanelAction).toHaveBeenCalledWith("aux:moon", "close");

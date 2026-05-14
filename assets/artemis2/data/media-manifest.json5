@@ -19374,6 +19374,15 @@
       "syncMode": "missionClock",
       "syncStatus": "provisional",
       "timeOffsetSeconds": 0,
+      "playbackRoles": [
+        "background"
+      ],
+      "backgroundPlayback": {
+        "enabled": true,
+        "muted": true,
+        "priority": 100,
+        "fit": "contain"
+      },
       "defaultPanelState": "closed",
       "sourceParts": [
         {

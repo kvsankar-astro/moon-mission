@@ -17,9 +17,10 @@ export function createFocusPillController(deps = {}) {
     let bound = false;
 
     const panelShortcutIds = [
+        "panel-pill-background",
+        "panel-pill-media",
         "flyby-pill",
         "focus-pill-splashdown",
-        "panel-pill-media",
         "panel-pill-craft-moon",
         "panel-pill-craft-earth",
         "panel-pill-earth-orbit-xy",
@@ -79,8 +80,9 @@ export function createFocusPillController(deps = {}) {
         const panelShortcutsVisible = isArtemis2Mission();
         const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
         setShortcutHidden("flyby-pill", !panelShortcutsVisible);
-        setShortcutHidden("focus-pill-splashdown", !splashdownVisible);
+        setShortcutHidden("panel-pill-background", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-media", !panelShortcutsVisible);
+        setShortcutHidden("focus-pill-splashdown", !splashdownVisible);
         setShortcutHidden("panel-pill-craft-moon", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-craft-earth", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-earth-orbit-xy", !panelShortcutsVisible);
@@ -104,6 +106,7 @@ export function createFocusPillController(deps = {}) {
 
     function syncFocusPillState() {
         const flybyPill = getElement("flyby-pill");
+        const backgroundPill = getElement("panel-pill-background");
         const splashdownFocusPill = getElement("focus-pill-splashdown");
         const mediaPill = getElement("panel-pill-media");
         const craftMoonPill = getElement("panel-pill-craft-moon");
@@ -118,7 +121,11 @@ export function createFocusPillController(deps = {}) {
         const mediaPanelVisible = !!documentRef?.querySelector?.(
             "#media-browser-panel:not(.media-browser-panel--hidden)",
         );
+        const backgroundPanelVisible = !!documentRef?.querySelector?.(
+            "#background-media-panel:not(.background-media-panel--hidden)",
+        );
         syncPressedState(flybyPill, composerPanelVisible);
+        syncPressedState(backgroundPill, backgroundPanelVisible);
         syncPressedState(splashdownFocusPill, groundTrackPanelVisible);
         syncPressedState(mediaPill, mediaPanelVisible);
         syncPressedState(craftMoonPill, isAuxPanelVisible("aux:moon"));
@@ -141,6 +148,12 @@ export function createFocusPillController(deps = {}) {
     function isMediaPanelVisible() {
         return !!documentRef?.querySelector?.(
             "#media-browser-panel:not(.media-browser-panel--hidden)",
+        );
+    }
+
+    function isBackgroundPanelVisible() {
+        return !!documentRef?.querySelector?.(
+            "#background-media-panel:not(.background-media-panel--hidden)",
         );
     }
 
@@ -227,6 +240,19 @@ export function createFocusPillController(deps = {}) {
         restoreMediaPanel();
     }
 
+    function restoreBackgroundPanel() {
+        invokeFirstAvailablePanelAction("workflow:background-media", ["restore", "open", "focus"]);
+        requestAnimationFrameImpl(syncFocusPillState);
+    }
+
+    function toggleBackgroundPanel() {
+        if (isBackgroundPanelVisible()) {
+            closePanel("workflow:background-media");
+            return;
+        }
+        restoreBackgroundPanel();
+    }
+
     function toggleSplashdownPanel() {
         if (!isArtemis2Mission()) return;
         if (isGroundTrackPanelVisible()) {
@@ -243,6 +269,7 @@ export function createFocusPillController(deps = {}) {
         bound = true;
 
         const flybyPill = getElement("flyby-pill");
+        const backgroundPill = getElement("panel-pill-background");
         const splashdownFocusPill = getElement("focus-pill-splashdown");
         const mediaPill = getElement("panel-pill-media");
         const craftMoonPill = getElement("panel-pill-craft-moon");
@@ -255,6 +282,8 @@ export function createFocusPillController(deps = {}) {
                 toggleComposerPanel();
             });
         }
+
+        backgroundPill?.addEventListener?.("click", toggleBackgroundPanel);
 
         if (splashdownFocusPill) {
             splashdownFocusPill.addEventListener("click", function () {

@@ -20,6 +20,7 @@ import {
     clampFovDegrees,
 } from "./fov-slider-scale.js";
 import { mountMissionFovControl } from "./mission-fov-control.js";
+import { bringPanelElementToFront } from "./panel-z-order.js";
 import {
     configureBodyRenderLayers,
     configureCraftRenderLayers,
@@ -149,6 +150,7 @@ const COMPOSER_AUTO_FOV_MIN_DEGREES = 2;
 const COMPOSER_AUTO_FOV_MAX_DEGREES = 70;
 const COMPOSER_MANUAL_FOV_MAX_DEGREES = AUTO_FOV_MAX_DEGREES;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
+const AUX_FOV_PREFERENCE_VERSION = 2;
 const COMPOSER_DRAG_SENSITIVITY = 0.00055;
 const COMPOSER_DRAG_REFERENCE_FOV_DEGREES = 50;
 const COMPOSER_WHEEL_ZOOM_SENSITIVITY = 0.00022;
@@ -634,6 +636,10 @@ function computeComposerDragSensitivityScale(fovDegrees) {
     return Math.min(Math.max(currentHalfTan / referenceHalfTan, 0), 1);
 }
 
+function hasCurrentAuxFovPreferenceVersion(persisted) {
+    return Number(persisted?.fovPreferenceVersion) >= AUX_FOV_PREFERENCE_VERSION;
+}
+
 function safeParseJson(text, fallbackValue) {
     try {
         return JSON.parse(text);
@@ -1090,6 +1096,7 @@ class AuxiliaryCameraViewsManager {
                 ? panelState.orbitZoomFovDegrees
                 : panelState.camera?.fov;
             payload[panelState.id] = {
+                fovPreferenceVersion: AUX_FOV_PREFERENCE_VERSION,
                 fov: Number.isFinite(persistedFov) ? Number(persistedFov) : null,
                 autoFovEnabled: panelState.autoFovEnabled === true,
                 composerControlsCollapsed: panelState.composerControlsCollapsed === true,
@@ -1726,6 +1733,7 @@ class AuxiliaryCameraViewsManager {
     }
 
     bringPanelToFront(panelState) {
+        bringPanelElementToFront(this.root);
         this.zIndexCounter += 1;
         panelState.panel.style.zIndex = String(this.zIndexCounter);
     }
@@ -4822,17 +4830,19 @@ class AuxiliaryCameraViewsManager {
         const persisted = this.persistedPanelState?.[spec.id];
         if (persisted && typeof persisted === "object") {
             if (panelState.mode !== "composer") {
-                if (typeof persisted.autoFovEnabled === "boolean") {
-                    panelState.autoFovEnabled = persisted.autoFovEnabled;
-                }
-                const persistedFov = Number(persisted.fov);
-                if (Number.isFinite(persistedFov)) {
-                    const boundedFov = this.THREE.MathUtils.clamp(
-                        persistedFov,
-                        AUTO_FOV_MIN_DEGREES,
-                        AUTO_FOV_MAX_DEGREES,
-                    );
-                    this.setPanelFov(panelState, boundedFov);
+                if (hasCurrentAuxFovPreferenceVersion(persisted)) {
+                    if (typeof persisted.autoFovEnabled === "boolean") {
+                        panelState.autoFovEnabled = persisted.autoFovEnabled;
+                    }
+                    const persistedFov = Number(persisted.fov);
+                    if (Number.isFinite(persistedFov)) {
+                        const boundedFov = this.THREE.MathUtils.clamp(
+                            persistedFov,
+                            AUTO_FOV_MIN_DEGREES,
+                            AUTO_FOV_MAX_DEGREES,
+                        );
+                        this.setPanelFov(panelState, boundedFov);
+                    }
                 }
             } else if (
                 typeof persisted.composerControlsCollapsed === "boolean" &&
@@ -4845,7 +4855,7 @@ class AuxiliaryCameraViewsManager {
         if (panelState.mode === "composer") {
             panelState.autoFovEnabled = true;
             this.setPanelFov(panelState, spec.defaultFov);
-            if (persisted && typeof persisted === "object") {
+            if (persisted && typeof persisted === "object" && hasCurrentAuxFovPreferenceVersion(persisted)) {
                 const result = resolveComposerViewIntent(this.readComposerViewState(panelState), {
                     type: "persisted",
                     persisted,

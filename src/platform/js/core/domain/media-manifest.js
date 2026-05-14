@@ -2,6 +2,7 @@ import { resolveDataPathUrl } from "./mission-asset-resolver.js";
 
 const MEDIA_ITEM_KINDS = new Set(["image", "videoClip", "audioClip"]);
 const MEDIA_STREAM_SOURCE_TYPES = new Set(["mp4", "hls", "youtube", "iframe"]);
+const MEDIA_PLAYBACK_ROLES = new Set(["panel", "background"]);
 const ARTEMIS_TIMELINE_DEFAULT_TIMEZONE_OFFSET = "-04:00";
 
 function asTrimmedString(value) {
@@ -189,6 +190,37 @@ function normalizeStreamSourceType(value) {
     return MEDIA_STREAM_SOURCE_TYPES.has(normalized) ? normalized : "mp4";
 }
 
+function normalizePlaybackRoles(value, { backgroundPlayback = null } = {}) {
+    const roles = Array.isArray(value)
+        ? value
+        : (asTrimmedString(value) ? [value] : []);
+    const normalizedRoles = roles
+        .map((role) => asTrimmedString(role).toLowerCase())
+        .filter((role) => MEDIA_PLAYBACK_ROLES.has(role));
+    if (backgroundPlayback?.enabled === true) {
+        normalizedRoles.push("background");
+    }
+    return [...new Set(normalizedRoles)];
+}
+
+function normalizeBackgroundPlayback(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return {
+            enabled: false,
+            muted: true,
+            priority: 0,
+            fit: "contain",
+        };
+    }
+    const fit = asTrimmedString(value.fit).toLowerCase();
+    return {
+        enabled: value.enabled === true,
+        muted: value.muted !== false,
+        priority: Number.isFinite(toFiniteNumber(value.priority)) ? toFiniteNumber(value.priority) : 0,
+        fit: fit === "cover" ? "cover" : "contain",
+    };
+}
+
 function resolveMediaAssetUrl(value, dataPath) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
         return resolveMediaAssetUrl(value.url, dataPath);
@@ -358,6 +390,7 @@ function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnail
     }
 
     const kind = normalizeMediaItemKind(item.kind);
+    const backgroundPlayback = normalizeBackgroundPlayback(item.backgroundPlayback);
     const explicitEndMs = parseMediaTimestamp(item.endTime);
     const durationSeconds = toFiniteNumber(item.durationSeconds);
     const endTimeMs = Number.isFinite(explicitEndMs)
@@ -382,6 +415,8 @@ function normalizeMediaItem(item, index, cameraProfilesById, dataPath, thumbnail
     const normalizedItem = {
         id,
         kind,
+        playbackRoles: normalizePlaybackRoles(item.playbackRoles, { backgroundPlayback }),
+        backgroundPlayback,
         enabled: item.enabled !== false,
         startTimeMs: timeState.startTimeMs,
         endTimeMs,
@@ -507,6 +542,7 @@ function normalizeArtemisTimelinePhoto(photo, index, {
     }
 
     const isVideo = photo.video === true;
+    const backgroundPlayback = normalizeBackgroundPlayback(photo.backgroundPlayback);
     const assetUrl = resolveArtemisTimelineWebAssetUrl(fileName, mediaBase, dataPath);
     const posterAssetUrl = isVideo
         ? resolveArtemisTimelinePosterAssetUrl(fileName, mediaBase, dataPath)
@@ -536,6 +572,8 @@ function normalizeArtemisTimelinePhoto(photo, index, {
     const normalizedItem = {
         id,
         kind: isVideo ? "videoClip" : "image",
+        playbackRoles: normalizePlaybackRoles(photo.playbackRoles, { backgroundPlayback }),
+        backgroundPlayback,
         enabled: photo.enabled !== false,
         startTimeMs,
         endTimeMs,
@@ -615,6 +653,7 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
     }
 
     const description = asTrimmedString(audio.desc || audio.title || fileName);
+    const backgroundPlayback = normalizeBackgroundPlayback(audio.backgroundPlayback);
     const durationSeconds = parseDurationSeconds(audio.durationSeconds || audio.duration || audio.settings);
     const endTimeMs = Number.isFinite(durationSeconds)
         ? startTimeMs + (durationSeconds * 1000)
@@ -627,6 +666,8 @@ function normalizeArtemisTimelineAudioItem(audio, index, {
     const normalizedItem = {
         id,
         kind: "audioClip",
+        playbackRoles: normalizePlaybackRoles(audio.playbackRoles, { backgroundPlayback }),
+        backgroundPlayback,
         enabled: audio.enabled !== false,
         startTimeMs,
         endTimeMs,
@@ -697,6 +738,7 @@ function normalizeMediaStream(stream, index, dataPath, metadataByKey = new Map()
         ? explicitDurationSeconds
         : derivedDurationSeconds;
     const source = normalizeSourceMetadata(stream.source);
+    const backgroundPlayback = normalizeBackgroundPlayback(stream.backgroundPlayback);
 
     const normalizedItem = {
         id,
@@ -722,6 +764,8 @@ function normalizeMediaStream(stream, index, dataPath, metadataByKey = new Map()
         sourceCredit: asTrimmedString(stream.sourceCredit),
         license: asTrimmedString(stream.license),
         defaultPanelState: asTrimmedString(stream.defaultPanelState || "closed") || "closed",
+        playbackRoles: normalizePlaybackRoles(stream.playbackRoles, { backgroundPlayback }),
+        backgroundPlayback,
     };
     return applyMediaMetadata(
         normalizedItem,
@@ -779,6 +823,8 @@ function normalizeMediaStreamItem(stream, index, dataPath, thumbnailConfig = {})
         id,
         kind: "videoClip",
         mediaStream: true,
+        playbackRoles: normalizePlaybackRoles(stream.playbackRoles, { backgroundPlayback: stream.backgroundPlayback }),
+        backgroundPlayback: stream.backgroundPlayback || normalizeBackgroundPlayback(),
         enabled: stream.enabled !== false,
         startTimeMs: stream.startTimeMs,
         endTimeMs: stream.endTimeMs,

@@ -91,4 +91,25 @@ describe("AnimationController speed timing", () => {
             }),
         });
     });
+
+    it("keeps the current play state when jumping to a mission event", () => {
+        const playStates = [];
+        const controller = new AnimationController({
+            onPlayStateChange: (isPlaying) => {
+                playStates.push(isPlaying);
+            },
+        });
+        controller.configure({
+            startTime: 0,
+            endTime: 30 * TC.MILLI_SECONDS_PER_HOUR,
+            stepDurationMs: TC.ONE_MINUTE_MS,
+        });
+        controller.play();
+
+        controller.goToEvent(5 * TC.ONE_MINUTE_MS);
+
+        expect(controller.getTime()).toBe(5 * TC.ONE_MINUTE_MS);
+        expect(controller.getIsRunning()).toBe(true);
+        expect(playStates).toEqual([true]);
+    });
 });

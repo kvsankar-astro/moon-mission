@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
     createMediaBrowserPanelActions,
@@ -22,6 +22,12 @@ class FakeRangeInput {
         const handlers = this.listeners.get(type) || [];
         handlers.push(handler);
         this.listeners.set(type, handlers);
+    }
+
+    appendChild(child) {
+        this.children.push(child);
+        child.parentNode = this;
+        return child;
     }
 
     dispatchEvent(event) {
@@ -66,6 +72,7 @@ class FakePanel {
             },
         };
         this.dataset = {};
+        this.children = [];
         this.offsetWidth = 672;
         this.offsetHeight = 480;
         this._classes = new Set();
@@ -86,6 +93,12 @@ class FakePanel {
         this.listeners.set(type, handlers);
     }
 
+    appendChild(child) {
+        this.children.push(child);
+        child.parentNode = this;
+        return child;
+    }
+
     querySelector() {
         return null;
     }
@@ -96,6 +109,105 @@ class FakePanel {
             top: 80,
             width: this.offsetWidth,
             height: this.offsetHeight,
+        };
+    }
+}
+
+class FakeElement {
+    constructor(tagName = "div") {
+        this.tagName = tagName.toUpperCase();
+        this.listeners = new Map();
+        this.children = [];
+        this.attributes = {};
+        this.dataset = {};
+        this.style = {
+            values: new Map(),
+            getPropertyValue(name) {
+                return this.values.get(name) || "";
+            },
+            setProperty(name, value) {
+                this.values.set(name, value);
+            },
+        };
+        this.hidden = false;
+        this.disabled = false;
+        this.textContent = "";
+        this.className = "";
+        this._classes = new Set();
+        this.classList = {
+            add: (...names) => names.forEach((name) => this._classes.add(name)),
+            remove: (...names) => names.forEach((name) => this._classes.delete(name)),
+            contains: (name) => this._classes.has(name) || String(this.className || "").split(/\s+/).includes(name),
+            toggle: (name, enabled) => {
+                if (enabled) this._classes.add(name);
+                else this._classes.delete(name);
+            },
+        };
+    }
+
+    addEventListener(type, handler) {
+        const handlers = this.listeners.get(type) || [];
+        handlers.push(handler);
+        this.listeners.set(type, handlers);
+    }
+
+    dispatchEvent(event) {
+        if (!event.target) event.target = this;
+        if (typeof event.preventDefault !== "function") {
+            event.preventDefault = () => {
+                event.defaultPrevented = true;
+            };
+        }
+        if (typeof event.stopPropagation !== "function") {
+            event.stopPropagation = () => {};
+        }
+        for (const handler of this.listeners.get(event.type) || []) {
+            handler.call(this, event);
+        }
+    }
+
+    appendChild(child) {
+        this.children.push(child);
+        child.parentNode = this;
+        return child;
+    }
+
+    replaceChildren(...children) {
+        this.children = [];
+        children.forEach((child) => this.appendChild(child));
+    }
+
+    setAttribute(name, value) {
+        this.attributes[name] = String(value);
+    }
+
+    removeAttribute(name) {
+        delete this.attributes[name];
+    }
+
+    querySelector(selector) {
+        if (selector === ".media-browser-panel__thumbnail-strip") {
+            return this.children.find((child) => String(child.className || "").includes("media-browser-panel__thumbnail-strip")) || null;
+        }
+        if (selector === ".media-browser-panel__thumbnail-card.is-active") {
+            return this.children.find((child) => String(child.className || "").includes("media-browser-panel__thumbnail-card")
+                && String(child.className || "").includes("is-active")) || null;
+        }
+        return null;
+    }
+
+    closest() {
+        return null;
+    }
+
+    getBoundingClientRect() {
+        return {
+            left: 0,
+            right: Number(this.clientWidth) || 0,
+            top: 0,
+            bottom: 100,
+            width: Number(this.clientWidth) || 0,
+            height: Number(this.clientHeight) || 0,
         };
     }
 }
@@ -173,5 +285,182 @@ describe("media browser panel timeline", () => {
         ]);
         expect(slider.value).toBe("50");
         expect(slider.capturedPointerId).toBeUndefined();
+    });
+
+    it("suppresses duplicate native seek events after pointer seeking", () => {
+        const slider = new FakeRangeInput();
+        const panelElement = new FakePanel();
+        const intents = [];
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+        };
+        global.document = {
+            getElementById(id) {
+                if (id === "media-browser-media-timeline") return slider;
+                if (id === "media-browser-panel") return panelElement;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions({
+            onIntent(intent) {
+                intents.push(intent);
+            },
+        });
+
+        panel.render({
+            playbackModel: {
+                showControls: true,
+                seekEnabled: true,
+                elapsedSeconds: 0,
+                durationSeconds: 100,
+            },
+        });
+
+        slider.dispatchEvent({
+            type: "pointerdown",
+            pointerId: 7,
+            pointerType: "mouse",
+            button: 0,
+            clientX: 300,
+        });
+        slider.dispatchEvent({ type: "input" });
+        slider.dispatchEvent({
+            type: "pointerup",
+            pointerId: 7,
+            pointerType: "mouse",
+            button: 0,
+            clientX: 300,
+        });
+        slider.dispatchEvent({ type: "change" });
+
+        expect(intents).toEqual([
+            { type: "mediaSeekTime", value: 50, finalize: false },
+            { type: "mediaSeekTime", value: 50, finalize: true },
+        ]);
+    });
+
+    it("pages thumbnails without selecting media or waiting for image load", () => {
+        const panelElement = new FakePanel();
+        const thumbnailStrip = new FakeElement("div");
+        thumbnailStrip.className = "media-browser-panel__thumbnail-strip";
+        panelElement.children.push(thumbnailStrip);
+        const thumbnailList = new FakeElement("div");
+        thumbnailList.clientWidth = 240;
+        thumbnailList.clientHeight = 80;
+        thumbnailList.scrollWidth = 900;
+        thumbnailList.scrollLeft = 0;
+        thumbnailList.scrollTo = vi.fn(({ left }) => {
+            thumbnailList.scrollLeft = left;
+        });
+        const previousButton = new FakeElement("button");
+        const nextButton = new FakeElement("button");
+        const intents = [];
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+            setTimeout: (callback) => {
+                callback();
+                return 1;
+            },
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                if (id === "media-browser-thumbnail-prev") return previousButton;
+                if (id === "media-browser-thumbnail-next") return nextButton;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions({
+            onIntent(intent) {
+                intents.push(intent);
+            },
+        });
+
+        panel.render({
+            thumbnailItems: Array.from({ length: 8 }, (_value, index) => ({
+                id: `image-${index}`,
+                kind: "image",
+                title: `Image ${index}`,
+                meta: "MET",
+                thumbnailAssetUrl: `thumb-${index}.jpg`,
+            })),
+        });
+
+        nextButton.dispatchEvent({ type: "click" });
+
+        expect(thumbnailList.scrollTo).toHaveBeenCalledWith(expect.objectContaining({
+            left: 208,
+        }));
+        expect(intents).toEqual([]);
+    });
+
+    it("continues thumbnail paging while smooth scroll has not reported its new position", () => {
+        const panelElement = new FakePanel();
+        const thumbnailList = new FakeElement("div");
+        thumbnailList.clientWidth = 240;
+        thumbnailList.clientHeight = 80;
+        thumbnailList.scrollWidth = 900;
+        thumbnailList.scrollLeft = 0;
+        thumbnailList.scrollTo = vi.fn();
+        const previousButton = new FakeElement("button");
+        const nextButton = new FakeElement("button");
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+            setTimeout: (callback) => {
+                callback();
+                return 1;
+            },
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                if (id === "media-browser-thumbnail-prev") return previousButton;
+                if (id === "media-browser-thumbnail-next") return nextButton;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            thumbnailItems: Array.from({ length: 12 }, (_value, index) => ({
+                id: `image-${index}`,
+                kind: "image",
+                title: `Image ${index}`,
+                meta: "MET",
+                thumbnailAssetUrl: `thumb-${index}.jpg`,
+            })),
+        });
+
+        nextButton.dispatchEvent({ type: "click" });
+        nextButton.dispatchEvent({ type: "click" });
+
+        expect(thumbnailList.scrollTo).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            left: 208,
+        }));
+        expect(thumbnailList.scrollTo).toHaveBeenNthCalledWith(2, expect.objectContaining({
+            left: 416,
+        }));
     });
 });

@@ -258,6 +258,8 @@ describe("normalizeMissionMediaManifest", () => {
                     ],
                 },
             ],
+        }, {
+            dataPath: "assets/artemis2/data",
         });
 
         expect(manifest.mediaStreams).toHaveLength(1);
@@ -282,5 +284,44 @@ describe("normalizeMissionMediaManifest", () => {
                 note: "Initial estimate from NASA broadcast description.",
             },
         ]);
+    });
+
+    it("preserves background playback roles on stream-backed video items", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaStreams: [
+                {
+                    id: "flyby-broadcast",
+                    title: "Lunar flyby broadcast",
+                    enabled: true,
+                    streamKind: "video",
+                    sourceType: "hls",
+                    sourceUrl: "https://media.example.test/artemis2/flyby/master.m3u8",
+                    startTime: "2026-04-06T17:56:00Z",
+                    endTime: "2026-04-07T04:06:00Z",
+                    playbackRoles: ["background"],
+                    backgroundPlayback: {
+                        enabled: true,
+                        muted: true,
+                        priority: 100,
+                        fit: "cover",
+                    },
+                },
+            ],
+        }, {
+            dataPath: "assets/artemis2/data",
+        });
+
+        expect(manifest.mediaItems).toContainEqual(expect.objectContaining({
+            id: "flyby-broadcast",
+            kind: "videoClip",
+            mediaStream: true,
+            playbackRoles: ["background"],
+            backgroundPlayback: {
+                enabled: true,
+                muted: true,
+                priority: 100,
+                fit: "cover",
+            },
+        }));
     });
 });

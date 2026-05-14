@@ -252,7 +252,6 @@ export class AnimationController {
      * @param {Object} [metadata] - Optional source metadata for downstream coordination
      */
     goToEvent(time, metadata = {}) {
-        this.pause();
         this.setTime(time, true, {
             source: "mission-event",
             phase: "commit",

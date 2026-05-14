@@ -3576,7 +3576,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
 .orbit-overlap-status,
 .orbit-style-meta-status,
-.media-buffering-status {
+.media-buffering-status,
+.background-video-status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -3595,13 +3596,15 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
 .orbit-overlap-status--hidden,
 .orbit-style-meta-status--hidden,
-.media-buffering-status--hidden {
+.media-buffering-status--hidden,
+.background-video-status--hidden {
     opacity: 0;
 }
 
 .orbit-overlap-status__dot,
 .orbit-style-meta-status__dot,
-.media-buffering-status__dot {
+.media-buffering-status__dot,
+.background-video-status__dot {
     width: 7px;
     height: 7px;
     border-radius: 999px;
@@ -3612,7 +3615,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
 .orbit-overlap-status__text,
 .orbit-style-meta-status__text,
-.media-buffering-status__text {
+.media-buffering-status__text,
+.background-video-status__text {
     display: inline-block;
     font-weight: 500;
     letter-spacing: 0.02em;
@@ -3622,7 +3626,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 .orbit-overlap-status[data-status="running"] .orbit-overlap-status__dot,
 .orbit-style-meta-status[data-status="queued"] .orbit-style-meta-status__dot,
 .orbit-style-meta-status[data-status="loading"] .orbit-style-meta-status__dot,
-.media-buffering-status[data-status="buffering"] .media-buffering-status__dot {
+.media-buffering-status[data-status="buffering"] .media-buffering-status__dot,
+.background-video-status[data-status="working"] .background-video-status__dot {
     background: rgba(106, 169, 255, 0.95);
     box-shadow:
         0 0 0 1px rgba(190, 221, 255, 0.3),
@@ -3631,7 +3636,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 }
 
 .orbit-overlap-status[data-status="done"] .orbit-overlap-status__dot,
-.orbit-style-meta-status[data-status="applied"] .orbit-style-meta-status__dot {
+.orbit-style-meta-status[data-status="applied"] .orbit-style-meta-status__dot,
+.background-video-status[data-status="done"] .background-video-status__dot {
     background: rgba(110, 217, 165, 0.95);
     box-shadow:
         0 0 0 1px rgba(198, 248, 223, 0.28),

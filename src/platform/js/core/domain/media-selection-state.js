@@ -10,11 +10,7 @@ function resolveNearestMediaIndex(items, timeMs) {
 
     for (let index = 1; index < normalizedItems.length; index += 1) {
         const currentItem = normalizedItems[index];
-        if (timeMs > currentItem.startTimeMs) continue;
-        const previousItem = normalizedItems[index - 1];
-        const previousDelta = Math.abs(timeMs - previousItem.startTimeMs);
-        const currentDelta = Math.abs(currentItem.startTimeMs - timeMs);
-        return currentDelta < previousDelta ? index : (index - 1);
+        if (timeMs < currentItem.startTimeMs) return index - 1;
     }
 
     return normalizedItems.length - 1;

@@ -185,7 +185,8 @@ function createSettingsPanelController(deps = {}) {
         sections.forEach((section) => {
             const keepSection = section.classList?.contains?.("settings-section--camera") ||
                 section.classList?.contains?.("settings-section--view") ||
-                section.classList?.contains?.("settings-section--panel-manager");
+                section.classList?.contains?.("settings-section--panel-manager") ||
+                section.classList?.contains?.("settings-section--media-advanced");
             setSettingsPanelFilteredHidden(section, !keepSection);
         });
 

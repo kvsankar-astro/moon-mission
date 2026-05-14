@@ -22,6 +22,10 @@ import {
     createMediaBrowserPanelActions,
     MEDIA_BROWSER_PANEL_ID,
 } from "./media-browser-panel.js";
+import {
+    createBackgroundMediaPanelActions,
+    resolveBackgroundCandidates,
+} from "./background-media-panel.js";
 import { isMissionPanelEnabled } from "./panel-defaults.js";
 
 const MAX_THUMBNAIL_RENDER_ITEMS = 64;
@@ -31,14 +35,36 @@ const MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS = 5000;
 const MEDIA_EXPLICIT_FOCUS_TOLERANCE_MS = 1000;
 const MEDIA_TRANSPORT_MAX_SIM_SECONDS_PER_REAL_SECOND = 4;
 const MEDIA_TIME_SYNC_EPSILON_SECONDS = 0.2;
+const MEDIA_TRANSPORT_RESYNC_TOLERANCE_SECONDS = 3;
 const MEDIA_SCRUB_SYNC_INTERVAL_MS = 120;
 const MEDIA_PLAYBACK_RATE_MAX = 4;
 const MEDIA_FRAME_SCRUB_INTERVAL_MS = 180;
 const MEDIA_SILENT_PAUSE_SUPPRESSION_MS = 500;
 const MEDIA_MISSION_SEEK_SUPPRESSION_MS = 1500;
+const MEDIA_PLAY_RETRY_COOLDOWN_MS = 750;
 const VIDEO_ESTIMATED_SEGMENT_DURATION_SECONDS = 30;
 const PLAYBACK_AUTHORITY_ANIMATION = "animation";
 const PLAYBACK_AUTHORITY_MEDIA = "media";
+const MISSION_MEDIA_MUTED_STORAGE_KEY = "moonMission.missionMediaMuted";
+
+function readStoredBooleanPreference(key, fallbackValue = false) {
+    try {
+        const value = globalThis.localStorage?.getItem?.(key);
+        if (value === "true") return true;
+        if (value === "false") return false;
+    } catch {
+        // Storage may be unavailable in privacy modes or unit tests.
+    }
+    return fallbackValue;
+}
+
+function writeStoredBooleanPreference(key, value) {
+    try {
+        globalThis.localStorage?.setItem?.(key, value === true ? "true" : "false");
+    } catch {
+        // Preference persistence is best-effort.
+    }
+}
 
 function formatSignedDuration(seconds) {
     if (!Number.isFinite(seconds) || seconds === 0) return "0s";
@@ -124,6 +150,14 @@ function resolveVideoSourceType(item) {
 
 function isPlayableMediaItem(item) {
     return !!resolvePlayableAssetUrl(item);
+}
+
+function isBackgroundPlaybackMediaItem(item) {
+    return resolveBackgroundCandidates([item]).some((candidate) => candidate?.id === item?.id);
+}
+
+function isForegroundPlayableMediaItem(item) {
+    return isPlayableMediaItem(item) && !isBackgroundPlaybackMediaItem(item);
 }
 
 function isHlsMediaItem(item) {
@@ -499,6 +533,33 @@ function createMediaTimelineCoordination({
     const panelActions = createMediaBrowserPanelActions({
         onIntent: handlePanelIntent,
     });
+    const backgroundPanelActions = createBackgroundMediaPanelActions({
+        getAnimationRunning,
+        getAnimationSpeedMultiplier,
+        getAnimationRealtime,
+        getMissionStartTime: getStartTime,
+        onJumpToTime(timeMs) {
+            if (!Number.isFinite(Number(timeMs))) return;
+            seekMissionTimelineTime(Number(timeMs), true);
+            if (lastRenderContext) {
+                lastRenderContext = {
+                    ...lastRenderContext,
+                    animTime: Number(timeMs),
+                };
+            }
+            rerender();
+        },
+        onRequestPlay() {
+            if (getAnimationRunning() !== true) {
+                playAnimation();
+            }
+        },
+        onRequestPause() {
+            if (getAnimationRunning() === true) {
+                pauseAnimation();
+            }
+        },
+    });
     let manifestPromise = null;
     let lastRenderContext = null;
     let timelineEventBound = false;
@@ -512,6 +573,7 @@ function createMediaTimelineCoordination({
     let playbackAuthority = PLAYBACK_AUTHORITY_ANIMATION;
     let currentAudio = null;
     let currentAudioClipId = "";
+    let missionMediaMuted = readStoredBooleanPreference(MISSION_MEDIA_MUTED_STORAGE_KEY, false);
     let thumbnailWindowStartIndex = 0;
     let mediaPlaybackState = {
         itemId: "",
@@ -526,6 +588,12 @@ function createMediaTimelineCoordination({
     let suppressMediaEvents = false;
     const silentPauseUntilByElement = typeof WeakMap === "function" ? new WeakMap() : null;
     let mediaPlayRequestPending = false;
+    let lastMediaPlayAttempt = {
+        itemId: "",
+        kind: "",
+        atMs: 0,
+    };
+    const lastAppliedMediaRateByElement = typeof WeakMap === "function" ? new WeakMap() : null;
     let scrubSyncState = {
         itemId: "",
         lastAppliedAtMs: 0,
@@ -572,10 +640,48 @@ function createMediaTimelineCoordination({
             lastAppliedAtMs: 0,
         };
         mediaPlayRequestPending = false;
+        lastMediaPlayAttempt = {
+            itemId: "",
+            kind: "",
+            atMs: 0,
+        };
     }
 
     function getVideoElement() {
         return globalThis.document?.getElementById?.("media-browser-video") || null;
+    }
+
+    function applyMissionMediaMuted() {
+        const video = getVideoElement();
+        if (video) video.muted = missionMediaMuted === true;
+        if (currentAudio) currentAudio.muted = missionMediaMuted === true;
+    }
+
+    function setMissionMediaMuted(nextMuted) {
+        missionMediaMuted = nextMuted === true;
+        writeStoredBooleanPreference(MISSION_MEDIA_MUTED_STORAGE_KEY, missionMediaMuted);
+        applyMissionMediaMuted();
+        rerender();
+    }
+
+    function isMediaPlaybackBusy() {
+        return mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true;
+    }
+
+    function isAnimationClockDrivingMedia() {
+        return playbackAuthority === PLAYBACK_AUTHORITY_ANIMATION && getAnimationRunning() === true;
+    }
+
+    function buildForegroundMediaState() {
+        const kind = String(mediaPlaybackState.kind || "").trim();
+        const activeKind = kind === "audioClip" || kind === "videoClip";
+        return {
+            active: activeKind && isMediaPlaybackBusy(),
+            itemId: mediaPlaybackState.itemId || "",
+            kind,
+            playing: mediaPlaybackState.playing === true,
+            buffering: mediaPlaybackState.buffering === true,
+        };
     }
 
     function setMediaBufferingStatusVisible(visible) {
@@ -654,7 +760,8 @@ function createMediaTimelineCoordination({
     }
 
     function isMissionDrivenSeekSource(source) {
-        return String(source || "").trim() === "frame-shoot";
+        const normalizedSource = String(source || "").trim();
+        return normalizedSource !== "" && normalizedSource !== "media-sync";
     }
 
     function getActiveMissionDrivenMediaSeek(itemId = "") {
@@ -716,8 +823,13 @@ function createMediaTimelineCoordination({
     function setMediaPlaybackRate(mediaElement, rate = 1) {
         if (!mediaElement) return;
         const safeRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+        const previousRate = Number(lastAppliedMediaRateByElement?.get?.(mediaElement));
+        if (Number.isFinite(previousRate) && Math.abs(previousRate - safeRate) < 0.001) {
+            return;
+        }
         try {
             mediaElement.playbackRate = safeRate;
+            lastAppliedMediaRateByElement?.set?.(mediaElement, safeRate);
         } catch {
             // Some engines can reject unsupported playback rates.
         }
@@ -805,7 +917,7 @@ function createMediaTimelineCoordination({
     function seekActivePlayableMediaToMissionTime(timeMs) {
         if (!Number.isFinite(timeMs) || !mediaPlaybackState.itemId) return false;
         const mediaItem = findCurrentManifestItemById(mediaPlaybackState.itemId) || mediaPlaybackState;
-        if (!mediaItem || !isPlayableMediaItem(mediaItem) || !Number.isFinite(mediaItem.startTimeMs)) {
+        if (!mediaItem || !isForegroundPlayableMediaItem(mediaItem) || !Number.isFinite(mediaItem.startTimeMs)) {
             return false;
         }
         const offsetSeconds = clampMediaCurrentTimeSeconds(
@@ -832,7 +944,7 @@ function createMediaTimelineCoordination({
     }
 
     function seekPlayableMediaToSeconds(item, seconds, finalize = false) {
-        if (!item || !isPlayableMediaItem(item) || !Number.isFinite(item.startTimeMs)) return false;
+        if (!item || !isForegroundPlayableMediaItem(item) || !Number.isFinite(item.startTimeMs)) return false;
         const clampedSeconds = clampMediaCurrentTimeSeconds(item, seconds);
         if (item.kind === "audioClip") {
             setMediaElementCurrentTime(currentAudio, clampedSeconds);
@@ -867,13 +979,16 @@ function createMediaTimelineCoordination({
     }
 
     function syncFrameScrubPreview(activeItem, timeMs) {
-        if (!activeItem || activeItem.kind !== "videoClip" || !isPlayableMediaItem(activeItem)) return;
+        if (!activeItem || activeItem.kind !== "videoClip" || !isForegroundPlayableMediaItem(activeItem)) return;
         if (isFrameScrubMode() !== true || getAnimationRunning() !== true) return;
-        const nowMs = Date.now();
-        if ((nowMs - lastFrameScrubRealtimeMs) < MEDIA_FRAME_SCRUB_INTERVAL_MS) return;
-        lastFrameScrubRealtimeMs = nowMs;
         const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs, false);
         const video = getVideoElement();
+        const currentPreviewSeconds = Number(mediaPlaybackState.currentTimeSeconds);
+        const shouldSeekPreview = !Number.isFinite(currentPreviewSeconds)
+            || Math.abs(currentPreviewSeconds - offsetSeconds) >= MEDIA_TIME_SYNC_EPSILON_SECONDS;
+        const nowMs = Date.now();
+        if (!shouldSeekPreview && (nowMs - lastFrameScrubRealtimeMs) < MEDIA_FRAME_SCRUB_INTERVAL_MS) return;
+        lastFrameScrubRealtimeMs = nowMs;
         if (video) {
             pauseMediaElementSilently(video);
             setMediaElementCurrentTime(video, offsetSeconds);
@@ -904,7 +1019,7 @@ function createMediaTimelineCoordination({
     }
 
     function syncPlaybackModeTransition(activeItem, timeMs) {
-        if (!activeItem || !isPlayableMediaItem(activeItem)) return;
+        if (!activeItem || !isForegroundPlayableMediaItem(activeItem)) return;
         const nextFrameScrubMode = isFrameScrubMode() === true;
         if (lastFrameScrubMode == null) {
             lastFrameScrubMode = nextFrameScrubMode;
@@ -945,6 +1060,7 @@ function createMediaTimelineCoordination({
             if (!currentAudio || currentAudioClipId !== activeItem.id) {
                 currentAudio = new globalThis.Audio(activeItem.assetUrl);
                 currentAudio.volume = 0.7;
+                currentAudio.muted = missionMediaMuted === true;
                 currentAudioClipId = activeItem.id;
                 attachAudioPlaybackEvents(currentAudio, activeItem);
             }
@@ -955,7 +1071,7 @@ function createMediaTimelineCoordination({
                 syncedTimeMs,
                 currentTimeSeconds: offsetSeconds,
             });
-            playMediaElement(currentAudio, activeItem.id, "audioClip");
+            playMediaElement(currentAudio, activeItem.id, "audioClip", { force: true });
             rerender();
             return;
         }
@@ -970,6 +1086,7 @@ function createMediaTimelineCoordination({
                 }
                 callMediaMethod(video, "load");
             }
+            video.muted = missionMediaMuted === true;
             if (video.dataset) {
                 video.dataset.mediaItemId = activeItem.id;
                 video.dataset.mediaSourceUrl = activeItem.assetUrl;
@@ -982,7 +1099,7 @@ function createMediaTimelineCoordination({
                 syncedTimeMs,
                 currentTimeSeconds: offsetSeconds,
             });
-            playMediaElement(video, activeItem.id, "videoClip");
+            playMediaElement(video, activeItem.id, "videoClip", { force: true });
             rerender();
         }
     }
@@ -992,7 +1109,7 @@ function createMediaTimelineCoordination({
         syncedTimeMs = Number.NaN,
         currentTimeSeconds = 0,
     } = {}) {
-        if (!item || !isPlayableMediaItem(item)) return false;
+        if (!item || !isForegroundPlayableMediaItem(item)) return false;
         runtimeMediaState.setActiveItemId(item.id, {
             anchorTimeMs: item.startTimeMs,
         });
@@ -1014,7 +1131,7 @@ function createMediaTimelineCoordination({
         if (!normalizedId) return;
         mediaPlayRequestPending = false;
         const item = findCurrentManifestItemById(normalizedId);
-        if (!item || !isPlayableMediaItem(item)) return;
+        if (!item || !isForegroundPlayableMediaItem(item)) return;
         const missionSeekState = getActiveMissionDrivenMediaSeek(normalizedId);
         if (missionSeekState && isMissionDrivenMediaSeekClockStale(normalizedId, currentTimeSeconds)) {
             runtimeMediaState.setActiveItemId(item.id, {
@@ -1045,7 +1162,13 @@ function createMediaTimelineCoordination({
         clearMissionDrivenMediaSeekState();
         const wasBuffering = mediaPlaybackState.buffering === true;
         const wasPlaying = mediaPlaybackState.playing === true;
-        const timelineTimeMs = syncMissionTimeToMediaOffset(item, Number(currentTimeSeconds) || 0, false);
+        const animationClockDrivingMedia = isAnimationClockDrivingMedia();
+        const timelineTimeMs = animationClockDrivingMedia
+            ? readCurrentMissionTimeMs()
+            : syncMissionTimeToMediaOffset(item, Number(currentTimeSeconds) || 0, false);
+        const syncedSeconds = animationClockDrivingMedia
+            ? resolvePlaybackOffsetSeconds(item, timelineTimeMs, false)
+            : Math.max(0, Number(currentTimeSeconds) || 0);
         runtimeMediaState.setActiveItemId(item.id, {
             anchorTimeMs: item.startTimeMs,
         });
@@ -1057,7 +1180,7 @@ function createMediaTimelineCoordination({
             buffering: false,
             startTimeMs: item.startTimeMs,
             syncedTimeMs: Number.isFinite(timelineTimeMs) ? timelineTimeMs : item.startTimeMs,
-            currentTimeSeconds: Math.max(0, Number(currentTimeSeconds) || 0),
+            currentTimeSeconds: syncedSeconds,
         };
         setMediaBufferingStatusVisible(false);
         if (mediaPlaybackState.kind === "audioClip") {
@@ -1120,7 +1243,7 @@ function createMediaTimelineCoordination({
                 getAnimationRunning() === true &&
                 mediaPlayRequestPending !== true
             ) {
-                playMediaElement(mediaElement, normalizedId, mediaPlaybackState.kind);
+                playMediaElement(mediaElement, normalizedId, mediaPlaybackState.kind, { force: true });
             }
             rerender();
             return;
@@ -1133,7 +1256,10 @@ function createMediaTimelineCoordination({
             return;
         }
         if (mediaPlaybackState.buffering === true) return;
-        if (mediaPlaybackState.playing === true && isMediaElementLikelyBuffering(mediaElement)) {
+        if (
+            mediaPlaybackState.playing === true &&
+            (getAnimationRunning() === true || isMediaElementLikelyBuffering(mediaElement))
+        ) {
             handlePlayableMediaBuffering(itemId, currentTimeSeconds);
             return;
         }
@@ -1144,8 +1270,6 @@ function createMediaTimelineCoordination({
             buffering: false,
         };
         setMediaBufferingStatusVisible(false);
-        setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
-        pauseAnimationFromMedia();
         rerender();
     }
 
@@ -1230,7 +1354,13 @@ function createMediaTimelineCoordination({
             return;
         }
         const mediaItem = findCurrentManifestItemById(normalizedId) || mediaPlaybackState;
-        const syncedTimeMs = syncMissionTimeToMediaOffset(mediaItem, Number(currentTimeSeconds) || 0, false);
+        const animationClockDrivingMedia = isAnimationClockDrivingMedia();
+        const syncedTimeMs = animationClockDrivingMedia
+            ? readCurrentMissionTimeMs()
+            : syncMissionTimeToMediaOffset(mediaItem, Number(currentTimeSeconds) || 0, false);
+        const currentSeconds = animationClockDrivingMedia
+            ? resolvePlaybackOffsetSeconds(mediaItem, syncedTimeMs, false)
+            : Math.max(0, Number(currentTimeSeconds) || 0);
         const wasPlaying = mediaPlaybackState.playing === true;
         mediaPlaybackState = {
             ...mediaPlaybackState,
@@ -1238,7 +1368,7 @@ function createMediaTimelineCoordination({
             playing: wasPlaying,
             buffering: true,
             syncedTimeMs: Number.isFinite(syncedTimeMs) ? syncedTimeMs : mediaPlaybackState.syncedTimeMs,
-            currentTimeSeconds: Math.max(0, Number(currentTimeSeconds) || 0),
+            currentTimeSeconds: currentSeconds,
         };
         setMediaBufferingStatusVisible(true);
         rerender();
@@ -1271,6 +1401,15 @@ function createMediaTimelineCoordination({
         }
         const nextTimeMs = mediaPlaybackState.startTimeMs + (mediaSeconds * 1000);
         const currentTimelineTimeMs = readMainTimelineTimeMs();
+        if (isAnimationClockDrivingMedia()) {
+            const syncedTimeMs = Number.isFinite(currentTimelineTimeMs) ? currentTimelineTimeMs : nextTimeMs;
+            mediaPlaybackState = {
+                ...mediaPlaybackState,
+                syncedTimeMs,
+                currentTimeSeconds: mediaSeconds,
+            };
+            return;
+        }
         const previousSyncedTimeMs = Number(mediaPlaybackState.syncedTimeMs);
         if (
             Number.isFinite(currentTimelineTimeMs)
@@ -1353,7 +1492,15 @@ function createMediaTimelineCoordination({
             };
         }
 
-        if (sourceType !== "hls" && video.getAttribute?.("src") !== sourceUrl) {
+        if (sourceType === "hls") {
+            const attachedSource = String(video?.currentSrc || video?.src || "").trim();
+            const declaredSource = String(video?.dataset?.mediaSourceUrl || "").trim();
+            return {
+                readyForImmediatePlay: declaredSource === sourceUrl && attachedSource !== "",
+            };
+        }
+
+        if (video.getAttribute?.("src") !== sourceUrl) {
             video.src = sourceUrl;
             callMediaMethod(video, "load");
         }
@@ -1383,7 +1530,36 @@ function createMediaTimelineCoordination({
             && rateContext.simSecondsPerRealSecond <= MEDIA_TRANSPORT_MAX_SIM_SECONDS_PER_REAL_SECOND;
     }
 
-    function playMediaElement(mediaElement, itemId = "", kind = "") {
+    function playMediaElement(mediaElement, itemId = "", kind = "", {
+        force = false,
+    } = {}) {
+        if (!mediaElement) return;
+        const normalizedItemId = String(itemId || "").trim();
+        const normalizedKind = String(kind || "").trim();
+        const nowMs = Date.now();
+        if (mediaPlayRequestPending === true) return;
+        if (
+            force !== true
+            && mediaElement.paused === true
+            && normalizedItemId
+            && lastMediaPlayAttempt.itemId === normalizedItemId
+            && lastMediaPlayAttempt.kind === normalizedKind
+            && (nowMs - Number(lastMediaPlayAttempt.atMs)) < MEDIA_PLAY_RETRY_COOLDOWN_MS
+        ) {
+            return;
+        }
+        if (kind === "audioClip" || kind === "videoClip") {
+            try {
+                mediaElement.muted = missionMediaMuted === true;
+            } catch {
+                // Some media shims expose read-only properties in tests.
+            }
+        }
+        lastMediaPlayAttempt = {
+            itemId: normalizedItemId,
+            kind: normalizedKind,
+            atMs: nowMs,
+        };
         mediaPlayRequestPending = true;
         try {
             const playResult = mediaElement?.play?.();
@@ -1409,12 +1585,46 @@ function createMediaTimelineCoordination({
         }
     }
 
+    function handleVideoSourceReady(itemId, currentTimeSeconds = Number.NaN) {
+        const normalizedId = String(itemId || "").trim();
+        if (!normalizedId || normalizedId !== mediaPlaybackState.itemId) return;
+        if (mediaPlaybackState.kind !== "videoClip" || mediaPlaybackState.buffering !== true) return;
+        const item = findCurrentManifestItemById(normalizedId);
+        if (!item || !isForegroundPlayableMediaItem(item)) return;
+        const video = getVideoElement();
+        if (!video) return;
+        const desiredSeconds = Number.isFinite(Number(mediaPlaybackState.currentTimeSeconds))
+            ? Number(mediaPlaybackState.currentTimeSeconds)
+            : (Number.isFinite(Number(currentTimeSeconds)) ? Number(currentTimeSeconds) : 0);
+        setMediaPlaybackRate(video, getMediaPlaybackRate());
+        if (isAnimationClockDrivingMedia()) {
+            if (video.paused === true && mediaPlayRequestPending !== true) {
+                playMediaElement(video, item.id, "videoClip", { force: true });
+            }
+            mediaPlaybackState = {
+                ...mediaPlaybackState,
+                active: true,
+                playing: true,
+                buffering: false,
+            };
+            rerender();
+            return;
+        }
+        const currentSeconds = Number(video.currentTime);
+        if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - desiredSeconds) >= MEDIA_TIME_SYNC_EPSILON_SECONDS) {
+            setMediaElementCurrentTime(video, desiredSeconds);
+        }
+        if (mediaPlayRequestPending !== true) {
+            playMediaElement(video, item.id, "videoClip");
+        }
+    }
+
     function startPlayableMediaItem(item, {
         fromBeginning = true,
         seekTimeline = true,
         keepAnimationRunning = false,
     } = {}) {
-        if (!isPlayableMediaItem(item)) return false;
+        if (!isForegroundPlayableMediaItem(item)) return false;
         const offsetSeconds = resolvePlaybackOffsetSeconds(item, readCurrentMissionTimeMs(), fromBeginning);
         const timelineTimeMs = item.startTimeMs + offsetSeconds * 1000;
         const frameScrubMode = isFrameScrubMode();
@@ -1454,6 +1664,7 @@ function createMediaTimelineCoordination({
             }
             currentAudio = new globalThis.Audio(item.assetUrl);
             currentAudio.volume = 0.7;
+            currentAudio.muted = missionMediaMuted === true;
             currentAudio.loop = false;
             currentAudioClipId = item.id;
             attachAudioPlaybackEvents(currentAudio, item);
@@ -1473,6 +1684,7 @@ function createMediaTimelineCoordination({
                 video.poster = item.posterAssetUrl;
             }
             const sourceSetup = ensureVideoPlaybackSource(video, item);
+            video.muted = missionMediaMuted === true;
             video.loop = false;
             video.removeAttribute?.("loop");
             if (video.dataset) {
@@ -1512,13 +1724,15 @@ function createMediaTimelineCoordination({
 
     function startFocusedPlayableMediaFromMissionTime({
         seekTimeline = true,
+        keepAnimationRunning = false,
     } = {}) {
         if (mediaPlaybackState.playing === true) return false;
         const activeItem = getCurrentFocusedMediaItem();
-        if (!activeItem || !isPlayableMediaItem(activeItem)) return false;
+        if (!activeItem || !isForegroundPlayableMediaItem(activeItem)) return false;
         return startPlayableMediaItem(activeItem, {
             fromBeginning: false,
             seekTimeline,
+            keepAnimationRunning,
         });
     }
 
@@ -1541,7 +1755,7 @@ function createMediaTimelineCoordination({
     }
 
     function syncActivePlayableMediaToMissionTime(item, missionTimeMs) {
-        if (!item || !isPlayableMediaItem(item) || !Number.isFinite(missionTimeMs)) return;
+        if (!item || !isForegroundPlayableMediaItem(item) || !Number.isFinite(missionTimeMs)) return;
         if (mediaPlaybackState.itemId !== item.id || mediaPlaybackState.active !== true) return;
         const mediaElement = getActivePlayableMediaElement();
         if (!mediaElement) return;
@@ -1556,7 +1770,7 @@ function createMediaTimelineCoordination({
             scrubSyncState.itemId = item.id;
             scrubSyncState.lastAppliedAtMs = nowMs;
 
-            if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - targetSeconds) > 1.5) {
+            if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - targetSeconds) > MEDIA_TRANSPORT_RESYNC_TOLERANCE_SECONDS) {
                 setMediaElementCurrentTime(mediaElement, targetSeconds);
             }
             if (mediaElement.paused === true && mediaPlayRequestPending !== true) {
@@ -1567,6 +1781,24 @@ function createMediaTimelineCoordination({
                 active: true,
                 playing: mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true,
                 buffering: mediaPlaybackState.buffering === true,
+                syncedTimeMs: item.startTimeMs + targetSeconds * 1000,
+                currentTimeSeconds: targetSeconds,
+            };
+            return;
+        }
+
+        if (
+            playbackAuthority === PLAYBACK_AUTHORITY_MEDIA
+            && mediaPlaybackState.buffering === true
+        ) {
+            if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - targetSeconds) >= MEDIA_TIME_SYNC_EPSILON_SECONDS) {
+                setMediaElementCurrentTime(mediaElement, targetSeconds);
+            }
+            mediaPlaybackState = {
+                ...mediaPlaybackState,
+                active: true,
+                playing: false,
+                buffering: true,
                 syncedTimeMs: item.startTimeMs + targetSeconds * 1000,
                 currentTimeSeconds: targetSeconds,
             };
@@ -1599,9 +1831,9 @@ function createMediaTimelineCoordination({
     function forceResyncActiveMedia() {
         const activePlaybackItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
         const focusedItem = getCurrentFocusedMediaItem();
-        const targetItem = (activePlaybackItem && isPlayableMediaItem(activePlaybackItem))
+        const targetItem = (activePlaybackItem && isForegroundPlayableMediaItem(activePlaybackItem))
             ? activePlaybackItem
-            : ((focusedItem && isPlayableMediaItem(focusedItem)) ? focusedItem : null);
+            : ((focusedItem && isForegroundPlayableMediaItem(focusedItem)) ? focusedItem : null);
         if (!targetItem) return false;
 
         const missionTimeMs = readCurrentMissionTimeMs();
@@ -1655,7 +1887,7 @@ function createMediaTimelineCoordination({
             const markerItem = markerId ? findCurrentManifestItemById(markerId) : null;
             if (
                 markerItem &&
-                isPlayableMediaItem(markerItem) &&
+                isForegroundPlayableMediaItem(markerItem) &&
                 mediaPlaybackState.active === true &&
                 mediaPlaybackState.itemId === markerItem.id &&
                 Number.isFinite(markerTimeMs) &&
@@ -1705,13 +1937,25 @@ function createMediaTimelineCoordination({
             handlingAnimationPlayStateEvent = true;
             try {
                 const isPlaying = event?.detail?.isPlaying === true;
+                const missionTimeMs = readCurrentMissionTimeMs();
+                const manifest = runtimeMediaState.getManifest();
+                const backgroundItems = Array.isArray(manifest?.mediaItems)
+                    ? manifest.mediaItems
+                    : [];
+                if (backgroundItems.length > 0) {
+                    backgroundPanelActions.render({
+                        items: backgroundItems,
+                        timeMs: missionTimeMs,
+                        animationRunning: isPlaying,
+                        foregroundMediaState: buildForegroundMediaState(),
+                    });
+                }
                 if (handlingMediaDrivenAnimationStateChange !== true) {
                     setPlaybackAuthority(PLAYBACK_AUTHORITY_ANIMATION);
                 }
                 if (isPlaying) {
                     if (mediaPlaybackState.active === true) {
                         const activePlaybackItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
-                        const missionTimeMs = readCurrentMissionTimeMs();
                         syncActivePlayableMediaToMissionTime(activePlaybackItem, missionTimeMs);
                         return;
                     }
@@ -1722,7 +1966,7 @@ function createMediaTimelineCoordination({
                     );
                     const activeItem = focusState?.activeItem;
                     const explicitSelection = focusState?.focusSource === "user-selection";
-                    if (!explicitSelection || !activeItem || !isPlayableMediaItem(activeItem)) {
+                    if (!explicitSelection || !activeItem || !isForegroundPlayableMediaItem(activeItem)) {
                         return;
                     }
                     startPlayableMediaItem(activeItem, {
@@ -1856,7 +2100,7 @@ function createMediaTimelineCoordination({
 
     function isActivePlayableMarkerSeekTime(item, timeMs) {
         if (isMediaItemActiveAtTime(item, timeMs)) return true;
-        if (!item || !isPlayableMediaItem(item) || item.kind !== "videoClip") return false;
+        if (!item || !isForegroundPlayableMediaItem(item) || item.kind !== "videoClip") return false;
         const startTimeMs = Number(item.startTimeMs);
         const markerTimeMs = Number(timeMs);
         if (!Number.isFinite(startTimeMs) || !Number.isFinite(markerTimeMs) || markerTimeMs < startTimeMs) {
@@ -1869,7 +2113,7 @@ function createMediaTimelineCoordination({
     }
 
     function shouldPreserveMissionTimeForPlayableSelection(item, missionTimeMs) {
-        if (!item || !isPlayableMediaItem(item)) return false;
+        if (!item || !isForegroundPlayableMediaItem(item)) return false;
         const startTimeMs = Number(item.startTimeMs);
         const currentTimeMs = Number(missionTimeMs);
         if (!Number.isFinite(startTimeMs) || !Number.isFinite(currentTimeMs) || currentTimeMs < startTimeMs) {
@@ -1884,11 +2128,42 @@ function createMediaTimelineCoordination({
         return true;
     }
 
+    function planMissionMediaSelectionSync({
+        item,
+        currentMissionTimeMs = Number.NaN,
+        seekTimeline = true,
+        preserveCurrentPlayableOffset = false,
+        autoStartPlayable = false,
+    } = {}) {
+        if (!item) {
+            return {
+                canApply: false,
+            };
+        }
+        const playable = isForegroundPlayableMediaItem(item);
+        const shouldPreserveCurrentMissionTime = preserveCurrentPlayableOffset
+            && seekTimeline === true
+            && isFrameScrubMode() !== true
+            && shouldPreserveMissionTimeForPlayableSelection(item, currentMissionTimeMs);
+        return {
+            canApply: true,
+            itemId: item.id,
+            playable,
+            shouldSeekTimeline: seekTimeline === true,
+            targetTimeMs: shouldPreserveCurrentMissionTime
+                ? currentMissionTimeMs
+                : Number(item.startTimeMs),
+            shouldStopExistingPlayable: autoStartPlayable !== true || playable !== true,
+            shouldStartPlayable: autoStartPlayable === true && playable === true,
+            keepAnimationRunning: autoStartPlayable === true,
+        };
+    }
+
     function resolvePlayableItemAtTime(timeMs) {
         if (!Number.isFinite(timeMs)) return null;
         const selectableItems = getFilteredSelectableItems();
         const candidates = selectableItems
-            .filter((item) => isPlayableMediaItem(item) && isMediaItemActiveAtTime(item, timeMs));
+            .filter((item) => isForegroundPlayableMediaItem(item) && isMediaItemActiveAtTime(item, timeMs));
         if (candidates.length === 0) return null;
 
         const preferredIds = [
@@ -1962,7 +2237,7 @@ function createMediaTimelineCoordination({
 
         const currentPlayableItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
         const currentPlayableActive = !!currentPlayableItem
-            && isPlayableMediaItem(currentPlayableItem)
+            && isForegroundPlayableMediaItem(currentPlayableItem)
             && isActivePlayableMarkerSeekTime(currentPlayableItem, timeMs);
         const missionSeekWasPlaying = mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true;
         if (
@@ -2097,18 +2372,18 @@ function createMediaTimelineCoordination({
     function getPanelSeekMediaItem() {
         const selectableItems = getFilteredSelectableItems();
         const playbackItem = findMediaItemById(selectableItems, mediaPlaybackState.itemId);
-        if (playbackItem && isPlayableMediaItem(playbackItem)) {
+        if (playbackItem && isForegroundPlayableMediaItem(playbackItem)) {
             return playbackItem;
         }
         const activeItem = findMediaItemById(selectableItems, runtimeMediaState.getActiveItemId());
-        if (activeItem && isPlayableMediaItem(activeItem)) {
+        if (activeItem && isForegroundPlayableMediaItem(activeItem)) {
             return activeItem;
         }
         const focusedItem = buildCurrentMediaFocusState(
             selectableItems,
             readCurrentMissionTimeMs(),
         ).activeItem;
-        return focusedItem && isPlayableMediaItem(focusedItem) ? focusedItem : null;
+        return focusedItem && isForegroundPlayableMediaItem(focusedItem) ? focusedItem : null;
     }
 
     function previewMediaItem(item, {
@@ -2117,37 +2392,39 @@ function createMediaTimelineCoordination({
         autoStartPlayable = false,
     } = {}) {
         if (!item) return false;
+        if (isBackgroundPlaybackMediaItem(item)) return false;
         const currentMissionTimeMs = readCurrentMissionTimeMs();
-        const shouldPreserveCurrentMissionTime = preserveCurrentPlayableOffset
-            && seekTimeline
-            && isFrameScrubMode() !== true
-            && shouldPreserveMissionTimeForPlayableSelection(item, currentMissionTimeMs);
+        const syncPlan = planMissionMediaSelectionSync({
+            item,
+            currentMissionTimeMs,
+            seekTimeline,
+            preserveCurrentPlayableOffset,
+            autoStartPlayable,
+        });
+        if (syncPlan.canApply !== true) return false;
 
         dispatchDocumentCustomEvent("mission-media-item-select", {
             item,
         });
 
-        if (autoStartPlayable !== true) {
-            stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        if (syncPlan.shouldStopExistingPlayable) {
+            stopPlayableMedia({ pauseClock: false });
         }
-        if (!seekTimeline) {
+        if (!syncPlan.shouldSeekTimeline) {
             runtimeMediaState.setActiveItemId(item.id, {
                 anchorTimeMs: readCurrentMissionTimeMs(),
             });
-            if (autoStartPlayable === true && isPlayableMediaItem(item)) {
+            if (syncPlan.shouldStartPlayable) {
                 return startPlayableMediaItem(item, {
                     fromBeginning: false,
                     seekTimeline: false,
-                    keepAnimationRunning: true,
+                    keepAnimationRunning: syncPlan.keepAnimationRunning,
                 });
             }
             rerender();
             return true;
         }
-        const targetTimeMs = shouldPreserveCurrentMissionTime
-            ? currentMissionTimeMs
-            : item.startTimeMs;
-        seekMissionTimelineTime(targetTimeMs, true);
+        seekMissionTimelineTime(syncPlan.targetTimeMs, true);
         const anchorTimeMs = readCurrentMissionTimeMs();
         runtimeMediaState.setActiveItemId(item.id, {
             anchorTimeMs: Number.isFinite(anchorTimeMs) ? anchorTimeMs : item.startTimeMs,
@@ -2158,11 +2435,11 @@ function createMediaTimelineCoordination({
                 animTime: anchorTimeMs,
             };
         }
-        if (autoStartPlayable === true && isPlayableMediaItem(item)) {
+        if (syncPlan.shouldStartPlayable) {
             return startPlayableMediaItem(item, {
                 fromBeginning: false,
                 seekTimeline: false,
-                keepAnimationRunning: true,
+                keepAnimationRunning: syncPlan.keepAnimationRunning,
             });
         }
         rerender();
@@ -2275,7 +2552,7 @@ function createMediaTimelineCoordination({
                 mediaKinds,
             });
             if (!mediaKinds.includes("audioClip") && mediaPlaybackState.kind === "audioClip") {
-                stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+                stopPlayableMedia({ pauseClock: isMediaPlaybackBusy() });
             }
             rerender();
             return;
@@ -2355,7 +2632,7 @@ function createMediaTimelineCoordination({
         }
         if (type === "mediaSeekTime") {
             const activeItem = getPanelSeekMediaItem();
-            if (!activeItem || !isPlayableMediaItem(activeItem)) return;
+            if (!activeItem || !isForegroundPlayableMediaItem(activeItem)) return;
             setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
             seekPlayableMediaToSeconds(
                 activeItem,
@@ -2365,21 +2642,41 @@ function createMediaTimelineCoordination({
             return;
         }
         if (type === "toggleActiveMediaPlayback") {
-            setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
-            if (mediaPlaybackState.playing === true || mediaPlaybackState.buffering === true) {
+            if (mediaPlaybackState.buffering === true) {
+                const activeItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
+                const mediaElement = getActivePlayableMediaElement();
+                if (activeItem && mediaElement) {
+                    setMediaPlaybackRate(mediaElement, getMediaPlaybackRate());
+                    playMediaElement(mediaElement, activeItem.id, activeItem.kind);
+                }
+                rerender();
+                return;
+            }
+            if (mediaPlaybackState.playing === true) {
+                setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
                 pauseActivePlayableMedia();
                 return;
             }
-            startFocusedPlayableMediaFromMissionTime();
+            const keepAnimationRunning = getAnimationRunning() === true;
+            setPlaybackAuthority(keepAnimationRunning ? PLAYBACK_AUTHORITY_ANIMATION : PLAYBACK_AUTHORITY_MEDIA);
+            startFocusedPlayableMediaFromMissionTime({
+                keepAnimationRunning,
+            });
+            return;
+        }
+        if (type === "toggleMediaMuted") {
+            setMissionMediaMuted(!missionMediaMuted);
             return;
         }
         if (type === "startActiveMedia" || type === "startActiveMediaFromBeginning") {
             const activeItem = getCurrentFocusedMediaItem();
-            if (!activeItem || !isPlayableMediaItem(activeItem)) return;
-            setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
+            if (!activeItem || !isForegroundPlayableMediaItem(activeItem)) return;
+            const keepAnimationRunning = getAnimationRunning() === true;
+            setPlaybackAuthority(keepAnimationRunning ? PLAYBACK_AUTHORITY_ANIMATION : PLAYBACK_AUTHORITY_MEDIA);
             startPlayableMediaItem(activeItem, {
                 fromBeginning: type === "startActiveMediaFromBeginning",
                 seekTimeline: true,
+                keepAnimationRunning,
             });
             return;
         }
@@ -2405,6 +2702,10 @@ function createMediaTimelineCoordination({
         }
         if (type === "mediaPlaybackFailed") {
             handlePlayableMediaFailed(intent.value);
+            return;
+        }
+        if (type === "mediaVideoSourceReady") {
+            handleVideoSourceReady(intent.value, intent.currentTime);
             return;
         }
         if (type === "mediaPlaybackTimeUpdate") {
@@ -2435,7 +2736,7 @@ function createMediaTimelineCoordination({
         const statusText = items.length === 0
             ? "No media matches the current filters."
             : "";
-        const activePlayable = isPlayableMediaItem(activeItem);
+        const activePlayable = isForegroundPlayableMediaItem(activeItem);
         const activePlaybackSelected = activeItem?.id === mediaPlaybackState.itemId;
         const activePlaybackPlaying = activePlaybackSelected && mediaPlaybackState.playing === true;
         const activePlaybackBuffering = activePlaybackSelected && mediaPlaybackState.buffering === true;
@@ -2490,10 +2791,16 @@ function createMediaTimelineCoordination({
                 playable: activePlayable,
                 playing: activePlaybackPlaying,
                 buffering: activePlaybackBuffering,
+                muted: missionMediaMuted === true,
                 showControls: activePlayable,
-                playTitle: activePlaybackPlaying || activePlaybackBuffering
-                    ? "Pause media playback"
-                    : "Play focused media from the current mission time",
+                playLabel: activePlaybackBuffering
+                    ? "Play"
+                    : (activePlaybackPlaying ? "Pause" : "Play"),
+                playTitle: activePlaybackBuffering
+                    ? "Resume media playback"
+                    : (activePlaybackPlaying
+                        ? "Pause media playback"
+                        : "Play focused media from the current mission time"),
                 restartTitle: "Restart media from beginning",
                 resyncTitle: "Force resync media with animation",
                 statusLabel: activePlayable ? activeMediaStatus : "",
@@ -2556,7 +2863,7 @@ function createMediaTimelineCoordination({
         lastFrameScrubMode = null;
         releaseTimelineEventBinding();
         releaseAnimationPlayStateBinding();
-        stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        stopPlayableMedia({ pauseClock: isMediaPlaybackBusy() });
         setTimelineMediaMarkers([]);
         panelActions.setMissionContext({
             configData: globalConfig,
@@ -2564,6 +2871,16 @@ function createMediaTimelineCoordination({
             title: "Mission Media",
             nextMissionLabel: String(globalConfig?.mission_name_short || globalConfig?.mission_name || "Current mission").trim(),
             mediaCount: 0,
+        });
+        backgroundPanelActions.setMissionContext({
+            configData: globalConfig,
+            available: false,
+        });
+        backgroundPanelActions.render({
+            items: [],
+            timeMs: Number(lastRenderContext?.animTime),
+            animationRunning: false,
+            foregroundMediaState: buildForegroundMediaState(),
         });
         panelActions.render({
             panelTitle: "Mission Media",
@@ -2610,6 +2927,10 @@ function createMediaTimelineCoordination({
 
         const manifest = runtimeMediaState.getManifest();
         const available = globalConfig != null;
+        const backgroundItems = Array.isArray(manifest?.mediaItems)
+            ? manifest.mediaItems
+            : [];
+        const backgroundAvailable = resolveBackgroundCandidates(backgroundItems).length > 0;
         panelActions.setMissionContext({
             configData: globalConfig,
             available,
@@ -2617,6 +2938,10 @@ function createMediaTimelineCoordination({
             nextMissionLabel: missionName,
             mediaCount: (Array.isArray(manifest?.mediaItems) ? manifest.mediaItems.length : 0)
                 + (Array.isArray(manifest?.audioItems) ? manifest.audioItems.length : 0),
+        });
+        backgroundPanelActions.setMissionContext({
+            configData: globalConfig,
+            available: available && backgroundAvailable,
         });
 
         if (loadState === "loading" || (loadState === "idle" && !manifest)) {
@@ -2654,7 +2979,18 @@ function createMediaTimelineCoordination({
         syncFrameScrubPreview(selection.activeItem, timeMs);
         syncActivePlayingMediaRate();
         const activePlaybackItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
-        syncActivePlayableMediaToMissionTime(activePlaybackItem, timeMs);
+        const frameScrubPreviewActive = isFrameScrubMode() === true
+            && getAnimationRunning() === true
+            && activePlaybackItem?.kind === "videoClip";
+        if (!frameScrubPreviewActive) {
+            syncActivePlayableMediaToMissionTime(activePlaybackItem, timeMs);
+        }
+        backgroundPanelActions.render({
+            items: backgroundItems,
+            timeMs,
+            animationRunning: getAnimationRunning() === true,
+            foregroundMediaState: buildForegroundMediaState(),
+        });
 
         setTimelineMediaMarkers(buildMediaTimelineMarkers({
             items: selectableItems,
@@ -2675,7 +3011,13 @@ function createMediaTimelineCoordination({
     function dispose() {
         releaseTimelineEventBinding();
         releaseAnimationPlayStateBinding();
-        stopPlayableMedia({ pauseClock: mediaPlaybackState.playing === true });
+        stopPlayableMedia({ pauseClock: isMediaPlaybackBusy() });
+        backgroundPanelActions.render({
+            items: [],
+            timeMs: Number(lastRenderContext?.animTime),
+            animationRunning: false,
+            foregroundMediaState: buildForegroundMediaState(),
+        });
         setTimelineMediaMarkers([]);
     }
 

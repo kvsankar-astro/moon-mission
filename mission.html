@@ -1169,13 +1169,22 @@
                         <span class="header-pill-group__label">Panels</span>
                         <div id="flyby-pill-wrap" class="header-pill-segment header-pill-segment--panels" role="group" aria-label="Panel shortcuts">
                             <button
+                                id="panel-pill-background"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                title="Open Flyby Official Broadcast"
+                            >
+                                Flyby
+                            </button>
+                            <button
                                 id="panel-pill-media"
                                 type="button"
                                 class="header-pill-segment__btn"
                                 aria-pressed="false"
                                 title="Open Mission Media"
                             >
-                                Mission Media
+                                Media
                             </button>
                             <button
                                 id="flyby-pill"
@@ -1959,6 +1968,15 @@
                         aria-label="Play media"
                     >Play</button>
                     <button
+                        id="media-browser-media-mute"
+                        class="media-browser-panel__media-button mission-panel-shell__button mission-panel-shell__button--icon"
+                        type="button"
+                        title="Mute Mission Media"
+                        aria-pressed="false"
+                        aria-label="Mute Mission Media"
+                        data-icon="speaker"
+                    ></button>
+                    <button
                         id="media-browser-media-popout"
                         class="media-browser-panel__media-button media-browser-panel__media-button--popout mission-panel-shell__button"
                         type="button"
@@ -1995,12 +2013,28 @@
                 ></div>
                 <div class="media-browser-panel__thumbnail-strip">
                     <div class="media-browser-panel__thumbnail-strip-title">Filtered Media</div>
-                    <div
-                        id="media-browser-thumbnail-list"
-                        class="media-browser-panel__thumbnail-list"
-                        role="group"
-                        aria-label="Filtered mission media"
-                    ></div>
+                    <div class="media-browser-panel__thumbnail-rail">
+                        <button
+                            id="media-browser-thumbnail-prev"
+                            class="media-browser-panel__thumbnail-page-button media-browser-panel__thumbnail-page-button--previous mission-panel-shell__button"
+                            type="button"
+                            aria-label="Scroll thumbnails left"
+                            title="Scroll thumbnails left"
+                        >&lt;</button>
+                        <div
+                            id="media-browser-thumbnail-list"
+                            class="media-browser-panel__thumbnail-list"
+                            role="group"
+                            aria-label="Filtered mission media"
+                        ></div>
+                        <button
+                            id="media-browser-thumbnail-next"
+                            class="media-browser-panel__thumbnail-page-button media-browser-panel__thumbnail-page-button--next mission-panel-shell__button"
+                            type="button"
+                            aria-label="Scroll thumbnails right"
+                            title="Scroll thumbnails right"
+                        >&gt;</button>
+                    </div>
                 </div>
                 <div id="media-browser-status" class="media-browser-panel__status">Waiting for media manifest...</div>
             </div>
@@ -2062,6 +2096,66 @@
                 <p id="media-browser-description" class="media-browser-panel__description">--</p>
                 <div id="media-browser-timing-note" class="media-browser-panel__timing-note" hidden></div>
                 <div id="media-browser-seed-note" class="media-browser-panel__seed-note" hidden></div>
+            </div>
+        </div>
+
+        <div id="background-media-panel-wrapper" class="background-media-panel-wrapper" hidden>
+            <div id="background-media-panel" class="background-media-panel mission-panel-shell background-media-panel--hidden">
+                <div class="background-media-panel__header mission-panel-shell__header">
+                    <div class="background-media-panel__title mission-panel-shell__title">Flyby Official Broadcast</div>
+                    <div class="background-media-panel__header-controls mission-panel-shell__header-controls">
+                        <button
+                            id="background-media-mute"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Mute or unmute background video"
+                            aria-pressed="true"
+                            aria-label="Unmute background video"
+                            data-icon="speaker-muted"
+                        ></button>
+                        <button
+                            id="background-media-panel-expand"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Expand"
+                            aria-pressed="false"
+                            data-icon="expand"
+                        ></button>
+                        <button
+                            id="background-media-panel-close"
+                            class="background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon"
+                            type="button"
+                            title="Close"
+                            data-icon="close"
+                        ></button>
+                    </div>
+                </div>
+                <div class="background-media-panel__stage">
+                    <video
+                        id="background-media-video"
+                        class="background-media-panel__video"
+                        playsinline
+                        preload="metadata"
+                        muted
+                    ></video>
+                    <div id="background-media-empty" class="background-media-panel__empty">
+                        No background video at this mission time.
+                    </div>
+                    <div id="background-media-live" class="background-media-panel__live" hidden>LIVE</div>
+                </div>
+                <div id="background-media-controls" class="background-media-panel__controls">
+                    <button
+                        id="background-media-enable"
+                        class="background-media-panel__play-toggle mission-panel-shell__button"
+                        type="button"
+                        aria-pressed="false"
+                        title="Play the broadcast video at the current mission time"
+                    >Play broadcast</button>
+                    <div class="background-media-panel__meta">
+                        <span id="background-media-title">No background video selected</span>
+                        <span id="background-media-status">Disabled</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -2542,6 +2636,14 @@
             >
                 <span class="media-buffering-status__dot" aria-hidden="true"></span>
                 <span id="media-buffering-status-text" class="media-buffering-status__text">Media buffering</span>
+            </div>
+            <div
+                id="background-video-status"
+                class="background-video-status background-video-status--hidden"
+                hidden
+            >
+                <span class="background-video-status__dot" aria-hidden="true"></span>
+                <span id="background-video-status-text" class="background-video-status__text">Background video ready</span>
             </div>
         </div>
 

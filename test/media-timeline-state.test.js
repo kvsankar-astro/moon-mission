@@ -56,4 +56,31 @@ describe("buildMediaTimelineMarkers", () => {
         }));
         expect(markers[2].hoverText).toContain("Approx. 30s");
     });
+
+    it("makes background playback videos visible but not clickable", () => {
+        const markers = buildMediaTimelineMarkers({
+            items: [
+                {
+                    id: "broadcast",
+                    kind: "videoClip",
+                    title: "Broadcast",
+                    startTimeMs: 1000,
+                    durationSeconds: 36000,
+                    playbackRoles: ["background"],
+                    backgroundPlayback: {
+                        enabled: true,
+                    },
+                },
+            ],
+            timeMs: 2000,
+            rangeStartMs: 0,
+            rangeEndMs: 10000,
+        });
+
+        expect(markers[0]).toEqual(expect.objectContaining({
+            id: "broadcast",
+            mediaDisplayMode: "segment",
+            clickable: false,
+        }));
+    });
 });

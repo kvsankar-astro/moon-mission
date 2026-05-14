@@ -15,6 +15,12 @@ function isPlayableMediaKind(kind) {
     return kind === "audioClip" || kind === "videoClip";
 }
 
+function isBackgroundPlaybackMediaItem(item) {
+    if (!item) return false;
+    const roles = Array.isArray(item.playbackRoles) ? item.playbackRoles : [];
+    return roles.includes("background") || item.backgroundPlayback?.enabled === true;
+}
+
 function resolveMediaSegmentTiming(item, startTimeMs) {
     const kind = item?.kind;
     if (!isPlayableMediaKind(kind) || !Number.isFinite(startTimeMs)) {
@@ -95,6 +101,7 @@ function buildMediaTimelineMarkers({
         const preEphemeris = Number.isFinite(rangeStartMs) && rangeCheckEndTimeMs < rangeStartMs;
         const postEphemeris = Number.isFinite(rangeEndMs) && startTimeMs > rangeEndMs;
         const inTimelineRange = !preEphemeris && !postEphemeris;
+        const backgroundPlayback = isBackgroundPlaybackMediaItem(item);
 
         return {
             id: item.id,
@@ -112,7 +119,7 @@ function buildMediaTimelineMarkers({
             endTimeMs,
             durationEstimated: segmentTiming.durationEstimated,
             selected: index === activeIndex,
-            clickable: inTimelineRange,
+            clickable: inTimelineRange && !backgroundPlayback,
             preEphemeris,
             postEphemeris,
         };

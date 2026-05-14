@@ -9,20 +9,19 @@ const ITEMS = [
 ];
 
 describe("resolveMediaSelectionState", () => {
-    it("selects the nearest media item for the current mission time", () => {
+    it("selects the latest media item at or before the current mission time", () => {
         const selection = resolveMediaSelectionState({
             items: ITEMS,
             timeMs: Date.parse("2026-04-06T23:24:20Z"),
             nearbyRadius: 1,
         });
 
-        expect(selection.activeItem?.id).toBe("earthrise");
-        expect(selection.previousItem?.id).toBe("launch");
-        expect(selection.nextItem?.id).toBe("splashdown");
+        expect(selection.activeItem?.id).toBe("launch");
+        expect(selection.previousItem).toBeNull();
+        expect(selection.nextItem?.id).toBe("earthrise");
         expect(selection.nearbyItems.map((item) => item.id)).toEqual([
             "launch",
             "earthrise",
-            "splashdown",
         ]);
     });
 });

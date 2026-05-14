@@ -16,6 +16,7 @@ import {
     isMissionPanelEnabled,
     shouldMissionPanelAutoOpenBeforeEvent,
 } from "./panel-defaults.js";
+import { bringPanelElementToFront } from "./panel-z-order.js";
 import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
 import { isDomElement, isDomInstance } from "../ui/dom-helpers.js";
 
@@ -1869,6 +1870,10 @@ function createGroundTrackPanelActions(options = {}) {
         }
     }
 
+    function bringPanelToFront() {
+        bringPanelElementToFront(getNode("ground-track-panel-wrapper"));
+    }
+
     function setPanelState(nextState) {
         const previousState = panelVisibilityState;
         const resolvedState = nextState === "minimized"
@@ -1897,6 +1902,7 @@ function createGroundTrackPanelActions(options = {}) {
             persistPanelLayoutState(panel);
             return;
         }
+        bringPanelToFront();
         if (shouldMaximizeOnOpen && panelExpanded !== true) {
             setPanelExpanded(true, panel);
             return;
@@ -2034,6 +2040,7 @@ function createGroundTrackPanelActions(options = {}) {
         }
 
         bindPanelDragging(panel, header);
+        panel?.addEventListener?.("pointerdown", bringPanelToFront, true);
         if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
