@@ -2607,7 +2607,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock:not(.timeline-dock--media-track-visible) .timeline-dock__playhead {
-    top: 24px;
+    top: 0;
+    bottom: -34px;
 }
 
 .timeline-dock__playhead::after {
@@ -2926,6 +2927,10 @@ a:hover { color: white; }
     box-shadow: none;
     overflow: visible;
     transition: opacity 0.16s ease;
+}
+
+body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
+    bottom: calc(var(--timeline-dock-height) + var(--timeline-dock-offset) + 2px);
 }
 
 #animation-control-panel {
