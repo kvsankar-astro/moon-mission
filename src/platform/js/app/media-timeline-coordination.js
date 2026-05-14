@@ -2614,7 +2614,16 @@ function createMediaTimelineCoordination({
         if (type === "previewItem") {
             const selectableItems = getFilteredSelectableItems();
             const selectedItem = selectableItems.find((item) => item.id === intent.value) || null;
-            previewMediaItem(selectedItem);
+            const autoStartPlayable = getAnimationRunning() === true;
+            const forceTransportPlayback = autoStartPlayable && isForegroundPlayableMediaItem(selectedItem);
+            if (forceTransportPlayback) {
+                setPlaybackAuthority(PLAYBACK_AUTHORITY_MEDIA);
+            }
+            previewMediaItem(selectedItem, {
+                preserveCurrentPlayableOffset: true,
+                autoStartPlayable,
+                forceTransportPlayback,
+            });
             return;
         }
         if (type === "mediaSeekTime") {

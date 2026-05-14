@@ -2722,6 +2722,7 @@ describe("createMediaTimelineCoordination", () => {
         };
         let speedMultiplier = 60;
         let isRealtime = false;
+        let animationRunning = false;
         globalThis.HTMLInputElement = FakeInput;
         globalThis.Event = class {
             constructor(type) {
@@ -2755,7 +2756,7 @@ describe("createMediaTimelineCoordination", () => {
         const coordination = createMediaTimelineCoordination({
             getAnimationSpeedMultiplier: () => speedMultiplier,
             getAnimationRealtime: () => isRealtime,
-            getAnimationRunning: () => true,
+            getAnimationRunning: () => animationRunning,
             getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
             getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
         });
@@ -2770,6 +2771,7 @@ describe("createMediaTimelineCoordination", () => {
         const [, playStateHandler] = globalThis.document.addEventListener.mock.calls.find(([type]) => (
             type === "animation-play-state-updated"
         ));
+        animationRunning = true;
         playStateHandler({ detail: { isPlaying: true } });
         await flushPromises(2);
         expect(video.play).not.toHaveBeenCalled();
