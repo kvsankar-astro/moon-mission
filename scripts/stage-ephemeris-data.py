@@ -9,6 +9,7 @@ the target tree using runtime-relative paths:
   - Vendored runtime libraries under third-party/
   - Mission screenshots under assets/<mission>/images/
   - Mission media thumbnail derivatives under assets/<mission>/media/thumbnails/
+  - Optional mission media stream payloads under assets/<mission>/media/streams/
 
 The script validates required orbit artifacts declared by each mission
 ephemeris manifest in the app repository.
@@ -344,11 +345,12 @@ def stage_mission_images(
 def stage_mission_media(
     data_root: Path,
     target_root: Path,
-) -> int:
-    copied = 0
+) -> Tuple[int, int]:
+    copied_thumbnails = 0
+    copied_streams = 0
     assets_root = data_root / "assets"
     if not assets_root.exists():
-        return 0
+        return 0, 0
 
     for source in assets_root.glob("*/media/thumbnails/**/*"):
         if not source.is_file():
@@ -356,10 +358,19 @@ def stage_mission_media(
         rel = source.relative_to(data_root)
         target = target_root / rel
         copy_file(source, target)
-        copied += 1
+        copied_thumbnails += 1
 
-    print(f"Staged {copied} mission media thumbnail file(s) from data repo assets/")
-    return copied
+    for source in assets_root.glob("*/media/streams/**/*"):
+        if not source.is_file():
+            continue
+        rel = source.relative_to(data_root)
+        target = target_root / rel
+        copy_file(source, target)
+        copied_streams += 1
+
+    print(f"Staged {copied_thumbnails} mission media thumbnail file(s) from data repo assets/")
+    print(f"Staged {copied_streams} mission media stream file(s) from data repo assets/")
+    return copied_thumbnails, copied_streams
 
 
 def stage_orbit_artifacts(
@@ -429,7 +440,10 @@ def stage_runtime_assets(
         required=False,
     )
     mission_images_count = stage_mission_images(data_root, target_root)
-    mission_media_count = stage_mission_media(data_root, target_root)
+    mission_media_thumbnail_count, mission_media_stream_count = stage_mission_media(
+        data_root,
+        target_root,
+    )
 
     print(
         "\nStaging summary:\n"
@@ -438,7 +452,8 @@ def stage_runtime_assets(
         f"  Shared images: {images_count}\n"
         f"  Shared third-party: {third_party_count}\n"
         f"  Mission images: {mission_images_count}\n"
-        f"  Mission media thumbnails: {mission_media_count}\n"
+        f"  Mission media thumbnails: {mission_media_thumbnail_count}\n"
+        f"  Mission media streams: {mission_media_stream_count}\n"
         f"  Target root: {target_root.as_posix()}",
     )
 

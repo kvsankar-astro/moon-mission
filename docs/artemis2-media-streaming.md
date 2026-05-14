@@ -48,6 +48,15 @@ The stream is declared in `assets/artemis2/data/media-manifest.json5` with
 
 `assets/artemis2/media/streams/lunar-flyby/v1/`
 
+The durable local staging copy has been moved out of temp scratch and into the
+sibling data workspace at:
+
+`C:\sankar\projects\moon-mission-data\assets\artemis2\media\streams\lunar-flyby\v1\`
+
+That directory is local staging for upload/deploy workflows. Do not commit the
+6103 HLS playlist/segment files to GitHub; publish them to object storage/CDN
+instead.
+
 The hosted URL above is the intended production location once DNS and static
 hosting are configured.
 
@@ -99,6 +108,8 @@ Useful cache policy:
   a version such as `v1`.
 - Playlists: short cache while iterating, then longer once stable.
 - Enable CORS for the app origin.
+- Use the custom domain (`media.sankara.net`) for production rather than an
+  `r2.dev` development URL.
 
 ## Sync Status
 
@@ -118,8 +129,11 @@ broadcast cues. Good candidates:
 
 ## Next Work
 
-1. Upload the generated `v1` HLS directory to the media host.
-2. Switch `sourceUrl` from the local path to the hosted media URL.
-3. Replace provisional sync with validated anchors and anchor interpolation.
-4. Add stream-specific filtering if whole-mission streams should be separated
+1. Upload the generated `v1` HLS directory from `moon-mission-data` local
+   staging to the media host.
+2. Verify the hosted playlist and a representative segment return the expected
+   content types and CORS headers.
+3. Switch `sourceUrl` from the local path to the hosted media URL.
+4. Replace provisional sync with validated anchors and anchor interpolation.
+5. Add stream-specific filtering if whole-mission streams should be separated
    from short video clips in the UI.

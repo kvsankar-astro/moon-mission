@@ -45,6 +45,10 @@ In `../moon-mission-data`:
 - Store generated thumbnail derivatives under `assets/artemis2/media/thumbnails/`, including image/video thumbnail WebPs and the shared audio waveform SVG.
 - Do not mirror the Artemis Timeline R2 bucket originals by default.
 - Only add hosted original media files if we deliberately decide to self-host, compress, or replace a source asset.
+- Long-form generated HLS streams may be staged locally under
+  `assets/artemis2/media/streams/` to prepare an object-storage upload, but
+  they should not be committed to GitHub. The Artemis II lunar-flyby broadcast
+  staging copy is about 2.66 GiB and belongs in R2/CDN for production.
 - If we self-host later, document the source URL, transform, license/provenance check, and CORS behavior before committing the asset.
 
 ## Generated Thumbnails
@@ -63,7 +67,7 @@ The Artemis II manifest declares:
 - Generate thumbnails with `node scripts/generate-media-thumbnails.mjs --mission artemis2 --data-root ../moon-mission-data --kind all`.
 - Image and video thumbnails are `320x180` WebP derivatives created with `ffmpeg`.
 - Audio uses one shared waveform symbol at `assets/artemis2/media/thumbnails/audio/waveform.svg`.
-- Stage generated thumbnail derivatives into local/dev/deploy targets with `python scripts/stage-ephemeris-data.py --data-root ../moon-mission-data --target-root <target>`.
+- Stage generated thumbnail derivatives and any local media stream payloads into local/dev/deploy targets with `python scripts/stage-ephemeris-data.py --data-root ../moon-mission-data --target-root <target>`.
 - Local staged `assets/*/media/` files are ignored in this app repo and should be committed from `../moon-mission-data`.
 
 ## Known Import Notes
