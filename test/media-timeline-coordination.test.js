@@ -2568,7 +2568,9 @@ describe("createMediaTimelineCoordination", () => {
                 },
             ],
         });
+        const pauseAnimation = vi.fn();
         const coordination = createMediaTimelineCoordination({
+            pauseAnimation,
             getAnimationRunning: () => true,
             getAnimationSpeedMultiplier: () => 60,
             getAnimationRealtime: () => false,
@@ -2598,6 +2600,17 @@ describe("createMediaTimelineCoordination", () => {
         expect(video.pause).not.toHaveBeenCalled();
         resolvePlay?.();
         await flushPromises(3);
+
+        pauseAnimation.mockClear();
+        video.currentTime = 600;
+        mocks.panelIntentHandler?.({
+            type: "mediaPlaybackTimeUpdate",
+            value: "clip.mp4",
+            mediaKind: "videoClip",
+            currentTime: 600,
+        });
+
+        expect(pauseAnimation).not.toHaveBeenCalled();
     });
 
     it("keeps frame-scrub preview pauses from toggling animation playback", async () => {

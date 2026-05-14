@@ -528,6 +528,69 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-video-status-text").textContent).toBe("Background video audio restored");
     });
 
+    it("does not turn the initial muted default into a stored user preference when enabling playback", async () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const configData = {
+            ui: {
+                panels: {
+                    defaults: {
+                        "workflow:background-media": {
+                            enabled: true,
+                            defaultState: "open",
+                        },
+                    },
+                },
+            },
+        };
+        const item = {
+            id: "broadcast",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+                muted: false,
+            },
+        };
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+        });
+        actions.setMissionContext({ available: true, configData });
+        const [, enablePlayback] = nodes.get("background-media-enable").addEventListener.mock.calls.find(([type]) => type === "click");
+        enablePlayback();
+        actions.setMissionContext({ available: true, configData });
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: true,
+            foregroundMediaState: {
+                active: true,
+                kind: "videoClip",
+                previewing: true,
+            },
+        });
+        expect(video.muted).toBe(true);
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 11000,
+            animationRunning: true,
+            foregroundMediaState: {
+                active: false,
+                kind: "",
+            },
+        });
+        await Promise.resolve();
+
+        expect(video.muted).toBe(false);
+    });
+
     it("frame-previews in-range broadcast video at high animation speeds", () => {
         const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
         const startTimeMs = Date.parse("2026-04-06T16:58:14Z");

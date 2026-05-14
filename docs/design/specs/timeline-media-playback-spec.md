@@ -62,13 +62,17 @@ Set authority to `media` when the user directly uses media transport:
 - media Restart
 - media seek slider
 - media panel play controls that start a focused playable item
-- direct selection of a foreground audio/video item while animation is already
-  running, because that selection starts foreground playback
 
 This rule applies even if animation was already running. Whether animation
 continues while the media starts is an effect flag, not playback authority.
 Direct media Play/Restart/Seek always means media end/pause behavior follows
 media authority.
+
+Direct selection of a foreground audio/video item while animation is already
+running is a hybrid case: it starts real foreground media transport, but it is
+still animation-owned for end behavior. When that auto-started foreground media
+ends, animation continues and Background Video resumes/unmutes according to its
+own state.
 
 Media-driven calls to animation Play/Pause must not accidentally switch
 authority back to `animation`. They are consequences of media authority, not a
@@ -117,6 +121,9 @@ These are the canonical user-visible rules.
      foreground item starts real media transport from the matching mission-time
      offset, even when animation speed is high enough that animation-owned
      preview would normally use frame-scrub mode.
+   - Effect: when that auto-started foreground item ends, animation remains
+     running and Background Video resumes/unmutes if it is enabled, open, and
+     in range.
    - Exception: a video with the `background` playback role is not a
      foreground playback candidate. Mission-time changes may make it the active
      contextual item, but it must not start in the Mission Media player.
@@ -269,7 +276,9 @@ stays authoritative in that mode.
 Media-owned playback is different: when the user directly starts or selects a
 foreground audio/video item, Mission Media must use real media transport and
 must not be converted into frame-scrub preview by a concurrent fast-running
-animation. In that state, media time is allowed to drive mission time.
+animation. In that state, media time is allowed to drive mission time. If media
+transport was started by direct selection while animation was already running,
+end behavior still returns to animation instead of pausing it.
 
 Frame-scrub preview is still foreground video activity while animation is
 running. It must mute Background Video just like normal foreground video

@@ -99,7 +99,7 @@ describe("Mission Media foreground playback interactions", () => {
                 });
             });
 
-            await page.goto(`${baseUrl}/artemis2/`, {
+            await page.goto(`${baseUrl}/artemis2/?testMode=true`, {
                 waitUntil: "domcontentloaded",
                 timeout: 60000,
             });
@@ -113,7 +113,12 @@ describe("Mission Media foreground playback interactions", () => {
                     document.getElementById("panel-pill-background")?.click();
                 }
             });
-            await page.locator("#background-media-empty .background-media-panel__jump-button").click({ timeout: 30000 });
+            await page.waitForSelector("#background-media-empty .background-media-panel__jump-button", {
+                timeout: 30000,
+            });
+            await page.evaluate(() => {
+                document.querySelector("#background-media-empty .background-media-panel__jump-button")?.click();
+            });
             await page.waitForFunction(
                 () => document.getElementById("animate")?.textContent?.trim() === "Pause",
                 { timeout: 10000 },
@@ -171,6 +176,33 @@ describe("Mission Media foreground playback interactions", () => {
             expect(state.foregroundMuted).toBe(false);
             expect(state.backgroundMuted).toBe(true);
             expect(state.playCalls.some((call) => call.id === "media-browser-video")).toBe(true);
+
+            await page.evaluate(() => {
+                const foregroundVideo = document.getElementById("media-browser-video");
+                if (foregroundVideo) {
+                    foregroundVideo.currentTime = 180;
+                    foregroundVideo.dispatchEvent(new Event("ended"));
+                }
+            });
+            await page.waitForFunction(
+                () => document.getElementById("media-browser-media-play")?.textContent?.trim() === "Play",
+                { timeout: 10000 },
+            );
+
+            const releaseState = await page.evaluate(() => {
+                const backgroundVideo = document.getElementById("background-media-video");
+                return {
+                    animationButton: document.getElementById("animate")?.textContent?.trim() || "",
+                    foregroundStatus: document.getElementById("media-browser-media-status")?.textContent || "",
+                    backgroundMuted: backgroundVideo?.muted,
+                    backgroundStatus: document.getElementById("background-media-status")?.textContent || "",
+                };
+            });
+
+            expect(releaseState.animationButton).toBe("Pause");
+            expect(releaseState.foregroundStatus).not.toContain("playing");
+            expect(releaseState.backgroundMuted).toBe(false);
+            expect(releaseState.backgroundStatus).not.toContain("Muted for Foreground Media");
         } finally {
             await page.close();
         }

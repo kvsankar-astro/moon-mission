@@ -460,6 +460,7 @@ function createBackgroundMediaPanelActions({
             state: panelState,
             playbackEnabled,
             muted,
+            mutedPreferenceSet: hasStoredMutedPreference === true,
             expanded,
             layoutPresetVersion: BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION,
             ...patch,
@@ -1123,9 +1124,15 @@ function createBackgroundMediaPanelActions({
         if (useStoredState && typeof stored?.playbackEnabled === "boolean") {
             playbackEnabled = stored.playbackEnabled;
         }
-        if (useStoredState && typeof stored?.muted === "boolean") {
+        if (
+            useStoredState
+            && stored?.mutedPreferenceSet === true
+            && typeof stored?.muted === "boolean"
+        ) {
             muted = stored.muted;
             hasStoredMutedPreference = true;
+        } else {
+            hasStoredMutedPreference = false;
         }
         if (useStoredState && typeof stored?.expanded === "boolean") {
             expanded = stored.expanded;
