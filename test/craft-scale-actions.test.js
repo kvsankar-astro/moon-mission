@@ -98,4 +98,22 @@ describe("createCraftScaleActions", () => {
         expect(mobileScene.craft.scale.y).toBeCloseTo(desktopScale * 0.5, 6);
         expect(mobileScene.craft.scale.z).toBeCloseTo(desktopScale * 0.5, 6);
     });
+
+    it("skips scale updates when the 3D scene is initialized before its camera is available", () => {
+        const scene = createScene();
+        scene.camera = null;
+        const actions = createCraftScaleActions({
+            THREE,
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            getJoyRideFlag: () => false,
+            getLandingFlag: () => false,
+            getDefaultCameraDistance: () => 100,
+            getAnimTime: () => 0,
+            isLocationAvaialable: () => true,
+        });
+
+        expect(() => actions.updateCraftScale()).not.toThrow();
+        expect(scene.craft.scale.x).toBe(1);
+    });
 });

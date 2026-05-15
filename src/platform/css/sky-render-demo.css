@@ -6,16 +6,26 @@
     --text: #e8edf7;
     --muted: #9eb2ce;
     --accent: #4dd1d8;
+    --ui-font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+    --ui-font-condensed: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif;
+    --ui-font-mono: "IBM Plex Mono", "Cascadia Code", monospace;
 }
 
 * {
     box-sizing: border-box;
 }
 
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
-    font-family: "Segoe UI", "Avenir Next", sans-serif;
+    font-family: var(--ui-font-sans);
     color: var(--text);
     background:
         radial-gradient(160vmax 90vmax at 10% -20%, #16233f, transparent 60%),
@@ -55,6 +65,7 @@ h1 {
     grid-template-columns: 1fr;
     gap: 0.35rem;
     margin-bottom: 0.82rem;
+    font-family: var(--ui-font-condensed);
     font-size: 0.92rem;
 }
 
@@ -69,6 +80,7 @@ input[type="range"] {
 
 output {
     color: var(--muted);
+    font-family: var(--ui-font-mono);
     font-variant-numeric: tabular-nums;
 }
 

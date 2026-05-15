@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Moon mission runtime asset size status across configured missions and shared textures/images">
     <title>Moon Mission Assets Status</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
     <style>
         :root {
             --bg: #08111f;
@@ -16,6 +16,9 @@
             --muted: #9fb1d7;
             --accent: #ffa000;
             --link: #8ec1ff;
+            --ui-font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            --ui-font-condensed: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Segoe UI', Arial, sans-serif;
+            --ui-font-mono: 'IBM Plex Mono', 'Cascadia Code', monospace;
         }
 
         * { box-sizing: border-box; }
@@ -28,7 +31,14 @@
                 radial-gradient(circle at top left, rgba(255, 160, 0, 0.1), transparent 22%),
                 linear-gradient(180deg, #09101d 0%, #08111f 100%);
             color: var(--text);
-            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            font-family: var(--ui-font-sans);
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
         }
 
         .assets-shell {
@@ -70,6 +80,7 @@
             color: #d4e4ff;
             background: rgba(18, 31, 57, 0.9);
             text-decoration: none;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
             font-weight: 600;
         }
@@ -110,6 +121,7 @@
 
         .assets-control label {
             color: var(--muted);
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
             font-weight: 600;
             letter-spacing: 0.04em;
@@ -189,6 +201,7 @@
             z-index: 1;
             background: rgba(18, 30, 56, 0.98);
             color: #b0c1e5;
+            font-family: var(--ui-font-condensed);
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.07em;
@@ -289,6 +302,7 @@
 
         .assets-file-name {
             color: #dfe9ff;
+            font-family: var(--ui-font-condensed);
             font-weight: 600;
             word-break: break-word;
         }
@@ -309,6 +323,7 @@
             align-items: center;
             border-radius: 999px;
             padding: 5px 10px;
+            font-family: var(--ui-font-condensed);
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.04em;

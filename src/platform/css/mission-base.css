@@ -45,6 +45,17 @@
     --ui-radius-md: 10px;
     --ui-focus: rgba(100, 164, 255, 0.75);
     --ui-font-sans: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --ui-font-condensed: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif;
+    --ui-font-mono: "IBM Plex Mono", "Cascadia Code", "Lucida Console", monospace;
+    --ui-type-micro: 8px;
+    --ui-type-label: 9px;
+    --ui-type-control: 10px;
+    --ui-type-body-sm: 11px;
+    --ui-type-body: 12px;
+    --ui-type-body-lg: 13px;
+    --ui-type-title-sm: 16px;
+    --ui-tracking-label: 0.05em;
+    --ui-tracking-kicker: 0.08em;
     --timeline-dock-height: 94px;
     --timeline-dock-offset: 6px;
     --control-panel-visual-height: 0px;
@@ -65,6 +76,13 @@ body {
     user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
 }
 
 .header {
@@ -141,9 +159,10 @@ body {
     border-radius: 999px;
     background: rgba(10, 18, 32, 0.58);
     color: #dbe7ff;
-    font-size: 10px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-control);
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: var(--ui-tracking-label);
     line-height: 1;
     text-transform: uppercase;
     cursor: pointer;
@@ -170,7 +189,7 @@ body {
 .settings-panel {
     display: none;
     pointer-events: all;
-    font-family: var(--ui-font-sans);
+    font-family: var(--ui-font-condensed);
     color: var(--ui-text-1);
     background: var(--ui-surface-2);
     border: 1px solid var(--ui-border-1);
@@ -200,9 +219,10 @@ body {
     border-radius: var(--ui-radius-sm);
     background: var(--ui-surface-1);
     color: var(--ui-text-1);
-    font-size: 11px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: var(--ui-tracking-kicker);
     text-transform: none;
     cursor: pointer;
     backdrop-filter: blur(6px);
@@ -321,9 +341,10 @@ body {
 
 .header-pill-group__label {
     color: var(--header-pill-group-label-color);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 0.06em;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-control);
+    font-weight: 700;
+    letter-spacing: var(--ui-tracking-label);
     text-transform: uppercase;
     text-shadow: 0 0 12px rgba(127, 227, 255, 0.28);
     user-select: none;
@@ -354,9 +375,10 @@ body {
     border-radius: 999px;
     background: transparent;
     color: #aebbd2;
-    font-size: 9px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--ui-tracking-label);
     text-transform: uppercase;
     cursor: pointer;
     transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
@@ -468,7 +490,7 @@ body {
 .lunar-crater-controls-panel__title {
     color: #dce8ff;
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
@@ -521,8 +543,8 @@ body {
     border-radius: 6px;
     background: transparent;
     color: #b9c5d8;
-    font-size: 8.5px;
-    font-weight: 800;
+    font-size: var(--ui-type-label);
+    font-weight: 700;
     letter-spacing: 0;
     text-transform: uppercase;
     cursor: pointer;
@@ -617,7 +639,7 @@ body {
     background: rgba(12, 24, 44, 0.9);
     color: #dce8ff;
     font-size: 8px;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     cursor: pointer;
 }
@@ -667,7 +689,7 @@ body {
     text-align: left;
     color: rgba(188, 208, 241, 0.82);
     font-size: 8px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     cursor: pointer;
@@ -730,7 +752,7 @@ body {
 
 .lunar-crater-controls-panel__type-label {
     color: #d5e2f6;
-    font-size: 8.5px;
+    font-size: var(--ui-type-label);
     line-height: 1.25;
     padding-right: 68px;
     white-space: nowrap;
@@ -909,7 +931,7 @@ body {
     min-height: 13px;
     gap: 8px;
     color: rgba(185, 197, 216, 0.82);
-    font-size: 8.5px;
+    font-size: var(--ui-type-label);
     font-weight: 700;
     line-height: 1.15;
 }
@@ -946,7 +968,7 @@ body {
 .lunar-crater-controls-panel__nudge {
     margin-top: -2px;
     color: rgba(220, 232, 255, 0.82);
-    font-size: 8.5px;
+    font-size: var(--ui-type-label);
     font-weight: 600;
     line-height: 1.25;
 }
@@ -979,7 +1001,7 @@ body {
     gap: 8px;
     color: rgba(185, 197, 216, 0.82);
     font-size: 8px;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
 }
 
@@ -1020,13 +1042,13 @@ body {
 
 .lunar-crater-controls-panel__search-result-name {
     color: #dce8ff;
-    font-size: 8.5px;
-    font-weight: 800;
+    font-size: var(--ui-type-label);
+    font-weight: 700;
 }
 
 .lunar-crater-controls-panel__search-result-meta {
     color: rgba(185, 197, 216, 0.82);
-    font-size: 7.5px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
 }
 

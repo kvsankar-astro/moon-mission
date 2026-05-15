@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { buildMediaStreamSyncPlan } from "../src/platform/js/core/domain/media-stream-sync.js";
+import {
+    buildMediaStreamSyncPlan,
+    resolveTargetPlaybackTimeSeconds,
+} from "../src/platform/js/core/domain/media-stream-sync.js";
 
 const STREAM = {
     enabled: true,
@@ -65,6 +68,20 @@ describe("buildMediaStreamSyncPlan", () => {
             targetPlaybackTimeSeconds: 612,
             shouldPlay: true,
         }));
+    });
+
+    it("clamps offset targets to the valid media range", () => {
+        expect(resolveTargetPlaybackTimeSeconds({
+            ...STREAM,
+            timeOffsetSeconds: -120,
+            durationSeconds: 60,
+        }, STREAM.startTimeMs + 30000)).toBe(0);
+
+        expect(resolveTargetPlaybackTimeSeconds({
+            ...STREAM,
+            timeOffsetSeconds: 120,
+            durationSeconds: 60,
+        }, STREAM.startTimeMs + 30000)).toBe(60);
     });
 
     it("requests a hard seek when playback drift is large", () => {

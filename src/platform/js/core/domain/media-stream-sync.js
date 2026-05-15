@@ -3,6 +3,23 @@ function clampPlaybackRate(value) {
     return Math.max(0.5, Math.min(2.0, value));
 }
 
+function resolveTargetPlaybackTimeSeconds(stream, missionTimeMs) {
+    const streamStartMs = Number(stream?.startTimeMs);
+    const missionMs = Number(missionTimeMs);
+    if (!Number.isFinite(streamStartMs) || !Number.isFinite(missionMs)) {
+        return Number.NaN;
+    }
+
+    const timeOffsetSeconds = Number(stream?.timeOffsetSeconds);
+    const rawSeconds = ((missionMs - streamStartMs) / 1000)
+        + (Number.isFinite(timeOffsetSeconds) ? timeOffsetSeconds : 0);
+    const durationSeconds = Number(stream?.durationSeconds);
+    if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
+        return Math.max(0, Math.min(durationSeconds, rawSeconds));
+    }
+    return Math.max(0, rawSeconds);
+}
+
 function buildMediaStreamSyncPlan({
     stream,
     missionTimeMs,
@@ -38,9 +55,7 @@ function buildMediaStreamSyncPlan({
         };
     }
 
-    const targetPlaybackTimeSeconds =
-        ((missionTimeMs - streamStartMs) / 1000) +
-        Number(stream.timeOffsetSeconds || 0);
+    const targetPlaybackTimeSeconds = resolveTargetPlaybackTimeSeconds(stream, missionTimeMs);
     const currentTime = Number(currentPlaybackTimeSeconds);
     const driftSeconds = Number.isFinite(currentTime)
         ? targetPlaybackTimeSeconds - currentTime
@@ -81,4 +96,5 @@ function buildMediaStreamSyncPlan({
 
 export {
     buildMediaStreamSyncPlan,
+    resolveTargetPlaybackTimeSeconds,
 };

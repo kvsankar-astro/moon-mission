@@ -30,14 +30,13 @@ export function createCraftScaleActions({
         const scene = animationScenes[config];
         if (!scene || !scene.initialized3D) return;
 
+        const activeCamera = getLandingFlag() && !getJoyRideFlag()
+            ? scene.droneCamera
+            : scene.camera;
+        if (typeof activeCamera?.getWorldPosition !== "function") return;
+
         const cameraLocation = new THREE.Vector3();
-        if (getJoyRideFlag()) {
-            scene.camera.getWorldPosition(cameraLocation); // not craftCamera
-        } else if (getLandingFlag()) {
-            scene.droneCamera.getWorldPosition(cameraLocation);
-        } else {
-            scene.camera.getWorldPosition(cameraLocation);
-        }
+        activeCamera.getWorldPosition(cameraLocation);
 
         const craftEntries = Object.entries(scene.craftsById || {});
         if (craftEntries.length === 0 && scene.craft) {
@@ -45,7 +44,7 @@ export function createCraftScaleActions({
         }
 
         const primaryCraftId = scene.primaryCraftId || "SC";
-        const fov = scene?.camera?.fov;
+        const fov = activeCamera?.fov ?? scene?.camera?.fov;
         const isMobileViewport = readViewportWidth() <= 600;
 
         for (const [craftId, craftObject] of craftEntries) {

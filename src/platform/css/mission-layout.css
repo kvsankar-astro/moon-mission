@@ -202,7 +202,8 @@ canvas {
 
 .aux-camera-view__title {
     color: rgba(230, 239, 255, 0.92);
-    font-size: 10px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-control);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -240,7 +241,8 @@ canvas {
     border-radius: 4px;
     background: rgba(14, 24, 41, 0.72);
     color: rgba(219, 233, 252, 0.95);
-    font-size: 11px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-body-sm);
     font-weight: 700;
     line-height: 1;
     padding: 2px 7px 3px;
@@ -265,9 +267,10 @@ canvas {
     border-radius: 999px;
     background: rgba(10, 18, 32, 0.55);
     color: #aebbd2;
-    font-size: 9px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--ui-tracking-label);
     line-height: 1;
     text-transform: uppercase;
     cursor: pointer;
@@ -287,9 +290,10 @@ canvas {
 
 .aux-camera-view__fov-label,
 .aux-camera-view__fov-value {
-    font-size: 9px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--ui-tracking-label);
     white-space: nowrap;
 }
 
@@ -300,9 +304,10 @@ canvas {
 
 .aux-camera-view__fov-edge {
     color: rgba(157, 182, 216, 0.78);
-    font-size: 7px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-micro);
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: var(--ui-tracking-label);
     text-transform: uppercase;
     white-space: nowrap;
 }
@@ -483,7 +488,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 
 .mission-loading-overlay__message {
     font-size: 15px;
-    font-weight: 750;
+    font-weight: 700;
     letter-spacing: 0.01em;
 }
 
@@ -937,7 +942,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     list-style: none;
     color: rgba(205, 224, 250, 0.84);
     font-size: 10px;
-    font-weight: 650;
+    font-weight: 600;
     line-height: 1;
     cursor: pointer;
     user-select: none;
@@ -1017,7 +1022,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     color: rgba(226, 238, 255, 0.95);
     color-scheme: dark;
     font-size: 10px;
-    font-weight: 650;
+    font-weight: 600;
     line-height: 1.2;
     padding: 4px 8px;
 }
@@ -1051,7 +1056,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     background: rgba(14, 24, 41, 0.82);
     color: rgba(226, 238, 255, 0.92);
     font-size: var(--aux-composer-triangle-size);
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
     cursor: pointer;
 }
@@ -2046,7 +2051,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     justify-content: center;
     font-family: inherit;
     font-size: 9px;
-    font-weight: 800;
+    font-weight: 700;
     line-height: 1;
     letter-spacing: 0.045em;
     text-transform: uppercase;
@@ -2773,7 +2778,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     padding: 0;
     overflow: visible;
     text-align: center;
-    font-family: "Lucida Console", monospace;
+    font-family: var(--ui-font-mono);
     font-size: 10px;
     font-weight: 700;
     line-height: 1.4;
@@ -2789,7 +2794,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     padding: 0;
     overflow: visible;
     text-align: center;
-    font-family: "Lucida Console", monospace;
+    font-family: var(--ui-font-mono);
     font-size: 10px;
     font-weight: 700;
     line-height: 1.4;
@@ -3084,8 +3089,8 @@ body:has(#timeline-dock.timeline-dock--media-track-visible) #control-panel {
     border-radius: var(--ui-radius-sm);
     background: rgba(255, 255, 255, 0.03);
     color: var(--ui-text-1);
-    font-family: var(--ui-font-sans);
-    font-size: 10px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-control);
     font-weight: 600;
     letter-spacing: 0.02em;
     cursor: pointer;
@@ -3490,6 +3495,7 @@ fieldset {
     align-items: baseline;
     flex-wrap: wrap;
     gap: 6px;
+    font-family: var(--ui-font-condensed);
 }
 
 .mission-breadcrumb a {
@@ -3530,7 +3536,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     z-index: 55;
 }
 
-.cy3 { font-family: "Lucida Console", monospace; text-align: right; }
+.cy3 { font-family: var(--ui-font-mono); text-align: right; }
 
 .stats {
     display: none;
@@ -3833,7 +3839,7 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
 
 .date {
   color: grey;
-  font-family: "Lucida Console", monospace;
+  font-family: var(--ui-font-mono);
   user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
@@ -3915,8 +3921,8 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     border: 1px solid rgba(255, 255, 255, 0.18);
     background: rgba(255, 255, 255, 0.08);
     color: #eaf2ff;
-    font-family: var(--ui-font-sans);
-    font-size: 9px;
+    font-family: var(--ui-font-condensed);
+    font-size: var(--ui-type-label);
     font-weight: 700;
 }
 

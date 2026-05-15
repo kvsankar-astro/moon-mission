@@ -18,14 +18,27 @@
     <meta name="twitter:description" content="Interactive 2D/3D lunar mission orbit visualizations from JPL HORIZONS data">
     <meta name="twitter:image" content="https://sankara.net/astro/lunar-missions/images/social/chandrayaan3-landscape.png?v=20260405f">
     <title>Lunar Mission Animations</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
     <style>
+        :root {
+            --ui-font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            --ui-font-condensed: 'IBM Plex Sans Condensed', 'Arial Narrow', 'Segoe UI', Arial, sans-serif;
+            --ui-font-mono: 'IBM Plex Mono', 'Cascadia Code', monospace;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
             background: #0a0a15;
             color: #d9e2ff;
-            font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+            font-family: var(--ui-font-sans);
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
         }
 
         .landing-shell {
@@ -82,6 +95,7 @@
             color: #c9d5f3;
             border-radius: 8px;
             padding: 8px 12px;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -102,6 +116,7 @@
             color: #dce7ff;
             border-radius: 999px;
             padding: 9px 13px;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
             font-weight: 700;
             text-decoration: none;
@@ -121,6 +136,7 @@
             flex-wrap: wrap;
             margin-bottom: 16px;
             color: #a9b6d6;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
         }
 
@@ -490,6 +506,7 @@
             background: rgba(16, 26, 51, 0.95);
             border-radius: 8px;
             padding: 5px 10px;
+            font-family: var(--ui-font-condensed);
             font-size: 11px;
             font-weight: 600;
             text-decoration: none;

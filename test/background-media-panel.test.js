@@ -475,6 +475,39 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-media-status").textContent).toContain("Paused");
     });
 
+    it("seeks the broadcast element with stream time offsets applied", () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                durationSeconds: 600,
+                timeOffsetSeconds: 4.25,
+                backgroundPlayback: {
+                    enabled: true,
+                    muted: false,
+                },
+            }],
+            timeMs: startTimeMs + 12000,
+            animationRunning: false,
+        });
+
+        expect(video.currentTime).toBe(16.25);
+        expect(nodes.get("background-media-status").textContent).toContain("0:16");
+    });
+
     it("mutes foreground playback and restores the user's background mute preference", async () => {
         const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
         const startTimeMs = Date.parse("2026-04-06T16:58:14Z");

@@ -238,7 +238,12 @@ function resolvePlaybackOffsetSeconds(item, timeMs) {
     const startTimeMs = Number(item?.startTimeMs);
     const missionTimeMs = Number(timeMs);
     if (!Number.isFinite(startTimeMs) || !Number.isFinite(missionTimeMs)) return 0;
-    const rawSeconds = Math.max(0, (missionTimeMs - startTimeMs) / 1000);
+    const timeOffsetSeconds = Number(item?.timeOffsetSeconds);
+    const rawSeconds = Math.max(
+        0,
+        ((missionTimeMs - startTimeMs) / 1000)
+            + (Number.isFinite(timeOffsetSeconds) ? timeOffsetSeconds : 0),
+    );
     const durationSeconds = Number(item?.durationSeconds);
     if (Number.isFinite(durationSeconds) && durationSeconds > 0) {
         return clamp(rawSeconds, 0, durationSeconds);

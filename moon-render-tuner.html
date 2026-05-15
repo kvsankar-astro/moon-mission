@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Moon rendering tuning tool for lunar mission visuals">
     <title>Moon Render Tuner</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&display=swap">
     <style>
         :root {
             --bg: #070d18;
@@ -14,6 +15,9 @@
             --muted: #a7b7d8;
             --accent: #78a8ff;
             --accent-2: #f7b65c;
+            --ui-font-sans: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+            --ui-font-condensed: "IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif;
+            --ui-font-mono: "IBM Plex Mono", "Cascadia Code", "Consolas", monospace;
         }
 
         * {
@@ -26,8 +30,15 @@
             margin: 0;
             background: var(--bg);
             color: var(--text);
-            font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+            font-family: var(--ui-font-sans);
             overflow: hidden;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font-family: inherit;
         }
 
         .tuner-shell {
@@ -151,6 +162,7 @@
             background: rgba(20, 32, 58, 0.9);
             color: var(--text);
             padding: 7px 10px;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
@@ -164,6 +176,7 @@
             background: rgba(11, 19, 35, 0.95);
             color: var(--text);
             padding: 7px 8px;
+            font-family: var(--ui-font-condensed);
             font-size: 12px;
         }
 
@@ -191,7 +204,7 @@
             border-radius: 8px;
             background: rgba(8, 14, 26, 0.96);
             color: #dce7ff;
-            font-family: "Cascadia Code", "Consolas", monospace;
+            font-family: var(--ui-font-mono);
             font-size: 11px;
             line-height: 1.45;
             padding: 8px;
