@@ -1060,6 +1060,42 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.statusText).not.toContain("Selected");
     });
 
+    it("does not show the audio fallback duration when manifest duration is missing", async () => {
+        class FakeInput {}
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:31:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel.durationSeconds).toBeNaN();
+        expect(latestRender.playbackModel.durationSeconds).not.toBe(300);
+        expect(latestRender.playbackModel.seekEnabled).toBe(false);
+    });
+
     it("filters thumbnails from structured LLM body metadata when searching", async () => {
         globalThis.window = {
             missionConfig: {

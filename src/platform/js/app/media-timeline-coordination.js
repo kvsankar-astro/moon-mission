@@ -2795,10 +2795,7 @@ function createMediaTimelineCoordination({
         const activePlaybackSelected = activeItem?.id === mediaPlaybackState.itemId;
         const activePlaybackPlaying = activePlaybackSelected && mediaPlaybackState.playing === true;
         const activePlaybackBuffering = activePlaybackSelected && mediaPlaybackState.buffering === true;
-        const activeDurationSeconds = resolvePlayableDurationSeconds(
-            activeItem,
-            activeItem?.kind === "audioClip" ? AUDIO_DEFAULT_DURATION_SECONDS : Number.NaN,
-        );
+        const activeDurationSeconds = resolvePlayableDurationSeconds(activeItem);
         const activeElapsedSeconds = activePlaybackSelected
             ? clampMediaCurrentTimeSeconds(activeItem, Number(mediaPlaybackState.currentTimeSeconds) || 0)
             : resolvePlaybackOffsetSeconds(activeItem, timeMs, false);
