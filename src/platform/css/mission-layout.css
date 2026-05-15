@@ -2232,10 +2232,10 @@ html[data-app-view="selector"] .mission-loading-overlay,
 }
 
 .timeline-dock__overview {
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: relative;
+    flex: 0 1 132px;
     width: min(132px, 22vw);
+    min-width: 82px;
     height: 12px;
     border: 1px solid rgba(128, 178, 255, 0.2);
     border-radius: 999px;

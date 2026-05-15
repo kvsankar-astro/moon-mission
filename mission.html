@@ -35,7 +35,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
         <link rel="stylesheet" href="src/platform/css/jquery-ui-compat.css">
-        <link rel="stylesheet" type="text/css" href="src/platform/css/mission.css?v=20260515b">
+        <link rel="stylesheet" type="text/css" href="src/platform/css/mission.css?v=20260515c">
         <style>
             :root {
                 --ui-font-sans: 'IBM Plex Sans', 'Segoe UI', sans-serif;
@@ -2723,16 +2723,6 @@
                         aria-hidden="true"
                         hidden
                     ></div>
-                    <div
-                        id="timeline-overview"
-                        class="timeline-dock__overview"
-                        aria-hidden="true"
-                        title="Full timeline view"
-                        hidden
-                    >
-                        <span class="timeline-dock__overview-window"></span>
-                        <span class="timeline-dock__overview-current"></span>
-                    </div>
                     <div id="timeline-markers" class="timeline-dock__markers" aria-hidden="true" hidden></div>
                     <div
                         id="timeline-media-markers"
@@ -2787,6 +2777,16 @@
                         >
                             Media
                         </button>
+                        <div
+                            id="timeline-overview"
+                            class="timeline-dock__overview"
+                            aria-hidden="true"
+                            title="Full timeline view"
+                            hidden
+                        >
+                            <span class="timeline-dock__overview-window"></span>
+                            <span class="timeline-dock__overview-current"></span>
+                        </div>
                         <div class="timeline-dock__scale-controls" role="group" aria-label="Timeline zoom and pan">
                             <button
                                 id="timeline-pan-left"
