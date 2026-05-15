@@ -1521,10 +1521,16 @@ describe("createTimelineDockController", () => {
         expect(mediaMarkers.children[0].title).toBe("Earthrise • Crew iPhone");
         expect(mediaMarkers.children[0].children.find((child) => child.className === "timeline-dock__media-preview")).toBeUndefined();
         mediaMarkers.children[0].dispatchEvent({ type: "pointerenter" });
-        const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview is-visible");
+        const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview");
         expect(preview).toBeTruthy();
+        expect(preview.hidden).toBe(true);
         expect(preview.children[0].className).toBe("timeline-dock__media-preview-image");
         expect(preview.children[0].src).toBe("/assets/thumbs/earthrise.jpg");
+        expect(preview.children[0].hidden).toBe(true);
+        preview.children[0].dispatchEvent({ type: "load" });
+        expect(preview.className).toBe("timeline-dock__media-preview is-visible");
+        expect(preview.hidden).toBe(false);
+        expect(preview.children[0].hidden).toBe(false);
         expect(preview.children[1].textContent).toBe("Earthrise");
         expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--segment");
         expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--videoClip");
@@ -1674,6 +1680,104 @@ describe("createTimelineDockController", () => {
 
         expect(dispatchedEvents[1].type).toBe("mission-media-marker-select");
         expect(dispatchedEvents[1].detail.marker.id).toBe("earthrise-photo");
+
+        delete global.CustomEvent;
+    });
+
+    it("keeps media marker pointer clicks working while the hover thumbnail is still loading", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const mediaMarkers = new FakeElement("div", { left: 100, top: 120, width: 800, height: 20 });
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const trackWrap = new FakeElement("div", { left: 100, top: 100, width: 800, height: 90 });
+        const scrubLane = new FakeElement("div", { left: 100, top: 152, width: 800, height: 24 });
+        const timeClickLane = new FakeElement("div", { left: 100, top: 176, width: 800, height: 16 });
+        const dispatchedEvents = [];
+
+        trackWrap.appendChild(mediaMarkers);
+        trackWrap.appendChild(scrubLane);
+        trackWrap.appendChild(timeClickLane);
+        timeClickLane.appendChild(slider);
+
+        global.CustomEvent = class {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        };
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-media-markers") return mediaMarkers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                if (id === "timeline-time-click-lane") return timeClickLane;
+                if (id === "timeline-scrub-lane") return scrubLane;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            dispatchEvent(event) {
+                dispatchedEvents.push(event);
+            },
+            addEventListener() {},
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 100,
+        });
+        controller.setMediaMarkers([
+            {
+                id: "pending-thumb-photo",
+                startTimeMs: 500,
+                label: "Pending Thumb Photo",
+                mediaKind: "image",
+                thumbnailAssetUrl: "/assets/thumbs/pending.jpg",
+                clickable: true,
+            },
+        ]);
+        controller.bind();
+
+        const marker = mediaMarkers.children[0];
+        marker.rect = { left: 496, top: 120, width: 8, height: 20 };
+        marker.dispatchEvent({ type: "pointerenter" });
+        const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview");
+        expect(preview).toBeTruthy();
+        expect(preview.hidden).toBe(true);
+
+        trackWrap.dispatchEvent({
+            type: "pointerdown",
+            pointerType: "mouse",
+            button: 0,
+            pointerId: 1,
+            clientX: 500,
+            clientY: 130,
+            target: marker,
+        });
+        trackWrap.dispatchEvent({
+            type: "pointerup",
+            pointerType: "mouse",
+            button: 0,
+            pointerId: 1,
+            clientX: 500,
+            clientY: 130,
+            target: marker,
+        });
+
+        expect(dispatchedEvents.find((event) => event.type === "mission-media-marker-select")?.detail.marker.id)
+            .toBe("pending-thumb-photo");
 
         delete global.CustomEvent;
     });

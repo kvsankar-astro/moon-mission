@@ -208,6 +208,8 @@ function createTimelineDockController({
     let mediaPreviewImage = null;
     let mediaPreviewTitle = null;
     let activeMediaPreviewMarker = null;
+    let pendingMediaPreviewSource = "";
+    const failedMediaPreviewSources = new Set();
     const timelineDragThresholdPx = 3;
     let currentMode = {
         compareMode: false,
@@ -576,6 +578,7 @@ function createTimelineDockController({
         mediaPreviewImage = null;
         mediaPreviewTitle = null;
         activeMediaPreviewMarker = null;
+        pendingMediaPreviewSource = "";
         for (let i = 0; i < lastMediaMarkersData.length; i += 1) {
             const marker = renderMediaMarker(lastMediaMarkersData[i], i);
             if (marker) mediaMarkers.appendChild(marker);
@@ -746,6 +749,12 @@ function createTimelineDockController({
             classSet.has("timeline-dock__media-marker--segment");
     }
 
+    function isMediaMarkerPointTarget(pointTarget) {
+        if (!pointTarget) return false;
+        const className = typeof pointTarget.className === "string" ? pointTarget.className : "";
+        return className.split(/\s+/).includes("timeline-dock__media-marker");
+    }
+
     function seekToTime(timeMs, commit) {
         if (!Number.isFinite(timeMs)) return;
         currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
@@ -798,6 +807,9 @@ function createTimelineDockController({
             });
             return;
         }
+        if (state.mode === "media-click-lane" && selectMediaMarkerByIndex(Number(state.mediaMarkerIndex), finalTimeMs)) {
+            return;
+        }
         if (state.mode === "media-click-lane" && selectMediaMarkerAtTime(finalTimeMs, event)) {
             return;
         }
@@ -817,7 +829,7 @@ function createTimelineDockController({
         const pointTarget = resolveTimelinePointTarget(event.target);
         if (
             pointTarget &&
-            !isMediaSegmentPointTarget(pointTarget) &&
+            !isMediaMarkerPointTarget(pointTarget) &&
             isNearTimelinePointGlyph(pointTarget, clientX)
         ) {
             return;
@@ -841,6 +853,9 @@ function createTimelineDockController({
             lastTimeMs: initialTimeMs,
             mode: pointerZone,
             captureTarget: pointerSurface,
+            mediaMarkerIndex: pointerZone === "media-click-lane"
+                ? getDirectMediaMarkerTargetIndex(event)
+                : -1,
         };
         if (pointerZone === "scrub" || pointerZone === "playhead") {
             dockRoot?.classList?.add?.("timeline-dock--timeline-dragging");
@@ -1325,11 +1340,22 @@ function createTimelineDockController({
         mediaPreviewImage.className = "timeline-dock__media-preview-image";
         mediaPreviewImage.alt = "";
         mediaPreviewImage.loading = "lazy";
+        mediaPreviewImage.addEventListener?.("load", () => {
+            if (!mediaPreviewElement || !mediaPreviewImage) return;
+            const imageSource = mediaPreviewImage.getAttribute?.("src") || mediaPreviewImage.src || "";
+            if (!imageSource || imageSource !== pendingMediaPreviewSource || !activeMediaPreviewMarker) return;
+            mediaPreviewImage.hidden = false;
+            mediaPreviewElement.hidden = false;
+            mediaPreviewElement.classList?.add?.("is-visible");
+        });
         mediaPreviewImage.addEventListener?.("error", () => {
+            const imageSource = mediaPreviewImage?.getAttribute?.("src") || mediaPreviewImage?.src || pendingMediaPreviewSource;
+            if (imageSource) failedMediaPreviewSources.add(imageSource);
             if (mediaPreviewImage) {
                 mediaPreviewImage.hidden = true;
                 mediaPreviewImage.removeAttribute?.("src");
             }
+            hideMediaMarkerPreview(activeMediaPreviewMarker);
         });
         mediaPreviewElement.appendChild(mediaPreviewImage);
 
@@ -1347,28 +1373,32 @@ function createTimelineDockController({
     }
 
     function showMediaMarkerPreview(marker, markerInfo, anchorPercent) {
-        const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
         const thumbnailAssetUrl = String(markerInfo?.thumbnailAssetUrl || "").trim();
-        if (!previewTitle && !thumbnailAssetUrl) return;
+        if (!thumbnailAssetUrl || failedMediaPreviewSources.has(thumbnailAssetUrl)) {
+            hideMediaMarkerPreview(marker);
+            return;
+        }
         const preview = ensureMediaMarkerPreview();
         if (!preview) return;
         activeMediaPreviewMarker = marker;
-        preview.hidden = false;
-        preview.classList?.add?.("is-visible");
+        pendingMediaPreviewSource = thumbnailAssetUrl;
+        preview.hidden = true;
+        preview.classList?.remove?.("is-visible");
         preview.style.left = `${clamp(Number(anchorPercent), 0, 100)}%`;
         setMediaPreviewEdgeClass(Number(anchorPercent));
         if (mediaPreviewTitle) {
+            const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
             mediaPreviewTitle.textContent = previewTitle || "Media item";
         }
         if (mediaPreviewImage) {
-            if (thumbnailAssetUrl) {
+            mediaPreviewImage.hidden = true;
+            if (mediaPreviewImage.getAttribute?.("src") !== thumbnailAssetUrl) {
+                mediaPreviewImage.src = thumbnailAssetUrl;
+            }
+            if (mediaPreviewImage.complete === true && Number(mediaPreviewImage.naturalWidth || 0) > 0) {
                 mediaPreviewImage.hidden = false;
-                if (mediaPreviewImage.getAttribute?.("src") !== thumbnailAssetUrl) {
-                    mediaPreviewImage.src = thumbnailAssetUrl;
-                }
-            } else {
-                mediaPreviewImage.hidden = true;
-                mediaPreviewImage.removeAttribute?.("src");
+                preview.hidden = false;
+                preview.classList?.add?.("is-visible");
             }
         }
     }
@@ -1376,6 +1406,7 @@ function createTimelineDockController({
     function hideMediaMarkerPreview(marker) {
         if (marker && activeMediaPreviewMarker && marker !== activeMediaPreviewMarker) return;
         activeMediaPreviewMarker = null;
+        pendingMediaPreviewSource = "";
         mediaPreviewElement?.classList?.remove?.("is-visible");
         if (mediaPreviewElement) {
             mediaPreviewElement.hidden = true;
@@ -1391,6 +1422,7 @@ function createTimelineDockController({
     }
 
     function handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs) {
+        event?.stopPropagation?.();
         const clickTimeMs = isSegment && Number.isFinite(event?.clientX)
             ? getTimeAtClientX(event.clientX)
             : markerTimeMs;
@@ -1399,6 +1431,12 @@ function createTimelineDockController({
             index,
             resolveMediaMarkerTargetTime(markerInfo, clickTimeMs),
         );
+    }
+
+    function getDirectMediaMarkerTargetIndex(event) {
+        const targetMarkerElement = findMediaMarkerElementTarget(event?.target);
+        if (!targetMarkerElement) return -1;
+        return getMediaMarkerElementIndex(targetMarkerElement);
     }
 
     function renderMediaMarker(markerInfo, index) {
