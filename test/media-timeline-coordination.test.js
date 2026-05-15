@@ -962,6 +962,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:30:00",
                     file: "audio/clip.mp3",
                     desc: "Audio clip",
+                    durationSeconds: 29.992521,
                     enabled: true,
                 },
             ],
@@ -991,6 +992,9 @@ describe("createMediaTimelineCoordination", () => {
 
         expect(Number(slider.value)).toBe(Date.parse("2026-04-02T16:30:00Z"));
         expect(sliderEvents).toEqual(["input", "change"]);
+        const selectedRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(selectedRender.playbackModel.durationSeconds).toBe(29.992521);
+        expect(selectedRender.playbackModel.durationSeconds).not.toBe(300);
     });
 
     it("focuses nearby media by mission time without making it an explicit selection", async () => {
