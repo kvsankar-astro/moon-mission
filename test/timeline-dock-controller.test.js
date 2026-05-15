@@ -1603,6 +1603,79 @@ describe("createTimelineDockController", () => {
         delete global.CustomEvent;
     });
 
+    it("selects the exact media marker that receives a direct click", () => {
+        const dockRoot = new FakeElement("div");
+        const slider = new FakeElement("input");
+        const markers = new FakeElement("div");
+        const mediaMarkers = new FakeElement("div");
+        const startLabel = new FakeElement("span");
+        const endLabel = new FakeElement("span");
+        const currentLabel = new FakeElement("div");
+        const craftStrip = new FakeElement("div");
+        const dispatchedEvents = [];
+
+        global.CustomEvent = class {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        };
+        global.document = {
+            getElementById(id) {
+                if (id === "timeline-dock") return dockRoot;
+                if (id === "timeline-slider") return slider;
+                if (id === "timeline-markers") return markers;
+                if (id === "timeline-media-markers") return mediaMarkers;
+                if (id === "timeline-start-label") return startLabel;
+                if (id === "timeline-end-label") return endLabel;
+                if (id === "timeline-current-label") return currentLabel;
+                if (id === "timeline-craft-strip") return craftStrip;
+                return null;
+            },
+            createElement(tagName) {
+                return new FakeElement(tagName);
+            },
+            dispatchEvent(event) {
+                dispatchedEvents.push(event);
+            },
+        };
+
+        const controller = createTimelineDockController({});
+        controller.setRange({
+            startTimeMs: 0,
+            endTimeMs: 1000,
+            stepMs: 100,
+        });
+        controller.setMediaMarkers([
+            {
+                id: "earthrise-video",
+                startTimeMs: 500,
+                label: "Earthrise Video",
+                mediaKind: "videoClip",
+                mediaDisplayMode: "segment",
+                endTimeMs: 800,
+                clickable: true,
+            },
+            {
+                id: "earthrise-photo",
+                startTimeMs: 500,
+                label: "Earthrise Photo",
+                mediaKind: "image",
+                clickable: true,
+            },
+        ]);
+
+        mediaMarkers.children[1].dispatchEvent({
+            type: "click",
+            clientX: 500,
+        });
+
+        expect(dispatchedEvents[1].type).toBe("mission-media-marker-select");
+        expect(dispatchedEvents[1].detail.marker.id).toBe("earthrise-photo");
+
+        delete global.CustomEvent;
+    });
+
     it("does not select or seek inactive background media markers", () => {
         const dockRoot = new FakeElement("div");
         const slider = new FakeElement("input");

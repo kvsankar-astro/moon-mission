@@ -2636,7 +2636,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     z-index: 12;
     width: 158px;
     overflow: hidden;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateX(-50%);
     border: 1px solid rgba(129, 184, 255, 0.32);
     border-radius: 6px;
     background: rgba(7, 14, 26, 0.94);
@@ -2647,18 +2647,17 @@ html[data-app-view="selector"] .mission-loading-overlay,
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: transform 140ms ease;
 }
 
 .timeline-dock__media-marker--preview-start .timeline-dock__media-preview {
     left: 0;
-    transform: translateY(4px);
+    transform: none;
 }
 
 .timeline-dock__media-marker--preview-end .timeline-dock__media-preview {
     right: 0;
     left: auto;
-    transform: translateY(4px);
+    transform: none;
 }
 
 .timeline-dock__media-marker.is-preview-visible .timeline-dock__media-preview,
@@ -2666,16 +2665,6 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .timeline-dock__media-marker:focus-visible .timeline-dock__media-preview {
     opacity: 1;
     visibility: visible;
-    transform: translateX(-50%) translateY(0);
-}
-
-.timeline-dock__media-marker--preview-start.is-preview-visible .timeline-dock__media-preview,
-.timeline-dock__media-marker--preview-end.is-preview-visible .timeline-dock__media-preview,
-.timeline-dock__media-marker--preview-start:hover .timeline-dock__media-preview,
-.timeline-dock__media-marker--preview-start:focus-visible .timeline-dock__media-preview,
-.timeline-dock__media-marker--preview-end:hover .timeline-dock__media-preview,
-.timeline-dock__media-marker--preview-end:focus-visible .timeline-dock__media-preview {
-    transform: translateY(0);
 }
 
 .timeline-dock__media-preview-image {

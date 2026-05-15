@@ -1341,6 +1341,17 @@ function createTimelineDockController({
         marker.addEventListener("blur", () => setVisible(false));
     }
 
+    function handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs) {
+        const clickTimeMs = isSegment && Number.isFinite(event?.clientX)
+            ? getTimeAtClientX(event.clientX)
+            : markerTimeMs;
+        dispatchMediaMarkerSelection(
+            markerInfo,
+            index,
+            resolveMediaMarkerTargetTime(markerInfo, clickTimeMs),
+        );
+    }
+
     function renderMediaMarker(markerInfo, index) {
         const markerTimeMs = markerInfo?.startTime instanceof Date
             ? markerInfo.startTime.getTime()
@@ -1417,15 +1428,7 @@ function createTimelineDockController({
         bindMediaMarkerPreviewEvents(marker, appendMediaMarkerPreview(marker, markerInfo));
         if (markerInfo?.clickable !== false) {
             marker.addEventListener("click", (event) => {
-                const clickTimeMs = Number.isFinite(event?.clientX)
-                    ? getTimeAtClientX(event.clientX)
-                    : markerTimeMs;
-                if (selectMediaMarkerAtTime(isSegment ? clickTimeMs : markerTimeMs, event)) return;
-                dispatchMediaMarkerSelection(
-                    markerInfo,
-                    index,
-                    resolveMediaMarkerTargetTime(markerInfo, isSegment ? clickTimeMs : markerTimeMs),
-                );
+                handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs);
             });
         }
         return marker;
