@@ -529,19 +529,57 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
-    it("keeps Frame and Shoot Auto FoV in composition bounds", () => {
+    it("lets Frame and Shoot Auto FoV use the full optical range", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
             mode: "composer",
             camera: { fov: 50 },
         };
 
-        expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(2);
-        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(70);
+        expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(0.5);
+        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(174.5);
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
-    it("allows manual Frame and Shoot FoV beyond Auto composition bounds", () => {
+    it("does not pin far or near Frame and Shoot Auto FoV to the old composition bounds", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE,
+            tmpVectorA: new THREE.Vector3(),
+        });
+        const panelState = {
+            mode: "composer",
+            camera: {
+                fov: 50,
+                aspect: 16 / 9,
+            },
+        };
+
+        const farTargetFov = manager.computeComposerAutoFovDegrees({
+            panelState,
+            craftWorld: new THREE.Vector3(0, 0, 0),
+            moonWorld: new THREE.Vector3(1000, 0, 0),
+            earthWorld: new THREE.Vector3(0, 0, 0),
+            moonRadius: 1,
+            earthRadius: 1,
+            lockTarget: "moon",
+        });
+        const nearTargetFov = manager.computeComposerAutoFovDegrees({
+            panelState,
+            craftWorld: new THREE.Vector3(0, 0, 0),
+            moonWorld: new THREE.Vector3(1.1, 0, 0),
+            earthWorld: new THREE.Vector3(0, 0, 0),
+            moonRadius: 1,
+            earthRadius: 1,
+            lockTarget: "moon",
+        });
+
+        expect(farTargetFov).toBeLessThan(2);
+        expect(manager.clampAutoFovDegrees(panelState, farTargetFov)).toBeCloseTo(farTargetFov);
+        expect(nearTargetFov).toBeGreaterThan(70);
+        expect(manager.clampAutoFovDegrees(panelState, nearTargetFov)).toBeCloseTo(nearTargetFov);
+    });
+
+    it("allows manual Frame and Shoot FoV across the optical range", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
             mode: "composer",
