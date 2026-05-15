@@ -1305,6 +1305,42 @@ function createTimelineDockController({
         return false;
     }
 
+    function appendMediaMarkerPreview(marker, markerInfo) {
+        const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
+        const thumbnailAssetUrl = String(markerInfo?.thumbnailAssetUrl || "").trim();
+        if (!previewTitle && !thumbnailAssetUrl) return null;
+
+        const preview = document.createElement("span");
+        preview.className = "timeline-dock__media-preview";
+
+        if (thumbnailAssetUrl) {
+            const image = document.createElement("img");
+            image.className = "timeline-dock__media-preview-image";
+            image.src = thumbnailAssetUrl;
+            image.alt = "";
+            image.loading = "lazy";
+            preview.appendChild(image);
+        }
+
+        const title = document.createElement("span");
+        title.className = "timeline-dock__media-preview-title";
+        title.textContent = previewTitle || "Media item";
+        preview.appendChild(title);
+        marker.appendChild(preview);
+        return preview;
+    }
+
+    function bindMediaMarkerPreviewEvents(marker, preview) {
+        if (!marker || !preview) return;
+        const setVisible = (visible) => {
+            marker.classList?.toggle?.("is-preview-visible", visible === true);
+        };
+        marker.addEventListener("pointerenter", () => setVisible(true));
+        marker.addEventListener("pointerleave", () => setVisible(false));
+        marker.addEventListener("focus", () => setVisible(true));
+        marker.addEventListener("blur", () => setVisible(false));
+    }
+
     function renderMediaMarker(markerInfo, index) {
         const markerTimeMs = markerInfo?.startTime instanceof Date
             ? markerInfo.startTime.getTime()
@@ -1323,6 +1359,7 @@ function createTimelineDockController({
         const marker = document.createElement("button");
         marker.type = "button";
         const markerClasses = ["timeline-dock__media-marker"];
+        let anchorPercent = computePercent(markerTimeMs, viewMin, viewMax);
         if (isSegment) {
             markerClasses.push("timeline-dock__media-marker--segment");
             if (markerTimeMs < viewMin) {
@@ -1331,6 +1368,14 @@ function createTimelineDockController({
             if (markerEndTimeMs > viewMax) {
                 markerClasses.push("timeline-dock__media-marker--segment-clipped-end");
             }
+            const visibleStartTimeMs = Math.max(markerTimeMs, viewMin);
+            const visibleEndTimeMs = Math.min(markerEndTimeMs, viewMax);
+            anchorPercent = computePercent((visibleStartTimeMs + visibleEndTimeMs) / 2, viewMin, viewMax);
+        }
+        if (anchorPercent < 8) {
+            markerClasses.push("timeline-dock__media-marker--preview-start");
+        } else if (anchorPercent > 92) {
+            markerClasses.push("timeline-dock__media-marker--preview-end");
         }
         if (markerInfo?.durationEstimated) {
             markerClasses.push("timeline-dock__media-marker--estimated");
@@ -1369,6 +1414,7 @@ function createTimelineDockController({
         const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
         marker.title = markerTitle;
         marker.setAttribute("aria-label", markerTitle);
+        bindMediaMarkerPreviewEvents(marker, appendMediaMarkerPreview(marker, markerInfo));
         if (markerInfo?.clickable !== false) {
             marker.addEventListener("click", (event) => {
                 const clickTimeMs = Number.isFinite(event?.clientX)

@@ -12,6 +12,7 @@ describe("buildMediaTimelineMarkers", () => {
                     title: "Crew Photo",
                     cameraLabel: "D5",
                     startTimeMs: 1000,
+                    thumbnailAssetUrl: "thumbs/photo.jpg",
                 },
                 {
                     id: "video",
@@ -38,6 +39,7 @@ describe("buildMediaTimelineMarkers", () => {
             mediaDisplayMode: "point",
             endTimeMs: Number.NaN,
             durationEstimated: false,
+            thumbnailAssetUrl: "thumbs/photo.jpg",
         }));
 
         expect(markers[1]).toEqual(expect.objectContaining({

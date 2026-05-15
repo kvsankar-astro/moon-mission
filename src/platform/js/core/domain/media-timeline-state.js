@@ -16,6 +16,14 @@ function isPlayableMediaKind(kind) {
     return kind === "audioClip" || kind === "videoClip";
 }
 
+function resolveMarkerThumbnailAssetUrl(item) {
+    if (!item) return "";
+    return item.thumbnailAssetUrl ||
+        item.posterAssetUrl ||
+        (item.kind === "audioClip" ? "" : item.assetUrl) ||
+        "";
+}
+
 function resolveMediaSegmentTiming(item, startTimeMs) {
     const kind = item?.kind;
     if (!isPlayableMediaKind(kind) || !Number.isFinite(startTimeMs)) {
@@ -109,6 +117,7 @@ function buildMediaTimelineMarkers({
             }),
             mediaKind: item.kind,
             mediaDisplayMode: segmentTiming.displayMode,
+            thumbnailAssetUrl: resolveMarkerThumbnailAssetUrl(item),
             startTime: new Date(startTimeMs),
             startTimeMs,
             endTimeMs,

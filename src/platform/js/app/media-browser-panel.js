@@ -14,13 +14,13 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v13-stage-overlays";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v14-timeline-clearance";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 8;
 const PANEL_DEFAULT_WIDTH_PX = 672;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.6;
 const PANEL_MIN_WIDTH_PX = 360;
-const PANEL_MIN_HEIGHT_PX = 360;
+const PANEL_MIN_HEIGHT_PX = 240;
 const WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX = 72;
 const WORKFLOW_PANEL_STACK_GAP_PX = 8;
 const WORKFLOW_BROADCAST_PANEL_HEIGHT_PX = 248;
@@ -32,7 +32,7 @@ const DRILLDOWN_DRAWER_MIN_HEIGHT_PX = 180;
 const THUMBNAIL_STRIP_MIN_HEIGHT_PX = 86;
 const THUMBNAIL_STRIP_DEFAULT_HEIGHT_PX = THUMBNAIL_STRIP_MIN_HEIGHT_PX;
 const THUMBNAIL_STRIP_MAX_HEIGHT_PX = 240;
-const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 160;
+const THUMBNAIL_STRIP_MIN_STAGE_HEIGHT_PX = 96;
 const THUMBNAIL_STRIP_KEYBOARD_STEP_PX = 12;
 const THUMBNAIL_STRIP_KEYBOARD_LARGE_STEP_PX = 36;
 const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
@@ -245,6 +245,15 @@ function getWorkflowMediaPanelTopPx() {
     return getWorkflowPanelStackTopPx()
         + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
         + WORKFLOW_PANEL_STACK_GAP_PX;
+}
+
+function getTimelineSafeBottomPx() {
+    const timelineRect = getDocumentRef()?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
+    const timelineTop = Number(timelineRect?.top);
+    if (Number.isFinite(timelineTop) && timelineTop > PANEL_EDGE_MARGIN_PX) {
+        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX);
+    }
+    return getViewportHeight() - PANEL_EDGE_MARGIN_PX;
 }
 
 function formatMediaElapsedTime(seconds) {
@@ -466,7 +475,8 @@ function createMediaBrowserPanelActions({
             WORKFLOW_MEDIA_PANEL_WIDTH_PX,
             Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - (2 * PANEL_EDGE_MARGIN_PX)),
         );
-        const availableHeight = getViewportHeight() - y - PANEL_EDGE_MARGIN_PX;
+        const safeBottom = getTimelineSafeBottomPx();
+        const availableHeight = Math.max(0, safeBottom - y);
         const height = Math.min(
             getPanelDefaultHeightPx(),
             Math.max(PANEL_MIN_HEIGHT_PX, availableHeight),

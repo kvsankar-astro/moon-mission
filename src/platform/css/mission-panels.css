@@ -638,7 +638,7 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     pointer-events: all;
     resize: none;
     min-width: 360px;
-    min-height: 360px;
+    min-height: 240px;
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     overflow: hidden;

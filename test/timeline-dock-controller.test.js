@@ -1487,6 +1487,7 @@ describe("createTimelineDockController", () => {
                 label: "Earthrise",
                 hoverText: "Earthrise • Crew iPhone",
                 mediaKind: "image",
+                thumbnailAssetUrl: "/assets/thumbs/earthrise.jpg",
                 selected: true,
                 clickable: true,
             },
@@ -1518,6 +1519,11 @@ describe("createTimelineDockController", () => {
         expect(mediaMarkers.children[0].className).not.toContain("timeline-dock__media-marker--segment");
         expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker--selected");
         expect(mediaMarkers.children[0].title).toBe("Earthrise • Crew iPhone");
+        const preview = mediaMarkers.children[0].children.find((child) => child.className === "timeline-dock__media-preview");
+        expect(preview).toBeTruthy();
+        expect(preview.children[0].className).toBe("timeline-dock__media-preview-image");
+        expect(preview.children[0].src).toBe("/assets/thumbs/earthrise.jpg");
+        expect(preview.children[1].textContent).toBe("Earthrise");
         expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--segment");
         expect(mediaMarkers.children[1].className).toContain("timeline-dock__media-marker--videoClip");
         expect(mediaMarkers.children[1].style.left).toBe("20%");
