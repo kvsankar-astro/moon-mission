@@ -272,6 +272,8 @@ On a clean mission load with no saved panel layout:
 
 - built-in panel lifecycle state comes from mission config
 - auxiliary view panels are placed in a right-aligned, non-overlapping stack
+- on wide desktop layouts, 1600px and wider, the top visible auxiliary view panel starts just below the About/Hide button; on narrower laptop layouts, the stack stays below the header controls
+- default auxiliary and Frame and Shoot panel geometry must stay above the main transport controls and timeline dock
 - if the viewport is too short for a single column, auxiliary defaults wrap into additional columns to the left
 - workflow panel geometry follows the mission config plus the panel's preset
 

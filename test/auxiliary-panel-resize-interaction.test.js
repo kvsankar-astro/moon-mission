@@ -26,6 +26,123 @@ describe("Auxiliary panel resize interactions", () => {
         await browser?.close();
     });
 
+    it("top-aligns the default right auxiliary stack without covering header controls", async () => {
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+        const viewports = [
+            { width: 1920, height: 1080, wideDesktop: true },
+            { width: 1366, height: 768, wideDesktop: false },
+        ];
+
+        for (const viewport of viewports) {
+            const page = await browser.newPage({
+                viewport: {
+                    width: viewport.width,
+                    height: viewport.height,
+                },
+            });
+
+            try {
+                await page.addInitScript(() => localStorage.clear());
+                await page.goto(`${baseUrl}/artemis2/`, {
+                    waitUntil: "domcontentloaded",
+                    timeout: 60000,
+                });
+
+                await page.waitForFunction(
+                    () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                    { timeout: 30000 },
+                );
+
+                const layout = await page.evaluate(() => {
+                    const rectFor = (element) => {
+                        const rect = element?.getBoundingClientRect?.();
+                        return rect
+                            ? {
+                                left: rect.left,
+                                right: rect.right,
+                                top: rect.top,
+                                bottom: rect.bottom,
+                                width: rect.width,
+                                height: rect.height,
+                            }
+                            : null;
+                    };
+                    const panels = Array.from(document.querySelectorAll(
+                        ".aux-camera-view:not(.aux-camera-view--composer)",
+                    ))
+                        .filter((panel) => !panel.hidden)
+                        .map((panel) => ({
+                            id: panel.dataset.panelId || "",
+                            ...rectFor(panel),
+                        }))
+                        .sort((left, right) => left.top - right.top);
+                    const firstPanel = panels[0];
+                    const overlappingHeaderBottom = firstPanel
+                        ? Array.from(document.querySelectorAll(
+                            "#header-pill-strip button:not([hidden]), #header-pill-strip .header-pill-group:not([hidden])",
+                        ))
+                            .map(rectFor)
+                            .filter((rect) => (
+                                rect &&
+                                rect.width > 0 &&
+                                rect.height > 0 &&
+                                rect.left < firstPanel.right &&
+                                rect.right > firstPanel.left
+                            ))
+                            .reduce((bottom, rect) => Math.max(bottom, rect.bottom), 0)
+                        : 0;
+
+                    return {
+                        panels,
+                        composer: rectFor(document.querySelector(".aux-camera-view--composer")),
+                        controlPanel: rectFor(document.getElementById("control-panel")),
+                        header: rectFor(document.querySelector(".header")),
+                        toggle: rectFor(document.getElementById("blurb-toggle")),
+                        overlappingHeaderBottom,
+                    };
+                });
+
+                expect(layout.panels).toHaveLength(3);
+                for (let leftIndex = 0; leftIndex < layout.panels.length; leftIndex += 1) {
+                    for (let rightIndex = leftIndex + 1; rightIndex < layout.panels.length; rightIndex += 1) {
+                        const left = layout.panels[leftIndex];
+                        const right = layout.panels[rightIndex];
+                        const overlaps = left.left < right.right &&
+                            left.right > right.left &&
+                            left.top < right.bottom &&
+                            left.bottom > right.top;
+                        expect(overlaps).toBe(false);
+                    }
+                }
+                for (const panel of layout.panels) {
+                    const overlapsComposer = panel.left < layout.composer.right &&
+                        panel.right > layout.composer.left &&
+                        panel.top < layout.composer.bottom &&
+                        panel.bottom > layout.composer.top;
+                    expect(overlapsComposer).toBe(false);
+                }
+                expect(layout.composer.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 6);
+                expect(layout.composer.top).toBeGreaterThanOrEqual(layout.header.bottom + 6);
+                expect(layout.composer.top - layout.header.bottom).toBeLessThanOrEqual(10);
+
+                if (viewport.wideDesktop) {
+                    expect(layout.panels[0].top).toBeLessThan(layout.panels[1].top);
+                    expect(layout.panels[1].bottom).toBeLessThanOrEqual(layout.panels[2].top);
+                    expect(layout.overlappingHeaderBottom).toBe(0);
+                    expect(layout.panels[0].top).toBeGreaterThan(layout.toggle.bottom);
+                    expect(layout.panels[0].top - layout.toggle.bottom).toBeLessThanOrEqual(10);
+                } else {
+                    for (const panel of layout.panels) {
+                        expect(panel.top).toBeGreaterThanOrEqual(layout.header.bottom + 6);
+                        expect(panel.bottom).toBeLessThanOrEqual(layout.controlPanel.top - 6);
+                    }
+                }
+            } finally {
+                await page.close();
+            }
+        }
+    }, TEST_TIMEOUT_MS);
+
     it("resizes the Frame and Shoot panel through the real bottom-right corner while textures are deferred", async () => {
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());

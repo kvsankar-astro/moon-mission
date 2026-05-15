@@ -134,6 +134,8 @@ const AUXILIARY_VIEW_CAMERA_PRESETS = Object.freeze(
 const PANEL_GAP_PX = 8;
 const PANEL_MARGIN_PX = 8;
 const PANEL_TOP_OFFSET_PX = 38;
+const PANEL_ABOUT_ALIGNED_MIN_VIEWPORT_WIDTH = 1600;
+const PANEL_CSS_MIN_SIDE_DEFAULT = 160;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.24;
 const PANEL_DEFAULT_WIDTH_COMPOSER = 672;
 const PANEL_DEFAULT_HEIGHT_RATIO_COMPOSER = 0.6;
@@ -1346,16 +1348,31 @@ class AuxiliaryCameraViewsManager {
         const viewportWidth = Math.max(window.innerWidth, 1);
         const viewportHeight = Math.max(window.innerHeight, 1);
         const headerEl = document.querySelector(".header");
+        const controlPanelEl = document.getElementById("control-panel");
         const timelineEl = document.querySelector(".timeline-dock");
         const headerRect = headerEl?.getBoundingClientRect?.() || null;
+        const controlPanelRect = controlPanelEl?.getBoundingClientRect?.() || null;
         const timelineRect = timelineEl?.getBoundingClientRect?.() || null;
         const left = PANEL_MARGIN_PX;
         const right = viewportWidth - PANEL_MARGIN_PX;
         const top = Number.isFinite(headerRect?.bottom)
             ? Math.round(headerRect.bottom + PANEL_GAP_PX)
             : (this.readTimelineDockOffset() + PANEL_TOP_OFFSET_PX);
-        const bottom = Number.isFinite(timelineRect?.top)
-            ? Math.round(timelineRect.top - PANEL_GAP_PX)
+        const transportTop = Number.isFinite(controlPanelRect?.top) &&
+            controlPanelRect.width > 0 &&
+            controlPanelRect.height > 0 &&
+            controlPanelEl?.hidden !== true
+            ? controlPanelRect.top
+            : Number.NaN;
+        const timelineTop = Number.isFinite(timelineRect?.top)
+            ? timelineRect.top
+            : Number.NaN;
+        const bottomBoundary = Math.min(
+            Number.isFinite(transportTop) ? transportTop : Infinity,
+            Number.isFinite(timelineTop) ? timelineTop : Infinity,
+        );
+        const bottom = Number.isFinite(bottomBoundary)
+            ? Math.round(bottomBoundary - PANEL_GAP_PX)
             : (viewportHeight - PANEL_MARGIN_PX);
         return {
             left,
@@ -1365,6 +1382,36 @@ class AuxiliaryCameraViewsManager {
             width: Math.max(160, right - left),
             height: Math.max(160, bottom - top),
         };
+    }
+
+    resolveRightStackTop({ bounds, columnLeft, columnRight }) {
+        if (window.innerWidth < PANEL_ABOUT_ALIGNED_MIN_VIEWPORT_WIDTH) {
+            return bounds.top;
+        }
+
+        const toggleRect = document.getElementById("blurb-toggle")?.getBoundingClientRect?.() || null;
+        const toggleBottom = Number.isFinite(toggleRect?.bottom)
+            ? Math.round(toggleRect.bottom)
+            : null;
+        let top = toggleBottom == null
+            ? bounds.top
+            : toggleBottom + PANEL_GAP_PX;
+
+        const headerControls = document.querySelectorAll(
+            "#header-pill-strip button:not([hidden]), #header-pill-strip .header-pill-group:not([hidden])",
+        );
+        for (const control of headerControls) {
+            const rect = control?.getBoundingClientRect?.();
+            if (!rect || rect.width <= 0 || rect.height <= 0) {
+                continue;
+            }
+            const overlapsColumn = rect.left < columnRight && rect.right > columnLeft;
+            if (overlapsColumn) {
+                top = Math.max(top, Math.round(rect.bottom) + PANEL_GAP_PX);
+            }
+        }
+
+        return Math.max(PANEL_MARGIN_PX, top);
     }
 
     getManagedMediaBrowserPanel() {
@@ -1516,7 +1563,7 @@ class AuxiliaryCameraViewsManager {
         const dockOffset = this.readTimelineDockOffset();
         const maxSideFromWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - dockOffset - PANEL_MARGIN_PX * 2);
         const maxPanelWidth = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportWidth - (PANEL_MARGIN_PX * 2));
-        const maxPanelHeight = Math.max(PANEL_MIN_SIDE_DEFAULT, viewportHeight - (PANEL_MARGIN_PX * 2));
+        const maxPanelHeight = Math.max(PANEL_MIN_SIDE_DEFAULT, bounds.height);
         const panelRects = this.panels
             .filter((panelState) => panelState.defaultLayoutManaged !== false)
             .filter((panelState) => panelState.panel?.hidden !== true)
@@ -1555,7 +1602,9 @@ class AuxiliaryCameraViewsManager {
                 const bOrder = rightPanelOrder.get(b.panelState.id) ?? Number.MAX_SAFE_INTEGER;
                 return aOrder - bOrder;
             });
-        if (rightPanelRects.length === 3) {
+        const threePanelStackCanFit = rightPanelRects.length === 3 &&
+            Math.floor((bounds.height - (2 * PANEL_GAP_PX)) / 3) >= PANEL_CSS_MIN_SIDE_DEFAULT;
+        if (threePanelStackCanFit) {
             const preferredSide = Math.min(...rightPanelRects.map((item) => Math.min(item.width, item.height)));
             const maxSideFromHeight = Math.floor((bounds.height - (2 * PANEL_GAP_PX)) / 3);
             const mediaBrowserPanel = composerRects.length > 0 ? this.getManagedMediaBrowserPanel() : null;
@@ -1586,13 +1635,17 @@ class AuxiliaryCameraViewsManager {
                         PANEL_MIN_SIDE_DEFAULT,
                         Math.min(maxColumnSide, maxSideFromWidth),
                     );
-                    const columnHeight = (3 * columnSide) + (2 * PANEL_GAP_PX);
                     const columnLeft = Math.round(bounds.right - columnSide);
+                    const columnRight = columnLeft + columnSide;
                     const composerLeft = Math.round(columnLeft - PANEL_GAP_PX - composerWidth);
                     const mediaLeft = Math.round(bounds.left);
-                    const columnTop = Math.round(bounds.top + Math.max(0, (bounds.height - columnHeight) * 0.5));
+                    const columnTop = this.resolveRightStackTop({
+                        bounds,
+                        columnLeft,
+                        columnRight,
+                    });
                     const pairHeight = Math.max(mediaHeight, composerHeight);
-                    const pairTop = Math.round(bounds.top + Math.max(0, (bounds.height - pairHeight) * 0.5));
+                    const pairTop = bounds.top;
 
                     rightPanelRects.forEach((item, index) => {
                         item.width = columnSide;
@@ -1634,7 +1687,12 @@ class AuxiliaryCameraViewsManager {
             );
             const columnHeight = (3 * columnSide) + (2 * PANEL_GAP_PX);
             const columnLeft = Math.round(bounds.right - columnSide);
-            const columnTop = Math.round(bounds.top + Math.max(0, (bounds.height - columnHeight) * 0.5));
+            const columnRight = columnLeft + columnSide;
+            const columnTop = this.resolveRightStackTop({
+                bounds,
+                columnLeft,
+                columnRight,
+            });
 
             rightPanelRects.forEach((item, index) => {
                 item.width = columnSide;
@@ -1650,8 +1708,7 @@ class AuxiliaryCameraViewsManager {
 
             for (const item of composerRects) {
                 const x = Math.round(columnLeft - PANEL_GAP_PX - item.width);
-                const y = Math.round(columnTop + ((columnHeight - item.height) * 0.5));
-                this.applyPanelPosition(item.panelState, x, y);
+                this.applyPanelPosition(item.panelState, x, bounds.top);
             }
             return;
         }
@@ -1691,15 +1748,10 @@ class AuxiliaryCameraViewsManager {
             return;
         }
 
-        for (const item of composerRects) {
-            const x = Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
-            const y = Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
-            this.applyPanelPosition(item.panelState, x, y);
-        }
-
         let rightColumnEdge = bounds.right;
         let rightColumnWidth = 0;
         let rightY = bounds.top;
+        let rightPanelLeftEdge = bounds.right;
         for (const item of rightPanelRects) {
             if (rightY > bounds.top && (rightY + item.height) > bounds.bottom) {
                 rightColumnEdge -= (rightColumnWidth + PANEL_GAP_PX);
@@ -1708,11 +1760,23 @@ class AuxiliaryCameraViewsManager {
             }
 
             const x = rightColumnEdge - item.width;
+            rightPanelLeftEdge = Math.min(rightPanelLeftEdge, x);
             this.applyPanelPosition(item.panelState, x, rightY);
             rightY += item.height + PANEL_GAP_PX;
             if (item.width > rightColumnWidth) {
                 rightColumnWidth = item.width;
             }
+        }
+
+        for (const item of composerRects) {
+            const hasRightPanels = rightPanelRects.length > 0 && rightPanelLeftEdge < bounds.right;
+            const x = hasRightPanels
+                ? Math.max(bounds.left, Math.round(rightPanelLeftEdge - PANEL_GAP_PX - item.width))
+                : Math.round(bounds.left + ((bounds.width - item.width) * 0.5));
+            const y = hasRightPanels
+                ? bounds.top
+                : Math.round(bounds.top + ((bounds.height - item.height) * 0.5));
+            this.applyPanelPosition(item.panelState, x, y);
         }
     }
 
