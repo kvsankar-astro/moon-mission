@@ -1519,7 +1519,9 @@ describe("createTimelineDockController", () => {
         expect(mediaMarkers.children[0].className).not.toContain("timeline-dock__media-marker--segment");
         expect(mediaMarkers.children[0].className).toContain("timeline-dock__media-marker--selected");
         expect(mediaMarkers.children[0].title).toBe("Earthrise • Crew iPhone");
-        const preview = mediaMarkers.children[0].children.find((child) => child.className === "timeline-dock__media-preview");
+        expect(mediaMarkers.children[0].children.find((child) => child.className === "timeline-dock__media-preview")).toBeUndefined();
+        mediaMarkers.children[0].dispatchEvent({ type: "pointerenter" });
+        const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview is-visible");
         expect(preview).toBeTruthy();
         expect(preview.children[0].className).toBe("timeline-dock__media-preview-image");
         expect(preview.children[0].src).toBe("/assets/thumbs/earthrise.jpg");

@@ -204,6 +204,10 @@ function createTimelineDockController({
     let hoveredVisibleEventRange = null;
     let isBound = false;
     let timelineDragState = null;
+    let mediaPreviewElement = null;
+    let mediaPreviewImage = null;
+    let mediaPreviewTitle = null;
+    let activeMediaPreviewMarker = null;
     const timelineDragThresholdPx = 3;
     let currentMode = {
         compareMode: false,
@@ -568,6 +572,10 @@ function createTimelineDockController({
     function renderMediaMarkersFromCache() {
         if (!mediaMarkers) return;
         mediaMarkers.innerHTML = "";
+        mediaPreviewElement = null;
+        mediaPreviewImage = null;
+        mediaPreviewTitle = null;
+        activeMediaPreviewMarker = null;
         for (let i = 0; i < lastMediaMarkersData.length; i += 1) {
             const marker = renderMediaMarker(lastMediaMarkersData[i], i);
             if (marker) mediaMarkers.appendChild(marker);
@@ -1305,40 +1313,81 @@ function createTimelineDockController({
         return false;
     }
 
-    function appendMediaMarkerPreview(marker, markerInfo) {
-        const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
-        const thumbnailAssetUrl = String(markerInfo?.thumbnailAssetUrl || "").trim();
-        if (!previewTitle && !thumbnailAssetUrl) return null;
+    function ensureMediaMarkerPreview() {
+        if (mediaPreviewElement) return mediaPreviewElement;
+        if (!mediaMarkers) return null;
 
-        const preview = document.createElement("span");
-        preview.className = "timeline-dock__media-preview";
+        mediaPreviewElement = document.createElement("span");
+        mediaPreviewElement.className = "timeline-dock__media-preview";
+        mediaPreviewElement.hidden = true;
 
-        if (thumbnailAssetUrl) {
-            const image = document.createElement("img");
-            image.className = "timeline-dock__media-preview-image";
-            image.src = thumbnailAssetUrl;
-            image.alt = "";
-            image.loading = "lazy";
-            preview.appendChild(image);
-        }
+        mediaPreviewImage = document.createElement("img");
+        mediaPreviewImage.className = "timeline-dock__media-preview-image";
+        mediaPreviewImage.alt = "";
+        mediaPreviewImage.loading = "lazy";
+        mediaPreviewImage.addEventListener?.("error", () => {
+            if (mediaPreviewImage) {
+                mediaPreviewImage.hidden = true;
+                mediaPreviewImage.removeAttribute?.("src");
+            }
+        });
+        mediaPreviewElement.appendChild(mediaPreviewImage);
 
-        const title = document.createElement("span");
-        title.className = "timeline-dock__media-preview-title";
-        title.textContent = previewTitle || "Media item";
-        preview.appendChild(title);
-        marker.appendChild(preview);
-        return preview;
+        mediaPreviewTitle = document.createElement("span");
+        mediaPreviewTitle.className = "timeline-dock__media-preview-title";
+        mediaPreviewElement.appendChild(mediaPreviewTitle);
+        mediaMarkers.appendChild(mediaPreviewElement);
+        return mediaPreviewElement;
     }
 
-    function bindMediaMarkerPreviewEvents(marker, preview) {
-        if (!marker || !preview) return;
-        const setVisible = (visible) => {
-            marker.classList?.toggle?.("is-preview-visible", visible === true);
-        };
-        marker.addEventListener("pointerenter", () => setVisible(true));
-        marker.addEventListener("pointerleave", () => setVisible(false));
-        marker.addEventListener("focus", () => setVisible(true));
-        marker.addEventListener("blur", () => setVisible(false));
+    function setMediaPreviewEdgeClass(anchorPercent) {
+        if (!mediaPreviewElement) return;
+        mediaPreviewElement.classList?.toggle?.("timeline-dock__media-preview--start", anchorPercent < 8);
+        mediaPreviewElement.classList?.toggle?.("timeline-dock__media-preview--end", anchorPercent > 92);
+    }
+
+    function showMediaMarkerPreview(marker, markerInfo, anchorPercent) {
+        const previewTitle = String(markerInfo?.label || markerInfo?.hoverText || "Media item").trim();
+        const thumbnailAssetUrl = String(markerInfo?.thumbnailAssetUrl || "").trim();
+        if (!previewTitle && !thumbnailAssetUrl) return;
+        const preview = ensureMediaMarkerPreview();
+        if (!preview) return;
+        activeMediaPreviewMarker = marker;
+        preview.hidden = false;
+        preview.classList?.add?.("is-visible");
+        preview.style.left = `${clamp(Number(anchorPercent), 0, 100)}%`;
+        setMediaPreviewEdgeClass(Number(anchorPercent));
+        if (mediaPreviewTitle) {
+            mediaPreviewTitle.textContent = previewTitle || "Media item";
+        }
+        if (mediaPreviewImage) {
+            if (thumbnailAssetUrl) {
+                mediaPreviewImage.hidden = false;
+                if (mediaPreviewImage.getAttribute?.("src") !== thumbnailAssetUrl) {
+                    mediaPreviewImage.src = thumbnailAssetUrl;
+                }
+            } else {
+                mediaPreviewImage.hidden = true;
+                mediaPreviewImage.removeAttribute?.("src");
+            }
+        }
+    }
+
+    function hideMediaMarkerPreview(marker) {
+        if (marker && activeMediaPreviewMarker && marker !== activeMediaPreviewMarker) return;
+        activeMediaPreviewMarker = null;
+        mediaPreviewElement?.classList?.remove?.("is-visible");
+        if (mediaPreviewElement) {
+            mediaPreviewElement.hidden = true;
+        }
+    }
+
+    function bindMediaMarkerPreviewEvents(marker, markerInfo, anchorPercent) {
+        if (!marker) return;
+        marker.addEventListener("pointerenter", () => showMediaMarkerPreview(marker, markerInfo, anchorPercent));
+        marker.addEventListener("pointerleave", () => hideMediaMarkerPreview(marker));
+        marker.addEventListener("focus", () => showMediaMarkerPreview(marker, markerInfo, anchorPercent));
+        marker.addEventListener("blur", () => hideMediaMarkerPreview(marker));
     }
 
     function handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs) {
@@ -1425,7 +1474,7 @@ function createTimelineDockController({
         const markerTitle = markerInfo?.hoverText || markerInfo?.label || "Media item";
         marker.title = markerTitle;
         marker.setAttribute("aria-label", markerTitle);
-        bindMediaMarkerPreviewEvents(marker, appendMediaMarkerPreview(marker, markerInfo));
+        bindMediaMarkerPreviewEvents(marker, markerInfo, anchorPercent);
         if (markerInfo?.clickable !== false) {
             marker.addEventListener("click", (event) => {
                 handleDirectMediaMarkerClick(event, markerInfo, index, isSegment, markerTimeMs);
