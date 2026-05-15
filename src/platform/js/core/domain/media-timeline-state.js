@@ -1,5 +1,6 @@
 import { resolveNearestMediaIndex } from "./media-selection-state.js";
 import { isBackgroundPlaybackMediaItem } from "./media-playback-policy.js";
+import { resolveMediaThumbnailAssetUrl } from "./media-thumbnail-assets.js";
 
 const DEFAULT_PLAYABLE_SEGMENT_DURATION_MS = 30000;
 
@@ -14,14 +15,6 @@ function formatDurationLabel(durationMs) {
 
 function isPlayableMediaKind(kind) {
     return kind === "audioClip" || kind === "videoClip";
-}
-
-function resolveMarkerThumbnailAssetUrl(item) {
-    if (!item) return "";
-    return item.thumbnailAssetUrl ||
-        item.posterAssetUrl ||
-        (item.kind === "audioClip" ? "" : item.assetUrl) ||
-        "";
 }
 
 function resolveMediaSegmentTiming(item, startTimeMs) {
@@ -117,7 +110,7 @@ function buildMediaTimelineMarkers({
             }),
             mediaKind: item.kind,
             mediaDisplayMode: segmentTiming.displayMode,
-            thumbnailAssetUrl: resolveMarkerThumbnailAssetUrl(item),
+            thumbnailAssetUrl: resolveMediaThumbnailAssetUrl(item),
             startTime: new Date(startTimeMs),
             startTimeMs,
             endTimeMs,

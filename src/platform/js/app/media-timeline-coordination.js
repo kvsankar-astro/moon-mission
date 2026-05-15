@@ -11,6 +11,10 @@ import {
 } from "../core/domain/media-selection-state.js";
 import { buildMediaTimelineMarkers } from "../core/domain/media-timeline-state.js";
 import {
+    resolveMediaThumbnailAssetUrl,
+    resolveMediaThumbnailFallbackAssetUrl,
+} from "../core/domain/media-thumbnail-assets.js";
+import {
     buildForegroundMediaPlaybackState,
     clampMediaCurrentTimeSeconds as clampMediaCurrentTimeSecondsCore,
     isBackgroundPlaybackMediaItem,
@@ -123,19 +127,6 @@ function resolvePreviewAssetUrl(item) {
         return item.posterAssetUrl || item.thumbnailAssetUrl || "";
     }
     return item.assetUrl || item.thumbnailAssetUrl || item.posterAssetUrl || "";
-}
-
-function resolveThumbnailAssetUrl(item) {
-    if (!item) return "";
-    return item.thumbnailAssetUrl || item.posterAssetUrl || (item.kind === "audioClip" ? "" : item.assetUrl) || "";
-}
-
-function resolveThumbnailFallbackAssetUrl(item) {
-    if (!item || item.kind === "audioClip") return "";
-    if (item.kind === "videoClip") {
-        return item.posterAssetUrl || "";
-    }
-    return item.assetUrl || item.posterAssetUrl || "";
 }
 
 function resolvePlayableAssetUrl(item) {
@@ -392,8 +383,8 @@ function buildThumbnailViewItem(item, activeItem, searchQuery = "") {
         kind: item.kind,
         active: item.id === activeItem?.id,
         title: item.title,
-        thumbnailAssetUrl: resolveThumbnailAssetUrl(item),
-        fallbackAssetUrl: resolveThumbnailFallbackAssetUrl(item),
+        thumbnailAssetUrl: resolveMediaThumbnailAssetUrl(item),
+        fallbackAssetUrl: resolveMediaThumbnailFallbackAssetUrl(item),
         meta: [
             formatDateTimeLocal(item.startTimeMs, { includeOffset: false }),
             item.cameraLabel || (item.kind === "audioClip" ? "Audio" : ""),
