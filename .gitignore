@@ -169,6 +169,7 @@ sandbox/reference/
 
 # Deployment configuration (contains credentials)
 deploy-config.json
+.env
 
 # Test server temp files
 .test-server.*

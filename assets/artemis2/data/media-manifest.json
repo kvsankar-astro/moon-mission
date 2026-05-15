@@ -19354,11 +19354,11 @@
     {
       "id": "artemis2-lunar-flyby-broadcast",
       "title": "Artemis II Lunar Flyby Official Broadcast",
-      "description": "Mission-long NASA broadcast covering the Artemis II lunar flyby, packaged locally as HLS for streaming tests.",
+      "description": "Mission-long NASA broadcast covering the Artemis II lunar flyby, packaged as hosted HLS.",
       "enabled": true,
       "streamKind": "video",
       "sourceType": "hls",
-      "sourceUrl": "../media/streams/lunar-flyby/v1/master.m3u8",
+      "sourceUrl": "https://assets.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8",
       "posterAsset": "../media/thumbnails/videos/artemis2-lunar-flyby-broadcast.webp",
       "sourceLabel": "NASA broadcast archived on Wikimedia Commons",
       "sourcePageUrl": "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",

@@ -41,7 +41,7 @@ Generated local candidate:
 
 The intended hosted URL is:
 
-`https://media.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8`
+`https://assets.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8`
 
 The stream is declared in `assets/artemis2/data/media-manifest.json5` with
 `enabled: true` and points at the local staged HLS copy for development:
@@ -108,7 +108,7 @@ Useful cache policy:
   a version such as `v1`.
 - Playlists: short cache while iterating, then longer once stable.
 - Enable CORS for the app origin.
-- Use the custom domain (`media.sankara.net`) for production rather than an
+- Use the custom domain (`assets.sankara.net`) for production rather than an
   `r2.dev` development URL.
 
 ## Sync Status
