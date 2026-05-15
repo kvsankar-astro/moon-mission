@@ -63,6 +63,11 @@ Timeline and media interaction requirements (implemented):
 Still deferred:
 
 - A full ArtemisLive-style horizontal media scroller inside the panel.
+- Fix Mission Media timeline dot selection reliability. Clicking some media
+  dots can still fail to jump/select the expected media image consistently,
+  especially around initial load and marker/thumbnail readiness. Hover
+  thumbnails and independent dot click handling have been improved, but the
+  remaining dot-to-media selection path needs a deeper event/data-flow pass.
 - Separate synchronized stream panels driven by `mediaStreams[]`.
 - Per-item license/source URL enrichment beyond the currently mirrored upstream metadata.
 
