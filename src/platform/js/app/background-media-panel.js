@@ -19,7 +19,7 @@ import {
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
-const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v7-stacked-169";
+const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v8-compact-header-clearance";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_STACK_LEFT_PX = 32;
 const PANEL_STACK_TOP_FALLBACK_PX = 36;
@@ -373,7 +373,7 @@ function getDefaultPanelRect() {
         MIN_PANEL_WIDTH_PX,
         (getWindowRef()?.innerWidth || 1024) - PANEL_STACK_LEFT_PX - PANEL_EDGE_MARGIN_PX,
     );
-    const width = Math.min(DEFAULT_PANEL_WIDTH_PX, maxWidth);
+    let width = Math.min(DEFAULT_PANEL_WIDTH_PX, maxWidth);
     const timelineSafeBottom = getTimelineSafeBottomPx();
     const availableHeight = Math.max(
         MIN_PANEL_HEIGHT_PX,
@@ -382,8 +382,13 @@ function getDefaultPanelRect() {
             - PANEL_STACK_GAP_PX
             - DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX,
     );
-    const idealHeight = getDefaultPanelHeightForWidth(width);
-    const height = Math.min(idealHeight, availableHeight);
+    if (getDefaultPanelHeightForWidth(width) > availableHeight) {
+        const widthForAvailableHeight = Math.floor(
+            Math.max(0, availableHeight - DEFAULT_PANEL_HEADER_HEIGHT_PX) * 16 / 9,
+        );
+        width = clamp(widthForAvailableHeight, MIN_PANEL_WIDTH_PX, width);
+    }
+    const height = getDefaultPanelHeightForWidth(width);
     return {
         left: PANEL_STACK_LEFT_PX,
         top: stackTop,
@@ -409,7 +414,7 @@ function getVisibleElementBottomPx(selector) {
 
 function getWorkflowPanelStackTopPx() {
     const headerBottom = [
-        getVisibleElementBottomPx(".mission-breadcrumb"),
+        getVisibleElementBottomPx(".header"),
         getVisibleElementBottomPx(".mission-floating-collapse-btn"),
     ].filter(Number.isFinite).reduce((max, value) => Math.max(max, value), 0);
     if (Number.isFinite(headerBottom) && headerBottom > 0) {

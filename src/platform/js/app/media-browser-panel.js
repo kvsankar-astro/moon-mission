@@ -14,7 +14,7 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v15-stacked-broadcast";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v16-compact-header-clearance";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 32;
 const PANEL_DEFAULT_WIDTH_PX = 672;
@@ -224,7 +224,7 @@ function getPanelDefaultHeightPx() {
 
 function getWorkflowPanelStackTopPx() {
     const headerBottom = [
-        getVisibleElementBottomPx(".mission-breadcrumb"),
+        getVisibleElementBottomPx(".header"),
         getVisibleElementBottomPx(".mission-floating-collapse-btn"),
     ].filter(Number.isFinite).reduce((max, value) => Math.max(max, value), 0);
     if (Number.isFinite(headerBottom) && headerBottom > 0) {
@@ -258,11 +258,7 @@ function getWorkflowBroadcastFallbackHeightPx() {
         PANEL_MIN_WIDTH_PX,
         getViewportWidth() - PANEL_DEFAULT_LEFT_PX - PANEL_EDGE_MARGIN_PX,
     );
-    const width = Math.min(WORKFLOW_BROADCAST_PANEL_WIDTH_PX, maxWidth);
-    const idealHeight = Math.max(
-        PANEL_MIN_HEIGHT_PX,
-        WORKFLOW_BROADCAST_PANEL_HEADER_HEIGHT_PX + Math.round(width * 9 / 16),
-    );
+    let width = Math.min(WORKFLOW_BROADCAST_PANEL_WIDTH_PX, maxWidth);
     const safeBottom = getTimelineSafeBottomPx();
     const availableHeight = Math.max(
         PANEL_MIN_HEIGHT_PX,
@@ -271,7 +267,17 @@ function getWorkflowBroadcastFallbackHeightPx() {
             - WORKFLOW_PANEL_STACK_GAP_PX
             - WORKFLOW_BROADCAST_MEDIA_PANEL_HEIGHT_RESERVE_PX,
     );
-    return Math.min(idealHeight, availableHeight);
+    const resolveHeight = (nextWidth) => Math.max(
+        PANEL_MIN_HEIGHT_PX,
+        WORKFLOW_BROADCAST_PANEL_HEADER_HEIGHT_PX + Math.round(nextWidth * 9 / 16),
+    );
+    if (resolveHeight(width) > availableHeight) {
+        const widthForAvailableHeight = Math.floor(
+            Math.max(0, availableHeight - WORKFLOW_BROADCAST_PANEL_HEADER_HEIGHT_PX) * 16 / 9,
+        );
+        width = clamp(widthForAvailableHeight, PANEL_MIN_WIDTH_PX, width);
+    }
+    return resolveHeight(width);
 }
 
 function getWorkflowMediaPanelTopPx() {
