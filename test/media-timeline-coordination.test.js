@@ -1019,6 +1019,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:30:00",
                     file: "audio/clip.mp3",
                     desc: "Audio clip",
+                    durationSeconds: 180,
                     enabled: true,
                 },
             ],
@@ -1084,15 +1085,22 @@ describe("createMediaTimelineCoordination", () => {
 
         coordination.update({
             globalConfig: createMissionConfig({ mediaEnabled: true }),
-            animTime: Date.parse("2026-04-02T16:31:00Z"),
+            animTime: Date.parse("2026-04-02T16:35:00Z"),
         });
         await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "toggleMediaKind", value: "audioClip" });
+        const focusedRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(focusedRender.playbackModel.elapsedSeconds).toBe(0);
+        expect(focusedRender.playbackModel.elapsedSeconds).not.toBe(300);
 
         mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
 
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(latestRender.playbackModel.durationSeconds).toBeNaN();
         expect(latestRender.playbackModel.durationSeconds).not.toBe(300);
+        expect(latestRender.playbackModel.elapsedSeconds).toBe(0);
+        expect(latestRender.playbackModel.elapsedSeconds).not.toBe(300);
         expect(latestRender.playbackModel.seekEnabled).toBe(false);
     });
 
@@ -1822,6 +1830,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:30:00",
                     file: "audio/clip.mp3",
                     desc: "Audio clip",
+                    durationSeconds: 180,
                     enabled: true,
                 },
             ],
@@ -2033,6 +2042,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:00:00",
                     file: "clip.mp4",
                     title: "Crew video",
+                    durationSeconds: 180,
                     enabled: true,
                     video: true,
                 },
@@ -2118,6 +2128,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:00:00",
                     file: "clip.mp4",
                     title: "Crew video",
+                    durationSeconds: 180,
                     enabled: true,
                     video: true,
                 },
@@ -2328,6 +2339,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 10:00:00",
                     file: "clip.mp4",
                     title: "Estimated video",
+                    durationSeconds: 30,
                     enabled: true,
                     video: true,
                 },

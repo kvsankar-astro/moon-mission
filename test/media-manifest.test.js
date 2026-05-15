@@ -352,6 +352,18 @@ describe("normalizeMissionMediaManifest", () => {
             new URL("../assets/artemis2/data/media-manifest.json", import.meta.url),
             "utf8",
         ));
+        const missingExplicitAudioDurations = (sourceManifest.audio || [])
+            .filter((item) => item.enabled !== false)
+            .filter((item) => !(Number(item.durationSeconds) > 0))
+            .map((item) => item.file);
+        const missingExplicitVideoDurations = (sourceManifest.photos || [])
+            .filter((item) => item.enabled !== false && item.video === true)
+            .filter((item) => !(Number(item.durationSeconds) > 0))
+            .map((item) => item.file);
+
+        expect(missingExplicitAudioDurations).toEqual([]);
+        expect(missingExplicitVideoDurations).toEqual([]);
+
         const manifest = normalizeMissionMediaManifest(sourceManifest, {
             dataPath: "assets/artemis2/data",
         });

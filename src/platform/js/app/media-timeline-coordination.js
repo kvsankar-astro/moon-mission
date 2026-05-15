@@ -40,7 +40,6 @@ import { isMissionPanelEnabled } from "./panel-defaults.js";
 
 const MAX_THUMBNAIL_RENDER_ITEMS = 64;
 const THUMBNAIL_WINDOW_EDGE_MARGIN = 8;
-const AUDIO_DEFAULT_DURATION_SECONDS = 300;
 const MEDIA_CLOCK_OVERRIDE_TOLERANCE_MS = 5000;
 const MEDIA_EXPLICIT_FOCUS_TOLERANCE_MS = 1000;
 const MEDIA_TRANSPORT_MAX_SIM_SECONDS_PER_REAL_SECOND = 4;
@@ -147,8 +146,8 @@ function resolvePlayableAssetUrl(item) {
     return "";
 }
 
-function getPlayableDurationFallbackSeconds(item) {
-    return item?.kind === "audioClip" ? AUDIO_DEFAULT_DURATION_SECONDS : Number.NaN;
+function getPlayableDurationFallbackSeconds() {
+    return Number.NaN;
 }
 
 function clampMediaCurrentTimeSeconds(item, currentTimeSeconds) {
@@ -503,6 +502,10 @@ function resolvePlaybackOffsetSeconds(item, currentTimeMs, fromBeginning = false
     const startTimeMs = Number(item?.startTimeMs);
     const missionTimeMs = Number(currentTimeMs);
     if (!Number.isFinite(startTimeMs) || !Number.isFinite(missionTimeMs) || missionTimeMs < startTimeMs) {
+        return 0;
+    }
+    const durationSeconds = resolvePlayableDurationSeconds(item);
+    if (!Number.isFinite(durationSeconds)) {
         return 0;
     }
     return clampMediaCurrentTimeSeconds(item, (missionTimeMs - startTimeMs) / 1000);
