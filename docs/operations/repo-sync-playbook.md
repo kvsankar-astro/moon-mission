@@ -73,7 +73,7 @@ These belong in `moon-mission-data` and should not be tracked in `moon-mission`:
 
 Remote media note:
 
-- The current Artemis II `media-manifest.json` references remote media in the public Artemis Timeline R2 bucket.
+- The current Artemis II `media-manifest.json` references mirrored runtime media in the sankara.net public R2 bucket; upstream Artemis Timeline URLs are source/provenance references.
 - Those remote photo/video files are not data-repo artifacts unless we intentionally decide to self-host or transform them.
 - See [artemis2-media-assets.md](artemis2-media-assets.md) before mirroring any Artemis II media payload.
 
@@ -152,6 +152,18 @@ python scripts/stage-ephemeris-data.py --data-root ../moon-mission-data --target
 python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtime-manifest dist-pages/runtime-asset-manifest.json
 ```
 
+### 4. Upload staged public assets to R2
+
+Production runtime assets are served from `https://assets.sankara.net/moon-mission/`.
+After staging and verification, upload the staged public asset roots:
+
+```bash
+python scripts/upload-r2-assets.py --source-root dist-pages --prefix moon-mission/ --roots assets images third-party
+```
+
+See [r2-asset-hosting.md](r2-asset-hosting.md) for required environment values,
+cache behavior, and the deploy-workflow contract.
+
 ## Recommended Working Process
 
 ### When app code changes but orbit data does not
@@ -192,7 +204,8 @@ python scripts/verify-staged-runtime-assets.py --staged-root dist-pages --runtim
 1. Audit repo boundary.
 2. Stage runtime assets from `moon-mission-data`.
 3. Verify staged runtime assets.
-4. Run SSIM / test workflow.
+4. Upload public runtime assets to R2 when the release changes assets.
+5. Run SSIM / test workflow.
 
 ## Current Precise Sync Plan
 

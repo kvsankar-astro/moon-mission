@@ -6,6 +6,8 @@ import {
     loadSceneTextures,
 } from "../src/platform/js/app/texture-loader.js";
 
+const ASSET_BASE_URL = "https://assets.sankara.net/moon-mission";
+
 function createFakeThree(loadCalls) {
     class TextureLoader {
         load(fileName, onLoad) {
@@ -66,7 +68,7 @@ describe("texture-loader", () => {
 
         const textures = await loadSceneTextures({ THREE, files, globalObject });
 
-        expect(loadCalls.filter((fileName) => fileName === "/textures/sky.jpg")).toHaveLength(1);
+        expect(loadCalls.filter((fileName) => fileName === `${ASSET_BASE_URL}/textures/sky.jpg`)).toHaveLength(1);
         expect(textures.skyTexture).toBe(textures.skyMilkyWayTexture);
     });
 
@@ -89,13 +91,13 @@ describe("texture-loader", () => {
         });
 
         expect(loadCalls).toEqual([
-            "/textures/moon-quality.jpg",
-            "/textures/moon-quality-height.png",
+            `${ASSET_BASE_URL}/textures/moon-quality.jpg`,
+            `${ASSET_BASE_URL}/textures/moon-quality-height.png`,
         ]);
         expect(textures).toMatchObject({
             moonRenderProfile: "quality",
         });
-        expect(textures.moonMap.fileName).toBe("/textures/moon-quality.jpg");
+        expect(textures.moonMap.fileName).toBe(`${ASSET_BASE_URL}/textures/moon-quality.jpg`);
         expect(textures.earthTexture).toBeUndefined();
     });
 
@@ -118,8 +120,8 @@ describe("texture-loader", () => {
         });
 
         expect(loadCalls).toEqual([
-            "/textures/shared-moon-source.png",
-            "/textures/shared-moon-source.png",
+            `${ASSET_BASE_URL}/textures/shared-moon-source.png`,
+            `${ASSET_BASE_URL}/textures/shared-moon-source.png`,
         ]);
         expect(textures.moonMap).not.toBe(textures.moonDisplacementMap);
     });
@@ -164,10 +166,10 @@ describe("texture-loader", () => {
         });
 
         expect(loadCalls).toEqual([
-            "/textures/earth-day.jpg",
-            "/textures/moon-fast.jpg",
-            "/textures/moon-height.png",
-            "/textures/sky.jpg",
+            `${ASSET_BASE_URL}/textures/earth-day.jpg`,
+            `${ASSET_BASE_URL}/textures/moon-fast.jpg`,
+            `${ASSET_BASE_URL}/textures/moon-height.png`,
+            `${ASSET_BASE_URL}/textures/sky.jpg`,
         ]);
         expect(applyCalls.map((call) => call.keys)).toEqual([
             ["earthTexture"],

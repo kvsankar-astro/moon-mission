@@ -1,6 +1,6 @@
 # Mission Data Current State
 
-Last updated: 2026-05-08
+Last updated: 2026-05-15
 
 This document captures the **current boundary and operating model** between app code and runtime mission data.
 
@@ -45,7 +45,7 @@ Data repo (`moon-mission-data`) tracks:
 
 Current Artemis II media note:
 - The Mission Media browser stores only metadata in this app repo.
-- The referenced photo/video assets remain remote in the public Artemis Timeline R2 bucket.
+- The referenced photo/video assets are mirrored into the sankara.net public R2 bucket for production consistency; upstream Artemis Timeline URLs remain provenance/source references.
 - Source and maintenance details live in [artemis2-media-assets.md](artemis2-media-assets.md).
 - Curated lunar feature datasets and Artemis II map references live in [lunar-feature-and-artemis2-reference-sources.md](lunar-feature-and-artemis2-reference-sources.md).
 
@@ -60,7 +60,14 @@ Current Artemis II media note:
 Workflows stage mission data from the data repo before deploy:
 - `.github/workflows/deploy-hetzner.yml`
 
-Use the Hetzner deploy workflow when a change introduces app-shell updates, new missions, new manifests, or new runtime assets that need to be published to `sankara.net`.
+The staged runtime asset tree is uploaded to the public R2 bucket at
+`https://assets.sankara.net/moon-mission/`. Production app pages on
+`sankara.net` resolve runtime asset URLs through that R2 asset base rather than
+serving orbit/media/image payloads from the VPS origin.
+
+Use the Hetzner deploy workflow when a change introduces app-shell updates, new missions, new manifests, or new runtime assets that need to be published to `sankara.net` and R2.
+
+See [r2-asset-hosting.md](r2-asset-hosting.md) for the serving contract and upload workflow.
 
 ## How to verify current state quickly
 

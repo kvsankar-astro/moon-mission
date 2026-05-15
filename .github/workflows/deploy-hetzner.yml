@@ -7,6 +7,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
   MISSION_DATA_REPO: ${{ vars.MISSION_DATA_REPO || 'kvsankar/moon-mission-data' }}
   MISSION_DATA_REF: ${{ vars.MISSION_DATA_REF || 'main' }}
+  R2_BUCKET_SANKARA_NET: ${{ vars.R2_BUCKET_SANKARA_NET || 'sankara-net-assets' }}
+  R2_ASSET_PREFIX_SANKARA_NET: ${{ vars.R2_ASSET_PREFIX_SANKARA_NET || 'moon-mission/' }}
 
 jobs:
   unit-tests:
@@ -125,6 +127,20 @@ jobs:
           python scripts/verify-staged-runtime-assets.py \
             --staged-root ./dist-pages \
             --runtime-manifest ./dist-pages/deployment/runtime-asset-manifest.json
+
+      - name: Upload public runtime assets to Cloudflare R2
+        env:
+          R2_S3_ENDPOINT_SANKARA_NET: ${{ secrets.R2_S3_ENDPOINT_SANKARA_NET }}
+          R2_BUCKET_SANKARA_NET: ${{ env.R2_BUCKET_SANKARA_NET }}
+          AWS_ACCESS_KEY_ID_SANKARA_NET: ${{ secrets.AWS_ACCESS_KEY_ID_SANKARA_NET }}
+          AWS_SECRET_ACCESS_KEY_SANKARA_NET: ${{ secrets.AWS_SECRET_ACCESS_KEY_SANKARA_NET }}
+          AWS_REGION_SANKARA_NET: ${{ vars.AWS_REGION_SANKARA_NET || 'auto' }}
+        run: |
+          python -m pip install requests
+          python scripts/upload-r2-assets.py \
+            --source-root ./dist-pages \
+            --prefix "${R2_ASSET_PREFIX_SANKARA_NET}" \
+            --roots assets images third-party
 
       - name: Verify build artifacts
         run: |

@@ -545,7 +545,10 @@ function normalizeArtemisTimelinePhoto(photo, index, {
     const backgroundPlayback = normalizeBackgroundPlayback(photo.backgroundPlayback);
     const assetUrl = resolveArtemisTimelineWebAssetUrl(fileName, mediaBase, dataPath);
     const posterAssetUrl = isVideo
-        ? resolveArtemisTimelinePosterAssetUrl(fileName, mediaBase, dataPath)
+        ? (
+            resolveMediaAssetUrl(photo.posterAsset, dataPath) ||
+            resolveArtemisTimelinePosterAssetUrl(fileName, mediaBase, dataPath)
+        )
         : "";
     const source = normalizeSourceMetadata(photo.source);
     const cameraId = normalizeArtemisTimelineCameraId(photo);

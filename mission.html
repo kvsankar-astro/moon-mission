@@ -504,6 +504,24 @@
                     }
                 }
 
+                const DEFAULT_RUNTIME_ASSET_BASE_URL = "https://assets.sankara.net/moon-mission/";
+
+                function resolveRuntimeAssetBaseUrl() {
+                    const configuredBase = asTrimmedString(window.MOON_MISSION_ASSET_BASE_URL);
+                    const baseUrl = configuredBase || DEFAULT_RUNTIME_ASSET_BASE_URL;
+                    return /\/$/.test(baseUrl) ? baseUrl : `${baseUrl}/`;
+                }
+
+                function resolveRuntimeAssetUrl(relativePath) {
+                    const normalizedPath = asTrimmedString(relativePath).replace(/\\/g, "/").replace(/^\/+/, "");
+                    if (!normalizedPath) return "";
+                    try {
+                        return new URL(normalizedPath, resolveRuntimeAssetBaseUrl()).toString();
+                    } catch {
+                        return `${resolveRuntimeAssetBaseUrl()}${normalizedPath}`;
+                    }
+                }
+
                 function resolveMissionPathCandidate() {
                     const pathname = asTrimmedString(window.location.pathname).replace(/\\/g, "/");
                     if (!pathname) return "";
@@ -706,7 +724,7 @@
                 async function hydrateMissionCatalogFromConfigs() {
                     const hydrated = await Promise.all(
                         catalogEntries.map(async function(entry) {
-                            const configUrl = new URL(`assets/${entry.folder}/data/config.json`, resolveAppRootUrl()).toString();
+                            const configUrl = resolveRuntimeAssetUrl(`assets/${entry.folder}/data/config.json`);
                             try {
                                 const response = await fetch(configUrl, { cache: "no-store" });
                                 if (!response.ok) return entry;
@@ -808,10 +826,13 @@
                     return;
                 }
                 applyMissionSeoMeta(mission);
+                const assetBaseUrl = resolveRuntimeAssetBaseUrl();
+                window.MOON_MISSION_ASSET_BASE_URL = assetBaseUrl;
                 window.missionConfig = {
                     missionName: mission.missionName,
-                    dataPath: new URL(`assets/${mission.folder}/data/`, resolveAppRootUrl()).toString(),
-                    modelPath: new URL(`assets/${mission.folder}/models/`, resolveAppRootUrl()).toString()
+                    assetBaseUrl: assetBaseUrl,
+                    dataPath: resolveRuntimeAssetUrl(`assets/${mission.folder}/data/`),
+                    modelPath: resolveRuntimeAssetUrl(`assets/${mission.folder}/models/`)
                 };
                 window.showMissionSelector = false;
                 document.documentElement.setAttribute("data-app-view", "app");

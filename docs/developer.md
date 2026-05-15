@@ -110,7 +110,8 @@ Useful pages:
   - panel rendering/lifecycle in `src/platform/js/app/media-browser-panel.js`
   - media domain helpers under `src/platform/js/core/domain/media-*.js`
 - The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
-- The current Artemis II media implementation keeps full media files remote in the public Artemis Timeline R2 bucket, stores mirrored metadata locally, and stages generated thumbnail derivatives from `../moon-mission-data`. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
+- Runtime assets resolve through the public R2 asset origin `https://assets.sankara.net/moon-mission/`; keep normal asset references repository-relative and let the runtime resolver apply the asset base. See [docs/operations/r2-asset-hosting.md](operations/r2-asset-hosting.md).
+- The current Artemis II media implementation stores mirrored metadata locally, stages generated thumbnail derivatives from `../moon-mission-data`, and serves hosted media through the same public asset bucket when mirrored under the site asset prefix. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
 - Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](design/specs/timeline-media-playback-spec.md).
 - `Flyby in Focus` / `Frame and Shoot` treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft.
 - Its sky controls include `Mag` from `-3` to `6` for star and planet filtering, `Labels`, `Constellations`, `Const Labels`, and a default-on `Clouds` checkbox. Body labels are suppressed when their anchor point is hidden behind the projected Earth or Moon disk.
@@ -221,7 +222,7 @@ Manual deploy workflows:
 
 Notes:
 - Deploy workflows are manual (`workflow_dispatch`).
-- Production (`sankara.net`) publishes through the Hetzner deploy workflow.
+- Production app pages (`sankara.net`) publish through the Hetzner deploy workflow; runtime assets are uploaded to the public R2 bucket during that workflow.
 - Production `sankara.net` is fronted by nginx only. Legacy `mission.html?mission=<slug>` redirects are implemented in VPS nginx config, not `.htaccess`.
 - The repo's `.htaccess` is cache-header-only and should not carry production redirect logic.
 - Use the Hetzner deploy when introducing app-shell changes, new missions, new manifests, or runtime assets that need to be published.

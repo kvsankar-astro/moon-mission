@@ -2,16 +2,17 @@
   "title": "Artemis II Mission Media",
   "ui": {
     "panelTitle": "Mission Media",
-    "seedNote": "Remote imagery and clip posters are loaded from the public Artemis Timeline media bucket. Metadata is mirrored locally from that project's photos.js dataset."
+    "seedNote": "Remote imagery and clip posters are loaded from the sankara.net public asset bucket. Metadata is mirrored locally from the Artemis Timeline photos.js dataset."
   },
   "provenance": {
-    "summary": "Metadata mirrored from the public Artemis Timeline project. Only metadata is stored locally here; media files remain remote in the source project's public bucket.",
+    "summary": "Metadata mirrored from the public Artemis Timeline project. Runtime media files are mirrored into the sankara.net public asset bucket for production consistency.",
     "sourceViewerUrl": "https://artemistimeline.com/",
     "sourceProjectUrl": "https://github.com/hankmt/Artemis-Timeline",
     "sourceDataUrl": "https://raw.githubusercontent.com/hankmt/Artemis-Timeline/main/photos.js",
+    "sourceMediaBase": "https://pub-6f67061aecce4413aa83975cba06595d.r2.dev/",
     "mirroredAt": "2026-05-08"
   },
-  "mediaBase": "https://pub-6f67061aecce4413aa83975cba06595d.r2.dev/",
+  "mediaBase": "https://assets.sankara.net/moon-mission/artemis2/timeline-media/",
   "thumbnails": {
     "basePath": "../media/thumbnails",
     "imagePattern": "images/{key}.webp",
@@ -12831,6 +12832,7 @@
       "external": false,
       "title": "Earth Rotating From Deep Space",
       "flickr_desc": "A looping time-lapse of Earth slowly rotating as seen from the Orion spacecraft during the outbound translunar coast, compiled from crew photographs by Reddit user u/ResponsibilityNo2097.",
+      "posterAsset": "../media/thumbnails/videos/loop.webp",
       "enabled": true
     },
     {
@@ -19305,7 +19307,8 @@
       "time": "2026-04-06 18:38:00",
       "file": "audio/artemis-ii-los.mp3",
       "desc": "Loss of signal — Earthset",
-      "enabled": true
+      "enabled": false,
+      "disabledReason": "Source audio object was missing from the upstream Artemis Timeline media bucket during the R2 mirror."
     },
     {
       "time": "2026-04-06 18:41:00",
@@ -19317,7 +19320,8 @@
       "time": "2026-04-06 18:58:45",
       "file": "audio/artemis-ii-closest-point-to-moon.wav",
       "desc": "Closest approach to Moon",
-      "enabled": true
+      "enabled": false,
+      "disabledReason": "Source audio object was missing from the upstream Artemis Timeline media bucket during the R2 mirror."
     },
     {
       "time": "2026-04-06 19:20:00",
@@ -19335,7 +19339,8 @@
       "time": "2026-04-06 20:32:00",
       "file": "audio/victor-the-terminator.wav",
       "desc": "Eclipse / impact-flash observations",
-      "enabled": true
+      "enabled": false,
+      "disabledReason": "Source audio object was missing from the upstream Artemis Timeline media bucket during the R2 mirror."
     },
     {
       "time": "2026-04-09 12:00:00",
@@ -19358,7 +19363,7 @@
       "enabled": true,
       "streamKind": "video",
       "sourceType": "hls",
-      "sourceUrl": "https://assets.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8",
+      "sourceUrl": "../media/streams/lunar-flyby/v1/master.m3u8",
       "posterAsset": "../media/thumbnails/videos/artemis2-lunar-flyby-broadcast.webp",
       "sourceLabel": "NASA broadcast archived on Wikimedia Commons",
       "sourcePageUrl": "https://commons.wikimedia.org/wiki/Category:Videos_of_Artemis_2",

@@ -30,6 +30,9 @@ describe("mission-asset-resolver", () => {
 
     it("returns mission config and manifest URLs from data path", () => {
         expect(resolveMissionConfigUrl("assets/ch3/data/")).toBe("assets/ch3/data/config.json");
+        expect(resolveMissionConfigUrl("https://assets.sankara.net/moon-mission/assets/ch3/data/")).toBe(
+            "https://assets.sankara.net/moon-mission/assets/ch3/data/config.json",
+        );
         expect(resolveMissionManifestUrl("assets/ch3/data/")).toBe(
             "assets/ch3/data/ephemeris-manifest.json",
         );

@@ -1,4 +1,5 @@
 import { DEFAULT_MOON_RENDER_ASSET_PROFILES, resolveMoonRenderAssetSelection } from "./moon-render-asset-profiles.js";
+import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 
 export const DEFAULT_SCENE_TEXTURE_FILES = {
     earthTexture: "images/earth/2_no_clouds_8k.jpg",
@@ -43,9 +44,10 @@ const DEFAULT_PROGRESSIVE_SCENE_TEXTURE_GROUPS = Object.freeze([
 ]);
 
 function loadTexture(loader, fileName) {
+    const textureUrl = resolveRuntimeAssetUrl(fileName);
     return new Promise((resolve, reject) => {
         loader.load(
-            fileName,
+            textureUrl,
             (texture) => resolve(texture),
             undefined,
             (error) => reject(error),

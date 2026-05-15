@@ -18,6 +18,7 @@ import {
 } from "./panel-defaults.js";
 import { bringPanelElementToFront } from "./panel-z-order.js";
 import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
+import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 import { isDomElement, isDomInstance } from "../ui/dom-helpers.js";
 
 const VIEW_MODE_2D = "map2d";
@@ -1468,7 +1469,7 @@ function createGroundTrackPanelActions(options = {}) {
             globeState.texturePromise = new Promise((resolve) => {
                 const loader = new THREE.TextureLoader();
                 loader.load(
-                    EARTH_TEXTURE_URL,
+                    resolveRuntimeAssetUrl(EARTH_TEXTURE_URL),
                     (texture) => {
                         if ("colorSpace" in texture && THREE.SRGBColorSpace) {
                             texture.colorSpace = THREE.SRGBColorSpace;

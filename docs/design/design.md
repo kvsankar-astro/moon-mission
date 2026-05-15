@@ -182,13 +182,20 @@ App repo (`moon-mission`):
 Data repo (`moon-mission-data`):
 - generated orbit artifacts and staged runtime media
 
-Remote third-party media may also be referenced directly by app-owned manifests. Artemis II Mission Media currently uses the public Artemis Timeline R2 bucket rather than committing those photo/video files to either repo.
+Runtime asset serving:
+- production app pages are served from `sankara.net`
+- runtime assets are served from the public R2 asset origin
+  `https://assets.sankara.net/moon-mission/`
+- repository-relative paths keep the same layout under the R2 prefix
 
-Design intent: keep runtime code evolution independent from heavy generated asset churn.
+Remote third-party media may also be referenced directly by app-owned manifests when the upstream source is intentionally not mirrored.
+
+Design intent: keep runtime code evolution independent from heavy generated asset churn while using one canonical public asset origin.
 
 Operational references:
 - [Repo Sync Playbook](../operations/repo-sync-playbook.md)
 - [Mission Data Current State](../operations/mission-data-current-state.md)
+- [R2 Asset Hosting](../operations/r2-asset-hosting.md)
 
 ## 7) Workflow Links
 

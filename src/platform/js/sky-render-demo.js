@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { resolveRuntimeAssetUrl } from "./core/domain/runtime-asset-url.js";
 
 const host = document.getElementById("sky-demo-canvas");
 const statusEl = document.getElementById("status");
@@ -64,9 +65,10 @@ function setSceneBackgroundColor(scene, color) {
 }
 
 function loadTexture(url) {
+    const textureUrl = resolveRuntimeAssetUrl(url);
     return new Promise((resolve) => {
         new THREE.TextureLoader().load(
-            url,
+            textureUrl,
             (texture) => resolve(texture),
             undefined,
             () => resolve(null),

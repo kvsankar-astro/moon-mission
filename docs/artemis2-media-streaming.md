@@ -41,7 +41,7 @@ Generated local candidate:
 
 The intended hosted URL is:
 
-`https://assets.sankara.net/moon-mission/artemis2/streams/lunar-flyby/v1/master.m3u8`
+`https://assets.sankara.net/moon-mission/assets/artemis2/media/streams/lunar-flyby/v1/master.m3u8`
 
 The stream is declared in `assets/artemis2/data/media-manifest.json5` with
 `enabled: true` and points at the local staged HLS copy for development:
@@ -133,7 +133,7 @@ broadcast cues. Good candidates:
    staging to the media host.
 2. Verify the hosted playlist and a representative segment return the expected
    content types and CORS headers.
-3. Switch `sourceUrl` from the local path to the hosted media URL.
+3. Keep `sourceUrl` repository-relative, for example `../media/streams/lunar-flyby/v1/master.m3u8`; the runtime asset resolver publishes it through the R2 asset base.
 4. Replace provisional sync with validated anchors and anchor interpolation.
 5. Add stream-specific filtering if whole-mission streams should be separated
    from short video clips in the UI.

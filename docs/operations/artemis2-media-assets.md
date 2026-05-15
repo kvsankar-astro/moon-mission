@@ -9,7 +9,7 @@ This note documents the current Artemis II media browser asset model. Use it whe
 - The app stores media metadata locally in `assets/artemis2/data/media-manifest.json5`.
 - Runtime consumes the compiled `assets/artemis2/data/media-manifest.json`.
 - The media browser is enabled by the mission panel config key `workflow:media-browser`.
-- Full image and playable clip assets are loaded directly from the public Artemis Timeline R2 bucket recorded in the manifest `mediaBase`.
+- Full image and playable clip assets should be served from the site asset R2 bucket when mirrored under the `moon-mission/` prefix. Upstream Artemis Timeline R2 URLs may remain as source/provenance references, but the production app should prefer `assets.sankara.net` for consistency.
 - Thumbnail cards use generated derivatives declared by the manifest `thumbnails` block. Runtime falls back to the full remote image or video poster if a generated thumbnail is missing.
 - Videos use the upstream `web/*.mp4` asset as the playable source and generated `assets/artemis2/media/thumbnails/videos/*.webp` thumbnails in the picker.
 - Audio clips use direct remote audio paths from the manifest. Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](../design/specs/timeline-media-playback-spec.md).
@@ -43,7 +43,7 @@ In this repo:
 In `../moon-mission-data`:
 
 - Store generated thumbnail derivatives under `assets/artemis2/media/thumbnails/`, including image/video thumbnail WebPs and the shared audio waveform SVG.
-- Do not mirror the Artemis Timeline R2 bucket originals by default.
+- Do not mirror the entire upstream Artemis Timeline bucket by default; mirror only the curated files referenced by the local manifest into the sankara.net public R2 bucket.
 - Only add hosted original media files if we deliberately decide to self-host, compress, or replace a source asset.
 - Long-form generated HLS streams may be staged locally under
   `assets/artemis2/media/streams/` to prepare an object-storage upload, but

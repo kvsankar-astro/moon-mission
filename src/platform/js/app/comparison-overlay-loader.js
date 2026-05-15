@@ -8,6 +8,7 @@ import {
     resolveMissionConfigUrl,
     resolveMissionManifestUrl,
 } from "../core/domain/mission-asset-resolver.js";
+import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
 import {
     buildComparisonOverlayAugmentation,
     mergeComparisonOverlayIntoBaseConfig,
@@ -25,9 +26,23 @@ function parseCurrentMissionFolder(dataPath) {
     return match?.[1] || "";
 }
 
-function buildMissionDataPath(folder) {
+function buildMissionDataPath(folder, windowRef = typeof window !== "undefined" ? window : null) {
     const normalizedFolder = asTrimmedString(folder);
-    return normalizedFolder ? `assets/${normalizedFolder}/data/` : null;
+    if (!normalizedFolder) return null;
+
+    const currentDataPath = asTrimmedString(windowRef?.missionConfig?.dataPath).replace(/\\/g, "/");
+    const siblingDataPath = currentDataPath.replace(
+        /assets\/[^/]+\/data\/?$/i,
+        `assets/${normalizedFolder}/data/`,
+    );
+    if (siblingDataPath !== currentDataPath) {
+        return siblingDataPath;
+    }
+
+    return resolveRuntimeAssetUrl(`assets/${normalizedFolder}/data/`, {
+        baseUrl: windowRef?.missionConfig?.assetBaseUrl,
+        globalObject: windowRef || undefined,
+    });
 }
 
 async function fetchJsonIfOk(url, fetchImpl) {
@@ -105,7 +120,7 @@ async function loadComparisonOverlayConfig({
             folder: normalizedCompareMission,
             missionName: normalizedCompareMission,
         };
-        const comparisonDataPath = buildMissionDataPath(compareMission?.folder);
+        const comparisonDataPath = buildMissionDataPath(compareMission?.folder, windowRef);
         if (!comparisonDataPath) {
             return baseConfig;
         }

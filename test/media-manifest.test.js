@@ -175,6 +175,27 @@ describe("normalizeMissionMediaManifest", () => {
         );
     });
 
+    it("allows Artemis Timeline videos to override a missing conventional poster", () => {
+        const manifest = normalizeMissionMediaManifest({
+            mediaBase: "https://pub-example.r2.dev/",
+            photos: [
+                {
+                    time: "2026-04-02 20:28:00",
+                    file: "loop.mp4",
+                    video: true,
+                    posterAsset: "../media/thumbnails/videos/loop.webp",
+                    enabled: true,
+                },
+            ],
+        }, {
+            dataPath: "assets/artemis2/data",
+        });
+
+        expect(manifest.mediaItems[0].posterAssetUrl).toBe(
+            "assets/artemis2/data/../media/thumbnails/videos/loop.webp",
+        );
+    });
+
     it("attaches curated thumbnail metadata to normalized Artemis photos", () => {
         const manifest = normalizeMissionMediaManifest({
             mediaBase: "https://pub-example.r2.dev/",
