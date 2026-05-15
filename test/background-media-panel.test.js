@@ -910,8 +910,8 @@ describe("background media panel helpers", () => {
         }
         actions.setMissionContext(missionContext);
 
-        expect(panel.style.left).toBe("68px");
-        expect(panel.style.top).toBe("128px");
+        expect(panel.style.left).toBe("92px");
+        expect(panel.style.top).toBe("48px");
 
         for (const handler of documentListeners.get("pointerup") || []) {
             handler({
@@ -921,12 +921,12 @@ describe("background media panel helpers", () => {
             });
         }
 
-        expect(panel.style.left).toBe("68px");
-        expect(panel.style.top).toBe("128px");
+        expect(panel.style.left).toBe("92px");
+        expect(panel.style.top).toBe("48px");
         const savedLayout = JSON.parse(storage.get("moon-mission:panel-layout:v1:artemis2"));
         expect(savedLayout.panels["workflow:background-media"].rect).toEqual(expect.objectContaining({
-            left: 68,
-            top: 128,
+            left: 92,
+            top: 48,
         }));
     });
 });

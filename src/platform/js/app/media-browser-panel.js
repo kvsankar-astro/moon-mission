@@ -14,17 +14,19 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v14-timeline-clearance";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v15-stacked-broadcast";
 const PANEL_EDGE_MARGIN_PX = 8;
-const PANEL_DEFAULT_LEFT_PX = 8;
+const PANEL_DEFAULT_LEFT_PX = 32;
 const PANEL_DEFAULT_WIDTH_PX = 672;
 const PANEL_DEFAULT_HEIGHT_RATIO = 0.6;
 const PANEL_MIN_WIDTH_PX = 360;
 const PANEL_MIN_HEIGHT_PX = 240;
-const WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX = 72;
+const WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX = 36;
 const WORKFLOW_PANEL_STACK_GAP_PX = 8;
-const WORKFLOW_BROADCAST_PANEL_HEIGHT_PX = 248;
-const WORKFLOW_MEDIA_PANEL_WIDTH_PX = 546;
+const WORKFLOW_BROADCAST_PANEL_WIDTH_PX = 546;
+const WORKFLOW_BROADCAST_PANEL_HEADER_HEIGHT_PX = 31;
+const WORKFLOW_BROADCAST_MEDIA_PANEL_HEIGHT_RESERVE_PX = 260;
+const WORKFLOW_MEDIA_PANEL_WIDTH_PX = 592;
 const PANEL_RESIZE_HIT_PX = 28;
 const DRILLDOWN_DRAWER_WIDTH_PX = 320;
 const DRILLDOWN_DRAWER_MIN_WIDTH_PX = 260;
@@ -221,12 +223,55 @@ function getPanelDefaultHeightPx() {
 }
 
 function getWorkflowPanelStackTopPx() {
-    const headerRect = getDocumentRef()?.querySelector?.(".header")?.getBoundingClientRect?.() || null;
-    const headerBottom = Number(headerRect?.bottom);
+    const headerBottom = [
+        getVisibleElementBottomPx(".mission-breadcrumb"),
+        getVisibleElementBottomPx(".mission-floating-collapse-btn"),
+    ].filter(Number.isFinite).reduce((max, value) => Math.max(max, value), 0);
     if (Number.isFinite(headerBottom) && headerBottom > 0) {
-        return Math.max(PANEL_EDGE_MARGIN_PX, Math.round(headerBottom + PANEL_EDGE_MARGIN_PX));
+        return Math.max(
+            PANEL_EDGE_MARGIN_PX,
+            Math.round(headerBottom + PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("media-browser-panel-wrapper")),
+        );
     }
     return WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX;
+}
+
+function getPanelWrapperTopPx(id) {
+    const rect = getDocumentRef()?.getElementById?.(id)?.getBoundingClientRect?.() || null;
+    const top = Number(rect?.top);
+    return Number.isFinite(top) && top > 0 ? top : 0;
+}
+
+function getVisibleElementBottomPx(selector) {
+    const node = getDocumentRef()?.querySelector?.(selector) || null;
+    if (!node || node.hidden === true) return Number.NaN;
+    const style = getWindowRef()?.getComputedStyle?.(node) || null;
+    if (style?.display === "none" || style?.visibility === "hidden") return Number.NaN;
+    const rect = node.getBoundingClientRect?.() || null;
+    const bottom = Number(rect?.bottom);
+    return Number.isFinite(bottom) && bottom > 0 ? bottom : Number.NaN;
+}
+
+function getWorkflowBroadcastFallbackHeightPx() {
+    const stackTop = getWorkflowPanelStackTopPx();
+    const maxWidth = Math.max(
+        PANEL_MIN_WIDTH_PX,
+        getViewportWidth() - PANEL_DEFAULT_LEFT_PX - PANEL_EDGE_MARGIN_PX,
+    );
+    const width = Math.min(WORKFLOW_BROADCAST_PANEL_WIDTH_PX, maxWidth);
+    const idealHeight = Math.max(
+        PANEL_MIN_HEIGHT_PX,
+        WORKFLOW_BROADCAST_PANEL_HEADER_HEIGHT_PX + Math.round(width * 9 / 16),
+    );
+    const safeBottom = getTimelineSafeBottomPx();
+    const availableHeight = Math.max(
+        PANEL_MIN_HEIGHT_PX,
+        safeBottom
+            - stackTop
+            - WORKFLOW_PANEL_STACK_GAP_PX
+            - WORKFLOW_BROADCAST_MEDIA_PANEL_HEIGHT_RESERVE_PX,
+    );
+    return Math.min(idealHeight, availableHeight);
 }
 
 function getWorkflowMediaPanelTopPx() {
@@ -239,11 +284,15 @@ function getWorkflowMediaPanelTopPx() {
         const backgroundRect = backgroundPanel.getBoundingClientRect?.() || null;
         const bottom = Number(backgroundRect?.bottom);
         if (Number.isFinite(bottom) && bottom > 0) {
-            return Math.round(bottom + WORKFLOW_PANEL_STACK_GAP_PX);
+            return Math.round(
+                bottom
+                + WORKFLOW_PANEL_STACK_GAP_PX
+                - getPanelWrapperTopPx("media-browser-panel-wrapper"),
+            );
         }
     }
     return getWorkflowPanelStackTopPx()
-        + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
+        + getWorkflowBroadcastFallbackHeightPx()
         + WORKFLOW_PANEL_STACK_GAP_PX;
 }
 
@@ -251,7 +300,7 @@ function getTimelineSafeBottomPx() {
     const timelineRect = getDocumentRef()?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
     const timelineTop = Number(timelineRect?.top);
     if (Number.isFinite(timelineTop) && timelineTop > PANEL_EDGE_MARGIN_PX) {
-        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX);
+        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("media-browser-panel-wrapper"));
     }
     return getViewportHeight() - PANEL_EDGE_MARGIN_PX;
 }
@@ -473,7 +522,7 @@ function createMediaBrowserPanelActions({
         const y = getWorkflowMediaPanelTopPx();
         const width = Math.min(
             WORKFLOW_MEDIA_PANEL_WIDTH_PX,
-            Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - (2 * PANEL_EDGE_MARGIN_PX)),
+            Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - PANEL_DEFAULT_LEFT_PX - PANEL_EDGE_MARGIN_PX),
         );
         const safeBottom = getTimelineSafeBottomPx();
         const availableHeight = Math.max(0, safeBottom - y);
@@ -562,6 +611,22 @@ function createMediaBrowserPanelActions({
             return;
         }
         documentRef.dispatchEvent(new CustomEvent("moon-mission:auxiliary-panels-layout-request"));
+    }
+
+    function applyManagedDefaultPanelFrame(panel = getNode("media-browser-panel"), { persist = true } = {}) {
+        if (
+            defaultLayoutManaged === false ||
+            panelVisibilityState !== "open" ||
+            panelExpanded === true ||
+            !isElementLike(panel)
+        ) {
+            return false;
+        }
+        applyPanelFrame(panel, resolveDefaultPanelFrame(), {
+            managed: true,
+            persist,
+        });
+        return true;
     }
 
     function clampPanelPosition(panel) {
@@ -2336,6 +2401,9 @@ function createMediaBrowserPanelActions({
         documentRef.addEventListener?.("media-browser-panel-open", () => {
             setPanelState("open");
         });
+        documentRef.addEventListener?.("moon-mission:workflow-panel-stack-layout", () => {
+            applyManagedDefaultPanelFrame(panel);
+        });
         getNode("media-browser-filter-toggle")?.addEventListener?.("click", () => {
             setFilterDrawerOpen(filterDrawerOpen !== true);
         });
@@ -2573,6 +2641,8 @@ function createMediaBrowserPanelActions({
                 if (panel.classList.contains("media-browser-panel--hidden")) return;
                 if (panelExpanded === true) {
                     applyExpandedPanelRect(panel);
+                } else if (defaultLayoutManaged !== false) {
+                    applyManagedDefaultPanelFrame(panel, { persist: false });
                 } else {
                     clampPanelPosition(panel);
                 }
@@ -2583,6 +2653,14 @@ function createMediaBrowserPanelActions({
                 persistPanelLayoutState(panel);
             });
             resizeObserver.observe(panel);
+
+            const timelineDock = getNode("timeline-dock");
+            if (timelineDock) {
+                const timelineResizeObserver = new ResizeObserver(() => {
+                    applyManagedDefaultPanelFrame(panel);
+                });
+                timelineResizeObserver.observe(timelineDock);
+            }
         }
 
         getWindowRef()?.addEventListener?.("resize", () => {
@@ -2590,6 +2668,8 @@ function createMediaBrowserPanelActions({
             if (!panel.classList.contains("media-browser-panel--hidden")) {
                 if (panelExpanded === true) {
                     applyExpandedPanelRect(panel);
+                } else if (defaultLayoutManaged !== false) {
+                    applyManagedDefaultPanelFrame(panel);
                 } else {
                     clampPanelPosition(panel);
                 }

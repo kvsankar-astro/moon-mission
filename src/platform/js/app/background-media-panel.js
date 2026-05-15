@@ -19,11 +19,14 @@ import {
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
-const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v6-compact-availability";
+const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v7-stacked-169";
 const PANEL_EDGE_MARGIN_PX = 8;
-const PANEL_STACK_TOP_FALLBACK_PX = 72;
+const PANEL_STACK_LEFT_PX = 32;
+const PANEL_STACK_TOP_FALLBACK_PX = 36;
+const PANEL_STACK_GAP_PX = 8;
 const DEFAULT_PANEL_WIDTH_PX = 546;
-const DEFAULT_PANEL_HEIGHT_PX = 248;
+const DEFAULT_PANEL_HEADER_HEIGHT_PX = 31;
+const DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX = 260;
 const MIN_PANEL_WIDTH_PX = 300;
 const MIN_PANEL_HEIGHT_PX = 220;
 const MAX_PLAYBACK_RATE = 4;
@@ -365,28 +368,72 @@ function formatStatusTime(seconds) {
 }
 
 function getDefaultPanelRect() {
-    const viewportHeight = Number(getWindowRef()?.innerHeight) || 768;
     const stackTop = getWorkflowPanelStackTopPx();
-    const width = Math.min(DEFAULT_PANEL_WIDTH_PX, Math.max(MIN_PANEL_WIDTH_PX, (getWindowRef()?.innerWidth || 1024) - 20));
-    const height = Math.min(
-        DEFAULT_PANEL_HEIGHT_PX,
-        Math.max(MIN_PANEL_HEIGHT_PX, viewportHeight - stackTop - PANEL_EDGE_MARGIN_PX),
+    const maxWidth = Math.max(
+        MIN_PANEL_WIDTH_PX,
+        (getWindowRef()?.innerWidth || 1024) - PANEL_STACK_LEFT_PX - PANEL_EDGE_MARGIN_PX,
     );
+    const width = Math.min(DEFAULT_PANEL_WIDTH_PX, maxWidth);
+    const timelineSafeBottom = getTimelineSafeBottomPx();
+    const availableHeight = Math.max(
+        MIN_PANEL_HEIGHT_PX,
+        timelineSafeBottom
+            - stackTop
+            - PANEL_STACK_GAP_PX
+            - DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX,
+    );
+    const idealHeight = getDefaultPanelHeightForWidth(width);
+    const height = Math.min(idealHeight, availableHeight);
     return {
-        left: PANEL_EDGE_MARGIN_PX,
+        left: PANEL_STACK_LEFT_PX,
         top: stackTop,
         width,
         height,
     };
 }
 
+function getDefaultPanelHeightForWidth(width) {
+    const stageHeight = Math.round((Number(width) || DEFAULT_PANEL_WIDTH_PX) * 9 / 16);
+    return Math.max(MIN_PANEL_HEIGHT_PX, DEFAULT_PANEL_HEADER_HEIGHT_PX + stageHeight);
+}
+
+function getVisibleElementBottomPx(selector) {
+    const node = getDocumentRef()?.querySelector?.(selector) || null;
+    if (!node || node.hidden === true) return Number.NaN;
+    const style = getWindowRef()?.getComputedStyle?.(node) || null;
+    if (style?.display === "none" || style?.visibility === "hidden") return Number.NaN;
+    const rect = node.getBoundingClientRect?.() || null;
+    const bottom = Number(rect?.bottom);
+    return Number.isFinite(bottom) && bottom > 0 ? bottom : Number.NaN;
+}
+
 function getWorkflowPanelStackTopPx() {
-    const headerRect = getDocumentRef()?.querySelector?.(".header")?.getBoundingClientRect?.() || null;
-    const headerBottom = Number(headerRect?.bottom);
+    const headerBottom = [
+        getVisibleElementBottomPx(".mission-breadcrumb"),
+        getVisibleElementBottomPx(".mission-floating-collapse-btn"),
+    ].filter(Number.isFinite).reduce((max, value) => Math.max(max, value), 0);
     if (Number.isFinite(headerBottom) && headerBottom > 0) {
-        return Math.max(PANEL_EDGE_MARGIN_PX, Math.round(headerBottom + PANEL_EDGE_MARGIN_PX));
+        return Math.max(
+            PANEL_EDGE_MARGIN_PX,
+            Math.round(headerBottom + PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("background-media-panel-wrapper")),
+        );
     }
     return PANEL_STACK_TOP_FALLBACK_PX;
+}
+
+function getPanelWrapperTopPx(id) {
+    const rect = getDocumentRef()?.getElementById?.(id)?.getBoundingClientRect?.() || null;
+    const top = Number(rect?.top);
+    return Number.isFinite(top) && top > 0 ? top : 0;
+}
+
+function getTimelineSafeBottomPx() {
+    const timelineRect = getDocumentRef()?.querySelector?.(".timeline-dock")?.getBoundingClientRect?.() || null;
+    const timelineTop = Number(timelineRect?.top);
+    if (Number.isFinite(timelineTop) && timelineTop > PANEL_EDGE_MARGIN_PX) {
+        return Math.round(timelineTop - PANEL_EDGE_MARGIN_PX - getPanelWrapperTopPx("background-media-panel-wrapper"));
+    }
+    return (Number(getWindowRef()?.innerHeight) || 768) - PANEL_EDGE_MARGIN_PX;
 }
 
 function clampPanelRect(rect = {}) {
@@ -399,7 +446,7 @@ function clampPanelRect(rect = {}) {
         Math.max(MIN_PANEL_WIDTH_PX, viewportWidth - PANEL_EDGE_MARGIN_PX * 2),
     );
     const height = clamp(
-        Number(rect.height) || DEFAULT_PANEL_HEIGHT_PX,
+        Number(rect.height) || getDefaultPanelHeightForWidth(width),
         MIN_PANEL_HEIGHT_PX,
         Math.max(MIN_PANEL_HEIGHT_PX, viewportHeight - PANEL_EDGE_MARGIN_PX * 2),
     );
@@ -462,6 +509,12 @@ function createBackgroundMediaPanelActions({
         timeMs: Number.NaN,
         animationRunning: false,
     };
+
+    function requestWorkflowStackLayout() {
+        const documentRef = getDocumentRef();
+        if (!documentRef?.dispatchEvent || typeof CustomEvent !== "function") return;
+        documentRef.dispatchEvent(new CustomEvent("moon-mission:workflow-panel-stack-layout"));
+    }
 
     function getPanel() {
         return getNode("background-media-panel");
@@ -852,6 +905,7 @@ function createBackgroundMediaPanelActions({
                     persistState({ rect: appliedRect });
                     storedLayoutMatchesPreset = true;
                 }
+                requestWorkflowStackLayout();
             }
         }
         syncButtons();
@@ -869,7 +923,7 @@ function createBackgroundMediaPanelActions({
             left: Math.round(Number(rect?.left) || panel.offsetLeft || PANEL_EDGE_MARGIN_PX),
             top: Math.round(Number(rect?.top) || panel.offsetTop || PANEL_EDGE_MARGIN_PX),
             width: Math.round(Number(rect?.width) || panel.offsetWidth || DEFAULT_PANEL_WIDTH_PX),
-            height: Math.round(Number(rect?.height) || panel.offsetHeight || DEFAULT_PANEL_HEIGHT_PX),
+            height: Math.round(Number(rect?.height) || panel.offsetHeight || getDefaultPanelHeightForWidth(DEFAULT_PANEL_WIDTH_PX)),
         };
     }
 
