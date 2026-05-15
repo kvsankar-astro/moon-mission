@@ -1339,7 +1339,7 @@ function createTimelineDockController({
         mediaPreviewImage = document.createElement("img");
         mediaPreviewImage.className = "timeline-dock__media-preview-image";
         mediaPreviewImage.alt = "";
-        mediaPreviewImage.loading = "lazy";
+        mediaPreviewImage.decoding = "async";
         mediaPreviewImage.addEventListener?.("load", () => {
             if (!mediaPreviewElement || !mediaPreviewImage) return;
             const imageSource = mediaPreviewImage.getAttribute?.("src") || mediaPreviewImage.src || "";
@@ -1382,7 +1382,7 @@ function createTimelineDockController({
         if (!preview) return;
         activeMediaPreviewMarker = marker;
         pendingMediaPreviewSource = thumbnailAssetUrl;
-        preview.hidden = true;
+        preview.hidden = false;
         preview.classList?.remove?.("is-visible");
         preview.style.left = `${clamp(Number(anchorPercent), 0, 100)}%`;
         setMediaPreviewEdgeClass(Number(anchorPercent));
@@ -1391,12 +1391,11 @@ function createTimelineDockController({
             mediaPreviewTitle.textContent = previewTitle || "Media item";
         }
         if (mediaPreviewImage) {
-            mediaPreviewImage.hidden = true;
+            mediaPreviewImage.hidden = false;
             if (mediaPreviewImage.getAttribute?.("src") !== thumbnailAssetUrl) {
                 mediaPreviewImage.src = thumbnailAssetUrl;
             }
             if (mediaPreviewImage.complete === true && Number(mediaPreviewImage.naturalWidth || 0) > 0) {
-                mediaPreviewImage.hidden = false;
                 preview.hidden = false;
                 preview.classList?.add?.("is-visible");
             }

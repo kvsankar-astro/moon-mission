@@ -1523,10 +1523,10 @@ describe("createTimelineDockController", () => {
         mediaMarkers.children[0].dispatchEvent({ type: "pointerenter" });
         const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview");
         expect(preview).toBeTruthy();
-        expect(preview.hidden).toBe(true);
+        expect(preview.hidden).toBe(false);
         expect(preview.children[0].className).toBe("timeline-dock__media-preview-image");
         expect(preview.children[0].src).toBe("/assets/thumbs/earthrise.jpg");
-        expect(preview.children[0].hidden).toBe(true);
+        expect(preview.children[0].hidden).toBe(false);
         preview.children[0].dispatchEvent({ type: "load" });
         expect(preview.className).toBe("timeline-dock__media-preview is-visible");
         expect(preview.hidden).toBe(false);
@@ -1755,7 +1755,8 @@ describe("createTimelineDockController", () => {
         marker.dispatchEvent({ type: "pointerenter" });
         const preview = mediaMarkers.children.find((child) => child.className === "timeline-dock__media-preview");
         expect(preview).toBeTruthy();
-        expect(preview.hidden).toBe(true);
+        expect(preview.hidden).toBe(false);
+        expect(preview.className).not.toContain("is-visible");
 
         trackWrap.dispatchEvent({
             type: "pointerdown",
