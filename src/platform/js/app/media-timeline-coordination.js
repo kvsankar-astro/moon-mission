@@ -170,7 +170,9 @@ function buildSelectableMediaItems(mediaItems, audioItems) {
     return [
         ...(Array.isArray(mediaItems) ? mediaItems : []),
         ...(Array.isArray(audioItems) ? audioItems : []),
-    ].sort((a, b) => a.startTimeMs - b.startTimeMs);
+    ]
+        .filter((item) => !isBackgroundPlaybackMediaItem(item))
+        .sort((a, b) => a.startTimeMs - b.startTimeMs);
 }
 
 function buildTimelineMarkerItems(mediaItems, audioItems) {

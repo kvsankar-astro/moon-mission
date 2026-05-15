@@ -304,10 +304,9 @@ describe("createMediaTimelineCoordination", () => {
         expect(slider.dispatchEvent).not.toHaveBeenCalled();
         expect(Number(slider.dataset.currentTimeMs)).toBe(Date.parse("2026-04-06T17:30:00Z"));
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
-        expect(latestRender.activeItem).toEqual(expect.objectContaining({
-            id: "lunar-flyby-stream",
-        }));
-        expect(latestRender.activeItem.videoAssetUrl).toBe("");
+        expect(latestRender.mediaCountLabel).toBe("0");
+        expect(latestRender.activeItem).toBeNull();
+        expect(latestRender.thumbnailItems || []).toEqual([]);
         expect(latestRender.playbackModel).toEqual(expect.objectContaining({
             playable: false,
             showControls: false,
@@ -1434,6 +1433,51 @@ describe("createMediaTimelineCoordination", () => {
             playable: true,
             showControls: true,
         });
+    });
+
+    it("keeps background broadcast streams out of the selectable carousel", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        const setTimelineMediaMarkers = vi.fn();
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaStreams: [
+                {
+                    id: "flyby-broadcast",
+                    title: "Flyby Broadcast",
+                    description: "Mission-long stream.",
+                    enabled: true,
+                    streamKind: "video",
+                    sourceType: "hls",
+                    sourceUrl: "../media/streams/lunar-flyby/v1/master.m3u8",
+                    sourceLabel: "NASA broadcast",
+                    startTime: "2026-04-06T17:56:00Z",
+                    durationSeconds: 36600.13,
+                    playbackRoles: ["background"],
+                    backgroundPlayback: {
+                        enabled: true,
+                        muted: true,
+                    },
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            setTimelineMediaMarkers,
+        });
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-06T17:56:00Z"),
+        });
+        await flushPromises(8);
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.mediaCountLabel).toBe("0");
+        expect(latestRender.thumbnailItems || []).toEqual([]);
+        expect(latestRender.activeItem).toBeNull();
+        expect(setTimelineMediaMarkers.mock.calls.at(-1)?.[0] || []).toEqual([]);
     });
 
     it("keeps the thumbnail window stable when selecting an item already away from the rail edge", async () => {

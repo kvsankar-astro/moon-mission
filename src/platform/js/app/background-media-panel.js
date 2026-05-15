@@ -1362,7 +1362,7 @@ function createBackgroundMediaPanelActions({
 
     registerMissionPanel({
         id: BACKGROUND_MEDIA_PANEL_ID,
-        title: "Flyby Official Broadcast",
+        title: "Flyby Broadcast",
         kind: "workflow",
         panelType: "background-media",
         builtIn: true,
