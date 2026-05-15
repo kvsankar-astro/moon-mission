@@ -406,6 +406,113 @@ describe("lunar crater actions", () => {
         expect(scene.lunarCraterHoverLabel?.visible).not.toBe(true);
     });
 
+    it("pins searched lunar features as selected annotations without requiring hover", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [{
+                name: "Mare Orientale",
+                featureType: "Mare, maria",
+                latitudeDeg: -19.4,
+                longitudeDeg: 267.0,
+                diameterKm: 294,
+            }],
+        };
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "hover",
+            getLunarFeatureTypeFilters: () => ({}),
+            getLunarFeatureSearchQuery: () => "orientale",
+            craterCatalog: catalog,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+            moon: new THREE.Mesh(
+                new THREE.SphereGeometry(10, 16, 8),
+                new THREE.MeshBasicMaterial(),
+            ),
+            lunarCraterHoverLabelsEnabled: true,
+        };
+        scene.moonContainer.add(scene.moon);
+        const camera = new THREE.PerspectiveCamera(20, 1, 0.1, 1000);
+        const orientaleNormal = new THREE.Vector3(
+            Math.cos(-19.4 * Math.PI / 180) * Math.cos(267.0 * Math.PI / 180),
+            Math.cos(-19.4 * Math.PI / 180) * Math.sin(267.0 * Math.PI / 180),
+            Math.sin(-19.4 * Math.PI / 180),
+        ).normalize();
+        camera.position.copy(orientaleNormal).multiplyScalar(100);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+        const rendererDomElement = {
+            clientWidth: 1000,
+            clientHeight: 1000,
+            getBoundingClientRect: () => ({
+                left: 0,
+                top: 0,
+                width: 1000,
+                height: 1000,
+            }),
+        };
+
+        withFakeCanvas((context) => {
+            actions.addLunarCraterAnnotations({
+                scene,
+                camera,
+                rendererDomElement,
+            });
+
+            const searchRing = scene.lunarCraterAnnotations.find((object) =>
+                object.name.startsWith("lunar-feature-search-ring:"),
+            );
+            const searchLabel = scene.lunarCraterAnnotations.find((object) =>
+                object.name.startsWith("lunar-feature-search-label:"),
+            );
+            const searchLeader = scene.lunarCraterAnnotations.find((object) =>
+                object.userData?.searchLeader === true,
+            );
+            expect(searchRing).toBeTruthy();
+            expect(searchRing.userData.searchAnnotation).toBe(true);
+            expect(searchLabel).toBeTruthy();
+            expect(searchLabel.userData.searchAnnotation).toBe(true);
+            expect(searchLabel.userData.hoverLabel).toBe(false);
+            expect(searchLabel.material.depthTest).toBe(false);
+            expect(searchLabel.material.toneMapped).toBe(false);
+            expect(searchLeader).toBeTruthy();
+            expect(context.fillText).toHaveBeenCalledWith("Mare Orientale", expect.any(Number), expect.any(Number));
+            expect(context.fillText).toHaveBeenCalledWith("294 km", expect.any(Number), expect.any(Number));
+
+            actions.updateLunarCraterHoverFromPointer({
+                scene,
+                camera,
+                rendererDomElement,
+                clientX: 500,
+                clientY: 500,
+            });
+        });
+
+        expect(scene.lunarCraterPickTargets[0]?.showLabel).toBe(true);
+        expect(scene.lunarCraterHoveredName).toBe("Mare Orientale");
+        expect(scene.lunarCraterHoverRing?.visible).toBe(true);
+        expect(scene.lunarCraterHoverLabel?.visible).not.toBe(true);
+    });
+
     it("caps crater label scale when the camera is too close", () => {
         const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
         const labelWorldPosition = new THREE.Vector3(0, 0, 0);

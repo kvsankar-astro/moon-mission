@@ -2080,7 +2080,11 @@ describe("Auxiliary default panel layout", () => {
 
     it("stacks the three visible right panels and centers Frame and Shoot beside them", () => {
         vi.stubGlobal("window", { innerWidth: 1600, innerHeight: 900 });
-        vi.stubGlobal("document", { querySelector: vi.fn(() => null) });
+        vi.stubGlobal("document", {
+            getElementById: vi.fn(() => null),
+            querySelector: vi.fn(() => null),
+            querySelectorAll: vi.fn(() => []),
+        });
 
         const moon = createPanelState("moon");
         const earth = createPanelState("earth");
@@ -2111,13 +2115,13 @@ describe("Auxiliary default panel layout", () => {
         manager.applyDefaultPanelLayout();
 
         expect(moon.panel.style.left).toBe("1376px");
-        expect(moon.panel.style.top).toBe("118px");
+        expect(moon.panel.style.top).toBe("80px");
         expect(earth.panel.style.left).toBe("1376px");
-        expect(earth.panel.style.top).toBe("342px");
+        expect(earth.panel.style.top).toBe("304px");
         expect(orbitXy.panel.style.left).toBe("1376px");
-        expect(orbitXy.panel.style.top).toBe("566px");
+        expect(orbitXy.panel.style.top).toBe("528px");
         expect(earthToMoon.panel.style.left).toBeUndefined();
         expect(composer.panel.style.left).toBe("696px");
-        expect(composer.panel.style.top).toBe("180px");
+        expect(composer.panel.style.top).toBe("80px");
     });
 });
