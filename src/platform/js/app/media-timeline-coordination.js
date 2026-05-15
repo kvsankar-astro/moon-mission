@@ -798,6 +798,9 @@ function createMediaTimelineCoordination({
     }
 
     function getMediaPlaybackRate() {
+        if (playbackAuthority === PLAYBACK_AUTHORITY_MEDIA) {
+            return 1;
+        }
         return Math.max(0.1, Math.min(MEDIA_PLAYBACK_RATE_MAX, getRequestedAnimationRate()));
     }
 
@@ -1548,6 +1551,9 @@ function createMediaTimelineCoordination({
     }
 
     function shouldUseTransportPlayback() {
+        if (playbackAuthority === PLAYBACK_AUTHORITY_MEDIA) {
+            return true;
+        }
         const rateContext = getAnimationRateContext();
         if (rateContext.realtime) return true;
         return Number.isFinite(rateContext.simSecondsPerRealSecond)
@@ -2807,6 +2813,9 @@ function createMediaTimelineCoordination({
         const animationRunning = getAnimationRunning() === true;
         const rateContext = getAnimationRateContext();
         const syncRateLabel = formatSyncRateLabel(rateContext);
+        const mediaRateLabel = playbackAuthority === PLAYBACK_AUTHORITY_MEDIA
+            ? formatPlaybackRateLabel(getMediaPlaybackRate())
+            : syncRateLabel;
         const transportMode = shouldUseTransportPlayback();
         const syncModeLabel = transportMode ? "transport" : "timeline";
         const activeMediaStatus = activePlaybackBuffering
@@ -2817,8 +2826,8 @@ function createMediaTimelineCoordination({
                 ? `${activeMediaKindLabel} paused (${syncRateLabel})`
                 : (transportMode
                     ? (activePlaybackPlaying
-                        ? `${activeMediaKindLabel} playing (${syncRateLabel})`
-                        : `${activeMediaKindLabel} ready (${syncRateLabel})`)
+                        ? `${activeMediaKindLabel} playing (${mediaRateLabel})`
+                        : `${activeMediaKindLabel} ready (${mediaRateLabel})`)
                     : `${activeMediaKindLabel} ${syncModeLabel}-synced (${syncRateLabel})`)));
         const stageEmptyText = items.length === 0
             ? "No media matches the current filters."

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 
 import { normalizeMissionMediaManifest } from "../src/platform/js/core/domain/media-manifest.js";
 
@@ -344,5 +345,28 @@ describe("normalizeMissionMediaManifest", () => {
                 fit: "cover",
             },
         }));
+    });
+
+    it("keeps Artemis II foreground playable media durations explicit or derivable", () => {
+        const sourceManifest = JSON.parse(readFileSync(
+            new URL("../assets/artemis2/data/media-manifest.json", import.meta.url),
+            "utf8",
+        ));
+        const manifest = normalizeMissionMediaManifest(sourceManifest, {
+            dataPath: "assets/artemis2/data",
+        });
+        const foregroundPlayableItems = [
+            ...manifest.mediaItems,
+            ...manifest.audioItems,
+        ].filter((item) => (
+            item.enabled !== false
+            && (item.kind === "audioClip" || item.kind === "videoClip")
+            && item.backgroundPlayback?.enabled !== true
+        ));
+        const missingDurationIds = foregroundPlayableItems
+            .filter((item) => !(Number(item.durationSeconds) > 0))
+            .map((item) => item.id);
+
+        expect(missingDurationIds).toEqual([]);
     });
 });

@@ -13046,6 +13046,7 @@
       "location": "Ground (Astronomy Live)",
       "camera": "Astrophotography Telescope",
       "settings": "",
+      "durationSeconds": 11.633333,
       "spacecraft": false,
       "video": true,
       "external": false,
@@ -15094,6 +15095,7 @@
       "location": "Ground (Astronomy Live)",
       "camera": "Astrophotography Telescope",
       "settings": "",
+      "durationSeconds": 2.666667,
       "spacecraft": false,
       "video": true,
       "external": false,
@@ -19217,90 +19219,105 @@
       "time": "2026-04-01 14:30:00",
       "file": "audio/artemis-ii-launch-crew-walkout.mp3",
       "desc": "Crew walkout",
+      "durationSeconds": 28.6775,
       "enabled": true
     },
     {
       "time": "2026-04-01 17:00:00",
       "file": "audio/artemis-ii-launch-go-no-go-poll.mp3",
       "desc": "Go/No-Go poll",
+      "durationSeconds": 170.698479,
       "enabled": true
     },
     {
       "time": "2026-04-01 17:20:00",
       "file": "audio/artemis-ii-launch-integrity-voice-check.mp3",
       "desc": "Integrity voice check",
+      "durationSeconds": 48.42175,
       "enabled": true
     },
     {
       "time": "2026-04-01 17:30:00",
       "file": "audio/artemis-ii-launch-launch-director-message.mp3",
       "desc": "Launch Director message",
+      "durationSeconds": 23.525938,
       "enabled": true
     },
     {
       "time": "2026-04-01 17:40:00",
       "file": "audio/artemis-ii-launch-full-send.mp3",
       "desc": "Full send",
+      "durationSeconds": 32.012646,
       "enabled": true
     },
     {
       "time": "2026-04-01 17:55:00",
       "file": "audio/artemis-ii-houston-we-have-you-loud-and-clear-1.mp3",
       "desc": "Houston loud and clear",
+      "durationSeconds": 21.974063,
       "enabled": true
     },
     {
       "time": "2026-04-01 18:00:00",
       "file": "audio/artemis-ii-launch-beautiful-moonrise-and-were-headed-right-at-it.mp3",
       "desc": "Beautiful moonrise",
+      "durationSeconds": 10.973083,
       "enabled": true
     },
     {
       "time": "2026-04-01 18:35:25",
       "file": "audio/artemis-ii-liftoff.mp3",
       "desc": "Liftoff!",
+      "durationSeconds": 26.143917,
       "enabled": true
     },
     {
       "time": "2026-04-01 18:40:00",
       "file": "audio/artemis-ii-launch-orion-communications-check.mp3",
       "desc": "Orion comms check",
+      "durationSeconds": 71.819813,
       "enabled": true
     },
     {
       "time": "2026-04-02 20:05:00",
       "file": "audio/artemis-ii-go-for-translunar-injection.mp3",
       "desc": "Go for TLI",
+      "durationSeconds": 29.992521,
       "enabled": true
     },
     {
       "time": "2026-04-02 20:18:00",
       "file": "audio/artemis-ii-good-burn.mp3",
       "desc": "Good burn",
+      "durationSeconds": 8.860708,
       "enabled": true
     },
     {
       "time": "2026-04-04 15:00:00",
       "file": "audio/artemis-ii-message-from-apollo-astronaut-jim-lovell.mp3",
       "desc": "Message from Jim Lovell",
+      "durationSeconds": 54.361458,
       "enabled": true
     },
     {
       "time": "2026-04-05 10:00:00",
       "file": "audio/artemis-ii-message-from-apollo-astronaut-charlie-duke.mp3",
       "desc": "Message from Charlie Duke",
+      "durationSeconds": 52.8415,
       "enabled": true
     },
     {
       "time": "2026-04-06 15:37:25",
       "file": "audio/artemis-ii-breaks-apollo-13-distance-record.mp3",
       "desc": "Breaks Apollo 13 distance record",
+      "durationSeconds": 81.165271,
       "enabled": true
     },
     {
       "time": "2026-04-06 15:59:12",
       "file": "audio/artemis-ii-amaze-amaze-amaze.mp3",
       "desc": "Amaze, amaze, amaze",
+      "durationSeconds": 36.903188,
       "enabled": true
     },
     {
@@ -19314,6 +19331,7 @@
       "time": "2026-04-06 18:41:00",
       "file": "audio/artemis-ii-hey-babe-love-you-from-the-moon.mp3",
       "desc": "We love you, from the Moon",
+      "durationSeconds": 35.094333,
       "enabled": true
     },
     {
@@ -19327,12 +19345,14 @@
       "time": "2026-04-06 19:20:00",
       "file": "audio/artemis-ii-we-will-explore.mp3",
       "desc": "Contact restored — We will explore",
+      "durationSeconds": 68.430458,
       "enabled": true
     },
     {
       "time": "2026-04-06 19:57:00",
       "file": "audio/artemis-ii-names-new-craters-integrity-and-carroll.mp3",
       "desc": "Names new craters",
+      "durationSeconds": 136.226417,
       "enabled": true
     },
     {
@@ -19346,12 +19366,14 @@
       "time": "2026-04-09 12:00:00",
       "file": "audio/artemis-ii-humanity-has-shown-what-we-are-capable-of.mp3",
       "desc": "What we are capable of",
+      "durationSeconds": 49.0245,
       "enabled": true
     },
     {
       "time": "2026-04-10 20:21:25",
       "file": "audio/artemis-ii-splashdown-shorter.mp3",
       "desc": "Splashdown",
+      "durationSeconds": 51.468667,
       "enabled": true
     }
   ],

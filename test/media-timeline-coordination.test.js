@@ -1822,6 +1822,75 @@ describe("createMediaTimelineCoordination", () => {
         expect(sliderEvents).toEqual(["input", "change", "input", "change", "input"]);
     });
 
+    it("keeps direct audio playback at normal speed while media drives the mission clock", async () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        slider.min = String(Date.parse("2026-04-01T00:00:00Z"));
+        slider.max = String(Date.parse("2026-04-08T00:00:00Z"));
+        slider.value = "";
+        slider.dispatchEvent = vi.fn();
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.Event = class {
+            constructor(type) {
+                this.type = type;
+            }
+        };
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        globalThis.document.getElementById = vi.fn((id) => (id === "timeline-slider" ? slider : null));
+        const { AudioMock, instances } = createAudioMock();
+        globalThis.Audio = AudioMock;
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => false,
+            getAnimationSpeedMultiplier: () => 60,
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+        });
+        const audioStartMs = Date.parse("2026-04-02T16:30:00Z");
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: audioStartMs,
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
+        mocks.panelIntentHandler?.({ type: "startActiveMediaFromBeginning" });
+        const audio = instances[instances.length - 1];
+        expect(audio).toBeTruthy();
+        expect(audio.playbackRate).toBe(1);
+
+        audio.emit("playing");
+        audio.currentTime = 3;
+        audio.emit("timeupdate");
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: audioStartMs + 3000,
+        });
+
+        expect(audio.playbackRate).toBe(1);
+        expect(Number(slider.dataset.currentTimeMs)).toBe(audioStartMs + 3000);
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel.statusLabel).toContain("1x");
+        expect(latestRender.playbackModel.statusLabel).not.toContain("60x");
+    });
+
     it("clears audio playback state when the audio element fails", async () => {
         class FakeInput {}
         const slider = new FakeInput();
