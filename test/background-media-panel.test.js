@@ -72,6 +72,7 @@ describe("background media panel helpers", () => {
             "background-video-status-text",
             "background-media-empty",
             "background-media-live",
+            "background-media-time-overlay",
             "background-media-title",
             "background-media-status",
             "background-media-controls",
@@ -250,14 +251,14 @@ describe("background media panel helpers", () => {
         })).toBe("playing");
     });
 
-    it("mutes broadcast audio while a foreground video is active", () => {
+    it("pauses broadcast playback while a foreground video is active", () => {
         expect(resolveBackgroundPlaybackMode({
             panelState: "open",
             playbackEnabled: true,
             animationRunning: true,
             foregroundMediaActive: true,
             foregroundMediaKind: "videoClip",
-        })).toBe("muted-for-foreground");
+        })).toBe("paused-for-foreground-video");
     });
 
     it("uses frame preview instead of transport playback above the background rate limit", () => {
@@ -348,6 +349,7 @@ describe("background media panel helpers", () => {
             "background-video-status-text",
             "background-media-empty",
             "background-media-live",
+            "background-media-time-overlay",
             "background-media-title",
             "background-media-status",
             "background-media-controls",
@@ -473,6 +475,42 @@ describe("background media panel helpers", () => {
         expect(video.src).toBe("broadcast.mp4");
         expect(video.currentTime).toBe(12);
         expect(nodes.get("background-media-status").textContent).toContain("Paused");
+        expect(nodes.get("background-media-controls").hidden).toBe(true);
+        expect(nodes.get("background-media-time-overlay").hidden).toBe(false);
+        expect(nodes.get("background-media-time-overlay").textContent).toBe("0:12");
+    });
+
+    it("hides the broadcast control strip when the broadcast is only available out of range", () => {
+        const { nodes } = installBackgroundPanelDom();
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast",
+                title: "Artemis II Lunar Flyby Official Broadcast",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                backgroundPlayback: {
+                    enabled: true,
+                },
+            }],
+            timeMs: startTimeMs - 60000,
+            animationRunning: true,
+        });
+
+        expect(nodes.get("background-media-controls").hidden).toBe(true);
+        expect(nodes.get("background-media-time-overlay").hidden).toBe(true);
+        expect(nodes.get("background-media-empty").hidden).toBe(false);
+        expect(nodes.get("background-media-status").textContent).toContain("Available in");
     });
 
     it("seeks the broadcast element with stream time offsets applied", () => {
@@ -508,7 +546,7 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-media-status").textContent).toContain("0:16");
     });
 
-    it("mutes foreground playback and restores the user's background mute preference", async () => {
+    it("pauses for foreground video and resumes at the current mission offset", async () => {
         const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
         const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
         const item = {
@@ -542,8 +580,10 @@ describe("background media panel helpers", () => {
         });
         await Promise.resolve();
 
-        expect(video.muted).toBe(true);
-        expect(nodes.get("background-media-status").textContent).toBe("Muted for Foreground Media");
+        expect(video.pause).toHaveBeenCalled();
+        expect(nodes.get("background-media-status").textContent).toBe("Paused for Foreground Media");
+
+        video.currentTime = 8.5;
 
         actions.render({
             items: [item],
@@ -557,8 +597,9 @@ describe("background media panel helpers", () => {
         await Promise.resolve();
 
         expect(video.muted).toBe(false);
+        expect(video.currentTime).toBe(11);
         expect(nodes.get("background-media-status").textContent).toContain("Playing");
-        expect(nodes.get("background-video-status-text").textContent).toBe("Background video audio restored");
+        expect(nodes.get("background-video-status-text").textContent).toBe("Foreground video ended; broadcast resumed");
     });
 
     it("does not turn the initial muted default into a stored user preference when enabling playback", async () => {
@@ -604,7 +645,7 @@ describe("background media panel helpers", () => {
             animationRunning: true,
             foregroundMediaState: {
                 active: true,
-                kind: "videoClip",
+                kind: "audioClip",
                 previewing: true,
             },
         });

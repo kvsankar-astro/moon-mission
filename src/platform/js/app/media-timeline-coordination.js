@@ -504,10 +504,6 @@ function resolvePlaybackOffsetSeconds(item, currentTimeMs, fromBeginning = false
     if (!Number.isFinite(startTimeMs) || !Number.isFinite(missionTimeMs) || missionTimeMs < startTimeMs) {
         return 0;
     }
-    const durationSeconds = resolvePlayableDurationSeconds(item);
-    if (!Number.isFinite(durationSeconds)) {
-        return 0;
-    }
     return clampMediaCurrentTimeSeconds(item, (missionTimeMs - startTimeMs) / 1000);
 }
 
@@ -1730,6 +1726,10 @@ function createMediaTimelineCoordination({
             ? Number(mediaPlaybackState.currentTimeSeconds)
             : (Number.isFinite(Number(currentTimeSeconds)) ? Number(currentTimeSeconds) : 0);
         setMediaPlaybackRate(video, getMediaPlaybackRate());
+        const currentSeconds = Number(video.currentTime);
+        if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - desiredSeconds) >= MEDIA_TIME_SYNC_EPSILON_SECONDS) {
+            setMediaElementCurrentTime(video, desiredSeconds);
+        }
         if (isAnimationClockDrivingMedia()) {
             if (video.paused === true && mediaPlayRequestPending !== true) {
                 playMediaElement(video, item.id, "videoClip", { force: true });
@@ -1742,10 +1742,6 @@ function createMediaTimelineCoordination({
             };
             rerender();
             return;
-        }
-        const currentSeconds = Number(video.currentTime);
-        if (!Number.isFinite(currentSeconds) || Math.abs(currentSeconds - desiredSeconds) >= MEDIA_TIME_SYNC_EPSILON_SECONDS) {
-            setMediaElementCurrentTime(video, desiredSeconds);
         }
         if (mediaPlayRequestPending !== true) {
             playMediaElement(video, item.id, "videoClip");
@@ -2905,7 +2901,9 @@ function createMediaTimelineCoordination({
         const activeDurationSeconds = resolvePlayableDurationSeconds(activeItem);
         const activeElapsedSeconds = activePlaybackSelected
             ? clampMediaCurrentTimeSeconds(activeItem, Number(mediaPlaybackState.currentTimeSeconds) || 0)
-            : resolvePlaybackOffsetSeconds(activeItem, timeMs, false);
+            : (Number.isFinite(activeDurationSeconds)
+                ? resolvePlaybackOffsetSeconds(activeItem, timeMs, false)
+                : 0);
         const activeRequestedRate = getRequestedAnimationRate();
         const frameScrubActive = activePlayable
             && activeItem?.kind === "videoClip"

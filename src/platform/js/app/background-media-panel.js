@@ -19,11 +19,11 @@ import {
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
-const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v5-non-overlap-z-order";
+const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v6-compact-availability";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_STACK_TOP_FALLBACK_PX = 72;
 const DEFAULT_PANEL_WIDTH_PX = 546;
-const DEFAULT_PANEL_HEIGHT_PX = 300;
+const DEFAULT_PANEL_HEIGHT_PX = 248;
 const MIN_PANEL_WIDTH_PX = 300;
 const MIN_PANEL_HEIGHT_PX = 220;
 const MAX_PLAYBACK_RATE = 4;
@@ -67,6 +67,18 @@ function setText(id, text) {
 function setHidden(id, hidden) {
     const node = getNode(id);
     if (node) node.hidden = hidden === true;
+}
+
+function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
+    const overlay = getNode("background-media-time-overlay");
+    if (!overlay) return;
+    const safeSeconds = Number(seconds);
+    const hasTime = Number.isFinite(safeSeconds) && safeSeconds >= 0;
+    overlay.hidden = hidden === true || !hasTime;
+    if (!hasTime) return;
+    const label = formatStatusTime(safeSeconds);
+    overlay.textContent = label;
+    overlay.title = `Broadcast time ${label}`;
 }
 
 function isLikelyHlsSource(url = "", sourceType = "") {
@@ -153,6 +165,9 @@ function resolveBackgroundPlaybackMode({
         return "ready";
     }
     if (foregroundMediaActive === true) {
+        if (foregroundMediaKind === "videoClip") {
+            return "paused-for-foreground-video";
+        }
         return "muted-for-foreground";
     }
     return "playing";
@@ -1189,7 +1204,8 @@ function createBackgroundMediaPanelActions({
         if (!available || !activeItem) {
             lastPlaybackMode = "";
             lastForegroundEffect = "";
-            setControlsHidden(playbackEnabled !== true);
+            setControlsHidden(true);
+            syncTimeOverlay(Number.NaN, true);
             setHidden("background-media-empty", false);
             setHidden("background-media-live", true);
             if (available) {
@@ -1203,7 +1219,7 @@ function createBackgroundMediaPanelActions({
             return;
         }
 
-        setControlsHidden(false);
+        setControlsHidden(true);
         setHidden("background-media-empty", true);
         setText("background-media-title", activeItem.title || "Background video");
         const video = getVideo();
@@ -1217,6 +1233,8 @@ function createBackgroundMediaPanelActions({
             foregroundMediaKind,
         });
         const sourceChanged = activeItem.id !== activeItemId || activeItem.assetUrl !== videoSourceUrl;
+        const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
+        syncTimeOverlay(offsetSeconds, false);
 
         if (playbackMode === "ready") {
             const keepPausedSource = panelState === "open" && playbackEnabled === true;
@@ -1224,7 +1242,6 @@ function createBackgroundMediaPanelActions({
                 if (sourceChanged) {
                     configureVideoSource(activeItem);
                 }
-                const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
                 setVideoCurrentTime(offsetSeconds, { force: sourceChanged });
                 if (!hasStoredMutedPreference) {
                     muted = activeItem.backgroundPlayback?.muted !== false;
@@ -1247,7 +1264,7 @@ function createBackgroundMediaPanelActions({
             setHidden("background-media-live", true);
             setText(
                 "background-media-status",
-                playbackEnabled ? `Paused ${formatStatusTime(resolvePlaybackOffsetSeconds(activeItem, timeMs))}` : "Paused",
+                playbackEnabled ? `Paused ${formatStatusTime(offsetSeconds)}` : "Paused",
             );
             syncButtons();
             return;
@@ -1257,7 +1274,6 @@ function createBackgroundMediaPanelActions({
             configureVideoSource(activeItem);
         }
 
-        const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
         const streamSyncPlan = buildMediaStreamSyncPlan({
             stream: activeItem,
             missionTimeMs: timeMs,
@@ -1266,13 +1282,16 @@ function createBackgroundMediaPanelActions({
             hardSeekThresholdSeconds: STREAM_HARD_SEEK_THRESHOLD_SECONDS,
             softCorrectionThresholdSeconds: STREAM_SOFT_CORRECTION_THRESHOLD_SECONDS,
         });
+        const resumingAfterForegroundMedia = playbackMode === "playing"
+            && (lastPlaybackMode === "muted-for-foreground" || lastPlaybackMode === "paused-for-foreground-video");
         if (
             sourceChanged
             || streamSyncPlan.mode === "hard-seek"
             || playbackMode === "paused-for-foreground-video"
+            || resumingAfterForegroundMedia
         ) {
             setVideoCurrentTime(offsetSeconds, {
-                force: sourceChanged,
+                force: sourceChanged || resumingAfterForegroundMedia,
                 transportPlayback: playbackMode === "playing" || playbackMode === "muted-for-foreground",
             });
         }

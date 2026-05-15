@@ -14,7 +14,7 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 
 const MEDIA_BROWSER_PANEL_ID = "workflow:media-browser";
-const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v11-non-overlap-z-order";
+const MEDIA_BROWSER_LAYOUT_PRESET_VERSION = "media-browser-v13-stage-overlays";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_DEFAULT_LEFT_PX = 8;
 const PANEL_DEFAULT_WIDTH_PX = 672;
@@ -23,7 +23,7 @@ const PANEL_MIN_WIDTH_PX = 360;
 const PANEL_MIN_HEIGHT_PX = 360;
 const WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX = 72;
 const WORKFLOW_PANEL_STACK_GAP_PX = 8;
-const WORKFLOW_BROADCAST_PANEL_HEIGHT_PX = 300;
+const WORKFLOW_BROADCAST_PANEL_HEIGHT_PX = 248;
 const WORKFLOW_MEDIA_PANEL_WIDTH_PX = 546;
 const PANEL_RESIZE_HIT_PX = 28;
 const DRILLDOWN_DRAWER_WIDTH_PX = 320;
@@ -39,6 +39,7 @@ const THUMBNAIL_SCROLLER_DRAG_THRESHOLD_PX = 5;
 const MEDIA_IMAGE_MIN_ZOOM = 1;
 const MEDIA_IMAGE_MAX_ZOOM = 6;
 const MEDIA_IMAGE_ZOOM_STEP = 1.25;
+const STAGE_OVERLAY_REVEAL_MS = 3000;
 
 let hlsLibraryPromise = null;
 
@@ -228,6 +229,24 @@ function getWorkflowPanelStackTopPx() {
     return WORKFLOW_PANEL_STACK_TOP_FALLBACK_PX;
 }
 
+function getWorkflowMediaPanelTopPx() {
+    const backgroundPanel = getDocumentRef()?.getElementById?.("background-media-panel") || null;
+    if (
+        backgroundPanel &&
+        backgroundPanel.hidden !== true &&
+        !backgroundPanel.classList?.contains?.("background-media-panel--hidden")
+    ) {
+        const backgroundRect = backgroundPanel.getBoundingClientRect?.() || null;
+        const bottom = Number(backgroundRect?.bottom);
+        if (Number.isFinite(bottom) && bottom > 0) {
+            return Math.round(bottom + WORKFLOW_PANEL_STACK_GAP_PX);
+        }
+    }
+    return getWorkflowPanelStackTopPx()
+        + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
+        + WORKFLOW_PANEL_STACK_GAP_PX;
+}
+
 function formatMediaElapsedTime(seconds) {
     const totalSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
     const hours = Math.floor(totalSeconds / 3600);
@@ -265,6 +284,8 @@ function createMediaBrowserPanelActions({
     let hlsAttachToken = 0;
     let hlsUnsupportedSourceUrl = "";
     let filterSignature = "";
+    let filterDrawerOpen = false;
+    let currentFilterModel = {};
     let thumbnailSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
     if (String(restoredPanelLayout?.layoutPresetVersion || "").trim() !== MEDIA_BROWSER_LAYOUT_PRESET_VERSION) {
@@ -287,6 +308,10 @@ function createMediaBrowserPanelActions({
     let hasRestoredPanelVisibilityState = false;
     let defaultPanelStateApplied = false;
     let suppressNativeMediaSeekEvents = 0;
+    let stageOverlayRevealTimer = 0;
+    let stageOverlayRevealSignature = null;
+    let stageOverlayHovering = false;
+    let stageOverlayFocusWithin = false;
 
     function getNode(id) {
         return getDocumentRef()?.getElementById?.(id) || null;
@@ -352,6 +377,61 @@ function createMediaBrowserPanelActions({
         return breakdown.length > 0 ? `${base} (${breakdown.join(", ")}).` : `${base}.`;
     }
 
+    function countActiveMediaFilters(filterModel = {}) {
+        const groups = [
+            filterModel?.kindPillOptions || [],
+            filterModel?.subjectOptions || filterModel?.quickOptions || [],
+            filterModel?.cameraButtonOptions || [],
+        ];
+        const facetCount = groups.reduce((total, options) => total + (Array.isArray(options)
+            ? options.filter((option) => option?.active === true && option?.id !== "all").length
+            : 0), 0);
+        const query = String(filterModel?.query || "").trim();
+        return facetCount + (query ? 1 : 0);
+    }
+
+    function syncMediaFilterToggle(filterModel = currentFilterModel) {
+        const button = getNode("media-browser-filter-toggle");
+        if (!button) return;
+        const activeCount = countActiveMediaFilters(filterModel);
+        const label = activeCount > 0 ? `Filters ${activeCount}` : "Filter...";
+        button.textContent = label;
+        button.title = filterDrawerOpen ? "Hide media filters" : "Show media filters";
+        button.setAttribute("aria-label", button.title);
+        button.setAttribute("aria-expanded", filterDrawerOpen ? "true" : "false");
+        button.classList?.toggle?.("is-active", filterDrawerOpen || activeCount > 0);
+    }
+
+    function setStageOverlayRevealed(revealed) {
+        const stage = getNode("media-browser-stage");
+        stage?.classList?.toggle?.("is-overlay-revealed", revealed === true);
+    }
+
+    function revealStageOverlays({
+        durationMs = STAGE_OVERLAY_REVEAL_MS,
+    } = {}) {
+        const windowRef = getWindowRef();
+        if (stageOverlayRevealTimer) {
+            windowRef?.clearTimeout?.(stageOverlayRevealTimer);
+            stageOverlayRevealTimer = 0;
+        }
+        setStageOverlayRevealed(true);
+        const delay = Number(durationMs);
+        if (!Number.isFinite(delay) || delay <= 0) return;
+        stageOverlayRevealTimer = windowRef?.setTimeout?.(() => {
+            stageOverlayRevealTimer = 0;
+            if (stageOverlayHovering === true || stageOverlayFocusWithin === true) return;
+            setStageOverlayRevealed(false);
+        }, delay) || 0;
+    }
+
+    function revealStageOverlaysForSignature(signature) {
+        const normalizedSignature = String(signature || "").trim();
+        if (normalizedSignature === stageOverlayRevealSignature) return;
+        stageOverlayRevealSignature = normalizedSignature;
+        revealStageOverlays();
+    }
+
     function formatMediaDetailList(values) {
         const parts = (Array.isArray(values) ? values : [])
             .map((value) => String(value || "").trim())
@@ -376,16 +456,12 @@ function createMediaBrowserPanelActions({
         const width = Math.max(panel.offsetWidth || PANEL_DEFAULT_WIDTH_PX, PANEL_MIN_WIDTH_PX);
         const height = Math.max(panel.offsetHeight || getPanelDefaultHeightPx(), PANEL_MIN_HEIGHT_PX);
         const x = PANEL_DEFAULT_LEFT_PX;
-        const y = getWorkflowPanelStackTopPx()
-            + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
-            + WORKFLOW_PANEL_STACK_GAP_PX;
+        const y = getWorkflowMediaPanelTopPx();
         return clampPanelRect({ x, y, width, height });
     }
 
     function resolveDefaultPanelFrame() {
-        const y = getWorkflowPanelStackTopPx()
-            + WORKFLOW_BROADCAST_PANEL_HEIGHT_PX
-            + WORKFLOW_PANEL_STACK_GAP_PX;
+        const y = getWorkflowMediaPanelTopPx();
         const width = Math.min(
             WORKFLOW_MEDIA_PANEL_WIDTH_PX,
             Math.max(PANEL_MIN_WIDTH_PX, getViewportWidth() - (2 * PANEL_EDGE_MARGIN_PX)),
@@ -420,6 +496,7 @@ function createMediaBrowserPanelActions({
         panelPosition = clamped;
         panel.style.left = `${clamped.x}px`;
         panel.style.top = `${clamped.y}px`;
+        syncFilterDrawerPlacement();
         syncDrilldownFlyoutPlacement();
     }
 
@@ -460,6 +537,7 @@ function createMediaBrowserPanelActions({
         panel.style.left = `${clamped.x}px`;
         panel.style.top = `${clamped.y}px`;
         setDefaultLayoutManaged(managed, panel);
+        syncFilterDrawerPlacement();
         syncDrilldownFlyoutPlacement();
         applyThumbnailStripHeight(thumbnailStripHeight);
         applyImageViewState(imageViewState, { animate: false });
@@ -548,13 +626,11 @@ function createMediaBrowserPanelActions({
         }
 
         const headerHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__header"));
-        const toolbarHeight = getElementHeight(panel?.querySelector?.(".media-browser-panel__toolbar"));
         const mediaControlsHeight = getElementHeight(getNode("media-browser-media-controls"));
         const statusHeight = getElementHeight(getNode("media-browser-status"));
         const resizerHeight = getElementHeight(getNode("media-browser-thumbnail-resizer")) || 8;
         const availableHeight = panelHeight
             - headerHeight
-            - toolbarHeight
             - mediaControlsHeight
             - statusHeight
             - resizerHeight
@@ -1006,6 +1082,80 @@ function createMediaBrowserPanelActions({
         syncImageViewControls();
     }
 
+    function syncFilterDrawerPlacement() {
+        const panel = getNode("media-browser-panel");
+        const drawer = getNode("media-browser-filter-drawer");
+        if (!isElementLike(drawer)) return;
+        if (
+            filterDrawerOpen !== true ||
+            !isElementLike(panel) ||
+            panel.classList.contains("media-browser-panel--hidden")
+        ) {
+            drawer.hidden = true;
+            panel?.classList?.remove?.("media-browser-panel--filters-open");
+            return;
+        }
+
+        const panelRect = panel.getBoundingClientRect?.();
+        if (!panelRect || !Number.isFinite(panelRect.width) || panelRect.width <= 0) {
+            drawer.hidden = true;
+            panel.classList.remove("media-browser-panel--filters-open");
+            return;
+        }
+
+        const viewportWidth = getViewportWidth();
+        const viewportHeight = getViewportHeight();
+        const width = Math.min(
+            Math.round(panelRect.width),
+            Math.max(PANEL_MIN_WIDTH_PX, viewportWidth - (PANEL_EDGE_MARGIN_PX * 2)),
+        );
+        const left = clamp(
+            Math.round(panelRect.left),
+            PANEL_EDGE_MARGIN_PX,
+            Math.max(PANEL_EDGE_MARGIN_PX, viewportWidth - width - PANEL_EDGE_MARGIN_PX),
+        );
+        const preferredMaxHeight = Math.min(260, Math.max(120, viewportHeight - (PANEL_EDGE_MARGIN_PX * 2)));
+        const availableAbove = Math.max(0, Math.round(panelRect.top) - PANEL_EDGE_MARGIN_PX + 1);
+        const maxHeight = availableAbove >= 112
+            ? Math.min(preferredMaxHeight, availableAbove)
+            : Math.min(preferredMaxHeight, Math.max(160, Math.round((panelRect.height || 360) * 0.45)));
+
+        drawer.hidden = false;
+        panel.classList.add("media-browser-panel--filters-open");
+        drawer.style.left = `${left}px`;
+        drawer.style.width = `${width}px`;
+        drawer.style.maxHeight = `${Math.round(maxHeight)}px`;
+
+        const measuredHeight = Math.min(
+            Math.round(drawer.getBoundingClientRect?.().height || drawer.offsetHeight || maxHeight),
+            maxHeight,
+        );
+        const opensAbove = availableAbove >= 112;
+        const top = opensAbove
+            ? Math.round(panelRect.top - measuredHeight + 1)
+            : Math.round(Math.min(
+                viewportHeight - measuredHeight - PANEL_EDGE_MARGIN_PX,
+                panelRect.top + 34,
+            ));
+        drawer.style.top = `${clamp(
+            top,
+            PANEL_EDGE_MARGIN_PX,
+            Math.max(PANEL_EDGE_MARGIN_PX, viewportHeight - measuredHeight - PANEL_EDGE_MARGIN_PX),
+        )}px`;
+    }
+
+    function setFilterDrawerOpen(open) {
+        const nextOpen = open === true;
+        if (filterDrawerOpen === nextOpen) {
+            syncMediaFilterToggle();
+            syncFilterDrawerPlacement();
+            return;
+        }
+        filterDrawerOpen = nextOpen;
+        syncMediaFilterToggle();
+        syncFilterDrawerPlacement();
+    }
+
     function syncDrilldownFlyoutPlacement() {
         const panel = getNode("media-browser-panel");
         const drilldown = getNode("media-browser-drilldown");
@@ -1283,6 +1433,7 @@ function createMediaBrowserPanelActions({
         }
         panelVisibilityState = "closed";
         panel.classList.add("media-browser-panel--hidden");
+        setFilterDrawerOpen(false);
         syncDrilldownFlyoutPlacement();
         syncPanelRegistry();
     }
@@ -1327,6 +1478,7 @@ function createMediaBrowserPanelActions({
                 ensurePanelPosition(panel);
             }
         }
+        syncFilterDrawerPlacement();
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
         applyThumbnailStripHeight(thumbnailStripHeight);
@@ -1355,6 +1507,7 @@ function createMediaBrowserPanelActions({
         panel.classList.toggle("media-browser-panel--hidden", !isVisible);
         syncPanelRegistry();
         if (!isVisible) {
+            setFilterDrawerOpen(false);
             syncDrilldownFlyoutPlacement();
             persistPanelLayoutState(panel);
             return;
@@ -1370,6 +1523,7 @@ function createMediaBrowserPanelActions({
                 requestAuxiliaryPanelLayout();
             }
         }
+        syncFilterDrawerPlacement();
         syncDrilldownFlyoutPlacement();
         syncExpandButton();
         applyThumbnailStripHeight(thumbnailStripHeight);
@@ -2030,12 +2184,20 @@ function createMediaBrowserPanelActions({
             }
         }
 
-        renderMediaFilterControls(viewModel.filterModel || {});
-        syncMediaSearchControl(viewModel.filterModel || {});
-        setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(viewModel.filterModel || {}));
+        currentFilterModel = viewModel.filterModel || {};
+        renderMediaFilterControls(currentFilterModel);
+        syncMediaSearchControl(currentFilterModel);
+        setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(currentFilterModel));
+        syncMediaFilterToggle(currentFilterModel);
+        syncFilterDrawerPlacement();
         syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
         renderThumbnailItems(viewModel.thumbnailItems || []);
+        revealStageOverlaysForSignature([
+            viewModel.activeItem?.id || "",
+            viewModel.navigationModel?.positionLabel || "",
+            viewModel.activeItem?.stageBadge || "",
+        ].join("|"));
         syncDrilldownFlyoutPlacement();
         syncPanelRegistry();
     }
@@ -2134,6 +2296,24 @@ function createMediaBrowserPanelActions({
         bindThumbnailStripResizer();
         bindThumbnailStripDragging();
         bindThumbnailPageButtons();
+        const stage = getNode("media-browser-stage");
+        stage?.addEventListener?.("pointerenter", () => {
+            stageOverlayHovering = true;
+            revealStageOverlays({ durationMs: 0 });
+        });
+        stage?.addEventListener?.("pointerleave", () => {
+            stageOverlayHovering = false;
+            if (stageOverlayFocusWithin !== true) setStageOverlayRevealed(false);
+        });
+        stage?.addEventListener?.("pointerdown", () => revealStageOverlays());
+        stage?.addEventListener?.("focusin", () => {
+            stageOverlayFocusWithin = true;
+            revealStageOverlays({ durationMs: 0 });
+        });
+        stage?.addEventListener?.("focusout", () => {
+            stageOverlayFocusWithin = !!stage?.matches?.(":focus-within");
+            if (stageOverlayFocusWithin !== true && stageOverlayHovering !== true) setStageOverlayRevealed(false);
+        });
         if (panelExpanded === true) {
             applyExpandedPanelRect(panel);
         } else {
@@ -2145,6 +2325,27 @@ function createMediaBrowserPanelActions({
 
         documentRef.addEventListener?.("media-browser-panel-open", () => {
             setPanelState("open");
+        });
+        getNode("media-browser-filter-toggle")?.addEventListener?.("click", () => {
+            setFilterDrawerOpen(filterDrawerOpen !== true);
+        });
+        documentRef.addEventListener?.("keydown", (event) => {
+            if (event?.key === "Escape" && filterDrawerOpen === true) {
+                setFilterDrawerOpen(false);
+            }
+        });
+        documentRef.addEventListener?.("pointerdown", (event) => {
+            if (filterDrawerOpen !== true) return;
+            const target = event?.target;
+            const drawer = getNode("media-browser-filter-drawer");
+            const toggle = getNode("media-browser-filter-toggle");
+            if (
+                (drawer && typeof drawer.contains === "function" && drawer.contains(target)) ||
+                (toggle && typeof toggle.contains === "function" && toggle.contains(target))
+            ) {
+                return;
+            }
+            setFilterDrawerOpen(false);
         });
         infoButton?.addEventListener("click", () => showMissionPanelInfo(MEDIA_BROWSER_PANEL_ID, infoButton));
         expandButton?.addEventListener("click", () => setPanelExpanded(panelExpanded !== true, panel));
@@ -2365,6 +2566,7 @@ function createMediaBrowserPanelActions({
                 } else {
                     clampPanelPosition(panel);
                 }
+                syncFilterDrawerPlacement();
                 syncDrilldownFlyoutPlacement();
                 applyThumbnailStripHeight(thumbnailStripHeight);
                 applyImageViewState(imageViewState, { animate: false });
@@ -2381,6 +2583,7 @@ function createMediaBrowserPanelActions({
                 } else {
                     clampPanelPosition(panel);
                 }
+                syncFilterDrawerPlacement();
                 syncDrilldownFlyoutPlacement();
                 applyThumbnailStripHeight(thumbnailStripHeight);
                 applyImageViewState(imageViewState, { animate: false });

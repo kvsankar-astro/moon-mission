@@ -174,7 +174,8 @@ describe("Mission Media foreground playback interactions", () => {
             expect(state.foregroundPlayButton).toBe("Pause");
             expect(state.foregroundHidden).toBe(false);
             expect(state.foregroundMuted).toBe(false);
-            expect(state.backgroundMuted).toBe(true);
+            expect(state.backgroundMuted).toBe(false);
+            expect(state.backgroundStatus).toBe("Paused for Foreground Media");
             expect(state.playCalls.some((call) => call.id === "media-browser-video")).toBe(true);
 
             await page.evaluate(() => {
@@ -203,6 +204,7 @@ describe("Mission Media foreground playback interactions", () => {
             expect(releaseState.foregroundStatus).not.toContain("playing");
             expect(releaseState.backgroundMuted).toBe(false);
             expect(releaseState.backgroundStatus).not.toContain("Muted for Foreground Media");
+            expect(releaseState.backgroundStatus).not.toContain("Paused for Foreground Media");
         } finally {
             await page.close();
         }

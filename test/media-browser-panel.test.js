@@ -204,6 +204,13 @@ class FakeElement {
         return null;
     }
 
+    contains(target) {
+        if (target === this) return true;
+        return this.children.some((child) => typeof child.contains === "function"
+            ? child.contains(target)
+            : child === target);
+    }
+
     closest() {
         return null;
     }
@@ -514,5 +521,70 @@ describe("media browser panel timeline", () => {
             sourceType: "mp4",
         }));
         expect(video.hidden).toBe(false);
+    });
+
+    it("keeps media filters collapsed until the filter button opens the drawer", () => {
+        const panelElement = new FakePanel();
+        panelElement.offsetHeight = 520;
+        const filterToggle = new FakeElement("button");
+        const filterDrawer = new FakeElement("div");
+        filterDrawer.hidden = true;
+        filterDrawer.clientHeight = 120;
+        const filterBar = new FakeElement("div");
+        const search = new FakeElement("input");
+        const summary = new FakeElement("div");
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-filter-toggle") return filterToggle;
+                if (id === "media-browser-filter-drawer") return filterDrawer;
+                if (id === "media-browser-filter-bar") return filterBar;
+                if (id === "media-browser-search") return search;
+                if (id === "media-browser-filter-summary") return summary;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            filterModel: {
+                totalCount: 4,
+                matchCount: 2,
+                matchKindCounts: { image: 2, audioClip: 0, videoClip: 0 },
+                kindPillOptions: [
+                    { id: "all", label: "All", count: 4, active: false },
+                    { id: "image", label: "Images", count: 2, active: true },
+                ],
+                subjectOptions: [
+                    { id: "all", label: "All", count: 2, active: true },
+                ],
+                cameraButtonOptions: [
+                    { id: "all", label: "All", count: 2, active: true },
+                ],
+            },
+        });
+
+        expect(filterDrawer.hidden).toBe(true);
+        expect(filterToggle.textContent).toBe("Filters 1");
+        expect(filterToggle.attributes["aria-expanded"]).toBe("false");
+        expect(summary.textContent).toContain("2 of 4 media files");
+        expect(filterToggle.listeners.get("click")?.length).toBe(1);
+
+        panelElement.classList.remove("media-browser-panel--hidden");
+        filterToggle.dispatchEvent({ type: "click" });
+
+        expect(filterDrawer.hidden).toBe(false);
+        expect(filterToggle.attributes["aria-expanded"]).toBe("true");
+        expect(filterDrawer.style.getPropertyValue("maxHeight")).toBe("");
+        expect(filterDrawer.style.maxHeight).toBeTruthy();
     });
 });

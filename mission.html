@@ -1831,7 +1831,11 @@
                         ></button>
                     </div>
                 </div>
-                <div class="media-browser-panel__toolbar">
+                <div
+                    id="media-browser-filter-drawer"
+                    class="media-browser-panel__filter-drawer"
+                    hidden
+                >
                     <div class="media-browser-panel__filter-stack">
                         <div
                             id="media-browser-filter-bar"
@@ -1851,18 +1855,6 @@
                                 aria-label="Search media metadata"
                             >
                         </label>
-                        <div
-                            id="media-browser-filter-summary"
-                            class="media-browser-panel__filter-summary"
-                            aria-live="polite"
-                        ></div>
-                    </div>
-                    <div class="media-browser-panel__toolbar-actions">
-                        <details id="media-browser-drilldown" class="media-browser-panel__drilldown">
-                            <summary class="media-browser-panel__drilldown-summary" aria-controls="media-browser-drilldown-body">
-                                <span>Details</span>
-                            </summary>
-                        </details>
                     </div>
                 </div>
                 <div class="media-browser-panel__body">
@@ -1899,6 +1891,22 @@
                         </div>
                         <div id="media-browser-stage-empty" class="media-browser-panel__stage-empty">
                             Waiting for media manifest...
+                        </div>
+                        <div class="media-browser-panel__toolbar">
+                            <button
+                                id="media-browser-filter-toggle"
+                                class="media-browser-panel__filter-toggle mission-panel-shell__button"
+                                type="button"
+                                title="Show media filters"
+                                aria-label="Show media filters"
+                                aria-expanded="false"
+                                aria-controls="media-browser-filter-drawer"
+                            >Filter...</button>
+                            <div
+                                id="media-browser-filter-summary"
+                                class="media-browser-panel__filter-summary"
+                                aria-live="polite"
+                            ></div>
                         </div>
                         <div
                             id="media-browser-filter-scroller"
@@ -1963,6 +1971,16 @@
                                 data-icon="reset"
                             ></button>
                         </div>
+                        <details id="media-browser-drilldown" class="media-browser-panel__drilldown">
+                            <summary
+                                class="media-browser-panel__drilldown-summary"
+                                aria-controls="media-browser-drilldown-body"
+                                title="Show media details"
+                                aria-label="Show media details"
+                            >
+                                <span>Details</span>
+                            </summary>
+                        </details>
                         <div id="media-browser-stage-badge" class="media-browser-panel__stage-badge" hidden></div>
                         <div class="media-browser-panel__summary-card">
                             <div class="media-browser-panel__caption-meta">
@@ -2179,6 +2197,11 @@
                         No background video at this mission time.
                     </div>
                     <div id="background-media-live" class="background-media-panel__live" hidden>LIVE</div>
+                    <div
+                        id="background-media-time-overlay"
+                        class="background-media-panel__time-overlay"
+                        hidden
+                    >0:00</div>
                 </div>
                 <div id="background-media-controls" class="background-media-panel__controls">
                     <button
