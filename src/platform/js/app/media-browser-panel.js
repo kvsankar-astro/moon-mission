@@ -2323,6 +2323,16 @@ function createMediaBrowserPanelActions({
                 currentTime: Number(video?.currentTime),
             });
         });
+        for (const eventName of ["loadedmetadata", "durationchange"]) {
+            video?.addEventListener?.(eventName, () => {
+                onIntent?.({
+                    type: "mediaDurationKnown",
+                    value: getVideoItemId(),
+                    mediaKind: "videoClip",
+                    duration: Number(video?.duration),
+                });
+            });
+        }
         for (const eventName of ["enterpictureinpicture", "leavepictureinpicture", "loadedmetadata", "emptied"]) {
             video?.addEventListener?.(eventName, () => {
                 syncVideoPopoutButton({

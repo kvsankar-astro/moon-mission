@@ -1104,6 +1104,51 @@ describe("createMediaTimelineCoordination", () => {
         expect(latestRender.playbackModel.seekEnabled).toBe(false);
     });
 
+    it("fills a missing audio duration from browser metadata", async () => {
+        class FakeInput {}
+        globalThis.HTMLInputElement = FakeInput;
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        const { AudioMock, instances } = createAudioMock();
+        globalThis.Audio = AudioMock;
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaBase: "https://media.example/",
+            timelineTimezoneOffset: "-04:00",
+            audio: [
+                {
+                    time: "2026-04-02 12:30:00",
+                    file: "audio/clip.mp3",
+                    desc: "Audio clip",
+                    enabled: true,
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+
+        coordination.update({
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-02T16:30:00Z"),
+        });
+        await flushPromises(8);
+
+        mocks.panelIntentHandler?.({ type: "selectItem", value: "audio:audio/clip.mp3" });
+        const initialRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(initialRender.playbackModel.durationSeconds).toBeNaN();
+
+        const probeAudio = instances[instances.length - 1];
+        expect(probeAudio).toBeTruthy();
+        probeAudio.duration = 10.973083;
+        probeAudio.emit("loadedmetadata");
+        await flushPromises(2);
+
+        const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
+        expect(latestRender.playbackModel.durationSeconds).toBe(10.973083);
+        expect(latestRender.playbackModel.durationSeconds).not.toBe(300);
+    });
+
     it("filters thumbnails from structured LLM body metadata when searching", async () => {
         globalThis.window = {
             missionConfig: {
@@ -1269,6 +1314,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:30:00",
                     file: "audio/clip.mp3",
                     desc: "Audio clip",
+                    durationSeconds: 180,
                     enabled: true,
                 },
             ],
@@ -1657,6 +1703,7 @@ describe("createMediaTimelineCoordination", () => {
                     time: "2026-04-02 12:30:00",
                     file: "audio/clip.mp3",
                     desc: "Audio clip",
+                    durationSeconds: 180,
                     enabled: true,
                 },
             ],
