@@ -1494,6 +1494,12 @@ export class MoonRenderer {
         if (!camera || !this.container) {
             return false;
         }
+        if (!this.latLonGridVisible && !this.latLonHoverLabel?.visible) {
+            if (this.latLonLabels) {
+                this.latLonLabels.visible = false;
+            }
+            return false;
+        }
         const moonWorldPosition = new THREE.Vector3();
         this.container.getWorldPosition(moonWorldPosition);
         const cameraWorldPosition = new THREE.Vector3();
@@ -1541,6 +1547,7 @@ export class MoonRenderer {
         rendererDomElement = null,
     } = {}) {
         if (!camera) return;
+        if (!this.latLonLabels && !this.latLonHoverLabel?.visible) return;
         const viewportHeight = Math.max(1, Number(rendererDomElement?.clientHeight) || 720);
         const fov = Number(camera.fov);
         const moonWorldPosition = new THREE.Vector3();

@@ -318,6 +318,7 @@ function createMissionSceneActionBundle(deps) {
         getLunarFeatureTypeFilters,
         getLunarFeatureSearchQuery,
         getLunarFeatureExcludedKeys,
+        render,
     });
 
     return {

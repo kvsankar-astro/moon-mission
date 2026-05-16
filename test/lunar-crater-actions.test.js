@@ -46,14 +46,23 @@ function withFakeCanvas(callback) {
             getContext: vi.fn(() => context),
         })),
     };
-    try {
-        return callback(context);
-    } finally {
+    const restoreDocument = () => {
         if (previousDocument === undefined) {
             delete globalThis.document;
         } else {
             globalThis.document = previousDocument;
         }
+    };
+    try {
+        const result = callback(context);
+        if (result && typeof result.then === "function") {
+            return result.finally(restoreDocument);
+        }
+        restoreDocument();
+        return result;
+    } catch (error) {
+        restoreDocument();
+        throw error;
     }
 }
 
@@ -108,8 +117,21 @@ describe("lunar crater actions", () => {
         expect(features.map((feature) => feature.name)).toEqual(["Clavius", "Tycho", "Kepler"]);
     });
 
-    it("includes adopted satellite-feature crater records from the bundled catalog", () => {
-        const features = getCraterDisplayFeatures(undefined, {
+    it("includes adopted satellite-feature crater records when present in the catalog", () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [
+                { name: "Galilaei", featureType: "Crater, craters", latitudeDeg: 10, longitudeDeg: 298, diameterKm: 15.5 },
+                { name: "Galilaei A", featureType: "Satellite Feature", latitudeDeg: 11, longitudeDeg: 299, diameterKm: 9.0 },
+                { name: "Galilaei B", featureType: "Satellite Feature", latitudeDeg: 12, longitudeDeg: 300, diameterKm: 8.0 },
+            ],
+        };
+        const features = getCraterDisplayFeatures(catalog, {
             lunarCraterMinDiameterKm: 0,
             lunarCraterMaxDiameterKm: 20,
         });
@@ -201,6 +223,60 @@ describe("lunar crater actions", () => {
         );
         expect(rings.every((ring) => ring.material.toneMapped === false)).toBe(true);
     });
+
+    it("loads lunar feature data on demand before adding annotations", async () => withFakeCanvas(async () => {
+        const catalog = {
+            display: {
+                defaultMinDiameterKm: 0,
+                defaultMaxDiameterKm: 600,
+                rangeMinDiameterKm: 0,
+                rangeMaxDiameterKm: 600,
+            },
+            features: [
+                {
+                    name: "Lazy crater",
+                    featureType: "Crater, craters",
+                    latitudeDeg: 0,
+                    longitudeDeg: 0,
+                    diameterKm: 120,
+                },
+            ],
+        };
+        const render = vi.fn();
+        const actions = createLunarCraterActions({
+            THREE,
+            sphericalToCartesian: (radius, longitudeRad, latitudeRad) => ({
+                x: radius * Math.cos(latitudeRad) * Math.cos(longitudeRad),
+                y: radius * Math.cos(latitudeRad) * Math.sin(longitudeRad),
+                z: radius * Math.sin(latitudeRad),
+            }),
+            degreesToRadians: (degrees) => degrees * Math.PI / 180,
+            PC: { MOON_RADIUS_KM: 1737.4 },
+            getMoonRadius: () => 10,
+            getGlobalConfig: () => ({ is_lunar: true }),
+            getViewLunarCraters: () => true,
+            getLunarCraterMinDiameterKm: () => 0,
+            getLunarCraterMaxDiameterKm: () => 600,
+            getLunarCraterDisplayMode: () => "always",
+            getLunarFeatureTypeFilters: () => ({}),
+            loadCraterCatalog: vi.fn(() => Promise.resolve(catalog)),
+            render,
+        });
+        const scene = {
+            moonContainer: new THREE.Group(),
+        };
+
+        actions.addLunarCraterAnnotations({ scene });
+
+        expect(scene.lunarCraterCatalogLoading).toBe(true);
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(scene.lunarCraterCatalogLoading).toBe(false);
+        expect(scene.lunarCraterAnnotations.some((object) =>
+            object.userData?.name === "Lazy crater",
+        )).toBe(true);
+        expect(render).toHaveBeenCalled();
+    }));
 
     it("keeps Show Always labels sparse instead of labeling every rendered feature", () => {
         const catalog = {

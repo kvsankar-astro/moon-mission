@@ -544,6 +544,12 @@ export class BodyLatLonOverlay {
         if (!camera || !this.container) {
             return false;
         }
+        if (!this.gridVisible && !this.hoverLabel?.visible) {
+            if (this.labels) {
+                this.labels.visible = false;
+            }
+            return false;
+        }
         const bodyWorldPosition = new THREE.Vector3();
         this.container.getWorldPosition(bodyWorldPosition);
         const cameraWorldPosition = new THREE.Vector3();
@@ -585,6 +591,7 @@ export class BodyLatLonOverlay {
 
     _updateLabelScales({ camera = null, rendererDomElement = null } = {}) {
         if (!camera) return;
+        if (!this.labels && !this.hoverLabel?.visible) return;
         const viewportHeight = Math.max(1, Number(rendererDomElement?.clientHeight) || 720);
         const fov = Number(camera.fov);
         const bodyWorldPosition = new THREE.Vector3();

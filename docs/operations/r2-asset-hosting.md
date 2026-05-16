@@ -12,6 +12,7 @@ but runtime asset URLs are resolved through the R2 asset base. This includes:
 
 - mission config and manifest JSON under `assets/<mission>/data/`
 - generated orbit payloads staged from `moon-mission-data`
+- shared runtime JSON such as `assets/lunar-features.json`
 - mission images, media thumbnails, and HLS streams
 - shared runtime images under `images/`
 - optional vendored runtime assets under `third-party/`
@@ -20,8 +21,8 @@ but runtime asset URLs are resolved through the R2 asset base. This includes:
 
 - `moon-mission` remains the source for app code, mission config source,
   compiled config JSON, media manifests, catalog metadata, and UI-owned assets.
-- `moon-mission-data` remains the source for generated orbit payloads and
-  staged runtime data/media assets.
+- `moon-mission-data` remains the source for generated orbit payloads,
+  shared runtime JSON catalogs, and staged runtime data/media assets.
 - R2 is a public serving target, not the source of truth.
 
 ## URL Contract

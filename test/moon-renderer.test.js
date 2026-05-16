@@ -256,6 +256,42 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("skips selenographic grid camera updates while the overlay is inactive", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+        });
+
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.set(0, 0, 1.2);
+        camera.updateMatrixWorld(true);
+        const updatedWhileHidden = moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+
+        expect(updatedWhileHidden).toBe(false);
+        expect(moonRenderer.latLonGridStepDegrees).toBe(10);
+        expect(moonRenderer.latLonLabels).toBeNull();
+
+        moonRenderer.setLatLonGridVisible(true);
+        const updatedWhileVisible = moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+
+        expect(updatedWhileVisible).toBe(true);
+        expect(moonRenderer.latLonGridStepDegrees).toBe(5);
+
+        moonRenderer.dispose();
+    });
+
     it("hides grid labels when the Moon is too small on screen", () => {
         stubCanvasDocument();
         const moonRenderer = new MoonRenderer(1);

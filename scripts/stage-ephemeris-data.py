@@ -10,6 +10,7 @@ the target tree using runtime-relative paths:
   - Mission screenshots under assets/<mission>/images/
   - Mission media thumbnail derivatives under assets/<mission>/media/thumbnails/
   - Optional mission media stream payloads under assets/<mission>/media/streams/
+  - Shared runtime JSON assets under assets/
 
 The script validates required orbit artifacts declared by each mission
 ephemeris manifest in the app repository.
@@ -373,6 +374,23 @@ def stage_mission_media(
     return copied_thumbnails, copied_streams
 
 
+def stage_shared_asset_files(
+    data_root: Path,
+    target_root: Path,
+) -> int:
+    copied = 0
+    for rel_path in (Path("assets") / "lunar-features.json",):
+        source = data_root / rel_path
+        if not source.exists():
+            continue
+        target = target_root / rel_path
+        copy_file(source, target)
+        copied += 1
+
+    print(f"Staged {copied} shared runtime asset file(s) from data repo assets/")
+    return copied
+
+
 def stage_orbit_artifacts(
     app_root: Path,
     data_root: Path,
@@ -444,6 +462,7 @@ def stage_runtime_assets(
         data_root,
         target_root,
     )
+    shared_asset_count = stage_shared_asset_files(data_root, target_root)
 
     print(
         "\nStaging summary:\n"
@@ -454,6 +473,7 @@ def stage_runtime_assets(
         f"  Mission images: {mission_images_count}\n"
         f"  Mission media thumbnails: {mission_media_thumbnail_count}\n"
         f"  Mission media streams: {mission_media_stream_count}\n"
+        f"  Shared runtime assets: {shared_asset_count}\n"
         f"  Target root: {target_root.as_posix()}",
     )
 

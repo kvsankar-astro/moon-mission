@@ -110,7 +110,7 @@ Useful pages:
   - panel rendering/lifecycle in `src/platform/js/app/media-browser-panel.js`
   - media domain helpers under `src/platform/js/core/domain/media-*.js`
 - The media workflow is disabled unless the mission config enables `ui.panels.defaults["workflow:media-browser"].enabled`. Compare mode disables it even when configured.
-- Runtime assets resolve through the public R2 asset origin `https://assets.sankara.net/moon-mission/`; keep normal asset references repository-relative and let the runtime resolver apply the asset base. See [docs/operations/r2-asset-hosting.md](operations/r2-asset-hosting.md).
+- Runtime assets resolve through the public R2 asset origin `https://assets.sankara.net/moon-mission/`; keep normal asset references repository-relative and let the runtime resolver apply the asset base. Shared runtime catalogs such as `assets/lunar-features.json` are staged from `../moon-mission-data`. See [docs/operations/r2-asset-hosting.md](operations/r2-asset-hosting.md).
 - The current Artemis II media implementation stores mirrored metadata locally, stages generated thumbnail derivatives from `../moon-mission-data`, and serves hosted media through the same public asset bucket when mirrored under the site asset prefix. See [docs/operations/artemis2-media-assets.md](operations/artemis2-media-assets.md).
 - Timeline/media playback behavior is specified in [Timeline and Media Playback Spec](design/specs/timeline-media-playback-spec.md).
 - `Flyby in Focus` / `Frame and Shoot` treats wheel zoom as optical FoV only: the composer camera stays anchored at the craft.

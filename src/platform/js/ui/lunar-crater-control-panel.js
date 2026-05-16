@@ -18,19 +18,85 @@ import {
     normalizeLunarFeatureViewState,
     normalizeLunarFeatureTypeFilters,
 } from "../core/domain/lunar-feature-view.js";
-import lunarCraterCatalog from "../../../../assets/lunar-features.json";
 import {
     countCraterDisplayFeatures,
     getCraterDisplayFeatures,
     getLunarFeatureKey,
 } from "../core/domain/lunar-crater-catalog.js";
 import { getLunarFeatureTypeColor } from "../core/domain/lunar-feature-colors.js";
+import {
+    getLoadedLunarFeatureCatalog,
+    loadLunarFeatureCatalog,
+} from "../data/lunar-feature-catalog.js";
 
 const CRATER_DENSE_SELECTION_COUNT = 1000;
 const CRATER_DIAMETER_COMMIT_DELAY_MS = 180;
 const SEARCH_RESULT_LIMIT = 12;
 const TYPE_FILTER_DEFAULT_MIN_KM = 0;
 const TYPE_FILTER_DEFAULT_MAX_KM = 6000;
+const EMPTY_LUNAR_CRATER_CATALOG = Object.freeze({
+    display: Object.freeze({}),
+    features: Object.freeze([]),
+});
+
+let lunarCraterCatalog = getLoadedLunarFeatureCatalog();
+let lunarCraterCatalogLoading = false;
+let lunarCraterCatalogError = null;
+
+function getLunarCraterCatalog() {
+    return lunarCraterCatalog || getLoadedLunarFeatureCatalog() || EMPTY_LUNAR_CRATER_CATALOG;
+}
+
+function hasLunarCraterCatalog() {
+    return Array.isArray(getLunarCraterCatalog()?.features) &&
+        getLunarCraterCatalog().features.length > 0;
+}
+
+function requestLunarCraterCatalog(elements = {}) {
+    if (hasLunarCraterCatalog() || lunarCraterCatalogLoading) {
+        return;
+    }
+    lunarCraterCatalogLoading = true;
+    lunarCraterCatalogError = null;
+    syncLunarCraterCatalogStatus(elements);
+    loadLunarFeatureCatalog()
+        .then((catalog) => {
+            lunarCraterCatalog = catalog;
+            lunarCraterCatalogLoading = false;
+            resetLunarCraterCatalogControls(elements);
+            syncLunarCraterControlPanel(elements);
+        })
+        .catch((error) => {
+            lunarCraterCatalogLoading = false;
+            lunarCraterCatalogError = error;
+            syncLunarCraterCatalogStatus(elements);
+            console.error("Failed to load lunar feature catalog", error);
+        });
+}
+
+function resetLunarCraterCatalogControls(elements = {}) {
+    if (elements.typeFilterContainer?.dataset) {
+        delete elements.typeFilterContainer.dataset.lunarFeatureTypesBuilt;
+    }
+    elements.typeControls = null;
+    elements.presetButtons = null;
+}
+
+function syncLunarCraterCatalogStatus(elements = {}) {
+    const loading = lunarCraterCatalogLoading === true;
+    elements.panel?.classList?.toggle?.("is-loading-catalog", loading);
+    if (elements.busyIndicator && !elements.panel?.classList?.contains?.("is-busy")) {
+        elements.busyIndicator.hidden = !loading;
+        elements.busyIndicator.textContent = loading ? "Loading" : "Rendering";
+    }
+    if (elements.countValue && !hasLunarCraterCatalog()) {
+        elements.countValue.textContent = loading
+            ? "Loading features"
+            : lunarCraterCatalogError
+                ? "Features unavailable"
+                : "Features not loaded";
+    }
+}
 
 const LUNAR_FEATURE_PRESETS = Object.freeze([
     {
@@ -133,9 +199,9 @@ function formatCraterCount(value) {
         : String(Math.round(numericValue));
 }
 
-function getCatalogTypeStats() {
+function getCatalogTypeStats(catalog = getLunarCraterCatalog()) {
     const statsByType = new Map();
-    for (const feature of lunarCraterCatalog?.features || []) {
+    for (const feature of catalog?.features || []) {
         const featureType = typeof feature?.featureType === "string"
             ? feature.featureType
             : "";
@@ -160,9 +226,7 @@ function getCatalogTypeStats() {
         .sort((a, b) => b.count - a.count);
 }
 
-const CATALOG_TYPE_STATS = getCatalogTypeStats();
-
-function getOrderedCatalogTypeStats(statsList = CATALOG_TYPE_STATS) {
+function getOrderedCatalogTypeStats(statsList = getCatalogTypeStats()) {
     const orderIndex = new Map(FEATURE_TYPE_DISPLAY_ORDER.map((name, index) => [name, index]));
     return [...statsList].sort((a, b) => {
         const aIdx = orderIndex.has(a.featureType) ? orderIndex.get(a.featureType) : Number.MAX_SAFE_INTEGER;
@@ -176,8 +240,6 @@ function getOrderedCatalogTypeStats(statsList = CATALOG_TYPE_STATS) {
         return a.featureType.localeCompare(b.featureType);
     });
 }
-
-const ORDERED_CATALOG_TYPE_STATS = getOrderedCatalogTypeStats();
 
 function formatFeatureTypeLabel(featureType) {
     const primary = String(featureType || "").split(",")[0].trim();
@@ -240,7 +302,7 @@ function syncDualRangeFill(fillElement, minSlider, maxSlider) {
 function buildPresetTypeFilters(baseFilters, presetId) {
     const current = normalizeLunarFeatureTypeFilters(baseFilters);
     const next = {};
-    for (const stats of ORDERED_CATALOG_TYPE_STATS) {
+    for (const stats of getOrderedCatalogTypeStats()) {
         const existing = current[stats.featureType] || {};
         const minDiameterKm = Number.isFinite(existing.minDiameterKm)
             ? existing.minDiameterKm
@@ -308,7 +370,7 @@ function areTypeFiltersEquivalent(a = {}, b = {}) {
 }
 
 function getFilteredCraterCount(state) {
-    return countCraterDisplayFeatures(lunarCraterCatalog, normalizeLunarFeatureViewState(state));
+    return countCraterDisplayFeatures(getLunarCraterCatalog(), normalizeLunarFeatureViewState(state));
 }
 
 function setLunarCraterControlPending(elements = {}, pending) {
@@ -320,6 +382,18 @@ function setLunarCraterControlPending(elements = {}, pending) {
 }
 
 function syncLunarCraterCountStatus(elements = {}, state = {}) {
+    if (!hasLunarCraterCatalog()) {
+        syncLunarCraterCatalogStatus(elements);
+        if (elements.nudge) {
+            elements.nudge.textContent = lunarCraterCatalogLoading
+                ? "Loading lunar feature catalog."
+                : lunarCraterCatalogError
+                    ? "Lunar feature catalog could not be loaded."
+                    : "Open Lunar Features to load the catalog.";
+            elements.nudge.hidden = false;
+        }
+        return;
+    }
     const normalized = normalizeLunarFeatureViewState(state);
     const filteredCount = getFilteredCraterCount(normalized);
     if (elements.countValue) {
@@ -354,7 +428,7 @@ function getSearchResultFeatures(state = {}) {
     if (!normalized.lunarFeatureSearchQuery) {
         return [];
     }
-    return getCraterDisplayFeatures(lunarCraterCatalog, {
+    return getCraterDisplayFeatures(getLunarCraterCatalog(), {
         ...normalized,
         lunarFeatureExcludedKeys: [],
     }).slice(0, SEARCH_RESULT_LIMIT);
@@ -371,6 +445,13 @@ function formatSearchResultMeta(feature = {}) {
 function syncLunarFeatureSearchResults(elements = {}, state = {}) {
     const container = elements.searchResultsContainer;
     if (!container) return;
+    if (!hasLunarCraterCatalog()) {
+        while (container.firstChild) {
+            container.removeChild(container.firstChild);
+        }
+        container.hidden = true;
+        return;
+    }
 
     const normalized = normalizeLunarFeatureViewState(state);
     const query = normalized.lunarFeatureSearchQuery;
@@ -384,7 +465,7 @@ function syncLunarFeatureSearchResults(elements = {}, state = {}) {
     }
 
     const features = getSearchResultFeatures(normalized);
-    const totalCount = countCraterDisplayFeatures(lunarCraterCatalog, {
+    const totalCount = countCraterDisplayFeatures(getLunarCraterCatalog(), {
         ...normalized,
         lunarFeatureExcludedKeys: [],
     });
@@ -457,7 +538,7 @@ function rehydrateTypeFilterControls(elements = {}, { panel, container, presetCo
     }
     const typeControls = new Map();
     const presetButtons = new Map();
-    const statsByType = new Map(ORDERED_CATALOG_TYPE_STATS.map((entry) => [entry.featureType, entry]));
+    const statsByType = new Map(getOrderedCatalogTypeStats().map((entry) => [entry.featureType, entry]));
 
     if (presetContainer) {
         const presetButtonNodes = presetContainer.querySelectorAll?.("[data-preset-id]");
@@ -542,6 +623,13 @@ function ensureTypeFilterControls(elements = {}) {
     if (!panel || typeof panel.querySelector !== "function") {
         return;
     }
+    if (!hasLunarCraterCatalog()) {
+        syncLunarCraterCatalogStatus(elements);
+        if (panel.hidden === false) {
+            requestLunarCraterCatalog(elements);
+        }
+        return;
+    }
     let container = elements.typeFilterContainer;
     if (!container) {
         container = panel.querySelector(".lunar-crater-controls-panel__type-filters");
@@ -581,7 +669,8 @@ function ensureTypeFilterControls(elements = {}) {
         presetButtons.set(preset.id, button);
     }
 
-    const statsByType = new Map(ORDERED_CATALOG_TYPE_STATS.map((entry) => [entry.featureType, entry]));
+    const orderedCatalogTypeStats = getOrderedCatalogTypeStats();
+    const statsByType = new Map(orderedCatalogTypeStats.map((entry) => [entry.featureType, entry]));
     const groupedStats = FEATURE_TYPE_GROUPS.map((group) => ({
         ...group,
         stats: group.types
@@ -589,7 +678,7 @@ function ensureTypeFilterControls(elements = {}) {
             .filter(Boolean),
     }));
     const groupedFeatureTypes = new Set(FEATURE_TYPE_GROUPS.flatMap((group) => group.types));
-    const ungroupedStats = ORDERED_CATALOG_TYPE_STATS.filter(
+    const ungroupedStats = orderedCatalogTypeStats.filter(
         (entry) => !groupedFeatureTypes.has(entry.featureType),
     );
     if (ungroupedStats.length > 0) {

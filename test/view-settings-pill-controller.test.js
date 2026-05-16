@@ -500,7 +500,7 @@ describe("createViewSettingsPillController", function () {
             expect(harness.lunarCraterMinDiameterStepDown.disabled).toBe(false);
             expect(harness.lunarCraterMaxDiameter.disabled).toBe(false);
             expect(harness.lunarCraterMaxDiameterStepUp.disabled).toBe(false);
-            expect(harness.lunarCraterCountValue.textContent).toMatch(/filtered$/);
+            expect(harness.lunarCraterCountValue.textContent).toBe("Features not loaded");
 
             harness.lunarCraterVisibleToggle.dispatchEvent({
                 type: "click",
