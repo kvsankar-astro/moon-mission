@@ -97,7 +97,9 @@ The current implementation already has several useful pieces:
 - Manual exposure is exposure compensation. Auto Exposure may add an
   eclipse-specific EV bias, so the UI must show the computed total EV whenever
   the two values stack.
-- The current eclipse Auto Exposure bias is `+6 EV`.
+- The current eclipse Auto Exposure bias is `+6 EV` when the Frame and Shoot
+  view contains the eclipsed Moon. It is suppressed for Earth-only eclipse views
+  so Earth does not inherit the Moon earthshine exposure boost.
 - Current exposure scope is mixed:
   - Earth, Moon, spacecraft, and ordinary tone-mapped scene bodies respond to
     renderer tone-mapping exposure.
@@ -146,6 +148,9 @@ Current implementation notes:
 3. Add eclipse-aware auto exposure.
    - Auto exposure should respond to eclipse/dark-side compositions by biasing
      the camera layer, not by changing physical Earthshine.
+   - Eclipse auto exposure should meter the active Frame and Shoot composition:
+     boost Moon/earthshine views, but leave Earth-only views at the normal
+     exposure path.
    - It should be user-overridable.
    - It must avoid silently fighting deliberate manual exposure. Manual exposure
      compensation may remain enabled while Auto Exposure is on only if the UI

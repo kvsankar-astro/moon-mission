@@ -2481,6 +2481,8 @@ class AuxiliaryCameraViewsManager {
         let composerTimelineSlider = null;
         let composerTimelineLabel = null;
         let composerTimelineLocalValue = null;
+        let composerFlybyEventsDetails = null;
+        let composerFlybyEventsSummary = null;
         let composerFlybyEventsWrap = null;
         let composerControlsWrap = null;
         let composerResetButton = null;
@@ -2808,24 +2810,41 @@ class AuxiliaryCameraViewsManager {
 
             const composerPhasePicker = document.createElement("div");
             composerPhasePicker.className = "aux-camera-view__composer-phase-picker";
+            const composerPhaseControl = document.createElement("div");
+            composerPhaseControl.className = "aux-camera-view__composer-phase-control";
             composerPhasePrevButton = document.createElement("button");
             composerPhasePrevButton.type = "button";
             composerPhasePrevButton.className = "aux-camera-view__composer-phase-step";
             composerPhasePrevButton.textContent = "◂";
             composerPhasePrevButton.setAttribute("aria-label", "Previous mission phase");
-            composerPhasePicker.appendChild(composerPhasePrevButton);
+            composerPhaseControl.appendChild(composerPhasePrevButton);
 
             composerPhaseSelect = document.createElement("select");
             composerPhaseSelect.className = "aux-camera-view__composer-phase-select";
             composerPhaseSelect.setAttribute("aria-label", "Mission phase");
-            composerPhasePicker.appendChild(composerPhaseSelect);
+            composerPhaseControl.appendChild(composerPhaseSelect);
 
             composerPhaseNextButton = document.createElement("button");
             composerPhaseNextButton.type = "button";
             composerPhaseNextButton.className = "aux-camera-view__composer-phase-step";
             composerPhaseNextButton.textContent = "▸";
             composerPhaseNextButton.setAttribute("aria-label", "Next mission phase");
-            composerPhasePicker.appendChild(composerPhaseNextButton);
+            composerPhaseControl.appendChild(composerPhaseNextButton);
+            composerPhasePicker.appendChild(composerPhaseControl);
+
+            const composerFlybyEventPicker = document.createElement("div");
+            composerFlybyEventPicker.className = "aux-camera-view__composer-event-picker";
+            composerFlybyEventsDetails = document.createElement("details");
+            composerFlybyEventsDetails.className = "aux-camera-view__composer-event-pullup";
+            composerFlybyEventsSummary = document.createElement("summary");
+            composerFlybyEventsSummary.className = "aux-camera-view__composer-event-pullup-summary";
+            composerFlybyEventsSummary.textContent = "Events";
+            composerFlybyEventsDetails.appendChild(composerFlybyEventsSummary);
+            composerFlybyEventsWrap = document.createElement("div");
+            composerFlybyEventsWrap.className = "aux-camera-view__composer-event-pills";
+            composerFlybyEventsDetails.appendChild(composerFlybyEventsWrap);
+            composerFlybyEventPicker.appendChild(composerFlybyEventsDetails);
+            composerPhasePicker.appendChild(composerFlybyEventPicker);
             composerTimelineWrap.appendChild(composerPhasePicker);
 
             const composerPhaseValue = document.createElement("span");
@@ -2852,16 +2871,6 @@ class AuxiliaryCameraViewsManager {
             composerTimelineLocalValue.className = "aux-camera-view__composer-timeline-local";
             composerTimelineLocalValue.textContent = "Local: --";
             composerTimelineWrap.appendChild(composerTimelineLocalValue);
-            const composerFlybyEventsDetails = document.createElement("details");
-            composerFlybyEventsDetails.className = "aux-camera-view__composer-event-pullup";
-            const composerFlybyEventsSummary = document.createElement("summary");
-            composerFlybyEventsSummary.className = "aux-camera-view__composer-event-pullup-summary";
-            composerFlybyEventsSummary.textContent = "Events";
-            composerFlybyEventsDetails.appendChild(composerFlybyEventsSummary);
-            composerFlybyEventsWrap = document.createElement("div");
-            composerFlybyEventsWrap.className = "aux-camera-view__composer-event-pills";
-            composerFlybyEventsDetails.appendChild(composerFlybyEventsWrap);
-            composerPhasePicker.appendChild(composerFlybyEventsDetails);
 
             composerControlsWrap = document.createElement("div");
             composerControlsWrap.className = "aux-camera-view__composer-controls";
@@ -3424,6 +3433,8 @@ class AuxiliaryCameraViewsManager {
             composerTimelineSlider,
             composerTimelineLabel,
             composerTimelineLocalValue,
+            composerFlybyEventsDetails,
+            composerFlybyEventsSummary,
             composerFlybyEventsWrap,
             composerControlsWrap,
             composerResetButton,
@@ -3640,6 +3651,7 @@ class AuxiliaryCameraViewsManager {
             composerEclipseCoronaStructure: COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT,
             composerEclipseZodiacalDust: COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT,
             composerSolarEclipseActive: false,
+            composerEclipseAutoExposureEligible: true,
             composerTimelineDragging: false,
             composerTimelineWindowMs: COMPOSER_TIMELINE_WINDOW_MS,
             composerTimelineStartMs: Number.NaN,
@@ -4468,6 +4480,15 @@ class AuxiliaryCameraViewsManager {
             const onComposerPhaseNextClick = () => {
                 this.selectComposerTimelinePhase(panelState, this.composerActivePhaseIndex + 1);
             };
+            const onComposerFlybyEventsDocumentPointerDown = (event) => {
+                const details = panelState.composerFlybyEventsDetails;
+                if (!details?.open || !isDomElement(event.target)) {
+                    return;
+                }
+                if (!details.contains(event.target)) {
+                    details.open = false;
+                }
+            };
             const REPEAT_PRESS_BUTTON_IDS = new Set(["slower", "faster", "realtime"]);
             const dispatchSyntheticPress = (target) => {
                 if (!isDomInstance(target, "HTMLButtonElement") || target.disabled) {
@@ -4715,6 +4736,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerPhaseSelect?.addEventListener("change", onComposerPhaseSelectChange);
             panelState.composerPhasePrevButton?.addEventListener("click", onComposerPhasePrevClick);
             panelState.composerPhaseNextButton?.addEventListener("click", onComposerPhaseNextClick);
+            document.addEventListener("pointerdown", onComposerFlybyEventsDocumentPointerDown, true);
             panelState.composerTransportPlayButton?.addEventListener("click", onComposerTransportPlayClick);
             panelState.composerTransportMinusSecondButton?.addEventListener("click", onComposerTransportMinusSecondClick);
             panelState.composerTransportMinusMinuteButton?.addEventListener("click", onComposerTransportMinusMinuteClick);
@@ -4773,6 +4795,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerPhaseSelectChange = onComposerPhaseSelectChange;
             panelState.onComposerPhasePrevClick = onComposerPhasePrevClick;
             panelState.onComposerPhaseNextClick = onComposerPhaseNextClick;
+            panelState.onComposerFlybyEventsDocumentPointerDown = onComposerFlybyEventsDocumentPointerDown;
             panelState.onComposerTransportPlayClick = onComposerTransportPlayClick;
             panelState.onComposerTransportMinusSecondClick = onComposerTransportMinusSecondClick;
             panelState.onComposerTransportMinusMinuteClick = onComposerTransportMinusMinuteClick;
@@ -4999,6 +5022,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT;
             panelState.composerEclipseZodiacalDust = COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT;
             panelState.composerSolarEclipseActive = false;
+            panelState.composerEclipseAutoExposureEligible = true;
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
             panelState.composerSkyLabelsEnabled = false;
@@ -5742,6 +5766,36 @@ class AuxiliaryCameraViewsManager {
         }
     }
 
+    selectComposerFlybyEvent(panelState, eventIndex) {
+        const flybyEvents = Array.isArray(this.composerFlybyEvents) ? this.composerFlybyEvents : [];
+        const boundedIndex = Number(eventIndex);
+        if (!Number.isInteger(boundedIndex) || boundedIndex < 0 || boundedIndex >= flybyEvents.length) {
+            return false;
+        }
+        const eventInfo = flybyEvents[boundedIndex];
+        if (!Number.isFinite(eventInfo?.timeMs)) {
+            return false;
+        }
+        panelState.composerFlybySelectedEventTimeMs = eventInfo.timeMs;
+        if (this.composerActivePhaseIndex >= 0) {
+            this.composerSelectedPhaseIndex = this.composerActivePhaseIndex;
+        }
+        this.applyComposerGuidedViewState(panelState, {
+            syncComposerLockUi: panelState.syncComposerLockUi,
+            syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
+            persist: false,
+            requestRender: false,
+        });
+        this.seekMainTimelineTime(eventInfo.timeMs, true);
+        this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: this.composerActivePhaseIndex });
+        this.syncComposerFlybyEventPills(panelState, eventInfo.timeMs);
+        if (panelState.composerFlybyEventsDetails) {
+            panelState.composerFlybyEventsDetails.open = false;
+        }
+        this.requestRender?.();
+        return true;
+    }
+
     syncComposerFlybyEventPills(panelState, currentTimeMs) {
         const wrap = panelState?.composerFlybyEventsWrap;
         if (!wrap) {
@@ -5754,7 +5808,8 @@ class AuxiliaryCameraViewsManager {
             panelState.composerFlybyEventNodes = [];
             panelState.composerFlybyEventsSignature = signature;
             panelState.composerFlybySelectedEventTimeMs = Number.NaN;
-            for (const eventInfo of flybyEvents) {
+            for (let eventIndex = 0; eventIndex < flybyEvents.length; eventIndex += 1) {
+                const eventInfo = flybyEvents[eventIndex];
                 const pill = document.createElement("button");
                 pill.type = "button";
                 pill.className = "aux-camera-view__composer-event-pill";
@@ -5769,26 +5824,14 @@ class AuxiliaryCameraViewsManager {
                 pill.appendChild(title);
                 pill.appendChild(time);
                 pill.addEventListener("click", () => {
-                    panelState.composerFlybySelectedEventTimeMs = eventInfo.timeMs;
-                    if (this.composerActivePhaseIndex >= 0) {
-                        this.composerSelectedPhaseIndex = this.composerActivePhaseIndex;
-                    }
-                    this.applyComposerGuidedViewState(panelState, {
-                        syncComposerLockUi: panelState.syncComposerLockUi,
-                        syncAutoToggleUi: panelState.syncComposerAutoToggleUi,
-                        persist: false,
-                        requestRender: false,
-                    });
-                    this.seekMainTimelineTime(eventInfo.timeMs, true);
-                    this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: this.composerActivePhaseIndex });
-                    this.syncComposerFlybyEventPills(panelState, eventInfo.timeMs);
-                    this.requestRender?.();
+                    this.selectComposerFlybyEvent(panelState, eventIndex);
                 });
                 wrap.appendChild(pill);
                 panelState.composerFlybyEventNodes.push({
                     element: pill,
                     id: eventInfo.key || eventInfo.id || "",
                     timeMs: eventInfo.timeMs,
+                    title: eventTitle,
                 });
             }
         }
@@ -5796,6 +5839,10 @@ class AuxiliaryCameraViewsManager {
             ? panelState.composerFlybyEventNodes
             : [];
         if (eventNodes.length === 0) {
+            if (panelState.composerFlybyEventsSummary) {
+                panelState.composerFlybyEventsSummary.textContent = "Events";
+                panelState.composerFlybyEventsSummary.removeAttribute?.("title");
+            }
             return;
         }
 
@@ -5806,16 +5853,27 @@ class AuxiliaryCameraViewsManager {
         const currentIndexes = new Set(highlightState.currentIndexes);
         const boundaryIndexes = new Set(highlightState.boundaryIndexes);
         const selectedEventTimeMs = panelState.composerFlybySelectedEventTimeMs;
+        let selectedEventIndex = -1;
         if (Number.isFinite(selectedEventTimeMs)) {
-            const selectedEventIndex = eventNodes.findIndex((eventNode) => eventNode.timeMs === selectedEventTimeMs);
+            selectedEventIndex = eventNodes.findIndex((eventNode) => eventNode.timeMs === selectedEventTimeMs);
             if (!currentIndexes.has(selectedEventIndex)) {
                 panelState.composerFlybySelectedEventTimeMs = Number.NaN;
+                selectedEventIndex = -1;
             }
         }
         for (let i = 0; i < eventNodes.length; i += 1) {
             const isCurrent = currentIndexes.has(i);
             eventNodes[i].element.classList.toggle("is-active", isCurrent);
             eventNodes[i].element.classList.toggle("is-boundary", !isCurrent && boundaryIndexes.has(i));
+        }
+        if (panelState.composerFlybyEventsSummary) {
+            const selectedTitle = selectedEventIndex >= 0 ? eventNodes[selectedEventIndex]?.title : "";
+            panelState.composerFlybyEventsSummary.textContent = selectedTitle || "Events";
+            if (selectedTitle) {
+                panelState.composerFlybyEventsSummary.setAttribute?.("title", selectedTitle);
+            } else {
+                panelState.composerFlybyEventsSummary.removeAttribute?.("title");
+            }
         }
     }
 
@@ -6762,7 +6820,10 @@ class AuxiliaryCameraViewsManager {
         const boundedManualEv = Number.isFinite(manualEv)
             ? manualEv
             : COMPOSER_EXPOSURE_EV_DEFAULT;
-        const autoEv = panelState?.composerAutoExposureEnabled !== false && eclipseActive === true
+        const eclipseAutoExposureEligible = panelState?.composerEclipseAutoExposureEligible !== false;
+        const autoEv = panelState?.composerAutoExposureEnabled !== false &&
+            eclipseActive === true &&
+            eclipseAutoExposureEligible
             ? COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV
             : 0;
         return {
@@ -6770,6 +6831,87 @@ class AuxiliaryCameraViewsManager {
             autoEv,
             multiplier: Math.pow(2, boundedManualEv + autoEv),
         };
+    }
+
+    resolveComposerBodyDiscInView(panelState, { bodyWorld, bodyRadius } = {}) {
+        const camera = panelState?.camera;
+        const radius = Number(bodyRadius);
+        if (
+            !camera?.isCamera ||
+            !bodyWorld ||
+            !Number.isFinite(radius) ||
+            radius <= 0
+        ) {
+            return false;
+        }
+
+        const canvas = panelState.renderer?.domElement || panelState.overlayCanvas || null;
+        const width = Math.max(
+            1,
+            Number(canvas?.width) ||
+                Number(canvas?.clientWidth) ||
+                Number(panelState.viewport?.clientWidth) ||
+                1,
+        );
+        const height = Math.max(
+            1,
+            Number(canvas?.height) ||
+                Number(canvas?.clientHeight) ||
+                Number(panelState.viewport?.clientHeight) ||
+                1,
+        );
+        const fovDeg = Number(camera.fov);
+        if (!Number.isFinite(fovDeg) || fovDeg <= 0 || !Number.isFinite(width) || !Number.isFinite(height)) {
+            return false;
+        }
+
+        const projected = this.tmpVectorA || new this.THREE.Vector3();
+        projected.copy(bodyWorld).project(camera);
+        if (
+            !Number.isFinite(projected.x) ||
+            !Number.isFinite(projected.y) ||
+            !Number.isFinite(projected.z) ||
+            projected.z < -1 ||
+            projected.z > 1
+        ) {
+            return false;
+        }
+
+        const cameraWorld = this.tmpVectorB || new this.THREE.Vector3();
+        if (typeof camera.getWorldPosition === "function") {
+            camera.getWorldPosition(cameraWorld);
+        } else if (camera.position) {
+            cameraWorld.copy(camera.position);
+        } else {
+            return false;
+        }
+        const distance = cameraWorld.distanceTo(bodyWorld);
+        if (!Number.isFinite(distance) || distance <= radius) {
+            return false;
+        }
+
+        const angularRadius = Math.asin(this.THREE.MathUtils.clamp(radius / distance, 0, 0.999999));
+        const tanHalfVerticalFov = Math.tan(this.THREE.MathUtils.degToRad(fovDeg) * 0.5);
+        const radiusPx = (Math.tan(angularRadius) / Math.max(tanHalfVerticalFov, 1e-9)) * (height * 0.5);
+        if (!Number.isFinite(radiusPx) || radiusPx <= 0) {
+            return false;
+        }
+
+        const cx = ((projected.x * 0.5) + 0.5) * width;
+        const cy = (1 - ((projected.y * 0.5) + 0.5)) * height;
+        return (
+            cx + radiusPx >= 0 &&
+            cx - radiusPx <= width &&
+            cy + radiusPx >= 0 &&
+            cy - radiusPx <= height
+        );
+    }
+
+    shouldApplyComposerEclipseAutoExposure(panelState, { moonWorld, moonRadius } = {}) {
+        return this.resolveComposerBodyDiscInView(panelState, {
+            bodyWorld: moonWorld,
+            bodyRadius: moonRadius,
+        });
     }
 
     applyComposerExposureProfile(
@@ -9374,7 +9516,15 @@ class AuxiliaryCameraViewsManager {
         });
         const previousSolarEclipseActive = panelState.composerSolarEclipseActive === true;
         panelState.composerSolarEclipseActive = composerSolarEclipseState.active === true;
-        if (panelState.composerSolarEclipseActive !== previousSolarEclipseActive) {
+        const previousEclipseAutoExposureEligible = panelState.composerEclipseAutoExposureEligible !== false;
+        panelState.composerEclipseAutoExposureEligible = this.shouldApplyComposerEclipseAutoExposure(panelState, {
+            moonWorld: this.moonWorld,
+            moonRadius: composerMoonRadius,
+        });
+        if (
+            panelState.composerSolarEclipseActive !== previousSolarEclipseActive ||
+            panelState.composerEclipseAutoExposureEligible !== previousEclipseAutoExposureEligible
+        ) {
             panelState.syncComposerExposureUi?.();
         }
         const restoreComposerExposureProfile = this.applyComposerExposureProfile(scene, panelState, sunRenderer, {
@@ -10012,6 +10162,13 @@ class AuxiliaryCameraViewsManager {
             }
             if (panelState.onComposerPhaseNextClick) {
                 panelState.composerPhaseNextButton?.removeEventListener("click", panelState.onComposerPhaseNextClick);
+            }
+            if (panelState.onComposerFlybyEventsDocumentPointerDown) {
+                document.removeEventListener(
+                    "pointerdown",
+                    panelState.onComposerFlybyEventsDocumentPointerDown,
+                    true,
+                );
             }
             if (panelState.onComposerTransportPlayClick) {
                 panelState.composerTransportPlayButton?.removeEventListener("click", panelState.onComposerTransportPlayClick);

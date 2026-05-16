@@ -598,6 +598,62 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(panelState.fovControl.setFovDegrees).toHaveBeenCalledWith(143.5, 143.5);
     });
 
+    it("applies eclipse auto exposure only when the Frame and Shoot Moon target is eligible", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE,
+        });
+        const panelState = {
+            mode: "composer",
+            composerExposureEv: 0,
+            composerAutoExposureEnabled: true,
+            composerSolarEclipseActive: true,
+            composerEclipseAutoExposureEligible: true,
+        };
+
+        expect(manager.resolveComposerExposureState(panelState).autoEv).toBe(6);
+
+        panelState.composerEclipseAutoExposureEligible = false;
+        const earthOnlyState = manager.resolveComposerExposureState(panelState);
+
+        expect(earthOnlyState.autoEv).toBe(0);
+        expect(earthOnlyState.multiplier).toBe(1);
+    });
+
+    it("detects when the Moon disc is outside an Earth-only Frame and Shoot view", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE,
+            tmpVectorA: new THREE.Vector3(),
+            tmpVectorB: new THREE.Vector3(),
+        });
+        const camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
+        camera.position.set(0, 0, 0);
+        camera.lookAt(new THREE.Vector3(100, 0, 0));
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+        const panelState = {
+            mode: "composer",
+            camera,
+            renderer: {
+                domElement: {
+                    width: 1280,
+                    height: 720,
+                },
+            },
+        };
+
+        const earthVisible = manager.resolveComposerBodyDiscInView(panelState, {
+            bodyWorld: new THREE.Vector3(100, 0, 0),
+            bodyRadius: 10,
+        });
+        const moonVisible = manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+            moonWorld: new THREE.Vector3(0, 100, 0),
+            moonRadius: 3,
+        });
+
+        expect(earthVisible).toBe(true);
+        expect(moonVisible).toBe(false);
+    });
+
     it("clamps manual Frame and Shoot FoV at optical bounds", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
@@ -2073,6 +2129,10 @@ describe("Frame and Shoot event pill highlighting", () => {
             this.attributes[name] = String(value);
         }
 
+        removeAttribute(name) {
+            delete this.attributes[name];
+        }
+
         addEventListener(type, handler) {
             const handlers = this.listeners.get(type) || [];
             handlers.push(handler);
@@ -2099,6 +2159,8 @@ describe("Frame and Shoot event pill highlighting", () => {
             syncComposerTimelineUi: vi.fn(),
             requestRender: vi.fn(),
         });
+        const composerFlybyEventsDetails = new FakeElement("details");
+        composerFlybyEventsDetails.open = false;
         const panelState = {
             mode: "composer",
             composerLockTarget: "earth",
@@ -2106,6 +2168,8 @@ describe("Frame and Shoot event pill highlighting", () => {
             composerMediaDriven: true,
             composerSurfaceTarget: { bodyId: "moon" },
             autoFovEnabled: false,
+            composerFlybyEventsDetails,
+            composerFlybyEventsSummary: new FakeElement("summary"),
             composerFlybyEventsWrap: new FakeElement(),
             composerFlybyEventsSignature: "",
             composerFlybyEventNodes: [],
@@ -2125,6 +2189,7 @@ describe("Frame and Shoot event pill highlighting", () => {
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-boundary")).toBe(true);
         expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-active")).toBe(false);
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-active")).toBe(false);
+        expect(panelState.composerFlybyEventsSummary.textContent).toBe("Events");
     });
 
     it("uses the solid active pill only on an exact event time", () => {
@@ -2136,10 +2201,12 @@ describe("Frame and Shoot event pill highlighting", () => {
         expect(panelState.composerFlybyEventNodes[0].element.classList.contains("is-boundary")).toBe(false);
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-active")).toBe(false);
         expect(panelState.composerFlybyEventNodes[1].element.classList.contains("is-boundary")).toBe(false);
+        expect(panelState.composerFlybyEventsSummary.textContent).toBe("Events");
     });
 
-    it("returns event selection to the guided Moon Auto FoV view", () => {
+    it("returns event selection to the guided Moon Auto FoV view and closes the popup", () => {
         const { manager, panelState } = createHarness();
+        panelState.composerFlybyEventsDetails.open = true;
         manager.syncComposerFlybyEventPills(panelState, 1500);
 
         const clickHandlers = panelState.composerFlybyEventNodes[0].element.listeners.get("click") || [];
@@ -2152,6 +2219,25 @@ describe("Frame and Shoot event pill highlighting", () => {
         expect(panelState.composerSurfaceTarget).toBe(null);
         expect(panelState.syncComposerLockUi).toHaveBeenCalledTimes(1);
         expect(panelState.syncComposerAutoToggleUi).toHaveBeenCalledTimes(1);
+        expect(panelState.composerFlybyEventsDetails.open).toBe(false);
+        expect(panelState.composerFlybyEventsSummary.textContent).toBe("Event 1");
+    });
+
+    it("clears the selected event label after the animation time moves away", () => {
+        const { manager, panelState } = createHarness();
+        manager.syncComposerFlybyEventPills(panelState, 1500);
+
+        const jumped = manager.selectComposerFlybyEvent(panelState, 1);
+
+        expect(jumped).toBe(true);
+        expect(manager.seekMainTimelineTime).toHaveBeenCalledWith(2000, true);
+        expect(panelState.composerFlybySelectedEventTimeMs).toBe(2000);
+        expect(panelState.composerFlybyEventsSummary.textContent).toBe("Event 2");
+
+        manager.syncComposerFlybyEventPills(panelState, 1500);
+
+        expect(Number.isNaN(panelState.composerFlybySelectedEventTimeMs)).toBe(true);
+        expect(panelState.composerFlybyEventsSummary.textContent).toBe("Events");
     });
 });
 
