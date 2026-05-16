@@ -360,6 +360,85 @@ describe("media browser panel timeline", () => {
         ]);
     });
 
+    it("updates playback controls without rerunning structural preview work", () => {
+        const panelElement = new FakePanel();
+        const stage = new FakeElement("div");
+        const image = new FakeElement("img");
+        const status = new FakeElement("span");
+        const elapsed = new FakeElement("span");
+        const slider = new FakeRangeInput();
+        stage.getBoundingClientRect = vi.fn(() => ({
+            left: 0,
+            right: 640,
+            top: 0,
+            bottom: 360,
+            width: 640,
+            height: 360,
+        }));
+        const nodes = new Map([
+            ["media-browser-panel", panelElement],
+            ["media-browser-stage", stage],
+            ["media-browser-image", image],
+            ["media-browser-media-status", status],
+            ["media-browser-media-elapsed", elapsed],
+            ["media-browser-media-timeline", slider],
+        ]);
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+        };
+        global.document = {
+            getElementById(id) {
+                return nodes.get(id) || null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        const viewModel = {
+            panelTitle: "Mission Media",
+            activeItem: {
+                id: "image-0",
+                kind: "image",
+                title: "Image 0",
+                assetUrl: "image-0.jpg",
+                timeLabel: "Apr 2, 2026",
+            },
+            playbackModel: {
+                showControls: true,
+                seekEnabled: true,
+                elapsedSeconds: 0,
+                durationSeconds: 10,
+                statusLabel: "Ready",
+            },
+            thumbnailItems: [],
+        };
+
+        panel.render(viewModel);
+        expect(image.src).toBe("image-0.jpg");
+        expect(status.textContent).toBe("Ready");
+        expect(stage.getBoundingClientRect).toHaveBeenCalled();
+
+        stage.getBoundingClientRect.mockClear();
+        panel.render({
+            ...viewModel,
+            playbackModel: {
+                ...viewModel.playbackModel,
+                elapsedSeconds: 3,
+                statusLabel: "Playing",
+            },
+        });
+
+        expect(stage.getBoundingClientRect).not.toHaveBeenCalled();
+        expect(image.src).toBe("image-0.jpg");
+        expect(status.textContent).toBe("Playing");
+        expect(elapsed.textContent).toBe("00:03 / 00:10");
+        expect(slider.value).toBe("3");
+    });
+
     it("pages thumbnails without selecting media or waiting for image load", () => {
         const panelElement = new FakePanel();
         const thumbnailStrip = new FakeElement("div");

@@ -352,6 +352,7 @@ function createMediaBrowserPanelActions({
     let currentFilterModel = {};
     let thumbnailStructureSignature = "";
     let thumbnailActiveSignature = "";
+    let panelStructuralRenderSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
     if (String(restoredPanelLayout?.layoutPresetVersion || "").trim() !== MEDIA_BROWSER_LAYOUT_PRESET_VERSION) {
         restoredPanelLayout = null;
@@ -420,6 +421,23 @@ function createMediaBrowserPanelActions({
         if (node.hidden !== nextHidden) {
             node.hidden = nextHidden;
         }
+    }
+
+    function buildPanelStructuralRenderSignature(viewModel = {}) {
+        return JSON.stringify({
+            panelTitle: viewModel.panelTitle || panelTitle,
+            mediaCountLabel: viewModel.mediaCountLabel || mediaCountLabel,
+            statusText: String(viewModel.statusText || "").trim(),
+            activeItem: viewModel.activeItem || null,
+            descriptionEmptyText: viewModel.descriptionEmptyText || "",
+            emptyText: viewModel.emptyText || "",
+            stageEmptyText: viewModel.stageEmptyText || "",
+            seedNote: viewModel.seedNote || "",
+            filterSummaryLabel: viewModel.filterSummaryLabel || "",
+            filterModel: viewModel.filterModel || null,
+            navigationModel: viewModel.navigationModel || null,
+            thumbnailItems: viewModel.thumbnailItems || [],
+        });
     }
 
     function resolveCompactTimeLabel(timeLabel) {
@@ -2238,7 +2256,7 @@ function createMediaBrowserPanelActions({
         }
     }
 
-    function render(viewModel = {}) {
+    function renderStructuralViewModel(viewModel = {}) {
         ensurePanelEventsBound();
         panelTitle = viewModel.panelTitle || panelTitle;
         mediaCountLabel = viewModel.mediaCountLabel || mediaCountLabel;
@@ -2349,7 +2367,6 @@ function createMediaBrowserPanelActions({
         setText("media-browser-filter-summary", viewModel.filterSummaryLabel || formatMediaFilterSummary(currentFilterModel));
         syncMediaFilterToggle(currentFilterModel);
         syncFilterDrawerPlacement();
-        syncMediaControls(viewModel.playbackModel || {});
         syncFilterNavigation(viewModel.navigationModel || {});
         renderThumbnailItems(viewModel.thumbnailItems || []);
         revealStageOverlaysForSignature([
@@ -2359,6 +2376,16 @@ function createMediaBrowserPanelActions({
         ].join("|"));
         syncDrilldownFlyoutPlacement();
         syncPanelRegistry();
+    }
+
+    function render(viewModel = {}) {
+        ensurePanelEventsBound();
+        const structuralSignature = buildPanelStructuralRenderSignature(viewModel);
+        if (structuralSignature !== panelStructuralRenderSignature) {
+            panelStructuralRenderSignature = structuralSignature;
+            renderStructuralViewModel(viewModel);
+        }
+        syncMediaControls(viewModel.playbackModel || {});
     }
 
     function ensurePanelEventsBound() {
