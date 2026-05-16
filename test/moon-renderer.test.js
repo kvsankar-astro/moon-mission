@@ -3,6 +3,36 @@ import * as THREE from "three";
 
 import { MoonRenderer } from "../src/platform/js/rendering/moon-renderer.js";
 
+function stubCanvasDocument() {
+    const originalDocument = globalThis.document;
+    const context2d = {
+        font: "",
+        textAlign: "",
+        textBaseline: "",
+        fillStyle: "",
+        strokeStyle: "",
+        lineWidth: 1,
+        measureText: vi.fn((text) => ({ width: String(text).length * 12 })),
+        beginPath: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        quadraticCurveTo: vi.fn(),
+        closePath: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        fillText: vi.fn(),
+    };
+    vi.stubGlobal("document", {
+        ...originalDocument,
+        createElement: vi.fn(() => ({
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => context2d),
+        })),
+    });
+    return context2d;
+}
+
 describe("MoonRenderer", () => {
     afterEach(() => {
         vi.unstubAllGlobals();
@@ -154,6 +184,171 @@ describe("MoonRenderer", () => {
         expect(material.userData.moonTerrainShadowSlopeBias).toBeCloseTo(0.0014, 4);
         expect(material.userData.moonHeightTexelSize.x).toBeCloseTo(0.5, 4);
         expect(material.userData.moonHeightTexelSize.y).toBeCloseTo(0.5, 4);
+
+        moonRenderer.dispose();
+    });
+
+    it("creates a toggleable selenographic latitude and longitude grid", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+            latLonGridVisible: true,
+        });
+
+        expect(moonRenderer.latLonGrid).toBeTruthy();
+        expect(moonRenderer.latLonGrid.name).toBe("moon-lat-lon-grid");
+        expect(moonRenderer.latLonGrid.visible).toBe(true);
+        expect(moonRenderer.latLonGrid.children).toHaveLength(3);
+        expect(moonRenderer.latLonLabels).toBeTruthy();
+        expect(moonRenderer.latLonLabels.visible).toBe(true);
+        expect(moonRenderer.latLonLabels.children.length).toBeGreaterThan(0);
+        expect(moonRenderer.container.children).toContain(moonRenderer.latLonGrid);
+        expect(moonRenderer.container.children).toContain(moonRenderer.latLonLabels);
+
+        moonRenderer.setLatLonGridVisible(false);
+        expect(moonRenderer.latLonGrid.visible).toBe(false);
+        expect(moonRenderer.latLonLabels.visible).toBe(false);
+
+        moonRenderer.setLatLonGridVisible(true);
+        moonRenderer.setLatLonLabelsVisible(false);
+        expect(moonRenderer.latLonGrid.visible).toBe(true);
+        expect(moonRenderer.latLonLabels.visible).toBe(false);
+
+        moonRenderer.dispose();
+    });
+
+    it("adapts the selenographic grid granularity from camera zoom", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+            latLonGridVisible: true,
+        });
+
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.set(0, 0, 40);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 400 },
+        });
+        expect(moonRenderer.latLonGridStepDegrees).toBe(30);
+
+        camera.position.set(0, 0, 1.2);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+        expect(moonRenderer.latLonGridStepDegrees).toBe(5);
+
+        moonRenderer.dispose();
+    });
+
+    it("moves grid labels onto visible portions of their own latitude and longitude curves", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+            latLonGridVisible: true,
+        });
+
+        const findLabel = (text) => moonRenderer.latLonLabels.children.find(
+            (label) => label.userData.labelText === text,
+        );
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+
+        camera.position.set(0, 5, 0);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+        let latitudeLabel = findLabel("30°N");
+        let longitudeLabel = findLabel("60°E");
+        expect(latitudeLabel.position.x).toBeCloseTo(0, 4);
+        expect(latitudeLabel.position.y).toBeGreaterThan(0.7);
+        expect(longitudeLabel.visible).toBe(true);
+
+        camera.position.set(5, 0, 0);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+        latitudeLabel = findLabel("30°N");
+        expect(latitudeLabel.position.x).toBeGreaterThan(0.7);
+        expect(Math.abs(latitudeLabel.position.y)).toBeLessThan(0.01);
+
+        moonRenderer.dispose();
+    });
+
+    it("keeps hover labels close and adds coordinate decimals only when zoomed in", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+            latLonHoverEnabled: true,
+        });
+
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.set(0, 0, 6);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonHoverFromPointer({
+            camera,
+            rendererDomElement: {
+                clientHeight: 800,
+                clientWidth: 800,
+                getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 800 }),
+            },
+            clientX: 400,
+            clientY: 400,
+        });
+        expect(moonRenderer.latLonHoverLabel.visible).toBe(true);
+        expect(moonRenderer.latLonHoverLabel.userData.labelText).not.toMatch(/\d+\.\d/);
+        const farSurfacePoint = moonRenderer.latLonHoverPoint.clone()
+            .normalize()
+            .multiplyScalar(moonRenderer.radius * 1.018);
+        expect(moonRenderer.latLonHoverLabel.position.distanceTo(farSurfacePoint)).toBeLessThan(0.08);
+
+        camera.position.set(0, 0, 1.2);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld(true);
+        moonRenderer.updateLatLonHoverFromPointer({
+            camera,
+            rendererDomElement: {
+                clientHeight: 800,
+                clientWidth: 800,
+                getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 800 }),
+            },
+            clientX: 430,
+            clientY: 370,
+        });
+        expect(moonRenderer.latLonHoverLabel.userData.labelText).toMatch(/\d+\.\d/);
 
         moonRenderer.dispose();
     });

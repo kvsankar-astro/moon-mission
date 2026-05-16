@@ -96,6 +96,11 @@ describe("scene view plan application", () => {
             moonSOISphere: { visible: false },
             moonHillSphere: { visible: false },
             moonOsculatingOrbitLine: { visible: false },
+            moonRenderer: {
+                setLatLonGridVisible: vi.fn(),
+                setLatLonLabelsVisible: vi.fn(),
+                setLatLonHoverEnabled: vi.fn(),
+            },
             landingOrbitLine: { visible: false },
             sceneHelpers: {
                 setBodyHalosVisible: vi.fn(),
@@ -130,6 +135,9 @@ describe("scene view plan application", () => {
                 viewPoles: true,
                 viewBodyHalos: true,
                 viewPolarAxes: true,
+                viewMoonLatLonGrid: true,
+                viewMoonLatLonLabels: false,
+                viewMoonLatLonHover: true,
                 viewMoonSOI: true,
                 viewMoonHillSphere: true,
                 viewSky: true,
@@ -194,6 +202,9 @@ describe("scene view plan application", () => {
         expect(scene.moonNorthPoleSphere.visible).toBe(true);
         expect(scene.moonSouthPoleSphere.visible).toBe(true);
         expect(scene.moonAxis.visible).toBe(true);
+        expect(scene.moonRenderer.setLatLonGridVisible).toHaveBeenCalledWith(true);
+        expect(scene.moonRenderer.setLatLonLabelsVisible).toHaveBeenCalledWith(false);
+        expect(scene.moonRenderer.setLatLonHoverEnabled).toHaveBeenCalledWith(true);
         expect(scene.moonSOISphere.visible).toBe(true);
         expect(scene.moonHillSphere.visible).toBe(true);
         expect(scene.moonOsculatingOrbitLine.visible).toBe(true);

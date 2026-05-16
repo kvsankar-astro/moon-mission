@@ -105,6 +105,9 @@ function applySceneViewPlanToScene({
         scene.moonNorthPoleSphere.visible = view.viewPoles;
         scene.moonSouthPoleSphere.visible = view.viewPoles;
         scene.moonAxis.visible = view.viewPolarAxes;
+        scene.moonRenderer?.setLatLonGridVisible?.(view.viewMoonLatLonGrid);
+        scene.moonRenderer?.setLatLonLabelsVisible?.(view.viewMoonLatLonLabels);
+        scene.moonRenderer?.setLatLonHoverEnabled?.(view.viewMoonLatLonHover);
         if (scene.moonSOISphere) {
             scene.moonSOISphere.visible = view.viewMoonSOI;
         }

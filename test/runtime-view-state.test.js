@@ -40,6 +40,9 @@ describe("runtime-view-state", () => {
         expect(state.getViewOrbit()).toBe(true);
         expect(state.getViewMoonSOI()).toBe(false);
         expect(state.getViewLunarCraters()).toBe(false);
+        expect(state.getViewMoonLatLonGrid()).toBe(false);
+        expect(state.getViewMoonLatLonLabels()).toBe(true);
+        expect(state.getViewMoonLatLonHover()).toBe(false);
         expect(state.getLunarCraterHoverLabels()).toBe(true);
         expect(state.getLunarCraterDisplayMode()).toBe("hover");
         expect(state.getLunarCraterMinDiameterKm()).toBe(80);
@@ -53,6 +56,9 @@ describe("runtime-view-state", () => {
             viewEarthClouds: false,
             viewOrbit: false,
             viewLunarCraters: true,
+            viewMoonLatLonGrid: true,
+            viewMoonLatLonLabels: false,
+            viewMoonLatLonHover: true,
             lunarCraterHoverLabels: false,
             lunarCraterDisplayMode: "always",
             lunarCraterMinDiameterKm: 40,
@@ -68,6 +74,9 @@ describe("runtime-view-state", () => {
         expect(state.getViewEarthClouds()).toBe(false);
         expect(state.getViewOrbit()).toBe(false);
         expect(state.getViewLunarCraters()).toBe(true);
+        expect(state.getViewMoonLatLonGrid()).toBe(true);
+        expect(state.getViewMoonLatLonLabels()).toBe(false);
+        expect(state.getViewMoonLatLonHover()).toBe(true);
         expect(state.getLunarCraterHoverLabels()).toBe(false);
         expect(state.getLunarCraterDisplayMode()).toBe("always");
         expect(state.getLunarCraterMinDiameterKm()).toBe(40);
@@ -85,6 +94,9 @@ describe("runtime-view-state", () => {
         state.setLunarCraterMinDiameterKm(90);
         state.setLunarCraterMaxDiameterKm(300);
         state.setViewEarthClouds(true);
+        state.setViewMoonLatLonGrid(false);
+        state.setViewMoonLatLonLabels(true);
+        state.setViewMoonLatLonHover(false);
         state.setViewFPS(false);
 
         const flags = state.getViewFlags();
@@ -95,6 +107,9 @@ describe("runtime-view-state", () => {
         expect(flags.lunarCraterMinDiameterKm).toBe(90);
         expect(flags.lunarCraterMaxDiameterKm).toBe(300);
         expect(flags.viewEquatorialPlane).toBe(true);
+        expect(flags.viewMoonLatLonGrid).toBe(false);
+        expect(flags.viewMoonLatLonLabels).toBe(true);
+        expect(flags.viewMoonLatLonHover).toBe(false);
         expect(flags.viewFPS).toBe(false);
     });
 

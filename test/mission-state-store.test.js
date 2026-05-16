@@ -67,6 +67,9 @@ function createStateCells() {
         viewOrbitDescent: createCell(false),
         viewCraters: createCell(false),
         viewLunarCraters: createCell(false),
+        viewMoonLatLonGrid: createCell(false),
+        viewMoonLatLonLabels: createCell(true),
+        viewMoonLatLonHover: createCell(false),
         lunarCraterHoverLabels: createCell(true),
         lunarCraterDisplayMode: createCell("hover"),
         lunarCraterMinDiameterKm: createCell(80),
@@ -291,6 +294,9 @@ describe("createMissionStateStore", () => {
             viewOrbitDescent: true,
             viewCraters: true,
             viewLunarCraters: true,
+            viewMoonLatLonGrid: true,
+            viewMoonLatLonLabels: false,
+            viewMoonLatLonHover: true,
             lunarCraterHoverLabels: false,
             lunarCraterDisplayMode: "always",
             lunarCraterMinDiameterKm: 40,
@@ -315,6 +321,9 @@ describe("createMissionStateStore", () => {
         expect(state.viewOrbitDescent.get()).toBe(true);
         expect(state.viewCraters.get()).toBe(true);
         expect(state.viewLunarCraters.get()).toBe(true);
+        expect(state.viewMoonLatLonGrid.get()).toBe(true);
+        expect(state.viewMoonLatLonLabels.get()).toBe(false);
+        expect(state.viewMoonLatLonHover.get()).toBe(true);
         expect(state.lunarCraterHoverLabels.get()).toBe(false);
         expect(state.lunarCraterDisplayMode.get()).toBe("always");
         expect(state.lunarCraterMinDiameterKm.get()).toBe(40);

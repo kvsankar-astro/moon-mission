@@ -52,6 +52,18 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getViewLunarCraters(),
             (value) => { runtimeViewState.setViewLunarCraters(value); },
         ),
+        viewMoonLatLonGrid: createMutableStateCell(
+            () => runtimeViewState.getViewMoonLatLonGrid(),
+            (value) => { runtimeViewState.setViewMoonLatLonGrid(value); },
+        ),
+        viewMoonLatLonLabels: createMutableStateCell(
+            () => runtimeViewState.getViewMoonLatLonLabels(),
+            (value) => { runtimeViewState.setViewMoonLatLonLabels(value); },
+        ),
+        viewMoonLatLonHover: createMutableStateCell(
+            () => runtimeViewState.getViewMoonLatLonHover(),
+            (value) => { runtimeViewState.setViewMoonLatLonHover(value); },
+        ),
         lunarCraterHoverLabels: createMutableStateCell(
             () => runtimeViewState.getLunarCraterHoverLabels(),
             (value) => { runtimeViewState.setLunarCraterHoverLabels(value); },

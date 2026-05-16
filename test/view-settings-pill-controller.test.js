@@ -67,6 +67,11 @@ function createElement(id, options = {}) {
         contains(target) {
             return target === this;
         },
+        getBoundingClientRect() {
+            return options.rect || { left: 12, top: 20, bottom: 44, width: 120 };
+        },
+        offsetWidth: options.offsetWidth || 220,
+        offsetParent: options.offsetParent || null,
         closest(selector) {
             if (selector === ".settings-option" || selector === "label") {
                 return options.closestSettingsOption || null;
@@ -108,6 +113,14 @@ function createHarness(options = {}) {
     const viewOrbitInput = createElement("view-orbit", { checked: true });
     const viewCratersInput = createElement("view-craters");
     const viewLunarCratersInput = createElement("view-lunar-craters");
+    const viewMoonLatLonGridInput = createElement("view-moon-lat-lon-grid");
+    const viewMoonLatLonLabelsInput = createElement("view-moon-lat-lon-labels", { checked: true });
+    const viewMoonLatLonHoverInput = createElement("view-moon-lat-lon-hover");
+    const lunarGridPanel = createElement("lunar-grid-controls-panel", { hidden: true });
+    const lunarGridClose = createElement("lunar-grid-close");
+    const lunarGridLinesToggle = createElement("lunar-grid-lines-toggle");
+    const lunarGridLabelsToggle = createElement("lunar-grid-labels-toggle", { checked: true });
+    const lunarGridHoverToggle = createElement("lunar-grid-hover-toggle");
     const viewMoonOrbitInput = createElement("view-moon-osculating-orbit", {
         closestSettingsOption: createElement("secondary-orbit-row"),
     });
@@ -132,6 +145,7 @@ function createHarness(options = {}) {
     const orbitPill = createElement("toggle-pill-orbit");
     const cratersPill = createElement("toggle-pill-craters");
     const lunarCratersPill = createElement("toggle-pill-lunar-craters");
+    const moonGridPill = createElement("toggle-pill-moon-grid");
     const landingPill = createElement("toggle-pill-landing");
     const moonOrbitPill = createElement("toggle-pill-moon-orbit");
     const descentPill = createElement("toggle-pill-descent");
@@ -158,6 +172,14 @@ function createHarness(options = {}) {
         ["view-orbit", viewOrbitInput],
         ["view-craters", viewCratersInput],
         ["view-lunar-craters", viewLunarCratersInput],
+        ["view-moon-lat-lon-grid", viewMoonLatLonGridInput],
+        ["view-moon-lat-lon-labels", viewMoonLatLonLabelsInput],
+        ["view-moon-lat-lon-hover", viewMoonLatLonHoverInput],
+        ["lunar-grid-controls-panel", lunarGridPanel],
+        ["lunar-grid-close", lunarGridClose],
+        ["lunar-grid-lines-toggle", lunarGridLinesToggle],
+        ["lunar-grid-labels-toggle", lunarGridLabelsToggle],
+        ["lunar-grid-hover-toggle", lunarGridHoverToggle],
         ["view-moon-osculating-orbit", viewMoonOrbitInput],
         ["view-body-halos", bodyHaloToggle],
         ["lunar-crater-controls-panel", lunarCraterPanel],
@@ -180,6 +202,7 @@ function createHarness(options = {}) {
         ["toggle-pill-orbit", orbitPill],
         ["toggle-pill-craters", cratersPill],
         ["toggle-pill-lunar-craters", lunarCratersPill],
+        ["toggle-pill-moon-grid", moonGridPill],
         ["toggle-pill-landing", landingPill],
         ["toggle-pill-moon-orbit", moonOrbitPill],
         ["toggle-pill-descent", descentPill],
@@ -297,7 +320,13 @@ function createHarness(options = {}) {
         lunarCraterPanel,
         lunarCratersPill,
         lunarCraterVisibleToggle,
+        lunarGridClose,
+        lunarGridHoverToggle,
+        lunarGridLabelsToggle,
+        lunarGridLinesToggle,
+        lunarGridPanel,
         locatorsPill,
+        moonGridPill,
         moonOrbitPill,
         observerInstances,
         orbitLabel,
@@ -310,6 +339,9 @@ function createHarness(options = {}) {
         qualityPill,
         secondaryOrbitLabel,
         viewLunarCratersInput,
+        viewMoonLatLonGridInput,
+        viewMoonLatLonHoverInput,
+        viewMoonLatLonLabelsInput,
         viewMoonOrbitInput,
         viewOrbitInput,
     };
@@ -399,6 +431,58 @@ describe("createViewSettingsPillController", function () {
 
         expect(harness.photoModePill.classList.contains("is-active")).toBe(true);
         expect(harness.photoModePill["aria-pressed"]).toBe("true");
+    });
+
+    it("opens the lunar grid panel and commits grid overlay controls", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.moonGridPill.dispatchEvent({ type: "click", target: harness.moonGridPill });
+
+        expect(harness.lunarGridPanel.hidden).toBe(false);
+        expect(harness.moonGridPill["aria-expanded"]).toBe("true");
+        expect(harness.lunarGridLabelsToggle.checked).toBe(true);
+
+        harness.lunarGridLinesToggle.checked = true;
+        harness.lunarGridLinesToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarGridLinesToggle,
+        });
+        expect(harness.controlBackend.commitViewSetting).toHaveBeenCalledWith(
+            "viewMoonLatLonGrid",
+            true,
+            { sourceId: "lunar-grid-lines-toggle" },
+        );
+        expect(harness.viewMoonLatLonGridInput.checked).toBe(true);
+        expect(harness.moonGridPill["aria-pressed"]).toBe("true");
+
+        harness.lunarGridLabelsToggle.checked = false;
+        harness.lunarGridLabelsToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarGridLabelsToggle,
+        });
+        expect(harness.controlBackend.commitViewSetting).toHaveBeenCalledWith(
+            "viewMoonLatLonLabels",
+            false,
+            { sourceId: "lunar-grid-labels-toggle" },
+        );
+        expect(harness.viewMoonLatLonLabelsInput.checked).toBe(false);
+
+        harness.lunarGridHoverToggle.checked = true;
+        harness.lunarGridHoverToggle.dispatchEvent({
+            type: "click",
+            target: harness.lunarGridHoverToggle,
+        });
+        expect(harness.controlBackend.commitViewSetting).toHaveBeenCalledWith(
+            "viewMoonLatLonHover",
+            true,
+            { sourceId: "lunar-grid-hover-toggle" },
+        );
+        expect(harness.viewMoonLatLonHoverInput.checked).toBe(true);
+
+        harness.lunarGridClose.dispatchEvent({ type: "click", target: harness.lunarGridClose });
+        expect(harness.lunarGridPanel.hidden).toBe(true);
+        expect(harness.moonGridPill["aria-expanded"]).toBe("false");
     });
 
     it("opens the crater panel and commits dense crater controls", function () {

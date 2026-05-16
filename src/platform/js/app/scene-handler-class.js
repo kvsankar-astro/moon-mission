@@ -109,15 +109,16 @@ function createSceneHandlerClass(deps) {
 
         handleLunarCraterPointerMove(event) {
             const animationScene = this.lastAnimationScene;
-            if (!animationScene?.updateLunarCraterHoverFromPointer || !animationScene.camera) {
-                return;
-            }
-            const changed = animationScene.updateLunarCraterHoverFromPointer({
+            if (!animationScene?.camera) return;
+            const pointerInput = {
                 camera: animationScene.camera,
                 rendererDomElement: this.getPointerEventTarget(),
                 clientX: event?.clientX,
                 clientY: event?.clientY,
-            });
+            };
+            const craterChanged = animationScene.updateLunarCraterHoverFromPointer?.(pointerInput) === true;
+            const moonCoordinateChanged = animationScene.updateMoonLatLonHoverFromPointer?.(pointerInput) === true;
+            const changed = craterChanged || moonCoordinateChanged;
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
             }
@@ -125,7 +126,8 @@ function createSceneHandlerClass(deps) {
 
         handleLunarCraterPointerLeave() {
             const animationScene = this.lastAnimationScene;
-            const changed = animationScene?.clearLunarCraterHover?.();
+            const changed = (animationScene?.clearLunarCraterHover?.() === true)
+                || (animationScene?.clearMoonLatLonHover?.() === true);
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
             }
@@ -258,6 +260,10 @@ function createSceneHandlerClass(deps) {
                     camera,
                     rendererDomElement: this.renderer?.domElement || null,
                     freezeScale: this.lunarCraterLabelScaleFrozen === true,
+                });
+                animationScene.updateMoonLatLonGridForCamera?.({
+                    camera,
+                    rendererDomElement: this.renderer?.domElement || null,
                 });
                 // Render sky first on its dedicated layer, then clear depth so
                 // foreground bodies fully occlude background stars.

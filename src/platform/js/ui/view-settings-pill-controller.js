@@ -177,10 +177,91 @@ export function createViewSettingsPillController(deps = {}) {
         }
     }
 
+    function getLunarGridPanelElements() {
+        return {
+            pill: getElement("toggle-pill-moon-grid"),
+            panel: getElement("lunar-grid-controls-panel"),
+            close: getElement("lunar-grid-close"),
+            gridInput: getElement("view-moon-lat-lon-grid"),
+            labelsInput: getElement("view-moon-lat-lon-labels"),
+            hoverInput: getElement("view-moon-lat-lon-hover"),
+            gridToggle: getElement("lunar-grid-lines-toggle"),
+            labelsToggle: getElement("lunar-grid-labels-toggle"),
+            hoverToggle: getElement("lunar-grid-hover-toggle"),
+        };
+    }
+
+    function positionPanelFromPill(panel, pill) {
+        if (!panel || !pill?.getBoundingClientRect || !panel?.style) return;
+        const strip = getElement("header-pill-strip") || panel.offsetParent || null;
+        const pillRect = pill.getBoundingClientRect();
+        const stripRect = strip?.getBoundingClientRect?.() || {
+            left: 0,
+            top: 0,
+            width: windowRef?.innerWidth || 0,
+        };
+        const panelWidth = panel.offsetWidth || 236;
+        const maxLeft = Math.max(8, (stripRect.width || windowRef?.innerWidth || panelWidth) - panelWidth - 8);
+        const nextLeft = Math.min(
+            Math.max(8, pillRect.left - stripRect.left),
+            maxLeft,
+        );
+        panel.style.left = `${nextLeft}px`;
+        panel.style.right = "auto";
+        panel.style.top = `${pillRect.bottom - stripRect.top + 4}px`;
+    }
+
+    function setLunarGridPanelOpen(open) {
+        const { pill, panel } = getLunarGridPanelElements();
+        if (!panel) return;
+        panel.hidden = open !== true;
+        if (open === true) {
+            positionPanelFromPill(panel, pill);
+        }
+        if (pill) {
+            pill.classList?.toggle?.("is-open", open === true);
+            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
+        }
+    }
+
+    function syncLunarGridPanelState() {
+        const {
+            pill,
+            gridInput,
+            labelsInput,
+            hoverInput,
+            gridToggle,
+            labelsToggle,
+            hoverToggle,
+        } = getLunarGridPanelElements();
+        const gridVisible = gridInput?.checked === true;
+        if (gridToggle) gridToggle.checked = gridVisible;
+        if (labelsToggle) labelsToggle.checked = labelsInput?.checked === true;
+        if (hoverToggle) hoverToggle.checked = hoverInput?.checked === true;
+        syncPressedState(pill, gridVisible);
+    }
+
+    function commitLunarGridSetting(settingKey, value, sourceId) {
+        const inputIdBySetting = {
+            viewMoonLatLonGrid: "view-moon-lat-lon-grid",
+            viewMoonLatLonLabels: "view-moon-lat-lon-labels",
+            viewMoonLatLonHover: "view-moon-lat-lon-hover",
+        };
+        const input = getElement(inputIdBySetting[settingKey]);
+        if (input) {
+            input.checked = Boolean(value);
+        }
+        controlBackend.commitViewSetting?.(settingKey, Boolean(value), { sourceId });
+        syncTogglePillVisibility();
+        syncTogglePillState();
+        syncLunarGridPanelState();
+    }
+
     function commitLunarCraterViewPatch(patch, options = {}) {
         controlBackend.commitViewPatch?.(patch, options);
         syncTogglePillVisibility();
         syncTogglePillState();
+        syncLunarGridPanelState();
         syncLunarCraterPanelState();
     }
 
@@ -371,6 +452,7 @@ export function createViewSettingsPillController(deps = {}) {
         controlBackend.commitViewSetting?.(settingKey, value, options);
         syncTogglePillVisibility();
         syncTogglePillState();
+        syncLunarGridPanelState();
         syncLunarCraterPanelState();
         syncLocatorsPillState();
     }
@@ -451,9 +533,51 @@ export function createViewSettingsPillController(deps = {}) {
                 input.addEventListener("change", function () {
                     syncTogglePillVisibility();
                     syncTogglePillState();
+                    syncLunarGridPanelState();
                     syncLocatorsPillState();
                 });
             }
+        });
+
+        const {
+            pill: lunarGridPill,
+            close: lunarGridClose,
+            gridInput: lunarGridInput,
+            labelsInput: lunarGridLabelsInput,
+            hoverInput: lunarGridHoverInput,
+            gridToggle: lunarGridToggle,
+            labelsToggle: lunarGridLabelsToggle,
+            hoverToggle: lunarGridHoverToggle,
+        } = getLunarGridPanelElements();
+        if (lunarGridPill) {
+            lunarGridPill.addEventListener("click", function (event) {
+                if (lunarGridPill.disabled || lunarGridPill.getAttribute?.("aria-disabled") === "true") return;
+                event?.stopPropagation?.();
+                setLunarGridPanelOpen(true);
+                syncLunarGridPanelState();
+            });
+        }
+        lunarGridClose?.addEventListener?.("click", function () {
+            setLunarGridPanelOpen(false);
+        });
+        [
+            [lunarGridToggle, "viewMoonLatLonGrid"],
+            [lunarGridLabelsToggle, "viewMoonLatLonLabels"],
+            [lunarGridHoverToggle, "viewMoonLatLonHover"],
+        ].forEach(([toggle, settingKey]) => {
+            toggle?.addEventListener?.("click", function (event) {
+                commitLunarGridSetting(settingKey, !!event?.target?.checked, toggle.id);
+            });
+        });
+        [
+            [lunarGridInput, "viewMoonLatLonGrid"],
+            [lunarGridLabelsInput, "viewMoonLatLonLabels"],
+            [lunarGridHoverInput, "viewMoonLatLonHover"],
+        ].forEach(([input, settingKey]) => {
+            input?.addEventListener?.("click", function (event) {
+                commitLunarGridSetting(settingKey, !!event?.target?.checked, input.id);
+            });
+            input?.addEventListener?.("change", syncLunarGridPanelState);
         });
 
         const bodyHaloToggle = getElement("view-body-halos");

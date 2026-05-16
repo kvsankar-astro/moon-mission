@@ -19,6 +19,9 @@ const VIEW_FLAG_KEYS = [
     "viewOrbitDescent",
     "viewCraters",
     "viewLunarCraters",
+    "viewMoonLatLonGrid",
+    "viewMoonLatLonLabels",
+    "viewMoonLatLonHover",
     "lunarCraterHoverLabels",
     "viewXYZAxes",
     "viewPoles",
@@ -88,6 +91,9 @@ function buildDefaultViewFlags() {
         viewOrbitDescent: true,
         viewCraters: lunarFeatureDefaults.viewCraters,
         viewLunarCraters: lunarFeatureDefaults.viewLunarCraters,
+        viewMoonLatLonGrid: false,
+        viewMoonLatLonLabels: true,
+        viewMoonLatLonHover: false,
         lunarCraterHoverLabels: lunarFeatureDefaults.lunarCraterHoverLabels,
         lunarCraterDisplayMode: lunarFeatureDefaults.lunarCraterDisplayMode,
         lunarCraterMinDiameterKm: lunarFeatureDefaults.lunarCraterMinDiameterKm,
@@ -330,6 +336,18 @@ function createRuntimeViewState({
         getViewLunarCraters: () => getEffectiveViewFlags().viewLunarCraters,
         setViewLunarCraters: (value) => {
             setPerViewFlags({ viewLunarCraters: value });
+        },
+        getViewMoonLatLonGrid: () => getEffectiveViewFlags().viewMoonLatLonGrid,
+        setViewMoonLatLonGrid: (value) => {
+            viewFlags.viewMoonLatLonGrid = Boolean(value);
+        },
+        getViewMoonLatLonLabels: () => getEffectiveViewFlags().viewMoonLatLonLabels,
+        setViewMoonLatLonLabels: (value) => {
+            viewFlags.viewMoonLatLonLabels = Boolean(value);
+        },
+        getViewMoonLatLonHover: () => getEffectiveViewFlags().viewMoonLatLonHover,
+        setViewMoonLatLonHover: (value) => {
+            viewFlags.viewMoonLatLonHover = Boolean(value);
         },
         getLunarFeatureTypeFilters: () => normalizeLunarFeatureTypeFilters(
             getEffectiveViewFlags().lunarFeatureTypeFilters,

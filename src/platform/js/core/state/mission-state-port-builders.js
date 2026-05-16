@@ -316,6 +316,9 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
             setBooleanStateIfDefined("viewCraters", view.viewCraters);
             setBooleanStateIfDefined("viewLunarCraters", view.viewLunarCraters);
+            setBooleanStateIfDefined("viewMoonLatLonGrid", view.viewMoonLatLonGrid);
+            setBooleanStateIfDefined("viewMoonLatLonLabels", view.viewMoonLatLonLabels);
+            setBooleanStateIfDefined("viewMoonLatLonHover", view.viewMoonLatLonHover);
             setBooleanStateIfDefined("lunarCraterHoverLabels", view.lunarCraterHoverLabels);
             if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
                 setState("lunarCraterDisplayMode", view.lunarCraterDisplayMode);

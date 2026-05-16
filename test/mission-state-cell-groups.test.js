@@ -18,6 +18,9 @@ describe("mission state cell groups", () => {
             viewOrbitDescent: false,
             viewCraters: false,
             viewLunarCraters: false,
+            viewMoonLatLonGrid: false,
+            viewMoonLatLonLabels: true,
+            viewMoonLatLonHover: false,
             lunarCraterHoverLabels: true,
             lunarCraterDisplayMode: "hover",
             lunarCraterMinDiameterKm: 80,
@@ -62,6 +65,12 @@ describe("mission state cell groups", () => {
             setViewCraters: (value) => { state.viewCraters = value; },
             getViewLunarCraters: () => state.viewLunarCraters,
             setViewLunarCraters: (value) => { state.viewLunarCraters = value; },
+            getViewMoonLatLonGrid: () => state.viewMoonLatLonGrid,
+            setViewMoonLatLonGrid: (value) => { state.viewMoonLatLonGrid = value; },
+            getViewMoonLatLonLabels: () => state.viewMoonLatLonLabels,
+            setViewMoonLatLonLabels: (value) => { state.viewMoonLatLonLabels = value; },
+            getViewMoonLatLonHover: () => state.viewMoonLatLonHover,
+            setViewMoonLatLonHover: (value) => { state.viewMoonLatLonHover = value; },
             getLunarCraterHoverLabels: () => state.lunarCraterHoverLabels,
             setLunarCraterHoverLabels: (value) => { state.lunarCraterHoverLabels = value; },
             getLunarCraterDisplayMode: () => state.lunarCraterDisplayMode,
@@ -124,6 +133,12 @@ describe("mission state cell groups", () => {
         expect(state.viewOrbit).toBe(false);
         cells.viewLunarCraters.set(true);
         expect(state.viewLunarCraters).toBe(true);
+        cells.viewMoonLatLonGrid.set(true);
+        expect(state.viewMoonLatLonGrid).toBe(true);
+        cells.viewMoonLatLonLabels.set(false);
+        expect(state.viewMoonLatLonLabels).toBe(false);
+        cells.viewMoonLatLonHover.set(true);
+        expect(state.viewMoonLatLonHover).toBe(true);
         cells.lunarCraterHoverLabels.set(false);
         cells.lunarCraterDisplayMode.set("always");
         cells.lunarCraterMinDiameterKm.set(40);

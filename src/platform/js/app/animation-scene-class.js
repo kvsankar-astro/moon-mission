@@ -151,6 +151,9 @@ function createAnimationSceneClass(deps) {
             this.moon = null;
             this.moonContainer = null;
             this.moonAxisRotationAngle = 0;
+            this.moonLatLonGrid = null;
+            this.moonLatLonLabels = null;
+            this.moonLatLonHoverLabel = null;
             this.moonSOISphere = null;
             this.moonHillSphere = null;
             this.moonOsculatingOrbitLine = null;
@@ -562,6 +565,18 @@ function createAnimationSceneClass(deps) {
 
         clearLunarCraterHover() {
             return lunarCraterActions.hideLunarCraterHover({ scene: this });
+        }
+
+        updateMoonLatLonGridForCamera(input) {
+            return this.moonRenderer?.updateLatLonGridForCamera?.(input) === true;
+        }
+
+        updateMoonLatLonHoverFromPointer(input) {
+            return this.moonRenderer?.updateLatLonHoverFromPointer?.(input) === true;
+        }
+
+        clearMoonLatLonHover() {
+            return this.moonRenderer?.hideLatLonHover?.() === true;
         }
 
         setPrimaryAndSecondaryBodies() {

@@ -27,6 +27,9 @@ export function createMoonActions({
     getFrameMode,
     getViewPolarAxes,
     getViewPoles,
+    getViewMoonLatLonGrid = () => false,
+    getViewMoonLatLonLabels = () => true,
+    getViewMoonLatLonHover = () => false,
     getAnimTime,
     render,
 }) {
@@ -50,7 +53,12 @@ export function createMoonActions({
         scene.moonRenderer.create(
             getViewPolarAxes(),
             getViewPoles(),
-            { deferGeneratedNormalMap: true },
+            {
+                deferGeneratedNormalMap: true,
+                latLonGridVisible: getViewMoonLatLonGrid(),
+                latLonLabelsVisible: getViewMoonLatLonLabels(),
+                latLonHoverEnabled: getViewMoonLatLonHover(),
+            },
         );
         scheduleDeferredNormalMapUpgrade(scene, render);
 
@@ -60,6 +68,9 @@ export function createMoonActions({
         scene.moonAxisVector = scene.moonRenderer.axisVector;
         scene.moonNorthPoleSphere = scene.moonRenderer.northPoleSphere;
         scene.moonSouthPoleSphere = scene.moonRenderer.southPoleSphere;
+        scene.moonLatLonGrid = scene.moonRenderer.latLonGrid;
+        scene.moonLatLonLabels = scene.moonRenderer.latLonLabels;
+        scene.moonLatLonHoverLabel = scene.moonRenderer.latLonHoverLabel;
 
         scene.addMoonSOI();
         scene.addMoonOsculatingOrbit();
@@ -98,6 +109,9 @@ export function createMoonActions({
         scene.moonAxisVector = null;
         scene.moonNorthPoleSphere = null;
         scene.moonSouthPoleSphere = null;
+        scene.moonLatLonGrid = null;
+        scene.moonLatLonLabels = null;
+        scene.moonLatLonHoverLabel = null;
         scene.moonContainer = null;
         scene.moonOsculatingOrbitLine = null;
         scene.moonMap = null;
@@ -108,4 +122,3 @@ export function createMoonActions({
 
     return { addMoon, disposeMoon };
 }
-
