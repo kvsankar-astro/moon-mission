@@ -83,6 +83,32 @@ export function createCameraActions({
         return { x: 0, y: 0, z: 0 };
     }
 
+    function resetManualCameraControls(scene, { resetCameraParameters = false } = {}) {
+        if (!scene) return false;
+        if (resetCameraParameters) {
+            scene.setCameraParameters?.(false);
+        }
+
+        const controls = scene.cameraController?.controls;
+        if (!controls?.target) return resetCameraParameters;
+
+        const manualTarget = resolveManualLookTarget(scene);
+        controls.target.set(
+            manualTarget.x,
+            manualTarget.y,
+            manualTarget.z,
+        );
+        controls.enabled = true;
+        controls.noRotate = false;
+        controls.noPan = false;
+        controls.noZoom = false;
+        scene.cameraController?._setFreeFlyEnabled?.(false);
+        scene.camera?.up?.set?.(0, 0, 1);
+        scene.camera?.lookAt?.(controls.target);
+        controls.update?.();
+        return true;
+    }
+
     function resolveFromToTargets(scene) {
         return {
             earth: scene.earthContainer ?? null,
@@ -845,21 +871,12 @@ export function createCameraActions({
             // Preserve the legacy "Camera: Default" behavior: when returning to the standard
             // manual/manual mode, reset camera parameters to a predictable default.
             if (positionMode === "manual" && lookMode === "manual") {
-                if (!preserveManualRelease) {
-                    scene.setCameraParameters(false);
-                    // Ensure TrackballControls rotates around the scene origin again.
-                    if (scene.cameraController?.controls?.target) {
-                        const manualTarget = resolveManualLookTarget(scene);
-                        scene.cameraController.controls.target.set(
-                            manualTarget.x,
-                            manualTarget.y,
-                            manualTarget.z,
-                        );
-                        scene.cameraController.controls.noRotate = false;
-                        scene.cameraController.controls.noPan = false;
-                        scene.cameraController.controls.update();
-                    }
-                }
+                // Ensure TrackballControls rotates around the free-camera target again.
+                // Follow-pill release preserves camera position, but still needs to drop the
+                // body-centered pivot/up vector that forced-look mode installed.
+                resetManualCameraControls(scene, {
+                    resetCameraParameters: !preserveManualRelease,
+                });
                 // Lift any visibility overrides when returning to free camera.
                 updateMountedBodyVisibility(scene, positionMode);
                 // Re-enable full controls for manual/manual
@@ -918,18 +935,7 @@ export function createCameraActions({
         if (positionMode === "manual" && lookMode === "manual") {
             const config = getConfig();
             const scene = animationScenes[config];
-            const controls = scene?.cameraController?.controls;
-            if (controls?.target) {
-                const manualTarget = resolveManualLookTarget(scene);
-                controls.target.set(
-                    manualTarget.x,
-                    manualTarget.y,
-                    manualTarget.z,
-                );
-                controls.noRotate = false;
-                controls.noPan = false;
-                scene.cameraController?._setFreeFlyEnabled?.(false);
-                controls.update?.();
+            if (resetManualCameraControls(scene)) {
                 render();
             }
         }

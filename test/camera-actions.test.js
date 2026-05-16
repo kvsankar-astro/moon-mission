@@ -192,6 +192,88 @@ describe("createCameraActions", () => {
         expect(scene.cameraController.mountOffset.length()).toBe(0);
     });
 
+    it("resets the Trackball pivot when releasing manual follow without snapping the camera", () => {
+        globalThis.document = createDocumentStub();
+
+        let positionMode = "manual";
+        let lookMode = "manual";
+
+        const camera = {
+            position: new Vector3(25, -10, 4),
+            fov: 50,
+            up: new Vector3(0.1, 0.4, 0.9),
+            lookAt: vi.fn(),
+            updateProjectionMatrix: vi.fn(),
+        };
+
+        const controls = {
+            target: new Vector3(100, 0, 0),
+            enabled: true,
+            noRotate: true,
+            noPan: true,
+            noZoom: true,
+            update: vi.fn(),
+            addEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        };
+
+        const controller = {
+            camera,
+            controls,
+            _freeFlyActive: false,
+            _setFreeFlyEnabled: vi.fn(),
+            updateFromTo: vi.fn(),
+            setFromToModes(nextPositionMode, nextLookMode) {
+                this.positionMode = nextPositionMode;
+                this.lookMode = nextLookMode;
+            },
+        };
+
+        const scene = {
+            initialized3D: true,
+            camera,
+            cameraController: controller,
+            defaultLookTarget: { x: 1, y: 2, z: 3 },
+            setCameraParameters: vi.fn(),
+        };
+
+        const actions = createCameraActions({
+            animationScenes: { geo: scene },
+            getConfig: () => "geo",
+            readCameraPositionMode: () => positionMode,
+            readCameraLookMode: () => lookMode,
+            applyCameraFromTo: (next) => {
+                if (typeof next?.positionMode === "string") {
+                    positionMode = next.positionMode;
+                }
+                if (typeof next?.lookMode === "string") {
+                    lookMode = next.lookMode;
+                }
+            },
+            readPlaneSelection: () => "default",
+            setPlaneSelection: vi.fn(),
+            handlePlaneChange: vi.fn(),
+            render: vi.fn(),
+            getViewSky: () => false,
+            getViewConstellationLines: () => false,
+        });
+
+        actions.changeCameraFromTo({
+            detail: { preserveManualRelease: true },
+            target: { id: "camera-pair", name: "camera-pair" },
+        });
+
+        expect(scene.setCameraParameters).not.toHaveBeenCalled();
+        expect(camera.position.toArray()).toEqual([25, -10, 4]);
+        expect(controls.target.toArray()).toEqual([1, 2, 3]);
+        expect(camera.up.toArray()).toEqual([0, 0, 1]);
+        expect(camera.lookAt).toHaveBeenCalledWith(controls.target);
+        expect(controls.noRotate).toBe(false);
+        expect(controls.noPan).toBe(false);
+        expect(controls.noZoom).toBe(false);
+        expect(controller._setFreeFlyEnabled).toHaveBeenCalledWith(false);
+    });
+
     it("ignores desktop FoV input outside semantic source-to-target views", () => {
         globalThis.document = createDocumentStub();
 
