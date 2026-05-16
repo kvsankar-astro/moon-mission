@@ -2,6 +2,8 @@
 
 Last updated: 2026-05-12
 
+> Status: working anchor ledger. Current stream-sync planning lives in [artemis2-media-workstream.md](artemis2-media-workstream.md). Time-domain vocabulary lives in [../design/architecture/time-synchronization-and-timekeeping.md](../design/architecture/time-synchronization-and-timekeeping.md).
+
 This note tracks observed anchor points between:
 
 - mission UTC

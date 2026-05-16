@@ -98,6 +98,7 @@ Current default mission behavior uses Chebyshev for major bodies.
 
 Detailed design:
 - [Chebyshev Format Spec](architecture/chebyshev-format-spec.md)
+- [Time Synchronization and Timekeeping](architecture/time-synchronization-and-timekeeping.md)
 
 ### Mission/craft model
 
@@ -148,6 +149,7 @@ Example deep dive:
 - [Relative Mode](architecture/relative-mode.md)
 - [Orbit Comparison Mode](architecture/orbit-comparison-mode.md)
 - [Chebyshev Format Spec](architecture/chebyshev-format-spec.md)
+- [Time Synchronization and Timekeeping](architecture/time-synchronization-and-timekeeping.md)
 - [Chandrayaan 1 Event Sourcing](architecture/chandrayaan1-event-sourcing.md)
 - [Target Architecture](architecture/target-architecture.md)
 

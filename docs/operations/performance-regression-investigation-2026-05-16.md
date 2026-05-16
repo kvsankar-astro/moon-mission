@@ -1,5 +1,7 @@
 # Animation Responsiveness Investigation - 2026-05-16
 
+> Status: investigation/reference. Active optimization follow-ups now live in [performance-workstream.md](performance-workstream.md), with live planning rollup in [current-plan.md](current-plan.md).
+
 ## Context
 
 Recent commits made the mission animation feel less responsive: button clicks took longer, and animation showed more jitter. The investigation focused on `/artemis2/` in local Vite and compared recent feature areas that could affect main-thread work or pointer handling.

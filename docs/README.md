@@ -17,6 +17,15 @@ Use the docs in this order when you are getting oriented:
 - Contributor workflow and repo conventions: [developer.md](developer.md)
 - System architecture and design map: [design/design.md](design/design.md)
 
+## Current Workstreams
+
+Use these for active planning and cross-document context:
+
+- Current plan and parking lot: [operations/current-plan.md](operations/current-plan.md)
+- Artemis II media, streams, transcripts, attribution, and launch work: [operations/artemis2-media-workstream.md](operations/artemis2-media-workstream.md)
+- Performance and responsiveness optimization queue: [operations/performance-workstream.md](operations/performance-workstream.md)
+- Timekeeping, UTC/TDB, mission-clock, stream, and transcript synchronization: [design/architecture/time-synchronization-and-timekeeping.md](design/architecture/time-synchronization-and-timekeeping.md)
+
 ## Guides
 
 How to work in the repo day to day:
@@ -28,11 +37,14 @@ How to work in the repo day to day:
 
 Runtime/data boundary, staging, deployment, and asset-process guidance:
 
+- Current plan and active workstreams: [operations/current-plan.md](operations/current-plan.md)
 - Repo boundary and sync workflow: [operations/repo-sync-playbook.md](operations/repo-sync-playbook.md)
 - Current mission-data operating model: [operations/mission-data-current-state.md](operations/mission-data-current-state.md)
 - Public R2 asset serving contract: [operations/r2-asset-hosting.md](operations/r2-asset-hosting.md)
 - Moon render asset provenance and maintenance: [operations/moon-render-assets.md](operations/moon-render-assets.md)
+- Artemis II media active workstream: [operations/artemis2-media-workstream.md](operations/artemis2-media-workstream.md)
 - Artemis II media asset source and maintenance notes: [operations/artemis2-media-assets.md](operations/artemis2-media-assets.md)
+- Performance active workstream: [operations/performance-workstream.md](operations/performance-workstream.md)
 - Lunar feature datasets and Artemis II map reference links: [operations/lunar-feature-and-artemis2-reference-sources.md](operations/lunar-feature-and-artemis2-reference-sources.md)
 
 ## Product Specs
@@ -52,6 +64,11 @@ Design documents stay under [design/](design/), grouped further by purpose:
 - Reference material: [design/references/](design/references/)
 
 The design hub remains [design/design.md](design/design.md).
+
+Key architecture entry points:
+
+- Runtime architecture record: [design/architecture/target-architecture.md](design/architecture/target-architecture.md)
+- Time synchronization and timekeeping: [design/architecture/time-synchronization-and-timekeeping.md](design/architecture/time-synchronization-and-timekeeping.md)
 
 ## Mission Sourcing
 

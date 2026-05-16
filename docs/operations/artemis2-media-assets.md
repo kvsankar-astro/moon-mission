@@ -2,6 +2,8 @@
 
 Last updated: 2026-05-09
 
+> Current Artemis II media workstream decisions and TODOs live in [artemis2-media-workstream.md](artemis2-media-workstream.md). This file remains the asset model, provenance, and update-workflow reference.
+
 This note documents the current Artemis II media browser asset model. Use it when updating the Mission Media panel, refreshing metadata, or deciding whether media files should be mirrored into a repo.
 
 ## Current Runtime Model
@@ -81,8 +83,11 @@ The Artemis II manifest declares:
 
 ## Open TODOs
 
+Active workstream rollup: [artemis2-media-workstream.md](artemis2-media-workstream.md).
+
 - [ ] Maintain the official long-form stream sync anchor ledger and segment-map workup.
   - See [artemis2-video-sync-anchors.md](artemis2-video-sync-anchors.md).
+  - Current planning owner: [artemis2-media-workstream.md](artemis2-media-workstream.md).
   - Current direction: use piecewise (segment-based) UTC/MET <-> video-time mapping, not one global offset.
 
 - [ ] Investigate intermittent browser warning for `55196663265_ef59978360_o.jpg` ("Image corrupt or truncated").

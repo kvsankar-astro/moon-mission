@@ -1,5 +1,7 @@
 # Artemis II Long-Form Media Stream Notes
 
+> Status: technical reference. Current decisions and next actions live in [operations/artemis2-media-workstream.md](operations/artemis2-media-workstream.md). Time mapping semantics live in [design/architecture/time-synchronization-and-timekeeping.md](design/architecture/time-synchronization-and-timekeeping.md).
+
 This branch starts the long-form Mission Media stream path with the public
 Artemis II lunar flyby broadcast.
 
