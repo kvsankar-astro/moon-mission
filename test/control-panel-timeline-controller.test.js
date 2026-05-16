@@ -84,6 +84,8 @@ function createElement({
 function createHarness({
     desktopTimeline = false,
     mediaPanelOpen = false,
+    timelineValue = "2600",
+    timelineDataset = {},
 } = {}) {
     const rootStyleValues = new Map();
     const panel = createElement({
@@ -96,7 +98,9 @@ function createHarness({
     });
     const toggleButton = createElement();
     const mediaToggleButton = createElement();
-    const slider = createElement({ value: "2600" });
+    const slider = createElement({ value: timelineValue, dataset: timelineDataset });
+    slider.min = "0";
+    slider.max = "6000";
     const markers = createElement();
     const mediaRail = createElement();
     const mediaMarkers = createElement();
@@ -236,6 +240,7 @@ function createHarness({
         rootStyleValues,
         timeouts,
         timelineDock,
+        slider,
         markers,
         mediaRail,
         mediaBrowserPanel,
@@ -406,5 +411,25 @@ describe("createControlPanelTimelineController", () => {
         expect(harness.mediaRail.hidden).toBe(true);
         expect(harness.mediaMarkers.hidden).toBe(true);
         expect(harness.timelineDock.classList.contains("timeline-dock--media-track-visible")).toBe(false);
+    });
+
+    it("uses the precise mission time, not the clamped visible slider value, when focusing events", () => {
+        const harness = createHarness({
+            timelineValue: "4900",
+            timelineDataset: {
+                currentTimeMs: "1200",
+                rangeMinMs: "0",
+                rangeMaxMs: "6000",
+            },
+        });
+        harness.timelineDock.classList.add("timeline-dock--events-collapsed");
+
+        harness.controller.setTimelineEventCarouselExpandedState(true, {
+            focusUpcoming: true,
+            wiggleCue: false,
+        });
+
+        expect(harness.eventButtons[1].scrollIntoViewOptions?.inline).toBe("center");
+        expect(harness.eventButtons[2].scrollIntoViewOptions).toBeUndefined();
     });
 });

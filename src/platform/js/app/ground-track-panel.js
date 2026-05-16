@@ -19,6 +19,10 @@ import {
 import { bringPanelElementToFront } from "./panel-z-order.js";
 import { resolveCurrentMissionKey } from "../core/domain/current-mission.js";
 import { resolveRuntimeAssetUrl } from "../core/domain/runtime-asset-url.js";
+import {
+    applyTimelineSliderMissionSeek,
+    readTimelineSliderMissionState,
+} from "../core/domain/timeline-slider-state.js";
 import { isDomElement, isDomInstance } from "../ui/dom-helpers.js";
 
 const VIEW_MODE_2D = "map2d";
@@ -976,30 +980,21 @@ function createGroundTrackPanelActions(options = {}) {
     function readMainTimelineState() {
         const slider = document.getElementById("timeline-slider");
         if (!(slider instanceof HTMLInputElement)) return null;
-        const min = Number(slider.min);
-        const max = Number(slider.max);
-        const value = Number(slider.value);
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) return null;
-        return {
-            slider,
-            min: Math.min(min, max),
-            max: Math.max(min, max),
-            value: clamp(value, Math.min(min, max), Math.max(min, max)),
-        };
+        return readTimelineSliderMissionState(slider);
     }
 
     function seekMainTimelineTime(timeMs, finalize = false) {
         const timelineState = readMainTimelineState();
         if (!timelineState) return;
-        const clamped = clamp(timeMs, timelineState.min, timelineState.max);
-        timelineState.slider.value = String(clamped);
+        const seekResult = applyTimelineSliderMissionSeek(timelineState.slider, timeMs, {
+            source: "ground-track",
+        });
+        if (!seekResult) return;
         const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
-        dataset.programmaticSeekSource = "ground-track";
-        dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(new Event("input", { bubbles: true }));
         if (finalize) {
             dataset.programmaticSeekSource = "ground-track";
-            dataset.programmaticSeekTimeMs = String(clamped);
+            dataset.programmaticSeekTimeMs = String(seekResult.timeMs);
             timelineState.slider.dispatchEvent(new Event("change", { bubbles: true }));
         }
     }

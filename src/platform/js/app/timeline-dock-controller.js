@@ -982,7 +982,10 @@ function createTimelineDockController({
         if (lastRangeSignature) {
             renderVisualTimeline();
         }
-        updateCurrentLabel(Number(slider.value));
+        const labelTimeMs = Number.isFinite(currentTimeMs)
+            ? currentTimeMs
+            : Number(slider.dataset?.currentTimeMs);
+        updateCurrentLabel(Number.isFinite(labelTimeMs) ? labelTimeMs : Number(slider.value));
     }
 
     function setRange({ startTimeMs, endTimeMs, stepMs }) {

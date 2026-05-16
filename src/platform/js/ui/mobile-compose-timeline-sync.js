@@ -4,6 +4,10 @@ import {
     resolveComposeTimelineSliderValue,
     resolveComposeTimelineTime,
 } from "../core/domain/mobile-compose-timeline-state.js";
+import {
+    applyTimelineSliderMissionSeek,
+    readTimelineSliderMissionState,
+} from "../core/domain/timeline-slider-state.js";
 
 function createMobileComposeTimelineSync(deps) {
     const {
@@ -28,42 +32,21 @@ function createMobileComposeTimelineSync(deps) {
     let activeRange = null;
 
     function readMainTimelineState() {
-        if (
-            !timelineSlider ||
-            typeof timelineSlider.value === "undefined" ||
-            typeof timelineSlider.min === "undefined" ||
-            typeof timelineSlider.max === "undefined"
-        ) {
-            return null;
-        }
-        const min = Number(timelineSlider.min);
-        const max = Number(timelineSlider.max);
-        const preciseValue = Number(timelineSlider.dataset?.currentTimeMs);
-        const value = Number.isFinite(preciseValue) ? preciseValue : Number(timelineSlider.value);
-        if (!Number.isFinite(min) || !Number.isFinite(max) || !Number.isFinite(value)) {
-            return null;
-        }
-        return {
-            slider: timelineSlider,
-            min: Math.min(min, max),
-            max: Math.max(min, max),
-            value: Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max)),
-        };
+        return readTimelineSliderMissionState(timelineSlider);
     }
 
     function seekMainTimelineTime(timeMs, finalize = false) {
         const timelineState = readMainTimelineState();
         if (!timelineState) return;
-        const clamped = Math.min(Math.max(timeMs, timelineState.min), timelineState.max);
-        timelineState.slider.value = String(clamped);
+        const seekResult = applyTimelineSliderMissionSeek(timelineState.slider, timeMs, {
+            source: "mobile-compose",
+        });
+        if (!seekResult) return;
         const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
-        dataset.currentTimeMs = String(clamped);
-        dataset.programmaticSeekSource = "mobile-compose";
-        dataset.programmaticSeekTimeMs = String(clamped);
         timelineState.slider.dispatchEvent(createInputEvent());
         if (finalize) {
             dataset.programmaticSeekSource = "mobile-compose";
-            dataset.programmaticSeekTimeMs = String(clamped);
+            dataset.programmaticSeekTimeMs = String(seekResult.timeMs);
             timelineState.slider.dispatchEvent(createChangeEvent());
         }
     }

@@ -54,6 +54,7 @@ function createMutationObserverHarness() {
 function createHarness({
     activeTab = "compose",
     timelineValue = "450",
+    timelineDataset = {},
     flybyWindow = { startMs: Number.NaN, endMs: Number.NaN },
     flybyTimeMs = 500,
 } = {}) {
@@ -66,6 +67,7 @@ function createHarness({
         max: "1000",
         value: timelineValue,
     });
+    Object.assign(timelineSlider.dataset, timelineDataset);
     const burnButtonsHost = {};
     const { MutationObserverStub, instances } = createMutationObserverHarness();
     const sync = createMobileComposeTimelineSync({
@@ -125,6 +127,32 @@ describe("createMobileComposeTimelineSync", () => {
         expect(harness.timelineSlider.dataset.currentTimeMs).toBe("550");
         expect(harness.timelineSlider.dataset.programmaticSeekTimeMs).toBe("550");
         expect(harness.timelineSlider.dispatchedEvents).toContain("change");
+    });
+
+    it("seeks from the precise mission time when the desktop timeline thumb is outside the zoomed view", () => {
+        const harness = createHarness({
+            timelineValue: "500000",
+            timelineDataset: {
+                currentTimeMs: "900000",
+                rangeMinMs: "0",
+                rangeMaxMs: "1000000",
+                viewMinMs: "400000",
+                viewMaxMs: "500000",
+            },
+            flybyTimeMs: 900000,
+        });
+        harness.timelineSlider.min = "400000";
+        harness.timelineSlider.max = "500000";
+        harness.sync.bind();
+        harness.sync.sync();
+
+        harness.mobileComposeTimelineSlider.value = "200";
+        harness.mobileComposeTimelineSlider.dispatchEvent({ type: "input" });
+
+        expect(harness.timelineSlider.value).toBe("500000");
+        expect(harness.timelineSlider.dataset.currentTimeMs).toBe("899940");
+        expect(harness.timelineSlider.dataset.programmaticSeekTimeMs).toBe("899940");
+        expect(harness.timelineSlider.dataset.programmaticSeekSource).toBe("mobile-compose");
     });
 
     it("only resyncs from the desktop timeline and burn-button observer while the compose tab is active", () => {

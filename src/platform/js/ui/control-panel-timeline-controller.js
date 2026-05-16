@@ -4,6 +4,7 @@ import {
     resolveTimelineEventCarouselPresentation,
     resolveUpcomingTimelineEventIndex,
 } from "../core/domain/control-panel-timeline-state.js";
+import { readTimelineSliderMissionState } from "../core/domain/timeline-slider-state.js";
 import { invokeMissionPanelAction } from "../app/panel-registry.js";
 
 const TIMELINE_CAROUSEL_WIGGLE_CLASS = "timeline-dock__event-carousel--wiggle";
@@ -154,9 +155,8 @@ function createControlPanelTimelineController(deps = {}) {
 
     function getTimelineCurrentTimeMs() {
         const slider = documentRef?.getElementById?.("timeline-slider");
-        if (!slider) return Number.NaN;
-        const value = Number(slider.value);
-        return Number.isFinite(value) ? value : Number.NaN;
+        const timelineState = readTimelineSliderMissionState(slider);
+        return Number.isFinite(timelineState?.value) ? timelineState.value : Number.NaN;
     }
 
     function resolveUpcomingTimelineEventButton() {
