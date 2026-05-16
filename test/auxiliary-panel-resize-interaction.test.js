@@ -143,6 +143,59 @@ describe("Auxiliary panel resize interactions", () => {
         }
     }, TEST_TIMEOUT_MS);
 
+    it("keeps the desktop transport controls clickable at 1920x1080 when Mission Media is closed", async () => {
+        const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+        const baseUrl = getEffectiveTestBaseUrl(process.cwd());
+
+        try {
+            await page.addInitScript(() => localStorage.clear());
+            await page.goto(`${baseUrl}/artemis2/`, {
+                waitUntil: "domcontentloaded",
+                timeout: 60000,
+            });
+
+            await page.waitForFunction(
+                () => document.getElementById("mission-loading-overlay")?.dataset?.blocking === "false",
+                { timeout: 30000 },
+            );
+
+            await page.waitForFunction(
+                () => document.getElementById("media-browser-panel-wrapper")?.hidden === false,
+                { timeout: 10000 },
+            );
+            await page.evaluate(() => document.getElementById("panel-pill-media")?.click());
+            await page.waitForFunction(
+                () => document.getElementById("media-browser-panel")?.classList.contains("media-browser-panel--hidden"),
+                { timeout: 10000 },
+            );
+
+            const hitTarget = await page.evaluate(() => {
+                const playButton = document.getElementById("animate");
+                const playRect = playButton?.getBoundingClientRect?.();
+                const timelineRect = document.getElementById("timeline-dock")?.getBoundingClientRect?.();
+                const controlRect = document.getElementById("control-panel")?.getBoundingClientRect?.();
+                if (!playRect || !timelineRect || !controlRect) return null;
+                const topElement = document.elementFromPoint(
+                    playRect.left + (playRect.width / 2),
+                    playRect.top + (playRect.height / 2),
+                );
+                return {
+                    topElementId: topElement?.id || "",
+                    playBottom: playRect.bottom,
+                    controlBottom: controlRect.bottom,
+                    timelineTop: timelineRect.top,
+                };
+            });
+
+            expect(hitTarget).not.toBeNull();
+            expect(hitTarget.topElementId).toBe("animate");
+            expect(hitTarget.playBottom).toBeLessThanOrEqual(hitTarget.timelineTop - 2);
+            expect(hitTarget.controlBottom).toBeLessThanOrEqual(hitTarget.timelineTop - 2);
+        } finally {
+            await page.close();
+        }
+    }, TEST_TIMEOUT_MS);
+
     it("resizes the Frame and Shoot panel through the real bottom-right corner while textures are deferred", async () => {
         const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
         const baseUrl = getEffectiveTestBaseUrl(process.cwd());

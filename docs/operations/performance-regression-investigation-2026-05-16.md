@@ -32,6 +32,20 @@ Changed files:
 
 Targeted test coverage was added for the Moon overlay to prove inactive camera updates do not rebuild or adapt the grid, while visible overlays still adapt normally.
 
+## Item 1 Fix
+
+Status: implemented after the 1920x1080 default-layout discussion.
+
+Quick viewport research supported treating 1920x1080 as the desktop default target rather than optimizing the open workflow layout around smaller 1366x768 screens:
+
+- StatCounter desktop worldwide, April 2026: 1920x1080 was the top desktop resolution at 19.2%; 1366x768 was 6.65%.
+- StatCounter desktop United States, April 2026: 1920x1080 was 22.28%; 1366x768 was 6.21%.
+- Steam Hardware Survey Windows, April 2026: 1920x1080 was 53.81%; 1366x768 was 2.31%.
+
+The 1920x1080 runtime check showed the default-open Mission Media panel clearing the Play button. However, after closing Mission Media, the collapsed timeline/default transport spacing left the timeline hit area overlapping the Play button center. This made `elementFromPoint()` return `.timeline-dock__track-wrap` rather than `#animate`.
+
+The desktop control-panel default now sits fully above the timeline dock instead of using the previous collapsed-timeline overlap. Browser coverage was added for `/artemis2/` at 1920x1080 to close Mission Media and assert the Play button remains the top hit target.
+
 ## Open Discussion Order
 
 Item 4 decision: use plain JSON in the data repo and let Cloudflare CDN handle transport compression. A direct R2/CDN deploy of `assets/lunar-features.json` was tested before app code changes:

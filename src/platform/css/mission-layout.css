@@ -3046,7 +3046,7 @@ a:hover { color: white; }
     position: fixed;
     left: var(--timeline-dock-offset);
     right: var(--timeline-dock-offset);
-    bottom: calc(var(--timeline-dock-height) + var(--timeline-dock-offset) - 18px);
+    bottom: calc(var(--timeline-dock-height) + var(--timeline-dock-offset) + 2px);
     z-index: 7;
     width: auto;
     margin: 0;
