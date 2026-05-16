@@ -57,6 +57,7 @@ function createElement(id, options = {}) {
 
 function createHarness() {
     const windowListeners = new Map();
+    let pendingTimeout = null;
     const strip = createElement("header-pill-strip");
     const toggle = createElement("header-pill-strip-toggle", { textContent: "‹" });
     const primary = createElement("header-pill-strip-primary", { scrollLeft: 12 });
@@ -93,6 +94,15 @@ function createHarness() {
         requestAnimationFrameImpl(callback) {
             callback();
         },
+        setTimeoutImpl(callback) {
+            pendingTimeout = callback;
+            return callback;
+        },
+        clearTimeoutImpl(handle) {
+            if (pendingTimeout === handle) {
+                pendingTimeout = null;
+            }
+        },
         windowRef,
     });
 
@@ -102,6 +112,14 @@ function createHarness() {
         secondary,
         setNow(value) {
             nowValue = value;
+        },
+        runPendingTimeout() {
+            const callback = pendingTimeout;
+            pendingTimeout = null;
+            callback?.();
+        },
+        hasPendingTimeout() {
+            return pendingTimeout != null;
         },
         strip,
         tertiary,
@@ -149,5 +167,35 @@ describe("createHeaderPillStripController", function () {
 
         expect(harness.controller.isEffectivelyCollapsed()).toBe(false);
         expect(harness.strip.classList.contains("header-pill-strip--collapsed")).toBe(false);
+    });
+
+    it("expands all pill groups across the strip and lingers after leaving", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.strip.dispatchEvent({ type: "pointerenter" });
+
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
+
+        harness.strip.dispatchEvent({ type: "pointerleave" });
+        expect(harness.hasPendingTimeout()).toBe(true);
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
+
+        harness.setNow(3000);
+        harness.runPendingTimeout();
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(false);
+    });
+
+    it("keeps all groups expanded when the pointer re-enters during the linger window", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.strip.dispatchEvent({ type: "pointerenter" });
+        harness.strip.dispatchEvent({ type: "pointerleave" });
+        expect(harness.hasPendingTimeout()).toBe(true);
+
+        harness.strip.dispatchEvent({ type: "pointerenter" });
+        expect(harness.hasPendingTimeout()).toBe(false);
+        expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
     });
 });

@@ -1,4 +1,5 @@
 const HEADER_PILL_AUTO_REVEAL_CLICK_GRACE_MS = 700;
+const HEADER_PILL_GROUP_EXPAND_LINGER_MS = 2400;
 
 export function createHeaderPillStripController(deps = {}) {
     const documentRef = deps.documentRef || document;
@@ -7,10 +8,19 @@ export function createHeaderPillStripController(deps = {}) {
         ? deps.requestAnimationFrameImpl
         : windowRef.requestAnimationFrame?.bind(windowRef) || ((callback) => callback());
     const nowImpl = typeof deps.nowImpl === "function" ? deps.nowImpl : () => Date.now();
+    const setTimeoutImpl = typeof deps.setTimeoutImpl === "function"
+        ? deps.setTimeoutImpl
+        : windowRef.setTimeout?.bind(windowRef) || setTimeout;
+    const clearTimeoutImpl = typeof deps.clearTimeoutImpl === "function"
+        ? deps.clearTimeoutImpl
+        : windowRef.clearTimeout?.bind(windowRef) || clearTimeout;
 
     let manualCollapsed = false;
     let autoCollapsed = false;
     let lastAutoRevealAt = 0;
+    let groupsExpanded = false;
+    let groupCollapseTimer = null;
+    let lastGroupActivityAt = 0;
     let bound = false;
 
     function resetScrollPosition() {
@@ -32,6 +42,7 @@ export function createHeaderPillStripController(deps = {}) {
         if (!strip || !toggle) return;
         const collapsed = isEffectivelyCollapsed();
         strip.classList.toggle("header-pill-strip--collapsed", collapsed);
+        strip.classList.toggle("header-pill-strip--groups-expanded", !collapsed && groupsExpanded);
         toggle.textContent = collapsed ? "›" : "‹";
         toggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
         toggle.setAttribute(
@@ -45,6 +56,43 @@ export function createHeaderPillStripController(deps = {}) {
         if (!collapsed) {
             resetScrollPosition();
         }
+    }
+
+    function clearGroupCollapseTimer() {
+        if (groupCollapseTimer == null) return;
+        clearTimeoutImpl(groupCollapseTimer);
+        groupCollapseTimer = null;
+    }
+
+    function setGroupsExpandedState(expanded) {
+        const nextExpanded = !!expanded;
+        if (groupsExpanded === nextExpanded) return;
+        groupsExpanded = nextExpanded;
+        syncUi();
+    }
+
+    function expandGroups() {
+        lastGroupActivityAt = nowImpl();
+        clearGroupCollapseTimer();
+        setGroupsExpandedState(true);
+    }
+
+    function queueGroupsCollapse(delay = HEADER_PILL_GROUP_EXPAND_LINGER_MS) {
+        clearGroupCollapseTimer();
+        groupCollapseTimer = setTimeoutImpl(() => {
+            groupCollapseTimer = null;
+            const inactiveForMs = nowImpl() - lastGroupActivityAt;
+            if (inactiveForMs < HEADER_PILL_GROUP_EXPAND_LINGER_MS) {
+                queueGroupsCollapse(HEADER_PILL_GROUP_EXPAND_LINGER_MS - inactiveForMs);
+                return;
+            }
+            setGroupsExpandedState(false);
+        }, delay);
+    }
+
+    function scheduleGroupsCollapse() {
+        lastGroupActivityAt = nowImpl();
+        queueGroupsCollapse(HEADER_PILL_GROUP_EXPAND_LINGER_MS);
     }
 
     function setManualCollapsedState(collapsed) {
@@ -72,6 +120,14 @@ export function createHeaderPillStripController(deps = {}) {
         bound = true;
 
         const toggle = documentRef.getElementById("header-pill-strip-toggle");
+        const strip = documentRef.getElementById("header-pill-strip");
+        if (strip) {
+            strip.addEventListener("pointerenter", expandGroups);
+            strip.addEventListener("pointermove", expandGroups);
+            strip.addEventListener("pointerleave", scheduleGroupsCollapse);
+            strip.addEventListener("focusin", expandGroups);
+            strip.addEventListener("focusout", scheduleGroupsCollapse);
+        }
         if (toggle) {
             toggle.addEventListener("click", function () {
                 const recentlyAutoRevealed = lastAutoRevealAt > 0 &&
@@ -93,9 +149,12 @@ export function createHeaderPillStripController(deps = {}) {
 
     return {
         bind,
+        expandGroups,
         isEffectivelyCollapsed,
         resetScrollPosition,
+        scheduleGroupsCollapse,
         setAutoCollapsedState,
+        setGroupsExpandedState,
         setManualCollapsedState,
         syncUi,
     };
