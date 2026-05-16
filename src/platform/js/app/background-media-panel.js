@@ -36,8 +36,12 @@ const TRANSPORT_SEEK_SYNC_EPSILON_SECONDS = 3;
 const STREAM_HARD_SEEK_THRESHOLD_SECONDS = 6;
 const STREAM_SOFT_CORRECTION_THRESHOLD_SECONDS = 0.75;
 const BACKGROUND_STATUS_TOAST_DURATION_MS = 3200;
+const HLS_FRAME_PREVIEW_LOAD_BUCKET_SECONDS = 4;
 
 let hlsLibraryPromise = null;
+const backgroundCandidatesCache = new WeakMap();
+const nodeAttributeCache = new WeakMap();
+const nodeClassToggleCache = new WeakMap();
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -65,12 +69,72 @@ function callMediaMethod(mediaElement, methodName) {
 
 function setText(id, text) {
     const node = getNode(id);
-    if (node) node.textContent = text;
+    if (node && node.textContent !== text) node.textContent = text;
 }
 
 function setHidden(id, hidden) {
     const node = getNode(id);
-    if (node) node.hidden = hidden === true;
+    const nextHidden = hidden === true;
+    if (node && node.hidden !== nextHidden) node.hidden = nextHidden;
+}
+
+function setNodeText(node, text) {
+    if (node && node.textContent !== text) node.textContent = text;
+}
+
+function setNodeHidden(node, hidden) {
+    const nextHidden = hidden === true;
+    if (node && node.hidden !== nextHidden) node.hidden = nextHidden;
+}
+
+function setNodeTitle(node, title) {
+    if (node && node.title !== title) node.title = title;
+}
+
+function getCachedNodeAttributes(node) {
+    if (!node) return null;
+    let attributes = nodeAttributeCache.get(node);
+    if (!attributes) {
+        attributes = new Map();
+        nodeAttributeCache.set(node, attributes);
+    }
+    return attributes;
+}
+
+function setNodeAttribute(node, name, value) {
+    if (!node || typeof node.setAttribute !== "function") return;
+    const nextValue = String(value);
+    const currentValue = typeof node.getAttribute === "function"
+        ? node.getAttribute(name)
+        : getCachedNodeAttributes(node)?.get(name);
+    if (currentValue === nextValue) return;
+    node.setAttribute(name, nextValue);
+    getCachedNodeAttributes(node)?.set(name, nextValue);
+}
+
+function setDatasetValue(node, name, value) {
+    if (!node?.dataset) return;
+    const nextValue = String(value);
+    if (node.dataset[name] !== nextValue) {
+        node.dataset[name] = nextValue;
+    }
+}
+
+function setClassToggled(node, className, enabled) {
+    if (!node?.classList?.toggle) return;
+    const nextEnabled = enabled === true;
+    let classStates = nodeClassToggleCache.get(node);
+    if (!classStates) {
+        classStates = new Map();
+        nodeClassToggleCache.set(node, classStates);
+    }
+    if (classStates.get(className) === nextEnabled) return;
+    if (typeof node.classList.contains === "function" && node.classList.contains(className) === nextEnabled) {
+        classStates.set(className, nextEnabled);
+        return;
+    }
+    node.classList.toggle(className, nextEnabled);
+    classStates.set(className, nextEnabled);
 }
 
 function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
@@ -78,11 +142,11 @@ function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
     if (!overlay) return;
     const safeSeconds = Number(seconds);
     const hasTime = Number.isFinite(safeSeconds) && safeSeconds >= 0;
-    overlay.hidden = hidden === true || !hasTime;
+    setNodeHidden(overlay, hidden === true || !hasTime);
     if (!hasTime) return;
     const label = formatStatusTime(safeSeconds);
-    overlay.textContent = label;
-    overlay.title = `Broadcast time ${label}`;
+    setNodeText(overlay, label);
+    setNodeTitle(overlay, `Broadcast time ${label}`);
 }
 
 function isLikelyHlsSource(url = "", sourceType = "") {
@@ -123,7 +187,10 @@ function resolveVideoSourceType(item) {
 }
 
 function resolveBackgroundCandidates(items = []) {
-    return (Array.isArray(items) ? items : [])
+    if (!Array.isArray(items)) return [];
+    const cached = backgroundCandidatesCache.get(items);
+    if (cached) return cached;
+    const candidates = items
         .filter(isBackgroundVideoItem)
         .sort((a, b) => {
             const priorityA = Number(a.backgroundPlayback?.priority) || 0;
@@ -131,6 +198,8 @@ function resolveBackgroundCandidates(items = []) {
             if (priorityA !== priorityB) return priorityB - priorityA;
             return Number(a.startTimeMs) - Number(b.startTimeMs);
         });
+    backgroundCandidatesCache.set(items, candidates);
+    return candidates;
 }
 
 function isItemActiveAtTime(item, timeMs) {
@@ -150,9 +219,12 @@ function isItemActiveAtTime(item, timeMs) {
 }
 
 function resolveActiveBackgroundItem(items, timeMs) {
-    const candidates = resolveBackgroundCandidates(items)
-        .filter((item) => isItemActiveAtTime(item, timeMs));
-    return candidates[0] || null;
+    return resolveActiveBackgroundCandidate(resolveBackgroundCandidates(items), timeMs);
+}
+
+function resolveActiveBackgroundCandidate(candidates, timeMs) {
+    return (Array.isArray(candidates) ? candidates : [])
+        .find((item) => isItemActiveAtTime(item, timeMs)) || null;
 }
 
 function resolveBackgroundPlaybackMode({
@@ -212,10 +284,13 @@ function resolveBackgroundPlaybackButtonState({
 }
 
 function resolveNearestInactiveBackgroundItem(items, timeMs) {
+    return resolveNearestInactiveBackgroundCandidate(resolveBackgroundCandidates(items), timeMs);
+}
+
+function resolveNearestInactiveBackgroundCandidate(candidates, timeMs) {
     const missionTimeMs = Number(timeMs);
     if (!Number.isFinite(missionTimeMs)) return null;
-    const candidates = resolveBackgroundCandidates(items);
-    const nextItems = candidates
+    const nextItems = (Array.isArray(candidates) ? candidates : [])
         .filter((item) => Number(item.startTimeMs) > missionTimeMs)
         .sort((a, b) => Number(a.startTimeMs) - Number(b.startTimeMs));
     if (nextItems.length > 0) {
@@ -225,7 +300,7 @@ function resolveNearestInactiveBackgroundItem(items, timeMs) {
             deltaMs: Number(nextItems[0].startTimeMs) - missionTimeMs,
         };
     }
-    const previousItems = candidates
+    const previousItems = (Array.isArray(candidates) ? candidates : [])
         .filter((item) => {
             const endTimeMs = resolveItemEndTimeMs(item);
             return Number.isFinite(endTimeMs) && endTimeMs < missionTimeMs;
@@ -502,6 +577,10 @@ function createBackgroundMediaPanelActions({
     let backgroundStatusToastTimerId = null;
     let lastForegroundEffect = "";
     let playRequestPending = false;
+    let lastVideoCurrentTimeWriteSeconds = Number.NaN;
+    let lastVideoCurrentTimeWriteSourceUrl = "";
+    let lastFramePreviewHlsLoadSourceUrl = "";
+    let lastFramePreviewHlsLoadBucket = Number.NaN;
     let panelResizeDragState = null;
     let storedLayoutMatchesPreset = false;
     let panelLayoutApplied = false;
@@ -551,17 +630,17 @@ function createBackgroundMediaPanelActions({
         const status = getNode("background-video-status");
         const text = getNode("background-video-status-text");
         if (!status || !text) return;
-        text.textContent = String(message || "").trim() || "Background video updated";
-        status.hidden = false;
-        status.dataset.status = "done";
-        status.classList?.toggle?.("background-video-status--hidden", false);
+        setNodeText(text, String(message || "").trim() || "Background video updated");
+        setNodeHidden(status, false);
+        setDatasetValue(status, "status", "done");
+        setClassToggled(status, "background-video-status--hidden", false);
         if (backgroundStatusToastTimerId != null) {
             getWindowRef()?.clearTimeout?.(backgroundStatusToastTimerId);
             backgroundStatusToastTimerId = null;
         }
         backgroundStatusToastTimerId = getWindowRef()?.setTimeout?.(() => {
-            status.classList?.toggle?.("background-video-status--hidden", true);
-            status.hidden = true;
+            setClassToggled(status, "background-video-status--hidden", true);
+            setNodeHidden(status, true);
             backgroundStatusToastTimerId = null;
         }, BACKGROUND_STATUS_TOAST_DURATION_MS) ?? null;
     }
@@ -596,6 +675,8 @@ function createBackgroundMediaPanelActions({
         hlsInstance = null;
         hlsSourceUrl = "";
         hlsReadySourceUrl = "";
+        lastFramePreviewHlsLoadSourceUrl = "";
+        lastFramePreviewHlsLoadBucket = Number.NaN;
     }
 
     function clearVideoSource() {
@@ -622,13 +703,15 @@ function createBackgroundMediaPanelActions({
             video.removeAttribute?.("poster");
             callMediaMethod(video, "load");
             if (video.dataset) {
-                video.dataset.mediaItemId = "";
-                video.dataset.mediaSourceUrl = "";
-                video.dataset.sourceType = "";
+                setDatasetValue(video, "mediaItemId", "");
+                setDatasetValue(video, "mediaSourceUrl", "");
+                setDatasetValue(video, "sourceType", "");
             }
         }
         playRequestPending = false;
         lastAppliedPlaybackRate = Number.NaN;
+        lastVideoCurrentTimeWriteSeconds = Number.NaN;
+        lastVideoCurrentTimeWriteSourceUrl = "";
     }
 
     function setNativeVideoSource(video, item, sourceUrl) {
@@ -639,6 +722,8 @@ function createBackgroundMediaPanelActions({
             videoSourceUrl = sourceUrl;
             video.src = sourceUrl;
             callMediaMethod(video, "load");
+            lastVideoCurrentTimeWriteSeconds = Number.NaN;
+            lastVideoCurrentTimeWriteSourceUrl = sourceUrl;
         }
         if (item.posterAssetUrl) {
             video.poster = item.posterAssetUrl;
@@ -652,6 +737,8 @@ function createBackgroundMediaPanelActions({
         const attachToken = hlsAttachToken;
         destroyHlsInstance();
         videoSourceUrl = sourceUrl;
+        lastVideoCurrentTimeWriteSeconds = Number.NaN;
+        lastVideoCurrentTimeWriteSourceUrl = sourceUrl;
         hlsReadySourceUrl = "";
         video.removeAttribute?.("src");
         if (item.posterAssetUrl) {
@@ -728,14 +815,14 @@ function createBackgroundMediaPanelActions({
             return;
         }
         activeItemId = item.id;
-        video.muted = muted;
-        video.loop = false;
+        if (video.muted !== muted) video.muted = muted;
+        if (video.loop !== false) video.loop = false;
         video.removeAttribute?.("loop");
-        video.classList.toggle("background-media-panel__video--cover", item.backgroundPlayback?.fit === "cover");
+        setClassToggled(video, "background-media-panel__video--cover", item.backgroundPlayback?.fit === "cover");
         if (video.dataset) {
-            video.dataset.mediaItemId = item.id || "";
-            video.dataset.mediaSourceUrl = sourceUrl;
-            video.dataset.sourceType = resolveVideoSourceType(item);
+            setDatasetValue(video, "mediaItemId", item.id || "");
+            setDatasetValue(video, "mediaSourceUrl", sourceUrl);
+            setDatasetValue(video, "sourceType", resolveVideoSourceType(item));
         }
         if (isLikelyHlsSource(sourceUrl, resolveVideoSourceType(item))) {
             attachHlsVideoSource(video, item, sourceUrl);
@@ -750,6 +837,8 @@ function createBackgroundMediaPanelActions({
         const video = getVideo();
         const alreadyPaused = video?.paused === true && playRequestPending !== true;
         if (stopHlsLoad === true) {
+            lastFramePreviewHlsLoadSourceUrl = "";
+            lastFramePreviewHlsLoadBucket = Number.NaN;
             try {
                 hlsInstance?.stopLoad?.();
             } catch {
@@ -764,10 +853,21 @@ function createBackgroundMediaPanelActions({
     function keepHlsLoadingForFramePreview(offsetSeconds) {
         const video = getVideo();
         if (!isLikelyHlsSource(videoSourceUrl, video?.dataset?.sourceType)) return;
+        if (typeof hlsInstance?.startLoad !== "function") return;
+        const safeOffsetSeconds = Number.isFinite(offsetSeconds)
+            ? Math.max(0, offsetSeconds)
+            : (Number(video?.currentTime) || 0);
+        const loadBucket = Math.floor(safeOffsetSeconds / HLS_FRAME_PREVIEW_LOAD_BUCKET_SECONDS);
+        if (
+            lastFramePreviewHlsLoadSourceUrl === videoSourceUrl
+            && lastFramePreviewHlsLoadBucket === loadBucket
+        ) {
+            return;
+        }
         try {
-            hlsInstance?.startLoad?.(Number.isFinite(offsetSeconds)
-                ? Math.max(0, offsetSeconds)
-                : (Number(video?.currentTime) || 0));
+            hlsInstance.startLoad(safeOffsetSeconds);
+            lastFramePreviewHlsLoadSourceUrl = videoSourceUrl;
+            lastFramePreviewHlsLoadBucket = loadBucket;
         } catch {
             // hls.js can reject loader restarts while it is attaching media.
         }
@@ -808,19 +908,30 @@ function createBackgroundMediaPanelActions({
     } = {}) {
         const video = getVideo();
         if (!video || !Number.isFinite(seconds)) return;
+        const targetSeconds = Math.max(0, seconds);
         const currentSeconds = Number(video.currentTime);
         const toleranceSeconds = transportPlayback
             ? TRANSPORT_SEEK_SYNC_EPSILON_SECONDS
             : SEEK_SYNC_EPSILON_SECONDS;
         if (
             force !== true
+            && lastVideoCurrentTimeWriteSourceUrl === videoSourceUrl
+            && Number.isFinite(lastVideoCurrentTimeWriteSeconds)
+            && Math.abs(lastVideoCurrentTimeWriteSeconds - targetSeconds) < toleranceSeconds
+        ) {
+            return;
+        }
+        if (
+            force !== true
             && Number.isFinite(currentSeconds)
-            && Math.abs(currentSeconds - seconds) < toleranceSeconds
+            && Math.abs(currentSeconds - targetSeconds) < toleranceSeconds
         ) {
             return;
         }
         try {
-            video.currentTime = Math.max(0, seconds);
+            video.currentTime = targetSeconds;
+            lastVideoCurrentTimeWriteSeconds = targetSeconds;
+            lastVideoCurrentTimeWriteSourceUrl = videoSourceUrl;
         } catch {
             // Metadata may not be loaded yet; the next update will retry.
         }
@@ -854,11 +965,11 @@ function createBackgroundMediaPanelActions({
                 playbackEnabled,
                 animationRunning: playbackTimelineRunning,
             });
-            enableButton.classList.toggle("is-active", playbackEnabled);
-            enableButton.setAttribute("aria-pressed", buttonState.pressed ? "true" : "false");
-            enableButton.textContent = buttonState.label;
-            enableButton.title = buttonState.title;
-            enableButton.setAttribute("aria-label", enableButton.title);
+            setClassToggled(enableButton, "is-active", playbackEnabled);
+            setNodeAttribute(enableButton, "aria-pressed", buttonState.pressed ? "true" : "false");
+            setNodeText(enableButton, buttonState.label);
+            setNodeTitle(enableButton, buttonState.title);
+            setNodeAttribute(enableButton, "aria-label", enableButton.title);
         }
         const muteButton = getNode("background-media-mute");
         if (muteButton) {
@@ -866,20 +977,20 @@ function createBackgroundMediaPanelActions({
             const audioStatus = mutedForForegroundMedia === true
                 ? "foreground-muted"
                 : (buttonMuted ? "muted" : "audible");
-            muteButton.textContent = "";
-            muteButton.setAttribute("aria-pressed", muted ? "true" : "false");
-            muteButton.dataset.icon = buttonMuted ? "speaker-muted" : "speaker";
-            muteButton.dataset.audioStatus = audioStatus;
-            muteButton.title = mutedForForegroundMedia === true
+            setNodeText(muteButton, "");
+            setNodeAttribute(muteButton, "aria-pressed", muted ? "true" : "false");
+            setDatasetValue(muteButton, "icon", buttonMuted ? "speaker-muted" : "speaker");
+            setDatasetValue(muteButton, "audioStatus", audioStatus);
+            setNodeTitle(muteButton, mutedForForegroundMedia === true
                 ? "Muted for foreground media"
-                : (muted ? "Unmute background video" : "Mute background video");
-            muteButton.setAttribute("aria-label", muteButton.title);
+                : (muted ? "Unmute background video" : "Mute background video"));
+            setNodeAttribute(muteButton, "aria-label", muteButton.title);
         }
         const expandButton = getNode("background-media-panel-expand");
         if (expandButton) {
-            expandButton.setAttribute("aria-pressed", expanded ? "true" : "false");
-            expandButton.dataset.icon = expanded ? "restore" : "expand";
-            expandButton.title = expanded ? "Restore" : "Expand";
+            setNodeAttribute(expandButton, "aria-pressed", expanded ? "true" : "false");
+            setDatasetValue(expandButton, "icon", expanded ? "restore" : "expand");
+            setNodeTitle(expandButton, expanded ? "Restore" : "Expand");
         }
     }
 
@@ -890,18 +1001,23 @@ function createBackgroundMediaPanelActions({
         const panel = getPanel();
         if (!wrapper || !panel) return;
         const visible = panelAvailable && panelState === "open";
-        wrapper.hidden = !visible;
-        panel.classList.toggle("background-media-panel--hidden", !visible);
-        panel.classList.toggle("is-maximized", expanded);
+        setNodeHidden(wrapper, !visible);
+        setClassToggled(panel, "background-media-panel--hidden", !visible);
+        setClassToggled(panel, "is-maximized", expanded);
         if (!visible) {
             panelLayoutApplied = false;
         }
         if (visible) {
             if (expanded) {
-                panel.style.left = `${PANEL_EDGE_MARGIN_PX}px`;
-                panel.style.top = `${PANEL_EDGE_MARGIN_PX}px`;
-                panel.style.width = `calc(100vw - ${PANEL_EDGE_MARGIN_PX * 2}px)`;
-                panel.style.height = `calc(100vh - ${PANEL_EDGE_MARGIN_PX * 2}px)`;
+                const expandedRect = {
+                    left: `${PANEL_EDGE_MARGIN_PX}px`,
+                    top: `${PANEL_EDGE_MARGIN_PX}px`,
+                    width: `calc(100vw - ${PANEL_EDGE_MARGIN_PX * 2}px)`,
+                    height: `calc(100vh - ${PANEL_EDGE_MARGIN_PX * 2}px)`,
+                };
+                for (const [name, value] of Object.entries(expandedRect)) {
+                    if (panel.style[name] !== value) panel.style[name] = value;
+                }
             } else if (dragState == null && (forceLayout === true || panelLayoutApplied !== true)) {
                 const saved = readMissionPanelState(BACKGROUND_MEDIA_PANEL_ID);
                 const useSavedRect = storedLayoutMatchesPreset === true && saved?.rect;
@@ -1139,7 +1255,7 @@ function createBackgroundMediaPanelActions({
 
     function setControlsHidden(hidden) {
         const controls = getNode("background-media-controls");
-        if (controls) controls.hidden = hidden === true;
+        setNodeHidden(controls, hidden === true);
     }
 
     function openPanel() {
@@ -1199,7 +1315,7 @@ function createBackgroundMediaPanelActions({
         effectiveAudioMuted = muted;
         mutedForForegroundMedia = false;
         const video = getVideo();
-        if (video) video.muted = muted;
+        if (video && video.muted !== muted) video.muted = muted;
         persistState();
         syncButtons();
         render(lastRenderModel);
@@ -1283,7 +1399,7 @@ function createBackgroundMediaPanelActions({
     }
 
     function renderOutOfRangeState(candidates, timeMs) {
-        const nearest = resolveNearestInactiveBackgroundItem(candidates, timeMs);
+        const nearest = resolveNearestInactiveBackgroundCandidate(candidates, timeMs);
         if (!nearest?.item) {
             renderEmptyState(["No background video at this mission time."]);
             setText("background-media-title", candidates.length > 0 ? "No background video in range" : "No background videos configured");
@@ -1420,7 +1536,7 @@ function createBackgroundMediaPanelActions({
             foregroundMediaState,
         };
         const candidates = resolveBackgroundCandidates(items);
-        const activeItem = resolveActiveBackgroundItem(candidates, timeMs);
+        const activeItem = resolveActiveBackgroundCandidate(candidates, timeMs);
         const available = panelAvailable && candidates.length > 0;
         playbackTimelineRunning = playbackEnabled === true && animationRunning === true;
         if (!available || !activeItem) {
@@ -1470,7 +1586,7 @@ function createBackgroundMediaPanelActions({
                 }
                 effectiveAudioMuted = muted;
                 mutedForForegroundMedia = false;
-                if (video) video.muted = muted;
+                if (video && video.muted !== muted) video.muted = muted;
                 pauseVideo();
                 lastPlaybackMode = playbackMode;
                 setHidden("background-media-live", true);
@@ -1533,7 +1649,7 @@ function createBackgroundMediaPanelActions({
         const effectiveMuted = muted || playbackMode === "muted-for-foreground";
         effectiveAudioMuted = effectiveMuted;
         mutedForForegroundMedia = playbackMode === "muted-for-foreground";
-        if (video) video.muted = effectiveMuted;
+        if (video && video.muted !== effectiveMuted) video.muted = effectiveMuted;
 
         if (!useTransportPlayback && (playbackMode === "playing" || playbackMode === "muted-for-foreground")) {
             pauseVideo({ stopHlsLoad: false });

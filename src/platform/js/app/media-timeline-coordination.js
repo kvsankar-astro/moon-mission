@@ -597,6 +597,14 @@ function createMediaTimelineCoordination({
     };
     let lastFrameScrubRealtimeMs = 0;
     let lastFrameScrubMode = null;
+    let lastPanelMissionContextSignature = "";
+    let lastBackgroundMissionContextSignature = "";
+    let filteredCollectionsCache = null;
+    let timelineMarkersCache = null;
+    let lastAppliedTimelineMediaMarkers = null;
+    let lastPanelRenderSignature = "";
+    const objectSignatureIds = new WeakMap();
+    let nextObjectSignatureId = 1;
     let timelineUserSeekState = {
         active: false,
         animationWasRunning: false,
@@ -684,6 +692,132 @@ function createMediaTimelineCoordination({
 
     function findCurrentManifestItemById(itemId) {
         return findManifestMediaItemById(runtimeMediaState.getManifest(), itemId);
+    }
+
+    function stableJson(value) {
+        try {
+            return JSON.stringify(value ?? null);
+        } catch {
+            return String(value ?? "");
+        }
+    }
+
+    function getObjectSignatureId(value) {
+        if (!value || typeof value !== "object") return "";
+        let id = objectSignatureIds.get(value);
+        if (!id) {
+            id = nextObjectSignatureId;
+            nextObjectSignatureId += 1;
+            objectSignatureIds.set(value, id);
+        }
+        return id;
+    }
+
+    function buildPanelMissionContextSignature({
+        globalConfig,
+        available,
+        title,
+        nextMissionLabel,
+        mediaCount,
+    } = {}) {
+        return stableJson({
+            configId: getObjectSignatureId(globalConfig),
+            mission: globalConfig?.mission_name_short || globalConfig?.mission_name || "",
+            available: available === true,
+            title,
+            nextMissionLabel,
+            mediaCount,
+        });
+    }
+
+    function applyPanelMissionContext(context = {}) {
+        const signature = buildPanelMissionContextSignature(context);
+        if (signature === lastPanelMissionContextSignature) return;
+        lastPanelMissionContextSignature = signature;
+        panelActions.setMissionContext(context);
+    }
+
+    function applyBackgroundMissionContext(context = {}) {
+        const signature = stableJson({
+            configId: getObjectSignatureId(context.configData),
+            mission: context.configData?.mission_name_short || context.configData?.mission_name || "",
+            available: context.available === true,
+        });
+        if (signature === lastBackgroundMissionContextSignature) return;
+        lastBackgroundMissionContextSignature = signature;
+        backgroundPanelActions.setMissionContext(context);
+    }
+
+    function getFilteredMediaCollections(manifest, filters) {
+        const mediaItems = Array.isArray(manifest?.mediaItems) ? manifest.mediaItems : [];
+        const audioItems = Array.isArray(manifest?.audioItems) ? manifest.audioItems : [];
+        const filterSignature = stableJson(filters);
+        if (
+            filteredCollectionsCache
+            && filteredCollectionsCache.mediaItems === mediaItems
+            && filteredCollectionsCache.audioItems === audioItems
+            && filteredCollectionsCache.filterSignature === filterSignature
+        ) {
+            return filteredCollectionsCache;
+        }
+
+        const filteredItems = filterMediaItems(mediaItems, filters);
+        const filteredAudioItems = filterMediaItems(audioItems, filters);
+        const filteredSelectableItems = buildSelectableMediaItems(filteredItems, filteredAudioItems);
+        const selectableItems = buildTimelineMarkerItems(filteredItems, filteredAudioItems);
+        const filterModel = buildMediaFilterModel(
+            buildSelectableMediaItems(mediaItems, audioItems),
+            filters,
+        );
+        filteredCollectionsCache = {
+            mediaItems,
+            audioItems,
+            filterSignature,
+            filteredItems,
+            filteredAudioItems,
+            filteredSelectableItems,
+            selectableItems,
+            filterModel,
+        };
+        return filteredCollectionsCache;
+    }
+
+    function getTimelineMediaMarkers({
+        items,
+        selectedId,
+        rangeStartMs,
+        rangeEndMs,
+        timeMs,
+    }) {
+        if (
+            timelineMarkersCache
+            && timelineMarkersCache.items === items
+            && timelineMarkersCache.selectedId === selectedId
+            && timelineMarkersCache.rangeStartMs === rangeStartMs
+            && timelineMarkersCache.rangeEndMs === rangeEndMs
+        ) {
+            return timelineMarkersCache.markers;
+        }
+        const markers = buildMediaTimelineMarkers({
+            items,
+            timeMs,
+            rangeStartMs,
+            rangeEndMs,
+        });
+        timelineMarkersCache = {
+            items,
+            selectedId,
+            rangeStartMs,
+            rangeEndMs,
+            markers,
+        };
+        return markers;
+    }
+
+    function applyTimelineMediaMarkers(markers) {
+        if (markers === lastAppliedTimelineMediaMarkers) return;
+        lastAppliedTimelineMediaMarkers = markers;
+        setTimelineMediaMarkers(markers);
     }
 
     function applyMeasuredPlayableDurationSeconds(itemId, durationSeconds) {
@@ -2870,12 +3004,9 @@ function createMediaTimelineCoordination({
         selectionItems,
         selection,
         timeMs,
+        filterModel,
     }) {
         const activeItem = selection.activeItem;
-        const filterModel = buildMediaFilterModel(
-            buildSelectableMediaItems(manifest.mediaItems, manifest.audioItems || [], manifest.mediaStreams || []),
-            runtimeMediaState.getFilters(),
-        );
         const seedNote = String(manifest?.ui?.seedNote || "").trim();
         const navigationModel = buildMediaNavigationModel(selectionItems, selection);
         thumbnailWindowStartIndex = resolveThumbnailWindowStart(
@@ -3011,6 +3142,60 @@ function createMediaTimelineCoordination({
         };
     }
 
+    function buildPanelRenderSignature({
+        manifest,
+        filteredCollections,
+        selection,
+        timeMs,
+    }) {
+        const activeItem = selection?.activeItem || null;
+        const playbackItem = findCurrentManifestItemById(mediaPlaybackState.itemId);
+        const playable = isForegroundPlayableMediaItem(activeItem);
+        const durationSeconds = playable ? resolvePlayableDurationSeconds(activeItem) : Number.NaN;
+        const elapsedSeconds = playable && activeItem
+            ? (activeItem.id === mediaPlaybackState.itemId
+                ? Number(mediaPlaybackState.currentTimeSeconds) || 0
+                : resolvePlaybackOffsetSeconds(activeItem, timeMs, false))
+            : 0;
+        return stableJson({
+            title: manifest?.ui?.panelTitle || manifest?.title || "",
+            count: filteredCollections?.filteredSelectableItems?.length || 0,
+            filters: filteredCollections?.filterSignature || "",
+            thumbnailStart: thumbnailWindowStartIndex,
+            activeId: activeItem?.id || "",
+            focusSource: selection?.focusSource || "",
+            explicit: selection?.explicit === true,
+            deltaSecond: Math.round((Number(selection?.activeDeltaMs) || 0) / 1000),
+            playbackItemId: mediaPlaybackState.itemId || "",
+            playbackKind: mediaPlaybackState.kind || "",
+            playbackActive: mediaPlaybackState.active === true,
+            playbackPlaying: mediaPlaybackState.playing === true,
+            playbackBuffering: mediaPlaybackState.buffering === true,
+            playbackAuthority,
+            playbackFocusId: playbackItem?.id || "",
+            muted: missionMediaMuted === true,
+            animationRunning: getAnimationRunning() === true,
+            frameScrubMode: isFrameScrubMode() === true,
+            elapsedQuarterSecond: Math.round(elapsedSeconds * 4),
+            durationSeconds: Number.isFinite(durationSeconds) ? Math.round(durationSeconds * 4) / 4 : "",
+            rate: formatSyncRateLabel(getAnimationRateContext()),
+        });
+    }
+
+    function renderPanelIfChanged(renderContext) {
+        const signature = buildPanelRenderSignature(renderContext);
+        if (signature === lastPanelRenderSignature) return;
+        lastPanelRenderSignature = signature;
+        panelActions.render(buildPanelViewModel({
+            manifest: renderContext.manifest,
+            items: renderContext.filteredCollections.filteredSelectableItems,
+            selectionItems: renderContext.filteredCollections.selectableItems,
+            selection: renderContext.selection,
+            timeMs: renderContext.timeMs,
+            filterModel: renderContext.filteredCollections.filterModel,
+        }));
+    }
+
     function clearUi(globalConfig, {
         statusText = "No media manifest is available for this mission yet.",
     } = {}) {
@@ -3019,15 +3204,15 @@ function createMediaTimelineCoordination({
         releaseTimelineEventBinding();
         releaseAnimationPlayStateBinding();
         stopPlayableMedia({ pauseClock: isMediaPlaybackBusy() });
-        setTimelineMediaMarkers([]);
-        panelActions.setMissionContext({
+        applyTimelineMediaMarkers([]);
+        applyPanelMissionContext({
             configData: globalConfig,
             available: false,
             title: "Mission Media",
             nextMissionLabel: String(globalConfig?.mission_name_short || globalConfig?.mission_name || "Current mission").trim(),
             mediaCount: 0,
         });
-        backgroundPanelActions.setMissionContext({
+        applyBackgroundMissionContext({
             configData: globalConfig,
             available: false,
         });
@@ -3046,6 +3231,7 @@ function createMediaTimelineCoordination({
             filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()),
             thumbnailItems: [],
         });
+        lastPanelRenderSignature = "";
     }
 
     function update(context = {}) {
@@ -3086,7 +3272,7 @@ function createMediaTimelineCoordination({
             ? manifest.mediaItems
             : [];
         const backgroundAvailable = resolveBackgroundCandidates(backgroundItems).length > 0;
-        panelActions.setMissionContext({
+        applyPanelMissionContext({
             configData: globalConfig,
             available,
             title: String(manifest?.ui?.panelTitle || manifest?.title || "Mission Media").trim(),
@@ -3094,13 +3280,13 @@ function createMediaTimelineCoordination({
             mediaCount: (Array.isArray(manifest?.mediaItems) ? manifest.mediaItems.length : 0)
                 + (Array.isArray(manifest?.audioItems) ? manifest.audioItems.length : 0),
         });
-        backgroundPanelActions.setMissionContext({
+        applyBackgroundMissionContext({
             configData: globalConfig,
             available: available && backgroundAvailable,
         });
 
         if (loadState === "loading" || (loadState === "idle" && !manifest)) {
-            setTimelineMediaMarkers([]);
+            applyTimelineMediaMarkers([]);
             panelActions.render({
                 panelTitle: "Mission Media",
                 mediaCountLabel: "--",
@@ -3110,6 +3296,7 @@ function createMediaTimelineCoordination({
                 filterModel: buildMediaFilterModel([], runtimeMediaState.getFilters()),
                 thumbnailItems: [],
             });
+            lastPanelRenderSignature = "";
             return;
         }
 
@@ -3122,14 +3309,18 @@ function createMediaTimelineCoordination({
         const timelineStartMs = Number.isFinite(getStartTime()) ? getStartTime() : Number.NaN;
         const timelineEndMs = Number.isFinite(getLatestEndTime()) ? getLatestEndTime() : Number.NaN;
         const filters = runtimeMediaState.getFilters();
-        const filteredItems = filterMediaItems(manifest.mediaItems, filters);
-        const filteredAudioItems = filterMediaItems(manifest.audioItems || [], filters);
-        const filteredSelectableItems = buildSelectableMediaItems(filteredItems, filteredAudioItems);
-        const selectableItems = buildTimelineMarkerItems(
+        const filteredCollections = getFilteredMediaCollections(manifest, filters);
+        const {
             filteredItems,
             filteredAudioItems,
-        );
+            filteredSelectableItems,
+            selectableItems,
+        } = filteredCollections;
         const selection = buildCurrentMediaFocusState(selectableItems, timeMs);
+        const nearestMarkerIndex = resolveNearestMediaIndex(selectableItems, timeMs);
+        const selectedMarkerId = nearestMarkerIndex >= 0
+            ? selectableItems[nearestMarkerIndex]?.id || ""
+            : "";
         ensurePlayableDurationProbe(selection.activeItem);
         syncPlaybackModeTransition(selection.activeItem, timeMs);
         syncFrameScrubPreview(selection.activeItem, timeMs);
@@ -3148,20 +3339,26 @@ function createMediaTimelineCoordination({
             foregroundMediaState: buildForegroundMediaState(),
         });
 
-        setTimelineMediaMarkers(buildMediaTimelineMarkers({
+        applyTimelineMediaMarkers(getTimelineMediaMarkers({
             items: selectableItems,
+            selectedId: selectedMarkerId,
             timeMs,
             rangeStartMs: timelineStartMs,
             rangeEndMs: timelineEndMs,
         }));
 
-        panelActions.render(buildPanelViewModel({
+        renderPanelIfChanged({
             manifest,
-            items: filteredSelectableItems,
-            selectionItems: selectableItems,
+            filteredCollections: {
+                ...filteredCollections,
+                filteredItems,
+                filteredAudioItems,
+                filteredSelectableItems,
+                selectableItems,
+            },
             selection,
             timeMs,
-        }));
+        });
     }
 
     function dispose() {
@@ -3175,7 +3372,7 @@ function createMediaTimelineCoordination({
             animationRunning: false,
             foregroundMediaState: buildForegroundMediaState(),
         });
-        setTimelineMediaMarkers([]);
+        applyTimelineMediaMarkers([]);
     }
 
     return {

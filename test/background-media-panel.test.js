@@ -170,6 +170,24 @@ describe("background media panel helpers", () => {
         expect(resolveActiveBackgroundItem(items, timeMs)?.id).toBe("high-priority");
     });
 
+    it("reuses resolved background candidates for the same items reference", () => {
+        const timeMs = Date.parse("2026-04-06T18:00:00Z");
+        const items = [{
+            id: "broadcast",
+            kind: "videoClip",
+            playbackRoles: ["background"],
+            assetUrl: "broadcast.mp4",
+            startTimeMs: timeMs - 1000,
+            endTimeMs: timeMs + 1000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+        }];
+
+        const firstCandidates = resolveBackgroundCandidates(items);
+        expect(resolveBackgroundCandidates(items)).toBe(firstCandidates);
+    });
+
     it("ignores background videos outside their authored time range", () => {
         const timeMs = Date.parse("2026-04-06T18:00:00Z");
         const items = [
@@ -698,6 +716,49 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-media-status").textContent).toContain("Frame preview");
     });
 
+    it("does not rewrite unchanged broadcast button attributes on repeated renders", () => {
+        const { nodes } = installBackgroundPanelDom({ currentTime: 45, paused: true });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => false,
+            getAnimationSpeedMultiplier: () => 60,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        const item = {
+            id: "broadcast",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+        };
+        const renderModel = {
+            items: [item],
+            timeMs: startTimeMs + 45000,
+            animationRunning: true,
+        };
+        actions.render(renderModel);
+
+        const enableButton = nodes.get("background-media-enable");
+        const muteButton = nodes.get("background-media-mute");
+        const expandButton = nodes.get("background-media-panel-expand");
+        enableButton.setAttribute.mockClear();
+        muteButton.setAttribute.mockClear();
+        expandButton.setAttribute.mockClear();
+
+        actions.render(renderModel);
+
+        expect(enableButton.setAttribute).not.toHaveBeenCalled();
+        expect(muteButton.setAttribute).not.toHaveBeenCalled();
+        expect(expandButton.setAttribute).not.toHaveBeenCalled();
+    });
+
     it("keeps HLS loading while frame-previewing at high animation speeds", async () => {
         const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
         const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
@@ -763,6 +824,21 @@ describe("background media panel helpers", () => {
         expect(hlsInstance.startLoad).toHaveBeenCalledWith(45);
         expect(nodes.get("background-media-status").textContent).toContain("Frame preview");
 
+        hlsInstance.startLoad.mockClear();
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 46000,
+            animationRunning: true,
+        });
+        expect(hlsInstance.startLoad).not.toHaveBeenCalled();
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 49000,
+            animationRunning: true,
+        });
+        expect(hlsInstance.startLoad).toHaveBeenCalledWith(49);
+
         hlsInstance.stopLoad.mockClear();
         actions.render({
             items: [item],
@@ -773,6 +849,14 @@ describe("background media panel helpers", () => {
         expect(video.dataset.mediaSourceUrl).toBe("broadcast.m3u8");
         expect(hlsInstance.stopLoad).toHaveBeenCalledTimes(1);
         expect(nodes.get("background-media-status").textContent).toContain("Paused");
+
+        hlsInstance.startLoad.mockClear();
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 46000,
+            animationRunning: true,
+        });
+        expect(hlsInstance.startLoad).toHaveBeenCalledWith(46);
     });
 
     it("binds broadcast dragging even when the first setup runs before panel DOM exists", () => {

@@ -405,12 +405,20 @@ function createMediaBrowserPanelActions({
 
     function setText(id, value) {
         const node = getNode(id);
-        if (node) node.textContent = value;
+        if (!node) return;
+        const nextValue = String(value ?? "");
+        if (node.textContent !== nextValue) {
+            node.textContent = nextValue;
+        }
     }
 
     function setHidden(id, hidden) {
         const node = getNode(id);
-        if (node) node.hidden = !!hidden;
+        if (!node) return;
+        const nextHidden = !!hidden;
+        if (node.hidden !== nextHidden) {
+            node.hidden = nextHidden;
+        }
     }
 
     function resolveCompactTimeLabel(timeLabel) {
@@ -1918,7 +1926,9 @@ function createMediaBrowserPanelActions({
         if (!host) return;
         const nextSignature = JSON.stringify(thumbnailItems || []);
             if (nextSignature === thumbnailSignature) {
-                syncThumbnailPageButtons();
+                if (thumbnailPagingTargetScrollLeft != null) {
+                    syncThumbnailPageButtons();
+                }
                 return;
             }
         thumbnailSignature = nextSignature;

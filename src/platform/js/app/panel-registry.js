@@ -44,6 +44,28 @@ function sortSnapshotEntries(entries) {
     });
 }
 
+function snapshotValuesEqual(a, b) {
+    if (Object.is(a, b)) {
+        return true;
+    }
+    if (typeof a !== typeof b || !a || !b || typeof a !== "object") {
+        return false;
+    }
+    if (Array.isArray(a) || Array.isArray(b)) {
+        if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+            return false;
+        }
+        return a.every((value, index) => snapshotValuesEqual(value, b[index]));
+    }
+    const aKeys = Object.keys(a).sort();
+    const bKeys = Object.keys(b).sort();
+    if (aKeys.length !== bKeys.length) {
+        return false;
+    }
+    return aKeys.every((key, index) =>
+        key === bKeys[index] && snapshotValuesEqual(a[key], b[key]));
+}
+
 function emitPanelRegistryChange() {
     const snapshot = sortSnapshotEntries(
         Array.from(panelEntries.values())
@@ -77,8 +99,12 @@ function registerMissionPanel(descriptor) {
         throw new Error("registerMissionPanel requires a non-empty id");
     }
     const previous = panelEntries.get(id) || null;
-    panelEntries.set(id, normalizePanelEntry(id, descriptor, previous));
-    emitPanelRegistryChange();
+    const previousSnapshot = getMissionPanelSnapshot();
+    const nextEntry = normalizePanelEntry(id, descriptor, previous);
+    panelEntries.set(id, nextEntry);
+    if (!snapshotValuesEqual(previousSnapshot, getMissionPanelSnapshot())) {
+        emitPanelRegistryChange();
+    }
     return id;
 }
 
@@ -91,8 +117,12 @@ function updateMissionPanel(id, patch) {
     if (!previous) {
         return registerMissionPanel({ id: key, ...patch });
     }
-    panelEntries.set(key, normalizePanelEntry(key, patch, previous));
-    emitPanelRegistryChange();
+    const previousSnapshot = getMissionPanelSnapshot();
+    const nextEntry = normalizePanelEntry(key, patch, previous);
+    panelEntries.set(key, nextEntry);
+    if (!snapshotValuesEqual(previousSnapshot, getMissionPanelSnapshot())) {
+        emitPanelRegistryChange();
+    }
     return key;
 }
 

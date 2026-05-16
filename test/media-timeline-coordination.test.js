@@ -227,6 +227,49 @@ describe("createMediaTimelineCoordination", () => {
         }));
     });
 
+    it("skips unchanged panel context, panel render, and media marker updates on repeated animation ticks", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaItems: [
+                {
+                    id: "crew-photo",
+                    title: "Crew Photo",
+                    kind: "image",
+                    assetUrl: "../media/crew.jpg",
+                    thumbnailAssetUrl: "../media/thumbs/crew.jpg",
+                    startTime: "2026-04-06T16:58:14Z",
+                    sourceLabel: "NASA",
+                },
+            ],
+        });
+        const setTimelineMediaMarkers = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            getStartTime: () => Date.parse("2026-04-01T00:00:00Z"),
+            getLatestEndTime: () => Date.parse("2026-04-08T00:00:00Z"),
+            setTimelineMediaMarkers,
+        });
+        const context = {
+            globalConfig: createMissionConfig({ mediaEnabled: true }),
+            animTime: Date.parse("2026-04-06T16:58:14Z"),
+        };
+
+        coordination.update(context);
+        await flushPromises(8);
+        mocks.panelSetMissionContext.mockClear();
+        mocks.panelRender.mockClear();
+        setTimelineMediaMarkers.mockClear();
+
+        coordination.update(context);
+
+        expect(mocks.panelSetMissionContext).not.toHaveBeenCalled();
+        expect(mocks.panelRender).not.toHaveBeenCalled();
+        expect(setTimelineMediaMarkers).not.toHaveBeenCalled();
+    });
+
     it("does not start a background-role stream in the foreground Mission Media player", async () => {
         class FakeInput {}
         const slider = new FakeInput();
