@@ -1957,11 +1957,83 @@ button, input, textarea, select, a, [role="button"], [onclick] {
     max-width: calc(100vw - 16px);
     max-height: calc(100vh - 16px);
     pointer-events: all;
-    resize: both;
+    resize: none;
+    overflow: hidden;
 }
 
 .background-media-panel--hidden {
     display: none;
+}
+
+.background-media-panel__resize-grip {
+    position: absolute;
+    z-index: 8;
+    width: 30px;
+    height: 30px;
+    touch-action: none;
+}
+
+.background-media-panel__resize-grip--nw {
+    left: 0;
+    top: 0;
+    cursor: nwse-resize;
+}
+
+.background-media-panel__resize-grip--ne {
+    right: 0;
+    top: 0;
+    cursor: nesw-resize;
+}
+
+.background-media-panel__resize-grip--sw {
+    left: 0;
+    bottom: 0;
+    cursor: nesw-resize;
+}
+
+.background-media-panel__resize-grip--se {
+    right: 0;
+    bottom: 0;
+    cursor: nwse-resize;
+}
+
+.background-media-panel__resize-grip::before {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+}
+
+.background-media-panel__resize-grip--nw::before {
+    left: 6px;
+    top: 6px;
+    border-left: 1px solid rgba(173, 208, 255, 0.74);
+    border-top: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: -4px -4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.background-media-panel__resize-grip--ne::before {
+    right: 6px;
+    top: 6px;
+    border-right: 1px solid rgba(173, 208, 255, 0.74);
+    border-top: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: 4px -4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.background-media-panel__resize-grip--sw::before {
+    left: 6px;
+    bottom: 6px;
+    border-left: 1px solid rgba(173, 208, 255, 0.74);
+    border-bottom: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: -4px 4px 0 -3px rgba(173, 208, 255, 0.46);
+}
+
+.background-media-panel__resize-grip--se::before {
+    right: 6px;
+    bottom: 6px;
+    border-right: 1px solid rgba(173, 208, 255, 0.74);
+    border-bottom: 1px solid rgba(173, 208, 255, 0.74);
+    box-shadow: 4px 4px 0 -3px rgba(173, 208, 255, 0.46);
 }
 
 .background-media-panel__header {

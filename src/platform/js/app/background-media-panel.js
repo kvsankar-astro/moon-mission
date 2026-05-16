@@ -19,7 +19,7 @@ import {
 import { buildMediaStreamSyncPlan } from "../core/domain/media-stream-sync.js";
 
 const BACKGROUND_MEDIA_PANEL_ID = "workflow:background-media";
-const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v8-compact-header-clearance";
+const BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION = "background-media-v9-shell-resize-controls";
 const PANEL_EDGE_MARGIN_PX = 8;
 const PANEL_STACK_LEFT_PX = 32;
 const PANEL_STACK_TOP_FALLBACK_PX = 36;
@@ -29,6 +29,7 @@ const DEFAULT_PANEL_HEADER_HEIGHT_PX = 31;
 const DEFAULT_MEDIA_PANEL_HEIGHT_RESERVE_PX = 260;
 const MIN_PANEL_WIDTH_PX = 300;
 const MIN_PANEL_HEIGHT_PX = 220;
+const PANEL_RESIZE_HIT_PX = 28;
 const MAX_PLAYBACK_RATE = 4;
 const SEEK_SYNC_EPSILON_SECONDS = 0.35;
 const TRANSPORT_SEEK_SYNC_EPSILON_SECONDS = 3;
@@ -501,6 +502,7 @@ function createBackgroundMediaPanelActions({
     let backgroundStatusToastTimerId = null;
     let lastForegroundEffect = "";
     let playRequestPending = false;
+    let panelResizeDragState = null;
     let storedLayoutMatchesPreset = false;
     let panelLayoutApplied = false;
     let dragState = null;
@@ -570,14 +572,16 @@ function createBackgroundMediaPanelActions({
     }
 
     function syncPanelRegistry() {
+        const panelStateName = getPanelRegistryState();
         updateMissionPanel(BACKGROUND_MEDIA_PANEL_ID, {
             available: panelAvailable,
-            state: getPanelRegistryState(),
+            state: panelStateName,
             actions: {
                 open: panelAvailable ? openPanel : null,
                 restore: panelAvailable ? openPanel : null,
                 focus: panelAvailable ? focusPanel : null,
                 close: panelAvailable ? closePanel : null,
+                delete: panelAvailable && panelStateName !== "deleted" ? confirmDeletePanel : null,
             },
         });
     }
@@ -995,6 +999,144 @@ function createBackgroundMediaPanelActions({
         header.addEventListener?.("lostpointercapture", releaseDrag);
     }
 
+    function ensurePanelResizeGrips(panel = getPanel()) {
+        if (!panel) return;
+        for (const corner of ["nw", "ne", "sw", "se"]) {
+            if (panel.querySelector?.(`.background-media-panel__resize-grip--${corner}`)) {
+                continue;
+            }
+            const grip = getDocumentRef()?.createElement?.("div");
+            if (!grip) continue;
+            grip.className = `background-media-panel__resize-grip background-media-panel__resize-grip--${corner}`;
+            grip.dataset.resizeCorner = corner;
+            grip.setAttribute?.("aria-hidden", "true");
+            panel.appendChild?.(grip);
+        }
+    }
+
+    function resolvePanelResizeCorner(panel, event) {
+        const grip = event?.target?.closest?.(".background-media-panel__resize-grip") || null;
+        const gripCorner = String(grip?.dataset?.resizeCorner || "").trim();
+        if (gripCorner) return gripCorner;
+
+        const rect = panel?.getBoundingClientRect?.() || null;
+        if (!rect) return "";
+        const nearLeft = event.clientX >= rect.left - 2 && event.clientX <= rect.left + PANEL_RESIZE_HIT_PX;
+        const nearRight = event.clientX >= rect.right - PANEL_RESIZE_HIT_PX && event.clientX <= rect.right + 2;
+        const nearTop = event.clientY >= rect.top - 2 && event.clientY <= rect.top + PANEL_RESIZE_HIT_PX;
+        const nearBottom = event.clientY >= rect.bottom - PANEL_RESIZE_HIT_PX && event.clientY <= rect.bottom + 2;
+        if (nearLeft && nearTop) return "nw";
+        if (nearRight && nearTop) return "ne";
+        if (nearLeft && nearBottom) return "sw";
+        if (nearRight && nearBottom) return "se";
+        return "";
+    }
+
+    function resolvePanelResizeRect(resizeState, event) {
+        const dx = event.clientX - resizeState.startX;
+        const dy = event.clientY - resizeState.startY;
+        const corner = resizeState.corner || "se";
+        let left = resizeState.left;
+        let top = resizeState.top;
+        let right = resizeState.left + resizeState.width;
+        let bottom = resizeState.top + resizeState.height;
+        const bounds = {
+            left: PANEL_EDGE_MARGIN_PX,
+            top: PANEL_EDGE_MARGIN_PX,
+            right: (Number(getWindowRef()?.innerWidth) || 1024) - PANEL_EDGE_MARGIN_PX,
+            bottom: (Number(getWindowRef()?.innerHeight) || 768) - PANEL_EDGE_MARGIN_PX,
+        };
+
+        if (corner.includes("w")) {
+            left = clamp(left + dx, bounds.left, right - MIN_PANEL_WIDTH_PX);
+        } else {
+            right = clamp(right + dx, left + MIN_PANEL_WIDTH_PX, bounds.right);
+        }
+
+        if (corner.includes("n")) {
+            top = clamp(top + dy, bounds.top, bottom - MIN_PANEL_HEIGHT_PX);
+        } else {
+            bottom = clamp(bottom + dy, top + MIN_PANEL_HEIGHT_PX, bounds.bottom);
+        }
+
+        return {
+            left,
+            top,
+            width: right - left,
+            height: bottom - top,
+        };
+    }
+
+    function bindPanelResizing() {
+        const panel = getPanel();
+        if (!panel) return;
+        ensurePanelResizeGrips(panel);
+
+        const startResize = (event, corner) => {
+            const rect = capturePanelRect(panel);
+            if (!rect) return;
+            panelResizeDragState = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                ...rect,
+                corner,
+            };
+            panel.setPointerCapture?.(event.pointerId);
+            event.preventDefault?.();
+            event.stopPropagation?.();
+        };
+
+        panel.addEventListener?.("pointerdown", (event) => {
+            if (event.button !== 0 || expanded === true) return;
+            if (event.target?.closest?.("input, button, select, option, label, output, a")) {
+                return;
+            }
+            const corner = resolvePanelResizeCorner(panel, event);
+            if (!corner) return;
+            startResize(event, corner);
+        }, true);
+
+        panel.addEventListener?.("pointermove", (event) => {
+            if (!panelResizeDragState || panelResizeDragState.pointerId !== event.pointerId) return;
+            applyPanelRect(panel, resolvePanelResizeRect(panelResizeDragState, event));
+            panelLayoutApplied = true;
+            event.preventDefault?.();
+        });
+
+        const releaseResize = (event) => {
+            if (!panelResizeDragState || panelResizeDragState.pointerId !== event.pointerId) return;
+            if (typeof panel.hasPointerCapture !== "function" || panel.hasPointerCapture(event.pointerId)) {
+                panel.releasePointerCapture?.(event.pointerId);
+            }
+            panelResizeDragState = null;
+            persistPanelRect(panel);
+            event.preventDefault?.();
+        };
+
+        panel.addEventListener?.("pointerup", releaseResize);
+        panel.addEventListener?.("pointercancel", releaseResize);
+        panel.addEventListener?.("lostpointercapture", releaseResize);
+    }
+
+    function confirmDeletePanel() {
+        const confirmFn = globalThis?.confirm;
+        if (typeof confirmFn === "function") {
+            const accepted = confirmFn(
+                'Delete "Flyby Broadcast" from this mission layout? You can add it back from the Panels menu.',
+            );
+            if (!accepted) return false;
+        }
+        panelState = "deleted";
+        panelLayoutApplied = false;
+        playbackEnabled = false;
+        pauseVideo();
+        clearVideoSource();
+        persistState();
+        syncPanelVisibility();
+        return true;
+    }
+
     function setControlsHidden(hidden) {
         const controls = getNode("background-media-controls");
         if (controls) controls.hidden = hidden === true;
@@ -1168,12 +1310,33 @@ function createBackgroundMediaPanelActions({
         const panel = getPanel();
         if (!panel) return;
         panelEventsBound = true;
-        getNode("background-media-panel-close")?.addEventListener?.("click", closePanel);
+        const headerControls = panel.querySelector?.(".background-media-panel__header-controls");
+        const closeButton = getNode("background-media-panel-close");
+        closeButton?.setAttribute?.("aria-label", "Close Broadcast panel");
+        if (closeButton) closeButton.title = "Close";
+        let deleteButton = getNode("background-media-panel-delete");
+        if (!deleteButton && headerControls?.appendChild) {
+            deleteButton = getDocumentRef()?.createElement?.("button") || null;
+            if (deleteButton) {
+                deleteButton.id = "background-media-panel-delete";
+                deleteButton.className = "background-media-panel__icon-button mission-panel-shell__button mission-panel-shell__button--icon mission-panel-shell__button--danger";
+                deleteButton.type = "button";
+                deleteButton.title = "Delete";
+                deleteButton.setAttribute?.("aria-label", "Delete Broadcast panel");
+                deleteButton.dataset.icon = "delete";
+                deleteButton.textContent = "";
+                headerControls.appendChild(deleteButton);
+            }
+        }
+
+        closeButton?.addEventListener?.("click", closePanel);
+        deleteButton?.addEventListener?.("click", confirmDeletePanel);
         getNode("background-media-panel-expand")?.addEventListener?.("click", toggleExpanded);
         getNode("background-media-enable")?.addEventListener?.("click", togglePlaybackEnabled);
         getNode("background-media-mute")?.addEventListener?.("click", toggleMuted);
         panel.addEventListener?.("pointerdown", bringPanelToFront, true);
         bindPanelDragging();
+        bindPanelResizing();
         const video = getVideo();
         ["loadedmetadata", "canplay"].forEach((eventName) => {
             video?.addEventListener?.(eventName, () => render(lastRenderModel));
