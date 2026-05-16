@@ -270,6 +270,53 @@ describe("createMediaTimelineCoordination", () => {
         expect(setTimelineMediaMarkers).not.toHaveBeenCalled();
     });
 
+    it("refreshes panel mission context when the mission config object changes", async () => {
+        globalThis.window = {
+            missionConfig: {
+                dataPath: "assets/artemis2/data",
+            },
+        };
+        mocks.loadMissionMediaManifest.mockResolvedValue({
+            mediaItems: [
+                {
+                    id: "crew-photo",
+                    title: "Crew Photo",
+                    kind: "image",
+                    assetUrl: "../media/crew.jpg",
+                    thumbnailAssetUrl: "../media/thumbs/crew.jpg",
+                    startTime: "2026-04-06T16:58:14Z",
+                    sourceLabel: "NASA",
+                },
+            ],
+        });
+        const coordination = createMediaTimelineCoordination();
+        const firstConfig = createMissionConfig({ mediaEnabled: true });
+        const secondConfig = createMissionConfig({ mediaEnabled: true });
+        const animTime = Date.parse("2026-04-06T16:58:14Z");
+
+        coordination.update({
+            globalConfig: firstConfig,
+            animTime,
+        });
+        await flushPromises(8);
+        mocks.panelSetMissionContext.mockClear();
+
+        coordination.update({
+            globalConfig: firstConfig,
+            animTime,
+        });
+        expect(mocks.panelSetMissionContext).not.toHaveBeenCalled();
+
+        coordination.update({
+            globalConfig: secondConfig,
+            animTime,
+        });
+        expect(mocks.panelSetMissionContext).toHaveBeenCalledWith(expect.objectContaining({
+            configData: secondConfig,
+            mediaCount: 1,
+        }));
+    });
+
     it("does not start a background-role stream in the foreground Mission Media player", async () => {
         class FakeInput {}
         const slider = new FakeInput();
@@ -1168,11 +1215,15 @@ describe("createMediaTimelineCoordination", () => {
                 },
             ],
         });
-        const coordination = createMediaTimelineCoordination();
+        const setTimelineMediaMarkers = vi.fn();
+        const coordination = createMediaTimelineCoordination({
+            setTimelineMediaMarkers,
+        });
+        const audioStartMs = Date.parse("2026-04-02T16:30:00Z");
 
         coordination.update({
             globalConfig: createMissionConfig({ mediaEnabled: true }),
-            animTime: Date.parse("2026-04-02T16:30:00Z"),
+            animTime: audioStartMs,
         });
         await flushPromises(8);
 
@@ -1189,6 +1240,12 @@ describe("createMediaTimelineCoordination", () => {
         const latestRender = mocks.panelRender.mock.calls.at(-1)?.[0] || {};
         expect(latestRender.playbackModel.durationSeconds).toBe(10.973083);
         expect(latestRender.playbackModel.durationSeconds).not.toBe(300);
+        const latestMarkers = setTimelineMediaMarkers.mock.calls.at(-1)?.[0] || [];
+        const marker = latestMarkers.find((item) => item.id === "audio:audio/clip.mp3");
+        expect(marker).toEqual(expect.objectContaining({
+            durationEstimated: false,
+        }));
+        expect(marker.endTimeMs).toBeCloseTo(audioStartMs + 10973.083, 3);
     });
 
     it("filters thumbnails from structured LLM body metadata when searching", async () => {

@@ -602,6 +602,7 @@ function createMediaTimelineCoordination({
     let filteredCollectionsCache = null;
     let timelineMarkersCache = null;
     let lastAppliedTimelineMediaMarkers = null;
+    let mediaDataRevision = 0;
     let lastPanelRenderSignature = "";
     const objectSignatureIds = new WeakMap();
     let nextObjectSignatureId = 1;
@@ -714,20 +715,26 @@ function createMediaTimelineCoordination({
     }
 
     function buildPanelMissionContextSignature({
-        globalConfig,
+        configData,
         available,
         title,
         nextMissionLabel,
         mediaCount,
     } = {}) {
         return stableJson({
-            configId: getObjectSignatureId(globalConfig),
-            mission: globalConfig?.mission_name_short || globalConfig?.mission_name || "",
+            configId: getObjectSignatureId(configData),
+            mission: configData?.mission_name_short || configData?.mission_name || "",
             available: available === true,
             title,
             nextMissionLabel,
             mediaCount,
         });
+    }
+
+    function invalidateMediaDataCaches() {
+        mediaDataRevision += 1;
+        filteredCollectionsCache = null;
+        timelineMarkersCache = null;
     }
 
     function applyPanelMissionContext(context = {}) {
@@ -757,6 +764,7 @@ function createMediaTimelineCoordination({
             && filteredCollectionsCache.mediaItems === mediaItems
             && filteredCollectionsCache.audioItems === audioItems
             && filteredCollectionsCache.filterSignature === filterSignature
+            && filteredCollectionsCache.mediaDataRevision === mediaDataRevision
         ) {
             return filteredCollectionsCache;
         }
@@ -773,6 +781,7 @@ function createMediaTimelineCoordination({
             mediaItems,
             audioItems,
             filterSignature,
+            mediaDataRevision,
             filteredItems,
             filteredAudioItems,
             filteredSelectableItems,
@@ -795,6 +804,7 @@ function createMediaTimelineCoordination({
             && timelineMarkersCache.selectedId === selectedId
             && timelineMarkersCache.rangeStartMs === rangeStartMs
             && timelineMarkersCache.rangeEndMs === rangeEndMs
+            && timelineMarkersCache.mediaDataRevision === mediaDataRevision
         ) {
             return timelineMarkersCache.markers;
         }
@@ -809,6 +819,7 @@ function createMediaTimelineCoordination({
             selectedId,
             rangeStartMs,
             rangeEndMs,
+            mediaDataRevision,
             markers,
         };
         return markers;
@@ -836,6 +847,7 @@ function createMediaTimelineCoordination({
         if (Number.isFinite(Number(item.startTimeMs))) {
             item.endTimeMs = Number(item.startTimeMs) + safeDurationSeconds * 1000;
         }
+        invalidateMediaDataCaches();
         rerender();
         return true;
     }
@@ -2320,6 +2332,7 @@ function createMediaTimelineCoordination({
                 if (!manifestData) {
                     runtimeMediaState.setManifest(null);
                     runtimeMediaState.setLoadState("unavailable");
+                    invalidateMediaDataCaches();
                     return null;
                 }
                 const normalizedManifest = normalizeMissionMediaManifest(manifestData, {
@@ -2327,11 +2340,13 @@ function createMediaTimelineCoordination({
                 });
                 runtimeMediaState.setManifest(normalizedManifest);
                 runtimeMediaState.setLoadState("ready");
+                invalidateMediaDataCaches();
                 return normalizedManifest;
             })
             .catch(() => {
                 runtimeMediaState.setManifest(null);
                 runtimeMediaState.setLoadState("unavailable");
+                invalidateMediaDataCaches();
                 return null;
             })
             .finally(() => {

@@ -350,7 +350,8 @@ function createMediaBrowserPanelActions({
     let filterSignature = "";
     let filterDrawerOpen = false;
     let currentFilterModel = {};
-    let thumbnailSignature = "";
+    let thumbnailStructureSignature = "";
+    let thumbnailActiveSignature = "";
     let restoredPanelLayout = readMissionPanelState(MEDIA_BROWSER_PANEL_ID) || null;
     if (String(restoredPanelLayout?.layoutPresetVersion || "").trim() !== MEDIA_BROWSER_LAYOUT_PRESET_VERSION) {
         restoredPanelLayout = null;
@@ -1921,17 +1922,81 @@ function createMediaBrowserPanelActions({
         windowRef?.setTimeout?.(revealActiveThumbnail, 80);
     }
 
+    function buildThumbnailStructureSignature(thumbnailItems) {
+        return JSON.stringify((thumbnailItems || []).map((item) => ({
+            id: item.id,
+            kind: item.kind,
+            title: item.title,
+            thumbnailAssetUrl: item.thumbnailAssetUrl,
+            fallbackAssetUrl: item.fallbackAssetUrl,
+            meta: item.meta,
+            metadataLabel: item.metadataLabel,
+        })));
+    }
+
+    function buildThumbnailActiveSignature(thumbnailItems) {
+        return JSON.stringify((thumbnailItems || []).map((item) => [
+            item.id,
+            Boolean(item.active),
+        ]));
+    }
+
+    function setThumbnailCardActive(button, active) {
+        if (!button) return;
+        const nextActive = Boolean(active);
+        button.classList?.toggle?.("is-active", nextActive);
+        if (typeof button.className === "string") {
+            const classes = new Set(String(button.className || "").split(/\s+/).filter(Boolean));
+            if (nextActive) classes.add("is-active");
+            else classes.delete("is-active");
+            button.className = Array.from(classes).join(" ");
+        }
+        if (nextActive) {
+            button.setAttribute?.("aria-current", "true");
+        } else {
+            button.removeAttribute?.("aria-current");
+        }
+    }
+
+    function updateThumbnailActiveStates(host, thumbnailItems) {
+        const children = Array.from(host?.children || []);
+        (thumbnailItems || []).forEach((item, index) => {
+            const button = children[index];
+            if (!button || button.dataset?.thumbnailItemId !== String(item.id || "")) return;
+            setThumbnailCardActive(button, item.active);
+        });
+    }
+
+    function thumbnailDomMatchesItems(host, thumbnailItems) {
+        const children = Array.from(host?.children || []);
+        const items = Array.isArray(thumbnailItems) ? thumbnailItems : [];
+        if (children.length !== items.length) return false;
+        return items.every((item, index) => (
+            children[index]?.dataset?.thumbnailItemId === String(item.id || "")
+        ));
+    }
+
     function renderThumbnailItems(thumbnailItems) {
         const host = getNode("media-browser-thumbnail-list");
         if (!host) return;
-        const nextSignature = JSON.stringify(thumbnailItems || []);
-            if (nextSignature === thumbnailSignature) {
-                if (thumbnailPagingTargetScrollLeft != null) {
-                    syncThumbnailPageButtons();
-                }
-                return;
+        const nextStructureSignature = buildThumbnailStructureSignature(thumbnailItems);
+        const nextActiveSignature = buildThumbnailActiveSignature(thumbnailItems);
+        if (
+            nextStructureSignature === thumbnailStructureSignature
+            && thumbnailDomMatchesItems(host, thumbnailItems)
+        ) {
+            if (nextActiveSignature !== thumbnailActiveSignature) {
+                thumbnailActiveSignature = nextActiveSignature;
+                updateThumbnailActiveStates(host, thumbnailItems);
+                scheduleActiveThumbnailReveal();
             }
-        thumbnailSignature = nextSignature;
+            if (thumbnailPagingTargetScrollLeft != null) {
+                syncThumbnailPageButtons();
+            }
+            return;
+        }
+        thumbnailStructureSignature = nextStructureSignature;
+        thumbnailActiveSignature = nextActiveSignature;
         thumbnailPagingTargetScrollLeft = null;
         if (typeof host.replaceChildren === "function") {
             host.replaceChildren();
@@ -1949,6 +2014,9 @@ function createMediaBrowserPanelActions({
             const metadata = createElement("span");
             if (!button || !media || !title || !meta || !metadata) return;
             button.type = "button";
+            if (button.dataset) {
+                button.dataset.thumbnailItemId = String(item.id || "");
+            }
             button.className = [
                 "media-browser-panel__thumbnail-card",
                 item.kind ? `media-browser-panel__thumbnail-card--${item.kind}` : "",
@@ -2665,6 +2733,7 @@ function createMediaBrowserPanelActions({
                 syncFilterDrawerPlacement();
                 syncDrilldownFlyoutPlacement();
                 applyThumbnailStripHeight(thumbnailStripHeight);
+                syncThumbnailPageButtons();
                 applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             });
@@ -2692,6 +2761,7 @@ function createMediaBrowserPanelActions({
                 syncFilterDrawerPlacement();
                 syncDrilldownFlyoutPlacement();
                 applyThumbnailStripHeight(thumbnailStripHeight);
+                syncThumbnailPageButtons();
                 applyImageViewState(imageViewState, { animate: false });
                 persistPanelLayoutState(panel);
             }

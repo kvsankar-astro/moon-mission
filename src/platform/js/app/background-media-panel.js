@@ -128,11 +128,14 @@ function setClassToggled(node, className, enabled) {
         classStates = new Map();
         nodeClassToggleCache.set(node, classStates);
     }
-    if (classStates.get(className) === nextEnabled) return;
-    if (typeof node.classList.contains === "function" && node.classList.contains(className) === nextEnabled) {
+    const actualEnabled = typeof node.classList.contains === "function"
+        ? node.classList.contains(className)
+        : null;
+    if (actualEnabled === nextEnabled) {
         classStates.set(className, nextEnabled);
         return;
     }
+    if (actualEnabled == null && classStates.get(className) === nextEnabled) return;
     node.classList.toggle(className, nextEnabled);
     classStates.set(className, nextEnabled);
 }
@@ -915,16 +918,17 @@ function createBackgroundMediaPanelActions({
             : SEEK_SYNC_EPSILON_SECONDS;
         if (
             force !== true
-            && lastVideoCurrentTimeWriteSourceUrl === videoSourceUrl
-            && Number.isFinite(lastVideoCurrentTimeWriteSeconds)
-            && Math.abs(lastVideoCurrentTimeWriteSeconds - targetSeconds) < toleranceSeconds
+            && Number.isFinite(currentSeconds)
+            && Math.abs(currentSeconds - targetSeconds) < toleranceSeconds
         ) {
             return;
         }
         if (
             force !== true
-            && Number.isFinite(currentSeconds)
-            && Math.abs(currentSeconds - targetSeconds) < toleranceSeconds
+            && !Number.isFinite(currentSeconds)
+            && lastVideoCurrentTimeWriteSourceUrl === videoSourceUrl
+            && Number.isFinite(lastVideoCurrentTimeWriteSeconds)
+            && Math.abs(lastVideoCurrentTimeWriteSeconds - targetSeconds) < toleranceSeconds
         ) {
             return;
         }

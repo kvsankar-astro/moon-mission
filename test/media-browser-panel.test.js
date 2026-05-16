@@ -231,6 +231,7 @@ describe("media browser panel timeline", () => {
     afterEach(() => {
         delete global.document;
         delete global.CustomEvent;
+        delete global.ResizeObserver;
         delete global.window;
     });
 
@@ -421,6 +422,145 @@ describe("media browser panel timeline", () => {
             left: 208,
         }));
         expect(intents).toEqual([]);
+    });
+
+    it("refreshes thumbnail paging controls when panel geometry changes", () => {
+        const panelElement = new FakePanel();
+        const thumbnailList = new FakeElement("div");
+        thumbnailList.clientWidth = 240;
+        thumbnailList.clientHeight = 80;
+        thumbnailList.scrollWidth = 900;
+        thumbnailList.scrollLeft = 0;
+        const previousButton = new FakeElement("button");
+        const nextButton = new FakeElement("button");
+        const resizeCallbacks = [];
+        const windowListeners = new Map();
+
+        global.ResizeObserver = class {
+            constructor(callback) {
+                resizeCallbacks.push(callback);
+            }
+
+            observe() {}
+        };
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+            setTimeout: (callback) => {
+                callback();
+                return 1;
+            },
+            addEventListener(type, handler) {
+                const handlers = windowListeners.get(type) || [];
+                handlers.push(handler);
+                windowListeners.set(type, handlers);
+            },
+        };
+        global.document = {
+            createElement: (tagName) => new FakeElement(tagName),
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                if (id === "media-browser-thumbnail-prev") return previousButton;
+                if (id === "media-browser-thumbnail-next") return nextButton;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        panel.render({
+            thumbnailItems: Array.from({ length: 8 }, (_value, index) => ({
+                id: `image-${index}`,
+                kind: "image",
+                title: `Image ${index}`,
+                meta: "MET",
+                thumbnailAssetUrl: `thumb-${index}.jpg`,
+            })),
+        });
+
+        expect(previousButton.disabled).toBe(true);
+        expect(nextButton.disabled).toBe(false);
+
+        thumbnailList.scrollWidth = 200;
+        panelElement.classList.remove("media-browser-panel--hidden");
+        resizeCallbacks.forEach((callback) => callback());
+        for (const handler of windowListeners.get("resize") || []) {
+            handler();
+        }
+
+        expect(previousButton.disabled).toBe(true);
+        expect(nextButton.disabled).toBe(true);
+    });
+
+    it("updates thumbnail active state without rebuilding unchanged cards", () => {
+        const panelElement = new FakePanel();
+        const thumbnailList = new FakeElement("div");
+        const createElement = vi.fn((tagName) => new FakeElement(tagName));
+
+        global.window = {
+            innerWidth: 1280,
+            innerHeight: 800,
+            requestAnimationFrame: (callback) => callback(),
+            setTimeout: (callback) => {
+                callback();
+                return 1;
+            },
+        };
+        global.document = {
+            createElement,
+            createElementNS: (_namespace, tagName) => new FakeElement(tagName),
+            getElementById(id) {
+                if (id === "media-browser-panel") return panelElement;
+                if (id === "media-browser-thumbnail-list") return thumbnailList;
+                return null;
+            },
+            addEventListener() {},
+            dispatchEvent() {},
+        };
+
+        const panel = createMediaBrowserPanelActions();
+        const firstItems = [
+            {
+                id: "image-0",
+                kind: "image",
+                title: "Image 0",
+                meta: "MET",
+                thumbnailAssetUrl: "thumb-0.jpg",
+                active: true,
+            },
+            {
+                id: "image-1",
+                kind: "image",
+                title: "Image 1",
+                meta: "MET",
+                thumbnailAssetUrl: "thumb-1.jpg",
+                active: false,
+            },
+        ];
+        panel.render({ thumbnailItems: firstItems });
+        const firstButtons = [...thumbnailList.children];
+        expect(firstButtons[0].className).toContain("is-active");
+        expect(firstButtons[0].attributes["aria-current"]).toBe("true");
+
+        createElement.mockClear();
+        panel.render({
+            thumbnailItems: firstItems.map((item, index) => ({
+                ...item,
+                active: index === 1,
+            })),
+        });
+
+        expect(createElement).not.toHaveBeenCalled();
+        expect(thumbnailList.children[0]).toBe(firstButtons[0]);
+        expect(thumbnailList.children[1]).toBe(firstButtons[1]);
+        expect(thumbnailList.children[0].className).not.toContain("is-active");
+        expect(thumbnailList.children[0].attributes["aria-current"]).toBeUndefined();
+        expect(thumbnailList.children[1].className).toContain("is-active");
+        expect(thumbnailList.children[1].attributes["aria-current"]).toBe("true");
     });
 
     it("continues thumbnail paging while smooth scroll has not reported its new position", () => {

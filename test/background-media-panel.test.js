@@ -461,6 +461,44 @@ describe("background media panel helpers", () => {
         expect(video.load).toHaveBeenCalledTimes(1);
     });
 
+    it("corrects broadcast drift even when the target is close to the previous seek", () => {
+        const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => true,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+        const item = {
+            id: "broadcast",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+        };
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: true,
+        });
+        expect(video.currentTime).toBe(10);
+
+        video.currentTime = 45;
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: true,
+        });
+
+        expect(video.currentTime).toBe(10);
+    });
+
     it("keeps an in-range broadcast source attached while animation is paused", () => {
         const { nodes, video } = installBackgroundPanelDom({ currentTime: 0, paused: false });
         const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
