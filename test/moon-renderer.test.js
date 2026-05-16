@@ -256,6 +256,36 @@ describe("MoonRenderer", () => {
         moonRenderer.dispose();
     });
 
+    it("hides grid labels when the Moon is too small on screen", () => {
+        stubCanvasDocument();
+        const moonRenderer = new MoonRenderer(1);
+        const colorTexture = new THREE.Texture();
+        const displacementTexture = new THREE.Texture();
+        displacementTexture.image = { width: 2, height: 2 };
+
+        moonRenderer.setTextures(colorTexture, displacementTexture);
+        moonRenderer.create(false, false, {
+            deferGeneratedNormalMap: true,
+            latLonGridVisible: true,
+            latLonLabelsVisible: true,
+        });
+
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
+        camera.position.set(0, 0, 10);
+        camera.lookAt(0, 0, 0);
+        camera.updateMatrixWorld(true);
+
+        moonRenderer.updateLatLonGridForCamera({
+            camera,
+            rendererDomElement: { clientHeight: 800 },
+        });
+
+        expect(moonRenderer.latLonGrid.visible).toBe(true);
+        expect(moonRenderer.latLonLabels.visible).toBe(false);
+
+        moonRenderer.dispose();
+    });
+
     it("moves grid labels onto visible portions of their own latitude and longitude curves", () => {
         stubCanvasDocument();
         const moonRenderer = new MoonRenderer(1);

@@ -7,6 +7,7 @@ const LABEL_RADIUS_SCALE = 1.035;
 const HOVER_RADIUS_SCALE = 1.018;
 const HOVER_TANGENT_OFFSET_SCALE = 0.055;
 const LABEL_MIN_INTERVAL_DEGREES = 10;
+const LABEL_MIN_SCREEN_RADIUS_PX = 160;
 const STEPS_BY_SCREEN_RADIUS = Object.freeze([
     { minScreenRadiusPx: 620, stepDegrees: 5 },
     { minScreenRadiusPx: 280, stepDegrees: 10 },
@@ -590,6 +591,13 @@ export class BodyLatLonOverlay {
         const cameraWorld = new THREE.Vector3();
         this.container?.getWorldPosition?.(bodyWorldPosition);
         camera.getWorldPosition?.(cameraWorld);
+        const labelsReadable = (Number(this.screenRadiusPx) || 0) >= LABEL_MIN_SCREEN_RADIUS_PX;
+        if (this.labels) {
+            this.labels.visible = this.gridVisible && this.labelsVisible && labelsReadable;
+            if (!this.labels.visible && !this.hoverLabel?.visible) {
+                return;
+            }
+        }
         const cameraDirectionFromBody = cameraWorld.clone().sub(bodyWorldPosition).normalize();
         const cameraLocalPosition = cameraWorld.clone();
         this.container?.worldToLocal?.(cameraLocalPosition);

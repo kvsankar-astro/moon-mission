@@ -24,6 +24,7 @@ const MOON_LAT_LON_GRID_LABEL_RADIUS_SCALE = 1.035;
 const MOON_LAT_LON_GRID_HOVER_RADIUS_SCALE = 1.018;
 const MOON_LAT_LON_GRID_HOVER_TANGENT_OFFSET_SCALE = 0.055;
 const MOON_LAT_LON_GRID_LABEL_MIN_INTERVAL_DEGREES = 10;
+const MOON_LAT_LON_LABEL_MIN_SCREEN_RADIUS_PX = 160;
 const MOON_LAT_LON_GRID_STEPS_BY_SCREEN_RADIUS = Object.freeze([
     { minScreenRadiusPx: 620, stepDegrees: 5 },
     { minScreenRadiusPx: 280, stepDegrees: 10 },
@@ -1546,6 +1547,13 @@ export class MoonRenderer {
         const cameraWorld = new THREE.Vector3();
         this.container?.getWorldPosition?.(moonWorldPosition);
         camera.getWorldPosition?.(cameraWorld);
+        const labelsReadable = (Number(this.latLonScreenRadiusPx) || 0) >= MOON_LAT_LON_LABEL_MIN_SCREEN_RADIUS_PX;
+        if (this.latLonLabels) {
+            this.latLonLabels.visible = this.latLonGridVisible && this.latLonLabelsVisible && labelsReadable;
+            if (!this.latLonLabels.visible && !this.latLonHoverLabel?.visible) {
+                return;
+            }
+        }
         const cameraDirectionFromMoon = cameraWorld.clone().sub(moonWorldPosition).normalize();
         const cameraLocalPosition = cameraWorld.clone();
         this.container?.worldToLocal?.(cameraLocalPosition);
