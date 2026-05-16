@@ -200,6 +200,8 @@ const COMPOSER_OPTICS_ADVANCED_DEFAULT = 1.0;
 const COMPOSER_ECLIPSE_CORONA_MIN = 0;
 const COMPOSER_ECLIPSE_CORONA_MAX = 2.5;
 const COMPOSER_ECLIPSE_CORONA_DEFAULT = 1.0;
+const COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT = 0.0;
+const COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT = 0.85;
 const COMPOSER_SOLAR_ANGULAR_RADIUS_RAD = (0.533 * Math.PI / 180) * 0.5;
 const COMPOSER_STAR_MAGNITUDE_MIN = -3;
 const COMPOSER_STAR_MAGNITUDE_MAX = 6;
@@ -2520,6 +2522,8 @@ class AuxiliaryCameraViewsManager {
         let composerEclipseCoronaMotionValue = null;
         let composerEclipseCoronaStructureSlider = null;
         let composerEclipseCoronaStructureValue = null;
+        let composerEclipseZodiacalDustSlider = null;
+        let composerEclipseZodiacalDustValue = null;
         let composerRollWrap = null;
         let composerRollSlider = null;
         let composerRollValue = null;
@@ -3173,13 +3177,24 @@ class AuxiliaryCameraViewsManager {
             ({
                 slider: composerEclipseCoronaStructureSlider,
                 value: composerEclipseCoronaStructureValue,
-            } = buildAdvancedRow("Detail", {
+            } = buildAdvancedRow("Variation", {
                 container: composerEclipseCoronaPanel,
                 min: COMPOSER_ECLIPSE_CORONA_MIN,
                 max: COMPOSER_ECLIPSE_CORONA_MAX,
-                defaultValue: COMPOSER_ECLIPSE_CORONA_DEFAULT,
-                ariaLabel: "Frame and Shoot eclipse corona detail",
-                proofId: "eclipse-corona-detail-slider",
+                defaultValue: COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT,
+                ariaLabel: "Frame and Shoot eclipse corona angular variation",
+                proofId: "eclipse-corona-variation-slider",
+            }));
+            ({
+                slider: composerEclipseZodiacalDustSlider,
+                value: composerEclipseZodiacalDustValue,
+            } = buildAdvancedRow("Zodiacal", {
+                container: composerEclipseCoronaPanel,
+                min: COMPOSER_ECLIPSE_CORONA_MIN,
+                max: COMPOSER_ECLIPSE_CORONA_MAX,
+                defaultValue: COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT,
+                ariaLabel: "Frame and Shoot ecliptic dust glow",
+                proofId: "eclipse-zodiacal-dust-slider",
             }));
             composerOpticsBody.appendChild(composerOpticsAdvancedPanel);
             composerOpticsBody.appendChild(composerEclipseCoronaPanel);
@@ -3450,6 +3465,8 @@ class AuxiliaryCameraViewsManager {
             composerEclipseCoronaMotionValue,
             composerEclipseCoronaStructureSlider,
             composerEclipseCoronaStructureValue,
+            composerEclipseZodiacalDustSlider,
+            composerEclipseZodiacalDustValue,
             composerRollSlider,
             composerRollValue,
             composerRollDial,
@@ -3539,6 +3556,7 @@ class AuxiliaryCameraViewsManager {
             onComposerEclipseCoronaIntensityInput: null,
             onComposerEclipseCoronaMotionInput: null,
             onComposerEclipseCoronaStructureInput: null,
+            onComposerEclipseZodiacalDustInput: null,
             onComposerTimelineInput: null,
             onComposerTimelinePointerDown: null,
             onComposerTimelinePointerUp: null,
@@ -3619,7 +3637,8 @@ class AuxiliaryCameraViewsManager {
             composerSunFlareGain: COMPOSER_OPTICS_ADVANCED_DEFAULT,
             composerEclipseCoronaIntensity: COMPOSER_ECLIPSE_CORONA_DEFAULT,
             composerEclipseCoronaMotion: COMPOSER_ECLIPSE_CORONA_DEFAULT,
-            composerEclipseCoronaStructure: COMPOSER_ECLIPSE_CORONA_DEFAULT,
+            composerEclipseCoronaStructure: COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT,
+            composerEclipseZodiacalDust: COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT,
             composerSolarEclipseActive: false,
             composerTimelineDragging: false,
             composerTimelineWindowMs: COMPOSER_TIMELINE_WINDOW_MS,
@@ -3942,6 +3961,11 @@ class AuxiliaryCameraViewsManager {
                     panelState.composerEclipseCoronaStructureValue,
                     panelState.composerEclipseCoronaStructure,
                 );
+                syncGain(
+                    panelState.composerEclipseZodiacalDustSlider,
+                    panelState.composerEclipseZodiacalDustValue,
+                    panelState.composerEclipseZodiacalDust,
+                );
             };
             const setComposerOpticsProfile = (nextProfile) => {
                 panelState.composerSunProfile = nextProfile === "physical" ? "physical" : "camera";
@@ -4103,7 +4127,8 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerSunFlareGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
                 panelState.composerEclipseCoronaIntensity = COMPOSER_ECLIPSE_CORONA_DEFAULT;
                 panelState.composerEclipseCoronaMotion = COMPOSER_ECLIPSE_CORONA_DEFAULT;
-                panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+                panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT;
+                panelState.composerEclipseZodiacalDust = COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT;
                 panelState.composerRollRad = COMPOSER_DEFAULT_ROLL_RAD;
 
                 this.setEarthCloudsEnabled?.(true);
@@ -4368,6 +4393,13 @@ class AuxiliaryCameraViewsManager {
                 setComposerEclipseCoronaGain(
                     "composerEclipseCoronaStructure",
                     panelState.composerEclipseCoronaStructureSlider?.value,
+                );
+            };
+            const onComposerEclipseZodiacalDustInput = () => {
+                activateComposerForControl();
+                setComposerEclipseCoronaGain(
+                    "composerEclipseZodiacalDust",
+                    panelState.composerEclipseZodiacalDustSlider?.value,
                 );
             };
             const onComposerStarMagnitudeInput = () => {
@@ -4665,6 +4697,7 @@ class AuxiliaryCameraViewsManager {
             panelState.composerEclipseCoronaIntensitySlider?.addEventListener("input", onComposerEclipseCoronaIntensityInput, { passive: true });
             panelState.composerEclipseCoronaMotionSlider?.addEventListener("input", onComposerEclipseCoronaMotionInput, { passive: true });
             panelState.composerEclipseCoronaStructureSlider?.addEventListener("input", onComposerEclipseCoronaStructureInput, { passive: true });
+            panelState.composerEclipseZodiacalDustSlider?.addEventListener("input", onComposerEclipseZodiacalDustInput, { passive: true });
             panelState.composerStarMagnitudeSlider?.addEventListener("input", onComposerStarMagnitudeInput, { passive: true });
             panelState.composerCloudsCheckbox?.addEventListener("change", onComposerCloudsChange);
             panelState.composerLunarCratersPill?.addEventListener("click", onComposerLunarCratersPillClick);
@@ -4730,6 +4763,7 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerEclipseCoronaIntensityInput = onComposerEclipseCoronaIntensityInput;
             panelState.onComposerEclipseCoronaMotionInput = onComposerEclipseCoronaMotionInput;
             panelState.onComposerEclipseCoronaStructureInput = onComposerEclipseCoronaStructureInput;
+            panelState.onComposerEclipseZodiacalDustInput = onComposerEclipseZodiacalDustInput;
             panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
             panelState.onComposerCloudsChange = onComposerCloudsChange;
             panelState.onComposerLunarCratersPillClick = onComposerLunarCratersPillClick;
@@ -4962,7 +4996,8 @@ class AuxiliaryCameraViewsManager {
             panelState.composerSunFlareGain = COMPOSER_OPTICS_ADVANCED_DEFAULT;
             panelState.composerEclipseCoronaIntensity = COMPOSER_ECLIPSE_CORONA_DEFAULT;
             panelState.composerEclipseCoronaMotion = COMPOSER_ECLIPSE_CORONA_DEFAULT;
-            panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_DEFAULT;
+            panelState.composerEclipseCoronaStructure = COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT;
+            panelState.composerEclipseZodiacalDust = COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT;
             panelState.composerSolarEclipseActive = false;
             panelState.composerInfoOverlayEnabled = true;
             panelState.composerRaDecGridEnabled = false;
@@ -5302,6 +5337,8 @@ class AuxiliaryCameraViewsManager {
             (panelState.composerEclipseCoronaMotionSlider.disabled = disableControls);
         panelState.composerEclipseCoronaStructureSlider &&
             (panelState.composerEclipseCoronaStructureSlider.disabled = disableControls);
+        panelState.composerEclipseZodiacalDustSlider &&
+            (panelState.composerEclipseZodiacalDustSlider.disabled = disableControls);
         panelState.composerStarMagnitudeSlider && (panelState.composerStarMagnitudeSlider.disabled = disableControls);
         panelState.composerRollSlider && (panelState.composerRollSlider.disabled = disableControls);
         panelState.composerRollDial && (panelState.composerRollDial.disabled = disableControls);
@@ -6576,6 +6613,11 @@ class AuxiliaryCameraViewsManager {
             COMPOSER_ECLIPSE_CORONA_MIN,
             COMPOSER_ECLIPSE_CORONA_MAX,
         );
+        const dust = clamp(
+            Number(panelState?.composerEclipseZodiacalDust),
+            COMPOSER_ECLIPSE_CORONA_MIN,
+            COMPOSER_ECLIPSE_CORONA_MAX,
+        );
         const coronaIntensity = Number.isFinite(intensity)
             ? intensity
             : COMPOSER_ECLIPSE_CORONA_DEFAULT;
@@ -6584,7 +6626,10 @@ class AuxiliaryCameraViewsManager {
             : COMPOSER_ECLIPSE_CORONA_DEFAULT;
         const coronaStructure = Number.isFinite(structure)
             ? structure
-            : COMPOSER_ECLIPSE_CORONA_DEFAULT;
+            : COMPOSER_ECLIPSE_CORONA_VARIATION_DEFAULT;
+        const zodiacalDust = Number.isFinite(dust)
+            ? dust
+            : COMPOSER_ECLIPSE_ZODIACAL_DUST_DEFAULT;
 
         return {
             coreOpacity: 1.0,
@@ -6596,6 +6641,10 @@ class AuxiliaryCameraViewsManager {
             coronaFlowOpacity: clamp(0.28 * coronaIntensity * coronaStructure, 0, 0.72),
             coronaFlowScaleMul: 84.0 + (4.0 * coronaIntensity),
             coronaMotionMul: coronaMotion,
+            zodiacalOpacity: clamp(0.22 * coronaIntensity * zodiacalDust, 0, 0.55),
+            zodiacalScaleXMul: 68.0,
+            zodiacalScaleYMul: 30.0,
+            zodiacalRotationRad: -0.08,
             starburstOpacity: 0.0,
             starburstScaleMul: 16.0,
             flareOpacity: 0.0,
@@ -6634,6 +6683,10 @@ class AuxiliaryCameraViewsManager {
                     coronaFlowOpacity: 0.0,
                     coronaFlowScaleMul: 84.0,
                     coronaMotionMul: 0.0,
+                    zodiacalOpacity: 0.0,
+                    zodiacalScaleXMul: 68.0,
+                    zodiacalScaleYMul: 30.0,
+                    zodiacalRotationRad: -0.08,
                     starburstOpacity: 0.0,
                     starburstScaleMul: 16.0,
                     flareOpacity: 0.0,
@@ -6687,6 +6740,10 @@ class AuxiliaryCameraViewsManager {
                 coronaFlowOpacity: 0.0,
                 coronaFlowScaleMul: 84.0,
                 coronaMotionMul: 0.0,
+                zodiacalOpacity: 0.0,
+                zodiacalScaleXMul: 68.0,
+                zodiacalScaleYMul: 30.0,
+                zodiacalRotationRad: -0.08,
                 starburstOpacity,
                 starburstScaleMul,
                 flareOpacity,
@@ -9916,6 +9973,12 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerEclipseCoronaStructureSlider?.removeEventListener(
                     "input",
                     panelState.onComposerEclipseCoronaStructureInput,
+                );
+            }
+            if (panelState.onComposerEclipseZodiacalDustInput) {
+                panelState.composerEclipseZodiacalDustSlider?.removeEventListener(
+                    "input",
+                    panelState.onComposerEclipseZodiacalDustInput,
                 );
             }
             if (panelState.onComposerStarMagnitudeInput) {

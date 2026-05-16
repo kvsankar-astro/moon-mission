@@ -34,6 +34,17 @@ describe("sampleSolarCoronaModel", () => {
         expect(streamerAxis.alpha).toBeGreaterThan(quietAngle.alpha);
     });
 
+    it("can remove angular variation while preserving radial falloff", () => {
+        const thetaA = sampleSolarCoronaModel(4, -0.24, { angularVariation: 0 });
+        const thetaB = sampleSolarCoronaModel(4, 1.2, { angularVariation: 0 });
+        const outer = sampleSolarCoronaModel(12, -0.24, { angularVariation: 0 });
+
+        expect(thetaA.alpha).toBeCloseTo(thetaB.alpha, 8);
+        expect(thetaA.streamers).toBeCloseTo(0, 8);
+        expect(thetaA.polarPlumes).toBeCloseTo(0, 8);
+        expect(thetaA.alpha).toBeGreaterThan(outer.alpha);
+    });
+
     it("can shift streamer texture phases for layered corona motion", () => {
         const base = sampleSolarCoronaModel(4, -0.24);
         const shifted = sampleSolarCoronaModel(4, -0.24, {
@@ -52,6 +63,13 @@ describe("sampleSolarCoronaModel", () => {
 
         expect(streamerDirection).toBeGreaterThan(quietDirection);
         expect(Math.abs(streamerDirection - quietDirection)).toBeGreaterThan(0.2);
+    });
+
+    it("can use a circular outer fade for a uniform corona", () => {
+        const a = sampleSolarCoronaOuterFade(0.89, -0.24, { angularVariation: 0 });
+        const b = sampleSolarCoronaOuterFade(0.89, 1.45, { angularVariation: 0 });
+
+        expect(a).toBeCloseTo(b, 8);
     });
 });
 

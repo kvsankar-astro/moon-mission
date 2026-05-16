@@ -12,6 +12,9 @@ const SUN_CORONA_FLOW_SCALE = 84;
 const SUN_CORONA_FLOW_OPACITY = 0.0;
 const SUN_CORONA_BASE_ROTATION_AMPLITUDE = 0.026;
 const SUN_CORONA_FLOW_ROTATION_SPEED = 0.055;
+const SUN_ZODIACAL_SCALE_X = 68.0;
+const SUN_ZODIACAL_SCALE_Y = 30.0;
+const SUN_ZODIACAL_OPACITY = 0.0;
 const SUN_STARBURST_SCALE = 16.0;
 const SUN_STARBURST_OPACITY = 0.0;
 const SUN_FLARE_SCALE_X = 26.0;
@@ -82,9 +85,14 @@ function coronaStreamerReach(theta, eclipticTiltRad) {
 
 export function sampleSolarCoronaOuterFade(radialNorm, thetaRad, {
     eclipticTiltRad = -0.16,
+    angularVariation = 1,
 } = {}) {
     const radial = Math.max(Number(radialNorm), 0);
     const theta = Number.isFinite(thetaRad) ? thetaRad : 0;
+    const variation = clamp01(Number.isFinite(Number(angularVariation)) ? Number(angularVariation) : 1);
+    if (variation <= 1e-5) {
+        return 1 - smoothstep(0.79, 0.93, radial);
+    }
     const eclipticAngle = theta - eclipticTiltRad;
     const equatorial = Math.abs(Math.cos(eclipticAngle));
     const streamerReach = coronaStreamerReach(theta, eclipticTiltRad);
@@ -94,13 +102,15 @@ export function sampleSolarCoronaOuterFade(radialNorm, thetaRad, {
         (0.012 * Math.sin((theta * 13.0) + 2.1));
     const outerRadius = clamp(
         0.805 +
-            (0.070 * (equatorial ** 1.65)) +
-            (0.105 * streamerReach) +
-            broadWave,
+            variation * (
+                (0.070 * (equatorial ** 1.65)) +
+                (0.105 * streamerReach) +
+                broadWave
+            ),
         0.74,
         0.99,
     );
-    const feather = clamp(0.105 + (0.035 * (1 - streamerReach)), 0.09, 0.15);
+    const feather = clamp(0.105 + (0.035 * variation * (1 - streamerReach)), 0.09, 0.15);
     return 1 - smoothstep(outerRadius - feather, outerRadius, radial);
 }
 
@@ -115,10 +125,12 @@ export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
     streamerWidthMul = 1,
     polarStrengthMul = 1,
     weavePhaseRad = 0,
+    angularVariation = 1,
 } = {}) {
     const radius = Math.max(Number(radiusSolar), 0);
     const r = Math.max(radius, 1.0);
     const theta = Number.isFinite(thetaRad) ? thetaRad : 0;
+    const variation = clamp01(Number.isFinite(Number(angularVariation)) ? Number(angularVariation) : 1);
     const eclipticAngle = theta - eclipticTiltRad;
     const equatorial = Math.abs(Math.cos(eclipticAngle));
     const polar = Math.abs(Math.sin(eclipticAngle));
@@ -128,11 +140,12 @@ export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
     const baumbachNormalized = baumbachAllenDensityTerm(r) / baumbachAllenDensityTerm(1.05);
     const kCorona = kCoronaStrength *
         (baumbachNormalized ** 0.72) *
-        (0.84 + (0.18 * (equatorial ** 1.6)));
+        (0.93 + (variation * 0.09 * (equatorial ** 1.6)));
 
     // F-corona: dust-scattered inner zodiacal light, broader and flatter along
     // the ecliptic, with a shallower falloff to match wide-field lunar-flyby imagery.
-    const fFlatten = (1 - (fCoronaFlattening * 0.38)) + (fCoronaFlattening * 0.92 * (equatorial ** 2.2));
+    const fFlatten = (1 - (variation * fCoronaFlattening * 0.38)) +
+        (variation * fCoronaFlattening * 0.92 * (equatorial ** 2.2));
     const fCorona = 0.115 * fCoronaStrength * (Math.max(r, 1.0) ** -fCoronaPower) * fFlatten;
 
     const streamerCenters = [
@@ -153,11 +166,12 @@ export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
             gaussianAngle(theta, streamerCenters[i] + streamerPhaseRad, width) *
             Math.exp(-(Math.max(r, 1.0) - 1) / length);
     }
-    streamers *= streamerEnvelope * Math.max(0, streamerStrengthMul);
+    streamers *= streamerEnvelope * Math.max(0, streamerStrengthMul) * variation;
 
     const plumeComb = 0.5 + (0.5 * Math.cos((theta - eclipticTiltRad) * 24));
     const polarPlumes = 0.10 *
         Math.max(0, polarStrengthMul) *
+        variation *
         (polar ** 5.5) *
         (0.65 + (0.35 * plumeComb)) *
         Math.exp(-(Math.max(r, 1.0) - 1) / 9) *
@@ -165,9 +179,11 @@ export function sampleSolarCoronaModel(radiusSolar, thetaRad, {
 
     const rawSignal = kCorona + fCorona + streamers + polarPlumes;
     const angularWeave = 1 +
-        (0.045 * Math.sin((theta * 5.0) + (r * 0.12) + weavePhaseRad)) +
-        (0.030 * Math.sin((theta * 9.0) - (r * 0.055) - (weavePhaseRad * 1.7)));
-    const radialWeave = 1 + (0.026 * Math.sin((r * 0.62) + (theta * 3.0) + (weavePhaseRad * 0.8)));
+        variation * (
+            (0.045 * Math.sin((theta * 5.0) + (r * 0.12) + weavePhaseRad)) +
+            (0.030 * Math.sin((theta * 9.0) - (r * 0.055) - (weavePhaseRad * 1.7)))
+        );
+    const radialWeave = 1 + (variation * 0.026 * Math.sin((r * 0.62) + (theta * 3.0) + (weavePhaseRad * 0.8)));
     const signal = Math.max(0, rawSignal * clamp(angularWeave * radialWeave, 0.88, 1.14));
     const alpha = clamp01(0.88 * (signal ** 0.58));
     const fFraction = rawSignal > 1e-9 ? clamp01(fCorona / rawSignal) : 0;
@@ -213,6 +229,7 @@ export class SunRenderer {
         this.haloSprite = null;
         this.coronaSprite = null;
         this.coronaFlowSprite = null;
+        this.zodiacalSprite = null;
         this.starburstSprite = null;
         this.flareSprite = null;
         this._dynamicTextures = [];
@@ -230,6 +247,10 @@ export class SunRenderer {
             coronaFlowOpacity: SUN_CORONA_FLOW_OPACITY,
             coronaFlowScaleMul: SUN_CORONA_FLOW_SCALE,
             coronaMotionMul: 1.0,
+            zodiacalOpacity: SUN_ZODIACAL_OPACITY,
+            zodiacalScaleXMul: SUN_ZODIACAL_SCALE_X,
+            zodiacalScaleYMul: SUN_ZODIACAL_SCALE_Y,
+            zodiacalRotationRad: -0.08,
             starburstOpacity: SUN_STARBURST_OPACITY,
             starburstScaleMul: SUN_STARBURST_SCALE,
             flareOpacity: SUN_FLARE_OPACITY,
@@ -261,7 +282,7 @@ export class SunRenderer {
 
         const discTexture = this._createSunDiscTexture();
         const haloTexture = this._createHaloTexture();
-        const coronaTexture = this._createCoronaTexture();
+        const coronaTexture = this._createCoronaTexture({ angularVariation: 0 });
         const coronaFlowTexture = this._createCoronaTexture({
             kCoronaStrength: 0.72,
             fCoronaStrength: 0.72,
@@ -270,7 +291,9 @@ export class SunRenderer {
             streamerWidthMul: 2.8,
             polarStrengthMul: 0.85,
             weavePhaseRad: 1.9,
+            angularVariation: 1,
         });
+        const zodiacalTexture = this._createZodiacalLightTexture();
         const starburstTexture = this._createStarburstTexture();
         const flareTexture = this._createFlareTexture();
 
@@ -334,6 +357,21 @@ export class SunRenderer {
         );
         this.coronaFlowSprite.renderOrder = -18.9;
         this.group.add(this.coronaFlowSprite);
+
+        this.zodiacalSprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: zodiacalTexture,
+                color: 0xffffff,
+                transparent: true,
+                opacity: 1.0,
+                depthWrite: false,
+                depthTest: true,
+                toneMapped: false,
+                blending: THREE.AdditiveBlending,
+            }),
+        );
+        this.zodiacalSprite.renderOrder = -18.98;
+        this.group.add(this.zodiacalSprite);
 
         this.starburstSprite = new THREE.Sprite(
             new THREE.SpriteMaterial({
@@ -475,7 +513,12 @@ export class SunRenderer {
                 const scalePulse = 1 + (0.050 * Math.sin(0.35 + (seconds * 0.32 * motionMul)));
                 this.coronaFlowSprite.scale.setScalar(this.radius * 2 * scaleMul * scalePulse);
             }
-            this.coronaFlowSprite.visible = flowOpacity > 1e-4 && Number(motionMul) > 1e-4;
+            this.coronaFlowSprite.visible = flowOpacity > 1e-4;
+        }
+
+        if (this.zodiacalSprite?.material) {
+            const rotation = Number(this._visualState.zodiacalRotationRad);
+            this.zodiacalSprite.material.rotation = Number.isFinite(rotation) ? rotation : -0.08;
         }
     }
 
@@ -539,6 +582,16 @@ export class SunRenderer {
             this.coronaFlowSprite.scale.setScalar(base * scaleMul);
             this.coronaFlowSprite.visible = opacity > 1e-4;
         }
+        if (this.zodiacalSprite?.material) {
+            const opacity = clampOpacity(this._visualState.zodiacalOpacity);
+            this.zodiacalSprite.material.opacity = opacity;
+            const scaleXMul = safeScale(this._visualState.zodiacalScaleXMul, SUN_ZODIACAL_SCALE_X);
+            const scaleYMul = safeScale(this._visualState.zodiacalScaleYMul, SUN_ZODIACAL_SCALE_Y);
+            this.zodiacalSprite.scale.set(base * scaleXMul, base * scaleYMul, 1);
+            const rotation = Number(this._visualState.zodiacalRotationRad);
+            this.zodiacalSprite.material.rotation = Number.isFinite(rotation) ? rotation : -0.08;
+            this.zodiacalSprite.visible = opacity > 1e-4;
+        }
         if (this.starburstSprite?.material) {
             const opacity = clampOpacity(this._visualState.starburstOpacity);
             this.starburstSprite.material.opacity = opacity;
@@ -593,6 +646,9 @@ export class SunRenderer {
 
         disposeSprite(this.coronaFlowSprite);
         this.coronaFlowSprite = null;
+
+        disposeSprite(this.zodiacalSprite);
+        this.zodiacalSprite = null;
 
         disposeSprite(this.starburstSprite);
         this.starburstSprite = null;
@@ -699,6 +755,11 @@ export class SunRenderer {
         const data = imageData.data;
         const center = (size - 1) * 0.5;
         const invCenter = 1 / Math.max(center, 1);
+        const angularVariation = clamp01(
+            Number.isFinite(Number(modelOptions.angularVariation))
+                ? Number(modelOptions.angularVariation)
+                : 1,
+        );
 
         for (let y = 0; y < size; y += 1) {
             const ny = (y - center) * invCenter;
@@ -713,7 +774,9 @@ export class SunRenderer {
                 const sample = sampleSolarCoronaModel(radiusSolar, theta, modelOptions);
                 const edgeFade = sampleSolarCoronaOuterFade(radial, theta, modelOptions);
                 const centerFade = smoothstep(0.002, 0.02, radial);
-                const grain = 0.965 + (0.07 * deterministicCoronaGrain(x, y));
+                const grain = angularVariation > 1e-5
+                    ? 0.965 + (0.07 * deterministicCoronaGrain(x, y))
+                    : 1;
                 const alpha = clamp01(sample.alpha * edgeFade * centerFade * grain);
                 if (alpha <= 0.0005) {
                     continue;
@@ -723,6 +786,65 @@ export class SunRenderer {
                 data[idx] = Math.round(sample.color.r * 255);
                 data[idx + 1] = Math.round(sample.color.g * 255);
                 data[idx + 2] = Math.round(sample.color.b * 255);
+                data[idx + 3] = Math.round(alpha * 255);
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = false;
+        this._dynamicTextures.push(texture);
+        return texture;
+    }
+
+    _createZodiacalLightTexture() {
+        const width = 1024;
+        const height = 512;
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+            return null;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+        const imageData = ctx.createImageData(width, height);
+        const data = imageData.data;
+        const cx = (width - 1) * 0.5;
+        const cy = (height - 1) * 0.5;
+        const invX = 1 / Math.max(cx, 1);
+        const invY = 1 / Math.max(cy, 1);
+
+        for (let y = 0; y < height; y += 1) {
+            const ny = (y - cy) * invY;
+            for (let x = 0; x < width; x += 1) {
+                const nx = (x - cx) * invX;
+                const axial = Math.abs(nx);
+                const vertical = Math.abs(ny);
+                const longFalloff = Math.exp(-1.95 * (axial ** 1.45));
+                const planeFalloff = Math.exp(-5.6 * (vertical ** 1.75));
+                const shoulder = 0.78 + (0.22 * Math.exp(-7.5 * (axial ** 2)));
+                const horizontalEdgeFade = 1 - smoothstep(0.76, 1.0, axial);
+                const verticalEdgeFade = 1 - smoothstep(0.70, 1.0, vertical);
+                const alpha = clamp01(
+                    0.72 *
+                    longFalloff *
+                    planeFalloff *
+                    shoulder *
+                    horizontalEdgeFade *
+                    verticalEdgeFade,
+                );
+                if (alpha <= 0.0005) {
+                    continue;
+                }
+                const idx = ((y * width) + x) * 4;
+                data[idx] = 255;
+                data[idx + 1] = 238;
+                data[idx + 2] = 205;
                 data[idx + 3] = Math.round(alpha * 255);
             }
         }
