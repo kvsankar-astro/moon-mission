@@ -1853,6 +1853,102 @@ describe("Frame and Shoot timeline phase tracking", () => {
         }, 60)).toBe(210);
     });
 
+    it("reads Frame and Shoot transport time from the full timeline range when the playhead is outside the zoomed view", () => {
+        class FakeInput {}
+        const slider = new FakeInput();
+        Object.assign(slider, {
+            min: "400000",
+            max: "500000",
+            value: "400000",
+            step: "1000",
+            dataset: {
+                currentTimeMs: "900000",
+                rangeMinMs: "0",
+                rangeMaxMs: "1000000",
+            },
+            ownerDocument: {
+                defaultView: {
+                    HTMLInputElement: FakeInput,
+                },
+            },
+        });
+        vi.stubGlobal("document", {
+            getElementById: vi.fn((id) => (id === "timeline-slider" ? slider : null)),
+        });
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+        });
+
+        const timelineState = manager.readMainTimelineState();
+
+        expect(timelineState).toMatchObject({
+            min: 0,
+            max: 1000000,
+            value: 900000,
+            stepMs: 1000,
+        });
+        expect(manager.resolveComposerTransportStepTimeMs(timelineState, -60000)).toBe(840000);
+    });
+
+    it("programmatic Frame and Shoot seeks keep the real target time even outside the visible timeline window", () => {
+        class FakeInput {
+            dispatchEvent(event) {
+                this.events.push(event.type);
+            }
+        }
+        class FakeEvent {
+            constructor(type, options = {}) {
+                this.type = type;
+                this.bubbles = options.bubbles === true;
+            }
+        }
+        const slider = new FakeInput();
+        Object.assign(slider, {
+            min: "400000",
+            max: "500000",
+            value: "400000",
+            step: "1000",
+            dataset: {
+                currentTimeMs: "900000",
+                rangeMinMs: "0",
+                rangeMaxMs: "1000000",
+            },
+            events: [],
+            ownerDocument: {
+                defaultView: {
+                    HTMLInputElement: FakeInput,
+                },
+            },
+        });
+        vi.stubGlobal("Event", FakeEvent);
+        vi.stubGlobal("document", {
+            getElementById: vi.fn((id) => (id === "timeline-slider" ? slider : null)),
+        });
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE: {
+                MathUtils: {
+                    clamp(value, min, max) {
+                        return Math.min(Math.max(value, min), max);
+                    },
+                },
+            },
+        });
+
+        manager.seekMainTimelineTime(840000, true);
+
+        expect(slider.value).toBe("500000");
+        expect(slider.dataset.currentTimeMs).toBe("840000");
+        expect(slider.dataset.programmaticSeekSource).toBe("frame-shoot");
+        expect(slider.dataset.programmaticSeekTimeMs).toBe("840000");
+        expect(slider.events).toEqual(["input", "change"]);
+    });
+
     it("restores the guided composer view without seeking the main timeline by default", () => {
         const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
             restorePanel: vi.fn(),

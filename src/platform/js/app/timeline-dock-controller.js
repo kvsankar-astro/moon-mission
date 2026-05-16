@@ -531,7 +531,19 @@ function createTimelineDockController({
             ? currentTimeMs
             : Number(slider.value);
         slider.value = String(clamp(valueMs, viewMin, viewMax));
+        syncSliderTimelineDataset();
         syncPlayhead();
+    }
+
+    function syncSliderTimelineDataset() {
+        if (!slider?.dataset) return;
+        slider.dataset.rangeMinMs = String(rangeMin);
+        slider.dataset.rangeMaxMs = String(rangeMax);
+        slider.dataset.viewMinMs = String(viewMin);
+        slider.dataset.viewMaxMs = String(viewMax);
+        if (Number.isFinite(currentTimeMs)) {
+            slider.dataset.currentTimeMs = String(currentTimeMs);
+        }
     }
 
     function syncPlayhead() {
@@ -759,7 +771,7 @@ function createTimelineDockController({
         if (!Number.isFinite(timeMs)) return;
         currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
         slider.value = String(clamp(currentTimeMs, viewMin, viewMax));
-        slider.dataset.currentTimeMs = String(currentTimeMs);
+        syncSliderTimelineDataset();
         updateCurrentLabel(currentTimeMs);
         syncMarkerHighlights();
         syncPlayhead();
@@ -1003,7 +1015,7 @@ function createTimelineDockController({
         const clamped = clamp(timeMs, rangeMin, rangeMax);
         currentTimeMs = clamped;
         slider.value = String(clamp(clamped, viewMin, viewMax));
-        slider.dataset.currentTimeMs = String(clamped);
+        syncSliderTimelineDataset();
         updateCurrentLabel(clamped);
         syncMarkerHighlights();
         syncPlayhead();
@@ -1616,7 +1628,7 @@ function createTimelineDockController({
             const timeMs = payload.timeMs;
             if (!Number.isFinite(timeMs)) return;
             currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
-            slider.dataset.currentTimeMs = String(currentTimeMs);
+            syncSliderTimelineDataset();
             updateCurrentLabel(currentTimeMs);
             syncMarkerHighlights();
             syncPlayhead();
@@ -1632,7 +1644,7 @@ function createTimelineDockController({
             const timeMs = payload.timeMs;
             if (!Number.isFinite(timeMs)) return;
             currentTimeMs = clamp(timeMs, rangeMin, rangeMax);
-            slider.dataset.currentTimeMs = String(currentTimeMs);
+            syncSliderTimelineDataset();
             updateCurrentLabel(currentTimeMs);
             syncMarkerHighlights();
             syncPlayhead();

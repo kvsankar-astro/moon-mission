@@ -5442,8 +5442,12 @@ class AuxiliaryCameraViewsManager {
         if (!isDomInstance(slider, "HTMLInputElement")) {
             return null;
         }
-        const min = Number(slider.min);
-        const max = Number(slider.max);
+        const sliderMin = Number(slider.min);
+        const sliderMax = Number(slider.max);
+        const rangeMin = Number(slider.dataset?.rangeMinMs);
+        const rangeMax = Number(slider.dataset?.rangeMaxMs);
+        const min = Number.isFinite(rangeMin) ? rangeMin : sliderMin;
+        const max = Number.isFinite(rangeMax) ? rangeMax : sliderMax;
         const preciseValue = Number(slider.dataset?.currentTimeMs);
         const value = Number.isFinite(preciseValue) ? preciseValue : Number(slider.value);
         const step = Number(slider.step);
@@ -5483,7 +5487,11 @@ class AuxiliaryCameraViewsManager {
             return;
         }
         const clamped = this.THREE.MathUtils.clamp(timeMs, timelineState.min, timelineState.max);
-        timelineState.slider.value = String(clamped);
+        const visibleMin = Number(timelineState.slider.min);
+        const visibleMax = Number(timelineState.slider.max);
+        timelineState.slider.value = Number.isFinite(visibleMin) && Number.isFinite(visibleMax)
+            ? String(this.THREE.MathUtils.clamp(clamped, Math.min(visibleMin, visibleMax), Math.max(visibleMin, visibleMax)))
+            : String(clamped);
         const dataset = timelineState.slider.dataset || (timelineState.slider.dataset = {});
         dataset.currentTimeMs = String(clamped);
         dataset.programmaticSeekSource = "frame-shoot";
