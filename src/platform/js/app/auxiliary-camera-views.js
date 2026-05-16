@@ -179,6 +179,7 @@ const COMPOSER_MOONSHINE_LIFT_SCALE =
 const COMPOSER_MOON_OUTLINE_THICKNESS_PX = 1.2;
 const COMPOSER_MOON_OUTLINE_RGBA = "rgba(199, 214, 236, 0.78)";
 const COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION = 1;
+const COMPOSER_AUTO_FOV_PREFERENCE_VERSION = 1;
 const COMPOSER_DEFAULT_ROLL_RAD = 0;
 const COMPOSER_RENDER_EXPOSURE = 1.0;
 const COMPOSER_SKY_STARMAP_OPACITY_CAP = 0.05;
@@ -1106,6 +1107,9 @@ class AuxiliaryCameraViewsManager {
                 composerControlsCollapsed: panelState.composerControlsCollapsed === true,
                 composerControlsCollapseVersion: panelState.mode === "composer"
                     ? COMPOSER_CONTROLS_COLLAPSE_STATE_VERSION
+                    : undefined,
+                composerAutoFovPreferenceVersion: panelState.mode === "composer"
+                    ? COMPOSER_AUTO_FOV_PREFERENCE_VERSION
                     : undefined,
                 composerExposureEv: panelState.mode === "composer" &&
                     Number.isFinite(Number(panelState.composerExposureEv))
@@ -2476,7 +2480,9 @@ class AuxiliaryCameraViewsManager {
         let composerTransportSpeedButton = null;
         let composerTransportFasterButton = null;
         let composerPhasePrevButton = null;
-        let composerPhaseSelect = null;
+        let composerPhaseDetails = null;
+        let composerPhaseSummary = null;
+        let composerPhaseOptionsWrap = null;
         let composerPhaseNextButton = null;
         let composerTimelineSlider = null;
         let composerTimelineLabel = null;
@@ -2819,10 +2825,16 @@ class AuxiliaryCameraViewsManager {
             composerPhasePrevButton.setAttribute("aria-label", "Previous mission phase");
             composerPhaseControl.appendChild(composerPhasePrevButton);
 
-            composerPhaseSelect = document.createElement("select");
-            composerPhaseSelect.className = "aux-camera-view__composer-phase-select";
-            composerPhaseSelect.setAttribute("aria-label", "Mission phase");
-            composerPhaseControl.appendChild(composerPhaseSelect);
+            composerPhaseDetails = document.createElement("details");
+            composerPhaseDetails.className = "aux-camera-view__composer-phase-pullup";
+            composerPhaseSummary = document.createElement("summary");
+            composerPhaseSummary.className = "aux-camera-view__composer-phase-pullup-summary";
+            composerPhaseSummary.textContent = "Phase";
+            composerPhaseDetails.appendChild(composerPhaseSummary);
+            composerPhaseOptionsWrap = document.createElement("div");
+            composerPhaseOptionsWrap.className = "aux-camera-view__composer-phase-options";
+            composerPhaseDetails.appendChild(composerPhaseOptionsWrap);
+            composerPhaseControl.appendChild(composerPhaseDetails);
 
             composerPhaseNextButton = document.createElement("button");
             composerPhaseNextButton.type = "button";
@@ -3428,7 +3440,9 @@ class AuxiliaryCameraViewsManager {
             composerTransportSpeedButton,
             composerTransportFasterButton,
             composerPhasePrevButton,
-            composerPhaseSelect,
+            composerPhaseDetails,
+            composerPhaseSummary,
+            composerPhaseOptionsWrap,
             composerPhaseNextButton,
             composerTimelineSlider,
             composerTimelineLabel,
@@ -3571,7 +3585,6 @@ class AuxiliaryCameraViewsManager {
             onComposerTimelineInput: null,
             onComposerTimelinePointerDown: null,
             onComposerTimelinePointerUp: null,
-            onComposerPhaseSelectChange: null,
             onComposerPhasePrevClick: null,
             onComposerPhaseNextClick: null,
             onComposerTransportPlayClick: null,
@@ -4467,26 +4480,23 @@ class AuxiliaryCameraViewsManager {
                 const targetMs = localMin + ((localMax - localMin) * ratio);
                 this.seekMainTimelineTime(targetMs, true);
             };
-            const onComposerPhaseSelectChange = () => {
-                const select = panelState.composerPhaseSelect;
-                if (!isDomInstance(select, "HTMLSelectElement")) {
-                    return;
-                }
-                this.selectComposerTimelinePhase(panelState, select.selectedIndex);
-            };
             const onComposerPhasePrevClick = () => {
                 this.selectComposerTimelinePhase(panelState, this.composerActivePhaseIndex - 1);
             };
             const onComposerPhaseNextClick = () => {
                 this.selectComposerTimelinePhase(panelState, this.composerActivePhaseIndex + 1);
             };
-            const onComposerFlybyEventsDocumentPointerDown = (event) => {
-                const details = panelState.composerFlybyEventsDetails;
-                if (!details?.open || !isDomElement(event.target)) {
+            const onComposerTimelinePopupDocumentPointerDown = (event) => {
+                if (!isDomElement(event.target)) {
                     return;
                 }
-                if (!details.contains(event.target)) {
-                    details.open = false;
+                const phaseDetails = panelState.composerPhaseDetails;
+                if (phaseDetails?.open && !phaseDetails.contains(event.target)) {
+                    phaseDetails.open = false;
+                }
+                const eventDetails = panelState.composerFlybyEventsDetails;
+                if (eventDetails?.open && !eventDetails.contains(event.target)) {
+                    eventDetails.open = false;
                 }
             };
             const REPEAT_PRESS_BUTTON_IDS = new Set(["slower", "faster", "realtime"]);
@@ -4733,10 +4743,9 @@ class AuxiliaryCameraViewsManager {
             panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
             panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
             panelState.composerTimelineSlider?.addEventListener("change", onComposerTimelinePointerUp);
-            panelState.composerPhaseSelect?.addEventListener("change", onComposerPhaseSelectChange);
             panelState.composerPhasePrevButton?.addEventListener("click", onComposerPhasePrevClick);
             panelState.composerPhaseNextButton?.addEventListener("click", onComposerPhaseNextClick);
-            document.addEventListener("pointerdown", onComposerFlybyEventsDocumentPointerDown, true);
+            document.addEventListener("pointerdown", onComposerTimelinePopupDocumentPointerDown, true);
             panelState.composerTransportPlayButton?.addEventListener("click", onComposerTransportPlayClick);
             panelState.composerTransportMinusSecondButton?.addEventListener("click", onComposerTransportMinusSecondClick);
             panelState.composerTransportMinusMinuteButton?.addEventListener("click", onComposerTransportMinusMinuteClick);
@@ -4792,10 +4801,9 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerTimelineInput = onComposerTimelineInput;
             panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
             panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
-            panelState.onComposerPhaseSelectChange = onComposerPhaseSelectChange;
             panelState.onComposerPhasePrevClick = onComposerPhasePrevClick;
             panelState.onComposerPhaseNextClick = onComposerPhaseNextClick;
-            panelState.onComposerFlybyEventsDocumentPointerDown = onComposerFlybyEventsDocumentPointerDown;
+            panelState.onComposerTimelinePopupDocumentPointerDown = onComposerTimelinePopupDocumentPointerDown;
             panelState.onComposerTransportPlayClick = onComposerTransportPlayClick;
             panelState.onComposerTransportMinusSecondClick = onComposerTransportMinusSecondClick;
             panelState.onComposerTransportMinusMinuteClick = onComposerTransportMinusMinuteClick;
@@ -4976,7 +4984,14 @@ class AuxiliaryCameraViewsManager {
         if (panelState.mode === "composer") {
             panelState.autoFovEnabled = true;
             this.setPanelFov(panelState, spec.defaultFov);
-            if (persisted && typeof persisted === "object" && hasCurrentAuxFovPreferenceVersion(persisted)) {
+            const hasCurrentComposerAutoFovPreference =
+                Number(persisted?.composerAutoFovPreferenceVersion) >= COMPOSER_AUTO_FOV_PREFERENCE_VERSION;
+            if (
+                hasCurrentComposerAutoFovPreference &&
+                persisted &&
+                typeof persisted === "object" &&
+                hasCurrentAuxFovPreferenceVersion(persisted)
+            ) {
                 const result = resolveComposerViewIntent(this.readComposerViewState(panelState), {
                     type: "persisted",
                     persisted,
@@ -5375,7 +5390,6 @@ class AuxiliaryCameraViewsManager {
         if (panelState.composerTimelineSlider) {
             panelState.composerTimelineSlider.disabled = disableControls;
         }
-        panelState.composerPhaseSelect && (panelState.composerPhaseSelect.disabled = disableControls);
         panelState.composerPhasePrevButton && (panelState.composerPhasePrevButton.disabled = disableControls);
         panelState.composerPhaseNextButton && (panelState.composerPhaseNextButton.disabled = disableControls);
         panelState.composerTransportMinusSecondButton && (panelState.composerTransportMinusSecondButton.disabled = disableControls);
@@ -5697,6 +5711,9 @@ class AuxiliaryCameraViewsManager {
         this.composerSelectedPhaseIndex = boundedPhaseIndex;
         this.seekMainTimelineTime(Number.isFinite(targetMs) ? targetMs : phase.startMs, true);
         this.syncComposerTimelineUi(panelState, { preferredPhaseIndex: boundedPhaseIndex });
+        if (panelState.composerPhaseDetails) {
+            panelState.composerPhaseDetails.open = false;
+        }
         this.requestRender?.();
         return true;
     }
@@ -5735,8 +5752,10 @@ class AuxiliaryCameraViewsManager {
     }
 
     syncComposerPhaseSelect(panelState, activePhaseIndex) {
-        const select = panelState?.composerPhaseSelect;
-        if (!isDomInstance(select, "HTMLSelectElement")) {
+        const details = panelState?.composerPhaseDetails;
+        const summary = panelState?.composerPhaseSummary;
+        const optionsWrap = panelState?.composerPhaseOptionsWrap;
+        if (!details || !summary || !optionsWrap) {
             return;
         }
         const phases = Array.isArray(this.composerTimelinePhases) ? this.composerTimelinePhases : [];
@@ -5744,17 +5763,36 @@ class AuxiliaryCameraViewsManager {
             .map((phase) => `${phase.id}:${phase.startMs}:${phase.endMs}:${phase.events?.length || 0}`)
             .join("|");
         if (panelState.composerPhaseSelectSignature !== signature) {
-            select.replaceChildren();
+            optionsWrap.replaceChildren();
             for (let i = 0; i < phases.length; i += 1) {
                 const phase = phases[i];
-                const option = document.createElement("option");
-                option.value = String(i);
+                const option = document.createElement("button");
+                option.type = "button";
+                option.className = "aux-camera-view__composer-phase-option";
                 option.textContent = phase.label || phase.id || `Phase ${i + 1}`;
-                select.appendChild(option);
+                option.setAttribute("aria-label", `Jump timeline to ${option.textContent}`);
+                option.addEventListener("click", () => {
+                    this.selectComposerTimelinePhase(panelState, i);
+                });
+                optionsWrap.appendChild(option);
             }
             panelState.composerPhaseSelectSignature = signature;
         }
-        select.disabled = phases.length <= 1;
+        const phaseOptions = Array.from(optionsWrap.children || []);
+        for (let i = 0; i < phaseOptions.length; i += 1) {
+            const isActive = i === activePhaseIndex;
+            phaseOptions[i].classList?.toggle("is-active", isActive);
+            if (isActive) {
+                phaseOptions[i].setAttribute?.("aria-current", "true");
+            } else {
+                phaseOptions[i].removeAttribute?.("aria-current");
+            }
+        }
+        summary.classList?.toggle("is-disabled", phases.length <= 1);
+        summary.setAttribute?.("aria-disabled", phases.length <= 1 ? "true" : "false");
+        if (phases.length <= 1) {
+            details.open = false;
+        }
         if (panelState.composerPhasePrevButton) {
             panelState.composerPhasePrevButton.disabled = phases.length <= 1 || activePhaseIndex <= 0;
         }
@@ -5762,7 +5800,12 @@ class AuxiliaryCameraViewsManager {
             panelState.composerPhaseNextButton.disabled = phases.length <= 1 || activePhaseIndex >= phases.length - 1;
         }
         if (activePhaseIndex >= 0 && activePhaseIndex < phases.length) {
-            select.value = String(activePhaseIndex);
+            const label = phases[activePhaseIndex].label || phases[activePhaseIndex].id || `Phase ${activePhaseIndex + 1}`;
+            summary.textContent = label;
+            summary.setAttribute?.("title", label);
+        } else {
+            summary.textContent = "Phase";
+            summary.removeAttribute?.("title");
         }
     }
 
@@ -10154,19 +10197,16 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerTimelineSlider?.removeEventListener("pointerup", panelState.onComposerTimelinePointerUp);
                 panelState.composerTimelineSlider?.removeEventListener("change", panelState.onComposerTimelinePointerUp);
             }
-            if (panelState.onComposerPhaseSelectChange) {
-                panelState.composerPhaseSelect?.removeEventListener("change", panelState.onComposerPhaseSelectChange);
-            }
             if (panelState.onComposerPhasePrevClick) {
                 panelState.composerPhasePrevButton?.removeEventListener("click", panelState.onComposerPhasePrevClick);
             }
             if (panelState.onComposerPhaseNextClick) {
                 panelState.composerPhaseNextButton?.removeEventListener("click", panelState.onComposerPhaseNextClick);
             }
-            if (panelState.onComposerFlybyEventsDocumentPointerDown) {
+            if (panelState.onComposerTimelinePopupDocumentPointerDown) {
                 document.removeEventListener(
                     "pointerdown",
-                    panelState.onComposerFlybyEventsDocumentPointerDown,
+                    panelState.onComposerTimelinePopupDocumentPointerDown,
                     true,
                 );
             }
