@@ -1,9 +1,20 @@
 export function createEarthActions({ EarthRenderer, render }) {
-    function addEarth(scene, { earthRadius, viewPolarAxes, viewPoles }) {
+    function addEarth(scene, {
+        earthRadius,
+        viewPolarAxes,
+        viewPoles,
+        viewEarthLatLonGrid = false,
+        viewEarthLatLonLabels = true,
+        viewEarthLatLonHover = false,
+    }) {
         // Create Earth renderer
         scene.earthRenderer = new EarthRenderer(earthRadius);
         scene.earthRenderer.setTextures(scene.earthTexture, scene.earthSpecularTexture, scene.earthNightTexture);
-        scene.earthRenderer.create(viewPolarAxes, viewPoles);
+        scene.earthRenderer.create(viewPolarAxes, viewPoles, {
+            latLonGridVisible: viewEarthLatLonGrid,
+            latLonLabelsVisible: viewEarthLatLonLabels,
+            latLonHoverEnabled: viewEarthLatLonHover,
+        });
 
         // Backward-compatible property references
         scene.earthContainer = scene.earthRenderer.container;
@@ -11,6 +22,9 @@ export function createEarthActions({ EarthRenderer, render }) {
         scene.earthAxis = scene.earthRenderer.axis;
         scene.earthNorthPoleSphere = scene.earthRenderer.northPoleSphere;
         scene.earthSouthPoleSphere = scene.earthRenderer.southPoleSphere;
+        scene.earthLatLonGrid = scene.earthRenderer.latLonGrid;
+        scene.earthLatLonLabels = scene.earthRenderer.latLonLabels;
+        scene.earthLatLonHoverLabel = scene.earthRenderer.latLonHoverLabel;
 
         render();
     }
@@ -26,6 +40,9 @@ export function createEarthActions({ EarthRenderer, render }) {
         scene.earthAxis = null;
         scene.earthNorthPoleSphere = null;
         scene.earthSouthPoleSphere = null;
+        scene.earthLatLonGrid = null;
+        scene.earthLatLonLabels = null;
+        scene.earthLatLonHoverLabel = null;
         scene.earthContainer = null;
         scene.earthTexture = null;
         scene.earthPhotoTexture = null;

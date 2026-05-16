@@ -117,8 +117,9 @@ function createSceneHandlerClass(deps) {
                 clientY: event?.clientY,
             };
             const craterChanged = animationScene.updateLunarCraterHoverFromPointer?.(pointerInput) === true;
+            const earthCoordinateChanged = animationScene.updateEarthLatLonHoverFromPointer?.(pointerInput) === true;
             const moonCoordinateChanged = animationScene.updateMoonLatLonHoverFromPointer?.(pointerInput) === true;
-            const changed = craterChanged || moonCoordinateChanged;
+            const changed = craterChanged || earthCoordinateChanged || moonCoordinateChanged;
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
             }
@@ -127,6 +128,7 @@ function createSceneHandlerClass(deps) {
         handleLunarCraterPointerLeave() {
             const animationScene = this.lastAnimationScene;
             const changed = (animationScene?.clearLunarCraterHover?.() === true)
+                || (animationScene?.clearEarthLatLonHover?.() === true)
                 || (animationScene?.clearMoonLatLonHover?.() === true);
             if (changed) {
                 this.scheduleLunarCraterHoverRender();
@@ -260,6 +262,10 @@ function createSceneHandlerClass(deps) {
                     camera,
                     rendererDomElement: this.renderer?.domElement || null,
                     freezeScale: this.lunarCraterLabelScaleFrozen === true,
+                });
+                animationScene.updateEarthLatLonGridForCamera?.({
+                    camera,
+                    rendererDomElement: this.renderer?.domElement || null,
                 });
                 animationScene.updateMoonLatLonGridForCamera?.({
                     camera,

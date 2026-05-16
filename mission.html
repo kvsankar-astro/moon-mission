@@ -1064,40 +1064,87 @@
                     >
                         Moon Sites
                     </button>
-                    <button id="toggle-pill-xyz" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle XYZ axes">XYZ</button>
-                    <button id="toggle-pill-poles" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle poles">Poles</button>
-                    <button id="toggle-pill-polar-axes" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle polar axes">Polar Axes</button>
+                    <button
+                        id="toggle-pill-guides"
+                        type="button"
+                        class="header-toggle-pill"
+                        aria-pressed="false"
+                        aria-expanded="false"
+                        aria-haspopup="dialog"
+                        aria-controls="guides-controls-panel"
+                        title="Open Earth and Moon guide controls"
+                    >
+                        Guides
+                    </button>
                 </div>
                 <div
-                    id="lunar-grid-controls-panel"
-                    class="lunar-grid-controls-panel"
+                    id="guides-controls-panel"
+                    class="guides-controls-panel"
                     role="dialog"
-                    aria-label="Lunar grid controls"
+                    aria-label="Guide controls"
                     hidden
                 >
-                    <div class="lunar-grid-controls-panel__header">
-                        <span class="lunar-grid-controls-panel__title">Lat/Lon Grid</span>
+                    <div class="guides-controls-panel__header">
+                        <span class="guides-controls-panel__title">Guides</span>
                         <button
-                            id="lunar-grid-close"
+                            id="guides-close"
                             type="button"
-                            class="lunar-grid-controls-panel__close"
-                            title="Close lunar grid controls"
+                            class="guides-controls-panel__close"
+                            title="Close guide controls"
                         >
                             Close
                         </button>
                     </div>
-                    <label class="lunar-grid-controls-panel__option" title="Show selenographic latitude and longitude grid lines">
-                        <input type="checkbox" name="view" value="moon-lat-lon-grid" id="lunar-grid-lines-toggle">
-                        <span>Grid Lines</span>
+                    <label class="guides-controls-panel__option guides-controls-panel__option--scene" title="Show scene XYZ axes">
+                        <input type="checkbox" name="view" value="xyz-axes" id="guides-xyz-toggle">
+                        <span>XYZ Axes</span>
                     </label>
-                    <label class="lunar-grid-controls-panel__option" title="Show latitude and longitude labels on the grid">
-                        <input type="checkbox" name="view" value="moon-lat-lon-labels" id="lunar-grid-labels-toggle" checked>
-                        <span>Labels</span>
-                    </label>
-                    <label class="lunar-grid-controls-panel__option" title="Show selenographic coordinates while hovering over the Moon">
-                        <input type="checkbox" name="view" value="moon-lat-lon-hover" id="lunar-grid-hover-toggle">
-                        <span>Hover Readout</span>
-                    </label>
+                    <div class="guides-controls-panel__section">
+                        <div class="guides-controls-panel__section-title">Earth</div>
+                        <label class="guides-controls-panel__option" title="Show Earth pole markers">
+                            <input type="checkbox" name="view" value="earth-poles" id="guides-earth-poles-toggle">
+                            <span>Poles</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show Earth's polar axis">
+                            <input type="checkbox" name="view" value="earth-polar-axes" id="guides-earth-polar-axes-toggle">
+                            <span>Polar Axis</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show Earth latitude and longitude grid lines">
+                            <input type="checkbox" name="view" value="earth-lat-lon-grid" id="guides-earth-grid-toggle">
+                            <span>Lat/Lon Grid</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show Earth latitude and longitude labels">
+                            <input type="checkbox" name="view" value="earth-lat-lon-labels" id="guides-earth-labels-toggle" checked>
+                            <span>Labels</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show Earth coordinates while hovering">
+                            <input type="checkbox" name="view" value="earth-lat-lon-hover" id="guides-earth-hover-toggle">
+                            <span>Hover Readout</span>
+                        </label>
+                    </div>
+                    <div class="guides-controls-panel__section">
+                        <div class="guides-controls-panel__section-title">Moon</div>
+                        <label class="guides-controls-panel__option" title="Show Moon pole markers">
+                            <input type="checkbox" name="view" value="moon-poles" id="guides-moon-poles-toggle">
+                            <span>Poles</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show the Moon's polar axis">
+                            <input type="checkbox" name="view" value="moon-polar-axes" id="guides-moon-polar-axes-toggle">
+                            <span>Polar Axis</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show lunar latitude and longitude grid lines">
+                            <input type="checkbox" name="view" value="moon-lat-lon-grid" id="guides-moon-grid-toggle">
+                            <span>Lat/Lon Grid</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show lunar latitude and longitude labels">
+                            <input type="checkbox" name="view" value="moon-lat-lon-labels" id="guides-moon-labels-toggle" checked>
+                            <span>Labels</span>
+                        </label>
+                        <label class="guides-controls-panel__option" title="Show lunar coordinates while hovering">
+                            <input type="checkbox" name="view" value="moon-lat-lon-hover" id="guides-moon-hover-toggle">
+                            <span>Hover Readout</span>
+                        </label>
+                    </div>
                 </div>
                 <div
                     id="lunar-crater-controls-panel"
@@ -1309,18 +1356,6 @@
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
                         <div class="header-pill-segment" role="group" aria-label="Lunar feature controls">
-                            <button
-                                id="toggle-pill-moon-grid"
-                                type="button"
-                                class="header-pill-segment__btn"
-                                aria-pressed="false"
-                                aria-expanded="false"
-                                aria-haspopup="dialog"
-                                aria-controls="lunar-grid-controls-panel"
-                                title="Open selenographic latitude and longitude grid controls"
-                            >
-                                Lat/Lon Grid
-                            </button>
                             <button
                                 id="toggle-pill-lunar-craters"
                                 type="button"
@@ -1677,6 +1712,34 @@
                                     <span>Lunar Craters</span>
                                 </label>
                                 <label class="settings-option">
+                                    <input type="checkbox" name="view" value="earth-poles" id="view-earth-poles">
+                                    <span>Earth Poles</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="earth-polar-axes" id="view-earth-polar-axes">
+                                    <span>Earth Polar Axis</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="earth-lat-lon-grid" id="view-earth-lat-lon-grid">
+                                    <span>Earth Lat/Lon Grid</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="earth-lat-lon-labels" id="view-earth-lat-lon-labels" checked="checked">
+                                    <span>Earth Lat/Lon Labels</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="earth-lat-lon-hover" id="view-earth-lat-lon-hover">
+                                    <span>Earth Lat/Lon Hover</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="moon-poles" id="view-moon-poles">
+                                    <span>Moon Poles</span>
+                                </label>
+                                <label class="settings-option">
+                                    <input type="checkbox" name="view" value="moon-polar-axes" id="view-moon-polar-axes">
+                                    <span>Moon Polar Axis</span>
+                                </label>
+                                <label class="settings-option">
                                     <input type="checkbox" name="view" value="moon-lat-lon-grid" id="view-moon-lat-lon-grid">
                                     <span>Moon Lat/Lon Grid</span>
                                 </label>
@@ -1692,11 +1755,11 @@
                                     <input type="checkbox" name="view" value="xyz" id="view-xyz-axes">
                                     <span>XYZ Axes</span>
                                 </label>
-                                <label class="settings-option">
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
                                     <input type="checkbox" name="view" value="poles" id="view-poles">
                                     <span>Poles</span>
                                 </label>
-                                <label class="settings-option">
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
                                     <input type="checkbox" name="view" value="polar-axes" id="view-polar-axes">
                                     <span>Polar Axes</span>
                                 </label>

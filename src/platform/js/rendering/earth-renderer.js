@@ -10,6 +10,7 @@
 
 import * as THREE from 'three';
 import { COLORS as COL, PHYSICS_CONSTANTS as PC } from '../core/constants.js';
+import { BodyLatLonOverlay } from "./body-lat-lon-overlay.js";
 
 const EARTH_NIGHTSIDE_LIFT = 0.0;
 const EARTH_MOONSHINE_LIFT = 0.0;
@@ -216,6 +217,10 @@ export class EarthRenderer {
         this.axis = null;
         this.northPoleSphere = null;
         this.southPoleSphere = null;
+        this.latLonOverlay = null;
+        this.latLonGrid = null;
+        this.latLonLabels = null;
+        this.latLonHoverLabel = null;
 
         // Textures (set externally before create())
         this.texture = null;
@@ -291,7 +296,11 @@ export class EarthRenderer {
      * @param {boolean} axisVisible - Initial visibility of polar axis
      * @param {boolean} polesVisible - Initial visibility of pole markers
      */
-    create(axisVisible = false, polesVisible = false) {
+    create(axisVisible = false, polesVisible = false, {
+        latLonGridVisible = false,
+        latLonLabelsVisible = true,
+        latLonHoverEnabled = false,
+    } = {}) {
         // Create container tilted to Earth's axis
         this.container = new THREE.Group();
         this.container.lookAt(
@@ -328,6 +337,20 @@ export class EarthRenderer {
         // Create axis and poles (not added to container yet - done by parent)
         this._createAxis(axisVisible);
         this._createPoles(polesVisible);
+        this.latLonOverlay = new BodyLatLonOverlay({
+            bodyName: "earth",
+            radius: this.radius,
+            mesh: this.mesh,
+            container: this.container,
+        });
+        this.latLonOverlay.create({
+            gridVisible: latLonGridVisible,
+            labelsVisible: latLonLabelsVisible,
+            hoverEnabled: latLonHoverEnabled,
+        });
+        this.latLonGrid = this.latLonOverlay.grid;
+        this.latLonLabels = this.latLonOverlay.labels;
+        this.latLonHoverLabel = this.latLonOverlay.hoverLabel;
     }
 
     /**
@@ -437,6 +460,39 @@ export class EarthRenderer {
         }
     }
 
+    setLatLonGridVisible(visible) {
+        this.latLonOverlay?.setGridVisible?.(visible);
+        this.latLonGrid = this.latLonOverlay?.grid || null;
+        this.latLonLabels = this.latLonOverlay?.labels || null;
+    }
+
+    setLatLonLabelsVisible(visible) {
+        this.latLonOverlay?.setLabelsVisible?.(visible);
+        this.latLonLabels = this.latLonOverlay?.labels || null;
+    }
+
+    setLatLonHoverEnabled(enabled) {
+        this.latLonOverlay?.setHoverEnabled?.(enabled);
+        this.latLonHoverLabel = this.latLonOverlay?.hoverLabel || null;
+    }
+
+    updateLatLonGridForCamera(input) {
+        const changed = this.latLonOverlay?.updateForCamera?.(input) === true;
+        this.latLonGrid = this.latLonOverlay?.grid || null;
+        this.latLonLabels = this.latLonOverlay?.labels || null;
+        return changed;
+    }
+
+    updateLatLonHoverFromPointer(input) {
+        const changed = this.latLonOverlay?.updateHoverFromPointer?.(input) === true;
+        this.latLonHoverLabel = this.latLonOverlay?.hoverLabel || null;
+        return changed;
+    }
+
+    hideLatLonHover() {
+        return this.latLonOverlay?.hideHover?.() === true;
+    }
+
     /**
      * Dispose all Earth resources
      */
@@ -470,6 +526,14 @@ export class EarthRenderer {
                 if (this.southPoleSphere.material) this.southPoleSphere.material.dispose();
                 this.container.remove(this.southPoleSphere);
                 this.southPoleSphere = null;
+            }
+
+            if (this.latLonOverlay) {
+                this.latLonOverlay.dispose();
+                this.latLonOverlay = null;
+                this.latLonGrid = null;
+                this.latLonLabels = null;
+                this.latLonHoverLabel = null;
             }
 
             // Remove container from parent

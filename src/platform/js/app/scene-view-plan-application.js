@@ -95,18 +95,26 @@ function applySceneViewPlanToScene({
         scene.axesHelper.visible = view.viewXYZAxes;
     }
 
-    scene.earthNorthPoleSphere.visible = view.viewPoles;
-    scene.earthSouthPoleSphere.visible = view.viewPoles;
+    const viewEarthPoles = view.viewEarthPoles ?? view.viewPoles;
+    const viewMoonPoles = view.viewMoonPoles ?? view.viewPoles;
+    const viewEarthPolarAxes = view.viewEarthPolarAxes ?? view.viewPolarAxes;
+    const viewMoonPolarAxes = view.viewMoonPolarAxes ?? view.viewPolarAxes;
+    scene.earthNorthPoleSphere.visible = viewEarthPoles;
+    scene.earthSouthPoleSphere.visible = viewEarthPoles;
+    scene.earthAxis.visible = viewEarthPolarAxes;
+    scene.earthRenderer?.setLatLonGridVisible?.(view.viewEarthLatLonGrid);
+    scene.earthRenderer?.setLatLonLabelsVisible?.(view.viewEarthLatLonLabels ?? true);
+    scene.earthRenderer?.setLatLonHoverEnabled?.(view.viewEarthLatLonHover);
     if (scene.sceneHelpers?.setBodyHalosVisible) {
         scene.sceneHelpers.setBodyHalosVisible(view.viewBodyHalos);
     }
 
     if (globalConfig?.is_lunar) {
-        scene.moonNorthPoleSphere.visible = view.viewPoles;
-        scene.moonSouthPoleSphere.visible = view.viewPoles;
-        scene.moonAxis.visible = view.viewPolarAxes;
+        scene.moonNorthPoleSphere.visible = viewMoonPoles;
+        scene.moonSouthPoleSphere.visible = viewMoonPoles;
+        scene.moonAxis.visible = viewMoonPolarAxes;
         scene.moonRenderer?.setLatLonGridVisible?.(view.viewMoonLatLonGrid);
-        scene.moonRenderer?.setLatLonLabelsVisible?.(view.viewMoonLatLonLabels);
+        scene.moonRenderer?.setLatLonLabelsVisible?.(view.viewMoonLatLonLabels ?? true);
         scene.moonRenderer?.setLatLonHoverEnabled?.(view.viewMoonLatLonHover);
         if (scene.moonSOISphere) {
             scene.moonSOISphere.visible = view.viewMoonSOI;
@@ -118,8 +126,6 @@ function applySceneViewPlanToScene({
             scene.moonOsculatingOrbitLine.visible = plan.showMoonOsculatingOrbit;
         }
     }
-
-    scene.earthAxis.visible = view.viewPolarAxes;
 
     applySkyLayerVisibility(scene, {
         viewSky: view.viewSky,

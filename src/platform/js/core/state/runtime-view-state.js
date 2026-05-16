@@ -22,6 +22,13 @@ const VIEW_FLAG_KEYS = [
     "viewMoonLatLonGrid",
     "viewMoonLatLonLabels",
     "viewMoonLatLonHover",
+    "viewEarthLatLonGrid",
+    "viewEarthLatLonLabels",
+    "viewEarthLatLonHover",
+    "viewEarthPoles",
+    "viewMoonPoles",
+    "viewEarthPolarAxes",
+    "viewMoonPolarAxes",
     "lunarCraterHoverLabels",
     "viewXYZAxes",
     "viewPoles",
@@ -94,6 +101,13 @@ function buildDefaultViewFlags() {
         viewMoonLatLonGrid: false,
         viewMoonLatLonLabels: true,
         viewMoonLatLonHover: false,
+        viewEarthLatLonGrid: false,
+        viewEarthLatLonLabels: true,
+        viewEarthLatLonHover: false,
+        viewEarthPoles: false,
+        viewMoonPoles: false,
+        viewEarthPolarAxes: false,
+        viewMoonPolarAxes: false,
         lunarCraterHoverLabels: lunarFeatureDefaults.lunarCraterHoverLabels,
         lunarCraterDisplayMode: lunarFeatureDefaults.lunarCraterDisplayMode,
         lunarCraterMinDiameterKm: lunarFeatureDefaults.lunarCraterMinDiameterKm,
@@ -156,6 +170,24 @@ function applyViewFlagPatch(target, patch, options = {}) {
     for (const key of VIEW_FLAG_KEYS) {
         if (canApplyKey(key) && Object.prototype.hasOwnProperty.call(patch, key)) {
             target[key] = Boolean(patch[key]);
+        }
+    }
+    if (canApplyKey("viewPoles") && Object.prototype.hasOwnProperty.call(patch, "viewPoles")) {
+        const value = Boolean(patch.viewPoles);
+        if (canApplyKey("viewEarthPoles") && !Object.prototype.hasOwnProperty.call(patch, "viewEarthPoles")) {
+            target.viewEarthPoles = value;
+        }
+        if (canApplyKey("viewMoonPoles") && !Object.prototype.hasOwnProperty.call(patch, "viewMoonPoles")) {
+            target.viewMoonPoles = value;
+        }
+    }
+    if (canApplyKey("viewPolarAxes") && Object.prototype.hasOwnProperty.call(patch, "viewPolarAxes")) {
+        const value = Boolean(patch.viewPolarAxes);
+        if (canApplyKey("viewEarthPolarAxes") && !Object.prototype.hasOwnProperty.call(patch, "viewEarthPolarAxes")) {
+            target.viewEarthPolarAxes = value;
+        }
+        if (canApplyKey("viewMoonPolarAxes") && !Object.prototype.hasOwnProperty.call(patch, "viewMoonPolarAxes")) {
+            target.viewMoonPolarAxes = value;
         }
     }
     if (canApplyKey("orbitStyle") && (patch.orbitStyle === "classic" || patch.orbitStyle === "trail")) {
@@ -349,6 +381,18 @@ function createRuntimeViewState({
         setViewMoonLatLonHover: (value) => {
             viewFlags.viewMoonLatLonHover = Boolean(value);
         },
+        getViewEarthLatLonGrid: () => getEffectiveViewFlags().viewEarthLatLonGrid,
+        setViewEarthLatLonGrid: (value) => {
+            viewFlags.viewEarthLatLonGrid = Boolean(value);
+        },
+        getViewEarthLatLonLabels: () => getEffectiveViewFlags().viewEarthLatLonLabels,
+        setViewEarthLatLonLabels: (value) => {
+            viewFlags.viewEarthLatLonLabels = Boolean(value);
+        },
+        getViewEarthLatLonHover: () => getEffectiveViewFlags().viewEarthLatLonHover,
+        setViewEarthLatLonHover: (value) => {
+            viewFlags.viewEarthLatLonHover = Boolean(value);
+        },
         getLunarFeatureTypeFilters: () => normalizeLunarFeatureTypeFilters(
             getEffectiveViewFlags().lunarFeatureTypeFilters,
             viewFlags.lunarFeatureTypeFilters,
@@ -386,13 +430,39 @@ function createRuntimeViewState({
         setViewXYZAxes: (value) => {
             viewFlags.viewXYZAxes = Boolean(value);
         },
-        getViewPoles: () => getEffectiveViewFlags().viewPoles,
-        setViewPoles: (value) => {
-            viewFlags.viewPoles = Boolean(value);
+        getViewEarthPoles: () => getEffectiveViewFlags().viewEarthPoles,
+        setViewEarthPoles: (value) => {
+            viewFlags.viewEarthPoles = Boolean(value);
+            viewFlags.viewPoles = viewFlags.viewEarthPoles && viewFlags.viewMoonPoles;
         },
-        getViewPolarAxes: () => getEffectiveViewFlags().viewPolarAxes,
+        getViewMoonPoles: () => getEffectiveViewFlags().viewMoonPoles,
+        setViewMoonPoles: (value) => {
+            viewFlags.viewMoonPoles = Boolean(value);
+            viewFlags.viewPoles = viewFlags.viewEarthPoles && viewFlags.viewMoonPoles;
+        },
+        getViewEarthPolarAxes: () => getEffectiveViewFlags().viewEarthPolarAxes,
+        setViewEarthPolarAxes: (value) => {
+            viewFlags.viewEarthPolarAxes = Boolean(value);
+            viewFlags.viewPolarAxes = viewFlags.viewEarthPolarAxes && viewFlags.viewMoonPolarAxes;
+        },
+        getViewMoonPolarAxes: () => getEffectiveViewFlags().viewMoonPolarAxes,
+        setViewMoonPolarAxes: (value) => {
+            viewFlags.viewMoonPolarAxes = Boolean(value);
+            viewFlags.viewPolarAxes = viewFlags.viewEarthPolarAxes && viewFlags.viewMoonPolarAxes;
+        },
+        getViewPoles: () => getEffectiveViewFlags().viewEarthPoles && getEffectiveViewFlags().viewMoonPoles,
+        setViewPoles: (value) => {
+            const enabled = Boolean(value);
+            viewFlags.viewPoles = enabled;
+            viewFlags.viewEarthPoles = enabled;
+            viewFlags.viewMoonPoles = enabled;
+        },
+        getViewPolarAxes: () => getEffectiveViewFlags().viewEarthPolarAxes && getEffectiveViewFlags().viewMoonPolarAxes,
         setViewPolarAxes: (value) => {
-            viewFlags.viewPolarAxes = Boolean(value);
+            const enabled = Boolean(value);
+            viewFlags.viewPolarAxes = enabled;
+            viewFlags.viewEarthPolarAxes = enabled;
+            viewFlags.viewMoonPolarAxes = enabled;
         },
         getViewSky: () => getEffectiveViewFlags().viewSky,
         setViewSky: (value) => {

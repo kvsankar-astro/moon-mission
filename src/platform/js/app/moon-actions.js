@@ -27,6 +27,8 @@ export function createMoonActions({
     getFrameMode,
     getViewPolarAxes,
     getViewPoles,
+    getViewMoonPolarAxes = getViewPolarAxes,
+    getViewMoonPoles = getViewPoles,
     getViewMoonLatLonGrid = () => false,
     getViewMoonLatLonLabels = () => true,
     getViewMoonLatLonHover = () => false,
@@ -51,8 +53,8 @@ export function createMoonActions({
         // 5760-wide "quality" profile (Artemis II default) the synchronous
         // build was costing ~300-500ms of main-thread time on initial load.
         scene.moonRenderer.create(
-            getViewPolarAxes(),
-            getViewPoles(),
+            getViewMoonPolarAxes(),
+            getViewMoonPoles(),
             {
                 deferGeneratedNormalMap: true,
                 latLonGridVisible: getViewMoonLatLonGrid(),

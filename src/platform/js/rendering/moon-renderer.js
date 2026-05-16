@@ -61,13 +61,23 @@ const DEFAULT_MOON_RENDER_SETTINGS = Object.freeze({
 
 function moonLatLonPoint(radius, latitudeDeg, longitudeDeg) {
     const lat = THREE.MathUtils.degToRad(latitudeDeg);
-    const lon = THREE.MathUtils.degToRad(longitudeDeg);
+    const lon = THREE.MathUtils.degToRad(displayMoonLongitudeToRenderLongitude(longitudeDeg));
     const cosLat = Math.cos(lat);
     return new THREE.Vector3(
         radius * cosLat * Math.sin(lon),
         radius * cosLat * Math.cos(lon),
         radius * Math.sin(lat),
     );
+}
+
+function displayMoonLongitudeToRenderLongitude(longitudeDeg) {
+    return 90 - Number(longitudeDeg);
+}
+
+function renderMoonLongitudeToDisplayLongitude(longitudeDeg) {
+    const normalized = 90 - Number(longitudeDeg);
+    if (!Number.isFinite(normalized)) return 0;
+    return THREE.MathUtils.euclideanModulo(normalized + 180, 360) - 180;
 }
 
 function pushLineVertexPair(vertices, start, end) {
@@ -169,7 +179,7 @@ function resolveLatitudeLabelAnchor(radius, latitudeDeg, cameraDirectionLocal) {
     const lat = clampMoonLabelLatitude(latitudeDeg);
     const xyLength = Math.hypot(cameraDirectionLocal.x, cameraDirectionLocal.y);
     const longitudeDeg = xyLength > 1e-5
-        ? THREE.MathUtils.radToDeg(Math.atan2(cameraDirectionLocal.x, cameraDirectionLocal.y))
+        ? renderMoonLongitudeToDisplayLongitude(THREE.MathUtils.radToDeg(Math.atan2(cameraDirectionLocal.x, cameraDirectionLocal.y)))
         : 0;
     const normal = moonLatLonPoint(1, lat, longitudeDeg).normalize();
     return {
@@ -179,7 +189,7 @@ function resolveLatitudeLabelAnchor(radius, latitudeDeg, cameraDirectionLocal) {
 }
 
 function resolveLongitudeLabelAnchor(radius, longitudeDeg, cameraDirectionLocal) {
-    const lonRad = THREE.MathUtils.degToRad(longitudeDeg);
+    const lonRad = THREE.MathUtils.degToRad(displayMoonLongitudeToRenderLongitude(longitudeDeg));
     const horizontalDirection = new THREE.Vector3(Math.sin(lonRad), Math.cos(lonRad), 0);
     const horizontalDot = horizontalDirection.dot(cameraDirectionLocal);
     const latitudeDeg = clampMoonLabelLatitude(
@@ -1614,7 +1624,7 @@ export class MoonRenderer {
         this.container.worldToLocal(this.latLonHoverPoint);
         const radius = Math.max(1e-6, this.latLonHoverPoint.length());
         const lat = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(this.latLonHoverPoint.z / radius, -1, 1)));
-        const lon = THREE.MathUtils.radToDeg(Math.atan2(this.latLonHoverPoint.x, this.latLonHoverPoint.y));
+        const lon = renderMoonLongitudeToDisplayLongitude(THREE.MathUtils.radToDeg(Math.atan2(this.latLonHoverPoint.x, this.latLonHoverPoint.y)));
         const hoverPosition = resolveHoverLabelOffsetPosition({
             radius: this.radius,
             latitudeDeg: lat,

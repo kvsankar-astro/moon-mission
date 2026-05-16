@@ -541,13 +541,13 @@ textarea {
     overscroll-behavior: contain;
 }
 
-.lunar-grid-controls-panel {
+.guides-controls-panel {
     position: absolute;
     top: calc(100% + 4px);
     right: calc(8px + var(--header-pill-toggle-lane));
     z-index: 43;
     display: grid;
-    width: min(240px, calc(100vw - 18px));
+    width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
     gap: 7px;
     padding: 8px;
@@ -559,18 +559,19 @@ textarea {
     font-size: 10px;
 }
 
-.lunar-grid-controls-panel[hidden] {
+.guides-controls-panel[hidden] {
     display: none !important;
 }
 
-.lunar-grid-controls-panel__header {
+.guides-controls-panel__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
 }
 
-.lunar-grid-controls-panel__title {
+.guides-controls-panel__title,
+.guides-controls-panel__section-title {
     color: #dce8ff;
     font-size: 10px;
     font-weight: 700;
@@ -578,7 +579,13 @@ textarea {
     text-transform: uppercase;
 }
 
-.lunar-grid-controls-panel__close {
+.guides-controls-panel__section-title {
+    margin: 2px 0 0;
+    color: #9fb9e4;
+    font-size: 9px;
+}
+
+.guides-controls-panel__close {
     border: 1px solid rgba(121, 171, 255, 0.34);
     border-radius: 999px;
     background: rgba(12, 24, 44, 0.9);
@@ -590,12 +597,22 @@ textarea {
     cursor: pointer;
 }
 
-.lunar-grid-controls-panel__close:hover {
+.guides-controls-panel__close:hover {
     border-color: rgba(160, 196, 255, 0.62);
     background: rgba(38, 68, 112, 0.96);
 }
 
-.lunar-grid-controls-panel__option {
+.guides-controls-panel__section {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.guides-controls-panel__section-title {
+    grid-column: 1 / -1;
+}
+
+.guides-controls-panel__option {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -610,12 +627,17 @@ textarea {
     cursor: pointer;
 }
 
-.lunar-grid-controls-panel__option:hover {
+.guides-controls-panel__option--scene {
+    width: max-content;
+    max-width: 100%;
+}
+
+.guides-controls-panel__option:hover {
     border-color: rgba(160, 196, 255, 0.48);
     background: rgba(30, 52, 86, 0.62);
 }
 
-.lunar-grid-controls-panel__option input {
+.guides-controls-panel__option input {
     width: 13px;
     height: 13px;
     accent-color: #8ebcff;

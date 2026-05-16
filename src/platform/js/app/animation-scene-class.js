@@ -283,11 +283,23 @@ function createAnimationSceneClass(deps) {
         }
 
         addEarth() {
-            const { earthRadius, viewPolarAxes, viewPoles } = getRuntimeState();
-            earthActions.addEarth(this, {
+            const {
                 earthRadius,
                 viewPolarAxes,
                 viewPoles,
+                viewEarthPolarAxes,
+                viewEarthPoles,
+                viewEarthLatLonGrid,
+                viewEarthLatLonLabels,
+                viewEarthLatLonHover,
+            } = getRuntimeState();
+            earthActions.addEarth(this, {
+                earthRadius,
+                viewPolarAxes: viewEarthPolarAxes ?? viewPolarAxes,
+                viewPoles: viewEarthPoles ?? viewPoles,
+                viewEarthLatLonGrid,
+                viewEarthLatLonLabels,
+                viewEarthLatLonHover,
             });
         }
 
@@ -571,12 +583,24 @@ function createAnimationSceneClass(deps) {
             return this.moonRenderer?.updateLatLonGridForCamera?.(input) === true;
         }
 
+        updateEarthLatLonGridForCamera(input) {
+            return this.earthRenderer?.updateLatLonGridForCamera?.(input) === true;
+        }
+
         updateMoonLatLonHoverFromPointer(input) {
             return this.moonRenderer?.updateLatLonHoverFromPointer?.(input) === true;
         }
 
+        updateEarthLatLonHoverFromPointer(input) {
+            return this.earthRenderer?.updateLatLonHoverFromPointer?.(input) === true;
+        }
+
         clearMoonLatLonHover() {
             return this.moonRenderer?.hideLatLonHover?.() === true;
+        }
+
+        clearEarthLatLonHover() {
+            return this.earthRenderer?.hideLatLonHover?.() === true;
         }
 
         setPrimaryAndSecondaryBodies() {

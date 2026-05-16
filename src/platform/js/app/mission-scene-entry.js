@@ -58,6 +58,13 @@ function createMissionSceneEntry(ctx) {
         getViewMoonLatLonGrid = () => false,
         getViewMoonLatLonLabels = () => true,
         getViewMoonLatLonHover = () => false,
+        getViewEarthLatLonGrid = () => false,
+        getViewEarthLatLonLabels = () => true,
+        getViewEarthLatLonHover = () => false,
+        getViewEarthPoles = null,
+        getViewMoonPoles = null,
+        getViewEarthPolarAxes = null,
+        getViewMoonPolarAxes = null,
         getAnimTime,
         getEarthRadius,
         getViewCraters,
@@ -131,6 +138,27 @@ function createMissionSceneEntry(ctx) {
     const writeViewLunarCraters = typeof setViewLunarCraters === "function"
         ? setViewLunarCraters
         : null;
+    const readViewEarthLatLonGrid = typeof getViewEarthLatLonGrid === "function"
+        ? getViewEarthLatLonGrid
+        : () => false;
+    const readViewEarthLatLonLabels = typeof getViewEarthLatLonLabels === "function"
+        ? getViewEarthLatLonLabels
+        : () => true;
+    const readViewEarthLatLonHover = typeof getViewEarthLatLonHover === "function"
+        ? getViewEarthLatLonHover
+        : () => false;
+    const readViewEarthPoles = typeof getViewEarthPoles === "function"
+        ? getViewEarthPoles
+        : getViewPoles;
+    const readViewMoonPoles = typeof getViewMoonPoles === "function"
+        ? getViewMoonPoles
+        : getViewPoles;
+    const readViewEarthPolarAxes = typeof getViewEarthPolarAxes === "function"
+        ? getViewEarthPolarAxes
+        : getViewPolarAxes;
+    const readViewMoonPolarAxes = typeof getViewMoonPolarAxes === "function"
+        ? getViewMoonPolarAxes
+        : getViewPolarAxes;
 
     return createMissionSceneRuntime({
         sceneActionDeps: {
@@ -194,6 +222,8 @@ function createMissionSceneEntry(ctx) {
             getFrameMode: () => frameMode,
             getViewPolarAxes,
             getViewPoles,
+            getViewMoonPolarAxes: readViewMoonPolarAxes,
+            getViewMoonPoles: readViewMoonPoles,
             getViewMoonLatLonGrid,
             getViewMoonLatLonLabels,
             getViewMoonLatLonHover,
@@ -283,6 +313,13 @@ function createMissionSceneEntry(ctx) {
                 viewMoonLatLonGrid: getViewMoonLatLonGrid(),
                 viewMoonLatLonLabels: getViewMoonLatLonLabels(),
                 viewMoonLatLonHover: getViewMoonLatLonHover(),
+                viewEarthLatLonGrid: readViewEarthLatLonGrid(),
+                viewEarthLatLonLabels: readViewEarthLatLonLabels(),
+                viewEarthLatLonHover: readViewEarthLatLonHover(),
+                viewEarthPoles: readViewEarthPoles(),
+                viewMoonPoles: readViewMoonPoles(),
+                viewEarthPolarAxes: readViewEarthPolarAxes(),
+                viewMoonPolarAxes: readViewMoonPolarAxes(),
                 viewMoonSOI: getViewMoonSOI(),
                 viewMoonHillSphere: getViewMoonHillSphere(),
                 viewBodyHalos: getViewBodyHalos(),

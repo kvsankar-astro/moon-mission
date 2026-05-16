@@ -32,8 +32,16 @@ export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-descent", "view-orbit-descent", "viewOrbitDescent"],
     ["toggle-pill-sky", "view-sky", "viewSky"],
     ["toggle-pill-xyz", "view-xyz-axes", "viewXYZAxes"],
-    ["toggle-pill-poles", "view-poles", "viewPoles"],
-    ["toggle-pill-polar-axes", "view-polar-axes", "viewPolarAxes"],
+    ["toggle-pill-earth-poles", "view-earth-poles", "viewEarthPoles"],
+    ["toggle-pill-moon-poles", "view-moon-poles", "viewMoonPoles"],
+    ["toggle-pill-earth-polar-axes", "view-earth-polar-axes", "viewEarthPolarAxes"],
+    ["toggle-pill-moon-polar-axes", "view-moon-polar-axes", "viewMoonPolarAxes"],
+    ["toggle-pill-earth-grid", "view-earth-lat-lon-grid", "viewEarthLatLonGrid"],
+    ["toggle-pill-earth-labels", "view-earth-lat-lon-labels", "viewEarthLatLonLabels"],
+    ["toggle-pill-earth-hover", "view-earth-lat-lon-hover", "viewEarthLatLonHover"],
+    ["toggle-pill-moon-grid-legacy", "view-moon-lat-lon-grid", "viewMoonLatLonGrid"],
+    ["toggle-pill-moon-labels", "view-moon-lat-lon-labels", "viewMoonLatLonLabels"],
+    ["toggle-pill-moon-hover", "view-moon-lat-lon-hover", "viewMoonLatLonHover"],
     ["toggle-pill-constellations", "view-constellation-lines", "viewConstellationLines"],
     ["toggle-pill-moon-soi", "view-moonsoi", "viewMoonSOI"],
     ["toggle-pill-moon-hill-sphere", "view-moon-hill-sphere", "viewMoonHillSphere"],
@@ -191,6 +199,36 @@ export function createViewSettingsPillController(deps = {}) {
         };
     }
 
+    const GUIDE_SETTING_DEFINITIONS = Object.freeze([
+        ["viewXYZAxes", "view-xyz-axes", "guides-xyz-toggle"],
+        ["viewEarthPoles", "view-earth-poles", "guides-earth-poles-toggle"],
+        ["viewEarthPolarAxes", "view-earth-polar-axes", "guides-earth-polar-axes-toggle"],
+        ["viewEarthLatLonGrid", "view-earth-lat-lon-grid", "guides-earth-grid-toggle"],
+        ["viewEarthLatLonLabels", "view-earth-lat-lon-labels", "guides-earth-labels-toggle"],
+        ["viewEarthLatLonHover", "view-earth-lat-lon-hover", "guides-earth-hover-toggle"],
+        ["viewMoonPoles", "view-moon-poles", "guides-moon-poles-toggle"],
+        ["viewMoonPolarAxes", "view-moon-polar-axes", "guides-moon-polar-axes-toggle"],
+        ["viewMoonLatLonGrid", "view-moon-lat-lon-grid", "guides-moon-grid-toggle"],
+        ["viewMoonLatLonLabels", "view-moon-lat-lon-labels", "guides-moon-labels-toggle"],
+        ["viewMoonLatLonHover", "view-moon-lat-lon-hover", "guides-moon-hover-toggle"],
+    ]);
+
+    function getGuidesPanelElements() {
+        const settingEntries = GUIDE_SETTING_DEFINITIONS.map(([settingKey, inputId, toggleId]) => ({
+            settingKey,
+            input: getElement(inputId),
+            toggle: getElement(toggleId),
+            inputId,
+            toggleId,
+        }));
+        return {
+            pill: getElement("toggle-pill-guides"),
+            panel: getElement("guides-controls-panel"),
+            close: getElement("guides-close"),
+            settingEntries,
+        };
+    }
+
     function positionPanelFromPill(panel, pill) {
         if (!panel || !pill?.getBoundingClientRect || !panel?.style) return;
         const strip = getElement("header-pill-strip") || panel.offsetParent || null;
@@ -222,6 +260,30 @@ export function createViewSettingsPillController(deps = {}) {
             pill.classList?.toggle?.("is-open", open === true);
             pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
         }
+    }
+
+    function setGuidesPanelOpen(open) {
+        const { pill, panel } = getGuidesPanelElements();
+        if (!panel) return;
+        panel.hidden = open !== true;
+        if (open === true) {
+            positionPanelFromPill(panel, pill);
+        }
+        if (pill) {
+            pill.classList?.toggle?.("is-open", open === true);
+            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
+        }
+    }
+
+    function syncGuidesPanelState() {
+        const { pill, settingEntries } = getGuidesPanelElements();
+        let anyActive = false;
+        settingEntries.forEach(({ settingKey, input, toggle }) => {
+            const checked = input?.checked === true;
+            if (toggle) toggle.checked = checked;
+            anyActive = anyActive || (checked && !settingKey.endsWith("LatLonLabels"));
+        });
+        syncPressedState(pill, anyActive);
     }
 
     function syncLunarGridPanelState() {
@@ -257,10 +319,25 @@ export function createViewSettingsPillController(deps = {}) {
         syncLunarGridPanelState();
     }
 
+    function commitGuidesSetting(settingKey, value, sourceId) {
+        const entry = GUIDE_SETTING_DEFINITIONS.find(([candidate]) => candidate === settingKey);
+        const input = entry ? getElement(entry[1]) : null;
+        const toggle = entry ? getElement(entry[2]) : null;
+        const nextValue = Boolean(value);
+        if (input) input.checked = nextValue;
+        if (toggle) toggle.checked = nextValue;
+        controlBackend.commitViewSetting?.(settingKey, nextValue, { sourceId });
+        syncTogglePillVisibility();
+        syncTogglePillState();
+        syncGuidesPanelState();
+        syncLunarGridPanelState();
+    }
+
     function commitLunarCraterViewPatch(patch, options = {}) {
         controlBackend.commitViewPatch?.(patch, options);
         syncTogglePillVisibility();
         syncTogglePillState();
+        syncGuidesPanelState();
         syncLunarGridPanelState();
         syncLunarCraterPanelState();
     }
@@ -452,6 +529,7 @@ export function createViewSettingsPillController(deps = {}) {
         controlBackend.commitViewSetting?.(settingKey, value, options);
         syncTogglePillVisibility();
         syncTogglePillState();
+        syncGuidesPanelState();
         syncLunarGridPanelState();
         syncLunarCraterPanelState();
         syncLocatorsPillState();
@@ -537,6 +615,29 @@ export function createViewSettingsPillController(deps = {}) {
                     syncLocatorsPillState();
                 });
             }
+        });
+
+        const {
+            pill: guidesPill,
+            close: guidesClose,
+            settingEntries: guideSettingEntries,
+        } = getGuidesPanelElements();
+        if (guidesPill) {
+            guidesPill.addEventListener("click", function (event) {
+                if (guidesPill.disabled || guidesPill.getAttribute?.("aria-disabled") === "true") return;
+                event?.stopPropagation?.();
+                setGuidesPanelOpen(true);
+                syncGuidesPanelState();
+            });
+        }
+        guidesClose?.addEventListener?.("click", function () {
+            setGuidesPanelOpen(false);
+        });
+        guideSettingEntries.forEach(({ settingKey, input, toggle, toggleId }) => {
+            toggle?.addEventListener?.("click", function (event) {
+                commitGuidesSetting(settingKey, !!event?.target?.checked, toggleId);
+            });
+            input?.addEventListener?.("change", syncGuidesPanelState);
         });
 
         const {
@@ -672,6 +773,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncOrbitLabels();
         syncTogglePillVisibility();
         syncTogglePillState();
+        syncGuidesPanelState();
         syncLunarCraterPanelState();
         syncLandingPillState();
         syncDimensionPillState();

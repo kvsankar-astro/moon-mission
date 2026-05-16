@@ -64,6 +64,18 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getViewMoonLatLonHover(),
             (value) => { runtimeViewState.setViewMoonLatLonHover(value); },
         ),
+        viewEarthLatLonGrid: createMutableStateCell(
+            () => runtimeViewState.getViewEarthLatLonGrid(),
+            (value) => { runtimeViewState.setViewEarthLatLonGrid(value); },
+        ),
+        viewEarthLatLonLabels: createMutableStateCell(
+            () => runtimeViewState.getViewEarthLatLonLabels(),
+            (value) => { runtimeViewState.setViewEarthLatLonLabels(value); },
+        ),
+        viewEarthLatLonHover: createMutableStateCell(
+            () => runtimeViewState.getViewEarthLatLonHover(),
+            (value) => { runtimeViewState.setViewEarthLatLonHover(value); },
+        ),
         lunarCraterHoverLabels: createMutableStateCell(
             () => runtimeViewState.getLunarCraterHoverLabels(),
             (value) => { runtimeViewState.setLunarCraterHoverLabels(value); },
@@ -103,6 +115,22 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
         viewPolarAxes: createMutableStateCell(
             () => runtimeViewState.getViewPolarAxes(),
             (value) => { runtimeViewState.setViewPolarAxes(value); },
+        ),
+        viewEarthPoles: createMutableStateCell(
+            () => runtimeViewState.getViewEarthPoles(),
+            (value) => { runtimeViewState.setViewEarthPoles(value); },
+        ),
+        viewMoonPoles: createMutableStateCell(
+            () => runtimeViewState.getViewMoonPoles(),
+            (value) => { runtimeViewState.setViewMoonPoles(value); },
+        ),
+        viewEarthPolarAxes: createMutableStateCell(
+            () => runtimeViewState.getViewEarthPolarAxes(),
+            (value) => { runtimeViewState.setViewEarthPolarAxes(value); },
+        ),
+        viewMoonPolarAxes: createMutableStateCell(
+            () => runtimeViewState.getViewMoonPolarAxes(),
+            (value) => { runtimeViewState.setViewMoonPolarAxes(value); },
         ),
         viewSky: createMutableStateCell(
             () => runtimeViewState.getViewSky(),

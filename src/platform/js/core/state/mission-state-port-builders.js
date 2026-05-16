@@ -319,6 +319,9 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewMoonLatLonGrid", view.viewMoonLatLonGrid);
             setBooleanStateIfDefined("viewMoonLatLonLabels", view.viewMoonLatLonLabels);
             setBooleanStateIfDefined("viewMoonLatLonHover", view.viewMoonLatLonHover);
+            setBooleanStateIfDefined("viewEarthLatLonGrid", view.viewEarthLatLonGrid);
+            setBooleanStateIfDefined("viewEarthLatLonLabels", view.viewEarthLatLonLabels);
+            setBooleanStateIfDefined("viewEarthLatLonHover", view.viewEarthLatLonHover);
             setBooleanStateIfDefined("lunarCraterHoverLabels", view.lunarCraterHoverLabels);
             if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
                 setState("lunarCraterDisplayMode", view.lunarCraterDisplayMode);
@@ -337,6 +340,10 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewXYZAxes", view.viewXYZAxes);
             setBooleanStateIfDefined("viewPoles", view.viewPoles);
             setBooleanStateIfDefined("viewPolarAxes", view.viewPolarAxes);
+            setBooleanStateIfDefined("viewEarthPoles", view.viewEarthPoles);
+            setBooleanStateIfDefined("viewMoonPoles", view.viewMoonPoles);
+            setBooleanStateIfDefined("viewEarthPolarAxes", view.viewEarthPolarAxes);
+            setBooleanStateIfDefined("viewMoonPolarAxes", view.viewMoonPolarAxes);
             setBooleanStateIfDefined("viewSky", view.viewSky);
             setBooleanStateIfDefined("viewConstellationLines", view.viewConstellationLines);
             setBooleanStateIfDefined("viewMoonSOI", view.viewMoonSOI);
