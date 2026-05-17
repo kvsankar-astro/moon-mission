@@ -52,6 +52,14 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getViewLunarCraters(),
             (value) => { runtimeViewState.setViewLunarCraters(value); },
         ),
+        lunarCraterShowAllEnabled: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterShowAllEnabled(),
+            (value) => { runtimeViewState.setLunarCraterShowAllEnabled(value); },
+        ),
+        lunarCraterHoverEnabled: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterHoverEnabled(),
+            (value) => { runtimeViewState.setLunarCraterHoverEnabled(value); },
+        ),
         viewMoonLatLonGrid: createMutableStateCell(
             () => runtimeViewState.getViewMoonLatLonGrid(),
             (value) => { runtimeViewState.setViewMoonLatLonGrid(value); },
@@ -92,6 +100,14 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getLunarCraterMaxDiameterKm(),
             (value) => { runtimeViewState.setLunarCraterMaxDiameterKm(value); },
         ),
+        lunarCraterHoverMinDiameterKm: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterHoverMinDiameterKm(),
+            (value) => { runtimeViewState.setLunarCraterHoverMinDiameterKm(value); },
+        ),
+        lunarCraterHoverMaxDiameterKm: createMutableStateCell(
+            () => runtimeViewState.getLunarCraterHoverMaxDiameterKm(),
+            (value) => { runtimeViewState.setLunarCraterHoverMaxDiameterKm(value); },
+        ),
         lunarFeatureTypeFilters: createMutableStateCell(
             () => runtimeViewState.getLunarFeatureTypeFilters(),
             (value) => { runtimeViewState.setLunarFeatureTypeFilters(value); },
@@ -103,6 +119,18 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
         lunarFeatureExcludedKeys: createMutableStateCell(
             () => runtimeViewState.getLunarFeatureExcludedKeys(),
             (value) => { runtimeViewState.setLunarFeatureExcludedKeys(value); },
+        ),
+        lunarFeatureHoverTypeFilters: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureHoverTypeFilters(),
+            (value) => { runtimeViewState.setLunarFeatureHoverTypeFilters(value); },
+        ),
+        lunarFeatureHoverSearchQuery: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureHoverSearchQuery(),
+            (value) => { runtimeViewState.setLunarFeatureHoverSearchQuery(value); },
+        ),
+        lunarFeatureHoverExcludedKeys: createMutableStateCell(
+            () => runtimeViewState.getLunarFeatureHoverExcludedKeys(),
+            (value) => { runtimeViewState.setLunarFeatureHoverExcludedKeys(value); },
         ),
         viewXYZAxes: createMutableStateCell(
             () => runtimeViewState.getViewXYZAxes(),

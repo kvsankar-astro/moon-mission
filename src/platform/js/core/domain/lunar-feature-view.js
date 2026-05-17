@@ -35,11 +35,21 @@ const BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS = Object.freeze({
     "Planitia, planitiae": { enabled: false, minDiameterKm: null, maxDiameterKm: null },
 });
 
+const BASE_DEFAULT_LUNAR_FEATURE_HOVER_TYPE_FILTERS = Object.freeze(
+    Object.fromEntries(
+        Object.entries(BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS)
+            .map(([key, value]) => [key, { ...value, enabled: true }]),
+    ),
+);
+
 const BASE_DEFAULT_LUNAR_FEATURE_VIEW_STATE = Object.freeze({
     viewCraters: true,
     lunarFeatureTypeFilters: BASE_DEFAULT_LUNAR_FEATURE_TYPE_FILTERS,
     lunarFeatureSearchQuery: "",
     lunarFeatureExcludedKeys: [],
+    lunarFeatureHoverTypeFilters: BASE_DEFAULT_LUNAR_FEATURE_HOVER_TYPE_FILTERS,
+    lunarFeatureHoverSearchQuery: "",
+    lunarFeatureHoverExcludedKeys: [],
     ...createDefaultLunarCraterViewState(),
 });
 
@@ -132,6 +142,9 @@ export function normalizeLunarFeatureViewState(
             ...fallback,
         }
         : BASE_DEFAULT_LUNAR_FEATURE_VIEW_STATE;
+    const searchQuery = Object.prototype.hasOwnProperty.call(value, "lunarFeatureSearchQuery")
+        ? normalizeLunarFeatureSearchQuery(value.lunarFeatureSearchQuery)
+        : normalizeLunarFeatureSearchQuery(resolvedFallback.lunarFeatureSearchQuery);
     const craterState = normalizeLunarCraterViewState(value, resolvedFallback);
     const normalized = {
         viewCraters: Object.prototype.hasOwnProperty.call(value, "viewCraters")
@@ -141,14 +154,24 @@ export function normalizeLunarFeatureViewState(
             value.lunarFeatureTypeFilters,
             resolvedFallback.lunarFeatureTypeFilters,
         ),
-        lunarFeatureSearchQuery: Object.prototype.hasOwnProperty.call(value, "lunarFeatureSearchQuery")
-            ? normalizeLunarFeatureSearchQuery(value.lunarFeatureSearchQuery)
-            : normalizeLunarFeatureSearchQuery(resolvedFallback.lunarFeatureSearchQuery),
+        lunarFeatureSearchQuery: searchQuery,
         lunarFeatureExcludedKeys: Object.prototype.hasOwnProperty.call(value, "lunarFeatureExcludedKeys")
             ? normalizeLunarFeatureKeyList(value.lunarFeatureExcludedKeys)
             : normalizeLunarFeatureKeyList(resolvedFallback.lunarFeatureExcludedKeys),
+        lunarFeatureHoverTypeFilters: normalizeLunarFeatureTypeFilters(
+            value.lunarFeatureHoverTypeFilters,
+            resolvedFallback.lunarFeatureHoverTypeFilters,
+        ),
+        lunarFeatureHoverSearchQuery: Object.prototype.hasOwnProperty.call(value, "lunarFeatureHoverSearchQuery")
+            ? normalizeLunarFeatureSearchQuery(value.lunarFeatureHoverSearchQuery)
+            : normalizeLunarFeatureSearchQuery(resolvedFallback.lunarFeatureHoverSearchQuery),
+        lunarFeatureHoverExcludedKeys: Object.prototype.hasOwnProperty.call(value, "lunarFeatureHoverExcludedKeys")
+            ? normalizeLunarFeatureKeyList(value.lunarFeatureHoverExcludedKeys)
+            : normalizeLunarFeatureKeyList(resolvedFallback.lunarFeatureHoverExcludedKeys),
         ...craterState,
     };
+    const hasSearchResultsOverlay = normalized.lunarFeatureSearchQuery.length > 0;
+    normalized.viewLunarCraters = normalized.viewLunarCraters === true || hasSearchResultsOverlay;
     normalized.viewLunarFeatures = normalized.viewLunarCraters === true;
     return normalized;
 }
@@ -176,6 +199,18 @@ export function patchLunarFeatureViewState(
         lunarFeatureExcludedKeys: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureExcludedKeys")
             ? normalizeLunarFeatureKeyList(patch.lunarFeatureExcludedKeys)
             : baseState.lunarFeatureExcludedKeys,
+        lunarFeatureHoverTypeFilters: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverTypeFilters")
+            ? normalizeLunarFeatureTypeFilters(
+                patch.lunarFeatureHoverTypeFilters,
+                baseState.lunarFeatureHoverTypeFilters,
+            )
+            : baseState.lunarFeatureHoverTypeFilters,
+        lunarFeatureHoverSearchQuery: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverSearchQuery")
+            ? normalizeLunarFeatureSearchQuery(patch.lunarFeatureHoverSearchQuery)
+            : baseState.lunarFeatureHoverSearchQuery,
+        lunarFeatureHoverExcludedKeys: Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverExcludedKeys")
+            ? normalizeLunarFeatureKeyList(patch.lunarFeatureHoverExcludedKeys)
+            : baseState.lunarFeatureHoverExcludedKeys,
     };
     return normalizeLunarFeatureViewState(nextState, baseState);
 }

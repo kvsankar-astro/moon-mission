@@ -27,10 +27,14 @@ describe("lunar crater view domain", () => {
         const defaultState = createDefaultLunarCraterViewState();
         expect(defaultState).toEqual({
             viewLunarCraters: false,
+            lunarCraterShowAllEnabled: false,
+            lunarCraterHoverEnabled: false,
             lunarCraterHoverLabels: true,
             lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_HOVER,
             lunarCraterMinDiameterKm: 80,
             lunarCraterMaxDiameterKm: 600,
+            lunarCraterHoverMinDiameterKm: 0,
+            lunarCraterHoverMaxDiameterKm: 600,
         });
 
         const alwaysState = patchLunarCraterViewState(defaultState, {
@@ -42,10 +46,14 @@ describe("lunar crater view domain", () => {
         });
         expect(alwaysState).toEqual({
             viewLunarCraters: true,
+            lunarCraterShowAllEnabled: true,
+            lunarCraterHoverEnabled: false,
             lunarCraterHoverLabels: false,
             lunarCraterDisplayMode: LUNAR_CRATER_DISPLAY_MODE_ALWAYS,
             lunarCraterMinDiameterKm: 40,
             lunarCraterMaxDiameterKm: 120,
+            lunarCraterHoverMinDiameterKm: 0,
+            lunarCraterHoverMaxDiameterKm: 600,
         });
 
         expect(normalizeLunarCraterDisplayMode("bogus")).toBe(LUNAR_CRATER_DISPLAY_MODE_HOVER);

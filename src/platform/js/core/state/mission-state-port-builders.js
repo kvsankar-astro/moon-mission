@@ -316,6 +316,8 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewOrbitDescent", view.viewOrbitDescent);
             setBooleanStateIfDefined("viewCraters", view.viewCraters);
             setBooleanStateIfDefined("viewLunarCraters", view.viewLunarCraters);
+            setBooleanStateIfDefined("lunarCraterShowAllEnabled", view.lunarCraterShowAllEnabled);
+            setBooleanStateIfDefined("lunarCraterHoverEnabled", view.lunarCraterHoverEnabled);
             setBooleanStateIfDefined("viewMoonLatLonGrid", view.viewMoonLatLonGrid);
             setBooleanStateIfDefined("viewMoonLatLonLabels", view.viewMoonLatLonLabels);
             setBooleanStateIfDefined("viewMoonLatLonHover", view.viewMoonLatLonHover);
@@ -328,6 +330,8 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             }
             setNumberStateIfDefined("lunarCraterMinDiameterKm", view.lunarCraterMinDiameterKm);
             setNumberStateIfDefined("lunarCraterMaxDiameterKm", view.lunarCraterMaxDiameterKm);
+            setNumberStateIfDefined("lunarCraterHoverMinDiameterKm", view.lunarCraterHoverMinDiameterKm);
+            setNumberStateIfDefined("lunarCraterHoverMaxDiameterKm", view.lunarCraterHoverMaxDiameterKm);
             if (view.lunarFeatureTypeFilters && typeof view.lunarFeatureTypeFilters === "object") {
                 setState("lunarFeatureTypeFilters", view.lunarFeatureTypeFilters);
             }
@@ -336,6 +340,15 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             }
             if (Array.isArray(view.lunarFeatureExcludedKeys)) {
                 setState("lunarFeatureExcludedKeys", view.lunarFeatureExcludedKeys);
+            }
+            if (view.lunarFeatureHoverTypeFilters && typeof view.lunarFeatureHoverTypeFilters === "object") {
+                setState("lunarFeatureHoverTypeFilters", view.lunarFeatureHoverTypeFilters);
+            }
+            if (typeof view.lunarFeatureHoverSearchQuery === "string") {
+                setState("lunarFeatureHoverSearchQuery", view.lunarFeatureHoverSearchQuery);
+            }
+            if (Array.isArray(view.lunarFeatureHoverExcludedKeys)) {
+                setState("lunarFeatureHoverExcludedKeys", view.lunarFeatureHoverExcludedKeys);
             }
             setBooleanStateIfDefined("viewXYZAxes", view.viewXYZAxes);
             setBooleanStateIfDefined("viewPoles", view.viewPoles);
@@ -394,9 +407,14 @@ function createMissionSceneViewStatePort(ctx, helpers) {
         getLunarCraterDisplayMode: () => getState("lunarCraterDisplayMode"),
         getLunarCraterMinDiameterKm: () => getState("lunarCraterMinDiameterKm"),
         getLunarCraterMaxDiameterKm: () => getState("lunarCraterMaxDiameterKm"),
+        getLunarCraterHoverMinDiameterKm: () => getState("lunarCraterHoverMinDiameterKm"),
+        getLunarCraterHoverMaxDiameterKm: () => getState("lunarCraterHoverMaxDiameterKm"),
         getLunarFeatureTypeFilters: () => getState("lunarFeatureTypeFilters"),
         getLunarFeatureSearchQuery: () => getState("lunarFeatureSearchQuery"),
         getLunarFeatureExcludedKeys: () => getState("lunarFeatureExcludedKeys"),
+        getLunarFeatureHoverTypeFilters: () => getState("lunarFeatureHoverTypeFilters"),
+        getLunarFeatureHoverSearchQuery: () => getState("lunarFeatureHoverSearchQuery"),
+        getLunarFeatureHoverExcludedKeys: () => getState("lunarFeatureHoverExcludedKeys"),
         getOrbitStyle: () => getState("orbitStyle"),
         getEffectiveOrbitStyle: () =>
             typeof state.effectiveOrbitStyle?.get === "function"

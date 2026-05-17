@@ -30,6 +30,20 @@ describe("lunar feature view domain", () => {
         }).lunarFeatureSearchQuery).toBe("Mare Tranquillitatis");
     });
 
+    it("treats search results as an active Lunar Features overlay", () => {
+        const state = normalizeLunarFeatureViewState({
+            lunarCraterShowAllEnabled: false,
+            lunarCraterHoverEnabled: false,
+            viewLunarCraters: false,
+            lunarFeatureSearchQuery: "Orientale",
+        });
+
+        expect(state.lunarCraterShowAllEnabled).toBe(false);
+        expect(state.lunarCraterHoverEnabled).toBe(false);
+        expect(state.viewLunarCraters).toBe(true);
+        expect(state.viewLunarFeatures).toBe(true);
+    });
+
     it("normalizes excluded lunar feature keys", () => {
         expect(normalizeLunarFeatureViewState({
             lunarFeatureExcludedKeys: [" Tycho ", "Tycho", "", null],

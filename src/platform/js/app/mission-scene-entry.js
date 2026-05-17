@@ -71,11 +71,16 @@ function createMissionSceneEntry(ctx) {
         getViewLunarCraters,
         getLunarCraterMinDiameterKm,
         getLunarCraterMaxDiameterKm,
+        getLunarCraterHoverMinDiameterKm,
+        getLunarCraterHoverMaxDiameterKm,
         getLunarCraterHoverLabels,
         getLunarCraterDisplayMode,
         getLunarFeatureTypeFilters,
         getLunarFeatureSearchQuery,
         getLunarFeatureExcludedKeys,
+        getLunarFeatureHoverTypeFilters,
+        getLunarFeatureHoverSearchQuery,
+        getLunarFeatureHoverExcludedKeys,
         getViewPhotoMode,
         getViewEarthClouds,
         setViewEarthClouds,
@@ -132,6 +137,12 @@ function createMissionSceneEntry(ctx) {
     const readLunarCraterMaxDiameterKm = typeof getLunarCraterMaxDiameterKm === "function"
         ? getLunarCraterMaxDiameterKm
         : () => 600;
+    const readLunarCraterHoverMinDiameterKm = typeof getLunarCraterHoverMinDiameterKm === "function"
+        ? getLunarCraterHoverMinDiameterKm
+        : () => 0;
+    const readLunarCraterHoverMaxDiameterKm = typeof getLunarCraterHoverMaxDiameterKm === "function"
+        ? getLunarCraterHoverMaxDiameterKm
+        : () => 600;
     const readLunarCraterHoverLabels = typeof getLunarCraterHoverLabels === "function"
         ? getLunarCraterHoverLabels
         : () => true;
@@ -146,6 +157,15 @@ function createMissionSceneEntry(ctx) {
         : () => "";
     const readLunarFeatureExcludedKeys = typeof getLunarFeatureExcludedKeys === "function"
         ? getLunarFeatureExcludedKeys
+        : () => [];
+    const readLunarFeatureHoverTypeFilters = typeof getLunarFeatureHoverTypeFilters === "function"
+        ? getLunarFeatureHoverTypeFilters
+        : () => ({});
+    const readLunarFeatureHoverSearchQuery = typeof getLunarFeatureHoverSearchQuery === "function"
+        ? getLunarFeatureHoverSearchQuery
+        : () => "";
+    const readLunarFeatureHoverExcludedKeys = typeof getLunarFeatureHoverExcludedKeys === "function"
+        ? getLunarFeatureHoverExcludedKeys
         : () => [];
     const writeViewLunarCraters = typeof setViewLunarCraters === "function"
         ? setViewLunarCraters
@@ -280,11 +300,16 @@ function createMissionSceneEntry(ctx) {
                     viewLunarCraters: readViewLunarCraters(),
                     lunarCraterMinDiameterKm: readLunarCraterMinDiameterKm(),
                     lunarCraterMaxDiameterKm: readLunarCraterMaxDiameterKm(),
+                    lunarCraterHoverMinDiameterKm: readLunarCraterHoverMinDiameterKm(),
+                    lunarCraterHoverMaxDiameterKm: readLunarCraterHoverMaxDiameterKm(),
                     lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                     lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                     lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
                     lunarFeatureSearchQuery: readLunarFeatureSearchQuery(),
                     lunarFeatureExcludedKeys: readLunarFeatureExcludedKeys(),
+                    lunarFeatureHoverTypeFilters: readLunarFeatureHoverTypeFilters(),
+                    lunarFeatureHoverSearchQuery: readLunarFeatureHoverSearchQuery(),
+                    lunarFeatureHoverExcludedKeys: readLunarFeatureHoverExcludedKeys(),
                     viewAuxiliaryPanels: getViewAuxiliaryPanels(),
                     earthRadius: getEarthRadius(),
                     moonRadius: getMoonRadius(),
@@ -351,11 +376,16 @@ function createMissionSceneEntry(ctx) {
                 viewLunarCraters: readViewLunarCraters(),
                 lunarCraterMinDiameterKm: readLunarCraterMinDiameterKm(),
                 lunarCraterMaxDiameterKm: readLunarCraterMaxDiameterKm(),
+                lunarCraterHoverMinDiameterKm: readLunarCraterHoverMinDiameterKm(),
+                lunarCraterHoverMaxDiameterKm: readLunarCraterHoverMaxDiameterKm(),
                 lunarCraterHoverLabels: readLunarCraterHoverLabels(),
                 lunarCraterDisplayMode: readLunarCraterDisplayMode(),
                 lunarFeatureTypeFilters: readLunarFeatureTypeFilters(),
                 lunarFeatureSearchQuery: readLunarFeatureSearchQuery(),
                 lunarFeatureExcludedKeys: readLunarFeatureExcludedKeys(),
+                lunarFeatureHoverTypeFilters: readLunarFeatureHoverTypeFilters(),
+                lunarFeatureHoverSearchQuery: readLunarFeatureHoverSearchQuery(),
+                lunarFeatureHoverExcludedKeys: readLunarFeatureHoverExcludedKeys(),
                 viewXYZAxes: getViewXYZAxes(),
                 viewEclipticPlane: getViewEclipticPlane(),
                 viewEquatorialPlane: getViewEquatorialPlane(),

@@ -282,13 +282,20 @@ export function applyViewSettings(patch) {
         Object.prototype.hasOwnProperty.call(patch, "viewCraters") ||
         Object.prototype.hasOwnProperty.call(patch, "viewLunarFeatures") ||
         Object.prototype.hasOwnProperty.call(patch, "viewLunarCraters") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarCraterShowAllEnabled") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverEnabled") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarCraterHoverLabels") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarCraterDisplayMode") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarFeatureTypeFilters") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarFeatureSearchQuery") ||
         Object.prototype.hasOwnProperty.call(patch, "lunarFeatureExcludedKeys") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverTypeFilters") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverSearchQuery") ||
+        Object.prototype.hasOwnProperty.call(patch, "lunarFeatureHoverExcludedKeys") ||
         Number.isFinite(Number(patch.lunarCraterMinDiameterKm)) ||
-        Number.isFinite(Number(patch.lunarCraterMaxDiameterKm))
+        Number.isFinite(Number(patch.lunarCraterMaxDiameterKm)) ||
+        Number.isFinite(Number(patch.lunarCraterHoverMinDiameterKm)) ||
+        Number.isFinite(Number(patch.lunarCraterHoverMaxDiameterKm))
     ) {
         writeLunarCraterControlState(getMainLunarCraterControlElements(), patch);
     }

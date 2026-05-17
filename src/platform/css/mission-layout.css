@@ -715,7 +715,8 @@ html[data-app-view="selector"] .mission-loading-overlay,
     top: calc(100% + 4px);
     right: auto;
     left: 0;
-    z-index: 16;
+    z-index: 2147483001;
+    pointer-events: auto;
 }
 
 .aux-camera-view__composer-crater-control .surface-points-controls-panel {

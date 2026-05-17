@@ -1,6 +1,7 @@
 import {
     LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
     LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
+    LUNAR_CRATER_RANGE_MIN_DIAMETER_KM,
 } from "../core/domain/lunar-crater-view.js";
 import {
     getLoadedLunarFeatureCatalog,
@@ -29,11 +30,12 @@ const CRATER_LABEL_SURFACE_SCALE = 1.11;
 const CRATER_ALWAYS_LABEL_SURFACE_SCALE = 1.048;
 const CRATER_LABEL_FILL_COLOR = "rgba(8, 13, 23, 0.72)";
 const CRATER_LABEL_TEXT_COLOR = "#e8eef8";
-const CRATER_SEARCH_LABEL_FILL_COLOR = "rgba(7, 13, 24, 0.9)";
-const CRATER_SEARCH_LABEL_BORDER_COLOR = "rgba(155, 255, 196, 0.82)";
-const CRATER_SEARCH_LABEL_TITLE_COLOR = "#f4fff8";
-const CRATER_SEARCH_LABEL_META_COLOR = "#bfffd6";
+const CRATER_SEARCH_LABEL_FILL_COLOR = "rgba(7, 13, 24, 0.72)";
+const CRATER_SEARCH_LABEL_BORDER_COLOR = "rgba(155, 255, 196, 0.55)";
+const CRATER_SEARCH_LABEL_TITLE_COLOR = "#eaf6ef";
+const CRATER_SEARCH_LABEL_META_COLOR = "#aeeec4";
 const CRATER_LABEL_FONT_FAMILY = '"IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+const CRATER_SEARCH_LABEL_FONT_FAMILY = '"IBM Plex Sans Condensed", "Arial Narrow", "Segoe UI", Arial, sans-serif';
 const CRATER_HOVER_LABEL_EDGE_GAP = 0.002;
 const CRATER_HOVER_LABEL_SCREEN_GAP_MIN_PX = 4;
 const CRATER_HOVER_LABEL_SCREEN_GAP_MAX_PX = 10;
@@ -56,7 +58,8 @@ const CRATER_ALWAYS_LABEL_MIN_SCREEN_DIAMETER_PX = 36;
 const CRATER_ALWAYS_LABEL_SCREEN_SPACING_PX = 120;
 const CRATER_ALWAYS_LABEL_TARGET_SCREEN_HEIGHT_PX = CRATER_HOVER_LABEL_MAX_SCREEN_HEIGHT_PX;
 const CRATER_SEARCH_ANNOTATION_LIMIT = 12;
-const CRATER_SEARCH_LABEL_TARGET_SCREEN_HEIGHT_PX = 54;
+const CRATER_SEARCH_LABEL_TARGET_SCREEN_HEIGHT_PX = 38;
+const CRATER_SEARCH_MAX_DIAMETER_KM = 6000;
 const CRATER_DENSE_SELECTION_COUNT = 1000;
 const CRATER_RENDER_PLAN_CHECK_INTERVAL_MS = 180;
 const DEG_TO_RAD = Math.PI / 180;
@@ -251,7 +254,7 @@ function resolveCraterLabelNormal({
 }
 
 function createCraterLabelTexture(THREE, crater, { searchAnnotation = false } = {}) {
-    const canvas = createCanvas(searchAnnotation ? 512 : 448, searchAnnotation ? 160 : 112);
+    const canvas = createCanvas(searchAnnotation ? 448 : 448, searchAnnotation ? 126 : 112);
     if (!canvas) return null;
     const context = canvas.getContext("2d");
     if (!context) return null;
@@ -259,28 +262,28 @@ function createCraterLabelTexture(THREE, crater, { searchAnnotation = false } = 
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     if (searchAnnotation) {
-        drawRoundedRect(context, 8, 12, canvas.width - 16, canvas.height - 24, 22);
+        drawRoundedRect(context, 14, 20, canvas.width - 28, canvas.height - 40, 14);
         context.fillStyle = CRATER_SEARCH_LABEL_BORDER_COLOR;
         context.fill();
-        drawRoundedRect(context, 13, 17, canvas.width - 26, canvas.height - 34, 17);
+        drawRoundedRect(context, 17, 23, canvas.width - 34, canvas.height - 46, 11);
         context.fillStyle = CRATER_SEARCH_LABEL_FILL_COLOR;
         context.fill();
 
         context.textAlign = "center";
         context.textBaseline = "middle";
-        const maxTextWidth = canvas.width - 64;
-        let titleSize = 38;
+        const maxTextWidth = canvas.width - 74;
+        let titleSize = 28;
         do {
-            context.font = `700 ${titleSize}px ${CRATER_LABEL_FONT_FAMILY}`;
+            context.font = `600 ${titleSize}px ${CRATER_SEARCH_LABEL_FONT_FAMILY}`;
             titleSize -= 1;
-        } while (titleSize > 18 && context.measureText(crater.name).width > maxTextWidth);
+        } while (titleSize > 16 && context.measureText(crater.name).width > maxTextWidth);
         context.fillStyle = CRATER_SEARCH_LABEL_TITLE_COLOR;
-        context.fillText(crater.name, canvas.width / 2, 67);
+        context.fillText(crater.name, canvas.width / 2, 55);
 
         const meta = `${Math.round(crater.diameterKm)} km`;
-        context.font = `600 26px ${CRATER_LABEL_FONT_FAMILY}`;
+        context.font = `500 18px ${CRATER_SEARCH_LABEL_FONT_FAMILY}`;
         context.fillStyle = CRATER_SEARCH_LABEL_META_COLOR;
-        context.fillText(meta, canvas.width / 2, 107);
+        context.fillText(meta, canvas.width / 2, 80);
     } else {
         drawRoundedRect(context, 10, 14, canvas.width - 20, canvas.height - 28, 18);
         context.fillStyle = CRATER_LABEL_FILL_COLOR;
@@ -714,7 +717,7 @@ function createCraterLabelSprite({
     const material = new THREE.SpriteMaterial({
         map: texture,
         transparent: true,
-        opacity: 0.98,
+        opacity: searchAnnotation ? 0.86 : 0.98,
         depthTest,
         depthWrite: false,
         toneMapped: false,
@@ -926,10 +929,15 @@ function createLunarCraterActions({
     getViewLunarCraters,
     getLunarCraterMinDiameterKm = () => LUNAR_CRATER_DEFAULT_MIN_DIAMETER_KM,
     getLunarCraterMaxDiameterKm = () => LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
+    getLunarCraterHoverMinDiameterKm = () => 0,
+    getLunarCraterHoverMaxDiameterKm = () => LUNAR_CRATER_DEFAULT_MAX_DIAMETER_KM,
     getLunarCraterDisplayMode = () => CRATER_DISPLAY_MODE_HOVER,
     getLunarFeatureTypeFilters = () => ({}),
     getLunarFeatureSearchQuery = () => "",
     getLunarFeatureExcludedKeys = () => [],
+    getLunarFeatureHoverTypeFilters = () => getLunarFeatureTypeFilters(),
+    getLunarFeatureHoverSearchQuery = () => getLunarFeatureSearchQuery(),
+    getLunarFeatureHoverExcludedKeys = () => getLunarFeatureExcludedKeys(),
     craterCatalog = null,
     loadCraterCatalog = loadLunarFeatureCatalog,
     render = () => {},
@@ -1016,8 +1024,33 @@ function createLunarCraterActions({
         }, getActiveCraterCatalog());
     }
 
+    function resolveHoverDiameterRange(scene) {
+        return normalizeCraterDisplayDiameterRange({
+            lunarCraterMinDiameterKm: Number.isFinite(Number(scene?.lunarCraterHoverMinDiameterKm))
+                ? Number(scene.lunarCraterHoverMinDiameterKm)
+                : getLunarCraterHoverMinDiameterKm(),
+            lunarCraterMaxDiameterKm: Number.isFinite(Number(scene?.lunarCraterHoverMaxDiameterKm))
+                ? Number(scene.lunarCraterHoverMaxDiameterKm)
+                : getLunarCraterHoverMaxDiameterKm(),
+        }, getActiveCraterCatalog());
+    }
+
     function resolveDisplayMode(scene) {
         return normalizeCraterDisplayMode(scene?.lunarCraterDisplayMode ?? getLunarCraterDisplayMode());
+    }
+
+    function resolveShowAllEnabled(scene) {
+        if (Object.prototype.hasOwnProperty.call(scene || {}, "lunarCraterShowAllEnabled")) {
+            return scene.lunarCraterShowAllEnabled === true;
+        }
+        return getViewLunarCraters() === true && resolveDisplayMode(scene) === CRATER_DISPLAY_MODE_ALWAYS;
+    }
+
+    function resolveHoverEnabled(scene) {
+        if (Object.prototype.hasOwnProperty.call(scene || {}, "lunarCraterHoverEnabled")) {
+            return scene.lunarCraterHoverEnabled === true;
+        }
+        return getViewLunarCraters() === true && shouldShowHoverLabelForDisplayMode(resolveDisplayMode(scene));
     }
 
     function resolveTypeFilters(scene) {
@@ -1036,6 +1069,25 @@ function createLunarCraterActions({
     function resolveExcludedKeys(scene) {
         return normalizeLunarFeatureKeyList(
             scene?.lunarFeatureExcludedKeys ?? getLunarFeatureExcludedKeys(),
+        );
+    }
+
+    function resolveHoverTypeFilters(scene) {
+        return normalizeLunarFeatureTypeFilters(
+            scene?.lunarFeatureHoverTypeFilters,
+            getLunarFeatureHoverTypeFilters(),
+        );
+    }
+
+    function resolveHoverSearchQuery(scene) {
+        return normalizeLunarFeatureSearchQuery(
+            scene?.lunarFeatureHoverSearchQuery ?? getLunarFeatureHoverSearchQuery(),
+        );
+    }
+
+    function resolveHoverExcludedKeys(scene) {
+        return normalizeLunarFeatureKeyList(
+            scene?.lunarFeatureHoverExcludedKeys ?? getLunarFeatureHoverExcludedKeys(),
         );
     }
 
@@ -1161,7 +1213,8 @@ function createLunarCraterActions({
                 group,
                 featureType: object.userData.featureType,
                 sunlit,
-                hover: object.userData.hoverAnnotation === true,
+                hover: object.userData.hoverAnnotation === true ||
+                    object.userData.searchAnnotation === true,
             });
             if (nextMaterial && object.material !== nextMaterial) {
                 object.material = nextMaterial;
@@ -1343,6 +1396,7 @@ function createLunarCraterActions({
         moonRadius,
         lunarRadiusKm,
         displayDiameterRange,
+        filterState = null,
     }) {
         const cameraContext = resolveCraterCameraContext({
             scene,
@@ -1381,9 +1435,9 @@ function createLunarCraterActions({
 
         const craterPlan = getCratersToShow(getActiveCraterCatalog(), {
             ...displayDiameterRange,
-            lunarFeatureTypeFilters: resolveTypeFilters(scene),
-            lunarFeatureSearchQuery: resolveSearchQuery(scene),
-            lunarFeatureExcludedKeys: resolveExcludedKeys(scene),
+            lunarFeatureTypeFilters: filterState?.lunarFeatureTypeFilters ?? resolveTypeFilters(scene),
+            lunarFeatureSearchQuery: filterState?.lunarFeatureSearchQuery ?? resolveSearchQuery(scene),
+            lunarFeatureExcludedKeys: filterState?.lunarFeatureExcludedKeys ?? resolveExcludedKeys(scene),
             viewCenterNormal: cameraContext.viewCenterNormal,
             observerNormal: cameraContext.cameraMoonLocalNormal,
             cameraPositionMoonRadii: cameraContext.cameraPositionMoonRadii,
@@ -1448,6 +1502,7 @@ function createLunarCraterActions({
         moonRadius,
         lunarRadiusKm,
         displayDiameterRange,
+        filterState = null,
     }) {
         if (!craterFeatures.length) {
             return [];
@@ -1469,9 +1524,9 @@ function createLunarCraterActions({
         }
         const craterPlan = getCratersToShow(getActiveCraterCatalog(), {
             ...displayDiameterRange,
-            lunarFeatureTypeFilters: resolveTypeFilters(scene),
-            lunarFeatureSearchQuery: resolveSearchQuery(scene),
-            lunarFeatureExcludedKeys: resolveExcludedKeys(scene),
+            lunarFeatureTypeFilters: filterState?.lunarFeatureTypeFilters ?? resolveTypeFilters(scene),
+            lunarFeatureSearchQuery: filterState?.lunarFeatureSearchQuery ?? resolveSearchQuery(scene),
+            lunarFeatureExcludedKeys: filterState?.lunarFeatureExcludedKeys ?? resolveExcludedKeys(scene),
             viewCenterNormal: cameraContext.viewCenterNormal,
             observerNormal: cameraContext.cameraMoonLocalNormal,
             cameraPositionMoonRadii: cameraContext.cameraPositionMoonRadii,
@@ -1565,10 +1620,10 @@ function createLunarCraterActions({
             renderOrder: 21,
             namePrefix: "lunar-feature-search-label",
             hoverLabel: false,
-            labelWidthMin: 0.32,
-            labelWidthMax: 0.66,
-            labelWidthBase: 0.24,
-            labelWidthPerNameChar: 0.014,
+            labelWidthMin: 0.24,
+            labelWidthMax: 0.46,
+            labelWidthBase: 0.17,
+            labelWidthPerNameChar: 0.01,
             offsetAngularRadius,
             visibilityAngularRadius: target.angularRadius,
             targetScreenHeightPx: CRATER_SEARCH_LABEL_TARGET_SCREEN_HEIGHT_PX,
@@ -1710,6 +1765,16 @@ function createLunarCraterActions({
             scene.lunarCraterHoverRing.visible = false;
             changed = true;
         }
+        if (scene?.lunarCraterHoveredRing) {
+            scene.lunarCraterHoveredRing.userData.hoverAnnotation = false;
+            scene.lunarCraterHoveredRing = null;
+            changed = true;
+        }
+        if (scene?.lunarCraterHoveredLabel) {
+            scene.lunarCraterHoveredLabel.userData.hoverScaleBoost = false;
+            scene.lunarCraterHoveredLabel = null;
+            changed = true;
+        }
         if (scene && scene.lunarCraterHoveredName) {
             scene.lunarCraterHoveredName = null;
             scene.lunarCraterHoveredDiameterKm = null;
@@ -1825,22 +1890,52 @@ function createLunarCraterActions({
 
         const lunarRadiusKm = getLunarRadiusKm();
         const displayDiameterRange = resolveDisplayDiameterRange(scene);
+        const hoverDiameterRange = resolveHoverDiameterRange(scene);
         const displayMode = resolveDisplayMode(scene);
-        const shouldShowAlways = displayMode === CRATER_DISPLAY_MODE_ALWAYS;
+        const shouldShowAlways = resolveShowAllEnabled(scene);
+        const shouldHover = resolveHoverEnabled(scene);
+        const showAllFilterState = {
+            lunarFeatureTypeFilters: resolveTypeFilters(scene),
+            lunarFeatureSearchQuery: "",
+            lunarFeatureExcludedKeys: [],
+        };
+        const hoverFilterState = {
+            lunarFeatureTypeFilters: resolveHoverTypeFilters(scene),
+            lunarFeatureSearchQuery: "",
+            lunarFeatureExcludedKeys: [],
+        };
+        const searchFilterState = {
+            lunarFeatureSearchQuery: resolveSearchQuery(scene),
+            lunarFeatureExcludedKeys: resolveExcludedKeys(scene),
+        };
+        const hasSearchQuery = searchFilterState.lunarFeatureSearchQuery.length > 0;
         const group = new THREE.Group();
         group.name = "lunar-crater-annotations";
-        group.visible = getViewLunarCraters() === true;
+        group.visible = getViewLunarCraters() === true || shouldShowAlways || shouldHover || hasSearchQuery;
         group.userData.sharedMaterials = [];
 
         const annotations = [];
         const pickTargets = [];
         const craterFeatures = getCraterDisplayFeatures(getActiveCraterCatalog(), {
             ...displayDiameterRange,
-            lunarFeatureTypeFilters: resolveTypeFilters(scene),
-            lunarFeatureSearchQuery: resolveSearchQuery(scene),
-            lunarFeatureExcludedKeys: resolveExcludedKeys(scene),
+            ...showAllFilterState,
         });
-        const hasSearchQuery = resolveSearchQuery(scene).length > 0;
+        const hoverCraterFeatures = shouldHover
+            ? getCraterDisplayFeatures(getActiveCraterCatalog(), {
+                ...hoverDiameterRange,
+                ...hoverFilterState,
+            })
+            : [];
+        const searchDiameterRange = normalizeCraterDisplayDiameterRange({
+            lunarCraterMinDiameterKm: LUNAR_CRATER_RANGE_MIN_DIAMETER_KM,
+            lunarCraterMaxDiameterKm: CRATER_SEARCH_MAX_DIAMETER_KM,
+        }, getActiveCraterCatalog());
+        const searchCraterFeatures = hasSearchQuery
+            ? getCraterDisplayFeatures(getActiveCraterCatalog(), {
+                ...searchDiameterRange,
+                ...searchFilterState,
+            })
+            : [];
         const renderPlan = shouldShowAlways
             ? selectAlwaysRenderTargets({
                 scene,
@@ -1850,6 +1945,7 @@ function createLunarCraterActions({
                 moonRadius,
                 lunarRadiusKm,
                 displayDiameterRange,
+                filterState: showAllFilterState,
             })
             : {
                 targets: [],
@@ -1870,24 +1966,58 @@ function createLunarCraterActions({
                 scene,
                 camera,
                 rendererDomElement,
-                craterFeatures,
+                craterFeatures: searchCraterFeatures,
                 moonRadius,
                 lunarRadiusKm,
-                displayDiameterRange,
+                displayDiameterRange: searchDiameterRange,
+                filterState: searchFilterState,
             })
             : [];
+        const renderTargetsByName = new Map();
+        for (const target of renderTargets) {
+            const key = target.crater?.name || target.crater?.cleanName || "";
+            if (key) renderTargetsByName.set(key, target);
+        }
+        const searchAnnotationTargets = [];
         for (const target of searchTargets) {
+            const key = target.crater?.name || target.crater?.cleanName || "";
+            const existingTarget = renderTargetsByName.get(key);
+            if (existingTarget) {
+                existingTarget.showLabel = true;
+                existingTarget.searchAnnotation = true;
+                existingTarget.sunlit = target.sunlit;
+            } else {
+                searchAnnotationTargets.push(target);
+            }
+        }
+        for (const target of searchAnnotationTargets) {
             ensureCraterBoundaryMaterials(group, target.crater?.featureType);
         }
 
-        if (shouldShowAlways) {
-            pickTargets.push(...renderTargets);
-        } else if (hasSearchQuery && searchTargets.length) {
-            pickTargets.push(...searchTargets);
-        } else {
-            for (const crater of craterFeatures) {
-                pickTargets.push(buildCraterPickTarget({ crater, moonRadius, lunarRadiusKm }));
+        const visualTargetsByName = new Map();
+        for (const target of [...renderTargets, ...searchAnnotationTargets]) {
+            const key = target.crater?.name || target.crater?.cleanName || "";
+            if (key) {
+                visualTargetsByName.set(key, target);
             }
+        }
+        if (shouldHover) {
+            for (const crater of hoverCraterFeatures) {
+                const target = buildCraterPickTarget({ crater, moonRadius, lunarRadiusKm });
+                const visualTarget = visualTargetsByName.get(crater.name || crater.cleanName || "");
+                if (visualTarget) {
+                    target.showLabel = visualTarget.showLabel === true;
+                    target.searchAnnotation = visualTarget.searchAnnotation === true;
+                    target.sunlit = visualTarget.sunlit;
+                    target.ring = visualTarget.ring || null;
+                    target.label = visualTarget.label || null;
+                }
+                pickTargets.push(target);
+            }
+        } else if (shouldShowAlways) {
+            pickTargets.push(...renderTargets);
+        } else if (hasSearchQuery && searchAnnotationTargets.length) {
+            pickTargets.push(...searchAnnotationTargets);
         }
 
         for (const target of renderTargets) {
@@ -1898,16 +2028,22 @@ function createLunarCraterActions({
                 crater,
                 normal: target.centerNormal,
                 moonRadius,
-                material: getCraterBoundaryMaterial({
-                    group,
-                    featureType: crater.featureType,
-                    sunlit: target.sunlit,
-                    hover: false,
-                }),
-                lunarRadiusKm,
-            });
+                    material: getCraterBoundaryMaterial({
+                        group,
+                        featureType: crater.featureType,
+                        sunlit: target.sunlit,
+                        hover: target.searchAnnotation === true,
+                    }),
+                    lunarRadiusKm,
+                    surfaceScale: target.searchAnnotation === true
+                        ? CRATER_HOVER_RING_SURFACE_SCALE
+                        : CRATER_RING_SURFACE_SCALE,
+                    renderOrder: target.searchAnnotation === true ? 18 : 7,
+                    hoverAnnotation: false,
+                });
             ring.userData.sunlit = target.sunlit;
-            const label = target.showLabel === true && !hasSearchQuery
+            ring.userData.searchAnnotation = target.searchAnnotation === true;
+            const label = target.showLabel === true
                 ? createCraterLabelSprite({
                     THREE,
                     crater,
@@ -1924,9 +2060,11 @@ function createLunarCraterActions({
                     labelWidthPerNameChar: 0.008,
                     visibilityAngularRadius: target.angularRadius,
                     targetScreenHeightPx: CRATER_ALWAYS_LABEL_TARGET_SCREEN_HEIGHT_PX,
+                    searchAnnotation: target.searchAnnotation === true,
                 })
                 : null;
             target.ring = ring;
+            target.label = label;
             group.add(ring);
             annotations.push(ring);
             if (label) {
@@ -1937,7 +2075,7 @@ function createLunarCraterActions({
 
         if (hasSearchQuery) {
             const existingSearchKeys = new Set();
-            for (const target of searchTargets) {
+            for (const target of searchAnnotationTargets) {
                 const key = target.crater?.name || "";
                 if (!key || existingSearchKeys.has(key)) {
                     continue;
@@ -1952,6 +2090,8 @@ function createLunarCraterActions({
                     moonRadius,
                     lunarRadiusKm,
                 });
+                target.ring = ring || null;
+                target.label = label || null;
                 if (ring) {
                     group.add(ring);
                     annotations.push(ring);
@@ -1966,13 +2106,27 @@ function createLunarCraterActions({
                 }
             }
         }
+        for (const target of pickTargets) {
+            const key = target.crater?.name || target.crater?.cleanName || "";
+            const visualTarget = key ? visualTargetsByName.get(key) : null;
+            if (!visualTarget) continue;
+            target.ring = visualTarget.ring || target.ring || null;
+            target.label = visualTarget.label || target.label || null;
+        }
 
         scene.lunarCraterMinDiameterKm = displayDiameterRange.lunarCraterMinDiameterKm;
         scene.lunarCraterMaxDiameterKm = displayDiameterRange.lunarCraterMaxDiameterKm;
+        scene.lunarCraterHoverMinDiameterKm = hoverDiameterRange.lunarCraterMinDiameterKm;
+        scene.lunarCraterHoverMaxDiameterKm = hoverDiameterRange.lunarCraterMaxDiameterKm;
+        scene.lunarCraterShowAllEnabled = shouldShowAlways;
+        scene.lunarCraterHoverEnabled = shouldHover;
         scene.lunarCraterDisplayMode = displayMode;
-        scene.lunarFeatureTypeFilters = resolveTypeFilters(scene);
-        scene.lunarFeatureSearchQuery = resolveSearchQuery(scene);
-        scene.lunarFeatureExcludedKeys = resolveExcludedKeys(scene);
+        scene.lunarFeatureTypeFilters = showAllFilterState.lunarFeatureTypeFilters;
+        scene.lunarFeatureSearchQuery = searchFilterState.lunarFeatureSearchQuery;
+        scene.lunarFeatureExcludedKeys = searchFilterState.lunarFeatureExcludedKeys;
+        scene.lunarFeatureHoverTypeFilters = hoverFilterState.lunarFeatureTypeFilters;
+        scene.lunarFeatureHoverSearchQuery = "";
+        scene.lunarFeatureHoverExcludedKeys = [];
         scene.lunarCraterFilteredCount = craterFeatures.length;
         scene.lunarCraterRenderedCount = renderPlan.renderedCount;
         scene.lunarCraterRenderOmittedCount = Math.max(0, craterFeatures.length - renderPlan.renderedCount);
@@ -1987,6 +2141,8 @@ function createLunarCraterActions({
         scene.lunarCraterHoverLabel = null;
         scene.lunarCraterHoverRing = null;
         scene.lunarCraterHoverMaterial = null;
+        scene.lunarCraterHoveredLabel = null;
+        scene.lunarCraterHoveredRing = null;
         scene.lunarCraterHoveredName = null;
         scene.lunarCraterHoveredDiameterKm = null;
         scene.moonContainer.add(group);
@@ -2001,6 +2157,8 @@ function createLunarCraterActions({
                 scene.lunarCraterHoverLabel = null;
                 scene.lunarCraterHoverRing = null;
                 scene.lunarCraterHoverMaterial = null;
+                scene.lunarCraterHoveredLabel = null;
+                scene.lunarCraterHoveredRing = null;
                 scene.lunarCraterHoveredName = null;
                 scene.lunarCraterHoveredDiameterKm = null;
                 scene.lunarCraterFilteredCount = 0;
@@ -2039,6 +2197,8 @@ function createLunarCraterActions({
         scene.lunarCraterHoverLabel = null;
         scene.lunarCraterHoverRing = null;
         scene.lunarCraterHoverMaterial = null;
+        scene.lunarCraterHoveredLabel = null;
+        scene.lunarCraterHoveredRing = null;
         scene.lunarCraterHoveredName = null;
         scene.lunarCraterHoveredDiameterKm = null;
         scene.lunarCraterFilteredCount = 0;
@@ -2217,7 +2377,7 @@ function createLunarCraterActions({
         if (freezeScale === true) {
             return false;
         }
-        if (resolveDisplayMode(scene) === CRATER_DISPLAY_MODE_ALWAYS) {
+        if (resolveShowAllEnabled(scene)) {
             const nowMs = typeof performance !== "undefined" && typeof performance.now === "function"
                 ? performance.now()
                 : Date.now();
@@ -2229,8 +2389,8 @@ function createLunarCraterActions({
                     const craterFeatures = getCraterDisplayFeatures(getActiveCraterCatalog(), {
                         ...resolveDisplayDiameterRange(scene),
                         lunarFeatureTypeFilters: resolveTypeFilters(scene),
-                        lunarFeatureSearchQuery: resolveSearchQuery(scene),
-                        lunarFeatureExcludedKeys: resolveExcludedKeys(scene),
+                        lunarFeatureSearchQuery: "",
+                        lunarFeatureExcludedKeys: [],
                     });
                     const renderPlan = selectAlwaysRenderTargets({
                         scene,
@@ -2240,6 +2400,11 @@ function createLunarCraterActions({
                         moonRadius,
                         lunarRadiusKm: getLunarRadiusKm(),
                         displayDiameterRange: resolveDisplayDiameterRange(scene),
+                        filterState: {
+                            lunarFeatureTypeFilters: resolveTypeFilters(scene),
+                            lunarFeatureSearchQuery: "",
+                            lunarFeatureExcludedKeys: [],
+                        },
                     });
                     if (renderPlan.key !== scene.lunarCraterRenderContextKey) {
                         addLunarCraterAnnotations({ scene, camera, rendererDomElement });
@@ -2299,8 +2464,9 @@ function createLunarCraterActions({
                     : CRATER_LABEL_MAX_SCREEN_HEIGHT_PX,
                 targetScreenHeightPx: object.userData.targetScreenHeightPx,
             });
-            const nextScaleX = baseScaleX * ratio;
-            const nextScaleY = baseScaleY * ratio;
+            const hoverBoost = object.userData.hoverScaleBoost === true ? 1.12 : 1;
+            const nextScaleX = baseScaleX * ratio * hoverBoost;
+            const nextScaleY = baseScaleY * ratio * hoverBoost;
             if (object.scale.x !== nextScaleX || object.scale.y !== nextScaleY) {
                 object.scale.set(nextScaleX, nextScaleY, 1);
                 changed = true;
@@ -2316,10 +2482,10 @@ function createLunarCraterActions({
         clientX,
         clientY,
     }) {
-        const displayMode = resolveDisplayMode(scene);
+        const canInspectRenderedSearchTargets = resolveSearchQuery(scene).length > 0;
         if (
             !scene?.lunarCraterGroup?.visible ||
-            !shouldShowHoverLabelForDisplayMode(displayMode) ||
+            (!resolveHoverEnabled(scene) && !canInspectRenderedSearchTargets) ||
             scene.lunarCraterHoverLabelsEnabled === false
         ) {
             return hideLunarCraterHover({ scene });
@@ -2359,10 +2525,28 @@ function createLunarCraterActions({
         });
         const alreadyHovered = scene.lunarCraterHoveredName === target.crater.name;
         let labelVisibilityChanged = false;
+        if (scene.lunarCraterHoveredRing && scene.lunarCraterHoveredRing !== target.ring) {
+            scene.lunarCraterHoveredRing.userData.hoverAnnotation = false;
+            scene.lunarCraterHoveredRing = null;
+            labelVisibilityChanged = true;
+        }
+        if (scene.lunarCraterHoveredLabel && scene.lunarCraterHoveredLabel !== target.label) {
+            scene.lunarCraterHoveredLabel.userData.hoverScaleBoost = false;
+            scene.lunarCraterHoveredLabel = null;
+            labelVisibilityChanged = true;
+        }
         if (target.showLabel === true) {
             if (scene.lunarCraterHoverLabel?.visible) {
                 scene.lunarCraterHoverLabel.visible = false;
                 labelVisibilityChanged = true;
+            }
+            if (target.ring) {
+                target.ring.userData.hoverAnnotation = true;
+                scene.lunarCraterHoveredRing = target.ring;
+            }
+            if (target.label) {
+                target.label.userData.hoverScaleBoost = true;
+                scene.lunarCraterHoveredLabel = target.label;
             }
         } else {
             ensureHoverLabel({
@@ -2379,7 +2563,12 @@ function createLunarCraterActions({
                 cameraRightNormal: cameraContext?.cameraRightNormal ?? null,
             });
         }
-        if (!alreadyHovered || !scene.lunarCraterHoverRing?.visible) {
+        if (target.showLabel === true) {
+            if (scene.lunarCraterHoverRing?.visible) {
+                scene.lunarCraterHoverRing.visible = false;
+                labelVisibilityChanged = true;
+            }
+        } else if (!alreadyHovered || !scene.lunarCraterHoverRing?.visible) {
             ensureHoverRing({
                 scene,
                 target,
@@ -2387,7 +2576,7 @@ function createLunarCraterActions({
                 lunarRadiusKm: getLunarRadiusKm(),
             });
         }
-        if (scene.lunarCraterHoverRing) {
+        if (scene.lunarCraterHoverRing && target.showLabel !== true) {
             scene.lunarCraterHoverRing.visible = true;
         }
         scene.lunarCraterHoveredName = target.crater.name;

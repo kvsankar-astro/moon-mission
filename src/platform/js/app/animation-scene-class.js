@@ -166,10 +166,17 @@ function createAnimationSceneClass(deps) {
             this.lunarCraterHoverMaterial = null;
             this.lunarCraterMinDiameterKm = null;
             this.lunarCraterMaxDiameterKm = null;
+            this.lunarCraterHoverMinDiameterKm = null;
+            this.lunarCraterHoverMaxDiameterKm = null;
+            this.lunarCraterShowAllEnabled = false;
+            this.lunarCraterHoverEnabled = false;
             this.lunarCraterDisplayMode = null;
             this.lunarFeatureTypeFilters = null;
             this.lunarFeatureSearchQuery = "";
             this.lunarFeatureExcludedKeys = [];
+            this.lunarFeatureHoverTypeFilters = null;
+            this.lunarFeatureHoverSearchQuery = "";
+            this.lunarFeatureHoverExcludedKeys = [];
             this.lunarCraterHoverLabelsEnabled = true;
             this.lunarCraterHoveredName = null;
             this.lunarCraterHoveredDiameterKm = null;

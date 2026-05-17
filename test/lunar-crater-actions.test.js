@@ -478,7 +478,9 @@ describe("lunar crater actions", () => {
         });
 
         expect(scene.lunarCraterHoveredName).toBe("Always labeled");
-        expect(scene.lunarCraterHoverRing?.visible).toBe(true);
+        expect(scene.lunarCraterHoverRing?.visible).not.toBe(true);
+        expect(scene.lunarCraterHoveredRing?.userData.hoverAnnotation).toBe(true);
+        expect(scene.lunarCraterHoveredLabel?.userData.hoverScaleBoost).toBe(true);
         expect(scene.lunarCraterHoverLabel?.visible).not.toBe(true);
     });
 
@@ -509,7 +511,7 @@ describe("lunar crater actions", () => {
             PC: { MOON_RADIUS_KM: 1737.4 },
             getMoonRadius: () => 10,
             getGlobalConfig: () => ({ is_lunar: true }),
-            getViewLunarCraters: () => true,
+            getViewLunarCraters: () => false,
             getLunarCraterMinDiameterKm: () => 0,
             getLunarCraterMaxDiameterKm: () => 600,
             getLunarCraterDisplayMode: () => "hover",
@@ -554,6 +556,7 @@ describe("lunar crater actions", () => {
                 rendererDomElement,
             });
 
+            expect(scene.lunarCraterGroup.visible).toBe(true);
             const searchRing = scene.lunarCraterAnnotations.find((object) =>
                 object.name.startsWith("lunar-feature-search-ring:"),
             );
@@ -585,7 +588,9 @@ describe("lunar crater actions", () => {
 
         expect(scene.lunarCraterPickTargets[0]?.showLabel).toBe(true);
         expect(scene.lunarCraterHoveredName).toBe("Mare Orientale");
-        expect(scene.lunarCraterHoverRing?.visible).toBe(true);
+        expect(scene.lunarCraterHoverRing?.visible).not.toBe(true);
+        expect(scene.lunarCraterHoveredRing?.userData.hoverAnnotation).toBe(true);
+        expect(scene.lunarCraterHoveredLabel?.userData.hoverScaleBoost).toBe(true);
         expect(scene.lunarCraterHoverLabel?.visible).not.toBe(true);
     });
 

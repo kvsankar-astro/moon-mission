@@ -18,6 +18,8 @@ describe("mission state cell groups", () => {
             viewOrbitDescent: false,
             viewCraters: false,
             viewLunarCraters: false,
+            lunarCraterShowAllEnabled: false,
+            lunarCraterHoverEnabled: false,
             viewMoonLatLonGrid: false,
             viewMoonLatLonLabels: true,
             viewMoonLatLonHover: false,
@@ -25,8 +27,14 @@ describe("mission state cell groups", () => {
             lunarCraterDisplayMode: "hover",
             lunarCraterMinDiameterKm: 80,
             lunarCraterMaxDiameterKm: 600,
+            lunarCraterHoverMinDiameterKm: 0,
+            lunarCraterHoverMaxDiameterKm: 600,
+            lunarFeatureTypeFilters: {},
             lunarFeatureSearchQuery: "",
             lunarFeatureExcludedKeys: [],
+            lunarFeatureHoverTypeFilters: {},
+            lunarFeatureHoverSearchQuery: "",
+            lunarFeatureHoverExcludedKeys: [],
             viewXYZAxes: false,
             viewPoles: false,
             viewPolarAxes: false,
@@ -65,6 +73,10 @@ describe("mission state cell groups", () => {
             setViewCraters: (value) => { state.viewCraters = value; },
             getViewLunarCraters: () => state.viewLunarCraters,
             setViewLunarCraters: (value) => { state.viewLunarCraters = value; },
+            getLunarCraterShowAllEnabled: () => state.lunarCraterShowAllEnabled,
+            setLunarCraterShowAllEnabled: (value) => { state.lunarCraterShowAllEnabled = value; },
+            getLunarCraterHoverEnabled: () => state.lunarCraterHoverEnabled,
+            setLunarCraterHoverEnabled: (value) => { state.lunarCraterHoverEnabled = value; },
             getViewMoonLatLonGrid: () => state.viewMoonLatLonGrid,
             setViewMoonLatLonGrid: (value) => { state.viewMoonLatLonGrid = value; },
             getViewMoonLatLonLabels: () => state.viewMoonLatLonLabels,
@@ -79,10 +91,22 @@ describe("mission state cell groups", () => {
             setLunarCraterMinDiameterKm: (value) => { state.lunarCraterMinDiameterKm = value; },
             getLunarCraterMaxDiameterKm: () => state.lunarCraterMaxDiameterKm,
             setLunarCraterMaxDiameterKm: (value) => { state.lunarCraterMaxDiameterKm = value; },
+            getLunarCraterHoverMinDiameterKm: () => state.lunarCraterHoverMinDiameterKm,
+            setLunarCraterHoverMinDiameterKm: (value) => { state.lunarCraterHoverMinDiameterKm = value; },
+            getLunarCraterHoverMaxDiameterKm: () => state.lunarCraterHoverMaxDiameterKm,
+            setLunarCraterHoverMaxDiameterKm: (value) => { state.lunarCraterHoverMaxDiameterKm = value; },
+            getLunarFeatureTypeFilters: () => state.lunarFeatureTypeFilters,
+            setLunarFeatureTypeFilters: (value) => { state.lunarFeatureTypeFilters = value; },
             getLunarFeatureSearchQuery: () => state.lunarFeatureSearchQuery,
             setLunarFeatureSearchQuery: (value) => { state.lunarFeatureSearchQuery = value; },
             getLunarFeatureExcludedKeys: () => state.lunarFeatureExcludedKeys,
             setLunarFeatureExcludedKeys: (value) => { state.lunarFeatureExcludedKeys = value; },
+            getLunarFeatureHoverTypeFilters: () => state.lunarFeatureHoverTypeFilters,
+            setLunarFeatureHoverTypeFilters: (value) => { state.lunarFeatureHoverTypeFilters = value; },
+            getLunarFeatureHoverSearchQuery: () => state.lunarFeatureHoverSearchQuery,
+            setLunarFeatureHoverSearchQuery: (value) => { state.lunarFeatureHoverSearchQuery = value; },
+            getLunarFeatureHoverExcludedKeys: () => state.lunarFeatureHoverExcludedKeys,
+            setLunarFeatureHoverExcludedKeys: (value) => { state.lunarFeatureHoverExcludedKeys = value; },
             getViewXYZAxes: () => state.viewXYZAxes,
             setViewXYZAxes: (value) => { state.viewXYZAxes = value; },
             getViewPoles: () => state.viewPoles,
@@ -133,6 +157,10 @@ describe("mission state cell groups", () => {
         expect(state.viewOrbit).toBe(false);
         cells.viewLunarCraters.set(true);
         expect(state.viewLunarCraters).toBe(true);
+        cells.lunarCraterShowAllEnabled.set(true);
+        cells.lunarCraterHoverEnabled.set(true);
+        expect(state.lunarCraterShowAllEnabled).toBe(true);
+        expect(state.lunarCraterHoverEnabled).toBe(true);
         cells.viewMoonLatLonGrid.set(true);
         expect(state.viewMoonLatLonGrid).toBe(true);
         cells.viewMoonLatLonLabels.set(false);
@@ -143,14 +171,26 @@ describe("mission state cell groups", () => {
         cells.lunarCraterDisplayMode.set("always");
         cells.lunarCraterMinDiameterKm.set(40);
         cells.lunarCraterMaxDiameterKm.set(120);
+        cells.lunarCraterHoverMinDiameterKm.set(10);
+        cells.lunarCraterHoverMaxDiameterKm.set(240);
+        cells.lunarFeatureTypeFilters.set({ crater: { enabled: true } });
         cells.lunarFeatureSearchQuery.set("Tycho");
         cells.lunarFeatureExcludedKeys.set(["tycho"]);
+        cells.lunarFeatureHoverTypeFilters.set({ mare: { enabled: true } });
+        cells.lunarFeatureHoverSearchQuery.set("Mare");
+        cells.lunarFeatureHoverExcludedKeys.set(["mare"]);
         expect(state.lunarCraterHoverLabels).toBe(false);
         expect(state.lunarCraterDisplayMode).toBe("always");
         expect(state.lunarCraterMinDiameterKm).toBe(40);
         expect(state.lunarCraterMaxDiameterKm).toBe(120);
+        expect(state.lunarCraterHoverMinDiameterKm).toBe(10);
+        expect(state.lunarCraterHoverMaxDiameterKm).toBe(240);
+        expect(state.lunarFeatureTypeFilters).toEqual({ crater: { enabled: true } });
         expect(state.lunarFeatureSearchQuery).toBe("Tycho");
         expect(state.lunarFeatureExcludedKeys).toEqual(["tycho"]);
+        expect(state.lunarFeatureHoverTypeFilters).toEqual({ mare: { enabled: true } });
+        expect(state.lunarFeatureHoverSearchQuery).toBe("Mare");
+        expect(state.lunarFeatureHoverExcludedKeys).toEqual(["mare"]);
 
         expect(cells.effectiveOrbitStyle.get()).toBe("trail");
         effectiveOrbitStyle = "classic";

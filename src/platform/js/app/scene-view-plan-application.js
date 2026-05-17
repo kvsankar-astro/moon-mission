@@ -65,6 +65,19 @@ function applySceneViewPlanToScene({
     scene.locations.forEach((location) => {
         location.visible = view.viewCraters;
     });
+    let lunarCraterPresentationChanged = false;
+    const setSceneCraterValue = (key, value) => {
+        if (!Object.prototype.hasOwnProperty.call(view, key)) return;
+        const sameValue = value && typeof value === "object"
+            ? JSON.stringify(scene[key]) === JSON.stringify(value)
+            : scene[key] === value;
+        if (!sameValue) {
+            scene[key] = value;
+            lunarCraterPresentationChanged = true;
+        }
+    };
+    setSceneCraterValue("lunarCraterShowAllEnabled", view.lunarCraterShowAllEnabled === true);
+    setSceneCraterValue("lunarCraterHoverEnabled", view.lunarCraterHoverEnabled === true);
     if (view.lunarCraterDisplayMode === "always" || view.lunarCraterDisplayMode === "hover") {
         scene.setLunarCraterDisplayMode?.(view.lunarCraterDisplayMode);
     }
@@ -77,6 +90,13 @@ function applySceneViewPlanToScene({
             lunarCraterMaxDiameterKm: view.lunarCraterMaxDiameterKm,
         });
     }
+    if (
+        Number.isFinite(Number(view.lunarCraterHoverMinDiameterKm)) ||
+        Number.isFinite(Number(view.lunarCraterHoverMaxDiameterKm))
+    ) {
+        setSceneCraterValue("lunarCraterHoverMinDiameterKm", Number(view.lunarCraterHoverMinDiameterKm));
+        setSceneCraterValue("lunarCraterHoverMaxDiameterKm", Number(view.lunarCraterHoverMaxDiameterKm));
+    }
     if (Object.prototype.hasOwnProperty.call(view, "lunarCraterHoverLabels")) {
         scene.setLunarCraterHoverLabelsEnabled?.(view.lunarCraterHoverLabels);
     }
@@ -88,6 +108,18 @@ function applySceneViewPlanToScene({
     }
     if (Object.prototype.hasOwnProperty.call(view, "lunarFeatureExcludedKeys")) {
         scene.setLunarFeatureExcludedKeys?.(view.lunarFeatureExcludedKeys);
+    }
+    if (view.lunarFeatureHoverTypeFilters && typeof view.lunarFeatureHoverTypeFilters === "object") {
+        setSceneCraterValue("lunarFeatureHoverTypeFilters", view.lunarFeatureHoverTypeFilters);
+    }
+    if (Object.prototype.hasOwnProperty.call(view, "lunarFeatureHoverSearchQuery")) {
+        setSceneCraterValue("lunarFeatureHoverSearchQuery", view.lunarFeatureHoverSearchQuery);
+    }
+    if (Object.prototype.hasOwnProperty.call(view, "lunarFeatureHoverExcludedKeys")) {
+        setSceneCraterValue("lunarFeatureHoverExcludedKeys", view.lunarFeatureHoverExcludedKeys);
+    }
+    if (lunarCraterPresentationChanged && scene.lunarCraterGroup) {
+        scene.addLunarCraterAnnotations?.();
     }
     scene.setLunarCraterAnnotationsVisible?.(view.viewLunarCraters);
 

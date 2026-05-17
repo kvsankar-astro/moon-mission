@@ -18,8 +18,16 @@ function captureCraterPresentation(animationScene) {
         displayMode: animationScene.lunarCraterDisplayMode,
         minDiameterKm: animationScene.lunarCraterMinDiameterKm,
         maxDiameterKm: animationScene.lunarCraterMaxDiameterKm,
+        showAllEnabled: animationScene.lunarCraterShowAllEnabled,
+        hoverEnabled: animationScene.lunarCraterHoverEnabled,
+        hoverMinDiameterKm: animationScene.lunarCraterHoverMinDiameterKm,
+        hoverMaxDiameterKm: animationScene.lunarCraterHoverMaxDiameterKm,
+        typeFilters: animationScene.lunarFeatureTypeFilters,
         searchQuery: animationScene.lunarFeatureSearchQuery,
         excludedKeys: animationScene.lunarFeatureExcludedKeys,
+        hoverTypeFilters: animationScene.lunarFeatureHoverTypeFilters,
+        hoverSearchQuery: animationScene.lunarFeatureHoverSearchQuery,
+        hoverExcludedKeys: animationScene.lunarFeatureHoverExcludedKeys,
         hoverLabelsEnabled: animationScene.lunarCraterHoverLabelsEnabled,
     };
 }
@@ -34,8 +42,16 @@ function restoreCraterPresentation(animationScene, previous) {
     animationScene.lunarCraterDisplayMode = previous.displayMode;
     animationScene.lunarCraterMinDiameterKm = previous.minDiameterKm;
     animationScene.lunarCraterMaxDiameterKm = previous.maxDiameterKm;
+    animationScene.lunarCraterShowAllEnabled = previous.showAllEnabled;
+    animationScene.lunarCraterHoverEnabled = previous.hoverEnabled;
+    animationScene.lunarCraterHoverMinDiameterKm = previous.hoverMinDiameterKm;
+    animationScene.lunarCraterHoverMaxDiameterKm = previous.hoverMaxDiameterKm;
+    animationScene.lunarFeatureTypeFilters = previous.typeFilters;
     animationScene.lunarFeatureSearchQuery = previous.searchQuery;
     animationScene.lunarFeatureExcludedKeys = previous.excludedKeys;
+    animationScene.lunarFeatureHoverTypeFilters = previous.hoverTypeFilters;
+    animationScene.lunarFeatureHoverSearchQuery = previous.hoverSearchQuery;
+    animationScene.lunarFeatureHoverExcludedKeys = previous.hoverExcludedKeys;
     animationScene.addLunarCraterAnnotations?.();
     animationScene.setLunarCraterHoverLabelsEnabled?.(previous.hoverLabelsEnabled);
     if (animationScene.lunarCraterGroup) {
@@ -76,7 +92,8 @@ export function renderWithLunarCraterView({
         ? normalizeLunarFeatureViewState(viewState)
         : createDefaultLunarFeatureViewState();
 
-    if (craterState.viewLunarCraters !== true || !supported) {
+    const hasSearchResultsOverlay = craterState.lunarFeatureSearchQuery.length > 0;
+    if ((craterState.viewLunarCraters !== true && !hasSearchResultsOverlay) || !supported) {
         setCraterGroupVisibleTemporarily(
             resolveCraterGroup({ animationScene, scene }),
             false,
@@ -94,9 +111,16 @@ export function renderWithLunarCraterView({
         animationScene.lunarCraterDisplayMode = craterState.lunarCraterDisplayMode;
         animationScene.lunarCraterMinDiameterKm = craterState.lunarCraterMinDiameterKm;
         animationScene.lunarCraterMaxDiameterKm = craterState.lunarCraterMaxDiameterKm;
+        animationScene.lunarCraterShowAllEnabled = craterState.lunarCraterShowAllEnabled;
+        animationScene.lunarCraterHoverEnabled = craterState.lunarCraterHoverEnabled;
+        animationScene.lunarCraterHoverMinDiameterKm = craterState.lunarCraterHoverMinDiameterKm;
+        animationScene.lunarCraterHoverMaxDiameterKm = craterState.lunarCraterHoverMaxDiameterKm;
         animationScene.lunarFeatureTypeFilters = craterState.lunarFeatureTypeFilters;
         animationScene.lunarFeatureSearchQuery = craterState.lunarFeatureSearchQuery;
         animationScene.lunarFeatureExcludedKeys = craterState.lunarFeatureExcludedKeys;
+        animationScene.lunarFeatureHoverTypeFilters = craterState.lunarFeatureHoverTypeFilters;
+        animationScene.lunarFeatureHoverSearchQuery = craterState.lunarFeatureHoverSearchQuery;
+        animationScene.lunarFeatureHoverExcludedKeys = craterState.lunarFeatureHoverExcludedKeys;
         animationScene.addLunarCraterAnnotations({
             camera,
             rendererDomElement,

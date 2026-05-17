@@ -528,7 +528,7 @@ textarea {
     position: absolute;
     top: calc(100% + 4px);
     right: calc(8px + var(--header-pill-toggle-lane));
-    z-index: 42;
+    z-index: 2147483001;
     display: grid;
     width: min(360px, calc(100vw - 18px));
     box-sizing: border-box;
@@ -749,21 +749,12 @@ textarea {
 
 .lunar-crater-controls-panel__toggles {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 1px;
     padding: 2px;
     border: 1px solid rgba(100, 130, 180, 0.36);
     border-radius: 8px;
     background: rgba(5, 10, 17, 0.8);
-}
-
-.lunar-crater-controls-panel__mode-label {
-    margin-top: 2px;
-    color: #b9c5d8;
-    font-size: 9px;
-    font-weight: 700;
-    line-height: 1;
-    text-transform: uppercase;
 }
 
 .lunar-crater-controls-panel__button {
