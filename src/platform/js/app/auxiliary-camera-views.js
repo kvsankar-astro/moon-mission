@@ -188,7 +188,7 @@ const COMPOSER_CAMERA_EXPOSURE = 0.98;
 const COMPOSER_EXPOSURE_EV_MIN = -16;
 const COMPOSER_EXPOSURE_EV_MAX = 16;
 const COMPOSER_EXPOSURE_EV_DEFAULT = 0;
-const COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV = 6;
+const COMPOSER_ECLIPSE_AUTO_EXPOSURE_EV = 5;
 const COMPOSER_CAMERA_SKY_STARMAP_OPACITY_CAP = 0.03;
 const COMPOSER_CAMERA_SKY_CONSTELLATION_OPACITY_CAP = 0.0;
 const COMPOSER_CONSTELLATION_LINES_OPACITY_CAP = 0.06;
@@ -6997,7 +6997,25 @@ class AuxiliaryCameraViewsManager {
         );
     }
 
-    shouldApplyComposerEclipseAutoExposure(panelState, { moonWorld, moonRadius } = {}) {
+    shouldApplyComposerEclipseAutoExposure(panelState, {
+        eclipseState,
+        earthWorld,
+        earthRadius,
+        moonWorld,
+        moonRadius,
+    } = {}) {
+        const occluder = eclipseState?.active === true
+            ? String(eclipseState?.occluder || "").toLowerCase()
+            : "";
+        if (occluder === "earth") {
+            return this.resolveComposerBodyDiscInView(panelState, {
+                bodyWorld: earthWorld,
+                bodyRadius: earthRadius,
+            });
+        }
+        if (occluder !== "moon") {
+            return false;
+        }
         return this.resolveComposerBodyDiscInView(panelState, {
             bodyWorld: moonWorld,
             bodyRadius: moonRadius,
@@ -9608,6 +9626,9 @@ class AuxiliaryCameraViewsManager {
         panelState.composerSolarEclipseActive = composerSolarEclipseState.active === true;
         const previousEclipseAutoExposureEligible = panelState.composerEclipseAutoExposureEligible !== false;
         panelState.composerEclipseAutoExposureEligible = this.shouldApplyComposerEclipseAutoExposure(panelState, {
+            eclipseState: composerSolarEclipseState,
+            earthWorld: this.earthWorld,
+            earthRadius: composerEarthRadius,
             moonWorld: this.moonWorld,
             moonRadius: composerMoonRadius,
         });

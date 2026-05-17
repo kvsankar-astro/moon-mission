@@ -679,7 +679,7 @@ describe("Frame and Shoot FoV bounds", () => {
             composerEclipseAutoExposureEligible: true,
         };
 
-        expect(manager.resolveComposerExposureState(panelState).autoEv).toBe(6);
+        expect(manager.resolveComposerExposureState(panelState).autoEv).toBe(5);
 
         panelState.composerEclipseAutoExposureEligible = false;
         const earthOnlyState = manager.resolveComposerExposureState(panelState);
@@ -688,17 +688,13 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(earthOnlyState.multiplier).toBe(1);
     });
 
-    it("detects when the Moon disc is outside an Earth-only Frame and Shoot view", () => {
+    it("applies eclipse auto exposure to the visible active occluder", () => {
         const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
             THREE,
             tmpVectorA: new THREE.Vector3(),
             tmpVectorB: new THREE.Vector3(),
         });
         const camera = new THREE.PerspectiveCamera(45, 16 / 9, 0.1, 1000);
-        camera.position.set(0, 0, 0);
-        camera.lookAt(new THREE.Vector3(100, 0, 0));
-        camera.updateMatrixWorld(true);
-        camera.updateProjectionMatrix();
         const panelState = {
             mode: "composer",
             camera,
@@ -710,17 +706,44 @@ describe("Frame and Shoot FoV bounds", () => {
             },
         };
 
-        const earthVisible = manager.resolveComposerBodyDiscInView(panelState, {
-            bodyWorld: new THREE.Vector3(100, 0, 0),
-            bodyRadius: 10,
-        });
-        const moonVisible = manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+        camera.position.set(0, 0, 0);
+        camera.lookAt(new THREE.Vector3(100, 0, 0));
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        expect(manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+            eclipseState: { active: true, occluder: "earth" },
+            earthWorld: new THREE.Vector3(100, 0, 0),
+            earthRadius: 10,
             moonWorld: new THREE.Vector3(0, 100, 0),
             moonRadius: 3,
-        });
+        })).toBe(true);
+        expect(manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+            eclipseState: { active: true, occluder: "moon" },
+            earthWorld: new THREE.Vector3(100, 0, 0),
+            earthRadius: 10,
+            moonWorld: new THREE.Vector3(0, 100, 0),
+            moonRadius: 3,
+        })).toBe(false);
 
-        expect(earthVisible).toBe(true);
-        expect(moonVisible).toBe(false);
+        camera.lookAt(new THREE.Vector3(0, 100, 0));
+        camera.updateMatrixWorld(true);
+        camera.updateProjectionMatrix();
+
+        expect(manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+            eclipseState: { active: true, occluder: "moon" },
+            earthWorld: new THREE.Vector3(100, 0, 0),
+            earthRadius: 10,
+            moonWorld: new THREE.Vector3(0, 100, 0),
+            moonRadius: 3,
+        })).toBe(true);
+        expect(manager.shouldApplyComposerEclipseAutoExposure(panelState, {
+            eclipseState: { active: true, occluder: "earth" },
+            earthWorld: new THREE.Vector3(100, 0, 0),
+            earthRadius: 10,
+            moonWorld: new THREE.Vector3(0, 100, 0),
+            moonRadius: 3,
+        })).toBe(false);
     });
 
     it("clamps manual Frame and Shoot FoV at optical bounds", () => {
@@ -1398,7 +1421,7 @@ describe("Frame and Shoot constellation line rendering", () => {
 
         const restoreEclipse = manager.applyComposerExposureProfile({}, panelState, null, { eclipseActive: true });
 
-        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 64, 6);
+        expect(panelState.renderer.toneMappingExposure).toBeCloseTo(0.98 * 32, 6);
 
         restoreEclipse();
 

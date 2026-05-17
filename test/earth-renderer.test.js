@@ -15,6 +15,8 @@ describe("EarthRenderer", () => {
         expect(material.userData.earthNightsideLift).toBe(0);
         expect(material.userData.earthMoonshineLift).toBe(0);
         expect(material.userData.earthAtmosphereRimStrength).toBe(0);
+        expect(material.userData.earthTwilightRefractionStrength).toBeCloseTo(0.42, 4);
+        expect(material.userData.earthTwilightRefractionWidth).toBeCloseTo(0.34, 4);
         expect(material.userData.earthNightMapIntensity).toBeCloseTo(0.08, 4);
         expect(material.userData.earthNightMapExponent).toBeCloseTo(2.25, 4);
         expect(material.userData.earthPhotoBlend).toBe(0);
@@ -53,12 +55,16 @@ describe("EarthRenderer", () => {
             uniforms: {
                 uEarthNightsideLift: { value: 0 },
                 uEarthMoonshineLift: { value: 0 },
+                uEarthTwilightRefractionStrength: { value: 0 },
+                uEarthTwilightRefractionWidth: { value: 0 },
                 uEarthPhotoBlend: { value: 0 },
                 uEarthPhotoMap: { value: baseTexture },
             },
         };
         material.userData.earthNightsideLift = 0.42;
         material.userData.earthMoonshineLift = 0.33;
+        material.userData.earthTwilightRefractionStrength = 0.24;
+        material.userData.earthTwilightRefractionWidth = 0.18;
         material.userData.earthPhotoBlend = 1;
         material.userData.earthPhotoTexture = cloudTexture;
 
@@ -66,6 +72,8 @@ describe("EarthRenderer", () => {
 
         expect(material.userData.earthNightsideShader.uniforms.uEarthNightsideLift.value).toBe(0.42);
         expect(material.userData.earthNightsideShader.uniforms.uEarthMoonshineLift.value).toBe(0.33);
+        expect(material.userData.earthNightsideShader.uniforms.uEarthTwilightRefractionStrength.value).toBe(0.24);
+        expect(material.userData.earthNightsideShader.uniforms.uEarthTwilightRefractionWidth.value).toBe(0.18);
         expect(material.userData.earthNightsideShader.uniforms.uEarthPhotoBlend.value).toBe(1);
         expect(material.userData.earthNightsideShader.uniforms.uEarthPhotoMap.value).toBe(cloudTexture);
 
@@ -129,6 +137,12 @@ describe("EarthRenderer", () => {
         expect(shader.fragmentShader).toContain("float earthMoonshineLift = uEarthMoonshineLift * earthNightWeight");
         expect(shader.fragmentShader).toContain("reflectedLight.indirectDiffuse += earthMoonshineFillColor");
         expect(shader.fragmentShader).toContain("totalEmissiveRadiance += earthMoonshineFillColor");
+        expect(shader.fragmentShader).toContain("float earthNightTerminator");
+        expect(shader.fragmentShader).toContain("float earthTwilightRefraction");
+        expect(shader.fragmentShader).toContain("vec3 earthTwilightColor");
+        expect(shader.fragmentShader).toContain("float earthNightCloudMask");
+        expect(shader.fragmentShader).toContain("float earthNightCloudGlow");
+        expect(shader.fragmentShader).toContain("reflectedLight.indirectDiffuse += earthNightCloudColor");
 
         renderer.dispose();
     });
