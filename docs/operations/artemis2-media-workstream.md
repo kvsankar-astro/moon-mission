@@ -38,17 +38,16 @@ This is the current workstream doc for Artemis II mission media, long-form broad
    - Add a targeted regression once the failure mode is understood.
 2. Upload and verify the long-form HLS stream.
    - Upload `assets/artemis2/media/streams/lunar-flyby/v1/` from the data workspace to the public media host.
-   - Verify `.m3u8`, `.m4s`, and `.mp4` content types.
+   - Verify `.m3u8`, `.m4s`, `.mp4`, and `.vtt` content types.
    - Verify CORS and cache behavior through `assets.sankara.net`.
 3. Build the stream sync segment map.
    - Collect at least two anchors per continuous broadcast segment.
    - Solve local affine mappings from video time to mission time.
    - Persist the segment map in Artemis II media metadata or an attached sidecar.
 4. Integrate diarization artifacts.
-   - Consume the curated Part 1 disambiguated transcript.
-   - Wait for or produce a curated Part 2 speaker map.
-   - Convert timestamped transcript text into app-friendly JSON.
-   - Decide whether transcript JSON is authored app metadata or generated data repo content.
+   - First-pass subtitle MVP is implemented with a combined WebVTT track generated from the canonical Part 1 and Part 2 JSON artifacts.
+   - Runtime attaches the WebVTT as a native video text track and renders the transcript attribution in the Flyby Broadcast panel.
+   - Keep JSON/YAML artifacts available for later searchable transcript, speaker filters, confidence styling, and raw transcript mode.
 5. Add transcript/search discovery.
    - Start with synchronized captions or transcript panel behavior.
    - Later explore diarization -> LLM -> search, speaker timeline, and mission-event annotation features.
@@ -74,16 +73,27 @@ Known issue: the anchor set is not globally linear. Likely causes include archiv
 
 ## Transcript State
 
-Part 1 has manually disambiguated files in `C:\sankar\projects\transcribe\transcripts\`. Part 2 is timestamped and diarized but needs speaker curation.
+Part 1 and Part 2 now have canonical app-facing JSON artifacts in `C:\sankar\projects\transcribe\transcripts\`:
+
+- `artemis2-lunar-flyby-broadcast-part1.json`
+- `artemis2-lunar-flyby-broadcast-part2.json`
+
+Both are post-disambiguation and include segment `status`, `speakerConfidence`, and a top-level `speakers` map. WebVTT subtitle tracks and YAML label/provenance files sit alongside them.
+
+Transcript timestamps are video-relative to each original per-part `.webm`; each part starts at 0. If the runtime concatenates both parts, add `22373` seconds (`06:12:53`) to Part 2 timestamps.
+
+Default display policy should hide `silent` and `garbled`, hide `hallucination` outside raw transcript mode, and collapse consecutive `duplicate` cues. Speaker labels are inferred and should be treated as non-authoritative.
+
+The subtitle MVP uses `scripts/build-artemis2-broadcast-captions.mjs` to generate:
+
+- `../moon-mission-data/assets/artemis2/media/streams/lunar-flyby/v1/artemis2-lunar-flyby-broadcast.en.vtt`
+
+The generated WebVTT is staged locally under `assets/artemis2/media/streams/lunar-flyby/v1/` and referenced from the Artemis II media manifest as a `captionTracks[]` entry.
 
 Before runtime integration, decide:
 
-- which transcript files are final inputs
-- whether Part 2 gets a disambiguated variant
-- speaker display labels and uncertain-span policy
-- storage location for JSON transcript tracks
-- manifest field name and schema
-- whether the first UI exposure is subtitles, searchable transcript, speaker timeline, or metadata-only
+- storage location for JSON transcript tracks beyond the generated WebVTT subtitle MVP
+- whether the next UI exposure is searchable transcript, speaker timeline, mission-event annotations, or raw transcript mode
 
 ## Reference Details To Keep Out Of This File
 

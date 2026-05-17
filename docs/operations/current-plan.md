@@ -20,7 +20,7 @@ These items came from the 2026-05-16 context switch. Treat them as queued work, 
 | Investigate Flyby Broadcast panel going totally dark. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix Media panel overlap with events. | Open / partly mitigated by default-layout work | [performance-workstream.md](performance-workstream.md) |
 | Adjust Earth exposure during lunar eclipse so it cuts down to normal when only Earth is in view. | Open | [../design/specs/frame-and-shoot-lighting-exposure-spec.md](../design/specs/frame-and-shoot-lighting-exposure-spec.md) |
-| Integrate diarization artifacts. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
+| Integrate diarization artifacts. | Subtitle MVP implemented; richer transcript/search remains open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Change crater search and filter settings. | Open | [lunar-feature-and-artemis2-reference-sources.md](lunar-feature-and-artemis2-reference-sources.md) |
 | Explore diarization -> LLM -> search and other AI-assisted discovery features. | Open | [artemis2-media-workstream.md](artemis2-media-workstream.md) |
 | Fix play, media, and control bugs. | Open | [performance-workstream.md](performance-workstream.md) |

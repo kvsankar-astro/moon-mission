@@ -100,6 +100,8 @@ def content_type_for(path: Path) -> str:
         return "application/vnd.apple.mpegurl"
     if suffix == ".m4s":
         return "video/iso.segment"
+    if suffix in (".vtt", ".webvtt"):
+        return "text/vtt"
     if suffix == ".json5":
         return "application/json"
     guessed, _ = mimetypes.guess_type(path.name)
@@ -110,7 +112,7 @@ def cache_control_for(rel_path: str) -> str:
     lower = rel_path.lower()
     if lower.endswith((".json", ".json5", ".m3u8")):
         return DEFAULT_JSON_CACHE_CONTROL
-    if "/media/streams/" in lower and lower.endswith((".mp4", ".m4s", ".webvtt", ".jpg", ".webp", ".png")):
+    if "/media/streams/" in lower and lower.endswith((".mp4", ".m4s", ".vtt", ".webvtt", ".jpg", ".webp", ".png")):
         return DEFAULT_IMMUTABLE_CACHE_CONTROL
     return DEFAULT_ASSET_CACHE_CONTROL
 

@@ -317,6 +317,32 @@ function normalizeSourceMetadata(value) {
     };
 }
 
+function normalizeCaptionTrack(track, index, dataPath) {
+    if (!track || typeof track !== "object" || Array.isArray(track)) {
+        return null;
+    }
+    const sourceUrl = resolveMediaAssetUrl(track.sourceUrl || track.src || track.url, dataPath);
+    if (!sourceUrl) return null;
+    const kind = asTrimmedString(track.kind).toLowerCase();
+    const srclang = asTrimmedString(track.srclang || track.lang || track.language).toLowerCase();
+    return {
+        id: asTrimmedString(track.id) || `caption-track-${index + 1}`,
+        kind: kind || "subtitles",
+        label: asTrimmedString(track.label || track.title) || "Subtitles",
+        srclang: srclang || "en",
+        sourceUrl,
+        default: track.default === true,
+        attribution: asTrimmedString(track.attribution || track.sourceAttribution),
+    };
+}
+
+function normalizeCaptionTracks(value, dataPath) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map((track, index) => normalizeCaptionTrack(track, index, dataPath))
+        .filter(Boolean);
+}
+
 function normalizeCameraProfiles(cameraProfiles = {}) {
     const normalizedProfiles = {};
 
@@ -753,6 +779,7 @@ function normalizeMediaStream(stream, index, dataPath, metadataByKey = new Map()
         sourceUrl: asTrimmedString(stream.sourceUrl),
         posterAssetUrl: resolveMediaAssetUrl(stream.posterAsset, dataPath),
         captions: normalizeTextArray(stream.captions),
+        captionTracks: normalizeCaptionTracks(stream.captionTracks || stream.transcriptTracks, dataPath),
         startTimeMs,
         endTimeMs,
         durationSeconds,
@@ -871,6 +898,7 @@ function normalizeMediaStreamItem(stream, index, dataPath, thumbnailConfig = {})
         availabilityStartPolicy: "",
         syncStatus: asTrimmedString(stream.syncStatus),
         syncAnchors: Array.isArray(stream.syncAnchors) ? stream.syncAnchors : [],
+        captionTracks: Array.isArray(stream.captionTracks) ? stream.captionTracks : [],
         defaultPanelState: asTrimmedString(stream.defaultPanelState),
     };
 }

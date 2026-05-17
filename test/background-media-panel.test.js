@@ -16,6 +16,7 @@ describe("background media panel helpers", () => {
         delete globalThis.document;
         delete globalThis.window;
         delete globalThis.localStorage;
+        delete globalThis.fetch;
     });
 
     function installBackgroundPanelDom({ currentTime = 0, paused = true } = {}) {
@@ -26,22 +27,53 @@ describe("background media panel helpers", () => {
             add: vi.fn(),
             remove: vi.fn(),
         });
-        const makeNode = (id) => ({
-            id,
-            hidden: false,
-            textContent: "",
-            title: "",
-            dataset: {},
-            style: {},
-            classList: makeClassList(),
-            setAttribute: vi.fn(),
-            addEventListener: vi.fn(),
-            focus: vi.fn(),
-            replaceChildren: vi.fn(),
-            appendChild: vi.fn(),
-            querySelector: vi.fn(() => null),
-            getBoundingClientRect: vi.fn(() => ({ bottom: 80 })),
-        });
+        const makeNode = (id) => {
+            const children = [];
+            const node = {
+                id,
+                tagName: String(id || "").toUpperCase(),
+                hidden: false,
+                textContent: "",
+                title: "",
+                dataset: {},
+                style: {},
+                children,
+                classList: makeClassList(),
+                setAttribute: vi.fn((name, value) => {
+                    node[name] = String(value);
+                    if (name.startsWith("data-")) {
+                        const dataName = name.slice(5).replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase());
+                        node.dataset[dataName] = String(value);
+                    }
+                }),
+                addEventListener: vi.fn(),
+                focus: vi.fn(),
+                replaceChildren: vi.fn(() => {
+                    children.splice(0, children.length);
+                }),
+                appendChild: vi.fn((child) => {
+                    children.push(child);
+                    child.parentNode = node;
+                    return child;
+                }),
+                removeChild: vi.fn((child) => {
+                    const index = children.indexOf(child);
+                    if (index >= 0) children.splice(index, 1);
+                    child.parentNode = null;
+                    return child;
+                }),
+                remove: vi.fn(() => {
+                    node.parentNode?.removeChild?.(node);
+                }),
+                querySelector: vi.fn(() => null),
+                querySelectorAll: vi.fn((selector) => {
+                    if (selector !== 'track[data-background-media-caption-track="true"]') return [];
+                    return children.filter((child) => child.dataset?.backgroundMediaCaptionTrack === "true");
+                }),
+                getBoundingClientRect: vi.fn(() => ({ bottom: 80 })),
+            };
+            return node;
+        };
         const video = makeNode("background-media-video");
         let videoCurrentTime = currentTime;
         Object.defineProperty(video, "currentTime", {
@@ -73,11 +105,14 @@ describe("background media panel helpers", () => {
             "background-media-empty",
             "background-media-live",
             "background-media-time-overlay",
+            "background-media-caption-text",
+            "background-media-caption-attribution",
             "background-media-title",
             "background-media-status",
             "background-media-controls",
             "background-media-enable",
             "background-media-mute",
+            "background-media-captions",
             "background-media-panel-expand",
             "background-media-panel-close",
         ].forEach((id) => {
@@ -98,6 +133,7 @@ describe("background media panel helpers", () => {
             setTimeout: vi.fn(() => 1),
             clearTimeout: vi.fn(),
         };
+        globalThis.fetch = vi.fn();
         const storage = new Map();
         globalThis.localStorage = {
             getItem: vi.fn((key) => storage.get(key) || null),
@@ -373,6 +409,7 @@ describe("background media panel helpers", () => {
             "background-media-controls",
             "background-media-enable",
             "background-media-mute",
+            "background-media-captions",
             "background-media-panel-expand",
             "background-media-panel-close",
         ].forEach((id) => {
@@ -534,6 +571,182 @@ describe("background media panel helpers", () => {
         expect(nodes.get("background-media-controls").hidden).toBe(true);
         expect(nodes.get("background-media-time-overlay").hidden).toBe(false);
         expect(nodes.get("background-media-time-overlay").textContent).toBe("0:12");
+    });
+
+    it("renders caption attribution without enabling native browser subtitle tracks", () => {
+        const { nodes, video } = installBackgroundPanelDom();
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+
+        actions.render({
+            items: [{
+                id: "broadcast",
+                kind: "videoClip",
+                enabled: true,
+                assetUrl: "broadcast.mp4",
+                playbackRoles: ["background"],
+                startTimeMs,
+                endTimeMs: startTimeMs + 600000,
+                backgroundPlayback: {
+                    enabled: true,
+                },
+                captionTracks: [
+                    {
+                        kind: "subtitles",
+                        label: "English transcript",
+                        srclang: "en",
+                        sourceUrl: "broadcast-attribution.en.vtt",
+                        default: true,
+                        attribution: "Auto-generated transcript.",
+                    },
+                ],
+            }],
+            timeMs: startTimeMs + 10000,
+            animationRunning: false,
+        });
+
+        expect(video.querySelectorAll('track[data-background-media-caption-track="true"]')).toHaveLength(0);
+        expect(video.crossOrigin).toBe("anonymous");
+        expect(nodes.get("background-media-caption-attribution").textContent).toBe("Auto-generated transcript.");
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+
+        actions.render({
+            items: [],
+            timeMs: startTimeMs + 10000,
+            animationRunning: false,
+        });
+
+        expect(video.querySelectorAll('track[data-background-media-caption-track="true"]')).toHaveLength(0);
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(true);
+    });
+
+    it("renders active broadcast captions from the VTT track as a visible fallback", async () => {
+        const { nodes } = installBackgroundPanelDom();
+        globalThis.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve([
+                "WEBVTT",
+                "",
+                "1",
+                "00:00:08.000 --> 00:00:12.000",
+                "Victor Glover: We can see Earth.",
+                "",
+            ].join("\n")),
+        }));
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+        const item = {
+            id: "broadcast-caption-fallback",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast-caption-fallback.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+            captionTracks: [
+                {
+                    sourceUrl: "broadcast-caption-fallback.en.vtt",
+                    default: true,
+                },
+            ],
+        };
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: false,
+        });
+        for (let index = 0; index < 5; index += 1) {
+            await Promise.resolve();
+        }
+
+        expect(nodes.get("background-media-caption-text").textContent).toBe("Victor Glover: We can see Earth.");
+        expect(nodes.get("background-media-caption-text").hidden).toBe(false);
+
+        actions.render({
+            items: [item],
+            timeMs: startTimeMs + 13000,
+            animationRunning: false,
+        });
+
+        expect(nodes.get("background-media-caption-text").hidden).toBe(true);
+    });
+
+    it("toggles broadcast captions from the header button", async () => {
+        const { nodes } = installBackgroundPanelDom();
+        globalThis.fetch = vi.fn(() => Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve([
+                "WEBVTT",
+                "",
+                "1",
+                "00:00:08.000 --> 00:00:12.000",
+                "Christina Koch: Eclipse has started.",
+                "",
+            ].join("\n")),
+        }));
+        const startTimeMs = Date.parse("2026-04-06T16:58:14Z");
+        const actions = createBackgroundMediaPanelActions({
+            getAnimationRunning: () => false,
+            getAnimationRealtime: () => true,
+        });
+        openEnabledBackgroundPanel(actions, nodes);
+        const item = {
+            id: "broadcast-caption-toggle",
+            kind: "videoClip",
+            enabled: true,
+            assetUrl: "broadcast-caption-toggle.mp4",
+            playbackRoles: ["background"],
+            startTimeMs,
+            endTimeMs: startTimeMs + 600000,
+            backgroundPlayback: {
+                enabled: true,
+            },
+            captionTracks: [
+                {
+                    sourceUrl: "broadcast-caption-toggle.en.vtt",
+                    default: true,
+                    attribution: "Auto-generated transcript.",
+                },
+            ],
+        };
+        const renderModel = {
+            items: [item],
+            timeMs: startTimeMs + 10000,
+            animationRunning: false,
+        };
+
+        actions.render(renderModel);
+        for (let index = 0; index < 5; index += 1) {
+            await Promise.resolve();
+        }
+        expect(nodes.get("background-media-caption-text").hidden).toBe(false);
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+
+        const [, toggleCaptions] = nodes.get("background-media-captions").addEventListener.mock.calls
+            .find(([type]) => type === "click");
+        toggleCaptions();
+
+        expect(nodes.get("background-media-caption-text").hidden).toBe(true);
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(true);
+        expect(nodes.get("background-media-captions").dataset.captionStatus).toBe("hidden");
+        expect(nodes.get("background-media-captions")["aria-pressed"]).toBe("false");
+
+        toggleCaptions();
+        expect(nodes.get("background-media-caption-text").hidden).toBe(false);
+        expect(nodes.get("background-media-caption-attribution").hidden).toBe(false);
+        expect(nodes.get("background-media-captions").dataset.captionStatus).toBe("shown");
     });
 
     it("hides the broadcast control strip when the broadcast is only available out of range", () => {
@@ -1041,6 +1254,7 @@ describe("background media panel helpers", () => {
             "background-media-panel-expand",
             "background-media-enable",
             "background-media-mute",
+            "background-media-captions",
             "background-media-video",
         ].forEach((id) => nodes.set(id, makeNode(id)));
 
@@ -1200,6 +1414,7 @@ describe("background media panel helpers", () => {
             "background-media-panel-expand",
             "background-media-enable",
             "background-media-mute",
+            "background-media-captions",
             "background-media-video",
             "background-media-empty",
             "background-media-live",

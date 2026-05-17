@@ -42,6 +42,7 @@ let hlsLibraryPromise = null;
 const backgroundCandidatesCache = new WeakMap();
 const nodeAttributeCache = new WeakMap();
 const nodeClassToggleCache = new WeakMap();
+const captionCueCache = new Map();
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -150,6 +151,164 @@ function syncTimeOverlay(seconds = Number.NaN, hidden = false) {
     const label = formatStatusTime(safeSeconds);
     setNodeText(overlay, label);
     setNodeTitle(overlay, `Broadcast time ${label}`);
+}
+
+function parseVttTimestamp(value = "") {
+    const match = String(value || "").trim().match(/^(?:(\d+):)?(\d{2}):(\d{2})\.(\d{3})$/);
+    if (!match) return Number.NaN;
+    const hours = Number(match[1] || 0);
+    const minutes = Number(match[2]);
+    const seconds = Number(match[3]);
+    const milliseconds = Number(match[4]);
+    if (![hours, minutes, seconds, milliseconds].every(Number.isFinite)) return Number.NaN;
+    return hours * 3600 + minutes * 60 + seconds + milliseconds / 1000;
+}
+
+function decodeCaptionText(value = "") {
+    return String(value || "")
+        .replace(/<[^>]+>/g, "")
+        .replaceAll("&lt;", "<")
+        .replaceAll("&gt;", ">")
+        .replaceAll("&amp;", "&")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function parseWebVttCues(value = "") {
+    return String(value || "")
+        .replace(/^\uFEFF/u, "")
+        .split(/\r?\n\r?\n/u)
+        .map((block) => block.split(/\r?\n/u).map((line) => line.trim()).filter(Boolean))
+        .map((lines) => {
+            const timingIndex = lines.findIndex((line) => line.includes("-->"));
+            if (timingIndex < 0) return null;
+            const [startText, endAndSettings] = lines[timingIndex].split("-->");
+            const endText = String(endAndSettings || "").trim().split(/\s+/u)[0];
+            const startSeconds = parseVttTimestamp(startText);
+            const endSeconds = parseVttTimestamp(endText);
+            const text = decodeCaptionText(lines.slice(timingIndex + 1).join(" "));
+            if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds) || endSeconds <= startSeconds || !text) {
+                return null;
+            }
+            return {
+                startSeconds,
+                endSeconds,
+                text,
+            };
+        })
+        .filter(Boolean);
+}
+
+function getDefaultCaptionTrack(item) {
+    const tracks = Array.isArray(item?.captionTracks) ? item.captionTracks : [];
+    return tracks.find((track) => track?.default === true) || tracks[0] || null;
+}
+
+function findCaptionCue(cues, seconds) {
+    const safeSeconds = Number(seconds);
+    if (!Array.isArray(cues) || !Number.isFinite(safeSeconds)) return null;
+    return cues.find((cue) => safeSeconds >= cue.startSeconds && safeSeconds < cue.endSeconds) || null;
+}
+
+function setCaptionText(text = "") {
+    const node = getNode("background-media-caption-text");
+    if (!node) return;
+    const normalized = String(text || "").trim();
+    setNodeText(node, normalized);
+    setNodeHidden(node, !normalized);
+}
+
+function ensureCaptionCuesLoaded(sourceUrl, onLoaded) {
+    const url = String(sourceUrl || "").trim();
+    if (!url) return null;
+    const cached = captionCueCache.get(url);
+    if (cached) return cached;
+
+    const entry = {
+        status: "loading",
+        cues: [],
+    };
+    captionCueCache.set(url, entry);
+    if (typeof globalThis.fetch !== "function") {
+        entry.status = "error";
+        return entry;
+    }
+    const request = globalThis.fetch(url);
+    if (!request || typeof request.then !== "function") {
+        entry.status = "error";
+        captionCueCache.delete(url);
+        return entry;
+    }
+    request
+        .then((response) => (response?.ok === true ? response.text() : ""))
+        .then((text) => {
+            entry.cues = parseWebVttCues(text);
+            entry.status = "ready";
+            if (typeof onLoaded === "function") onLoaded();
+        })
+        .catch(() => {
+            entry.status = "error";
+            captionCueCache.delete(url);
+        });
+    return entry;
+}
+
+function removeCaptionTrackNodes(video) {
+    const existingTracks = Array.from(
+        video?.querySelectorAll?.('track[data-background-media-caption-track="true"]') || [],
+    );
+    existingTracks.forEach((track) => {
+        if (typeof track.remove === "function") {
+            track.remove();
+        } else if (track.parentNode && typeof track.parentNode.removeChild === "function") {
+            track.parentNode.removeChild(track);
+        }
+    });
+}
+
+function getCaptionTrackAttribution(item) {
+    const tracks = Array.isArray(item?.captionTracks) ? item.captionTracks : [];
+    return tracks.map((track) => String(track?.attribution || "").trim()).find(Boolean) || "";
+}
+
+function syncCaptionAttribution(item = null, captionsEnabled = true) {
+    const attribution = getCaptionTrackAttribution(item);
+    const node = getNode("background-media-caption-attribution");
+    if (!node) return;
+    setNodeText(node, attribution);
+    setNodeHidden(node, captionsEnabled !== true || !attribution);
+}
+
+function syncRenderedCaption(item, offsetSeconds, onLoaded, captionsEnabled = true) {
+    if (captionsEnabled !== true) {
+        setCaptionText("");
+        return;
+    }
+    const track = getDefaultCaptionTrack(item);
+    if (!track?.sourceUrl) {
+        setCaptionText("");
+        return;
+    }
+    const entry = ensureCaptionCuesLoaded(track.sourceUrl, onLoaded);
+    if (entry?.status !== "ready") {
+        setCaptionText("");
+        return;
+    }
+    setCaptionText(findCaptionCue(entry.cues, offsetSeconds)?.text || "");
+}
+
+function syncVideoCaptionTracks(video, item, captionsEnabled = true) {
+    if (!video) return;
+    removeCaptionTrackNodes(video);
+    const tracks = Array.isArray(item?.captionTracks) ? item.captionTracks : [];
+    if (tracks.length === 0) {
+        syncCaptionAttribution(null, captionsEnabled);
+        return;
+    }
+
+    // The app renders captions itself so it can include speaker labels and match the panel layout.
+    // Avoid attaching native <track> nodes, otherwise browsers render a second subtitle layer.
+    syncCaptionAttribution(item, captionsEnabled);
 }
 
 function isLikelyHlsSource(url = "", sourceType = "") {
@@ -567,6 +726,7 @@ function createBackgroundMediaPanelActions({
     let panelEventsBound = false;
     let playbackEnabled = false;
     let muted = true;
+    let captionsEnabled = true;
     let hasStoredMutedPreference = false;
     let expanded = false;
     let activeItemId = "";
@@ -622,6 +782,7 @@ function createBackgroundMediaPanelActions({
             state: panelState,
             playbackEnabled,
             muted,
+            captionsEnabled,
             mutedPreferenceSet: hasStoredMutedPreference === true,
             expanded,
             layoutPresetVersion: BACKGROUND_MEDIA_LAYOUT_PRESET_VERSION,
@@ -700,8 +861,10 @@ function createBackgroundMediaPanelActions({
         hlsUnsupportedSourceUrl = "";
         activeItemId = "";
         videoSourceUrl = "";
+        setCaptionText("");
         if (video) {
             callMediaMethod(video, "pause");
+            removeCaptionTrackNodes(video);
             video.removeAttribute?.("src");
             video.removeAttribute?.("poster");
             callMediaMethod(video, "load");
@@ -715,6 +878,7 @@ function createBackgroundMediaPanelActions({
         lastAppliedPlaybackRate = Number.NaN;
         lastVideoCurrentTimeWriteSeconds = Number.NaN;
         lastVideoCurrentTimeWriteSourceUrl = "";
+        syncCaptionAttribution(null, captionsEnabled);
     }
 
     function setNativeVideoSource(video, item, sourceUrl) {
@@ -818,10 +982,12 @@ function createBackgroundMediaPanelActions({
             return;
         }
         activeItemId = item.id;
+        if (video.crossOrigin !== "anonymous") video.crossOrigin = "anonymous";
         if (video.muted !== muted) video.muted = muted;
         if (video.loop !== false) video.loop = false;
         video.removeAttribute?.("loop");
         setClassToggled(video, "background-media-panel__video--cover", item.backgroundPlayback?.fit === "cover");
+        syncVideoCaptionTracks(video, item, captionsEnabled);
         if (video.dataset) {
             setDatasetValue(video, "mediaItemId", item.id || "");
             setDatasetValue(video, "mediaSourceUrl", sourceUrl);
@@ -989,6 +1155,15 @@ function createBackgroundMediaPanelActions({
                 ? "Muted for foreground media"
                 : (muted ? "Unmute background video" : "Mute background video"));
             setNodeAttribute(muteButton, "aria-label", muteButton.title);
+        }
+        const captionsButton = getNode("background-media-captions");
+        if (captionsButton) {
+            setNodeText(captionsButton, "");
+            setNodeAttribute(captionsButton, "aria-pressed", captionsEnabled ? "true" : "false");
+            setDatasetValue(captionsButton, "icon", "captions");
+            setDatasetValue(captionsButton, "captionStatus", captionsEnabled ? "shown" : "hidden");
+            setNodeTitle(captionsButton, captionsEnabled ? "Hide subtitles" : "Show subtitles");
+            setNodeAttribute(captionsButton, "aria-label", captionsButton.title);
         }
         const expandButton = getNode("background-media-panel-expand");
         if (expandButton) {
@@ -1325,6 +1500,17 @@ function createBackgroundMediaPanelActions({
         render(lastRenderModel);
     }
 
+    function toggleCaptions() {
+        captionsEnabled = !captionsEnabled;
+        persistState();
+        if (!captionsEnabled) {
+            setCaptionText("");
+            syncCaptionAttribution(null, captionsEnabled);
+        }
+        syncButtons();
+        render(lastRenderModel);
+    }
+
     function renderEmptyState(lines = []) {
         const empty = getNode("background-media-empty");
         if (!empty) return;
@@ -1454,6 +1640,7 @@ function createBackgroundMediaPanelActions({
         getNode("background-media-panel-expand")?.addEventListener?.("click", toggleExpanded);
         getNode("background-media-enable")?.addEventListener?.("click", togglePlaybackEnabled);
         getNode("background-media-mute")?.addEventListener?.("click", toggleMuted);
+        getNode("background-media-captions")?.addEventListener?.("click", toggleCaptions);
         panel.addEventListener?.("pointerdown", bringPanelToFront, true);
         bindPanelDragging();
         bindPanelResizing();
@@ -1499,6 +1686,9 @@ function createBackgroundMediaPanelActions({
         if (useStoredState && typeof stored?.expanded === "boolean") {
             expanded = stored.expanded;
         }
+        captionsEnabled = useStoredState && typeof stored?.captionsEnabled === "boolean"
+            ? stored.captionsEnabled
+            : true;
         panelState = (useStoredState ? stored?.state : "") || getMissionPanelDefaultState(
             missionConfigData,
             BACKGROUND_MEDIA_PANEL_ID,
@@ -1548,6 +1738,7 @@ function createBackgroundMediaPanelActions({
             lastForegroundEffect = "";
             setControlsHidden(true);
             syncTimeOverlay(Number.NaN, true);
+            setCaptionText("");
             setHidden("background-media-empty", false);
             setHidden("background-media-live", true);
             if (available) {
@@ -1577,6 +1768,8 @@ function createBackgroundMediaPanelActions({
         const sourceChanged = activeItem.id !== activeItemId || activeItem.assetUrl !== videoSourceUrl;
         const offsetSeconds = resolvePlaybackOffsetSeconds(activeItem, timeMs);
         syncTimeOverlay(offsetSeconds, false);
+        syncCaptionAttribution(activeItem, captionsEnabled);
+        syncRenderedCaption(activeItem, offsetSeconds, () => render(lastRenderModel), captionsEnabled);
 
         if (playbackMode === "ready") {
             const keepPausedSource = panelState === "open" && playbackEnabled === true;

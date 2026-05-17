@@ -35,6 +35,12 @@ function getMissionMediaManifestUrl() {
     return resolveLocalDevMediaManifestUrl(resolveMissionMediaManifestUrl(getMissionDataPath()));
 }
 
+function getMissionMediaDataPath() {
+    const manifestUrl = getMissionMediaManifestUrl();
+    if (!manifestUrl) return getMissionDataPath() || "";
+    return manifestUrl.replace(/media-manifest\.json(?:[?#].*)?$/i, "");
+}
+
 async function loadMissionMediaManifest() {
     const nextUrl = getMissionMediaManifestUrl();
     if (!nextUrl) {
@@ -69,6 +75,7 @@ async function loadMissionMediaManifest() {
 }
 
 export {
+    getMissionMediaDataPath,
     getMissionMediaManifestUrl,
     loadMissionMediaManifest,
     resolveLocalDevMediaManifestUrl,

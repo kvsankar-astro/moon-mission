@@ -26,7 +26,7 @@ import {
 } from "../core/domain/media-playback-policy.js";
 import { createRuntimeMediaState } from "../core/state/runtime-media-state.js";
 import { getMissionDataPath } from "../data/mission-data.js";
-import { loadMissionMediaManifest } from "../data/mission-media.js";
+import { getMissionMediaDataPath, loadMissionMediaManifest } from "../data/mission-media.js";
 import {
     formatDateTimeLocal,
     formatDateTimeUTC,
@@ -2336,7 +2336,7 @@ function createMediaTimelineCoordination({
                     return null;
                 }
                 const normalizedManifest = normalizeMissionMediaManifest(manifestData, {
-                    dataPath: getMissionDataPath() || "",
+                    dataPath: getMissionMediaDataPath() || getMissionDataPath() || "",
                 });
                 runtimeMediaState.setManifest(normalizedManifest);
                 runtimeMediaState.setLoadState("ready");

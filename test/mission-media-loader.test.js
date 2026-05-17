@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveLocalDevMediaManifestUrl } from "../src/platform/js/data/mission-media.js";
+import {
+    getMissionMediaDataPath,
+    resolveLocalDevMediaManifestUrl,
+} from "../src/platform/js/data/mission-media.js";
 
 describe("mission media manifest loading", () => {
     it("uses the repo media manifest on localhost when dataPath points at the public asset bucket", () => {
@@ -29,5 +32,25 @@ describe("mission media manifest loading", () => {
         const manifestUrl = "https://assets.sankara.net/moon-mission/assets/artemis2/data/media-manifest.json";
 
         expect(resolveLocalDevMediaManifestUrl(manifestUrl, windowRef)).toBe(manifestUrl);
+    });
+
+    it("derives media asset paths from the local dev media manifest URL", () => {
+        const previousWindow = globalThis.window;
+        globalThis.window = {
+            location: {
+                hostname: "127.0.0.1",
+                origin: "http://127.0.0.1:7274",
+                href: "http://127.0.0.1:7274/artemis2/",
+            },
+            missionConfig: {
+                dataPath: "https://assets.sankara.net/moon-mission/assets/artemis2/data/",
+            },
+        };
+
+        try {
+            expect(getMissionMediaDataPath()).toBe("http://127.0.0.1:7274/assets/artemis2/data/");
+        } finally {
+            globalThis.window = previousWindow;
+        }
     });
 });
