@@ -149,7 +149,7 @@ const AUTO_FOV_MAX_DEGREES = 179;
 const TARGET_AUTO_FOV_MIN_DEGREES = 3;
 const TARGET_AUTO_FOV_MAX_DEGREES = 70;
 const COMPOSER_AUTO_FOV_MIN_DEGREES = AUTO_FOV_MIN_DEGREES;
-const COMPOSER_AUTO_FOV_MAX_DEGREES = AUTO_FOV_MAX_DEGREES;
+const COMPOSER_AUTO_FOV_MAX_DEGREES = 120;
 const COMPOSER_MANUAL_FOV_MAX_DEGREES = AUTO_FOV_MAX_DEGREES;
 const PANEL_STATE_STORAGE_KEY = "moon-mission:aux-camera-panels:v1";
 const AUX_FOV_PREFERENCE_VERSION = 2;
@@ -269,6 +269,7 @@ const COMPOSER_CONSTELLATION_LABELS = Object.freeze([
     { name: "Virgo", raDeg: 198, decDeg: 0 },
 ]);
 const COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION = 0.5;
+const COMPOSER_AUTO_FOV_FOREGROUND_DIAMETER_FRACTION = 0.34;
 const KM_TO_MILES = 0.621371192237334;
 const FLYBY_EVENT_PILL_SPECS = Object.freeze([
     {
@@ -6482,16 +6483,62 @@ class AuxiliaryCameraViewsManager {
         const targetRadius = targetKind === "moon"
             ? (Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1)
             : (Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 1);
-        const safeDistance = Math.max(distance, targetRadius + 1e-9);
-        const ratio = this.THREE.MathUtils.clamp(targetRadius / safeDistance, 0, 0.999999);
-        const angularRadius = Math.asin(ratio);
         const safeAspect = Math.max(panelState.camera.aspect || 1, 1e-3);
-        const halfFrameFraction = Math.max(COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION * 0.5, 1e-3);
-        const tanAngularRadius = Math.tan(angularRadius);
-        const verticalHalfFromHeight = Math.atan(tanAngularRadius / halfFrameFraction);
-        const verticalHalfFromWidth = Math.atan(tanAngularRadius / (halfFrameFraction * safeAspect));
-        const requiredHalfVertical = Math.max(verticalHalfFromHeight, verticalHalfFromWidth);
-        return this.THREE.MathUtils.radToDeg(requiredHalfVertical * 2);
+        const computeBodyFov = ({ bodyDistance, bodyRadius, diameterFraction }) => {
+            const safeDistance = Math.max(bodyDistance, bodyRadius + 1e-9);
+            const ratio = this.THREE.MathUtils.clamp(bodyRadius / safeDistance, 0, 0.999999);
+            const angularRadius = Math.asin(ratio);
+            const halfFrameFraction = Math.max(diameterFraction, 1e-3);
+            const tanAngularRadius = Math.tan(angularRadius);
+            const verticalHalfFromHeight = Math.atan(tanAngularRadius / halfFrameFraction);
+            const verticalHalfFromWidth = Math.atan(tanAngularRadius / (halfFrameFraction * safeAspect));
+            const requiredHalfVertical = Math.max(verticalHalfFromHeight, verticalHalfFromWidth);
+            return {
+                angularRadius,
+                fovDegrees: this.THREE.MathUtils.radToDeg(requiredHalfVertical * 2),
+            };
+        };
+        const targetFov = computeBodyFov({
+            bodyDistance: distance,
+            bodyRadius: targetRadius,
+            diameterFraction: COMPOSER_AUTO_FOV_TARGET_DIAMETER_FRACTION,
+        });
+        let autoFovDegrees = targetFov.fovDegrees;
+
+        const foregroundWorld = targetKind === "moon" ? earthWorld : moonWorld;
+        const foregroundRadius = targetKind === "moon"
+            ? (Number.isFinite(earthRadius) && earthRadius > 0 ? earthRadius : 1)
+            : (Number.isFinite(moonRadius) && moonRadius > 0 ? moonRadius : 1);
+        if (foregroundWorld) {
+            const foregroundVector = this.tmpVectorB || new this.THREE.Vector3();
+            foregroundVector.subVectors(foregroundWorld, craftWorld);
+            const foregroundDistance = foregroundVector.length();
+            if (
+                Number.isFinite(foregroundDistance) &&
+                foregroundDistance > 1e-6 &&
+                foregroundDistance < distance
+            ) {
+                const foregroundFov = computeBodyFov({
+                    bodyDistance: foregroundDistance,
+                    bodyRadius: foregroundRadius,
+                    diameterFraction: COMPOSER_AUTO_FOV_FOREGROUND_DIAMETER_FRACTION,
+                });
+                const targetDirection = this.tmpVectorA.clone().multiplyScalar(1 / distance);
+                const foregroundDirection = foregroundVector.multiplyScalar(1 / foregroundDistance);
+                const centerSeparation = Math.acos(this.THREE.MathUtils.clamp(
+                    targetDirection.dot(foregroundDirection),
+                    -1,
+                    1,
+                ));
+                const targetHalfVertical = this.THREE.MathUtils.degToRad(autoFovDegrees * 0.5);
+                const targetHalfHorizontal = Math.atan(Math.tan(targetHalfVertical) * safeAspect);
+                const targetHalfDiagonal = Math.hypot(targetHalfVertical, targetHalfHorizontal);
+                if (centerSeparation <= targetHalfDiagonal + foregroundFov.angularRadius) {
+                    autoFovDegrees = Math.max(autoFovDegrees, foregroundFov.fovDegrees);
+                }
+            }
+        }
+        return autoFovDegrees;
     }
 
     syncPanelSize(panelState) {

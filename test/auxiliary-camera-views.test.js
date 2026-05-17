@@ -529,7 +529,7 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
-    it("lets Frame and Shoot Auto FoV use the full optical range", () => {
+    it("lets Frame and Shoot Auto FoV use a practical wide-angle range", () => {
         const manager = Object.create(AuxiliaryCameraViewsManager.prototype);
         const panelState = {
             mode: "composer",
@@ -537,7 +537,8 @@ describe("Frame and Shoot FoV bounds", () => {
         };
 
         expect(manager.clampAutoFovDegrees(panelState, 0.5)).toBe(0.5);
-        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(174.5);
+        expect(manager.clampAutoFovDegrees(panelState, 174.5)).toBe(120);
+        expect(manager.clampAutoFovDegrees(panelState, 119.5)).toBe(119.5);
         expect(manager.clampAutoFovDegrees(panelState, 12)).toBe(12);
     });
 
@@ -545,6 +546,7 @@ describe("Frame and Shoot FoV bounds", () => {
         const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
             THREE,
             tmpVectorA: new THREE.Vector3(),
+            tmpVectorB: new THREE.Vector3(),
         });
         const panelState = {
             mode: "composer",
@@ -576,7 +578,74 @@ describe("Frame and Shoot FoV bounds", () => {
         expect(farTargetFov).toBeLessThan(2);
         expect(manager.clampAutoFovDegrees(panelState, farTargetFov)).toBeCloseTo(farTargetFov);
         expect(nearTargetFov).toBeGreaterThan(70);
-        expect(manager.clampAutoFovDegrees(panelState, nearTargetFov)).toBeCloseTo(nearTargetFov);
+        expect(manager.clampAutoFovDegrees(panelState, nearTargetFov)).toBeGreaterThan(70);
+        expect(manager.clampAutoFovDegrees(panelState, nearTargetFov)).toBeLessThanOrEqual(120);
+    });
+
+    it("widens Moon-locked Auto FoV to include a close foreground Earth", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE,
+            tmpVectorA: new THREE.Vector3(),
+            tmpVectorB: new THREE.Vector3(),
+        });
+        const panelState = {
+            mode: "composer",
+            camera: {
+                fov: 50,
+                aspect: 16 / 9,
+            },
+        };
+
+        const moonOnlyFov = manager.computeComposerAutoFovDegrees({
+            panelState,
+            craftWorld: new THREE.Vector3(0, 0, 0),
+            moonWorld: new THREE.Vector3(1000, 0, 0),
+            earthWorld: new THREE.Vector3(0, 1000, 0),
+            moonRadius: 1,
+            earthRadius: 40,
+            lockTarget: "moon",
+        });
+        const foregroundEarthFov = manager.computeComposerAutoFovDegrees({
+            panelState,
+            craftWorld: new THREE.Vector3(0, 0, 0),
+            moonWorld: new THREE.Vector3(1000, 0, 0),
+            earthWorld: new THREE.Vector3(100, 2, 0),
+            moonRadius: 1,
+            earthRadius: 40,
+            lockTarget: "moon",
+        });
+
+        expect(moonOnlyFov).toBeLessThan(2);
+        expect(foregroundEarthFov).toBeGreaterThan(90);
+        expect(manager.clampAutoFovDegrees(panelState, foregroundEarthFov)).toBe(foregroundEarthFov);
+    });
+
+    it("caps Earth-locked Auto FoV when the craft is extremely close to Earth", () => {
+        const manager = Object.assign(Object.create(AuxiliaryCameraViewsManager.prototype), {
+            THREE,
+            tmpVectorA: new THREE.Vector3(),
+            tmpVectorB: new THREE.Vector3(),
+        });
+        const panelState = {
+            mode: "composer",
+            camera: {
+                fov: 50,
+                aspect: 16 / 9,
+            },
+        };
+
+        const autoFov = manager.computeComposerAutoFovDegrees({
+            panelState,
+            craftWorld: new THREE.Vector3(0, 0, 0),
+            earthWorld: new THREE.Vector3(1, 0, 0),
+            moonWorld: new THREE.Vector3(1000, 0, 0),
+            earthRadius: 1,
+            moonRadius: 1,
+            lockTarget: "earth",
+        });
+
+        expect(autoFov).toBeGreaterThan(179);
+        expect(manager.clampAutoFovDegrees(panelState, autoFov)).toBe(120);
     });
 
     it("allows manual Frame and Shoot FoV across the optical range", () => {
