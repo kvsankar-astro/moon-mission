@@ -125,6 +125,10 @@ export class Animation3DController {
 
         // 3. Update body positions
         this.updateBodyPositions(state.bodies, craftId, state.time, landingFreezeTime);
+        this.scene.updateSurfacePointMarkers?.({
+            sunDirections: effectiveSunDirections,
+            craftId,
+        });
 
         // 3b. Update time-windowed orbit trails
         this.updateOrbitTrails(state.time, state.bodies);

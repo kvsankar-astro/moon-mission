@@ -12,6 +12,7 @@ export function createSceneInitActions({ THREE, render, wait20, clearEventInfo }
         const deferredSteps = [
             () => scene.addBodyHalos(),
             () => scene.addAxesHelper(),
+            () => scene.addSurfacePointMarkers(),
             () => scene.addEarthLocations(),
             () => scene.addMoonLocations(),
             () => scene.addLunarCraterAnnotations(),

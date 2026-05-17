@@ -156,6 +156,54 @@ function createMissionViewStateCells(runtimeViewState, getEffectiveOrbitStyle) {
             () => runtimeViewState.getViewMoonOsculatingOrbit(),
             (value) => { runtimeViewState.setViewMoonOsculatingOrbit(value); },
         ),
+        viewSubSolarEarth: createMutableStateCell(
+            () => runtimeViewState.getViewSubSolarEarth(),
+            (value) => { runtimeViewState.setViewSubSolarEarth(value); },
+        ),
+        viewSubSolarMoon: createMutableStateCell(
+            () => runtimeViewState.getViewSubSolarMoon(),
+            (value) => { runtimeViewState.setViewSubSolarMoon(value); },
+        ),
+        viewSubMoonEarth: createMutableStateCell(
+            () => runtimeViewState.getViewSubMoonEarth(),
+            (value) => { runtimeViewState.setViewSubMoonEarth(value); },
+        ),
+        viewSolarGlintEarth: createMutableStateCell(
+            () => runtimeViewState.getViewSolarGlintEarth(),
+            (value) => { runtimeViewState.setViewSolarGlintEarth(value); },
+        ),
+        viewLunarGlintEarth: createMutableStateCell(
+            () => runtimeViewState.getViewLunarGlintEarth(),
+            (value) => { runtimeViewState.setViewLunarGlintEarth(value); },
+        ),
+        viewSubCraftEarth: createMutableStateCell(
+            () => runtimeViewState.getViewSubCraftEarth(),
+            (value) => { runtimeViewState.setViewSubCraftEarth(value); },
+        ),
+        viewSubCraftMoon: createMutableStateCell(
+            () => runtimeViewState.getViewSubCraftMoon(),
+            (value) => { runtimeViewState.setViewSubCraftMoon(value); },
+        ),
+        viewAntiSolarEarth: createMutableStateCell(
+            () => runtimeViewState.getViewAntiSolarEarth(),
+            (value) => { runtimeViewState.setViewAntiSolarEarth(value); },
+        ),
+        viewAntiSolarMoon: createMutableStateCell(
+            () => runtimeViewState.getViewAntiSolarMoon(),
+            (value) => { runtimeViewState.setViewAntiSolarMoon(value); },
+        ),
+        viewAntiMoonEarth: createMutableStateCell(
+            () => runtimeViewState.getViewAntiMoonEarth(),
+            (value) => { runtimeViewState.setViewAntiMoonEarth(value); },
+        ),
+        viewAntiCraftEarth: createMutableStateCell(
+            () => runtimeViewState.getViewAntiCraftEarth(),
+            (value) => { runtimeViewState.setViewAntiCraftEarth(value); },
+        ),
+        viewAntiCraftMoon: createMutableStateCell(
+            () => runtimeViewState.getViewAntiCraftMoon(),
+            (value) => { runtimeViewState.setViewAntiCraftMoon(value); },
+        ),
         viewEclipticPlane: createMutableStateCell(
             () => runtimeViewState.getViewEclipticPlane(),
             (value) => { runtimeViewState.setViewEclipticPlane(value); },

@@ -350,6 +350,18 @@ function createMissionSceneViewStatePort(ctx, helpers) {
             setBooleanStateIfDefined("viewMoonHillSphere", view.viewMoonHillSphere);
             setBooleanStateIfDefined("viewBodyHalos", view.viewBodyHalos);
             setBooleanStateIfDefined("viewMoonOsculatingOrbit", view.viewMoonOsculatingOrbit);
+            setBooleanStateIfDefined("viewSubSolarEarth", view.viewSubSolarEarth);
+            setBooleanStateIfDefined("viewSubSolarMoon", view.viewSubSolarMoon);
+            setBooleanStateIfDefined("viewSubMoonEarth", view.viewSubMoonEarth);
+            setBooleanStateIfDefined("viewSolarGlintEarth", view.viewSolarGlintEarth);
+            setBooleanStateIfDefined("viewLunarGlintEarth", view.viewLunarGlintEarth);
+            setBooleanStateIfDefined("viewSubCraftEarth", view.viewSubCraftEarth);
+            setBooleanStateIfDefined("viewSubCraftMoon", view.viewSubCraftMoon);
+            setBooleanStateIfDefined("viewAntiSolarEarth", view.viewAntiSolarEarth);
+            setBooleanStateIfDefined("viewAntiSolarMoon", view.viewAntiSolarMoon);
+            setBooleanStateIfDefined("viewAntiMoonEarth", view.viewAntiMoonEarth);
+            setBooleanStateIfDefined("viewAntiCraftEarth", view.viewAntiCraftEarth);
+            setBooleanStateIfDefined("viewAntiCraftMoon", view.viewAntiCraftMoon);
             setBooleanStateIfDefined("viewEclipticPlane", view.viewEclipticPlane);
             setBooleanStateIfDefined("viewEquatorialPlane", view.viewEquatorialPlane);
             setBooleanStateIfDefined("viewFPS", view.viewFPS);

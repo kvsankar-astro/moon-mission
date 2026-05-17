@@ -8,6 +8,7 @@ export function createSceneDisposeActions() {
 
         scene.disposeEarthLocations();
         scene.disposeBodyHalos?.();
+        scene.disposeSurfacePointMarkers?.();
         scene.disposeEarth();
         scene.disposeSky();
         scene.disposeSun();
