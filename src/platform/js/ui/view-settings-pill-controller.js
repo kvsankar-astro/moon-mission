@@ -9,6 +9,11 @@ import {
     readLunarCraterControlState,
     syncLunarCraterControlPanel,
 } from "./lunar-crater-control-panel.js";
+import {
+    createDefaultSurfacePointViewState,
+    normalizeSurfacePointViewState,
+    patchSurfacePointViewState,
+} from "../core/domain/surface-point-view-state.js";
 
 export const DEFAULT_ORIGIN_PILL_PAIRS = [
     ["origin-pill-earth", "origin-earth", "geo"],
@@ -49,6 +54,14 @@ export const DEFAULT_TOGGLE_PILL_PAIRS = [
     ["toggle-pill-ecliptic", "view-eclipticplane", "viewEclipticPlane"],
     ["toggle-pill-equatorial", "view-equatorialplane", "viewEquatorialPlane"],
 ];
+
+const SURFACE_POINT_SETTING_DEFINITIONS = Object.freeze([
+    ["viewSubSolarEarth", "view-subsolar-earth", "surface-points-subsolar-earth-toggle"],
+    ["viewSubMoonEarth", "view-submoon-earth", "surface-points-submoon-earth-toggle"],
+    ["viewSolarGlintEarth", "view-solar-glint-earth", "surface-points-solar-glint-earth-toggle"],
+    ["viewLunarGlintEarth", "view-lunar-glint-earth", "surface-points-lunar-glint-earth-toggle"],
+    ["viewSubCraftEarth", "view-subcraft-earth", "surface-points-subcraft-earth-toggle"],
+]);
 
 export function createViewSettingsPillController(deps = {}) {
     const documentRef = deps.documentRef || document;
@@ -229,6 +242,61 @@ export function createViewSettingsPillController(deps = {}) {
         };
     }
 
+    function getSurfacePointPanelElements() {
+        const settingEntries = SURFACE_POINT_SETTING_DEFINITIONS.map(([settingKey, inputId, toggleId]) => ({
+            settingKey,
+            input: getElement(inputId),
+            toggle: getElement(toggleId),
+            inputId,
+            toggleId,
+        }));
+        return {
+            pill: getElement("toggle-pill-surface-points"),
+            panel: getElement("surface-points-controls-panel"),
+            close: getElement("surface-points-close"),
+            settingEntries,
+        };
+    }
+
+    function getActiveSceneConfigKey() {
+        if (getElement("origin-relative")?.checked) return "relative";
+        if (getElement("origin-moon")?.checked) return "lunar";
+        return "geo";
+    }
+
+    function getActiveAnimationScene() {
+        const scenes = windowRef?.animationScenes || globalThis?.animationScenes || null;
+        return scenes?.[getActiveSceneConfigKey()] || scenes?.geo || null;
+    }
+
+    function readActiveSurfacePointViewState() {
+        const scene = getActiveAnimationScene();
+        if (!scene) {
+            const fallback = {};
+            SURFACE_POINT_SETTING_DEFINITIONS.forEach(([settingKey, inputId]) => {
+                fallback[settingKey] = getElement(inputId)?.checked === true;
+            });
+            return normalizeSurfacePointViewState(fallback);
+        }
+        scene.surfacePointViewState = normalizeSurfacePointViewState(
+            scene.surfacePointViewState || createDefaultSurfacePointViewState(),
+        );
+        return scene.surfacePointViewState;
+    }
+
+    function commitActiveSurfacePointViewPatch(patch = {}) {
+        const scene = getActiveAnimationScene();
+        const nextState = patchSurfacePointViewState(
+            scene?.surfacePointViewState || createDefaultSurfacePointViewState(),
+            patch,
+        );
+        if (scene) {
+            scene.surfacePointViewState = nextState;
+            scene.setSurfacePointMarkersVisible?.(nextState);
+        }
+        return nextState;
+    }
+
     function positionPanelFromPill(panel, pill) {
         if (!panel || !pill?.getBoundingClientRect || !panel?.style) return;
         const strip = getElement("header-pill-strip") || panel.offsetParent || null;
@@ -275,6 +343,30 @@ export function createViewSettingsPillController(deps = {}) {
         }
     }
 
+    function setSurfacePointPanelOpen(open) {
+        const { pill, panel } = getSurfacePointPanelElements();
+        if (!panel) return;
+        panel.hidden = open !== true;
+        if (open === true) {
+            if (pill?.getBoundingClientRect && panel?.style) {
+                const pillRect = pill.getBoundingClientRect();
+                const panelWidth = panel.offsetWidth || 300;
+                const viewportWidth = windowRef?.innerWidth || panelWidth;
+                const nextLeft = Math.min(
+                    Math.max(8, pillRect.left),
+                    Math.max(8, viewportWidth - panelWidth - 8),
+                );
+                panel.style.left = `${nextLeft}px`;
+                panel.style.right = "auto";
+                panel.style.top = `${pillRect.bottom + 4}px`;
+            }
+        }
+        if (pill) {
+            pill.classList?.toggle?.("is-open", open === true);
+            pill.setAttribute?.("aria-expanded", open === true ? "true" : "false");
+        }
+    }
+
     function syncGuidesPanelState() {
         const { pill, settingEntries } = getGuidesPanelElements();
         let anyActive = false;
@@ -282,6 +374,19 @@ export function createViewSettingsPillController(deps = {}) {
             const checked = input?.checked === true;
             if (toggle) toggle.checked = checked;
             anyActive = anyActive || (checked && !settingKey.endsWith("LatLonLabels"));
+        });
+        syncPressedState(pill, anyActive);
+    }
+
+    function syncSurfacePointPanelState() {
+        const { pill, settingEntries } = getSurfacePointPanelElements();
+        const state = readActiveSurfacePointViewState();
+        let anyActive = false;
+        settingEntries.forEach(({ settingKey, input, toggle }) => {
+            const checked = state?.[settingKey] === true;
+            if (toggle) toggle.checked = checked;
+            if (input) input.checked = checked;
+            anyActive = anyActive || checked;
         });
         syncPressedState(pill, anyActive);
     }
@@ -333,11 +438,29 @@ export function createViewSettingsPillController(deps = {}) {
         syncLunarGridPanelState();
     }
 
+    function commitSurfacePointSetting(settingKey, value, sourceId) {
+        const entry = SURFACE_POINT_SETTING_DEFINITIONS.find(([candidate]) => candidate === settingKey);
+        const input = entry ? getElement(entry[1]) : null;
+        const toggle = entry ? getElement(entry[2]) : null;
+        const nextValue = Boolean(value);
+        const nextState = commitActiveSurfacePointViewPatch({ [settingKey]: nextValue });
+        if (input) input.checked = nextValue;
+        if (toggle) toggle.checked = nextValue;
+        syncTogglePillVisibility();
+        syncTogglePillState();
+        if (entry) {
+            if (input) input.checked = nextState[settingKey] === true;
+            if (toggle) toggle.checked = nextState[settingKey] === true;
+        }
+        syncSurfacePointPanelState();
+    }
+
     function commitLunarCraterViewPatch(patch, options = {}) {
         controlBackend.commitViewPatch?.(patch, options);
         syncTogglePillVisibility();
         syncTogglePillState();
         syncGuidesPanelState();
+        syncSurfacePointPanelState();
         syncLunarGridPanelState();
         syncLunarCraterPanelState();
     }
@@ -518,6 +641,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncOriginPillState();
         syncOrbitLabels();
         syncTogglePillVisibility();
+        syncSurfacePointPanelState();
     }
 
     function commitDimensionSelection(dimension) {
@@ -530,6 +654,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncTogglePillVisibility();
         syncTogglePillState();
         syncGuidesPanelState();
+        syncSurfacePointPanelState();
         syncLunarGridPanelState();
         syncLunarCraterPanelState();
         syncLocatorsPillState();
@@ -571,6 +696,7 @@ export function createViewSettingsPillController(deps = {}) {
                     syncOriginPillState();
                     syncOrbitLabels();
                     syncTogglePillVisibility();
+                    syncSurfacePointPanelState();
                 });
             }
         });
@@ -612,6 +738,7 @@ export function createViewSettingsPillController(deps = {}) {
                     syncTogglePillVisibility();
                     syncTogglePillState();
                     syncLunarGridPanelState();
+                    syncSurfacePointPanelState();
                     syncLocatorsPillState();
                 });
             }
@@ -638,6 +765,32 @@ export function createViewSettingsPillController(deps = {}) {
                 commitGuidesSetting(settingKey, !!event?.target?.checked, toggleId);
             });
             input?.addEventListener?.("change", syncGuidesPanelState);
+        });
+
+        const {
+            pill: surfacePointsPill,
+            close: surfacePointsClose,
+            settingEntries: surfacePointSettingEntries,
+        } = getSurfacePointPanelElements();
+        if (surfacePointsPill) {
+            surfacePointsPill.addEventListener("click", function (event) {
+                if (surfacePointsPill.disabled || surfacePointsPill.getAttribute?.("aria-disabled") === "true") return;
+                event?.stopPropagation?.();
+                setSurfacePointPanelOpen(true);
+                syncSurfacePointPanelState();
+            });
+        }
+        surfacePointsClose?.addEventListener?.("click", function () {
+            setSurfacePointPanelOpen(false);
+        });
+        surfacePointSettingEntries.forEach(({ settingKey, input, toggle, toggleId }) => {
+            toggle?.addEventListener?.("click", function (event) {
+                commitSurfacePointSetting(settingKey, !!event?.target?.checked, toggleId);
+            });
+            input?.addEventListener?.("click", function (event) {
+                commitSurfacePointSetting(settingKey, !!event?.target?.checked, input.id);
+            });
+            input?.addEventListener?.("change", syncSurfacePointPanelState);
         });
 
         const {
@@ -774,6 +927,7 @@ export function createViewSettingsPillController(deps = {}) {
         syncTogglePillVisibility();
         syncTogglePillState();
         syncGuidesPanelState();
+        syncSurfacePointPanelState();
         syncLunarCraterPanelState();
         syncLandingPillState();
         syncDimensionPillState();

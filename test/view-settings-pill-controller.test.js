@@ -157,6 +157,27 @@ function createHarness(options = {}) {
     const fastPill = createElement("moon-profile-pill-fast");
     const qualityPill = createElement("moon-profile-pill-quality");
     const photoModePill = createElement("photo-mode-pill");
+    const surfacePointsPill = createElement("toggle-pill-surface-points");
+    const surfacePointsPanel = createElement("surface-points-controls-panel", { hidden: true });
+    const surfacePointsClose = createElement("surface-points-close");
+    const viewSubSolarEarthInput = createElement("view-subsolar-earth");
+    const surfacePointsSubSolarEarthToggle = createElement("surface-points-subsolar-earth-toggle");
+    const viewSubMoonEarthInput = createElement("view-submoon-earth");
+    const surfacePointsSubMoonEarthToggle = createElement("surface-points-submoon-earth-toggle");
+    const viewSolarGlintEarthInput = createElement("view-solar-glint-earth");
+    const surfacePointsSolarGlintEarthToggle = createElement("surface-points-solar-glint-earth-toggle");
+    const viewLunarGlintEarthInput = createElement("view-lunar-glint-earth");
+    const surfacePointsLunarGlintEarthToggle = createElement("surface-points-lunar-glint-earth-toggle");
+    const viewSubCraftEarthInput = createElement("view-subcraft-earth");
+    const surfacePointsSubCraftEarthToggle = createElement("surface-points-subcraft-earth-toggle");
+    const geoScene = {
+        surfacePointViewState: {},
+        setSurfacePointMarkersVisible: vi.fn(),
+    };
+    const lunarScene = {
+        surfacePointViewState: {},
+        setSurfacePointMarkersVisible: vi.fn(),
+    };
 
     const byId = new Map([
         ["origin-earth", originEarthInput],
@@ -214,6 +235,19 @@ function createHarness(options = {}) {
         ["moon-profile-pill-fast", fastPill],
         ["moon-profile-pill-quality", qualityPill],
         ["photo-mode-pill", photoModePill],
+        ["toggle-pill-surface-points", surfacePointsPill],
+        ["surface-points-controls-panel", surfacePointsPanel],
+        ["surface-points-close", surfacePointsClose],
+        ["view-subsolar-earth", viewSubSolarEarthInput],
+        ["surface-points-subsolar-earth-toggle", surfacePointsSubSolarEarthToggle],
+        ["view-submoon-earth", viewSubMoonEarthInput],
+        ["surface-points-submoon-earth-toggle", surfacePointsSubMoonEarthToggle],
+        ["view-solar-glint-earth", viewSolarGlintEarthInput],
+        ["surface-points-solar-glint-earth-toggle", surfacePointsSolarGlintEarthToggle],
+        ["view-lunar-glint-earth", viewLunarGlintEarthInput],
+        ["surface-points-lunar-glint-earth-toggle", surfacePointsLunarGlintEarthToggle],
+        ["view-subcraft-earth", viewSubCraftEarthInput],
+        ["surface-points-subcraft-earth-toggle", surfacePointsSubCraftEarthToggle],
     ]);
 
     const documentRef = {
@@ -229,6 +263,10 @@ function createHarness(options = {}) {
 
     const windowRef = {
         innerWidth: options.innerWidth || 1024,
+        animationScenes: options.animationScenes || {
+            geo: geoScene,
+            lunar: lunarScene,
+        },
         getComputedStyle(element) {
             return {
                 display: element.style.display || "",
@@ -338,6 +376,13 @@ function createHarness(options = {}) {
         originRelativeInput,
         qualityPill,
         secondaryOrbitLabel,
+        surfacePointsPanel,
+        surfacePointsPill,
+        surfacePointsClose,
+        surfacePointsSubSolarEarthToggle,
+        surfacePointsSolarGlintEarthToggle,
+        geoScene,
+        lunarScene,
         viewLunarCratersInput,
         viewMoonLatLonGridInput,
         viewMoonLatLonHoverInput,
@@ -483,6 +528,50 @@ describe("createViewSettingsPillController", function () {
         harness.lunarGridClose.dispatchEvent({ type: "click", target: harness.lunarGridClose });
         expect(harness.lunarGridPanel.hidden).toBe(true);
         expect(harness.moonGridPill["aria-expanded"]).toBe("false");
+    });
+
+    it("keeps surface point toggles scoped to the active scene", function () {
+        const harness = createHarness();
+
+        harness.controller.bind();
+        harness.surfacePointsPill.dispatchEvent({ type: "click", target: harness.surfacePointsPill });
+
+        expect(harness.surfacePointsPanel.hidden).toBe(false);
+        expect(harness.surfacePointsPill["aria-expanded"]).toBe("true");
+
+        harness.surfacePointsSubSolarEarthToggle.checked = true;
+        harness.surfacePointsSubSolarEarthToggle.dispatchEvent({
+            type: "click",
+            target: harness.surfacePointsSubSolarEarthToggle,
+        });
+
+        expect(harness.controlBackend.commitViewSetting).not.toHaveBeenCalledWith(
+            "viewSubSolarEarth",
+            true,
+            expect.anything(),
+        );
+        expect(harness.geoScene.surfacePointViewState.viewSubSolarEarth).toBe(true);
+        expect(harness.geoScene.setSurfacePointMarkersVisible).toHaveBeenLastCalledWith(
+            expect.objectContaining({ viewSubSolarEarth: true }),
+        );
+        expect(harness.lunarScene.setSurfacePointMarkersVisible).not.toHaveBeenCalled();
+
+        harness.originEarthPill.classList.remove("is-active");
+        harness.originMoonInput.checked = true;
+        harness.originEarthPill.dispatchEvent({ type: "click", target: harness.originEarthPill });
+        harness.originMoonInput.dispatchEvent({ type: "click", target: harness.originMoonInput });
+        harness.originMoonInput.dispatchEvent({ type: "change", target: harness.originMoonInput });
+
+        expect(harness.surfacePointsSubSolarEarthToggle.checked).toBe(false);
+
+        harness.surfacePointsSolarGlintEarthToggle.checked = true;
+        harness.surfacePointsSolarGlintEarthToggle.dispatchEvent({
+            type: "click",
+            target: harness.surfacePointsSolarGlintEarthToggle,
+        });
+
+        expect(harness.lunarScene.surfacePointViewState.viewSolarGlintEarth).toBe(true);
+        expect(harness.geoScene.surfacePointViewState.viewSolarGlintEarth).toBe(false);
     });
 
     it("opens the crater panel and commits dense crater controls", function () {

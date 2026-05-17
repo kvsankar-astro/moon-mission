@@ -1054,6 +1054,18 @@
                     <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
                     <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
                     <button
+                        id="toggle-pill-surface-points"
+                        type="button"
+                        class="header-toggle-pill"
+                        aria-pressed="false"
+                        aria-expanded="false"
+                        aria-haspopup="dialog"
+                        aria-controls="surface-points-controls-panel"
+                        title="Open sub-point surface marker controls"
+                    >
+                        Surface Points
+                    </button>
+                    <button
                         id="toggle-pill-craters"
                         type="button"
                         class="header-toggle-pill"
@@ -1143,6 +1155,59 @@
                         <label class="guides-controls-panel__option" title="Show lunar coordinates while hovering">
                             <input type="checkbox" name="view" value="moon-lat-lon-hover" id="guides-moon-hover-toggle">
                             <span>Hover Readout</span>
+                        </label>
+                    </div>
+                </div>
+                <div
+                    id="surface-points-controls-panel"
+                    class="surface-points-controls-panel"
+                    role="dialog"
+                    aria-label="Surface point controls"
+                    hidden
+                >
+                    <div class="surface-points-controls-panel__header">
+                        <span class="surface-points-controls-panel__title">Surface Points</span>
+                        <button
+                            id="surface-points-close"
+                            type="button"
+                            class="surface-points-controls-panel__close"
+                            title="Close surface point controls"
+                        >
+                            Close
+                        </button>
+                    </div>
+                    <div class="surface-points-controls-panel__section">
+                        <div class="surface-points-controls-panel__section-title">Sun on Earth</div>
+                        <label class="surface-points-controls-panel__option" title="Show Earth's subsolar point">
+                            <input type="checkbox" name="view" value="subsolar-earth" id="surface-points-subsolar-earth-toggle">
+                            <span class="surface-points-controls-panel__swatch surface-points-controls-panel__swatch--solar" aria-hidden="true"></span>
+                            <span>Sub-Solar</span>
+                        </label>
+                        <label class="surface-points-controls-panel__option" title="Show Earth's solar glint point for the active craft view">
+                            <input type="checkbox" name="view" value="solar-glint-earth" id="surface-points-solar-glint-earth-toggle">
+                            <span class="surface-points-controls-panel__swatch surface-points-controls-panel__swatch--solar" aria-hidden="true"></span>
+                            <span>Glint</span>
+                        </label>
+                    </div>
+                    <div class="surface-points-controls-panel__section">
+                        <div class="surface-points-controls-panel__section-title">Moon on Earth</div>
+                        <label class="surface-points-controls-panel__option" title="Show Earth's sub-Moon point">
+                            <input type="checkbox" name="view" value="submoon-earth" id="surface-points-submoon-earth-toggle">
+                            <span class="surface-points-controls-panel__swatch surface-points-controls-panel__swatch--moon" aria-hidden="true"></span>
+                            <span>Sub-Moon</span>
+                        </label>
+                        <label class="surface-points-controls-panel__option" title="Show Earth's lunar glint point for the active craft view">
+                            <input type="checkbox" name="view" value="lunar-glint-earth" id="surface-points-lunar-glint-earth-toggle">
+                            <span class="surface-points-controls-panel__swatch surface-points-controls-panel__swatch--moon" aria-hidden="true"></span>
+                            <span>Glint</span>
+                        </label>
+                    </div>
+                    <div class="surface-points-controls-panel__section">
+                        <div class="surface-points-controls-panel__section-title">Craft on Earth</div>
+                        <label class="surface-points-controls-panel__option" title="Show Earth's sub-craft point">
+                            <input type="checkbox" name="view" value="subcraft-earth" id="surface-points-subcraft-earth-toggle">
+                            <span class="surface-points-controls-panel__swatch surface-points-controls-panel__swatch--craft" aria-hidden="true"></span>
+                            <span>Sub-Craft</span>
                         </label>
                     </div>
                 </div>
@@ -1786,6 +1851,34 @@
                                 <label class="settings-option geo">
                                     <input type="checkbox" name="view" value="moon-osculating-orbit" id="view-moon-osculating-orbit" checked="checked">
                                     <span id="label-secondary-body-orbit">Secondary Body Orbit</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="subsolar-earth" id="view-subsolar-earth">
+                                    <span>Subsolar Point on Earth</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="subsolar-moon" id="view-subsolar-moon">
+                                    <span>Subsolar Point on Moon</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="submoon-earth" id="view-submoon-earth">
+                                    <span>Sub-Moon Point on Earth</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="solar-glint-earth" id="view-solar-glint-earth">
+                                    <span>Solar Glint Point on Earth</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="lunar-glint-earth" id="view-lunar-glint-earth">
+                                    <span>Lunar Glint Point on Earth</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="subcraft-earth" id="view-subcraft-earth">
+                                    <span>Sub-craft Point on Earth</span>
+                                </label>
+                                <label class="settings-option settings-option--hidden" aria-hidden="true">
+                                    <input type="checkbox" name="view" value="subcraft-moon" id="view-subcraft-moon">
+                                    <span>Sub-craft Point on Moon</span>
                                 </label>
                                 <label class="settings-option">
                                     <input type="checkbox" name="view" value="eclipticplane" id="view-eclipticplane">

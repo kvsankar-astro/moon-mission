@@ -94,6 +94,10 @@ textarea {
     pointer-events: none;
 }
 
+.header:has(#surface-points-controls-panel:not([hidden])) {
+    z-index: 2147483000;
+}
+
 .navbar {
     display: flex;
     flex-direction: row;
@@ -559,11 +563,39 @@ textarea {
     font-size: 10px;
 }
 
-.guides-controls-panel[hidden] {
+.surface-points-controls-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2147483000;
+    display: grid;
+    width: min(300px, calc(100vw - 18px));
+    box-sizing: border-box;
+    gap: 7px;
+    padding: 8px;
+    border: 1px solid rgba(121, 171, 255, 0.34);
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.96);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.46);
+    color: #e7edf7;
+    font-size: 10px;
+}
+
+.surface-points-controls-panel--anchored {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 1000;
+    width: min(300px, calc(100vw - 18px));
+}
+
+.guides-controls-panel[hidden],
+.surface-points-controls-panel[hidden] {
     display: none !important;
 }
 
-.guides-controls-panel__header {
+.guides-controls-panel__header,
+.surface-points-controls-panel__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -571,7 +603,9 @@ textarea {
 }
 
 .guides-controls-panel__title,
-.guides-controls-panel__section-title {
+.guides-controls-panel__section-title,
+.surface-points-controls-panel__title,
+.surface-points-controls-panel__section-title {
     color: #dce8ff;
     font-size: 10px;
     font-weight: 700;
@@ -579,13 +613,15 @@ textarea {
     text-transform: uppercase;
 }
 
-.guides-controls-panel__section-title {
+.guides-controls-panel__section-title,
+.surface-points-controls-panel__section-title {
     margin: 2px 0 0;
     color: #9fb9e4;
     font-size: 9px;
 }
 
-.guides-controls-panel__close {
+.guides-controls-panel__close,
+.surface-points-controls-panel__close {
     border: 1px solid rgba(121, 171, 255, 0.34);
     border-radius: 999px;
     background: rgba(12, 24, 44, 0.9);
@@ -597,22 +633,30 @@ textarea {
     cursor: pointer;
 }
 
-.guides-controls-panel__close:hover {
+.guides-controls-panel__close:hover,
+.surface-points-controls-panel__close:hover {
     border-color: rgba(160, 196, 255, 0.62);
     background: rgba(38, 68, 112, 0.96);
 }
 
-.guides-controls-panel__section {
+.guides-controls-panel__section,
+.surface-points-controls-panel__section {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
 }
 
-.guides-controls-panel__section-title {
+.surface-points-controls-panel__section:has(.surface-points-controls-panel__option:only-of-type) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.guides-controls-panel__section-title,
+.surface-points-controls-panel__section-title {
     grid-column: 1 / -1;
 }
 
-.guides-controls-panel__option {
+.guides-controls-panel__option,
+.surface-points-controls-panel__option {
     display: flex;
     align-items: center;
     gap: 7px;
@@ -632,15 +676,39 @@ textarea {
     max-width: 100%;
 }
 
-.guides-controls-panel__option:hover {
+.guides-controls-panel__option:hover,
+.surface-points-controls-panel__option:hover {
     border-color: rgba(160, 196, 255, 0.48);
     background: rgba(30, 52, 86, 0.62);
 }
 
-.guides-controls-panel__option input {
+.guides-controls-panel__option input,
+.surface-points-controls-panel__option input {
     width: 13px;
     height: 13px;
     accent-color: #8ebcff;
+}
+
+.surface-points-controls-panel__swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 1px rgba(4, 8, 14, 0.88), 0 0 8px currentColor;
+}
+
+.surface-points-controls-panel__swatch--solar {
+    color: #ffd34d;
+    background: #ffd34d;
+}
+
+.surface-points-controls-panel__swatch--moon {
+    color: #d7dee8;
+    background: #d7dee8;
+}
+
+.surface-points-controls-panel__swatch--craft {
+    color: #2fe7ff;
+    background: #2fe7ff;
 }
 
 .lunar-crater-controls-panel__header {

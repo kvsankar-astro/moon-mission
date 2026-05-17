@@ -17,6 +17,7 @@ function createAnimationSceneClass(deps) {
         earthActions,
         moonActions,
         lunarCraterActions,
+        surfacePointMarkerActions,
         locationActions,
         primarySecondaryBodiesActions,
         spacecraftCurveActions,
@@ -179,6 +180,9 @@ function createAnimationSceneClass(deps) {
             this.lunarCraterRenderContextKey = null;
             this.lunarCraterSmallestRenderedDiameterKm = null;
             this.lunarCraterRenderPlanLastCheckMs = 0;
+            this.surfacePointMarkerGroup = null;
+            this.surfacePointMarkers = {};
+            this.surfacePointMarkerVisibility = {};
             this.primaryBody3D = null;
             this.secondaryBody3D = null;
             this.primaryCraftId = "SC";
@@ -601,6 +605,29 @@ function createAnimationSceneClass(deps) {
 
         clearEarthLatLonHover() {
             return this.earthRenderer?.hideLatLonHover?.() === true;
+        }
+
+        addSurfacePointMarkers() {
+            surfacePointMarkerActions.addSurfacePointMarkers({ scene: this });
+        }
+
+        disposeSurfacePointMarkers() {
+            surfacePointMarkerActions.disposeSurfacePointMarkers({ scene: this });
+        }
+
+        setSurfacePointMarkersVisible(view, options = {}) {
+            surfacePointMarkerActions.setSurfacePointMarkersVisible({
+                scene: this,
+                view,
+                ...options,
+            });
+        }
+
+        updateSurfacePointMarkers(input = {}) {
+            surfacePointMarkerActions.updateSurfacePointMarkers({
+                scene: this,
+                ...input,
+            });
         }
 
         setPrimaryAndSecondaryBodies() {

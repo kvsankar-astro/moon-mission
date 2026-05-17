@@ -161,6 +161,13 @@ const VIEW_SETTING_CHECKBOXES = {
     viewMoonHillSphere: "view-moon-hill-sphere",
     viewBodyHalos: "view-body-halos",
     viewMoonOsculatingOrbit: "view-moon-osculating-orbit",
+    viewSubSolarEarth: "view-subsolar-earth",
+    viewSubSolarMoon: "view-subsolar-moon",
+    viewSubMoonEarth: "view-submoon-earth",
+    viewSolarGlintEarth: "view-solar-glint-earth",
+    viewLunarGlintEarth: "view-lunar-glint-earth",
+    viewSubCraftEarth: "view-subcraft-earth",
+    viewSubCraftMoon: "view-subcraft-moon",
     viewEclipticPlane: "view-eclipticplane",
     viewEquatorialPlane: "view-equatorialplane",
     viewFPS: "view-fps"

@@ -36,6 +36,7 @@ import { createSunActions } from "./sun-actions.js";
 import { createEarthActions } from "./earth-actions.js";
 import { createMoonActions } from "./moon-actions.js";
 import { createLunarCraterActions } from "./lunar-crater-actions.js";
+import { createSurfacePointMarkerActions } from "./surface-point-marker-actions.js";
 
 function createMissionSceneActionBundle(deps) {
     const {
@@ -321,6 +322,11 @@ function createMissionSceneActionBundle(deps) {
         render,
     });
 
+    const surfacePointMarkerActions = createSurfacePointMarkerActions({
+        THREE,
+        render,
+    });
+
     return {
         orbitCurveActions,
         bodyRotationActions,
@@ -345,6 +351,7 @@ function createMissionSceneActionBundle(deps) {
         earthActions,
         moonActions,
         lunarCraterActions,
+        surfacePointMarkerActions,
     };
 }
 

@@ -61,12 +61,18 @@ import {
     patchLunarFeatureViewState,
 } from "../core/domain/lunar-feature-view.js";
 import {
+    createDefaultSurfacePointViewState,
+    hasSurfacePointViewEnabled,
+    patchSurfacePointViewState,
+} from "../core/domain/surface-point-view-state.js";
+import {
     bindLunarCraterControlPanel,
     createLunarCraterControlPanelElements,
     syncLunarCraterControlPanel,
     writeLunarCraterControlState,
 } from "../ui/lunar-crater-control-panel.js";
 import { renderWithLunarCraterView } from "./lunar-crater-view-renderer.js";
+import { renderWithSurfacePointView } from "./surface-point-view-renderer.js";
 import { getSceneVisibleCraftIds } from "./scene-craft-helpers.js";
 
 const PANEL_SPECS = Object.freeze([
@@ -219,6 +225,28 @@ const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MIN_PX = 3.2;
 const COMPOSER_SEE_THROUGH_PLANET_RADIUS_MAX_PX = 8.8;
 const COMPOSER_SEE_THROUGH_SUN_RADIUS_MIN_PX = 5.2;
 const COMPOSER_SEE_THROUGH_OPACITY = 0.9;
+const COMPOSER_SURFACE_POINT_CONTROL_GROUPS = Object.freeze([
+    {
+        label: "Sun on Earth",
+        options: [
+            { key: "viewSubSolarEarth", label: "Sub-Solar", color: "solar" },
+            { key: "viewSolarGlintEarth", label: "Glint", color: "solar" },
+        ],
+    },
+    {
+        label: "Moon on Earth",
+        options: [
+            { key: "viewSubMoonEarth", label: "Sub-Moon", color: "moon" },
+            { key: "viewLunarGlintEarth", label: "Glint", color: "moon" },
+        ],
+    },
+    {
+        label: "Craft on Earth",
+        options: [
+            { key: "viewSubCraftEarth", label: "Sub-Craft", color: "craft" },
+        ],
+    },
+]);
 const COMPOSER_PLANET_MAGNITUDE_BY_BODY = Object.freeze({
     Mercury: -1.9,
     Venus: -4.4,
@@ -611,6 +639,60 @@ function composerRollDialKnobOffset(rollRad, radiusPx) {
 
 function shouldRenderComposerLunarCraterHover(state = {}) {
     return state?.viewLunarCraters === true && state?.lunarCraterHoverLabels !== false;
+}
+
+function createComposerSurfacePointControls(documentRef) {
+    const panel = documentRef.createElement("div");
+    panel.className = "surface-points-controls-panel surface-points-controls-panel--anchored";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Frame and Shoot surface point controls");
+    panel.hidden = true;
+
+    const header = documentRef.createElement("div");
+    header.className = "surface-points-controls-panel__header";
+    const title = documentRef.createElement("span");
+    title.className = "surface-points-controls-panel__title";
+    title.textContent = "Surface Points";
+    const close = documentRef.createElement("button");
+    close.type = "button";
+    close.className = "surface-points-controls-panel__close";
+    close.textContent = "Close";
+    close.title = "Close surface point controls";
+    header.appendChild(title);
+    header.appendChild(close);
+    panel.appendChild(header);
+
+    const entries = [];
+    COMPOSER_SURFACE_POINT_CONTROL_GROUPS.forEach((group) => {
+        const section = documentRef.createElement("div");
+        section.className = "surface-points-controls-panel__section";
+        const sectionTitle = documentRef.createElement("div");
+        sectionTitle.className = "surface-points-controls-panel__section-title";
+        sectionTitle.textContent = group.label;
+        section.appendChild(sectionTitle);
+        group.options.forEach((option) => {
+            const label = documentRef.createElement("label");
+            label.className = "surface-points-controls-panel__option";
+            label.title = `${group.label}: ${option.label}`;
+            const input = documentRef.createElement("input");
+            input.type = "checkbox";
+            input.dataset.surfacePointKey = option.key;
+            input.setAttribute("aria-label", `${group.label} ${option.label}`);
+            const swatch = documentRef.createElement("span");
+            swatch.className = `surface-points-controls-panel__swatch surface-points-controls-panel__swatch--${option.color}`;
+            swatch.setAttribute("aria-hidden", "true");
+            const text = documentRef.createElement("span");
+            text.textContent = option.label;
+            label.appendChild(input);
+            label.appendChild(swatch);
+            label.appendChild(text);
+            section.appendChild(label);
+            entries.push({ key: option.key, input });
+        });
+        panel.appendChild(section);
+    });
+
+    return { close, entries, panel };
 }
 
 function isComposerPlanetVisibleForMagnitudeLimit(bodyName, magnitudeLimit) {
@@ -2554,6 +2636,9 @@ class AuxiliaryCameraViewsManager {
         let composerLunarCratersWrap = null;
         let composerLunarCratersPill = null;
         let composerLunarCraterControls = null;
+        let composerSurfacePointsWrap = null;
+        let composerSurfacePointsPill = null;
+        let composerSurfacePointControls = null;
         let composerStarMagnitudeSlider = null;
         let composerStarMagnitudeValue = null;
         let composerHint = null;
@@ -2671,6 +2756,25 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersWrap.appendChild(composerLunarCratersPill);
             composerLunarCratersWrap.appendChild(composerLunarCraterControls.panel);
             composerCraterRow.appendChild(composerLunarCratersWrap);
+
+            composerSurfacePointsWrap = document.createElement("div");
+            composerSurfacePointsWrap.className = "aux-camera-view__composer-crater-control aux-camera-view__composer-surface-point-control";
+            composerSurfacePointsPill = document.createElement("button");
+            composerSurfacePointsPill.type = "button";
+            composerSurfacePointsPill.className = "aux-camera-view__composer-pill";
+            composerSurfacePointsPill.setAttribute("aria-label", "Open Frame and Shoot surface point controls");
+            composerSurfacePointsPill.setAttribute("aria-haspopup", "dialog");
+            composerSurfacePointsPill.setAttribute("aria-expanded", "false");
+            composerSurfacePointsPill.setAttribute("aria-pressed", "false");
+            composerSurfacePointsPill.dataset.proofId = "surface-points-toggle";
+            composerSurfacePointsPill.textContent = "Surface Points";
+            composerSurfacePointControls = createComposerSurfacePointControls(document);
+            composerSurfacePointControls.pill = composerSurfacePointsPill;
+            composerSurfacePointControls.panel.id = "composer-surface-points-controls-panel";
+            composerSurfacePointsPill.setAttribute("aria-controls", composerSurfacePointControls.panel.id);
+            composerSurfacePointsWrap.appendChild(composerSurfacePointsPill);
+            composerSurfacePointsWrap.appendChild(composerSurfacePointControls.panel);
+            composerCraterRow.appendChild(composerSurfacePointsWrap);
 
             const composerStarMagnitudeRow = document.createElement("div");
             composerStarMagnitudeRow.className = "aux-camera-view__composer-optics-row aux-camera-view__composer-star-mag-row";
@@ -3513,6 +3617,9 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersWrap,
             composerLunarCratersPill,
             composerLunarCraterControls,
+            composerSurfacePointsWrap,
+            composerSurfacePointsPill,
+            composerSurfacePointControls,
             composerStarMagnitudeSlider,
             composerStarMagnitudeValue,
             composerHint,
@@ -3600,6 +3707,9 @@ class AuxiliaryCameraViewsManager {
             onComposerCloudsChange: null,
             onComposerLunarCratersPillClick: null,
             unbindComposerLunarCraterControls: null,
+            onComposerSurfacePointsPillClick: null,
+            onComposerSurfacePointsCloseClick: null,
+            onComposerSurfacePointToggle: null,
             onComposerRollInput: null,
             onComposerRollDialPointerDown: null,
             onComposerRollDialPointerMove: null,
@@ -3685,6 +3795,7 @@ class AuxiliaryCameraViewsManager {
             composerLunarCratersEnabled: false,
             composerLunarCraterState: createDefaultLunarFeatureViewState(),
             composerLunarCraterPointer: null,
+            composerSurfacePointState: createDefaultSurfacePointViewState(),
             composerStarMagnitudeLimit: COMPOSER_STAR_MAGNITUDE_DEFAULT,
             onOrbitViewportWheel: null,
             onAuxiliaryViewportWheel: null,
@@ -3934,6 +4045,25 @@ class AuxiliaryCameraViewsManager {
                 );
                 panelState.composerLunarCratersWrap?.setAttribute("title", "Open lunar feature controls");
             };
+            const syncComposerSurfacePointsUi = () => {
+                const controls = panelState.composerSurfacePointControls;
+                if (!controls) return;
+                panelState.composerSurfacePointState = patchSurfacePointViewState(
+                    createDefaultSurfacePointViewState(),
+                    panelState.composerSurfacePointState,
+                );
+                const anyActive = hasSurfacePointViewEnabled(panelState.composerSurfacePointState);
+                controls.entries?.forEach?.(({ key, input }) => {
+                    if (input) input.checked = panelState.composerSurfacePointState?.[key] === true;
+                });
+                panelState.composerSurfacePointsPill?.classList.toggle("is-active", anyActive);
+                panelState.composerSurfacePointsPill?.setAttribute("aria-pressed", anyActive ? "true" : "false");
+                panelState.composerSurfacePointsPill?.setAttribute(
+                    "aria-expanded",
+                    controls.panel?.hidden === false ? "true" : "false",
+                );
+                panelState.composerSurfacePointsWrap?.setAttribute("title", "Open surface point controls");
+            };
             const syncComposerOpticsUi = () => {
                 if (panelState.composerOpticsBody) {
                     panelState.composerOpticsBody.hidden = false;
@@ -4144,6 +4274,7 @@ class AuxiliaryCameraViewsManager {
                 panelState.composerConstellationLabelsEnabled = false;
                 panelState.composerStarMagnitudeLimit = COMPOSER_STAR_MAGNITUDE_DEFAULT;
                 panelState.composerEarthCloudsEnabled = true;
+                panelState.composerSurfacePointState = createDefaultSurfacePointViewState();
                 panelState.composerSunProfile = "camera";
                 panelState.composerExposureEv = COMPOSER_EXPOSURE_EV_DEFAULT;
                 panelState.composerAutoExposureEnabled = true;
@@ -4176,6 +4307,7 @@ class AuxiliaryCameraViewsManager {
                 syncComposerAmbientUi();
                 syncComposerStarMagnitudeUi();
                 syncComposerCloudsUi?.();
+                syncComposerSurfacePointsUi();
                 syncComposerOpticsUi();
                 syncComposerRollUi();
                 panelState.overlayDirty = true;
@@ -4205,6 +4337,15 @@ class AuxiliaryCameraViewsManager {
                 requestComposerControlRender();
                 this.queuePersistPanelState();
             };
+            const commitComposerSurfacePointPatch = (patch = {}) => {
+                activateComposerForControl();
+                panelState.composerSurfacePointState = patchSurfacePointViewState(
+                    panelState.composerSurfacePointState,
+                    patch,
+                );
+                syncComposerSurfacePointsUi();
+                requestComposerControlRender();
+            };
             const onComposerLunarCratersPillClick = (event) => {
                 activateComposerForControl();
                 event?.stopPropagation?.();
@@ -4212,6 +4353,24 @@ class AuxiliaryCameraViewsManager {
                 if (!panel) return;
                 panel.hidden = panel.hidden === false;
                 syncComposerLunarCratersUi();
+            };
+            const onComposerSurfacePointsPillClick = (event) => {
+                activateComposerForControl();
+                event?.stopPropagation?.();
+                const panel = panelState.composerSurfacePointControls?.panel;
+                if (!panel) return;
+                panel.hidden = panel.hidden === false;
+                syncComposerSurfacePointsUi();
+            };
+            const onComposerSurfacePointsCloseClick = () => {
+                const panel = panelState.composerSurfacePointControls?.panel;
+                if (panel) panel.hidden = true;
+                syncComposerSurfacePointsUi();
+            };
+            const onComposerSurfacePointToggle = (event) => {
+                const key = event?.target?.dataset?.surfacePointKey;
+                if (!key) return;
+                commitComposerSurfacePointPatch({ [key]: event.target.checked === true });
             };
             const syncComposerRollUi = () => {
                 const normalizedRoll = normalizeComposerRollRad(panelState.composerRollRad);
@@ -4740,6 +4899,11 @@ class AuxiliaryCameraViewsManager {
                     sync: () => syncComposerLunarCratersUi?.(),
                 });
             }
+            panelState.composerSurfacePointsPill?.addEventListener("click", onComposerSurfacePointsPillClick);
+            panelState.composerSurfacePointControls?.close?.addEventListener("click", onComposerSurfacePointsCloseClick);
+            panelState.composerSurfacePointControls?.entries?.forEach?.(({ input }) => {
+                input?.addEventListener?.("change", onComposerSurfacePointToggle);
+            });
             panelState.composerTimelineSlider?.addEventListener("input", onComposerTimelineInput, { passive: true });
             panelState.composerTimelineSlider?.addEventListener("pointerdown", onComposerTimelinePointerDown);
             panelState.composerTimelineSlider?.addEventListener("pointerup", onComposerTimelinePointerUp);
@@ -4799,6 +4963,9 @@ class AuxiliaryCameraViewsManager {
             panelState.onComposerStarMagnitudeInput = onComposerStarMagnitudeInput;
             panelState.onComposerCloudsChange = onComposerCloudsChange;
             panelState.onComposerLunarCratersPillClick = onComposerLunarCratersPillClick;
+            panelState.onComposerSurfacePointsPillClick = onComposerSurfacePointsPillClick;
+            panelState.onComposerSurfacePointsCloseClick = onComposerSurfacePointsCloseClick;
+            panelState.onComposerSurfacePointToggle = onComposerSurfacePointToggle;
             panelState.onComposerTimelineInput = onComposerTimelineInput;
             panelState.onComposerTimelinePointerDown = onComposerTimelinePointerDown;
             panelState.onComposerTimelinePointerUp = onComposerTimelinePointerUp;
@@ -4834,6 +5001,7 @@ class AuxiliaryCameraViewsManager {
             panelState.syncComposerExposureUi = syncComposerExposureUi;
             panelState.syncComposerCloudsUi = syncComposerCloudsUi;
             panelState.syncComposerLunarCratersUi = syncComposerLunarCratersUi;
+            panelState.syncComposerSurfacePointsUi = syncComposerSurfacePointsUi;
             setComposerAmbient("composerEarthAmbient", panelState.composerEarthAmbient, { persist: false });
             setComposerAmbient("composerMoonAmbient", panelState.composerMoonAmbient, { persist: false });
             setComposerEarthshineGain(panelState.composerEarthshineGain, { persist: false });
@@ -4843,6 +5011,7 @@ class AuxiliaryCameraViewsManager {
             syncComposerStarMagnitudeUi();
             syncComposerCloudsUi?.();
             syncComposerLunarCratersUi?.();
+            syncComposerSurfacePointsUi?.();
             syncComposerRollUi();
         }
         if (panelState.mode === "orbit-xy") {
@@ -5362,6 +5531,10 @@ class AuxiliaryCameraViewsManager {
             panelState.composerLunarCraterControls.disabled = disableControls;
             panelState.syncComposerLunarCratersUi?.();
         }
+        panelState.composerSurfacePointsPill && (panelState.composerSurfacePointsPill.disabled = disableControls);
+        panelState.composerSurfacePointControls?.entries?.forEach?.(({ input }) => {
+            if (input) input.disabled = disableControls;
+        });
         panelState.composerOpticsToggleButton && (panelState.composerOpticsToggleButton.disabled = disableControls);
         panelState.composerOpticsPhysicalButton && (panelState.composerOpticsPhysicalButton.disabled = disableControls);
         panelState.composerOpticsCameraButton && (panelState.composerOpticsCameraButton.disabled = disableControls);
@@ -6625,12 +6798,18 @@ class AuxiliaryCameraViewsManager {
         const fallbackState = createDefaultLunarFeatureViewState({
             viewLunarCraters: panelState.composerLunarCratersEnabled === true,
         });
-        this.renderLayersWithLunarCraterVisibility(panelState.renderer, scene, panelState.camera, {
-            ...options,
-            lunarCraterViewId: LUNAR_CRATER_VIEW_IDS.FRAME_AND_SHOOT,
-            lunarCraterViewState: panelState.composerLunarCraterState || fallbackState,
-            lunarCraterPointer: panelState.composerLunarCraterPointer,
-            freezeLunarCraterLabelScale: panelState.composerViewportPointer != null,
+        renderWithSurfacePointView({
+            animationScene: options.animationScene || null,
+            viewState: panelState.composerSurfacePointState || createDefaultSurfacePointViewState(),
+            render: () => {
+                this.renderLayersWithLunarCraterVisibility(panelState.renderer, scene, panelState.camera, {
+                    ...options,
+                    lunarCraterViewId: LUNAR_CRATER_VIEW_IDS.FRAME_AND_SHOOT,
+                    lunarCraterViewState: panelState.composerLunarCraterState || fallbackState,
+                    lunarCraterPointer: panelState.composerLunarCraterPointer,
+                    freezeLunarCraterLabelScale: panelState.composerViewportPointer != null,
+                });
+            },
         });
     }
 
@@ -10253,6 +10432,23 @@ class AuxiliaryCameraViewsManager {
                     "click",
                     panelState.onComposerLunarCratersPillClick,
                 );
+            }
+            if (panelState.onComposerSurfacePointsPillClick) {
+                panelState.composerSurfacePointsPill?.removeEventListener(
+                    "click",
+                    panelState.onComposerSurfacePointsPillClick,
+                );
+            }
+            if (panelState.onComposerSurfacePointsCloseClick) {
+                panelState.composerSurfacePointControls?.close?.removeEventListener(
+                    "click",
+                    panelState.onComposerSurfacePointsCloseClick,
+                );
+            }
+            if (panelState.onComposerSurfacePointToggle) {
+                panelState.composerSurfacePointControls?.entries?.forEach?.(({ input }) => {
+                    input?.removeEventListener?.("change", panelState.onComposerSurfacePointToggle);
+                });
             }
             if (panelState.unbindComposerLunarCraterControls) {
                 panelState.unbindComposerLunarCraterControls();

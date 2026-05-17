@@ -701,6 +701,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-crater-row {
     display: flex;
     align-items: center;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -715,6 +716,13 @@ html[data-app-view="selector"] .mission-loading-overlay,
     right: auto;
     left: 0;
     z-index: 16;
+}
+
+.aux-camera-view__composer-crater-control .surface-points-controls-panel {
+    top: calc(100% + 4px);
+    right: auto;
+    left: 0;
+    z-index: 1000;
 }
 
 .aux-camera-view__composer-control-matrix {

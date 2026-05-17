@@ -108,6 +108,7 @@ function applySceneViewPlanToScene({
     if (scene.sceneHelpers?.setBodyHalosVisible) {
         scene.sceneHelpers.setBodyHalosVisible(view.viewBodyHalos);
     }
+    scene.setSurfacePointMarkersVisible?.(scene.surfacePointViewState || {});
 
     if (globalConfig?.is_lunar) {
         scene.moonNorthPoleSphere.visible = viewMoonPoles;

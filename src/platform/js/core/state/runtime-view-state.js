@@ -39,6 +39,18 @@ const VIEW_FLAG_KEYS = [
     "viewMoonHillSphere",
     "viewBodyHalos",
     "viewMoonOsculatingOrbit",
+    "viewSubSolarEarth",
+    "viewSubSolarMoon",
+    "viewSubMoonEarth",
+    "viewSolarGlintEarth",
+    "viewLunarGlintEarth",
+    "viewSubCraftEarth",
+    "viewSubCraftMoon",
+    "viewAntiSolarEarth",
+    "viewAntiSolarMoon",
+    "viewAntiMoonEarth",
+    "viewAntiCraftEarth",
+    "viewAntiCraftMoon",
     "viewEclipticPlane",
     "viewEquatorialPlane",
     "viewFPS",
@@ -124,6 +136,18 @@ function buildDefaultViewFlags() {
         viewMoonHillSphere: false,
         viewBodyHalos: true,
         viewMoonOsculatingOrbit: true,
+        viewSubSolarEarth: false,
+        viewSubSolarMoon: false,
+        viewSubMoonEarth: false,
+        viewSolarGlintEarth: false,
+        viewLunarGlintEarth: false,
+        viewSubCraftEarth: false,
+        viewSubCraftMoon: false,
+        viewAntiSolarEarth: false,
+        viewAntiSolarMoon: false,
+        viewAntiMoonEarth: false,
+        viewAntiCraftEarth: false,
+        viewAntiCraftMoon: false,
         viewEclipticPlane: false,
         viewEquatorialPlane: false,
         viewFPS: true,
@@ -487,6 +511,54 @@ function createRuntimeViewState({
         getViewMoonOsculatingOrbit: () => getEffectiveViewFlags().viewMoonOsculatingOrbit,
         setViewMoonOsculatingOrbit: (value) => {
             viewFlags.viewMoonOsculatingOrbit = Boolean(value);
+        },
+        getViewSubSolarEarth: () => getEffectiveViewFlags().viewSubSolarEarth,
+        setViewSubSolarEarth: (value) => {
+            viewFlags.viewSubSolarEarth = Boolean(value);
+        },
+        getViewSubSolarMoon: () => getEffectiveViewFlags().viewSubSolarMoon,
+        setViewSubSolarMoon: (value) => {
+            viewFlags.viewSubSolarMoon = Boolean(value);
+        },
+        getViewSubMoonEarth: () => getEffectiveViewFlags().viewSubMoonEarth,
+        setViewSubMoonEarth: (value) => {
+            viewFlags.viewSubMoonEarth = Boolean(value);
+        },
+        getViewSolarGlintEarth: () => getEffectiveViewFlags().viewSolarGlintEarth,
+        setViewSolarGlintEarth: (value) => {
+            viewFlags.viewSolarGlintEarth = Boolean(value);
+        },
+        getViewLunarGlintEarth: () => getEffectiveViewFlags().viewLunarGlintEarth,
+        setViewLunarGlintEarth: (value) => {
+            viewFlags.viewLunarGlintEarth = Boolean(value);
+        },
+        getViewSubCraftEarth: () => getEffectiveViewFlags().viewSubCraftEarth,
+        setViewSubCraftEarth: (value) => {
+            viewFlags.viewSubCraftEarth = Boolean(value);
+        },
+        getViewSubCraftMoon: () => getEffectiveViewFlags().viewSubCraftMoon,
+        setViewSubCraftMoon: (value) => {
+            viewFlags.viewSubCraftMoon = Boolean(value);
+        },
+        getViewAntiSolarEarth: () => getEffectiveViewFlags().viewAntiSolarEarth,
+        setViewAntiSolarEarth: (value) => {
+            viewFlags.viewAntiSolarEarth = Boolean(value);
+        },
+        getViewAntiSolarMoon: () => getEffectiveViewFlags().viewAntiSolarMoon,
+        setViewAntiSolarMoon: (value) => {
+            viewFlags.viewAntiSolarMoon = Boolean(value);
+        },
+        getViewAntiMoonEarth: () => getEffectiveViewFlags().viewAntiMoonEarth,
+        setViewAntiMoonEarth: (value) => {
+            viewFlags.viewAntiMoonEarth = Boolean(value);
+        },
+        getViewAntiCraftEarth: () => getEffectiveViewFlags().viewAntiCraftEarth,
+        setViewAntiCraftEarth: (value) => {
+            viewFlags.viewAntiCraftEarth = Boolean(value);
+        },
+        getViewAntiCraftMoon: () => getEffectiveViewFlags().viewAntiCraftMoon,
+        setViewAntiCraftMoon: (value) => {
+            viewFlags.viewAntiCraftMoon = Boolean(value);
         },
         getViewEclipticPlane: () => getEffectiveViewFlags().viewEclipticPlane,
         setViewEclipticPlane: (value) => {
