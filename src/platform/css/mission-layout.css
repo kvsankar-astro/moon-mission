@@ -4324,6 +4324,19 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
         max-width: 28vw;
     }
 
+    .timeline-dock__current-row {
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: pan-x;
+    }
+
+    .timeline-dock__current-row:focus-visible {
+        outline: 2px solid var(--ui-focus);
+        outline-offset: 3px;
+        border-radius: var(--ui-radius-xs);
+    }
+
     .timeline-dock__slider {
         top: 0;
         height: 28px;
@@ -4359,6 +4372,14 @@ body.mobile-shell-enabled .mission-floating-collapse-btn {
     .timeline-dock__markers--media,
     .timeline-dock__media-rail {
         display: none;
+    }
+
+    #timeline-media-toggle,
+    #panel-pill-media,
+    #media-browser-panel-wrapper,
+    #media-browser-panel {
+        display: none !important;
+        pointer-events: none !important;
     }
 
     body.mobile-shell-enabled .timeline-dock__playhead,

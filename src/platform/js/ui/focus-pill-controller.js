@@ -34,6 +34,11 @@ export function createFocusPillController(deps = {}) {
         return resolveCurrentMissionKey(windowRef) === "artemis2";
     }
 
+    function shouldAllowMediaPanel() {
+        const mediaQuery = windowRef?.matchMedia?.("(min-width: 601px)");
+        return mediaQuery ? mediaQuery.matches === true : true;
+    }
+
     function resolveTimelineEventButtonByKeys(keys) {
         if (!Array.isArray(keys) || keys.length === 0) return null;
         const normalizedKeys = keys
@@ -81,7 +86,7 @@ export function createFocusPillController(deps = {}) {
         const splashdownVisible = isArtemis2Mission() && !!resolveTimelineEventButtonByKeys(["splashdown"]);
         setShortcutHidden("flyby-pill", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-background", !panelShortcutsVisible);
-        setShortcutHidden("panel-pill-media", !panelShortcutsVisible);
+        setShortcutHidden("panel-pill-media", !panelShortcutsVisible || !shouldAllowMediaPanel());
         setShortcutHidden("focus-pill-splashdown", !splashdownVisible);
         setShortcutHidden("panel-pill-craft-moon", !panelShortcutsVisible);
         setShortcutHidden("panel-pill-craft-earth", !panelShortcutsVisible);
@@ -225,6 +230,7 @@ export function createFocusPillController(deps = {}) {
     }
 
     function restoreMediaPanel() {
+        if (!shouldAllowMediaPanel()) return;
         const restored = invokeFirstAvailablePanelAction("workflow:media-browser", ["restore", "open", "focus"]);
         if (!restored) {
             documentRef?.dispatchEvent?.(createCustomEvent("media-browser-panel-open"));
@@ -233,6 +239,10 @@ export function createFocusPillController(deps = {}) {
     }
 
     function toggleMediaPanel() {
+        if (!shouldAllowMediaPanel()) {
+            closePanel("workflow:media-browser");
+            return;
+        }
         if (isMediaPanelVisible()) {
             closePanel("workflow:media-browser");
             return;
@@ -323,6 +333,12 @@ export function createFocusPillController(deps = {}) {
 
         documentRef?.addEventListener?.("ground-track-panel-visibilitychange", syncFocusPillState);
         documentRef?.addEventListener?.("mission-media-panel-state", syncFocusPillState);
+        windowRef?.addEventListener?.("resize", () => {
+            if (!shouldAllowMediaPanel()) {
+                closePanel("workflow:media-browser");
+            }
+            sync();
+        });
         sync();
     }
 

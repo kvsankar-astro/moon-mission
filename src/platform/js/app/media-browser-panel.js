@@ -135,6 +135,11 @@ function getWindowRef() {
     return globalThis.window || null;
 }
 
+function shouldAllowMediaBrowserPanel() {
+    const mediaQuery = getWindowRef()?.matchMedia?.("(min-width: 601px)");
+    return mediaQuery ? mediaQuery.matches === true : true;
+}
+
 function isObjectLike(value) {
     return value !== null && typeof value === "object";
 }
@@ -329,6 +334,7 @@ function createMediaBrowserPanelActions({
     let missionConfigData = null;
     let missionLabel = "Current mission";
     let panelAvailable = false;
+    let panelAvailableForMission = false;
     let panelTitle = "Mission Media";
     let mediaCountLabel = "--";
     let panelVisibilityState = "closed";
@@ -1530,6 +1536,7 @@ function createMediaBrowserPanelActions({
     }
 
     function syncPanelAvailability() {
+        panelAvailable = panelAvailableForMission && shouldAllowMediaBrowserPanel();
         const wrapper = getNode("media-browser-panel-wrapper");
         if (isElementLike(wrapper)) {
             wrapper.hidden = !panelAvailable;
@@ -1600,7 +1607,7 @@ function createMediaBrowserPanelActions({
             : (nextState === "deleted"
                 ? "deleted"
                 : (nextState === "open" ? "open" : "closed"));
-        if (resolvedState === "open" && !panelAvailable) {
+        if (resolvedState === "open" && (!panelAvailable || !shouldAllowMediaBrowserPanel())) {
             syncPanelAvailability();
             return;
         }
@@ -2776,6 +2783,11 @@ function createMediaBrowserPanelActions({
         }
 
         getWindowRef()?.addEventListener?.("resize", () => {
+            syncPanelAvailability();
+            if (!shouldAllowMediaBrowserPanel()) {
+                setPanelState("closed");
+                return;
+            }
             if (!isElementLike(panel)) return;
             if (!panel.classList.contains("media-browser-panel--hidden")) {
                 if (panelExpanded === true) {
@@ -2809,7 +2821,7 @@ function createMediaBrowserPanelActions({
         const enabledByMission = missionConfigData
             ? isMissionPanelEnabled(missionConfigData, MEDIA_BROWSER_PANEL_ID, { fallbackEnabled: false })
             : false;
-        panelAvailable = available === true && enabledByMission;
+        panelAvailableForMission = available === true && enabledByMission;
         ensurePanelEventsBound();
         applyConfiguredDefaultPanelState();
         syncPanelAvailability();

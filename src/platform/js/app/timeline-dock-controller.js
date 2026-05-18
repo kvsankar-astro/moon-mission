@@ -175,8 +175,10 @@ function createTimelineDockController({
     const currentLabel = document.getElementById("timeline-current-label");
     const utcYearElapsedLabel = document.getElementById("timeline-utc-year-elapsed-label");
     const missionElapsedLabel = document.getElementById("timeline-mission-elapsed-label");
+    const currentRow = document.getElementById("timeline-current-row") || currentLabel?.parentElement || null;
     const craftStrip = document.getElementById("timeline-craft-strip");
     const EVENT_MARKER_HOVERED_CLASS = "timeline-dock__marker--hovered";
+    const TIME_READOUT_MODES = ["local", "utc", "met"];
 
     if (!slider || !markers || !startLabel || !endLabel || !currentLabel || !craftStrip) {
         return {
@@ -217,6 +219,66 @@ function createTimelineDockController({
         detail: "",
         title: "",
     };
+    let compactTimeReadoutModeIndex = 0;
+    let timeReadoutPointerStart = null;
+    let suppressNextTimeReadoutClick = false;
+
+    function isCompactTimelineLayout() {
+        if (typeof window === "undefined") return false;
+        if (document?.body?.classList?.contains?.("mobile-shell-enabled")) return true;
+        return window.matchMedia?.("(max-width: 600px)")?.matches === true;
+    }
+
+    function getCompactTimeReadoutMode() {
+        return TIME_READOUT_MODES[
+            ((compactTimeReadoutModeIndex % TIME_READOUT_MODES.length) + TIME_READOUT_MODES.length) %
+                TIME_READOUT_MODES.length
+        ];
+    }
+
+    function setCompactTimeReadoutMode(nextModeIndex) {
+        compactTimeReadoutModeIndex = Number.isFinite(nextModeIndex)
+            ? Math.round(nextModeIndex)
+            : compactTimeReadoutModeIndex + 1;
+        syncTimeReadoutVisibility();
+    }
+
+    function syncTimeReadoutVisibility() {
+        const compact = isCompactTimelineLayout();
+        const mode = compact ? getCompactTimeReadoutMode() : "all";
+        dockRoot?.setAttribute?.("data-time-readout", mode);
+
+        if (currentMode.compareMode) {
+            currentLabel.hidden = false;
+            if (utcYearElapsedLabel) utcYearElapsedLabel.hidden = true;
+            if (missionElapsedLabel) missionElapsedLabel.hidden = true;
+            currentRow?.removeAttribute?.("role");
+            currentRow?.removeAttribute?.("tabindex");
+            currentRow?.removeAttribute?.("title");
+            return;
+        }
+
+        if (!compact) {
+            currentLabel.hidden = false;
+            if (utcYearElapsedLabel) utcYearElapsedLabel.hidden = !utcYearElapsedLabel.textContent;
+            if (missionElapsedLabel) missionElapsedLabel.hidden = !missionElapsedLabel.textContent;
+            currentRow?.removeAttribute?.("role");
+            currentRow?.removeAttribute?.("tabindex");
+            currentRow?.removeAttribute?.("title");
+            return;
+        }
+
+        currentLabel.hidden = mode !== "local";
+        if (utcYearElapsedLabel) {
+            utcYearElapsedLabel.hidden = mode !== "utc" || !utcYearElapsedLabel.textContent;
+        }
+        if (missionElapsedLabel) {
+            missionElapsedLabel.hidden = mode !== "met" || !missionElapsedLabel.textContent;
+        }
+        currentRow?.setAttribute?.("role", "button");
+        currentRow?.setAttribute?.("tabindex", "0");
+        currentRow?.setAttribute?.("title", "Tap or swipe to switch local, UTC, and MET time");
+    }
 
     function updateCurrentLabel(timeMs) {
         if (currentMode.compareMode) {
@@ -237,6 +299,7 @@ function createTimelineDockController({
                 "aria-valuetext",
                 `Comparison elapsed time ${elapsedLabel}`,
             );
+            syncTimeReadoutVisibility();
             return;
         }
 
@@ -266,6 +329,7 @@ function createTimelineDockController({
                 missionElapsedText ? `mission elapsed time ${missionElapsedText}` : "",
             ].filter(Boolean).join(", "),
         );
+        syncTimeReadoutVisibility();
     }
 
     function getTrackWidthPx() {
@@ -600,6 +664,11 @@ function createTimelineDockController({
     function renderVisualTimeline() {
         updateEdgeLabels();
         syncSliderRangeToView();
+        if (Number.isFinite(currentTimeMs)) {
+            updateCurrentLabel(currentTimeMs);
+        } else {
+            syncTimeReadoutVisibility();
+        }
         renderTimeLabels();
         renderEventMarkersFromCache();
         renderMediaMarkersFromCache();
@@ -1626,6 +1695,11 @@ function createTimelineDockController({
             };
         };
 
+        const cycleCompactTimeReadout = (direction = 1) => {
+            if (!isCompactTimelineLayout() || currentMode.compareMode) return;
+            setCompactTimeReadoutMode(compactTimeReadoutModeIndex + direction);
+        };
+
         slider.addEventListener("input", () => {
             const payload = readSliderEventPayload();
             const timeMs = payload.timeMs;
@@ -1701,6 +1775,35 @@ function createTimelineDockController({
             endTimelineDrag(event, true);
         });
         pointerSurface?.addEventListener?.("dblclick", handleTimelineDoubleClick);
+
+        currentRow?.addEventListener?.("click", () => {
+            if (suppressNextTimeReadoutClick) {
+                suppressNextTimeReadoutClick = false;
+                return;
+            }
+            cycleCompactTimeReadout(1);
+        });
+        currentRow?.addEventListener?.("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault?.();
+            cycleCompactTimeReadout(1);
+        });
+        currentRow?.addEventListener?.("pointerdown", (event) => {
+            if (!isCompactTimelineLayout()) return;
+            timeReadoutPointerStart = {
+                pointerId: event.pointerId,
+                clientX: Number(event.clientX),
+            };
+        });
+        currentRow?.addEventListener?.("pointerup", (event) => {
+            if (!timeReadoutPointerStart || event.pointerId !== timeReadoutPointerStart.pointerId) return;
+            const deltaX = Number(event.clientX) - Number(timeReadoutPointerStart.clientX);
+            timeReadoutPointerStart = null;
+            if (Math.abs(deltaX) < 28) return;
+            event.preventDefault?.();
+            suppressNextTimeReadoutClick = true;
+            cycleCompactTimeReadout(deltaX < 0 ? 1 : -1);
+        });
 
         if (typeof window !== "undefined" && typeof window.addEventListener === "function") {
             window.addEventListener("resize", renderVisualTimeline);
