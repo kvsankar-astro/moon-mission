@@ -139,7 +139,7 @@ describe("CameraController mounted wheel FoV behavior", () => {
         expect(controller.camera.position.z).toBeCloseTo(350, 8);
     });
 
-    it("lets TrackballControls keep drag orientation stable in manual follow mode", () => {
+    it("keeps manual follow drags north-up while allowing orbit around the target", () => {
         const controller = createController();
         const moon = new THREE.Object3D();
         moon.position.set(100, 200, 300);
@@ -157,8 +157,13 @@ describe("CameraController mounted wheel FoV behavior", () => {
 
         controller.updateFromTo({ moon });
 
+        const viewDir = moon.position.clone().sub(userOrbitPosition).normalize();
+        const expectedUp = new THREE.Vector3(0, 0, 1)
+            .addScaledVector(viewDir, -viewDir.z)
+            .normalize();
+
         expect(controller.camera.position.distanceTo(userOrbitPosition)).toBeLessThan(1e-12);
-        expect(controller.camera.up.distanceTo(userOrbitUp)).toBeLessThan(1e-12);
+        expect(controller.camera.up.distanceTo(expectedUp)).toBeLessThan(1e-12);
         expect(controller.controls.target.toArray()).toEqual(moon.position.toArray());
         expect(controller.controls.noRotate).toBe(false);
         expect(controller.controls.noPan).toBe(false);

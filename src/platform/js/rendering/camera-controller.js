@@ -439,33 +439,17 @@ export class CameraController {
         if (hasForcedLook) {
             const lookPos = this._resolveTargetWorld(this.lookMode, this._lookWorld);
             if (lookPos) {
-                let initializedFollowOffset = false;
                 if (!hasPositionMount) {
                     if (this._pendingFollowOffsetInit) {
                         this.followOffset.copy(this.camera.position).sub(lookPos);
                         this._pendingFollowOffsetInit = false;
-                        initializedFollowOffset = true;
                     }
                     this.camera.position.copy(lookPos).add(this.followOffset);
                 }
 
                 const allowOrbitAroundTarget =
                     (this.positionMode === CAMERA_POSITION_MODE.MANUAL);
-                const shouldUseGlobalUp =
-                    !allowOrbitAroundTarget ||
-                    initializedFollowOffset ||
-                    isSemanticMountedCrossBodyView ||
-                    hasPositionMount;
-
-                if (shouldUseGlobalUp) {
-                    this._applyEclipticNorthUp(lookPos);
-                } else {
-                    if (this.camera.up.lengthSq() < 1e-18) {
-                        this.camera.up.set(0, 0, 1);
-                    } else {
-                        this.camera.up.normalize();
-                    }
-                }
+                this._applyEclipticNorthUp(lookPos);
                 if (this.controls) {
                     this.controls.target.copy(lookPos);
                     if (hasPositionMount) {
