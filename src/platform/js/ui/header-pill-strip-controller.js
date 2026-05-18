@@ -83,7 +83,6 @@ export function createHeaderPillStripController(deps = {}) {
 
     function expandGroups() {
         if (isMobileControlLayout()) {
-            syncUi();
             return;
         }
         lastGroupActivityAt = nowImpl();
@@ -106,7 +105,6 @@ export function createHeaderPillStripController(deps = {}) {
 
     function scheduleGroupsCollapse() {
         if (isMobileControlLayout()) {
-            syncUi();
             return;
         }
         lastGroupActivityAt = nowImpl();

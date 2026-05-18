@@ -211,6 +211,12 @@ describe("createHeaderPillStripController", function () {
         harness.controller.bind();
         expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
 
+        harness.primary.scrollLeft = 24;
+        harness.secondary.scrollLeft = 30;
+        harness.strip.dispatchEvent({ type: "pointermove" });
+        expect(harness.primary.scrollLeft).toBe(24);
+        expect(harness.secondary.scrollLeft).toBe(30);
+
         harness.strip.dispatchEvent({ type: "pointerleave" });
         expect(harness.hasPendingTimeout()).toBe(false);
         expect(harness.strip.classList.contains("header-pill-strip--groups-expanded")).toBe(true);
