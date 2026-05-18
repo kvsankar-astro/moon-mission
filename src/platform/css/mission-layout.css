@@ -415,7 +415,7 @@ canvas {
 .mission-loading-overlay {
     position: fixed;
     inset: 0;
-    z-index: 100000;
+    z-index: var(--ui-layer-modal);
     display: grid;
     place-items: center;
     padding: 24px;
@@ -751,7 +751,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     top: calc(100% + 4px);
     right: auto;
     left: 0;
-    z-index: 2147483001;
+    z-index: calc(var(--ui-config-popover-z) + 1);
     pointer-events: auto;
 }
 
@@ -759,7 +759,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
     top: calc(100% + 4px);
     right: auto;
     left: 0;
-    z-index: 1000;
+    z-index: calc(var(--ui-config-popover-z) + 1);
 }
 
 .aux-camera-view__composer-control-matrix {
@@ -1733,7 +1733,7 @@ html[data-app-view="selector"] .mission-loading-overlay,
 .aux-camera-view__composer-dial-cardinal {
     position: absolute;
     color: rgba(177, 204, 238, 0.62);
-    font-size: 7px;
+    font-size: var(--ui-type-micro);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
@@ -4673,7 +4673,7 @@ table {
         border: 1px solid rgba(121, 171, 255, 0.24);
         background: rgba(18, 31, 50, 0.74);
         color: rgba(197, 220, 250, 0.88);
-        font-size: 7px;
+        font-size: var(--ui-type-micro);
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
@@ -4920,7 +4920,7 @@ table {
         color: rgba(185, 209, 245, 0.92);
         text-transform: uppercase;
         letter-spacing: 0.03em;
-        font-size: 7px;
+        font-size: var(--ui-type-micro);
         text-align: right;
         white-space: nowrap;
     }
@@ -5004,7 +5004,7 @@ table {
         justify-self: start;
         min-height: 20px;
         padding: 0 8px;
-        font-size: 7px;
+        font-size: var(--ui-type-micro);
     }
 
     body.mobile-shell-enabled .mobile-shell__compose-row {

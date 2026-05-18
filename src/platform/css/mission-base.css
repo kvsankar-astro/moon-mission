@@ -60,6 +60,7 @@
     --header-pill-launcher-color: #b8d48a;
     --header-pill-launcher-border: rgba(184, 212, 138, 0.58);
     --header-pill-launcher-bg: rgba(118, 150, 74, 0.16);
+    --ui-layer-modal: 100000;
     --ui-config-popover-z: 2147483000;
     --timeline-dock-height: 94px;
     --timeline-dock-offset: 6px;
@@ -384,7 +385,8 @@ textarea {
     grid-template-columns: minmax(0, max-content);
 }
 
-.header-pill-group--panels .header-pill-segment {
+.header-pill-group--panels .header-pill-segment,
+.header-pill-group--annotations .header-pill-segment {
     gap: 1px;
     border-color: rgba(184, 212, 138, 0.22);
     border-radius: 999px;
@@ -409,20 +411,21 @@ textarea {
 }
 
 .header-pill-group--panels .header-pill-segment__btn,
+.header-pill-group--annotations .header-pill-segment__btn,
 .header-pill-segment--single .header-pill-segment__btn,
 .header-pill-segment__btn[aria-haspopup="dialog"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
     border-radius: 999px;
 }
 
-#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn {
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn {
     display: none;
 }
 
-#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn.is-active,
-#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn.is-open,
-#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn[aria-pressed="true"],
-#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(:focus-within) .header-pill-segment__btn[aria-expanded="true"],
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-active,
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn.is-open,
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-pressed="true"],
+#header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group:not(.header-pill-group--panels):not(.header-pill-group--annotations):not(:focus-within) .header-pill-segment__btn[aria-expanded="true"],
 #header-pill-strip:not(.header-pill-strip--groups-expanded) .header-pill-group--choice:not(:focus-within) .header-pill-segment:not(:has(.header-pill-segment__btn.is-active, .header-pill-segment__btn.is-open, .header-pill-segment__btn[aria-pressed="true"], .header-pill-segment__btn[aria-expanded="true"])) .header-pill-segment__btn:first-of-type {
     display: block;
 }
@@ -531,6 +534,7 @@ textarea {
 
 .header-pill-segment--single .header-pill-segment__btn,
 .header-pill-group--panels .header-pill-segment__btn,
+.header-pill-group--annotations .header-pill-segment__btn,
 .header-pill-segment__btn[aria-haspopup="dialog"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"] {
     color: var(--header-pill-launcher-color);
@@ -539,6 +543,7 @@ textarea {
 
 .header-pill-segment--single .header-pill-segment__btn:hover,
 .header-pill-group--panels .header-pill-segment__btn:hover,
+.header-pill-group--annotations .header-pill-segment__btn:hover,
 .header-pill-segment__btn[aria-haspopup="dialog"]:hover,
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"]:hover {
     color: #d9efad;
@@ -552,6 +557,10 @@ textarea {
 .header-pill-group--panels .header-pill-segment__btn[aria-pressed="true"],
 .header-pill-group--panels .header-pill-segment__btn.is-open,
 .header-pill-group--panels .header-pill-segment__btn[aria-expanded="true"],
+.header-pill-group--annotations .header-pill-segment__btn.is-active,
+.header-pill-group--annotations .header-pill-segment__btn[aria-pressed="true"],
+.header-pill-group--annotations .header-pill-segment__btn.is-open,
+.header-pill-group--annotations .header-pill-segment__btn[aria-expanded="true"],
 .header-pill-segment__btn[aria-haspopup="dialog"].is-open,
 .header-pill-segment__btn[aria-haspopup="dialog"][aria-expanded="true"],
 .header-pill-segment__btn[aria-controls="lunar-crater-controls-panel"].is-open,
@@ -680,9 +689,9 @@ textarea {
 .guides-controls-panel__section,
 .surface-points-controls-panel__section {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px 6px;
-    padding-top: 3px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+    padding-top: 5px;
     border-top: 1px solid rgba(121, 171, 255, 0.12);
 }
 
@@ -697,18 +706,28 @@ textarea {
 
 .guides-controls-panel__option,
 .surface-points-controls-panel__option {
-    display: flex;
+    display: grid;
     align-items: center;
-    gap: 7px;
-    min-height: 23px;
-    padding: 3px 6px;
-    border: 1px solid rgba(100, 130, 180, 0.18);
-    border-radius: 6px;
-    background: rgba(5, 10, 17, 0.42);
+    min-height: 21px;
+    padding: 2px 4px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
     color: rgba(219, 230, 247, 0.9);
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.2;
     cursor: pointer;
+}
+
+.guides-controls-panel__option {
+    grid-template-columns: 13px minmax(0, 1fr);
+    gap: 7px;
+}
+
+.surface-points-controls-panel__option {
+    grid-template-columns: 13px 10px minmax(0, 1fr);
+    gap: 6px;
 }
 
 .guides-controls-panel__option--scene {
@@ -718,8 +737,8 @@ textarea {
 
 .guides-controls-panel__option:hover,
 .surface-points-controls-panel__option:hover {
-    border-color: rgba(160, 196, 255, 0.48);
-    background: rgba(30, 52, 86, 0.46);
+    border-color: rgba(160, 196, 255, 0.16);
+    background: rgba(30, 52, 86, 0.26);
 }
 
 .guides-controls-panel__option input,
@@ -927,7 +946,7 @@ textarea {
 .lunar-crater-controls-panel__type-group-tabs {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    gap: 4px;
     padding: 0 1px;
     border-bottom: 1px solid rgba(121, 171, 255, 0.18);
 }
@@ -940,9 +959,9 @@ textarea {
     border-radius: 0;
     background: transparent;
     color: rgba(188, 208, 241, 0.72);
-    font-size: 7px;
+    font-size: var(--ui-type-micro);
     font-weight: 700;
-    line-height: 1.08;
+    line-height: 1.12;
     text-align: center;
     text-transform: uppercase;
     white-space: normal;

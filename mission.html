@@ -1054,18 +1054,6 @@
                     <button id="toggle-pill-ecliptic" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle ecliptic plane">Ecliptic</button>
                     <button id="toggle-pill-equatorial" type="button" class="header-toggle-pill" aria-pressed="false" title="Toggle equatorial plane">Equatorial</button>
                     <button
-                        id="toggle-pill-surface-points"
-                        type="button"
-                        class="header-toggle-pill"
-                        aria-pressed="false"
-                        aria-expanded="false"
-                        aria-haspopup="dialog"
-                        aria-controls="surface-points-controls-panel"
-                        title="Open sub-point surface marker controls"
-                    >
-                        Surface Points
-                    </button>
-                    <button
                         id="toggle-pill-craters"
                         type="button"
                         class="header-toggle-pill"
@@ -1075,18 +1063,6 @@
                         aria-hidden="true"
                     >
                         Moon Sites
-                    </button>
-                    <button
-                        id="toggle-pill-guides"
-                        type="button"
-                        class="header-toggle-pill"
-                        aria-pressed="false"
-                        aria-expanded="false"
-                        aria-haspopup="dialog"
-                        aria-controls="guides-controls-panel"
-                        title="Open Earth and Moon guide controls"
-                    >
-                        Guides
                     </button>
                 </div>
                 <div
@@ -1431,19 +1407,46 @@
                             <button id="moon-profile-pill-quality" type="button" class="header-pill-segment__btn" aria-pressed="false" title="Use the detailed Moon surface asset profile">Detailed</button>
                         </div>
                     </div>
-                    <div id="lunar-features-pill-wrap" class="header-pill-segment header-pill-segment--single">
-                        <button
-                            id="toggle-pill-lunar-craters"
-                            type="button"
-                            class="header-pill-segment__btn"
-                            aria-pressed="false"
-                            aria-expanded="false"
-                            aria-haspopup="dialog"
-                            aria-controls="lunar-crater-controls-panel"
-                            title="Open lunar feature controls"
-                        >
-                            Lunar Features
-                        </button>
+                    <div class="header-pill-group header-pill-group--annotations" role="group" aria-label="Annotation controls">
+                        <span class="header-pill-group__label">Annotations</span>
+                        <div class="header-pill-segment" role="group" aria-label="Annotation configuration panels">
+                            <button
+                                id="toggle-pill-lunar-craters"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                aria-expanded="false"
+                                aria-haspopup="dialog"
+                                aria-controls="lunar-crater-controls-panel"
+                                title="Open lunar feature controls"
+                            >
+                                Lunar Features
+                            </button>
+                            <button
+                                id="toggle-pill-surface-points"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                aria-expanded="false"
+                                aria-haspopup="dialog"
+                                aria-controls="surface-points-controls-panel"
+                                title="Open sub-point surface marker controls"
+                            >
+                                Surface Points
+                            </button>
+                            <button
+                                id="toggle-pill-guides"
+                                type="button"
+                                class="header-pill-segment__btn"
+                                aria-pressed="false"
+                                aria-expanded="false"
+                                aria-haspopup="dialog"
+                                aria-controls="guides-controls-panel"
+                                title="Open Earth and Moon guide controls"
+                            >
+                                Guides
+                            </button>
+                        </div>
                     </div>
                     <div id="compare-pill-wrap" class="header-pill-segment header-pill-segment--single">
                         <button
